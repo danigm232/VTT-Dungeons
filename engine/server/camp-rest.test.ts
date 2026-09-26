@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { NullEngine } from '@babylonjs/core/Engines/nullEngine.js';
 import { Scene } from '@babylonjs/core/scene.js';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import { campRestsBundle } from '../../campaigns/camp-rests/server.js';
 import { stormwreckBundle } from '../../campaigns/stormwreck-isle/server.js';
 import { createCampVisuals } from '../../campaigns/camp-rests/public/visuals.js';
@@ -17,6 +18,34 @@ const act = (state: GameState, action: Extract<DmCommand, { type: 'camp:rest' }>
 } as Extract<DmCommand, { type: 'camp:rest' }>);
 
 describe('módulo autónomo de campamentos', () => {
+  it('rediseña sólo A1 sin mutar navegación y corta las paredes según la cámara', () => {
+    const engine = new NullEngine(); const scene = new Scene(engine);
+    try {
+      const definition=campRestsBundle.public.scenes.find(s=>s.id==='camp-a1-rooms')!;
+      const before=JSON.stringify(definition),view=buildTerrain3D(scene,definition.terrain!,{renderTiles:false,batchTiles:true});
+      const visuals=createCampVisuals(scene,definition)!;
+      expect(JSON.stringify(definition)).toBe(before);
+      expect(visuals.root.metadata).toMatchObject({cells:6,beds:4,hammocks:8,openEntrances:6,content:'CANON'});
+      expect(scene.meshes.every(m=>!m.checkCollisions && !m.isPickable)).toBe(true);
+      expect(scene.getLightByName('terrain-ambient')!.isEnabled()).toBe(false);
+      const bay=scene.getMeshByName('a1:bay-background')!;
+      expect(bay.position.y).toBeLessThan(-9);
+      expect(bay.metadata).toMatchObject({content:'VTT_AMBIENCE',decorativeOnly:true});
+      expect(bay.parent).toBe(visuals.root);
+      expect(scene.meshes.some(m=>/tent|campfire/.test(m.name))).toBe(false);
+      const front=scene.meshes.filter(m=>m.name.includes('a1:room-3:face-4'));
+      const back=scene.meshes.filter(m=>m.name.includes('a1:room-3:face-0'));
+      expect(front.length).toBeGreaterThan(0);expect(back.length).toBeGreaterThan(0);
+      view.camera.setPosition(new Vector3(28,20,35));view.camera.getViewMatrix(true);
+      visuals.update(1,'arrival');visuals.update(2,'arrival');
+      expect(front.every(m=>m.scaling.y<.1)).toBe(true);expect(back.every(m=>m.scaling.y>.9)).toBe(true);
+      view.camera.setPosition(new Vector3(28,20,-20));view.camera.getViewMatrix(true);
+      visuals.update(3,'night');visuals.update(4,'night');
+      expect(front.every(m=>m.scaling.y>.9)).toBe(true);expect(back.every(m=>m.scaling.y<.1)).toBe(true);
+      expect(scene.meshes.filter(m=>m.name.startsWith('a1:ridge')).every(m=>m.visibility<.1)).toBe(true);
+      expect(scene.meshes.length).toBeLessThan(128);
+    } finally {scene.dispose();engine.dispose();}
+  });
   it('publica sólo los cinco escenarios, cuadrícula de 1,5 m y el grupo existente', () => {
     const campaign = campRestsBundle.public;
     expect(campaign.scenes.map(scene => scene.id)).toEqual(knownCampIds);

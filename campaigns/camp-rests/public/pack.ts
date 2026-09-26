@@ -86,7 +86,15 @@ const forest: Scenario = {
   safetyNotice: 'Composición VTT_AMBIENCE: el campamento no es un lugar canónicamente seguro. El DM decide si se puede descansar.',
   cols: 24, rows: 22, materialId: 'moss', background: '/art/camp-rests/marker.svg',
   walkable: cell => ellipse(cell, 24, 22, 11.2, 10.2, .04),
-  materialAt: cell => Math.abs(cell.col - (4 + Math.floor(cell.row / 8))) <= 1 && cell.row > 2 && cell.row < 19 ? 'water' : 'moss',
+  materialAt: cell => {
+    if (Math.abs(cell.col - (4 + Math.floor(cell.row / 8))) <= 1 && cell.row > 2 && cell.row < 19) return 'water';
+    const isNorthTrail = cell.col >= 11 && cell.col <= 13 && cell.row >= 2 && cell.row <= 9;
+    const isClearing = Math.hypot(cell.col - 12, cell.row - 11) <= 2.8;
+    const isEastBranch = cell.row >= 7 && cell.row <= 9 && cell.col >= 13 && cell.col <= 17;
+    const isSouthBranch = cell.col >= 11 && cell.col <= 13 && cell.row >= 12 && cell.row <= 16;
+    if (isNorthTrail || isClearing || isEastBranch || isSouthBranch) return 'earth';
+    return 'moss';
+  },
   water: Array.from({ length: 15 }, (_, i) => ({ col: 3 + Math.floor((i + 3) / 7), row: i + 3 })),
   blocked: [
     ...[[2,2],[5,2],[9,2],[14,2],[19,2],[21,5],[21,9],[21,15],[19,19],[15,20],[8,20],[3,18],[2,14],[2,8]].map(([col,row], i) => ({ cell: { col: col!, row: row! }, id: `forest-tree-${i + 1}` })),

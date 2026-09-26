@@ -1,5 +1,9 @@
 # Estado del proyecto
 
+## Candidata visual de campamentos — 2026-09-26
+
+El árbol de trabajo incorpora mejoras visuales de A1 y un primer pase del camino del bosque hacia Pleamar: materiales ilustrados para musgo, sendero y arroyo, además de vegetación y detalles de terreno. La cuadrícula, navegación y colisiones existentes se mantienen como contrato. Comprobación de esta candidata: typecheck de cliente/servidor PASS, 16 pruebas automatizadas de cámara/campamentos PASS y build aislado del cliente PASS. La aceptación visual del usuario y la revisión en móvil/proyector físicos siguen pendientes. Las tres texturas del bosque no tienen todavía una ficha de procedencia/licencia en el repositorio; consultar `LICENSES_AND_CREDITS.md`.
+
 ## Retiro del Dragón — integración 2026-09-24; repaso 2026-09-25
 
 Escena inicial Babylon `dragon-rest` integrada desde Retiro V5.2 para *Los Dragones de la Isla de las Tempestades*. La aventura oficial se contrastó en A1–A5 (PDF, pp. 7–13). Hay superficies, colisiones, accesos, escaleras, seis celdas, puerta de A4, interacción manual de PNJ/objetos, zombis revelables por el DM y salida en barca al pecio; las salidas a Pleamar y al Observatorio están preparadas. Repaso 25/09: la guía privada del DM ya incluye el gancho del naufragio y aclara que pueden ir antes a Pleamar. La suite total actual (154/154) incluye la regresión de esta escena; los tipos de cliente/servidor y builds aislados pasan; no se ha certificado fluidez en dispositivo físico ni FPS. El timeout Vitest se amplió a 30 s porque las rutas integrales superan a veces el valor predeterminado de 5 s en Windows. El entorno actual usa Node 24.19 aunque `package.json` pide >=24.21; las verificaciones pasaron con aviso de motor. Véase [informe privado](campaigns/stormwreck-isle/private/RETREAT_INTEGRATION_20260924.md) y [roadmap](ROADMAP_V1.md).

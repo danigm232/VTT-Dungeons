@@ -4,6 +4,7 @@ import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight.js';
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight.js';
 import { PointLight } from '@babylonjs/core/Lights/pointLight.js';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture.js';
 import { Mesh } from '@babylonjs/core/Meshes/mesh.js';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder.js';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
@@ -12,6 +13,8 @@ import { Constants } from '@babylonjs/core/Engines/constants.js';
 import type { PublicSceneDefinition } from '../../../engine/shared/campaign.js';
 import type { CampRestPhase, CampRestState } from '../../../engine/shared/camp-rest.js';
 import { Scene } from '@babylonjs/core/scene.js';
+import { softPoolMaterial } from '../../../engine/client/diorama-kit.js';
+import { createA1Visuals } from './a1-visuals.js';
 
 const CELL = 1.5;
 const color = (value: string) => Color3.FromHexString(value);
@@ -30,6 +33,7 @@ export type CampVisuals = { root: TransformNode; update: (elapsedSeconds: number
 export function createCampVisuals(scene: Scene, definition: PublicSceneDefinition): CampVisuals | null {
   const camp = definition.camp;
   if (!camp) return null;
+  if (definition.id === 'camp-a1-rooms') return createA1Visuals(scene, definition);
   const root = new TransformNode(`camp-visuals:${definition.id}`, scene);
   const mats: Record<string, StandardMaterial> = {};
   const mat = (id: string, hex: string, options: { emissive?: string; alpha?: number; twoSided?: boolean } = {}) => {
@@ -80,23 +84,46 @@ export function createCampVisuals(scene: Scene, definition: PublicSceneDefinitio
   }
 
   const addFire = (id: string, at: Vector3) => {
-    cylinder(`${id}:ash`, 1.6, 1.9, .1, at.add(new Vector3(0, .04, 0)), M.darkStone, 12);
-    for (let index = 0; index < 10; index++) {
-      const angle = index / 10 * Math.PI * 2;
-      sphere(`${id}:ring:${index}`, at.add(new Vector3(Math.cos(angle) * 1.08, .16, Math.sin(angle) * 1.08)),
-        new Vector3(.3, .2, .28), index % 2 ? M.stone : M.lightStone, 5);
+    cylinder(`${id}:ash-outer`, 2.1, 2.4, .06, at.add(new Vector3(0, .03, 0)), M.darkStone, 12);
+    cylinder(`${id}:ember-bed`, 1.4, 1.6, .09, at.add(new Vector3(0, .07, 0)), M.ember, 10);
+    for (let index = 0; index < 16; index++) {
+      const angle = index / 16 * Math.PI * 2 + (index % 3) * .07;
+      const rad = 1.1 + Math.sin(index * 2.1) * .09;
+      const rockMesh = sphere(`${id}:ring:${index}`, at.add(new Vector3(Math.cos(angle) * rad, .16 + (index % 2) * .05, Math.sin(angle) * rad)),
+        new Vector3(.34 + (index % 3) * .06, .24 + (index % 2) * .06, .32 + (index % 4) * .04), index % 3 === 0 ? M.rock : index % 2 ? M.stone : M.lightStone, 5);
+      rockMesh.rotation.y = index * .45;
     }
-    for (let index = 0; index < 3; index++) {
-      const log = box(`${id}:log:${index}`, 1.5, .19, .24, at.add(new Vector3(0, .22, 0)), M.wood, index * Math.PI / 3);
-      log.rotation.z = index === 1 ? .06 : 0;
+    for (let index = 0; index < 6; index++) {
+      const angle = index / 6 * Math.PI * 2;
+      const log = box(`${id}:log:${index}`, 1.45, .18, .22, at.add(new Vector3(Math.cos(angle) * .28, .28, Math.sin(angle) * .28)), M.wood, angle);
+      log.rotation.z = .31;
+      log.rotation.x = (index % 2 ? 1 : -1) * .12;
     }
-    for (let index = 0; index < 3; index++) {
-      const flame = cylinder(`${id}:flame:${index}`, .04, .4, 1.05 + index % 2 * .18,
-        at.add(new Vector3((index - 1) * .18, .83, (1 - index) * .11)), index === 1 ? M.ember : M.flame, 5);
+    const flameOffsets = [
+      { x: 0, z: 0, h: 1.4, scale: 1.25, mat: M.glow },
+      { x: .14, z: .12, h: 1.15, scale: .9, mat: M.flame },
+      { x: -.15, z: -.1, h: 1.2, scale: .95, mat: M.flame },
+      { x: -.1, z: .15, h: 1.0, scale: .8, mat: M.ember },
+      { x: .12, z: -.14, h: 1.05, scale: .85, mat: M.ember },
+      { x: .08, z: .18, h: .85, scale: .7, mat: M.glow },
+      { x: -.18, z: .08, h: .9, scale: .75, mat: M.flame }
+    ];
+    flameOffsets.forEach((item, index) => {
+      const flame = cylinder(`${id}:flame:${index}`, .03, .38 * item.scale, item.h,
+        at.add(new Vector3(item.x, .45 + item.h / 2, item.z)), item.mat, 6);
       animatedFlames.push(flame);
+    });
+    for (let index = 0; index < 8; index++) {
+      const spark = sphere(`${id}:spark:${index}`, at.add(new Vector3((index - 3.5) * .1, 1.0 + index * .22, Math.sin(index * 1.4) * .18)),
+        new Vector3(.06, .12, .06), M.ember, 4);
+      spark.metadata = { initialY: 1.0 + index * .22 };
+      animatedDrips.push(spark);
     }
-    const light = new PointLight(`${id}:light`, at.add(new Vector3(0, 1.2, 0)), scene);
-    light.diffuse = color('#ff9d58'); light.range = 15; addPointLight(light, .9, 'fire');
+    const firePool = softPoolMaterial(scene, `${id}:fire-bounce`, '#ffaa44', .46);
+    const poolDisc = add(MeshBuilder.CreateDisc(`${id}:ground-glow`, { radius: 4.2, tessellation: 24 }, scene), at.add(new Vector3(0, .035, 0)), firePool);
+    poolDisc.rotation.x = Math.PI / 2;
+    const light = new PointLight(`${id}:light`, at.add(new Vector3(0, 1.3, 0)), scene);
+    light.diffuse = color('#ff9545'); light.range = 16; addPointLight(light, 1.15, 'fire');
   };
   const addTent = (id: string, at: Vector3, ownerId = 'mike') => {
     const canvas = ownerId === 'mia' ? M.canvas2 : ownerId === 'maria' ? M.canvas3 : M.canvas;
@@ -227,6 +254,33 @@ export function createCampVisuals(scene: Scene, definition: PublicSceneDefinitio
     const base = new Float32Array([...water.getVerticesData('position')!]); seaVertices.set(water, { base, current: base.slice() });
 
     if (camp.visualProfile === 'forest') {
+      if (typeof document !== 'undefined') {
+        const assetPath = '/art/forest-hd2d-v1/';
+        const mossMat = scene.getMaterialByName('terrain-material:moss') as StandardMaterial;
+        if (mossMat) {
+          const tex = new Texture(assetPath + 'moss.jpg', scene);
+          tex.uScale = tex.vScale = 1;
+          mossMat.diffuseTexture = tex;
+          mossMat.diffuseColor = color('#9eb08b');
+          mossMat.specularColor = color('#101614');
+        }
+        const pathMat = scene.getMaterialByName('terrain-material:earth') as StandardMaterial;
+        if (pathMat) {
+          const tex = new Texture(assetPath + 'path.jpg', scene);
+          tex.uScale = tex.vScale = 1;
+          pathMat.diffuseTexture = tex;
+          pathMat.diffuseColor = color('#d4be9c');
+          pathMat.specularColor = color('#14120e');
+        }
+        const streamMat = scene.getMaterialByName('terrain-material:water') as StandardMaterial;
+        if (streamMat) {
+          const tex = new Texture(assetPath + 'stream.jpg', scene);
+          tex.uScale = tex.vScale = 1;
+          streamMat.diffuseTexture = tex;
+          streamMat.diffuseColor = color('#a2d2db');
+          streamMat.specularColor = color('#284550');
+        }
+      }
       // Dense trunk and canopy ring leaves the playable clearing open. Low-poly
       // ground shadows keep the silhouette readable without a real-time shadow map.
       const trees = [
@@ -235,17 +289,20 @@ export function createCampVisuals(scene: Scene, definition: PublicSceneDefinitio
       ];
       trees.forEach(([col,row,height], index) => {
         const at = cellPoint({ col: col!, row: row! });
-        const treeShadow = sphere(`forest:tree-shadow:${index}`, at.add(new Vector3(.72, .035, .25)), new Vector3(3.2, .025, 1.05), M.shadow, 6);
+        const treeShadow = sphere(`forest:tree-shadow:${index}`, at.add(new Vector3(.72, .035, .25)), new Vector3(3.4, .025, 1.15), M.shadow, 6);
         treeShadow.rotation.y = -.38;
-        cylinder(`forest:trunk:${index}`, .34, .52, 3, at.add(new Vector3(0, 1.5, 0)), M.bark, 6);
+        cylinder(`forest:root-flare:${index}`, .62, 1.05, .45, at.add(new Vector3(0, .22, 0)), M.bark, 7);
+        cylinder(`forest:trunk-moss:${index}`, .36, .58, .85, at.add(new Vector3(0, .42, 0)), M.leaf, 6);
+        cylinder(`forest:trunk:${index}`, .32, .48, 3.2, at.add(new Vector3(0, 1.6, 0)), M.bark, 6);
         const sway = new TransformNode(`forest:canopy-sway:${index}`, scene);
-        sway.parent = root; sway.position.set(at.x, 3.45, at.z); canopySways.push({ node: sway, phase: index * 1.73 });
-        const canopyMaterial = index % 2 ? M.leaf2 : M.pine;
-        const layers = [0, 1, 2].map(layer => {
+        sway.parent = root; sway.position.set(at.x, 3.65, at.z); canopySways.push({ node: sway, phase: index * 1.73 });
+        const canopyMaterial = index % 3 === 0 ? M.pine : index % 3 === 1 ? M.leaf2 : M.leaf;
+        const layers = [0, 1, 2, 3].map(layer => {
           const crown = MeshBuilder.CreateCylinder(`forest:crown:${index}:${layer}`, {
-            diameterTop: .05, diameterBottom: 2.7 - layer * .48, height: height! / 3, tessellation: 7
+            diameterTop: .04, diameterBottom: 3.1 - layer * .52, height: height! / 3.8, tessellation: 7 + (layer % 2)
           }, scene);
-          crown.position.set((layer % 2) * .16, .35 + layer * 1.6, (layer - 1) * .14);
+          crown.position.set((layer % 2) * .14, .3 + layer * 1.35, (layer - 1) * .12);
+          crown.rotation.y = layer * .35;
           crown.material = canopyMaterial; crown.isPickable = false; return crown;
         });
         const canopy = Mesh.MergeMeshes(layers, true, true, undefined, false, false);
@@ -256,6 +313,29 @@ export function createCampVisuals(scene: Scene, definition: PublicSceneDefinitio
         if (Math.hypot(col - 12, row - 11) < 5.3) continue;
         const fern = sphere(`forest:fern:${index}`, cellPoint({ col, row }).add(new Vector3(0, .27, 0)), new Vector3(.65, .48, .72), index % 2 ? M.leaf : M.leaf2, 5);
         if (index % 3 === 0) animatedFoliage.push(fern);
+      }
+      // Stream riverbed rocks, stepping stones and animated foam edge lines
+      for (let i = 3; i <= 18; i += 2) {
+        const streamAt = cellPoint({ col: 3 + Math.floor((i + 3) / 7), row: i });
+        sphere(`forest:stream-rock:${i}`, streamAt.add(new Vector3(-.42, .06, .15)), new Vector3(.45, .22, .38), i % 2 ? M.darkStone : M.rock, 5);
+        sphere(`forest:stream-stone:${i}`, streamAt.add(new Vector3(.48, .05, -.2)), new Vector3(.38, .18, .42), i % 2 ? M.rock : M.stone, 5);
+        const foamLine = box(`forest:stream-foam:${i}`, 1.4, .025, .15, streamAt.add(new Vector3(0, .05, .1)), M.foam, .12);
+        movingWater.push(foamLine);
+      }
+      // Waterfall at top stream origin
+      const fallsAt = cellPoint({ col: 3, row: 2 });
+      cylinder('forest:waterfall-cliff', 2.8, 3.4, 2.2, fallsAt.add(new Vector3(0, 1.1, 0)), M.rock, 7);
+      box('forest:waterfall-spray', 2.2, .04, 1.6, fallsAt.add(new Vector3(0, .12, .8)), M.foam);
+      // Stepping log across the stream at row 10
+      const logCross = box('forest:stream-crossing-log', 3.2, .32, .48, cellPoint({ col: 4, row: 10 }).add(new Vector3(0, .18, 0)), M.bark, .22);
+      logCross.rotation.z = -.08;
+      box('forest:stream-crossing-moss', 2.6, .08, .36, cellPoint({ col: 4, row: 10 }).add(new Vector3(0, .36, 0)), M.leaf);
+      // Path border pebbles along the main trail to define the path edges clearly
+      for (let row = 2; row <= 9; row++) {
+        const atLeft = cellPoint({ col: 10, row }).add(new Vector3(.65, .04, Math.sin(row) * .2));
+        const atRight = cellPoint({ col: 14, row }).add(new Vector3(-.65, .04, Math.cos(row) * .2));
+        sphere(`forest:path-pebble-l:${row}`, atLeft, new Vector3(.22 + Math.sin(row) * .05, .08, .18), row % 2 ? M.stone : M.rock, 5);
+        sphere(`forest:path-pebble-r:${row}`, atRight, new Vector3(.2 + Math.cos(row) * .05, .08, .2), row % 2 ? M.lightStone : M.darkStone, 5);
       }
     }
     if (camp.visualProfile === 'wreck-beach') {

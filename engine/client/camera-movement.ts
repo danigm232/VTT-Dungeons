@@ -2,6 +2,11 @@ const INITIAL_ALPHA = -Math.PI / 4;
 const ORIENTATION_STEP = Math.PI / 4;
 const ORIENTATION_COUNT = 8;
 
+/** A1 opens toward the front path. Use the same offset for rendering and input. */
+export function sceneOrientationForView(sceneId: string | null, step: number) {
+  return (step + (sceneId === 'camp-a1-rooms' ? 3 : 0)) % ORIENTATION_COUNT;
+}
+
 /** Converts screen-relative controls against the requested camera orientation,
  * not Babylon's interpolated alpha while a turn animation is still running. */
 export function screenVectorToWorld(x: number, up: number, orientationStep: number, beta: number) {

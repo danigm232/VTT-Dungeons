@@ -349,6 +349,8 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
       else if (tile.materialId === 'water' && options.shipDeck && options.waterTexture)
         batch.uvs.push(...corners.flatMap(position => options.waterBackdropTexture
           ? shipSeaArtworkUv(position.x, position.z, terrain) : shipWaterUv(position.x, position.z)));
+      else
+        batch.uvs.push(...corners.flatMap(position => [position.z / 6, position.x / 6]));
       if (surface.id === 'sea' && options.scenicWaterTexture && options.waterBackdropTexture)
         batch.colors.push(...corners.flatMap(position => [1, 1, 1, shipSeaEdgeAlpha(position.x, position.z, terrain)]));
       batch.indices.push(offset, offset + 1, offset + 2, offset, offset + 2, offset + 3);

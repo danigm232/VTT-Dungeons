@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { screenVectorToWorld } from './camera-movement.js';
+import { screenVectorToWorld, sceneOrientationForView } from './camera-movement.js';
 
 describe('movimiento relativo a la cámara', () => {
+  it('usa el mismo frente A1 para cámara y WASD sin cambiar las otras escenas', () => {
+    for(let step=0;step<8;step++) {
+      expect(sceneOrientationForView('camp-a1-rooms',step)).toBe((step+3)%8);
+      expect(sceneOrientationForView('camp-forest-pleamar',step)).toBe(step);
+      expect(sceneOrientationForView('dragon-rest',step)).toBe(step);
+    }
+    const up=screenVectorToWorld(0,1,sceneOrientationForView('camp-a1-rooms',0),Math.PI/4);
+    expect(up.x).toBeCloseTo(0);expect(up.z).toBeCloseTo(-1);
+  });
   it('mantiene las cuatro direcciones de pantalla en los ocho giros', () => {
     for (let step = 0; step < 8; step++) {
       const up = screenVectorToWorld(0, 1, step, Math.PI / 3);

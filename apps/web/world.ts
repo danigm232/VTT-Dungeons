@@ -20,7 +20,7 @@ import { campTerrainHardwareScalingLevel } from '../../engine/client/camp-render
 import { createDragonRestVisuals } from '../../campaigns/stormwreck-isle/public/retreat-geometry.js';
 import type { CampVisuals } from '../../campaigns/camp-rests/public/visuals.js';
 import { combatCameraFrame } from '../../engine/client/combat-camera';
-import { screenVectorToWorld as orientedScreenVectorToWorld } from '../../engine/client/camera-movement';
+import { screenVectorToWorld as orientedScreenVectorToWorld, sceneOrientationForView } from '../../engine/client/camera-movement';
 import { hasWreckProjection, nearestWreckCell, projectWreckPoint } from './wreck-projection';
 
 type TokenView = { root: Container; ring: Graphics; sprite: Sprite; conditionVfx: Sprite; conditionIcon: Sprite; effects: Graphics; health: Graphics; states: Graphics; entity: PublicEntity; phase: number; animationState: string | null; animationStartedAt: number; animationUntil: number; frameUrl: string | null; conditionVfxUrl: string | null; conditionIconUrl: string | null };
@@ -429,7 +429,7 @@ export class WorldRenderer {
   clearEditor() { this.selectedObject = null; this.previewObject = null; this.selection.clear(); this.previewCells.clear(); this.previewSprite.visible = false; this.previewGeneration++; }
   screenVectorToWorld(x: number, up: number) {
     if (!this.terrainView) return { x, z: -up };
-    return orientedScreenVectorToWorld(x, up, this.cameraOrientationStep, this.terrainView.camera.beta);
+    return orientedScreenVectorToWorld(x, up, sceneOrientationForView(this.sceneId, this.cameraOrientationStep), this.terrainView.camera.beta);
   }
   dispose() { this.campVisualGeneration++; cancelAnimationFrame(this.resizeFrame); this.resizeObserver.disconnect(); this.terrainScene?.dispose(); this.terrainEngine?.dispose(); this.app.destroy(true, { children: true, texture: false, textureSource: false }); this.host.replaceChildren(); }
 
@@ -537,8 +537,10 @@ export class WorldRenderer {
       scenicWaterTexture,
       foamTexture,
       wreckageTexture,
-      renderTiles: definition.id !== 'dragon-rest', batchTiles: Boolean(definition.camp)
+      renderTiles: definition.id !== 'dragon-rest' && definition.id !== 'camp-a1-rooms', batchTiles: Boolean(definition.camp)
     });
+    if (definition.id === 'camp-a1-rooms') this.terrainView.grids.forEach(grid => { grid.alpha = .075; grid.color = Color3.FromHexString('#a59a82'); });
+    if (definition.id === 'camp-a1-rooms') this.terrainView.camera.beta = .92;
     const defaultTilt = clampCameraTilt(90 - this.terrainView.camera.beta * 180 / Math.PI);
     this.cameraTiltDegrees = this.readCameraTilt(definition.id) ?? defaultTilt;
     this.restoreCameraOrientation(definition.id);
@@ -562,7 +564,7 @@ export class WorldRenderer {
     if (connection !== this.connectionGeneration || request !== this.requestGeneration) return false;
     this.sceneId = sceneId; this.cameraInitialized = false;
     this.cameraOrientationStep = this.readCameraOrientation(sceneId);
-    this.cameraBaseZoom = definition.renderer === 'babylon-hd2d' ? definition.camp ? 2.4 : 1.8 : 1;
+    this.cameraBaseZoom = definition.renderer === 'babylon-hd2d' ? definition.id === 'camp-a1-rooms' ? 1.2 : definition.camp ? 2.4 : 1.8 : 1;
     this.cameraZoom = this.cameraBaseZoom;
     this.background.texture = texture; this.background.position.set(0, 0); this.background.width = definition.grid.width; this.background.height = definition.grid.height;
     this.installTerrain(definition);
@@ -887,7 +889,7 @@ export class WorldRenderer {
   private animationFor(tokenId: string, state: string) { return this.campaign.tokenAnimations[tokenId]?.[state] ?? null; }
   private cameraRelativeFacing(facing: Facing): Facing {
     const worldFacingStep = facingDirections.indexOf(facing);
-    return facingDirections[normalizeCameraOrientation(worldFacingStep - this.cameraOrientationStep)]!;
+    return facingDirections[normalizeCameraOrientation(worldFacingStep - sceneOrientationForView(this.sceneId, this.cameraOrientationStep))]!;
   }
   private playCombatTokenAnimation(event: CombatEvent) {
     if (event.actorId) this.playTokenAnimation(event.actorId, event.animation ?? 'attack', 700);
@@ -1259,7 +1261,7 @@ export class WorldRenderer {
       const halfHeight = Math.max(terrain.rows * terrain.tileMeters * .75, terrain.cols * terrain.tileMeters / (2 * aspect)) * 1.2 / this.cameraZoom * (cameraFocus ? .72 : 1);
       camera.orthoTop = halfHeight; camera.orthoBottom = -halfHeight;
       camera.orthoLeft = -halfHeight * aspect; camera.orthoRight = halfHeight * aspect;
-      const alphaTarget = TERRAIN_CAMERA_INITIAL_ALPHA + this.cameraOrientationStep * CAMERA_ORIENTATION_STEP;
+      const alphaTarget = TERRAIN_CAMERA_INITIAL_ALPHA + sceneOrientationForView(this.sceneId, this.cameraOrientationStep) * CAMERA_ORIENTATION_STEP;
       const previousAlpha = camera.alpha;
       if (!this.cameraOrientationInitialized) { camera.alpha = alphaTarget; this.cameraOrientationInitialized = true; }
       else if (deltaMs > 0) {
@@ -1279,7 +1281,7 @@ export class WorldRenderer {
       const wreckView = this.sceneId?.startsWith('wreck-') ?? false;
       const visibilityFocusId = this.localId ?? this.snapshot.camera.focusId;
       const visibilityFocus = wreckView && visibilityFocusId ? this.snapshot.entities.find(entity => entity.id === visibilityFocusId) : undefined;
-      let target = new Vector3(terrain.cols * terrain.tileMeters / 2, .8, terrain.rows * terrain.tileMeters / 2);
+      let target = new Vector3(terrain.cols * terrain.tileMeters / 2, .8, this.sceneId==='camp-a1-rooms'?7.8:terrain.rows * terrain.tileMeters / 2);
       if (cameraFocus) {
         const position = this.interpolatedWorldPosition(cameraFocus);
         target = new Vector3(position.x, position.y + .85, position.z);
