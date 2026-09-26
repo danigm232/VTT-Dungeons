@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist/server",
+    "rootDir": ".",
+    "sourceMap": false
+  },
+  "include": ["apps/server/**/*.ts", "engine/shared/**/*.ts", "engine/server/**/*.ts", "campaigns/**/*.ts"],
+  "exclude": ["**/*.test.ts"]
+}

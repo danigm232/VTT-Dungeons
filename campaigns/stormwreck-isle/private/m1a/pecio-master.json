@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "kind": "m1a-spatial-source",
+  "status": "m26-runtime-reconciled-svg-guides-historical",
+  "coordinateSystem": {
+    "cols": 28,
+    "rows": 18,
+    "tileMeters": 1.5,
+    "tilePixels": 64,
+    "north": "up",
+    "bow": "east-right",
+    "origin": "shared hull datum"
+  },
+  "maps": [
+    {"mapId":"wreck-upper","id":"A","zones":["c2","c3","exterior"],"surfaces":["c2","c3","sea","boat"],"elevationMeters":{"c2":3,"c3":3,"sea":0},"layers":"layers/wreck-upper.svg","preview":"previews/wreck-upper-grid.svg"},
+    {"mapId":"wreck-crow","id":"E","zones":["c1-crow"],"surfaces":["crow"],"elevationMeters":{"crow":15},"art":"/art/m26/wreck-crow-m26.png"},
+    {"mapId":"wreck-main","id":"B","zones":["c1","c4","c5","c6","c7"],"surfaces":["main"],"elevationMeters":{"main":0},"layers":"layers/wreck-main.svg","preview":"previews/wreck-main-grid.svg"},
+    {"mapId":"wreck-lower","id":"C","zones":["c8"],"surfaces":["lower-water","lower-deck"],"elevationMeters":{"lower-deck":-2.5,"lower-water":-2.35},"layers":"layers/wreck-lower.svg","preview":"previews/wreck-lower-grid.svg"},
+    {"mapId":"wreck-hold","id":"D","zones":["c9"],"surfaces":["hold-water","hold-air"],"elevationMeters":{"hold-water":-4.5,"hold-air":-3.4},"layers":"layers/wreck-hold.svg","preview":"previews/wreck-hold-grid.svg"}
+  ],
+  "anchors": [
+    {"id":"c1-mast","mapId":"wreck-main","zoneId":"c1","surfaceId":"main","cell":[14,9],"footprint":[[0,0]],"kind":"fixed-occluder"},
+    {"id":"c3-wheel-mount","mapId":"wreck-upper","zoneId":"c3","surfaceId":"c3","cell":[6,9],"footprint":[[0,0]],"kind":"mutable-object-anchor"},
+    {"id":"c4-hole","mapId":"wreck-main","zoneId":"c4","surfaceId":"main","cell":[5,6],"footprint":[[0,0]],"kind":"void-rim"},
+    {"id":"c8-hole","mapId":"wreck-lower","zoneId":"c8","surfaceId":"lower-deck","cell":[5,6],"footprint":[[0,0]],"kind":"void-rim"},
+    {"id":"c9-hole","mapId":"wreck-hold","zoneId":"c9","surfaceId":"hold-air","cell":[5,6],"footprint":[[0,0]],"kind":"void-rim"},
+    {"id":"c9-breach","mapId":"wreck-hold","zoneId":"c9","surfaceId":"hold-water","cell":[1,10],"footprint":[[0,0],[0,1]],"kind":"water-exit"}
+  ],
+  "ports": [
+    {"id":"P01","from":["wreck-upper","exterior","sea",[22,13]],"to":["wreck-main","c1","main",[22,13]],"mode":"rigging","return":"explicit"},
+    {"id":"P02","from":["wreck-main","c1","main",[17,6]],"to":["wreck-upper","c2","c2",[18,6]],"mode":"stairs","return":"explicit"},
+    {"id":"P03","from":["wreck-main","c1","main",[17,12]],"to":["wreck-upper","c2","c2",[18,12]],"mode":"stairs","return":"explicit"},
+    {"id":"P04","from":["wreck-main","c1","main",[10,6]],"to":["wreck-upper","c3","c3",[9,6]],"mode":"stairs","return":"explicit"},
+    {"id":"P05","from":["wreck-main","c1","main",[10,12]],"to":["wreck-upper","c3","c3",[9,12]],"mode":"stairs","return":"explicit"},
+    {"id":"P06","from":["wreck-main","c1","main",[10,7]],"to":["wreck-main","c4","main",[9,7]],"mode":"door","conditionId":"c4-barred-door"},
+    {"id":"P07","from":["wreck-main","c1","main",[10,11]],"to":["wreck-main","c5","main",[9,11]],"mode":"door","conditionId":"c5-door"},
+    {"id":"P08","from":["wreck-main","c1","main",[17,7]],"to":["wreck-main","c6","main",[18,7]],"mode":"door","conditionId":"c6-door"},
+    {"id":"P09","from":["wreck-main","c1","main",[17,11]],"to":["wreck-main","c7","main",[18,11]],"mode":"door","conditionId":"c7-door"},
+    {"id":"P10","from":["wreck-main","c1","main",[14,8]],"to":["wreck-crow","c1-crow","crow",[14,11]],"mode":"rope-ladder","return":"explicit"},
+    {"id":"P11","from":["wreck-main","c1","main",[14,10]],"to":["wreck-lower","c8","lower-deck",[14,10]],"mode":"stairs","return":"explicit"},
+    {"id":"P12","from":["wreck-main","c1","main",[12,12]],"to":["wreck-lower","c8","lower-deck",[12,12]],"mode":"hatch","return":"adjudicated"},
+    {"id":"P13","from":["wreck-main","c4","main",[5,6]],"to":["wreck-lower","c8","lower-deck",[5,6]],"mode":"hole","return":"adjudicated"},
+    {"id":"P14","from":["wreck-lower","c8","lower-deck",[5,6]],"to":["wreck-hold","c9","hold-air",[5,6]],"mode":"hole","return":"adjudicated"},
+    {"id":"P15","from":["wreck-lower","c8","lower-deck",[14,10]],"to":["wreck-hold","c9","hold-air",[14,10]],"mode":"stairs","return":"explicit"},
+    {"id":"P16","from":["wreck-upper","exterior","sea",[1,10]],"to":["wreck-hold","c9","hold-water",[1,10]],"mode":"swim","return":"explicit"}
+  ],
+  "validation": {"c4C8C9Hole": [[5,6],[5,6],[5,6]], "upperStairs": ["P02","P03","P04","P05"], "mutableNotBaked": ["doors","wheel","plank","chests","crates","treasure","creatures"]}
+}

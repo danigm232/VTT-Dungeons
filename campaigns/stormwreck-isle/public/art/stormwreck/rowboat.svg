@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 168" role="img" aria-label="Barca de remos de la expedición">
+  <defs>
+    <linearGradient id="hull" x2="0" y2="1"><stop stop-color="#a6895a"/><stop offset=".56" stop-color="#755235"/><stop offset="1" stop-color="#392c27"/></linearGradient>
+    <linearGradient id="inside" x2="0" y2="1"><stop stop-color="#382e26"/><stop offset="1" stop-color="#766041"/></linearGradient>
+    <linearGradient id="wood" x2="0" y2="1"><stop stop-color="#dbc28b"/><stop offset="1" stop-color="#9e794b"/></linearGradient>
+    <linearGradient id="oar" x2="0" y2="1"><stop stop-color="#d0b884"/><stop offset="1" stop-color="#614a32"/></linearGradient>
+  </defs>
+  <g fill="none" stroke-linecap="round">
+    <path d="M20 134q29 23 77 27 101 9 181-27" stroke="#d2eeed" stroke-width="4" opacity=".72"/>
+    <path d="M2 118q16 20 32 23m259-23q-13 18-32 23" stroke="#75c8c9" stroke-width="4" opacity=".65"/>
+    <path d="M26 86 50 119q89 45 200 0l24-33-21-18H47z" fill="url(#hull)" stroke="#251f1a" stroke-width="7"/>
+    <path d="M35 89q44 15 115 16 70-1 115-16l-17 23q-96 37-196 0z" fill="#765437" stroke="#34271f" stroke-width="3"/>
+    <path d="M41 98q98 35 218 0m-210 14q100 31 202 0" stroke="#c59d69" stroke-width="2.2" opacity=".68"/>
+    <path d="M50 66q103-19 200 0l18 18q-116 42-236 0z" fill="url(#inside)" stroke="#2e2823" stroke-width="6"/>
+    <path d="M57 72q90-14 186 0l12 10q-107 31-210 0z" fill="#4b3d2e"/>
+    <path d="M71 70v26m30-29v36m32-39v43m34-43v43m32-40v36m31-32v25" stroke="#ae8d60" stroke-width="5" opacity=".8"/>
+    <path d="M70 73q82-15 160 0m-168 8q90 29 176 0" stroke="#d7bc85" stroke-width="4" opacity=".8"/>
+    <path d="M77 67q3 22 0 33m146-33q-3 22 0 33" stroke="#302b26" stroke-width="5"/>
+    <path d="M91 67q58-11 118 0" stroke="#181d1c" stroke-width="3" opacity=".6"/>
+    <path d="M105 73h90l-7 15h-76z" fill="url(#wood)" stroke="#362c20" stroke-width="4"/>
+    <path d="M109 77h81m-69 6h52" stroke="#775b3b" stroke-width="2"/>
+    <path d="M57 67q89-17 186 0" stroke="#e0ca94" stroke-width="7"/>
+    <path d="M50 67q99-19 200 0" stroke="#5b4633" stroke-width="2"/>
+    <path d="M49 69 34 82m217-13 15 13" stroke="#b3915d" stroke-width="9"/>
+    <path d="M57 78 3 31m240 47 54-47" stroke="#241f1d" stroke-width="12"/>
+    <path d="M57 78 3 31m240 47 54-47" stroke="url(#oar)" stroke-width="8"/>
+    <path d="M3 31 22 10 39 40 26 48zm294 0-19-21-17 30 13 8z" fill="#87653e" stroke="#2f2921" stroke-width="4"/>
+    <path d="M8 31 25 15m267 16-17-16" stroke="#d5b67b" stroke-width="3" opacity=".75"/>
+    <circle cx="57" cy="77" r="6" fill="#3b403a" stroke="#c1a47c" stroke-width="2"/>
+    <circle cx="243" cy="77" r="6" fill="#3b403a" stroke="#c1a47c" stroke-width="2"/>
+    <path d="M95 123q24 7 48 7m26 0q24 0 43-7" stroke="#d2ad77" stroke-width="2" opacity=".65"/>
+    <path d="M54 127q95 42 194 0" stroke="#221f1c" stroke-width="3" opacity=".8"/>
+  </g>
+</svg>

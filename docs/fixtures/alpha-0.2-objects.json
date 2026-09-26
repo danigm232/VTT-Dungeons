@@ -1,0 +1,16 @@
+{
+  "status": "design-fixture-not-runtime",
+  "sceneId": "wreck-objects",
+  "title": "Prueba de objetos del pecio",
+  "sourceKind": "addition",
+  "surfaceId": "objects-deck",
+  "grid": { "cols": 12, "rows": 9, "tileSize": 48, "originX": 0, "originY": 0, "width": 576, "height": 432 },
+  "walkableRect": { "minCol": 1, "maxCol": 10, "minRow": 1, "maxRow": 7 },
+  "staticBlocked": [{ "col": 6, "row": 1 }, { "col": 6, "row": 2 }, { "col": 6, "row": 3 }, { "col": 6, "row": 5 }, { "col": 6, "row": 6 }, { "col": 6, "row": 7 }],
+  "spawns": [{ "col": 2, "row": 4 }, { "col": 2, "row": 5 }, { "col": 3, "row": 5 }],
+  "door": { "id": "practice-door", "kind": "door", "cell": { "col": 6, "row": 4 }, "rotation": 0, "baseFootprint": [{ "col": 0, "row": 0 }], "state": "closed" },
+  "crate": { "id": "practice-crate", "kind": "crate", "cell": { "col": 3, "row": 4 }, "rotation": 0, "baseFootprint": [{ "col": 0, "row": 0 }, { "col": 1, "row": 0 }] },
+  "route": { "from": { "col": 2, "row": 4 }, "to": { "col": 8, "row": 4 } },
+  "blockingCratePlacement": { "cell": { "col": 5, "row": 3 }, "rotation": 90 },
+  "expectedReachability": { "doorClosed": false, "doorOpen": true, "doorOpenCrateBlocking": false, "doorOpenCrateRestored": true }
+}

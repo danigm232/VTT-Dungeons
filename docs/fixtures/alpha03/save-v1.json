@@ -1,0 +1,146 @@
+{
+  "format": "dungeons-save",
+  "schemaVersion": 1,
+  "campaignId": "alpha03-synthetic",
+  "campaignVersion": "fixture-1",
+  "campaignStateVersion": 1,
+  "saveId": "11111111-1111-4111-8111-111111111111",
+  "generation": 7,
+  "stateRevision": 19,
+  "savedAt": "2026-09-15T12:00:00.000Z",
+  "payload": {
+    "sceneId": "annex",
+    "characters": [
+      {
+        "id": "alpha",
+        "hp": 6,
+        "inventory": [
+          "Cuerda sintética",
+          "Objeto añadido en prueba"
+        ],
+        "cell": {
+          "col": 2,
+          "row": 1
+        },
+        "surfaceId": "annex-floor",
+        "facing": "east"
+      },
+      {
+        "id": "beta",
+        "hp": 8,
+        "inventory": [
+          "Mapa de prueba"
+        ],
+        "cell": {
+          "col": 1,
+          "row": 2
+        },
+        "surfaceId": "annex-floor",
+        "facing": "south"
+      }
+    ],
+    "creature": {
+      "id": "beast",
+      "sceneId": "hall",
+      "surfaceId": "hall-floor",
+      "cell": {
+        "col": 6,
+        "row": 2
+      },
+      "visible": false
+    },
+    "scenes": [
+      {
+        "sceneId": "annex",
+        "objects": [
+          {
+            "id": "door",
+            "kind": "door",
+            "cell": {
+              "col": 3,
+              "row": 2
+            },
+            "rotation": 0,
+            "structure": "intact",
+            "state": "locked"
+          }
+        ]
+      },
+      {
+        "sceneId": "hall",
+        "objects": [
+          {
+            "id": "crate",
+            "kind": "crate",
+            "cell": {
+              "col": 4,
+              "row": 2
+            },
+            "rotation": 90,
+            "structure": "damaged"
+          },
+          {
+            "id": "door",
+            "kind": "door",
+            "cell": {
+              "col": 3,
+              "row": 2
+            },
+            "rotation": 0,
+            "structure": "destroyed",
+            "state": "open"
+          },
+          {
+            "id": "wheel",
+            "kind": "wheel",
+            "cell": {
+              "col": 5,
+              "row": 4
+            },
+            "rotation": 270,
+            "structure": "damaged",
+            "attachment": "detached",
+            "state": "fallen"
+          }
+        ]
+      }
+    ],
+    "camera": {
+      "mode": "fixed",
+      "focusId": null
+    },
+    "environment": {
+      "storm": true
+    },
+    "audio": {
+      "music": {
+        "playing": true,
+        "volume": 0.3,
+        "offsetSeconds": 12.5
+      },
+      "layers": {
+        "ocean": {
+          "playing": true,
+          "volume": 0.5,
+          "offsetSeconds": 20
+        },
+        "wind": {
+          "playing": false,
+          "volume": 0.25,
+          "offsetSeconds": 4
+        },
+        "wood": {
+          "playing": true,
+          "volume": 0.2,
+          "offsetSeconds": 10
+        },
+        "storm": {
+          "playing": false,
+          "volume": 0.25,
+          "offsetSeconds": 0
+        }
+      }
+    }
+  },
+  "checksum": "b7f21bf1a5cb18345a36e8ee091be45f823a04a0562c17b7f2f90ccd75d7d27b"
+}

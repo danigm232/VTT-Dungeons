@@ -1,0 +1,20 @@
+{
+  "reviewedAt": "2026-09-22",
+  "decision": "ADAPT",
+  "staticLayerSource": "Original editable SVG layers created for M1a; no official map pixels, labels, text, creatures, treasure, doors or other mutable assets were copied.",
+  "driveReview": {
+    "folderId": "1PDCJna8g9W-q8x0Vl96nBNxP_lPo5A0n",
+    "reviewed": [
+      {"id":"1-hSNMzUvCJ93zoS0Q4Ss-Tmvzbo6gcX9","name":"sw_env_traversal_005.png","visual":"cofa; six perspective variants","decision":"STUDY","reason":"good material family but needs alpha, scale and anchor QA before a public copy"},
+      {"id":"1mO1uIyokzGPB8xqseXbqaqiI-HEa39k8","name":"sw_env_traversal_004.png","visual":"brecha de casco; six variants","decision":"STUDY","reason":"candidate for P16 only; no copy until its collision mask and scale are chosen"},
+      {"id":"1W3C0W2ZyldQtvSK-sybigcelPH8sGivj","name":"sw_env_traversal_003.png","visual":"jarcia de abordaje; six variants","decision":"STUDY","reason":"candidate for P01; a sprite cannot by itself define a bidirectional route"},
+      {"id":"1Cg4_PFGJr2iq0T-fcPtDVkmvjsC_Brmr","name":"sw_env_traversal_002.png","visual":"escalera de barco; six variants","decision":"STUDY","reason":"candidate for P02–P05/P11/P15 after height and pivot QA"}
+    ],
+    "excluded": ["REJECTED_offtarget_B2_rope_ladders.png","REJECTED_offtarget_B4_hull_breach.png","DUPLICATE_prior_B4_hull_breach.png"],
+    "license": "User-provided private source. It is not CC0 and no right to redistribute is asserted. Originals remain in Drive; no remote asset was copied into this commit."
+  },
+  "alternatives": [
+    {"name":"Kenney Tiny Dungeon 1.0","license":"CC0","decision":"STUDY","reason":"verified license but perspective, density and exact traversal variants do not match the pecio"},
+    {"name":"existing objects-v3/v4","license":"project-generated","decision":"ADOPT","reason":"retain the wheel/door/crate families as runtime objects; they are deliberately omitted from static layers"}
+  ]
+}

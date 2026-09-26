@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1792 1152" width="1792" height="1152">
+  <defs>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0H0V64" fill="none" stroke="#f2e9c9" stroke-opacity=".38" stroke-width="2"/>
+    </pattern>
+  </defs>
+  <image href="concepts/wreck-main-canvas-01.png" x="0" y="-22" width="1792" height="1195"/>
+  <rect width="1792" height="1152" fill="url(#grid)"/>
+  <g fill="none" stroke="#ff4b55" stroke-width="6">
+    <path d="M70 442L170 322H1622L1722 442V710L1622 830H170L70 710Z"/>
+    <rect x="844" y="524" width="104" height="104"/>
+    <circle cx="352" cy="416" r="32"/>
+    <circle cx="928" cy="608" r="32"/>
+  </g>
+  <g fill="#ffe065" stroke="#271a12" stroke-width="4">
+    <circle cx="608" cy="480" r="11"/><circle cx="608" cy="736" r="11"/>
+    <circle cx="1184" cy="480" r="11"/><circle cx="1184" cy="736" r="11"/>
+    <circle cx="1376" cy="416" r="11"/><circle cx="1376" cy="800" r="11"/>
+    <circle cx="480" cy="416" r="11"/><circle cx="480" cy="800" r="11"/>
+  </g>
+</svg>

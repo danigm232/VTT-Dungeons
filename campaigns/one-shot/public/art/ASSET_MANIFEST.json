@@ -1,0 +1,213 @@
+{
+  "distribution": "private table only; third-party PDF/map rights not cleared for public release",
+  "mapsAndTokens": [
+    {
+      "role": "map",
+      "slug": "temple",
+      "source": "campaigns\\one-shot\\source\\temple-original.png",
+      "output": "campaigns\\one-shot\\public\\art\\temple.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "sha256": "666f57e59e01b9e7370fe386c5b3c19d2ada7617f6904df07f4f6503c9333b49"
+    },
+    {
+      "role": "map",
+      "slug": "garden",
+      "source": "campaigns\\one-shot\\source\\El jardin de la srta fritz IA.png",
+      "output": "campaigns\\one-shot\\public\\art\\garden.png",
+      "size": [
+        1411,
+        1024
+      ],
+      "sha256": "4327726fc7dcdf9ac5b2898cda6c2417f1f1df1fb0f3fbc7159941b075534bdd"
+    },
+    {
+      "role": "map",
+      "slug": "cafe",
+      "source": "campaigns\\one-shot\\source\\Cafe no-me-olvides IA.png",
+      "output": "campaigns\\one-shot\\public\\art\\cafe.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "sha256": "ac28dac12e259544db9740d240163f28525d33d5886c879665b379100b1a42a8"
+    },
+    {
+      "role": "map",
+      "slug": "market",
+      "source": "campaigns\\one-shot\\source\\El Mercado Nocturno IA.png",
+      "output": "campaigns\\one-shot\\public\\art\\market.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "sha256": "63f3396b8c7b0f7f590a12af84d12007cd005936dc9157e6929bdc10b8086871"
+    },
+    {
+      "role": "map",
+      "slug": "mirror",
+      "source": "campaigns\\one-shot\\source\\El Espejo de plata del amor verdadero IA.png",
+      "output": "campaigns\\one-shot\\public\\art\\mirror.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "sha256": "d522c20ae47950f5b02f526e5c10e03b1b43961e32f8642308e7c2efe014966e"
+    },
+    {
+      "role": "map",
+      "slug": "dinner",
+      "source": "campaigns\\one-shot\\source\\Cena con Anteros.png",
+      "output": "campaigns\\one-shot\\public\\art\\dinner.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "sha256": "771b49829d8cb8dc381c57c3c5df3c9e7b562297a0efb41ad6ffc884db45c459"
+    },
+    {
+      "role": "token",
+      "slug": "anteros",
+      "source": "campaigns\\one-shot\\source\\astra-tokens\\Astra_Anteros_circular.png",
+      "output": "campaigns\\one-shot\\public\\art\\tokens\\anteros.png",
+      "size": [
+        192,
+        192
+      ],
+      "sha256": "1eee3d5cad5d70f6abf04a5cb528f3cfb30f05f9b7160a42badb32b03c50b590"
+    },
+    {
+      "role": "token",
+      "slug": "fritz",
+      "source": "campaigns\\one-shot\\source\\astra-tokens\\Astra_Srta-Fritz_circular.png",
+      "output": "campaigns\\one-shot\\public\\art\\tokens\\fritz.png",
+      "size": [
+        192,
+        192
+      ],
+      "sha256": "ec901330a080c70761690fae821ef8ba4c9873663f595a3b2adc47d6b3f70c1c"
+    },
+    {
+      "role": "token",
+      "slug": "roses",
+      "source": "campaigns\\one-shot\\source\\astra-tokens\\Astra_Rosas-asesinas_circular.png",
+      "output": "campaigns\\one-shot\\public\\art\\tokens\\roses.png",
+      "size": [
+        192,
+        192
+      ],
+      "sha256": "d44e373e23f0ac6960c3433b7a93408e1fd3e51d1f37e68c41f18031596c5573"
+    },
+    {
+      "role": "token",
+      "slug": "patron",
+      "source": "campaigns\\one-shot\\source\\astra-tokens\\Astra_Aldeano-cansado_circular_v02.png",
+      "output": "campaigns\\one-shot\\public\\art\\tokens\\patron.png",
+      "size": [
+        192,
+        192
+      ],
+      "sha256": "f77b4c49c99989a66cb21d7b2ea23d8b4bc804e2db6ee861e82f9248c936d886"
+    },
+    {
+      "role": "token",
+      "slug": "ben",
+      "source": "campaigns\\one-shot\\source\\astra-tokens\\Astra_Ben_circular.png",
+      "output": "campaigns\\one-shot\\public\\art\\tokens\\ben.png",
+      "size": [
+        192,
+        192
+      ],
+      "sha256": "1f7dd0348e981c613c7c280d81e42cdbac04c3fc4712414a149888c544e29bfd"
+    },
+    {
+      "role": "token",
+      "slug": "margaret",
+      "source": "campaigns\\one-shot\\source\\astra-tokens\\Astra_Margaret_circular.png",
+      "output": "campaigns\\one-shot\\public\\art\\tokens\\margaret.png",
+      "size": [
+        192,
+        192
+      ],
+      "sha256": "c0268b46003c1d6666678c957af8b4334539eaf9483546e7614147db1f00ba4b"
+    },
+    {
+      "role": "token",
+      "slug": "boris",
+      "source": "campaigns\\one-shot\\source\\astra-tokens\\Astra_Boris-el-carnicero_circular.png",
+      "output": "campaigns\\one-shot\\public\\art\\tokens\\boris.png",
+      "size": [
+        192,
+        192
+      ],
+      "sha256": "14ca1cd9a272bdd8e7575c4406623cf09b4dd2a3e8121e21279ecd4651ba0718"
+    },
+    {
+      "role": "token",
+      "slug": "cow",
+      "source": "campaigns\\one-shot\\source\\astra-tokens\\Astra_Vaca-del-mercado_circular.png",
+      "output": "campaigns\\one-shot\\public\\art\\tokens\\cow.png",
+      "size": [
+        192,
+        192
+      ],
+      "sha256": "0bb4e706cf2c1b2904f4a8675affd9ba4bc31abaf56d1c31443bad8c20a37281"
+    },
+    {
+      "role": "token",
+      "slug": "reflection",
+      "source": "campaigns\\one-shot\\source\\astra-tokens\\Astra_Reflejo-de-hielo_circular.png",
+      "output": "campaigns\\one-shot\\public\\art\\tokens\\reflection.png",
+      "size": [
+        192,
+        192
+      ],
+      "sha256": "beb1bf6c28b8ae167635921c3c9189a5089509ee040f99fa3fb3dfb432131a3b"
+    },
+    {
+      "role": "portrait-derived-token",
+      "slug": "bartender",
+      "source": "campaigns\\one-shot\\source\\astra-tokens\\Astra_Aldeano-tabernario_retrato_v01.png",
+      "output": "campaigns\\one-shot\\public\\art\\tokens\\bartender.png",
+      "size": [
+        192,
+        192
+      ],
+      "sha256": "950073ab8e7718463980de39ebbb8b4e46e57c23c66216ab54d24686448fff0e"
+    },
+    {
+      "role": "portrait-derived-token",
+      "slug": "patron-woman",
+      "source": "campaigns\\one-shot\\source\\astra-tokens\\Astra_Aldeana_retrato_v01.png",
+      "output": "campaigns\\one-shot\\public\\art\\tokens\\patron-woman.png",
+      "size": [
+        192,
+        192
+      ],
+      "sha256": "c1124ae920ea2eb18c3cbeb4efb0ba0cb6aa561bee642759c377f04b4e59ec89"
+    },
+    {
+      "role": "player-token",
+      "slug": "wizard",
+      "source": "campaigns\\stormwreck-isle\\public\\art\\tokens\\wizard.png",
+      "output": "campaigns\\one-shot\\public\\art\\tokens\\wizard.png",
+      "sha256": "5811c2b315186b0cf2ef0c78b6b92c21e9221d59f2b401324dcbac01728bcc6c"
+    },
+    {
+      "role": "player-token",
+      "slug": "cleric",
+      "source": "campaigns\\stormwreck-isle\\public\\art\\tokens\\cleric.png",
+      "output": "campaigns\\one-shot\\public\\art\\tokens\\cleric.png",
+      "sha256": "aac8d0120fd0c7794c99ff1221617a1045e84b812b38eb3fc07f90606ce4a6b4"
+    },
+    {
+      "role": "player-token",
+      "slug": "rogue",
+      "source": "campaigns\\stormwreck-isle\\public\\art\\tokens\\rogue.png",
+      "output": "campaigns\\one-shot\\public\\art\\tokens\\rogue.png",
+      "sha256": "ac5ed845ef2f3ddeeaef70c26c5bc221644fedfa2f776cccb272bf694a77bcd4"
+    }
+  ]
+}

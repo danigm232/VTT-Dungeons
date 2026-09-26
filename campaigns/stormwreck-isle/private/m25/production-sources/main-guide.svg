@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1024" viewBox="0 0 1536 1024">
+  <rect width="1536" height="1024" fill="#15516b"/>
+  <path d="M100 375L170 284H1365L1430 375V674L1365 740H170L100 674Z" fill="#a67946" stroke="#fff1c9" stroke-width="10"/>
+  <path d="M550 284V740M987 284V740M170 512H550M987 512H1365" fill="none" stroke="#41250e" stroke-width="16"/>
+  <g fill="#ebd696"><rect x="530" y="398" width="40" height="58"/><rect x="530" y="624" width="40" height="58"/><rect x="967" y="398" width="40" height="58"/><rect x="967" y="624" width="40" height="58"/></g>
+  <rect x="275" y="342" width="55" height="57" fill="#101d24" stroke="#fff" stroke-width="5"/>
+  <rect x="665" y="683" width="55" height="57" fill="#101d24" stroke="#fff" stroke-width="5"/>
+  <circle cx="795" cy="540" r="30" fill="#5c3419" stroke="#fff" stroke-width="5"/>
+  <rect x="755" y="569" width="80" height="65" fill="#412b1d" stroke="#fff" stroke-width="4"/>
+  <g fill="white" font-size="38"><text x="245" y="470">C4</text><text x="245" y="670">C5</text><text x="1200" y="470">C6</text><text x="1200" y="670">C7</text><text x="730" y="460">C1</text></g>
+</svg>

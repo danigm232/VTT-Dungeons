@@ -1,0 +1,300 @@
+.cadence {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+  gap: .3rem;
+}
+
+.cadence select,
+.loop-control {
+  height: 25px;
+  padding: 0 .35rem;
+  border: 1px solid #3b575a;
+  border-radius: 6px;
+  background: #101d20;
+  color: #bfcfc6;
+  font: .57rem system-ui;
+}
+
+.loop-control {
+  width: 27px;
+  padding: 0;
+  color: #aec9ba;
+  font-size: .88rem;
+}
+
+.loop-control.active {
+  border-color: #cda75e;
+  background: #3b311e;
+  color: #ffdfa0;
+}
+
+.cadence select:disabled { opacity: .42; }
+
+/* Los pasos y la carrera tienen una tarjeta propia: el toque principal inicia
+ * o detiene, y los ajustes aparecen solo mientras la secuencia está activa. */
+.effect-loop {
+  overflow: hidden;
+  border: 1px solid #354f54;
+  border-radius: 10px;
+  background: #122126;
+}
+
+.effect-loop.active {
+  border-color: #4d8c70;
+  background: #10251f;
+}
+
+.effect-loop.active > .effect-trigger {
+  border-color: transparent;
+  background: #10251f;
+}
+
+.effect-loop.active > .effect-trigger span {
+  background: #295846;
+  color: #e5ca7e;
+}
+
+.loop-mini {
+  display: grid;
+  grid-template-columns: 36px 49px 62px 1fr;
+  gap: .3rem;
+  align-items: center;
+  padding: .3rem .38rem .42rem;
+  border-top: 1px solid #355148;
+  background: #0b1918;
+}
+
+.effects-grid .loop-mini button,
+.effects-grid .loop-mini select {
+  display: block;
+  min-width: 0;
+  min-height: 28px;
+  padding: .16rem .24rem;
+  border: 1px solid #4a6560;
+  border-radius: 7px;
+  background: #102529;
+  color: #d8e0d5;
+  font: .59rem system-ui;
+  text-align: center;
+}
+
+.effects-grid .loop-mini .loop-control {
+  font-size: .8rem;
+  color: #bcd3c2;
+}
+
+.effects-grid .loop-mini .loop-control.active {
+  border-color: #e5bd5a;
+  background: #4d3c1b;
+  color: #ffe8a6;
+}
+
+.loop-mini input {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--green);
+}
+
+.audio-section-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .28rem;
+  margin: .1rem 0 .7rem;
+  padding: .25rem;
+  border: 1px solid #4a5148;
+  border-radius: 12px;
+  background: #0b1417;
+}
+
+.audio-section-tab {
+  min-width: 0;
+  min-height: 46px;
+  padding: .35rem .2rem;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: #aebbb2;
+  font: 600 .69rem system-ui;
+  white-space: nowrap;
+}
+
+.audio-section-tab[aria-selected="true"] {
+  border-color: #b18b4e;
+  background: linear-gradient(145deg, #514126, #302b20);
+  color: #ffe8ad;
+  box-shadow: inset 0 1px #fff2;
+}
+
+.audio-section-tab:focus-visible {
+  outline: 2px solid #efd081;
+  outline-offset: 2px;
+}
+
+.sound-section[hidden] {
+  display: none;
+}
+
+@media (max-width: 360px) {
+  .audio-section-tab { font-size: .62rem; }
+}
+
+.now-playing {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 205px;
+  align-items: end;
+  overflow: hidden;
+  padding: 1rem;
+  background: linear-gradient(145deg, #19343a, #101b20);
+}
+
+.scene-art {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  border: 0;
+  border-radius: inherit;
+  background-color: #14252a;
+  background-position: center 48%;
+  background-size: cover;
+  color: transparent;
+}
+
+.scene-art::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, #071014ed 0%, #07101488 45%, #07101420 100%);
+  content: "";
+}
+
+.scene-copy {
+  position: relative;
+  z-index: 1;
+  align-self: end;
+  max-width: 100%;
+  text-shadow: 0 2px 8px #000b;
+}
+
+.scene-copy h2 { margin: .2rem 0; font-size: 1.35rem; }
+.scene-copy .note { margin: 0; }
+
+.music-picker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .38rem;
+  overflow: visible;
+  padding-bottom: 0;
+}
+
+.music-choice {
+  min-height: 38px;
+  white-space: normal;
+  line-height: 1.2;
+}
+
+.ambience-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+.ambience-row {
+  grid-template-columns: 27px minmax(0, 1fr) auto;
+  gap: .35rem;
+  padding: .45rem;
+}
+
+.ambience-row b { font-size: .72rem; line-height: 1.15; }
+.ambience-row small { line-height: 1.25; }
+
+@media (max-width: 340px) {
+  .ambience-list { grid-template-columns: 1fr; }
+  .music-choice { font-size: .59rem; }
+}
+
+.sound-page .sound-panel {
+  border-color: #704f3d;
+  background: linear-gradient(145deg, #3b2921, #2b201b);
+}
+
+.sound-page .music-panel {
+  border-color: #a47351;
+  background: linear-gradient(145deg, #50362a, #39271f);
+}
+
+.audio-section-switch {
+  border-color: #674a39;
+  background: #211815;
+}
+
+.audio-section-tab[aria-selected="true"] {
+  border-color: #ce9560;
+  background: linear-gradient(145deg, #75400f, #553018);
+  color: #fff0d2;
+}
+
+.music-choice {
+  border-color: #765744;
+  background: #3c2b22;
+  color: #eadbcd;
+}
+
+.music-choice.active {
+  border-color: #e4b775;
+  background: #6b431f;
+  color: #fff0d0;
+}
+
+.ambience-row {
+  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-areas: "icon info" "action action" "volume volume" "cadence cadence";
+  border-color: #705242;
+  background: #493126;
+}
+
+.ambience-row.active {
+  border-color: #b18a58;
+  background: #3a2a20;
+}
+
+.ambience-row > span { grid-area: icon; }
+.ambience-row > div:not(.cadence) { grid-area: info; min-width: 0; }
+.ambience-row > button { grid-area: action; width: 100%; }
+.ambience-row > label { grid-area: volume; }
+.ambience-row > .cadence { grid-area: cadence; width: 100%; }
+
+.ambience-icon,
+.effects-grid button span {
+  background: #75400f;
+  color: #ffdfa8;
+}
+
+.ambience-row button,
+.ambience-source,
+.cadence select,
+.loop-control {
+  border-color: #795741;
+  background: #30211b;
+  color: #eadbcd;
+}
+
+.effects-grid button,
+.effect-filters button {
+  border-color: #684b3a;
+  background: #3b2921;
+  color: #efe4d7;
+}
+
+.effect-filters button[aria-pressed="true"] {
+  border-color: #e4b775;
+  background: #6b431f;
+  color: #fff0d0;
+}
+
+.text-control {
+  border-color: #856348;
+  background: #38271f;
+  color: #f1dfc9;
+}

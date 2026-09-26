@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1792 1152" width="1792" height="1152" role="img" aria-label="M1a upper wreck static layers">
+  <defs>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#24576a"/><stop offset="1" stop-color="#102b3a"/></linearGradient>
+    <pattern id="planks" width="64" height="64" patternUnits="userSpaceOnUse"><rect width="64" height="64" fill="#5c4630"/><path d="M0 10H64M0 36H64M14 0V10M42 10V36M25 36V64" stroke="#34261b" stroke-width="5"/><path d="M5 18h28M29 51h27" stroke="#806447" stroke-width="3" opacity=".7"/></pattern>
+    <filter id="shadow"><feGaussianBlur stdDeviation="12"/></filter>
+  </defs>
+  <g id="floor" data-layer="floor"><rect width="1792" height="1152" fill="url(#sea)"/><path d="M90 370C170 260 390 230 650 300H1140C1400 230 1620 260 1702 370V780C1620 892 1400 922 1140 850H650C390 922 170 892 90 780Z" fill="#1a3c49" opacity=".78"/></g>
+  <g id="static-occluders" data-layer="static-occluders" stroke="#241a13" stroke-width="18" stroke-linejoin="round">
+    <path d="M130 450L230 340H625L690 425V730L625 815H230L130 705Z" fill="url(#planks)"/>
+    <path d="M1102 425L1167 340H1562L1662 450V705L1562 815H1167L1102 730Z" fill="url(#planks)"/>
+    <path d="M705 585L760 520H1032L1087 585V640L1032 705H760L705 640Z" fill="#4f3a28" opacity=".65"/>
+    <circle cx="896" cy="576" r="84" fill="#644b32"/><circle cx="896" cy="576" r="49" fill="#38291c"/><path d="M896 492V660M812 576H980" stroke="#72573b" stroke-width="15"/>
+    <path d="M240 428H610M240 730H610M1182 428H1552M1182 730H1552" stroke="#9c7c57" stroke-width="8" opacity=".55"/>
+  </g>
+  <g id="water-mask" data-layer="water-mask" fill="#2e8190" opacity=".28"><path d="M0 830C260 745 430 930 670 860S1140 745 1380 860 1640 745 1792 830V1152H0Z"/><path d="M0 180C230 112 430 215 650 160S1140 112 1360 160 1600 112 1792 180V0H0Z"/></g>
+</svg>

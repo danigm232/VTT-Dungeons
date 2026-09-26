@@ -1,0 +1,1437 @@
+{
+  "observedAt": "2026-09-21",
+  "rootUrl": "https://drive.google.com/drive/folders/1p-X5BsVtg2GOjTPylhV4Jk6i8CQCwIAs",
+  "scope": "Metadata de cinco carpetas relevantes; no inventario recursivo completo, descarga ni QA visual. Releer antes de cada bloque.",
+  "folders": [
+    {
+      "id": "1ggXiJH5zckhZ7ME01H56Hd7j-t6n3euC",
+      "title": "Ghoul",
+      "url": "https://drive.google.com/drive/folders/1ggXiJH5zckhZ7ME01H56Hd7j-t6n3euC",
+      "count": 23,
+      "files": [
+        {
+          "id": "15vRMYpTuN_l7WnjjN8VKd0xEAUfWj5aj",
+          "name": "ghoul_dead.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T14:31:19.829Z",
+          "size": "1144941",
+          "url": "https://drive.google.com/file/d/15vRMYpTuN_l7WnjjN8VKd0xEAUfWj5aj/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1TgErxFbi_weEV4rQT61s0vbl11LEPpTV",
+          "name": "ghoul_portrait.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T14:31:14.876Z",
+          "size": "1875492",
+          "url": "https://drive.google.com/file/d/1TgErxFbi_weEV4rQT61s0vbl11LEPpTV/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1V5BRRQsN5kDm3DcSrlXR8uajlOGoaxfg",
+          "name": "ghoul_idle_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T14:31:10.034Z",
+          "size": "1027620",
+          "url": "https://drive.google.com/file/d/1V5BRRQsN5kDm3DcSrlXR8uajlOGoaxfg/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1GXyujwZNYUj9o_VF7ttHG1cgUwLh6ZBU",
+          "name": "ghoul_state_down_idle_dead.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T14:31:04.909Z",
+          "size": "1427555",
+          "url": "https://drive.google.com/file/d/1GXyujwZNYUj9o_VF7ttHG1cgUwLh6ZBU/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1ZxoLQh0FmnqhkFMxtPsXSkzTBIQg6nyt",
+          "name": "ghoul_state_rise_death.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T14:30:59.268Z",
+          "size": "1407114",
+          "url": "https://drive.google.com/file/d/1ZxoLQh0FmnqhkFMxtPsXSkzTBIQg6nyt/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1Gy_TJvzmNCc9r3x5Yl29biBOmDXZ6MRb",
+          "name": "ghoul_state_fall_down.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T14:30:54.481Z",
+          "size": "1390130",
+          "url": "https://drive.google.com/file/d/1Gy_TJvzmNCc9r3x5Yl29biBOmDXZ6MRb/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1aovQce3iLQj1m8Es3lJ1v61vvkXBRXCN",
+          "name": "ghoul_state_hit_light_heavy.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T14:30:47.972Z",
+          "size": "1585790",
+          "url": "https://drive.google.com/file/d/1aovQce3iLQj1m8Es3lJ1v61vvkXBRXCN/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1xtLqXOUqdVlMV7do7L2HyOeTq8dWsDdG",
+          "name": "ghoul_action_alert_reposition.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T14:30:42.837Z",
+          "size": "1608469",
+          "url": "https://drive.google.com/file/d/1xtLqXOUqdVlMV7do7L2HyOeTq8dWsDdG/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1bJjM34dla354Feufn7y5pZwYUnGCdRrf",
+          "name": "ghoul_action_feed_combat_idle.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T14:30:37.583Z",
+          "size": "1500422",
+          "url": "https://drive.google.com/file/d/1bJjM34dla354Feufn7y5pZwYUnGCdRrf/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1PkRr290UXKtQdqhiv5btTmwlLuR0lfFU",
+          "name": "ghoul_action_grab_drag.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T14:30:31.703Z",
+          "size": "1397058",
+          "url": "https://drive.google.com/file/d/1PkRr290UXKtQdqhiv5btTmwlLuR0lfFU/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1ZaYUo8COfwCghiwt8qZ4KmkAIcm9hW7g",
+          "name": "ghoul_action_stalk_pounce.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T14:30:25.847Z",
+          "size": "1542921",
+          "url": "https://drive.google.com/file/d/1ZaYUo8COfwCghiwt8qZ4KmkAIcm9hW7g/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "17z21_WSRN5XvtVpa6yx9AMpQaIF-Nv-j",
+          "name": "ghoul_attack_bite_n_s.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T14:30:21.031Z",
+          "size": "1416536",
+          "url": "https://drive.google.com/file/d/17z21_WSRN5XvtVpa6yx9AMpQaIF-Nv-j/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1DfEKW7QVkkjnJozb5Cq212jk6wCZLYN9",
+          "name": "ghoul_attack_bite_nw_sw.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T14:30:15.665Z",
+          "size": "1533541",
+          "url": "https://drive.google.com/file/d/1DfEKW7QVkkjnJozb5Cq212jk6wCZLYN9/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "18kFCl3wQFvXA8IqBv4S3Xfr5M881epFL",
+          "name": "ghoul_attack_claw_s_bite_w.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T14:30:10.028Z",
+          "size": "1550340",
+          "url": "https://drive.google.com/file/d/18kFCl3wQFvXA8IqBv4S3Xfr5M881epFL/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1adoHwUFQlHu2Drg7dvLTRJwnBFz65wy-",
+          "name": "ghoul_attack_claw_sw_n.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T14:30:04.625Z",
+          "size": "1564426",
+          "url": "https://drive.google.com/file/d/1adoHwUFQlHu2Drg7dvLTRJwnBFz65wy-/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1en9isltDRfIqqUji8mvUewX8WcxrryPN",
+          "name": "ghoul_attack_claw_w_nw.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T14:29:59.447Z",
+          "size": "1478569",
+          "url": "https://drive.google.com/file/d/1en9isltDRfIqqUji8mvUewX8WcxrryPN/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1zpjWmK7qghyqNn95hvJ6U4hgRkCqyNzQ",
+          "name": "ghoul_walk_s.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T14:29:54.107Z",
+          "size": "789477",
+          "url": "https://drive.google.com/file/d/1zpjWmK7qghyqNn95hvJ6U4hgRkCqyNzQ/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1FDYDtDgcibDfwtl67x7iKtS8M0UTUwDS",
+          "name": "ghoul_walk_sw_n.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T14:29:48.400Z",
+          "size": "1510062",
+          "url": "https://drive.google.com/file/d/1FDYDtDgcibDfwtl67x7iKtS8M0UTUwDS/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1FYqff8-nxsDLjX2IZEHNI1gLvw2rDUQM",
+          "name": "ghoul_walk_w_nw.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T14:29:43.489Z",
+          "size": "1442647",
+          "url": "https://drive.google.com/file/d/1FYqff8-nxsDLjX2IZEHNI1gLvw2rDUQM/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1B1pPagfhkd4p7MrO4Nua2ZGQeZg9L-JM",
+          "name": "ghoul_base.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T14:29:15.580Z",
+          "size": "990201",
+          "url": "https://drive.google.com/file/d/1B1pPagfhkd4p7MrO4Nua2ZGQeZg9L-JM/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "11p51MpdOkYE0QDAQ1_k5NJDv2utX2h-d",
+          "name": "ghoul_walk_pack_03.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T08:17:55.019Z",
+          "size": "1605641",
+          "url": "https://drive.google.com/file/d/11p51MpdOkYE0QDAQ1_k5NJDv2utX2h-d/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "161dzCUkg6mc5MEv-Mz1io4xTJxTl9d8N",
+          "name": "ghoul_walk_pack_02.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T08:17:51.541Z",
+          "size": "1609280",
+          "url": "https://drive.google.com/file/d/161dzCUkg6mc5MEv-Mz1io4xTJxTl9d8N/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1RGW2te2MUqDDT6Ff8sOuJpQK8M7mK_mJ",
+          "name": "ghoul_walk_pack_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T08:17:45.245Z",
+          "size": "1621004",
+          "url": "https://drive.google.com/file/d/1RGW2te2MUqDDT6Ff8sOuJpQK8M7mK_mJ/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        }
+      ]
+    },
+    {
+      "id": "1N50oMl5FdFFRbVjx49Fu-nG14onDWhSi",
+      "title": "Zombie 1",
+      "url": "https://drive.google.com/drive/folders/1N50oMl5FdFFRbVjx49Fu-nG14onDWhSi",
+      "count": 43,
+      "files": [
+        {
+          "id": "1KcmI5dUV_kraL_FiL9EshiYGLY6_ZCkY",
+          "name": "zombie1_walk_s_slam_w_sheet.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-21T17:29:33.844Z",
+          "size": "2103857",
+          "url": "https://drive.google.com/file/d/1KcmI5dUV_kraL_FiL9EshiYGLY6_ZCkY/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1p_kVdpF7zHoBP4sTVL_xCQY_89Jg0XJU",
+          "name": "zombie1_walk_sw_n_sheet.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-21T17:29:27.984Z",
+          "size": "1978402",
+          "url": "https://drive.google.com/file/d/1p_kVdpF7zHoBP4sTVL_xCQY_89Jg0XJU/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1GRXHQwOhIktNM_vyD_FH7tJaLlvqV4h3",
+          "name": "zombie1_walk_w_nw_sheet.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-21T17:29:22.553Z",
+          "size": "1894170",
+          "url": "https://drive.google.com/file/d/1GRXHQwOhIktNM_vyD_FH7tJaLlvqV4h3/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1xyJdm3AN72Jk5XrPZXWhAGdydPC_XM3y",
+          "name": "zombie1_pausa.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T14:26:29.911Z",
+          "size": "1372364",
+          "url": "https://drive.google.com/file/d/1xyJdm3AN72Jk5XrPZXWhAGdydPC_XM3y/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1V3yyMPSny5aXK8VoR9yjQEQ36E06AgLc",
+          "name": "zombie1_acecho.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T14:26:25.114Z",
+          "size": "1419847",
+          "url": "https://drive.google.com/file/d/1V3yyMPSny5aXK8VoR9yjQEQ36E06AgLc/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1NfDsuJOu2sFqmYQV-gTEX5K2WpHRM9QJ",
+          "name": "zombie1_tambaleo.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T14:26:18.858Z",
+          "size": "1503799",
+          "url": "https://drive.google.com/file/d/1NfDsuJOu2sFqmYQV-gTEX5K2WpHRM9QJ/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1siqWqRrd2fspx60dJBoQMGwRvPCRJOIK",
+          "name": "zombie1_amenaza.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T14:26:13.697Z",
+          "size": "1585412",
+          "url": "https://drive.google.com/file/d/1siqWqRrd2fspx60dJBoQMGwRvPCRJOIK/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1ru69lJGFRU6_XUbU-Q2Bt8f_GLsOqbUl",
+          "name": "zombie1_moverse_rapido_04.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T14:26:08.825Z",
+          "size": "1440477",
+          "url": "https://drive.google.com/file/d/1ru69lJGFRU6_XUbU-Q2Bt8f_GLsOqbUl/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1rhe26MUPxdh7ztYVi_0fLcqAo8oIlSjM",
+          "name": "zombie1_moverse_rapido_03.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T14:25:56.234Z",
+          "size": "1712835",
+          "url": "https://drive.google.com/file/d/1rhe26MUPxdh7ztYVi_0fLcqAo8oIlSjM/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1jqrYj0k3U7mctKqthoW3qeacD1aewOd6",
+          "name": "zombie1_moverse_rapido_02.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T14:25:50.607Z",
+          "size": "1555819",
+          "url": "https://drive.google.com/file/d/1jqrYj0k3U7mctKqthoW3qeacD1aewOd6/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1dBteLPM9l5-KPO7t6TQclhuLBRXjUQ1U",
+          "name": "zombie1_moverse_rapido_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T14:25:45.977Z",
+          "size": "1564258",
+          "url": "https://drive.google.com/file/d/1dBteLPM9l5-KPO7t6TQclhuLBRXjUQ1U/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1lIt-L9E-rrwPBXwttYHPdNWwTo4h6K3D",
+          "name": "zombie1_agarrar_04.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T14:25:41.083Z",
+          "size": "1482686",
+          "url": "https://drive.google.com/file/d/1lIt-L9E-rrwPBXwttYHPdNWwTo4h6K3D/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1yoPfWVv9uCmWZ5D-yB4XIOu6LZGKQY64",
+          "name": "zombie1_agarrar_03.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T14:25:29.601Z",
+          "size": "1648188",
+          "url": "https://drive.google.com/file/d/1yoPfWVv9uCmWZ5D-yB4XIOu6LZGKQY64/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1T8Br3_i0D1qkxrUijTcGZEUoDXc0rnmZ",
+          "name": "zombie1_agarrar_02.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:49:43.870Z",
+          "size": "1046364",
+          "url": "https://drive.google.com/file/d/1T8Br3_i0D1qkxrUijTcGZEUoDXc0rnmZ/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1hKa5YyqhW_q5YgLzukKv6L04v-NV10pZ",
+          "name": "zombie1_agarrar_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:49:38.877Z",
+          "size": "1044867",
+          "url": "https://drive.google.com/file/d/1hKa5YyqhW_q5YgLzukKv6L04v-NV10pZ/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1yqO8HmKfDXUtvd4-t2LnN62KJxPG05GQ",
+          "name": "zombie1_ataque2_04.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:49:33.304Z",
+          "size": "1222915",
+          "url": "https://drive.google.com/file/d/1yqO8HmKfDXUtvd4-t2LnN62KJxPG05GQ/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1EcGB-J4oMxxb3suG0gLdPjKkQURDR67F",
+          "name": "zombie1_ataque2_03.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:49:10.178Z",
+          "size": "1096697",
+          "url": "https://drive.google.com/file/d/1EcGB-J4oMxxb3suG0gLdPjKkQURDR67F/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1bDGEWXrHMhY0Iovizia-vKLlgzs-_WL4",
+          "name": "zombie1_ataque2_02.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:49:05.665Z",
+          "size": "1146071",
+          "url": "https://drive.google.com/file/d/1bDGEWXrHMhY0Iovizia-vKLlgzs-_WL4/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "12n1gQzJEDZFUHdNYDql8MyJcttuxaYJf",
+          "name": "zombie1_ataque2_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:49:01.261Z",
+          "size": "1044728",
+          "url": "https://drive.google.com/file/d/12n1gQzJEDZFUHdNYDql8MyJcttuxaYJf/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1l_N70GUdTQ--22WlpZy7AEixGD2Au_jf",
+          "name": "zombie1_ataque_04.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:48:56.391Z",
+          "size": "992596",
+          "url": "https://drive.google.com/file/d/1l_N70GUdTQ--22WlpZy7AEixGD2Au_jf/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "18KYqyKHSBj_JKTMSrYXaa6Ao4YpL5qCn",
+          "name": "zombie1_ataque_03.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:48:51.967Z",
+          "size": "1182696",
+          "url": "https://drive.google.com/file/d/18KYqyKHSBj_JKTMSrYXaa6Ao4YpL5qCn/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1lZO6Skj7rDzxRU4gEaVvYhF4NWe5AFj3",
+          "name": "zombie1_ataque_02.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:48:46.638Z",
+          "size": "1012312",
+          "url": "https://drive.google.com/file/d/1lZO6Skj7rDzxRU4gEaVvYhF4NWe5AFj3/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1xifJpE1d0zk3ONP9pykUX2Y0inirj4EN",
+          "name": "zombie1_ataque_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:48:40.392Z",
+          "size": "998628",
+          "url": "https://drive.google.com/file/d/1xifJpE1d0zk3ONP9pykUX2Y0inirj4EN/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1ZYew2XcMsdA41lpkWkKgRWuq69z75ipX",
+          "name": "zombie1_arrastrarse_04.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:35:37.891Z",
+          "size": "1064363",
+          "url": "https://drive.google.com/file/d/1ZYew2XcMsdA41lpkWkKgRWuq69z75ipX/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1nrkWoRCIdKod22dtnIEyJAI4gMD8H9gp",
+          "name": "zombie1_arrastrarse_03.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:35:33.146Z",
+          "size": "1011115",
+          "url": "https://drive.google.com/file/d/1nrkWoRCIdKod22dtnIEyJAI4gMD8H9gp/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "16MKOz2DQKkr9pOB2eUemFfkJBTGH4_6S",
+          "name": "zombie1_arrastrarse_02.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:35:28.704Z",
+          "size": "1050745",
+          "url": "https://drive.google.com/file/d/16MKOz2DQKkr9pOB2eUemFfkJBTGH4_6S/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1FrcAITLPK79auWPbTL2ODofwjP2-aB5d",
+          "name": "zombie1_arrastrarse_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:35:23.367Z",
+          "size": "960753",
+          "url": "https://drive.google.com/file/d/1FrcAITLPK79auWPbTL2ODofwjP2-aB5d/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1KXUg8eooK5ihOXHRgpyzjQr3wWAzwWwu",
+          "name": "zombie1_caminar_04.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:35:17.975Z",
+          "size": "823747",
+          "url": "https://drive.google.com/file/d/1KXUg8eooK5ihOXHRgpyzjQr3wWAzwWwu/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1pM9dGzN1dHB4UcTvbrG6Fy1BSLytuS5D",
+          "name": "zombie1_caminar_03.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:35:13.276Z",
+          "size": "874676",
+          "url": "https://drive.google.com/file/d/1pM9dGzN1dHB4UcTvbrG6Fy1BSLytuS5D/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1ZrnaGcWntF7ahpqSRD18oUb1ylXU4TSu",
+          "name": "zombie1_caminar_02.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:35:08.628Z",
+          "size": "878731",
+          "url": "https://drive.google.com/file/d/1ZrnaGcWntF7ahpqSRD18oUb1ylXU4TSu/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1RhzLVgWqsq7mWAI-86dsOoEHV_uTq2v1",
+          "name": "zombie1_caminar_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:35:03.769Z",
+          "size": "891870",
+          "url": "https://drive.google.com/file/d/1RhzLVgWqsq7mWAI-86dsOoEHV_uTq2v1/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1l9tIV-RYmQEAZcnYVecQYM_t0IQBazdM",
+          "name": "zombie1_levantarse_04.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:34:59.117Z",
+          "size": "849571",
+          "url": "https://drive.google.com/file/d/1l9tIV-RYmQEAZcnYVecQYM_t0IQBazdM/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1eUxKQNhM6S3xQzKtuypEOFJ-oRklD1We",
+          "name": "zombie1_levantarse_03.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:34:54.475Z",
+          "size": "905984",
+          "url": "https://drive.google.com/file/d/1eUxKQNhM6S3xQzKtuypEOFJ-oRklD1We/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1oL5nmZ-xOPwCH2JK7q3wPguVwMcQh30L",
+          "name": "zombie1_levantarse_02.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:34:49.797Z",
+          "size": "953201",
+          "url": "https://drive.google.com/file/d/1oL5nmZ-xOPwCH2JK7q3wPguVwMcQh30L/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1ifNXvv8bqGo6JZBXrChJ_s7HP9BgRUFH",
+          "name": "zombie1_levantarse_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:34:45.039Z",
+          "size": "1221981",
+          "url": "https://drive.google.com/file/d/1ifNXvv8bqGo6JZBXrChJ_s7HP9BgRUFH/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1Dzq8kxbgCP_HcGlMBk6mUzMuRfzHIv3d",
+          "name": "zombie1_hit_02.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:34:40.726Z",
+          "size": "805809",
+          "url": "https://drive.google.com/file/d/1Dzq8kxbgCP_HcGlMBk6mUzMuRfzHIv3d/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1PhEy_XcQlWzjiOE7qlVQYFzdXxpi_o3B",
+          "name": "zombie1_hit_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:34:35.149Z",
+          "size": "859024",
+          "url": "https://drive.google.com/file/d/1PhEy_XcQlWzjiOE7qlVQYFzdXxpi_o3B/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1IMDRLwtc8cgBHXKWG6D8jvXpwWKVdutl",
+          "name": "zombie1_idle_03.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:34:30.533Z",
+          "size": "817106",
+          "url": "https://drive.google.com/file/d/1IMDRLwtc8cgBHXKWG6D8jvXpwWKVdutl/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1nUGhx1Iwr19VvpQ0xSQ4gduWJPx-ho1t",
+          "name": "zombie1_idle_02.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:34:25.874Z",
+          "size": "812017",
+          "url": "https://drive.google.com/file/d/1nUGhx1Iwr19VvpQ0xSQ4gduWJPx-ho1t/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1TSLWs1SRP_gUPtvPL_aArvhC49zifStY",
+          "name": "zombie1_idle_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:34:21.168Z",
+          "size": "803650",
+          "url": "https://drive.google.com/file/d/1TSLWs1SRP_gUPtvPL_aArvhC49zifStY/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1LX5GtUXqKxe0Qfyx9cWRP1gH9rCpz3ij",
+          "name": "zombie1_muerto.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:34:16.091Z",
+          "size": "1111271",
+          "url": "https://drive.google.com/file/d/1LX5GtUXqKxe0Qfyx9cWRP1gH9rCpz3ij/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1gPW9EWE2oRlxtl5ZcS-kossSiAqDzfgE",
+          "name": "zombie1_herido.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:34:11.774Z",
+          "size": "886254",
+          "url": "https://drive.google.com/file/d/1gPW9EWE2oRlxtl5ZcS-kossSiAqDzfgE/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1I88sYrkP_edTyamQsLW9vTWgFEAdzAKG",
+          "name": "zombie1_base.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T13:33:48.692Z",
+          "size": "787352",
+          "url": "https://drive.google.com/file/d/1I88sYrkP_edTyamQsLW9vTWgFEAdzAKG/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        }
+      ]
+    },
+    {
+      "id": "1PDCJna8g9W-q8x0Vl96nBNxP_lPo5A0n",
+      "title": "Pecio Rosa de los Vientos",
+      "url": "https://drive.google.com/drive/folders/1PDCJna8g9W-q8x0Vl96nBNxP_lPo5A0n",
+      "count": 9,
+      "files": [
+        {
+          "id": "1Cg4_PFGJr2iq0T-fcPtDVkmvjsC_Brmr",
+          "name": "sw_env_traversal_002.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-21T18:00:25.411Z",
+          "size": "1585439",
+          "url": "https://drive.google.com/file/d/1Cg4_PFGJr2iq0T-fcPtDVkmvjsC_Brmr/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1-z-VlO9hCE7MyRlqI5l0l-1vw-Gc5vjx",
+          "name": "REJECTED_offtarget_B2_rope_ladders.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-21T17:44:16.460Z",
+          "size": "1241081",
+          "url": "https://drive.google.com/file/d/1-z-VlO9hCE7MyRlqI5l0l-1vw-Gc5vjx/view?usp=drivesdk",
+          "status": "excluded-by-name-pending-context",
+          "localPath": null
+        },
+        {
+          "id": "1ZMiuK8LkUG-pHa_81qIBvsI98f5Oa-TZ",
+          "name": "sw_env_traversal_001.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-21T17:27:07.089Z",
+          "size": "1272458",
+          "url": "https://drive.google.com/file/d/1ZMiuK8LkUG-pHa_81qIBvsI98f5Oa-TZ/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "13lS64weQU254KGSmafJ1DnQxOnhCVXD5",
+          "name": "sw_env_interact_005.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-21T15:08:43.793Z",
+          "size": "1849050",
+          "url": "https://drive.google.com/file/d/13lS64weQU254KGSmafJ1DnQxOnhCVXD5/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1Qms42m1B80Q2cUdiAWL2-q2DYeVK2gmt",
+          "name": "sw_env_library_001.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-21T14:27:33.470Z",
+          "size": "1726790",
+          "url": "https://drive.google.com/file/d/1Qms42m1B80Q2cUdiAWL2-q2DYeVK2gmt/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1DjZHbvfWGVI02014TFCQR-bC22mvm4oJ",
+          "name": "sw_env_interact_004.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-21T13:47:17.831Z",
+          "size": "1232906",
+          "url": "https://drive.google.com/file/d/1DjZHbvfWGVI02014TFCQR-bC22mvm4oJ/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1xYTqhQ2zXwR-3Raw6o8UyBaDX0zQb3KN",
+          "name": "sw_env_interact_003.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-21T12:42:00.325Z",
+          "size": "1474712",
+          "url": "https://drive.google.com/file/d/1xYTqhQ2zXwR-3Raw6o8UyBaDX0zQb3KN/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1lWUUdrFZOv_pH0uU0h35SYyfetRkMAFI",
+          "name": "sw_env_interact_002.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-21T11:53:08.182Z",
+          "size": "1726230",
+          "url": "https://drive.google.com/file/d/1lWUUdrFZOv_pH0uU0h35SYyfetRkMAFI/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "17-ke5mq6yBXODRcPyp2AUt_jk_7FrsfK",
+          "name": "sw_env_interact_001.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-21T08:35:34.381Z",
+          "size": "2940893",
+          "url": "https://drive.google.com/file/d/17-ke5mq6yBXODRcPyp2AUt_jk_7FrsfK/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        }
+      ]
+    },
+    {
+      "id": "10Eigt-M_u1cj-bwDw_dUeYqWGF2T1V87",
+      "title": "Arpía 1",
+      "url": "https://drive.google.com/drive/folders/10Eigt-M_u1cj-bwDw_dUeYqWGF2T1V87",
+      "count": 2,
+      "files": [
+        {
+          "id": "19KbxbQqK2V7cfF3Otz-jfiYGmJBNDWcl",
+          "name": "harpia_mov_02.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-21T05:58:33.340Z",
+          "size": "1759474",
+          "url": "https://drive.google.com/file/d/19KbxbQqK2V7cfF3Otz-jfiYGmJBNDWcl/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1-AWQapFBA6ktfYJtwMaye0viAFvIOvtn",
+          "name": "harpia_mov_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-20T18:30:26.357Z",
+          "size": "1652885",
+          "url": "https://drive.google.com/file/d/1-AWQapFBA6ktfYJtwMaye0viAFvIOvtn/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        }
+      ]
+    },
+    {
+      "id": "16foYJNfRLTxOdx6Bi-UlnnD4VdWiw88k",
+      "title": "Arpía 3",
+      "url": "https://drive.google.com/drive/folders/16foYJNfRLTxOdx6Bi-UlnnD4VdWiw88k",
+      "count": 62,
+      "files": [
+        {
+          "id": "1iiq8lRNNE6nHo-1u1o2YN4MGWnbEDipq",
+          "name": "harpia_walk_sw_n.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-21T18:50:52.995Z",
+          "size": "1595018",
+          "url": "https://drive.google.com/file/d/1iiq8lRNNE6nHo-1u1o2YN4MGWnbEDipq/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1koonSuw_OX3ZJ6XVyehAt7xItUsg5zrR",
+          "name": "harpia_fly_w_nw_v2.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-21T18:50:49.225Z",
+          "size": "1575082",
+          "url": "https://drive.google.com/file/d/1koonSuw_OX3ZJ6XVyehAt7xItUsg5zrR/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1Nr0CrWYpXNaVlU7YGsCwTd_vWUxgG0TK",
+          "name": "harpia_fly_w_nw_v1.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-21T18:50:45.142Z",
+          "size": "2495473",
+          "url": "https://drive.google.com/file/d/1Nr0CrWYpXNaVlU7YGsCwTd_vWUxgG0TK/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1AbzhonHfh9HWysIZXSmFqybQnhsXrLyp",
+          "name": "harpia_walk_w_nw.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-21T18:50:35.009Z",
+          "size": "1704584",
+          "url": "https://drive.google.com/file/d/1AbzhonHfh9HWysIZXSmFqybQnhsXrLyp/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1FWnHtz_qfg_LTewYHCMCZsjL9EoowNgh",
+          "name": "harpia_fly_w_nw.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-21T18:14:05.197Z",
+          "size": "1575082",
+          "url": "https://drive.google.com/file/d/1FWnHtz_qfg_LTewYHCMCZsjL9EoowNgh/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1k2yP6RgSz2IiBaEZpPEyPXVqPjj0iHV2",
+          "name": "harpia_estado_petrificada.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:25:28.297Z",
+          "size": "1462095",
+          "url": "https://drive.google.com/file/d/1k2yP6RgSz2IiBaEZpPEyPXVqPjj0iHV2/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1Td5TsVvAbOmylSIfHZlNcxtWlfv68GnO",
+          "name": "harpia_estado_paralizada.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:25:23.814Z",
+          "size": "1132646",
+          "url": "https://drive.google.com/file/d/1Td5TsVvAbOmylSIfHZlNcxtWlfv68GnO/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1w3WIJoF8cBZkDye2FwTIaLZ2Jel_-4aQ",
+          "name": "harpia_estado_inconsciente.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:25:19.360Z",
+          "size": "611532",
+          "url": "https://drive.google.com/file/d/1w3WIJoF8cBZkDye2FwTIaLZ2Jel_-4aQ/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "19snquf3IZsCepZkfkYYbhqwkAqvsuCAi",
+          "name": "harpia_estado_incapacitada.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:25:14.784Z",
+          "size": "802175",
+          "url": "https://drive.google.com/file/d/19snquf3IZsCepZkfkYYbhqwkAqvsuCAi/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1s8CL9SRpViuMhDuYgz7845Edty2O0sXe",
+          "name": "harpia_estado_derribada.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:25:04.509Z",
+          "size": "599207",
+          "url": "https://drive.google.com/file/d/1s8CL9SRpViuMhDuYgz7845Edty2O0sXe/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1PQkdEynbA6BObeGvEN4w2UY-1BwjmfNu",
+          "name": "harpia_estado_cegada.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:24:49.892Z",
+          "size": "1081185",
+          "url": "https://drive.google.com/file/d/1PQkdEynbA6BObeGvEN4w2UY-1BwjmfNu/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1Ee-Jy1dQdwbNIx8SjIgxloh0Khm-quTJ",
+          "name": "harpia_estado_aturdida.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:24:37.756Z",
+          "size": "1023278",
+          "url": "https://drive.google.com/file/d/1Ee-Jy1dQdwbNIx8SjIgxloh0Khm-quTJ/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1x4mdOLFxr1nBy-mhrDf_-1Tl-s0HbFTw",
+          "name": "harpia_estado_asustada.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:24:33.056Z",
+          "size": "1076163",
+          "url": "https://drive.google.com/file/d/1x4mdOLFxr1nBy-mhrDf_-1Tl-s0HbFTw/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1WGa-gAHzkAw5h4BZa5cnzi6AXhEFbRb2",
+          "name": "harpia_estado_apresada.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:24:28.675Z",
+          "size": "780785",
+          "url": "https://drive.google.com/file/d/1WGa-gAHzkAw5h4BZa5cnzi6AXhEFbRb2/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1LxnwAuZwKnnsabdXkI2Ug53CyiTqwZrl",
+          "name": "harpia_estado_agarrada.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:24:23.792Z",
+          "size": "1070617",
+          "url": "https://drive.google.com/file/d/1LxnwAuZwKnnsabdXkI2Ug53CyiTqwZrl/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1NLlM_NzDVie8PbDQF_LMsz6Mw-DwiAfj",
+          "name": "harpia_huir_04.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:24:19.225Z",
+          "size": "1012439",
+          "url": "https://drive.google.com/file/d/1NLlM_NzDVie8PbDQF_LMsz6Mw-DwiAfj/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1E44-RMWS0-wkbAJbDqwJHerFM7wRq5qL",
+          "name": "harpia_huir_03.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:24:11.190Z",
+          "size": "1189324",
+          "url": "https://drive.google.com/file/d/1E44-RMWS0-wkbAJbDqwJHerFM7wRq5qL/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1Dl7OSm1P2nH7S5hs1qZTVIdrkMarb-4j",
+          "name": "harpia_huir_02.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:24:06.545Z",
+          "size": "985205",
+          "url": "https://drive.google.com/file/d/1Dl7OSm1P2nH7S5hs1qZTVIdrkMarb-4j/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1WgKiuWCLnLj-nswgAkiVN2u2vDH_bY87",
+          "name": "harpia_huir_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:24:02.144Z",
+          "size": "1066600",
+          "url": "https://drive.google.com/file/d/1WgKiuWCLnLj-nswgAkiVN2u2vDH_bY87/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1-GYCpLOUC8BBkv0JFg0dE8GiT0pBzD9u",
+          "name": "harpia_muerta.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:23:57.446Z",
+          "size": "621559",
+          "url": "https://drive.google.com/file/d/1-GYCpLOUC8BBkv0JFg0dE8GiT0pBzD9u/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1vmqDkDHLSnZvkH30uNKHg5fN8rzv3QYU",
+          "name": "harpia_herida.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:23:52.817Z",
+          "size": "998638",
+          "url": "https://drive.google.com/file/d/1vmqDkDHLSnZvkH30uNKHg5fN8rzv3QYU/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "11BHucTA4xHcJPcN-sqJJETNlyULpAn_p",
+          "name": "harpia_base.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:23:36.973Z",
+          "size": "888184",
+          "url": "https://drive.google.com/file/d/11BHucTA4xHcJPcN-sqJJETNlyULpAn_p/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1PPK9-3tZKqI7jBcQ5_xKCFDcgrPb_flo",
+          "name": "harpia_fx_cancion_05.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:02:54.575Z",
+          "size": "658964",
+          "url": "https://drive.google.com/file/d/1PPK9-3tZKqI7jBcQ5_xKCFDcgrPb_flo/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1qdA7cGuzURNTFHyVr4X3YdVMyBOyGMiI",
+          "name": "harpia_fx_cancion_04.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:02:51.163Z",
+          "size": "1520963",
+          "url": "https://drive.google.com/file/d/1qdA7cGuzURNTFHyVr4X3YdVMyBOyGMiI/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1ets7LnUl5AEPNV4Wl0XqDebZ2PxvjkfO",
+          "name": "harpia_fx_cancion_03.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:02:47.396Z",
+          "size": "1842874",
+          "url": "https://drive.google.com/file/d/1ets7LnUl5AEPNV4Wl0XqDebZ2PxvjkfO/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1wHFxXAFOUmntXpusQL1fvgpmYSiC-4fd",
+          "name": "harpia_fx_cancion_02.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:02:43.873Z",
+          "size": "1974731",
+          "url": "https://drive.google.com/file/d/1wHFxXAFOUmntXpusQL1fvgpmYSiC-4fd/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1vG0f_g_YcH5nzvNjif3koyuiFEpg_EaM",
+          "name": "harpia_fx_cancion_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:02:40.511Z",
+          "size": "1319852",
+          "url": "https://drive.google.com/file/d/1vG0f_g_YcH5nzvNjif3koyuiFEpg_EaM/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1IfVr4nQHZk53zA88DYWUcVewlsk3xsq6",
+          "name": "harpia_cancion_05.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:02:36.970Z",
+          "size": "1423946",
+          "url": "https://drive.google.com/file/d/1IfVr4nQHZk53zA88DYWUcVewlsk3xsq6/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "12-00iTwlF6d0_H-8EhCZZwgnLXrv6hMX",
+          "name": "harpia_cancion_04.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:02:33.836Z",
+          "size": "1569566",
+          "url": "https://drive.google.com/file/d/12-00iTwlF6d0_H-8EhCZZwgnLXrv6hMX/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1q6kswg3jOl3ZMsKF8RndsYycGdlmrA_6",
+          "name": "harpia_cancion_03.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:02:30.555Z",
+          "size": "1723439",
+          "url": "https://drive.google.com/file/d/1q6kswg3jOl3ZMsKF8RndsYycGdlmrA_6/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1zZorsR9eaV63UAad-6G7Co573NyNePof",
+          "name": "harpia_cancion_02.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:02:27.494Z",
+          "size": "1505941",
+          "url": "https://drive.google.com/file/d/1zZorsR9eaV63UAad-6G7Co573NyNePof/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1rFLPVqP_ypepsDV0pTWbvmh9kKMcgElb",
+          "name": "harpia_hit_02.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:02:24.254Z",
+          "size": "1484323",
+          "url": "https://drive.google.com/file/d/1rFLPVqP_ypepsDV0pTWbvmh9kKMcgElb/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1717uvKHDiOfWkvzmVjYs5ocJAjSUf_Zk",
+          "name": "harpia_hit_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:02:20.623Z",
+          "size": "1431757",
+          "url": "https://drive.google.com/file/d/1717uvKHDiOfWkvzmVjYs5ocJAjSUf_Zk/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1R0imEYJQgDwDMYqMondODuPCcj41Wybz",
+          "name": "harpia_ataque_garrote_04.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:02:16.989Z",
+          "size": "1536484",
+          "url": "https://drive.google.com/file/d/1R0imEYJQgDwDMYqMondODuPCcj41Wybz/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1eyRdpT7-gu9HdNIrAzwFPHPs9Xl3PyzZ",
+          "name": "harpia_ataque_garrote_03.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:02:13.845Z",
+          "size": "1598799",
+          "url": "https://drive.google.com/file/d/1eyRdpT7-gu9HdNIrAzwFPHPs9Xl3PyzZ/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1XWarcyehUg4RSknOMJLeaOHWMCVcWBvk",
+          "name": "harpia_ataque_garrote_02.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:02:10.599Z",
+          "size": "1390730",
+          "url": "https://drive.google.com/file/d/1XWarcyehUg4RSknOMJLeaOHWMCVcWBvk/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "16oJR34JztnBcoN33rnDgGvpCPLw14GXS",
+          "name": "harpia_ataque_garrote_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:02:07.177Z",
+          "size": "1461351",
+          "url": "https://drive.google.com/file/d/16oJR34JztnBcoN33rnDgGvpCPLw14GXS/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "14TyCRjIoLTcqwgyUBs-VhD7XobUxzKdJ",
+          "name": "harpia_ataque_garra_04.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:02:03.818Z",
+          "size": "1384605",
+          "url": "https://drive.google.com/file/d/14TyCRjIoLTcqwgyUBs-VhD7XobUxzKdJ/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1S3Fk-Qq_JC-bqa7jr9DNb7OmDLeC8iUN",
+          "name": "harpia_ataque_garra_03.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:01:59.949Z",
+          "size": "1494900",
+          "url": "https://drive.google.com/file/d/1S3Fk-Qq_JC-bqa7jr9DNb7OmDLeC8iUN/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1zOM0svjl0Oz_AVDawFQa3IVmCWAWxIk7",
+          "name": "harpia_ataque_garra_02.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:01:46.817Z",
+          "size": "1612325",
+          "url": "https://drive.google.com/file/d/1zOM0svjl0Oz_AVDawFQa3IVmCWAWxIk7/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1IUi63z2Tq2DeesqoN4ZgxdXrtXtN4Lzv",
+          "name": "harpia_ataque_garra_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:01:43.132Z",
+          "size": "1471285",
+          "url": "https://drive.google.com/file/d/1IUi63z2Tq2DeesqoN4ZgxdXrtXtN4Lzv/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1_MNsHXXSO8Z_SlZDPRc4u7SNJz_8gHNb",
+          "name": "harpia_cancion_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T07:00:58.361Z",
+          "size": "1583040",
+          "url": "https://drive.google.com/file/d/1_MNsHXXSO8Z_SlZDPRc4u7SNJz_8gHNb/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1OcwIhvWrSKLcbs-oaHnFzfj5r70NDA8w",
+          "name": "harpia_aterrizar_03.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T06:30:23.863Z",
+          "size": "359966",
+          "url": "https://drive.google.com/file/d/1OcwIhvWrSKLcbs-oaHnFzfj5r70NDA8w/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1Q5GwLHLSYI4dNmrxvkrVCoJA5AWlnH4y",
+          "name": "harpia_aterrizar_02.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T06:30:20.920Z",
+          "size": "406734",
+          "url": "https://drive.google.com/file/d/1Q5GwLHLSYI4dNmrxvkrVCoJA5AWlnH4y/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1yZhneNIJjrXNXOvWJ-Oo2td_6EhYu940",
+          "name": "harpia_aterrizar_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T06:30:17.296Z",
+          "size": "447871",
+          "url": "https://drive.google.com/file/d/1yZhneNIJjrXNXOvWJ-Oo2td_6EhYu940/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1y9aocSOe0Nj3RpnoSu9rzqKt45Vx59-w",
+          "name": "harpia_volar_04.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T06:30:13.863Z",
+          "size": "330157",
+          "url": "https://drive.google.com/file/d/1y9aocSOe0Nj3RpnoSu9rzqKt45Vx59-w/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1tTutg3N49Z1PPCeXnKwST5LFXu5NuzsW",
+          "name": "harpia_volar_03.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T06:30:10.628Z",
+          "size": "321325",
+          "url": "https://drive.google.com/file/d/1tTutg3N49Z1PPCeXnKwST5LFXu5NuzsW/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1EwWdl5H8OWn0DuS8DOd0zXWPXh27Q6Bv",
+          "name": "harpia_volar_02.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T06:30:07.146Z",
+          "size": "416731",
+          "url": "https://drive.google.com/file/d/1EwWdl5H8OWn0DuS8DOd0zXWPXh27Q6Bv/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1d4J-LFD9cpp7FnU1-BDT5DP4t3m3bZfN",
+          "name": "harpia_volar_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T06:30:04.239Z",
+          "size": "352483",
+          "url": "https://drive.google.com/file/d/1d4J-LFD9cpp7FnU1-BDT5DP4t3m3bZfN/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1qpxDXRerO4L18jF1MqFTK_-iEIlNeJ6B",
+          "name": "harpia_despegar_03.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T06:30:01.146Z",
+          "size": "353552",
+          "url": "https://drive.google.com/file/d/1qpxDXRerO4L18jF1MqFTK_-iEIlNeJ6B/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1cFls3r8r3gu9kGTexZ_ffv0lGY5jmqq2",
+          "name": "harpia_despegar_02.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T06:29:58.189Z",
+          "size": "353675",
+          "url": "https://drive.google.com/file/d/1cFls3r8r3gu9kGTexZ_ffv0lGY5jmqq2/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1aknLlMgwtNI9MUaxRZDL_Jq34_UmYJam",
+          "name": "harpia_despegar_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T06:29:55.136Z",
+          "size": "324027",
+          "url": "https://drive.google.com/file/d/1aknLlMgwtNI9MUaxRZDL_Jq34_UmYJam/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1LxEFD5X-vxVuOzJLJIgOKEkivH4Wd3Ub",
+          "name": "harpia_caminar_04.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T06:29:52.005Z",
+          "size": "1471842",
+          "url": "https://drive.google.com/file/d/1LxEFD5X-vxVuOzJLJIgOKEkivH4Wd3Ub/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1GC3goxgxpMvsasTS1WQYDeOwo_jhkHxZ",
+          "name": "harpia_caminar_03.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T06:29:47.497Z",
+          "size": "1518161",
+          "url": "https://drive.google.com/file/d/1GC3goxgxpMvsasTS1WQYDeOwo_jhkHxZ/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1oeRgrpgyoxBJ4sOZj2xAHhZQqo9Ec7qg",
+          "name": "harpia_caminar_02.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T06:29:42.684Z",
+          "size": "1574899",
+          "url": "https://drive.google.com/file/d/1oeRgrpgyoxBJ4sOZj2xAHhZQqo9Ec7qg/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "13l7SZxSdh4UyCqcI4s7Nse33i-2Hjc-Y",
+          "name": "harpia_caminar_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T06:29:37.429Z",
+          "size": "1529658",
+          "url": "https://drive.google.com/file/d/13l7SZxSdh4UyCqcI4s7Nse33i-2Hjc-Y/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1fG5uNSLxeltWU6joJu3wGEguMuzB03gg",
+          "name": "harpia_idle_cofa_03.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T06:29:32.614Z",
+          "size": "1811483",
+          "url": "https://drive.google.com/file/d/1fG5uNSLxeltWU6joJu3wGEguMuzB03gg/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1hWtEDGALODkXItM7bMINSWPxXSyf2GCU",
+          "name": "harpia_idle_cofa_02.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T06:29:28.042Z",
+          "size": "1791723",
+          "url": "https://drive.google.com/file/d/1hWtEDGALODkXItM7bMINSWPxXSyf2GCU/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "15zfrZ19GkQuQX3QDCIPQ__SnAVly-R82",
+          "name": "harpia_idle_cofa_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T06:29:23.446Z",
+          "size": "1633959",
+          "url": "https://drive.google.com/file/d/15zfrZ19GkQuQX3QDCIPQ__SnAVly-R82/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1coHrr6XeV7TF_uXXDmGGQdSpj9P6Z5iQ",
+          "name": "harpia_idle_suelo_03.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T06:29:18.929Z",
+          "size": "1654097",
+          "url": "https://drive.google.com/file/d/1coHrr6XeV7TF_uXXDmGGQdSpj9P6Z5iQ/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "1zm_2E_cWxY0RMky8eGnBSs-hzYBZcotV",
+          "name": "harpia_idle_suelo_02.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T06:29:14.027Z",
+          "size": "1588678",
+          "url": "https://drive.google.com/file/d/1zm_2E_cWxY0RMky8eGnBSs-hzYBZcotV/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        },
+        {
+          "id": "15qbtp6x29agOOVxtnG7tgt41mNI58dbW",
+          "name": "harpia_idle_suelo_01.png",
+          "mimeType": "image/png",
+          "modifiedTime": "2026-09-18T06:28:49.234Z",
+          "size": "1596129",
+          "url": "https://drive.google.com/file/d/15qbtp6x29agOOVxtnG7tgt41mNI58dbW/view?usp=drivesdk",
+          "status": "available-not-integrated",
+          "localPath": null
+        }
+      ]
+    }
+  ]
+}

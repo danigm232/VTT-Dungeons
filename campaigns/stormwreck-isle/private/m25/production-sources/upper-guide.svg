@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1024" viewBox="0 0 1536 1024">
+  <rect width="1536" height="1024" fill="#174f68"/>
+  <rect x="165" y="284" width="494" height="512" fill="#b6864e" stroke="#fff3ca" stroke-width="10"/>
+  <rect x="932" y="284" width="495" height="512" fill="#b6864e" stroke="#fff3ca" stroke-width="10"/>
+  <rect x="660" y="284" width="270" height="512" fill="#0b2737" stroke="#ffffff" stroke-dasharray="16 12" stroke-width="5"/>
+  <circle cx="795" cy="540" r="40" fill="#b6864e" stroke="#fff3ca" stroke-width="8"/>
+  <g fill="#fef1a2" stroke="#202020" stroke-width="5">
+    <rect x="385" y="342" width="60" height="56"/><rect x="385" y="682" width="60" height="56"/>
+    <rect x="1150" y="342" width="60" height="56"/><rect x="1150" y="682" width="60" height="56"/>
+  </g>
+  <g fill="none" stroke="#ffffff" stroke-width="3" opacity=".35">
+    <path d="M0 284H1536M0 341H1536M0 398H1536M0 455H1536M0 512H1536M0 569H1536M0 626H1536M0 683H1536M0 740H1536M0 797H1536"/>
+    <path d="M165 0V1024M220 0V1024M275 0V1024M330 0V1024M385 0V1024M440 0V1024M495 0V1024M550 0V1024M605 0V1024M660 0V1024M932 0V1024M987 0V1024M1042 0V1024M1097 0V1024M1152 0V1024M1207 0V1024M1262 0V1024M1317 0V1024M1372 0V1024M1427 0V1024"/>
+  </g>
+  <text x="225" y="520" font-size="52" fill="white">C3 FLOOR</text>
+  <text x="1010" y="520" font-size="52" fill="white">C2 FLOOR</text>
+  <text x="682" y="830" font-size="40" fill="white">VOID</text>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1024" viewBox="0 0 1536 1024">
+  <rect width="1536" height="1024" fill="#092536"/>
+  <path d="M100 375L170 284H1365L1430 375V674L1365 740H170L100 674Z" fill="#557178" stroke="#deecdb" stroke-width="9"/>
+  <rect x="274" y="342" width="56" height="57" fill="#091018" stroke="#ffffff" stroke-width="6"/>
+  <rect x="655" y="681" width="60" height="59" fill="#113340" stroke="#ffffff" stroke-width="5"/>
+  <rect x="755" y="568" width="80" height="67" fill="#aa8654" stroke="#ffffff" stroke-width="5"/>
+  <g fill="white" font-size="38"><text x="180" y="520">C8 flooded walkable floor</text><text x="280" y="330">C4-C8-C9 hole</text><text x="760" y="550">stairs to C9</text></g>
+</svg>

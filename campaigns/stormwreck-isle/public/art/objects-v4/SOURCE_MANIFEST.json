@@ -1,0 +1,24 @@
+{
+  "method": "deterministic Pillow repair; retained v2/v3 originals",
+  "inputs": {
+    "campaigns\\stormwreck-isle\\public\\art\\objects-v2\\wreck-objects-room-v2.png": "d24f96c136f56076ca2a6cc0f948b87dca1718e9d41c00d72f79f07e45abea77",
+    "campaigns\\stormwreck-isle\\public\\art\\objects-v3\\door-intact-closed-v3.png": "7182ce1512505e5e5f33364c3c17b8d5039fd84c73182f7ec84eac27e34603c4",
+    "campaigns\\stormwreck-isle\\public\\art\\objects-v3\\door-damaged-closed-v3.png": "2365b790b3b4d7580c75f75554730f1d8f00a69eab75414d65e365d3a93ee5ee"
+  },
+  "outputs": {
+    "campaigns\\stormwreck-isle\\public\\art\\objects-v4\\wreck-objects-room-v4.png": "9a55f6bacf410b9ba028d2d727c8b2b43e6a2d8982f3113ff491886da4602535",
+    "campaigns\\stormwreck-isle\\public\\art\\objects-v4\\door-intact-closed-v4.png": "ed4df89694c887be5cf9b2a9a829e71e1b6d33e5b2e7c62b8933a8dd2701986d",
+    "campaigns\\stormwreck-isle\\public\\art\\objects-v4\\door-intact-open-v4.png": "3eafad235739aab2c098035226b98fe0888942231494007b22d57a4328521c6b",
+    "campaigns\\stormwreck-isle\\public\\art\\objects-v4\\door-damaged-closed-v4.png": "a6aa310f9ce2f3bdad12f149af50e8466b25b42375c63da92582561428e16872",
+    "campaigns\\stormwreck-isle\\public\\art\\objects-v4\\door-damaged-open-v4.png": "e5cbb0371d66af593ab4c28fa2e4fce7298e396a0f3d5239939fd7225b38511e",
+    "campaigns\\stormwreck-isle\\public\\art\\objects-v4\\door-destroyed-v4.png": "f6294ce139dad2b31bc7b7adbaed0a6fbc9fdb5ed44b7f95c06a69b60c64b69e"
+  },
+  "doorLogicalSize": [
+    96,
+    96
+  ],
+  "hinge": [
+    24,
+    24
+  ]
+}

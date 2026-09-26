@@ -1,0 +1,61 @@
+# M5 — worklog de arte por capas y ambiente
+
+Fecha: 25/09/2026 · Estado: EN CURSO, primera capa artística integrada sobre cubierta y casco; aceptación visual pendiente.
+
+## Cubierta — primera capa artística (incremento art01)
+
+- Recurso activo: `campaigns/stormwreck-isle/public/art/ship/deck-planks-art01.png` (PNG 1254×1254, 2,849,135 bytes; SHA-256 `EE2EED3C8EC0E1E7F5C89D81169F5BCE813BD6634216FB231D96FAAE77E9F36B`). El archivo previo `deck-planks-m5-candidate.png` se conserva, pero ya no se carga.
+- Procedencia: generado para este proyecto con ImageGen integrada de Codex mediante prompt original: material cuadrado repetible de tablones envejecidos, veta pintada, grietas/salitre, paleta carbón/azul gris con desgaste ámbar/oliva; albedo cenital, sin cuadrícula, borde, personajes, props ni composición completa del barco. No se reutilizaron píxeles de los fondos de referencia.
+- Uso: material diffuse para cubierta y casco de `wreck-ship`; textura compartida, UV mundiales y repetición aproximada cada 4,5 m. Las tablas siguen la eslora; el casco envuelve el mismo material como decoración no seleccionable. Los materiales húmedos de C8/C9 siguen usando tintes propios. Revisar seams/repetición a escala normal de partida.
+- El rayado provisional geométrico de tablones se oculta sólo al aplicar esta textura para evitar duplicar líneas. Si el recurso no está habilitado, el greybox conserva su rayado previo.
+- Integración: `engine/client/terrain3d.ts` aporta UV a baldosas/rampas y casco; `apps/web/world.ts` carga el asset. Cubierta transitable y picking se conservan. La retícula del barco usa `#88968b`, alpha real `0.66` y `useVertexAlpha`; esto reduce su peso sin cambiar celdas ni selección. No cambia terreno, física, colisiones, inventario, posiciones, permisos, cámara ni guardado.
+- Verificación: PNG y rutas HTTP 200; la vista aislada `/player` muestra tablas también en el casco. Una regresión cubre el material no seleccionable del casco y otra que el grid use realmente mezcla alfa. Suite **149/149**, typecheck y build cliente PASS; el bundle `world` queda en 1,614.64 kB (425.57 kB gzip).
+- Aprobación: **no aprobada como look final**. Esta capa prueba integración y dirección, no equivale aún a la riqueza de las referencias; el usuario debe valorar apariencia, escala, contraste, repetición y oclusión.
+
+## Mar, agua inundada y bodega
+
+- Recurso: `campaigns/stormwreck-isle/public/art/ship/water-ripples-m5-candidate.png` (PNG; 2,825,753 bytes; SHA-256 `8FE9FE1A27A6AB4B3B42D97A2F54DB664E7B8DBBDABB479BABB7141B87FD81BA`).
+- Procedencia: generado para este proyecto con ImageGen integrada de Codex el 25/09/2026 mediante prompt original de oleaje y espuma repetibles. No usa píxeles de las referencias ni incorpora mapa, grid, personajes o interfaz. No se declara CC0 ni arte oficial.
+- Uso vigente tras revisión 38: `deep-sea-background-v1.png` aporta el color/espuma de las casillas navegables y del plano oceánico no seleccionable. Esta textura repetible se conserva como relieve animado de las casillas; si falta el fondo panorámico, sigue siendo la textura difusa de reserva. El recurso se comparte para limitar memoria y carga.
+- C8 usa una variante fría del material de madera cuando la casilla tiene medio agua; C9 (`hold-air`) usa un tono aún más oscuro. No se añade agua como colisión: casillas, altura, selección y coste siguen procediendo de `TerrainDefinition`.
+- La prueba Babylon verifica textura/UV del mar, picking no jugable del plano decorativo, avance de offsets y tintes con altura conservada para C8/C9. Las rutas de madera y agua respondieron HTTP 200. Chrome cargó la escena desde instancia aislada; el aspecto sigue siendo candidato, no arte de referencia terminado.
+
+### Fondo oceánico ilustrado — revisión visual v1
+
+- Recurso: `campaigns/stormwreck-isle/public/art/ship/deep-sea-background-v1.png` (PNG 1536×1024, 3,408,485 bytes; SHA-256 `FA851A2B7D21262C472347D82AC4F31F5B07B8B577B7EBC516511738B1FA8E60`).
+- Procedencia: generado el 25/09/2026 con ImageGen integrada de Codex, usando como referencias de estilo (no como objetivos de edición) `Imagen de Codex 22 sept 2026, 16_16_36-4.png` y `Imagen de Codex 22 sept 2026, 16_17_03-4.png`. No se copiaron sus píxeles, composición, barco, personajes, grid ni interfaz. Es una imagen independiente de agua; no contiene geometría jugable.
+- Uso vigente: se mapea en coordenadas mundiales continuas sobre las casillas de mar y el plano oceánico no seleccionable situado bajo el barco. Los UV son compartidos entre ambas superficies y el borde exterior usa clamp, de modo que no aparece una costura en el límite jugable. El agua conserva su selección y navegación; el arte no define colisión ni secretos.
+- Legibilidad: la retícula de la superficie exterior `sea` baja a alfa 0,38; las cubiertas mantienen el valor anterior. El cambio deja leer mejor la espuma sin esconder las casillas tácticas.
+- Prompt final: “Use case: stylized-concept. Asset type: seamless, tileable 2D game-world water texture for the non-playable background layer of a 2.5D shipwreck VTT. Input images: Image 1 and Image 2 are style references only; follow their painterly HD-2D finish, cool turquoise sea, deep navy channels, and luminous white foam, but do not copy their ship, characters, UI, grid, composition, or pixels. Primary request: create only an ocean surface texture that can repeat seamlessly behind a playable shipwreck scene. Scene/backdrop: storm-worn open sea around a hidden reef. Style/medium: richly hand-painted RPG environment texture, illustrated brushwork with restrained depth cues, not photorealistic. Composition/framing: strict near-top-down surface view; seamless on all four edges; evenly distributed wave clusters; no horizon and no focal center. Lighting/mood: cool overcast light with restrained turquoise highlights and layered dark currents to suggest depth. Color palette: deep blue-green, petrol teal, muted turquoise, small soft ivory foam accents. Materials/textures: broad flowing wave ridges, subtle water streaks, gentle foam filigree; keep enough quiet dark water so grid lines, tokens, and objects stay readable. Constraints: texture only; no ship, boat, island, rocks, bones, wreckage, characters, objects, land, UI, grid, border, text, logo, or watermark; no single bright focal patch.”
+- Ajuste de integración: el generador entregó una imagen panorámica 3:2; por eso se usa una sola vez a lo largo del mundo, no repetida. Un segundo mapeo con los mismos UV mantiene continuidad sobre la superficie jugable; la textura repetible previa aporta relieve animado en lugar de sustituir la pintura.
+- Verificación: suite completa **161/161**, typecheck y build cliente PASS. La instancia aislada `http://127.0.0.1:4403/player` carga la escena del pecio con el personaje de prueba; el PNG responde 200. El bundle `world` queda en 1,619.57 kB (426.98 kB gzip), con la advertencia de chunk grande ya conocida.
+- Estado: candidata integrada y comprobada en navegador aislado; aceptación visual pendiente. No equivale al paquete de mar terminado ni reemplaza el inventario de assets interactuables/decorativos.
+
+### Fondo oceánico lejano — revisión 41
+
+- Recurso: `campaigns/stormwreck-isle/public/art/ship/deep-sea-background-art02.png` (PNG 1254×1254, 3,165,703 bytes; SHA-256 `349F2CC39E05B1213E0D2D1C75931309701BF73158339538224D11A94ABAB9B5`). El arte previo se conserva.
+- Procedencia: generado con ImageGen integrada de Codex. `wreck-deck.png` es referencia de estilo, no objetivo de edición ni fuente de píxeles. Prompt final: textura cuadrada de océano para fondo 2.5D HD-2D; mar tormentoso visto desde cámara alta 3/4, corrientes turquesa, espuma pálida y aguas azul petróleo; gradientes amplios y áreas tranquilas para legibilidad; sin horizonte, barco, rocas, huesos, objetos, grid, texto ni interfaz.
+- Uso: `scenicWaterTexture` se carga solo en el plano oceánico no seleccionable bajo/tras el barco. Las casillas navegables conservan `deep-sea-background-v1.png`, el relieve de oleaje animado y su selección; se mantiene la UV mundial continua y el clamp del fondo. Una prueba de Babylon comprueba que ambas capas reciben texturas diferentes y que el fondo no se anima con el relieve. No toca terreno, alturas, grid, navegación ni colisiones.
+- Verificación: suite **166/166**, typecheck cliente/servidor y builds cliente/servidor PASS. En `127.0.0.1:4398`, el asset respondió HTTP 200, pero `/player` aún apunta al bundle anterior `world-CfAzxtd7`; no cuenta como comprobación visual de esta revisión. `127.0.0.1:3000` no respondió y no se inició ni reinició servidor alguno. No se declara aceptación visual en mesa.
+- Estado: candidata de profundidad, no arte final. Falta comprobarla con el barco en vista normal, desde la cofa, con/sin grid y en hardware físico; M5 sigue pendiente de espuma/estela, capas de props y completar el inventario.
+
+## Siguiente lote de M5
+
+- Alcance añadido por el usuario en la revisión r36: producir el mar ilustrado completo y assets finales para **cada** interactuable/recogible y **cada** objeto decorativo de C1–C9, la cofa y el exterior. El inventario por zona/estados es obligatorio: [M5_ASSET_COVERAGE_PLAN_20260925.md](M5_ASSET_COVERAGE_PLAN_20260925.md).
+- El agua repetible `water-ripples-m5-candidate.png` ya existe, pero es sólo un material provisional; falta mar rico por capas, espuma/estela/corrientes y entorno exterior legible. No marcar “mar hecho” por tener esta textura.
+- Deben reemplazarse los assets genéricos de puertas/cajas y las piezas con `blockout` por arte final o variantes dedicadas. El manifest incluye los estados de interacción, botín/recogibles y muebles/decoración; ningún secreto se hornea en el suelo o fondo.
+- El siguiente incremento artístico debe evaluar esta capa en jugador/DM, grid visible y sin grid, con C8/C9 y oclusores. No se proclama semejanza con las referencias ni se da M5 por aprobado.
+- Mantener el bundle `world` (1,614.64 kB, 425.57 kB gzip) como tarea de optimización y medir FPS más adelante en hardware real.
+- Aceptación visual del usuario separada del QA de navegación; no llamar terminado al arte ni al playtest físico.
+
+## Auditoría y preflight M6 — 25/09/2026
+
+- Viento: `shipWindStreaks()` produce trazos móviles sólo sobre casillas decorativas `sea`; no genera grid, colisión ni picking, y se oculta al enfocar interiores inferiores. Regresión en `engine/client/ship-ambience.test.ts`.
+- Luz ambiental: puntos fríos y pulsación tenue en C8/C9, con radio limitado para evitar luz falsa en la cubierta superior. Las cuatro antorchas siguen apagadas y recogibles; no se introduce un estado de llama.
+- QA visual aislada en `127.0.0.1:4397`, con carpeta temporal: el jugador muestra un solo barco, cámara 3/4 y marcador de acceso a C8; la consola DM muestra objetos/puertas y antorchas apagadas. El aspecto sigue siendo greybox texturizado, lejos de la riqueza de las referencias fijas. M5 no queda aprobado.
+- La entrada de jugador se probó con D y retorno A: una casilla diagonal (`main 24,6` → `25,7`) y vuelta a `24,6`; la respuesta pudo observarse también desde la consola DM. Es una instancia aislada, no una medición de latencia/FPS del hardware del usuario.
+- Verificación M6 previa a art01: suite **148/148**, typecheck, builds cliente/servidor PASS. En este incremento: suite **149/149**, typecheck y build cliente PASS. Integración general con dos jugadores/proyector, integración de objetos y smoke de persistencia/restauración PASS. Los cuatro entrypoints responden desde loopback con recursos locales; no declaran CDN.
+- Build cliente actual: `world` 1,614.64 kB (425.57 kB gzip); advertencia de chunk >500 kB continúa. Node disponible es 24.19.0 aunque el proyecto pide >=24.21.0; los comandos verificados terminaron correctamente. No se midió FPS sostenido ni se probó móvil/proyector físico.
+- Checkpoint histórico previo: `backups/pecio-m5-m6-qa-candidate-20260925.zip`, 2.375 archivos, 795.294.926 bytes, SHA-256 `6820F4D26D5F8BF0389BFB581447D91156410F226C29CD4647F7119BE594628C`.
+- Candidata M6 previa: `backups/pecio-m5-m6-qa-candidate-r31-20260925.zip`. El siguiente checkpoint r32 incluye art01 y su integración; se conservan las copias previas.
+- Guion pendiente de M7 físico: [M6_M7_PHYSICAL_PLAYTEST_20260925.md](M6_M7_PHYSICAL_PLAYTEST_20260925.md).

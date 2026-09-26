@@ -1,0 +1,912 @@
+{
+  "campaignStateVersion": 1,
+  "public": {
+    "schemaVersion": 2,
+    "campaignId": "alpha03-synthetic",
+    "version": "fixture-1",
+    "title": "Prueba sintética privada",
+    "initialSceneId": "hall",
+    "scenes": [
+      {
+        "id": "hall",
+        "title": "hall",
+        "surfaceId": "hall-floor",
+        "movementEnabled": true,
+        "background": "/art/synthetic.png",
+        "grid": {
+          "cols": 8,
+          "rows": 6,
+          "tileSize": 48,
+          "originX": 0,
+          "originY": 0,
+          "width": 384,
+          "height": 288
+        },
+        "walkable": [
+          {
+            "col": 0,
+            "row": 0
+          },
+          {
+            "col": 1,
+            "row": 0
+          },
+          {
+            "col": 2,
+            "row": 0
+          },
+          {
+            "col": 3,
+            "row": 0
+          },
+          {
+            "col": 4,
+            "row": 0
+          },
+          {
+            "col": 5,
+            "row": 0
+          },
+          {
+            "col": 6,
+            "row": 0
+          },
+          {
+            "col": 7,
+            "row": 0
+          },
+          {
+            "col": 0,
+            "row": 1
+          },
+          {
+            "col": 1,
+            "row": 1
+          },
+          {
+            "col": 2,
+            "row": 1
+          },
+          {
+            "col": 3,
+            "row": 1
+          },
+          {
+            "col": 4,
+            "row": 1
+          },
+          {
+            "col": 5,
+            "row": 1
+          },
+          {
+            "col": 6,
+            "row": 1
+          },
+          {
+            "col": 7,
+            "row": 1
+          },
+          {
+            "col": 0,
+            "row": 2
+          },
+          {
+            "col": 1,
+            "row": 2
+          },
+          {
+            "col": 2,
+            "row": 2
+          },
+          {
+            "col": 3,
+            "row": 2
+          },
+          {
+            "col": 4,
+            "row": 2
+          },
+          {
+            "col": 5,
+            "row": 2
+          },
+          {
+            "col": 6,
+            "row": 2
+          },
+          {
+            "col": 7,
+            "row": 2
+          },
+          {
+            "col": 0,
+            "row": 3
+          },
+          {
+            "col": 1,
+            "row": 3
+          },
+          {
+            "col": 2,
+            "row": 3
+          },
+          {
+            "col": 3,
+            "row": 3
+          },
+          {
+            "col": 4,
+            "row": 3
+          },
+          {
+            "col": 5,
+            "row": 3
+          },
+          {
+            "col": 6,
+            "row": 3
+          },
+          {
+            "col": 7,
+            "row": 3
+          },
+          {
+            "col": 0,
+            "row": 4
+          },
+          {
+            "col": 1,
+            "row": 4
+          },
+          {
+            "col": 2,
+            "row": 4
+          },
+          {
+            "col": 3,
+            "row": 4
+          },
+          {
+            "col": 4,
+            "row": 4
+          },
+          {
+            "col": 5,
+            "row": 4
+          },
+          {
+            "col": 7,
+            "row": 4
+          },
+          {
+            "col": 0,
+            "row": 5
+          },
+          {
+            "col": 1,
+            "row": 5
+          },
+          {
+            "col": 2,
+            "row": 5
+          },
+          {
+            "col": 3,
+            "row": 5
+          },
+          {
+            "col": 4,
+            "row": 5
+          },
+          {
+            "col": 5,
+            "row": 5
+          },
+          {
+            "col": 6,
+            "row": 5
+          },
+          {
+            "col": 7,
+            "row": 5
+          }
+        ],
+        "spawns": [
+          {
+            "col": 1,
+            "row": 1
+          },
+          {
+            "col": 1,
+            "row": 2
+          }
+        ],
+        "props": [
+          {
+            "rotation": 0,
+            "baseFootprint": [
+              {
+                "col": 0,
+                "row": 0
+              }
+            ],
+            "allowedRotations": [
+              0
+            ],
+            "capabilities": {
+              "transform": false,
+              "detach": false,
+              "structure": true
+            },
+            "sourceKind": "addition",
+            "id": "door",
+            "kind": "door",
+            "label": "Puerta sintética",
+            "assetId": "door-art",
+            "cell": {
+              "col": 3,
+              "row": 2
+            },
+            "initialState": "closed"
+          },
+          {
+            "rotation": 0,
+            "baseFootprint": [
+              {
+                "col": 0,
+                "row": 0
+              },
+              {
+                "col": 1,
+                "row": 0
+              }
+            ],
+            "allowedRotations": [
+              0,
+              90
+            ],
+            "capabilities": {
+              "transform": true,
+              "detach": false,
+              "structure": true
+            },
+            "sourceKind": "addition",
+            "id": "crate",
+            "kind": "crate",
+            "label": "Caja sintética",
+            "assetId": "crate-art",
+            "cell": {
+              "col": 4,
+              "row": 3
+            }
+          },
+          {
+            "rotation": 0,
+            "baseFootprint": [
+              {
+                "col": 0,
+                "row": 0
+              }
+            ],
+            "allowedRotations": [
+              0,
+              90,
+              180,
+              270
+            ],
+            "capabilities": {
+              "transform": true,
+              "detach": true,
+              "structure": true
+            },
+            "sourceKind": "addition",
+            "id": "wheel",
+            "kind": "wheel",
+            "label": "Timón sintético",
+            "assetId": "wheel-art",
+            "cell": {
+              "col": 6,
+              "row": 4
+            },
+            "initialState": "upright",
+            "mount": {
+              "cell": {
+                "col": 6,
+                "row": 4
+              },
+              "footprint": [
+                {
+                  "col": 0,
+                  "row": 0
+                }
+              ],
+              "assetId": "mount-art"
+            }
+          }
+        ],
+        "waves": false
+      },
+      {
+        "id": "annex",
+        "title": "annex",
+        "surfaceId": "annex-floor",
+        "movementEnabled": true,
+        "background": "/art/synthetic.png",
+        "grid": {
+          "cols": 8,
+          "rows": 6,
+          "tileSize": 48,
+          "originX": 0,
+          "originY": 0,
+          "width": 384,
+          "height": 288
+        },
+        "walkable": [
+          {
+            "col": 0,
+            "row": 0
+          },
+          {
+            "col": 1,
+            "row": 0
+          },
+          {
+            "col": 2,
+            "row": 0
+          },
+          {
+            "col": 3,
+            "row": 0
+          },
+          {
+            "col": 4,
+            "row": 0
+          },
+          {
+            "col": 5,
+            "row": 0
+          },
+          {
+            "col": 6,
+            "row": 0
+          },
+          {
+            "col": 7,
+            "row": 0
+          },
+          {
+            "col": 0,
+            "row": 1
+          },
+          {
+            "col": 1,
+            "row": 1
+          },
+          {
+            "col": 2,
+            "row": 1
+          },
+          {
+            "col": 3,
+            "row": 1
+          },
+          {
+            "col": 4,
+            "row": 1
+          },
+          {
+            "col": 5,
+            "row": 1
+          },
+          {
+            "col": 6,
+            "row": 1
+          },
+          {
+            "col": 7,
+            "row": 1
+          },
+          {
+            "col": 0,
+            "row": 2
+          },
+          {
+            "col": 1,
+            "row": 2
+          },
+          {
+            "col": 2,
+            "row": 2
+          },
+          {
+            "col": 3,
+            "row": 2
+          },
+          {
+            "col": 4,
+            "row": 2
+          },
+          {
+            "col": 5,
+            "row": 2
+          },
+          {
+            "col": 6,
+            "row": 2
+          },
+          {
+            "col": 7,
+            "row": 2
+          },
+          {
+            "col": 0,
+            "row": 3
+          },
+          {
+            "col": 1,
+            "row": 3
+          },
+          {
+            "col": 2,
+            "row": 3
+          },
+          {
+            "col": 3,
+            "row": 3
+          },
+          {
+            "col": 4,
+            "row": 3
+          },
+          {
+            "col": 5,
+            "row": 3
+          },
+          {
+            "col": 6,
+            "row": 3
+          },
+          {
+            "col": 7,
+            "row": 3
+          },
+          {
+            "col": 0,
+            "row": 4
+          },
+          {
+            "col": 1,
+            "row": 4
+          },
+          {
+            "col": 2,
+            "row": 4
+          },
+          {
+            "col": 3,
+            "row": 4
+          },
+          {
+            "col": 4,
+            "row": 4
+          },
+          {
+            "col": 5,
+            "row": 4
+          },
+          {
+            "col": 6,
+            "row": 4
+          },
+          {
+            "col": 7,
+            "row": 4
+          },
+          {
+            "col": 0,
+            "row": 5
+          },
+          {
+            "col": 1,
+            "row": 5
+          },
+          {
+            "col": 2,
+            "row": 5
+          },
+          {
+            "col": 3,
+            "row": 5
+          },
+          {
+            "col": 4,
+            "row": 5
+          },
+          {
+            "col": 5,
+            "row": 5
+          },
+          {
+            "col": 6,
+            "row": 5
+          },
+          {
+            "col": 7,
+            "row": 5
+          }
+        ],
+        "spawns": [
+          {
+            "col": 1,
+            "row": 1
+          },
+          {
+            "col": 1,
+            "row": 2
+          }
+        ],
+        "props": [
+          {
+            "rotation": 0,
+            "baseFootprint": [
+              {
+                "col": 0,
+                "row": 0
+              }
+            ],
+            "allowedRotations": [
+              0
+            ],
+            "capabilities": {
+              "transform": false,
+              "detach": false,
+              "structure": true
+            },
+            "sourceKind": "addition",
+            "id": "door",
+            "kind": "door",
+            "label": "Puerta sintética",
+            "assetId": "door-art",
+            "cell": {
+              "col": 3,
+              "row": 2
+            },
+            "initialState": "closed"
+          }
+        ],
+        "waves": false
+      }
+    ],
+    "roster": [
+      {
+        "id": "alpha",
+        "label": "alpha",
+        "archetype": "Prueba",
+        "color": "#55b8d8",
+        "tokenId": "hero"
+      },
+      {
+        "id": "beta",
+        "label": "beta",
+        "archetype": "Prueba",
+        "color": "#55b8d8",
+        "tokenId": "hero"
+      }
+    ],
+    "tokens": {
+      "hero": {
+        "url": "/art/synthetic.png",
+        "logicalWidth": 48,
+        "logicalHeight": 48,
+        "anchorX": 0.5,
+        "anchorY": 0.5
+      },
+      "beast": {
+        "url": "/art/synthetic.png",
+        "logicalWidth": 48,
+        "logicalHeight": 48,
+        "anchorX": 0.5,
+        "anchorY": 0.5
+      }
+    },
+    "props": {
+      "door-art": {
+        "variants": {
+          "intact:closed": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "intact:open": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "damaged:closed": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "damaged:open": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "destroyed": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          }
+        }
+      },
+      "crate-art": {
+        "variants": {
+          "intact:0": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "intact:90": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "damaged:0": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "damaged:90": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "destroyed:0": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "destroyed:90": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          }
+        }
+      },
+      "wheel-art": {
+        "variants": {
+          "attached:intact": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "attached:damaged": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "detached:caught:intact:0": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "detached:fallen:intact:0": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "detached:caught:intact:90": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "detached:fallen:intact:90": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "detached:caught:intact:180": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "detached:fallen:intact:180": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "detached:caught:intact:270": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "detached:fallen:intact:270": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "detached:caught:damaged:0": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "detached:fallen:damaged:0": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "detached:caught:damaged:90": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "detached:fallen:damaged:90": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "detached:caught:damaged:180": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "detached:fallen:damaged:180": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "detached:caught:damaged:270": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "detached:fallen:damaged:270": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "debris:0": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "debris:90": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "debris:180": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          },
+          "debris:270": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          }
+        }
+      },
+      "mount-art": {
+        "variants": {
+          "default": {
+            "url": "/art/synthetic.png",
+            "logicalWidth": 48,
+            "logicalHeight": 48,
+            "anchorX": 0.5,
+            "anchorY": 0.5
+          }
+        }
+      }
+    },
+    "audio": {
+      "music": "/audio/synthetic.wav",
+      "layers": {
+        "ocean": "/audio/synthetic.wav",
+        "wind": "/audio/synthetic.wav",
+        "wood": "/audio/synthetic.wav",
+        "storm": "/audio/synthetic.wav"
+      },
+      "sfx": {
+        "thunder": "/audio/synthetic.wav",
+        "creak": "/audio/synthetic.wav",
+        "impact": "/audio/synthetic.wav"
+      }
+    }
+  },
+  "characters": {
+    "alpha": {
+      "maxHp": 10,
+      "inventory": [
+        "Cuerda sintética"
+      ]
+    },
+    "beta": {
+      "maxHp": 8,
+      "inventory": [
+        "Mapa de prueba"
+      ]
+    }
+  },
+  "encounter": {
+    "sceneId": "hall",
+    "creature": {
+      "id": "beast",
+      "label": "Criatura de prueba",
+      "tokenId": "beast",
+      "color": "#cc5555",
+      "cell": {
+        "col": 6,
+        "row": 2
+      }
+    },
+    "note": "Dato sintético, no contenido de campaña"
+  }
+}

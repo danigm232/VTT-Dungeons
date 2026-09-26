@@ -1,0 +1,42 @@
+{
+  "sceneId": "wreck-objects",
+  "doorId": "practice-door",
+  "cell": {
+    "col": 6,
+    "row": 4
+  },
+  "grid": 48,
+  "center": {
+    "x": 312,
+    "y": 216
+  },
+  "canvas": {
+    "width": 96,
+    "height": 96,
+    "anchorX": 0.25,
+    "anchorY": 0.5
+  },
+  "hinge": {
+    "x": 312,
+    "y": 192
+  },
+  "closedEnd": {
+    "x": 312,
+    "y": 240
+  },
+  "openEnd": {
+    "x": 360,
+    "y": 192
+  },
+  "mount": {
+    "cell": {
+      "col": 3,
+      "row": 8
+    },
+    "originY": 8,
+    "center": {
+      "x": 168,
+      "y": 416
+    }
+  }
+}

@@ -1,0 +1,214 @@
+# Roadmap vigente — hacer jugable todo el Pecio Maldito
+
+Revisión 47 · 25/09/2026. M5 incorpora una textura pictórica nueva de cubierta (`deck-planks-art06.png`), cuadrícula de cubierta más discreta, rejillas/cabos y telas oscurecidas en las literas, sin modificar casillas ni colisiones. La barca ya admite embarque/desembarque explícito, piloto, pasajeros, remo por el mar navegable, traspaso de piloto y persistencia de posición; se probó con dos personajes. **184/184 pruebas**, tipos y build PASS. El jugador y el proyector se inspeccionaron en navegador aislado sin errores de consola. **M5 tiene una candidata técnica completa, pero NO aprobación artística**: el conjunto todavía es más esquemático que `wreck-deck.png`; faltan el juicio visual del usuario y la prueba física/rendimiento M7. [Informe M5](campaigns/stormwreck-isle/private/m5/M5_ART_LAYER_IMPLEMENTATION_20260925.md).
+
+Revisión 46 · 25/09/2026. La revisión funcional del capítulo 3 corrigió C4: al abrirlo aparecen los zombis aunque no hubiera alerta; la caída del timón o una segunda prueba de Fuerza los sitúa junto a la puerta. La tabla d6 de C8 solo corresponde a las cajas, no a los barriles; interfaz y servidor lo respetan. El atajo interno de combate ya no genera dados por omisión. M5 suaviza el borde entre mar navegable y fondo ilustrado y reduce la fuerza visual de la cuadrícula marina, sin alterar colisiones ni rutas. Se conserva el mismo barco lógico y las decisiones del DM. **183/183 pruebas**, typecheck y builds de cliente/servidor PASS. Navegador aislado: C4 y C8 en consola DM, mar en jugador y proyector; sin alterar la partida real. La verificación figura en la [auditoría M4](campaigns/stormwreck-isle/private/M4_ARRIVAL_AND_DEPARTURE_AUDIT_20260925.md) y el [informe M5](campaigns/stormwreck-isle/private/m5/M5_ART_LAYER_IMPLEMENTATION_20260925.md). M5 no queda cerrado sin aceptación visual y pruebas físicas.
+
+Revisión 45 · 25/09/2026. M5 dispone de una candidata integrada por capas: espuma animada y mar escénico de fondo separados del agua navegable, casco/rocas texturizados, variantes Babylon independientes para todos los props definidos del barco, iconografía de botín revelado, barca vectorial y luz/niebla variables con la tormenta. Se corrigieron el borde oscuro del océano y las antiguas placas planas de profundidad. Las **179/179 pruebas** de la suite, typecheck, builds cliente/servidor e integraciones general y de objetos pasan; la candidata se inspeccionó en jugador y proyector en una instancia aislada `http://127.0.0.1:4450`. No se modificó la partida real. La aceptación visual, el ensayo físico móvil/proyector/FPS y el pilotaje libre del bote siguen abiertos; no se declara M5 acabado ni equivalente todavía a la calidad pictórica de la referencia. [Detalle y procedencia M5](campaigns/stormwreck-isle/private/m5/M5_ART_LAYER_IMPLEMENTATION_20260925.md).
+
+Revisión 44 · 25/09/2026. Los cinco mapas de descanso pasan a formar parte del mismo bundle/campaña `stormwreck-isle`: comparten personajes, perfiles de audio y guardado con Retiro y Rosa de los Vientos. La consola DM los agrupa en «Campamentos y descansos»; la aventura queda en «Aventura · Isla de las Tempestades» y D8 sigue separado. `INICIAR.cmd` ofrece solo esas dos campañas. Las partidas Stormwreck antiguas reciben registros vacíos para las nuevas escenas al restaurarse; el antiguo directorio `data/saves/camp-rests/` se conserva intacto y no se importa a ciegas. Verificado con **169/169 pruebas**, typecheck cliente/servidor, builds cliente/servidor, integración ampliada de dos jugadores y objetos, y el alias de arranque heredado `camp-rests` hacia la campaña unificada.
+
+Revisión 43 · 25/09/2026. Se completa la guía privada de la pista de C9 en el panel del DM: relación entre la bitácora, el talismán, la nigromancia, el retrato de C6 y la tumba de Brastos, sin revelar el paquete antes de abrirlo. Typecheck del cliente y build web PASS; sigue pendiente la aceptación física M7. La mesa en curso no se reinició.
+
+Revisión 42 · 25/09/2026. La auditoría del capítulo detectó que el DM podía marcar la resolución de la arpía antes de su regreso y cancelar su aparición. Ahora el panel bloquea esa opción hasta que vuelva a C1 y el servidor rechaza una confirmación anticipada; la resolución sigue siendo decisión manual del DM. Una regresión comprueba que el estado se conserva al guardar/restaurar. Suite **167/167**, typecheck cliente/servidor, builds cliente/servidor e integración compilada de llegada/dos jugadores/regreso PASS. No se reinició la mesa en curso. M4 continúa técnicamente completo, pero aceptación física de teclado/móvil/proyector pendiente. [Auditoría del capítulo 3](campaigns/stormwreck-isle/private/M4_ARRIVAL_AND_DEPARTURE_AUDIT_20260925.md) y [guion de prueba física M7](campaigns/stormwreck-isle/private/m5/M6_M7_PHYSICAL_PLAYTEST_20260925.md).
+
+Revisión 41 · 25/09/2026. Segunda capa de profundidad visual: `deep-sea-background-art02.png`, textura ilustrada creada con la referencia `wreck-deck.png`, se usa solo en el plano oceánico lejano; el agua transitable mantiene su arte y oleaje animado. Se prueba la separación entre mar jugable y fondo decorativo; no se alteran grid, colisiones, navegación ni selección. El DM muestra mensajes legibles para errores del epílogo. Suite **166/166**, tipos cliente/servidor y builds cliente/servidor PASS. El bundle `world` sigue sobre 500 kB. Candidata visual aún sin aceptación en mesa; M5 conserva pendientes de espuma/estela y cobertura completa de assets. No se reinició el servidor en curso. [Textura candidata](campaigns/stormwreck-isle/public/art/ship/deep-sea-background-art02.png), [plan de cobertura M5](campaigns/stormwreck-isle/private/m5/M5_ASSET_COVERAGE_PLAN_20260925.md) y [copia literal del roadmap anterior](docs/archive/ROADMAP_V1_PRE_PECIO_20260921.md), conservada y verificada por hash.
+
+Revisión 40 · 25/09/2026. Cierra dos huecos del epílogo: el sueño se entrega de forma privada a Mia y el DM elige/aplica al grupo nivel 2 o 3; el campo de nivel se actualiza sin automatizar PG, conjuros, rasgos ni tiradas. Al día siguiente, el snapshot público transforma el barco en mar vacío, retira sus props/pistas y bloquea reembarque, interacciones y reinicio de escena. Profundidad M5 provisional de r39 sigue sin aceptación; faltan completar mar por capas y assets de interactuables/decoración. Suite **166/166**, tipos de cliente/servidor y builds cliente/servidor PASS. El bundle `world` permanece sobre 500 kB. No se reinició ni alteró el servidor de la mesa en curso; los cambios de servidor llegarán al siguiente arranque habitual. No declara arte final ni borra trabajo de D8. El inventario M5 está en [plan de cobertura](campaigns/stormwreck-isle/private/m5/M5_ASSET_COVERAGE_PLAN_20260925.md). [Copia literal del roadmap anterior](docs/archive/ROADMAP_V1_PRE_PECIO_20260921.md), conservada y verificada por hash.
+
+Objetivo: dirigir C1–C9, encuentros, descubrimientos y final del capítulo 3 con servidor Windows, DM, jugadores móviles y proyector. Los mapas y su conectividad van primero.
+
+## Retiro del Dragón — integrado como escena inicial; aceptación de mesa pendiente
+
+El mapa V5.2 se importa como escena Babylon separada (`dragon-rest`) para *Los Dragones de la Isla de las Tempestades*, siguiendo las zonas A1–A5 de la aventura oficial (PDF, pp. 7–13). Conserva las mallas fuente, añade superficies transitables/obstáculos/conexiones independientes a 1,5 m por casilla y ofrece un control DM para ocultar la cuadrícula visual sin retirar los datos de navegación. El recorrido automatizado con el movimiento autoritativo llega desde la playa a A1–A5, las seis celdas, la biblioteca con la puerta cerrada/abierta, la playa y el puerto; paredes y borde de acantilado bloquean el paso. CANON y VTT_AMBIENCE siguen separados. Runara, Tarak, Varnoth, kobolds, descanso, investigación, cabrestante y viajes son interacciones para arbitraje manual; los tres zombis se revelan manualmente. La barca conecta con `wreck-ship`; Pleamar y el Observatorio quedan preparados hasta disponer de sus mapas.
+
+La suite completa actual (**161/161**), los tipos de cliente/servidor y los builds aislados pasan. En un navegador local se comprobó la carga de NPC, puerta A4 y cuadrícula; eso no certifica dispositivos físicos ni FPS. La interfaz del DM incluye el gancho del capítulo 3 tras los zombis de la playa, deja claro que pueden elegir entre Pecio y Cuevas de Pleamar, y describe las dos opciones de abordaje. La descarga `world` sigue superando 500 kB; queda revisar división/carga diferida y medir FPS. Informe detallado: [integración Retiro del Dragón](campaigns/stormwreck-isle/private/RETREAT_INTEGRATION_20260924.md).
+
+## AHORA — barco C1–C9 continuo; acabado visual reservado para Sol
+
+**Regla de producción para cada zona:** (1) ficha funcional basada en la aventura → (2) geometría y alturas definitivas en Babylon con cámara ortográfica 3/4 común → (3) cuadrícula, movimiento, obstáculos y enlaces entre alturas → **validación del mapa funcional** → (4) arte de superficies y objetos independientes sujeto a esa geometría → (5) ambiente y animaciones → **validación visual** → (6) interacciones/escenas bajo arbitraje del DM → (7) pruebas en DM, proyector y móvil → **validación de escena jugable**. Ninguna imagen puede alterar silenciosamente un mapa funcional ya aprobado; primero se actualizan geometría/conexiones y después el arte. C1 es el piloto y las plantas comparten coordenadas.
+
+**Barco C1–C9 y cofa, fases 1–3: prototipo greybox integrado; aceptación pendiente.** La decisión vigente es **un único mapa/escena lógica `wreck-ship`**: C1–C9, la cofa, el mar y las conexiones son superficies y alturas de un mismo terreno 56×32 a 1,5 m/casilla; el casco conserva su huella de 66×22,5 m. La revisión del capítulo 3 (PDF pp. 22–27; mapa 4 de la p. 25) confirmó escaleras y accesos, mástil/cofa, agujero alineado C4/C8→C9, agua difícil de C8, brecha de popa, arrecife de roca/huesos de dragón y restos de naufragios. En una prueba del cliente real de jugador, aislada y con datos temporales, se reprodujo un desvío al rodear el hueco del mástil en la cofa: la orden W acababa en una casilla lateral. Se corrigió la validación de esquina: permite la diagonal cuando al menos una ruta cardinal intermedia está libre y sigue bloqueándola si ambas están cerradas. Después, con teclado de jugador: W llegó a la cofa, W rodeó el mástil en la diagonal prevista, S regresó a C1 y, tras girar la cámara 45°, W siguió su orientación. D/A desplazó al personaje una casilla y lo devolvió a la coordenada inicial en la instancia aislada. No se movió la ficha desde el DM. El paso discreto dura 220 ms por casilla; simulación a 30 Hz y snapshots a 20 Hz. Esto verifica lógica y rumbo, no el juicio subjetivo de fluidez en el equipo del usuario. Las **157/157** pruebas pasan. No hay aceptación física de móvil/proyector ni medición de FPS.
+
+**Revisión 37 · mar exterior y bote:** se quitó la curva turquesa aislada bajo la barca que parecía una charca. El terreno amplía el agua transitable hasta 9 m alrededor del casco y coloca arrecifes, huesos de dragón y restos de barcos como obstáculos tanto en la navegación como en su representación Babylon, con ruta comprobada desde la barca hasta la brecha de popa. Es una primera lectura funcional/greybox, no el acabado artístico. La barca sigue siendo el punto de llegada y amarre; el movimiento pilotable del bote queda por implementar. El capítulo 3, pp. 22–27 (especialmente pp. 22–23 y 26), es la fuente del arrecife, los huesos, los restos y las condiciones del agua.
+
+**Revisión 38 · fondos y profundidad:** `deep-sea-background-v1.png` ahora pinta de forma continua las casillas navegables de mar y el plano oceánico no jugable debajo del casco. La textura de oleaje se conserva como relieve animado, y el grid exterior baja de intensidad para dejar leer espuma y corrientes. Arrecifes, huesos y pecios lejanos siguen como geometría separada; nada de esto contiene fichas, arquitectura o secretos, ni modifica colisiones, selección o navegación. Es una primera capa visual, no completa espuma/estela ni sustituye los modelos por capas; la aceptación visual y el resto de assets M5 siguen pendientes. Verificado con la suite **161/161**, typecheck y build cliente; la vista aislada está en `http://127.0.0.1:4403/player`.
+
+**Revisión 39 · volumen, distancia y epílogo:** el fondo oceánico gana una sombra suave bajo el casco y tres veladuras radiales de luz azul sobre el plano profundo; una bruma exponencial atenúa los elementos alejados y una luz lateral fría da más lectura a casco, barandillas y pecios. Las cuatro capas son geometría Babylon decorativa, no seleccionable; no cambian casillas, colisiones ni movimiento. Al confirmar el DM la resolución de la maldición, los jugadores reciben una señal narrativa privada; la ruta a bordo solo avisa a quienes siguen en el barco. El hito del día siguiente queda bloqueado hasta sacar a todos del pecio y entonces comunica su desaparición, evitando que desaparezca bajo personajes. Dados, sueño y subida de nivel siguen bajo arbitraje/aplicación del DM. Pasa la suite **163/163**, typecheck de cliente/servidor y build de cliente. La capa visual es provisional, no arte final: falta verla y aceptarla en mesa, completar espuma/estela y producir el inventario de assets M5.
+
+**M26: PROTOTIPOS DE COMPOSICIÓN, no mapas finales aprobados.** Los fondos pictóricos se conservan como referencias de color, atmósfera y encuadre, con hashes y prompts en [ART_WORKLOG.md](campaigns/stormwreck-isle/private/m26/ART_WORKLOG.md); no definen escenas runtime separadas ni sirven como suelo jugable. La geometría Babylon común ya integra las zonas y sus accesos principales; antes de dar por cerrado el gate quedan la aceptación del usuario y pruebas en dispositivos/proyector. El arte por capas, iluminación y efectos quedan para Sol, después de validar la base. No se tocó el guardado/proceso habitual en puerto 3000 ni la mesa abierta en 4323.
+
+**Base previa M1/M2: conservada; arquitectura runtime en consolidación.** El maestro privado y los estados de puerta/listón C4, trampa C6, contenedores C8 y cofre C9 se reutilizan. Esta revisión integra sus zonas en `wreck-ship`, no en cuatro escenas A–D. Se conserva el guardado con migración de IDs y superficies antiguas. La vista artística final aún no está integrada en la geometría continua.
+
+**Arte M25/M26: material conceptual heredado, no activo como mapas runtime.** Los fondos, hashes y prompts se conservan en sus worklogs como referencia de estilo/composición, no como cuatro pantallas independientes ni como colisión. La base continua se terminará primero en Babylon; el acabado rico por capas vendrá después. No se certifican aún FPS ni dispositivos reales.
+
+**M3: COMPLETADO técnicamente, pendiente de ensayo físico.** Se importaron las imágenes locales de Trinity (antes María), zombi, arpía y gul; la base del gul en Drive se cotejó por hash idéntico con la copia local. El pack tiene ciclos mínimos y nueve enemigos ocultos con identidades propias: C4 3 zombis, C8 3 zombis + gul, A 2 arpías. El DM puede revelar 2/3, 1/3+gul o 1/2 según el nivel; no hay IA autónoma. En M3 no había aparición automática; M4 incorporó la revelación de C4 al abrir la puerta y el regreso condicionado de la arpía. `hechizada` y `paralizada` se marcan desde las condiciones de mesa; la segunda bloquea acciones, movimiento y reacciones también en ambas interfaces. Compilaciones cliente/servidor y tipos PASS, 104/104 pruebas e integración general del servidor compilado PASS. En navegador aislado se comprobaron Trinity, zombi, gul móvil, arpía, ocultar/revelar sin recarga, iniciativa y parálisis DM/jugador, sin errores de consola. El payload anónimo no incluye el catálogo secreto de criaturas. Procedencia en [M3_ASSET_PROVENANCE_20260923.md](campaigns/stormwreck-isle/private/M3_ASSET_PROVENANCE_20260923.md). El proceso y guardado de producción en 3000 no se tocaron; los archivos compilados en disco sí se actualizaron. Evitar recargar una mesa en curso hasta reiniciar el servidor entre sesiones, para no mezclar cliente nuevo y servidor antiguo.
+
+## Referencias visuales fijas del Pecio
+
+Estas referencias son el criterio artístico obligatorio para Sol y cualquier relevo posterior. Están registradas con hashes, procedencia y límites de uso en [PECIO_VISUAL_STANDARD_20260922.md](docs/PECIO_VISUAL_STANDARD_20260922.md); los archivos originales permanecen en `C:\Users\User\Desktop\Dungeons\OneDrive_1_12-9-2026\Referencias estilo`.
+
+- `Imagen de Codex 22 sept 2026, 16_17_03-4.png`: pecio con composición 3/4, luz cálida, mar/rocas/fracturas y grid táctico integrado.
+- `Imagen de Codex 22 sept 2026, 16_16_55-2.png`: variante nocturna/tormenta del mismo lenguaje, con luz localizada y profundidad legible.
+- `Imagen de Codex 22 sept 2026, 16_16_36-4.png`: variante diurna del pecio, con mar, espuma, restos, escala del casco y objetos de cubierta.
+- `Imagen de Codex 12 sept 2026, 22_44_18.png`: interior de ruina, lectura de muros, columnas, luz y cuadrícula sobre suelo ilustrado.
+- `Imagen de Codex 12 sept 2026, 22_44_12.png`: costa/ruinas, agua transparente, vegetación, piedra y fichas ancladas al terreno.
+- `Imagen de Codex 12 sept 2026, 22_43_52.png`: campamento costero, composición clara, atmósfera, luz cálida y cuadrícula discreta.
+
+Dirección invariable: VTT RPG **HD-2D / 2.5D**, cámara ortográfica 3/4 suave y estable, geometría navegable con texturas ilustradas ricas y objetos independientes, sprites/fichas 2D anclados por los pies, profundidad y oclusión visual selectiva, agua/luz/ambiente por capas y grid de 1,5m ajustado al suelo y alturas. El referente conceptual es la lectura y atmósfera de un RPG HD-2D como *Octopath Traveler*, **no** copiar recursos, interfaz, textos o calidad/presupuesto de Square Enix.
+
+No es aceptable como entrega final: mapa SVG esquemático, cámara cenital plana, malla Babylon gris sin completar fases 4–7, una imagen completa como suelo jugable, grid protagonista, o mutables/secretos horneados. La maqueta gris es una entrega intermedia deliberada que exige validación de recorrido antes del arte; los PNG M26 no son la base arquitectónica.
+
+**Registro histórico · revisión 33:** incorporó botín correcto de C4/cofa y sueño del clérigo en las dos rutas; al preparar M7 se corrigió el helper compartido de animaciones. Su estado técnico detallado y el delta vigente quedan actualizados por la revisión 35 descrita arriba.
+
+### Revisión 35 · corrección de acceso y salida · 25/09/2026
+
+La actualización anterior de revisión 33 es histórica; este bloque registra el estado vigente. Al viajar desde el Retiro, el personaje aparece en la barca (24,15), junto a P01, y sube a C1 en un paso. Se abrió carril de agua exterior en filas 15–16 para que nadar hasta la brecha P16/C9 sea una alternativa física distinta de la jarcia, no un acceso interceptado por P01. La prueba de motor recorre ida y vuelta por esa brecha. La integración de dos jugadores recorre llegada, abordaje, salida individual desde P01 y regreso adjudicado por el DM: el otro PJ permanece en C3 y el foco no cambia. Si el servidor está ligado a loopback, el DM/QR anuncia sólo `127.0.0.1`, no una dirección LAN inaccesible. Suite **154/154**, integración compilada y tipos de servidor PASS; los builds aislados cliente/servidor de la candidata PASS. El detalle está en [auditoría M4](campaigns/stormwreck-isle/private/M4_ARRIVAL_AND_DEPARTURE_AUDIT_20260925.md) y el [gate de C1–C9](campaigns/stormwreck-isle/private/C1_GREYBOX_GATE.md).
+
+La candidata de esta revisión es base r32 + overlay r34 + overlay r35, en ese orden: `backups/pecio-m5-m6-qa-candidate-r32-20260925.zip` → `backups/pecio-m4-audit-fixes-r34-20260925.zip` → `backups/pecio-m4-arrival-routes-r35-20260925.zip`. No incluye partidas reales, saves, dependencias ni `dist`. La inspección local está en `http://127.0.0.1:4399`, con datos aislados y sólo accesible desde este PC.
+
+**MÁS ADELANTE:** variantes adicionales, reflejos complejos, editor general, FOV automático avanzado, IA, otros capítulos y cierre específico D8 pendiente. Oscuridad y secretos mínimos de C9 sí bloquean aceptar el capítulo y se adelantan en M1/M5.
+
+## Estado real
+
+| Clasificación | Alcance |
+|---|---|
+| HECHO | LAN, DM/Player/Projector, control individual, colisiones, PG/inventario, timón separable, puertas/cajas, revelado y audio de proyector. Alcance físico documentado en versiones anteriores. |
+| REUTILIZABLE | Guardado/recuperación, combate/condiciones/NPC, terreno Babylon aislado, biblioteca de audio y animación por frames del motor. Los originales locales y el inventario de Drive permanecen como fuentes privadas. |
+| HECHO EN GREYBOX, PENDIENTE DE ACEPTACIÓN | C1–C9 y cofa están integrados como superficies de `wreck-ship`; rutas principales y puertas C4–C7 comprobadas en navegador. Faltan aceptación del usuario, ensayo en proyector/móvil y acabado visual (reservado para Sol). Procedencia de M3 registrada; no se declara licencia CC0. |
+| COMPLETADO TÉCNICAMENTE | M4 capítulo 3: viaje en barca, abordaje normal y por popa, cues y encuentros, botín de C4/cofa/C6/C8/C9, regreso de la arpía, secreto del paquete y ambas rutas de desenlace/sueño. Tiradas/decisiones siguen con el DM. Auditoría: [flujo C1–C9 y salida](campaigns/stormwreck-isle/private/M4_ARRIVAL_AND_DEPARTURE_AUDIT_20260925.md). |
+| INCOMPLETO | Aceptación del usuario de teclado/cámara; ensayo táctil en dispositivo físico, FPS y proyector; acabado artístico HD-2D completo y revisión visual. La corrección de rumbo WASD en la cofa sí se reprodujo en navegador y se verificó después del cambio. |
+| CANDIDATA TÉCNICA M5 INTEGRADA; ACEPTACIÓN VISUAL ABIERTA | Mar escénico sin borde, agua transitable con espuma/oleaje, cubierta/casco/arrecife texturizados, props independientes con estados, 20 iconos de botín/objetos, barca pilotable con pasajeros y luces/niebla de tormenta. Falta aceptación frente a referencias y más pulido pictórico en mobiliario/pecios; la QA física móvil/proyector/FPS pertenece a M7. Ninguna textura sustituye el mapa jugable. [Cobertura y gates](campaigns/stormwreck-isle/private/m5/M5_ASSET_COVERAGE_PLAN_20260925.md). |
+| CANDIDATA TÉCNICA COMPLETADA | M6: build local sin CDN, tipos, 161 pruebas, integraciones, restore y checkpoint recuperable PASS. M5 visual y M7 físico siguen como gates de aceptación separados. |
+| FALTA | M7: playtest en móvil/proyector/teclado físicos, medición FPS y aceptación del usuario. Guion preparado en el gate privado enlazado arriba. El arbitraje de tiradas y escenas no se automatiza. |
+| YA NO ES NECESARIO | Rehacer controles/guardado o zombis/arpías; convertir sala de pruebas en zona narrativa; instalar otro motor o crear nueve mapas inconexos. |
+
+Versión actual de carpeta `0.3.2-dev.3`; última aceptada operativamente Alpha 0.2 RC2. F0/F1/F2 de D8 tienen evidencia del 19/09 y no vuelven a TODO; F3–F7 no se dan por cerradas. El 23/09 pasan 104/104 pruebas, tipos, build cliente/servidor e integración general del ejecutable compilado. No es aceptación del capítulo ni de los dispositivos.
+
+Auditoría y fuente: [PECIO_AUDIT_20260921.md](campaigns/stormwreck-isle/private/PECIO_AUDIT_20260921.md). Arquitectura, grafo dirigido y fichas A–H: [PECIO_SPATIAL_PLAN.md](campaigns/stormwreck-isle/private/PECIO_SPATIAL_PLAN.md). Ambos privados; no servir al navegador público.
+
+## Arquitectura y camino crítico
+
+| Escena | Superficies / zonas | Decisión |
+|---|---|---|
+| `wreck-ship` | C1–C9, cofa, mar y entradas | Una escena y un mapa de barco. `main`, `c2`, `c3`, `crow`, `lower-deck`, `hold-air` y `sea` son superficies/niveles conectados; no se seleccionan como mapas. |
+| `wreck-approach` | Aproximación exterior | Encuadre previo opcional, fuera del barco explorable. |
+| `wreck-objects` | Sala de ensayo de props | Utilidad técnica heredada; no es una planta ni una zona narrativa del barco y debe quedar fuera del recorrido real. |
+
+CANON: hechos del PDF. VTT_AMBIENCE: representación y ayudas sin reglas nuevas. **Decisión vinculante del usuario (24/09): C1–C9 y la cofa forman un solo mapa continuo.** La cofa es una superficie elevada conectada por P10, nunca un mapa independiente. La aproximación puede seguir como encuadre anterior al abordaje. Un único casco, coordenadas, estado por objeto y localización individual.
+
+**Camino crítico:** plano común → mapas/superficies/puertos → recorrido con guardado y filtrado → objetos + actores → eventos → ambiente/luz finales → integración → aceptación física. Diseñar juntos C4/C8/C9 por la columna vertical y C1/C2/C3/cofa por accesos/alturas. No esperar a editor general o todo D8.
+
+## Versiones funcionales, sin confundir preparación y publicación
+
+Cada candidata integrada arranca, permite un recorrido completo de su alcance y conserva lo aceptado. Las entregas artísticas/técnicas parciales son trabajo interno, no versiones publicadas.
+
+| Candidata de trabajo | Valor jugable | Fases |
+|---|---|---|
+| Pecio · Recorrido | Explorar todas las plantas, subir/bajar/regresar, separar dos PJ y guardar/reanudar; exploración dirigida por DM | M1a+M1b, luz/revelado mínimos y regresión base |
+| Pecio · Interacciones | Timón, puerta, alijo, cajas y cofre; estados/propietarios conservados | M2 |
+| Pecio · Capítulo | Encuentros, opciones narrativas, maldición y epílogo | M3+M4 |
+| Pecio · Candidata final | Capítulo con ambientes, visibilidad/audio y regresión integral | M5+M6 |
+| Pecio · Aceptada | Candidata validada físicamente | M7 |
+
+Son nombres de alcance, no versiones ya creadas. Sol elegirá el siguiente identificador libre de rama0.3 al integrar M1b, con compatibilidad/backup registrados; no reutilizar etiquetas aceptadas ni cambiar package.json en esta planificación. Un fallo bloqueante de base se corrige dentro del bloque que depende de él.
+
+## Fases, modelo y relevo
+
+### M0 · Auditoría y arquitectura — HECHO como documentación
+
+- **Principal / alternativa:** Astra High / Sol High. Contrastar canon, arte, runtime y seguridad. Riesgo: confundir previsiones con implementación; se ha separado evidencia.
+- **Entregable / comprobación:** auditoría, cuatro plantas, roadmap y encargo único; capítulo22–27 leído, mapa de p. 25 inspeccionado, C1–C9 trazables y pruebas actuales registradas. No nueva versión.
+- **Relevo:** M0 terminado → **Terra High**, M1a mapas maestros y capas reutilizables.
+
+### M1 · Mapas y recorrido completo — greybox integrado; aceptación pendiente
+
+- **Principal / alternativa:** **Terra High en M1a; Sol High en M1b** / Sol High puede hacer todo. Terra lidera autoría espacial/visual con contrato cerrado; Sol conecta renderer/servidor/save. Riesgos: fondos sin navegación, niveles desalineados o arte que exige rehacerlo al pasar a Babylon.
+- **M1a, fuente previa conservada:** `private/m1a/pecio-master.json` y sus capas son referencias de autoría espacial; sus etiquetas A–D no dictan el selector de mapas runtime.
+- **M1b, contrato actual:** un único `wreck-ship`, terreno 44×20, niveles compartidos y transiciones físicas; C2/C3, C8/C9 y cofa no son escenas separadas. Guardados previos se remapean al casco único manteniendo superficie/posición cuando existe.
+- **Comprobación:** integración en servidor aislado con dos jugadores: playa→barca→C1, C1↔C2/C3, C1→C8↔C9 y C1↔cofa, con posiciones independientes. r35 verifica el desembarco desde la casilla real de barca, la salida por P01, el regreso individual adjudicado por el DM sin mover al otro PJ ni cambiar el foco; pruebas de motor cubren además nadar por el carril exterior hasta P16/C9. La recarga conservó posiciones. Typecheck, builds y regresiones PASS. Candidata local en `127.0.0.1:4399` con datos aislados. Pendientes: ensayo físico y aceptación del usuario de arquitectura/cámara antes de aprobar el arte final.
+- **Relevo:** tras aceptar el greybox/cámara, pasar a **Sol** para fases 4–5 de arte y ambiente, conservando sin cambios las conexiones/alturas aprobadas; no declarar aprobada la fase visual ni iniciar M4 por anticipado.
+
+### M2 · Assets interactivos y estados locales
+
+- **Principal / alternativa:** Sol High / Terra High para familia visual y lógica acotada con revisión de integración Sol. Extender lo existente. Riesgos: duplicar timón, atranque tratado como cerradura, animación transitoria guardada como verdad.
+- **Estado:** COMPLETADO técnicamente en `0.3.2-dev.1`, protocolo19/ADR-026; sin aceptación física.
+- **Entregable:** puerta/listónC4 ligados a P06; tablón/trampaC6 con revelado, gasto y rearme; tres contenedoresC8; cofre/paqueteC9 con superficie/contexto de apertura; botín/propietarios únicos. Reutiliza familia v4 y caja existente sin nuevos assets secretos.
+- **Comprobación:** 93/93 pruebas, tipos, integraciones general/objetos/save y build PASS. Unitarias cubren bloqueo P06, trampa sin duplicado, undo/propietario, destino ocupado, puerto reservado, apertura sumergida/seca y round-trip. Navegador local muestra los cuatro bloques y Babylon en DM/jugador/proyector, consolas limpias. Pendientes dispositivo real, FPS, audio escuchado y recorrido físico.
+- **Relevo:** seguir con **Terra High**, M3a preparar actores/ciclos existentes, sin rehacer arte base.
+
+### M3 · Criaturas y encuentros
+
+- **Principal / alternativa:** Terra High en M3a contenido/catálogos/animaciones y Sol High en M3b integración / Sol High completo. Riesgos: PNG correlativos no garantizan un ciclo y perfil artístico no garantiza reglas.
+- **Entregable:** primero zombi/arpía existentes y sus actualizaciones de Drive con ciclos mínimos idle/movimiento/acción/derrota; importar, inspeccionar y adaptar el gul ya localizado en Drive antes de generar alternativas. Variantes nivel1/2, C4/C8 y arpías; perfiles contrastados con fuentes locales/Drive. Canto/parálisis en mesa mediante herramientas de condiciones, no IA enemiga autónoma.
+- **Comprobación:** escala/pivotes, varias entidades ocultables, IDs distintos; C4 dos/tres zombis, C8 uno/tres +gul, arpías una/dos; payload sin secretos antes de revelar. No aprobar57 poses por comprobar un idle.
+- **Relevo:** M3a → **Sol High**, integrar M3b; al acabar seguir con **Sol High**, M4.
+
+### M4 · Triggers, narrativa y final — COMPLETADO TÉCNICAMENTE; aceptación de mesa pendiente
+
+- **Principal / alternativa:** Sol High / Astra High ante decisión transversal nueva; Terra prepara datos bajo contrato. Motivo: secuencias persistentes y eventos únicos. Riesgo: automatizar arbitraje o confundir vencer arpía con romper maldición.
+- **Entregable:** se incorporaron llegada en barca (4 km/1 h 40 min), jarcia a C1 y nado opcional a C9, regreso confirmado por DM, hallazgos/objetos, criterios de C3–C8, arpía, paquete de C9, maldición y cierre. La auditoría de cobertura corrigió el botín de C4 (oculto hasta abrir la puerta), añadió las cinco piezas/120 po del nido de la cofa y habilitó el sueño del clérigo tras cualquiera de las dos rutas de maldición. El acercamiento al cofre registra el hallazgo sin exigir abrirlo. El DM conserva control de dados, dificultad, contenido y consecuencias.
+- **Comprobación:** suite completa actual 167/167; pruebas de C4/cofa/sueño privado/nivel DM/desaparición, bloqueo de resolución prematura de arpía y su persistencia, animación del servidor, rutas unitarias, integración de sockets con dos jugadores, objetos y smoke de guardar/restaurar/reiniciar PASS. La integración compilada cubre viaje Retiro→barca→C1, movimiento de dos jugadores, cubiertas, foco, timón y regreso adjudicado. Tipos de cliente/servidor y builds aislados PASS. La pantalla DM guía el capítulo y no automatiza dados ni cálculos de nivel. Esto no certifica fluidez en el teclado/teléfono, cámara, colisiones visuales o FPS en el equipo del usuario.
+- **Relevo:** M4 → **Sol High**, M5 acabado visual por capas y ambiente. Bajo el encargo vigente del usuario, M5 ha empezado con una textura candidata; la aceptación de movimiento/cámara sigue pendiente y no se finge cerrada. Véase [auditoría privada M4](campaigns/stormwreck-isle/private/M4_ARRIVAL_AND_DEPARTURE_AUDIT_20260925.md) y la [auditoría del movimiento](campaigns/stormwreck-isle/private/C1_GREYBOX_GATE.md).
+
+### M5 · Arte 2.5D por capas, ambiente, agua, VFX e iluminación
+
+**Alcance obligatorio añadido por el usuario · revisión 36:** crear el mar ilustrado completo y los assets finales de todos los objetos interactuables/recogibles y de toda la decoración de C1–C9, cofa y exterior. La textura de ondulaciones ya existente es sólo una base provisional; no satisface el mar de referencia. Seguir el [inventario y gate de cobertura](campaigns/stormwreck-isle/private/m5/M5_ASSET_COVERAGE_PLAN_20260925.md). Puertas, cofres, contenedores y elementos marcados `blockout`/`practice-*` no cuentan como terminados.
+
+**Estado 25/09, revisión 47: candidata técnica M5 integrada; aceptación visual abierta.** `deck-planks-art06.png` pinta los suelos; `hull-planks-art04.png` las paredes/casco; `reef-rock-art05.png` las rocas. `deep-sea-background-art02.png` queda en una capa de fondo de pantalla no jugable; las casillas de agua mantienen su textura propia, relieve animado y `sea-foam-art03.png` en una malla decorativa que coincide con sus bordes. Los props de C1–C9 tienen conjuntos propios de mallas y estados sin modificar su huella lógica; botín/secretos siguen ocultos hasta que se revelan. El inventario muestra 20 iconos de objetos ya adquiridos. La barca se puede pilotar libremente con pasajeros; viento, lluvia, iluminación/niebla de tormenta y agua inundada usan capas independientes. La cuadrícula se atenúa y se añaden rejillas/cabos de cubierta no seleccionables. No se han alterado casillas, alturas, colisiones ni selección; el movimiento/persistencia de la barca sí se implementa como mecánica explícita. El aspecto sigue siendo más sencillo que la referencia y falta el gate visual del [registro de M5](campaigns/stormwreck-isle/private/m5/M5_ART_LAYER_IMPLEMENTATION_20260925.md).
+
+- **Principal:** **Sol High**. La geometría y la cámara fija aprobadas son referencias obligatorias; los seis ejemplos están registrados en [estándar visual](docs/PECIO_VISUAL_STANDARD_20260922.md). Riesgos: generar un fondo completo como si fuese el mapa, alterar silenciosamente alturas/puertas o tapar grid/fichas.
+- **Entregable:** mar exterior ilustrado y animado con espuma/estela/corrientes; assets finales de todos los interactuables, recogibles y decorados del inventario M5; arquitectura/paredes por módulos y objetos/oclusores separados por superficie. Agua/espuma, estado húmedo/oscuro C8/C9, viento, antorchas y SFX/VFX necesarios. No crear cuatro pantallas ni hacer que una imagen sea el suelo jugable.
+- **Comprobación:** el aspecto mejora sin cambiar coordenadas, colisión, desniveles, acceso por barca/jarcia/brecha ni historias; proyector y móvil siguen legibles; contraste y cámara mantienen la retícula discreta. Aceptación visual separada de la aceptación funcional.
+- **Relevo:** presentar la candidata M5 y pedir evaluación visual sin confundirla con aprobación. Si la referencia aún no se alcanza para el usuario, continuar el pulido pictórico; M7 ensaya teclado/móvil/proyector físicos y rendimiento. La build técnica M6 se conserva, pero ninguno de esos gates queda aprobado automáticamente por las pruebas unitarias.
+
+### M6 · Integración completa y candidata ejecutable
+
+**Estado 25/09: CANDIDATA TÉCNICA M6 COMPLETADA; aceptación M5/M7 pendiente.** Suite 154/154; integración ampliada de llegada/salida, permisos, dos jugadores/proyector, objetos y save/restore PASS; tipos de servidor PASS y builds/typecheck aislados cliente/servidor comprobados. `/player`, `/dm`, `/dm-mobile` y `/projector` sirven recursos locales sin CDN. Recuperar desde `backups/pecio-m5-m6-qa-candidate-r32-20260925.zip` y aplicar en orden los overlays `backups/pecio-m4-audit-fixes-r34-20260925.zip` y `backups/pecio-m4-arrival-routes-r35-20260925.zip`. Se excluyen partidas/saves, dependencias, `dist`, QA saves y fuentes originales. El bundle `world` es 1.615,93 kB (426,00 kB gzip), por encima del umbral de 500 kB; no se midió rendimiento sostenido. La candidata temporal está en `http://127.0.0.1:4399`, con datos separados; guion físico en [M6/M7 playtest](campaigns/stormwreck-isle/private/m5/M6_M7_PHYSICAL_PLAYTEST_20260925.md).
+
+- **Principal / alternativa:** Sol High / Astra High para revisión focal de riesgos. Validación entre capas, no otra auditoría desde cero. Riesgo: prueba aislada verde sin recorrido real.
+- **Entregable:** build Windows local sin CDN, candidata identificada/recuperable, recursos/licencias, guía DM y guion físico. Conservar D8/base anteriores.
+- **Comprobación:** DM+dos jugadores+proyector; recorridoC1–C9 ida/vuelta, separación, reconexión, restore, entrada tardía, payload/URLs no autorizados; objetos y variantes de encuentro; epílogo sin exigir otro battlemap. Audio enviado no acredita escucha.
+- **Relevo:** M6 → **Sol Medium/High**, M7 con usuario. Revisar `http://127.0.0.1:4399` en este PC y ejecutar el guion M7 en el Windows/dispositivos físicos disponibles; la candidata está aislada y no toca los guardados reales. El móvil no puede usar este QR loopback: para probar por Wi‑Fi primero se debe preparar una instancia LAN de prueba. Registrar resultado y corregir incidencias reproducibles antes de aceptar. No se puede certificar aquí proyector, audio escuchado, FPS ni sensación subjetiva. Astra solo ante riesgo concreto pendiente.
+
+### M7 · Playtest y aceptación
+
+- **Principal / alternativa:** Sol Medium/High / Terra High para UX/reproducción; Luna Medium consolida evidencias ya obtenidas. Riesgo: confundir viewport emulado con equipo físico.
+- **Entregable:** capítulo jugado/retomado, incidencias corregidas, copia final y resultado aceptado o candidata con pendientes explícitos.
+- **Comprobación:** Pixel9a/Chrome vertical-horizontal, MSI y proyector1080p o pantalla realmente disponible; mínimo30min de controles/rendimiento y recorrido narrativo completo en las sesiones necesarias; Wi-Fi, audio escuchado y recuperación. Objetivos iniciales60fps proyector/30 fps móvil se miden.
+- **Relevo:** M7 aceptado → **Astra High**, elegir siguiente bloque entre otros capítulos/herramientas/D8. No iniciarlo automáticamente.
+
+## Evaluación práctica de Luna, Terra, Sol y Astra
+
+Criterio de ingeniería para este repositorio, no benchmark artístico. La experiencia positiva del usuario con Terra justifica darle liderazgo en mapas/contenido, con comprobaciones; no limitarlo por defecto a documentación. Los modelos dirigen herramientas: el generador de imágenes es especializado y cambiar el modelo de conversación no demuestra mejores píxeles o continuidad por sí solo.
+
+| Tarea | Luna | Terra | Sol | Astra |
+|---|---|---|---|---|
+| Auditoría | Inventarios/rutas delimitados | Assets/escena con fuente cerrada | Código/comportamiento | Contradicciones entre canon/arquitectura/seguridad |
+| Planificación | Actualizar estados probados | Plan de contenido | Secuencia técnica/pruebas | Arquitectura/camino crítico |
+| Diseño técnico de escenas | Completar campos conocidos | Plano/capas/puertos bajo contrato | Llevarlos a renderer/red/save | Resolver cambio de contrato |
+| Programación/lógica | Fix pequeño reproducible | UI/configuración/función acotada | Principal funciones completas | Problemas transversales difíciles |
+| Mapas | Lista/capas/nombres | Principal autoría y coherencia | Geometría funcional/integración | Decidir estructura |
+| Assets | Manifiesto/normalización revisada | Principal familias visuales | Interacciones/huellas/anclas | Conflicto artístico-funcional relevante |
+| Criaturas | Inventariar frames | Principal reutilización/ciclos/gul | Perfiles/multiplicidad/sincronización | Mecánicas ambiguas |
+| Variantes | Orden/formato | Principal tanda y comparación | Corrección ligada al renderer | Referencia maestra si inconsistencia persiste |
+| VFX | Parámetros conocidos | Principal ambientes/materiales acotados | Eventos/permisos/rendimiento | Percepción/secretos |
+| Animaciones | Índices/manifiesto | Ciclos/pivotes/vista previa | Selector estados/runtime | Diagnóstico transversal persistente |
+| Consistencia visual | Checklist mecánica | Principal familias/mapas | Legibilidad/oclusión en ejecución | Dirección en decisiones grandes |
+| Revisión/corrección | Fallo mecánico localizado | Arte/UX/contenido | Integración/regresión | Auditoría focal de riesgo |
+| Apoyo rápido | Principal logs/enlaces/inventario | Corrección breve | Mantener si traspasar cuesta más | Evitar para tarea mecánica |
+| Integración final | Preparar informe, no certificar solo | Cerrar contenido/UX | Principal ejecutable/pruebas | Escalar arquitectura/seguridad, no gate obligatorio |
+
+High en M1a por coherencia entre plantas; Medium basta en inventarios/ajustes. No se certifica modelo ejecutor de esta conversación ni cuota de reserva. Cambios manuales y sin subagentes. Medir calidad/tiempo/retrabajo; no prometer porcentajes ni trasladar precios API al límite5h.
+
+Capacidades generales consultadas 21/09: [Luna](https://developers.openai.com/api/docs/models/gpt-5.6-luna), [Terra](https://developers.openai.com/api/docs/models/gpt-5.6-terra), [Sol](https://developers.openai.com/api/docs/models/gpt-5.6-sol), [Astra](https://developers.openai.com/api/docs/models/gpt-6-astra). Describen orientación a coste/volumen, equilibrio, trabajo profesional y trabajo más exigente respectivamente. El reparto de este proyecto es una recomendación razonada, no promesa del proveedor.
+
+## Gates y horizonte posterior
+
+- Cada incremento integrado incorpora save/migración/permisos. Pruebas con puertos libres y carpetas temporales, nunca save real ni puerto3000.
+- Reutilizar antes de generar; nuevos recursos con fuente/condiciones/licencia/transformaciones. CC0 y Pixabay por separado; no declarar abiertos PDF/notas/arte aportado.
+- Evidencia automatizada, navegador y hardware separada con fecha/build. Un PNG no certifica juego; evento de audio no certifica escucha.
+- Secretos/luz mínima no son polish. Sin balista reparable, dragón vivo, cofres extra, puzzlesC5/C7 ni reglas nuevas por VFX.
+- D8 F3–F7 conservado como ruta independiente; reutilizar mejoras compartidas, sin exigir terminarlo antes del pecio.
+- Editor general, IA aprobada por DM, resto de campaña y distribuciónv1 siguen como horizonte posterior; esta revisión no declara v1 completa ni renuncia a esos objetivos.
+- Cerrar cada bloque actualizando estado, evidencia, roadmap y un único NEXT_MODEL_PROMPT: entregable, comprobación, siguiente modelo y objetivo exacto.

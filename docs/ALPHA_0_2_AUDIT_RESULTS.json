@@ -1,0 +1,67 @@
+{
+  "date": "2026-09-14T04:41:45.719Z",
+  "buildDir": "dist/server",
+  "scope": "Contract probes, not physical or browser acceptance",
+  "results": [
+    {
+      "id": "R01",
+      "name": "Cuatro rutas del fixture usando la colisión real",
+      "status": "PASS"
+    },
+    {
+      "id": "R02",
+      "name": "Abrir una puerta bloqueada exige desbloquear primero",
+      "status": "PASS"
+    },
+    {
+      "id": "R03",
+      "name": "DM ve locked; público sólo closed",
+      "status": "PASS"
+    },
+    {
+      "id": "R04",
+      "name": "Caja no puede ocupar el marco de una puerta abierta",
+      "status": "PASS"
+    },
+    {
+      "id": "R05",
+      "name": "Editar un objeto avanza la revisión pública del mundo",
+      "status": "PASS"
+    },
+    {
+      "id": "R06",
+      "name": "Volver a la escena conserva objetos, undo y su revisión",
+      "status": "PASS"
+    },
+    {
+      "id": "R07",
+      "name": "Snapshot público omite el contador privado de edición",
+      "status": "PASS"
+    },
+    {
+      "id": "R08",
+      "name": "Reservas origen/destino a 0/150/299 ms y liberación a 300 ms",
+      "status": "PASS"
+    },
+    {
+      "id": "R09",
+      "name": "Undo ocupado rechaza y conserva historial/revisión",
+      "status": "PASS"
+    },
+    {
+      "id": "R10",
+      "name": "Reintento idéntico por socket conserva ACK y revisión",
+      "status": "PASS"
+    },
+    {
+      "id": "R11",
+      "name": "UUID reutilizado con otro payload se rechaza",
+      "status": "PASS"
+    },
+    {
+      "id": "R12",
+      "name": "Dos DM con igual revisión: un éxito y un STALE_OBJECTS",
+      "status": "PASS"
+    }
+  ]
+}

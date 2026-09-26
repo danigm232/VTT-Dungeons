@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 240">
+  <defs>
+    <linearGradient id="gold" x2="0" y2="1"><stop stop-color="#fff0ae"/><stop offset=".5" stop-color="#d5a954"/><stop offset="1" stop-color="#75522f"/></linearGradient>
+    <linearGradient id="iron" x2="0" y2="1"><stop stop-color="#d7e0d8"/><stop offset="1" stop-color="#536d70"/></linearGradient>
+    <linearGradient id="timber" x2="0" y2="1"><stop stop-color="#d5b987"/><stop offset="1" stop-color="#755536"/></linearGradient>
+    <linearGradient id="paper" x2="0" y2="1"><stop stop-color="#f5e2ae"/><stop offset="1" stop-color="#aa8d62"/></linearGradient>
+  </defs>
+  <!-- Row 1: the six distinct results of the C8 search table. -->
+  <g transform="translate(0 0)" stroke="#2d2925" stroke-width="2" stroke-linejoin="round">
+    <path d="M12 14h8v8l3 5v12q-7 4-14 0V27l3-5z" fill="#5e705d"/><path d="M28 12h8v9l2 6v12q-7 3-13 0V27l3-6z" fill="#705b4d"/>
+    <path d="M12 18h8m8-1h8M11 30q6 3 11 0m4 1q6 3 12 0" fill="none" stroke="#c4ab73"/><circle cx="15" cy="36" r="2" fill="#d3a761"/>
+  </g>
+  <g transform="translate(48 0)" stroke="#3b3228" stroke-width="2" stroke-linejoin="round">
+    <path d="M9 29q3-7 9-5l13-1q8 2 8 8l-7 11H16z" fill="url(#timber)"/><path d="M15 23q4-9 18 0" fill="none" stroke="#c7a36b" stroke-width="4"/>
+    <path d="M17 32 29 23m-7 12 11-9m-5 11 7-8" fill="none" stroke="#6d5b3b" stroke-width="2"/>
+  </g>
+  <g transform="translate(96 0)" stroke="#394b4c" stroke-width="2" stroke-linejoin="round">
+    <path d="M8 31 15 18h23l-7 13z" fill="url(#iron)"/><path d="M13 39 20 26h21l-7 13z" fill="#a5b8b7"/><path d="M14 24h19m-15 11h17" stroke="#ebf3e6"/>
+  </g>
+  <g transform="translate(144 0)" stroke="#5b4b3a" stroke-width="2" stroke-linejoin="round">
+    <path d="M9 11h4v11q5 3 5 9l-6 10-6-10q0-6 4-9zm26 0h4v11q5 3 5 9l-6 10-6-10q0-6 4-9z" fill="#c9c2a1"/>
+    <path d="M6 26h12m15 0h12M7 34h10m17 0h10" stroke="#a69c7d"/><circle cx="12" cy="13" r="3" fill="url(#gold)"/><circle cx="38" cy="13" r="3" fill="url(#gold)"/>
+  </g>
+  <g transform="translate(0 48)" stroke="#412c22" stroke-width="2" stroke-linejoin="round">
+    <path d="M19 7q4-2 8 0v10q8 3 9 12 0 11-11 13Q13 43 10 32q0-11 9-15z" fill="url(#timber)"/><path d="M19 14h8m-8 4h8m-2-11v31" fill="none" stroke="#d8bd86"/>
+    <path d="M13 23q12 7 23 1M11 30q13 8 25 2" fill="none" stroke="#745536"/><circle cx="24" cy="30" r="5" fill="#7a5436" stroke="#d6b784"/>
+  </g>
+  <g transform="translate(48 48)" stroke="#594830" stroke-width="2" stroke-linejoin="round">
+    <path d="M9 8h28v29H9z" fill="url(#paper)"/><path d="M8 8q-4 2 0 5h30q4-3 0-5zM8 36q-4 3 0 5h30q4-3 0-5z" fill="#c8a873"/>
+    <path d="M14 19h20m-19 5h15m-16 5h19" stroke="#806b4b"/><circle cx="26" cy="36" r="4" fill="#9e6748" stroke="#e3ba76"/>
+  </g>
+  <g transform="translate(96 48)" stroke="#553f2c" stroke-width="2" stroke-linejoin="round">
+    <path d="M11 18q12-11 25 0l-4 23H15z" fill="#77523a"/><path d="M14 17q10 5 19 0" fill="none" stroke="#d2af78" stroke-width="3"/>
+    <circle cx="20" cy="27" r="6" fill="url(#gold)"/><circle cx="29" cy="30" r="7" fill="url(#gold)"/><circle cx="25" cy="36" r="6" fill="url(#gold)"/>
+  </g>
+  <g transform="translate(144 48)" stroke="#345a60" stroke-width="2" stroke-linejoin="round">
+    <path d="M24 5 38 21l-8 19H14L7 21z" fill="#308f9f"/><path d="M24 5 25 35M7 21l18 14L38 21M14 40l11-5 5 5" fill="none" stroke="#c2eff0"/>
+  </g>
+  <!-- Row 3: treasure from C9, kept out of the world until revealed. -->
+  <g transform="translate(0 96)" stroke="#302d29" stroke-width="2" stroke-linejoin="round">
+    <path d="M8 8h13v20l6 8-6 7H8L5 35l5-8zm19 0h13v20l6 8-6 7H29l-4-8 5-8z" fill="#6a794c"/><path d="M7 19h15m5 0h14M6 36h20m0 0h20" stroke="#cab989"/>
+  </g>
+  <g transform="translate(48 96)" stroke="#5c4930" stroke-width="2" stroke-linejoin="round">
+    <path d="M7 13 29 7l12 13-5 21-23-3z" fill="url(#paper)"/><path d="M7 13 29 7l12 13m-28 18 23 3" fill="none" stroke="#dec898"/>
+    <path d="M11 26 35 20m-20 9 19-5" stroke="#b39a70"/><circle cx="25" cy="30" r="5" fill="#a2463b" stroke="#e4b879"/>
+  </g>
+  <g transform="translate(96 96)" stroke="#43352b" stroke-width="2" stroke-linejoin="round">
+    <path d="M8 9q10-4 17 0v32q-8-5-17 0zm17 0q9-4 17 0v32q-8-5-17 0z" fill="url(#paper)"/><path d="M25 9v32M12 18h9m-9 5h9m8-5h9m-9 5h9" stroke="#857252"/>
+    <path d="M7 8q9-5 18 0 9-5 18 0" fill="none" stroke="#624533" stroke-width="3"/>
+  </g>
+  <g transform="translate(144 96)" stroke="#503d29" stroke-width="2" stroke-linejoin="round">
+    <path d="M24 6 36 20 30 35 24 42 18 35 12 20z" fill="url(#gold)"/><path d="M24 11v26M16 21h16" stroke="#fff1b3"/><circle cx="24" cy="24" r="6" fill="#447884" stroke="#e7c879"/>
+    <path d="M15 9q9-7 18 0" fill="none" stroke="#c4a46c" stroke-width="3"/>
+  </g>
+  <!-- Row 4: portable tools and unlit light source. -->
+  <g transform="translate(0 144)" stroke="#302920" stroke-width="2" stroke-linejoin="round">
+    <path d="M17 40 29 8" stroke="#8d6945" stroke-width="9"/><path d="M17 40 29 8" stroke="#c59a61" stroke-width="4"/>
+    <path d="M22 17 35 22m-9-13 12 5" stroke="#d6b886" stroke-width="3"/><circle cx="30" cy="8" r="5" fill="#3b3c38"/>
+  </g>
+  <g transform="translate(48 144)" stroke="#50402e" stroke-width="2" stroke-linejoin="round">
+    <path d="M10 9h26v32H10z" fill="url(#paper)"/><path d="M14 15q8-5 16 3l2 12q-5 6-16 3z" fill="none" stroke="#897254"/>
+    <circle cx="19" cy="19" r="4" fill="#8ea9a0"/><path d="M30 8 42 38" stroke="#533e2f" stroke-width="4"/><path d="M28 8 32 7l11 30-4 2z" fill="#d1b687"/>
+  </g>
+  <g transform="translate(96 144)" stroke="#354747" stroke-width="2" stroke-linejoin="round">
+    <path d="M8 39 31 7l8-3-3 9-22 31z" fill="url(#iron)"/><path d="M12 34 35 10" stroke="#e9f0df"/>
+    <path d="M7 35 16 43m-5-13 11 9" stroke="#65462f" stroke-width="5"/><circle cx="11" cy="39" r="3" fill="url(#gold)"/>
+  </g>
+  <g transform="translate(144 144)" stroke="#56432c" stroke-width="2" stroke-linejoin="round">
+    <circle cx="24" cy="25" r="17" fill="url(#gold)"/><circle cx="24" cy="25" r="12" fill="#e3d3a2"/>
+    <path d="M24 11v28m-14-14h28" stroke="#826744"/><path d="M24 14 29 27 24 25 18 23z" fill="#ab6347"/>
+    <circle cx="24" cy="25" r="2" fill="#efebcb"/>
+  </g>
+  <!-- Row 5: five separate cofa pickups use four item families. -->
+  <g transform="translate(0 192)" stroke="#554329" stroke-width="2" stroke-linejoin="round">
+    <ellipse cx="24" cy="25" rx="16" ry="11" fill="none" stroke="url(#gold)" stroke-width="7"/>
+    <path d="M10 25q14 7 28 0" fill="none" stroke="#fff0ac" stroke-width="2"/>
+    <circle cx="24" cy="14" r="4" fill="#428d9d" stroke="#e6c975"/>
+  </g>
+  <g transform="translate(48 192)" stroke="#60452b" stroke-width="2" stroke-linejoin="round">
+    <path d="M24 7v11" stroke="url(#gold)" stroke-width="5"/><circle cx="24" cy="9" r="5" fill="none" stroke="url(#gold)" stroke-width="3"/>
+    <path d="M24 17 36 31 24 44 12 31z" fill="url(#gold)"/><circle cx="24" cy="30" r="6" fill="#408b9d" stroke="#f0da91"/>
+  </g>
+  <g transform="translate(96 192)" stroke="#3e3325" stroke-width="2" stroke-linejoin="round">
+    <path d="M24 5 40 20l-7 18-9 6-9-6-7-18z" fill="#b9773d"/><path d="M24 5 29 24 24 44 19 24z" fill="#e7b66c"/>
+    <path d="M8 20 29 24 40 20M15 38l9-14 9 14" fill="none" stroke="#65482c"/><circle cx="24" cy="24" r="4" fill="#3d3429"/>
+  </g>
+  <g transform="translate(144 192)" stroke="#384f41" stroke-width="2" stroke-linejoin="round">
+    <path d="M24 5 39 20 31 39 17 43 7 25z" fill="#516e51"/><path d="M24 5 27 32 17 43M7 25l20 7 12-12" fill="none" stroke="#91aa75"/>
+    <circle cx="24" cy="23" r="6" fill="#932f3e" stroke="#d8ac7d"/>
+  </g>
+</svg>

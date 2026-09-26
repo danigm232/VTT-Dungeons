@@ -1,0 +1,9 @@
+{
+  "version": "m1b-1",
+  "derivedFrom": "campaigns/stormwreck-isle/private/m1a/layers/*.svg",
+  "sourceDate": "2026-09-22",
+  "license": "project-generated private source; not asserted as CC0",
+  "files": ["wreck-upper-m1b.svg", "wreck-main-m1b.svg", "wreck-lower-m1b.svg", "wreck-hold-m1b.svg"],
+  "excluded": ["private/m1a/previews/*", "private/m1a/pecio-master.json", "private/m1a/asset-provenance.json"],
+  "notes": "Static floor, occluder and water layers only. Grid, ports and mutable objects remain runtime data."
+}
