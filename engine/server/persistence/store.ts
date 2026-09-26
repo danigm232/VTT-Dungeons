@@ -1,6 +1,8 @@
 import crypto from 'node:crypto';
+import { execFile } from 'node:child_process';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
+import { promisify } from 'node:util';
 import { decode } from './codec.js';
 import type { SaveV1 } from './schema.js';
 
@@ -19,16 +21,50 @@ async function syncedFile(filename: string, data: Buffer) {
   try { await handle.writeFile(data); await handle.sync(); } finally { await handle.close(); }
   if (!Buffer.from(await fs.readFile(filename)).equals(data)) throw new Error('SAVE_READBACK');
 }
-type WriterLock = { pid: number; owner: string; createdAt: string };
+type WriterLock = { pid: number; owner: string; createdAt: string; processStartedAt?: string };
+const run = promisify(execFile);
+const processIdentityToleranceMs = 2_500;
 function saveError(code: string) { return Object.assign(new Error(code), { code }); }
 function parseWriterLock(raw: string): WriterLock {
   let value: unknown;
   try { value = JSON.parse(raw); } catch { throw saveError('SAVE_LOCK_INVALID'); }
   if (!value || typeof value !== 'object') throw saveError('SAVE_LOCK_INVALID');
   const lock = value as Partial<WriterLock>;
-  const { pid, owner, createdAt } = lock;
-  if (typeof pid !== 'number' || !Number.isSafeInteger(pid) || pid <= 0 || typeof owner !== 'string' || !/^[0-9a-f-]{36}$/i.test(owner) || typeof createdAt !== 'string' || Number.isNaN(Date.parse(createdAt))) throw saveError('SAVE_LOCK_INVALID');
-  return { pid, owner, createdAt };
+  const { pid, owner, createdAt, processStartedAt } = lock;
+  if (typeof pid !== 'number' || !Number.isSafeInteger(pid) || pid <= 0 || typeof owner !== 'string' || !/^[0-9a-f-]{36}$/i.test(owner) || typeof createdAt !== 'string' || Number.isNaN(Date.parse(createdAt)) || (processStartedAt !== undefined && (typeof processStartedAt !== 'string' || Number.isNaN(Date.parse(processStartedAt))))) throw saveError('SAVE_LOCK_INVALID');
+  return { pid, owner, createdAt, ...(processStartedAt === undefined ? {} : { processStartedAt }) };
+}
+
+async function operatingSystemProcessStart(pid: number): Promise<number | null | undefined> {
+  // The OS creation time catches a recycled Windows PID. An inaccessible or
+  // unqueryable process stays "unknown" and therefore keeps the lock protected.
+  if (pid === process.pid) return performance.timeOrigin;
+  if (process.platform !== 'win32') return undefined;
+  const command = `$ErrorActionPreference='Stop'; $p=Get-Process -Id ${pid} -ErrorAction SilentlyContinue; if ($null -eq $p) { exit 4 }; [Console]::Out.Write($p.StartTime.ToUniversalTime().ToString('o'))`;
+  try {
+    const { stdout } = await run('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', command], { windowsHide: true, timeout: 5_000 });
+    const startedAt = Date.parse(stdout.trim());
+    if (!Number.isFinite(startedAt)) throw saveError('SAVE_LOCK_ACTIVE');
+    return startedAt;
+  } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 4) return null;
+    throw saveError('SAVE_LOCK_ACTIVE');
+  }
+}
+
+async function writerProcessIsAlive(lock: WriterLock): Promise<boolean> {
+  try { process.kill(lock.pid, 0); }
+  catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ESRCH') return false;
+    throw error;
+  }
+  const actualStart = await operatingSystemProcessStart(lock.pid);
+  if (actualStart === null) return false;
+  if (actualStart === undefined) return true;
+  if (lock.processStartedAt) return Math.abs(actualStart - Date.parse(lock.processStartedAt)) <= processIdentityToleranceMs;
+  // Older saves do not record processStartedAt. Their acquisition timestamp
+  // still proves PID reuse when the current OS process began after the lock.
+  return actualStart <= Date.parse(lock.createdAt);
 }
 
 export type SaveCandidate = { role: 'active' | 'backup' | 'history'; id: string; save: SaveV1; legacyOriginal: Buffer | null };
@@ -52,7 +88,7 @@ export class SaveStore {
   private async acquireWriterLock() {
     const write = async () => {
       const handle = await retry(() => fs.open(this.lockPath, 'wx', 0o600));
-      try { await handle.writeFile(JSON.stringify({ pid: process.pid, owner: this.owner, createdAt: new Date().toISOString() })); await handle.sync(); }
+      try { await handle.writeFile(JSON.stringify({ pid: process.pid, owner: this.owner, createdAt: new Date().toISOString(), processStartedAt: new Date(performance.timeOrigin).toISOString() })); await handle.sync(); }
       finally { await handle.close(); }
     };
     try { await write(); return; }
@@ -60,16 +96,14 @@ export class SaveStore {
       if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
     }
     // A lock is archived automatically only after checking that it is a regular,
-    // well-formed lock and that its exact PID is gone. Active or uncertain locks
-    // remain untouched, so two live tables can never share a save folder.
+    // well-formed lock and that its exact process has ended or its PID was reused.
+    // Active or uncertain locks remain untouched, so two live tables can never
+    // share a save folder.
     const stat = await fs.lstat(this.lockPath);
     if (!stat.isFile() || stat.isSymbolicLink() || (await fs.realpath(this.lockPath)) !== this.lockPath) throw saveError('SAVE_LOCK_INVALID');
     const raw = await fs.readFile(this.lockPath, 'utf8');
     const previous = parseWriterLock(raw);
-    try { process.kill(previous.pid, 0); throw saveError('SAVE_LOCK_ACTIVE'); }
-    catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
-    }
+    if (await writerProcessIsAlive(previous)) throw saveError('SAVE_LOCK_ACTIVE');
     // Re-read immediately before moving it: another launcher may have acquired
     // the slot between our PID check and this recovery attempt.
     if (await fs.readFile(this.lockPath, 'utf8') !== raw) throw saveError('SAVE_LOCK_CHANGED');

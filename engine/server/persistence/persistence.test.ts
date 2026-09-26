@@ -205,6 +205,16 @@ describe('Alpha 0.3 durable state', () => {
     expect((await fs.readdir(path.join(store.directory, 'recovery'))).some(name => name.endsWith('-writer.lock.json'))).toBe(true);
     await store.close();
   });
+  it('archives a lock when Windows has recycled its still-live PID', async () => {
+    const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dungeons-alpha03-reused-pid-')); temporary.push(directory);
+    const store = new SaveStore(path.join(directory, 'slot')); await fs.mkdir(store.directory);
+    const oldLock = { pid: process.pid, owner: crypto.randomUUID(), createdAt: new Date(Date.now() - 86_400_000).toISOString(), processStartedAt: new Date(Date.now() + 60_000).toISOString() };
+    await fs.writeFile(store.lockPath, JSON.stringify(oldLock));
+    expect((await store.open()).mode).toBe('new');
+    const archived = (await fs.readdir(path.join(store.directory, 'recovery'))).find(name => name.endsWith('-writer.lock.json'))!;
+    expect(JSON.parse(await fs.readFile(path.join(store.directory, 'recovery', archived), 'utf8'))).toEqual(oldLock);
+    await store.close();
+  });
   it('does not silently seed a future save, a lone temporary file or two corrupt checkpoints', async () => {
     for (const kind of ['future', 'temporary', 'both'] as const) {
       const directory = await fs.mkdtemp(path.join(os.tmpdir(), `dungeons-alpha03-${kind}-`)); temporary.push(directory);

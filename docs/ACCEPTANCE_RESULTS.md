@@ -1,5 +1,21 @@
 # Resultados de aceptación — RC4 y avance Alpha 0.2
 
+## Corrección de PID reciclado y opción R — candidata 0.3.2-dev.5, 26/09/2026
+
+El usuario observó que Stormwreck no iniciaba y que `R` no cerraba la mesa. Diagnóstico local: `stormwreck-isle/writer.lock` conservaba un PID cuya instancia anterior ya había terminado; Windows asignó luego ese número a `crashpad_handler.exe` de Spotify, iniciado después del bloqueo. El servidor confundía el PID vivo reutilizado con el dueño de la partida, mientras el helper se negaba correctamente a terminarlo porque no poseía el puerto. La partida y el proceso de Spotify no se modificaron.
+
+La persistencia ahora escribe `processStartedAt`; en bloqueos antiguos compara la hora de creación del proceso de Windows con `createdAt`. Si demuestra reutilización, archiva únicamente el archivo `writer.lock` en `recovery` y luego permite iniciar con la partida intacta. `R` se limita a la campaña seleccionada, localiza su instancia en cualquier puerto y solicita el cierre ordenado autenticado; sólo usa terminación forzada si el PID, bloqueo y hora de proceso coinciden. Los procesos ajenos del puerto permanecen intactos.
+
+| Comprobación | Resultado | Evidencia y límite |
+|---|---|---|
+| Regresión de persistencia | PASS esperado | Nueva prueba: PID válido pero `processStartedAt` distinto; conserva y archiva el bloqueo anterior, abre el guardado y no afecta al proceso de prueba. |
+| Helper con PID de Spotify reutilizado | PASS aislado | Se copió a una carpeta temporal el lock antiguo con PID 12564 y su fecha original; `R` simulada archivó sólo la copia. `crashpad_handler.exe` siguió vivo. |
+| Cierre ordenado desde otro puerto | PASS aislado | Servidor Stormwreck desechable en `127.0.0.1:63959`; al simular `R` para 3000, el helper usó el token local, cerró ese proceso y liberó su lock. |
+| Arranque con lock legado reciclado | PASS aislado | Servidor compilado inició en 54580 con copia temporal del lock antiguo, archivó la copia y cerró ordenadamente; salida 0. Los puertos 3000 y datos reales no se usaron en estas pruebas. |
+| Listener ajeno sin lock | PASS aislado | El helper rechazó cerrarlo y el servidor HTTP temporal siguió respondiendo; salida de helper 1, como se espera ante un ocupante desconocido. |
+| Suite, tipos y builds | PASS | Vitest **186/186**, typecheck cliente/servidor, build de Vite y build servidor. Siguen los avisos conocidos de chunk Babylon grande y atlas SVG resuelto en runtime. |
+| Arranque del usuario | PENDIENTE | Falta confirmar el recorrido con `INICIAR.cmd` en la mesa del usuario; las pruebas técnicas no sustituyen ese arranque. |
+
 ## Corrección del lanzador y mapas — candidata 0.3.2-dev.4, 26/09/2026
 
 - `INICIAR.cmd` comprueba primero el puerto: si ya sirve una mesa, no recompila los archivos que usa esa sesión; después de liberar una mesa conocida recompila la interfaz Vite y el servidor TypeScript para incluir los mapas recientes.

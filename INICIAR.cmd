@@ -44,7 +44,7 @@ choice /C RS /N /M "[R] Cerrar la mesa anterior de D^&D y reintentar  [S] Salir"
 if errorlevel 2 exit /b 1
 echo.
 echo Cerrando solo la instancia de D^&D que posee el bloqueo y el puerto...
-"%DND_NODE%" scripts\close-table-on-port.mjs "%DND_SAVE_ROOT%" %DND_PORT%
+"%DND_NODE%" scripts\close-table-on-port.mjs "%DND_SAVE_ROOT%" %DND_PORT% "%DUNGEONS_CAMPAIGN%"
 if errorlevel 1 (
   echo.
   echo No se ha cerrado nada automaticamente. Cierra la otra mesa manualmente y vuelve a ejecutar este atajo.
