@@ -702,6 +702,27 @@ export class GameState {
         facing: npc.facing, hp: npc.hp, maxHp: npc.maxHp, combatEnabled: npc.combatEnabled, visible: false });
     }
   }
+  /** Older saves can predate interaction metadata added to authored doors and
+   * containers. Restore only absent metadata from the matching authored object;
+   * explicit saved state (open/closed, loot, ownership, etc.) remains intact. */
+  private migrateMissingObjectInteractions(payload: DurablePayload) {
+    let migrated = false;
+    for (const savedScene of payload.scenes) {
+      const definitions = this.objectScenes.get(savedScene.sceneId)?.objects;
+      if (!definitions) continue;
+      for (const saved of savedScene.objects) {
+        const definition = definitions.find(object => object.id === saved.id);
+        if (saved.kind === 'door' && definition?.kind === 'door' && !saved.interaction && definition.interaction) {
+          saved.interaction = structuredClone(definition.interaction);
+          migrated = true;
+        } else if (saved.kind === 'crate' && definition?.kind === 'crate' && !saved.interaction && definition.interaction) {
+          saved.interaction = structuredClone(definition.interaction);
+          migrated = true;
+        }
+      }
+    }
+    return migrated;
+  }
   get objectRevision() { return this.currentObjectState().revision; }
   get wheelState() {
     return this.currentObjects().find(isWheel)?.state ?? 'upright';
@@ -2352,6 +2373,7 @@ export class GameState {
     this.migrateStormwreckActorCells(payload);
     this.migrateCampRestLegacyRoomDoors(payload);
     this.migrateCombinedStormwreckCampScenes(payload);
+    const migratedObjectInteractions = this.migrateMissingObjectInteractions(payload);
     const exactIds = (actual: string[], expected: string[]) => actual.length === expected.length && new Set(actual).size === actual.length && actual.every(id => expected.includes(id));
     if (!this.hasScene(payload.sceneId) || !exactIds(payload.characters.map(x => x.id), [...this.characters.keys()]) || !exactIds(payload.scenes.map(x => x.sceneId), [...this.objectScenes.keys()])) throw new Error('SAVE_REFERENCES');
     if (payload.campRest) {
@@ -2524,6 +2546,7 @@ export class GameState {
     const restoredSequences = Object.fromEntries(Object.entries(payload.combat?.sequences ?? {}).map(([id, sequence]) => [id, { actionId: sequence.actionId, remaining: sequence.remaining }])) as CombatState['sequences'];
     this.combat = payload.combat?.active ? { ...emptyCombat(), active: true, round: payload.combat.round, order: [...payload.combat.order], turnIndex: payload.combat.turnIndex, participantIds: [...payload.combat.participantIds], initiative: { ...payload.combat.initiative }, initiativeSubmitted: { ...(payload.combat.initiativeSubmitted ?? Object.fromEntries(payload.combat.participantIds.map(id => [id, true]))) }, initiativePending: payload.combat.initiativePending ?? false, spentSquares: { ...payload.combat.spentSquares }, dashSquares: { ...(payload.combat.dashSquares ?? {}) }, actionUsed: { ...payload.combat.actionUsed }, bonusActionUsed: { ...(payload.combat.bonusActionUsed ?? {}) }, reactionUsed: { ...(payload.combat.reactionUsed ?? {}) }, sneakAttackUsed: { ...(payload.combat.sneakAttackUsed ?? {}) }, sneakAttackUsedTurn: { ...(payload.combat.sneakAttackUsedTurn ?? {}) }, spellSlotUsedTurn: { ...(payload.combat.spellSlotUsedTurn ?? {}) }, stances: restoredStances, sequences: restoredSequences, recharge: structuredClone(payload.combat.recharge ?? {}), openingAction: structuredClone(payload.combat.openingAction ?? null), pending: structuredClone(payload.combat.pending ?? null), lastEvent: { id: crypto.randomUUID(), text: payload.combat.initiativePending ? 'Iniciativa pendiente de completar' : `Ronda ${payload.combat.round} restaurada`, publicText: payload.combat.initiativePending ? 'Iniciativa pendiente de completar' : `Ronda ${payload.combat.round} restaurada`, kind: 'turn' } } : emptyCombat();
     this.interactions = []; this.projectorReady = false;
+    return migratedObjectInteractions;
   }
 }
 

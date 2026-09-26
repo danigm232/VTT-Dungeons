@@ -33,9 +33,10 @@ export class PersistenceCoordinator {
     if (initial.candidates.length) {
       let selected: typeof initial.candidates[number] | null = null;
       let candidate: GameState | null = null;
+      let migrated = false;
       let lastError: unknown = null;
       for (const option of initial.candidates) {
-        try { candidate = this.candidate(option.save); selected = option; break; }
+        try { const hydrated = this.candidate(option.save); candidate = hydrated.state; migrated = hydrated.migrated; selected = option; break; }
         catch (error) { lastError = error; }
       }
       if (!selected || !candidate) {
@@ -45,11 +46,12 @@ export class PersistenceCoordinator {
         let installedSave = selected.save;
         const recoveredFromOlder = selected.role !== 'active' || selected !== initial.candidates[0];
         if (selected.legacyOriginal) await this.store.archive(selected.legacyOriginal, 'legacy-v0');
-        if (recoveredFromOlder || selected.legacyOriginal) {
+        if (recoveredFromOlder || selected.legacyOriginal || migrated) {
           const maximumGeneration = Math.max(...initial.candidates.map(option => option.save.generation));
           if (maximumGeneration >= Number.MAX_SAFE_INTEGER) throw new Error('SAVE_GENERATION_LIMIT');
           if (recoveredFromOlder) await this.store.archiveExisting();
-          installedSave = seal({ ...selected.save, schemaVersion: 1, generation: maximumGeneration + 1, campaignVersion: this.bundle.public.version, savedAt: new Date().toISOString() });
+          installedSave = seal({ ...selected.save, schemaVersion: 1, generation: maximumGeneration + 1, campaignVersion: this.bundle.public.version,
+            ...(migrated ? { payload: candidate.captureDurable() } : {}), savedAt: new Date().toISOString() });
           await this.store.checkpoint(installedSave, recoveredFromOlder);
         }
         this.install(candidate);
@@ -65,8 +67,8 @@ export class PersistenceCoordinator {
   }
   private candidate(save: SaveV1) {
     if (save.campaignId !== this.bundle.public.campaignId || save.campaignStateVersion !== (this.bundle.campaignStateVersion ?? 1)) throw new Error('SAVE_CAMPAIGN_INCOMPATIBLE');
-    const candidate = new GameState(this.bundle); candidate.restoreDurable(save.payload);
-    return candidate;
+    const candidate = new GameState(this.bundle); const migrated = candidate.restoreDurable(save.payload);
+    return { state: candidate, migrated };
   }
   status(): SaveStatus {
     const stateRevision = this.current().stateRevision;
@@ -192,7 +194,7 @@ export class PersistenceCoordinator {
     try {
       await this.chain.catch(() => {});
       if (runtimeEpoch !== this.epoch() || expectedStateRevision !== this.current().stateRevision) throw new Error('STALE_STATE');
-      const candidate = this.candidate(preview.save);
+      const candidate = this.candidate(preview.save).state;
       const former = this.exportMemory();
       await this.store.archive(Buffer.from(JSON.stringify(former)), 'before-restore');
       if (this.mode === 'restoring') await this.store.archiveExisting();

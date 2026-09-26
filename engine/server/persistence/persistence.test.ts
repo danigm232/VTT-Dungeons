@@ -79,6 +79,42 @@ describe('Alpha 0.3 durable state', () => {
     expect(migrated.scenes.map(scene => scene.sceneId).sort()).toEqual([...state.campaign.scenes.keys()].sort());
     for (const olderScene of olderScenes) expect(migrated.scenes.find(scene => scene.sceneId === olderScene.sceneId)?.objects).toEqual(olderScene.objects);
   });
+  it('migrates missing authored container interactions and unlocks scene changes on startup', async () => {
+    const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dungeons-alpha03-object-interaction-migration-')); temporary.push(directory);
+    const source = new GameState(stormwreckBundle), payload = source.captureDurable();
+    const deck = payload.scenes.find(scene => scene.sceneId === 'wreck-ship')!;
+    const savedExistingInteraction = structuredClone(deck.objects.find(object => object.id === 'c8-container-01')!.interaction);
+    for (const id of ['c8-barrel-01', 'c8-barrel-02', 'c8-barrel-03', 'c8-barrel-04']) {
+      const barrel = deck.objects.find(object => object.id === id)!;
+      if (barrel.kind !== 'crate') throw new Error(`Expected crate fixture for ${id}`);
+      delete barrel.interaction;
+    }
+    const oldSave = seal({ ...saveOf(source), payload });
+    const initialStore = new SaveStore(path.join(directory, 'campaign'));
+    expect((await initialStore.open()).mode).toBe('new');
+    await initialStore.checkpoint(oldSave);
+    await initialStore.close();
+
+    const store = new SaveStore(path.join(directory, 'campaign'));
+    let state = new GameState(stormwreckBundle);
+    const coordinator = new PersistenceCoordinator(store, stormwreckBundle, () => state, candidate => {
+      state = candidate; state.runtimeEpoch = crypto.randomUUID(); return state.runtimeEpoch;
+    }, () => state.runtimeEpoch, () => {});
+    await coordinator.open();
+    expect(coordinator.status().mode).toBe('ready');
+    expect(coordinator.status().errorCode).toBeNull();
+    const migratedDeck = state.captureDurable().scenes.find(scene => scene.sceneId === 'wreck-ship')!;
+    for (const id of ['c8-barrel-01', 'c8-barrel-02', 'c8-barrel-03', 'c8-barrel-04']) {
+      expect(migratedDeck.objects.find(object => object.id === id)?.interaction?.kind).toBe('container');
+    }
+    expect(migratedDeck.objects.find(object => object.id === 'c8-container-01')?.interaction).toEqual(savedExistingInteraction);
+    const migratedSave = decode(await fs.readFile(store.active));
+    expect(migratedSave.generation).toBe(oldSave.generation + 1);
+    expect(migratedSave.payload.scenes.find(scene => scene.sceneId === 'wreck-ship')?.objects.find(object => object.id === 'c8-barrel-01')?.interaction?.kind).toBe('container');
+    expect(state.changeScene('wreck-objects')).toBe(true);
+    expect(coordinator.status().mode).toBe('ready');
+    await coordinator.close();
+  });
   it('rejects duplicate keys and corrupted checksums before hydration', () => {
     const save = saveOf(new GameState(stormwreckBundle));
     const raw = JSON.stringify(save);
