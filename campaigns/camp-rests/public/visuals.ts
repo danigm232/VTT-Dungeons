@@ -10,7 +10,7 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder.js';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData.js';
 import { Constants } from '@babylonjs/core/Engines/constants.js';
-import type { PublicSceneDefinition } from '../../../engine/shared/campaign.js';
+import type { Cell, PublicSceneDefinition } from '../../../engine/shared/campaign.js';
 import type { CampRestPhase, CampRestState } from '../../../engine/shared/camp-rest.js';
 import { Scene } from '@babylonjs/core/scene.js';
 import { softPoolMaterial } from '../../../engine/client/diorama-kit.js';
@@ -26,7 +26,7 @@ function quad(scene: Scene, root: TransformNode, name: string, points: number[][
   data.uvs = [0, 0, 1, 0, 1, 1, 0, 1]; data.applyToMesh(mesh); mesh.material = material; mesh.parent = root; mesh.isPickable = false; return mesh;
 }
 
-export type CampVisuals = { root: TransformNode; update: (elapsedSeconds: number, phase?: CampRestPhase | null, interactions?: CampRestState['interactions']) => void; setInteractionHighlights: (enabled: boolean) => void };
+export type CampVisuals = { root: TransformNode; update: (elapsedSeconds: number, phase?: CampRestPhase | null, interactions?: CampRestState['interactions'], focusCell?: Cell | null) => void; setInteractionHighlights: (enabled: boolean) => void };
 
 /** Adds only decorative camp geometry to the existing VTT Babylon scene.
  * Movement, grid, camera, characters and collisions stay in the shared runtime. */
@@ -330,6 +330,44 @@ export function createCampVisuals(scene: Scene, definition: PublicSceneDefinitio
       const logCross = box('forest:stream-crossing-log', 3.2, .32, .48, cellPoint({ col: 4, row: 10 }).add(new Vector3(0, .18, 0)), M.bark, .22);
       logCross.rotation.z = -.08;
       box('forest:stream-crossing-moss', 2.6, .08, .36, cellPoint({ col: 4, row: 10 }).add(new Vector3(0, .36, 0)), M.leaf);
+      // Extended 360-degree forest ground plane covering all camera pan/zoom bounds
+      const mossTerrainMat = scene.getMaterialByName('terrain-material:moss') as StandardMaterial ?? M.leaf;
+      const forestExtGround = MeshBuilder.CreateGround('forest:extended-ground-360', { width: 180, height: 180, subdivisions: 2 }, scene);
+      forestExtGround.position.set(center.x, -0.015, center.z);
+      forestExtGround.material = mossTerrainMat;
+      forestExtGround.parent = root; forestExtGround.isPickable = false; forestExtGround.checkCollisions = false;
+
+      // 360-degree outer forest tree wall surrounding the clearing on all 4 sides and corners
+      const outerTrees: [number, number, number][] = [
+        // North outer tree ring
+        [-4,-4,10],[-1,-5,9],[2,-4,11],[5,-5,8],[8,-4,10],[11,-5,9],[15,-4,11],[18,-5,8],[21,-4,10],[24,-5,9],[27,-4,11],
+        // South outer tree ring
+        [-4,25,9],[-1,26,11],[3,25,8],[7,26,10],[11,25,9],[15,26,11],[19,25,8],[23,26,10],[27,25,9],
+        // West outer tree ring
+        [-5,1,10],[-6,5,9],[-5,9,11],[-6,13,8],[-5,17,10],[-6,21,9],
+        // East outer tree ring
+        [26,1,9],[27,5,11],[26,9,8],[27,13,10],[26,17,9],[27,21,11],
+        // Deep corner clusters
+        [-8,-8,12],[32,-8,12],[-8,30,12],[32,30,12]
+      ];
+      outerTrees.forEach(([col, row, height], index) => {
+        const at = cellPoint({ col, row });
+        cylinder(`forest:outer-trunk:${index}`, .38, .62, 3.6, at.add(new Vector3(0, 1.8, 0)), M.bark, 6);
+        const sway = new TransformNode(`forest:outer-sway:${index}`, scene);
+        sway.parent = root; sway.position.set(at.x, 3.8, at.z); canopySways.push({ node: sway, phase: index * 1.35 });
+        const canopyMaterial = index % 3 === 0 ? M.pine : index % 3 === 1 ? M.leaf2 : M.leaf;
+        const layers = [0, 1, 2, 3].map(layer => {
+          const crown = MeshBuilder.CreateCylinder(`forest:outer-crown:${index}:${layer}`, {
+            diameterTop: .04, diameterBottom: 3.4 - layer * .55, height: height / 3.8, tessellation: 7
+          }, scene);
+          crown.position.set((layer % 2) * .15, .3 + layer * 1.4, (layer - 1) * .12);
+          crown.rotation.y = layer * .4;
+          crown.material = canopyMaterial; crown.isPickable = false; return crown;
+        });
+        const canopy = Mesh.MergeMeshes(layers, true, true, undefined, false, false);
+        if (canopy) { canopy.name = `forest:outer-canopy:${index}`; canopy.parent = sway; canopy.isPickable = false; meshes.push(canopy); }
+      });
+
       // Path border pebbles along the main trail to define the path edges clearly
       for (let row = 2; row <= 9; row++) {
         const atLeft = cellPoint({ col: 10, row }).add(new Vector3(.65, .04, Math.sin(row) * .2));

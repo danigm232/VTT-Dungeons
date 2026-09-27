@@ -270,7 +270,7 @@ function rotateCamera(delta: number) {
 }
 
 function showLogin(message = '') { $('login').hidden = false; $('app').hidden = true; $('loginError').textContent = message; }
-const campUpdatesStorageKey = 'dnd-camp-rests-updates-v1.4.0-seen';
+const campUpdatesStorageKey = 'dnd-camp-rests-updates-v1.4.2-seen';
 function hasCampRestModule() {
   return campaign?.campaignId === 'stormwreck-isle' && campaign.scenes.some(scene => scene.id === 'camp-a1-rooms');
 }

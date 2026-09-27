@@ -1,5 +1,9 @@
 # Estado del proyecto
 
+## Campamentos V1.4.2 — actualización visual A1, 2026-09-27
+
+`camp-a1-rooms` se ajusta a la planta canónica irregular: seis celdas abiertas a una plaza común, con estatua de Astalagan y hoguera. Las fachadas de piedra se ocultan al entrar en una habitación para conservar la lectura y el movimiento. La dirección añade materiales ilustrados, vegetación y detalles de fuego/ambiente; la cuadrícula, rutas, interacciones y decisiones del DM siguen separadas del arte. Verificación de esta candidata: suite completa **190/190**, typecheck cliente/servidor y build Vite aislado PASS. Aún falta la revisión del usuario en navegador/móvil/proyector físicos. La procedencia de las tres texturas originales del bosque continúa pendiente, como indica `LICENSES_AND_CREDITS.md`.
+
 ## Candidata visual de campamentos — 2026-09-26
 
 El árbol de trabajo incorpora mejoras visuales de A1 y un primer pase del camino del bosque hacia Pleamar: materiales ilustrados para musgo, sendero y arroyo, además de vegetación y detalles de terreno. La cuadrícula, navegación y colisiones existentes se mantienen como contrato. Comprobación de esta candidata: typecheck de cliente/servidor PASS, 16 pruebas automatizadas de cámara/campamentos PASS y build aislado del cliente PASS. La aceptación visual del usuario y la revisión en móvil/proyector físicos siguen pendientes. Las tres texturas del bosque no tienen todavía una ficha de procedencia/licencia en el repositorio; consultar `LICENSES_AND_CREDITS.md`.

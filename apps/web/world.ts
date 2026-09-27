@@ -539,7 +539,7 @@ export class WorldRenderer {
       wreckageTexture,
       renderTiles: definition.id !== 'dragon-rest' && definition.id !== 'camp-a1-rooms', batchTiles: Boolean(definition.camp)
     });
-    if (definition.id === 'camp-a1-rooms') this.terrainView.grids.forEach(grid => { grid.alpha = .075; grid.color = Color3.FromHexString('#a59a82'); });
+    if (definition.id === 'camp-a1-rooms') this.terrainView.grids.forEach(grid => { grid.alpha = .04; grid.color = Color3.FromHexString('#8f8879'); });
     if (definition.id === 'camp-a1-rooms') this.terrainView.camera.beta = .92;
     const defaultTilt = clampCameraTilt(90 - this.terrainView.camera.beta * 180 / Math.PI);
     this.cameraTiltDegrees = this.readCameraTilt(definition.id) ?? defaultTilt;
@@ -1242,7 +1242,9 @@ export class WorldRenderer {
     }
     if (this.campVisuals && this.sceneId) {
       const campRest = this.snapshot.campRest?.sceneId === this.sceneId ? this.snapshot.campRest : null;
-      this.campVisuals.update(performance.now() / 1000, campRest?.phase ?? null, campRest?.interactions ?? []);
+      const focusId = this.localId ?? this.selectedEntityId ?? this.snapshot.camera.focusId;
+      const focusCell = focusId ? this.snapshot.entities.find(entity => entity.id === focusId && entity.sceneId === this.sceneId)?.cell : null;
+      this.campVisuals.update(performance.now() / 1000, campRest?.phase ?? null, campRest?.interactions ?? [], focusCell);
     }
     this.updateCamera(deltaMs);
   }
@@ -1281,7 +1283,7 @@ export class WorldRenderer {
       const wreckView = this.sceneId?.startsWith('wreck-') ?? false;
       const visibilityFocusId = this.localId ?? this.snapshot.camera.focusId;
       const visibilityFocus = wreckView && visibilityFocusId ? this.snapshot.entities.find(entity => entity.id === visibilityFocusId) : undefined;
-      let target = new Vector3(terrain.cols * terrain.tileMeters / 2, .8, this.sceneId==='camp-a1-rooms'?7.8:terrain.rows * terrain.tileMeters / 2);
+      let target = new Vector3(terrain.cols * terrain.tileMeters / 2, .8, this.sceneId==='camp-a1-rooms'?15.8:terrain.rows * terrain.tileMeters / 2);
       if (cameraFocus) {
         const position = this.interpolatedWorldPosition(cameraFocus);
         target = new Vector3(position.x, position.y + .85, position.z);

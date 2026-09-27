@@ -32,5 +32,9 @@ export function adjacentCell(cell: Cell, facing: Facing): Cell {
 export function resolveStep(scene: SceneDefinition, current: Cell, facing: Facing, props: readonly PublicProp[] = []): Cell | null {
   if (!scene.movementEnabled) return null;
   const next = adjacentCell(current, facing);
+  const blockedByTerrain = scene.terrain?.blockedEdges?.some(edge =>
+    edge.surfaceId === scene.surfaceId
+    && ((sameCell(edge.from, current) && sameCell(edge.to, next)) || (sameCell(edge.from, next) && sameCell(edge.to, current))));
+  if (blockedByTerrain) return null;
   return isWalkable(scene, next, props) ? next : null;
 }

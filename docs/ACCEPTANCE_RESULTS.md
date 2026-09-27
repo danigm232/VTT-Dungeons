@@ -1,5 +1,19 @@
 # Resultados de aceptación — RC4 y avance Alpha 0.2
 
+## Campamentos V1.4.2 — candidata visual A1, 2026-09-27
+
+La escena A1 adopta una planta irregular con seis habitaciones, plaza, estatua y hoguera. La fachada correspondiente se abre visualmente al entrar; rutas, casillas bloqueadas e interacciones mantienen sus datos de juego independientes. El cambio incluye un atlas de materiales y vegetación ilustrada. Es candidata técnica; el usuario aún debe revisar la lectura artística y el movimiento en los dispositivos de mesa.
+
+| Comprobación | Resultado | Alcance |
+|---|---|---|
+| Suite completa | PASS — 190/190 | 18 archivos de pruebas, incluida geometría A1, fachadas, navegación y persistencia. |
+| Typecheck cliente/servidor | PASS | Ejecutado directamente con el TypeScript bloqueado del proyecto. |
+| Build del cliente | PASS | Vite compiló las cuatro vistas en `tmp/a1-v5-check`, sin alterar `dist` ni la mesa local. Persiste el aviso conocido de `/art/ship/loot-atlas-m5.svg`, que se resolverá en runtime. |
+| Revisión física | PENDIENTE | No se ha aceptado en el móvil, el portátil ni el proyector del usuario. |
+| Procedencia artística | PARCIAL | El atlas A1 V5 tiene origen y prompt registrados; las texturas previas del bosque siguen sin ficha de origen/licencia. |
+
+La invitación a colaborar y la aceptación de la escena no forman parte de esta verificación técnica.
+
 ## Corrección de PID reciclado y opción R — candidata 0.3.2-dev.5, 26/09/2026
 
 El usuario observó que Stormwreck no iniciaba y que `R` no cerraba la mesa. Diagnóstico local: `stormwreck-isle/writer.lock` conservaba un PID cuya instancia anterior ya había terminado; Windows asignó luego ese número a `crashpad_handler.exe` de Spotify, iniciado después del bloqueo. El servidor confundía el PID vivo reutilizado con el dueño de la partida, mientras el helper se negaba correctamente a terminarlo porque no poseía el puerto. La partida y el proceso de Spotify no se modificaron.

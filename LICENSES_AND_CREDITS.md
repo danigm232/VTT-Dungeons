@@ -1,6 +1,6 @@
 # Licencias y créditos
 
-Actualizado: 2026-09-25, candidata técnica0.3.2-dev.3. Los avisos de terceros permanecen en `node_modules` y deben conservarse al empaquetar. El barco C1–C9 se renderiza como escena continua de terreno Babylon; Pixi mantiene escenas/runtime heredados. Los recursos añadidos tienen registros separados y algunos originales aportados aún carecen de licencia verificable; no se afirma que todo lo existente esté certificado para redistribución.
+Actualizado: 2026-09-27, campamentos V1.4.2 y candidata técnica0.3.2-dev.5. Los avisos de terceros permanecen en `node_modules` y deben conservarse al empaquetar. El barco C1–C9 se renderiza como escena continua de terreno Babylon; Pixi mantiene escenas/runtime heredados. Los recursos añadidos tienen registros separados y algunos originales aportados aún carecen de licencia verificable; no se afirma que todo lo existente esté certificado para redistribución.
 
 ## Dependencias directas
 
@@ -22,6 +22,8 @@ Metadatos y archivos `LICENSE` comprobados en la instalación bloqueada de esta 
 El archivo `node_modules/pixi.js/LICENSE` confirma MIT para la versión exacta usada. `pnpm-lock.yaml` fija versiones y hashes; no se copian runtimes ni dependencias desde la caché de Codex al producto. Las transitivas se instalan desde el lockfile y sus avisos no deben eliminarse al empaquetar.
 
 ## Arte y audio del proyecto
+
+El atlas de materiales `campaigns/camp-rests/public/art/a1-hd2d-v1/a1-material-atlas-v5.png`, la vegetación V4 y los cuatro materiales extraídos del atlas se generaron con ImageGen integrada. Prompts, originales y transformaciones constan en `campaigns/camp-rests/public/art/a1-hd2d-v1/README.md` y `A1_V5_PROVENANCE.md`. Son VTT_AMBIENCE; no se declaran CC0 ni arte oficial.
 
 Los fondos `campaigns/stormwreck-isle/public/art/wreck-deck.png` y `wreck-approach.png`, el atlas y las cuatro fichas se generaron el 2026-09-13 con ImageGen integrada de Codex usando prompts originales de dirección visual táctica pixel art. No se asignan CC0 ni se presentan como arte oficial de Wizards of the Coast. El manifiesto con prompts resumidos, transformaciones y condiciones está en `campaigns/stormwreck-isle/public/art/ASSET_MANIFEST.md`.
 

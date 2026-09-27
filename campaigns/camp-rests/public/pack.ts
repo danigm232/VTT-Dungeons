@@ -1,5 +1,6 @@
 import { validatePublicCampaign, type Cell, type PublicCampaignDefinition, type PublicSceneDefinition } from '../../../engine/shared/campaign.js';
 import type { TerrainDefinition } from '../../../engine/shared/terrain.js';
+import { A1_BLOCKED, A1_BLOCKED_EDGES, A1_COLS, A1_FIRE_CELL, A1_ROOMS, A1_ROWS, A1_SPAWNS, A1_STATUE_CELL, a1IsWalkable } from './a1-layout.js';
 
 const CELL = 1.5;
 const SURFACE = 'ground';
@@ -54,31 +55,23 @@ const ellipse = (cell: Cell, cols: number, rows: number, rx: number, rz: number,
 const rooms: Scenario = {
   id: 'camp-a1-rooms', title: '01 · Habitaciones A1', profile: 'rooms', canonStatus: 'canon',
   safetyNotice: 'Representación independiente de las seis habitaciones A1. No carga ni reproduce el resto del monasterio.',
-  cols: 38, rows: 16, materialId: 'stone', background: '/art/camp-rests/marker.svg',
-  walkable: cell => rect(cell, 2, 35, 8, 10)
-    || [4, 9, 14, 19, 24, 29].some(start => rect(cell, start + 1, start + 3, 3, 6) || cell.col === start + 2 && cell.row === 7),
-  blocked: [
-    ...[4, 9, 14, 19, 24, 29].flatMap((start, index) => index < 4 ? [
-      { cell: { col: start + 1, row: 4 }, id: `a1-bed-${index + 1}` },
-      { cell: { col: start + 1, row: 3 }, id: `a1-nightstand-${index + 1}` },
-      { cell: { col: start + 3, row: 4 }, id: `a1-desk-${index + 1}` },
-      { cell: { col: start + 3, row: 5 }, id: `a1-chair-${index + 1}` },
-      ...(index === 3 ? [{ cell: { col: start + 2, row: 3 }, id: 'a1-myla-tools' }] : [])
-    ] : [
-      { cell: { col: start + 1, row: 4 }, id: `a1-hammock-${index + 1}-a` },
-      { cell: { col: start + 3, row: 4 }, id: `a1-hammock-${index + 1}-b` },
-      { cell: { col: start + 1, row: 5 }, id: `a1-hammock-${index + 1}-c` },
-      { cell: { col: start + 3, row: 5 }, id: `a1-hammock-${index + 1}-d` }
-    ])
+  cols: A1_COLS, rows: A1_ROWS, materialId: 'stone', background: '/art/camp-rests/marker.svg',
+  walkable: a1IsWalkable,
+  blocked: A1_BLOCKED,
+  points: [
+    ...A1_ROOMS.map(room => point(
+      `a1-room-${room.id}-${room.id <= 4 ? 'bed' : 'hammocks'}`,
+      `${room.id <= 4 ? 'Cama' : 'Hamacas'} · ${room.label}`,
+      'bed', room.interaction, room.objectCell,
+      room.id <= 4 ? 'Celda monástica humilde: cama, mesilla, pequeño escritorio y silla.' : 'Cuatro hamacas colgadas: espacio para cuatro kobolds.'
+    )),
+    point('a1-astalagan-point', 'Estatua de Astalagan', 'guard', { col: 10, row: 13 }, A1_STATUE_CELL,
+      'Dragón de piedra que contempla el camino. Una prueba manual de Inteligencia (Conocimiento Arcano) CD 10 permite reconocer un dragón de bronce; el VTT no resuelve la tirada.'),
+    point('a1-plaza-fire-point', 'Hoguera de la plaza', 'fire', { col: 24, row: 16 }, A1_FIRE_CELL,
+      'Hoguera comunitaria frente a las celdas. El DM conserva la decisión sobre el descanso y sus beneficios.')
   ],
-  points: [4, 9, 14, 19, 24, 29].map((start, index) => point(
-    `a1-room-${index + 1}-${index < 4 ? 'bed' : 'hammocks'}`,
-    `${index < 4 ? 'Cama' : 'Hamacas'} · habitación ${index + 1}${index === 0 ? ' · libre' : index === 1 ? ' · Tarak' : index === 2 ? ' · Varnoth' : index === 3 ? ' · Myla' : ''}`,
-    'bed', { col: start + 2, row: 5 }, { col: start + 1, row: 4 },
-    index < 4 ? 'Cama, mesilla, escritorio y silla.' : 'Cuatro hamacas colgadas: espacio para cuatro kobolds.'
-  )),
-  blockedEdges: [],
-  spawns: [{ col: 5, row: 9 }, { col: 10, row: 9 }, { col: 15, row: 9 }, { col: 20, row: 9 }, { col: 25, row: 9 }, { col: 30, row: 9 }]
+  blockedEdges: A1_BLOCKED_EDGES,
+  spawns: A1_SPAWNS
 };
 
 const forest: Scenario = {

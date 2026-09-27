@@ -18,7 +18,7 @@ const act = (state: GameState, action: Extract<DmCommand, { type: 'camp:rest' }>
 } as Extract<DmCommand, { type: 'camp:rest' }>);
 
 describe('módulo autónomo de campamentos', () => {
-  it('rediseña sólo A1 sin mutar navegación y corta las paredes según la cámara', () => {
+  it('rediseña sólo A1 sin mutar la definición y abre cada fachada al entrar', () => {
     const engine = new NullEngine(); const scene = new Scene(engine);
     try {
       const definition=campRestsBundle.public.scenes.find(s=>s.id==='camp-a1-rooms')!;
@@ -32,18 +32,36 @@ describe('módulo autónomo de campamentos', () => {
       expect(bay.position.y).toBeLessThan(-9);
       expect(bay.metadata).toMatchObject({content:'VTT_AMBIENCE',decorativeOnly:true});
       expect(bay.parent).toBe(visuals.root);
-      expect(scene.meshes.some(m=>/tent|campfire/.test(m.name))).toBe(false);
-      const front=scene.meshes.filter(m=>m.name.includes('a1:room-3:face-4'));
+      expect(scene.meshes.some(m=>/tent/.test(m.name))).toBe(false);
+      expect(scene.meshes.some(m=>m.name.includes('a1:plaza-fire'))).toBe(true);
+      expect(visuals.root.metadata).toMatchObject({statue:'Astalagan',plazaFire:true,layout:'official-map'});
+      expect(scene.meshes.filter(m=>m.name.includes('torch-flame'))).toHaveLength(6);
+      const front=scene.meshes.filter(m=>m.name.includes('a1:room-3:face-3'));
       const back=scene.meshes.filter(m=>m.name.includes('a1:room-3:face-0'));
-      expect(front.length).toBeGreaterThan(0);expect(back.length).toBeGreaterThan(0);
-      view.camera.setPosition(new Vector3(28,20,35));view.camera.getViewMatrix(true);
+      const roof=scene.meshes.filter(m=>m.name.includes('a1:room-3:mountain-roof'));
+      expect(front.length).toBeGreaterThan(0);expect(back.length).toBeGreaterThan(0);expect(roof.length).toBeGreaterThan(0);
+      view.camera.setPosition(new Vector3(36,20,42));view.camera.getViewMatrix(true);
       visuals.update(1,'arrival');visuals.update(2,'arrival');
-      expect(front.every(m=>m.scaling.y<.1)).toBe(true);expect(back.every(m=>m.scaling.y>.9)).toBe(true);
-      view.camera.setPosition(new Vector3(28,20,-20));view.camera.getViewMatrix(true);
-      visuals.update(3,'night');visuals.update(4,'night');
+      expect(front.every(m=>m.scaling.y>.9)).toBe(true);expect(back.every(m=>m.scaling.y>.9)).toBe(true);expect(roof.every(m=>m.visibility>.9)).toBe(true);
+      visuals.update(3,'arrival',[],{col:18,row:9});visuals.update(4,'arrival',[],{col:18,row:9});
+      expect(front.every(m=>m.scaling.y<.1)).toBe(true);expect(roof.every(m=>m.visibility<.1)).toBe(true);
+      const neighboringFacade=scene.meshes.filter(m=>m.name.includes('a1:room-4:face-3'));
+      const neighboringRoof=scene.meshes.filter(m=>m.name.includes('a1:room-4:mountain-roof'));
+      expect(neighboringFacade.every(m=>m.scaling.y>.9)).toBe(true);expect(neighboringRoof.every(m=>m.visibility>.9)).toBe(true);
+      view.camera.setPosition(new Vector3(36,20,-20));view.camera.getViewMatrix(true);
+      visuals.update(5,'night');visuals.update(6,'night');
       expect(front.every(m=>m.scaling.y>.9)).toBe(true);expect(back.every(m=>m.scaling.y<.1)).toBe(true);
       expect(scene.meshes.filter(m=>m.name.startsWith('a1:ridge')).every(m=>m.visibility<.1)).toBe(true);
-      expect(scene.meshes.length).toBeLessThan(128);
+      // Lateral walls retract from both side views so tokens remain visible.
+      for(const x of [-25,95]){
+        view.camera.setPosition(new Vector3(x,25,12));view.camera.getViewMatrix(true);
+        visuals.update(7,'arrival');visuals.update(8,'arrival');
+        const partitions=scene.meshes.filter(m=>/a1:room-\d:face-[12]:/.test(m.name));
+        expect(partitions.every(m=>m.scaling.y<.1)).toBe(true);
+        for(const mesh of partitions){mesh.computeWorldMatrix(true);expect(mesh.getBoundingInfo().boundingBox.maximumWorld.y).toBeLessThan(.15);}
+      }
+      expect(new Set(scene.meshes.filter(m=>m.name.startsWith('a1:static:a1:plaza')).map(m=>m.material?.name)).size).toBeGreaterThan(2);
+      expect(scene.meshes.length).toBeLessThan(150);
     } finally {scene.dispose();engine.dispose();}
   });
   it('publica sólo los cinco escenarios, cuadrícula de 1,5 m y el grupo existente', () => {
@@ -64,17 +82,21 @@ describe('módulo autónomo de campamentos', () => {
     expect(rooms.camp?.canonStatus).toBe('canon');
     expect(rooms.props).toHaveLength(0);
     expect(rooms.camp?.interactionPoints.filter(point => point.kind === 'bed')).toHaveLength(6);
-    expect(rooms.camp?.interactionPoints.map(point => point.cell)).toEqual([6, 11, 16, 21, 26, 31].map(col => ({ col, row: 5 })));
+    expect(rooms.camp?.interactionPoints).toHaveLength(8);
+    expect(rooms.camp?.interactionPoints.filter(point => point.kind === 'bed').map(point => point.cell)).toEqual([
+      { col: 5, row: 10 }, { col: 11, row: 9 }, { col: 18, row: 9 },
+      { col: 26, row: 9 }, { col: 33, row: 9 }, { col: 39, row: 9 }
+    ]);
     expect(campaign.scenes.some(scene => /dragon-rest|wreck-ship|monastery/i.test(scene.id))).toBe(false);
   });
 
-  it('representa A1 con seis entradas abiertas en línea y el camino compartido delante', () => {
+  it('representa A1 con seis entradas abiertas y una plaza alargada compartida', () => {
     const state = new GameState(campRestsBundle); state.changeScene('camp-a1-rooms');
     expect(state.publicObjectProps()).toHaveLength(0);
-    expect(resolveStep(state.currentScene(), { col: 6, row: 6 }, 'south', [])).toEqual({ col: 6, row: 7 });
-    expect(resolveStep(state.currentScene(), { col: 6, row: 7 }, 'south', [])).toEqual({ col: 6, row: 8 });
-    expect(resolveStep(state.currentScene(), { col: 5, row: 6 }, 'south', [])).toBeNull();
-    expect(state.currentScene().walkable.filter(cell => cell.row === 9)).toHaveLength(34);
+    expect(resolveStep(state.currentScene(), { col: 6, row: 10 }, 'south', [])).toEqual({ col: 6, row: 11 });
+    expect(resolveStep(state.currentScene(), { col: 6, row: 11 }, 'south', [])).toEqual({ col: 6, row: 12 });
+    expect(resolveStep(state.currentScene(), { col: 5, row: 10 }, 'south', [])).toBeNull();
+    expect(state.currentScene().walkable.filter(cell => cell.row === 13)).toHaveLength(45);
   });
 
   it('mantiene cada punto de interacción conectado a suelo alcanzable desde los spawns', () => {
@@ -204,7 +226,7 @@ describe('módulo autónomo de campamentos', () => {
         const keyLight = scene.getLightByName(`camp-key:${definition.id}`)!;
         if (definition.camp!.visualProfile === 'rooms') {
           visuals.update(1, 'arrival'); const warmArrival = ambient.intensity;
-          const roomLamp = scene.getLightByName('room-1:warm-lamp')!; const lampArrival = roomLamp.intensity;
+          const roomLamp = scene.getLightByName('a1:room-1:torch-light')!; const lampArrival = roomLamp.intensity;
           visuals.update(20, 'night');
           expect(ambient.intensity).toBeLessThan(warmArrival);
           expect(roomLamp.intensity).toBeGreaterThan(lampArrival);
@@ -234,7 +256,8 @@ describe('módulo autónomo de campamentos', () => {
           expect(scene.getMeshByName(`${chest.id}:lid`)?.rotation.x).toBe(0);
         }
         visuals.update(12, 'night'); visuals.update(19, 'dawn');
-        expect(scene.meshes.length, `${definition.id} no debe exceder el presupuesto estático de meshes`).toBeLessThan(128);
+        const meshBudget = definition.id === 'camp-a1-rooms' ? 128 : 160;
+        expect(scene.meshes.length, `${definition.id} no debe exceder el presupuesto estático de meshes`).toBeLessThan(meshBudget);
         scene.dispose();
       }
     } finally { engine.dispose(); }

@@ -8,6 +8,52 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight.js';
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight.js';
 import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture.js';
+import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData.js';
+
+/** Fractured, bevelled strata with face-local UVs: no axis switching inside a triangle. */
+export function fracturedStone(scene:Scene,name:string,width:number,height:number,depth:number,seed:number) {
+  const outline=[[-.34,-.5],[.31,-.5],[.5,-.29],[.5,.32],[.3,.5],[-.32,.5],[-.5,.28],[-.5,-.3]];
+  const rings:number[][][]=[];
+  for(let r=0;r<4;r++){
+    const scale=[.8,1,.91,.67][r]!,y=[-.5,-.36,.34,.5][r]!;
+    rings.push(outline.map(([x,z],i)=>[
+      (x!*scale+y*.14*Math.sin(seed)+Math.sin(seed*3+i*7)*.065)*width,
+      (y+Math.sin(seed+i*1.8)*.075)*height,
+      (z!*scale+y*.18+Math.cos(seed*2+i*3)*.06)*depth
+    ]));
+  }
+  const positions:number[]=[],indices:number[]=[],uvs:number[]=[],colors:number[]=[],normals:number[]=[];
+  function triangle(a:number[],b:number[],c:number[]){
+    const n=Vector3.Cross(Vector3.FromArray(b).subtract(Vector3.FromArray(a)),Vector3.FromArray(c).subtract(Vector3.FromArray(a)));
+    const ny=Math.abs(n.y),nx=Math.abs(n.x),nz=Math.abs(n.z),base=positions.length/3;
+    for(const p of [a,b,c]){
+      positions.push(...p);
+      uvs.push((ny>nx&&ny>nz?p[0]!:nx>nz?p[2]!:p[0]!)/3+seed*.17,(ny>nx&&ny>nz?p[2]!:p[1]!)/3);
+      const tint=.82+.12*(p[1]!/height+.5)+Math.sin(seed*2.3)*.06;
+      colors.push(tint,tint*.995,tint*.965,1);
+    }
+    // Babylon's default left-handed winding is clockwise from the outside.
+    indices.push(base,base+2,base+1);
+  }
+  for(let r=0;r<3;r++)for(let i=0;i<8;i++){
+    const j=(i+1)%8;triangle(rings[r]![i]!,rings[r+1]![i]!,rings[r+1]![j]!);triangle(rings[r]![i]!,rings[r+1]![j]!,rings[r]![j]!);
+  }
+  for(let i=1;i<7;i++){triangle(rings[3]![0]!,rings[3]![i+1]!,rings[3]![i]!);triangle(rings[0]![0]!,rings[0]![i]!,rings[0]![i+1]!);}
+  VertexData.ComputeNormals(positions,indices,normals);
+  // Partially blend normals at the bevels; broad faces remain legible without crystal-sharp edges.
+  const shared=new Map<string,Vector3>();
+  for(let i=0;i<positions.length;i+=3){
+    const key=positions.slice(i,i+3).join(','),sum=shared.get(key)??Vector3.Zero();
+    sum.addInPlace(Vector3.FromArray(normals,i));shared.set(key,sum);
+  }
+  for(let i=0;i<positions.length;i+=3){
+    const average=shared.get(positions.slice(i,i+3).join(','))!.normalizeToNew();
+    const mixed=Vector3.Lerp(Vector3.FromArray(normals,i),average,.45).normalize();
+    normals[i]=mixed.x;normals[i+1]=mixed.y;normals[i+2]=mixed.z;
+  }
+  const mesh=new Mesh(name,scene),data=new VertexData();Object.assign(data,{positions,indices,normals,uvs,colors});data.applyToMesh(mesh);
+  return mesh;
+}
 
 /** Soft painted AO and lamp bounce, shared by the low-cost contact planes. */
 export function softPoolMaterial(scene:Scene,id:string,tint:string,opacity:number) {
@@ -80,7 +126,9 @@ export function mergeDecoration(scene: Scene, root: TransformNode, meshes: Mesh[
     if(group.some(mesh=>mesh.isVerticesDataPresent('color'))) {
       for(const mesh of group)if(!mesh.isVerticesDataPresent('color'))mesh.setVerticesData('color',new Float32Array(mesh.getTotalVertices()*4).fill(1));
     }
-    const merged = group.length > 1 ? Mesh.MergeMeshes(group, true, true, undefined, false, false) : group[0];
+    // Bake even a single mesh into world coordinates. Otherwise scaling a cutaway
+    // face leaves its lone coping floating at the original local Y position.
+    const merged = Mesh.MergeMeshes(group, true, true, undefined, false, false);
     if (!merged) continue;
     merged.name = `${name}:${material.name}`; merged.parent = root; merged.isPickable = false;
     merged.checkCollisions = false; merged.metadata = { content: 'VTT_AMBIENCE', decorativeOnly: true };
