@@ -4,6 +4,12 @@
 
 La mesa presencial para Windows permite al DM controlar la escena, al proyector mostrar el mapa público y a cada jugador mover su ficha desde un móvil de la misma red. La consola agrupa los mapas de la aventura y los campamentos; al seleccionar otra localización el DM cambia la escena para el grupo. Las tiradas, turnos y decisiones siguen en la mesa.
 
+## Roadmap compartido Dani + Fer
+
+La coordinación entre **Dani (campañas)** y **Fer (plataforma y generador de campañas)** está en [ROADMAP_COMPARTIDO_DANI_FER.md](ROADMAP_COMPARTIDO_DANI_FER.md). Complementa, sin sustituir, el roadmap del Pecio [ROADMAP_V1.md](ROADMAP_V1.md). Incluye ciclos de trabajo paralelos, dependencias, criterios de aceptación y adopción segura de mejoras compartidas.
+
+Los encargos iniciales para sus sesiones separadas de Codex son [Dani / D0](docs/CODEX_DANI_NEXT.md) y [Fer / F0](docs/CODEX_FER_NEXT.md). El relevo [NEXT_MODEL_PROMPT.md](docs/NEXT_MODEL_PROMPT.md) permanece orientado al Pecio y no debe sobrescribirse entre ambos agentes.
+
 ## Ejecutar en Windows
 
 La persistencia está implementada y probada automáticamente; no sustituye la aceptación de [puerta, móvil y servidor de mesa](docs/ALPHA_0_3_ACCEPTANCE_PLAN.md). Los mapas del Pecio se presentan con inclinación visual suave y arte raster; el servidor incluye el pecio continuo y los cinco campamentos. `INICIAR.cmd` primero comprueba si el puerto está ocupado para no recompilar los archivos que usa una mesa abierta; cuando está libre, recompila la interfaz y el servidor para incluir los mapas más recientes. Si Windows recicló el PID de un bloqueo antiguo, la aplicación reconoce la hora de inicio distinta y archiva solo ese bloqueo en `recovery`, sin terminar el proceso nuevo. Al pulsar `R`, el lanzador identifica la campaña elegida y puede cerrar ordenadamente su mesa aunque escuche en otro puerto; nunca termina un proceso ajeno que simplemente ocupa el puerto. No borres ni sustituyas el guardado.
