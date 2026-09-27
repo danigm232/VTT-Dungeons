@@ -183,6 +183,8 @@ Registrar en una tabla breve por ciclo (issue o nota de integración) el **antes
 
 ## 9. Primera acción concreta y relevo
 
+**Avance de Fer · 27/09/2026:** [F0 documental](docs/FER_F0_ARCHITECTURE_20260927.md) entregado sobre `dbadd77`: mapa de dependencias, matriz de capacidades, contrato propuesto y tres candidatos. [Línea base posterior](docs/FER_BASELINE_20260927.md): Node 24.21.0, dependencias fijadas, 189/189 pruebas, tipos, build e integraciones general/objetos/save/D8 PASS. El gate reutiliza cobertura sintética existente; no se crean pruebas redundantes. INT0 sigue pendiente de selección conjunta con D0; no hay cambio de runtime ni adopción de Dani.
+
 1. **Dani / D0:** iniciar el encargo de docs/CODEX_DANI_NEXT.md, sin abandonar M5/M7. Salida: necesidades reales clasificadas y registro de aceptación física/visual cuando se realice.
 2. **Fer / F0:** iniciar en su worktree docs/CODEX_FER_NEXT.md. Salida: mapa de módulos, primer contrato y PR pequeña con tests/procedimiento de adopción.
 3. **INT0:** escoger juntos la primera mejora transversal a partir del Pecio; abrir issue con dueño y criterio verificable. No crear automáticamente un calendario largo de issues especulativas.
