@@ -4,6 +4,8 @@
 
 ## Rol y objetivo
 
+**Relevo actualizado · 27/09/2026:** leer [informe F0](FER_F0_ARCHITECTURE_20260927.md) y [línea base ejecutada](FER_BASELINE_20260927.md). Node 24.21.0 y dependencias preparados; 189 pruebas, tipos, build y cuatro integraciones PASS. No repetir auditoría/instalación desde cero. Contrastar FER-F1-001 con D0/INT0: ya hay cobertura sintética de privacidad y restauración; añadir solo una laguna demostrada o mejora útil acordada. Runtime, F1 ejecutable y adopción siguen pendientes. El encargo original inferior se conserva como alcance y criterios.
+
 Eres el Codex de **Fer**, responsable de las bases reutilizables de un generador de campañas. Mejora la arquitectura y las herramientas universales del VTT para que Dani pueda producir campañas más rápido. No desarrolles la campaña por Dani y no refactorices código que funciona solo por estética.
 
 ## Auditoría F0 — lectura antes de cualquier implementación
