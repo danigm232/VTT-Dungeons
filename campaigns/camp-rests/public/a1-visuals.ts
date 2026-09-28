@@ -407,8 +407,9 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition)
     for (const mesh of geometry) { mesh.receiveShadows = true; if (![M.shade, ...foliageVariants, warmPool, M.plaza, M.cellFloor].includes(mesh.material as StandardMaterial)) shadows.addShadowCaster(mesh, false); }
     const glow = new GlowLayer('a1:fire-glow-v5', scene, { mainTextureRatio: .25, blurKernelSize: 24 }); glow.intensity = .42; for (const mesh of flameMeshes) glow.addIncludedOnlyMesh(mesh);
   }
-  const rings = definition.camp!.interactionPoints.map(point => { const ring = MeshBuilder.CreateTorus(`${point.id}:dm-interaction-halo`, { diameter: 1.14, thickness: .055, tessellation: 24 }, scene); ring.position = worldCell(point.cell.col, point.cell.row); ring.position.y = .1; ring.material = M.halo; ring.parent = root; ring.isPickable = false; ring.visibility = 0; return ring; });
-  let highlights = false, lastTime = 0;
+  const interactionPoints = definition.camp!.interactionPoints;
+  const rings = interactionPoints.map(point => { const objectCell = point.objectCell ?? point.cell; const ring = MeshBuilder.CreateTorus(`${point.id}:dm-interaction-halo`, { diameter: 1.14, thickness: .055, tessellation: 24 }, scene); ring.position = worldCell(objectCell.col, objectCell.row); ring.position.y = .1; ring.material = M.halo; ring.parent = root; ring.isPickable = false; ring.visibility = 0; return ring; });
+  let highlights: boolean | string | null = false, lastTime = 0;
   const update = (time: number, phase?: CampRestPhase | null, _interactions?: unknown, focusCell?: Cell | null) => {
     const dark = darkness[phase ?? 'arrival'], day = 1 - dark, dt = Math.min(.1, Math.max(.016, time - lastTime)); lastTime = time;
     const activeRoom = focusCell ? A1_ROOMS.find(room => room.cells.some(cell => cell.col === focusCell.col && cell.row === focusCell.row))?.id : undefined;
@@ -433,8 +434,12 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition)
     for (const [roomId, meshes] of facades) { const reveal = roomId === activeRoom ? 1 : -1; updateCutaway(meshes, reveal, dt); if (meshes.some(mesh => Math.abs(mesh.scaling.y - (activeRoom === roomId ? .035 : 1)) > .003)) shadowCache?.getShadowMap()?.resetRefreshCounter(); }
     for (const [roomId, meshes] of roofs) { const target = roomId === activeRoom ? 0 : 1; for (const mesh of meshes) { mesh.visibility += (target - mesh.visibility) * Math.min(1, dt * 10); if (mesh.visibility < .01) mesh.visibility = 0; } }
     if (camera) { const position = camera.globalPosition; for (const wall of walls) { const direction = position.subtract(wall.center); direction.y = 0; direction.normalize(); const dot = Vector3.Dot(wall.normal, direction), facing = wall.normal.x !== 0 ? Math.abs(dot) - .13 : dot; updateCutaway(wall.meshes, facing, dt); if (wall.meshes.some(mesh => Math.abs(mesh.scaling.y - (facing > .18 ? .035 : 1)) > .003)) shadowCache?.getShadowMap()?.resetRefreshCounter(); } const behind = position.z < 2.4; for (const mesh of ridge) { if (foliageVariants.includes(mesh.material as StandardMaterial)) mesh.visibility = behind ? 0 : 1; else { mesh.visibility += ((behind ? .05 : 1) - mesh.visibility) * Math.min(1, dt * 9); if (mesh.visibility < .01) mesh.visibility = 0; } } }
-    rings.forEach((ring, index) => ring.visibility = highlights ? .56 + Math.sin(time * 2 + index) * .07 : 0);
+    rings.forEach((ring, index) => {
+      const pointId = interactionPoints[index]?.id;
+      const highlighted = highlights === true || (typeof highlights === 'string' && highlights === pointId);
+      ring.visibility = highlighted ? .56 + Math.sin(time * 2 + index) * .07 : 0;
+    });
   };
   update(0, 'arrival');
-  return { root, update, setInteractionHighlights: enabled => { highlights = enabled; } };
+  return { root, update, setInteractionHighlights: target => { highlights = target; } };
 }

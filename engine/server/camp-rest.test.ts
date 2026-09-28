@@ -235,6 +235,10 @@ describe('módulo autónomo de campamentos', () => {
         const halos = scene.meshes.filter(mesh => mesh.name.endsWith(':dm-interaction-halo'));
         expect(halos, `${definition.id}: cada punto tiene una marca para el DM`).toHaveLength(definition.camp!.interactionPoints.length);
         expect(halos.every(halo => halo.visibility === 0), `${definition.id}: las marcas empiezan ocultas`).toBe(true);
+        const selectedPointId = definition.camp!.interactionPoints[0]!.id;
+        visuals.setInteractionHighlights(selectedPointId); visuals.update(1, 'night');
+        expect(halos.find(halo => halo.name.startsWith(`${selectedPointId}:`))!.visibility, `${definition.id}: el jugador destaca el punto elegido`).toBeGreaterThan(0);
+        expect(halos.filter(halo => !halo.name.startsWith(`${selectedPointId}:`)).every(halo => halo.visibility === 0), `${definition.id}: el jugador no ilumina varios objetos a la vez`).toBe(true);
         visuals.setInteractionHighlights(true); visuals.update(2, 'night');
         expect(halos.every(halo => halo.visibility > 0), `${definition.id}: el botón del DM puede revelar las marcas`).toBe(true);
         visuals.setInteractionHighlights(false); visuals.update(3, 'night');

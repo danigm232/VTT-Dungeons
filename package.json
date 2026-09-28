@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@babylonjs/core": "9.26.0",
+    "@babylonjs/loaders": "9.26.0",
     "express": "5.1.0",
     "howler": "2.2.4",
     "nipplejs": "0.10.2",

@@ -19,6 +19,9 @@ describe('independent private one-shot pack', () => {
     expect(compiled.encounter?.creature.tokenId).toBe('reflection');
     expect(compiled.public.roster.map(character => character.id)).toEqual(['maria', 'aoife']);
     expect(compiled.characters.aoife?.sheet?.details?.find(section => section.title === 'Características')?.entries).toContain('FUE 10 (+0) · DES 14 (+2) · CON 14 (+2)');
+    expect(compiled.characters.maria?.sheet).toMatchObject({ strengthScore: 8 });
+    expect(compiled.characters.maria?.sheet?.details?.find(section => section.title === 'Datos confirmados')?.entries)
+      .toContain('FUE 8 (−1) · DES 16 (+3) · CON 12 (+1) · INT 13 (+1) · SAB 10 (+0) · CAR 16 (+3)');
     expect(compiled.characters.aoife?.sheet?.speedMeters).toBe(7.5);
     expect(compiled.characters.aoife?.combat?.attacks.find(action => action.id === 'aoife-unarmed')).toMatchObject({ attackBonus: 2, damageDice: '1d1', animationType: 'melee' });
     expect(compiled.characters.aoife?.combat?.attacks.find(action => action.id === 'aoife-shortbow')).toMatchObject({ attackBonus: 2, animationType: 'arrow' });
@@ -44,6 +47,30 @@ describe('independent private one-shot pack', () => {
       expect(existsSync(resolve('campaigns/one-shot/public', frame.slice(1)))).toBe(true);
     for (const asset of Object.values(compiled.public.props)) for (const variant of Object.values(asset.variants))
       expect(existsSync(resolve('campaigns/one-shot/public', variant.url.slice(1)))).toBe(true);
+  });
+
+  it('calcula el salto de Silverfarben y de María con la FUE transcrita de sus fichas', () => {
+    const state = new GameState(oneShotBundle), silver = state.characters.get('aoife')!, maria = state.characters.get('maria')!;
+    const scene = oneShotBundle.public.scenes.find(candidate => candidate.id === silver.sceneId)!;
+    const direction = silver.cell.col + 3 < scene.grid.width ? 1 : -1;
+    const withinStrength = { col: silver.cell.col + direction * 2, row: silver.cell.row };
+    const beyondStrength = { col: silver.cell.col + direction * 3, row: silver.cell.row };
+
+    expect(silver.sheet?.strengthScore).toBe(10);
+    expect(state.declareExplorationBasicAction('aoife', 'jump', undefined, withinStrength)).toMatchObject({
+      ok: true, guidance: expect.stringContaining('largo 10 pies (3 m) con carrera')
+    });
+    expect(state.declareExplorationBasicAction('aoife', 'jump', undefined, beyondStrength)).toMatchObject({ ok: false, code: 'JUMP_OUT_OF_RANGE' });
+    expect(maria.sheet?.strengthScore).toBe(8);
+  });
+
+  it('recupera la FUE de María del perfil de campaña al abrir un guardado anterior', () => {
+    const source = new GameState(oneShotBundle), saved = structuredClone(source.captureDurable());
+    const mariaSave = saved.characters.find(character => character.id === 'maria')!;
+    delete mariaSave.sheet?.strengthScore;
+    const restored = new GameState(oneShotBundle);
+    restored.restoreDurable(saved);
+    expect(restored.characters.get('maria')?.sheet?.strengthScore).toBe(8);
   });
 
   it('configura el reflejo como la réplica de María y lo coloca después de ella', () => {

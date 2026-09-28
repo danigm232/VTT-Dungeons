@@ -10,6 +10,7 @@ import type { PickupDefinition, PropDefinition, Rotation } from '../shared/campa
 import { cellKey, footprintFor, sameCell } from '../shared/geometry.js';
 import { surfaceNeighbors } from '../shared/terrain.js';
 import { carriedLightRadiusMeters } from '../shared/carried-light.js';
+import { jumpGuidance } from '../shared/jumping.js';
 import { compileCampaignBundle, type CampaignServerBundle, type CompiledCampaign, type RuleTraits, type SceneDefinition } from './campaign.js';
 import { directionFromVector, isWalkable, resolveStep } from './navigation.js';
 import { durablePayloadSchema, type DurablePayload } from './persistence/schema.js';
@@ -1590,11 +1591,17 @@ export class GameState {
       targetLabel = `casilla ${targetCell.col + 1}, ${targetCell.row + 1}`;
     } else if (actionId === 'use-object') targetLabel = 'el equipo que declares';
 
+    const guidance = actionId === 'jump' ? jumpGuidance(character.sheet?.strengthScore) : action.guidance;
+    if (actionId === 'jump' && targetCell && character.sheet?.strengthScore !== undefined) {
+      const distanceFeet = Math.max(Math.abs(targetCell.col - character.cell.col), Math.abs(targetCell.row - character.cell.row)) * 5;
+      if (distanceFeet > character.sheet.strengthScore) return { ok: false as const, code: 'JUMP_OUT_OF_RANGE' };
+    }
+
     this.lastExplorationAction = {
       id: crypto.randomUUID(), sceneId: this.sceneId, characterId, characterLabel: character.label,
-      action: actionId, actionLabel: action.label, targetLabel, guidance: action.guidance, createdAt: Date.now()
+      action: actionId, actionLabel: action.label, targetLabel, guidance, createdAt: Date.now()
     };
-    return { ok: true as const, code: 'EXPLORATION_BASIC_DECLARED', action, targetLabel };
+    return { ok: true as const, code: 'EXPLORATION_BASIC_DECLARED', action, targetLabel, guidance };
   }
 
   startCombatFromAttack(characterId: string, targetId: string, actionId: string) {
@@ -2425,6 +2432,7 @@ export class GameState {
     this.migrateCampRestLegacyRoomDoors(payload);
     this.migrateCombinedStormwreckCampScenes(payload);
     const migratedObjectInteractions = this.migrateMissingObjectInteractions(payload);
+    let migratedCharacterSheets = false;
     const exactIds = (actual: string[], expected: string[]) => actual.length === expected.length && new Set(actual).size === actual.length && actual.every(id => expected.includes(id));
     if (!this.hasScene(payload.sceneId) || !exactIds(payload.characters.map(x => x.id), [...this.characters.keys()]) || !exactIds(payload.scenes.map(x => x.sceneId), [...this.objectScenes.keys()])) throw new Error('SAVE_REFERENCES');
     if (payload.campRest) {
@@ -2530,7 +2538,12 @@ export class GameState {
     this.sceneId = payload.sceneId; this.sceneEpoch = 1; this.revision = 0; this.stateRevision = 0;
     for (const saved of payload.characters) {
       const character = this.characters.get(saved.id)!;
-      Object.assign(character, { hp: saved.hp, maxHp: saved.maxHp ?? character.maxHp, inventory: [...saved.inventory], ...(saved.sheet === undefined ? {} : { sheet: saved.sheet ? structuredClone(saved.sheet) : null }), deathSaves: { ...(saved.deathSaves ?? { successes: 0, failures: 0, stable: false }) }, sceneId: saved.sceneId ?? payload.sceneId, cell: cloneCell(saved.cell), surfaceId: saved.surfaceId, facing: saved.facing, moving: false, step: null, sessionToken: null, socketId: null, input: { held: null, seq: -1, updatedAt: 0 } });
+      const restoredSheet = saved.sheet ? structuredClone(saved.sheet) : saved.sheet;
+      if (restoredSheet && restoredSheet.strengthScore === undefined && character.sheet?.strengthScore !== undefined) {
+        restoredSheet.strengthScore = character.sheet.strengthScore;
+        migratedCharacterSheets = true;
+      }
+      Object.assign(character, { hp: saved.hp, maxHp: saved.maxHp ?? character.maxHp, inventory: [...saved.inventory], ...(saved.sheet === undefined ? {} : { sheet: restoredSheet }), deathSaves: { ...(saved.deathSaves ?? { successes: 0, failures: 0, stable: false }) }, sceneId: saved.sceneId ?? payload.sceneId, cell: cloneCell(saved.cell), surfaceId: saved.surfaceId, facing: saved.facing, moving: false, step: null, sessionToken: null, socketId: null, input: { held: null, seq: -1, updatedAt: 0 } });
       if (saved.sheet) { character.combat.armorClass = saved.sheet.armorClass; character.combat.speedMeters = saved.sheet.speedMeters; }
       if (saved.resources) for (const [resourceId, savedResource] of Object.entries(saved.resources)) character.combat.resources[resourceId]!.current = savedResource.current;
     }
@@ -2597,7 +2610,7 @@ export class GameState {
     const restoredSequences = Object.fromEntries(Object.entries(payload.combat?.sequences ?? {}).map(([id, sequence]) => [id, { actionId: sequence.actionId, remaining: sequence.remaining }])) as CombatState['sequences'];
     this.combat = payload.combat?.active ? { ...emptyCombat(), active: true, round: payload.combat.round, order: [...payload.combat.order], turnIndex: payload.combat.turnIndex, participantIds: [...payload.combat.participantIds], initiative: { ...payload.combat.initiative }, initiativeSubmitted: { ...(payload.combat.initiativeSubmitted ?? Object.fromEntries(payload.combat.participantIds.map(id => [id, true]))) }, initiativePending: payload.combat.initiativePending ?? false, spentSquares: { ...payload.combat.spentSquares }, dashSquares: { ...(payload.combat.dashSquares ?? {}) }, actionUsed: { ...payload.combat.actionUsed }, bonusActionUsed: { ...(payload.combat.bonusActionUsed ?? {}) }, reactionUsed: { ...(payload.combat.reactionUsed ?? {}) }, sneakAttackUsed: { ...(payload.combat.sneakAttackUsed ?? {}) }, sneakAttackUsedTurn: { ...(payload.combat.sneakAttackUsedTurn ?? {}) }, spellSlotUsedTurn: { ...(payload.combat.spellSlotUsedTurn ?? {}) }, stances: restoredStances, sequences: restoredSequences, recharge: structuredClone(payload.combat.recharge ?? {}), openingAction: structuredClone(payload.combat.openingAction ?? null), pending: structuredClone(payload.combat.pending ?? null), lastEvent: { id: crypto.randomUUID(), text: payload.combat.initiativePending ? 'Iniciativa pendiente de completar' : `Ronda ${payload.combat.round} restaurada`, publicText: payload.combat.initiativePending ? 'Iniciativa pendiente de completar' : `Ronda ${payload.combat.round} restaurada`, kind: 'turn' } } : emptyCombat();
     this.interactions = []; this.projectorReady = false;
-    return migratedObjectInteractions;
+    return migratedObjectInteractions || migratedCharacterSheets;
   }
 }
 
@@ -3116,7 +3129,7 @@ export class GameServer {
       this.io.emit('scene:animation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, entityId: character.id, state: result.action.animation, durationMs: 900 });
       if (result.action.animation === 'interact') this.emitProjectorSfx('d8-night-sfx-world-book-open');
       finish({ commandId: parsed.data.commandId, ok: true, code: result.code });
-      this.io.to(socket.id).emit('player:private', this.state.playerPrivate(token, `${result.action.label} · ${result.targetLabel}. ${result.action.guidance}`));
+      this.io.to(socket.id).emit('player:private', this.state.playerPrivate(token, `${result.action.label} · ${result.targetLabel}. ${result.guidance}`));
       this.io.to('dm').emit('dm:state', this.dmState());
       return;
     }

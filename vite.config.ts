@@ -17,7 +17,10 @@ export default defineConfig({
       },
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules/@babylonjs')) {
+          if (id.includes('node_modules/@babylonjs/loaders') || id.includes('node_modules/babylonjs-gltf2interface')) {
+            return 'babylon-loaders';
+          }
+          if (id.includes('node_modules/@babylonjs/core')) {
             return 'babylon-vendor';
           }
           if (id.includes('node_modules/pixi.js')) {

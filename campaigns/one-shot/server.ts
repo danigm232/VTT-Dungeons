@@ -15,11 +15,11 @@ const villagerProfile = (identityId: string): CombatProfile => ({
 export const oneShotBundle: CampaignServerBundle = {
   public: oneShotCampaignDefinition, campaignStateVersion: 1,
   characters: {
-    maria: { maxHp: 9, inventory: ['Armadura de cuero', 'Arco corto', '20 flechas', '2 dagas', 'Herramientas de ladrón', 'Mochila', 'Bola con 1000 bolas de metal', '2 palanquetas', '2 frascos de aceite'], sheet: { level: 1, armorClass: 14, speedMeters: 7.5, background: 'Criminal', features: ['Mediana piesligeros', 'Ataque furtivo 1d6', 'Afortunada', 'Valiente', 'Agilidad de Mediano', 'Sigiloso por naturaleza'], attacks: ['Daga · +5 · 1d4+3 perforante · alcance 1,5 m / 6 m', 'Arco corto · +5 · 1d6+3 perforante · alcance 24 m / 96 m'], spells: [], details: [
-      { title: 'Datos confirmados', entries: ['Pícara nivel 1 · mediana piesligeros · Criminal', 'CA 14 · PG máximos 9 · velocidad 7,5 m · iniciativa +3', 'Ataque furtivo: +1d6 una vez por turno si se cumplen sus requisitos.'] },
+    maria: { maxHp: 9, inventory: ['Armadura de cuero', 'Arco corto', '20 flechas', '2 dagas', 'Herramientas de ladrón', 'Mochila', 'Bola con 1000 bolas de metal', '2 palanquetas', '2 frascos de aceite'], sheet: { level: 1, armorClass: 14, speedMeters: 7.5, strengthScore: 8, background: 'Criminal', features: ['Mediana piesligeros', 'Ataque furtivo 1d6', 'Afortunada', 'Valiente', 'Agilidad de Mediano', 'Sigiloso por naturaleza'], attacks: ['Daga · +5 · 1d4+3 perforante · alcance 1,5 m / 6 m', 'Arco corto · +5 · 1d6+3 perforante · alcance 24 m / 96 m'], spells: [], details: [
+      { title: 'Datos confirmados', entries: ['Pícara nivel 1 · mediana piesligeros · Criminal', 'FUE 8 (−1) · DES 16 (+3) · CON 12 (+1) · INT 13 (+1) · SAB 10 (+0) · CAR 16 (+3)', 'CA 14 · PG máximos 9 · velocidad 7,5 m · iniciativa +3', 'Ataque furtivo: +1d6 una vez por turno si se cumplen sus requisitos.'] },
       { title: 'Equipo y cantidades', entries: ['Arco corto y 20 flechas · 2 dagas · armadura de cuero', 'Herramientas de ladrón · mochila · bolsa con 1000 bolas de metal · 2 palanquetas · 2 frascos de aceite'] },
-      { title: 'Trazabilidad', entries: ['La ficha original de María no está disponible en esta revisión. Se conservan únicamente los datos ya confirmados en la mesa; atributos, salvaciones y habilidades pendientes no se inventan.'] }
-    ] }, combat: { armorClass: 14, speedMeters: 7.5, initiativeBonus: 3, ruleTraits: { sneakAttackDice: '1d6', brave: true }, attacks: [
+      { title: 'Trazabilidad', entries: ['Características transcritas de la ficha PDF de María facilitada por el usuario.'] }
+    ] }, explorationBasics: ['jump'], combat: { armorClass: 14, speedMeters: 7.5, initiativeBonus: 3, ruleTraits: { sneakAttackDice: '1d6', brave: true }, attacks: [
       { id: 'dagger', label: 'Daga · +5 · 1d4+3 perforante · 1,5 m', attackBonus: 5, damageDice: '1d4', damageBonus: 3, damageType: 'perforante', range: { kind: 'melee', normalMeters: 1.5 }, finesse: true, animationType: 'melee' },
       { id: 'thrown-dagger', label: 'Lanzar daga · +5 · 1d4+3 perforante · 6 m', attackBonus: 5, damageDice: '1d4', damageBonus: 3, damageType: 'perforante', range: { kind: 'ranged', normalMeters: 6 }, finesse: true, animationType: 'thrownWeapon' },
       { id: 'shortbow', label: 'Arco corto · +5 · 1d6+3 perforante · 24/96 m', attackBonus: 5, damageDice: '1d6', damageBonus: 3, damageType: 'perforante', range: { kind: 'ranged', normalMeters: 24, longMeters: 96 }, animationType: 'arrow' }
@@ -37,7 +37,7 @@ export const oneShotBundle: CampaignServerBundle = {
       ],
       inventory: ['Arco corto de entrenamiento', '4 dagas', 'Bolsa de componentes', 'Libro de conjuros con musgo', 'Mochila', 'Conocimiento de magia popular', 'Tinta', 'Pluma', '10 hojas de pergamino', 'Bolsa de arena', 'Cuchillo pequeño', '2 antorchas', '23 po'],
       sheet: {
-        level: 1, armorClass: 12, speedMeters: 7.5, background: 'Hedgewitch',
+        level: 1, armorClass: 12, speedMeters: 7.5, strengthScore: 10, background: 'Hedgewitch',
         features: ['Maga: lanzamiento ritual, libro de conjuros y Recuperación arcana', 'Enana de las montañas: visión en la oscuridad 18 m, resistencia al veneno y entrenamiento enano', 'Recetas bien practicadas: con kit de herborista, la mitad de tiempo al fabricar pociones'],
         attacks: ['Golpe sin armas · +2 · 1 contundente · 1,5 m', 'Arco corto de entrenamiento · +2 · 1d6+2 perforante · 24/96 m', 'Daga (Destreza) · +4 · 1d4+2 perforante · 1,5 m / 6/18 m', 'Proyectil de fuego · +4 · 1d10 fuego · 36 m', 'Misil mágico · 3 dardos · 1d4+1 fuerza cada uno · 36 m · impacto automático'],
         spells: ['Trucos: Remendar, Prestidigitación, Proyectil de fuego', 'Nivel 1: Encontrar familiar, Disco flotante, Nube de niebla, Identificar, Caída de pluma, Misil mágico', 'Característica de conjuro: Inteligencia · ataque de conjuro +4 · CD de salvación 12'],
@@ -49,6 +49,7 @@ export const oneShotBundle: CampaignServerBundle = {
           { title: 'Uso en combate · 2024', entries: ['Golpe sin armas: +2 para impactar y 1 de daño contundente. El arco de entrenamiento no añade competencia: +2 para impactar.', 'Proyectil de fuego: acción mágica; ataque de conjuro +4, 1d10 de fuego y 36 m. Un objeto inflamable no llevado puede prenderse.', 'Misil mágico: acción mágica y un espacio de nivel 1; tres dardos impactan automáticamente y cada uno causa 1d4+1 de fuerza. La consola permite elegir el mismo objetivo o repartir los dardos.', 'Nube de niebla: acción mágica, concentración hasta 1 hora; esfera de 6 m de radio muy oscurecida a 36 m. El DM coloca y mantiene el área.', 'Caída de pluma: reacción cuando hasta cinco criaturas visibles caen a 18 m; ralentiza su caída durante 1 minuto.'] }
         ]
       },
+      explorationBasics: ['jump'],
       combat: { armorClass: 12, speedMeters: 7.5, initiativeBonus: 2, spellAttackBonus: 4, spellSaveDc: 12, ruleTraits: { poisonResilience: true, darkvisionMeters: 18 }, damageResistances: ['veneno'], attacks: [
         { id: 'aoife-unarmed', label: 'Golpe sin armas · +2 · 1 contundente · 1,5 m', attackBonus: 2, damageDice: '1d1', damageBonus: 0, damageType: 'contundente', range: { kind: 'melee', normalMeters: 1.5 }, animationType: 'melee' },
         { id: 'aoife-shortbow', label: 'Arco corto de entrenamiento · +2 · 1d6+2 perforante · 24/96 m', attackBonus: 2, damageDice: '1d6', damageBonus: 2, damageType: 'perforante', range: { kind: 'ranged', normalMeters: 24, longMeters: 96 }, animationType: 'arrow' },

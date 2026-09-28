@@ -20,6 +20,7 @@ let latestSceneEpoch = -1;
 let runtimeEpoch: string | null = null;
 const playedEvents = new Set<string>();
 socket.on('runtime:reset', (event: { runtimeEpoch: string }) => {
+  if (runtimeEpoch && runtimeEpoch !== event.runtimeEpoch) { location.reload(); return; }
   runtimeEpoch = event.runtimeEpoch; readyEpoch = -1; playedEvents.clear(); pending = null; world.resetConnection(); audio.reset();
   if (ready && socket.connected) socket.emit('projector:ready', { runtimeEpoch, ready: true });
 });
@@ -73,7 +74,7 @@ socket.on('connect', () => {
   if (ready && runtimeEpoch) socket.emit('projector:ready', { runtimeEpoch, ready: true });
 });
 socket.on('disconnect', () => document.getElementById('offline')!.classList.add('show'));
-socket.on('auth:error', () => { document.getElementById('offline')!.textContent = 'La aplicación se ha actualizado. Recarga esta página.'; document.getElementById('offline')!.classList.add('show'); });
+socket.on('auth:error', () => { location.reload(); });
 document.getElementById('start')!.onclick = async () => {
   ready = true;
   socket.emit('projector:ready', { runtimeEpoch, ready: true });

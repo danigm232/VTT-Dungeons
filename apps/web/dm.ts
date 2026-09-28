@@ -300,8 +300,9 @@ function connect() {
   socket = io({ auth: { role: 'dm', protocolVersion: PROTOCOL_VERSION, objectModelVersion: OBJECT_MODEL_VERSION } });
   socket.on('connect', () => { connectionGeneration++; $('socketDot').classList.add('on'); readyEpoch = -1; latestSnapshot = null; lastSharedCameraKey = null; clearDraft(); world?.resetConnection(); });
   socket.on('disconnect', () => { connectionGeneration++; $('socketDot').classList.remove('on'); readyEpoch = -1; latestSnapshot = null; clearDraft(); });
-  socket.on('auth:error', (error: { code?: string }) => { if (error.code === 'PROTOCOL_MISMATCH') toast('La aplicación se ha actualizado. Recarga esta página.'); else showLogin(); });
+  socket.on('auth:error', (error: { code?: string }) => { if (error.code === 'PROTOCOL_MISMATCH' || error.code === 'DM_AUTH_REQUIRED') { location.reload(); return; } showLogin(); });
   socket.on('runtime:reset', (event: { runtimeEpoch: string; reason?: string }) => {
+    if (runtimeEpoch && runtimeEpoch !== event.runtimeEpoch) { location.reload(); return; }
     connectionGeneration++; runtimeEpoch = event.runtimeEpoch; state = null; latestSnapshot = null; readyEpoch = -1; lastSharedCameraKey = null; clearDraft(); world?.resetConnection();
     void fetch('/api/dm/save/status', { cache: 'no-store' }).then(x => x.ok ? x.json() : null).then(next => { if (next?.runtimeEpoch === runtimeEpoch) { saveStatus = next; renderSave(); } });
   });
@@ -573,7 +574,9 @@ function renderExploration(current: DmState) {
   if (actionRequest?.sceneId === current.sceneId) {
     const request = document.createElement('section'), title = document.createElement('b'), action = document.createElement('p'), guidance = document.createElement('p');
     request.className = 'exploration-action-request'; title.textContent = `Petición de ${actionRequest.characterLabel} · ${actionRequest.actionLabel}`;
-    action.textContent = `Objetivo: ${actionRequest.targetLabel}. Resuelve la tirada/resultado con la ficha y la situación; no se ha aplicado automáticamente.`;
+    action.textContent = actionRequest.action === 'jump'
+      ? `Destino propuesto: ${actionRequest.targetLabel}. Comprueba carrera, distancia, movimiento disponible, obstáculo y aterrizaje; la ficha no se traslada automáticamente.`
+      : `Objetivo: ${actionRequest.targetLabel}. Resuelve la tirada/resultado con la ficha y la situación; no se ha aplicado automáticamente.`;
     guidance.textContent = actionRequest.guidance; guidance.className = 'note'; request.append(title, action, guidance); box.append(request);
   }
   if (current.sceneId === 'wreck-ship') {

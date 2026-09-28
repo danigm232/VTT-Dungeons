@@ -1,10 +1,12 @@
 import { io } from 'socket.io-client';
 import nipplejs from 'nipplejs';
 import { OBJECT_MODEL_VERSION, PROTOCOL_VERSION, explorationBasicActionCatalogue } from '../../engine/shared/protocol';
-import type { BasicCombatAction, CharacterPublic, CombatAction, CommandResult, ExplorationAction, ExplorationBasicAction, PlayerPrivate, WorldSnapshot } from '../../engine/shared/protocol';
+import type { BasicCombatAction, CharacterPublic, CombatAction, CommandResult, ExplorationAction, ExplorationBasicAction, Facing, PlayerPrivate, WorldSnapshot } from '../../engine/shared/protocol';
+import type { Cell } from '../../engine/shared/campaign';
 import { commandId } from '../../engine/client/uuid';
 import { WorldRenderer } from './world';
 import { shipLootIconIndex } from '../../engine/client/ship-loot-art';
+import { jumpSummary } from '../../engine/shared/jumping';
 import { loadCampaign } from './campaign';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -16,11 +18,332 @@ if (!sessionToken || !/^[a-f0-9]{32,64}$/i.test(sessionToken)) {
 }
 const campaign = await loadCampaign();
 const characterStorageKey = `dnd-character:${campaign.campaignId}`;
+type PlayerDisplaySettings = {
+  showGrid: boolean;
+  showMovementHints: boolean;
+  showSceneNotice: boolean;
+  joystickOpacity: number;
+  joystickX: number;
+  joystickY: number;
+  joystickSize: number;
+  actionX: number;
+  actionY: number;
+  actionSize: number;
+  identityMenuAlwaysOpen: boolean;
+  identityMenuSeconds: number;
+};
+const defaultPlayerDisplaySettings: PlayerDisplaySettings = {
+  showGrid: true, showMovementHints: true, showSceneNotice: true,
+  joystickOpacity: 0.72, joystickX: 0.05, joystickY: 0.05, joystickSize: 2,
+  actionX: 0.99, actionY: 0.11, actionSize: 2, identityMenuAlwaysOpen: false, identityMenuSeconds: 7
+};
+type HudLayoutSettings = Pick<PlayerDisplaySettings, 'joystickX' | 'joystickY' | 'joystickSize' | 'actionX' | 'actionY' | 'actionSize'>;
+const hudSizeScales = [0.75, 0.875, 1, 1.25, 1.5] as const;
+const hudSizeLabels = ['Muy pequeño', 'Pequeño', 'Normal', 'Grande', 'Muy grande'] as const;
+const playerDisplaySettingsKey = `dnd-player-display.v1:${campaign.campaignId}`;
+function readPlayerDisplaySettings(): PlayerDisplaySettings {
+  try {
+    const saved = JSON.parse(localStorage.getItem(playerDisplaySettingsKey) ?? '{}') as Partial<PlayerDisplaySettings>;
+    const seconds = Number(saved.identityMenuSeconds);
+    const opacity = Number(saved.joystickOpacity);
+    return {
+      showGrid: saved.showGrid !== false,
+      showMovementHints: saved.showMovementHints !== false,
+      showSceneNotice: saved.showSceneNotice !== false,
+      joystickOpacity: Number.isFinite(opacity) ? Math.min(1, Math.max(0.2, opacity)) : defaultPlayerDisplaySettings.joystickOpacity,
+      joystickX: Number.isFinite(Number(saved.joystickX)) ? Math.min(1, Math.max(0, Number(saved.joystickX))) : defaultPlayerDisplaySettings.joystickX,
+      joystickY: Number.isFinite(Number(saved.joystickY)) ? Math.min(1, Math.max(0, Number(saved.joystickY))) : defaultPlayerDisplaySettings.joystickY,
+      joystickSize: Number.isFinite(Number(saved.joystickSize)) ? Math.min(4, Math.max(0, Math.round(Number(saved.joystickSize)))) : defaultPlayerDisplaySettings.joystickSize,
+      actionX: Number.isFinite(Number(saved.actionX)) ? Math.min(1, Math.max(0, Number(saved.actionX))) : defaultPlayerDisplaySettings.actionX,
+      actionY: Number.isFinite(Number(saved.actionY)) ? Math.min(1, Math.max(0, Number(saved.actionY))) : defaultPlayerDisplaySettings.actionY,
+      actionSize: Number.isFinite(Number(saved.actionSize)) ? Math.min(4, Math.max(0, Math.round(Number(saved.actionSize)))) : defaultPlayerDisplaySettings.actionSize,
+      identityMenuAlwaysOpen: saved.identityMenuAlwaysOpen === true,
+      identityMenuSeconds: Number.isFinite(seconds) ? Math.min(30, Math.max(3, Math.round(seconds))) : defaultPlayerDisplaySettings.identityMenuSeconds
+    };
+  } catch { return { ...defaultPlayerDisplaySettings }; }
+}
+let playerDisplaySettings = readPlayerDisplaySettings();
+let identityMenuTimer = 0;
+let hudLayoutDraft: HudLayoutSettings | null = null;
+let savedSettingsVisibility: Map<HTMLElement, boolean> | null = null;
+let joystickManager: ReturnType<typeof nipplejs.create> | null = null;
+let joystickManagerSize = 0;
+
+function setupCompactIdentity() {
+  const identity = document.querySelector('.identity') as HTMLElement;
+  const name = $('name');
+  const hp = $('hp');
+  const hpButton = $('combatHp') as HTMLButtonElement;
+  const sheet = $('sheetButton') as HTMLButtonElement;
+  const inventory = $('inventoryButton') as HTMLButtonElement;
+  const settings = $('settingsButton') as HTMLButtonElement;
+  const nameButton = document.createElement('button');
+  nameButton.id = 'identityMenuToggle'; nameButton.type = 'button'; nameButton.className = 'identity-menu-toggle';
+  nameButton.setAttribute('aria-controls', 'identityMenu'); nameButton.setAttribute('aria-expanded', 'false');
+  nameButton.setAttribute('aria-haspopup', 'true');
+  const caret = document.createElement('span'); caret.className = 'identity-chevron'; caret.setAttribute('aria-hidden', 'true'); caret.textContent = '⌄';
+  nameButton.append(name, caret);
+  hpButton.className = 'identity-hp'; hpButton.replaceChildren(hp); hpButton.setAttribute('aria-label', 'Puntos de golpe');
+  for (const [button, label, icon] of [[sheet, 'Hoja de personaje', '▤'], [inventory, 'Mochila', '🎒'], [settings, 'Configuración', '⚙']] as const) {
+    button.type = 'button'; button.className = 'identity-menu-item'; button.textContent = icon;
+    button.setAttribute('aria-label', label); button.title = label;
+  }
+  const menu = document.createElement('nav');
+  menu.id = 'identityMenu'; menu.className = 'identity-menu'; menu.hidden = true;
+  menu.setAttribute('aria-label', 'Accesos del personaje');
+  menu.append(sheet, inventory, settings);
+  identity.replaceChildren(nameButton, hpButton, menu);
+  $('combatHud').remove();
+}
+
+function openIdentityMenu() {
+  const menu = $('identityMenu');
+  const toggle = $('identityMenuToggle');
+  menu.hidden = false;
+  toggle.setAttribute('aria-expanded', 'true');
+  window.clearTimeout(identityMenuTimer);
+  identityMenuTimer = 0;
+  if (!playerDisplaySettings.identityMenuAlwaysOpen) {
+    identityMenuTimer = window.setTimeout(closeIdentityMenu, playerDisplaySettings.identityMenuSeconds * 1000);
+  }
+}
+
+function closeIdentityMenu() {
+  window.clearTimeout(identityMenuTimer);
+  identityMenuTimer = 0;
+  const menu = $('identityMenu');
+  const toggle = $('identityMenuToggle');
+  if (menu) menu.hidden = true;
+  if (toggle) toggle.setAttribute('aria-expanded', 'false');
+}
+
+function addCompactHudSettings() {
+  const controls = document.createElement('section');
+  controls.className = 'player-hud-settings';
+  controls.innerHTML = '<h3>Controles en pantalla</h3>' +
+    '<label class="player-setting"><span><b>Transparencia del joystick</b><small>Ajusta cuánto se ve sobre el mapa: <span id="settingJoystickOpacityValue">72%</span>.</small></span><input id="settingJoystickOpacity" type="range" min="20" max="100" step="5"></label>' +
+    '<button id="openHudLayoutEditor" class="hud-layout-launch" type="button">Cambiar configuración HUD</button>' +
+    '<label class="player-setting"><span><b>Menú siempre abierto</b><small>Deja visibles los accesos junto al nombre.</small></span><input id="settingIdentityMenuAlwaysOpen" type="checkbox"></label>' +
+    '<label class="player-setting"><span><b>Tiempo del menú</b><small id="settingIdentityMenuSecondsValue">7 segundos</small></span><input id="settingIdentityMenuSeconds" type="range" min="3" max="30" step="1"></label>';
+  $('cameraSettings').before(controls);
+}
+
+function addHudLayoutEditor() {
+  const editor = document.createElement('section');
+  editor.id = 'hudLayoutEditor';
+  editor.className = 'hud-layout-editor';
+  editor.hidden = true;
+  editor.innerHTML = '<h3>Distribución del HUD</h3>' +
+    '<p>Arrastra los controles por la vista para ajustar su posición y altura. También puedes usar los deslizadores.</p>' +
+    '<div id="hudLayoutPreview" class="hud-layout-preview" aria-label="Vista previa del HUD. Arrastra el joystick y el botón de acciones en horizontal y vertical">' +
+      '<span class="hud-preview-map-label">VISTA DEL MAPA</span>' +
+      '<button id="previewJoystick" class="hud-preview-control hud-preview-joystick" type="button" aria-label="Mover joystick en la vista previa">◉</button>' +
+      '<button id="previewActionControl" class="hud-preview-control hud-preview-action" type="button" aria-label="Mover botón de acciones en la vista previa">⚔</button>' +
+      '<span class="hud-preview-hint">Arrastra para cambiar posición y altura</span>' +
+    '</div>' +
+    '<label class="hud-layout-setting"><span>Posición horizontal del joystick</span><input id="settingJoystickX" type="range" min="0" max="100" step="1"></label>' +
+    '<label class="hud-layout-setting"><span>Altura del joystick <small>Abajo ↔ arriba</small></span><input id="settingJoystickY" type="range" min="0" max="100" step="1"></label>' +
+    '<label class="hud-layout-setting"><span>Tamaño del joystick <b id="settingJoystickSizeValue">Normal</b></span><input id="settingJoystickSize" type="range" min="0" max="4" step="1"></label>' +
+    '<label class="hud-layout-setting"><span>Posición horizontal de acciones</span><input id="settingActionX" type="range" min="0" max="100" step="1"></label>' +
+    '<label class="hud-layout-setting"><span>Altura del botón de acciones <small>Abajo ↔ arriba</small></span><input id="settingActionY" type="range" min="0" max="100" step="1"></label>' +
+    '<label class="hud-layout-setting"><span>Tamaño del botón de acciones <b id="settingActionSizeValue">Normal</b></span><input id="settingActionSize" type="range" min="0" max="4" step="1"></label>' +
+    '<div class="button-row hud-layout-buttons"><button id="cancelHudLayout" type="button">Cancelar</button><button id="applyHudLayout" class="primary" type="button">Aplicar</button></div>';
+  $('playerSettings').append(editor);
+}
+
+function hudSizeLevel(level: number) { return Math.min(4, Math.max(0, Math.round(level))); }
+function hudSizeScale(level: number) { return hudSizeScales[hudSizeLevel(level)] ?? 1; }
+function hudSizeLabel(level: number) { return hudSizeLabels[hudSizeLevel(level)] ?? 'Normal'; }
+
+function safeAreaInsets() {
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)';
+  document.body.append(probe);
+  const style = getComputedStyle(probe);
+  const left = Number.parseFloat(style.paddingLeft) || 0;
+  const right = Number.parseFloat(style.paddingRight) || 0;
+  const top = Number.parseFloat(style.paddingTop) || 0;
+  const bottom = Number.parseFloat(style.paddingBottom) || 0;
+  probe.remove();
+  return { left, right, top, bottom };
+}
+
+function applyHudControlLayout(settings: HudLayoutSettings = playerDisplaySettings) {
+  const joystick = $('joystick');
+  const action = $('actionToggle') as HTMLButtonElement;
+  const compactLandscape = matchMedia('(orientation: landscape) and (max-height: 550px)').matches;
+  const joystickSize = Math.round((compactLandscape ? 108 : 135) * hudSizeScale(settings.joystickSize));
+  const actionSize = Math.round((compactLandscape ? 42 : 48) * hudSizeScale(settings.actionSize));
+  const width = Math.max(1, window.innerWidth);
+  const inset = safeAreaInsets();
+  const position = (value: number, size: number) => {
+    const min = Math.max(12, inset.left) + size / 2;
+    const max = Math.max(min, width - Math.max(12, inset.right) - size / 2);
+    return min + (max - min) * Math.min(1, Math.max(0, value));
+  };
+  const height = Math.max(1, window.innerHeight);
+  const verticalPosition = (value: number, size: number) => {
+    const safeBottom = Math.max(12, inset.bottom);
+    const safeTop = Math.max(12, inset.top) + 64;
+    const min = safeBottom + size / 2;
+    const max = Math.max(min, height - safeTop - size / 2);
+    return min + (max - min) * Math.min(1, Math.max(0, value));
+  };
+
+  joystick.style.position = 'fixed';
+  joystick.style.left = `${position(settings.joystickX, joystickSize)}px`;
+  joystick.style.right = 'auto';
+  joystick.style.transform = 'translateX(-50%)';
+  joystick.style.width = `${joystickSize}px`;
+  joystick.style.height = `${joystickSize}px`;
+  joystick.style.bottom = `${height - verticalPosition(settings.joystickY, joystickSize)}px`;
+  action.style.position = 'fixed';
+  action.style.left = `${position(settings.actionX, actionSize)}px`;
+  action.style.right = 'auto';
+  action.style.transform = 'translateX(-50%)';
+  action.style.width = `${actionSize}px`;
+  action.style.minWidth = `${actionSize}px`;
+  action.style.height = `${actionSize}px`;
+  action.style.minHeight = `${actionSize}px`;
+  action.style.bottom = `${height - verticalPosition(settings.actionY, actionSize)}px`;
+  action.style.fontSize = `${Math.max(14, Math.round(actionSize * 0.48))}px`;
+  joystick.style.setProperty('--joystick-opacity', String(playerDisplaySettings.joystickOpacity));
+  if (joystickManager && joystickManagerSize !== joystickSize) initializeJoystick(true);
+}
+
+function syncHudLayoutPreview() {
+  if (!hudLayoutDraft) return;
+  const preview = $('hudLayoutPreview');
+  const previewWidth = preview.clientWidth || 320;
+  const previewHeight = preview.clientHeight || 180;
+  const layout = [
+    { id: 'previewJoystick', position: hudLayoutDraft.joystickX, height: hudLayoutDraft.joystickY, size: hudLayoutDraft.joystickSize, base: 56 },
+    { id: 'previewActionControl', position: hudLayoutDraft.actionX, height: hudLayoutDraft.actionY, size: hudLayoutDraft.actionSize, base: 48 }
+  ] as const;
+  for (const item of layout) {
+    const control = $(item.id) as HTMLButtonElement;
+    const size = Math.round(item.base * hudSizeScale(item.size));
+    const edge = Math.min(20, (size / 2 + 7) / previewWidth * 100);
+    const verticalEdge = Math.min(28, (size / 2 + 7) / previewHeight * 100);
+    control.style.left = `${edge + (100 - edge * 2) * item.position}%`;
+    control.style.top = `${verticalEdge + (100 - verticalEdge * 2) * (1 - item.height)}%`;
+    control.style.bottom = 'auto';
+    control.style.width = `${size}px`;
+    control.style.height = `${size}px`;
+    control.style.fontSize = `${Math.max(14, Math.round(size * 0.45))}px`;
+  }
+  const joystickPositionInput = $('settingJoystickX') as HTMLInputElement;
+  const joystickHeightInput = $('settingJoystickY') as HTMLInputElement;
+  const actionPositionInput = $('settingActionX') as HTMLInputElement;
+  const actionHeightInput = $('settingActionY') as HTMLInputElement;
+  const joystickSizeInput = $('settingJoystickSize') as HTMLInputElement;
+  const actionSizeInput = $('settingActionSize') as HTMLInputElement;
+  joystickPositionInput.value = String(Math.round(hudLayoutDraft.joystickX * 100));
+  joystickHeightInput.value = String(Math.round(hudLayoutDraft.joystickY * 100));
+  actionPositionInput.value = String(Math.round(hudLayoutDraft.actionX * 100));
+  actionHeightInput.value = String(Math.round(hudLayoutDraft.actionY * 100));
+  joystickSizeInput.value = String(hudLayoutDraft.joystickSize);
+  actionSizeInput.value = String(hudLayoutDraft.actionSize);
+  joystickSizeInput.setAttribute('aria-valuetext', hudSizeLabel(hudLayoutDraft.joystickSize));
+  actionSizeInput.setAttribute('aria-valuetext', hudSizeLabel(hudLayoutDraft.actionSize));
+  $('settingJoystickSizeValue').textContent = hudSizeLabel(hudLayoutDraft.joystickSize);
+  $('settingActionSizeValue').textContent = hudSizeLabel(hudLayoutDraft.actionSize);
+}
+
+function showHudLayoutEditor(show: boolean) {
+  const dialog = $('playerSettings');
+  const editor = $('hudLayoutEditor');
+  if (show) {
+    savedSettingsVisibility = new Map();
+    for (const child of Array.from(dialog.children)) {
+      if (!(child instanceof HTMLElement) || child === editor || child.classList.contains('close')) continue;
+      savedSettingsVisibility.set(child, child.hidden);
+      child.hidden = true;
+    }
+    editor.hidden = false;
+    syncHudLayoutPreview();
+    return;
+  }
+  editor.hidden = true;
+  for (const [element, wasHidden] of savedSettingsVisibility ?? []) element.hidden = wasHidden;
+  savedSettingsVisibility = null;
+}
+
+function finishHudLayoutEdit(apply: boolean) {
+  if (!hudLayoutDraft) return;
+  if (apply) {
+    playerDisplaySettings = { ...playerDisplaySettings, ...hudLayoutDraft };
+    applyPlayerDisplaySettings();
+    toast('Distribución del HUD aplicada.');
+  }
+  hudLayoutDraft = null;
+  showHudLayoutEditor(false);
+}
+
+function startHudLayoutEdit() {
+  hudLayoutDraft = {
+    joystickX: playerDisplaySettings.joystickX,
+    joystickY: playerDisplaySettings.joystickY,
+    joystickSize: playerDisplaySettings.joystickSize,
+    actionX: playerDisplaySettings.actionX,
+    actionY: playerDisplaySettings.actionY,
+    actionSize: playerDisplaySettings.actionSize
+  };
+  showHudLayoutEditor(true);
+}
+
+function updateHudPreviewPosition(controlId: 'previewJoystick' | 'previewActionControl', event: PointerEvent, pointerOffset = { x: 0, y: 0 }) {
+  if (!hudLayoutDraft) return;
+  const preview = $('hudLayoutPreview');
+  const rect = preview.getBoundingClientRect();
+  if (rect.width <= 0) return;
+  const isJoystick = controlId === 'previewJoystick';
+  const sizeLevel = isJoystick ? hudLayoutDraft.joystickSize : hudLayoutDraft.actionSize;
+  const baseSize = isJoystick ? 56 : 48;
+  const size = baseSize * hudSizeScale(sizeLevel);
+  const marginX = Math.min(rect.width * 0.2, size / 2 + 7);
+  const marginY = Math.min(rect.height * 0.3, size / 2 + 7);
+  const positionKey = isJoystick ? 'joystickX' : 'actionX';
+  const heightKey = isJoystick ? 'joystickY' : 'actionY';
+  hudLayoutDraft[positionKey] = Math.min(1, Math.max(0, (event.clientX + pointerOffset.x - rect.left - marginX) / Math.max(1, rect.width - marginX * 2)));
+  hudLayoutDraft[heightKey] = Math.min(1, Math.max(0, 1 - (event.clientY + pointerOffset.y - rect.top - marginY) / Math.max(1, rect.height - marginY * 2)));
+  syncHudLayoutPreview();
+}
+
+function bindHudPreviewDrag(controlId: 'previewJoystick' | 'previewActionControl') {
+  const control = $(controlId) as HTMLButtonElement;
+  let activePointer: number | null = null;
+  let pointerOffset = { x: 0, y: 0 };
+  control.addEventListener('pointerdown', event => {
+    if (!hudLayoutDraft) return;
+    event.preventDefault();
+    activePointer = event.pointerId;
+    const bounds = control.getBoundingClientRect();
+    pointerOffset = { x: bounds.left + bounds.width / 2 - event.clientX, y: bounds.top + bounds.height / 2 - event.clientY };
+    control.setPointerCapture(event.pointerId);
+    updateHudPreviewPosition(controlId, event, pointerOffset);
+  });
+  control.addEventListener('pointermove', event => {
+    if (activePointer === event.pointerId) updateHudPreviewPosition(controlId, event, pointerOffset);
+  });
+  const finishDrag = (event: PointerEvent) => {
+    if (activePointer !== event.pointerId) return;
+    activePointer = null;
+    if (control.hasPointerCapture(event.pointerId)) control.releasePointerCapture(event.pointerId);
+  };
+  control.addEventListener('pointerup', finishDrag);
+  control.addEventListener('pointercancel', finishDrag);
+  control.addEventListener('click', event => event.preventDefault());
+}
+
+setupCompactIdentity();
+addCompactHudSettings();
+addHudLayoutEditor();
 const socketAuth = () => ({ role: 'player', sessionToken, protocolVersion: PROTOCOL_VERSION, objectModelVersion: OBJECT_MODEL_VERSION });
 // Register every listener before connecting. On slow phones this prevents the
 // initial chooser packet from arriving before its renderer is ready.
 const socket = io({ autoConnect: false, auth: socketAuth() });
-const world = new WorldRenderer($('world'), campaign, { showStairMarker: false });
+const world = new WorldRenderer($('world'), campaign, { showStairMarker: false, showGrid: playerDisplaySettings.showGrid, showReachable: playerDisplaySettings.showMovementHints });
 let privateState: PlayerPrivate | null = null;
 let lastSnapshot: WorldSnapshot | null = null;
 let readyEpoch = -1;
@@ -29,7 +352,6 @@ let seq = 0;
 let stick = { x: 0, up: 0 };
 const keys = new Set<string>();
 let toastTimer = 0;
-let joystickManager: ReturnType<typeof nipplejs.create> | null = null;
 let selectedTargetId: string | null = null, turnAnnouncementUntil = 0;
 let renderedTargetMenuKey = '';
 let resumedRuntimeEpoch: string | null = null, recoveringSession = false;
@@ -60,6 +382,38 @@ const toast = (message: string) => {
   clearTimeout(toastTimer);
   toastTimer = window.setTimeout(() => element.classList.remove('show'), 2600);
 };
+
+function syncPlayerSettingsDialog() {
+  ($('settingGrid') as HTMLInputElement).checked = playerDisplaySettings.showGrid;
+  ($('settingMovementHints') as HTMLInputElement).checked = playerDisplaySettings.showMovementHints;
+  ($('settingSceneNotice') as HTMLInputElement).checked = playerDisplaySettings.showSceneNotice;
+  ($('settingJoystickOpacity') as HTMLInputElement).value = String(Math.round(playerDisplaySettings.joystickOpacity * 100));
+  $('settingJoystickOpacityValue').textContent = `${Math.round(playerDisplaySettings.joystickOpacity * 100)}%`;
+  ($('settingIdentityMenuAlwaysOpen') as HTMLInputElement).checked = playerDisplaySettings.identityMenuAlwaysOpen;
+  ($('settingIdentityMenuSeconds') as HTMLInputElement).value = String(playerDisplaySettings.identityMenuSeconds);
+  ($('settingIdentityMenuSeconds') as HTMLInputElement).disabled = playerDisplaySettings.identityMenuAlwaysOpen;
+  $('settingIdentityMenuSecondsValue').textContent = `${playerDisplaySettings.identityMenuSeconds} ${playerDisplaySettings.identityMenuSeconds === 1 ? 'segundo' : 'segundos'}`;
+  $('cameraSettings').hidden = !supportsCameraOrbit();
+}
+function applyPlayerDisplaySettings() {
+  world.setGridVisible(playerDisplaySettings.showGrid);
+  world.setReachableVisible(playerDisplaySettings.showMovementHints);
+  document.body.classList.toggle('player-hide-scene-notice', !playerDisplaySettings.showSceneNotice);
+  applyHudControlLayout();
+  localStorage.setItem(playerDisplaySettingsKey, JSON.stringify(playerDisplaySettings));
+  syncPlayerSettingsDialog();
+  if (playerDisplaySettings.identityMenuAlwaysOpen) openIdentityMenu();
+  else if (!$('identityMenu').hidden) openIdentityMenu();
+}
+function updatePlayerDisplaySetting<K extends keyof PlayerDisplaySettings>(key: K, value: PlayerDisplaySettings[K]) {
+  playerDisplaySettings = { ...playerDisplaySettings, [key]: value };
+  applyPlayerDisplaySettings();
+}
+applyPlayerDisplaySettings();
+addEventListener('resize', () => {
+  applyHudControlLayout();
+  syncHudLayoutPreview();
+});
 
 socket.on('connect', () => {
   recoveringSession = false;
@@ -93,6 +447,7 @@ socket.on('auth:error', (error: { code?: string }) => {
   window.setTimeout(() => socket.connect(), 75);
 });
 socket.on('runtime:reset', (event: { runtimeEpoch: string; reason?: string }) => {
+  if (runtimeEpoch && runtimeEpoch !== event.runtimeEpoch) { location.reload(); return; }
   stop(); runtimeEpoch = event.runtimeEpoch; readyEpoch = -1; seq = 0; lastSnapshot = null; privateState = null;
   resumedRuntimeEpoch = null; selectedTargetId = null; renderedTargetMenuKey = ''; pendingCombatNotices.clear(); pendingCombatCommands.clear(); armedActionId = null; armedBasicAction = null; actionsMenuOpen = false; combatWasActive = false; combatBarMode = null; armedExplorationActionId = null; armedExplorationAttackId = null; armedExplorationBasicActionId = null; openCombatCategory = null; openExplorationCategory = null;
   world.resetConnection(); world.setLocalPlayer(null); $('hud').hidden = true; $('join').hidden = false;
@@ -165,6 +520,7 @@ socket.on('player:private', (next: PlayerPrivate) => {
   if (!next.characterId) {
     stop();
     world.setLocalPlayer(null);
+    world.setContextInteractionTarget(null);
     $('hud').hidden = true;
     $('campInteractions').hidden = true;
     $('join').hidden = false;
@@ -206,7 +562,7 @@ socket.on('command:result', (result: CommandResult) => {
       TOO_FAR: 'Estás demasiado lejos.', OUT_OF_RANGE: 'El objetivo está fuera de alcance.', NOT_YOUR_TURN: 'No es tu turno.', MOVEMENT_SPENT: 'No te queda suficiente movimiento para hacerlo.',
       ROLL_PENDING: 'Termina la tirada pendiente antes de continuar.', PROMPT_STALE: 'Esta tirada ya no está vigente.',
       PROMPT_STAGE_MISMATCH: 'Esta respuesta pertenece a otro paso de la acción.', WRONG_ACTOR: 'Esta tirada corresponde a otro personaje.',
-      INVALID_DAMAGE_DICE: 'El resultado no es posible para esos dados.', INVALID_ROLL: 'El resultado introducido no es válido.', NO_LANDING: 'No hay una casilla libre junto a la barca para bajar.',
+      INVALID_DAMAGE_DICE: 'El resultado no es posible para esos dados.', INVALID_ROLL: 'El resultado introducido no es válido.', NO_LANDING: 'No hay una casilla libre junto a la barca para bajar.', JUMP_OUT_OF_RANGE: 'Ese destino supera tu salto largo máximo con carrera según tu FUE.',
       ACTION_USED: 'Ya has usado tu acción.', REACTION_USED: 'Ya has usado tu reacción.', RESOURCE_DEPLETED: 'No queda el recurso necesario.', SPELL_SLOT_USED_THIS_TURN: 'Ya has gastado un espacio de conjuro en este turno.', INVALID_TARGET: 'El objetivo ya no es válido.'
     };
     renderedTargetMenuKey = ''; renderCombatFrame(); renderTargetMenu(); toast(message[result.code] ?? result.code);
@@ -280,11 +636,17 @@ function renderActionToggle() {
   const active = explorationActive || combatActive;
   // In combat the persistent command bar below replaces this floating menu.
   button.hidden = !active || combatActive;
-  if (!active) { button.setAttribute('aria-expanded', 'false'); return; }
+  if (!active) { button.classList.remove('has-context'); button.setAttribute('aria-expanded', 'false'); return; }
   const selected = combatActive
     ? armedActionId ? privateState?.combat?.attacks.find(action => action.id === armedActionId)?.label : armedBasicAction ? basicActionLabels[armedBasicAction] : undefined
     : armedExplorationActionId ? privateState?.explorationActions.find(action => action.id === armedExplorationActionId)?.label : armedExplorationAttackId ? privateState?.explorationAttacks.find(action => action.id === armedExplorationAttackId)?.label : armedExplorationBasicActionId ? explorationBasicActionCatalogue[armedExplorationBasicActionId].label : undefined;
-  button.textContent = actionsMenuOpen ? '— Cerrar acciones' : selected ? `⚔ ${compactActionLabel(selected)}` : '⚔ Acciones';
+  const context = explorationActive ? contextualInteraction() : null;
+  button.textContent = '⚔';
+  button.classList.toggle('has-context', Boolean(context));
+  const actionLabel = [selected ? `seleccionada: ${compactActionLabel(selected)}` : '', context ? `interacción cercana: ${context.label}` : ''].filter(Boolean).join('; ');
+  const accessibleLabel = actionLabel ? `Acciones; ${actionLabel}` : 'Acciones';
+  button.setAttribute('aria-label', actionsMenuOpen ? `Cerrar ${accessibleLabel.toLowerCase()}` : accessibleLabel);
+  button.title = actionsMenuOpen ? 'Cerrar acciones' : accessibleLabel;
   button.classList.toggle('combat-actions-toggle', combatActive); button.setAttribute('aria-expanded', String(actionsMenuOpen));
 }
 
@@ -394,7 +756,7 @@ function renderCombatFrame() {
 
 function renderCombatControls() {
   const combat = privateState?.combat, active = Boolean(combat && lastSnapshot?.combat.active && privateState);
-  $('combatHud').hidden = !active; $('endTurn').hidden = !Boolean(active && combat!.isTurn);
+  $('endTurn').hidden = !Boolean(active && combat!.isTurn);
   renderActionToggle();
   if (!active || !privateState) { $('targetMenu').hidden = true; selectedTargetId = null; armedActionId = null; armedBasicAction = null; combatBarMode = null; document.body.classList.remove('combat-move-mode'); openCombatCategory = null; renderedTargetMenuKey = ''; updateAttackRangePreview(); renderCombatFrame(); return; }
   const armedAction = armedActionId ? combat!.attacks.find(action => action.id === armedActionId) : undefined;
@@ -403,7 +765,8 @@ function renderCombatControls() {
   const conditions = combat!.conditions.length ? ` · ◉ ${combat!.conditions.join(', ')}` : '';
   const concentration = privateState.concentration ? ` · Concentración: ${privateState.concentration.label}` : '';
   const movementText = movement ? ` · Movimiento ${movement.remainingSquares}/${movement.maximumSquares} casillas (${(movement.remainingSquares * 1.5).toFixed(1)} m)` : '';
-  $('combatHp').textContent = `❤️ ${privateState.hp}/${privateState.maxHp}${movementText}${conditions}${concentration}`;
+  $('hp').textContent = `PG ${privateState.hp}/${privateState.maxHp}`;
+  $('combatHp').title = [`Puntos de golpe ${privateState.hp}/${privateState.maxHp}`, movementText.replace(/^ · /, ''), conditions.replace(/^ · /, ''), concentration.replace(/^ · /, '')].filter(Boolean).join(' · ');
   if (combat!.initiative.pending) $('combatNotice').textContent = combat!.initiative.submitted ? '● Iniciativa registrada' : '● Iniciativa: tira e introduce tu total';
   else if (Date.now() >= turnAnnouncementUntil && combat!.isTurn) $('combatNotice').textContent = '● Tu turno';
   updateAttackRangePreview();
@@ -761,6 +1124,8 @@ function renderExplorationControls() {
   const box = $('explorationMenu');
   const active = Boolean(privateState && lastSnapshot && !lastSnapshot.combat.active);
   box.hidden = !active || !actionsMenuOpen;
+  const context = active ? contextualInteraction() : null;
+  world.setContextInteractionTarget(context?.targetId ?? null, context?.pointId ?? null);
   renderActionToggle();
   updateAttackRangePreview();
   renderProximityButton();
@@ -774,6 +1139,14 @@ function renderExplorationControls() {
   const groups = document.createElement('div');
   groups.className = 'exploration-actions';
   box.append(actionPanelHeader('EXPLORACIÓN', 'Acciones', selected ? `${compactActionLabel(selected)} seleccionado` : 'Elige una acción'));
+  if (context) {
+    const item = document.createElement('button'), icon = document.createElement('span'), label = document.createElement('strong'), arrow = document.createElement('span');
+    item.type = 'button'; item.className = 'contextual-action';
+    item.setAttribute('aria-label', `${context.icon} ${context.label}`);
+    icon.className = 'contextual-action-icon'; icon.setAttribute('aria-hidden', 'true'); icon.textContent = context.icon;
+    label.textContent = context.label; arrow.className = 'contextual-action-arrow'; arrow.setAttribute('aria-hidden', 'true'); arrow.textContent = '›';
+    item.append(icon, label, arrow); item.onclick = () => useContextualInteraction(context); box.append(item);
+  }
   const intro = document.createElement('p'); intro.className = 'action-status'; intro.textContent = 'Después toca su objetivo o una casilla del mapa.'; box.append(intro);
   const createGroup = (title: 'Trucos' | 'Conjuros' | 'Ataques' | 'Acciones', count: number, selected = false) => {
     const details = document.createElement('details'), summary = document.createElement('summary'), list = document.createElement('div');
@@ -835,14 +1208,17 @@ function renderExplorationControls() {
     for (const id of privateState.explorationBasics) {
       const action = explorationBasicActionCatalogue[id], row = document.createElement('div'), item = document.createElement('button'), name = document.createElement('b');
       const isArmed = armedExplorationBasicActionId === id;
-      item.className = `exploration-action${isArmed ? ' armed' : ''}`; item.setAttribute('aria-pressed', String(isArmed)); name.textContent = action.label; item.append(name); item.title = `${action.guidance} Después, ${targetPrompt[id]}.`;
+      const jumpHelp = id === 'jump' ? jumpSummary(privateState.sheet?.strengthScore) : action.guidance;
+      item.className = `exploration-action${isArmed ? ' armed' : ''}`; item.setAttribute('aria-pressed', String(isArmed)); name.textContent = action.label; item.append(name); item.title = `${jumpHelp} Después, ${targetPrompt[id]}.`;
       item.onclick = () => {
         if (action.target === 'self') { armedExplorationBasicActionId = id; armedExplorationActionId = null; armedExplorationAttackId = null; useExplorationBasicAction(id); renderExplorationControls(); return; }
         armedExplorationBasicActionId = isArmed ? null : id; armedExplorationActionId = null; armedExplorationAttackId = null; renderExplorationControls();
         toast(armedExplorationBasicActionId ? `${action.label}: ${targetPrompt[id]}.` : 'Acción cancelada.');
       };
-      const tooltip = actionTooltip(`${action.guidance} ${targetPrompt[id]}.`); enableLongPressInfo(item, tooltip);
-      row.className = 'action-choice'; row.append(item, tooltip); list.append(row);
+      const tooltip = actionTooltip(`${jumpHelp} ${targetPrompt[id]}.`); enableLongPressInfo(item, tooltip);
+      row.className = 'action-choice'; row.append(item, tooltip);
+      if (id === 'jump') { const summary = document.createElement('small'); summary.className = 'muted'; summary.textContent = jumpHelp; row.append(summary); }
+      list.append(row);
     }
   }
   box.append(groups);
@@ -861,7 +1237,7 @@ function proximityTarget(kind: 'object' | 'living' | 'any', rangeMeters: number)
 
 function renderProximityButton() {
   const button = $('interact') as HTMLButtonElement;
-  if (!privateState || lastSnapshot?.combat.active) { button.hidden = true; return; }
+  if (!privateState || lastSnapshot?.combat.active) { button.hidden = true; button.disabled = true; return; }
   const basic = armedExplorationBasicActionId ? explorationBasicActionCatalogue[armedExplorationBasicActionId] : undefined;
   const action = armedExplorationActionId ? privateState.explorationActions.find(candidate => candidate.id === armedExplorationActionId) : undefined;
   const attack = armedExplorationAttackId ? privateState.explorationAttacks.find(candidate => candidate.id === armedExplorationAttackId) : undefined;
@@ -877,28 +1253,83 @@ function renderProximityButton() {
     button.textContent = target ? `${action?.label ?? attack!.label} · ${target.label}` : 'Acércate al objetivo';
     return;
   }
-  button.hidden = !privateState.interactionTargetId;
-  button.textContent = privateState.canInteract ? (privateState.nearbyInteraction ?? 'INTERACTUAR').toUpperCase() : 'Acércate al objetivo';
-  button.disabled = !privateState.canInteract;
+  // Contextual interactions live in the existing sword/actions tray, not in
+  // a second floating button that appears as the player walks.
+  button.hidden = true; button.disabled = true;
 }
 
 function renderCampInteractions(state = privateState) {
   const panel = $('campInteractions'), list = $('campInteractionList');
-  const nearby = state?.campInteractions ?? [];
-  panel.hidden = !state?.characterId || !nearby.length || Boolean(lastSnapshot?.combat.active);
-  if (panel.hidden) { list.replaceChildren(); return; }
-  list.replaceChildren(...nearby.map(interaction => {
-    const button = document.createElement('button'), label = document.createElement('b'), detail = document.createElement('small');
-    button.type = 'button'; button.className = 'camp-player-action'; button.title = interaction.description;
-    label.textContent = interaction.actionLabel; detail.textContent = interaction.description;
-    button.append(label, detail);
-    button.onclick = () => {
-      if (!lastSnapshot || !privateState?.characterId) return;
-      world.playTokenAnimation(privateState.characterId, 'interact');
-      socket.emit('player:camp-interact', { runtimeEpoch, commandId: commandId(), sceneEpoch: lastSnapshot.sceneEpoch, pointId: interaction.pointId });
-    };
-    return button;
-  }));
+  panel.hidden = true;
+  list.replaceChildren();
+  if (!state?.characterId || lastSnapshot?.combat.active) world.setContextInteractionTarget(null);
+}
+
+type ContextualInteraction = {
+  targetId: string;
+  pointId?: string;
+  label: string;
+  icon: string;
+  description?: string;
+  cell: Cell;
+  surfaceId: string;
+  distance: number;
+  facing: number;
+  order: number;
+};
+
+const contextualFacingVectors: Record<Facing, { col: number; row: number }> = {
+  north: { col: 0, row: -1 }, 'north-east': { col: 1, row: -1 }, east: { col: 1, row: 0 },
+  'south-east': { col: 1, row: 1 }, south: { col: 0, row: 1 }, 'south-west': { col: -1, row: 1 },
+  west: { col: -1, row: 0 }, 'north-west': { col: -1, row: -1 }
+};
+
+function contextualInteraction(): ContextualInteraction | null {
+  const state = privateState, snapshot = lastSnapshot;
+  if (!state?.characterId || !snapshot || snapshot.combat.active) return null;
+  const self = snapshot.entities.find(entity => entity.id === state.characterId);
+  if (!self) return null;
+  const facing = contextualFacingVectors[self.facing];
+  const candidates: ContextualInteraction[] = [];
+  const makeCandidate = (targetId: string, label: string, icon: string, cell: Cell, surfaceId: string, order: number, description?: string, pointId?: string) => {
+    if (surfaceId !== self.surfaceId) return;
+    const dc = cell.col - self.cell.col, dr = cell.row - self.cell.row;
+    const distance = Math.max(Math.abs(dc), Math.abs(dr));
+    const length = Math.hypot(dc, dr) || 1, facingLength = Math.hypot(facing.col, facing.row) || 1;
+    candidates.push({ targetId, label, icon, cell, surfaceId, distance, facing: (facing.col * dc + facing.row * dr) / (length * facingLength), order, ...(description ? { description } : {}), ...(pointId ? { pointId } : {}) });
+  };
+  for (const [order, interaction] of (state.campInteractions ?? []).entries()) {
+    const point = snapshot.scene.camp?.interactionPoints.find(item => item.id === interaction.pointId);
+    if (!point) continue;
+    const label = interaction.kind === 'fire' ? 'Interactuar con la hoguera' : interaction.actionLabel;
+    const icon = ({ fire: '🔥', chest: '🧰', bed: '🛏️', tent: '⛺', seat: '🪑', guard: '🛡️', personal: '🎒' } as const)[interaction.kind];
+    makeCandidate(interaction.pointId, label, icon, point.cell, point.surfaceId, order, interaction.description, interaction.pointId);
+  }
+  for (const [index, interaction] of (state.availableInteractions ?? []).entries()) {
+    const prop = snapshot.props.find(item => item.id === interaction.targetId);
+    const entity = snapshot.entities.find(item => item.id === interaction.targetId);
+    const actor = snapshot.scene.stageActors?.find(item => item.id === interaction.targetId);
+    const pickup = snapshot.scene.pickups?.find(item => item.id === interaction.targetId);
+    const cell = entity?.cell ?? prop?.cell ?? actor?.cell ?? pickup?.cell;
+    const surfaceId = entity?.surfaceId ?? prop?.surfaceId ?? actor?.surfaceId ?? pickup?.surfaceId ?? snapshot.scene.surfaceId;
+    if (!cell) continue;
+    const icon = entity || actor ? '🗣️' : interaction.targetId.includes('rowboat') ? '🚣' : pickup ? '✨' : prop?.kind === 'door' ? '🚪' : prop?.kind === 'wheel' ? '⚙️' : prop ? '✦' : '✦';
+    makeCandidate(interaction.targetId, interaction.label, icon, cell, surfaceId, (state.campInteractions?.length ?? 0) + index);
+  }
+  candidates.sort((a, b) => a.distance - b.distance || b.facing - a.facing || a.order - b.order);
+  return candidates[0] ?? null;
+}
+
+function useContextualInteraction(context: ContextualInteraction) {
+  if (!lastSnapshot || !privateState?.characterId) return;
+  let used = false;
+  if (context.pointId) {
+    if (!privateState.campInteractions.some(item => item.pointId === context.pointId)) return;
+    world.playTokenAnimation(privateState.characterId, 'interact');
+    socket.emit('player:camp-interact', { runtimeEpoch, commandId: commandId(), sceneEpoch: lastSnapshot.sceneEpoch, pointId: context.pointId });
+    used = true;
+  } else used = interactWith(context.targetId);
+  if (used) closeActionPanel();
 }
 
 function targetAtCell(cell: { col: number; row: number }) {
@@ -976,11 +1407,10 @@ function changeOwnHp(sign: 1 | -1) {
   const amount = Math.max(1, Number(($('hpAmount') as HTMLInputElement).value) || 1);
   socket.emit('player:combat', { runtimeEpoch, type: 'combat:hp', commandId: commandId(), sceneEpoch: lastSnapshot.sceneEpoch, delta: sign * amount });
 }
-$('combatHp').onclick = () => { if (!privateState) return; $('hpDialogValue').textContent = `PG actuales: ${privateState.hp}/${privateState.maxHp}`; ($('hpDialog') as HTMLDialogElement).showModal(); };
+$('combatHp').onclick = () => { if (!privateState || !lastSnapshot?.combat.active) return; $('hpDialogValue').textContent = `PG actuales: ${privateState.hp}/${privateState.maxHp}`; ($('hpDialog') as HTMLDialogElement).showModal(); };
 $('closeHp').onclick = () => ($('hpDialog') as HTMLDialogElement).close();
 $('takeDamage').onclick = () => changeOwnHp(-1);
 $('healDamage').onclick = () => changeOwnHp(1);
-$('combatSheet').onclick = () => { stop(); ($('characterSheet') as HTMLDialogElement).showModal(); };
 $('endTurn').onclick = finishCombatTurn;
 
 async function prepareSnapshot(snapshot: WorldSnapshot) {
@@ -1002,6 +1432,7 @@ function supportsCameraZoom(sceneId = lastSnapshot?.sceneId) {
 }
 function updatePlayerCameraControls(sceneId = lastSnapshot?.sceneId) {
   $('playerCameraControls').hidden = !supportsCameraOrbit(sceneId);
+  $('cameraSettings').hidden = !supportsCameraOrbit(sceneId);
   const step = world.getCameraOrientationStep();
   $('playerCameraLabel').textContent = cameraOrientationLabels[step] ?? cameraOrientationLabels[0]!;
 }
@@ -1102,13 +1533,15 @@ addEventListener('pointercancel', event => {
   if (!cameraTouchPointers.size) cameraTouchPairSeen = false;
 }, { capture: true });
 
-function initializeJoystick() {
-  if (joystickManager) return;
+function initializeJoystick(force = false) {
+  if (joystickManager && !force) return;
+  if (joystickManager) joystickManager.destroy();
   // NippleJS debe medir la zona una vez visible. Si se crea dentro de #hud[hidden],
   // conserva un centro (0,0) hasta el siguiente resize y queda desplazado en portrait.
+  joystickManagerSize = Math.max(1, Math.round(Number.parseFloat($('joystick').style.width) || 100));
   joystickManager = nipplejs.create({
     zone: $('joystick'), mode: 'static', position: { left: '50%', top: '50%' },
-    size: 110, color: 'white', restOpacity: 0.35
+    size: joystickManagerSize, color: 'white', restOpacity: 0.35
   });
   joystickManager.on('move', (_event, data) => {
     stick = { x: data.vector?.x ?? 0, up: data.vector?.y ?? 0 };
@@ -1120,7 +1553,7 @@ function initializeJoystick() {
 const movementKeys = new Set(['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright']);
 addEventListener('keydown', event => {
   if (event.target instanceof Element && event.target.matches('input,textarea,select')) return;
-  if (($('inventory') as HTMLDialogElement).open) return;
+  if (($('inventory') as HTMLDialogElement).open || ($('playerSettings') as HTMLDialogElement).open) return;
   const key = event.key.toLowerCase();
   if (!event.repeat && (key === 'q' || key === 'e') && supportsCameraOrbit()) {
     event.preventDefault(); rotatePlayerCamera(key === 'q' ? -1 : 1); return;
@@ -1139,6 +1572,64 @@ addEventListener('keydown', event => {
 $('playerCameraLeft').onclick = () => rotatePlayerCamera(-1);
 $('playerCameraRight').onclick = () => rotatePlayerCamera(1);
 $('playerCameraReset').onclick = resetPlayerCamera;
+const openPlayerSettings = () => { stop(); syncPlayerSettingsDialog(); ($('playerSettings') as HTMLDialogElement).showModal(); };
+$('openHudLayoutEditor').onclick = startHudLayoutEdit;
+$('cancelHudLayout').onclick = () => finishHudLayoutEdit(false);
+$('applyHudLayout').onclick = () => finishHudLayoutEdit(true);
+bindHudPreviewDrag('previewJoystick');
+bindHudPreviewDrag('previewActionControl');
+($('settingJoystickX') as HTMLInputElement).oninput = event => {
+  if (!hudLayoutDraft) return;
+  hudLayoutDraft.joystickX = Number((event.currentTarget as HTMLInputElement).value) / 100;
+  syncHudLayoutPreview();
+};
+($('settingJoystickY') as HTMLInputElement).oninput = event => {
+  if (!hudLayoutDraft) return;
+  hudLayoutDraft.joystickY = Number((event.currentTarget as HTMLInputElement).value) / 100;
+  syncHudLayoutPreview();
+};
+($('settingActionX') as HTMLInputElement).oninput = event => {
+  if (!hudLayoutDraft) return;
+  hudLayoutDraft.actionX = Number((event.currentTarget as HTMLInputElement).value) / 100;
+  syncHudLayoutPreview();
+};
+($('settingActionY') as HTMLInputElement).oninput = event => {
+  if (!hudLayoutDraft) return;
+  hudLayoutDraft.actionY = Number((event.currentTarget as HTMLInputElement).value) / 100;
+  syncHudLayoutPreview();
+};
+($('settingJoystickSize') as HTMLInputElement).oninput = event => {
+  if (!hudLayoutDraft) return;
+  hudLayoutDraft.joystickSize = Number((event.currentTarget as HTMLInputElement).value);
+  syncHudLayoutPreview();
+};
+($('settingActionSize') as HTMLInputElement).oninput = event => {
+  if (!hudLayoutDraft) return;
+  hudLayoutDraft.actionSize = Number((event.currentTarget as HTMLInputElement).value);
+  syncHudLayoutPreview();
+};
+$('identityMenuToggle').onclick = () => {
+  const isOpen = !$('identityMenu').hidden;
+  if (isOpen && !playerDisplaySettings.identityMenuAlwaysOpen) closeIdentityMenu();
+  else if (!isOpen) openIdentityMenu();
+};
+$('settingsButton').onclick = () => { closeIdentityMenu(); openPlayerSettings(); };
+$('closeSettings').onclick = () => ($('playerSettings') as HTMLDialogElement).close();
+$('playerSettings').addEventListener('click', event => { if (event.target === $('playerSettings')) ($('playerSettings') as HTMLDialogElement).close(); });
+$('playerSettings').addEventListener('close', () => {
+  if (hudLayoutDraft) finishHudLayoutEdit(false);
+});
+for (const dialogId of ['playerSettings', 'characterSheet', 'inventory'] as const) {
+  $(dialogId).addEventListener('close', () => { if (playerDisplaySettings.identityMenuAlwaysOpen) openIdentityMenu(); });
+}
+($('settingGrid') as HTMLInputElement).onchange = event => updatePlayerDisplaySetting('showGrid', (event.currentTarget as HTMLInputElement).checked);
+($('settingMovementHints') as HTMLInputElement).onchange = event => updatePlayerDisplaySetting('showMovementHints', (event.currentTarget as HTMLInputElement).checked);
+($('settingSceneNotice') as HTMLInputElement).onchange = event => updatePlayerDisplaySetting('showSceneNotice', (event.currentTarget as HTMLInputElement).checked);
+$('settingJoystickOpacity').oninput = event => updatePlayerDisplaySetting('joystickOpacity', Number((event.currentTarget as HTMLInputElement).value) / 100);
+$('settingIdentityMenuAlwaysOpen').onchange = event => updatePlayerDisplaySetting('identityMenuAlwaysOpen', (event.currentTarget as HTMLInputElement).checked);
+$('settingIdentityMenuSeconds').oninput = event => updatePlayerDisplaySetting('identityMenuSeconds', Number((event.currentTarget as HTMLInputElement).value));
+$('resetDisplaySettings').onclick = () => { playerDisplaySettings = { ...defaultPlayerDisplaySettings }; applyPlayerDisplaySettings(); toast('Opciones restablecidas.'); };
+$('resetPlayerCamera').onclick = resetPlayerCamera;
 addEventListener('keyup', event => {
   const key = event.key.toLowerCase();
   if (!movementKeys.has(key)) return;
@@ -1159,7 +1650,7 @@ function vector() {
 function send(end = false) {
   if (!socket.connected || !lastSnapshot || !privateState?.characterId || readyEpoch !== lastSnapshot.sceneEpoch) return;
   if (!end && !privateState.sceneMovementEnabled) return;
-  if (!end && (document.hidden || ($('inventory') as HTMLDialogElement).open)) return;
+  if (!end && (document.hidden || ($('inventory') as HTMLDialogElement).open || ($('playerSettings') as HTMLDialogElement).open)) return;
   const next = vector();
   if (!end && Math.hypot(next.x, next.z) < 0.2) return;
   socket.emit('input:move', { runtimeEpoch, seq: seq++, sceneEpoch: lastSnapshot.sceneEpoch, x: end ? 0 : next.x, z: end ? 0 : next.z, end });
@@ -1193,12 +1684,12 @@ $('interact').onclick = () => {
   const target = basic?.target === 'living' ? proximityTarget('living', Infinity) : basic?.target === 'any' ? proximityTarget('any', Infinity)
     : action && (action.target === 'object' || action.target === 'living' || action.target === 'any') ? proximityTarget(action.target, action.rangeMeters) : attack ? proximityTarget('living', attack.range?.longMeters ?? attack.range?.normalMeters ?? Infinity) : null;
   if (basic && target && armedExplorationBasicActionId) { useExplorationBasicAction(armedExplorationBasicActionId, target.id); return; }
-  if (target && useExplorationAction(target.id)) return;
-  if (privateState?.interactionTargetId) interactWith(privateState.interactionTargetId);
+  if (action || attack) { if (target) useExplorationAction(target.id); return; }
 };
 $('campInteractionList').addEventListener('click', event => event.stopPropagation());
 $('campInteractions').addEventListener('pointerdown', event => event.stopPropagation());
 $('inventoryButton').onclick = () => {
+  closeIdentityMenu();
   stop();
   if (privateState) ($('inventoryEditor') as HTMLTextAreaElement).value = privateState.inventory.join('\n');
   setInventoryEditing(false);
@@ -1215,7 +1706,7 @@ $('saveInventory').onclick = () => {
   socket.emit('player:inventory', { runtimeEpoch, commandId: commandId(), items });
   setInventoryEditing(false); toast('Guardando mochila…');
 };
-$('sheetButton').onclick = () => { stop(); setSheetEditing(false); ($('characterSheet') as HTMLDialogElement).showModal(); };
+$('sheetButton').onclick = () => { closeIdentityMenu(); stop(); setSheetEditing(false); ($('characterSheet') as HTMLDialogElement).showModal(); };
 $('closeSheet').onclick = () => ($('characterSheet') as HTMLDialogElement).close();
 $('summarySheet').onclick = () => { sheetView = 'summary'; if (privateState) renderSheet(privateState); };
 $('fullSheet').onclick = () => { sheetView = 'full'; if (privateState) renderSheet(privateState); };
@@ -1240,18 +1731,30 @@ function textToDetails(value: string) {
   }
   return sections.filter(section => section.entries.length);
 }
+function sheetStrengthInput() {
+  let input = document.getElementById('editSheetStrength') as HTMLInputElement | null;
+  if (!input) {
+    const speed = $('editSheetSpeed'), label = document.createElement('label');
+    label.append(document.createTextNode('Fuerza (FUE, 1–30)'));
+    input = document.createElement('input'); input.id = 'editSheetStrength'; input.type = 'number'; input.min = '1'; input.max = '30'; input.placeholder = 'Sin registrar';
+    label.append(input); speed.parentElement?.after(label);
+  }
+  return input;
+}
 function setSheetEditing(editing: boolean) {
   const sheet = privateState?.sheet; $('sheetReadOnly').hidden = editing; $('sheetEditor').hidden = !editing; $('editSheet').hidden = editing;
   if (!editing || !sheet) return;
   ($('editSheetLevel') as HTMLInputElement).value = String(sheet.level); ($('editSheetBackground') as HTMLInputElement).value = sheet.background;
   ($('editSheetArmorClass') as HTMLInputElement).value = String(sheet.armorClass); ($('editSheetSpeed') as HTMLInputElement).value = String(sheet.speedMeters);
+  sheetStrengthInput().value = sheet.strengthScore === undefined ? '' : String(sheet.strengthScore);
   ($('editSheetFeatures') as HTMLTextAreaElement).value = sheet.features.join('\n'); ($('editSheetAttacks') as HTMLTextAreaElement).value = sheet.attacks.join('\n');
   ($('editSheetSpells') as HTMLTextAreaElement).value = sheet.spells.join('\n'); ($('editSheetDetails') as HTMLTextAreaElement).value = detailsToText(sheet.details);
 }
 function saveSheet() {
   if (!privateState?.sheet) return;
-  const sheet = { level: Number(($('editSheetLevel') as HTMLInputElement).value), background: ($('editSheetBackground') as HTMLInputElement).value.trim(), armorClass: Number(($('editSheetArmorClass') as HTMLInputElement).value), speedMeters: Number(($('editSheetSpeed') as HTMLInputElement).value), features: sheetLines('editSheetFeatures'), attacks: sheetLines('editSheetAttacks'), spells: sheetLines('editSheetSpells'), details: textToDetails(($('editSheetDetails') as HTMLTextAreaElement).value) };
-  if (!Number.isInteger(sheet.level) || sheet.level < 1 || !sheet.background || !Number.isInteger(sheet.armorClass) || sheet.armorClass < 1 || !Number.isFinite(sheet.speedMeters) || sheet.speedMeters <= 0) return toast('Revisa nivel, trasfondo, CA y velocidad.');
+  const rawStrength = sheetStrengthInput().value.trim(), strengthScore = rawStrength ? Number(rawStrength) : undefined;
+  const sheet = { level: Number(($('editSheetLevel') as HTMLInputElement).value), background: ($('editSheetBackground') as HTMLInputElement).value.trim(), armorClass: Number(($('editSheetArmorClass') as HTMLInputElement).value), speedMeters: Number(($('editSheetSpeed') as HTMLInputElement).value), ...(strengthScore !== undefined ? { strengthScore } : {}), features: sheetLines('editSheetFeatures'), attacks: sheetLines('editSheetAttacks'), spells: sheetLines('editSheetSpells'), details: textToDetails(($('editSheetDetails') as HTMLTextAreaElement).value) };
+  if (!Number.isInteger(sheet.level) || sheet.level < 1 || !sheet.background || !Number.isInteger(sheet.armorClass) || sheet.armorClass < 1 || !Number.isFinite(sheet.speedMeters) || sheet.speedMeters <= 0 || strengthScore !== undefined && (!Number.isInteger(strengthScore) || strengthScore < 1 || strengthScore > 30)) return toast('Revisa nivel, trasfondo, CA, velocidad y Fuerza (1–30).');
   socket.emit('player:sheet', { runtimeEpoch, commandId: commandId(), sheet }); setSheetEditing(false); toast('Guardando ficha…');
 }
 
@@ -1274,6 +1777,7 @@ function renderSheet(next: PlayerPrivate) {
   document.getElementById('sheetDetails')?.replaceChildren();
   if (sheet) {
     stats.append(field('CA', String(sheet.armorClass)), field('Velocidad', `${sheet.speedMeters} m`));
+    if (sheet.strengthScore !== undefined) stats.append(field('FUE', String(sheet.strengthScore)), field('Salto', jumpSummary(sheet.strengthScore)));
     for (const resource of Object.values(next.resources)) stats.append(field(resource.label, `${resource.current}/${resource.max}`));
     const list = (id: string, values: string[]) => $(id).replaceChildren(...values.map(value => { const row = document.createElement('li'); row.textContent = value; return row; }));
     list('sheetFeatures', sheet.features); list('sheetAttacks', sheet.attacks); list('sheetSpells', sheet.spells);

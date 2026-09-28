@@ -247,18 +247,28 @@ const audio: PublicCampaignDefinition['audio'] = {
   sfx: { thunder: '/audio/stormwreck/sfx/pixabay-thunder.mp3', creak: '/audio/stormwreck/sfx/pixabay-door.mp3', impact: '/audio/stormwreck/sfx/pixabay-sword-hit.mp3' },
   layerLabels: { ocean: 'Mar y oleaje', wind: 'Viento costero', wood: 'Madera y refugio', storm: 'Clima y truenos' },
   library: {
-    music: [{ id: 'camp-rest-music', label: 'Campamentos · ambiente', description: 'Música ambiental tenue para la sesión.', url: '/audio/music-tempest.wav' }],
+    music: [
+      { id: 'camp-rest-music', label: 'Campamentos · ambiente', description: 'Música ambiental tenue para la sesión.', url: '/audio/music-tempest.wav' },
+      { id: 'camp-a1-music', label: 'Habitaciones A1 · santuario', description: 'Ambiente sereno para las habitaciones y el descanso.', url: '/audio/stormwreck/ambience/stormwreck-loop-sanctuary.mp3' },
+      { id: 'camp-forest-pleamar-music', label: 'Bosque camino a Pleamar · campamento', description: 'Noche de bosque, arroyo y hoguera del claro.', url: '/audio/stormwreck/ambience/stormwreck-loop-forest-night.mp3' },
+      { id: 'camp-wreck-beach-music', label: 'Playa del pecio · campamento', description: 'Oleaje y aire salino junto a la costa.', url: '/audio/stormwreck/ambience/stormwreck-loop-boat-waves.mp3' },
+      { id: 'camp-cliffs-observatory-music', label: 'Acantilados del Observatorio · campamento', description: 'Viento frío y tormenta lejana en la meseta.', url: '/audio/stormwreck/ambience/stormwreck-loop-cliff-wind.ogg' },
+      { id: 'camp-coastal-refuge-music', label: 'Refugio costero de Pleamar · campamento', description: 'Un respiro tranquilo bajo la protección del refugio.', url: '/audio/stormwreck/ambience/stormwreck-loop-sanctuary.mp3' }
+    ],
     ambience: [
       { id: 'stormwreck-loop-ocean', label: 'Oleaje de la isla', description: 'Mar constante contra las rocas.', url: '/audio/ambient-ocean.wav', category: 'scene' as const, loopable: true },
       { id: 'stormwreck-loop-wind', label: 'Viento costero', description: 'Viento exterior y de acantilado.', url: '/audio/ambient-wind.wav', category: 'scene' as const, loopable: true },
       { id: 'stormwreck-loop-wood', label: 'Madera y refugio', description: 'Madera y elementos del campamento.', url: '/audio/ambient-wood.wav', category: 'scene' as const, loopable: true },
-      { id: 'stormwreck-loop-storm', label: 'Clima y truenos', description: 'Viento y truenos a distancia.', url: '/audio/ambient-storm.wav', category: 'scene' as const, loopable: true },
+      { id: 'stormwreck-loop-storm', label: 'Clima y tormenta', description: 'Lluvia y viento sostenidos; el trueno intenso se dispara aparte.', url: '/audio/stormwreck/ambience/stormwreck-loop-storm.mp3', category: 'scene' as const, loopable: true },
       { id: 'stormwreck-loop-boat-waves', label: 'Oleaje contra la costa', description: 'Olas fuertes y espuma junto a las rocas.', url: '/audio/stormwreck/ambience/stormwreck-loop-boat-waves.mp3', category: 'scene' as const, loopable: true },
       { id: 'stormwreck-loop-cliff-wind', label: 'Viento del observatorio', description: 'Aire frío para la meseta de basalto.', url: '/audio/stormwreck/ambience/stormwreck-loop-cliff-wind.ogg', category: 'scene' as const, loopable: true },
-      { id: 'stormwreck-loop-forest', label: 'Bosque de la isla', description: 'Vegetación y sonidos nocturnos.', url: '/audio/stormwreck/ambience/stormwreck-loop-forest.mp3', category: 'scene' as const, loopable: true },
+      { id: 'stormwreck-loop-forest', label: 'Bosque de la isla', description: 'Vegetación y aves lejanas para las sendas de la isla.', url: '/audio/stormwreck/ambience/stormwreck-loop-forest-night.mp3', category: 'scene' as const, loopable: true },
+      { id: 'stormwreck-loop-forest-fire', label: 'Hoguera del bosque', description: 'Fuego bajo y constante para el claro del campamento.', url: '/audio/stormwreck/ambience/stormwreck-loop-forest-fire.mp3', category: 'scene' as const, loopable: true },
+      { id: 'stormwreck-loop-forest-river-01', label: 'Arroyo de Pleamar · I', description: 'Agua corriente para el bosque y los caminos de Pleamar.', url: '/audio/stormwreck/ambience/stormwreck-loop-forest-river-01.mp3', category: 'scene' as const, loopable: true },
+      { id: 'stormwreck-loop-forest-river-02', label: 'Arroyo de Pleamar · II', description: 'Variante de agua corriente para alternar la capa del arroyo.', url: '/audio/stormwreck/ambience/stormwreck-loop-forest-river-02.mp3', category: 'scene' as const, loopable: true },
       { id: 'stormwreck-loop-sanctuary', label: 'Refugio sereno', description: 'Calma tenue de una zona protegida.', url: '/audio/stormwreck/ambience/stormwreck-loop-sanctuary.mp3', category: 'scene' as const, loopable: true }
     ],
-    sfx: [{ id: 'camp-rest-thunder', label: 'Trueno lejano', description: 'Trueno ambiental a distancia.', url: '/audio/stormwreck/sfx/pixabay-thunder.mp3', category: 'scene' as const }]
+    sfx: [{ id: 'stormwreck-sfx-heavy-thunder', label: 'Trueno intenso · Pleamar', description: 'Impacto de trueno de unos 5 segundos; efecto puntual, no ambiente ni bucle.', url: '/audio/stormwreck/sfx/stormwreck-sfx-heavy-thunder.mp3', category: 'scene' as const }]
   }
 };
 const loopProfile = (wind: string, ocean: string, wood = 'stormwreck-loop-wood', storm = 'stormwreck-loop-storm') => ({
@@ -270,12 +280,16 @@ const loopProfile = (wind: string, ocean: string, wood = 'stormwreck-loop-wood',
 });
 const observatoryAudio = loopProfile('stormwreck-loop-cliff-wind', 'stormwreck-loop-ocean');
 observatoryAudio.layers.storm = { id: 'stormwreck-loop-storm', playing: true, volume: .11 };
+const forestPleamarAudio = loopProfile('stormwreck-loop-forest', 'stormwreck-loop-forest-river-01', 'stormwreck-loop-forest-fire');
+forestPleamarAudio.layers.ocean = { id: 'stormwreck-loop-forest-river-01', playing: true, volume: .16 };
+forestPleamarAudio.layers.wind = { id: 'stormwreck-loop-forest', playing: true, volume: .19 };
+forestPleamarAudio.layers.wood = { id: 'stormwreck-loop-forest-fire', playing: true, volume: .09 };
 const refugeAudio = loopProfile('stormwreck-loop-sanctuary', 'stormwreck-loop-ocean', 'stormwreck-loop-wood');
 refugeAudio.layers.ocean = { id: 'stormwreck-loop-ocean', playing: true, volume: .1 };
 refugeAudio.layers.wind = { id: 'stormwreck-loop-sanctuary', playing: true, volume: .13 };
 audio.sceneProfiles = {
   'camp-a1-rooms': { ...loopProfile('stormwreck-loop-sanctuary', 'stormwreck-loop-ocean'), layers: { ...loopProfile('stormwreck-loop-sanctuary', 'stormwreck-loop-ocean').layers, ocean: { id: 'stormwreck-loop-ocean', playing: false, volume: .08 }, wind: { id: 'stormwreck-loop-sanctuary', playing: true, volume: .12 } } },
-  'camp-forest-pleamar': loopProfile('stormwreck-loop-forest', 'stormwreck-loop-ocean'),
+  'camp-forest-pleamar': { ...forestPleamarAudio, recommendedSfx: ['stormwreck-sfx-heavy-thunder'] },
   'camp-wreck-beach': loopProfile('stormwreck-loop-wind', 'stormwreck-loop-boat-waves'),
   'camp-cliffs-observatory': observatoryAudio,
   'camp-coastal-refuge': refugeAudio

@@ -1,6 +1,7 @@
 import { Application, Assets, Container, Graphics, Rectangle, Sprite, Texture } from 'pixi.js';
 import { Color3 } from '@babylonjs/core/Maths/math.color.js';
 import { Matrix, Vector3 } from '@babylonjs/core/Maths/math.vector.js';
+import { Ray } from '@babylonjs/core/Culling/ray.js';
 import { Engine as BabylonEngine } from '@babylonjs/core/Engines/engine.js';
 import { Mesh } from '@babylonjs/core/Meshes/mesh.js';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder.js';
@@ -30,6 +31,7 @@ type TokenView = { root: Container; ring: Graphics; sprite: Sprite; conditionVfx
 type MapObject = PublicProp | DmObject;
 type PropView = { root: Container; sprite: Sprite | null; variantUrl: string | null };
 type WorldRendererOptions = { showGrid?: boolean; showReachable?: boolean; persistCameraPreferences?: boolean; showStairMarker?: boolean };
+type TokenOcclusionCacheEntry = { checkedAt: number; occluded: boolean; point: { x: number; y: number; z: number }; camera: { x: number; y: number; z: number } };
 const TERRAIN_CAMERA_INITIAL_ALPHA = -Math.PI / 4;
 const CAMERA_ORIENTATION_STEP = Math.PI / 4;
 const CAMERA_ORIENTATION_COUNT = 8;
@@ -72,10 +74,12 @@ export class WorldRenderer {
   private selection = new Graphics();
   private reachable = new Graphics();
   private attackRange = new Graphics();
+  private contextHighlight = new Graphics();
   private preview = new Container();
   private previewCells = new Graphics();
   private previewSprite = new Sprite(Texture.EMPTY);
   private tokenViews = new Map<string, TokenView>();
+  private tokenOcclusionCache = new Map<string, TokenOcclusionCacheEntry>();
   private croppedTokenFrames = new Map<string, Texture>();
   private propViews = new Map<string, PropView>();
   private pickupViews = new Map<string, Container>();
@@ -83,6 +87,8 @@ export class WorldRenderer {
   private sceneId: string | null = null;
   private localId: string | null = null;
   private selectedEntityId: string | null = null;
+  private contextTargetId: string | null = null;
+  private contextCampPointId: string | null = null;
   private clockOffset = 0;
   private storm = new Graphics();
   private waves = new Graphics();
@@ -117,7 +123,7 @@ export class WorldRenderer {
   private retreatVisuals: ReturnType<typeof createDragonRestVisuals> | null = null;
   private campVisuals: CampVisuals | null = null;
   private campVisualGeneration = 0;
-  private campInteractionHighlights = false;
+  private campInteractionHighlights: boolean | string = false;
   private terrainProps = new Map<string, TransformNode>();
   private rowboatVisual: TransformNode | null = null;
   private rowboatHullCells: Cell[] = [];
@@ -171,7 +177,7 @@ export class WorldRenderer {
     this.background.zIndex = 0; this.effects.zIndex = 5; this.grid.zIndex = 10; this.dynamic.zIndex = 20; this.editor.zIndex = 30;
     this.map.addChild(this.background, this.effects, this.grid, this.dynamic, this.editor);
     this.preview.addChild(this.previewSprite, this.previewCells); this.previewSprite.visible = false; this.previewSprite.alpha = 0.68;
-    this.effects.addChild(this.waves, this.waterShimmer, this.boatWake, this.wind, this.storm, this.rain, this.rainNear); this.editor.addChild(this.reachable, this.attackRange, this.selection, this.preview); this.app.stage.addChild(this.map);
+    this.effects.addChild(this.waves, this.waterShimmer, this.boatWake, this.wind, this.storm, this.rain, this.rainNear); this.editor.addChild(this.reachable, this.attackRange, this.selection, this.preview, this.contextHighlight); this.app.stage.addChild(this.map);
     const activeTouchPointers = new Set<number>();
     let touchGestureActive = false;
     let pendingTouchTap: { pointerId: number; cell: Cell | null; x: number; y: number; moved: boolean } | null = null;
@@ -240,10 +246,19 @@ export class WorldRenderer {
   }
   setMapClick(handler: ((cell: Cell) => void) | null) { this.mapClick = handler; }
   /** Visual-only toggle; terrain navigation and collision data remain installed. */
-  setGridVisible(visible: boolean) { this.options.showGrid = visible; this.drawGrid(); }
+  setGridVisible(visible: boolean) { this.options.showGrid = visible; if (this.scene) this.drawGrid(); }
+  setReachableVisible(visible: boolean) { this.options.showReachable = visible; this.drawReachable(); }
   setCampInteractionHighlights(enabled: boolean) {
     this.campInteractionHighlights = Boolean(enabled && this.scene?.camp);
     this.campVisuals?.setInteractionHighlights(this.campInteractionHighlights);
+  }
+  /** Highlights only the single interaction offered in the player's actions tray. */
+  setContextInteractionTarget(targetId: string | null, campPointId: string | null = null) {
+    this.contextTargetId = targetId;
+    this.contextCampPointId = campPointId;
+    this.campInteractionHighlights = campPointId && this.scene?.camp ? campPointId : false;
+    this.campVisuals?.setInteractionHighlights(this.campInteractionHighlights);
+    if (!targetId) this.contextHighlight.clear();
   }
   /** Refit immediately after a DM workspace window is resized, restored, or revealed. */
   refreshLayout() {
@@ -451,6 +466,7 @@ export class WorldRenderer {
     const enabled = definition.renderer === 'babylon-hd2d' && Boolean(definition.terrain);
     if (!enabled) {
       if (this.terrainCanvas) this.terrainCanvas.hidden = true;
+      this.tokenOcclusionCache.clear();
       this.terrainScene?.dispose(); this.terrainScene = null; this.terrainView = null; this.terrainProps.clear(); this.rowboatVisual = null; this.rowboatHullCells = []; this.carriedLights.clear();
       this.retreatVisuals = null; this.campVisuals = null;
       this.campInteractionHighlights = false;
@@ -469,7 +485,7 @@ export class WorldRenderer {
     // and desktop scenes at native canvas resolution.
     const compactDisplay = typeof window !== 'undefined' && window.matchMedia('(max-width: 820px), (pointer: coarse)').matches;
     this.terrainEngine!.setHardwareScalingLevel(campTerrainHardwareScalingLevel(Boolean(definition.camp), compactDisplay));
-    this.terrainScene?.dispose(); this.terrainProps.clear(); this.rowboatVisual = null; this.rowboatHullCells = []; this.carriedLights.clear(); this.retreatVisuals = null; this.campVisuals = null; this.terrainScene = new BabylonScene(this.terrainEngine!);
+    this.tokenOcclusionCache.clear(); this.terrainScene?.dispose(); this.terrainProps.clear(); this.rowboatVisual = null; this.rowboatHullCells = []; this.carriedLights.clear(); this.retreatVisuals = null; this.campVisuals = null; this.terrainScene = new BabylonScene(this.terrainEngine!);
     if (!definition.camp) this.campInteractionHighlights = false;
     this.terrainScene.clearColor.set(.025, .07, .09, 1);
     const deckTexture = definition.id === 'wreck-ship'
@@ -580,8 +596,26 @@ export class WorldRenderer {
       wreckageTexture,
       renderTiles: definition.id !== 'dragon-rest' && definition.id !== 'camp-a1-rooms', batchTiles: Boolean(definition.camp)
     });
+    for (const mesh of this.terrainView.occluders) {
+      (mesh as Mesh).isPickable = true;
+      mesh.metadata = { ...(mesh.metadata ?? {}), tokenOccluder: true };
+    }
+    for (const mesh of this.terrainView.structures) {
+      if (!mesh.metadata?.structureId) continue;
+      mesh.isPickable = true;
+      mesh.metadata = { ...mesh.metadata, tokenOccluder: true };
+    }
+    for (const mesh of this.terrainView.deckDetails) {
+      if (!['cabin-ceiling', 'cabin-roof-edge'].includes(String(mesh.metadata?.kind ?? ''))) continue;
+      mesh.isPickable = true;
+      mesh.metadata = { ...mesh.metadata, tokenOccluder: true };
+    }
     if (definition.id === 'wreck-ship') {
       this.rowboatVisual = buildShipRowboat(this.terrainScene, exteriorDeckTexture);
+      for (const mesh of this.rowboatVisual.getChildMeshes(false)) {
+        mesh.isPickable = true;
+        mesh.metadata = { ...(mesh.metadata ?? {}), tokenOccluder: true, surfaceId: 'sea' };
+      }
       this.rowboatHullCells = definition.terrain?.surfaces.find(surface => surface.id === 'c1-hull')?.tiles.map(tile => tile.cell) ?? [];
     }
     if (definition.id === 'camp-a1-rooms') this.terrainView.grids.forEach(grid => { grid.alpha = .04; grid.color = Color3.FromHexString('#8f8879'); });
@@ -595,7 +629,7 @@ export class WorldRenderer {
         void import('../../campaigns/camp-rests/public/visuals.js').then(({ createCampVisuals }) => {
           if (this.campVisualGeneration === campVisualGeneration && this.terrainScene === campScene && this.sceneId === definition.id) {
             this.campVisuals = createCampVisuals(campScene, definition);
-            if (this.campInteractionHighlights) this.campVisuals?.setInteractionHighlights(true);
+            if (this.campInteractionHighlights) this.campVisuals?.setInteractionHighlights(this.campInteractionHighlights);
           }
         }).catch(error => console.error('No se pudieron cargar los efectos del campamento', error));
       }
@@ -1108,7 +1142,7 @@ export class WorldRenderer {
         mountView.root.position.set(mountCenter.x, mountCenter.y); mountView.root.zIndex = Math.round(mountCenter.y) - 2;
       }
       const asset = this.variantFor(object); const view = this.upsertPropView(object.id, asset); const center = this.objectCenter(object);
-      view.root.position.set(center.x, center.y); view.root.zIndex = Math.round(center.y + (asset?.sortOffsetY ?? 0)) - (object.structure === 'destroyed' ? 12 : 0);
+      view.root.position.set(center.x, center.y); view.root.zIndex = Math.round(center.y + (asset?.sortOffsetY ?? 0)) + 1 - (object.structure === 'destroyed' ? 12 : 0);
     }
   }
 
@@ -1140,6 +1174,10 @@ export class WorldRenderer {
           (minRow + maxRow + 1) * tileMeters / 2);
         mesh.metadata = { visualKey, surfaceId: prop.surfaceId, cell: prop.cell,
           destroyed: prop.structure === 'destroyed', floorHeight, bottom: floorHeight };
+        for (const child of mesh.getChildMeshes(false)) {
+          child.isPickable = true;
+          child.metadata = { ...(child.metadata ?? {}), tokenOccluder: true, surfaceId: prop.surfaceId };
+        }
         mesh.setEnabled(prop.structure !== 'destroyed');
         continue;
       }
@@ -1147,7 +1185,7 @@ export class WorldRenderer {
         mesh = MeshBuilder.CreateBox(`prop:${prop.id}`, { size: 1 }, scene);
         const material = new StandardMaterial(`prop-material:${prop.id}`, scene);
         material.diffuseColor = Color3.FromHexString(prop.kind === 'door' ? '#b99259' : '#655740');
-        (mesh as Mesh).material = material; (mesh as Mesh).isPickable = false;
+        (mesh as Mesh).material = material; (mesh as Mesh).isPickable = true;
         this.terrainProps.set(prop.id, mesh);
       }
       const open = prop.kind === 'door' && prop.state === 'open';
@@ -1159,7 +1197,8 @@ export class WorldRenderer {
       const floorHeight = floor ? surfaceHeight(terrain, { surfaceId: prop.surfaceId, cell: prop.cell }) : 0;
       mesh.position.set((minCol + maxCol + 1) * tileMeters / 2 + (open ? -.55 : 0), floorHeight + mesh.scaling.y / 2,
         (minRow + maxRow + 1) * tileMeters / 2 + (open ? -.5 : 0));
-      mesh.metadata = { surfaceId: prop.surfaceId, cell: prop.cell, destroyed: prop.structure === 'destroyed', floorHeight, bottom: floorHeight };
+      (mesh as Mesh).isPickable = true;
+      mesh.metadata = { surfaceId: prop.surfaceId, cell: prop.cell, destroyed: prop.structure === 'destroyed', floorHeight, bottom: floorHeight, tokenOccluder: true };
     }
   }
 
@@ -1289,6 +1328,7 @@ export class WorldRenderer {
 
   private animate(deltaMs: number) {
     if (!this.snapshot || !this.scene) return; const time = performance.now() / 1000; this.waves.x = Math.sin(time * 0.55) * 12; this.waves.y = Math.cos(time * 0.42) * 3;
+    this.drawContextInteractionCue(time);
     this.waterShimmer.alpha = .55 + Math.sin(time * 1.8) * .3; this.waterShimmer.x = Math.sin(time * .8) * 7;
     this.wind.x = Math.sin(time * .35) * 28; this.wind.alpha = .45 + Math.sin(time * .7) * .18;
     if (this.terrainView) { this.drawShipWind(time); this.drawBoatWake(time); this.animateShipLights(time); }
@@ -1296,8 +1336,9 @@ export class WorldRenderer {
     if (this.snapshot.environment.storm) { const intensity = this.snapshot.environment.stormIntensity, lightning = this.snapshot.environment.lightning ? Math.max(0, Math.sin(time * .9 - 1.25)) * intensity * .24 : 0; this.storm.alpha = .12 + intensity * .66 + lightning; this.rain.alpha = .1 + intensity * .72; this.rain.x = (time * (6 + intensity * 24)) % 86; this.rain.y = (time * (16 + intensity * 64)) % 48; this.rainNear.alpha = Math.max(0, intensity - .16) * .95; this.rainNear.x = (time * (14 + intensity * 42)) % 142; this.rainNear.y = (time * (32 + intensity * 95)) % 86; }
     const cameraFocusId = this.localId ?? this.snapshot.camera.focusId;
     const cameraFocus = cameraFocusId ? this.snapshot.entities.find(entity => entity.id === cameraFocusId) : undefined;
+    if (this.terrainView) this.updateCamera(deltaMs);
     for (const view of this.tokenViews.values()) {
-      const now = performance.now(), position = this.interpolatedScreenPoint(view.entity), conditions = new Set(view.entity.conditions ?? []), selected = view.entity.id === this.selectedEntityId;
+      const now = performance.now(), position = this.interpolatedScreenPoint(view.entity), conditions = new Set(view.entity.conditions ?? []), selected = view.entity.id === this.selectedEntityId, contextual = view.entity.id === this.contextTargetId;
       this.updateTokenFrame(view, now); this.updateConditionArt(view);
       view.phase += deltaMs * (view.entity.moving ? 0.018 : 0.003);
       view.root.position.set(position.x, position.y + Math.sin(view.phase) * (view.entity.moving ? 3 : 1));
@@ -1307,16 +1348,17 @@ export class WorldRenderer {
       // Passengers share the boat's cell. Keep its hull behind their sprites
       // even when Pixi's stable sort would otherwise draw the later NPC last.
       view.root.zIndex = Math.round(position.y) - (view.entity.tokenId === 'wreck-rowboat' ? 2 : 0);
-      view.root.visible = view.entity.tokenId !== 'wreck-rowboat' || !this.rowboatVisual
-        ? this.entityVisibleFromFocus(view.entity, cameraFocus) : false;
+      const visibleFromFocus = this.entityVisibleFromFocus(view.entity, cameraFocus);
+      view.root.visible = (view.entity.tokenId !== 'wreck-rowboat' || !this.rowboatVisual)
+        && visibleFromFocus && !this.isTokenOccluded(view.entity, now);
       const visualFacing = this.cameraRelativeFacing(view.entity.facing), directional = this.animationFor(view.entity.tokenId, `direction-${facingSuffix[visualFacing]}`);
       const activeAnimation = this.animationFor(view.entity.tokenId, this.activeTokenState(view, now));
       const flipX = activeAnimation?.flipX ?? (visualFacing === 'west' && !directional);
       view.sprite.scale.x = Math.abs(view.sprite.scale.x) * (flipX ? -1 : 1);
       view.root.alpha = view.entity.defeated ? .36 : conditions.has('invisible') ? .2 : conditions.has('oculta') ? .45 : 1;
-      view.ring.tint = selected ? '#ffd36a' : view.entity.color;
-      view.ring.alpha = selected ? 1 : view.entity.id === this.snapshot?.combat.currentId ? 1 : view.entity.id === this.localId ? .9 : .65;
-      view.ring.scale.set(selected ? 1.18 : 1);
+      view.ring.tint = selected || contextual ? '#ffd36a' : view.entity.color;
+      view.ring.alpha = selected ? 1 : contextual ? .76 + Math.sin(time * 2.1) * .08 : view.entity.id === this.snapshot?.combat.currentId ? 1 : view.entity.id === this.localId ? .9 : .65;
+      view.ring.scale.set(selected ? 1.18 : contextual ? 1.08 + Math.sin(time * 1.7) * .025 : 1);
     }
     if (this.campVisuals && this.sceneId) {
       const campRest = this.snapshot.campRest?.sceneId === this.sceneId ? this.snapshot.campRest : null;
@@ -1338,7 +1380,53 @@ export class WorldRenderer {
         this.rowboatVisual.rotation.y = yaw;
       }
     }
-    this.updateCamera(deltaMs);
+    if (!this.terrainView) this.updateCamera(deltaMs);
+  }
+
+  private isTokenOccluded(entity: PublicEntity, now: number) {
+    const scene = this.terrainScene, terrain = this.terrainView, definition = this.scene?.terrain;
+    if (!scene || !terrain || !definition) return false;
+    const position = this.interpolatedWorldPosition(entity), asset = this.campaign.tokens[entity.tokenId];
+    const point = { x: position.x, y: position.y + (asset?.worldHeightMeters ?? 1.65) * .52, z: position.z };
+    const cameraPosition = terrain.camera.position;
+    const camera = { x: cameraPosition.x, y: cameraPosition.y, z: cameraPosition.z };
+    const cached = this.tokenOcclusionCache.get(entity.id);
+    const moved = (a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) =>
+      Math.abs(a.x - b.x) + Math.abs(a.y - b.y) + Math.abs(a.z - b.z) > .06;
+    if (cached && now - cached.checkedAt < 40 && !moved(cached.point, point) && !moved(cached.camera, camera)) return cached.occluded;
+
+    const target = new Vector3(point.x, point.y, point.z), distance = Vector3.Distance(cameraPosition, target);
+    let occluded = false;
+    if (distance > .12) {
+      const ray = Ray.CreateNewFromTo(cameraPosition, target);
+      ray.length = Math.max(0, distance - .08);
+      const hit = scene.pickWithRay(ray, mesh => mesh.metadata?.tokenOccluder === true && mesh.isVisible && mesh.isEnabled(), true);
+      occluded = Boolean(hit?.hit);
+    }
+    this.tokenOcclusionCache.set(entity.id, { checkedAt: now, occluded, point, camera });
+    return occluded;
+  }
+
+  private drawContextInteractionCue(time: number) {
+    const graphics = this.contextHighlight;
+    graphics.clear();
+    const id = this.contextTargetId, snapshot = this.snapshot, scene = this.scene;
+    if (!id || !snapshot || !scene || this.contextCampPointId) return;
+    const entity = snapshot.entities.find(item => item.id === id);
+    // Most creatures and characters already have a highlighted token ring.
+    // A rowboat is rendered by Babylon instead, so it needs the map-space cue.
+    if (entity && entity.tokenId !== 'wreck-rowboat') return;
+    const prop = snapshot.props.find(item => item.id === id);
+    const pickup = snapshot.scene.pickups?.find(item => item.id === id);
+    const actor = snapshot.scene.stageActors?.find(item => item.id === id);
+    const cell = entity ? this.interpolatedCell(entity) : prop?.cell ?? pickup?.cell ?? actor?.cell;
+    const surfaceId = entity?.surfaceId ?? prop?.surfaceId ?? pickup?.surfaceId ?? actor?.surfaceId ?? scene.surfaceId;
+    if (!cell) return;
+    const point = entity ? this.interpolatedScreenPoint(entity) : prop ? this.objectCenter(prop) : this.cellToPixel(cell, surfaceId);
+    const pulse = .66 + Math.sin(time * 2.2) * .06;
+    const radius = Math.max(7, scene.grid.tileSize * .34);
+    graphics.circle(point.x, point.y, radius).stroke({ color: '#e7c977', width: 2, alpha: pulse });
+    graphics.circle(point.x, point.y, radius + 3).stroke({ color: '#f6e3a5', width: 1, alpha: pulse * .38 });
   }
 
   private updateCamera(deltaMs = 0) {

@@ -16,6 +16,8 @@ set "DND_SAVE_ROOT=%DUNGEONS_DATA_DIR%"
 if not defined DND_SAVE_ROOT set "DND_SAVE_ROOT=%CD%\data\saves"
 if not exist "node_modules\vite\bin\vite.js" (echo ERROR: Faltan dependencias. Ejecuta INSTALAR.cmd y vuelve a iniciar. & pause & exit /b 1)
 if not exist "node_modules\typescript\bin\tsc" (echo ERROR: Faltan dependencias. Ejecuta INSTALAR.cmd y vuelve a iniciar. & pause & exit /b 1)
+if /I "%DUNGEONS_CAMPAIGN%"=="camp-rests" set "DUNGEONS_CAMPAIGN=stormwreck-isle"
+if not defined DUNGEONS_CAMPAIGN call :choose_campaign
 :prepare
 "%DND_NODE%" scripts\check-port-free.mjs %DND_PORT%
 if errorlevel 3 (echo ERROR: No se pudo comprobar el puerto %DND_PORT%. & pause & exit /b 1)
@@ -26,8 +28,6 @@ if errorlevel 1 (echo ERROR: No se pudo compilar la interfaz. Revisa el mensaje 
 "%DND_NODE%" node_modules\typescript\bin\tsc -p tsconfig.server.json
 if errorlevel 1 (echo ERROR: No se pudo compilar el servidor. Revisa el mensaje anterior. & pause & exit /b 1)
 if not exist "dist\server\apps\server\index.js" (echo ERROR: La Alpha no esta compilada. Ejecuta INSTALAR.cmd primero. & pause & exit /b 1)
-if /I "%DUNGEONS_CAMPAIGN%"=="camp-rests" set "DUNGEONS_CAMPAIGN=stormwreck-isle"
-if not defined DUNGEONS_CAMPAIGN call :choose_campaign
 set "DUNGEONS_OPEN_DM=1"
 :launch
 echo Iniciando D^&D Immersive Engine...
@@ -40,18 +40,19 @@ goto :startup_failed
 :startup_failed
 echo.
 echo El servidor no ha podido iniciarse. Puede que haya otra mesa D^&D abierta o que el puerto %DND_PORT% este ocupado.
-choice /C RS /N /M "[R] Cerrar la mesa anterior de D^&D y reintentar  [S] Salir"
+choice /C AS /N /M "[A] Actualizar esta mesa (guardar y reiniciar)  [S] Salir"
 if errorlevel 2 exit /b 1
 echo.
-echo Cerrando solo la instancia de D^&D que posee el bloqueo y el puerto...
+echo Guardando y cerrando solo la mesa D^&D de la campana elegida...
 "%DND_NODE%" scripts\close-table-on-port.mjs "%DND_SAVE_ROOT%" %DND_PORT% "%DUNGEONS_CAMPAIGN%"
 if errorlevel 1 (
   echo.
-  echo No se ha cerrado nada automaticamente. Cierra la otra mesa manualmente y vuelve a ejecutar este atajo.
+  echo No se ha cerrado nada automaticamente. Comprueba que elegiste la misma campana que esta abierta.
   pause
   exit /b 1
 )
 echo.
+echo La partida se ha guardado. Preparando la version actualizada...
 goto :prepare
 exit /b
 

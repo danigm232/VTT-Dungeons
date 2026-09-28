@@ -6,10 +6,25 @@ import { commandId } from '../../engine/client/uuid';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 type Channel = 'music' | 'ocean' | 'wind' | 'wood' | 'storm';
+type AmbienceChannel = Exclude<Channel, 'music'>;
 
 let socket: Socket | null = null, state: DmState | null = null, runtimeEpoch: string | null = null, toastTimer = 0;
 let sceneTitles = new Map<string, string>(), sceneBackgrounds = new Map<string, string>(), campSceneIds = new Set<string>();
 let campaignAudio: PublicCampaignDefinition['audio'] | null = null;
+const ambienceChannels: AmbienceChannel[] = ['ocean', 'wind', 'wood', 'storm'];
+const ambienceOrderStorageKey = 'd8-night:dm-mobile:ambience-order';
+function loadAmbienceOrder(): AmbienceChannel[] {
+  try {
+    const saved: unknown = JSON.parse(localStorage.getItem(ambienceOrderStorageKey) ?? 'null');
+    if (!Array.isArray(saved)) return [...ambienceChannels];
+    return [...new Set([
+      ...saved.filter((channel): channel is AmbienceChannel => ambienceChannels.includes(channel)),
+      ...ambienceChannels.filter(channel => !saved.includes(channel))
+    ])];
+  } catch { return [...ambienceChannels]; }
+}
+let ambienceOrder = loadAmbienceOrder();
+let ambienceDrag: { channel: AmbienceChannel; pointerId: number; x: number; y: number; target: AmbienceChannel | null; after: boolean; started: boolean } | null = null;
 // Un toque debe tener una respuesta visual inmediata, incluso cuando el
 // proyector tarda un instante en devolver el nuevo estado por Socket.IO.
 // Guardamos la intención por canal y solo la retiramos al recibir ese estado.
@@ -20,7 +35,7 @@ type EffectFilter = 'recommended' | 'all' | 'movement' | 'combat' | 'magic' | 'c
 type SoundSection = 'ambience' | 'effects';
 let visualPageOpen = false, effectFilter: EffectFilter = 'recommended';
 let soundSection: SoundSection = 'ambience';
-let swipe: { x: number; y: number; interactive: boolean; dragging: boolean; direction: 'pending' | 'horizontal' | 'vertical' } | null = null;
+let swipe: { pointerId: number; x: number; y: number; lastX: number; lastTime: number; velocityX: number; interactive: boolean; dragging: boolean; direction: 'pending' | 'horizontal' | 'vertical' } | null = null;
 
 const ambientMeta: Record<Exclude<Channel, 'music'>, { icon: string; description: string }> = {
   ocean: { icon: '≈', description: 'Oleaje y agua cercana' }, wind: { icon: '〰', description: 'Ráfagas y aire nocturno' }, wood: { icon: '⌇', description: 'Madera y aparejos' }, storm: { icon: '☁', description: 'Lluvia y tormenta lejana' }
@@ -78,8 +93,8 @@ function connect() {
   socket = io({ auth: { role: 'dm', protocolVersion: PROTOCOL_VERSION, objectModelVersion: OBJECT_MODEL_VERSION } });
   socket.on('connect', () => setStatus(true));
   socket.on('disconnect', () => setStatus(false));
-  socket.on('auth:error', () => { setStatus(false); showLogin('La sesión ha caducado. Vuelve a entrar.'); });
-  socket.on('runtime:reset', (event: { runtimeEpoch: string }) => { runtimeEpoch = event.runtimeEpoch; });
+  socket.on('auth:error', () => { location.reload(); });
+  socket.on('runtime:reset', (event: { runtimeEpoch: string }) => { if (runtimeEpoch && runtimeEpoch !== event.runtimeEpoch) { location.reload(); return; } runtimeEpoch = event.runtimeEpoch; });
   socket.on('dm:state', (next: DmState) => {
     if (next.runtimeEpoch !== runtimeEpoch) return;
     for (const [channel, pending] of pendingAudio) {
@@ -115,7 +130,7 @@ function render(current: DmState, forceAudio = false) {
   $('sceneArt').style.backgroundImage = sceneBackground?.startsWith('/art/') ? `url("${sceneBackground}")` : '';
   $('projectorStatus').textContent = current.projectorReady ? 'Proyector conectado' : 'Esperando al proyector.';
   const music = effectiveTrack('music', current.audio.music), toggle = $('musicToggle') as HTMLButtonElement, volume = $('musicVolume') as HTMLInputElement;
-  const musicTracks = campaignAudio?.library?.music ?? [], selectedMusic = musicTracks.find(track => track.id === music.assetId) ?? musicTracks[0];
+  const musicTracks = sceneMusicTracks(), selectedMusic = musicTracks.find(track => track.id === music.assetId) ?? musicTracks[0];
   $('musicTitle').textContent = selectedMusic?.label ?? 'Tema de campaña'; renderMusicTracks(selectedMusic?.id);
   const setMusicToggle = (playing: boolean) => {
     toggle.textContent = playing ? '⏸' : '▶';
@@ -132,7 +147,8 @@ function render(current: DmState, forceAudio = false) {
     sendAudio('music', { playing: nextPlaying, volume: Number(volume.value) });
   };
   if (!volume.matches(':focus')) volume.value = String(music.volume); $('musicLevel').textContent = `${Math.round(music.volume * 100)}%`; volume.oninput = () => { $('musicLevel').textContent = `${Math.round(Number(volume.value) * 100)}%`; }; volume.onchange = () => sendAudio('music', { playing: music.playing, volume: Number(volume.value) });
-  const layers = Object.entries(current.audio.layers).map(([id, track]) => [id as Exclude<Channel, 'music'>, effectiveTrack(id as Exclude<Channel, 'music'>, track)] as const);
+  const layers = Object.entries(current.audio.layers).map(([id, track]) => [id as AmbienceChannel, effectiveTrack(id as AmbienceChannel, track)] as const)
+    .sort(([left], [right]) => ambienceOrder.indexOf(left) - ambienceOrder.indexOf(right));
   const box = $('ambience'); if (forceAudio || !box.contains(document.activeElement)) { box.replaceChildren(); for (const [id, track] of layers) box.append(ambienceRow(id, track)); }
   const allPlaying = layers.every(([, track]) => track.playing); const allButton = $('toggleAllAmbience') as HTMLButtonElement; allButton.textContent = allPlaying ? 'Apagar todo' : 'Encender todo'; allButton.onclick = () => { for (const [channel, track] of layers) sendAudio(channel, { playing: !allPlaying, volume: track.volume, loop: track.loop, rate: track.rate, repeats: track.repeats }); };
   renderWeather(current); renderTimeOfDay(current); renderEffects(); renderAmbiencePresets();
@@ -170,11 +186,30 @@ function applyAmbiencePreset(preset: typeof ambiencePresets[number]) {
 }
 
 function renderMusicTracks(selectedId?: string) {
-  const box = $('musicTracks'); if (box.contains(document.activeElement)) return; box.replaceChildren();
-  for (const track of campaignAudio?.library?.music ?? []) {
-    const button = document.createElement('button'); button.type = 'button'; button.className = `music-choice${track.id === selectedId ? ' active' : ''}`;
-    button.textContent = track.label; button.title = track.description; button.onclick = () => command({ type: 'audio:select', channel: 'music', trackId: track.id }); box.append(button);
+  const select = $('musicTracks') as HTMLSelectElement; if (select === document.activeElement) return; select.replaceChildren();
+  const tracks = sceneMusicTracks();
+  const groups = [
+    { label: 'Música de campaña', items: tracks.filter(track => !track.id.startsWith('camp-') && !track.id.startsWith('stormwreck-music-dragon') && !track.id.startsWith('stormwreck-music-rosa')) },
+    { label: 'Campamento · 5 paradas', items: tracks.filter(track => track.id.startsWith('camp-') && track.id !== 'camp-rest-music') },
+    { label: 'Escenas de Stormwreck', items: tracks.filter(track => track.id.startsWith('stormwreck-music-dragon') || track.id.startsWith('stormwreck-music-rosa')) }
+  ];
+  for (const group of groups) {
+    if (!group.items.length) continue;
+    const optgroup = document.createElement('optgroup'); optgroup.label = group.label;
+    for (const track of group.items) {
+      const option = document.createElement('option'); option.value = track.id; option.textContent = track.label; option.title = track.description; optgroup.append(option);
+    }
+    select.append(optgroup);
   }
+  if (selectedId && tracks.some(track => track.id === selectedId)) select.value = selectedId;
+  else if (select.options.length) select.selectedIndex = 0;
+  select.onchange = () => command({ type: 'audio:select', channel: 'music', trackId: select.value });
+}
+
+function sceneMusicTracks() {
+  // La pista heredada de perfiles de campamento no se elige desde la consola:
+  // cada una de las cinco paradas tiene ahora su tema/ambiente explícito.
+  return (campaignAudio?.library?.music ?? []).filter(track => track.id !== 'camp-rest-music');
 }
 
 function renderEffects(force = false) {
@@ -230,7 +265,6 @@ function showVisualPage(open: boolean, focus = false) {
   visualPageOpen = open;
   const track = $('pageTrack'); track.classList.remove('dragging'); track.style.transform = open ? 'translate3d(0,0,0)' : 'translate3d(-50%,0,0)';
   document.querySelectorAll<HTMLButtonElement>('[data-page]').forEach(button => button.setAttribute('aria-selected', String(button.dataset.page === (open ? 'visual' : 'sound'))));
-  window.scrollTo({ top: 0, behavior: 'smooth' });
   if (focus && open) window.setTimeout(() => $('weatherToggle').focus(), 220);
 }
 function showSoundSection(section: SoundSection, focus = false) {
@@ -245,23 +279,96 @@ function showSoundSection(section: SoundSection, focus = false) {
     panel.hidden = panel.id !== `${section}Panel`;
   });
 }
-function ambienceRow(id: Exclude<Channel, 'music'>, track: AudioState['music']) {
-  const meta = ambientMeta[id], row = document.createElement('article'), icon = document.createElement('span'), info = document.createElement('div'), title = document.createElement('b'), description = document.createElement('small'), button = document.createElement('button'), label = document.createElement('label'), level = document.createElement('output'), range = document.createElement('input'), select = document.createElement('select'), cadence = document.createElement('div'), loop = document.createElement('button'), speed = document.createElement('select'), repeats = document.createElement('select');
+function ambienceRow(id: AmbienceChannel, track: AudioState['music']) {
+  const meta = ambientMeta[id], row = document.createElement('article'), heading = document.createElement('div'), icon = document.createElement('button'), info = document.createElement('div'), title = document.createElement('button'), description = document.createElement('small'), picker = document.createElement('div'), button = document.createElement('button'), label = document.createElement('label'), level = document.createElement('output'), range = document.createElement('input'), cadence = document.createElement('div'), loop = document.createElement('button'), speed = document.createElement('button'), repeats = document.createElement('button');
   const options = campaignAudio?.library?.ambience ?? [], selected = options.find(item => item.id === track.assetId) ?? options[0];
-  row.className = `ambience-row${track.playing ? ' active' : ''}`; icon.className = 'ambience-icon'; icon.textContent = meta.icon; title.textContent = selected?.label ?? campaignAudio?.layerLabels?.[id] ?? (id === 'ocean' ? 'Océano' : id === 'wind' ? 'Viento' : id === 'wood' ? 'Madera' : 'Tormenta'); description.textContent = selected?.description ?? meta.description; info.append(title, description);
-  if (options.length) { select.className = 'ambience-source'; for (const item of options) { const option = document.createElement('option'); option.value = item.id; option.textContent = item.label; option.selected = item.id === selected?.id; select.append(option); } select.onchange = () => command({ type: 'audio:select', channel: id, trackId: select.value }); info.append(select); }
+  const trackLabel = selected?.label ?? campaignAudio?.layerLabels?.[id] ?? (id === 'ocean' ? 'Océano' : id === 'wind' ? 'Viento' : id === 'wood' ? 'Madera' : 'Tormenta');
+  row.className = `ambience-row${track.playing ? ' active' : ''}`; row.dataset.channel = id; heading.className = 'ambience-head'; icon.type = 'button'; icon.className = 'ambience-icon ambience-drag-handle'; icon.textContent = meta.icon; icon.title = `Arrastra para recolocar ${trackLabel}; usa las flechas para moverla`;
+  icon.setAttribute('aria-label', `Mover ${trackLabel}. Usa flecha izquierda o arriba para adelantar y derecha o abajo para retrasar.`);
+  icon.onkeydown = event => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowUp' && event.key !== 'ArrowRight' && event.key !== 'ArrowDown') return;
+    event.preventDefault();
+    const index = ambienceOrder.indexOf(id), offset = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1, destination = Math.max(0, Math.min(ambienceOrder.length - 1, index + offset));
+    if (destination !== index) { const next = [...ambienceOrder]; next.splice(index, 1); next.splice(destination, 0, id); saveAmbienceOrder(next); refreshAmbienceOrder(id); }
+  };
+  icon.onpointerdown = event => {
+    if (!event.isPrimary || event.button !== 0) return;
+    event.preventDefault(); icon.setPointerCapture(event.pointerId);
+    ambienceDrag = { channel: id, pointerId: event.pointerId, x: event.clientX, y: event.clientY, target: null, after: false, started: false };
+  };
+  icon.onpointermove = event => {
+    if (!ambienceDrag || ambienceDrag.pointerId !== event.pointerId) return;
+    const drag = ambienceDrag;
+    if (!drag.started && Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 8) return;
+    drag.started = true; row.classList.add('is-dragging');
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('.ambience-row');
+    document.querySelectorAll('.ambience-row.drop-target').forEach(card => card.classList.remove('drop-target'));
+    if (target?.dataset.channel && target.dataset.channel !== id && ambienceChannels.includes(target.dataset.channel as AmbienceChannel)) {
+      const bounds = target.getBoundingClientRect(), horizontal = Math.abs(event.clientX - (bounds.left + bounds.width / 2)) > Math.abs(event.clientY - (bounds.top + bounds.height / 2));
+      drag.target = target.dataset.channel as AmbienceChannel;
+      drag.after = horizontal ? event.clientX > bounds.left + bounds.width / 2 : event.clientY > bounds.top + bounds.height / 2;
+      target.classList.add('drop-target');
+    } else drag.target = null;
+  };
+  const finishDrag = (event: PointerEvent) => {
+    if (!ambienceDrag || ambienceDrag.pointerId !== event.pointerId) return;
+    const drag = ambienceDrag; ambienceDrag = null;
+    document.querySelectorAll('.ambience-row.is-dragging, .ambience-row.drop-target').forEach(card => card.classList.remove('is-dragging', 'drop-target'));
+    if (drag.started && drag.target) {
+      const next = [...ambienceOrder], sourceIndex = next.indexOf(drag.channel), targetIndex = next.indexOf(drag.target);
+      if (sourceIndex >= 0 && targetIndex >= 0) { next.splice(sourceIndex, 1); next.splice(targetIndex + (drag.after ? 1 : 0) - (sourceIndex < targetIndex + (drag.after ? 1 : 0) ? 1 : 0), 0, drag.channel); saveAmbienceOrder(next); refreshAmbienceOrder(drag.channel); }
+    }
+  };
+  icon.onpointerup = finishDrag; icon.onpointercancel = event => { if (ambienceDrag?.pointerId === event.pointerId) { ambienceDrag = null; document.querySelectorAll('.ambience-row.is-dragging, .ambience-row.drop-target').forEach(card => card.classList.remove('is-dragging', 'drop-target')); } };
+  info.className = 'ambience-copy'; title.type = 'button'; title.className = 'ambience-source'; title.textContent = trackLabel; title.setAttribute('aria-label', `Elegir ambiente. Actual: ${trackLabel}`); title.setAttribute('aria-expanded', 'false'); title.setAttribute('aria-controls', `ambience-picker-${id}`);
+  description.textContent = selected?.description ?? meta.description; info.append(title, description);
+  picker.id = `ambience-picker-${id}`; picker.className = 'ambience-track-menu'; picker.setAttribute('role', 'group'); picker.setAttribute('aria-label', `Ambientes disponibles para ${trackLabel}`); picker.hidden = true;
+  for (const item of options) {
+    const option = document.createElement('button'); option.type = 'button'; option.className = 'ambience-track-option'; option.textContent = item.label; option.setAttribute('aria-pressed', String(item.id === selected?.id));
+    option.onclick = () => {
+      title.textContent = item.label; title.setAttribute('aria-label', `Elegir ambiente. Actual: ${item.label}`); description.textContent = item.description ?? meta.description;
+      picker.setAttribute('aria-label', `Ambientes disponibles para ${item.label}`); picker.querySelectorAll<HTMLButtonElement>('.ambience-track-option').forEach(choice => choice.setAttribute('aria-pressed', String(choice === option)));
+      picker.hidden = true; title.setAttribute('aria-expanded', 'false'); title.focus({ preventScroll: true }); command({ type: 'audio:select', channel: id, trackId: item.id });
+    };
+    picker.append(option);
+  }
+  title.disabled = !options.length;
+  title.onclick = () => {
+    const open = title.getAttribute('aria-expanded') !== 'true';
+    document.querySelectorAll<HTMLButtonElement>('.ambience-source[aria-expanded="true"]').forEach(toggle => { if (toggle !== title) { toggle.setAttribute('aria-expanded', 'false'); document.getElementById(toggle.getAttribute('aria-controls') ?? '')?.setAttribute('hidden', ''); } });
+    title.setAttribute('aria-expanded', String(open)); picker.hidden = !open;
+  };
+  picker.onkeydown = event => { if (event.key === 'Escape') { event.preventDefault(); picker.hidden = true; title.setAttribute('aria-expanded', 'false'); title.focus(); } };
+  button.type = 'button'; button.className = 'ambience-toggle'; button.textContent = track.playing ? 'Ⅱ' : '▶'; button.title = track.playing ? `Pausar ${trackLabel}` : `Reproducir ${trackLabel}`; button.setAttribute('aria-label', button.title); button.setAttribute('aria-pressed', String(track.playing));
   const send = (next: Partial<Pick<AudioState['music'], 'playing' | 'volume' | 'loop' | 'rate' | 'repeats'>> = {}) => sendAudio(id, { playing: next.playing ?? track.playing, volume: next.volume ?? Number(range.value), loop: next.loop ?? track.loop, rate: next.rate ?? track.rate, repeats: next.repeats ?? track.repeats });
-  button.textContent = track.playing ? 'Pausar' : 'Iniciar'; button.onclick = () => send({ playing: !track.playing }); range.type = 'range'; range.min = '0'; range.max = '1'; range.step = '.05'; range.value = String(track.volume); range.setAttribute('aria-label', `Volumen de ${title.textContent}`); level.textContent = `${Math.round(track.volume * 100)}%`; range.oninput = () => level.textContent = `${Math.round(Number(range.value) * 100)}%`; range.onchange = () => send({ volume: Number(range.value) }); label.append('Volumen', level, range);
+  button.onclick = () => send({ playing: !track.playing }); range.type = 'range'; range.min = '0'; range.max = '1'; range.step = '.05'; range.value = String(track.volume); range.setAttribute('aria-label', `Volumen de ${trackLabel}`); level.textContent = `${Math.round(track.volume * 100)}%`; range.oninput = () => level.textContent = `${Math.round(Number(range.value) * 100)}%`; range.onchange = () => send({ volume: Number(range.value) }); label.append('Volumen', level, range);
   cadence.className = 'cadence'; loop.type = 'button'; loop.className = `loop-control${track.loop ? ' active' : ''}`; loop.textContent = '∞'; loop.title = track.loop ? 'Bucle infinito activo' : 'Repetir un número definido de veces'; loop.setAttribute('aria-pressed', String(track.loop)); loop.onclick = () => send({ loop: !track.loop });
-  for (const option of [.75, 1, 1.25]) { const item = document.createElement('option'); item.value = String(option); item.textContent = `${option}×`; item.selected = option === track.rate; speed.append(item); }
-  speed.title = 'Velocidad de la capa'; speed.setAttribute('aria-label', `Velocidad de ${title.textContent}`); speed.onchange = () => send({ rate: Number(speed.value) });
-  for (const amount of [1, 2, 3, 6, 12]) { const item = document.createElement('option'); item.value = String(amount); item.textContent = `${amount} vez${amount === 1 ? '' : 'es'}`; item.selected = amount === track.repeats; repeats.append(item); }
-  repeats.disabled = track.loop; repeats.title = track.loop ? 'Desactiva ∞ para elegir repeticiones' : 'Número de repeticiones'; repeats.setAttribute('aria-label', `Repeticiones de ${title.textContent}`); repeats.onchange = () => send({ loop: false, repeats: Number(repeats.value) }); cadence.append(loop, speed, repeats); row.append(icon, info, button, label, cadence); return row;
+  const rates = [.75, 1, 1.25], currentRate = Math.max(0, rates.indexOf(track.rate)), nextRate = rates[(currentRate + 1) % rates.length]!;
+  speed.type = 'button'; speed.className = 'cadence-step'; speed.textContent = `${String(track.rate).replace('.', ',')}×`; speed.title = `Velocidad actual. Tocar para cambiar a ${String(nextRate).replace('.', ',')}×`; speed.setAttribute('aria-label', `Velocidad ${String(track.rate).replace('.', ',')} veces; cambiar a ${String(nextRate).replace('.', ',')} veces`); speed.onclick = () => send({ rate: nextRate });
+  const repeatOptions = [1, 2, 3, 6, 12], currentRepeat = Math.max(0, repeatOptions.indexOf(track.repeats)), nextRepeat = repeatOptions[(currentRepeat + 1) % repeatOptions.length]!;
+  repeats.type = 'button'; repeats.className = 'cadence-step'; repeats.textContent = `${track.repeats} vez${track.repeats === 1 ? '' : 'es'}`; repeats.disabled = track.loop; repeats.title = track.loop ? 'Desactiva el bucle infinito para elegir repeticiones' : `Tocar para cambiar a ${nextRepeat} veces`; repeats.setAttribute('aria-label', `Repeticiones: ${track.repeats}; cambiar a ${nextRepeat}`); repeats.onclick = () => send({ loop: false, repeats: nextRepeat });
+  cadence.append(loop, speed, repeats); heading.append(icon, info, button); row.append(heading, picker, label, cadence); return row;
+}
+
+function saveAmbienceOrder(order: AmbienceChannel[]) {
+  ambienceOrder = order;
+  try { localStorage.setItem(ambienceOrderStorageKey, JSON.stringify(order)); } catch { /* La consola sigue funcionando aunque el navegador no permita guardar preferencias. */ }
+}
+function refreshAmbienceOrder(focusChannel?: AmbienceChannel) {
+  if (!state) return;
+  render(state, true);
+  if (focusChannel) document.querySelector<HTMLButtonElement>(`.ambience-row[data-channel="${focusChannel}"] .ambience-drag-handle`)?.focus({ preventScroll: true });
 }
 
 $('loginForm').onsubmit = event => { event.preventDefault(); void beginDm(($('password') as HTMLInputElement).value); };
 document.querySelectorAll<HTMLButtonElement>('[data-page]').forEach(button => button.onclick = () => showVisualPage(button.dataset.page === 'visual', true));
 const audioSectionTabs = [...document.querySelectorAll<HTMLButtonElement>('[data-audio-section]')];
+document.addEventListener('pointerdown', event => {
+  if (event.target instanceof Element && event.target.closest('.ambience-copy, .ambience-track-menu')) return;
+  document.querySelectorAll<HTMLButtonElement>('.ambience-source[aria-expanded="true"]').forEach(toggle => {
+    toggle.setAttribute('aria-expanded', 'false'); document.getElementById(toggle.getAttribute('aria-controls') ?? '')?.setAttribute('hidden', '');
+  });
+});
 audioSectionTabs.forEach((button, index) => {
   button.onclick = () => showSoundSection(button.dataset.audioSection as SoundSection);
   button.onkeydown = event => {
@@ -284,33 +391,35 @@ document.querySelectorAll<HTMLButtonElement>('[data-weather-intensity]').forEach
   command({ type: 'environment', storm: true, intensity, trackId: preset.assetId });
 });
 const swipeSurface = $('swipeSurface'), pageTrack = $('pageTrack');
-swipeSurface.addEventListener('touchstart', event => {
-  if (event.touches.length !== 1) return;
-  const touch = event.touches[0]!, target = event.target;
-  swipe = { x: touch.clientX, y: touch.clientY, dragging: false, direction: 'pending', interactive: target instanceof Element && Boolean(target.closest('input,button,select,option,textarea,label,a')) };
-}, { passive: true });
-swipeSurface.addEventListener('touchmove', event => {
-  if (!swipe || swipe.interactive || event.touches.length !== 1) return;
-  const touch = event.touches[0]!, dx = touch.clientX - swipe.x, dy = touch.clientY - swipe.y;
+swipeSurface.addEventListener('pointerdown', event => {
+  if (!event.isPrimary || event.pointerType === 'mouse') return;
+  const target = event.target;
+  swipe = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, lastX: event.clientX, lastTime: event.timeStamp, velocityX: 0, dragging: false, direction: 'pending', interactive: target instanceof Element && Boolean(target.closest('input,button,select,option,textarea,label,a,[contenteditable="true"]')) };
+});
+swipeSurface.addEventListener('pointermove', event => {
+  if (!swipe || swipe.pointerId !== event.pointerId || swipe.interactive) return;
+  const dx = event.clientX - swipe.x, dy = event.clientY - swipe.y;
   if (swipe.direction === 'pending') {
-    if (Math.hypot(dx, dy) < 12) return;
+    if (Math.hypot(dx, dy) < 10) return;
     swipe.direction = Math.abs(dx) > Math.abs(dy) * 1.2 ? 'horizontal' : 'vertical';
   }
-  if (swipe.direction === 'vertical') return;
-  swipe.dragging = true; event.preventDefault();
+  if (swipe.direction === 'vertical') { swipe = null; return; }
+  swipe.dragging = true; event.preventDefault(); swipe.velocityX = (event.clientX - swipe.lastX) / Math.max(1, event.timeStamp - swipe.lastTime); swipe.lastX = event.clientX; swipe.lastTime = event.timeStamp;
+  if (!swipeSurface.hasPointerCapture(event.pointerId)) swipeSurface.setPointerCapture(event.pointerId);
   const width = Math.max(swipeSurface.clientWidth, 1), base = visualPageOpen ? 0 : -50;
   const position = Math.max(-50, Math.min(0, base + (dx / width) * 50));
   pageTrack.classList.add('dragging'); pageTrack.style.transform = `translate3d(${position}%,0,0)`;
-}, { passive: false });
-swipeSurface.addEventListener('touchend', event => {
-  if (!swipe || event.changedTouches.length !== 1) return;
-  const touch = event.changedTouches[0]!, dx = touch.clientX - swipe.x, dy = touch.clientY - swipe.y;
+});
+swipeSurface.addEventListener('pointerup', event => {
+  if (!swipe || swipe.pointerId !== event.pointerId) return;
+  const dx = event.clientX - swipe.x, dy = event.clientY - swipe.y, velocityX = swipe.velocityX;
   const horizontal = swipe.direction === 'horizontal' && swipe.dragging && Math.abs(dx) > Math.abs(dy);
-  if (horizontal && !visualPageOpen && dx > 54) showVisualPage(true, true);
-  else if (horizontal && visualPageOpen && dx < -54) showVisualPage(false);
+  const committed = Math.abs(dx) >= Math.max(42, swipeSurface.clientWidth * .14) || Math.abs(velocityX) > .45 && Math.abs(dx) > 24;
+  if (horizontal && committed && !visualPageOpen && dx > 0) showVisualPage(true);
+  else if (horizontal && committed && visualPageOpen && dx < 0) showVisualPage(false);
   else showVisualPage(visualPageOpen);
   swipe = null;
-}, { passive: true });
-swipeSurface.addEventListener('touchcancel', () => { if (swipe) showVisualPage(visualPageOpen); swipe = null; }, { passive: true });
+});
+swipeSurface.addEventListener('pointercancel', event => { if (swipe?.pointerId === event.pointerId) { showVisualPage(visualPageOpen); swipe = null; } });
 addEventListener('keydown', event => { if (event.key === 'Escape' && visualPageOpen) showVisualPage(false); });
 void beginDm();

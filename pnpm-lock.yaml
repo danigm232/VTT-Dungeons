@@ -11,6 +11,9 @@ importers:
       '@babylonjs/core':
         specifier: 9.26.0
         version: 9.26.0
+      '@babylonjs/loaders':
+        specifier: 9.26.0
+        version: 9.26.0(@babylonjs/core@9.26.0)(babylonjs-gltf2interface@9.28.0)
       express:
         specifier: 5.1.0
         version: 5.1.0(supports-color@7.2.0)
@@ -89,6 +92,12 @@ packages:
 
   '@babylonjs/core@9.26.0':
     resolution: {integrity: sha512-YJe7Zh9vj6Wg8NawJoAycoGFFhuzW9KLZykNm2nvlNrs2P43HTMv3SvgbfwHKkDpHcga4crdyVNlSf055LLkXg==}
+
+  '@babylonjs/loaders@9.26.0':
+    resolution: {integrity: sha512-IgfmNNspPu7CxCG0C8vvN32M0fc3we2mlwRzYMdYrTgNFFQRO+CdP3HF68sSlaZ0P5hV9gS42HBX+3kUXAAfrQ==}
+    peerDependencies:
+      '@babylonjs/core': ^9.0.0
+      babylonjs-gltf2interface: ^9.0.0
 
   '@bcoe/v8-coverage@1.0.2':
     resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
@@ -558,6 +567,9 @@ packages:
 
   ast-v8-to-istanbul@0.3.12:
     resolution: {integrity: sha512-BRRC8VRZY2R4Z4lFIL35MwNXmwVqBityvOIwETtsCSwvjl0IdgFsy9NhdaA6j74nUdtJJlIypeRhpDam19Wq3g==}
+
+  babylonjs-gltf2interface@9.28.0:
+    resolution: {integrity: sha512-cNil13HFJNCefnQ0fCX3bjSkMoNwcnohW+Iy2YEzWazwrpIhAcLqCb62XlDHs5X3YiJoEM71YjdddDeuQYmw7w==}
 
   balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
@@ -1406,6 +1418,11 @@ snapshots:
 
   '@babylonjs/core@9.26.0': {}
 
+  '@babylonjs/loaders@9.26.0(@babylonjs/core@9.26.0)(babylonjs-gltf2interface@9.28.0)':
+    dependencies:
+      '@babylonjs/core': 9.26.0
+      babylonjs-gltf2interface: 9.28.0
+
   '@bcoe/v8-coverage@1.0.2': {}
 
   '@esbuild/aix-ppc64@0.25.12':
@@ -1758,6 +1775,8 @@ snapshots:
       '@jridgewell/trace-mapping': 0.3.31
       estree-walker: 3.0.3
       js-tokens: 10.0.0
+
+  babylonjs-gltf2interface@9.28.0: {}
 
   balanced-match@1.0.2: {}
 

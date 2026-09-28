@@ -30,6 +30,7 @@ const conditionSource = z.object({
 const resource = z.object({ label: z.string().min(1).max(80), current: boundedInt.max(99), max: boundedInt.max(99) }).strict().refine(value => value.current <= value.max, 'RESOURCE_CURRENT');
 const characterSheet = z.object({
   level: boundedInt.min(1).max(20), armorClass: boundedInt.min(1).max(99), speedMeters: z.number().finite().positive().max(300), background: z.string().min(1).max(180),
+  strengthScore: boundedInt.min(1).max(30).optional(),
   features: z.array(z.string().min(1).max(500)).max(40), attacks: z.array(z.string().min(1).max(500)).max(40), spells: z.array(z.string().min(1).max(500)).max(80),
   details: z.array(z.object({ title: z.string().min(1).max(120), entries: z.array(z.string().min(1).max(500)).max(30) }).strict()).max(20).optional()
 }).strict();

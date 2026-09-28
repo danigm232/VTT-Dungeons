@@ -1,13 +1,13 @@
 import type { CharacterPrivateSeed, EncounterDefinition } from '../../../engine/server/campaign.js';
 
 export const privateCharacterSeeds: Record<string, CharacterPrivateSeed & { sheet: NonNullable<CharacterPrivateSeed['sheet']> }> = {
-  mike: { maxHp: 8, inventory: ['Espada corta', 'Saquito de componentes', 'Libro de conjuros', 'Mochila'], sheet: { level: 1, armorClass: 12, speedMeters: 9, background: 'Erudito', features: ['Alto elfo', 'Recuperación arcana'], attacks: ['Espada corta'], spells: ['Libro de conjuros · consulta con el DM'] } },
-  mia: { maxHp: 11, inventory: ['Cota de malla', 'Escudo', 'Maza', 'Hacha de mano', 'Símbolo sagrado', 'Mochila'], sheet: { level: 1, armorClass: 18, speedMeters: 7.5, background: 'Soldado', features: ['Enana de las colinas', 'Lanzamiento de conjuros divinos'], attacks: ['Maza', 'Hacha de mano'], spells: ['Símbolo sagrado · consulta con el DM'] } },
+  mike: { maxHp: 8, inventory: ['Espada corta', 'Saquito de componentes', 'Libro de conjuros', 'Mochila'], sheet: { level: 1, armorClass: 12, speedMeters: 9, background: 'Erudito', features: ['Alto elfo', 'Recuperación arcana'], attacks: ['Espada corta'], spells: ['Libro de conjuros · consulta con el DM'] }, explorationBasics: ['jump'] },
+  mia: { maxHp: 11, inventory: ['Cota de malla', 'Escudo', 'Maza', 'Hacha de mano', 'Símbolo sagrado', 'Mochila'], sheet: { level: 1, armorClass: 18, speedMeters: 7.5, background: 'Soldado', features: ['Enana de las colinas', 'Lanzamiento de conjuros divinos'], attacks: ['Maza', 'Hacha de mano'], spells: ['Símbolo sagrado · consulta con el DM'] }, explorationBasics: ['jump'] },
   maria: {
     maxHp: 9,
     inventory: ['Armadura de cuero', 'Arco corto', '20 flechas', '2 dagas', 'Herramientas de ladrón', 'Mochila'],
     sheet: {
-      level: 1, armorClass: 14, speedMeters: 7.5, background: 'Criminal',
+      level: 1, armorClass: 14, speedMeters: 7.5, strengthScore: 8, background: 'Criminal',
       features: ['Mediana piesligeros', 'Ataque furtivo · 1d6, una vez por turno', 'Pericia: Sigilo y herramientas de ladrón', 'Jerga de ladrones'],
       attacks: ['Arco corto', 'Dagas'], spells: []
     },

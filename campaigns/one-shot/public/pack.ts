@@ -101,6 +101,7 @@ const definition: PublicCampaignDefinition = {
       defeated: { frames: silverfarbenFrames('arrastrarse', 4), fps: 4 },
       interact: { frames: [silverfarbenFrame('interactuar')], fps: 1 },
       swimming: { frames: silverfarbenFrames('nadar', 4), fps: 7 },
+      jump: { frames: silverfarbenFrames('saltar', 3), fps: 9 },
       jumping: { frames: silverfarbenFrames('saltar', 3), fps: 9 },
       stealth: { frames: silverfarbenFrames('sigilo', 4), fps: 6 },
       climbing: { frames: silverfarbenFrames('trepar', 4), fps: 6 },

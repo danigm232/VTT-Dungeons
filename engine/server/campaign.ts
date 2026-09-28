@@ -7,6 +7,8 @@ export type CharacterSheet = {
   level: number;
   armorClass: number;
   speedMeters: number;
+  /** Optional until transcribed from a verified character sheet. */
+  strengthScore?: number;
   background: string;
   features: string[];
   attacks: string[];

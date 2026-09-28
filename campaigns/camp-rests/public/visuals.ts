@@ -15,6 +15,7 @@ import type { CampRestPhase, CampRestState } from '../../../engine/shared/camp-r
 import { Scene } from '@babylonjs/core/scene.js';
 import { softPoolMaterial } from '../../../engine/client/diorama-kit.js';
 import { createA1Visuals } from './a1-visuals.js';
+import type { ForestFaunaController } from './forest-fauna.js';
 
 const CELL = 1.5;
 const color = (value: string) => Color3.FromHexString(value);
@@ -26,7 +27,7 @@ function quad(scene: Scene, root: TransformNode, name: string, points: number[][
   data.uvs = [0, 0, 1, 0, 1, 1, 0, 1]; data.applyToMesh(mesh); mesh.material = material; mesh.parent = root; mesh.isPickable = false; return mesh;
 }
 
-export type CampVisuals = { root: TransformNode; update: (elapsedSeconds: number, phase?: CampRestPhase | null, interactions?: CampRestState['interactions'], focusCell?: Cell | null) => void; setInteractionHighlights: (enabled: boolean) => void };
+export type CampVisuals = { root: TransformNode; update: (elapsedSeconds: number, phase?: CampRestPhase | null, interactions?: CampRestState['interactions'], focusCell?: Cell | null) => void; setInteractionHighlights: (target: boolean | string | null) => void };
 
 /** Adds only decorative camp geometry to the existing VTT Babylon scene.
  * Movement, grid, camera, characters and collisions stay in the shared runtime. */
@@ -35,6 +36,15 @@ export function createCampVisuals(scene: Scene, definition: PublicSceneDefinitio
   if (!camp) return null;
   if (definition.id === 'camp-a1-rooms') return createA1Visuals(scene, definition);
   const root = new TransformNode(`camp-visuals:${definition.id}`, scene);
+  let forestFauna: ForestFaunaController | null = null;
+  let sceneDisposed = false;
+  if (camp.visualProfile === 'forest' && typeof document !== 'undefined') {
+    scene.onDisposeObservable.addOnce(() => { sceneDisposed = true; forestFauna?.dispose(); });
+    const forestGridSize = { width: (definition.terrain?.cols ?? 24) * CELL, depth: (definition.terrain?.rows ?? 22) * CELL };
+    void import('./forest-fauna.js').then(({ createForestFauna }) => createForestFauna(scene, root, forestGridSize)).then(controller => {
+      if (sceneDisposed) controller.dispose(); else forestFauna = controller;
+    }).catch(error => console.warn('No se pudo preparar la fauna ocasional del bosque', error));
+  }
   const mats: Record<string, StandardMaterial> = {};
   const mat = (id: string, hex: string, options: { emissive?: string; alpha?: number; twoSided?: boolean } = {}) => {
     const value = new StandardMaterial(`camp:${definition.id}:${id}`, scene);
@@ -60,7 +70,7 @@ export function createCampVisuals(scene: Scene, definition: PublicSceneDefinitio
   const interactionRings: Mesh[] = [];
   const canopySways: Array<{ node: TransformNode; phase: number }> = [], cloudRoots: TransformNode[] = [], aurora: TransformNode[] = [], chestLids = new Map<string, Mesh>();
   const waterOrigins = new Map<Mesh, Vector3>(), seaVertices = new Map<Mesh, { base: Float32Array; current: Float32Array }>();
-  let interactionHighlights = false;
+  let interactionHighlights: boolean | string | null = false;
   const add = <T extends Mesh>(mesh: T, at: Vector3, material: StandardMaterial, scale?: Vector3) => {
     mesh.position.copyFrom(at); mesh.material = material; mesh.parent = root; mesh.isPickable = false;
     if (scale) mesh.scaling.copyFrom(scale); meshes.push(mesh); return mesh;
@@ -75,11 +85,11 @@ export function createCampVisuals(scene: Scene, definition: PublicSceneDefinitio
   const addPointLight = (light: PointLight, base: number, kind: 'fire' | 'lamp' | 'crystal' | 'watch') => {
     light.intensity = base; pointLights.push({ light, base, kind });
   };
-  const pointObjects = camp.interactionPoints.map(point => ({ point, objectAt: cellPoint(point.objectCell ?? point.cell), approachAt: cellPoint(point.cell) }));
+  const pointObjects = camp.interactionPoints.map(point => ({ point, objectAt: cellPoint(point.objectCell ?? point.cell) }));
   const firePoints = pointObjects.filter(item => item.point.kind === 'fire');
-  for (const { point, approachAt } of pointObjects) {
+  for (const { point, objectAt } of pointObjects) {
     const ring = MeshBuilder.CreateTorus(`${point.id}:dm-interaction-halo`, { diameter: 1.08, thickness: .055, tessellation: 20 }, scene);
-    ring.position.copyFrom(approachAt); ring.position.y = .075; ring.rotation.x = Math.PI / 2;
+    ring.position.copyFrom(objectAt); ring.position.y = .075; ring.rotation.x = Math.PI / 2;
     ring.material = M.interactionHalo; ring.visibility = 0; ring.parent = root; ring.isPickable = false; meshes.push(ring); interactionRings.push(ring);
   }
 
@@ -486,10 +496,13 @@ export function createCampVisuals(scene: Scene, definition: PublicSceneDefinitio
   }
   movingWater.forEach(mesh => waterOrigins.set(mesh, mesh.position.clone()));
   const update = (elapsedSeconds: number, phase?: CampRestPhase | null, interactions: CampRestState['interactions'] = []) => {
+    forestFauna?.update(elapsedSeconds);
     interactionRings.forEach((ring, index) => {
       const pulse = .6 + Math.sin(elapsedSeconds * 2.2 + index * .37) * .09;
-      ring.visibility = interactionHighlights ? pulse : 0;
-      ring.scaling.setAll(interactionHighlights ? 1 + Math.sin(elapsedSeconds * 1.6 + index * .37) * .035 : 1);
+      const pointId = pointObjects[index]?.point.id;
+      const highlighted = interactionHighlights === true || (typeof interactionHighlights === 'string' && interactionHighlights === pointId);
+      ring.visibility = highlighted ? pulse : 0;
+      ring.scaling.setAll(highlighted ? 1 + Math.sin(elapsedSeconds * 1.6 + index * .37) * .035 : 1);
     });
     // Darkness is a true 0..1 darkening value; light levels therefore move in
     // the expected direction from arrival through night and back at dawn.
@@ -576,5 +589,5 @@ export function createCampVisuals(scene: Scene, definition: PublicSceneDefinitio
     scene.clearColor.set(sky.r, sky.g, sky.b, 1); scene.fogColor.copyFrom(fog);
   };
   update(0, null);
-  return { root, update, setInteractionHighlights: enabled => { interactionHighlights = enabled; } };
+  return { root, update, setInteractionHighlights: target => { interactionHighlights = target; } };
 }

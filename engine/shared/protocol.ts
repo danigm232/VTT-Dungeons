@@ -61,7 +61,7 @@ export const explorationBasicActionCatalogue = {
   'disarm-trap': { label: 'Desarmar trampa', target: 'any', animation: 'interact', guidance: 'El DM confirma que la trampa está descubierta, comprueba tus herramientas de ladrón y aplica la CD y consecuencias de la aventura.' },
   climb: { label: 'Trepar', target: 'point', animation: 'climb', guidance: 'Marca el destino propuesto. El DM comprueba la superficie; pide Atletismo solo si una dificultad lo justifica.' },
   swim: { label: 'Nadar', target: 'point', animation: 'swim', guidance: 'Marca el destino propuesto. El DM decide profundidad, corriente y si hay riesgo de agotamiento o ahogamiento.' },
-  jump: { label: 'Saltar', target: 'point', animation: 'jump', guidance: 'Marca el destino propuesto. El DM valida el salto con la Fuerza y la distancia de la ficha.' }
+  jump: { label: 'Saltar', target: 'point', animation: 'jump', guidance: 'El salto forma parte del movimiento; no consume una acción. Marca el destino propuesto. El DM valida la distancia y el aterrizaje.' }
 } as const;
 export type ExplorationBasicAction = keyof typeof explorationBasicActionCatalogue;
 export type ExplorationBasicTarget = typeof explorationBasicActionCatalogue[ExplorationBasicAction]['target'];
@@ -176,6 +176,7 @@ export interface CharacterPublic {
 
 export interface CharacterSheetView {
   level: number; armorClass: number; speedMeters: number; background: string;
+  strengthScore?: number;
   features: string[]; attacks: string[]; spells: string[];
   details?: Array<{ title: string; entries: string[] }>;
 }
@@ -306,6 +307,7 @@ export const characterSheetUpdateSchema = z.object({
   runtimeEpoch: runtimeEpochSchema.optional(), commandId: commandIdSchema,
   sheet: z.object({
     level: z.number().int().min(1).max(20), armorClass: z.number().int().min(1).max(99), speedMeters: z.number().finite().positive().max(300),
+    strengthScore: z.number().int().min(1).max(30).optional(),
     background: z.string().trim().min(1).max(180), features: z.array(z.string().trim().min(1).max(500)).max(40),
     attacks: z.array(z.string().trim().min(1).max(500)).max(40), spells: z.array(z.string().trim().min(1).max(500)).max(80),
     details: z.array(z.object({ title: z.string().trim().min(1).max(120), entries: z.array(z.string().trim().min(1).max(500)).max(30) }).strict()).max(20).optional()

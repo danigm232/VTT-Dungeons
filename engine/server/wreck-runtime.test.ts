@@ -136,6 +136,7 @@ describe('Rosa de los Vientos · mapa único explorable', () => {
 
   it('carga los ataques reales de Trinity y registra sus gestos de exploración para arbitraje del DM', () => {
     const state = new GameState(stormwreckBundle), maria = state.characters.get('maria')!, token = 'b'.repeat(32);
+    expect(maria.sheet?.strengthScore).toBe(8);
     expect(maria.combat.attacks).toMatchObject([
       { id: 'shortbow', attackBonus: 5, damageDice: '1d6', damageBonus: 3, range: { normalMeters: 24, longMeters: 96 } },
       { id: 'dagger', attackBonus: 5, damageDice: '1d4', damageBonus: 3, finesse: true },
@@ -150,6 +151,21 @@ describe('Rosa de los Vientos · mapa único explorable', () => {
     expect(state.dmState().lastExplorationAction).toMatchObject({ characterId: 'maria', action: 'search', targetLabel: expect.stringContaining('casilla') });
     expect(state.declareExplorationBasicAction('maria', 'climb', undefined, { col: 999, row: 999 })).toMatchObject({ ok: false, code: 'INVALID_TARGET' });
     expect(state.publicSnapshot().combat.active).toBe(false);
+  });
+
+  it('migra la FUE de Trinity a los guardados antiguos y la usa al declarar un salto', () => {
+    const source = new GameState(stormwreckBundle), oldSave = structuredClone(source.captureDurable());
+    delete oldSave.characters.find(character => character.id === 'maria')!.sheet?.strengthScore;
+    const restored = new GameState(stormwreckBundle);
+
+    expect(restored.restoreDurable(oldSave)).toBe(true);
+    expect(restored.characters.get('maria')?.sheet?.strengthScore).toBe(8);
+
+    const token = 'c'.repeat(32);
+    expect(restored.claim(token, 'socket-trinity', 'maria').ok).toBe(true);
+    expect(restored.playerPrivate(token).sheet?.strengthScore).toBe(8);
+    expect(restored.declareExplorationBasicAction('maria', 'jump', undefined, restored.characters.get('maria')!.cell))
+      .toMatchObject({ ok: true, guidance: expect.stringContaining('FUE 8') });
   });
 
   it('tiene una animación registrada y PNG existente para cada acción básica y de combate de Trinity', () => {

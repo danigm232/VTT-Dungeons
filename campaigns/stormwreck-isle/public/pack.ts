@@ -208,17 +208,22 @@ const definition: PublicCampaignDefinition = {
         { id: 'stormwreck-music-tempest', label: 'Isla de las Tempestades', description: 'Tema marítimo para navegación y tensión suave.', url: '/audio/music-tempest.wav' },
         { id: 'stormwreck-combat-surf', label: 'Combate · costa y pecio', description: 'Batalla contra no muertos y peligro del mar.', url: '/audio/stormwreck/music/pixabay-battle-epic.mp3' },
         { id: 'stormwreck-combat-heroic', label: 'Combate · dragones y aliados', description: 'Respuesta heroica para Runara y el clímax.', url: '/audio/stormwreck/music/pixabay-heroic-battle.mp3' },
-        { id: 'stormwreck-combat-shadow', label: 'Combate · cicatriz dracónica', description: 'Tensión oscura para Sparkrender y magia corrupta.', url: '/audio/stormwreck/music/pixabay-blackout-battle.mp3' }
+        { id: 'stormwreck-combat-shadow', label: 'Combate · cicatriz dracónica', description: 'Tensión oscura para Sparkrender y magia corrupta.', url: '/audio/stormwreck/music/pixabay-blackout-battle.mp3' },
+        { id: 'stormwreck-music-dragon-rest', label: 'Retiro del Dragón · santuario', description: 'Calma solemne para Dragon’s Rest y las conversaciones con Runara.', url: '/audio/stormwreck/ambience/stormwreck-loop-sanctuary.mp3' },
+        { id: 'stormwreck-music-rosa-vientos', label: 'El Rosa de los Vientos · pecio', description: 'Oleaje y madera para explorar el barco varado.', url: '/audio/stormwreck/ambience/stormwreck-loop-boat-waves.mp3' }
       ],
       ambience: [
         { id: 'stormwreck-loop-ocean', label: 'Oleaje de la isla', description: 'Mar constante contra las rocas.', url: '/audio/ambient-ocean.wav', category: 'scene', loopable: true },
         { id: 'stormwreck-loop-wind', label: 'Viento costero', description: 'Viento de acantilado y mar abierto.', url: '/audio/ambient-wind.wav', category: 'scene', loopable: true },
         { id: 'stormwreck-loop-wood', label: 'Madera del pecio', description: 'Casco, cubierta y jarcia que crujen.', url: '/audio/ambient-wood.wav', category: 'scene', loopable: true },
-        { id: 'stormwreck-loop-storm', label: 'Tormenta de la isla', description: 'Lluvia, viento y trueno sostenidos.', url: '/audio/ambient-storm.wav', category: 'scene', loopable: true },
+        { id: 'stormwreck-loop-storm', label: 'Tormenta de la isla', description: 'Lluvia y viento sostenidos; el trueno intenso se dispara aparte.', url: '/audio/stormwreck/ambience/stormwreck-loop-storm.mp3', category: 'scene', loopable: true },
         { id: 'stormwreck-loop-boat-waves', label: 'Olas contra el casco', description: 'Agua golpeando un barco varado.', url: '/audio/stormwreck/ambience/stormwreck-loop-boat-waves.mp3', category: 'scene', loopable: true },
         { id: 'stormwreck-loop-cliff-wind', label: 'Viento del observatorio', description: 'Aire frío para ruinas elevadas.', url: '/audio/stormwreck/ambience/stormwreck-loop-cliff-wind.ogg', category: 'scene', loopable: true },
         { id: 'stormwreck-loop-rain', label: 'Lluvia costera', description: 'Lluvia fina sin convertir cada escena en una tormenta.', url: '/audio/stormwreck/ambience/stormwreck-loop-rain.mp3', category: 'scene', loopable: true },
-        { id: 'stormwreck-loop-forest', label: 'Bosque de la isla', description: 'Vegetación, aves lejanas y aire exterior para la llegada o las sendas.', url: '/audio/stormwreck/ambience/stormwreck-loop-forest.mp3', category: 'scene', loopable: true },
+        { id: 'stormwreck-loop-forest', label: 'Bosque de la isla', description: 'Vegetación y aves lejanas para las sendas de la isla.', url: '/audio/stormwreck/ambience/stormwreck-loop-forest-night.mp3', category: 'scene', loopable: true },
+        { id: 'stormwreck-loop-forest-fire', label: 'Hoguera del bosque', description: 'Fuego bajo y constante para el claro del campamento.', url: '/audio/stormwreck/ambience/stormwreck-loop-forest-fire.mp3', category: 'scene', loopable: true },
+        { id: 'stormwreck-loop-forest-river-01', label: 'Arroyo de Pleamar · I', description: 'Agua corriente para el bosque y los caminos de Pleamar.', url: '/audio/stormwreck/ambience/stormwreck-loop-forest-river-01.mp3', category: 'scene', loopable: true },
+        { id: 'stormwreck-loop-forest-river-02', label: 'Arroyo de Pleamar · II', description: 'Variante de agua corriente para alternar la capa del arroyo.', url: '/audio/stormwreck/ambience/stormwreck-loop-forest-river-02.mp3', category: 'scene', loopable: true },
         { id: 'stormwreck-loop-sanctuary', label: 'Santuario de Runara', description: 'Calma solemne para Dragon’s Rest y conversaciones importantes.', url: '/audio/stormwreck/ambience/stormwreck-loop-sanctuary.mp3', category: 'scene', loopable: true }
       ],
       sfx: [
@@ -238,6 +243,7 @@ const definition: PublicCampaignDefinition = {
         { id: 'd8-night-sfx-spell-frost', label: 'Escarcha arcana', description: 'Rayo de escarcha, frío dracónico o suelo congelado.', url: '/audio/stormwreck/sfx/pixabay-magic-frost.mp3', category: 'magic' },
         { id: 'd8-night-sfx-magic-impact', label: 'Impacto mágico', description: 'Onda atronadora, descarga de hechizo o golpe elemental.', url: '/audio/stormwreck/sfx/pixabay-magic-impact.mp3', category: 'magic' },
         { id: 'stormwreck-sfx-thunder', label: 'Trueno y aliento de relámpago', description: 'Tormenta, aliento de dragón de bronce o estallido atronador.', url: '/audio/stormwreck/sfx/pixabay-thunder.mp3', category: 'magic' },
+        { id: 'stormwreck-sfx-heavy-thunder', label: 'Trueno intenso · Pleamar', description: 'Impacto de trueno de unos 5 segundos; efecto puntual, no ambiente ni bucle.', url: '/audio/stormwreck/sfx/stormwreck-sfx-heavy-thunder.mp3', category: 'scene' },
         { id: 'd8-night-sfx-magic-spark', label: 'Chispa de magia', description: 'Truco menor, objeto mágico o señal de energía.', url: '/audio/stormwreck/sfx/pixabay-magic-spark.mp3', category: 'magic' },
         { id: 'd8-night-sfx-magic-curse', label: 'Corrupción o maldición', description: 'Energía hostil, amenaza de Sparkrender o presencia inquietante.', url: '/audio/stormwreck/sfx/pixabay-magic-arcane.mp3', category: 'magic' },
         { id: 'd8-night-sfx-magic-ward', label: 'Barrera y protección', description: 'Escudo, defensa divina o resistencia.', url: '/audio/stormwreck/sfx/pixabay-magic-spark.mp3', category: 'magic' },

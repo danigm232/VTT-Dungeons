@@ -1,6 +1,6 @@
 # Licencias y créditos
 
-Actualizado: 2026-09-27, campamentos V1.4.2 y candidata técnica0.3.2-dev.5. Los avisos de terceros permanecen en `node_modules` y deben conservarse al empaquetar. El barco C1–C9 se renderiza como escena continua de terreno Babylon; Pixi mantiene escenas/runtime heredados. Los recursos añadidos tienen registros separados y algunos originales aportados aún carecen de licencia verificable; no se afirma que todo lo existente esté certificado para redistribución.
+Actualizado: 2026-09-28, fauna CC0 del bosque. Los avisos de terceros permanecen en `node_modules` y deben conservarse al empaquetar. El barco C1–C9 se renderiza como escena continua de terreno Babylon; Pixi mantiene escenas/runtime heredados. Los recursos añadidos tienen registros separados y algunos originales aportados aún carecen de licencia verificable; no se afirma que todo lo existente esté certificado para redistribución.
 
 ## Dependencias directas
 
@@ -9,6 +9,7 @@ Metadatos y archivos `LICENSE` comprobados en la instalación bloqueada de esta 
 | Dependencia | Versión | Licencia |
 |---|---:|---|
 | Babylon.js core | 9.26.0 | Apache-2.0; package.json y license.md locales comprobados21/09 |
+| Babylon.js loaders | 9.26.0 | Apache-2.0; importador glTF/GLB oficial |
 | PixiJS | 8.20.1 | MIT |
 | Express | 5.1.0 | MIT |
 | Socket.IO / socket.io-client | 4.8.1 | MIT |
@@ -28,6 +29,8 @@ El atlas de materiales `campaigns/camp-rests/public/art/a1-hd2d-v1/a1-material-a
 La revisión artística A1 V6 añade `a1-material-atlas-v6.png`, `bay-v3.png` y `foliage-atlas-v5.png`, también generados con ImageGen integrada y no declarados CC0. La evaluación del recurso Poly Haven estudiado y los prompts originales están en `campaigns/camp-rests/public/art/a1-hd2d-v1/A1_V6_PROVENANCE.md`; no se incorporó ningún archivo externo.
 
 La revisión A1 V7 conserva los materiales V6 para pavimentos y roca tallada y añade la textura rocosa orgánica `a1-cliff-organic-v7.png`, oleaje, espuma y relieve con Babylon Core. Un atlas alternativo generado durante la revisión se descartó por su repetición fotográfica. La procedencia y el límite de importación del paquete FBX constan en `campaigns/camp-rests/public/art/a1-hd2d-v1/A1_V7_PROVENANCE.md`.
+
+La fauna de fondo de Bosque camino a Pleamar usa `quaternius_cc0-deer-908.glb` y `quaternius_cc0-stag-1373.glb`, aportados para esta integración como recursos Quaternius CC0. Se conservan los modelos fuente; el acabado mate y la ligera corrección cromática se aplican al cargarlos. Se usan únicamente Idle, Idle_2, Idle_Headlow y Walk. Los archivos están en `campaigns/camp-rests/public/art/forest-fauna-v1/`.
 
 Los fondos `campaigns/stormwreck-isle/public/art/wreck-deck.png` y `wreck-approach.png`, el atlas y las cuatro fichas se generaron el 2026-09-13 con ImageGen integrada de Codex usando prompts originales de dirección visual táctica pixel art. No se asignan CC0 ni se presentan como arte oficial de Wizards of the Coast. El manifiesto con prompts resumidos, transformaciones y condiciones está en `campaigns/stormwreck-isle/public/art/ASSET_MANIFEST.md`.
 

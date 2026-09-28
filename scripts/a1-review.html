@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A1 · Revisión visual</title>
+<style>
+  body{margin:0;background:#182432;color:#eee;font:13px system-ui;overflow:hidden}
+  canvas{width:100vw;display:block;touch-action:none}
+  header{display:flex;flex-wrap:wrap;align-items:center;gap:9px;padding:10px 14px}
+  button,select{background:#394c56;color:#fff;border:1px solid #71828b;border-radius:5px;padding:6px 10px}
+  label{display:flex;align-items:center;gap:6px}output{margin-left:auto;font-size:11px}
+  input{width:130px;accent-color:#d9b77b}button[aria-pressed=true]{border-color:#f8d99c;color:#f8d99c}
+</style>
+<header>
+  <b>Habitaciones A1</b>
+  <button id="day" aria-pressed="true">Día</button>
+  <button id="night" aria-pressed="false">Noche</button>
+  <button id="rotate">Girar 45°</button>
+  <button id="marks" aria-pressed="false">Interactuables</button>
+  <button id="capture">Guardar captura</button>
+  <label>Vista<select id="framing"><option value="overview">General</option><option value="detail">Detalle</option></select></label>
+  <label>Interior<select id="room"><option value="">Exterior</option><option value="1">Celda 1</option><option value="2">Celda 2</option><option value="3">Celda 3</option><option value="4">Celda 4</option><option value="5">Celda 5</option><option value="6">Celda 6</option></select></label>
+  <label>Desplazar<input id="pan" type="range" min="9" max="63" step=".25" value="36" disabled></label>
+  <output id="stats"></output>
+</header>
+<canvas id="view"></canvas>
+<script type="module" src="/scripts/a1-review.ts"></script>
+</html>
