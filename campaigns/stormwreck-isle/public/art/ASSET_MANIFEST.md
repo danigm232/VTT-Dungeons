@@ -39,3 +39,7 @@ Desde esta candidata, antes de producir un recurso nuevo se aplica la criba de r
 ## Recurso ambiental M5 — 2026-09-25
 
 `ship/water-ripples-m5-candidate.png` se generó con ImageGen integrada de Codex a partir de un prompt original para oleaje/espuma repetibles. Es un material ambiental (no mapa ni suelo completo) que Babylon comparte entre el agua exterior y las casillas acuáticas. No se declara CC0 ni arte oficial; permanece candidata hasta revisión visual. SHA-256 `8FE9FE1A27A6AB4B3B42D97A2F54DB664E7B8DBBDABB479BABB7141B87FD81BA`. Procedencia e integración están en `campaigns/stormwreck-isle/private/m5/ART_WORKLOG_20260925.md`.
+
+## Pase del pecio — 2026-09-28
+
+`ship/c1-board-debris-art09.png` y `ship/c6-aleitha-brastos-portrait-art10.png` se generaron con ImageGen integrada en modo `stylized-concept` a partir de prompts originales. Son piezas independientes colocadas sobre la geometría Babylon: restos de C1 y retrato de C6 respectivamente. El texto exacto del retrato se añade en el motor, no está horneado en la imagen. No se declara que sean CC0, oficiales ni extraídos del PDF o de las referencias. Los prompts finales, procedencia y limitaciones figuran en `campaigns/stormwreck-isle/private/m5/PECIO_CANON_Y_ARTE_PLAN_20260928.md` y `campaigns/stormwreck-isle/private/m5/CABIN_AND_ROWBOAT_PASS_20260928.md`.

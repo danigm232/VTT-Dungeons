@@ -75,11 +75,14 @@ socket.on('connect', () => {
 socket.on('disconnect', () => document.getElementById('offline')!.classList.add('show'));
 socket.on('auth:error', () => { document.getElementById('offline')!.textContent = 'La aplicación se ha actualizado. Recarga esta página.'; document.getElementById('offline')!.classList.add('show'); });
 document.getElementById('start')!.onclick = async () => {
-  const unlocked = await audio.unlock();
   ready = true;
-  if (unlocked && pending) audio.apply(pending);
   socket.emit('projector:ready', { runtimeEpoch, ready: true });
   document.getElementById('prepare')!.remove();
+  // Some embedded browsers leave AudioContext.resume pending. The scene can
+  // be shown immediately while the independent sound permission resolves.
+  document.getElementById('audioNotice')!.hidden = false;
+  const unlocked = await audio.unlock();
+  if (unlocked && pending) audio.apply(pending);
   document.getElementById('audioNotice')!.hidden = unlocked;
 };
 document.getElementById('retryAudio')!.onclick = async () => {

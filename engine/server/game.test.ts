@@ -151,6 +151,22 @@ describe('inyección y privacidad', () => {
     // cerrar un servidor HTTP inexistente y produce un rechazo asíncrono.
   });
 
+  it('persiste el horario de escena sin modificar el estado del descanso', () => {
+    const server = new GameServer(new Server(), 'dm-test', stormwreckBundle);
+    const result = server.applyDmCommand({
+      type: 'environment', commandId: crypto.randomUUID(), runtimeEpoch: server.state.runtimeEpoch,
+      sceneEpoch: server.state.sceneEpoch, storm: false, timeOfDay: 'night'
+    } as DmCommand);
+    expect(result).toMatchObject({ ok: true, code: 'APPLIED' });
+    expect(server.state.environment.timeOfDay).toBe('night');
+    expect(server.state.campRest).toBeNull();
+
+    const saved = server.state.captureDurable();
+    expect(saved.environment.timeOfDay).toBe('night');
+    server.state.restoreDurable(saved);
+    expect(server.state.environment.timeOfDay).toBe('night');
+  });
+
   it('arranca una campaña sintética sin encuentro ni interacción especial', () => {
     const state = new GameState(syntheticBundle());
     expect(state.publicSnapshot().sceneId).toBe('quiet-room');

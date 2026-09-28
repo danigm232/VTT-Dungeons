@@ -8,6 +8,7 @@ import { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
 import { Texture as BabylonTexture } from '@babylonjs/core/Materials/Textures/texture.js';
 import { Scene as BabylonScene } from '@babylonjs/core/scene.js';
+import { PointLight } from '@babylonjs/core/Lights/pointLight.js';
 import { PROTOCOL_VERSION } from '../../engine/shared/protocol';
 import type { AttackAnimationType, Cell, CombatCondition, CombatEvent, DmObject, Facing, PublicEntity, PublicProp, WorldSnapshot } from '../../engine/shared/protocol';
 import type { PublicCampaignDefinition, PublicSceneDefinition, VisualAsset } from '../../engine/shared/campaign';
@@ -15,6 +16,8 @@ import { footprintFor } from '../../engine/shared/geometry';
 import { surfaceHeight, surfaceNeighbors, terrainTile } from '../../engine/shared/terrain';
 import { buildTerrain3D, type Terrain3DView } from '../../engine/client/terrain3d';
 import { buildShipPropVisual, shipPropVisualKey } from '../../engine/client/ship-props3d';
+import { buildShipRowboat, rowboatHullClearance, rowboatYaw } from '../../engine/client/ship-rowboat3d';
+import { wreckCabinAt, wreckCabins } from '../../engine/client/wreck-cabins';
 import { shipAmbientLightIntensity, shipWeatherLighting, shipWindStreaks } from '../../engine/client/ship-ambience';
 import { campTerrainHardwareScalingLevel } from '../../engine/client/camp-render-quality';
 import { createDragonRestVisuals } from '../../campaigns/stormwreck-isle/public/retreat-geometry.js';
@@ -34,6 +37,10 @@ const CAMERA_ZOOM_MIN = 0.4;
 const CAMERA_ZOOM_MAX = 8;
 const CAMERA_TILT_MIN_DEGREES = 20;
 const CAMERA_TILT_MAX_DEGREES = 65;
+const SHIP_DAY_WATER_COLOR = Color3.White();
+const SHIP_NIGHT_WATER_COLOR = Color3.FromHexString('#14202a');
+const SHIP_DAY_SEA_GLOW = Color3.FromHexString('#276d82');
+const SHIP_NIGHT_SEA_GLOW = Color3.FromHexString('#10242c');
 const clampCameraTilt = (degrees: number) => Math.max(CAMERA_TILT_MIN_DEGREES, Math.min(CAMERA_TILT_MAX_DEGREES, degrees));
 const normalizeCameraOrientation = (step: number) => ((Math.trunc(step) % CAMERA_ORIENTATION_COUNT) + CAMERA_ORIENTATION_COUNT) % CAMERA_ORIENTATION_COUNT;
 const facingDirections: Facing[] = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
@@ -112,7 +119,11 @@ export class WorldRenderer {
   private campVisualGeneration = 0;
   private campInteractionHighlights = false;
   private terrainProps = new Map<string, TransformNode>();
+  private rowboatVisual: TransformNode | null = null;
+  private rowboatHullCells: Cell[] = [];
+  private carriedLights = new Map<string, PointLight>();
   private shipPropWoodTexture: BabylonTexture | null = null;
+  private shipPropExteriorWoodTexture: BabylonTexture | null = null;
   private terrainCameraInitialized = false;
   private stairMarker: HTMLDivElement | null = null;
   private stairPin: HTMLDivElement | null = null;
@@ -440,7 +451,7 @@ export class WorldRenderer {
     const enabled = definition.renderer === 'babylon-hd2d' && Boolean(definition.terrain);
     if (!enabled) {
       if (this.terrainCanvas) this.terrainCanvas.hidden = true;
-      this.terrainScene?.dispose(); this.terrainScene = null; this.terrainView = null; this.terrainProps.clear();
+      this.terrainScene?.dispose(); this.terrainScene = null; this.terrainView = null; this.terrainProps.clear(); this.rowboatVisual = null; this.rowboatHullCells = []; this.carriedLights.clear();
       this.retreatVisuals = null; this.campVisuals = null;
       this.campInteractionHighlights = false;
       this.background.visible = true;
@@ -458,13 +469,39 @@ export class WorldRenderer {
     // and desktop scenes at native canvas resolution.
     const compactDisplay = typeof window !== 'undefined' && window.matchMedia('(max-width: 820px), (pointer: coarse)').matches;
     this.terrainEngine!.setHardwareScalingLevel(campTerrainHardwareScalingLevel(Boolean(definition.camp), compactDisplay));
-    this.terrainScene?.dispose(); this.terrainProps.clear(); this.retreatVisuals = null; this.campVisuals = null; this.terrainScene = new BabylonScene(this.terrainEngine!);
+    this.terrainScene?.dispose(); this.terrainProps.clear(); this.rowboatVisual = null; this.rowboatHullCells = []; this.carriedLights.clear(); this.retreatVisuals = null; this.campVisuals = null; this.terrainScene = new BabylonScene(this.terrainEngine!);
     if (!definition.camp) this.campInteractionHighlights = false;
     this.terrainScene.clearColor.set(.025, .07, .09, 1);
     const deckTexture = definition.id === 'wreck-ship'
       ? new BabylonTexture('/art/ship/deck-planks-art06.png', this.terrainScene, false, true, BabylonTexture.TRILINEAR_SAMPLINGMODE)
       : undefined;
     this.shipPropWoodTexture = deckTexture ?? null;
+    const exteriorDeckTexture = definition.id === 'wreck-ship'
+      ? new BabylonTexture('/art/ship/deck-exterior-art07.png', this.terrainScene, false, true, BabylonTexture.TRILINEAR_SAMPLINGMODE)
+      : undefined;
+    if (exteriorDeckTexture) {
+      exteriorDeckTexture.wrapU = exteriorDeckTexture.wrapV = BabylonTexture.WRAP_ADDRESSMODE;
+      exteriorDeckTexture.anisotropicFilteringLevel = 8;
+    }
+    this.shipPropExteriorWoodTexture = exteriorDeckTexture ?? null;
+    const sailTexture = definition.id === 'wreck-ship'
+      ? new BabylonTexture('/art/ship/tattered-sail-art08.png', this.terrainScene, false, true, BabylonTexture.TRILINEAR_SAMPLINGMODE)
+      : undefined;
+    if (sailTexture) {
+      sailTexture.hasAlpha = true;
+      sailTexture.wrapU = sailTexture.wrapV = BabylonTexture.CLAMP_ADDRESSMODE;
+    }
+    const boardingDebrisTexture = definition.id === 'wreck-ship'
+      ? new BabylonTexture('/art/ship/c1-board-debris-art09.png', this.terrainScene, false, true, BabylonTexture.TRILINEAR_SAMPLINGMODE)
+      : undefined;
+    if (boardingDebrisTexture) {
+      boardingDebrisTexture.hasAlpha = true;
+      boardingDebrisTexture.wrapU = boardingDebrisTexture.wrapV = BabylonTexture.CLAMP_ADDRESSMODE;
+    }
+    const cabinPortraitTexture = definition.id === 'wreck-ship'
+      ? new BabylonTexture('/art/ship/c6-aleitha-brastos-portrait-art10.png', this.terrainScene, false, true, BabylonTexture.TRILINEAR_SAMPLINGMODE)
+      : undefined;
+    if (cabinPortraitTexture) cabinPortraitTexture.wrapU = cabinPortraitTexture.wrapV = BabylonTexture.CLAMP_ADDRESSMODE;
     const hullTexture = definition.id === 'wreck-ship'
       ? new BabylonTexture('/art/ship/hull-planks-art04.png', this.terrainScene, false, true, BabylonTexture.TRILINEAR_SAMPLINGMODE)
       : undefined;
@@ -529,6 +566,10 @@ export class WorldRenderer {
       ambientIntensity: Math.max(.08, 1 - (definition.visibility?.darkness ?? 0)),
       shipDeck: definition.id === 'wreck-ship',
       deckTexture,
+      exteriorDeckTexture,
+      sailTexture,
+      boardingDebrisTexture,
+      cabinPortraitTexture,
       hullTexture,
       reefTexture,
       waterTexture,
@@ -539,6 +580,10 @@ export class WorldRenderer {
       wreckageTexture,
       renderTiles: definition.id !== 'dragon-rest' && definition.id !== 'camp-a1-rooms', batchTiles: Boolean(definition.camp)
     });
+    if (definition.id === 'wreck-ship') {
+      this.rowboatVisual = buildShipRowboat(this.terrainScene, exteriorDeckTexture);
+      this.rowboatHullCells = definition.terrain?.surfaces.find(surface => surface.id === 'c1-hull')?.tiles.map(tile => tile.cell) ?? [];
+    }
     if (definition.id === 'camp-a1-rooms') this.terrainView.grids.forEach(grid => { grid.alpha = .04; grid.color = Color3.FromHexString('#8f8879'); });
     if (definition.id === 'camp-a1-rooms') this.terrainView.camera.beta = .92;
     const defaultTilt = clampCameraTilt(90 - this.terrainView.camera.beta * 180 / Math.PI);
@@ -799,19 +844,42 @@ export class WorldRenderer {
     const weather = this.snapshot?.environment;
     const lighting = shipWeatherLighting(Boolean(weather?.storm), weather?.stormIntensity ?? 0,
       Boolean(weather?.lightning), timeSeconds);
+    const night = weather?.timeOfDay === 'night';
     for (const id of ['terrain-ambient', 'ship-key-light']) {
       const light = this.terrainScene?.getLightByName(id);
       const baseIntensity = Number(light?.metadata?.baseIntensity);
       if (light && Number.isFinite(baseIntensity))
-        light.intensity = baseIntensity * (id === 'terrain-ambient' ? lighting.ambientScale : lighting.keyScale);
+        light.intensity = baseIntensity * (id === 'terrain-ambient' ? lighting.ambientScale * (night ? .055 : 1)
+          : lighting.keyScale * (night ? .025 : 1));
     }
     if (this.terrainScene) this.terrainScene.fogDensity = lighting.fogDensity;
+    const waterBackdrop = this.terrainScene?.getMaterialByName('terrain-material:ship-water') as StandardMaterial | null;
+    waterBackdrop?.diffuseColor.copyFrom(night ? SHIP_NIGHT_WATER_COLOR : SHIP_DAY_WATER_COLOR);
+    const seaGlow = this.terrainScene?.getMaterialByName('ship-sea-depth:glow-material') as StandardMaterial | null;
+    seaGlow?.diffuseColor.copyFrom(night ? SHIP_NIGHT_SEA_GLOW : SHIP_DAY_SEA_GLOW);
     for (const light of this.terrainView.lights) {
       const id = String(light.metadata?.lightId ?? '');
       const baseIntensity = Number(light.metadata?.baseIntensity);
       if (!Number.isFinite(baseIntensity)) continue;
-      light.intensity = shipAmbientLightIntensity(id, baseIntensity, timeSeconds);
+      light.intensity = night ? 0 : shipAmbientLightIntensity(id, baseIntensity, timeSeconds);
     }
+    const lit = new Set<string>();
+    for (const entity of this.snapshot?.entities ?? []) {
+      if (entity.kind !== 'player' || !entity.carriedLightRadiusMeters) continue;
+      lit.add(entity.id);
+      let light = this.carriedLights.get(entity.id);
+      if (!light) {
+        light = new PointLight(`carried-light:${entity.id}`, Vector3.Zero(), this.terrainScene!);
+        light.diffuse = Color3.FromHexString('#ffd49a');
+        light.specular = Color3.FromHexString('#41311d');
+        this.carriedLights.set(entity.id, light);
+      }
+      const point = this.interpolatedWorldPosition(entity);
+      light.position.set(point.x, point.y + 1.35, point.z);
+      light.range = entity.carriedLightRadiusMeters * 2;
+      light.intensity = 1.55 + Math.sin(timeSeconds * 4.7 + entity.id.length) * .09;
+    }
+    for (const [id, light] of this.carriedLights) if (!lit.has(id)) { light.dispose(); this.carriedLights.delete(id); }
   }
 
   private drawBoatWake(timeSeconds: number) {
@@ -843,11 +911,17 @@ export class WorldRenderer {
       if (collected.has(pickup.id) || this.pickupViews.has(pickup.id)) continue;
       const root = new Container(), marker = new Graphics();
       if (pickup.kind === 'unlit-torch') {
-        marker.moveTo(-5, 0).lineTo(4, -27).stroke({ color: '#302923', width: 9 });
-        marker.moveTo(-5, 0).lineTo(4, -27).stroke({ color: '#936942', width: 5 });
-        marker.moveTo(-5, -17).lineTo(8, -19).stroke({ color: '#c4a975', width: 3 });
-        marker.moveTo(-2, -22).lineTo(9, -25).stroke({ color: '#c4a975', width: 3 });
-        marker.circle(4, -28, 5).fill({ color: '#393530' }).stroke({ color: '#ab8b5a', width: 1.5 });
+        // A compact unlit torch lying on the boards. The earlier upright
+        // symbol rose over the player's sprite and looked like equipment held
+        // in their hand; the pickup must remain clearly separate and dark.
+        marker.ellipse(0, 3, 18, 5).fill({ color: '#09151a', alpha: .48 });
+        marker.moveTo(-13, 0).lineTo(11, -9).stroke({ color: '#30251e', width: 8 });
+        marker.moveTo(-13, 0).lineTo(11, -9).stroke({ color: '#b18a56', width: 5 });
+        marker.moveTo(-10, 0).lineTo(5, -5).stroke({ color: '#dfbd82', width: 1.5 });
+        marker.moveTo(1, -4).lineTo(4, -10).stroke({ color: '#3e3327', width: 2.5 });
+        marker.moveTo(5, -6).lineTo(8, -12).stroke({ color: '#3e3327', width: 2.5 });
+        marker.ellipse(13, -10, 6, 4).fill({ color: '#1c2524' }).stroke({ color: '#a98d62', width: 1.5 });
+        marker.moveTo(10, -13).lineTo(15, -15).stroke({ color: '#776d58', width: 1.5 });
       } else if (pickup.id.includes('tiger-eye') || pickup.id.includes('heliotrope')) {
         const heliotrope = pickup.id.includes('heliotrope');
         marker.moveTo(0, -25).lineTo(11, -14).lineTo(6, -3).lineTo(-7, -4).lineTo(-10, -14).closePath()
@@ -880,7 +954,9 @@ export class WorldRenderer {
         marker.moveTo(0, -22).lineTo(10, -12).lineTo(0, -2).lineTo(-10, -12).closePath().fill({ color: '#e4bd62' }).stroke({ color: '#fff0b5', width: 2 });
         marker.circle(0, -12, 3).fill({ color: '#fff3c0' });
       }
-      root.addChild(marker); const point = this.cellToPixel(pickup.cell, pickup.surfaceId); root.position.set(point.x, point.y); root.zIndex = Math.round(point.y) + 2;
+      root.addChild(marker); const point = this.cellToPixel(pickup.cell, pickup.surfaceId);
+      root.position.set(point.x + (pickup.kind === 'unlit-torch' ? 12 : 0), point.y + (pickup.kind === 'unlit-torch' ? 8 : 0));
+      root.zIndex = Math.round(point.y) + (pickup.kind === 'unlit-torch' ? -8 : 2);
       this.dynamic.addChild(root); this.pickupViews.set(pickup.id, root);
     }
   }
@@ -1054,7 +1130,8 @@ export class WorldRenderer {
         const visualKey = shipPropVisualKey(prop);
         if (mesh?.metadata?.visualKey !== visualKey) { mesh?.dispose(false, false); mesh = undefined; }
         if (!mesh) {
-          mesh = buildShipPropVisual(scene, prop, width, depth, this.shipPropWoodTexture ?? undefined);
+          mesh = buildShipPropVisual(scene, prop, width, depth,
+            (prop.surfaceId === 'c2' || prop.surfaceId === 'c3' ? this.shipPropExteriorWoodTexture : this.shipPropWoodTexture) ?? undefined);
           this.terrainProps.set(prop.id, mesh);
         }
         const floor = terrainTile(terrain, { surfaceId: prop.surfaceId, cell: prop.cell });
@@ -1215,7 +1292,7 @@ export class WorldRenderer {
     this.waterShimmer.alpha = .55 + Math.sin(time * 1.8) * .3; this.waterShimmer.x = Math.sin(time * .8) * 7;
     this.wind.x = Math.sin(time * .35) * 28; this.wind.alpha = .45 + Math.sin(time * .7) * .18;
     if (this.terrainView) { this.drawShipWind(time); this.drawBoatWake(time); this.animateShipLights(time); }
-    for (const [id, root] of this.pickupViews) { root.rotation = Math.sin(time * 1.5 + id.length) * .025; if (this.terrainView) { const pickup = this.snapshot.scene.pickups?.find(item => item.id === id); if (pickup) { const point = this.cellToPixel(pickup.cell, pickup.surfaceId); root.position.set(point.x, point.y); } } }
+    for (const [id, root] of this.pickupViews) { root.rotation = Math.sin(time * 1.5 + id.length) * .025; if (this.terrainView) { const pickup = this.snapshot.scene.pickups?.find(item => item.id === id); if (pickup) { const point = this.cellToPixel(pickup.cell, pickup.surfaceId); root.position.set(point.x + (pickup.kind === 'unlit-torch' ? 12 : 0), point.y + (pickup.kind === 'unlit-torch' ? 8 : 0)); } } }
     if (this.snapshot.environment.storm) { const intensity = this.snapshot.environment.stormIntensity, lightning = this.snapshot.environment.lightning ? Math.max(0, Math.sin(time * .9 - 1.25)) * intensity * .24 : 0; this.storm.alpha = .12 + intensity * .66 + lightning; this.rain.alpha = .1 + intensity * .72; this.rain.x = (time * (6 + intensity * 24)) % 86; this.rain.y = (time * (16 + intensity * 64)) % 48; this.rainNear.alpha = Math.max(0, intensity - .16) * .95; this.rainNear.x = (time * (14 + intensity * 42)) % 142; this.rainNear.y = (time * (32 + intensity * 95)) % 86; }
     const cameraFocusId = this.localId ?? this.snapshot.camera.focusId;
     const cameraFocus = cameraFocusId ? this.snapshot.entities.find(entity => entity.id === cameraFocusId) : undefined;
@@ -1230,7 +1307,8 @@ export class WorldRenderer {
       // Passengers share the boat's cell. Keep its hull behind their sprites
       // even when Pixi's stable sort would otherwise draw the later NPC last.
       view.root.zIndex = Math.round(position.y) - (view.entity.tokenId === 'wreck-rowboat' ? 2 : 0);
-      view.root.visible = this.entityVisibleFromFocus(view.entity, cameraFocus);
+      view.root.visible = view.entity.tokenId !== 'wreck-rowboat' || !this.rowboatVisual
+        ? this.entityVisibleFromFocus(view.entity, cameraFocus) : false;
       const visualFacing = this.cameraRelativeFacing(view.entity.facing), directional = this.animationFor(view.entity.tokenId, `direction-${facingSuffix[visualFacing]}`);
       const activeAnimation = this.animationFor(view.entity.tokenId, this.activeTokenState(view, now));
       const flipX = activeAnimation?.flipX ?? (visualFacing === 'west' && !directional);
@@ -1244,7 +1322,21 @@ export class WorldRenderer {
       const campRest = this.snapshot.campRest?.sceneId === this.sceneId ? this.snapshot.campRest : null;
       const focusId = this.localId ?? this.selectedEntityId ?? this.snapshot.camera.focusId;
       const focusCell = focusId ? this.snapshot.entities.find(entity => entity.id === focusId && entity.sceneId === this.sceneId)?.cell : null;
-      this.campVisuals.update(performance.now() / 1000, campRest?.phase ?? null, campRest?.interactions ?? [], focusCell);
+      const timeOfDay = this.snapshot.environment.timeOfDay ?? 'auto';
+      const phase = timeOfDay === 'night' ? 'night' : timeOfDay === 'day' ? 'arrival' : campRest?.phase ?? null;
+      this.campVisuals.update(performance.now() / 1000, phase, campRest?.interactions ?? [], focusCell);
+    }
+    if (this.rowboatVisual) {
+      const boat = this.snapshot.entities.find(entity => entity.tokenId === 'wreck-rowboat' && entity.surfaceId === 'sea');
+      const belowDeck = cameraFocus && ['lower-deck', 'lower-water', 'hold-air', 'hold-water'].includes(cameraFocus.surfaceId);
+      this.rowboatVisual.setEnabled(Boolean(boat && !belowDeck));
+      if (boat && !belowDeck) {
+        const position = this.interpolatedWorldPosition(boat);
+        const yaw = rowboatYaw(boat.facing);
+        const clearance = rowboatHullClearance(position.x, position.z, yaw, this.rowboatHullCells, this.scene.terrain!.tileMeters);
+        this.rowboatVisual.position.set(position.x + clearance.x, position.y + .26 + Math.sin(time * 1.4) * .055, position.z + clearance.z);
+        this.rowboatVisual.rotation.y = yaw;
+      }
     }
     this.updateCamera(deltaMs);
   }
@@ -1379,30 +1471,34 @@ export class WorldRenderer {
     for (const [key, mesh] of this.terrainView.tiles) {
       const address = mesh.metadata?.address as { surfaceId: string; cell: Cell } | undefined;
       const tile = address ? terrainTile(this.scene.terrain, address) : null;
-      mesh.isVisible = !opensOverhead || !tile || Math.max(...tile.corners) <= cutawayHeight;
+      // Match the individual floor tiles to the same cutaway as their grid
+      // and decoration. Otherwise C8/C9 protrude through the exterior hull.
+      mesh.isVisible = Boolean(address && visibleFloorSurfaces.has(address.surfaceId))
+        && (!opensOverhead || !tile || Math.max(...tile.corners) <= cutawayHeight);
     }
     for (const [surfaceId, grid] of this.terrainView.grids) {
       // A grid is one mesh per floor. A single descending ramp tile must not
       // reveal the entire upper-deck grid over C8 or C9.
       grid.isVisible = this.options.showGrid !== false && visibleFloorSurfaces.has(surfaceId);
     }
+    const room = focus ? wreckCabinAt(focus.cell, focus.surfaceId) : null;
+    const litRoom = Boolean(room && this.snapshot?.entities.some(entity => entity.carriedLightRadiusMeters
+      && wreckCabinAt(entity.cell, entity.surfaceId) === room));
     for (const detail of this.terrainView.deckDetails) {
       const surfaceId = String(detail.metadata?.deckSurfaceId ?? '');
-      detail.isVisible = visibleFloorSurfaces.has(surfaceId);
+      const cabinId = String(detail.metadata?.cabinId ?? '');
+      const isCeiling = detail.metadata?.kind === 'cabin-ceiling' || detail.metadata?.kind === 'cabin-roof-edge';
+      const isDarkness = detail.metadata?.kind === 'cabin-darkness';
+      detail.isVisible = visibleFloorSurfaces.has(surfaceId) && (!cabinId || (isCeiling ? cabinId !== room
+        : cabinId === room && (!isDarkness || !litRoom)));
     }
     for (const mesh of [...this.terrainView.occluders, ...this.terrainView.structures]) {
       const bottom = Number(mesh.metadata?.bottom ?? mesh.metadata?.height ?? Number.NEGATIVE_INFINITY);
       mesh.isVisible = !opensOverhead || bottom <= cutawayHeight;
     }
-    const cell = focus?.surfaceId === 'main' ? focus.cell : null;
-    const room = cell && cell.col >= 12 && cell.col <= 17 && cell.row >= 3 && cell.row <= 6 ? 'c4'
-      : cell && cell.col >= 12 && cell.col <= 17 && cell.row >= 8 && cell.row <= 12 ? 'c5'
-      : cell && cell.col >= 27 && cell.col <= 32 && cell.row >= 3 && cell.row <= 6 ? 'c6'
-      : cell && cell.col >= 27 && cell.col <= 32 && cell.row >= 8 && cell.row <= 12 ? 'c7' : null;
-    const roomBounds = room === 'c4' ? { minCol: 11, maxCol: 18, minRow: 2, maxRow: 7 }
-      : room === 'c5' ? { minCol: 11, maxCol: 18, minRow: 7, maxRow: 13 }
-        : room === 'c6' ? { minCol: 26, maxCol: 33, minRow: 2, maxRow: 7 }
-          : room === 'c7' ? { minCol: 26, maxCol: 33, minRow: 7, maxRow: 13 } : null;
+    const bounds = room ? wreckCabins[room] : null;
+    const roomBounds = bounds ? { minCol: bounds.minCol - 1, maxCol: bounds.maxCol + 1,
+      minRow: bounds.minRow - 1, maxRow: bounds.maxRow + 1 } : null;
     for (const wall of this.terrainView.occluders) {
       const id = String(wall.metadata?.occluderId ?? '');
       const wallCell = wall.metadata?.cell as Cell | undefined;
@@ -1413,14 +1509,27 @@ export class WorldRenderer {
     }
     for (const prop of this.terrainProps.values()) {
       const floorHeight = Number(prop.metadata?.floorHeight ?? 0), destroyed = Boolean(prop.metadata?.destroyed);
-      prop.setEnabled(!destroyed && (!opensOverhead || floorHeight <= cutawayHeight));
+      const propCell = prop.metadata?.cell as Cell | undefined;
+      const propRoom = propCell ? wreckCabinAt(propCell, String(prop.metadata?.surfaceId ?? '')) : null;
+      prop.setEnabled(!destroyed && (!opensOverhead || floorHeight <= cutawayHeight) && (!propRoom || propRoom === room));
+    }
+    for (const [id, pickup] of this.pickupViews) {
+      const definition = this.snapshot?.scene.pickups?.find(item => item.id === id);
+      const pickupRoom = definition ? wreckCabinAt(definition.cell, definition.surfaceId) : null;
+      pickup.visible = !pickupRoom || pickupRoom === room && litRoom;
     }
   }
   private entityVisibleFromFocus(entity: PublicEntity, focus?: PublicEntity) {
     if (this.snapshot?.story?.wreckDisappeared && entity.surfaceId !== 'sea') return false;
-    if (!focus || this.sceneId !== 'wreck-ship') return true;
+    if (this.sceneId !== 'wreck-ship') return true;
+    if (!focus) return !wreckCabinAt(entity.cell, entity.surfaceId);
     if (focus.surfaceId === 'hold-air') return entity.surfaceId === 'hold-air';
     if (focus.surfaceId === 'lower-deck') return !['main', 'c1-hull', 'c2', 'c3', 'crow', 'hold-air'].includes(entity.surfaceId);
+    const entityRoom = wreckCabinAt(entity.cell, entity.surfaceId);
+    const focusRoom = wreckCabinAt(focus.cell, focus.surfaceId);
+    if (entityRoom && entityRoom !== focusRoom) return false;
+    if (entityRoom && entity.kind !== 'player' && !this.snapshot?.entities.some(other => other.carriedLightRadiusMeters
+      && wreckCabinAt(other.cell, other.surfaceId) === entityRoom)) return false;
     return !['lower-deck', 'lower-water', 'hold-air', 'hold-water'].includes(entity.surfaceId);
   }
   private cameraPitch() { return this.sceneId === 'wreck-ship' ? .77 : .92; }

@@ -491,6 +491,29 @@ describe('Rosa de los Vientos · mapa único explorable', () => {
 });
 
 describe('M2 · interactivos del Pecio en el barco continuo', () => {
+  it('permite al jugador abrir C5–C7 y retirar el listón de C4 sin cambiar el foco del DM', () => {
+    const state = new GameState(stormwreckBundle), mike = state.characters.get('mike')!;
+    state.focusScene('dragon-rest');
+    Object.assign(mike, { sceneId: 'wreck-ship', surfaceId: 'main', sessionToken: 'mike-session' });
+    for (const id of ['c5-door', 'c6-door', 'c7-door']) {
+      const door = wreckRuntimeScenes[0]!.props.find(prop => prop.id === id)!;
+      mike.cell = { col: door.cell.col + (id === 'c5-door' ? 1 : -1), row: door.cell.row };
+      expect(state.playerPrivate('mike-session').availableInteractions.some(item => item.targetId === id)).toBe(true);
+      expect(state.interactNearbyDoor('mike', id)).toEqual({ ok: true, code: 'DOOR_OPENED' });
+      expect(state.publicSnapshot(true, 'wreck-ship', 'main').props.find(prop => prop.id === id)).toMatchObject({ state: 'open' });
+      expect(state.interactNearbyDoor('mike', id)).toEqual({ ok: true, code: 'DOOR_CLOSED' });
+      mike.cell = { col: 30, row: 13 };
+      expect(state.interactNearbyDoor('mike', id)).toEqual({ ok: false, code: 'TOO_FAR' });
+    }
+    const c4 = wreckRuntimeScenes[0]!.props.find(prop => prop.id === 'c4-barred-door')!;
+    mike.cell = { col: c4.cell.col + 1, row: c4.cell.row };
+    expect(state.playerPrivate('mike-session').availableInteractions.find(item => item.targetId === c4.id)?.label).toContain('Retirar listón');
+    expect(state.interactNearbyDoor('mike', c4.id)).toEqual({ ok: true, code: 'DOOR_BAR_REMOVED' });
+    expect(state.interactNearbyDoor('mike', c4.id)).toEqual({ ok: true, code: 'DOOR_OPENED' });
+    expect(state.npcs.get('c4-zombie-1')?.visible).toBe(true);
+    expect(state.sceneId).toBe('dragon-rest');
+  });
+
   it('hace depender C4 del listón y de la puerta sin crear un mapa o portal', () => {
     const state = new GameState(stormwreckBundle), mike = state.characters.get('mike')!;
     state.focusScene('wreck-ship');
@@ -589,6 +612,8 @@ describe('M4 · secuencia del Pecio', () => {
     expect(mike).toMatchObject({ sceneId: 'wreck-ship', surfaceId: 'main', cell: boarding.to.cell });
     expect(state.progress['wreck.boarded']).toBe(true);
     expect(state.publicSnapshot(true, 'wreck-ship', 'sea').entities.map(entity => entity.id)).toContain('wreck-rowboat');
+    expect(state.publicSnapshot(true, 'wreck-ship', 'main').entities.map(entity => entity.id)).toContain('wreck-rowboat');
+    expect(state.publicSnapshot(true, 'wreck-ship', 'lower-deck').entities.map(entity => entity.id)).not.toContain('wreck-rowboat');
 
     expect(state.traversePort('mike', 'P01', 'return')).toBe('MOVED');
     expect(state.startStep(mike, 'east')).toBe(true);

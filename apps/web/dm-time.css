@@ -1,0 +1,29 @@
+.day-night-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .6rem;
+  min-height: 42px;
+  padding: .5rem .85rem;
+  border: 1px solid #8b774d;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #393625, #1a2928);
+  color: #f2dda3;
+  font: 700 .88rem system-ui, sans-serif;
+}
+
+.day-night-toggle:hover,
+.day-night-toggle:focus-visible {
+  border-color: #e4ca83;
+  background: #343326;
+  box-shadow: 0 0 0 1px #cdb46955, 0 0 14px #ceb87435;
+}
+
+.day-night-toggle span:first-child {
+  color: #f0cc78;
+  font-size: 1.25em;
+  line-height: 1;
+}
+
+.day-night-toggle[hidden] { display: none; }
+.ambience-panel > .day-night-toggle { width: 100%; margin: .1rem 0 .45rem; }

@@ -2,13 +2,14 @@ import crypto from 'node:crypto';
 import type { Server, Socket } from 'socket.io';
 import {
   OBJECT_MODEL_VERSION, PROTOCOL_VERSION, STEP_DURATION_MS, basicCombatActionAnimationStates, campPlayerInteractSchema, characterSheetUpdateSchema, claimSchema, dmCommandSchema, explorationActionSchema, interactSchema, inventoryUpdateSchema, moveInputSchema, playerCombatSchema, sceneReadySchema, sfxLoopEndedSchema,
-  explorationBasicActionCatalogue, type AudioState, type BasicCombatAction, type Cell, type CombatAction, type CombatCondition, type CombatEvent, type CombatParticipant, type CombatPrompt, type CommandResult, type DmCommand, type DmObject, type DmObjectInteraction, type DmState, type ExplorationBasicAction, type Facing, type PlayerPrivate,
+  explorationBasicActionCatalogue, type AudioState, type BasicCombatAction, type Cell, type CombatAction, type CombatCondition, type CombatEvent, type CombatParticipant, type CombatPrompt, type CommandResult, type DmCommand, type DmObject, type DmObjectInteraction, type DmState, type EnvironmentState, type ExplorationBasicAction, type Facing, type PlayerPrivate,
   type ExplorationAction, type PublicEntity, type PublicProp, type SceneId, type StepState, type WorldSnapshot
 } from '../shared/protocol.js';
 import type { CampRestState } from '../shared/camp-rest.js';
 import type { PickupDefinition, PropDefinition, Rotation } from '../shared/campaign.js';
 import { cellKey, footprintFor, sameCell } from '../shared/geometry.js';
 import { surfaceNeighbors } from '../shared/terrain.js';
+import { carriedLightRadiusMeters } from '../shared/carried-light.js';
 import { compileCampaignBundle, type CampaignServerBundle, type CompiledCampaign, type RuleTraits, type SceneDefinition } from './campaign.js';
 import { directionFromVector, isWalkable, resolveStep } from './navigation.js';
 import { durablePayloadSchema, type DurablePayload } from './persistence/schema.js';
@@ -88,7 +89,7 @@ export class GameState {
   concentration: Record<string, { actionId: string; label: string }> = {};
   combat: CombatState = emptyCombat();
   camera = { mode: 'fixed' as 'fixed' | 'semiFixed' | 'follow', focusId: null as string | null };
-  environment = { storm: false, lightning: false, stormIntensity: 0.5 };
+  environment: EnvironmentState = { storm: false, lightning: false, stormIntensity: 0.5, timeOfDay: 'auto' };
   campRest: CampRestState | null = null;
   audio: AudioState = {
     music: freshTrack(0.3),
@@ -1008,6 +1009,7 @@ export class GameState {
     const entities: PublicEntity[] = [...this.characters.values()].filter(character => Boolean(character.sessionToken) && character.sceneId === viewSceneId && remainsInScene(character.sceneId, character.surfaceId) && visibleSurface(character.surfaceId, character.step)).map(character => ({
       id: character.id, kind: 'player', label: character.label, sceneId: character.sceneId, cell: cloneCell(character.cell), surfaceId: character.surfaceId,
       facing: character.facing, moving: character.moving, step: character.step ? structuredClone(character.step) : null, color: character.color, tokenId: character.tokenId, conditions: [...this.conditionsFor(character.id)],
+      carriedLightRadiusMeters: carriedLightRadiusMeters(character.inventory),
       ...(!redactCombat && this.combat.active && this.combat.participantIds.includes(character.id) ? { hp: character.hp, maxHp: character.maxHp, defeated: character.hp <= 0 } : {})
     }));
     if (this.creature?.visible && this.creature.hp > 0 && this.creature.sceneId === viewSceneId && remainsInScene(this.creature.sceneId, this.creature.surfaceId) && visibleSurface(this.creature.surfaceId)) entities.push({
@@ -1015,7 +1017,12 @@ export class GameState {
       facing: this.creature.facing, moving: false, step: null, color: this.creature.color, tokenId: this.creature.tokenId, conditions: [...this.conditionsFor(this.creature.id)],
       ...(!redactCombat && this.combat.active && this.combat.participantIds.includes(this.creature.id) ? { hp: this.creature.hp, maxHp: this.creature.maxHp, defeated: this.creature.hp <= 0 } : {})
     });
-    for (const npc of this.npcs.values()) if (npc.visible && npc.hp > 0 && npc.sceneId === viewSceneId && remainsInScene(npc.sceneId, npc.surfaceId) && visibleSurface(npc.surfaceId)) entities.push({
+    // The rowboat floats beside C1: it must remain visible from the open-air
+    // decks even though its authoritative movement surface is `sea`.
+    const visibleNpcSurface = (npc: NpcState) => visibleSurface(npc.surfaceId, npc.step)
+      || (npc.id === 'wreck-rowboat' && viewSceneId === 'wreck-ship'
+        && ['main', 'c1-hull', 'c2', 'c3', 'crow'].includes(viewSurfaceId ?? ''));
+    for (const npc of this.npcs.values()) if (npc.visible && npc.hp > 0 && npc.sceneId === viewSceneId && remainsInScene(npc.sceneId, npc.surfaceId) && visibleNpcSurface(npc)) entities.push({
       id: npc.id, kind: 'npc', label: npc.label, sceneId: npc.sceneId, cell: cloneCell(npc.cell), surfaceId: npc.surfaceId, facing: npc.facing, moving: Boolean(npc.step), step: npc.step ? structuredClone(npc.step) : null, color: npc.color, tokenId: npc.tokenId, conditions: [...this.conditionsFor(npc.id)],
       ...(!redactCombat && this.combat.active && this.combat.participantIds.includes(npc.id) ? { hp: npc.hp, maxHp: npc.maxHp, defeated: npc.hp <= 0 } : {})
     });
@@ -1053,6 +1060,16 @@ export class GameState {
     const prior = this.campRest;
     const activeElsewhere = Boolean(prior && prior.sceneId !== scene.id && prior.phase !== null && prior.phase !== 'finalization');
     if (activeElsewhere) return { commandId: command.commandId, ok: false, code: 'REST_ACTIVE_ELSEWHERE' };
+
+    if (command.action === 'set-night') {
+      const sameSceneRest = prior?.sceneId === scene.id ? prior : null;
+      this.campRest = {
+        sceneId: scene.id, phase: 'night', paused: Boolean(sameSceneRest && sameSceneRest.phase !== null && sameSceneRest.phase !== 'finalization' && sameSceneRest.paused), outcome: null,
+        interruptions: sameSceneRest && sameSceneRest.phase !== null && sameSceneRest.phase !== 'finalization' ? structuredClone(sameSceneRest.interruptions) : [],
+        interactions: sameSceneRest ? structuredClone(sameSceneRest.interactions) : []
+      };
+      return { commandId: command.commandId, ok: true, code: 'APPLIED' };
+    }
 
     if (command.action === 'prepare') {
       if (prior?.sceneId === scene.id && prior.phase !== null && prior.phase !== 'finalization') return { commandId: command.commandId, ok: false, code: 'REST_ALREADY_ACTIVE' };
@@ -1185,13 +1202,47 @@ export class GameState {
     const pickups = character && !this.combat.active && !character.step ? (this.sceneForCharacter(character).pickups ?? []).filter(pickup =>
       this.pickupAvailable(character.sceneId, pickup) && !this.progress[`pickup.${pickup.id}`] && pickup.surfaceId === character.surfaceId && Math.max(Math.abs(pickup.cell.col - character.cell.col), Math.abs(pickup.cell.row - character.cell.row)) <= 1)
       .map(pickup => ({ targetId: pickup.id, label: `Coger ${pickup.label}` })) : [];
+    const doors = character && !this.combat.active && !character.step ? this.objectsFor(character.sceneId)
+      .filter((object): object is DoorRuntime => isDoor(object) && object.structure !== 'destroyed'
+        && object.surfaceId === character.surfaceId
+        && Math.max(Math.abs(object.cell.col - character.cell.col), Math.abs(object.cell.row - character.cell.row)) <= 1)
+      .map(door => ({ targetId: door.id, label: door.interaction?.barrier === 'barred'
+        ? `Retirar listón · ${door.label}` : door.state === 'open' ? `Cerrar · ${door.label}` : `Abrir · ${door.label}` })) : [];
     return [
       ...(rowboat ? [rowboat] : []),
+      ...doors,
       ...pickups,
       ...(stage ? [{ targetId: stage.targetId, label: stage.nearbyLabel }] : []),
       ...(mirror ? [{ targetId: mirror.targetId, label: mirror.nearbyLabel }] : []),
       ...(nearWheel ? [{ targetId: config!.targetId, label: config!.nearbyLabel }] : [])
     ];
+  }
+
+  /** Player-controlled doors use the same object state and undo history as DM
+   * commands, but authorize against this character's own scene and position. */
+  interactNearbyDoor(characterId: string, objectId: string): { ok: boolean; code: string } | null {
+    const character = this.characters.get(characterId);
+    if (!character) return { ok: false, code: 'UNKNOWN_CHARACTER' };
+    const door = this.objectsFor(character.sceneId).find(object => object.id === objectId);
+    if (!door || !isDoor(door)) return null;
+    if (this.combat.active || character.step || character.surfaceId !== door.surfaceId
+      || Math.max(Math.abs(character.cell.col - door.cell.col), Math.abs(character.cell.row - door.cell.row)) > 1)
+      return { ok: false, code: 'TOO_FAR' };
+    if (door.structure === 'destroyed') return { ok: false, code: 'INVALID_TRANSITION' };
+    if (door.interaction?.barrier === 'barred') {
+      const before = structuredClone(door.interaction);
+      this.commitObject(door, { interaction: before }, { interaction: { ...before, barrier: 'removed' } }, 'Listón retirado por jugador', character.sceneId);
+      return { ok: true, code: 'DOOR_BAR_REMOVED' };
+    }
+    if (door.state === 'locked') return { ok: false, code: 'DOOR_LOCKED' };
+    const nextState = door.state === 'open' ? 'closed' : 'open';
+    if (nextState === 'closed') {
+      const error = this.validateObject(door, { state: nextState }, character.sceneId);
+      if (error) return { ok: false, code: error };
+    }
+    this.commitObject(door, { state: door.state }, { state: nextState }, nextState === 'open' ? 'Puerta abierta por jugador' : 'Puerta cerrada por jugador', character.sceneId);
+    if (door.id === 'c4-barred-door' && nextState === 'open') this.maybeRevealC4Zombies();
+    return { ok: true, code: nextState === 'open' ? 'DOOR_OPENED' : 'DOOR_CLOSED' };
   }
 
   takePickup(characterId: string, pickupId: string, allowDistance = false): string {
@@ -1437,15 +1488,15 @@ export class GameState {
     if (next.kind === 'crate' && next.interaction?.kind === 'trap-stash') return [];
     return isDoor(next) && next.state === 'open' ? [] : this.locationCells(object, candidate);
   }
-  private actorReservations(surfaceId: string) {
+  private actorReservations(surfaceId: string, sceneId = this.sceneId) {
     const occupied = new Set<string>();
     for (const character of this.characters.values()) {
-      if (character.sceneId !== this.sceneId || character.surfaceId !== surfaceId) continue;
+      if (character.sceneId !== sceneId || character.surfaceId !== surfaceId) continue;
       occupied.add(cellKey(character.cell));
       if (character.step) occupied.add(cellKey(character.step.from));
     }
-    if (this.creature?.visible && this.creature.hp > 0 && this.creature.sceneId === this.sceneId && this.creature.surfaceId === surfaceId) occupied.add(cellKey(this.creature.cell));
-    for (const npc of this.npcs.values()) if (npc.visible && npc.hp > 0 && npc.sceneId === this.sceneId && npc.surfaceId === surfaceId) occupied.add(cellKey(npc.cell));
+    if (this.creature?.visible && this.creature.hp > 0 && this.creature.sceneId === sceneId && this.creature.surfaceId === surfaceId) occupied.add(cellKey(this.creature.cell));
+    for (const npc of this.npcs.values()) if (npc.visible && npc.hp > 0 && npc.sceneId === sceneId && npc.surfaceId === surfaceId) occupied.add(cellKey(npc.cell));
     return occupied;
   }
 
@@ -2097,8 +2148,8 @@ export class GameState {
   }
   endCombat() { if (!this.combat.active) return false; this.combat = emptyCombat(); return true; }
 
-  private validateObject(object: ObjectRuntime, candidate: Partial<ObjectRuntime>) {
-    const scene = this.currentScene(), next = { ...object, ...candidate } as ObjectRuntime;
+  private validateObject(object: ObjectRuntime, candidate: Partial<ObjectRuntime>, sceneId = this.sceneId) {
+    const scene = this.sceneById(sceneId), next = { ...object, ...candidate } as ObjectRuntime;
     if (!next.allowedRotations.includes(next.rotation)) return 'INVALID_TRANSFORM';
     const location = this.locationCells(object, candidate);
     if (isWheel(next) && next.attachment === 'attached') {
@@ -2111,17 +2162,17 @@ export class GameState {
       if (next.surfaceId === scene.surfaceId && scene.spawns.some(spawn => sameCell(spawn, cell))) return 'SPAWN_RESERVED';
       if (this.campaign.ports?.some(port => [port.from, port.to].some(address => address.mapId === scene.id && address.surfaceId === next.surfaceId && sameCell(address.cell, cell)) && port.conditionId !== object.id)) return 'PORT_RESERVED';
     }
-    for (const other of this.currentObjects()) {
+    for (const other of this.objectsFor(sceneId)) {
       if (other.id === object.id) continue;
       if (other.surfaceId !== next.surfaceId) continue;
       const otherLocation = this.locationCells(other);
       if (location.some(cell => otherLocation.some(otherCell => sameCell(cell, otherCell)))) return 'BLOCKED_CELL';
     }
-    for (const candidateObject of this.currentObjects()) if (candidateObject.kind === 'wheel' && candidateObject.surfaceId === next.surfaceId) {
+    for (const candidateObject of this.objectsFor(sceneId)) if (candidateObject.kind === 'wheel' && candidateObject.surfaceId === next.surfaceId) {
       const mount = footprintFor(candidateObject.mount.cell, 0, candidateObject.mount.footprint);
       if (location.some(cell => mount.some(mountCell => sameCell(cell, mountCell)))) return 'BLOCKED_CELL';
     }
-    const actors = this.actorReservations(next.surfaceId);
+    const actors = this.actorReservations(next.surfaceId, sceneId);
     if (this.blockingCells(object, candidate).some(cell => actors.has(cellKey(cell)))) return 'OCCUPIED_CELL';
     return null;
   }
@@ -2130,10 +2181,10 @@ export class GameState {
     return { commandId, ok, code, sceneId: this.sceneId, sceneEpoch: this.sceneEpoch, objectRevision: this.objectRevision };
   }
 
-  private commitObject(object: ObjectRuntime, before: Partial<ObjectRuntime>, after: Partial<ObjectRuntime>, label: string) {
+  private commitObject(object: ObjectRuntime, before: Partial<ObjectRuntime>, after: Partial<ObjectRuntime>, label: string, sceneId = this.sceneId) {
     Object.assign(object, structuredClone(after));
     object.version++;
-    const state = this.currentObjectState();
+    const state = this.objectScenes.get(sceneId)!;
     state.undo.push({ entryId: crypto.randomUUID(), label, objectId: object.id, before: structuredClone(before), after: structuredClone(after) });
     while (state.undo.length > 50) state.undo.shift();
     this.cancelInteractionsForObject(object.id);
@@ -2353,7 +2404,7 @@ export class GameState {
         if (object.kind === 'wheel') return { ...common, kind: 'wheel' as const, attachment: object.attachment, state: object.state };
         return { ...common, kind: 'crate' as const, ...(object.interaction ? { interaction: structuredClone(object.interaction) } : {}) };
       }).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0) })).sort((a, b) => a.sceneId < b.sceneId ? -1 : a.sceneId > b.sceneId ? 1 : 0),
-      camera: { ...this.camera }, environment: { storm: this.environment.storm, stormIntensity: this.environment.stormIntensity },
+      camera: { ...this.camera }, environment: { storm: this.environment.storm, stormIntensity: this.environment.stormIntensity, timeOfDay: this.environment.timeOfDay ?? 'auto' },
       audio: { music: saveTrack(this.audio.music), layers: {
         ocean: saveTrack(this.audio.layers.ocean), wind: saveTrack(this.audio.layers.wind), wood: saveTrack(this.audio.layers.wood), storm: saveTrack(this.audio.layers.storm)
       }, sfxLoops: Object.fromEntries(Object.entries(this.audio.sfxLoops).map(([id, track]) => [id, saveTrack(track)])) },
@@ -2504,7 +2555,7 @@ export class GameState {
         Object.assign(target, structuredClone(saved), { surfaceId: saved.surfaceId ?? target.surfaceId, version: 0 });
       }
     }
-    this.camera = { ...payload.camera }; this.environment = { storm: payload.environment.storm, lightning: payload.environment.storm, stormIntensity: payload.environment.stormIntensity ?? 0.5 };
+    this.camera = { ...payload.camera }; this.environment = { storm: payload.environment.storm, lightning: payload.environment.storm, stormIntensity: payload.environment.stormIntensity ?? 0.5, timeOfDay: payload.environment.timeOfDay ?? 'auto' };
     this.campRest = payload.campRest ? structuredClone(payload.campRest) : null;
     const loadTrack = (saved: DurablePayload['audio']['music']) => ({ playing: saved.playing, volume: saved.volume, offset: saved.offsetSeconds, startedAt: saved.playing ? now : null, loop: saved.loop ?? true, rate: saved.rate ?? 1, repeats: saved.repeats ?? 1, ...(saved.assetId ? { assetId: saved.assetId } : {}) });
     const savedSfxLoops = payload.audio.sfxLoops ?? {};
@@ -2946,6 +2997,15 @@ export class GameServer {
     if (previous.kind === 'reused') return this.emitResult(socket, { commandId: parsed.data.commandId, ok: false, code: 'COMMAND_ID_REUSED' });
     const finish = (result: CommandResult) => this.emitResult(socket, this.rememberResult(scope, parsed.data, result));
     if (parsed.data.sceneEpoch !== this.state.sceneEpoch || socket.data.sceneReadyEpoch !== this.state.sceneEpoch) return finish({ commandId: parsed.data.commandId, ok: false, code: 'WRONG_SCENE' });
+    const door = this.state.interactNearbyDoor(character.id, parsed.data.targetId);
+    if (door) {
+      if (!door.ok) return finish({ commandId: parsed.data.commandId, ok: false, code: door.code });
+      this.persistence?.markDirty();
+      finish({ commandId: parsed.data.commandId, ok: true, code: door.code });
+      this.io.emit('scene:animation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, entityId: character.id, state: 'interact', durationMs: 650 });
+      this.broadcastSnapshot(); this.broadcastPrivate(); this.io.to('dm').emit('dm:state', this.dmState());
+      return;
+    }
     if (parsed.data.targetId === 'wreck-rowboat') {
       const code = this.state.interactRowboat(character.id);
       if (code !== 'ROWBOAT_BOARDED' && code !== 'ROWBOAT_LEFT') return finish({ commandId: parsed.data.commandId, ok: false, code });
@@ -3105,6 +3165,7 @@ export class GameServer {
     } else if (command.type === 'environment') {
       const intensity = command.intensity ?? this.state.environment.stormIntensity;
       if (command.trackId && !this.state.campaign.public.audio.library?.ambience.some(track => track.id === command.trackId)) return { commandId: command.commandId, ok: false, code: 'UNKNOWN_AUDIO_TRACK' };
+      if (command.timeOfDay !== undefined) this.state.environment.timeOfDay = command.timeOfDay;
       this.state.environment.storm = command.storm;
       // Llovizna solo moja el mapa; los relámpagos aparecen a partir de tormenta.
       this.state.environment.lightning = command.storm && intensity >= .45;

@@ -32,6 +32,8 @@ describe('independent ship artwork', () => {
     expect(closedVisual.getChildMeshes().some(mesh => mesh.name.includes('wooden-bar'))).toBe(true);
     expect(openVisual.getChildMeshes().some(mesh => mesh.name.includes('wooden-bar'))).toBe(false);
     expect(openVisual.getChildMeshes().some(mesh => mesh.name.includes('hinged-leaf'))).toBe(true);
+    expect(closedVisual.rotation.y).toBeCloseTo(Math.PI / 2);
+    expect(openVisual.rotation.y).toBeCloseTo(Math.PI / 2);
   });
   it('never displays the C9 package or C6 hidden treasure inside closed furniture', () => {
     const scene = sceneFor();

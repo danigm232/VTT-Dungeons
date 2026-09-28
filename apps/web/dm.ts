@@ -33,13 +33,58 @@ const epochCommands = new Set(['scene', 'view:focus', 'entity:portal', 'creature
 
 type WindowLayout = { span?: number; height?: number };
 type WorkspaceState = { closed: string[]; minimized: string[]; maximized: string[]; windows: Record<string, WindowLayout>; order: string[] };
-const workspaceStorageKey = 'dnd-dm-workspace-v9', workspaceGap = 16, workspaceColumns = 12, minimumWindowHeight = 132;
+type WorkspaceMode = 'exploration' | 'combat';
+type WorkspaceLayouts = Partial<Record<WorkspaceMode, WorkspaceState>>;
+const workspaceStorageKey = 'dnd-dm-workspace-v10', legacyWorkspaceStorageKey = 'dnd-dm-workspace-v9', workspaceGap = 16, workspaceColumns = 12, minimumWindowHeight = 132;
 const workspaceWindows = new Map<string, HTMLElement>();
-let workspaceReady = false, hasSavedWorkspace = false;
+let workspaceLayouts: WorkspaceLayouts = {};
+let activeWorkspaceMode: WorkspaceMode = 'exploration', requestedWorkspaceMode: WorkspaceMode = 'exploration';
+let workspaceReady = false;
 function workspace() { return document.querySelector<HTMLElement>('.grid.workspace'); }
-function readWorkspace(): WorkspaceState {
-  try { const saved = JSON.parse(localStorage.getItem(workspaceStorageKey) ?? '{}') as Partial<WorkspaceState>; return { closed: saved.closed ?? [], minimized: saved.minimized ?? [], maximized: saved.maximized ?? [], windows: saved.windows ?? {}, order: saved.order ?? [] }; }
-  catch { return { closed: [], minimized: [], maximized: [], windows: {}, order: [] }; }
+function normalizeWorkspace(value: unknown): WorkspaceState | null {
+  if (!value || typeof value !== 'object') return null;
+  const saved = value as Partial<WorkspaceState>;
+  if (!saved.windows || typeof saved.windows !== 'object' || Array.isArray(saved.windows)) return null;
+  const windows: Record<string, WindowLayout> = {};
+  for (const [id, bounds] of Object.entries(saved.windows)) {
+    if (!bounds || typeof bounds !== 'object') continue;
+    const layout: WindowLayout = {};
+    if (Number.isFinite(bounds.span)) layout.span = bounds.span;
+    if (Number.isFinite(bounds.height)) layout.height = bounds.height;
+    windows[id] = layout;
+  }
+  return {
+    closed: Array.isArray(saved.closed) ? saved.closed.filter((id): id is string => typeof id === 'string') : [],
+    minimized: Array.isArray(saved.minimized) ? saved.minimized.filter((id): id is string => typeof id === 'string') : [],
+    maximized: Array.isArray(saved.maximized) ? saved.maximized.filter((id): id is string => typeof id === 'string') : [],
+    windows,
+    order: Array.isArray(saved.order) ? saved.order.filter((id): id is string => typeof id === 'string') : []
+  };
+}
+function readWorkspaceLayouts(): WorkspaceLayouts {
+  try {
+    const saved = JSON.parse(localStorage.getItem(workspaceStorageKey) ?? 'null') as Partial<WorkspaceLayouts> | null;
+    if (saved && typeof saved === 'object' && ('exploration' in saved || 'combat' in saved)) {
+      const exploration = normalizeWorkspace(saved.exploration), combat = normalizeWorkspace(saved.combat);
+      return { ...(exploration ? { exploration } : {}), ...(combat ? { combat } : {}) };
+    }
+  } catch { /* Si el almacenamiento local no está disponible, se usan las disposiciones recomendadas. */ }
+  try {
+    // La disposición anterior era común a ambos modos y no guardaba en cuál
+    // se editó por última vez. Se conserva en los dos como punto de partida;
+    // desde ahora cada modo evoluciona de forma independiente.
+    const legacy = normalizeWorkspace(JSON.parse(localStorage.getItem(legacyWorkspaceStorageKey) ?? 'null'));
+    const copy = (layout: WorkspaceState): WorkspaceState => ({
+      ...layout,
+      closed: [...layout.closed], minimized: [...layout.minimized], maximized: [...layout.maximized], order: [...layout.order],
+      windows: Object.fromEntries(Object.entries(layout.windows).map(([id, bounds]) => [id, { ...bounds }]))
+    });
+    return legacy ? { exploration: copy(legacy), combat: copy(legacy) } : {};
+  } catch { return {}; }
+}
+function persistWorkspaceLayouts() {
+  try { localStorage.setItem(workspaceStorageKey, JSON.stringify(workspaceLayouts)); }
+  catch { /* La consola sigue funcionando aunque el navegador bloquee el almacenamiento local. */ }
 }
 function defaultWindowSpan(card: HTMLElement) { return card.id === 'mapWindow' || card.dataset.windowTitle === 'Jugadores' ? 12 : 4; }
 function minimumWindowSpan(card: HTMLElement) {
@@ -49,7 +94,11 @@ function minimumWindowSpan(card: HTMLElement) {
   return Math.max(card.id === 'mapWindow' ? 6 : 3, Math.ceil((minimumWidth + workspaceGap) / (track + workspaceGap)));
 }
 function setWindowSpan(card: HTMLElement, requested: number) {
-  const span = Math.max(minimumWindowSpan(card), Math.min(workspaceColumns, Math.round(requested)));
+  const desk = workspace();
+  // setupWorkspace se ejecuta antes de mostrar la consola. No reduzcas los
+  // anchos guardados al mínimo cuando el contenedor todavía mide cero.
+  const minimum = desk && desk.clientWidth > 0 ? minimumWindowSpan(card) : 1;
+  const span = Math.max(minimum, Math.min(workspaceColumns, Math.round(requested)));
   card.style.setProperty('--window-span', String(span)); card.dataset.windowSpan = String(span);
 }
 function spanForWidth(card: HTMLElement, width: number) {
@@ -57,8 +106,7 @@ function spanForWidth(card: HTMLElement, width: number) {
   const track = (desk.clientWidth - (workspaceColumns - 1) * workspaceGap) / workspaceColumns;
   return Math.round((width + workspaceGap) / (track + workspaceGap));
 }
-function writeWorkspace() {
-  if (!workspaceReady) return;
+function captureWorkspace(): WorkspaceState {
   const current: WorkspaceState = { closed: [], minimized: [], maximized: [], windows: {}, order: [] };
   current.order = Array.from(workspace()?.children ?? []).flatMap(child => child instanceof HTMLElement && child.dataset.windowId ? [child.dataset.windowId] : []);
   for (const [id, card] of workspaceWindows) {
@@ -68,7 +116,12 @@ function writeWorkspace() {
     const height = Number.parseFloat(card.style.getPropertyValue('--window-height'));
     current.windows[id] = { span: Number(card.style.getPropertyValue('--window-span') || defaultWindowSpan(card)), ...(Number.isFinite(height) ? { height } : {}) };
   }
-  localStorage.setItem(workspaceStorageKey, JSON.stringify(current));
+  return current;
+}
+function writeWorkspace() {
+  if (!workspaceReady) return;
+  workspaceLayouts[activeWorkspaceMode] = captureWorkspace();
+  persistWorkspaceLayouts();
 }
 function snapWindowToGrid(card: HTMLElement, measuredWidth = card.getBoundingClientRect().width) {
   if (card.classList.contains('window-maximized')) return;
@@ -91,9 +144,47 @@ function syncWorkspaceRowHeights() {
     for (const card of row) card.style.setProperty('--window-height', `${Math.round(height)}px`);
   }
 }
+function updateMinimizeControl(card: HTMLElement) {
+  const button = card.querySelector<HTMLButtonElement>('[data-window-action="minimize"]');
+  if (!button) return;
+  const label = card.classList.contains('window-minimized') ? 'Restaurar ventana' : 'Minimizar ventana';
+  button.title = label; button.setAttribute('aria-label', label);
+}
+function restoreWorkspaceLayout(saved: WorkspaceState | null) {
+  const desk = workspace(); if (!desk) return;
+  const layout = saved ?? { closed: [], minimized: [], maximized: [], windows: {}, order: [] };
+  for (const [id, card] of workspaceWindows) {
+    const bounds = layout.windows[id];
+    card.classList.remove('window-closed', 'window-minimized', 'window-maximized', 'dragging', 'resizing', 'drop-target');
+    card.style.removeProperty('--window-height');
+    setWindowSpan(card, bounds?.span ?? defaultWindowSpan(card));
+    if (Number.isFinite(bounds?.height)) card.style.setProperty('--window-height', `${Math.max(minimumWindowHeight, bounds!.height!)}px`);
+    if (layout.closed.includes(id)) card.classList.add('window-closed');
+    if (layout.minimized.includes(id)) card.classList.add('window-minimized');
+    if (layout.maximized.includes(id)) card.classList.add('window-maximized');
+    updateMinimizeControl(card);
+  }
+  const ordered = layout.order.map(id => workspaceWindows.get(id)).filter((card): card is HTMLElement => Boolean(card));
+  const remaining = [...workspaceWindows.values()].filter(card => !ordered.includes(card));
+  desk.append(...ordered, ...remaining);
+  renderClosedWindows();
+}
+function switchWorkspaceMode(mode: WorkspaceMode) {
+  requestedWorkspaceMode = mode;
+  if (!workspaceReady || mode === activeWorkspaceMode) return;
+  // Guarda cualquier último cambio antes de cambiar de conjunto.
+  writeWorkspace();
+  activeWorkspaceMode = mode;
+  restoreWorkspaceLayout(workspaceLayouts[mode] ?? null);
+  requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); });
+}
 function arrangeWorkspace() {
-  for (const card of workspaceWindows.values()) { card.classList.remove('window-maximized'); card.style.removeProperty('--window-height'); setWindowSpan(card, defaultWindowSpan(card)); }
-  writeWorkspace(); requestAnimationFrame(() => world?.refreshLayout());
+  for (const card of workspaceWindows.values()) {
+    card.classList.remove('window-closed', 'window-minimized', 'window-maximized');
+    card.style.removeProperty('--window-height'); setWindowSpan(card, defaultWindowSpan(card)); updateMinimizeControl(card);
+  }
+  workspace()?.append(...workspaceWindows.values()); renderClosedWindows();
+  requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); });
 }
 function windowTitle(card: HTMLElement) { return card.querySelector('h2')?.textContent?.trim() || 'Ventana'; }
 function renderClosedWindows() {
@@ -106,7 +197,7 @@ function toggleMaximize(card: HTMLElement) {
   requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); });
 }
 function setupWorkspace() {
-  const desk = document.querySelector<HTMLElement>('.grid'); if (!desk) return; desk.classList.add('workspace'); const saved = readWorkspace(), used = new Set<string>(); hasSavedWorkspace = Object.keys(saved.windows).length > 0;
+  const desk = document.querySelector<HTMLElement>('.grid'); if (!desk) return; desk.classList.add('workspace'); workspaceLayouts = readWorkspaceLayouts(); const saved = workspaceLayouts.exploration ?? null, used = new Set<string>();
   let draggedWindow: HTMLElement | null = null;
   const clearDropTargets = () => workspaceWindows.forEach(window => window.classList.remove('drop-target'));
   for (const [index, card] of Array.from(desk.children).entries()) {
@@ -114,8 +205,8 @@ function setupWorkspace() {
     const base = card.id || windowTitle(card).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `panel-${index}`; let id = base, copy = 2; while (used.has(id)) id = `${base}-${copy++}`; used.add(id);
     card.dataset.windowId = id; card.dataset.windowTitle = windowTitle(card); workspaceWindows.set(id, card); card.classList.add('workspace-window'); card.classList.remove('span'); if (id === 'mapWindow' || card.dataset.windowTitle === 'Jugadores') card.classList.add('window-wide');
     const content = document.createElement('div'); content.className = 'window-content'; content.append(...Array.from(card.childNodes)); const title = document.createElement('h2'); title.className = 'window-title'; title.textContent = card.dataset.windowTitle; const controls = document.createElement('div'); controls.className = 'window-controls';
-    const control = (symbol: string, label: string, action: () => void, extra = '') => { const button = document.createElement('button'); button.type = 'button'; button.className = `window-control ${extra}`; button.textContent = symbol; button.title = label; button.setAttribute('aria-label', label); button.onclick = event => { event.stopPropagation(); action(); }; return button; };
-    const minimize = control('—', 'Minimizar ventana', () => { card.classList.toggle('window-minimized'); minimize.title = card.classList.contains('window-minimized') ? 'Restaurar ventana' : 'Minimizar ventana'; requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); }); });
+    const control = (symbol: string, label: string, action: () => void, extra = '', windowAction = '') => { const button = document.createElement('button'); button.type = 'button'; button.className = `window-control ${extra}`; button.textContent = symbol; button.title = label; button.setAttribute('aria-label', label); if (windowAction) button.dataset.windowAction = windowAction; button.onclick = event => { event.stopPropagation(); action(); }; return button; };
+    const minimize = control('—', 'Minimizar ventana', () => { card.classList.toggle('window-minimized'); updateMinimizeControl(card); requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); }); }, '', 'minimize');
     controls.append(minimize, control('□', 'Ampliar ventana', () => toggleMaximize(card)), control('×', 'Cerrar ventana', () => { card.classList.add('window-closed'); renderClosedWindows(); requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); }); }, 'close'));
     const bar = document.createElement('div'); bar.className = 'window-titlebar'; bar.draggable = true; bar.title = 'Arrastra esta barra para recolocar la ventana'; bar.append(title, controls); card.replaceChildren(bar, content); card.querySelector('.window-content h2')?.classList.add('window-original-title');
     const resizeHandle = document.createElement('button'); resizeHandle.type = 'button'; resizeHandle.className = 'window-resize-handle'; resizeHandle.title = 'Redimensionar ventana'; resizeHandle.setAttribute('aria-label', 'Redimensionar ventana'); card.append(resizeHandle);
@@ -124,7 +215,7 @@ function setupWorkspace() {
       event.preventDefault(); event.stopPropagation(); const start = card.getBoundingClientRect(), startX = event.clientX, startY = event.clientY, pointerId = event.pointerId; card.classList.add('resizing'); resizeHandle.setPointerCapture(pointerId);
       let resizeFrame = 0;
       const move = (next: PointerEvent) => { if (next.pointerId !== pointerId) return; const width = Math.max(240, start.width + next.clientX - startX), height = Math.max(minimumWindowHeight, start.height + next.clientY - startY); cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(() => { snapWindowToGrid(card, width); card.style.setProperty('--window-height', `${Math.round(height)}px`); syncRowHeight(card, height); world?.refreshLayout(); }); };
-      const finish = (next: PointerEvent) => { if (next.pointerId !== pointerId) return; cancelAnimationFrame(resizeFrame); card.classList.remove('resizing'); resizeHandle.removeEventListener('pointermove', move); resizeHandle.removeEventListener('pointerup', finish); resizeHandle.removeEventListener('pointercancel', finish); if (resizeHandle.hasPointerCapture(pointerId)) resizeHandle.releasePointerCapture(pointerId); writeWorkspace(); requestAnimationFrame(() => { syncWorkspaceRowHeights(); world?.refreshLayout(); }); };
+      const finish = (next: PointerEvent) => { if (next.pointerId !== pointerId) return; cancelAnimationFrame(resizeFrame); card.classList.remove('resizing'); resizeHandle.removeEventListener('pointermove', move); resizeHandle.removeEventListener('pointerup', finish); resizeHandle.removeEventListener('pointercancel', finish); if (resizeHandle.hasPointerCapture(pointerId)) resizeHandle.releasePointerCapture(pointerId); requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); }); };
       resizeHandle.addEventListener('pointermove', move); resizeHandle.addEventListener('pointerup', finish, { once: true }); resizeHandle.addEventListener('pointercancel', finish, { once: true });
     });
     bar.addEventListener('dragstart', event => {
@@ -138,12 +229,17 @@ function setupWorkspace() {
       if (!draggedWindow || draggedWindow === card) return; event.preventDefault(); const bounds = card.getBoundingClientRect(), nearMiddle = Math.abs(event.clientY - (bounds.top + bounds.height / 2)) < bounds.height * .3, insertAfter = nearMiddle ? event.clientX > bounds.left + bounds.width / 2 : event.clientY > bounds.top + bounds.height / 2; desk.insertBefore(draggedWindow, insertAfter ? card.nextElementSibling : card); clearDropTargets(); requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); });
     });
     if (id === 'mapWindow') new ResizeObserver(() => { if (workspaceReady) requestAnimationFrame(() => world?.refreshLayout()); }).observe(card);
-    const bounds = saved.windows[id]; setWindowSpan(card, bounds?.span ?? defaultWindowSpan(card)); if (bounds?.height) card.style.setProperty('--window-height', `${Math.max(minimumWindowHeight, bounds.height)}px`); if (saved.closed.includes(id)) card.classList.add('window-closed'); if (saved.minimized.includes(id)) card.classList.add('window-minimized'); if (saved.maximized.includes(id)) card.classList.add('window-maximized');
+    const bounds = saved?.windows[id]; setWindowSpan(card, bounds?.span ?? defaultWindowSpan(card)); if (bounds?.height) card.style.setProperty('--window-height', `${Math.max(minimumWindowHeight, bounds.height)}px`); if (saved?.closed.includes(id)) card.classList.add('window-closed'); if (saved?.minimized.includes(id)) card.classList.add('window-minimized'); if (saved?.maximized.includes(id)) card.classList.add('window-maximized'); updateMinimizeControl(card);
   }
-  const ordered = saved.order.map(id => workspaceWindows.get(id)).filter((card): card is HTMLElement => Boolean(card)); const remaining = [...workspaceWindows.values()].filter(card => !ordered.includes(card)); desk.append(...ordered, ...remaining);
-  $('arrangeWorkspace').onclick = arrangeWorkspace; $('resetWorkspace').onclick = () => { localStorage.removeItem(workspaceStorageKey); location.reload(); }; document.querySelectorAll<HTMLButtonElement>('[data-drawer-tab]').forEach(button => button.onclick = () => { const tab = button.dataset.drawerTab; document.querySelectorAll<HTMLButtonElement>('[data-drawer-tab]').forEach(item => item.classList.toggle('active', item === button)); document.querySelectorAll<HTMLElement>('[data-drawer-panel]').forEach(panel => { panel.hidden = panel.dataset.drawerPanel !== tab; }); }); renderClosedWindows();
+  const ordered = (saved?.order ?? []).map(id => workspaceWindows.get(id)).filter((card): card is HTMLElement => Boolean(card)); const remaining = [...workspaceWindows.values()].filter(card => !ordered.includes(card)); desk.append(...ordered, ...remaining);
+  $('arrangeWorkspace').onclick = arrangeWorkspace; $('resetWorkspace').onclick = () => { localStorage.removeItem(workspaceStorageKey); localStorage.removeItem(legacyWorkspaceStorageKey); location.reload(); }; document.querySelectorAll<HTMLButtonElement>('[data-drawer-tab]').forEach(button => button.onclick = () => { const tab = button.dataset.drawerTab; document.querySelectorAll<HTMLButtonElement>('[data-drawer-tab]').forEach(item => item.classList.toggle('active', item === button)); document.querySelectorAll<HTMLElement>('[data-drawer-panel]').forEach(panel => { panel.hidden = panel.dataset.drawerPanel !== tab; }); }); renderClosedWindows();
 }
-function activateWorkspace() { workspaceReady = true; if (!hasSavedWorkspace) arrangeWorkspace(); else requestAnimationFrame(() => world?.refreshLayout()); }
+function activateWorkspace() {
+  workspaceReady = true;
+  if (requestedWorkspaceMode !== activeWorkspaceMode) { switchWorkspaceMode(requestedWorkspaceMode); return; }
+  if (!workspaceLayouts[activeWorkspaceMode]) arrangeWorkspace();
+  else requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); });
+}
 
 function toast(message: string) { const element = $('toast'); element.textContent = message; element.classList.add('show'); clearTimeout(toastTimer); toastTimer = window.setTimeout(() => element.classList.remove('show'), 2600); }
 function command(body: Record<string, unknown>) {
@@ -270,7 +366,7 @@ function rotateCamera(delta: number) {
 }
 
 function showLogin(message = '') { $('login').hidden = false; $('app').hidden = true; $('loginError').textContent = message; }
-const campUpdatesStorageKey = 'dnd-camp-rests-updates-v1.4.2-seen';
+const campUpdatesStorageKey = 'dnd-camp-rests-updates-v1.4.3-seen';
 function hasCampRestModule() {
   return campaign?.campaignId === 'stormwreck-isle' && campaign.scenes.some(scene => scene.id === 'camp-a1-rooms');
 }
@@ -297,7 +393,14 @@ async function beginDm(password?: string) {
 $('loginForm').onsubmit = event => { event.preventDefault(); void beginDm(($('password') as HTMLInputElement).value); };
 
 function render(current: DmState) {
+  switchWorkspaceMode(current.combat.active ? 'combat' : 'exploration');
   $('app').classList.toggle('combat-mode', current.combat.active);
+  const timeOfDayButton = $('timeOfDayToggle') as HTMLButtonElement;
+  timeOfDayButton.hidden = !campaign?.scenes.find(scene => scene.id === current.sceneId)?.camp;
+  const isNight = (current.environment.timeOfDay ?? 'auto') === 'night' || (current.environment.timeOfDay ?? 'auto') === 'auto' && current.campRest?.sceneId === current.sceneId && current.campRest.phase === 'night';
+  $('timeOfDayIcon').textContent = isNight ? '☀' : '☾'; $('timeOfDayLabel').textContent = isNight ? 'Pasar a día' : 'Pasar a noche';
+  timeOfDayButton.setAttribute('aria-pressed', String(isNight));
+  timeOfDayButton.title = isNight ? 'La escena está de noche. Cambiar a día.' : 'La escena está de día. Cambiar a noche.';
   $('campaignTitle').textContent = current.campaignTitle; $('creatureNote').textContent = current.privateNotes.creature; $('wheelNote').textContent = current.privateNotes.wheel;
   selectCurrentScene(current.sceneId); ($('camera') as HTMLSelectElement).value = current.camera.mode; renderFocus(current); updateCameraOrbitControls(current.sceneId);
   $('storm').textContent = current.environment.storm ? 'Detener tormenta' : 'Activar tormenta';
@@ -383,12 +486,18 @@ function renderCampRest(current: DmState) {
     button.onclick = () => command({ type: 'camp:rest', action, sceneId: scene.id, ...extra }); actions.append(button); return button;
   };
   const activeElsewhere = Boolean(current.campRest && current.campRest.sceneId !== scene.id && current.campRest.phase !== null && current.campRest.phase !== 'finalization');
-  if (!rest || rest.phase === null || rest.phase === 'finalization') addAction('Preparar descanso', 'prepare', activeElsewhere, {}, 'primary');
-  else if (rest.paused) addAction('Reanudar', 'resume', false, {}, 'primary');
+  if (!rest || rest.phase === null || rest.phase === 'finalization') {
+    addAction('Preparar descanso', 'prepare', activeElsewhere, {}, 'primary');
+  }
+  else if (rest.paused) {
+    addAction('Reanudar', 'resume', false, {}, 'primary');
+  }
   else if (rest.phase === 'dawn') {
     addAction('Confirmar descanso completado', 'finalize', false, { completed: true }, 'primary');
     addAction('Finalizar sin completarlo', 'finalize', false, { completed: false }, 'danger');
-  } else addAction(`Avanzar: ${restPhaseLabels[rest.phase === 'arrival' ? 'dusk' : rest.phase === 'dusk' ? 'night' : 'dawn']}`, 'advance', false, {}, 'primary');
+  } else {
+    addAction(`Avanzar: ${restPhaseLabels[rest.phase === 'arrival' ? 'dusk' : rest.phase === 'dusk' ? 'night' : 'dawn']}`, 'advance', false, {}, 'primary');
+  }
   if (rest && rest.phase !== null && rest.phase !== 'finalization' && !rest.paused) {
     const interrupt = document.createElement('button'); interrupt.type = 'button'; interrupt.textContent = 'Registrar interrupción'; interrupt.className = 'danger';
     interrupt.onclick = () => { const input = $('campInterruptNote') as HTMLInputElement; if (!input.value.trim()) { input.focus(); toast('Escribe una nota breve sobre la interrupción.'); return; } command({ type: 'camp:rest', action: 'interrupt', sceneId: scene.id, note: input.value.trim() }); input.value = ''; };
@@ -969,6 +1078,11 @@ $('cameraReset').onclick = () => { const sceneId = state?.sceneId ?? latestSnaps
 };
 $('camera').onchange = $('focus').onchange = () => command({ type: 'camera', mode: ($('camera') as HTMLSelectElement).value, focusId: ($('focus') as HTMLSelectElement).value || null });
 $('storm').onclick = () => command({ type: 'environment', storm: !state?.environment.storm, intensity: Number(($('stormIntensity') as HTMLInputElement).value) });
+  $('timeOfDayToggle').onclick = () => {
+    if (!state) return;
+    const isNight = (state.environment.timeOfDay ?? 'auto') === 'night' || (state.environment.timeOfDay ?? 'auto') === 'auto' && state.campRest?.sceneId === state.sceneId && state.campRest.phase === 'night';
+    command({ type: 'environment', storm: state.environment.storm, intensity: state.environment.stormIntensity, timeOfDay: isNight ? 'day' : 'night' });
+  };
 ($('stormIntensity') as HTMLInputElement).oninput = () => { $('stormIntensityValue').textContent = `${Math.round(Number(($('stormIntensity') as HTMLInputElement).value) * 100)}%`; };
 ($('stormIntensity') as HTMLInputElement).onchange = () => command({ type: 'environment', storm: Boolean(state?.environment.storm), intensity: Number(($('stormIntensity') as HTMLInputElement).value) });
 $('creature').onclick = () => { if (state?.creature) command({ type: 'creature', visible: !state.creature.visible }); };

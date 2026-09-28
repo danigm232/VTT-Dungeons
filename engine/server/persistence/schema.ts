@@ -74,7 +74,7 @@ export const durablePayloadSchema = z.object({
   }).strict().nullable(),
   scenes: z.array(z.object({ sceneId: idSchema, objects: z.array(object).max(100) }).strict()).min(1).max(100),
   camera: z.object({ mode: z.enum(['fixed', 'semiFixed', 'follow']), focusId: idSchema.nullable() }).strict(),
-  environment: z.object({ storm: z.boolean(), stormIntensity: z.number().finite().min(0).max(1).optional() }).strict(),
+  environment: z.object({ storm: z.boolean(), stormIntensity: z.number().finite().min(0).max(1).optional(), timeOfDay: z.enum(['auto', 'day', 'night']).optional() }).strict(),
   audio: z.object({ music: track, layers: z.object({ ocean: track, wind: track, wood: track, storm: track }).strict(), sfxLoops: z.record(idSchema, track).optional() }).strict(),
   conditions: z.record(idSchema, z.array(combatCondition).max(8)).optional(),
   conditionSources: z.record(idSchema, z.array(conditionSource).max(16)).optional(),

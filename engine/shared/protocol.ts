@@ -24,6 +24,8 @@ export interface PublicEntity {
   sceneId: SceneId;
   color: string;
   tokenId: string;
+  /** Radius of an explicitly lit carried source; never inferred from an unlit pickup. */
+  carriedLightRadiusMeters?: number;
   hp?: number;
   maxHp?: number;
   defeated?: boolean;
@@ -126,7 +128,7 @@ export type DmObject =
   | (PropCommon & { kind: 'crate'; rotation: Rotation; footprint: Cell[]; structure: 'intact' | 'damaged' | 'destroyed'; allowedRotations: Rotation[]; interaction?: Exclude<DmObjectInteraction, { kind: 'barred-door' }> });
 
 export interface CameraState { mode: CameraMode; focusId: string | null }
-export interface EnvironmentState { storm: boolean; lightning: boolean; stormIntensity: number }
+export interface EnvironmentState { storm: boolean; lightning: boolean; stormIntensity: number; timeOfDay?: 'auto' | 'day' | 'night' }
 export interface AudioTrackState {
   playing: boolean; volume: number; startedAt: number | null; offset: number; assetId?: string;
   /** `loop` means infinite repetition; otherwise `repeats` is the total number of plays. */
@@ -281,7 +283,7 @@ const volumeSchema = z.number().finite().min(0).max(1);
 const runtimeField = { runtimeEpoch: runtimeEpochSchema.optional() };
 const campRestCommandSchema = z.object({
   ...runtimeField, type: z.literal('camp:rest'), commandId: commandIdSchema, sceneEpoch: epochSchema,
-  action: z.enum(['prepare', 'advance', 'interrupt', 'resume', 'finalize']),
+  action: z.enum(['prepare', 'advance', 'set-night', 'interrupt', 'resume', 'finalize']),
   sceneId: sceneIdSchema,
   note: z.string().trim().min(1).max(240).optional(), completed: z.boolean().optional()
 }).strict().superRefine((command, context) => {
@@ -318,7 +320,7 @@ export const dmCommandSchema = z.discriminatedUnion('type', [
   z.object({ ...runtimeField, type: z.literal('creature'), commandId: commandIdSchema, sceneEpoch: epochSchema, visible: z.boolean() }).strict(),
   z.object({ ...runtimeField, type: z.literal('npc:visible'), commandId: commandIdSchema, sceneEpoch: epochSchema, entityId: idSchema, visible: z.boolean() }).strict(),
   z.object({ ...runtimeField, type: z.literal('camera'), commandId: commandIdSchema, sceneEpoch: epochSchema, mode: z.enum(['fixed', 'semiFixed', 'follow']), focusId: z.string().max(40).nullable() }).strict(),
-  z.object({ ...runtimeField, type: z.literal('environment'), commandId: commandIdSchema, sceneEpoch: epochSchema, storm: z.boolean(), intensity: volumeSchema.optional(), trackId: idSchema.optional() }).strict(),
+  z.object({ ...runtimeField, type: z.literal('environment'), commandId: commandIdSchema, sceneEpoch: epochSchema, storm: z.boolean(), intensity: volumeSchema.optional(), trackId: idSchema.optional(), timeOfDay: z.enum(['auto', 'day', 'night']).optional() }).strict(),
   campRestCommandSchema,
   z.object({ ...runtimeField, type: z.literal('entity:move'), commandId: commandIdSchema, sceneEpoch: epochSchema, entityId: z.string().max(40), cell: cellSchema }).strict(),
   z.object({ ...runtimeField, type: z.literal('hp'), commandId: commandIdSchema, characterId: z.string().max(40), hp: z.number().int().min(0).max(999) }).strict(),

@@ -30,12 +30,24 @@ describe('módulo autónomo de campamentos', () => {
       expect(scene.getLightByName('terrain-ambient')!.isEnabled()).toBe(false);
       const bay=scene.getMeshByName('a1:bay-background')!;
       expect(bay.position.y).toBeLessThan(-9);
-      expect(bay.metadata).toMatchObject({content:'VTT_AMBIENCE',decorativeOnly:true});
+      expect(bay.metadata).toMatchObject({content:'VTT_AMBIENCE',decorativeOnly:true,effect:'babylon-vertex-waves'});
       expect(bay.parent).toBe(visuals.root);
+      const shore=scene.getMeshByName('a1:shore-wash')!;
+      const bayBefore=bay.getVerticesData('position')!.slice(),shoreBefore=shore.getVerticesData('position')!.slice();
+      visuals.update(.2,'arrival');
+      const bayAfter=bay.getVerticesData('position')!,shoreAfter=shore.getVerticesData('position')!;
+      expect(bayAfter.some((value,index)=>Math.abs(value-bayBefore[index]!)>.001)).toBe(true);
+      expect(shoreAfter.some((value,index)=>Math.abs(value-shoreBefore[index]!)>.001)).toBe(true);
       expect(scene.meshes.some(m=>/tent/.test(m.name))).toBe(false);
       expect(scene.meshes.some(m=>m.name.includes('a1:plaza-fire'))).toBe(true);
       expect(visuals.root.metadata).toMatchObject({statue:'Astalagan',plazaFire:true,layout:'official-map'});
       expect(scene.meshes.filter(m=>m.name.includes('torch-flame'))).toHaveLength(6);
+      for(let roomId=1;roomId<=6;roomId++){
+        const torch=scene.getLightByName(`a1:room-${roomId}:torch-light`)!;
+        expect(torch.includedOnlyMeshes.length).toBeGreaterThan(0);
+        expect(torch.includedOnlyMeshes.every(mesh=>mesh.name.includes(`a1:room-${roomId}:lit-floor`)||new RegExp(`a1:room-${roomId}:face-[012]`).test(mesh.name))).toBe(true);
+        expect(torch.includedOnlyMeshes.some(mesh=>mesh.name.includes('face-3')||mesh.name.startsWith('a1:static'))).toBe(false);
+      }
       const front=scene.meshes.filter(m=>m.name.includes('a1:room-3:face-3'));
       const back=scene.meshes.filter(m=>m.name.includes('a1:room-3:face-0'));
       const roof=scene.meshes.filter(m=>m.name.includes('a1:room-3:mountain-roof'));
@@ -43,8 +55,13 @@ describe('módulo autónomo de campamentos', () => {
       view.camera.setPosition(new Vector3(36,20,42));view.camera.getViewMatrix(true);
       visuals.update(1,'arrival');visuals.update(2,'arrival');
       expect(front.every(m=>m.scaling.y>.9)).toBe(true);expect(back.every(m=>m.scaling.y>.9)).toBe(true);expect(roof.every(m=>m.visibility>.9)).toBe(true);
+      expect(scene.getLightByName('a1:room-3:torch-light')!.intensity).toBe(0);
+      expect(scene.meshes.filter(m=>m.name.includes('a1:room-3:torch-flame')).every(m=>m.visibility===0)).toBe(true);
       visuals.update(3,'arrival',[],{col:18,row:9});visuals.update(4,'arrival',[],{col:18,row:9});
       expect(front.every(m=>m.scaling.y<.1)).toBe(true);expect(roof.every(m=>m.visibility<.1)).toBe(true);
+      expect(scene.getLightByName('a1:room-3:torch-light')!.intensity).toBeGreaterThan(0);
+      expect(scene.getLightByName('a1:room-4:torch-light')!.intensity).toBe(0);
+      expect(scene.meshes.filter(m=>m.name.includes('a1:room-3:torch-flame')).every(m=>m.visibility===1)).toBe(true);
       const neighboringFacade=scene.meshes.filter(m=>m.name.includes('a1:room-4:face-3'));
       const neighboringRoof=scene.meshes.filter(m=>m.name.includes('a1:room-4:mountain-roof'));
       expect(neighboringFacade.every(m=>m.scaling.y>.9)).toBe(true);expect(neighboringRoof.every(m=>m.visibility>.9)).toBe(true);
@@ -225,9 +242,9 @@ describe('módulo autónomo de campamentos', () => {
         const ambient = scene.getLightByName(`camp-ambient:${definition.id}`)!;
         const keyLight = scene.getLightByName(`camp-key:${definition.id}`)!;
         if (definition.camp!.visualProfile === 'rooms') {
-          visuals.update(1, 'arrival'); const warmArrival = ambient.intensity;
+          visuals.update(1, 'arrival', [], {col:5,row:10}); const warmArrival = ambient.intensity;
           const roomLamp = scene.getLightByName('a1:room-1:torch-light')!; const lampArrival = roomLamp.intensity;
-          visuals.update(20, 'night');
+          visuals.update(20, 'night', [], {col:5,row:10});
           expect(ambient.intensity).toBeLessThan(warmArrival);
           expect(roomLamp.intensity).toBeGreaterThan(lampArrival);
         } else {

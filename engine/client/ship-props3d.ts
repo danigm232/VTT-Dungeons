@@ -14,22 +14,22 @@ const palette = {
   glass: '#5b9c9d', rope: '#b7a47b', shadow: '#242c2d'
 } as const;
 type MaterialName = keyof typeof palette;
-const materialCache = new WeakMap<Scene, Map<MaterialName, StandardMaterial>>();
-const woodTextureCache = new WeakMap<Scene, BaseTexture>();
-function material(scene: Scene, name: MaterialName) {
+const materialCache = new WeakMap<Scene, Map<string, StandardMaterial>>();
+function material(scene: Scene, name: MaterialName, woodTexture?: BaseTexture) {
   let cache = materialCache.get(scene);
   if (!cache) { cache = new Map(); materialCache.set(scene, cache); }
-  let result = cache.get(name);
+  const key = `${name}:${name === 'timber' || name === 'edge' ? woodTexture?.uniqueId ?? 'plain' : 'shared'}`;
+  let result = cache.get(key);
   if (!result) {
     result = new StandardMaterial(`ship-prop:${name}`, scene);
     result.diffuseColor = Color3.FromHexString(palette[name]);
-    if ((name === 'timber' || name === 'edge') && woodTextureCache.has(scene)) {
-      result.diffuseTexture = woodTextureCache.get(scene)!;
+    if ((name === 'timber' || name === 'edge') && woodTexture) {
+      result.diffuseTexture = woodTexture;
       result.diffuseColor = Color3.FromHexString(name === 'timber' ? '#c4b395' : '#b69a71');
     }
     result.specularColor = name === 'iron' || name === 'gold' || name === 'glass'
       ? Color3.FromHexString('#4e5251') : Color3.FromHexString('#111614');
-    cache.set(name, result);
+    cache.set(key, result);
   }
   return result;
 }
@@ -41,23 +41,22 @@ export function shipPropVisualKey(prop: PublicProp) {
 }
 
 export function buildShipPropVisual(scene: Scene, prop: PublicProp, width: number, depth: number, woodTexture?: BaseTexture): TransformNode {
-  if (woodTexture) woodTextureCache.set(scene, woodTexture);
   const root = new TransformNode(`ship-prop:${prop.id}`, scene);
   root.metadata = { visualKey: shipPropVisualKey(prop) };
   let serial = 0;
   const box = (name: string, x: number, y: number, z: number, w: number, h: number, d: number, color: MaterialName) => {
     const mesh = MeshBuilder.CreateBox(`${prop.id}:${name}:${serial++}`, { width: w, height: h, depth: d }, scene);
-    mesh.parent = root; mesh.position.set(x, y, z); mesh.material = material(scene, color); mesh.isPickable = false;
+    mesh.parent = root; mesh.position.set(x, y, z); mesh.material = material(scene, color, woodTexture); mesh.isPickable = false;
     return mesh;
   };
   const cylinder = (name: string, x: number, y: number, z: number, diameter: number, height: number, color: MaterialName, tessellation = 12) => {
     const mesh = MeshBuilder.CreateCylinder(`${prop.id}:${name}:${serial++}`, { diameter, height, tessellation }, scene);
-    mesh.parent = root; mesh.position.set(x, y, z); mesh.material = material(scene, color); mesh.isPickable = false;
+    mesh.parent = root; mesh.position.set(x, y, z); mesh.material = material(scene, color, woodTexture); mesh.isPickable = false;
     return mesh;
   };
   const torus = (name: string, x: number, y: number, z: number, diameter: number, thickness: number, color: MaterialName) => {
     const mesh = MeshBuilder.CreateTorus(`${prop.id}:${name}:${serial++}`, { diameter, thickness, tessellation: 20 }, scene);
-    mesh.parent = root; mesh.position.set(x, y, z); mesh.material = material(scene, color); mesh.isPickable = false;
+    mesh.parent = root; mesh.position.set(x, y, z); mesh.material = material(scene, color, woodTexture); mesh.isPickable = false;
     return mesh;
   };
   const plank = (name: string, x: number, y: number, z: number, w: number, d: number) => {
@@ -81,18 +80,31 @@ export function buildShipPropVisual(scene: Scene, prop: PublicProp, width: numbe
     if (prop.interaction?.kind === 'barred-door' && prop.interaction.barrier === 'barred')
       box('wooden-bar', 0, 1.18, -.22, 1.34, .17, .17, 'edge');
   } else if (prop.kind === 'wheel') {
+    plank('wheel-plinth', 0, .09, 0, .82, .72);
     box('pedestal', 0, .51, 0, .28, 1.02, .28, 'dark');
+    for (const y of [.25, .8]) box('pedestal-band', 0, y, -.015, .32, .065, .31, 'iron');
     const ring = torus('wheel-rim', 0, 1.3, 0, .97, .09, 'edge');
     ring.rotation.x = Math.PI / 2;
     for (let i = 0; i < 8; i++) {
       const a = i * Math.PI / 4;
       const spoke = box('spoke', Math.sin(a) * .28, 1.3 + Math.cos(a) * .28, 0, .065, .64, .07, 'timber');
       spoke.rotation.z = -a;
-      cylinder('handle', Math.sin(a) * .58, 1.3 + Math.cos(a) * .58, 0, .09, .2, 'edge');
+      const handle = cylinder('handle', Math.sin(a) * .58, 1.3 + Math.cos(a) * .58, 0, .09, .2, 'edge');
+      handle.rotation.z = -a;
+      const rivet = cylinder('rim-rivet', Math.sin(a) * .475, 1.3 + Math.cos(a) * .475, -.055, .045, .035, 'iron', 8);
+      rivet.rotation.x = Math.PI / 2;
     }
-    cylinder('hub', 0, 1.3, 0, .23, .20, 'iron');
+    cylinder('hub', 0, 1.3, 0, .23, .20, 'iron').rotation.x = Math.PI / 2;
     root.rotation.z = prop.state === 'fallen' ? 1.1 : prop.state === 'caught' ? .24 : 0;
   } else if (id.includes('ballista')) {
+    for (const side of [-1, 1]) {
+      plank('carriage-foot', 0, .12, side * .42, 1.65, .2);
+      const brace = box('carriage-brace', side * .39, .5, 0, .16, .94, .2, 'timber');
+      brace.rotation.z = side * -.5;
+      cylinder('torsion-drum', side * .87, 1.08, 0, .28, .52, 'dark');
+      for (let turn = 0; turn < 5; turn++) torus('torsion-binding', side * .87, .88 + turn * .075, 0, .3, .035, 'rope');
+      box('stock-band', side * .58, 1.13, 0, .075, .28, .42, 'iron');
+    }
     box('stand', 0, .55, 0, .4, 1.1, .4, 'dark');
     box('stock', 0, 1.12, 0, Math.min(width, 2.9), .24, .38, 'timber');
     box('bolt', 0, 1.3, 0, Math.min(width, 2.8), .07, .07, 'iron');
@@ -118,7 +130,11 @@ export function buildShipPropVisual(scene: Scene, prop: PublicProp, width: numbe
   } else if (id.includes('desk') || id.includes('counter') || id.includes('table')) {
     const w = Math.min(width * .82, 3.8), d = Math.min(depth * .76, 1.5);
     plank('worktop', 0, .84, 0, w, d);
-    for (const x of [-w / 2 + .16, w / 2 - .16]) for (const z of [-d / 2 + .13, d / 2 - .13]) leg(x, z, .8);
+    for (const x of [-w / 2 + .16, w / 2 - .16]) for (const z of [-d / 2 + .13, d / 2 - .13]) {
+      // The captain's polished desk barely stands on three legs in C4.
+      if (id.includes('c4-desk') && x > 0 && z > 0) continue;
+      leg(x, z, .8);
+    }
     if (id.includes('desk')) {
       cylinder('compass', .28, .95, 0, .24, .035, 'gold');
       box('chart', -.35, .925, 0, .55, .008, .4, 'canvas');
@@ -178,6 +194,9 @@ export function buildShipPropVisual(scene: Scene, prop: PublicProp, width: numbe
     if (!open) plank('lid', 0, .75, 0, w + .07, d + .07);
     else box('open-lid', 0, 1.12, d / 2, w + .07, .1, d + .07, 'edge').rotation.x = .95;
   }
-  root.rotation.y += prop.rotation * Math.PI / 180;
+  // C4-C7 doors fill a north-south opening (the adjoining bulkheads have
+  // axis z). Rotate the whole hinged frame, not only the leaf: otherwise the
+  // panel cuts across the passage instead of sitting in its wall.
+  root.rotation.y += prop.rotation * Math.PI / 180 + (prop.kind === 'door' && /^c[4-7]-/.test(prop.id) ? Math.PI / 2 : 0);
   return root;
 }

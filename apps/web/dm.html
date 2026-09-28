@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>DM · D&D Immersive Engine</title>
-  <link rel="stylesheet" href="/apps/web/common.css"><link rel="stylesheet" href="/apps/web/dm.css">
+  <link rel="stylesheet" href="/apps/web/common.css"><link rel="stylesheet" href="/apps/web/dm.css"><link rel="stylesheet" href="/apps/web/dm-time.css">
 </head>
 <body>
   <section id="login" class="login" hidden><form id="loginForm">
@@ -14,7 +14,7 @@
   </form></section>
   <main id="app" hidden>
     <header><div><p class="eyebrow">D&D IMMERSIVE ENGINE · ALPHA 0.3 EN DESARROLLO</p><h1 id="campaignTitle">Mesa de campaña</h1></div>
-      <div class="status"><button id="openCampUpdates" class="release-notes-button" type="button" aria-haspopup="dialog" hidden>✦ Novedades <span>V1.4.2</span></button><span class="badge"><i id="projectorDot" class="dot"></i><span id="projectorStatus">Proyector sin preparar</span></span><span class="badge"><i id="socketDot" class="dot"></i><span>Servidor</span></span></div>
+      <div class="status"><button id="openCampUpdates" class="release-notes-button" type="button" aria-haspopup="dialog" hidden>✦ Novedades <span>V1.4.3</span></button><span class="badge"><i id="projectorDot" class="dot"></i><span id="projectorStatus">Proyector sin preparar</span></span><span class="badge"><i id="socketDot" class="dot"></i><span>Servidor</span></span></div>
     </header>
     <nav class="side-rail" aria-label="Navegación de la consola DM">
       <button id="sideControlToggle" class="side-control-toggle" type="button" aria-controls="sideControls" aria-expanded="false"><span aria-hidden="true">☰</span><span>Panel DM</span></button>
@@ -24,6 +24,7 @@
       <nav class="side-tabs" aria-label="Secciones del panel"><button class="side-tab active" type="button" data-drawer-tab="windows">Ventanas</button><button class="side-tab" type="button" data-drawer-tab="ambience">Ambiente</button></nav>
       <section class="drawer-panel" data-drawer-panel="windows"><p class="eyebrow">DISPOSICIÓN</p><p class="note">Arrastra la cabecera para ordenar. Usa el tirador dorado de la esquina inferior derecha para cambiar tamaño: la ventana encaja en la cuadrícula y las demás se recolocan solas. — minimiza, □ amplía y × cierra; las cerradas se recuperan aquí.</p><div class="button-row"><button id="arrangeWorkspace" class="primary" type="button">Distribución recomendada</button><button id="resetWorkspace" type="button">Restablecer todo</button></div><div id="closedWindows" class="closed-windows" aria-live="polite"></div></section>
       <div class="drawer-panel" data-drawer-panel="ambience" hidden>
+        <section><p class="eyebrow">LUZ DE ESCENA</p><h3>Día y noche</h3><p class="note">Cambia la iluminación de la escena sin alterar el descanso.</p><button id="timeOfDayToggle" class="day-night-toggle" type="button" aria-pressed="false"><span id="timeOfDayIcon" aria-hidden="true">☾</span><span id="timeOfDayLabel">Pasar a noche</span></button></section>
         <section><p class="eyebrow">CLIMATOLOGÍA</p><h3>Tormenta</h3><p class="note">Lluvia animada, oscurecimiento y sonido sincronizado en el proyector.</p><button id="storm" class="primary">Activar tormenta</button><label>Intensidad <output id="stormIntensityValue">50%</output><input id="stormIntensity" type="range" min="0.05" max="1" step=".05"></label></section><section><p class="eyebrow">MÚSICA Y AMBIENTE</p><div id="audio"></div></section><section><p class="eyebrow">EFECTOS D8 NIGHT</p><div id="sfx" class="effects-list"></div></section>
       </div>
     </aside>
@@ -71,15 +72,15 @@
     </div>
   </main>
   <dialog id="campUpdatesDialog" class="release-notes-dialog" aria-labelledby="campUpdatesTitle">
-    <header class="release-notes-heading"><div><p class="eyebrow">MÓDULO DE CAMPAMENTOS</p><h2 id="campUpdatesTitle">Novedades</h2></div><span class="release-notes-version">V1.4.2</span></header>
+    <header class="release-notes-heading"><div><p class="eyebrow">MÓDULO DE CAMPAMENTOS</p><h2 id="campUpdatesTitle">Novedades</h2></div><span class="release-notes-version">V1.4.3</span></header>
     <p class="release-notes-intro">Los cinco escenarios de descanso ya están disponibles desde la mesa del DM.</p>
     <div class="release-notes-list">
       <article><span aria-hidden="true">⌂</span><div><h3>A1 canónica del Retiro del Dragón</h3><p>Seis celdas de planta desigual, plaza alargada, estatua de Astalagan, jardines y hoguera, sin cargar el resto del monasterio.</p></div></article>
       <article><span aria-hidden="true">✦</span><div><h3>Cinco lugares para explorar</h3><p>Bosque, playa del pecio, acantilados y refugio costero, además de A1, con movimiento y límites propios.</p></div></article>
       <article><span aria-hidden="true">◎</span><div><h3>Interacciones más claras</h3><p>Los jugadores usan los objetos desde su vista. El DM puede activar las marcas del mapa y pulsar una para consultar sus acciones.</p></div></article>
       <article><span aria-hidden="true">☾</span><div><h3>Descanso dirigido por el DM</h3><p>Avanza por sus fases, registra interrupciones y decide si se completa. El VTT no tira dados ni aplica beneficios automáticamente.</p></div></article>
-      <article><span aria-hidden="true">⌂</span><div><h3>Fachadas que se abren al entrar</h3><p>Cada celda conserva su frente de piedra desde la plaza y lo oculta cuando el personaje entra, dejando libre la vista y el recorrido interior.</p></div></article>
-      <article><span aria-hidden="true">≈</span><div><h3>Nuevo acabado visual de A1</h3><p>Suelos con relieve, estatua de dragón reconocible, vegetación variada, bancos y utensilios de hoguera, luces mejoradas, humo, viento, brasas y espuma marina.</p></div></article>
+      <article><span aria-hidden="true">⌂</span><div><h3>Celdas excavadas y ocultas</h3><p>La montaña cubre el interior de las seis celdas. Al entrar desaparecen únicamente el techo rocoso y la fachada de la habitación ocupada.</p></div></article>
+      <article><span aria-hidden="true">≈</span><div><h3>Nuevo acabado visual de A1</h3><p>Losas grandes, piedra partida y adoquines variados; estatua del dragón, vegetación, hoguera equipada, luces, humo, viento y oleaje que rompe contra el acantilado.</p></div></article>
     </div>
     <p class="release-notes-scope">Estos campamentos son escenas independientes. El mapa principal del Retiro no forma parte de esta actualización.</p>
     <form method="dialog" class="release-notes-footer"><button class="primary" type="submit">Entrar en la mesa</button></form>

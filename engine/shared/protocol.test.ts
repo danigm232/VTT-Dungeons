@@ -2,6 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { dmCommandSchema } from './protocol';
 
 describe('protocolo de audio del DM', () => {
+  it('acepta el cambio día/noche desde una consola vinculada a la escena', () => {
+    const result = dmCommandSchema.safeParse({
+      type: 'environment', commandId: '11111111-1111-4111-8111-111111111111', sceneEpoch: 1,
+      storm: false, timeOfDay: 'night'
+    });
+    expect(result.success).toBe(true);
+  });
+
   it('acepta una mezcla de ambiente identificada por trackId', () => {
     const result = dmCommandSchema.safeParse({
       type: 'audio:mix', commandId: '11111111-1111-4111-8111-111111111111',

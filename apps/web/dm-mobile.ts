@@ -8,7 +8,7 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 type Channel = 'music' | 'ocean' | 'wind' | 'wood' | 'storm';
 
 let socket: Socket | null = null, state: DmState | null = null, runtimeEpoch: string | null = null, toastTimer = 0;
-let sceneTitles = new Map<string, string>(), sceneBackgrounds = new Map<string, string>();
+let sceneTitles = new Map<string, string>(), sceneBackgrounds = new Map<string, string>(), campSceneIds = new Set<string>();
 let campaignAudio: PublicCampaignDefinition['audio'] | null = null;
 // Un toque debe tener una respuesta visual inmediata, incluso cuando el
 // proyector tarda un instante en devolver el nuevo estado por Socket.IO.
@@ -44,7 +44,8 @@ function weatherPreset(intensity: number) {
 function toast(message: string) { const element = $('toast'); element.textContent = message; element.classList.add('show'); clearTimeout(toastTimer); toastTimer = window.setTimeout(() => element.classList.remove('show'), 2600); }
 function command(body: Record<string, unknown>) {
   if (!socket?.connected || !runtimeEpoch) { toast('La consola no está conectada.'); return null; }
-  const id = commandId(); socket.emit('dm:command', { commandId: id, runtimeEpoch, ...body }); return id;
+  const id = commandId(), sceneScope = body.type === 'environment' && state ? { sceneEpoch: state.sceneEpoch } : {};
+  socket.emit('dm:command', { commandId: id, runtimeEpoch, ...sceneScope, ...body }); return id;
 }
 function effectiveTrack(channel: Channel, track: AudioState['music']) {
   const pending = pendingAudio.get(channel);
@@ -70,7 +71,7 @@ function sendSfxLoop(id: string, next: SfxLoopSetting) {
 function setStatus(ready: boolean) { const status = $('connectionStatus'); status.textContent = ready ? 'Mesa conectada' : 'Sin conexión'; status.classList.toggle('ready', ready); }
 
 async function loadCampaign() {
-  try { const campaign = await fetch('/api/campaign').then(response => response.json()) as PublicCampaignDefinition; sceneTitles = new Map(campaign.scenes.map(scene => [scene.id, scene.title])); sceneBackgrounds = new Map(campaign.scenes.map(scene => [scene.id, scene.background])); campaignAudio = campaign.audio; }
+  try { const campaign = await fetch('/api/campaign').then(response => response.json()) as PublicCampaignDefinition; sceneTitles = new Map(campaign.scenes.map(scene => [scene.id, scene.title])); sceneBackgrounds = new Map(campaign.scenes.map(scene => [scene.id, scene.background])); campSceneIds = new Set(campaign.scenes.filter(scene => Boolean(scene.camp)).map(scene => scene.id)); campaignAudio = campaign.audio; }
   catch { /* La consola puede seguir funcionando aunque no se lea el título. */ }
 }
 function connect() {
@@ -134,7 +135,16 @@ function render(current: DmState, forceAudio = false) {
   const layers = Object.entries(current.audio.layers).map(([id, track]) => [id as Exclude<Channel, 'music'>, effectiveTrack(id as Exclude<Channel, 'music'>, track)] as const);
   const box = $('ambience'); if (forceAudio || !box.contains(document.activeElement)) { box.replaceChildren(); for (const [id, track] of layers) box.append(ambienceRow(id, track)); }
   const allPlaying = layers.every(([, track]) => track.playing); const allButton = $('toggleAllAmbience') as HTMLButtonElement; allButton.textContent = allPlaying ? 'Apagar todo' : 'Encender todo'; allButton.onclick = () => { for (const [channel, track] of layers) sendAudio(channel, { playing: !allPlaying, volume: track.volume, loop: track.loop, rate: track.rate, repeats: track.repeats }); };
-  renderWeather(current); renderEffects(); renderAmbiencePresets();
+  renderWeather(current); renderTimeOfDay(current); renderEffects(); renderAmbiencePresets();
+}
+
+function renderTimeOfDay(current: DmState) {
+  const toggle = $('timeOfDayToggle') as HTMLButtonElement;
+  toggle.hidden = !campSceneIds.has(current.sceneId);
+  const isNight = (current.environment.timeOfDay ?? 'auto') === 'night' || (current.environment.timeOfDay ?? 'auto') === 'auto' && current.campRest?.sceneId === current.sceneId && current.campRest.phase === 'night';
+  $('timeOfDayIcon').textContent = isNight ? '☀' : '☾'; $('timeOfDayLabel').textContent = isNight ? 'Pasar a día' : 'Pasar a noche';
+  toggle.setAttribute('aria-pressed', String(isNight)); toggle.title = isNight ? 'Cambiar la escena a día' : 'Cambiar la escena a noche';
+  toggle.onclick = () => command({ type: 'environment', storm: current.environment.storm, intensity: current.environment.stormIntensity, timeOfDay: isNight ? 'day' : 'night' });
 }
 
 function renderAmbiencePresets() {

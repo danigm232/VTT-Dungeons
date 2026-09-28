@@ -423,7 +423,13 @@ function renderInventory(items: string[]) {
       label.append(icon);
     }
     label.append(name); row.append(label);
-    if (/\b(antorchas?|aceite|poción|pocion|ración|racion)\b/i.test(item)) {
+    if (/\bantorcha\s+encendida\b/i.test(item)) {
+      use.textContent = 'Apagar'; use.title = 'Apagar la luz que llevas';
+      use.onclick = () => setInventoryTorchLit(index, false); row.append(use);
+    } else if (/\bantorchas?\b/i.test(item)) {
+      use.textContent = 'Encender'; use.title = 'Marcar una antorcha como encendida cuando tengas cómo hacerlo';
+      use.onclick = () => setInventoryTorchLit(index, true); row.append(use);
+    } else if (/\b(aceite|poción|pocion|ración|racion)\b/i.test(item)) {
       use.textContent = 'Usar'; use.title = 'Consumir una unidad y actualizar la mochila';
       use.onclick = () => consumeInventoryItem(index); row.append(use);
     }
@@ -431,6 +437,20 @@ function renderInventory(items: string[]) {
   }));
   const dialog = $('inventory') as HTMLDialogElement;
   if (!dialog.open) ($('inventoryEditor') as HTMLTextAreaElement).value = items.join('\n');
+}
+
+function setInventoryTorchLit(index: number, lit: boolean) {
+  if (!privateState) return;
+  const next = [...privateState.inventory], item = next[index]; if (!item) return;
+  if (lit) {
+    const suffix = /^(.*?)\s*(?:×|x)\s*(\d+)\s*$/i.exec(item), prefix = /^(\d+)\s+(.+)$/.exec(item);
+    const quantity = suffix ? Number(suffix[2]) : prefix ? Number(prefix[1]) : 1;
+    if (quantity <= 1) next.splice(index, 1);
+    else next[index] = `${(suffix?.[1] ?? prefix?.[2] ?? item).trim()} ×${quantity - 1}`;
+    next.push('Antorcha encendida');
+  } else next[index] = 'Antorcha';
+  socket.emit('player:inventory', { runtimeEpoch, commandId: commandId(), items: next });
+  toast(lit ? 'Antorcha encendida; el DM controla su duración.' : 'Antorcha apagada.');
 }
 
 function consumeInventoryItem(index: number) {
