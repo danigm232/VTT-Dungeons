@@ -260,7 +260,7 @@
 }
 
 .ambience-row > span { grid-area: icon; }
-.ambience-row > div:not(.cadence) { grid-area: info; min-width: 0; }
+.ambience-row > div:not(.cadence):not(.ambience-track-menu) { grid-area: info; min-width: 0; }
 .ambience-row > button { grid-area: action; width: 100%; }
 .ambience-row > label { grid-area: volume; }
 .ambience-row > .cadence { grid-area: cadence; width: 100%; }
@@ -435,7 +435,10 @@
 
 .ambience-track-menu {
   display: grid;
+  grid-area: auto;
   grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
   gap: .22rem;
   max-height: 210px;
   overflow: auto;
@@ -485,7 +488,7 @@
 
 .cadence {
   display: grid;
-  grid-template-columns: 46px minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: .28rem;
   width: 100%;
   min-width: 0;
@@ -555,7 +558,7 @@
   .ambience-icon, .ambience-row .ambience-toggle { width: 36px; min-width: 36px; height: 36px; min-height: 36px; }
   .ambience-copy .ambience-source, .ambience-copy b { font-size: .78rem; }
   .ambience-copy small { font-size: .65rem; }
-  .cadence { grid-template-columns: 38px minmax(0, .85fr) minmax(0, 1.15fr); gap: .2rem; }
+  .cadence { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .ambience-row .cadence-step { padding: 0 .12rem; font-size: .62rem; }
   .ambience-row .cadence-step::after { content: none; }
 }
@@ -576,7 +579,7 @@
   .ambience-icon, .ambience-row .ambience-toggle { width: 42px; min-width: 42px; height: 42px; min-height: 42px; }
   .ambience-copy .ambience-source, .ambience-copy b { font-size: .9rem; }
   .ambience-copy small { font-size: .68rem; }
-  .cadence { grid-template-columns: 42px minmax(0, .85fr) minmax(0, 1.15fr); gap: .2rem; }
+  .cadence { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .cadence > *, .cadence-step, .ambience-row .loop-control { min-height: 38px; height: 38px; }
   .cadence-step { padding: 0 .2rem; font-size: .67rem; }
 }
