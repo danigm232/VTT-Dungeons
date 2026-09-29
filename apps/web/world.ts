@@ -30,7 +30,7 @@ import { hasWreckProjection, nearestWreckCell, projectWreckPoint } from './wreck
 type TokenView = { root: Container; ring: Graphics; sprite: Sprite; conditionVfx: Sprite; conditionIcon: Sprite; effects: Graphics; health: Graphics; states: Graphics; entity: PublicEntity; phase: number; animationState: string | null; animationStartedAt: number; animationUntil: number; frameUrl: string | null; conditionVfxUrl: string | null; conditionIconUrl: string | null };
 type MapObject = PublicProp | DmObject;
 type PropView = { root: Container; sprite: Sprite | null; variantUrl: string | null };
-type WorldRendererOptions = { showGrid?: boolean; showReachable?: boolean; persistCameraPreferences?: boolean; showStairMarker?: boolean };
+type WorldRendererOptions = { showGrid?: boolean; showReachable?: boolean; persistCameraPreferences?: boolean; cameraPreferenceNamespace?: string; followSharedCameraOrientation?: boolean; showStairMarker?: boolean };
 type TokenOcclusionCacheEntry = { checkedAt: number; occluded: boolean; point: { x: number; y: number; z: number }; camera: { x: number; y: number; z: number } };
 const TERRAIN_CAMERA_INITIAL_ALPHA = -Math.PI / 4;
 const CAMERA_ORIENTATION_STEP = Math.PI / 4;
@@ -317,7 +317,9 @@ export class WorldRenderer {
   setCameraTiltDegrees(degrees: number) {
     if (!Number.isFinite(degrees) || !this.terrainView) return;
     this.cameraTiltDegrees = clampCameraTilt(degrees);
-    if (this.options.persistCameraPreferences && this.sceneId) localStorage.setItem(this.cameraTiltPreferenceKey(this.sceneId), String(this.cameraTiltDegrees));
+    if (this.options.persistCameraPreferences && this.sceneId) {
+      try { localStorage.setItem(this.cameraTiltPreferenceKey(this.sceneId), String(this.cameraTiltDegrees)); } catch { /* La cámara sigue funcionando aunque el navegador bloquee el almacenamiento. */ }
+    }
   }
   zoomCameraBy(factor: number) {
     if (!Number.isFinite(factor) || factor <= 0 || !this.snapshot || !this.scene) return;
@@ -325,6 +327,7 @@ export class WorldRenderer {
     if (Math.abs(nextZoom - this.cameraZoom) < 0.001) return;
     if (this.terrainView) {
       this.cameraZoom = nextZoom;
+      this.saveCameraZoom(this.sceneId, this.cameraZoom);
       this.focusTerrainZoomOnTarget();
       this.updateCamera(0); this.drawReachable(); this.drawAttackRange();
       return;
@@ -343,7 +346,7 @@ export class WorldRenderer {
     if (!Number.isInteger(step)) return;
     const normalized = normalizeCameraOrientation(step);
     this.sharedCameraOrientations.set(sceneId, normalized);
-    if (sceneId === this.sceneId && !this.options.persistCameraPreferences) this.setCameraOrientation(normalized, false);
+    if (sceneId === this.sceneId && (!this.options.persistCameraPreferences || this.options.followSharedCameraOrientation)) this.setCameraOrientation(normalized, false);
   }
   clearSharedCameraOrientations() { this.sharedCameraOrientations.clear(); }
   showSelection(object: DmObject | null) { this.selectedObject = object; this.drawSelection(); }
@@ -644,7 +647,7 @@ export class WorldRenderer {
     this.sceneId = sceneId; this.cameraInitialized = false;
     this.cameraOrientationStep = this.readCameraOrientation(sceneId);
     this.cameraBaseZoom = definition.renderer === 'babylon-hd2d' ? definition.id === 'camp-a1-rooms' ? 1.2 : definition.camp ? 2.4 : 1.8 : 1;
-    this.cameraZoom = this.cameraBaseZoom;
+    this.cameraZoom = this.readCameraZoom(sceneId) ?? this.cameraBaseZoom;
     this.background.texture = texture; this.background.position.set(0, 0); this.background.width = definition.grid.width; this.background.height = definition.grid.height;
     this.installTerrain(definition);
     this.tokenViews.forEach(view => view.root.destroy({ children: true })); this.propViews.forEach(view => view.root.destroy({ children: true })); this.pickupViews.forEach(view => view.destroy({ children: true }));
@@ -1231,23 +1234,52 @@ export class WorldRenderer {
     }
   }
 
-  private cameraPreferenceKey(sceneId: string) { return `dungeons.camera-orientation.v1:${this.campaign.campaignId}:${sceneId}`; }
-  private cameraTiltPreferenceKey(sceneId: string) { return `dungeons.camera-tilt.v1:${this.campaign.campaignId}:${sceneId}`; }
+  private cameraPreferenceKey(sceneId: string) {
+    const namespace = this.options.cameraPreferenceNamespace;
+    return namespace ? `dungeons.camera-orientation.${namespace}.v1:${this.campaign.campaignId}:${sceneId}` : `dungeons.camera-orientation.v1:${this.campaign.campaignId}:${sceneId}`;
+  }
+  private cameraTiltPreferenceKey(sceneId: string) {
+    const namespace = this.options.cameraPreferenceNamespace;
+    return namespace ? `dungeons.camera-tilt.${namespace}.v1:${this.campaign.campaignId}:${sceneId}` : `dungeons.camera-tilt.v1:${this.campaign.campaignId}:${sceneId}`;
+  }
+  private cameraZoomPreferenceKey(sceneId: string) {
+    const namespace = this.options.cameraPreferenceNamespace;
+    return namespace ? `dungeons.camera-zoom.${namespace}.v1:${this.campaign.campaignId}:${sceneId}` : `dungeons.camera-zoom.v1:${this.campaign.campaignId}:${sceneId}`;
+  }
+  private readCameraZoom(sceneId: string) {
+    if (!this.options.persistCameraPreferences) return null;
+    try {
+      const stored = Number(localStorage.getItem(this.cameraZoomPreferenceKey(sceneId)));
+      return Number.isFinite(stored) && stored >= CAMERA_ZOOM_MIN && stored <= CAMERA_ZOOM_MAX ? stored : null;
+    } catch { return null; }
+  }
+  private saveCameraZoom(sceneId: string | null, zoom: number) {
+    if (!this.options.persistCameraPreferences || !sceneId) return;
+    try { localStorage.setItem(this.cameraZoomPreferenceKey(sceneId), String(zoom)); } catch { /* La cámara sigue funcionando aunque no pueda persistirse. */ }
+  }
   private readCameraTilt(sceneId: string) {
     if (!this.options.persistCameraPreferences) return null;
-    const stored = Number(localStorage.getItem(this.cameraTiltPreferenceKey(sceneId)));
-    return Number.isFinite(stored) && stored >= CAMERA_TILT_MIN_DEGREES && stored <= CAMERA_TILT_MAX_DEGREES ? stored : null;
+    try {
+      const stored = Number(localStorage.getItem(this.cameraTiltPreferenceKey(sceneId)));
+      return Number.isFinite(stored) && stored >= CAMERA_TILT_MIN_DEGREES && stored <= CAMERA_TILT_MAX_DEGREES ? stored : null;
+    } catch { return null; }
   }
   private readCameraOrientation(sceneId: string) {
+    const sharedOrientation = this.sharedCameraOrientations.get(sceneId);
+    if (this.options.followSharedCameraOrientation && sharedOrientation !== undefined) return sharedOrientation;
     if (this.options.persistCameraPreferences) {
-      const stored = Number(localStorage.getItem(this.cameraPreferenceKey(sceneId)));
-      if (Number.isInteger(stored) && stored >= 0 && stored < CAMERA_ORIENTATION_COUNT) return stored;
+      try {
+        const stored = Number(localStorage.getItem(this.cameraPreferenceKey(sceneId)));
+        if (Number.isInteger(stored) && stored >= 0 && stored < CAMERA_ORIENTATION_COUNT) return stored;
+      } catch { /* La cámara conserva la orientación actual si el almacenamiento está bloqueado. */ }
     }
-    return this.sharedCameraOrientations.get(sceneId) ?? 0;
+    return sharedOrientation ?? 0;
   }
   private restoreCameraOrientation(sceneId: string) { this.cameraOrientationStep = this.readCameraOrientation(sceneId); }
   private saveCameraOrientation(sceneId: string, step: number) {
-    if (this.options.persistCameraPreferences) localStorage.setItem(this.cameraPreferenceKey(sceneId), String(step));
+    if (this.options.persistCameraPreferences) {
+      try { localStorage.setItem(this.cameraPreferenceKey(sceneId), String(step)); } catch { /* La cámara sigue funcionando aunque no pueda persistirse. */ }
+    }
   }
 
   private cellToPixel(cell: Cell, surfaceId = this.scene?.surfaceId) { const grid = this.scene!.grid; return this.projectedPoint(cell.col + .5, cell.row + .5, surfaceId) ?? { x: grid.originX + (cell.col + 0.5) * grid.tileSize, y: grid.originY + (cell.row + 0.5) * grid.tileSize }; }
@@ -1296,6 +1328,7 @@ export class WorldRenderer {
       this.cameraCurrent.scale = newScale;
     }
     this.cameraZoom = nextZoom;
+    this.saveCameraZoom(this.sceneId, nextZoom);
   }
   private focusTerrainZoomOnTarget() {
     const terrain = this.scene?.terrain, entity = this.zoomFocusEntity();
@@ -1316,7 +1349,7 @@ export class WorldRenderer {
     const nextZoom = Math.max(CAMERA_ZOOM_MIN, Math.min(CAMERA_ZOOM_MAX, this.cameraZoom * Math.exp(-event.deltaY * .0015)));
     if (Math.abs(nextZoom - this.cameraZoom) < .001) return;
     if (this.terrainView) {
-      this.cameraZoom = nextZoom; this.focusTerrainZoomOnTarget();
+      this.cameraZoom = nextZoom; this.saveCameraZoom(this.sceneId, nextZoom); this.focusTerrainZoomOnTarget();
       this.updateCamera(0); this.drawReachable(); this.drawAttackRange(); return;
     }
     const focusAnchor = this.flatZoomAnchor();

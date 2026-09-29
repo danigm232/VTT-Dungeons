@@ -4,6 +4,7 @@ import type { AudioState, BasicCombatAction, Cell, CommandResult, CombatAction, 
 import type { PublicCampaignDefinition } from '../../engine/shared/campaign';
 import { footprintFor } from '../../engine/shared/geometry';
 import { commandId } from '../../engine/client/uuid';
+import { readUiPreferences, writeUiPreferences } from '../../engine/client/ui-preferences';
 import { loadCampaign } from './campaign';
 import { WorldRenderer } from './world';
 
@@ -25,7 +26,25 @@ const wreckC8Loot = [
   'Pergamino de Orden imperiosa'
 ];
 type DmCombatActionCategory = 'attack' | 'magic' | 'bonus' | 'reaction' | 'utility' | 'dm';
-let dmCombatActionCategory: DmCombatActionCategory = 'attack';
+type DmDrawerTab = 'windows' | 'ambience';
+type DmUiPreferences = { showGrid: boolean; sideControlsOpen: boolean; drawerTab: DmDrawerTab; combatActionCategory: DmCombatActionCategory; shareCameraOrientation: boolean };
+const dmUiPreferencesStorageKey = 'dnd-dm-ui-preferences.v1';
+const defaultDmUiPreferences: DmUiPreferences = { showGrid: true, sideControlsOpen: false, drawerTab: 'windows', combatActionCategory: 'attack', shareCameraOrientation: true };
+const dmCombatCategories: DmCombatActionCategory[] = ['attack', 'magic', 'bonus', 'reaction', 'utility', 'dm'];
+const isDmUiPreferences = (value: unknown): value is DmUiPreferences => {
+  if (!value || typeof value !== 'object') return false;
+  const saved = value as Partial<DmUiPreferences>;
+  return typeof saved.showGrid === 'boolean' && typeof saved.sideControlsOpen === 'boolean'
+    && (saved.drawerTab === 'windows' || saved.drawerTab === 'ambience')
+    && typeof saved.combatActionCategory === 'string' && dmCombatCategories.includes(saved.combatActionCategory as DmCombatActionCategory)
+    && typeof saved.shareCameraOrientation === 'boolean';
+};
+let dmUiPreferences = readUiPreferences(dmUiPreferencesStorageKey, defaultDmUiPreferences, isDmUiPreferences);
+let dmCombatActionCategory: DmCombatActionCategory = dmUiPreferences.combatActionCategory;
+function updateDmUiPreferences<K extends keyof DmUiPreferences>(key: K, value: DmUiPreferences[K]) {
+  dmUiPreferences = { ...dmUiPreferences, [key]: value };
+  writeUiPreferences(dmUiPreferencesStorageKey, dmUiPreferences);
+}
 type SaveStatus = { mode: string; stateRevision: number; savedStateRevision: number | null; generation: number | null; savedAt: string | null; dirty: boolean; errorCode: string | null; runtimeEpoch: string };
 let saveStatus: SaveStatus | null = null;
 let draftAction: { type: 'transform' | 'detach' | 'structure'; outcome?: 'caught' | 'fallen'; structure?: 'damaged' | 'destroyed'; requestId?: string; objectRevision: number; sceneEpoch: number; connectionGeneration: number } | null = null;
@@ -85,6 +104,11 @@ function readWorkspaceLayouts(): WorkspaceLayouts {
 function persistWorkspaceLayouts() {
   try { localStorage.setItem(workspaceStorageKey, JSON.stringify(workspaceLayouts)); }
   catch { /* La consola sigue funcionando aunque el navegador bloquee el almacenamiento local. */ }
+}
+function setDrawerTab(tab: DmDrawerTab, persist = true) {
+  document.querySelectorAll<HTMLButtonElement>('[data-drawer-tab]').forEach(button => button.classList.toggle('active', button.dataset.drawerTab === tab));
+  document.querySelectorAll<HTMLElement>('[data-drawer-panel]').forEach(panel => { panel.hidden = panel.dataset.drawerPanel !== tab; });
+  if (persist) updateDmUiPreferences('drawerTab', tab);
 }
 function defaultWindowSpan(card: HTMLElement) { return card.id === 'mapWindow' || card.dataset.windowTitle === 'Jugadores' ? 12 : 4; }
 function minimumWindowSpan(card: HTMLElement) {
@@ -232,7 +256,9 @@ function setupWorkspace() {
     const bounds = saved?.windows[id]; setWindowSpan(card, bounds?.span ?? defaultWindowSpan(card)); if (bounds?.height) card.style.setProperty('--window-height', `${Math.max(minimumWindowHeight, bounds.height)}px`); if (saved?.closed.includes(id)) card.classList.add('window-closed'); if (saved?.minimized.includes(id)) card.classList.add('window-minimized'); if (saved?.maximized.includes(id)) card.classList.add('window-maximized'); updateMinimizeControl(card);
   }
   const ordered = (saved?.order ?? []).map(id => workspaceWindows.get(id)).filter((card): card is HTMLElement => Boolean(card)); const remaining = [...workspaceWindows.values()].filter(card => !ordered.includes(card)); desk.append(...ordered, ...remaining);
-  $('arrangeWorkspace').onclick = arrangeWorkspace; $('resetWorkspace').onclick = () => { localStorage.removeItem(workspaceStorageKey); localStorage.removeItem(legacyWorkspaceStorageKey); location.reload(); }; document.querySelectorAll<HTMLButtonElement>('[data-drawer-tab]').forEach(button => button.onclick = () => { const tab = button.dataset.drawerTab; document.querySelectorAll<HTMLButtonElement>('[data-drawer-tab]').forEach(item => item.classList.toggle('active', item === button)); document.querySelectorAll<HTMLElement>('[data-drawer-panel]').forEach(panel => { panel.hidden = panel.dataset.drawerPanel !== tab; }); }); renderClosedWindows();
+  $('arrangeWorkspace').onclick = arrangeWorkspace; $('resetWorkspace').onclick = () => { localStorage.removeItem(workspaceStorageKey); localStorage.removeItem(legacyWorkspaceStorageKey); localStorage.removeItem(dmUiPreferencesStorageKey); location.reload(); };
+  document.querySelectorAll<HTMLButtonElement>('[data-drawer-tab]').forEach(button => button.onclick = () => { const tab = button.dataset.drawerTab; if (tab === 'windows' || tab === 'ambience') setDrawerTab(tab); });
+  setDrawerTab(dmUiPreferences.drawerTab, false); renderClosedWindows();
 }
 function activateWorkspace() {
   workspaceReady = true;
@@ -387,9 +413,9 @@ async function beginDm(password?: string) {
   if (!response.ok) { showLogin(password === undefined ? 'Esta mesa requiere clave de DM.' : 'Clave incorrecta.'); return; }
   csrfToken = (await response.json()).csrfToken;
   try {
-    campaign = await loadCampaign(); populateCampaign(); world = new WorldRenderer($('dmMap'), campaign, { persistCameraPreferences: true }); world.setMapClick(onMapClick); await loadInfo();
+    campaign = await loadCampaign(); populateCampaign(); ($('showGrid') as HTMLInputElement).checked = dmUiPreferences.showGrid; ($('shareCameraOrientation') as HTMLInputElement).checked = dmUiPreferences.shareCameraOrientation; world = new WorldRenderer($('dmMap'), campaign, { persistCameraPreferences: true, showGrid: dmUiPreferences.showGrid }); world.setMapClick(onMapClick); await loadInfo();
   } catch (error) { console.error('Error al preparar la vista DM', error); showLogin('No se pudo cargar la campaña. Recarga la página.'); return; }
-  $('login').hidden = true; $('app').hidden = false; showCampUpdatesIfNeeded(); requestAnimationFrame(activateWorkspace); connect(); void renderSaveHistory();
+  $('login').hidden = true; $('app').hidden = false; setSideControlsOpen(dmUiPreferences.sideControlsOpen, false, false); showCampUpdatesIfNeeded(); requestAnimationFrame(activateWorkspace); connect(); void renderSaveHistory();
 }
 $('loginForm').onsubmit = event => { event.preventDefault(); void beginDm(($('password') as HTMLInputElement).value); };
 
@@ -1066,7 +1092,7 @@ $('scene').onchange = () => {
   campInteractionMode = !campInteractionMode;
   syncCampInteractionMode(isCamp);
 };
-$('showGrid').onchange = () => world?.setGridVisible(($('showGrid') as HTMLInputElement).checked);
+($('showGrid') as HTMLInputElement).onchange = () => { const visible = ($('showGrid') as HTMLInputElement).checked; world?.setGridVisible(visible); updateDmUiPreferences('showGrid', visible); };
 $('cameraTurnLeft').onclick = () => rotateCamera(-1);
 $('cameraTurnRight').onclick = () => rotateCamera(1);
 $('cameraReset').onclick = () => { const sceneId = state?.sceneId ?? latestSnapshot?.sceneId; if (!supportsCameraOrbit(sceneId)) return; world?.resetCameraOrientation(); updateCameraOrbitControls(sceneId); publishCameraOrientation(); };
@@ -1076,7 +1102,9 @@ $('cameraReset').onclick = () => { const sceneId = state?.sceneId ?? latestSnaps
   $('cameraTiltValue').textContent = `${world?.getCameraTiltDegrees() ?? Number(input.value)}°`;
 };
 ($('shareCameraOrientation') as HTMLInputElement).onchange = event => {
-  if ((event.currentTarget as HTMLInputElement).checked) publishCameraOrientation(true);
+  const share = (event.currentTarget as HTMLInputElement).checked;
+  updateDmUiPreferences('shareCameraOrientation', share);
+  if (share) publishCameraOrientation(true);
   else stopSharingCameraOrientation();
 };
 $('camera').onchange = $('focus').onchange = () => command({ type: 'camera', mode: ($('camera') as HTMLSelectElement).value, focusId: ($('focus') as HTMLSelectElement).value || null });
@@ -1090,11 +1118,12 @@ $('storm').onclick = () => command({ type: 'environment', storm: !state?.environ
 ($('stormIntensity') as HTMLInputElement).onchange = () => command({ type: 'environment', storm: Boolean(state?.environment.storm), intensity: Number(($('stormIntensity') as HTMLInputElement).value) });
 $('creature').onclick = () => { if (state?.creature) command({ type: 'creature', visible: !state.creature.visible }); };
 $('moveHarpy').onclick = () => { if (state?.creature) command({ type: 'entity:move', entityId: state.creature.id, cell: { col: Number(($('harpyCol') as HTMLInputElement).value), row: Number(($('harpyRow') as HTMLInputElement).value) } }); };
-function setSideControlsOpen(open: boolean) {
+function setSideControlsOpen(open: boolean, focus = true, persist = true) {
   const panel = $('sideControls'), toggle = $('sideControlToggle');
   panel.classList.toggle('open', open); panel.setAttribute('aria-hidden', String(!open)); toggle.setAttribute('aria-expanded', String(open));
-  if (open) requestAnimationFrame(() => ($('sideControlClose') as HTMLButtonElement).focus());
-  else toggle.focus();
+  if (persist) updateDmUiPreferences('sideControlsOpen', open);
+  if (focus && open) requestAnimationFrame(() => ($('sideControlClose') as HTMLButtonElement).focus());
+  else if (focus) toggle.focus();
 }
 $('sideControlToggle').onclick = () => setSideControlsOpen(!$('sideControls').classList.contains('open'));
 $('sideControlClose').onclick = () => setSideControlsOpen(false);
@@ -1258,7 +1287,7 @@ function renderCombat(current: DmState) {
     const tab = document.createElement('button'), icon = document.createElement('i'), label = document.createElement('span'), count = document.createElement('small');
     tab.type = 'button'; tab.className = 'dm-combat-tab'; tab.setAttribute('role', 'tab'); tab.setAttribute('aria-selected', String(dmCombatActionCategory === category.id)); tab.setAttribute('aria-label', `${category.label}, ${counts.get(category.id) ?? 0} acciones`); tab.title = category.label;
     icon.setAttribute('aria-hidden', 'true'); icon.textContent = category.icon; label.textContent = category.label; count.textContent = String(counts.get(category.id) ?? 0); tab.append(icon, label, count);
-    const choose = () => { if (dmCombatActionCategory !== category.id) { dmCombatActionCategory = category.id; renderCombat(current); } };
+    const choose = () => { if (dmCombatActionCategory !== category.id) { dmCombatActionCategory = category.id; updateDmUiPreferences('combatActionCategory', category.id); renderCombat(current); } };
     tab.addEventListener('pointerdown', event => { if (event.pointerType === 'mouse' && event.button !== 0) return; event.preventDefault(); event.stopPropagation(); choose(); });
     tab.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); if (event.detail === 0) choose(); });
     tabs.append(tab);

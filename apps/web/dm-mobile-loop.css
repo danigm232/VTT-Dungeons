@@ -210,7 +210,6 @@
 .ambience-row small { line-height: 1.25; }
 
 @media (max-width: 340px) {
-  .ambience-list { grid-template-columns: 1fr; }
   .music-choice { font-size: .59rem; }
 }
 
@@ -248,8 +247,6 @@
 }
 
 .ambience-row {
-  grid-template-columns: 30px minmax(0, 1fr);
-  grid-template-areas: "icon info" "action action" "volume volume" "cadence cadence";
   border-color: #705242;
   background: #493126;
 }
@@ -258,12 +255,6 @@
   border-color: #b18a58;
   background: #3a2a20;
 }
-
-.ambience-row > span { grid-area: icon; }
-.ambience-row > div:not(.cadence):not(.ambience-track-menu) { grid-area: info; min-width: 0; }
-.ambience-row > button { grid-area: action; width: 100%; }
-.ambience-row > label { grid-area: volume; }
-.ambience-row > .cadence { grid-area: cadence; width: 100%; }
 
 .ambience-icon,
 .effects-grid button span {
@@ -354,6 +345,12 @@
   background: linear-gradient(145deg, #493126, #37261f);
 }
 
+.ambience-row > * {
+  grid-area: auto;
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
 .ambience-row.active {
   border-color: #b18a58;
   background: linear-gradient(145deg, #493126, #33271e);
@@ -381,6 +378,8 @@
   border-radius: 13px;
   font-size: 1.2rem;
 }
+
+.ambience-row .ambience-icon { min-width: 48px; }
 
 .ambience-drag-handle { touch-action: none; cursor: grab; user-select: none; }
 .ambience-drag-handle:active { cursor: grabbing; }
@@ -412,13 +411,14 @@
 }
 
 .ambience-source {
+  position: relative;
   display: block;
   width: 100%;
   min-width: 0;
   max-width: 100%;
   min-height: 30px;
   margin: 0;
-  padding: .2rem 1rem .2rem 0;
+  padding: .2rem 1.15rem .2rem 0;
   border: 1px solid transparent;
   border-radius: 5px;
   appearance: none;
@@ -427,10 +427,11 @@
   cursor: pointer;
   font: 700 1rem/1.2 Georgia, serif;
   text-align: left;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
-.ambience-source::after { float: right; margin-left: .3rem; color: #eadbcd; content: '⌄'; font: 1rem/1.1 system-ui, sans-serif; }
+.ambience-source::after { position: absolute; top: 50%; right: 0; transform: translateY(-50%); color: #eadbcd; content: '⌄'; font: 1rem/1.1 system-ui, sans-serif; }
 .ambience-source[aria-expanded="true"]::after { content: '⌃'; }
 
 .ambience-track-menu {
@@ -496,7 +497,7 @@
   justify-content: stretch;
 }
 
-.cadence > * { box-sizing: border-box; width: 100%; min-width: 0; min-height: 40px; }
+.ambience-row .cadence > * { box-sizing: border-box; width: 100%; min-width: 0; min-height: 40px; }
 .cadence-step,
 .ambience-row .loop-control {
   height: 40px;
@@ -554,10 +555,18 @@
 }
 
 @container (max-width: 220px) {
-  .ambience-head { grid-template-columns: 36px minmax(0, 1fr) 36px; gap: .3rem; }
-  .ambience-icon, .ambience-row .ambience-toggle { width: 36px; min-width: 36px; height: 36px; min-height: 36px; }
-  .ambience-copy .ambience-source, .ambience-copy b { font-size: .78rem; }
-  .ambience-copy small { font-size: .65rem; }
+  .ambience-head {
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    grid-template-rows: 44px auto;
+    grid-template-areas: "icon . action" "copy copy copy";
+    gap: .5rem .4rem;
+  }
+  .ambience-head > .ambience-icon { grid-area: icon; }
+  .ambience-head > .ambience-copy { grid-area: copy; width: 100%; }
+  .ambience-head > .ambience-toggle { grid-area: action; }
+  .ambience-row .ambience-icon, .ambience-row .ambience-toggle { width: 44px; min-width: 44px; height: 44px; min-height: 44px; }
+  .ambience-copy .ambience-source, .ambience-copy b { font-size: .88rem; }
+  .ambience-copy small { font-size: .68rem; }
   .cadence { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .ambience-row .cadence-step { padding: 0 .12rem; font-size: .62rem; }
   .ambience-row .cadence-step::after { content: none; }
@@ -573,10 +582,9 @@
 .ambience-row input:focus-visible { outline: 2px solid #e4b775; outline-offset: 2px; }
 
 @media (max-width: 360px) {
-  .ambience-list { grid-template-columns: 1fr; }
   .ambience-row { padding: .68rem; gap: .58rem; }
-  .ambience-head { grid-template-columns: 42px minmax(0, 1fr) 42px; gap: .4rem; }
-  .ambience-icon, .ambience-row .ambience-toggle { width: 42px; min-width: 42px; height: 42px; min-height: 42px; }
+  .ambience-head { grid-template-columns: 44px minmax(0, 1fr) 44px; grid-template-rows: 44px auto; gap: .5rem .4rem; }
+  .ambience-row .ambience-icon, .ambience-row .ambience-toggle { width: 44px; min-width: 44px; height: 44px; min-height: 44px; }
   .ambience-copy .ambience-source, .ambience-copy b { font-size: .9rem; }
   .ambience-copy small { font-size: .68rem; }
   .cadence { grid-template-columns: repeat(3, minmax(0, 1fr)); }

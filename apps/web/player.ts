@@ -4,6 +4,7 @@ import { OBJECT_MODEL_VERSION, PROTOCOL_VERSION, explorationBasicActionCatalogue
 import type { BasicCombatAction, CharacterPublic, CombatAction, CommandResult, ExplorationAction, ExplorationBasicAction, Facing, PlayerPrivate, WorldSnapshot } from '../../engine/shared/protocol';
 import type { Cell } from '../../engine/shared/campaign';
 import { commandId } from '../../engine/client/uuid';
+import { writeUiPreferences } from '../../engine/client/ui-preferences';
 import { WorldRenderer } from './world';
 import { shipLootIconIndex } from '../../engine/client/ship-loot-art';
 import { jumpSummary } from '../../engine/shared/jumping';
@@ -31,34 +32,41 @@ type PlayerDisplaySettings = {
   actionSize: number;
   identityMenuAlwaysOpen: boolean;
   identityMenuSeconds: number;
+  sheetView: 'summary' | 'full';
 };
 const defaultPlayerDisplaySettings: PlayerDisplaySettings = {
   showGrid: true, showMovementHints: true, showSceneNotice: true,
-  joystickOpacity: 0.72, joystickX: 0.05, joystickY: 0.05, joystickSize: 2,
-  actionX: 0.99, actionY: 0.11, actionSize: 2, identityMenuAlwaysOpen: false, identityMenuSeconds: 7
+  joystickOpacity: 0.72, joystickX: 0.05, joystickY: 0, joystickSize: 2,
+  actionX: 0.99, actionY: 0, actionSize: 2, identityMenuAlwaysOpen: false, identityMenuSeconds: 7, sheetView: 'summary'
 };
 type HudLayoutSettings = Pick<PlayerDisplaySettings, 'joystickX' | 'joystickY' | 'joystickSize' | 'actionX' | 'actionY' | 'actionSize'>;
 const hudSizeScales = [0.75, 0.875, 1, 1.25, 1.5] as const;
 const hudSizeLabels = ['Muy pequeño', 'Pequeño', 'Normal', 'Grande', 'Muy grande'] as const;
 const playerDisplaySettingsKey = `dnd-player-display.v1:${campaign.campaignId}`;
+const hudBottomAlignmentKey = `dnd-player-hud-bottom-aligned.v1:${campaign.campaignId}`;
 function readPlayerDisplaySettings(): PlayerDisplaySettings {
   try {
     const saved = JSON.parse(localStorage.getItem(playerDisplaySettingsKey) ?? '{}') as Partial<PlayerDisplaySettings>;
     const seconds = Number(saved.identityMenuSeconds);
     const opacity = Number(saved.joystickOpacity);
+    // La versión anterior calculaba mal la coordenada vertical real. Conserva
+    // posición horizontal y tamaño, pero corrige una sola vez la altura guardada.
+    const alignControlsAtBottom = localStorage.getItem(hudBottomAlignmentKey) !== '1';
+    if (alignControlsAtBottom) localStorage.setItem(hudBottomAlignmentKey, '1');
     return {
       showGrid: saved.showGrid !== false,
       showMovementHints: saved.showMovementHints !== false,
       showSceneNotice: saved.showSceneNotice !== false,
       joystickOpacity: Number.isFinite(opacity) ? Math.min(1, Math.max(0.2, opacity)) : defaultPlayerDisplaySettings.joystickOpacity,
       joystickX: Number.isFinite(Number(saved.joystickX)) ? Math.min(1, Math.max(0, Number(saved.joystickX))) : defaultPlayerDisplaySettings.joystickX,
-      joystickY: Number.isFinite(Number(saved.joystickY)) ? Math.min(1, Math.max(0, Number(saved.joystickY))) : defaultPlayerDisplaySettings.joystickY,
+      joystickY: alignControlsAtBottom ? 0 : Number.isFinite(Number(saved.joystickY)) ? Math.min(1, Math.max(0, Number(saved.joystickY))) : defaultPlayerDisplaySettings.joystickY,
       joystickSize: Number.isFinite(Number(saved.joystickSize)) ? Math.min(4, Math.max(0, Math.round(Number(saved.joystickSize)))) : defaultPlayerDisplaySettings.joystickSize,
       actionX: Number.isFinite(Number(saved.actionX)) ? Math.min(1, Math.max(0, Number(saved.actionX))) : defaultPlayerDisplaySettings.actionX,
-      actionY: Number.isFinite(Number(saved.actionY)) ? Math.min(1, Math.max(0, Number(saved.actionY))) : defaultPlayerDisplaySettings.actionY,
+      actionY: alignControlsAtBottom ? 0 : Number.isFinite(Number(saved.actionY)) ? Math.min(1, Math.max(0, Number(saved.actionY))) : defaultPlayerDisplaySettings.actionY,
       actionSize: Number.isFinite(Number(saved.actionSize)) ? Math.min(4, Math.max(0, Math.round(Number(saved.actionSize)))) : defaultPlayerDisplaySettings.actionSize,
       identityMenuAlwaysOpen: saved.identityMenuAlwaysOpen === true,
-      identityMenuSeconds: Number.isFinite(seconds) ? Math.min(30, Math.max(3, Math.round(seconds))) : defaultPlayerDisplaySettings.identityMenuSeconds
+      identityMenuSeconds: Number.isFinite(seconds) ? Math.min(30, Math.max(3, Math.round(seconds))) : defaultPlayerDisplaySettings.identityMenuSeconds,
+      sheetView: saved.sheetView === 'full' ? 'full' : 'summary'
     };
   } catch { return { ...defaultPlayerDisplaySettings }; }
 }
@@ -68,6 +76,9 @@ let hudLayoutDraft: HudLayoutSettings | null = null;
 let savedSettingsVisibility: Map<HTMLElement, boolean> | null = null;
 let joystickManager: ReturnType<typeof nipplejs.create> | null = null;
 let joystickManagerSize = 0;
+const joystickPointers = new Set<number>();
+const joystickTouches = new Set<number>();
+let joystickInputActive = false;
 
 function setupCompactIdentity() {
   const identity = document.querySelector('.identity') as HTMLElement;
@@ -138,7 +149,7 @@ function addHudLayoutEditor() {
     '<div id="hudLayoutPreview" class="hud-layout-preview" aria-label="Vista previa del HUD. Arrastra el joystick y el botón de acciones en horizontal y vertical">' +
       '<span class="hud-preview-map-label">VISTA DEL MAPA</span>' +
       '<button id="previewJoystick" class="hud-preview-control hud-preview-joystick" type="button" aria-label="Mover joystick en la vista previa">◉</button>' +
-      '<button id="previewActionControl" class="hud-preview-control hud-preview-action" type="button" aria-label="Mover botón de acciones en la vista previa">⚔</button>' +
+      '<button id="previewActionControl" class="hud-preview-control hud-preview-action" type="button" aria-label="Mover botón de acciones en la vista previa">✋︎</button>' +
       '<span class="hud-preview-hint">Arrastra para cambiar posición y altura</span>' +
     '</div>' +
     '<label class="hud-layout-setting"><span>Posición horizontal del joystick</span><input id="settingJoystickX" type="range" min="0" max="100" step="1"></label>' +
@@ -149,6 +160,16 @@ function addHudLayoutEditor() {
     '<label class="hud-layout-setting"><span>Tamaño del botón de acciones <b id="settingActionSizeValue">Normal</b></span><input id="settingActionSize" type="range" min="0" max="4" step="1"></label>' +
     '<div class="button-row hud-layout-buttons"><button id="cancelHudLayout" type="button">Cancelar</button><button id="applyHudLayout" class="primary" type="button">Aplicar</button></div>';
   $('playerSettings').append(editor);
+}
+
+function addActionRadial() {
+  const radial = document.createElement('div');
+  radial.id = 'actionRadial';
+  radial.className = 'action-radial';
+  radial.hidden = true;
+  radial.setAttribute('role', 'group');
+  radial.setAttribute('aria-label', 'Rueda de acciones');
+  document.body.append(radial);
 }
 
 function hudSizeLevel(level: number) { return Math.min(4, Math.max(0, Math.round(level))); }
@@ -182,11 +203,10 @@ function applyHudControlLayout(settings: HudLayoutSettings = playerDisplaySettin
     return min + (max - min) * Math.min(1, Math.max(0, value));
   };
   const height = Math.max(1, window.innerHeight);
-  const verticalPosition = (value: number, size: number) => {
-    const safeBottom = Math.max(12, inset.bottom);
-    const safeTop = Math.max(12, inset.top) + 64;
-    const min = safeBottom + size / 2;
-    const max = Math.max(min, height - safeTop - size / 2);
+  const sharedCenterBottom = (value: number) => {
+    const largestControl = Math.max(joystickSize, actionSize);
+    const min = Math.max(4, inset.bottom + 4) + largestControl / 2;
+    const max = Math.max(min, height - Math.max(12, inset.top) - 68 - largestControl / 2);
     return min + (max - min) * Math.min(1, Math.max(0, value));
   };
 
@@ -196,16 +216,16 @@ function applyHudControlLayout(settings: HudLayoutSettings = playerDisplaySettin
   joystick.style.transform = 'translateX(-50%)';
   joystick.style.width = `${joystickSize}px`;
   joystick.style.height = `${joystickSize}px`;
-  joystick.style.bottom = `${height - verticalPosition(settings.joystickY, joystickSize)}px`;
+  joystick.style.bottom = `${sharedCenterBottom(settings.joystickY) - joystickSize / 2}px`;
   action.style.position = 'fixed';
   action.style.left = `${position(settings.actionX, actionSize)}px`;
   action.style.right = 'auto';
-  action.style.transform = 'translateX(-50%)';
+  action.style.transform = actionsMenuOpen ? 'translate(-50%, -18px)' : 'translateX(-50%)';
   action.style.width = `${actionSize}px`;
   action.style.minWidth = `${actionSize}px`;
   action.style.height = `${actionSize}px`;
   action.style.minHeight = `${actionSize}px`;
-  action.style.bottom = `${height - verticalPosition(settings.actionY, actionSize)}px`;
+  action.style.bottom = `${sharedCenterBottom(settings.actionY) - actionSize / 2}px`;
   action.style.fontSize = `${Math.max(14, Math.round(actionSize * 0.48))}px`;
   joystick.style.setProperty('--joystick-opacity', String(playerDisplaySettings.joystickOpacity));
   if (joystickManager && joystickManagerSize !== joystickSize) initializeJoystick(true);
@@ -216,17 +236,25 @@ function syncHudLayoutPreview() {
   const preview = $('hudLayoutPreview');
   const previewWidth = preview.clientWidth || 320;
   const previewHeight = preview.clientHeight || 180;
+  const inset = safeAreaInsets();
+  const viewportHeight = Math.max(1, window.innerHeight);
   const layout = [
     { id: 'previewJoystick', position: hudLayoutDraft.joystickX, height: hudLayoutDraft.joystickY, size: hudLayoutDraft.joystickSize, base: 56 },
     { id: 'previewActionControl', position: hudLayoutDraft.actionX, height: hudLayoutDraft.actionY, size: hudLayoutDraft.actionSize, base: 48 }
   ] as const;
+  const previewSizes = layout.map(item => Math.round(item.base * hudSizeScale(item.size)));
+  const largestPreviewControl = Math.max(...previewSizes);
+  const topLimit = previewHeight * (Math.max(12, inset.top) + 68) / viewportHeight + largestPreviewControl / 2;
+  const bottomLimit = previewHeight - previewHeight * Math.max(4, inset.bottom + 4) / viewportHeight - largestPreviewControl / 2;
+  const topCenter = Math.min(topLimit, bottomLimit);
+  const bottomCenter = Math.max(topCenter, bottomLimit);
   for (const item of layout) {
     const control = $(item.id) as HTMLButtonElement;
     const size = Math.round(item.base * hudSizeScale(item.size));
     const edge = Math.min(20, (size / 2 + 7) / previewWidth * 100);
-    const verticalEdge = Math.min(28, (size / 2 + 7) / previewHeight * 100);
+    const centerY = bottomCenter + (topCenter - bottomCenter) * item.height;
     control.style.left = `${edge + (100 - edge * 2) * item.position}%`;
-    control.style.top = `${verticalEdge + (100 - verticalEdge * 2) * (1 - item.height)}%`;
+    control.style.top = `${centerY - size / 2}px`;
     control.style.bottom = 'auto';
     control.style.width = `${size}px`;
     control.style.height = `${size}px`;
@@ -302,11 +330,18 @@ function updateHudPreviewPosition(controlId: 'previewJoystick' | 'previewActionC
   const baseSize = isJoystick ? 56 : 48;
   const size = baseSize * hudSizeScale(sizeLevel);
   const marginX = Math.min(rect.width * 0.2, size / 2 + 7);
-  const marginY = Math.min(rect.height * 0.3, size / 2 + 7);
+  const inset = safeAreaInsets();
+  const viewportHeight = Math.max(1, window.innerHeight);
+  const largestControl = Math.max(56 * hudSizeScale(hudLayoutDraft.joystickSize), 48 * hudSizeScale(hudLayoutDraft.actionSize));
+  const topLimit = rect.height * (Math.max(12, inset.top) + 68) / viewportHeight + largestControl / 2;
+  const bottomLimit = rect.height - rect.height * Math.max(4, inset.bottom + 4) / viewportHeight - largestControl / 2;
+  const topCenter = Math.min(topLimit, bottomLimit);
+  const bottomCenter = Math.max(topCenter, bottomLimit);
   const positionKey = isJoystick ? 'joystickX' : 'actionX';
   const heightKey = isJoystick ? 'joystickY' : 'actionY';
   hudLayoutDraft[positionKey] = Math.min(1, Math.max(0, (event.clientX + pointerOffset.x - rect.left - marginX) / Math.max(1, rect.width - marginX * 2)));
-  hudLayoutDraft[heightKey] = Math.min(1, Math.max(0, 1 - (event.clientY + pointerOffset.y - rect.top - marginY) / Math.max(1, rect.height - marginY * 2)));
+  const controlCenterY = event.clientY + pointerOffset.y - rect.top;
+  hudLayoutDraft[heightKey] = Math.min(1, Math.max(0, (bottomCenter - controlCenterY) / Math.max(1, bottomCenter - topCenter)));
   syncHudLayoutPreview();
 }
 
@@ -339,11 +374,12 @@ function bindHudPreviewDrag(controlId: 'previewJoystick' | 'previewActionControl
 setupCompactIdentity();
 addCompactHudSettings();
 addHudLayoutEditor();
+addActionRadial();
 const socketAuth = () => ({ role: 'player', sessionToken, protocolVersion: PROTOCOL_VERSION, objectModelVersion: OBJECT_MODEL_VERSION });
 // Register every listener before connecting. On slow phones this prevents the
 // initial chooser packet from arriving before its renderer is ready.
 const socket = io({ autoConnect: false, auth: socketAuth() });
-const world = new WorldRenderer($('world'), campaign, { showStairMarker: false, showGrid: playerDisplaySettings.showGrid, showReachable: playerDisplaySettings.showMovementHints });
+const world = new WorldRenderer($('world'), campaign, { showStairMarker: false, showGrid: playerDisplaySettings.showGrid, showReachable: playerDisplaySettings.showMovementHints, persistCameraPreferences: true, cameraPreferenceNamespace: 'player', followSharedCameraOrientation: true });
 let privateState: PlayerPrivate | null = null;
 let lastSnapshot: WorldSnapshot | null = null;
 let readyEpoch = -1;
@@ -355,12 +391,13 @@ let toastTimer = 0;
 let selectedTargetId: string | null = null, turnAnnouncementUntil = 0;
 let renderedTargetMenuKey = '';
 let resumedRuntimeEpoch: string | null = null, recoveringSession = false;
-let sheetView: 'summary' | 'full' = 'summary';
+let sheetView: 'summary' | 'full' = playerDisplaySettings.sheetView;
 const pendingCombatNotices = new Map<string, string>();
 const pendingCombatCommands = new Set<string>();
 let armedActionId: string | null = null;
 let armedBasicAction: BasicCombatAction | null = null;
 let actionsMenuOpen = false, combatWasActive = false;
+let actionRadialPage = 0;
 let armedExplorationActionId: string | null = null;
 let armedExplorationAttackId: string | null = null;
 let armedExplorationBasicActionId: ExplorationBasicAction | null = null;
@@ -400,7 +437,7 @@ function applyPlayerDisplaySettings() {
   world.setReachableVisible(playerDisplaySettings.showMovementHints);
   document.body.classList.toggle('player-hide-scene-notice', !playerDisplaySettings.showSceneNotice);
   applyHudControlLayout();
-  localStorage.setItem(playerDisplaySettingsKey, JSON.stringify(playerDisplaySettings));
+  writeUiPreferences(playerDisplaySettingsKey, playerDisplaySettings);
   syncPlayerSettingsDialog();
   if (playerDisplaySettings.identityMenuAlwaysOpen) openIdentityMenu();
   else if (!$('identityMenu').hidden) openIdentityMenu();
@@ -413,6 +450,7 @@ applyPlayerDisplaySettings();
 addEventListener('resize', () => {
   applyHudControlLayout();
   syncHudLayoutPreview();
+  if (actionsMenuOpen) renderExplorationControls();
 });
 
 socket.on('connect', () => {
@@ -449,7 +487,8 @@ socket.on('auth:error', (error: { code?: string }) => {
 socket.on('runtime:reset', (event: { runtimeEpoch: string; reason?: string }) => {
   if (runtimeEpoch && runtimeEpoch !== event.runtimeEpoch) { location.reload(); return; }
   stop(); runtimeEpoch = event.runtimeEpoch; readyEpoch = -1; seq = 0; lastSnapshot = null; privateState = null;
-  resumedRuntimeEpoch = null; selectedTargetId = null; renderedTargetMenuKey = ''; pendingCombatNotices.clear(); pendingCombatCommands.clear(); armedActionId = null; armedBasicAction = null; actionsMenuOpen = false; combatWasActive = false; combatBarMode = null; armedExplorationActionId = null; armedExplorationAttackId = null; armedExplorationBasicActionId = null; openCombatCategory = null; openExplorationCategory = null;
+  resumedRuntimeEpoch = null; selectedTargetId = null; renderedTargetMenuKey = ''; pendingCombatNotices.clear(); pendingCombatCommands.clear(); armedActionId = null; armedBasicAction = null; actionsMenuOpen = false; actionRadialPage = 0; combatWasActive = false; combatBarMode = null; armedExplorationActionId = null; armedExplorationAttackId = null; armedExplorationBasicActionId = null; openCombatCategory = null; openExplorationCategory = null;
+  $('actionRadial').hidden = true; $('actionRadial').replaceChildren(); $('interact').hidden = true;
   world.resetConnection(); world.setLocalPlayer(null); $('hud').hidden = true; $('join').hidden = false;
   if (event.reason && event.reason !== 'Conexión establecida.') toast(event.reason);
 });
@@ -576,7 +615,7 @@ function combatActionsAvailable(combat = privateState?.combat) {
 function compactActionLabel(label: string) { return label.split(' · ')[0]?.trim() || label; }
 
 function closeActionPanel() {
-  actionsMenuOpen = false; renderedTargetMenuKey = '';
+  actionsMenuOpen = false; actionRadialPage = 0; renderedTargetMenuKey = '';
   renderActionToggle(); renderTargetMenu(); renderExplorationControls();
 }
 
@@ -595,7 +634,7 @@ function actionTooltip(text: string) {
 }
 
 function enableLongPressInfo(button: HTMLButtonElement, tooltip: HTMLElement) {
-  let holdTimer = 0, hideTimer = 0, suppressClick = false, shown = false, origin: { x: number; y: number } | null = null, homeParent: Node | null = null, homeNext: Node | null = null;
+  let holdTimer = 0, hideTimer = 0, suppressClick = false, shown = false, origin: { x: number; y: number } | null = null, homeParent: Node | null = null, homeNext: Node | null = null, homeStyle: string | null = null;
   button.setAttribute('aria-describedby', tooltip.id);
   const clearHold = () => { if (holdTimer) { clearTimeout(holdTimer); holdTimer = 0; } };
   const hide = () => {
@@ -603,16 +642,17 @@ function enableLongPressInfo(button: HTMLButtonElement, tooltip: HTMLElement) {
     if (tooltip.parentNode === document.body) {
       if (homeParent?.isConnected) homeNext?.parentNode === homeParent ? homeParent.insertBefore(tooltip, homeNext) : homeParent.appendChild(tooltip);
       else tooltip.remove();
+      if (homeStyle === null) tooltip.removeAttribute('style'); else tooltip.setAttribute('style', homeStyle);
     }
     shown = false; suppressClick = false;
   };
   button.addEventListener('pointerdown', event => {
     if (event.pointerType === 'mouse') return;
     clearTimeout(hideTimer); hide(); origin = { x: event.clientX, y: event.clientY };
-    holdTimer = window.setTimeout(() => {
-      holdTimer = 0; shown = true; suppressClick = true; homeParent = tooltip.parentNode; homeNext = tooltip.nextSibling;
-      document.body.append(tooltip); tooltip.classList.add('touch-visible');
-    }, 650);
+      holdTimer = window.setTimeout(() => {
+        holdTimer = 0; shown = true; suppressClick = true; homeParent = tooltip.parentNode; homeNext = tooltip.nextSibling; homeStyle = tooltip.getAttribute('style');
+        tooltip.removeAttribute('style'); document.body.append(tooltip); tooltip.classList.add('touch-visible');
+      }, 3000);
   });
   button.addEventListener('pointermove', event => {
     if (origin && Math.hypot(event.clientX - origin.x, event.clientY - origin.y) > 14) clearHold();
@@ -632,22 +672,21 @@ function enableLongPressInfo(button: HTMLButtonElement, tooltip: HTMLElement) {
 function renderActionToggle() {
   const button = $('actionToggle');
   const explorationActive = Boolean(privateState && lastSnapshot && !lastSnapshot.combat.active);
-  const combatActive = Boolean(lastSnapshot?.combat.active && combatActionsAvailable());
-  const active = explorationActive || combatActive;
-  // In combat the persistent command bar below replaces this floating menu.
-  button.hidden = !active || combatActive;
+  const active = explorationActive;
+  button.setAttribute('aria-controls', 'actionRadial');
+  // In combat the persistent command bar below replaces this exploration wheel.
+  button.hidden = !active;
+  button.textContent = actionsMenuOpen ? '×' : '✋︎';
+  button.style.transform = active && actionsMenuOpen ? 'translate(-50%, -18px)' : 'translateX(-50%)';
   if (!active) { button.classList.remove('has-context'); button.setAttribute('aria-expanded', 'false'); return; }
-  const selected = combatActive
-    ? armedActionId ? privateState?.combat?.attacks.find(action => action.id === armedActionId)?.label : armedBasicAction ? basicActionLabels[armedBasicAction] : undefined
-    : armedExplorationActionId ? privateState?.explorationActions.find(action => action.id === armedExplorationActionId)?.label : armedExplorationAttackId ? privateState?.explorationAttacks.find(action => action.id === armedExplorationAttackId)?.label : armedExplorationBasicActionId ? explorationBasicActionCatalogue[armedExplorationBasicActionId].label : undefined;
+  const selected = armedExplorationActionId ? privateState?.explorationActions.find(action => action.id === armedExplorationActionId)?.label : armedExplorationAttackId ? privateState?.explorationAttacks.find(action => action.id === armedExplorationAttackId)?.label : armedExplorationBasicActionId ? explorationBasicActionCatalogue[armedExplorationBasicActionId].label : undefined;
   const context = explorationActive ? contextualInteraction() : null;
-  button.textContent = '⚔';
   button.classList.toggle('has-context', Boolean(context));
   const actionLabel = [selected ? `seleccionada: ${compactActionLabel(selected)}` : '', context ? `interacción cercana: ${context.label}` : ''].filter(Boolean).join('; ');
-  const accessibleLabel = actionLabel ? `Acciones; ${actionLabel}` : 'Acciones';
+  const accessibleLabel = actionLabel ? `¿Qué puedo hacer? ${actionLabel}` : '¿Qué puedo hacer?';
   button.setAttribute('aria-label', actionsMenuOpen ? `Cerrar ${accessibleLabel.toLowerCase()}` : accessibleLabel);
-  button.title = actionsMenuOpen ? 'Cerrar acciones' : accessibleLabel;
-  button.classList.toggle('combat-actions-toggle', combatActive); button.setAttribute('aria-expanded', String(actionsMenuOpen));
+  button.title = actionsMenuOpen ? 'Cerrar rueda de acciones' : accessibleLabel;
+  button.classList.remove('combat-actions-toggle'); button.setAttribute('aria-expanded', String(actionsMenuOpen));
 }
 
 function finishCombatTurn() {
@@ -1120,17 +1159,242 @@ function renderTargetMenu() {
   box.append(actionList);
 }
 
+function radialActionGlyph(key: string, label: string) {
+  const text = `${key} ${label}`.toLocaleLowerCase('es');
+  if (/talk|hablar/.test(text)) return '💬';
+  if (/influence|influir/.test(text)) return '✦';
+  if (/help|ayudar/.test(text)) return '🤝';
+  if (/hide|esconder|sigilo/.test(text)) return '◉̸';
+  if (/search|buscar/.test(text)) return '⌕';
+  if (/study|estudiar/.test(text)) return '✧';
+  if (/fire|fuego|llama|hoguer/.test(text)) return '🔥';
+  if (/potion|poción|curación/.test(text)) return '🧪';
+  if (/shield|escudo|reacción/.test(text)) return '🛡';
+  if (/lock|cerradura/.test(text)) return '⚿';
+  if (/trap|trampa/.test(text)) return '⚠';
+  if (/climb|trepar/.test(text)) return '↗';
+  if (/swim|nadar/.test(text)) return '≋';
+  if (/jump|saltar/.test(text)) return '⤴';
+  if (/bow|arco/.test(text)) return '🏹';
+  if (/dagger|daga|sword|espada|hacha|arma|golpe/.test(text)) return '🗡';
+  if (/use-object|utilizar|objeto|herramienta/.test(text)) return '⚒';
+  if (/dash|correr/.test(text)) return '➤';
+  if (/dodge|esquivar/.test(text)) return '↝';
+  if (/spell|conjuro|magic|magia|proyectil|misil|ritual|hechizo/.test(text)) return '✦';
+  return '✧';
+}
+
+function radialActionLabel(label: string) {
+  const compact = compactActionLabel(label)
+    .replace(/^(?:interactuar|interactúa)\s+con\s+(?:(?:el|la|los|las|un|una)\s+)?/i, '')
+    .replace(/^(?:acercarte|acercarse)\s+a\s+(?:(?:el|la|los|las|un|una)\s+)?/i, '')
+    .replace(/^(?:atacar|ataque|disparar|disparo)\s+con\s+/i, '')
+    .replace(/^usar\s+/i, '')
+    .trim();
+  return compact ? compact.charAt(0).toLocaleUpperCase('es') + compact.slice(1) : 'Acción';
+}
+
+function radialArc(anchorX: number, anchorY: number, width: number, height: number) {
+  const left = anchorX < width * 0.28, right = anchorX > width * 0.72;
+  const top = anchorY < height * 0.28, bottom = anchorY > height * 0.72;
+  if (left && top) return { kind: 'quarter' as const, start: 0, end: 90 };
+  if (right && top) return { kind: 'quarter' as const, start: 90, end: 180 };
+  if (left && bottom) return { kind: 'quarter' as const, start: 270, end: 360 };
+  if (right && bottom) return { kind: 'quarter' as const, start: 180, end: 270 };
+  if (left) return { kind: 'half' as const, start: -90, end: 90 };
+  if (right) return { kind: 'half' as const, start: 90, end: 270 };
+  if (bottom) return { kind: 'half' as const, start: 180, end: 360 };
+  if (top) return { kind: 'half' as const, start: 0, end: 180 };
+  return anchorY > height / 2
+    ? { kind: 'half' as const, start: 180, end: 360 }
+    : { kind: 'half' as const, start: 0, end: 180 };
+}
+
+function actionRadialSourceLabel(source: HTMLButtonElement) {
+  return source.querySelector('.contextual-action-label, strong, b')?.textContent?.trim()
+    || source.textContent?.trim().replace(/^[^\p{L}\p{N}]+/u, '').replace(/[›+]+$/u, '').trim()
+    || 'Acción';
+}
+
+function renderActionRadial(sourceBox: HTMLElement) {
+  const radial = $('actionRadial');
+  const sources = Array.from(sourceBox.querySelectorAll<HTMLButtonElement>('.contextual-action, .exploration-action'));
+  if (!actionsMenuOpen) { radial.hidden = true; radial.replaceChildren(); return; }
+  radial.hidden = false;
+  const anchor = $('actionToggle').getBoundingClientRect();
+  const origin = { x: anchor.left + anchor.width / 2, y: anchor.top + anchor.height / 2 };
+  const width = Math.max(1, window.innerWidth), height = Math.max(1, window.innerHeight);
+  const arc = radialArc(origin.x, origin.y, width, height);
+  radial.dataset.arc = arc.kind;
+  radial.setAttribute('aria-label', `Rueda de acciones · ${arc.kind === 'quarter' ? 'un cuarto' : 'medio círculo'}`);
+  const compactLandscape = matchMedia('(orientation: landscape) and (max-height: 550px)').matches;
+  const nodeSize = compactLandscape ? 40 : width <= 560 ? 42 : 46;
+  const labelGap = 6;
+  const marginX = 10, marginY = Math.max(12, safeAreaInsets().top + 8);
+  const paginationWidth = 50, paginationHeight = 18, paginationGap = 8;
+  const labelWidthFor = (label: string) => Math.min(Math.max(68, label.length * (compactLandscape ? 5.7 : 6.1) + 16), Math.min(116, width - marginX * 2));
+  const labelHeightFor = (label: string) => {
+    const charsPerLine = Math.max(10, Math.floor((labelWidthFor(label) - 14) / (compactLandscape ? 5.7 : 6.1)));
+    return label.length > charsPerLine ? (compactLandscape ? 29 : 31) : (compactLandscape ? 17 : 19);
+  };
+  const paginationPosition = () => {
+    const safeBottom = height - Math.max(8, safeAreaInsets().bottom + 8);
+    return {
+      x: Math.min(width - marginX - paginationWidth / 2, Math.max(marginX + paginationWidth / 2, origin.x)),
+      y: Math.min(safeBottom - paginationHeight / 2, origin.y + anchor.height / 2 + paginationGap + paginationHeight / 2)
+    };
+  };
+  type Box = { left: number; top: number; right: number; bottom: number };
+  type RadialLayout = { radius: number; points: { x: number; y: number }[]; labelsVisible: boolean; fits: boolean };
+  const overlap = (a: Box, b: Box, gap = 0) => a.left < b.right + gap && a.right + gap > b.left && a.top < b.bottom + gap && a.bottom + gap > b.top;
+  const rectAt = (x: number, y: number, w: number, h: number): Box => ({ left: x - w / 2, right: x + w / 2, top: y - h / 2, bottom: y + h / 2 });
+  const findLayout = (count: number, labels: string[], withPagination: boolean): RadialLayout | null => {
+    const interval = Math.abs(arc.end - arc.start) * Math.PI / 180 / Math.max(1, count - 1);
+    const minRadius = Math.max(nodeSize + 22, count >= 8 ? nodeSize + 128 : nodeSize + 22, count > 1 ? (nodeSize + 16) / (2 * Math.sin(interval / 2)) : nodeSize + 22);
+    const maxRadius = Math.min(300, Math.min(width, height) * .48);
+    const pagePoint = withPagination ? paginationPosition() : null;
+    const pageBox = pagePoint ? rectAt(pagePoint.x, pagePoint.y, paginationWidth, paginationHeight) : null;
+    const safeBottom = height - Math.max(8, safeAreaInsets().bottom + 8);
+    const pageFits = !pageBox || (pageBox.left >= marginX && pageBox.right <= width - marginX && pageBox.top >= marginY && pageBox.bottom <= safeBottom
+      && !overlap(pageBox, rectAt(origin.x, origin.y, anchor.width + 10, anchor.height + 10), 5));
+    let best: RadialLayout | null = null, bestScore = Number.POSITIVE_INFINITY;
+    for (let radius = minRadius; radius <= maxRadius; radius += 6) {
+      const points = Array.from({ length: count }, (_, index) => {
+        const angle = (arc.start + (arc.end - arc.start) * (count === 1 ? .5 : index / Math.max(1, count - 1))) * Math.PI / 180;
+        return { x: origin.x + Math.cos(angle) * radius, y: origin.y + Math.sin(angle) * radius };
+      });
+      const nodeBoxes = points.map(point => rectAt(point.x, point.y, nodeSize, nodeSize));
+      const anchorBox = rectAt(origin.x, origin.y, anchor.width + 10, anchor.height + 10);
+      let score = 0, nodeFits = true;
+      for (let index = 0; index < nodeBoxes.length; index++) {
+        const box = nodeBoxes[index]!;
+        const overflow = Math.max(0, marginX - box.left) + Math.max(0, box.right - (width - marginX)) + Math.max(0, marginY - box.top) + Math.max(0, box.bottom - (height - Math.max(8, safeAreaInsets().bottom + 8)));
+        if (overflow) { score += overflow * 1000; nodeFits = false; }
+        if (overlap(box, anchorBox, 6)) { score += 10000; nodeFits = false; }
+        for (let other = 0; other < index; other++) if (overlap(box, nodeBoxes[other]!, 7)) { score += 10000; nodeFits = false; }
+      }
+      const labelBoxes: Box[] = [];
+      let labelsFit = pageFits;
+      for (let index = 0; index < points.length; index++) {
+        const point = points[index]!, label = labels[index] ?? '';
+        const labelWidth = labelWidthFor(label);
+        const labelHeight = labelHeightFor(label);
+        const centerX = point.x, centerY = point.y + nodeSize / 2 + labelGap + labelHeight / 2;
+        const box = rectAt(centerX, centerY, labelWidth, labelHeight);
+        const overflow = Math.max(0, marginX - box.left) + Math.max(0, box.right - (width - marginX)) + Math.max(0, marginY - box.top) + Math.max(0, box.bottom - safeBottom);
+        const collidesWithNodes = nodeBoxes.some((nodeBox, nodeIndex) => nodeIndex !== index && overlap(box, nodeBox, 5)) || overlap(box, anchorBox, 4);
+        const collidesWithLabels = labelBoxes.some(previous => overlap(box, previous, 6));
+        const collidesWithPagination = Boolean(pageBox && overlap(box, pageBox, 6));
+        const candidateScore = overflow * 1000 + (collidesWithNodes ? 1000 : 0) + (collidesWithLabels ? 1000 : 0) + (collidesWithPagination ? 1000 : 0);
+        labelBoxes.push(box);
+        if (candidateScore) { labelsFit = false; score += candidateScore; }
+      }
+      const layout: RadialLayout = { radius, points, labelsVisible: labelsFit, fits: nodeFits && labelsFit };
+      score += radius * .01; // si varias distribuciones caben, usar la más compacta
+      if (layout.fits) return layout;
+      if (score < bestScore) { best = layout; bestScore = score; }
+    }
+    return best;
+  };
+
+  let capacity = arc.kind === 'quarter' ? 4 : 8;
+  let pages = Math.max(1, Math.ceil(sources.length / capacity));
+  actionRadialPage = Math.min(actionRadialPage, pages - 1);
+  let visibleSources = sources.slice(actionRadialPage * capacity, (actionRadialPage + 1) * capacity);
+  let labels = visibleSources.map(source => radialActionLabel(actionRadialSourceLabel(source)));
+  let layout = findLayout(visibleSources.length, labels, pages > 1);
+  if (arc.kind === 'half' && visibleSources.length > 4 && !layout?.fits) {
+    const previousStart = actionRadialPage * capacity;
+    capacity = 4;
+    pages = Math.max(1, Math.ceil(sources.length / capacity));
+    actionRadialPage = Math.min(Math.floor(previousStart / capacity), pages - 1);
+    visibleSources = sources.slice(actionRadialPage * capacity, (actionRadialPage + 1) * capacity);
+    labels = visibleSources.map(source => radialActionLabel(actionRadialSourceLabel(source)));
+    layout = findLayout(visibleSources.length, labels, pages > 1);
+  }
+  if (!layout) layout = findLayout(visibleSources.length, labels, pages > 1);
+  const radius = layout?.radius ?? Math.max(nodeSize + 22, Math.min(180, Math.min(width, height) * .32));
+  const visiblePoints = layout?.points ?? [];
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.classList.add('action-radial-spokes'); svg.setAttribute('viewBox', `0 0 ${width} ${height}`); svg.setAttribute('aria-hidden', 'true');
+  const points: { x: number; y: number }[] = [];
+  for (let index = 0; index < visibleSources.length; index++) {
+    const point = visiblePoints[index] ?? { x: origin.x, y: origin.y };
+    points.push(point);
+    const directionX = (point.x - origin.x) / Math.max(1, radius), directionY = (point.y - origin.y) / Math.max(1, radius);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', String(origin.x + directionX * anchor.width * .42)); line.setAttribute('y1', String(origin.y + directionY * anchor.height * .42));
+    line.setAttribute('x2', String(point.x - directionX * (nodeSize / 2 + 4))); line.setAttribute('y2', String(point.y - directionY * (nodeSize / 2 + 4))); line.classList.add('action-radial-spoke'); svg.append(line);
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); dot.setAttribute('cx', String(point.x - directionX * (nodeSize / 2 + 4))); dot.setAttribute('cy', String(point.y - directionY * (nodeSize / 2 + 4))); dot.setAttribute('r', '2.4'); dot.classList.add('action-radial-dot'); svg.append(dot);
+  }
+  radial.replaceChildren(svg);
+  if (!sources.length) {
+    const empty = document.createElement('p'); empty.className = 'action-radial-empty'; empty.textContent = 'No hay acciones disponibles ahora.'; empty.style.left = `${origin.x}px`; empty.style.top = `${origin.y - 76}px`; radial.append(empty); return;
+  }
+  for (let index = 0; index < visibleSources.length; index++) {
+    const source = visibleSources[index]!, point = points[index]!;
+    const label = actionRadialSourceLabel(source);
+    const shortLabel = labels[index] ?? radialActionLabel(label);
+    const contextual = source.classList.contains('contextual-action');
+    const icon = contextual ? source.querySelector('.contextual-action-icon')?.textContent?.trim() || '✦' : radialActionGlyph(source.className, label);
+    const description = source.title || source.getAttribute('aria-label') || label;
+    const button = document.createElement('button'), glyph = document.createElement('span'), caption = document.createElement('span');
+    button.type = 'button'; button.className = `radial-action${source.classList.contains('armed') ? ' selected' : ''}`; button.style.left = `${point.x}px`; button.style.top = `${point.y}px`;
+    button.setAttribute('aria-label', `${label}. Mantén pulsado 3 segundos para ver detalles.`); button.title = label;
+    glyph.className = 'radial-action-glyph'; glyph.setAttribute('aria-hidden', 'true'); glyph.textContent = icon;
+    caption.className = 'radial-action-label'; caption.textContent = shortLabel; caption.title = label;
+    caption.hidden = !layout?.labelsVisible;
+    caption.style.width = `${labelWidthFor(shortLabel)}px`;
+    const tooltip = actionTooltip(description), tooltipHalfWidth = Math.min(140, width / 2 - 12);
+    tooltip.style.position = 'fixed'; tooltip.style.left = `${Math.min(width - tooltipHalfWidth - 12, Math.max(tooltipHalfWidth + 12, point.x))}px`;
+    const tooltipBelow = point.y < 120;
+    tooltip.style.top = `${tooltipBelow ? point.y + 34 : point.y - 34}px`; tooltip.dataset.placement = tooltipBelow ? 'below' : 'above';
+    button.append(glyph, caption, tooltip); enableLongPressInfo(button, tooltip);
+    button.onclick = event => {
+      event.stopPropagation();
+      actionsMenuOpen = false; actionRadialPage = 0; radial.hidden = true; renderActionToggle();
+      source.click();
+      if (!contextual) activateAvailableProximityAction();
+    };
+    radial.append(button);
+  }
+  if (pages > 1) {
+    const pagination = document.createElement('div');
+    pagination.className = 'radial-pagination'; pagination.setAttribute('aria-label', `Página ${actionRadialPage + 1} de ${pages}`);
+    const pageButton = (direction: -1 | 1) => {
+      const button = document.createElement('button');
+      button.type = 'button'; button.className = 'radial-page-control'; button.textContent = direction < 0 ? '‹' : '›';
+      button.setAttribute('aria-label', direction < 0 ? 'Acciones anteriores' : 'Más acciones');
+      button.disabled = direction < 0 ? actionRadialPage === 0 : actionRadialPage >= pages - 1;
+      button.onclick = event => {
+        event.stopPropagation();
+        if (button.disabled) return;
+        actionRadialPage += direction;
+        renderExplorationControls();
+      };
+      return button;
+    };
+    const number = document.createElement('span'); number.className = 'radial-page-number'; number.textContent = `${actionRadialPage + 1}/${pages}`;
+    pagination.append(pageButton(-1), number, pageButton(1));
+    const pagePosition = paginationPosition();
+    pagination.style.left = `${pagePosition.x}px`;
+    pagination.style.top = `${pagePosition.y}px`;
+    radial.append(pagination);
+  }
+}
+
 function renderExplorationControls() {
   const box = $('explorationMenu');
   const active = Boolean(privateState && lastSnapshot && !lastSnapshot.combat.active);
-  box.hidden = !active || !actionsMenuOpen;
+  box.hidden = true;
   const context = active ? contextualInteraction() : null;
   world.setContextInteractionTarget(context?.targetId ?? null, context?.pointId ?? null);
   renderActionToggle();
   updateAttackRangePreview();
   renderProximityButton();
   renderCampInteractions();
-  if (!active || !privateState || !actionsMenuOpen) { if (!active) box.replaceChildren(); return; }
+  if (!active || !privateState || !actionsMenuOpen) { if (!active) box.replaceChildren(); $('actionRadial').hidden = true; return; }
   box.replaceChildren();
   const selected = armedExplorationActionId
     ? privateState.explorationActions.find(action => action.id === armedExplorationActionId)?.label
@@ -1143,8 +1407,9 @@ function renderExplorationControls() {
     const item = document.createElement('button'), icon = document.createElement('span'), label = document.createElement('strong'), arrow = document.createElement('span');
     item.type = 'button'; item.className = 'contextual-action';
     item.setAttribute('aria-label', `${context.icon} ${context.label}`);
+    item.title = context.description || `Interactúa con ${context.label.toLocaleLowerCase('es')}.`;
     icon.className = 'contextual-action-icon'; icon.setAttribute('aria-hidden', 'true'); icon.textContent = context.icon;
-    label.textContent = context.label; arrow.className = 'contextual-action-arrow'; arrow.setAttribute('aria-hidden', 'true'); arrow.textContent = '›';
+    label.className = 'contextual-action-label'; label.textContent = context.label; arrow.className = 'contextual-action-arrow'; arrow.setAttribute('aria-hidden', 'true'); arrow.textContent = '›';
     item.append(icon, label, arrow); item.onclick = () => useContextualInteraction(context); box.append(item);
   }
   const intro = document.createElement('p'); intro.className = 'action-status'; intro.textContent = 'Después toca su objetivo o una casilla del mapa.'; box.append(intro);
@@ -1223,6 +1488,7 @@ function renderExplorationControls() {
   }
   box.append(groups);
   if (!cantrips.length && !spells.length && !privateState.explorationAttacks.length && !privateState.explorationBasics.length) { const empty = document.createElement('p'); empty.textContent = 'No tienes acciones disponibles fuera de combate.'; box.append(empty); }
+  renderActionRadial(box);
 }
 
 function proximityTarget(kind: 'object' | 'living' | 'any', rangeMeters: number) {
@@ -1237,25 +1503,21 @@ function proximityTarget(kind: 'object' | 'living' | 'any', rangeMeters: number)
 
 function renderProximityButton() {
   const button = $('interact') as HTMLButtonElement;
-  if (!privateState || lastSnapshot?.combat.active) { button.hidden = true; button.disabled = true; return; }
+  // The radial wheel is the sole exploration action entry point. Keep the
+  // legacy proximity button inert so it cannot create a second HUD control.
+  button.hidden = true; button.disabled = true;
+}
+
+function activateAvailableProximityAction() {
+  if (!privateState || lastSnapshot?.combat.active) return;
   const basic = armedExplorationBasicActionId ? explorationBasicActionCatalogue[armedExplorationBasicActionId] : undefined;
   const action = armedExplorationActionId ? privateState.explorationActions.find(candidate => candidate.id === armedExplorationActionId) : undefined;
   const attack = armedExplorationAttackId ? privateState.explorationAttacks.find(candidate => candidate.id === armedExplorationAttackId) : undefined;
-  if (basic) {
-    const target = basic.target === 'living' ? proximityTarget('living', Infinity) : basic.target === 'any' ? proximityTarget('any', Infinity) : null;
-    button.hidden = basic.target === 'self' || basic.target === 'point'; button.disabled = !target;
-    button.textContent = target ? `${basic.label} · ${target.label}` : basic.target === 'living' || basic.target === 'any' ? 'Acércate al objetivo' : basic.label;
-    return;
-  }
-  const target = action && (action.target === 'object' || action.target === 'living' || action.target === 'any') ? proximityTarget(action.target, action.rangeMeters) : attack ? proximityTarget('living', attack.range?.longMeters ?? attack.range?.normalMeters ?? Infinity) : null;
-  if (action || attack) {
-    button.hidden = Boolean(action && (action.target === 'point' || action.target === 'self' || action.target === 'none')); button.disabled = !target;
-    button.textContent = target ? `${action?.label ?? attack!.label} · ${target.label}` : 'Acércate al objetivo';
-    return;
-  }
-  // Contextual interactions live in the existing sword/actions tray, not in
-  // a second floating button that appears as the player walks.
-  button.hidden = true; button.disabled = true;
+  const target = basic?.target === 'living' ? proximityTarget('living', Infinity) : basic?.target === 'any' ? proximityTarget('any', Infinity)
+    : action && (action.target === 'object' || action.target === 'living' || action.target === 'any') ? proximityTarget(action.target, action.rangeMeters)
+      : attack ? proximityTarget('living', attack.range?.longMeters ?? attack.range?.normalMeters ?? Infinity) : null;
+  if (basic && target && armedExplorationBasicActionId) { useExplorationBasicAction(armedExplorationBasicActionId, target.id); return; }
+  if (action || attack) { if (target) useExplorationAction(target.id); return; }
 }
 
 function renderCampInteractions(state = privateState) {
@@ -1535,7 +1797,11 @@ addEventListener('pointercancel', event => {
 
 function initializeJoystick(force = false) {
   if (joystickManager && !force) return;
-  if (joystickManager) joystickManager.destroy();
+  if (joystickManager) {
+    releaseJoystickInput();
+    joystickManager.destroy();
+    joystickManager = null;
+  }
   // NippleJS debe medir la zona una vez visible. Si se crea dentro de #hud[hidden],
   // conserva un centro (0,0) hasta el siguiente resize y queda desplazado en portrait.
   joystickManagerSize = Math.max(1, Math.round(Number.parseFloat($('joystick').style.width) || 100));
@@ -1544,11 +1810,60 @@ function initializeJoystick(force = false) {
     size: joystickManagerSize, color: 'white', restOpacity: 0.35
   });
   joystickManager.on('move', (_event, data) => {
+    joystickInputActive = true;
     stick = { x: data.vector?.x ?? 0, up: data.vector?.y ?? 0 };
     send();
   });
-  joystickManager.on('end', () => { stick = { x: 0, up: 0 }; stop(); });
+  joystickManager.on('end', () => releaseJoystickInput());
 }
+
+function releaseJoystickInput(forceEnd = false) {
+  const wasActive = joystickInputActive;
+  joystickInputActive = false;
+  stick = { x: 0, up: 0 };
+  if (keys.size) { send(); return; }
+  if (wasActive || forceEnd) send(true);
+}
+
+function bindJoystickReleaseSafety() {
+  const zone = $('joystick');
+  const releaseIfAllContactsEnded = () => {
+    if (!joystickPointers.size && !joystickTouches.size) releaseJoystickInput(true);
+  };
+  addEventListener('pointerdown', event => {
+    if (zone.contains(event.target as Node)) joystickPointers.add(event.pointerId);
+  }, { capture: true });
+  addEventListener('pointerup', event => {
+    if (joystickPointers.delete(event.pointerId)) releaseIfAllContactsEnded();
+  }, { capture: true });
+  addEventListener('pointercancel', event => {
+    if (!joystickPointers.has(event.pointerId)) return;
+    // Los navegadores móviles pueden cancelar el puntero sin enviar pointerup.
+    // Soltamos el contacto completo para no dejar movimiento retenido.
+    joystickPointers.clear(); joystickTouches.clear(); releaseJoystickInput(true);
+  }, { capture: true });
+  addEventListener('lostpointercapture', event => {
+    if (!joystickPointers.delete(event.pointerId)) return;
+    releaseIfAllContactsEnded();
+  }, { capture: true });
+  addEventListener('touchstart', event => {
+    if (!zone.contains(event.target as Node)) return;
+    for (const touch of Array.from(event.changedTouches)) joystickTouches.add(touch.identifier);
+  }, { capture: true, passive: true });
+  addEventListener('touchend', event => {
+    let releasedJoystickTouch = false;
+    for (const touch of Array.from(event.changedTouches)) releasedJoystickTouch = joystickTouches.delete(touch.identifier) || releasedJoystickTouch;
+    if (!releasedJoystickTouch) return;
+    if (!joystickTouches.size) joystickPointers.clear();
+    releaseIfAllContactsEnded();
+  }, { capture: true, passive: true });
+  addEventListener('touchcancel', event => {
+    if (!joystickTouches.size) return;
+    for (const touch of Array.from(event.changedTouches)) joystickTouches.delete(touch.identifier);
+    joystickPointers.clear(); joystickTouches.clear(); releaseJoystickInput(true);
+  }, { capture: true, passive: true });
+}
+bindJoystickReleaseSafety();
 
 const movementKeys = new Set(['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright']);
 addEventListener('keydown', event => {
@@ -1658,6 +1973,8 @@ function send(end = false) {
 
 function stop() {
   stick = { x: 0, up: 0 };
+  joystickInputActive = false;
+  joystickPointers.clear(); joystickTouches.clear();
   keys.clear();
   send(true);
 }
@@ -1669,7 +1986,7 @@ const actionToggle = $('actionToggle');
 for (const eventName of ['pointerdown', 'pointerup', 'click'] as const) actionToggle.addEventListener(eventName, event => event.stopPropagation());
 // The map listens directly on its canvas. Keep taps made in either action tray
 // entirely inside the tray, including the delayed click generated by a phone.
-for (const panelId of ['targetMenu', 'explorationMenu'] as const) {
+for (const panelId of ['targetMenu', 'explorationMenu', 'actionRadial'] as const) {
   const panel = $(panelId);
   for (const eventName of ['pointerdown', 'pointerup', 'pointercancel', 'click', 'contextmenu'] as const) panel.addEventListener(eventName, event => event.stopPropagation());
 }
@@ -1678,13 +1995,7 @@ actionToggle.onclick = () => {
   renderActionToggle(); renderTargetMenu(); renderExplorationControls();
 };
 $('interact').onclick = () => {
-  const basic = armedExplorationBasicActionId ? explorationBasicActionCatalogue[armedExplorationBasicActionId] : undefined;
-  const action = armedExplorationActionId ? privateState?.explorationActions.find(candidate => candidate.id === armedExplorationActionId) : undefined;
-  const attack = armedExplorationAttackId ? privateState?.explorationAttacks.find(candidate => candidate.id === armedExplorationAttackId) : undefined;
-  const target = basic?.target === 'living' ? proximityTarget('living', Infinity) : basic?.target === 'any' ? proximityTarget('any', Infinity)
-    : action && (action.target === 'object' || action.target === 'living' || action.target === 'any') ? proximityTarget(action.target, action.rangeMeters) : attack ? proximityTarget('living', attack.range?.longMeters ?? attack.range?.normalMeters ?? Infinity) : null;
-  if (basic && target && armedExplorationBasicActionId) { useExplorationBasicAction(armedExplorationBasicActionId, target.id); return; }
-  if (action || attack) { if (target) useExplorationAction(target.id); return; }
+  activateAvailableProximityAction();
 };
 $('campInteractionList').addEventListener('click', event => event.stopPropagation());
 $('campInteractions').addEventListener('pointerdown', event => event.stopPropagation());
@@ -1708,8 +2019,8 @@ $('saveInventory').onclick = () => {
 };
 $('sheetButton').onclick = () => { closeIdentityMenu(); stop(); setSheetEditing(false); ($('characterSheet') as HTMLDialogElement).showModal(); };
 $('closeSheet').onclick = () => ($('characterSheet') as HTMLDialogElement).close();
-$('summarySheet').onclick = () => { sheetView = 'summary'; if (privateState) renderSheet(privateState); };
-$('fullSheet').onclick = () => { sheetView = 'full'; if (privateState) renderSheet(privateState); };
+$('summarySheet').onclick = () => { sheetView = 'summary'; playerDisplaySettings = { ...playerDisplaySettings, sheetView }; writeUiPreferences(playerDisplaySettingsKey, playerDisplaySettings); if (privateState) renderSheet(privateState); };
+$('fullSheet').onclick = () => { sheetView = 'full'; playerDisplaySettings = { ...playerDisplaySettings, sheetView }; writeUiPreferences(playerDisplaySettingsKey, playerDisplaySettings); if (privateState) renderSheet(privateState); };
 $('editSheet').onclick = () => setSheetEditing(true);
 $('cancelSheetEdit').onclick = () => setSheetEditing(false);
 $('saveSheet').onclick = () => saveSheet();

@@ -3,6 +3,7 @@ import { OBJECT_MODEL_VERSION, PROTOCOL_VERSION } from '../../engine/shared/prot
 import type { AudioState, DmState } from '../../engine/shared/protocol';
 import type { PublicCampaignDefinition } from '../../engine/shared/campaign';
 import { commandId } from '../../engine/client/uuid';
+import { readUiPreferences, writeUiPreferences } from '../../engine/client/ui-preferences';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 type Channel = 'music' | 'ocean' | 'wind' | 'wood' | 'storm';
@@ -33,8 +34,21 @@ type SfxLoopSetting = Pick<AudioState['music'], 'playing' | 'volume' | 'loop' | 
 const pendingSfxLoops = new Map<string, { commandId: string; setting: SfxLoopSetting }>();
 type EffectFilter = 'recommended' | 'all' | 'movement' | 'combat' | 'magic' | 'creature' | 'object' | 'scene';
 type SoundSection = 'ambience' | 'effects';
-let visualPageOpen = false, effectFilter: EffectFilter = 'recommended';
-let soundSection: SoundSection = 'ambience';
+type DmMobileUiPreferences = { visualPageOpen: boolean; effectFilter: EffectFilter; soundSection: SoundSection };
+const dmMobileUiPreferencesStorageKey = 'dnd-dm-mobile-ui-preferences.v1';
+const effectFilters: EffectFilter[] = ['recommended', 'all', 'movement', 'combat', 'magic', 'creature', 'object', 'scene'];
+const defaultDmMobileUiPreferences: DmMobileUiPreferences = { visualPageOpen: false, effectFilter: 'recommended', soundSection: 'ambience' };
+const isDmMobileUiPreferences = (value: unknown): value is DmMobileUiPreferences => {
+  if (!value || typeof value !== 'object') return false;
+  const saved = value as Partial<DmMobileUiPreferences>;
+  return typeof saved.visualPageOpen === 'boolean' && typeof saved.effectFilter === 'string'
+    && effectFilters.includes(saved.effectFilter as EffectFilter)
+    && (saved.soundSection === 'ambience' || saved.soundSection === 'effects');
+};
+let dmMobileUiPreferences = readUiPreferences(dmMobileUiPreferencesStorageKey, defaultDmMobileUiPreferences, isDmMobileUiPreferences);
+let visualPageOpen = dmMobileUiPreferences.visualPageOpen, effectFilter: EffectFilter = dmMobileUiPreferences.effectFilter;
+let soundSection: SoundSection = dmMobileUiPreferences.soundSection;
+function persistDmMobileUiPreferences() { writeUiPreferences(dmMobileUiPreferencesStorageKey, dmMobileUiPreferences); }
 let swipe: { pointerId: number; x: number; y: number; lastX: number; lastTime: number; velocityX: number; interactive: boolean; dragging: boolean; direction: 'pending' | 'horizontal' | 'vertical' } | null = null;
 
 const ambientMeta: Record<Exclude<Channel, 'music'>, { icon: string; description: string }> = {
@@ -263,12 +277,14 @@ function renderWeather(current: DmState) {
 
 function showVisualPage(open: boolean, focus = false) {
   visualPageOpen = open;
+  dmMobileUiPreferences = { ...dmMobileUiPreferences, visualPageOpen: open }; persistDmMobileUiPreferences();
   const track = $('pageTrack'); track.classList.remove('dragging'); track.style.transform = open ? 'translate3d(0,0,0)' : 'translate3d(-50%,0,0)';
   document.querySelectorAll<HTMLButtonElement>('[data-page]').forEach(button => button.setAttribute('aria-selected', String(button.dataset.page === (open ? 'visual' : 'sound'))));
   if (focus && open) window.setTimeout(() => $('weatherToggle').focus(), 220);
 }
 function showSoundSection(section: SoundSection, focus = false) {
   soundSection = section;
+  dmMobileUiPreferences = { ...dmMobileUiPreferences, soundSection: section }; persistDmMobileUiPreferences();
   document.querySelectorAll<HTMLButtonElement>('[data-audio-section]').forEach(button => {
     const selected = button.dataset.audioSection === section;
     button.setAttribute('aria-selected', String(selected));
@@ -381,11 +397,16 @@ audioSectionTabs.forEach((button, index) => {
   };
 });
 showSoundSection(soundSection);
+showVisualPage(visualPageOpen);
 document.querySelectorAll<HTMLButtonElement>('[data-effect-filter]').forEach(button => button.onclick = () => {
-  effectFilter = button.dataset.effectFilter as EffectFilter;
+  const next = button.dataset.effectFilter;
+  if (!effectFilters.includes(next as EffectFilter)) return;
+  effectFilter = next as EffectFilter;
+  dmMobileUiPreferences = { ...dmMobileUiPreferences, effectFilter }; persistDmMobileUiPreferences();
   document.querySelectorAll<HTMLButtonElement>('[data-effect-filter]').forEach(filter => filter.setAttribute('aria-pressed', String(filter === button)));
   renderEffects();
 });
+document.querySelectorAll<HTMLButtonElement>('[data-effect-filter]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.effectFilter === effectFilter)));
 document.querySelectorAll<HTMLButtonElement>('[data-weather-intensity]').forEach(button => button.onclick = () => {
   if (!state) return; const intensity = Number(button.dataset.weatherIntensity), preset = weatherPreset(intensity);
   command({ type: 'environment', storm: true, intensity, trackId: preset.assetId });
