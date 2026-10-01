@@ -9,6 +9,7 @@ export const D8NIGHT: any = {
         floor: "stone_tavern",
         visualFloor: "cafe_stone",
         visualComposition: "cafe_reference",
+        compositionOpacity: 0.34,
         objects: [
           { asset: "wall", position: [0, -7.65], size: [24, 0.7] },
           { asset: "wall", position: [-11.65, -2.5], size: [0.7, 10] },
@@ -84,11 +85,12 @@ export const D8NIGHT: any = {
         triggers: []
       },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.040, 0.028, 0.018], fog: true, fogDensity: 0.0012, exposure: 1.20, contrast: 1.03, toneMapping: true, vignette: true, vignetteWeight: 0.32, vignetteStretch: 0.12 },
+        environment: { clearColor: [0.055, 0.038, 0.024], fog: false, fogDensity: 0, exposure: 1.18, contrast: 1.00, toneMapping: false, vignette: false },
         lighting: {
           mode: "interior",
-          ambientIntensity: 0.24,
-          ambientColor: [0.74, 0.56, 0.38],
+          ambientIntensity: 0.72,
+          ambientColor: [1.00, 0.78, 0.56],
+          globalFill: { color: [1.00, 0.74, 0.50], intensity: 0.44, hemiIntensity: 0.38, directionalIntensity: 0.24, direction: [-0.30, -1, 0.22] },
           shadows: { enabled: false },
           lights: [
             { position: [-9.2, 2.0, -1.3], color: [1.00, 0.44, 0.16], intensity: 0.62, range: 9.5 },
@@ -113,6 +115,7 @@ export const D8NIGHT: any = {
         floor: "stone",
         visualFloor: "temple_stone",
         visualComposition: "temple_reference",
+        compositionOpacity: 0.28,
         objects: [
           { asset: "wall", position: [0, -8.65], size: [27.5, 0.55], height: 1.9 },
           { asset: "wall", position: [-13.65, -2.0], size: [0.55, 13.5], height: 1.7 },
@@ -159,11 +162,12 @@ export const D8NIGHT: any = {
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.035, 0.026, 0.020], fog: true, fogDensity: 0.0010, exposure: 1.23, contrast: 1.02, toneMapping: true, vignette: true, vignetteWeight: 0.30 },
+        environment: { clearColor: [0.050, 0.035, 0.025], fog: false, fogDensity: 0, exposure: 1.20, contrast: 1.00, toneMapping: false, vignette: false },
         lighting: {
           mode: "interior",
-          ambientIntensity: 0.27,
-          ambientColor: [0.80, 0.65, 0.48],
+          ambientIntensity: 0.82,
+          ambientColor: [1.00, 0.80, 0.58],
+          globalFill: { color: [1.00, 0.78, 0.56], intensity: 0.50, hemiIntensity: 0.44, directionalIntensity: 0.30, direction: [-0.24, -1, 0.18] },
           shadows: { enabled: false },
           lights: [
             { position: [0, 2.8, 0.8], color: [1.00, 0.54, 0.20], intensity: 0.55, range: 10.5 }
@@ -338,6 +342,7 @@ export const D8NIGHT: any = {
         floor: "ice",
         visualFloor: "ice",
         visualComposition: "mirror_reference",
+        compositionOpacity: 0.58,
         objects: [
           { asset: "water_area", position: [2.0, 0.6], size: [18.0, 8.0] },
           { asset: "ice_crack", position: [2.0, 0.0], branches: 7, length: 5.2, rotation: 0.2 },
@@ -358,16 +363,17 @@ export const D8NIGHT: any = {
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.020, 0.070, 0.075], fog: true, fogDensity: 0.0038, exposure: 1.22, contrast: 1.01, toneMapping: true, vignette: true, vignetteWeight: 0.22 },
+        environment: { clearColor: [0.035, 0.095, 0.105], fog: true, fogDensity: 0.0016, exposure: 1.18, contrast: 1.00, toneMapping: false, vignette: false },
         lighting: {
           mode: "interior",
-          ambientIntensity: 0.34,
-          ambientColor: [0.24, 0.82, 0.80],
+          ambientIntensity: 0.70,
+          ambientColor: [0.42, 0.96, 0.92],
+          globalFill: { color: [0.32, 0.92, 0.88], intensity: 0.46, hemiIntensity: 0.36, directionalIntensity: 0.20, direction: [0.28, -1, -0.20] },
           shadows: { enabled: false },
           lights: [
-            { position: [1.0, 3.8, 0.5], color: [0.10, 0.78, 0.95], intensity: 0.72, range: 16 },
-            { position: [5.0, 2.8, 2.0], color: [0.15, 0.95, 0.62], intensity: 0.58, range: 14 },
-            { position: [-4.0, 2.4, -1.0], color: [0.12, 0.70, 1.00], intensity: 0.52, range: 13 }
+            { position: [1.0, 3.8, 0.5], color: [0.12, 0.82, 1.00], intensity: 0.90, range: 18 },
+            { position: [5.0, 2.8, 2.0], color: [0.18, 1.00, 0.66], intensity: 0.78, range: 16 },
+            { position: [-4.0, 2.4, -1.0], color: [0.14, 0.76, 1.00], intensity: 0.72, range: 15 }
           ]
         },
         vfx: { waterRipples: true, magicMotes: true, magicCount: 18, snowfall: true, snowCount: 22, snowSpeed: 0.18 },
