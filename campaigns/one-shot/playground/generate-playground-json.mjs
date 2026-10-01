@@ -41,3 +41,5 @@ await fs.writeFile(
 );
 
 console.log("Generated playground.json");
+
+// trigger rebuild
