@@ -877,7 +877,7 @@ export function createScene(engine: any, canvas: any) {
 
   const ui=BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"),panel=new BABYLON.GUI.StackPanel();
   panel.width="190px";panel.horizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;panel.paddingLeft="15px";panel.paddingTop="15px";ui.addControl(panel);
-  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V12.1.1";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
+  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V12.2.1";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
   const order=["temple","cafe","dinner","garden","market","mirror"],labels:any={temple:"1 · TEMPLO",cafe:"2 · CAFÉ",dinner:"3 · DINNER",garden:"4 · GARDEN",market:"5 · MARKET",mirror:"6 · MIRROR"},buttons:any={};
   order.forEach(id=>{const b=BABYLON.GUI.Button.CreateSimpleButton("btn_"+id,labels[id]);b.width="175px";b.height="37px";b.color="#dfcfb2";b.background="#25252a";b.cornerRadius=5;b.paddingBottom="4px";b.onPointerClickObservable.add(()=>loadMap(id));buttons[id]=b;panel.addControl(b);});
   const help=new BABYLON.GUI.TextBlock();help.text="\nWASD · mover\nE · interactuar\nG · grid\nC · cámara";help.height="100px";help.color="#888";help.fontSize=11;help.textHorizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.addControl(help);
@@ -891,15 +891,16 @@ export function createScene(engine: any, canvas: any) {
     // no sharpen post-process. Base materials have a controlled emissive floor so
     // geometry stays readable while still reacting to real local lights.
     scene.fogMode=BABYLON.Scene.FOGMODE_NONE;
-    scene.clearColor=new BABYLON.Color4(0.055,0.035,0.022,1);
-    scene.ambientColor=new BABYLON.Color3(0.16,0.11,0.07);
-    glow.intensity=0.16;
+    scene.clearColor=new BABYLON.Color4(0.038,0.023,0.014,1);
+    scene.ambientColor=new BABYLON.Color3(0.11,0.075,0.045);
+    glow.intensity=0.22;
     const ip=scene.imageProcessingConfiguration;
-    ip.exposure=1.04;ip.contrast=1.04;ip.toneMappingEnabled=false;ip.vignetteEnabled=false;
+    ip.exposure=1.06;ip.contrast=1.08;ip.toneMappingEnabled=false;ip.vignetteEnabled=false;
 
-    hemi.intensity=0.58;
-    hemi.diffuse=new BABYLON.Color3(1.00,0.82,0.62);
-    hemi.groundColor=new BABYLON.Color3(0.12,0.075,0.045);
+    // Keep the room readable, but leave enough contrast for the fireplace and torches to shape it.
+    hemi.intensity=0.42;
+    hemi.diffuse=new BABYLON.Color3(1.00,0.80,0.58);
+    hemi.groundColor=new BABYLON.Color3(0.075,0.045,0.026);
 
     const mats:any={};
     const cmat=(name:string,color:number[],emissive=0.16,spec=0.025)=>{
@@ -925,6 +926,12 @@ export function createScene(engine: any, canvas: any) {
     const wax=cmat("wax",[0.90,0.78,0.52],0.18);
     const bottleG=cmat("bottleG",[0.12,0.33,0.14],0.20,0.08);
     const bottleA=cmat("bottleA",[0.58,0.32,0.08],0.20,0.08);
+    const shadowMat=new BABYLON.StandardMaterial("cafe12_contactShadow",scene);
+    shadowMat.diffuseColor=new BABYLON.Color3(0.015,0.010,0.008);
+    shadowMat.emissiveColor=new BABYLON.Color3(0.015,0.010,0.008);
+    shadowMat.alpha=0.18;shadowMat.disableLighting=true;shadowMat.backFaceCulling=false;
+    rt.disposables.push(shadowMat);
+
 
     // Floor texture: warm, high-contrast stone. Kept outside GlowLayer.
     const tex=new BABYLON.DynamicTexture("cafe12_floorTex",{width:2048,height:1365},scene,false);
@@ -961,13 +968,37 @@ export function createScene(engine: any, canvas: any) {
       const q=cyl("cafe12_"+n,x,y,z,d,h,m);if(glow.addExcludedMesh)glow.addExcludedMesh(q);return q;
     };
 
+    const lightPool=(name:string,x:number,z:number,w:number,d:number,color:number[],alpha:number)=>{
+      const tex=new BABYLON.DynamicTexture("cafe12_poolTex_"+name,{width:256,height:256},scene,false);
+      tex.hasAlpha=true;
+      const ctx:any=tex.getContext();
+      const g=ctx.createRadialGradient(128,128,0,128,128,126);
+      g.addColorStop(0,`rgba(${Math.round(color[0]*255)},${Math.round(color[1]*255)},${Math.round(color[2]*255)},${alpha})`);
+      g.addColorStop(0.42,`rgba(${Math.round(color[0]*255)},${Math.round(color[1]*255)},${Math.round(color[2]*255)},${alpha*0.52})`);
+      g.addColorStop(1,"rgba(0,0,0,0)");
+      ctx.clearRect(0,0,256,256);ctx.fillStyle=g;ctx.fillRect(0,0,256,256);tex.update();
+      const m=new BABYLON.StandardMaterial("cafe12_poolMat_"+name,scene);
+      m.diffuseTexture=tex;m.opacityTexture=tex;m.emissiveTexture=tex;m.disableLighting=true;m.backFaceCulling=false;
+      const q=BABYLON.MeshBuilder.CreateGround("cafe12_lightPool_"+name,{width:w,height:d},scene);
+      q.position.set(x,0.055,z);q.material=m;q.parent=parentFor("BASE");
+      if(glow.addExcludedMesh)glow.addExcludedMesh(q);
+      rt.disposables.push(tex,m);
+      return q;
+    };
+    const contactShadow=(name:string,x:number,z:number,d:number,scaleX=1,scaleZ=1)=>{
+      const q=BABYLON.MeshBuilder.CreateCylinder("cafe12_shadow_"+name,{diameter:d,height:0.012,tessellation:28},scene);
+      q.position.set(x,0.020,z);q.scaling.set(scaleX,1,scaleZ);q.material=shadowMat;q.parent=parentFor("BASE");
+      if(glow.addExcludedMesh)glow.addExcludedMesh(q);
+      return q;
+    };
+
     // Room shell.
     b("wallBack",0,0.90,-7.65,24,1.8,0.65,stoneDark);collider(0,-7.65,24,0.65);
     b("wallLeft",-11.65,0.90,-2.35,0.65,1.8,10.6,stoneDark);collider(-11.65,-2.35,0.65,10.6);
     b("wallRight",11.65,0.90,-2.00,0.65,1.8,11.2,stoneDark);collider(11.65,-2.00,0.65,11.2);
 
     // Bar + backbar.
-    b("bar",-3.15,0.56,-5.0,10.8,1.12,1.05,wood);b("barTop",-3.15,1.17,-5.0,11.2,0.15,1.25,woodLight);collider(-3.15,-5.0,10.8,1.05);
+    contactShadow("bar",-3.15,-5.0,6.4,1.8,0.30);b("bar",-3.15,0.56,-5.0,10.8,1.12,1.05,wood);b("barTop",-3.15,1.17,-5.0,11.2,0.15,1.25,woodLight);collider(-3.15,-5.0,10.8,1.05);
     b("barBack",-3.15,0.92,-6.25,10.2,1.84,0.34,woodDark);
     for(let i=0;i<12;i++)cy("backBottle",-7.8+i*0.84,1.33,-6.0,0.14,0.46,i%2?bottleA:bottleG);
     for(const x of [-6.8,-4.35,-1.9,0.55]){cy("stoolSeat",x,0.48,-3.7,0.72,0.15,woodLight);cy("stoolLeg",x,0.23,-3.7,0.18,0.46,woodDark);}
@@ -982,11 +1013,11 @@ export function createScene(engine: any, canvas: any) {
     // Sofas and rug.
     b("rug",-6.05,0.045,0.45,4.3,0.09,3.6,green);
     for(const [x,z] of [[-8.5,-4.15],[-8.85,4.2]]){
-      b("sofaBase",x,0.30,z,2.25,0.32,1.0,woodDark);b("sofaSeat",x,0.52,z,1.98,0.22,0.72,red);b("sofaBack",x,0.92,z+0.34,2.02,0.68,0.22,red);collider(x,z,2.25,1.0);
+      contactShadow("sofa"+x+z,x,z,2.1,1.0,0.46);b("sofaBase",x,0.30,z,2.25,0.32,1.0,woodDark);b("sofaSeat",x,0.52,z,1.98,0.22,0.72,red);b("sofaBack",x,0.92,z+0.34,2.02,0.68,0.22,red);collider(x,z,2.25,1.0);
     }
 
     const table=(x:number,z:number)=>{
-      cy("tableTop",x,0.68,z,2.10,0.18,woodLight);cy("tableLeg",x,0.34,z,0.48,0.68,woodDark);collider(x,z,1.35,1.35);
+      contactShadow("table"+x+z,x,z,2.2,1.0,0.82);cy("tableTop",x,0.68,z,2.10,0.18,woodLight);cy("tableLeg",x,0.34,z,0.48,0.68,woodDark);collider(x,z,1.35,1.35);
       for(const [dx,dz,r] of [[0,-1.45,0],[0,1.45,Math.PI],[-1.45,0,-Math.PI/2],[1.45,0,Math.PI/2]] as any[]){
         const root=new BABYLON.TransformNode("cafe12_chair",scene);root.parent=rt.root;root.position.set(x+dx,0,z+dz);root.rotation.y=r;
         const seat=BABYLON.MeshBuilder.CreateBox("cafe12_chairSeat",{width:0.55,height:0.15,depth:0.55},scene);seat.position.y=0.36;seat.material=wood;seat.parent=root;
@@ -1001,7 +1032,7 @@ export function createScene(engine: any, canvas: any) {
     b("partitionV",8.35,0.72,1.4,0.48,1.44,8.2,stone);
     b("partitionH",10.1,0.72,-2.7,3.8,1.44,0.48,stone);
     b("sideboard",-8.4,0.48,5.75,4.2,0.96,0.78,woodDark);b("sideboardTop",-8.4,1.00,5.75,4.28,0.10,0.84,woodLight);
-    for(const x of [5.25,7.05]){cy("barrel",x,0.92,-5.25,1.46,1.84,wood);for(let r=0;r<3;r++)cy("barrelRing",x,0.18+r*0.74,-5.25,1.52,0.05,iron);collider(x,-5.25,1.2,1.2);}
+    for(const x of [5.25,7.05]){contactShadow("barrel"+x,x,-5.25,1.35,1.0,0.75);cy("barrel",x,0.92,-5.25,1.46,1.84,wood);for(let r=0;r<3;r++)cy("barrelRing",x,0.18+r*0.74,-5.25,1.52,0.05,iron);collider(x,-5.25,1.2,1.2);}
 
     // Pool: readable cyan focal point.
     const poolBorder=cy("poolBorder",3.5,0.09,6.25,5.2,0.18,stoneLight);
@@ -1010,6 +1041,14 @@ export function createScene(engine: any, canvas: any) {
 
     // Crates.
     for(const [x,z,sc] of [[9.1,-6.5,1],[10,-6.5,.8],[10.8,-6.5,.85]] as any[]){b("crate",x,0.38*sc,z,0.78*sc,0.76*sc,0.78*sc,wood);}
+
+    // Painted light pools add warmth/cool contrast without consuming WebGL lights.
+    lightPool("fire",-8.9,-1.15,7.2,5.2,[1.00,0.22,0.045],0.26);
+    lightPool("bar",-2.7,-4.5,11.0,4.0,[1.00,0.46,0.12],0.12);
+    lightPool("tableA",-5.3,0.45,3.6,3.6,[1.00,0.58,0.20],0.10);
+    lightPool("tableB",1.55,2.25,3.8,3.8,[1.00,0.56,0.18],0.10);
+    lightPool("tableC",5.05,-0.45,3.5,3.5,[1.00,0.54,0.16],0.085);
+    lightPool("water",3.5,6.15,6.3,4.6,[0.06,0.58,0.70],0.13);
 
     // Local light helper with visible source.
     const warmLight=(name:string,x:number,y:number,z:number,intensity:number,range:number,color=[1,0.42,0.11])=>{
@@ -1020,8 +1059,8 @@ export function createScene(engine: any, canvas: any) {
     // Fireplace flame + smoke + real light.
     const fo=sph("cafe12_fireOuter",-9.65,0.62,-1.3,0.72,M.fireOuter,"VFX");fo.scaling.y=1.65;
     const fi=sph("cafe12_fireInner",-9.65,0.56,-1.3,0.42,M.fireInner,"VFX");fi.scaling.y=1.70;
-    const fireLight=warmLight("fireLight",-9.65,1.4,-1.3,2.15,8.0,[1,0.30,0.055]);
-    rt.updaters.push((t:number)=>{const a=Math.sin(t*9.2),bb=Math.sin(t*14.5);fo.scaling.y=1.65+a*0.10;fi.scaling.y=1.70+bb*0.08;fireLight.intensity=2.15+a*0.12+bb*0.06;});
+    const fireLight=warmLight("fireLight",-9.65,1.4,-1.3,2.55,8.6,[1,0.27,0.045]);
+    rt.updaters.push((t:number)=>{const a=Math.sin(t*9.2),bb=Math.sin(t*14.5);fo.scaling.y=1.65+a*0.10;fi.scaling.y=1.70+bb*0.08;fireLight.intensity=2.55+a*0.16+bb*0.08;});
     for(let i=0;i<5;i++){const sm=sph("cafe12_smoke",-9.65,0.95+i*0.25,-1.3,0.22+i*0.05,M.smoke,"VFX");const off=i/5;rt.updaters.push((t:number)=>{const q=(t*0.16+off)%1;sm.position.y=0.9+q*2.4;sm.position.x=-9.65+Math.sin(t*0.7+i)*0.12;const k=0.65+q*1.1;sm.scaling.set(k,k*1.15,k);});}
 
     // Wall torches.
@@ -1039,13 +1078,13 @@ export function createScene(engine: any, canvas: any) {
     }
 
     // Only a few broad real lights: safe for WebGL2 shader limits.
-    warmLight("wallFillLeft",-5.0,3.0,-4.4,0.72,10.5,[1,0.46,0.16]);
-    warmLight("wallFillRight",5.0,3.0,-4.0,0.66,10.0,[1,0.44,0.14]);
-    warmLight("poolFill",3.5,2.0,5.6,0.34,7.0,[0.12,0.62,0.72]);
+    warmLight("wallFillLeft",-4.8,3.1,-4.25,0.58,9.6,[1,0.48,0.17]);
+    warmLight("wallFillRight",5.4,3.0,-3.8,0.50,8.8,[1,0.42,0.12]);
+    warmLight("poolFill",3.5,1.7,5.7,0.28,6.4,[0.08,0.56,0.68]);
 
     // One subtle warm bounce. Total scene lights affecting Café materials now stays <= 6.
     const bounce=track(new BABYLON.HemisphericLight("cafe12_bounce",new BABYLON.Vector3(0,1,0),scene));
-    bounce.intensity=0.24;bounce.diffuse=new BABYLON.Color3(1,0.72,0.48);bounce.groundColor=new BABYLON.Color3(0.10,0.055,0.028);
+    bounce.intensity=0.16;bounce.diffuse=new BABYLON.Color3(1,0.70,0.46);bounce.groundColor=new BABYLON.Color3(0.065,0.035,0.020);
   }
 
   function loadMap(id:string){
@@ -1061,7 +1100,7 @@ export function createScene(engine: any, canvas: any) {
     player.position.set(c.spawn[0],c.spawn[1],c.spawn[2]);
     if(!overview&&c.camera){camera.radius=c.camera.radius??20;camera.beta=c.camera.beta??0.70;camera.alpha=c.camera.alpha??-Math.PI/2.15;}
     camera.target.set(player.position.x,0,player.position.z);ring.isVisible=false;
-    title.text=c.label+" · V12.1.1";
+    title.text=c.label+" · V12.2.1";
     if(id==="cafe")console.log("[D8 v12.1] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
     Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");
     show("Mapa cargado: "+c.label);
