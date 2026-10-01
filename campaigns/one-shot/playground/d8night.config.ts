@@ -3,7 +3,7 @@ export const D8NIGHT: any = {
     cafe: {
       label: "CAFÉ",
       spawn: [0, 0.43, 4.1],
-      camera: { radius: 20.5, beta: 0.72, alpha: -Math.PI / 2.05 },
+      camera: { radius: 21.5, beta: 0.66, alpha: -Math.PI / 2.04 },
       MAP: {
         size: [24, 16],
         floor: "stone_tavern",
@@ -116,19 +116,43 @@ export const D8NIGHT: any = {
           { id: "bar_ambience", position: [-3.2, -3.6], radius: 1.8, label: "Mirar barra", message: "La barra está llena de botellas, platos y utensilios." },
           { id: "pool_ambience", position: [3.5, 4.8], radius: 1.8, label: "Mirar estanque", message: "La superficie del agua se mueve suavemente." }
         ],
+        visual: {
+          profile: "cafe_warm_fireplace",
+          glow: 0.20,
+          exposure: 1.06,
+          contrast: 1.08,
+          fov: 0.72,
+          sceneAmbient: [0.10, 0.065, 0.038],
+          diffuseBoost: 1.02,
+          emissiveFloor: 0.035,
+          specular: 0.022,
+          maxRealPointLights: 5,
+          contactShadows: [
+            { position: [-3.2, -5.0], size: [11.5, 2.0], alpha: 0.14 },
+            { position: [-5.3, 0.45], size: [2.6, 2.2], alpha: 0.16 },
+            { position: [1.55, 2.25], size: [2.6, 2.2], alpha: 0.16 },
+            { position: [5.05, -0.45], size: [2.6, 2.2], alpha: 0.16 },
+            { position: [5.9, -5.25], size: [3.4, 1.8], alpha: 0.15 }
+          ],
+          lightPools: [
+            { position: [-8.9, -1.2], size: [7.0, 5.0], color: [1.00, 0.22, 0.05], alpha: 0.22 },
+            { position: [-2.8, -4.6], size: [10.5, 3.6], color: [1.00, 0.48, 0.14], alpha: 0.09 },
+            { position: [3.5, 6.0], size: [6.1, 4.4], color: [0.05, 0.58, 0.70], alpha: 0.12 }
+          ]
+        },
         audio: { music: null, ambience: null }
       }
     },
     temple: {
       label: "TEMPLO",
       spawn: [0, 0.43, 6.6],
-      camera: { radius: 25, beta: 0.49, alpha: -Math.PI / 2.05 },
+      camera: { radius: 24.5, beta: 0.60, alpha: -Math.PI / 2.04 },
       MAP: {
         size: [28, 18],
         floor: "stone",
         visualFloor: "temple_stone",
         visualComposition: "temple_reference",
-        compositionOpacity: 0.28,
+        compositionOpacity: 0.12,
         objects: [
           { asset: "wall", position: [0, -8.65], size: [27.5, 0.55], height: 1.9 },
           { asset: "wall", position: [-13.65, -2.0], size: [0.55, 13.5], height: 1.7 },
@@ -191,6 +215,28 @@ export const D8NIGHT: any = {
           { id: "temple_table_ambience", position: [0, 2.7], radius: 2.4, label: "Mirar mesa", message: "Las velas bañan la mesa y las rosas con una luz cálida." },
           { id: "temple_statue_ambience", position: [0, -4.0], radius: 2.2, label: "Mirar estatua", message: "La figura de piedra domina el extremo del salón." }
         ],
+        visual: {
+          profile: "temple_banquet",
+          glow: 0.18,
+          exposure: 1.10,
+          contrast: 1.08,
+          fov: 0.70,
+          sceneAmbient: [0.085, 0.060, 0.045],
+          diffuseBoost: 1.06,
+          emissiveFloor: 0.025,
+          specular: 0.025,
+          maxRealPointLights: 5,
+          contactShadows: [
+            { position: [0, 0.7], size: [8.0, 2.4], alpha: 0.16 },
+            { position: [-8.2, -1.5], size: [2.0, 8.8], alpha: 0.11 },
+            { position: [8.2, -1.5], size: [2.0, 8.8], alpha: 0.11 }
+          ],
+          lightPools: [
+            { position: [0, 0.7], size: [10.0, 5.4], color: [1.00, 0.50, 0.16], alpha: 0.13 },
+            { position: [-5.5, -5.0], size: [5.0, 4.0], color: [1.00, 0.22, 0.04], alpha: 0.13 },
+            { position: [5.5, -5.0], size: [5.0, 4.0], color: [1.00, 0.22, 0.04], alpha: 0.13 }
+          ]
+        },
         audio: { music: null, ambience: null }
       }
     },
@@ -198,7 +244,7 @@ export const D8NIGHT: any = {
     dinner: {
       label: "DINNER",
       spawn: [0, 0.43, 7.0],
-      camera: { radius: 25, beta: 0.50, alpha: -Math.PI / 2.08 },
+      camera: { radius: 24.8, beta: 0.60, alpha: -Math.PI / 2.08 },
       MAP: {
         size: [28, 18],
         floor: "stone",
@@ -239,6 +285,27 @@ export const D8NIGHT: any = {
           { id: "dinner_table_ambience", position: [0, 4.8], radius: 2.0, label: "Mirar cena", message: "La mesa exterior está preparada bajo la luz de las linternas." },
           { id: "dinner_house_ambience", position: [0, -1.8], radius: 2.4, label: "Mirar casa", message: "Una luz cálida se filtra por las ventanas de la casa." }
         ],
+        visual: {
+          profile: "dinner_twilight",
+          glow: 0.16,
+          exposure: 1.08,
+          contrast: 1.07,
+          fov: 0.72,
+          sceneAmbient: [0.060, 0.070, 0.105],
+          diffuseBoost: 1.04,
+          emissiveFloor: 0.018,
+          specular: 0.024,
+          maxRealPointLights: 5,
+          contactShadows: [
+            { position: [0, -4.9], size: [12.8, 6.0], alpha: 0.13 },
+            { position: [0, 3.2], size: [3.0, 2.6], alpha: 0.16 },
+            { position: [8.4, -0.3], size: [4.0, 2.5], alpha: 0.13 }
+          ],
+          lightPools: [
+            { position: [0, -2.7], size: [12.0, 5.0], color: [1.00, 0.44, 0.14], alpha: 0.11 },
+            { position: [0, 3.2], size: [6.2, 5.2], color: [1.00, 0.56, 0.20], alpha: 0.12 }
+          ]
+        },
         audio: { music: null, ambience: null }
       }
     },
@@ -246,7 +313,7 @@ export const D8NIGHT: any = {
     garden: {
       label: "GARDEN",
       spawn: [-10.5, 0.43, 6.0],
-      camera: { radius: 26, beta: 0.48, alpha: -Math.PI / 2.00 },
+      camera: { radius: 25.8, beta: 0.58, alpha: -Math.PI / 2.00 },
       MAP: {
         size: [28, 20],
         floor: "snow",
@@ -290,6 +357,26 @@ export const D8NIGHT: any = {
           { id: "garden_roses_ambience", position: [-6.0, -1.5], radius: 2.2, label: "Mirar rosales", message: "Los rosales destacan con fuerza sobre la nieve." },
           { id: "garden_room_ambience", position: [4.5, -3.0], radius: 2.2, label: "Mirar estancia", message: "Una pequeña estancia circular se abre entre los muros del jardín." }
         ],
+        visual: {
+          profile: "garden_golden_hour",
+          glow: 0.10,
+          exposure: 1.06,
+          contrast: 1.06,
+          fov: 0.74,
+          sceneAmbient: [0.16, 0.115, 0.075],
+          diffuseBoost: 1.05,
+          emissiveFloor: 0.012,
+          specular: 0.018,
+          maxRealPointLights: 4,
+          contactShadows: [
+            { position: [7.2, -3.0], size: [7.0, 6.2], color: [0.08, 0.07, 0.09], alpha: 0.10 },
+            { position: [-7.8, -2.0], size: [6.0, 8.0], color: [0.14, 0.05, 0.06], alpha: 0.07 }
+          ],
+          lightPools: [
+            { position: [4.8, -1.0], size: [12.0, 8.0], color: [1.00, 0.54, 0.20], alpha: 0.08 },
+            { position: [-5.0, 2.5], size: [13.0, 9.0], color: [1.00, 0.66, 0.32], alpha: 0.06 }
+          ]
+        },
         audio: { music: null, ambience: null }
       }
     },
@@ -297,7 +384,7 @@ export const D8NIGHT: any = {
     market: {
       label: "MARKET",
       spawn: [0, 0.43, 7.2],
-      camera: { radius: 27, beta: 0.50, alpha: -Math.PI / 2.10 },
+      camera: { radius: 26.2, beta: 0.60, alpha: -Math.PI / 2.08 },
       MAP: {
         size: [30, 20],
         floor: "stone",
@@ -342,6 +429,29 @@ export const D8NIGHT: any = {
           { id: "market_trough_ambience", position: [2.4, 4.0], radius: 2.0, label: "Mirar abrevadero", message: "Una vaca permanece junto al abrevadero entre los puestos." },
           { id: "market_stalls_ambience", position: [-4.9, -3.8], radius: 2.0, label: "Mirar puestos", message: "Los puestos forman calles estrechas iluminadas por faroles." }
         ],
+        visual: {
+          profile: "market_golden_hour",
+          glow: 0.10,
+          exposure: 1.07,
+          contrast: 1.08,
+          fov: 0.73,
+          sceneAmbient: [0.16, 0.105, 0.060],
+          diffuseBoost: 1.06,
+          emissiveFloor: 0.010,
+          specular: 0.020,
+          maxRealPointLights: 4,
+          contactShadows: [
+            { position: [-7.5, -5.5], size: [11.0, 3.0], alpha: 0.12 },
+            { position: [4.5, -5.5], size: [12.0, 3.0], alpha: 0.12 },
+            { position: [-10.0, 0.1], size: [4.2, 2.5], alpha: 0.11 },
+            { position: [10.2, -0.2], size: [4.2, 2.5], alpha: 0.11 },
+            { position: [2.4, 2.4], size: [5.2, 3.0], alpha: 0.10 }
+          ],
+          lightPools: [
+            { position: [-4.5, -2.0], size: [16.0, 10.0], color: [1.00, 0.56, 0.18], alpha: 0.055 },
+            { position: [7.0, 1.0], size: [12.0, 9.0], color: [1.00, 0.66, 0.28], alpha: 0.05 }
+          ]
+        },
         audio: { music: null, ambience: null }
       }
     },
@@ -349,13 +459,13 @@ export const D8NIGHT: any = {
     mirror: {
       label: "MIRROR",
       spawn: [10.5, 0.43, 6.8],
-      camera: { radius: 27, beta: 0.47, alpha: -Math.PI / 2.16 },
+      camera: { radius: 26.5, beta: 0.56, alpha: -Math.PI / 2.14 },
       MAP: {
         size: [30, 20],
         floor: "ice",
         visualFloor: "ice",
         visualComposition: "mirror_reference",
-        compositionOpacity: 0.58,
+        compositionOpacity: 0.20,
         objects: [
           { asset: "water_area", position: [2.0, 0.6], size: [18.0, 8.0] },
           { asset: "ice_crack", position: [2.0, 0.0], branches: 7, length: 5.2, rotation: 0.2 },
@@ -394,6 +504,26 @@ export const D8NIGHT: any = {
           { id: "mirror_ambience", position: [-7.3, -2.5], radius: 2.2, label: "Mirar espejo", message: "El espejo se alza sobre un pedestal rodeado de luz azulada." },
           { id: "ice_ambience", position: [4.5, 2.6], radius: 2.0, label: "Mirar hielo", message: "Grietas oscuras recorren la superficie helada." }
         ],
+        visual: {
+          profile: "mirror_aurora_cave",
+          glow: 0.26,
+          exposure: 1.08,
+          contrast: 1.08,
+          fov: 0.70,
+          sceneAmbient: [0.030, 0.105, 0.120],
+          diffuseBoost: 1.05,
+          emissiveFloor: 0.035,
+          specular: 0.11,
+          maxRealPointLights: 5,
+          contactShadows: [
+            { position: [-9.2, -2.5], size: [4.2, 3.2], color: [0.00, 0.04, 0.05], alpha: 0.16 }
+          ],
+          lightPools: [
+            { position: [-9.2, -2.5], size: [10.0, 8.0], color: [0.04, 0.86, 0.94], alpha: 0.16 },
+            { position: [2.5, 0.5], size: [17.0, 11.0], color: [0.08, 0.54, 0.86], alpha: 0.075 },
+            { position: [7.0, 2.5], size: [10.0, 8.0], color: [0.10, 0.92, 0.58], alpha: 0.07 }
+          ]
+        },
         audio: { music: null, ambience: null }
       }
     }
