@@ -161,6 +161,21 @@ export function createScene(engine: any, canvas: any) {
     m.specularColor=preset==="ice"?new BABYLON.Color3(0.30,0.38,0.44):new BABYLON.Color3(0.025,0.025,0.025);
     m.roughness=preset==="ice"?0.42:0.92;
     m.maxSimultaneousLights=6;
+
+    // V14.8 floor visibility floor: prevents black/invisible bases in WebGL2.
+    const floorEmission:any={
+      cafe_stone:0.20,
+      temple_stone:0.30,
+      night_cobble:0.18,
+      market_cobble:0.20,
+      snow:0.28,
+      ice:0.34
+    };
+    const fe=floorEmission[preset]??0.20;
+    m.emissiveTexture=tex;
+    m.emissiveColor=new BABYLON.Color3(fe,fe,fe);
+    m.disableLighting=false;
+
     VISUAL_FLOORS[preset]=m;
     return m;
   }
@@ -188,8 +203,10 @@ export function createScene(engine: any, canvas: any) {
 
     const g=BABYLON.MeshBuilder.CreateGround("floor",{width:c.MAP.size[0],height:c.MAP.size[1]},scene);
     g.material=m;
+    g.position.y=0.004;
     g.parent=parentFor("BASE");
     g.receiveShadows=true;
+    if(glow.addExcludedMesh)glow.addExcludedMesh(g);
     if(c.MAP.readabilityFallback?.glowExclude&&glow.addExcludedMesh)glow.addExcludedMesh(g);
 
     // Legacy primitive stone floor remains available only when no visual texture preset is set.
@@ -877,7 +894,7 @@ export function createScene(engine: any, canvas: any) {
 
   const ui=BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"),panel=new BABYLON.GUI.StackPanel();
   panel.width="190px";panel.horizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;panel.paddingLeft="15px";panel.paddingTop="15px";ui.addControl(panel);
-  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V14.7";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
+  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V14.8";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
   const order=["temple","cafe","dinner","garden","market","mirror"],labels:any={temple:"1 · TEMPLO",cafe:"2 · CAFÉ",dinner:"3 · DINNER",garden:"4 · GARDEN",market:"5 · MARKET",mirror:"6 · MIRROR"},buttons:any={};
   order.forEach(id=>{const b=BABYLON.GUI.Button.CreateSimpleButton("btn_"+id,labels[id]);b.width="175px";b.height="37px";b.color="#dfcfb2";b.background="#25252a";b.cornerRadius=5;b.paddingBottom="4px";b.onPointerClickObservable.add(()=>loadMap(id));buttons[id]=b;panel.addControl(b);});
   const help=new BABYLON.GUI.TextBlock();help.text="\nWASD · mover\nE · interactuar\nG · grid\nC · cámara";help.height="100px";help.color="#888";help.fontSize=11;help.textHorizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.addControl(help);
@@ -1183,8 +1200,8 @@ export function createScene(engine: any, canvas: any) {
     player.position.set(c.spawn[0],c.spawn[1],c.spawn[2]);
     if(!overview&&c.camera){camera.radius=c.camera.radius??20;camera.beta=c.camera.beta??0.70;camera.alpha=c.camera.alpha??-Math.PI/2.15;}
     camera.target.set(player.position.x,0,player.position.z);ring.isVisible=false;
-    title.text=c.label+" · V14.7";
-    if(id==="cafe")console.log("[D8 v14.7] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
+    title.text=c.label+" · V14.8";
+    if(id==="cafe")console.log("[D8 v14.8] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
     Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");
     show("Mapa cargado: "+c.label);
   }
