@@ -38,27 +38,37 @@ export function createScene(engine: any, canvas: any) {
     soil:mat("soil",[0.17,0.08,0.035]), grass:mat("grass",[0.09,0.22,0.055]), lanternGlass:mat("lanternGlass",[1,0.56,0.10],{emissive:[0.9,0.28,0.02],alpha:0.72})
   };
 
-  let rt:any={id:null,config:null,root:null,colliders:[],interactables:[],updaters:[],grid:null,disposables:[],markers:{fireplaces:[],pools:[],roses:[],magic:[]}};
+  let rt:any={id:null,config:null,root:null,layers:{},colliders:[],interactables:[],updaters:[],grid:null,disposables:[],markers:{fireplaces:[],pools:[],roses:[],magic:[]}};
   let gridVisible=true, overview=false, nearest:any=null, elapsed=0;
-  const reset=(id:string,c:any)=>{ if(rt.disposables)rt.disposables.forEach((d:any)=>{try{d.dispose();}catch{}}); if(rt.root)rt.root.dispose(false,false); rt={id,config:c,root:new BABYLON.TransformNode("MAP_"+id,scene),colliders:[],interactables:[],updaters:[],grid:null,disposables:[],markers:{fireplaces:[],pools:[],roses:[],magic:[]}}; };
+  const reset=(id:string,c:any)=>{
+    if(rt.disposables)rt.disposables.forEach((d:any)=>{try{d.dispose();}catch{}});
+    if(rt.root)rt.root.dispose(false,false);
+    const root=new BABYLON.TransformNode("MAP_"+id,scene);
+    const layers:any={};
+    for(const name of ["BASE","PROPS","VFX","INTERACTABLES","DEBUG"]){
+      const node=new BABYLON.TransformNode("LAYER_"+name,scene);node.parent=root;layers[name]=node;
+    }
+    rt={id,config:c,root,layers,colliders:[],interactables:[],updaters:[],grid:null,disposables:[],markers:{fireplaces:[],pools:[],roses:[],magic:[]}};
+  };
 
-  const box=(n:string,x:number,y:number,z:number,w:number,h:number,d:number,m:any)=>{const q=BABYLON.MeshBuilder.CreateBox(n,{width:w,height:h,depth:d},scene);q.position.set(x,y,z);q.material=m;q.parent=rt.root;return q;};
-  const cyl=(n:string,x:number,y:number,z:number,d:number,h:number,m:any)=>{const q=BABYLON.MeshBuilder.CreateCylinder(n,{diameter:d,height:h,tessellation:24},scene);q.position.set(x,y,z);q.material=m;q.parent=rt.root;return q;};
-  const sph=(n:string,x:number,y:number,z:number,d:number,m:any)=>{const q=BABYLON.MeshBuilder.CreateSphere(n,{diameter:d,segments:12},scene);q.position.set(x,y,z);q.material=m;q.parent=rt.root;return q;};
+  const parentFor=(layer:string="PROPS")=>rt.layers?.[layer]??rt.root;
+  const box=(n:string,x:number,y:number,z:number,w:number,h:number,d:number,m:any,layer:string="PROPS")=>{const q=BABYLON.MeshBuilder.CreateBox(n,{width:w,height:h,depth:d},scene);q.position.set(x,y,z);q.material=m;q.parent=parentFor(layer);return q;};
+  const cyl=(n:string,x:number,y:number,z:number,d:number,h:number,m:any,layer:string="PROPS")=>{const q=BABYLON.MeshBuilder.CreateCylinder(n,{diameter:d,height:h,tessellation:24},scene);q.position.set(x,y,z);q.material=m;q.parent=parentFor(layer);return q;};
+  const sph=(n:string,x:number,y:number,z:number,d:number,m:any,layer:string="PROPS")=>{const q=BABYLON.MeshBuilder.CreateSphere(n,{diameter:d,segments:12},scene);q.position.set(x,y,z);q.material=m;q.parent=parentFor(layer);return q;};
   const collider=(x:number,z:number,w:number,d:number)=>rt.colliders.push({minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2});
   const track=(d:any)=>{rt.disposables.push(d);return d;};
 
   function floor(c:any){
     let m=M.stone; if(c.MAP.floor==="snow")m=M.snow; if(c.MAP.floor==="ice")m=M.ice; if(c.MAP.floor==="stone_tavern")m=M.stoneDark;
-    const g=BABYLON.MeshBuilder.CreateGround("floor",{width:c.MAP.size[0],height:c.MAP.size[1]},scene);g.material=m;g.parent=rt.root;
-    if(c.MAP.floor==="stone_tavern"){let row=0;for(let z=-7.1;z<=7.1;z+=1){let col=0;for(let x=-11;x<=11;x+=1.15){const n=row*37+col*19;const s=box("floorStone",x+(row%2?0.25:0),0.018,z,0.82,0.035,0.65,n%2?M.stone:M.stone2);s.rotation.y=Math.sin(n)*0.07;col++;}row++;}}
+    const g=BABYLON.MeshBuilder.CreateGround("floor",{width:c.MAP.size[0],height:c.MAP.size[1]},scene);g.material=m;g.parent=parentFor("BASE");
+    if(c.MAP.floor==="stone_tavern"){let row=0;for(let z=-7.1;z<=7.1;z+=1){let col=0;for(let x=-11;x<=11;x+=1.15){const n=row*37+col*19;const s=box("floorStone",x+(row%2?0.25:0),0.018,z,0.82,0.035,0.65,n%2?M.stone:M.stone2,"BASE");s.rotation.y=Math.sin(n)*0.07;col++;}row++;}}
   }
 
   function grid(c:any){
     const w=c.MAP.size[0],h=c.MAP.size[1],lines:any[]=[];
     for(let x=-w/2;x<=w/2;x++)lines.push([new BABYLON.Vector3(x,0.07,-h/2),new BABYLON.Vector3(x,0.07,h/2)]);
     for(let z=-h/2;z<=h/2;z++)lines.push([new BABYLON.Vector3(-w/2,0.07,z),new BABYLON.Vector3(w/2,0.07,z)]);
-    const g=BABYLON.MeshBuilder.CreateLineSystem("grid",{lines},scene);g.parent=rt.root;g.color=new BABYLON.Color3(0.15,0.13,0.10);g.alpha=0.15;g.setEnabled(gridVisible);rt.grid=g;
+    const g=BABYLON.MeshBuilder.CreateLineSystem("grid",{lines},scene);g.parent=parentFor("DEBUG");g.color=new BABYLON.Color3(0.15,0.13,0.10);g.alpha=0.15;g.setEnabled(gridVisible);rt.grid=g;
   }
 
   function asset(o:any){
@@ -121,6 +131,56 @@ export function createScene(engine: any, canvas: any) {
       cyl("smallBarrel",x,h/2,z,d,h,M.wood);
       for(let i=0;i<3;i++)cyl("smallBarrelRing",x,0.14+i*(h-0.28)/2,z,d*1.04,0.045,M.iron);
       collider(x,z,d*0.75,d*0.75);
+    }
+    else if(o.asset==="sofa_red"){
+      const w=(o.size?.[0]??2.3)*s,d=(o.size?.[1]??1.0)*s;
+      box("sofaBase",x,0.30,z,w,0.32,d,M.woodDark);
+      box("sofaSeat",x,0.52,z,w*0.88,0.22,d*0.72,M.clothRed);
+      box("sofaBack",x,0.94,z+d*0.34,w*0.92,0.70,0.22,M.clothRed);
+      box("sofaArmL",x-w*0.45,0.66,z,0.20,0.55,d*0.86,M.woodDark);
+      box("sofaArmR",x+w*0.45,0.66,z,0.20,0.55,d*0.86,M.woodDark);
+      collider(x,z,w,d);
+    }
+    else if(o.asset==="barrel_cluster"){
+      const count=o.count??4,spacing=(o.spacing??1.25)*s;
+      for(let i=0;i<count;i++){
+        const px=x+(i-(count-1)/2)*spacing;
+        cyl("clusterBarrel",px,0.92,z,1.35*s,1.84*s,M.wood);
+        for(let r=0;r<3;r++)cyl("clusterRing",px,0.18+r*0.74,z,1.42*s,0.05,M.iron);
+        collider(px,z,1.05*s,1.05*s);
+      }
+      box("barrelClusterRail",x,0.18,z-0.82*s,count*spacing+0.65*s,0.24,0.18,M.stoneDark);
+      box("barrelClusterRail2",x,0.18,z+0.82*s,count*spacing+0.65*s,0.24,0.18,M.stoneDark);
+    }
+    else if(o.asset==="sideboard"){
+      const w=(o.size?.[0]??3.6)*s,d=(o.size?.[1]??0.75)*s;
+      box("sideboardBody",x,0.48,z,w,0.96,d,M.woodDark);
+      box("sideboardTop",x,1.00,z,w*1.02,0.10,d*1.08,M.woodLight);
+      const slots=Math.max(3,Math.floor(w/0.7));
+      for(let i=0;i<slots;i++){
+        const px=x-w*0.42+i*(w*0.84/(slots-1));
+        cyl("sideboardDish",px,1.10,z,0.30*s,0.035,M.ceramic);
+      }
+      collider(x,z,w,d);
+    }
+    else if(o.asset==="table_dressing"){
+      const radius=(o.radius??0.65)*s,count=o.count??5;
+      for(let i=0;i<count;i++){
+        const a=i/count*Math.PI*2,px=x+Math.cos(a)*radius,pz=z+Math.sin(a)*radius;
+        cyl("dish",px,0.82,pz,0.28*s,0.03,M.ceramic);
+        if(i%2===0)cyl("cup",px+0.08,0.91,pz-0.05,0.10*s,0.18,M.yellow);
+      }
+      if(o.paper)box("paperSheet",x,0.835,z,0.70*s,0.02,0.50*s,M.wax);
+    }
+    else if(o.asset==="stone_partition"){
+      const w=o.size?.[0]??4,d=o.size?.[1]??0.45,h=o.height??1.25;
+      box("stonePartition",x,h/2,z,w,h,d,M.stoneDark);
+      const pieces=Math.max(3,Math.floor(w/0.7));
+      for(let i=0;i<pieces;i++){
+        const px=x-w/2+(i+0.5)*w/pieces;
+        box("partitionCap",px,h+0.06,z,w/pieces*0.84,0.12,d*1.12,i%2?M.stone:M.stone2);
+      }
+      collider(x,z,w,d);
     }
     else if(o.asset==="round_room"){
       const radius=o.radius??3.0,segments=o.segments??18,opening=o.opening??2;
@@ -295,15 +355,24 @@ export function createScene(engine: any, canvas: any) {
     else if(o.asset==="mirror"){box("mirrorBase",x,0.45,z,2.5,0.9,2.5,M.stoneDark);box("mirror",x,1.8,z,1.6,2.2,0.25,M.gold);collider(x,z,2.5,2.5);}
   }
 
-  function env(c:any){const e=c.VTT_AMBIENCE.environment;scene.clearColor=new BABYLON.Color4(e.clearColor[0],e.clearColor[1],e.clearColor[2],1);if(e.fog){scene.fogMode=BABYLON.Scene.FOGMODE_EXP2;scene.fogDensity=e.fogDensity;scene.fogColor=new BABYLON.Color3(e.clearColor[0],e.clearColor[1],e.clearColor[2]);}else scene.fogMode=BABYLON.Scene.FOGMODE_NONE;}
+  function env(c:any){
+    const e=c.VTT_AMBIENCE.environment;
+    scene.clearColor=new BABYLON.Color4(e.clearColor[0],e.clearColor[1],e.clearColor[2],1);
+    if(e.fog){scene.fogMode=BABYLON.Scene.FOGMODE_EXP2;scene.fogDensity=e.fogDensity;scene.fogColor=new BABYLON.Color3(e.clearColor[0],e.clearColor[1],e.clearColor[2]);}
+    else scene.fogMode=BABYLON.Scene.FOGMODE_NONE;
+    const ip=scene.imageProcessingConfiguration;
+    ip.exposure=e.exposure??1.0;
+    ip.contrast=e.contrast??1.0;
+    ip.toneMappingEnabled=e.toneMapping!==false;
+  }
   function lights(c:any){const l=c.VTT_AMBIENCE.lighting;hemi.intensity=l.ambientIntensity;(l.lights??[]).forEach((d:any)=>{const q=track(new BABYLON.PointLight("mapLight",new BABYLON.Vector3(d.position[0],d.position[1],d.position[2]),scene));q.parent=rt.root;q.diffuse=new BABYLON.Color3(d.color[0],d.color[1],d.color[2]);q.intensity=d.intensity;q.range=d.range;});}
 
-  function fire(marker:any,v:any){const a=sph("fireOuter",marker.x,0.45,marker.z,0.58,M.fireOuter);a.scaling.y=1.75;const b=sph("fireInner",marker.x,0.38,marker.z,0.32,M.fireInner);b.scaling.y=1.7;const l=track(new BABYLON.PointLight("fireLight",new BABYLON.Vector3(marker.x,1.2,marker.z),scene));l.parent=rt.root;l.diffuse=new BABYLON.Color3(1,0.24,0.02);l.range=7;l.intensity=2.1;const ay=a.position.y,by=b.position.y;rt.updaters.push((t:number)=>{const x=Math.sin(t*9.4),y=Math.sin(t*14.2);a.position.y=ay+x*0.04;b.position.y=by+y*0.025;a.scaling.x=1+x*0.09;l.intensity=2+x*0.22+y*0.1;});if(v.smoke)for(let i=0;i<6;i++){const s=sph("smoke",marker.x,0.8+i*0.2,marker.z,0.3+i*0.05,M.smoke),o=i/6;rt.updaters.push((t:number)=>{const c=(t*0.18+o)%1;s.position.y=0.75+c*3;s.position.x=marker.x+Math.sin(t*0.6+i)*0.18;const k=0.7+c*1.4;s.scaling.set(k,k*1.2,k);});}}
-  function dust(){for(let i=0;i<16;i++){const x=-9+((i*37)%18),z=-5+((i*23)%10),m=sph("dust",x,0.7+(i%5)*0.42,z,0.035,M.dust),y=m.position.y;rt.updaters.push((t:number)=>m.position.y=y+Math.sin(t*0.7+i)*0.14);}}
-  function ripple(x:number,z:number,o:number){const p:any[]=[];for(let i=0;i<=40;i++){const a=i/40*Math.PI*2;p.push(new BABYLON.Vector3(Math.cos(a)*0.45,0,Math.sin(a)*0.45));}const r=BABYLON.MeshBuilder.CreateLines("ripple",{points:p},scene);r.parent=rt.root;r.position.set(x,0.13,z);r.color=new BABYLON.Color3(0.2,0.75,0.8);rt.updaters.push((t:number)=>{const c=(t*0.2+o)%1,k=0.5+c*4;r.scaling.set(k,1,k);r.alpha=0.3*(1-c);});}
+  function fire(marker:any,v:any){const a=sph("fireOuter",marker.x,0.45,marker.z,0.58,M.fireOuter,"VFX");a.scaling.y=1.75;const b=sph("fireInner",marker.x,0.38,marker.z,0.32,M.fireInner,"VFX");b.scaling.y=1.7;const l=track(new BABYLON.PointLight("fireLight",new BABYLON.Vector3(marker.x,1.2,marker.z),scene));l.parent=rt.root;l.diffuse=new BABYLON.Color3(1,0.24,0.02);l.range=7;l.intensity=2.1;const ay=a.position.y,by=b.position.y;rt.updaters.push((t:number)=>{const x=Math.sin(t*9.4),y=Math.sin(t*14.2);a.position.y=ay+x*0.04;b.position.y=by+y*0.025;a.scaling.x=1+x*0.09;l.intensity=2+x*0.22+y*0.1;});if(v.smoke)for(let i=0;i<6;i++){const s=sph("smoke",marker.x,0.8+i*0.2,marker.z,0.3+i*0.05,M.smoke,"VFX"),o=i/6;rt.updaters.push((t:number)=>{const c=(t*0.18+o)%1;s.position.y=0.75+c*3;s.position.x=marker.x+Math.sin(t*0.6+i)*0.18;const k=0.7+c*1.4;s.scaling.set(k,k*1.2,k);});}}
+  function dust(){for(let i=0;i<16;i++){const x=-9+((i*37)%18),z=-5+((i*23)%10),m=sph("dust",x,0.7+(i%5)*0.42,z,0.035,M.dust,"VFX"),y=m.position.y;rt.updaters.push((t:number)=>m.position.y=y+Math.sin(t*0.7+i)*0.14);}}
+  function ripple(x:number,z:number,o:number){const p:any[]=[];for(let i=0;i<=40;i++){const a=i/40*Math.PI*2;p.push(new BABYLON.Vector3(Math.cos(a)*0.45,0,Math.sin(a)*0.45));}const r=BABYLON.MeshBuilder.CreateLines("ripple",{points:p},scene);r.parent=parentFor("VFX");r.position.set(x,0.13,z);r.color=new BABYLON.Color3(0.2,0.75,0.8);rt.updaters.push((t:number)=>{const c=(t*0.2+o)%1,k=0.5+c*4;r.scaling.set(k,1,k);r.alpha=0.3*(1-c);});}
   function embers(marker:any){
     for(let i=0;i<8;i++){
-      const e=sph("ember",marker.x,0.35,marker.z,0.035+(i%3)*0.01,M.fireOuter),off=i/8;
+      const e=sph("ember",marker.x,0.35,marker.z,0.035+(i%3)*0.01,M.fireOuter,"VFX"),off=i/8;
       rt.updaters.push((t:number)=>{const c=(t*0.55+off)%1;e.position.y=0.35+c*1.6;e.position.x=marker.x+Math.sin(t*2+i)*0.18*c;e.position.z=marker.z+Math.cos(t*1.7+i)*0.13*c;const k=1-c;e.scaling.set(k,k,k);});
     }
   }
@@ -311,7 +380,7 @@ export function createScene(engine: any, canvas: any) {
     const size=c.MAP.size,count=v.snowCount??34;
     for(let i=0;i<count;i++){
       const x=-size[0]/2+((i*47)%100)/100*size[0],z=-size[1]/2+((i*71)%100)/100*size[1];
-      const flake=sph("snowFlake",x,0.8+((i*31)%100)/100*4.5,z,0.045+(i%3)*0.018,M.magicWhite);
+      const flake=sph("snowFlake",x,0.8+((i*31)%100)/100*4.5,z,0.045+(i%3)*0.018,M.magicWhite,"VFX");
       const startY=flake.position.y,seed=i*0.73;
       rt.updaters.push((t:number)=>{
         let y=startY-((t*(v.snowSpeed??0.45)+seed)%5.2);
@@ -324,7 +393,7 @@ export function createScene(engine: any, canvas: any) {
     const count=v.fireflyCount??18,size=c.MAP.size;
     for(let i=0;i<count;i++){
       const x=-size[0]*0.38+((i*43)%100)/100*size[0]*0.76,z=-size[1]*0.36+((i*67)%100)/100*size[1]*0.72;
-      const f=sph("firefly",x,0.55+(i%5)*0.35,z,0.035,M.lanternGlass),baseY=f.position.y,seed=i*1.17;
+      const f=sph("firefly",x,0.55+(i%5)*0.35,z,0.035,M.lanternGlass,"VFX"),baseY=f.position.y,seed=i*1.17;
       rt.updaters.push((t:number)=>{f.position.y=baseY+Math.sin(t*1.1+seed)*0.22;f.position.x=x+Math.sin(t*0.55+seed)*0.35;f.position.z=z+Math.cos(t*0.72+seed)*0.28;const k=0.65+Math.sin(t*3.2+seed)*0.25;f.scaling.set(k,k,k);});
     }
   }
@@ -334,7 +403,7 @@ export function createScene(engine: any, canvas: any) {
   function magicMotes(v:any){
     rt.markers.magic.forEach((m:any)=>{
       for(let i=0;i<(v.magicCount??12);i++){
-        const p=sph("magicMote",m.x,0.55,m.z,0.045+(i%3)*0.012,i%2?M.magicBlue:M.magicWhite),off=i/12,seed=i*0.9+m.seed;
+        const p=sph("magicMote",m.x,0.55,m.z,0.045+(i%3)*0.012,i%2?M.magicBlue:M.magicWhite,"VFX"),off=i/12,seed=i*0.9+m.seed;
         rt.updaters.push((t:number)=>{const a=t*0.65+seed,r=0.55+((i%4)*0.16);p.position.x=m.x+Math.cos(a)*r;p.position.z=m.z+Math.sin(a)*r;p.position.y=0.45+((t*0.22+off)%1)*2.7;const k=0.55+Math.sin(t*3+seed)*0.25;p.scaling.set(k,k,k);});
       }
       if(m.light)rt.updaters.push((t:number)=>m.light.intensity=0.70+Math.sin(t*2+m.seed)*0.12);
