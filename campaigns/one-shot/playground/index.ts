@@ -21,9 +21,9 @@ export function createScene(engine: any, canvas: any) {
   }
 
   const M:any={
-    stone:mat("stone",[0.26,0.21,0.16]), stone2:mat("stone2",[0.34,0.27,0.20]), stoneDark:mat("stoneDark",[0.09,0.07,0.055]),
+    stone:mat("stone",[0.26,0.21,0.16]), stone2:mat("stone2",[0.34,0.27,0.20]), stoneDark:mat("stoneDark",[0.16,0.125,0.095]),
     stoneLight:mat("stoneLight",[0.47,0.39,0.29]), wood:mat("wood",[0.30,0.12,0.035]), woodLight:mat("woodLight",[0.47,0.23,0.07]),
-    woodDark:mat("woodDark",[0.10,0.032,0.01]), green:mat("green",[0.14,0.28,0.07]), red:mat("red",[0.43,0.025,0.018]),
+    woodDark:mat("woodDark",[0.17,0.065,0.022]), green:mat("green",[0.14,0.28,0.07]), red:mat("red",[0.43,0.025,0.018]),
     purple:mat("purple",[0.31,0.13,0.45]), yellow:mat("yellow",[0.70,0.42,0.05]), snow:mat("snow",[0.73,0.79,0.84]),
     ice:mat("ice",[0.15,0.40,0.58],{alpha:0.88,specular:0.5}), water:mat("water",[0.005,0.18,0.24],{alpha:0.75,specular:0.85,emissive:[0,0.03,0.05]}),
     waterGlow:mat("waterGlow",[0.02,0.50,0.52],{alpha:0.15,emissive:[0,0.16,0.17]}),
@@ -31,7 +31,7 @@ export function createScene(engine: any, canvas: any) {
     smoke:mat("smoke",[0.15,0.14,0.13],{alpha:0.13,disableLighting:true}), dust:mat("dust",[1,0.70,0.25],{alpha:0.5,emissive:[0.35,0.14,0]}),
     player:mat("player",[0.02,0.58,1],{emissive:[0,0.08,0.18]}), gold:mat("gold",[0.72,0.43,0.07]),
     wax:mat("wax",[0.82,0.72,0.53]), ceramic:mat("ceramic",[0.72,0.67,0.56],{specular:0.12}),
-    iron:mat("iron",[0.12,0.11,0.10],{specular:0.18}), clothRed:mat("clothRed",[0.34,0.035,0.025]), clothBlue:mat("clothBlue",[0.05,0.12,0.24]),
+    iron:mat("iron",[0.18,0.17,0.16],{specular:0.18}), clothRed:mat("clothRed",[0.34,0.035,0.025]), clothBlue:mat("clothBlue",[0.05,0.12,0.24]),
     rose:mat("rose",[0.62,0.025,0.035],{emissive:[0.025,0,0]}), rosePink:mat("rosePink",[0.78,0.14,0.22]), leaf:mat("leaf",[0.08,0.24,0.07]), leafDark:mat("leafDark",[0.035,0.12,0.035]),
     frost:mat("frost",[0.70,0.88,1],{alpha:0.80,specular:0.6,emissive:[0.02,0.05,0.08]}), magicBlue:mat("magicBlue",[0.08,0.52,1],{emissive:[0.03,0.30,0.85],alpha:0.92}),
     magicWhite:mat("magicWhite",[0.78,0.92,1],{emissive:[0.35,0.58,0.85]}), roof:mat("roof",[0.17,0.055,0.025]), plaster:mat("plaster",[0.46,0.40,0.32]),
@@ -154,6 +154,16 @@ export function createScene(engine: any, canvas: any) {
     m.diffuseTexture=tex;
     m.specularColor=preset==="ice"?new BABYLON.Color3(0.30,0.38,0.44):new BABYLON.Color3(0.025,0.025,0.025);
     m.roughness=preset==="ice"?0.42:0.92;
+    const floorGlow:any={
+      cafe_stone:[0.065,0.040,0.022],
+      temple_stone:[0.040,0.036,0.042],
+      night_cobble:[0.038,0.036,0.034],
+      market_cobble:[0.070,0.050,0.030],
+      snow:[0.085,0.095,0.105],
+      ice:[0.045,0.095,0.135]
+    };
+    const eg=floorGlow[preset]??[0.035,0.030,0.025];
+    m.emissiveColor=new BABYLON.Color3(eg[0],eg[1],eg[2]);
     VISUAL_FLOORS[preset]=m;
     return m;
   }
@@ -567,17 +577,17 @@ export function createScene(engine: any, canvas: any) {
     if(e.fog){scene.fogMode=BABYLON.Scene.FOGMODE_EXP2;scene.fogDensity=e.fogDensity;scene.fogColor=new BABYLON.Color3(e.clearColor[0],e.clearColor[1],e.clearColor[2]);}
     else scene.fogMode=BABYLON.Scene.FOGMODE_NONE;
     const ip=scene.imageProcessingConfiguration;
-    ip.exposure=e.exposure??1.0;
-    ip.contrast=e.contrast??1.0;
+    ip.exposure=Math.max(1.10,e.exposure??1.10);
+    ip.contrast=Math.min(1.14,e.contrast??1.08);
     ip.toneMappingEnabled=e.toneMapping!==false;
     ip.vignetteEnabled=!!e.vignette;
     if(e.vignette){
-      ip.vignetteWeight=e.vignetteWeight??1.35;
+      ip.vignetteWeight=Math.min(0.90,e.vignetteWeight??0.80);
       ip.vignetteStretch=e.vignetteStretch??0.25;
       ip.vignetteColor=new BABYLON.Color4(0.02,0.012,0.008,1);
     }
   }
-  function lights(c:any){const l=c.VTT_AMBIENCE.lighting;hemi.intensity=l.ambientIntensity;(l.lights??[]).forEach((d:any)=>{const q=track(new BABYLON.PointLight("mapLight",new BABYLON.Vector3(d.position[0],d.position[1],d.position[2]),scene));q.parent=rt.root;q.diffuse=new BABYLON.Color3(d.color[0],d.color[1],d.color[2]);q.intensity=d.intensity;q.range=d.range;});}
+  function lights(c:any){const l=c.VTT_AMBIENCE.lighting;hemi.intensity=Math.max(0.26,l.ambientIntensity??0.26);(l.lights??[]).forEach((d:any)=>{const q=track(new BABYLON.PointLight("mapLight",new BABYLON.Vector3(d.position[0],d.position[1],d.position[2]),scene));q.parent=rt.root;q.diffuse=new BABYLON.Color3(d.color[0],d.color[1],d.color[2]);q.intensity=(d.intensity??0.4)*1.16;q.range=(d.range??6)*1.05;});}
 
   function fire(marker:any,v:any){const a=sph("fireOuter",marker.x,0.45,marker.z,0.58,M.fireOuter,"VFX");a.scaling.y=1.75;const b=sph("fireInner",marker.x,0.38,marker.z,0.32,M.fireInner,"VFX");b.scaling.y=1.7;const l=track(new BABYLON.PointLight("fireLight",new BABYLON.Vector3(marker.x,1.2,marker.z),scene));l.parent=rt.root;l.diffuse=new BABYLON.Color3(1,0.24,0.02);l.range=7;l.intensity=2.1;const ay=a.position.y,by=b.position.y;rt.updaters.push((t:number)=>{const x=Math.sin(t*9.4),y=Math.sin(t*14.2);a.position.y=ay+x*0.04;b.position.y=by+y*0.025;a.scaling.x=1+x*0.09;l.intensity=2+x*0.22+y*0.1;});if(v.smoke)for(let i=0;i<6;i++){const s=sph("smoke",marker.x,0.8+i*0.2,marker.z,0.3+i*0.05,M.smoke,"VFX"),o=i/6;rt.updaters.push((t:number)=>{const c=(t*0.18+o)%1;s.position.y=0.75+c*3;s.position.x=marker.x+Math.sin(t*0.6+i)*0.18;const k=0.7+c*1.4;s.scaling.set(k,k*1.2,k);});}}
   function dust(){for(let i=0;i<16;i++){const x=-9+((i*37)%18),z=-5+((i*23)%10),m=sph("dust",x,0.7+(i%5)*0.42,z,0.035,M.dust,"VFX"),y=m.position.y;rt.updaters.push((t:number)=>m.position.y=y+Math.sin(t*0.7+i)*0.14);}}
@@ -652,7 +662,7 @@ export function createScene(engine: any, canvas: any) {
 
   const ui=BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"),panel=new BABYLON.GUI.StackPanel();
   panel.width="190px";panel.horizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;panel.paddingLeft="15px";panel.paddingTop="15px";ui.addControl(panel);
-  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V6";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
+  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V7";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
   const order=["temple","cafe","dinner","garden","market","mirror"],labels:any={temple:"1 · TEMPLO",cafe:"2 · CAFÉ",dinner:"3 · DINNER",garden:"4 · GARDEN",market:"5 · MARKET",mirror:"6 · MIRROR"},buttons:any={};
   order.forEach(id=>{const b=BABYLON.GUI.Button.CreateSimpleButton("btn_"+id,labels[id]);b.width="175px";b.height="37px";b.color="#dfcfb2";b.background="#25252a";b.cornerRadius=5;b.paddingBottom="4px";b.onPointerClickObservable.add(()=>loadMap(id));buttons[id]=b;panel.addControl(b);});
   const help=new BABYLON.GUI.TextBlock();help.text="\nWASD · mover\nE · interactuar\nG · grid\nC · cámara";help.height="100px";help.color="#888";help.fontSize=11;help.textHorizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.addControl(help);
@@ -661,7 +671,7 @@ export function createScene(engine: any, canvas: any) {
   const msg=new BABYLON.GUI.TextBlock();msg.width="650px";msg.height="55px";msg.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;msg.top="15px";msg.color="#efdfc3";msg.fontSize=13;ui.addControl(msg);
   let timer:any=null;const show=(t:string)=>{msg.text=t;if(timer)clearTimeout(timer);timer=setTimeout(()=>msg.text="",3000);};
 
-  function loadMap(id:string){const c=D8NIGHT.maps[id];if(!c)return;reset(id,c);env(c);floor(c);visualComposition(c);grid(c);c.MAP.objects.forEach(asset);lights(c);vfx(c);shadows(c);rt.interactables=[...(c.CANON.interactables??[]),...(c.VTT_AMBIENCE.interactables??[])];player.position.set(c.spawn[0],c.spawn[1],c.spawn[2]);if(!overview&&c.camera){camera.radius=c.camera.radius??20;camera.beta=c.camera.beta??0.70;camera.alpha=c.camera.alpha??-Math.PI/2.15;}camera.target.set(player.position.x,0,player.position.z);ring.isVisible=false;title.text=c.label+" · V6";Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");show("Mapa cargado: "+c.label);}
+  function loadMap(id:string){const c=D8NIGHT.maps[id];if(!c)return;reset(id,c);env(c);floor(c);visualComposition(c);grid(c);c.MAP.objects.forEach(asset);lights(c);vfx(c);shadows(c);rt.interactables=[...(c.CANON.interactables??[]),...(c.VTT_AMBIENCE.interactables??[])];player.position.set(c.spawn[0],c.spawn[1],c.spawn[2]);if(!overview&&c.camera){camera.radius=c.camera.radius??20;camera.beta=c.camera.beta??0.70;camera.alpha=c.camera.alpha??-Math.PI/2.15;}camera.target.set(player.position.x,0,player.position.z);ring.isVisible=false;title.text=c.label+" · V7";Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");show("Mapa cargado: "+c.label);}
 
   const keys:any={};
   window.addEventListener("keydown",(e:KeyboardEvent)=>{const k=e.key.toLowerCase();keys[k]=true;if(k>="1"&&k<="6")loadMap(order[Number(k)-1]);if(k==="e"&&!e.repeat&&nearest)show(nearest.message);if(k==="g"&&!e.repeat){gridVisible=!gridVisible;if(rt.grid)rt.grid.setEnabled(gridVisible);show(gridVisible?"Grid activado":"Grid oculto");}if(k==="c"&&!e.repeat){overview=!overview;const cfg=rt.config?.camera??{};const size=rt.config?.MAP?.size??[24,16];if(overview){camera.radius=Math.max(size[0],size[1])*1.05;camera.beta=0.46;}else{camera.radius=cfg.radius??20;camera.beta=cfg.beta??0.70;camera.alpha=cfg.alpha??-Math.PI/2.15;}show(overview?"Cámara general":"Cámara de escena");}});
