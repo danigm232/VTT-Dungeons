@@ -17,6 +17,7 @@ export function createScene(engine: any, canvas: any) {
     if(o.emissive)m.emissiveColor=new BABYLON.Color3(o.emissive[0],o.emissive[1],o.emissive[2]);
     if(o.alpha!==undefined)m.alpha=o.alpha;
     if(o.disableLighting)m.disableLighting=true;
+    m.maxSimultaneousLights=o.maxLights??12;
     return m;
   }
 
@@ -388,6 +389,67 @@ export function createScene(engine: any, canvas: any) {
       }
       collider(x,z,w,d);
     }
+    else if(o.asset==="wall_torch"){
+      const h=(o.height??1.75)*s;
+      const root=new BABYLON.TransformNode("wallTorch",scene);
+      root.parent=rt.root;root.position.set(x,0,z);root.rotation.y=o.rotation??0;
+      const arm=BABYLON.MeshBuilder.CreateBox("torchArm",{width:0.46*s,height:0.08*s,depth:0.09*s},scene);
+      arm.parent=root;arm.position.set(0,h,0);arm.material=M.iron;
+      const shaft=BABYLON.MeshBuilder.CreateCylinder("torchShaft",{diameter:0.10*s,height:0.72*s,tessellation:10},scene);
+      shaft.parent=root;shaft.position.set(0,h+0.18,-0.13*s);shaft.rotation.z=-0.30;shaft.material=M.wood;
+      const flame=sph("torchFlame",x,h+0.63,z-0.22*s,0.28*s,M.fireInner,"VFX");
+      flame.scaling.set(0.85,1.75,0.85);
+      const outer=sph("torchOuter",x,h+0.60,z-0.22*s,0.40*s,M.fireOuter,"VFX");
+      outer.scaling.set(0.75,1.55,0.75);
+      const light=track(new BABYLON.PointLight("torchLight",new BABYLON.Vector3(x,h+0.64,z-0.20*s),scene));
+      light.parent=rt.root;light.diffuse=new BABYLON.Color3(1,0.34,0.055);
+      light.range=o.range??6.2;light.intensity=o.intensity??0.90;
+      const seed=x*1.37+z*2.11,fy=flame.position.y,oy=outer.position.y;
+      rt.updaters.push((t:number)=>{
+        const a=Math.sin(t*9.3+seed),b=Math.sin(t*15.7+seed*0.7);
+        flame.position.y=fy+a*0.035;outer.position.y=oy+b*0.025;
+        flame.scaling.y=1.72+a*0.18;outer.scaling.y=1.52+b*0.15;
+        light.intensity=(o.intensity??0.90)+a*0.10+b*0.05;
+      });
+    }
+    else if(o.asset==="chandelier"){
+      const y=(o.height??3.4)*s,r=(o.radius??1.25)*s,count=o.count??8;
+      cyl("chandelierChain",x,y+0.95*s,z,0.07*s,1.9*s,M.iron);
+      const ring=BABYLON.MeshBuilder.CreateTorus("chandelierRing",{diameter:r*2,thickness:0.10*s,tessellation:36},scene);
+      ring.position.set(x,y,z);ring.rotation.x=Math.PI/2;ring.material=M.iron;ring.parent=rt.root;
+      for(let i=0;i<count;i++){
+        const a=i/count*Math.PI*2,px=x+Math.cos(a)*r,pz=z+Math.sin(a)*r;
+        cyl("chandelierCandle",px,y+0.18*s,pz,0.08*s,0.32*s,M.wax);
+        const flame=sph("chandelierFlame",px,y+0.43*s,pz,0.11*s,M.fireInner,"VFX");
+        flame.scaling.y=1.35;
+        const by=flame.position.y,seed=i*0.81+x+z;
+        rt.updaters.push((t:number)=>{const f=Math.sin(t*10.4+seed)*0.08;flame.position.y=by+f*0.025;flame.scaling.y=1.35+f*0.4;});
+      }
+      const light=track(new BABYLON.PointLight("chandelierLight",new BABYLON.Vector3(x,y+0.30,z),scene));
+      light.parent=rt.root;light.diffuse=new BABYLON.Color3(1,0.48,0.14);
+      light.range=o.range??8.5;light.intensity=o.intensity??1.15;
+      const seed=x*0.73+z*1.31;
+      rt.updaters.push((t:number)=>light.intensity=(o.intensity??1.15)+Math.sin(t*6.7+seed)*0.055);
+    }
+    else if(o.asset==="brazier"){
+      const y=(o.height??0.82)*s;
+      cyl("brazierBase",x,0.22*s,z,0.64*s,0.44*s,M.iron);
+      const bowl=BABYLON.MeshBuilder.CreateCylinder("brazierBowl",{diameterTop:1.15*s,diameterBottom:0.72*s,height:0.34*s,tessellation:20},scene);
+      bowl.position.set(x,y,z);bowl.material=M.iron;bowl.parent=rt.root;
+      for(let i=0;i<5;i++)sph("brazierCoal",x-0.28*s+i*0.14*s,y+0.17*s,z+((i%2)?0.12:-0.10)*s,0.17*s,M.fireOuter,"VFX");
+      const inner=sph("brazierInner",x,y+0.55*s,z,0.55*s,M.fireInner,"VFX");inner.scaling.y=1.55;
+      const outer=sph("brazierOuter",x,y+0.50*s,z,0.78*s,M.fireOuter,"VFX");outer.scaling.y=1.40;
+      const light=track(new BABYLON.PointLight("brazierLight",new BABYLON.Vector3(x,y+0.75*s,z),scene));
+      light.parent=rt.root;light.diffuse=new BABYLON.Color3(1,0.30,0.04);
+      light.range=o.range??7.5;light.intensity=o.intensity??1.55;
+      const seed=x*1.21+z*0.91,iy=inner.position.y,oy=outer.position.y;
+      rt.updaters.push((t:number)=>{
+        const a=Math.sin(t*8.9+seed),b=Math.sin(t*14.8+seed);
+        inner.position.y=iy+a*0.04;outer.position.y=oy+b*0.03;
+        light.intensity=(o.intensity??1.55)+a*0.16+b*0.08;
+      });
+      collider(x,z,0.95*s,0.95*s);
+    }
     else if(o.asset==="wall_sconce"){
       const h=(o.height??1.65)*s;
       const arm=box("sconceArm",x,h,z,0.32*s,0.07*s,0.08*s,M.iron);
@@ -554,7 +616,7 @@ export function createScene(engine: any, canvas: any) {
       cyl("magicRing",x,0.42,z,1.95*s,0.20,M.gold);
       const core=cyl("magicCore",x,0.64,z,1.45*s,0.26,M.magicBlue);
       const light=track(new BABYLON.PointLight("magicPedestalLight",new BABYLON.Vector3(x,1.0,z),scene));
-      light.parent=rt.root;light.diffuse=new BABYLON.Color3(0.10,0.55,1);light.range=6;light.intensity=o.intensity??0.75;
+      const mc=o.lightColor??[0.10,0.55,1];light.parent=rt.root;light.diffuse=new BABYLON.Color3(mc[0],mc[1],mc[2]);light.range=o.range??8;light.intensity=o.intensity??0.95;
       rt.markers.magic.push({x,z,mesh:core,light,seed:x+z});
       collider(x,z,2.3*s,2.3*s);
     }
@@ -574,6 +636,13 @@ export function createScene(engine: any, canvas: any) {
       q.position.set(x,h/2,z);q.material=M.frost;q.parent=rt.root;q.rotation.y=(o.rotation??0);
       const baseY=q.position.y,seed=x*1.3+z*0.7;
       rt.updaters.push((t:number)=>{q.position.y=baseY+Math.sin(t*1.6+seed)*0.035;q.rotation.y+=0.0015;});
+      if(o.lightColor){
+        const lc=o.lightColor;
+        const glow=track(new BABYLON.PointLight("crystalGlow",new BABYLON.Vector3(x,h*0.75,z),scene));
+        glow.parent=rt.root;glow.diffuse=new BABYLON.Color3(lc[0],lc[1],lc[2]);
+        glow.intensity=o.intensity??0.72;glow.range=o.range??7;
+        rt.updaters.push((t:number)=>glow.intensity=(o.intensity??0.72)+Math.sin(t*1.8+seed)*0.08);
+      }
     }
     else if(o.asset==="fireplace"){box("fireplace",x-0.9,0.85,z,1.4,1.7,3.9,M.stoneDark);box("opening",x,0.4,z,0.25,0.8,1.4,M.woodDark);collider(x-0.7,z,1.4,3.9);rt.markers.fireplaces.push({x,z});}
     else if(o.asset==="rug"){box("rugBorder",x,0.075,z,o.size[0],0.04,o.size[1],M.yellow);box("rug",x,0.09,z,o.size[0]-0.25,0.025,o.size[1]-0.25,M.green);}
@@ -620,7 +689,7 @@ export function createScene(engine: any, canvas: any) {
     });
   }
 
-  function fire(marker:any,v:any){const a=sph("fireOuter",marker.x,0.45,marker.z,0.58,M.fireOuter,"VFX");a.scaling.y=1.75;const b=sph("fireInner",marker.x,0.38,marker.z,0.32,M.fireInner,"VFX");b.scaling.y=1.7;const l=track(new BABYLON.PointLight("fireLight",new BABYLON.Vector3(marker.x,1.2,marker.z),scene));l.parent=rt.root;l.diffuse=new BABYLON.Color3(1,0.24,0.02);l.range=8.2;l.intensity=2.65;const ay=a.position.y,by=b.position.y;rt.updaters.push((t:number)=>{const x=Math.sin(t*9.4),y=Math.sin(t*14.2);a.position.y=ay+x*0.04;b.position.y=by+y*0.025;a.scaling.x=1+x*0.09;l.intensity=2.55+x*0.30+y*0.14;});if(v.smoke)for(let i=0;i<6;i++){const s=sph("smoke",marker.x,0.8+i*0.2,marker.z,0.3+i*0.05,M.smoke,"VFX"),o=i/6;rt.updaters.push((t:number)=>{const c=(t*0.18+o)%1;s.position.y=0.75+c*3;s.position.x=marker.x+Math.sin(t*0.6+i)*0.18;const k=0.7+c*1.4;s.scaling.set(k,k*1.2,k);});}}
+  function fire(marker:any,v:any){const a=sph("fireOuter",marker.x,0.45,marker.z,0.58,M.fireOuter,"VFX");a.scaling.y=1.75;const b=sph("fireInner",marker.x,0.38,marker.z,0.32,M.fireInner,"VFX");b.scaling.y=1.7;const l=track(new BABYLON.PointLight("fireLight",new BABYLON.Vector3(marker.x,1.2,marker.z),scene));l.parent=rt.root;l.diffuse=new BABYLON.Color3(1,0.24,0.02);l.range=10.5;l.intensity=3.45;const ay=a.position.y,by=b.position.y;rt.updaters.push((t:number)=>{const x=Math.sin(t*9.4),y=Math.sin(t*14.2);a.position.y=ay+x*0.04;b.position.y=by+y*0.025;a.scaling.x=1+x*0.09;l.intensity=3.30+x*0.38+y*0.18;});if(v.smoke)for(let i=0;i<6;i++){const s=sph("smoke",marker.x,0.8+i*0.2,marker.z,0.3+i*0.05,M.smoke,"VFX"),o=i/6;rt.updaters.push((t:number)=>{const c=(t*0.18+o)%1;s.position.y=0.75+c*3;s.position.x=marker.x+Math.sin(t*0.6+i)*0.18;const k=0.7+c*1.4;s.scaling.set(k,k*1.2,k);});}}
   function dust(){for(let i=0;i<16;i++){const x=-9+((i*37)%18),z=-5+((i*23)%10),m=sph("dust",x,0.7+(i%5)*0.42,z,0.035,M.dust,"VFX"),y=m.position.y;rt.updaters.push((t:number)=>m.position.y=y+Math.sin(t*0.7+i)*0.14);}}
   function ripple(x:number,z:number,o:number){const p:any[]=[];for(let i=0;i<=40;i++){const a=i/40*Math.PI*2;p.push(new BABYLON.Vector3(Math.cos(a)*0.45,0,Math.sin(a)*0.45));}const r=BABYLON.MeshBuilder.CreateLines("ripple",{points:p},scene);r.parent=parentFor("VFX");r.position.set(x,0.13,z);r.color=new BABYLON.Color3(0.2,0.75,0.8);rt.updaters.push((t:number)=>{const c=(t*0.2+o)%1,k=0.5+c*4;r.scaling.set(k,1,k);r.alpha=0.3*(1-c);});}
   function embers(marker:any){
@@ -699,7 +768,7 @@ export function createScene(engine: any, canvas: any) {
 
   const ui=BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"),panel=new BABYLON.GUI.StackPanel();
   panel.width="190px";panel.horizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;panel.paddingLeft="15px";panel.paddingTop="15px";ui.addControl(panel);
-  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V8";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
+  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V9";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
   const order=["temple","cafe","dinner","garden","market","mirror"],labels:any={temple:"1 · TEMPLO",cafe:"2 · CAFÉ",dinner:"3 · DINNER",garden:"4 · GARDEN",market:"5 · MARKET",mirror:"6 · MIRROR"},buttons:any={};
   order.forEach(id=>{const b=BABYLON.GUI.Button.CreateSimpleButton("btn_"+id,labels[id]);b.width="175px";b.height="37px";b.color="#dfcfb2";b.background="#25252a";b.cornerRadius=5;b.paddingBottom="4px";b.onPointerClickObservable.add(()=>loadMap(id));buttons[id]=b;panel.addControl(b);});
   const help=new BABYLON.GUI.TextBlock();help.text="\nWASD · mover\nE · interactuar\nG · grid\nC · cámara";help.height="100px";help.color="#888";help.fontSize=11;help.textHorizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.addControl(help);
@@ -708,7 +777,7 @@ export function createScene(engine: any, canvas: any) {
   const msg=new BABYLON.GUI.TextBlock();msg.width="650px";msg.height="55px";msg.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;msg.top="15px";msg.color="#efdfc3";msg.fontSize=13;ui.addControl(msg);
   let timer:any=null;const show=(t:string)=>{msg.text=t;if(timer)clearTimeout(timer);timer=setTimeout(()=>msg.text="",3000);};
 
-  function loadMap(id:string){const c=D8NIGHT.maps[id];if(!c)return;reset(id,c);env(c);floor(c);visualComposition(c);grid(c);c.MAP.objects.forEach(asset);lights(c);vfx(c);shadows(c);rt.interactables=[...(c.CANON.interactables??[]),...(c.VTT_AMBIENCE.interactables??[])];player.position.set(c.spawn[0],c.spawn[1],c.spawn[2]);if(!overview&&c.camera){camera.radius=c.camera.radius??20;camera.beta=c.camera.beta??0.70;camera.alpha=c.camera.alpha??-Math.PI/2.15;}camera.target.set(player.position.x,0,player.position.z);ring.isVisible=false;title.text=c.label+" · V8";Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");show("Mapa cargado: "+c.label);}
+  function loadMap(id:string){const c=D8NIGHT.maps[id];if(!c)return;reset(id,c);env(c);floor(c);visualComposition(c);grid(c);c.MAP.objects.forEach(asset);lights(c);vfx(c);shadows(c);rt.interactables=[...(c.CANON.interactables??[]),...(c.VTT_AMBIENCE.interactables??[])];player.position.set(c.spawn[0],c.spawn[1],c.spawn[2]);if(!overview&&c.camera){camera.radius=c.camera.radius??20;camera.beta=c.camera.beta??0.70;camera.alpha=c.camera.alpha??-Math.PI/2.15;}camera.target.set(player.position.x,0,player.position.z);ring.isVisible=false;title.text=c.label+" · V9";Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");show("Mapa cargado: "+c.label);}
 
   const keys:any={};
   window.addEventListener("keydown",(e:KeyboardEvent)=>{const k=e.key.toLowerCase();keys[k]=true;if(k>="1"&&k<="6")loadMap(order[Number(k)-1]);if(k==="e"&&!e.repeat&&nearest)show(nearest.message);if(k==="g"&&!e.repeat){gridVisible=!gridVisible;if(rt.grid)rt.grid.setEnabled(gridVisible);show(gridVisible?"Grid activado":"Grid oculto");}if(k==="c"&&!e.repeat){overview=!overview;const cfg=rt.config?.camera??{};const size=rt.config?.MAP?.size??[24,16];if(overview){camera.radius=Math.max(size[0],size[1])*1.05;camera.beta=0.46;}else{camera.radius=cfg.radius??20;camera.beta=cfg.beta??0.70;camera.alpha=cfg.alpha??-Math.PI/2.15;}show(overview?"Cámara general":"Cámara de escena");}});
