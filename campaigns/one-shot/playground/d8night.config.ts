@@ -9,7 +9,8 @@ export const D8NIGHT: any = {
         floor: "stone_tavern",
         visualFloor: "cafe_stone",
         visualComposition: "cafe_reference",
-        compositionOpacity: 0.34,
+        compositionOpacity: 0,
+        unlitBase: true,
         objects: [
           { asset: "wall", position: [0, -7.65], size: [24, 0.7] },
           { asset: "wall", position: [-11.65, -2.5], size: [0.7, 10] },
@@ -85,16 +86,29 @@ export const D8NIGHT: any = {
         triggers: []
       },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.055, 0.038, 0.024], fog: false, fogDensity: 0, exposure: 1.18, contrast: 1.00, toneMapping: false, vignette: false },
+        environment: { clearColor: [0.085, 0.060, 0.040], fog: false, fogDensity: 0, exposure: 1.10, contrast: 1.00, toneMapping: false, vignette: false, glowIntensity: 0.38 },
         lighting: {
           mode: "interior",
-          ambientIntensity: 0.72,
-          ambientColor: [1.00, 0.78, 0.56],
-          globalFill: { color: [1.00, 0.74, 0.50], intensity: 0.44, hemiIntensity: 0.38, directionalIntensity: 0.24, direction: [-0.30, -1, 0.22] },
+          ambientIntensity: 1.10,
+          ambientColor: [1.00, 0.86, 0.68],
+          globalFill: {
+            color: [1.00, 0.80, 0.60],
+            intensity: 0.78,
+            hemiIntensity: 0.78,
+            directionalIntensity: 0.18,
+            direction: [-0.28, -1, 0.20],
+            points: [
+              { position: [-6.5, 5.0, -4.0], color: [1.00, 0.72, 0.46], intensity: 1.45, range: 13.5 },
+              { position: [0.0, 5.2, -1.0], color: [1.00, 0.78, 0.54], intensity: 1.35, range: 14.5 },
+              { position: [6.5, 4.8, -2.5], color: [1.00, 0.70, 0.44], intensity: 1.25, range: 13.0 },
+              { position: [-5.5, 4.2, 4.5], color: [1.00, 0.76, 0.52], intensity: 1.15, range: 12.0 },
+              { position: [5.8, 4.0, 4.6], color: [0.62, 0.84, 0.86], intensity: 0.80, range: 10.0 }
+            ]
+          },
           shadows: { enabled: false },
           lights: [
-            { position: [-9.2, 2.0, -1.3], color: [1.00, 0.44, 0.16], intensity: 0.62, range: 9.5 },
-            { position: [3.5, 0.85, 6.2], color: [0.03, 0.54, 0.68], intensity: 0.34, range: 5.2 }
+            { position: [-9.2, 2.0, -1.3], color: [1.00, 0.44, 0.16], intensity: 1.05, range: 12.5 },
+            { position: [3.5, 0.85, 6.2], color: [0.03, 0.54, 0.68], intensity: 0.48, range: 6.5 }
           ]
         },
         vfx: { fireplace: true, smoke: true, embers: true, dust: true, waterRipples: true, waterMotion: true },
