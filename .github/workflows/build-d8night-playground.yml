@@ -6,6 +6,7 @@ on:
     paths:
       - "campaigns/one-shot/playground/index.ts"
       - "campaigns/one-shot/playground/d8night.config.ts"
+      - "campaigns/one-shot/playground/VERSION"
       - "campaigns/one-shot/playground/generate-playground-json.mjs"
 
 permissions:
@@ -21,17 +22,19 @@ jobs:
         with:
           node-version: 22
 
-      - name: Generate playground.json
+      - name: Generate versioned Playground JSON
         run: node campaigns/one-shot/playground/generate-playground-json.mjs
 
       - name: Commit generated JSON
         run: |
-          if git diff --quiet -- campaigns/one-shot/playground/playground.json; then
+          VERSION=$(cat campaigns/one-shot/playground/VERSION | tr -d '\n\r ')
+          VERSIONED="campaigns/one-shot/playground/playground_v${VERSION}.json"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$VERSIONED" campaigns/one-shot/playground/playground.json
+          if git diff --cached --quiet; then
             echo "No changes"
             exit 0
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add campaigns/one-shot/playground/playground.json
-          git commit -m "Build D8 Night playground.json"
+          git commit -m "Build D8 Night Playground v${VERSION}"
           git push
