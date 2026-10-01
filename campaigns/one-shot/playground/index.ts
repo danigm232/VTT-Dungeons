@@ -155,6 +155,7 @@ export function createScene(engine: any, canvas: any) {
     m.diffuseTexture=tex;
     m.specularColor=preset==="ice"?new BABYLON.Color3(0.30,0.38,0.44):new BABYLON.Color3(0.025,0.025,0.025);
     m.roughness=preset==="ice"?0.42:0.92;
+    m.maxSimultaneousLights=12;
     VISUAL_FLOORS[preset]=m;
     return m;
   }
