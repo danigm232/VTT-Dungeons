@@ -877,7 +877,7 @@ export function createScene(engine: any, canvas: any) {
 
   const ui=BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"),panel=new BABYLON.GUI.StackPanel();
   panel.width="190px";panel.horizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;panel.paddingLeft="15px";panel.paddingTop="15px";ui.addControl(panel);
-  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V11.3";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
+  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V12";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
   const order=["temple","cafe","dinner","garden","market","mirror"],labels:any={temple:"1 · TEMPLO",cafe:"2 · CAFÉ",dinner:"3 · DINNER",garden:"4 · GARDEN",market:"5 · MARKET",mirror:"6 · MIRROR"},buttons:any={};
   order.forEach(id=>{const b=BABYLON.GUI.Button.CreateSimpleButton("btn_"+id,labels[id]);b.width="175px";b.height="37px";b.color="#dfcfb2";b.background="#25252a";b.cornerRadius=5;b.paddingBottom="4px";b.onPointerClickObservable.add(()=>loadMap(id));buttons[id]=b;panel.addControl(b);});
   const help=new BABYLON.GUI.TextBlock();help.text="\nWASD · mover\nE · interactuar\nG · grid\nC · cámara";help.height="100px";help.color="#888";help.fontSize=11;help.textHorizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.addControl(help);
@@ -886,7 +886,182 @@ export function createScene(engine: any, canvas: any) {
   const msg=new BABYLON.GUI.TextBlock();msg.width="650px";msg.height="55px";msg.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;msg.top="15px";msg.color="#efdfc3";msg.fontSize=13;ui.addControl(msg);
   let timer:any=null;const show=(t:string)=>{msg.text=t;if(timer)clearTimeout(timer);timer=setTimeout(()=>msg.text="",3000);};
 
-  function loadMap(id:string){const c=D8NIGHT.maps[id];if(!c)return;reset(id,c);env(c);floor(c);visualComposition(c);grid(c);c.MAP.objects.forEach(asset);applyReadableFallback(c);lights(c);vfx(c);shadows(c);rt.interactables=[...(c.CANON.interactables??[]),...(c.VTT_AMBIENCE.interactables??[])];player.position.set(c.spawn[0],c.spawn[1],c.spawn[2]);if(!overview&&c.camera){camera.radius=c.camera.radius??20;camera.beta=c.camera.beta??0.70;camera.alpha=c.camera.alpha??-Math.PI/2.15;}camera.target.set(player.position.x,0,player.position.z);ring.isVisible=false;title.text=c.label+" · V11.3";Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");show("Mapa cargado: "+c.label);}
+  function buildCafeCleanV12(c:any){
+    // Café rebuilt from scratch: no legacy composition overlay, no readability hack,
+    // no sharpen post-process. Base materials have a controlled emissive floor so
+    // geometry stays readable while still reacting to real local lights.
+    scene.fogMode=BABYLON.Scene.FOGMODE_NONE;
+    scene.clearColor=new BABYLON.Color4(0.055,0.035,0.022,1);
+    scene.ambientColor=new BABYLON.Color3(0.16,0.11,0.07);
+    glow.intensity=0.16;
+    const ip=scene.imageProcessingConfiguration;
+    ip.exposure=1.04;ip.contrast=1.04;ip.toneMappingEnabled=false;ip.vignetteEnabled=false;
+
+    hemi.intensity=0.58;
+    hemi.diffuse=new BABYLON.Color3(1.00,0.82,0.62);
+    hemi.groundColor=new BABYLON.Color3(0.12,0.075,0.045);
+
+    const mats:any={};
+    const cmat=(name:string,color:number[],emissive=0.16,spec=0.025)=>{
+      const m=new BABYLON.StandardMaterial("cafe12_"+name,scene);
+      m.diffuseColor=new BABYLON.Color3(color[0],color[1],color[2]);
+      m.ambientColor=new BABYLON.Color3(1,1,1);
+      m.emissiveColor=new BABYLON.Color3(color[0]*emissive,color[1]*emissive,color[2]*emissive);
+      m.specularColor=new BABYLON.Color3(spec,spec,spec);
+      m.maxSimultaneousLights=12;
+      rt.disposables.push(m);mats[name]=m;return m;
+    };
+
+    const stone=cmat("stone",[0.52,0.39,0.28],0.20);
+    const stoneLight=cmat("stoneLight",[0.66,0.52,0.38],0.18);
+    const stoneDark=cmat("stoneDark",[0.30,0.22,0.16],0.20);
+    const wood=cmat("wood",[0.48,0.24,0.085],0.20);
+    const woodLight=cmat("woodLight",[0.66,0.36,0.13],0.18);
+    const woodDark=cmat("woodDark",[0.27,0.12,0.045],0.22);
+    const iron=cmat("iron",[0.22,0.21,0.19],0.14,0.10);
+    const ceramic=cmat("ceramic",[0.78,0.70,0.56],0.14,0.08);
+    const green=cmat("green",[0.18,0.34,0.10],0.16);
+    const red=cmat("red",[0.46,0.07,0.045],0.20);
+    const wax=cmat("wax",[0.90,0.78,0.52],0.18);
+    const bottleG=cmat("bottleG",[0.12,0.33,0.14],0.20,0.08);
+    const bottleA=cmat("bottleA",[0.58,0.32,0.08],0.20,0.08);
+
+    // Floor texture: warm, high-contrast stone. Kept outside GlowLayer.
+    const tex=new BABYLON.DynamicTexture("cafe12_floorTex",{width:2048,height:1365},scene,false);
+    const ctx:any=tex.getContext(),W=2048,H=1365;
+    ctx.fillStyle="#765b43";ctx.fillRect(0,0,W,H);
+    const cols=18,rows=12,cw=W/cols,ch=H/rows;
+    const floorCols=["#927154","#856348","#a07b5a","#73553e","#9b7758"];
+    for(let gy=0;gy<rows;gy++)for(let gx=0;gx<cols;gx++){
+      const n=gx*101+gy*211+17;
+      const r=(Math.sin(n*12.9898)*43758.5453)%1;
+      const rr=Math.abs(r);
+      const x=gx*cw+(gy%2?cw*0.22:0)+5,y=gy*ch+5;
+      const w=cw*(0.76+rr*0.15),h=ch*(0.72+((n%7)/7)*0.14);
+      ctx.fillStyle=floorCols[(gx+gy*2)%floorCols.length];
+      ctx.strokeStyle="#4e3829";ctx.lineWidth=6;
+      ctx.beginPath();ctx.roundRect(x,y,w,h,10);ctx.fill();ctx.stroke();
+      ctx.strokeStyle="rgba(255,220,170,0.10)";ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(x+w*0.14,y+h*0.20);ctx.lineTo(x+w*0.78,y+h*0.16);ctx.stroke();
+    }
+    tex.update();tex.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);tex.anisotropicFilteringLevel=8;
+    const floorMat=new BABYLON.StandardMaterial("cafe12_floorMat",scene);
+    floorMat.diffuseTexture=tex;floorMat.ambientColor=new BABYLON.Color3(1,1,1);
+    floorMat.emissiveTexture=tex;floorMat.emissiveColor=new BABYLON.Color3(0.18,0.18,0.18);
+    floorMat.specularColor=new BABYLON.Color3(0.015,0.015,0.015);floorMat.maxSimultaneousLights=12;
+    rt.disposables.push(tex,floorMat);
+    const ground=BABYLON.MeshBuilder.CreateGround("cafe12_floor",{width:24,height:16},scene);
+    ground.material=floorMat;ground.parent=parentFor("BASE");
+    if(glow.addExcludedMesh)glow.addExcludedMesh(ground);
+
+    const b=(n:string,x:number,y:number,z:number,w:number,h:number,d:number,m:any)=>{
+      const q=box("cafe12_"+n,x,y,z,w,h,d,m);if(glow.addExcludedMesh)glow.addExcludedMesh(q);return q;
+    };
+    const cy=(n:string,x:number,y:number,z:number,d:number,h:number,m:any)=>{
+      const q=cyl("cafe12_"+n,x,y,z,d,h,m);if(glow.addExcludedMesh)glow.addExcludedMesh(q);return q;
+    };
+
+    // Room shell.
+    b("wallBack",0,0.90,-7.65,24,1.8,0.65,stoneDark);collider(0,-7.65,24,0.65);
+    b("wallLeft",-11.65,0.90,-2.35,0.65,1.8,10.6,stoneDark);collider(-11.65,-2.35,0.65,10.6);
+    b("wallRight",11.65,0.90,-2.00,0.65,1.8,11.2,stoneDark);collider(11.65,-2.00,0.65,11.2);
+
+    // Bar + backbar.
+    b("bar",-3.15,0.56,-5.0,10.8,1.12,1.05,wood);b("barTop",-3.15,1.17,-5.0,11.2,0.15,1.25,woodLight);collider(-3.15,-5.0,10.8,1.05);
+    b("barBack",-3.15,0.92,-6.25,10.2,1.84,0.34,woodDark);
+    for(let i=0;i<12;i++)cy("backBottle",-7.8+i*0.84,1.33,-6.0,0.14,0.46,i%2?bottleA:bottleG);
+    for(const x of [-6.8,-4.35,-1.9,0.55]){cy("stoolSeat",x,0.48,-3.7,0.72,0.15,woodLight);cy("stoolLeg",x,0.23,-3.7,0.18,0.46,woodDark);}
+
+    // Fireplace body.
+    b("hearth",-9.65,0.26,-1.3,2.7,0.52,1.75,stoneDark);
+    b("fireL",-10.7,1.20,-1.3,0.45,2.15,1.55,stone);
+    b("fireR",-8.6,1.20,-1.3,0.45,2.15,1.55,stone);
+    b("fireTop",-9.65,2.08,-1.3,2.55,0.42,1.45,stoneLight);
+    collider(-9.65,-1.3,2.7,1.75);
+
+    // Sofas and rug.
+    b("rug",-6.05,0.045,0.45,4.3,0.09,3.6,green);
+    for(const [x,z] of [[-8.5,-4.15],[-8.85,4.2]]){
+      b("sofaBase",x,0.30,z,2.25,0.32,1.0,woodDark);b("sofaSeat",x,0.52,z,1.98,0.22,0.72,red);b("sofaBack",x,0.92,z+0.34,2.02,0.68,0.22,red);collider(x,z,2.25,1.0);
+    }
+
+    const table=(x:number,z:number)=>{
+      cy("tableTop",x,0.68,z,2.10,0.18,woodLight);cy("tableLeg",x,0.34,z,0.48,0.68,woodDark);collider(x,z,1.35,1.35);
+      for(const [dx,dz,r] of [[0,-1.45,0],[0,1.45,Math.PI],[-1.45,0,-Math.PI/2],[1.45,0,Math.PI/2]] as any[]){
+        const root=new BABYLON.TransformNode("cafe12_chair",scene);root.parent=rt.root;root.position.set(x+dx,0,z+dz);root.rotation.y=r;
+        const seat=BABYLON.MeshBuilder.CreateBox("cafe12_chairSeat",{width:0.55,height:0.15,depth:0.55},scene);seat.position.y=0.36;seat.material=wood;seat.parent=root;
+        const back=BABYLON.MeshBuilder.CreateBox("cafe12_chairBack",{width:0.55,height:0.68,depth:0.10},scene);back.position.set(0,0.68,0.23);back.material=woodDark;back.parent=root;
+        if(glow.addExcludedMesh){glow.addExcludedMesh(seat);glow.addExcludedMesh(back);}
+      }
+      for(let i=0;i<4;i++){const a=i*Math.PI/2;cy("plate",x+Math.cos(a)*0.58,0.80,z+Math.sin(a)*0.58,0.34,0.035,ceramic);}
+    };
+    table(-5.3,0.45);table(1.55,2.25);table(5.05,-0.45);
+
+    // Right room / storage.
+    b("partitionV",8.35,0.72,1.4,0.48,1.44,8.2,stone);
+    b("partitionH",10.1,0.72,-2.7,3.8,1.44,0.48,stone);
+    b("sideboard",-8.4,0.48,5.75,4.2,0.96,0.78,woodDark);b("sideboardTop",-8.4,1.00,5.75,4.28,0.10,0.84,woodLight);
+    for(const x of [5.25,7.05]){cy("barrel",x,0.92,-5.25,1.46,1.84,wood);for(let r=0;r<3;r++)cy("barrelRing",x,0.18+r*0.74,-5.25,1.52,0.05,iron);collider(x,-5.25,1.2,1.2);}
+
+    // Pool: readable cyan focal point.
+    const poolBorder=cy("poolBorder",3.5,0.09,6.25,5.2,0.18,stoneLight);
+    const waterMat=new BABYLON.StandardMaterial("cafe12_water",scene);waterMat.diffuseColor=new BABYLON.Color3(0.04,0.38,0.46);waterMat.emissiveColor=new BABYLON.Color3(0.02,0.13,0.16);waterMat.alpha=0.92;waterMat.specularColor=new BABYLON.Color3(0.25,0.35,0.38);rt.disposables.push(waterMat);
+    const water=cy("poolWater",3.5,0.15,6.25,4.55,0.10,waterMat);rt.markers.pools.push({x:3.5,z:6.25,mesh:water,baseY:water.position.y});
+
+    // Crates.
+    for(const [x,z,sc] of [[9.1,-6.5,1],[10,-6.5,.8],[10.8,-6.5,.85]] as any[]){b("crate",x,0.38*sc,z,0.78*sc,0.76*sc,0.78*sc,wood);}
+
+    // Local light helper with visible source.
+    const warmLight=(name:string,x:number,y:number,z:number,intensity:number,range:number,color=[1,0.42,0.11])=>{
+      const l=track(new BABYLON.PointLight("cafe12_"+name,new BABYLON.Vector3(x,y,z),scene));
+      l.parent=rt.root;l.diffuse=new BABYLON.Color3(color[0],color[1],color[2]);l.intensity=intensity;l.range=range;return l;
+    };
+
+    // Fireplace flame + smoke + real light.
+    const fo=sph("cafe12_fireOuter",-9.65,0.62,-1.3,0.72,M.fireOuter,"VFX");fo.scaling.y=1.65;
+    const fi=sph("cafe12_fireInner",-9.65,0.56,-1.3,0.42,M.fireInner,"VFX");fi.scaling.y=1.70;
+    const fireLight=warmLight("fireLight",-9.65,1.4,-1.3,2.15,8.0,[1,0.30,0.055]);
+    rt.updaters.push((t:number)=>{const a=Math.sin(t*9.2),bb=Math.sin(t*14.5);fo.scaling.y=1.65+a*0.10;fi.scaling.y=1.70+bb*0.08;fireLight.intensity=2.15+a*0.12+bb*0.06;});
+    for(let i=0;i<5;i++){const sm=sph("cafe12_smoke",-9.65,0.95+i*0.25,-1.3,0.22+i*0.05,M.smoke,"VFX");const off=i/5;rt.updaters.push((t:number)=>{const q=(t*0.16+off)%1;sm.position.y=0.9+q*2.4;sm.position.x=-9.65+Math.sin(t*0.7+i)*0.12;const k=0.65+q*1.1;sm.scaling.set(k,k*1.15,k);});}
+
+    // Wall torches.
+    const torchPts=[[-8.2,-6.85],[-3.2,-6.85],[1.4,-6.85],[7.4,-6.2],[-10.7,3.0],[10.7,2.3]];
+    torchPts.forEach((p:any,i:number)=>{
+      const x=p[0],z=p[1],y=1.75;
+      const flame=sph("cafe12_torchFlame",x,y+0.30,z,0.22,M.fireInner,"VFX");flame.scaling.y=1.45;
+      const l=warmLight("torch"+i,x,y+0.34,z,0.52,4.8,[1,0.40,0.08]);
+      const by=flame.position.y;rt.updaters.push((t:number)=>{const f=Math.sin(t*10.2+i);flame.position.y=by+f*0.025;flame.scaling.y=1.45+f*0.10;l.intensity=0.52+f*0.035;});
+    });
+
+    // Candles on tables.
+    for(const [x,z] of [[-5.3,0.45],[1.55,2.25],[5.05,-0.45]] as any[]){
+      cy("candle",x,0.87,z,0.095,0.30,wax);
+      const flame=sph("cafe12_candleFlame",x,1.10,z,0.10,M.fireInner,"VFX");flame.scaling.y=1.28;
+      warmLight("candle",x,1.14,z,0.18,2.6,[1,0.55,0.18]);
+    }
+
+    // A single subtle warm bounce light prevents dead corners without flattening.
+    const bounce=track(new BABYLON.HemisphericLight("cafe12_bounce",new BABYLON.Vector3(0,1,0),scene));
+    bounce.intensity=0.22;bounce.diffuse=new BABYLON.Color3(1,0.72,0.48);bounce.groundColor=new BABYLON.Color3(0.10,0.055,0.028);
+  }
+
+  function loadMap(id:string){
+    const c=D8NIGHT.maps[id];if(!c)return;
+    reset(id,c);
+    if(id==="cafe"&&c.MAP.renderMode==="clean_v12"){
+      buildCafeCleanV12(c);
+    }else{
+      env(c);floor(c);visualComposition(c);grid(c);c.MAP.objects.forEach(asset);applyReadableFallback(c);lights(c);vfx(c);shadows(c);
+    }
+    if(id==="cafe"&&c.MAP.renderMode==="clean_v12")grid(c);
+    rt.interactables=[...(c.CANON.interactables??[]),...(c.VTT_AMBIENCE.interactables??[])];
+    player.position.set(c.spawn[0],c.spawn[1],c.spawn[2]);
+    if(!overview&&c.camera){camera.radius=c.camera.radius??20;camera.beta=c.camera.beta??0.70;camera.alpha=c.camera.alpha??-Math.PI/2.15;}
+    camera.target.set(player.position.x,0,player.position.z);ring.isVisible=false;
+    title.text=c.label+" · V12";
+    Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");
+    show("Mapa cargado: "+c.label);
+  }
 
   const keys:any={};
   window.addEventListener("keydown",(e:KeyboardEvent)=>{const k=e.key.toLowerCase();keys[k]=true;if(k>="1"&&k<="6")loadMap(order[Number(k)-1]);if(k==="e"&&!e.repeat&&nearest)show(nearest.message);if(k==="g"&&!e.repeat){gridVisible=!gridVisible;if(rt.grid)rt.grid.setEnabled(gridVisible);show(gridVisible?"Grid activado":"Grid oculto");}if(k==="c"&&!e.repeat){overview=!overview;const cfg=rt.config?.camera??{};const size=rt.config?.MAP?.size??[24,16];if(overview){camera.radius=Math.max(size[0],size[1])*1.05;camera.beta=0.46;}else{camera.radius=cfg.radius??20;camera.beta=cfg.beta??0.70;camera.alpha=cfg.alpha??-Math.PI/2.15;}show(overview?"Cámara general":"Cámara de escena");}});
