@@ -3,6 +3,7 @@ export const D8NIGHT: any = {
     cafe: {
       label: "CAFÉ",
       spawn: [0, 0.43, 4.1],
+      camera: { radius: 20, beta: 0.70, alpha: -Math.PI / 2.15 },
       MAP: {
         size: [24, 16],
         floor: "stone_tavern",
@@ -92,107 +93,241 @@ export const D8NIGHT: any = {
     },
     temple: {
       label: "TEMPLO",
-      spawn: [0, 0.43, 5],
+      spawn: [0, 0.43, 6.6],
+      camera: { radius: 23, beta: 0.66, alpha: -Math.PI / 2.05 },
       MAP: {
-        size: [24, 16], floor: "stone",
+        size: [28, 18],
+        floor: "stone",
         objects: [
-          { asset: "wall", position: [-11.6, 0], size: [0.6, 16] },
-          { asset: "wall", position: [11.6, 0], size: [0.6, 16] },
-          { asset: "wall", position: [-7, -7.6], size: [9, 0.6] },
-          { asset: "wall", position: [7, -7.6], size: [9, 0.6] },
-          { asset: "table_round", position: [0, 0], scale: 1.35 },
-          { asset: "statue", position: [0, -5.3] }
+          { asset: "wall", position: [0, -8.65], size: [27.5, 0.55], height: 1.9 },
+          { asset: "wall", position: [-13.65, -2.0], size: [0.55, 13.5], height: 1.7 },
+          { asset: "wall", position: [13.65, -2.0], size: [0.55, 13.5], height: 1.7 },
+          { asset: "archway", position: [0, -7.9], size: [4.2, 0.7], height: 4.2 },
+          { asset: "column", position: [-8.2, -5.5], height: 3.8 },
+          { asset: "column", position: [8.2, -5.5], height: 3.8 },
+          { asset: "column", position: [-8.2, -1.6], height: 3.5 },
+          { asset: "column", position: [8.2, -1.6], height: 3.5 },
+          { asset: "column", position: [-8.2, 2.4], height: 3.1 },
+          { asset: "column", position: [8.2, 2.4], height: 3.1 },
+          { asset: "long_table", position: [0, 0.7], size: [6.8, 1.5] },
+          { asset: "chair", position: [-2.5, -0.7], rotation: 0 },
+          { asset: "chair", position: [0, -0.7], rotation: 0 },
+          { asset: "chair", position: [2.5, -0.7], rotation: 0 },
+          { asset: "chair", position: [-2.5, 2.1], rotation: Math.PI },
+          { asset: "chair", position: [0, 2.1], rotation: Math.PI },
+          { asset: "chair", position: [2.5, 2.1], rotation: Math.PI },
+          { asset: "candle", position: [-2.0, 0.7], intensity: 0.24, range: 3.0 },
+          { asset: "candle", position: [0, 0.7], intensity: 0.25, range: 3.2 },
+          { asset: "candle", position: [2.0, 0.7], intensity: 0.24, range: 3.0 },
+          { asset: "statue", position: [0, -5.7] },
+          { asset: "rose_patch", position: [-9.9, 5.1], size: [3.4, 1.5], count: 14 },
+          { asset: "rose_patch", position: [9.9, 5.1], size: [3.4, 1.5], count: 14 },
+          { asset: "rose_patch", position: [-10.2, -4.1], size: [2.4, 1.3], count: 10 },
+          { asset: "rose_patch", position: [10.2, -4.1], size: [2.4, 1.3], count: 10 }
         ]
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.02, 0.015, 0.02], fog: true, fogDensity: 0.008 },
-        lighting: { ambientIntensity: 0.2, lights: [] },
-        vfx: { dust: true },
-        audio: {}
-      }
-    },
-    dinner: {
-      label: "DINNER",
-      spawn: [0, 0.43, 5],
-      MAP: {
-        size: [24, 16], floor: "stone",
-        objects: [
-          { asset: "room_floor", position: [0, -4.5], size: [14, 6], material: "wood" },
-          { asset: "wall", position: [0, -7.5], size: [14, 0.5] },
-          { asset: "wall", position: [-7, -4.5], size: [0.5, 6] },
-          { asset: "wall", position: [7, -4.5], size: [0.5, 6] },
-          { asset: "table_round", position: [0, 3] }
-        ]
-      },
-      CANON: { interactables: [], triggers: [] },
-      VTT_AMBIENCE: {
-        environment: { clearColor: [0.015, 0.015, 0.025], fog: true, fogDensity: 0.007 },
-        lighting: { ambientIntensity: 0.22, lights: [] },
-        vfx: { dust: true },
-        audio: {}
-      }
-    },
-    garden: {
-      label: "GARDEN",
-      spawn: [-7, 0.43, 1],
-      MAP: {
-        size: [24, 16], floor: "snow",
-        objects: [
-          { asset: "path", position: [-3, 1], size: [15, 2.3] },
-          { asset: "tree", position: [-2, 4.5] }
-        ]
-      },
-      CANON: { interactables: [], triggers: [] },
-      VTT_AMBIENCE: {
-        environment: { clearColor: [0.08, 0.1, 0.14], fog: true, fogDensity: 0.012 },
-        lighting: { ambientIntensity: 0.45, lights: [] },
-        vfx: {},
-        audio: {}
-      }
-    },
-    market: {
-      label: "MARKET",
-      spawn: [0, 0.43, 5],
-      MAP: {
-        size: [24, 16], floor: "stone",
-        objects: [
-          { asset: "stall", position: [-8, -5], color: "purple" },
-          { asset: "stall", position: [-1, -5], color: "yellow" },
-          { asset: "stall", position: [6, -5], color: "green" },
-          { asset: "stall", position: [-7, 0], color: "purple" },
-          { asset: "stall", position: [7, 2], color: "green" }
-        ]
-      },
-      CANON: { interactables: [], triggers: [] },
-      VTT_AMBIENCE: {
-        environment: { clearColor: [0.05, 0.045, 0.04], fog: false, fogDensity: 0 },
-        lighting: { ambientIntensity: 0.55, lights: [] },
-        vfx: { dust: true },
-        audio: {}
-      }
-    },
-    mirror: {
-      label: "MIRROR",
-      spawn: [8, 0.43, 5],
-      MAP: {
-        size: [24, 16], floor: "ice",
-        objects: [
-          { asset: "water_area", position: [0, 0], size: [17, 7] },
-          { asset: "mirror", position: [-10, -2.5] }
-        ]
-      },
-      CANON: { interactables: [], triggers: [] },
-      VTT_AMBIENCE: {
-        environment: { clearColor: [0.015, 0.04, 0.065], fog: true, fogDensity: 0.014 },
+        environment: { clearColor: [0.012, 0.010, 0.020], fog: true, fogDensity: 0.007 },
         lighting: {
-          ambientIntensity: 0.38,
+          ambientIntensity: 0.16,
+          shadows: { enabled: true, position: [-8, 9, 4], direction: [0.55, -1, -0.18], intensity: 0.30, mapSize: 1024, blurKernel: 14 },
           lights: [
-            { position: [-10, 2, -2.5], color: [0.2, 0.55, 1], intensity: 0.7, range: 6 }
+            { position: [0, 3.8, -5.2], color: [0.30, 0.34, 0.55], intensity: 0.36, range: 11 },
+            { position: [0, 2.8, 2.0], color: [1, 0.38, 0.12], intensity: 0.20, range: 8 }
           ]
         },
-        vfx: { waterRipples: true },
-        audio: {}
+        vfx: { dust: true, fireflies: true, fireflyCount: 10, roseSway: true },
+        interactables: [
+          { id: "temple_table_ambience", position: [0, 2.7], radius: 2.4, label: "Mirar mesa", message: "Las velas bañan la mesa y las rosas con una luz cálida." },
+          { id: "temple_statue_ambience", position: [0, -4.0], radius: 2.2, label: "Mirar estatua", message: "La figura de piedra domina el extremo del salón." }
+        ],
+        audio: { music: null, ambience: null }
+      }
+    },
+
+    dinner: {
+      label: "DINNER",
+      spawn: [0, 0.43, 7.0],
+      camera: { radius: 23, beta: 0.68, alpha: -Math.PI / 2.1 },
+      MAP: {
+        size: [28, 18],
+        floor: "stone",
+        objects: [
+          { asset: "house", position: [0, -4.9], size: [12.0, 5.4], height: 2.8 },
+          { asset: "path", position: [0, 3.2], size: [13.0, 3.0] },
+          { asset: "table_round", position: [0, 3.2], scale: 1.15 },
+          { asset: "chair", position: [0, 1.4], rotation: 0 },
+          { asset: "chair", position: [0, 5.0], rotation: Math.PI },
+          { asset: "chair", position: [-1.8, 3.2], rotation: -Math.PI / 2 },
+          { asset: "chair", position: [1.8, 3.2], rotation: Math.PI / 2 },
+          { asset: "candle", position: [0, 3.2], intensity: 0.28, range: 3.4 },
+          { asset: "lantern_post", position: [-4.8, 3.2], intensity: 0.58, range: 5.5 },
+          { asset: "lantern_post", position: [4.8, 3.2], intensity: 0.58, range: 5.5 },
+          { asset: "market_stall", position: [8.4, -0.3], size: [3.5, 1.8], color: "clothRed", scale: 0.9 },
+          { asset: "crate", position: [8.4, 2.0], scale: 0.9 },
+          { asset: "small_barrel", position: [10.0, 1.8], scale: 0.9 },
+          { asset: "bench", position: [-8.8, 1.8], size: [2.5, 0.68] },
+          { asset: "rose_patch", position: [-8.8, -2.6], size: [3.1, 1.4], count: 12 },
+          { asset: "rose_patch", position: [8.8, -4.0], size: [2.8, 1.3], count: 10 }
+        ]
+      },
+      CANON: { interactables: [], triggers: [] },
+      VTT_AMBIENCE: {
+        environment: { clearColor: [0.018, 0.022, 0.045], fog: true, fogDensity: 0.006 },
+        lighting: {
+          ambientIntensity: 0.20,
+          shadows: { enabled: true, position: [-8, 8, -2], direction: [0.55, -1, 0.30], intensity: 0.32, mapSize: 1024, blurKernel: 12 },
+          lights: [
+            { position: [0, 2.1, -7.4], color: [1, 0.42, 0.12], intensity: 0.48, range: 8 },
+            { position: [0, 5.0, 4.0], color: [0.18, 0.22, 0.42], intensity: 0.24, range: 12 }
+          ]
+        },
+        vfx: { fireflies: true, fireflyCount: 20, roseSway: true },
+        interactables: [
+          { id: "dinner_table_ambience", position: [0, 4.8], radius: 2.0, label: "Mirar cena", message: "La mesa exterior está preparada bajo la luz de las linternas." },
+          { id: "dinner_house_ambience", position: [0, -1.8], radius: 2.4, label: "Mirar casa", message: "Una luz cálida se filtra por las ventanas de la casa." }
+        ],
+        audio: { music: null, ambience: null }
+      }
+    },
+
+    garden: {
+      label: "GARDEN",
+      spawn: [-10.5, 0.43, 6.0],
+      camera: { radius: 24, beta: 0.64, alpha: -Math.PI / 2.0 },
+      MAP: {
+        size: [28, 20],
+        floor: "snow",
+        objects: [
+          { asset: "path", position: [-1.0, 4.8], size: [23.0, 2.2] },
+          { asset: "path", position: [5.8, 0.2], size: [2.2, 11.0] },
+          { asset: "round_room", position: [7.2, -3.0], radius: 3.3, segments: 20, opening: 3, height: 1.6 },
+          { asset: "bed", position: [7.2, -3.6], size: [1.3, 2.25] },
+          { asset: "rug", position: [7.2, -1.1], size: [3.0, 2.0] },
+          { asset: "candle", position: [6.2, -1.0], intensity: 0.18, range: 2.4 },
+          { asset: "candle", position: [8.1, -1.0], intensity: 0.18, range: 2.4 },
+          { asset: "rose_patch", position: [-7.8, -4.9], size: [4.2, 1.7], count: 18 },
+          { asset: "rose_patch", position: [-7.8, -2.1], size: [4.2, 1.7], count: 18 },
+          { asset: "rose_patch", position: [-7.8, 0.8], size: [4.2, 1.7], count: 18 },
+          { asset: "rose_patch", position: [-2.7, -4.7], size: [3.4, 1.6], count: 14 },
+          { asset: "rose_patch", position: [-2.7, -1.8], size: [3.4, 1.6], count: 14 },
+          { asset: "snow_tree", position: [-11.0, -6.5], height: 3.7 },
+          { asset: "snow_tree", position: [-11.2, 2.8], height: 3.4 },
+          { asset: "snow_tree", position: [0.0, -7.2], height: 3.3 },
+          { asset: "snow_tree", position: [11.4, 4.6], height: 3.5 },
+          { asset: "lantern_post", position: [3.7, 4.8], intensity: 0.45, range: 4.5 },
+          { asset: "wall", position: [0, -9.6], size: [27.0, 0.45], height: 1.1, material: "stone2" },
+          { asset: "wall", position: [-13.5, 0], size: [0.45, 19.0], height: 1.1, material: "stone2" }
+        ]
+      },
+      CANON: { interactables: [], triggers: [] },
+      VTT_AMBIENCE: {
+        environment: { clearColor: [0.055, 0.080, 0.12], fog: true, fogDensity: 0.011 },
+        lighting: {
+          ambientIntensity: 0.38,
+          shadows: { enabled: true, position: [-7, 10, -7], direction: [0.40, -1, 0.38], intensity: 0.28, mapSize: 1024, blurKernel: 14 },
+          lights: [
+            { position: [-6, 5.5, -2], color: [0.36, 0.48, 0.70], intensity: 0.38, range: 16 },
+            { position: [7.2, 2.5, -3.0], color: [1, 0.42, 0.16], intensity: 0.24, range: 6 }
+          ]
+        },
+        vfx: { snowfall: true, snowCount: 42, snowSpeed: 0.42, roseSway: true },
+        interactables: [
+          { id: "garden_roses_ambience", position: [-6.0, -1.5], radius: 2.2, label: "Mirar rosales", message: "Los rosales destacan con fuerza sobre la nieve." },
+          { id: "garden_room_ambience", position: [4.5, -3.0], radius: 2.2, label: "Mirar estancia", message: "Una pequeña estancia circular se abre entre los muros del jardín." }
+        ],
+        audio: { music: null, ambience: null }
+      }
+    },
+
+    market: {
+      label: "MARKET",
+      spawn: [0, 0.43, 7.2],
+      camera: { radius: 25, beta: 0.65, alpha: -Math.PI / 2.12 },
+      MAP: {
+        size: [30, 20],
+        floor: "stone",
+        objects: [
+          { asset: "market_stall", position: [-10.2, -5.6], size: [3.8, 2.0], color: "purple" },
+          { asset: "market_stall", position: [-4.9, -5.9], size: [3.7, 2.0], color: "yellow" },
+          { asset: "market_stall", position: [0.5, -5.7], size: [3.8, 2.0], color: "green" },
+          { asset: "market_stall", position: [6.0, -5.4], size: [3.7, 2.0], color: "clothRed" },
+          { asset: "market_stall", position: [-10.0, 0.1], size: [3.8, 2.0], color: "clothBlue" },
+          { asset: "market_stall", position: [10.2, -0.2], size: [3.8, 2.0], color: "purple" },
+          { asset: "market_stall", position: [-7.2, 5.0], size: [3.6, 2.0], color: "green" },
+          { asset: "market_stall", position: [7.6, 5.0], size: [3.6, 2.0], color: "yellow" },
+          { asset: "trough", position: [2.4, 2.4], size: [3.0, 1.05] },
+          { asset: "cow_proxy", position: [5.1, 2.4], facing: -1, scale: 1.0 },
+          { asset: "lantern_post", position: [-12.2, 6.3], intensity: 0.62, range: 5.5 },
+          { asset: "lantern_post", position: [12.2, 6.3], intensity: 0.62, range: 5.5 },
+          { asset: "lantern_post", position: [-2.7, 0.1], intensity: 0.58, range: 5.0 },
+          { asset: "lantern_post", position: [4.0, -0.2], intensity: 0.58, range: 5.0 },
+          { asset: "crate", position: [-12.0, -2.8] },
+          { asset: "crate", position: [-11.2, -2.8], scale: 0.82 },
+          { asset: "crate", position: [12.2, -3.0], scale: 0.9 },
+          { asset: "small_barrel", position: [11.4, -3.0], scale: 0.9 },
+          { asset: "bench", position: [-1.0, 5.6], size: [2.4, 0.65] },
+          { asset: "bench", position: [2.0, 5.6], size: [2.4, 0.65] }
+        ]
+      },
+      CANON: { interactables: [], triggers: [] },
+      VTT_AMBIENCE: {
+        environment: { clearColor: [0.018, 0.018, 0.034], fog: true, fogDensity: 0.0045 },
+        lighting: {
+          ambientIntensity: 0.19,
+          shadows: { enabled: true, position: [-10, 9, -5], direction: [0.5, -1, 0.3], intensity: 0.30, mapSize: 1024, blurKernel: 12 },
+          lights: [
+            { position: [0, 6.0, 0], color: [0.18, 0.22, 0.42], intensity: 0.28, range: 18 }
+          ]
+        },
+        vfx: { dust: true, fireflies: true, fireflyCount: 10 },
+        interactables: [
+          { id: "market_trough_ambience", position: [2.4, 4.0], radius: 2.0, label: "Mirar abrevadero", message: "Una vaca permanece junto al abrevadero entre los puestos." },
+          { id: "market_stalls_ambience", position: [-4.9, -3.8], radius: 2.0, label: "Mirar puestos", message: "Los puestos forman calles estrechas iluminadas por faroles." }
+        ],
+        audio: { music: null, ambience: null }
+      }
+    },
+
+    mirror: {
+      label: "MIRROR",
+      spawn: [10.5, 0.43, 6.8],
+      camera: { radius: 25, beta: 0.61, alpha: -Math.PI / 2.18 },
+      MAP: {
+        size: [30, 20],
+        floor: "ice",
+        objects: [
+          { asset: "water_area", position: [2.0, 0.6], size: [18.0, 8.0] },
+          { asset: "ice_crack", position: [2.0, 0.0], branches: 7, length: 5.2, rotation: 0.2 },
+          { asset: "ice_crack", position: [-3.2, 4.0], branches: 5, length: 3.0, rotation: 1.1 },
+          { asset: "ice_crack", position: [7.8, -4.6], branches: 5, length: 2.8, rotation: 0.7 },
+          { asset: "magic_pedestal", position: [-9.2, -2.5], scale: 1.05, intensity: 0.85 },
+          { asset: "mirror_frame", position: [-9.2, -2.5], scale: 1.05, rotation: Math.PI / 2 },
+          { asset: "ice_crystal", position: [-12.0, -5.5], height: 1.6, rotation: 0.3 },
+          { asset: "ice_crystal", position: [-6.3, -6.2], height: 1.2, rotation: 1.1 },
+          { asset: "ice_crystal", position: [-12.2, 2.0], height: 1.4, rotation: 0.8 },
+          { asset: "ice_crystal", position: [10.5, -5.8], height: 1.3, rotation: 0.5 },
+          { asset: "ice_crystal", position: [12.0, 3.8], height: 1.6, rotation: 1.4 }
+        ]
+      },
+      CANON: { interactables: [], triggers: [] },
+      VTT_AMBIENCE: {
+        environment: { clearColor: [0.010, 0.035, 0.070], fog: true, fogDensity: 0.012 },
+        lighting: {
+          ambientIntensity: 0.32,
+          shadows: { enabled: true, position: [7, 10, 3], direction: [-0.45, -1, -0.25], intensity: 0.22, mapSize: 1024, blurKernel: 16 },
+          lights: [
+            { position: [-9.2, 3.2, -2.5], color: [0.12, 0.52, 1], intensity: 0.62, range: 9 },
+            { position: [4.0, 4.5, 1.0], color: [0.18, 0.36, 0.62], intensity: 0.30, range: 14 }
+          ]
+        },
+        vfx: { waterRipples: true, magicMotes: true, magicCount: 14, snowfall: true, snowCount: 18, snowSpeed: 0.20 },
+        interactables: [
+          { id: "mirror_ambience", position: [-7.3, -2.5], radius: 2.2, label: "Mirar espejo", message: "El espejo se alza sobre un pedestal rodeado de luz azulada." },
+          { id: "ice_ambience", position: [4.5, 2.6], radius: 2.0, label: "Mirar hielo", message: "Grietas oscuras recorren la superficie helada." }
+        ],
+        audio: { music: null, ambience: null }
       }
     }
   }
