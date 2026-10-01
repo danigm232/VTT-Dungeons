@@ -169,6 +169,20 @@ export function createScene(engine: any, canvas: any) {
     else if(c.MAP.floor==="ice")m=M.ice;
     else if(c.MAP.floor==="stone_tavern")m=M.stoneDark;
 
+    if(c.MAP.unlitBase){
+      const base=m.clone("unlitBase_"+rt.id);
+      base.disableLighting=true;
+      base.alpha=1;
+      if(base.diffuseTexture){
+        base.emissiveTexture=base.diffuseTexture;
+        base.emissiveColor=new BABYLON.Color3(0.42,0.42,0.42);
+      }else{
+        base.emissiveColor=new BABYLON.Color3(0.20,0.16,0.12);
+      }
+      m=base;
+      rt.disposables.push(base);
+    }
+
     const g=BABYLON.MeshBuilder.CreateGround("floor",{width:c.MAP.size[0],height:c.MAP.size[1]},scene);
     g.material=m;
     g.parent=parentFor("BASE");
@@ -192,7 +206,8 @@ export function createScene(engine: any, canvas: any) {
 
   function visualComposition(c:any){
     const preset=c.MAP.visualComposition;
-    if(!preset)return;
+    const opacity=c.MAP.compositionOpacity??1;
+    if(!preset||opacity<=0)return;
 
     const tex=new BABYLON.DynamicTexture("composition_"+preset,{width:1024,height:1024},scene,false);
     tex.hasAlpha=true;
@@ -267,7 +282,7 @@ export function createScene(engine: any, canvas: any) {
     m.useAlphaFromDiffuseTexture=true;
     m.disableLighting=true;
     m.backFaceCulling=false;
-    m.alpha=c.MAP.compositionOpacity??1;
+    m.alpha=opacity;
 
     const size=c.MAP.size;
     const g=BABYLON.MeshBuilder.CreateGround("visualComposition",{width:size[0],height:size[1]},scene);
@@ -668,6 +683,7 @@ export function createScene(engine: any, canvas: any) {
     scene.clearColor=new BABYLON.Color4(e.clearColor[0],e.clearColor[1],e.clearColor[2],1);
     if(e.fog){scene.fogMode=BABYLON.Scene.FOGMODE_EXP2;scene.fogDensity=e.fogDensity;scene.fogColor=new BABYLON.Color3(e.clearColor[0],e.clearColor[1],e.clearColor[2]);}
     else scene.fogMode=BABYLON.Scene.FOGMODE_NONE;
+    glow.intensity=e.glowIntensity??0.72;
     const ip=scene.imageProcessingConfiguration;
     ip.exposure=e.exposure??1.0;
     ip.contrast=e.contrast??1.0;
@@ -703,6 +719,16 @@ export function createScene(engine: any, canvas: any) {
         dl.diffuse=new BABYLON.Color3(gc[0],gc[1],gc[2]);
         dl.specular=new BABYLON.Color3(0,0,0);
       }
+      (gf.points??[]).forEach((p:any,i:number)=>{
+        const pos=p.position??[0,5,0];
+        const pc=p.color??gc;
+        const pl=track(new BABYLON.PointLight("readabilityPoint_"+i,new BABYLON.Vector3(pos[0],pos[1],pos[2]),scene));
+        pl.parent=rt.root;
+        pl.diffuse=new BABYLON.Color3(pc[0],pc[1],pc[2]);
+        pl.specular=new BABYLON.Color3(0,0,0);
+        pl.intensity=p.intensity??1.0;
+        pl.range=p.range??14;
+      });
     }
 
     (l.lights??[]).forEach((d:any)=>{
@@ -793,7 +819,7 @@ export function createScene(engine: any, canvas: any) {
 
   const ui=BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"),panel=new BABYLON.GUI.StackPanel();
   panel.width="190px";panel.horizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;panel.paddingLeft="15px";panel.paddingTop="15px";ui.addControl(panel);
-  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V11";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
+  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V11.1.1";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
   const order=["temple","cafe","dinner","garden","market","mirror"],labels:any={temple:"1 · TEMPLO",cafe:"2 · CAFÉ",dinner:"3 · DINNER",garden:"4 · GARDEN",market:"5 · MARKET",mirror:"6 · MIRROR"},buttons:any={};
   order.forEach(id=>{const b=BABYLON.GUI.Button.CreateSimpleButton("btn_"+id,labels[id]);b.width="175px";b.height="37px";b.color="#dfcfb2";b.background="#25252a";b.cornerRadius=5;b.paddingBottom="4px";b.onPointerClickObservable.add(()=>loadMap(id));buttons[id]=b;panel.addControl(b);});
   const help=new BABYLON.GUI.TextBlock();help.text="\nWASD · mover\nE · interactuar\nG · grid\nC · cámara";help.height="100px";help.color="#888";help.fontSize=11;help.textHorizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.addControl(help);
@@ -802,7 +828,7 @@ export function createScene(engine: any, canvas: any) {
   const msg=new BABYLON.GUI.TextBlock();msg.width="650px";msg.height="55px";msg.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;msg.top="15px";msg.color="#efdfc3";msg.fontSize=13;ui.addControl(msg);
   let timer:any=null;const show=(t:string)=>{msg.text=t;if(timer)clearTimeout(timer);timer=setTimeout(()=>msg.text="",3000);};
 
-  function loadMap(id:string){const c=D8NIGHT.maps[id];if(!c)return;reset(id,c);env(c);floor(c);visualComposition(c);grid(c);c.MAP.objects.forEach(asset);lights(c);vfx(c);shadows(c);rt.interactables=[...(c.CANON.interactables??[]),...(c.VTT_AMBIENCE.interactables??[])];player.position.set(c.spawn[0],c.spawn[1],c.spawn[2]);if(!overview&&c.camera){camera.radius=c.camera.radius??20;camera.beta=c.camera.beta??0.70;camera.alpha=c.camera.alpha??-Math.PI/2.15;}camera.target.set(player.position.x,0,player.position.z);ring.isVisible=false;title.text=c.label+" · V11";Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");show("Mapa cargado: "+c.label);}
+  function loadMap(id:string){const c=D8NIGHT.maps[id];if(!c)return;reset(id,c);env(c);floor(c);visualComposition(c);grid(c);c.MAP.objects.forEach(asset);lights(c);vfx(c);shadows(c);rt.interactables=[...(c.CANON.interactables??[]),...(c.VTT_AMBIENCE.interactables??[])];player.position.set(c.spawn[0],c.spawn[1],c.spawn[2]);if(!overview&&c.camera){camera.radius=c.camera.radius??20;camera.beta=c.camera.beta??0.70;camera.alpha=c.camera.alpha??-Math.PI/2.15;}camera.target.set(player.position.x,0,player.position.z);ring.isVisible=false;title.text=c.label+" · V11.1";Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");show("Mapa cargado: "+c.label);}
 
   const keys:any={};
   window.addEventListener("keydown",(e:KeyboardEvent)=>{const k=e.key.toLowerCase();keys[k]=true;if(k>="1"&&k<="6")loadMap(order[Number(k)-1]);if(k==="e"&&!e.repeat&&nearest)show(nearest.message);if(k==="g"&&!e.repeat){gridVisible=!gridVisible;if(rt.grid)rt.grid.setEnabled(gridVisible);show(gridVisible?"Grid activado":"Grid oculto");}if(k==="c"&&!e.repeat){overview=!overview;const cfg=rt.config?.camera??{};const size=rt.config?.MAP?.size??[24,16];if(overview){camera.radius=Math.max(size[0],size[1])*1.05;camera.beta=0.46;}else{camera.radius=cfg.radius??20;camera.beta=cfg.beta??0.70;camera.alpha=cfg.alpha??-Math.PI/2.15;}show(overview?"Cámara general":"Cámara de escena");}});
