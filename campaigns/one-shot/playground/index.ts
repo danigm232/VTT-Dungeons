@@ -39,7 +39,7 @@ export function createScene(engine: any, canvas: any) {
   };
 
   let rt:any={id:null,config:null,root:null,layers:{},colliders:[],interactables:[],updaters:[],grid:null,disposables:[],markers:{fireplaces:[],pools:[],roses:[],magic:[]}};
-  let gridVisible=true, overview=false, nearest:any=null, elapsed=0;
+  let gridVisible=false, overview=false, nearest:any=null, elapsed=0;
   const reset=(id:string,c:any)=>{
     if(rt.disposables)rt.disposables.forEach((d:any)=>{try{d.dispose();}catch{}});
     if(rt.root)rt.root.dispose(false,false);
@@ -58,10 +58,132 @@ export function createScene(engine: any, canvas: any) {
   const collider=(x:number,z:number,w:number,d:number)=>rt.colliders.push({minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2});
   const track=(d:any)=>{rt.disposables.push(d);return d;};
 
+  const VISUAL_FLOORS:any={};
+  const seeded=(n:number)=>{const x=Math.sin(n*12.9898+78.233)*43758.5453;return x-Math.floor(x);};
+
+  function visualFloorMaterial(preset:string){
+    if(VISUAL_FLOORS[preset])return VISUAL_FLOORS[preset];
+
+    const tex=new BABYLON.DynamicTexture("visualFloor_"+preset,{width:1024,height:1024},scene,false);
+    const ctx:any=tex.getContext();
+    const W=1024,H=1024;
+
+    const palette:any={
+      cafe_stone:{base:"#4b3627",stone:["#6b4b33","#77563b","#5e412d","#896343"],line:"#251912"},
+      temple_stone:{base:"#242126",stone:["#39333a","#463e42","#302c32","#51464a"],line:"#171419"},
+      night_cobble:{base:"#2b2927",stone:["#454039","#50483e","#393633","#5b5145"],line:"#171513"},
+      market_cobble:{base:"#6b5138",stone:["#8a6c4b","#9a7953","#73583e","#ad875b"],line:"#3a2b20"},
+      snow:{base:"#d9e2e7",stone:[],line:"#9aaeb9"},
+      ice:{base:"#4d89ad",stone:["#5c9bc0","#477e9f","#6aa5c5","#3f7394"],line:"#c4e6f3"}
+    };
+    const p=palette[preset]??palette.cafe_stone;
+
+    ctx.fillStyle=p.base;
+    ctx.fillRect(0,0,W,H);
+
+    if(preset==="snow"){
+      for(let i=0;i<260;i++){
+        const x=seeded(i*3.1)*W,y=seeded(i*7.7)*H,r=2+seeded(i*11.3)*18;
+        const a=0.025+seeded(i*4.2)*0.09;
+        ctx.fillStyle=`rgba(110,145,165,${a})`;
+        ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+      }
+      for(let i=0;i<34;i++){
+        const x=seeded(i*15.1)*W,y=seeded(i*19.7)*H;
+        ctx.strokeStyle="rgba(120,145,158,0.15)";
+        ctx.lineWidth=1+seeded(i)*2;
+        ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+25+seeded(i+1)*75,y-10+seeded(i+2)*20);ctx.stroke();
+      }
+    } else if(preset==="ice"){
+      const cell=95;
+      for(let gy=-1;gy<12;gy++)for(let gx=-1;gx<12;gx++){
+        const seed=gx*71+gy*131+41;
+        const x=gx*cell+(seeded(seed)-0.5)*34;
+        const y=gy*cell+(seeded(seed+1)-0.5)*34;
+        const w=cell*(0.80+seeded(seed+2)*0.34);
+        const h=cell*(0.72+seeded(seed+3)*0.40);
+        ctx.fillStyle=p.stone[Math.floor(seeded(seed+4)*p.stone.length)];
+        ctx.strokeStyle="rgba(202,235,247,0.56)";
+        ctx.lineWidth=3;
+        ctx.beginPath();
+        ctx.moveTo(x+w*0.12,y);
+        ctx.lineTo(x+w,y+h*0.16);
+        ctx.lineTo(x+w*0.84,y+h);
+        ctx.lineTo(x,y+h*0.80);
+        ctx.closePath();ctx.fill();ctx.stroke();
+      }
+      for(let i=0;i<22;i++){
+        const sx=seeded(i*12.1)*W,sy=seeded(i*8.7)*H;
+        ctx.strokeStyle="rgba(21,64,91,0.62)";
+        ctx.lineWidth=1.2+seeded(i*2)*2.2;
+        ctx.beginPath();ctx.moveTo(sx,sy);
+        let x=sx,y=sy;
+        for(let j=0;j<5;j++){x+=(seeded(i*30+j)-0.5)*120;y+=(seeded(i*40+j)-0.5)*90;ctx.lineTo(x,y);}
+        ctx.stroke();
+      }
+    } else {
+      const cols=13,rows=13,cw=W/cols,ch=H/rows;
+      for(let gy=0;gy<rows;gy++)for(let gx=0;gx<cols;gx++){
+        const seed=gx*97+gy*193+17;
+        const pad=5+seeded(seed)*7;
+        const x=gx*cw+pad+(gy%2?cw*0.18:0);
+        const y=gy*ch+pad;
+        const w=cw*(0.76+seeded(seed+1)*0.18);
+        const h=ch*(0.68+seeded(seed+2)*0.22);
+        ctx.fillStyle=p.stone[Math.floor(seeded(seed+3)*p.stone.length)];
+        ctx.strokeStyle=p.line;
+        ctx.lineWidth=4;
+        ctx.beginPath();
+        ctx.moveTo(x+w*0.10,y);
+        ctx.lineTo(x+w*0.90,y+h*0.04);
+        ctx.lineTo(x+w,y+h*0.80);
+        ctx.lineTo(x+w*0.76,y+h);
+        ctx.lineTo(x+w*0.08,y+h*0.92);
+        ctx.lineTo(x,y+h*0.22);
+        ctx.closePath();ctx.fill();ctx.stroke();
+
+        ctx.strokeStyle="rgba(255,220,170,0.08)";
+        ctx.lineWidth=2;
+        ctx.beginPath();ctx.moveTo(x+w*0.18,y+h*0.18);ctx.lineTo(x+w*0.76,y+h*0.12);ctx.stroke();
+      }
+    }
+
+    tex.update();
+
+    const m=new BABYLON.StandardMaterial("visualMat_"+preset,scene);
+    m.diffuseTexture=tex;
+    m.specularColor=preset==="ice"?new BABYLON.Color3(0.30,0.38,0.44):new BABYLON.Color3(0.025,0.025,0.025);
+    m.roughness=preset==="ice"?0.42:0.92;
+    VISUAL_FLOORS[preset]=m;
+    return m;
+  }
+
   function floor(c:any){
-    let m=M.stone; if(c.MAP.floor==="snow")m=M.snow; if(c.MAP.floor==="ice")m=M.ice; if(c.MAP.floor==="stone_tavern")m=M.stoneDark;
-    const g=BABYLON.MeshBuilder.CreateGround("floor",{width:c.MAP.size[0],height:c.MAP.size[1]},scene);g.material=m;g.parent=parentFor("BASE");
-    if(c.MAP.floor==="stone_tavern"){let row=0;for(let z=-7.1;z<=7.1;z+=1){let col=0;for(let x=-11;x<=11;x+=1.15){const n=row*37+col*19;const s=box("floorStone",x+(row%2?0.25:0),0.018,z,0.82,0.035,0.65,n%2?M.stone:M.stone2,"BASE");s.rotation.y=Math.sin(n)*0.07;col++;}row++;}}
+    let m=M.stone;
+    if(c.MAP.visualFloor)m=visualFloorMaterial(c.MAP.visualFloor);
+    else if(c.MAP.floor==="snow")m=M.snow;
+    else if(c.MAP.floor==="ice")m=M.ice;
+    else if(c.MAP.floor==="stone_tavern")m=M.stoneDark;
+
+    const g=BABYLON.MeshBuilder.CreateGround("floor",{width:c.MAP.size[0],height:c.MAP.size[1]},scene);
+    g.material=m;
+    g.parent=parentFor("BASE");
+    g.receiveShadows=true;
+
+    // Legacy primitive stone floor remains available only when no visual texture preset is set.
+    if(!c.MAP.visualFloor&&c.MAP.floor==="stone_tavern"){
+      let row=0;
+      for(let z=-7.1;z<=7.1;z+=1){
+        let col=0;
+        for(let x=-11;x<=11;x+=1.15){
+          const n=row*37+col*19;
+          const stone=box("floorStone",x+(row%2?0.25:0),0.018,z,0.82,0.035,0.65,n%2?M.stone:M.stone2,"BASE");
+          stone.rotation.y=Math.sin(n)*0.07;
+          col++;
+        }
+        row++;
+      }
+    }
   }
 
   function grid(c:any){
@@ -364,6 +486,12 @@ export function createScene(engine: any, canvas: any) {
     ip.exposure=e.exposure??1.0;
     ip.contrast=e.contrast??1.0;
     ip.toneMappingEnabled=e.toneMapping!==false;
+    ip.vignetteEnabled=!!e.vignette;
+    if(e.vignette){
+      ip.vignetteWeight=e.vignetteWeight??1.35;
+      ip.vignetteStretch=e.vignetteStretch??0.25;
+      ip.vignetteColor=new BABYLON.Color4(0.02,0.012,0.008,1);
+    }
   }
   function lights(c:any){const l=c.VTT_AMBIENCE.lighting;hemi.intensity=l.ambientIntensity;(l.lights??[]).forEach((d:any)=>{const q=track(new BABYLON.PointLight("mapLight",new BABYLON.Vector3(d.position[0],d.position[1],d.position[2]),scene));q.parent=rt.root;q.diffuse=new BABYLON.Color3(d.color[0],d.color[1],d.color[2]);q.intensity=d.intensity;q.range=d.range;});}
 
@@ -440,7 +568,7 @@ export function createScene(engine: any, canvas: any) {
 
   const ui=BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"),panel=new BABYLON.GUI.StackPanel();
   panel.width="190px";panel.horizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;panel.paddingLeft="15px";panel.paddingTop="15px";ui.addControl(panel);
-  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
+  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V5";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
   const order=["temple","cafe","dinner","garden","market","mirror"],labels:any={temple:"1 · TEMPLO",cafe:"2 · CAFÉ",dinner:"3 · DINNER",garden:"4 · GARDEN",market:"5 · MARKET",mirror:"6 · MIRROR"},buttons:any={};
   order.forEach(id=>{const b=BABYLON.GUI.Button.CreateSimpleButton("btn_"+id,labels[id]);b.width="175px";b.height="37px";b.color="#dfcfb2";b.background="#25252a";b.cornerRadius=5;b.paddingBottom="4px";b.onPointerClickObservable.add(()=>loadMap(id));buttons[id]=b;panel.addControl(b);});
   const help=new BABYLON.GUI.TextBlock();help.text="\nWASD · mover\nE · interactuar\nG · grid\nC · cámara";help.height="100px";help.color="#888";help.fontSize=11;help.textHorizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.addControl(help);
