@@ -877,7 +877,7 @@ export function createScene(engine: any, canvas: any) {
 
   const ui=BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"),panel=new BABYLON.GUI.StackPanel();
   panel.width="190px";panel.horizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;panel.paddingLeft="15px";panel.paddingTop="15px";ui.addControl(panel);
-  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V12.2.1";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
+  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V13.1";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
   const order=["temple","cafe","dinner","garden","market","mirror"],labels:any={temple:"1 · TEMPLO",cafe:"2 · CAFÉ",dinner:"3 · DINNER",garden:"4 · GARDEN",market:"5 · MARKET",mirror:"6 · MIRROR"},buttons:any={};
   order.forEach(id=>{const b=BABYLON.GUI.Button.CreateSimpleButton("btn_"+id,labels[id]);b.width="175px";b.height="37px";b.color="#dfcfb2";b.background="#25252a";b.cornerRadius=5;b.paddingBottom="4px";b.onPointerClickObservable.add(()=>loadMap(id));buttons[id]=b;panel.addControl(b);});
   const help=new BABYLON.GUI.TextBlock();help.text="\nWASD · mover\nE · interactuar\nG · grid\nC · cámara";help.height="100px";help.color="#888";help.fontSize=11;help.textHorizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.addControl(help);
@@ -1087,21 +1087,104 @@ export function createScene(engine: any, canvas: any) {
     bounce.intensity=0.16;bounce.diffuse=new BABYLON.Color3(1,0.70,0.46);bounce.groundColor=new BABYLON.Color3(0.065,0.035,0.020);
   }
 
+  function makeOverlayV13(name:string,x:number,z:number,w:number,d:number,color:number[],alpha:number,kind:"light"|"shadow"="light"){
+    const tex=new BABYLON.DynamicTexture("v13_"+name+"_tex",{width:256,height:256},scene,false);
+    tex.hasAlpha=true;
+    const ctx:any=tex.getContext();
+    const g=ctx.createRadialGradient(128,128,0,128,128,126);
+    const rgb=`${Math.round(color[0]*255)},${Math.round(color[1]*255)},${Math.round(color[2]*255)}`;
+    g.addColorStop(0,`rgba(${rgb},${alpha})`);
+    g.addColorStop(0.48,`rgba(${rgb},${alpha*0.48})`);
+    g.addColorStop(1,"rgba(0,0,0,0)");
+    ctx.clearRect(0,0,256,256);ctx.fillStyle=g;ctx.fillRect(0,0,256,256);tex.update();
+    const m=new BABYLON.StandardMaterial("v13_"+name+"_mat",scene);
+    m.diffuseTexture=tex;m.opacityTexture=tex;m.disableLighting=true;m.backFaceCulling=false;
+    if(kind==="light"){m.emissiveTexture=tex;m.emissiveColor=new BABYLON.Color3(1,1,1);}
+    const q=BABYLON.MeshBuilder.CreateGround("v13_"+name,{width:w,height:d},scene);
+    q.position.set(x,kind==="light"?0.052:0.018,z);q.material=m;q.parent=parentFor(kind==="light"?"BASE":"PROPS");
+    if(glow.addExcludedMesh)glow.addExcludedMesh(q);
+    rt.disposables.push(tex,m);
+    return q;
+  }
+
+  function trimPointLightsV13(maxCount:number){
+    const pts=(scene.lights??[]).filter((l:any)=>l&&l.getClassName&&l.getClassName()==="PointLight"&&l.parent===rt.root&&!l.isDisposed?.());
+    if(pts.length<=maxCount)return;
+    pts.sort((a:any,b:any)=>((b.intensity??0)*(b.range??1))-((a.intensity??0)*(a.range??1)));
+    pts.forEach((l:any,i:number)=>{if(i>=maxCount)l.setEnabled(false);});
+  }
+
+  function polishMaterialsV13(v:any){
+    if(!v)return;
+    const cache=new Map<any,any>();
+    const boost=v.diffuseBoost??1.0, emissive=v.emissiveFloor??0.0, spec=v.specular??0.025;
+    rt.root.getChildMeshes().forEach((mesh:any)=>{
+      if(!mesh.material)return;
+      if(mesh.parent===rt.layers?.VFX||mesh.name.includes("Flame")||mesh.name.includes("fire")||mesh.name.includes("smoke")||mesh.name.includes("mote")||mesh.name.includes("firefly"))return;
+      if(glow.addExcludedMesh)glow.addExcludedMesh(mesh);
+      const source=mesh.material;
+      let m=cache.get(source);
+      if(!m){
+        m=source.clone(source.name+"_v13_"+rt.id);
+        m.maxSimultaneousLights=6;
+        m.ambientColor=new BABYLON.Color3(1,1,1);
+        const isMetal=/iron|gold|ring/i.test(source.name??"");
+        const isIce=/ice|frost|magic|water/i.test(source.name??"");
+        const sp=isMetal?Math.max(spec,0.10):(isIce?Math.max(spec,0.16):spec);
+        m.specularColor=new BABYLON.Color3(sp,sp,sp);
+        m.specularPower=isIce?96:64;
+        if(m.diffuseColor){
+          const d=m.diffuseColor;
+          m.diffuseColor=new BABYLON.Color3(Math.min(1,d.r*boost),Math.min(1,d.g*boost),Math.min(1,d.b*boost));
+          if(emissive>0&&!isMetal){
+            m.emissiveColor=new BABYLON.Color3(d.r*emissive,d.g*emissive,d.b*emissive);
+          }
+        }
+        cache.set(source,m);rt.disposables.push(m);
+      }
+      mesh.material=m;
+    });
+  }
+
+  function applyScenePolishV13(id:string,c:any){
+    const v=c.VTT_AMBIENCE?.visual??{};
+    if(v.glow!==undefined)glow.intensity=v.glow;
+    if(v.sceneAmbient){
+      const a=v.sceneAmbient;scene.ambientColor=new BABYLON.Color3(a[0],a[1],a[2]);
+    }
+    if(v.exposure!==undefined)scene.imageProcessingConfiguration.exposure=v.exposure;
+    if(v.contrast!==undefined)scene.imageProcessingConfiguration.contrast=v.contrast;
+    if(v.fov!==undefined)camera.fov=v.fov;
+
+    polishMaterialsV13(v);
+
+    (v.contactShadows??[]).forEach((o:any,i:number)=>{
+      makeOverlayV13(id+"_shadow_"+i,o.position[0],o.position[1],o.size[0],o.size[1],o.color??[0.02,0.015,0.012],o.alpha??0.16,"shadow");
+    });
+    (v.lightPools??[]).forEach((o:any,i:number)=>{
+      makeOverlayV13(id+"_pool_"+i,o.position[0],o.position[1],o.size[0],o.size[1],o.color,o.alpha??0.10,"light");
+    });
+
+    trimPointLightsV13(v.maxRealPointLights??5);
+  }
+
   function loadMap(id:string){
     const c=D8NIGHT.maps[id];if(!c)return;
     reset(id,c);
     if(id==="cafe"&&c.MAP.renderMode==="clean_v12"){
       buildCafeCleanV12(c);
+      grid(c);
+      applyScenePolishV13(id,c);
     }else{
       env(c);floor(c);visualComposition(c);grid(c);c.MAP.objects.forEach(asset);applyReadableFallback(c);lights(c);vfx(c);shadows(c);
+      applyScenePolishV13(id,c);
     }
-    if(id==="cafe"&&c.MAP.renderMode==="clean_v12")grid(c);
     rt.interactables=[...(c.CANON.interactables??[]),...(c.VTT_AMBIENCE.interactables??[])];
     player.position.set(c.spawn[0],c.spawn[1],c.spawn[2]);
     if(!overview&&c.camera){camera.radius=c.camera.radius??20;camera.beta=c.camera.beta??0.70;camera.alpha=c.camera.alpha??-Math.PI/2.15;}
     camera.target.set(player.position.x,0,player.position.z);ring.isVisible=false;
-    title.text=c.label+" · V12.2.1";
-    if(id==="cafe")console.log("[D8 v12.1] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
+    title.text=c.label+" · V13.1";
+    if(id==="cafe")console.log("[D8 v13] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
     Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");
     show("Mapa cargado: "+c.label);
   }
