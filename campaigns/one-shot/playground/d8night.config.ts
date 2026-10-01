@@ -8,6 +8,7 @@ export const D8NIGHT: any = {
         size: [24, 16],
         floor: "stone_tavern",
         visualFloor: "cafe_stone",
+        visualComposition: "cafe_reference",
         objects: [
           { asset: "wall", position: [0, -7.65], size: [24, 0.7] },
           { asset: "wall", position: [-11.65, -2.5], size: [0.7, 10] },
@@ -60,6 +61,9 @@ export const D8NIGHT: any = {
           { asset: "small_barrel", position: [9.4, 3.6], scale: 0.82 },
           { asset: "pool", position: [3.5, 6.25] },
           { asset: "bench", position: [7.1, 5.8], size: [2.0, 0.62], scale: 0.9 },
+          { asset: "table_round", position: [10.0, -5.15], scale: 0.78 },
+          { asset: "table_dressing", position: [10.0, -5.15], count: 3, radius: 0.46 },
+          { asset: "candle", position: [10.0, -5.15], intensity: 0.16, range: 2.2 },
           { asset: "sideboard", position: [-8.4, 5.75], size: [4.2, 0.78] },
           { asset: "plate_stack", position: [-9.5, 5.55], count: 4, scale: 0.82 },
           { asset: "plate_stack", position: [-8.65, 5.55], count: 3, scale: 0.80 },
@@ -106,12 +110,12 @@ export const D8NIGHT: any = {
     temple: {
       label: "TEMPLO",
       spawn: [0, 0.43, 6.6],
-      camera: { radius: 23, beta: 0.66, alpha: -Math.PI / 2.05 },
+      camera: { radius: 25, beta: 0.49, alpha: -Math.PI / 2.05 },
       MAP: {
         size: [28, 18],
         floor: "stone",
-        visualFloor: "night_cobble",
         visualFloor: "temple_stone",
+        visualComposition: "temple_reference",
         objects: [
           { asset: "wall", position: [0, -8.65], size: [27.5, 0.55], height: 1.9 },
           { asset: "wall", position: [-13.65, -2.0], size: [0.55, 13.5], height: 1.7 },
@@ -163,10 +167,12 @@ export const D8NIGHT: any = {
     dinner: {
       label: "DINNER",
       spawn: [0, 0.43, 7.0],
-      camera: { radius: 23, beta: 0.68, alpha: -Math.PI / 2.1 },
+      camera: { radius: 25, beta: 0.50, alpha: -Math.PI / 2.08 },
       MAP: {
         size: [28, 18],
         floor: "stone",
+        visualFloor: "night_cobble",
+        visualComposition: "dinner_reference",
         objects: [
           { asset: "house", position: [0, -4.9], size: [12.0, 5.4], height: 2.8 },
           { asset: "path", position: [0, 3.2], size: [13.0, 3.0] },
@@ -209,11 +215,12 @@ export const D8NIGHT: any = {
     garden: {
       label: "GARDEN",
       spawn: [-10.5, 0.43, 6.0],
-      camera: { radius: 24, beta: 0.64, alpha: -Math.PI / 2.0 },
+      camera: { radius: 26, beta: 0.48, alpha: -Math.PI / 2.00 },
       MAP: {
         size: [28, 20],
         floor: "snow",
         visualFloor: "snow",
+        visualComposition: "garden_reference",
         objects: [
           { asset: "path", position: [-1.0, 4.8], size: [23.0, 2.2] },
           { asset: "path", position: [5.8, 0.2], size: [2.2, 11.0] },
@@ -247,7 +254,7 @@ export const D8NIGHT: any = {
             { position: [7.2, 2.5, -3.0], color: [1, 0.42, 0.16], intensity: 0.24, range: 6 }
           ]
         },
-        vfx: { snowfall: true, snowCount: 42, snowSpeed: 0.42, roseSway: true },
+        vfx: { snowfall: true, snowCount: 50, snowSpeed: 0.40, roseSway: true, fireflies: true, fireflyCount: 7 },
         interactables: [
           { id: "garden_roses_ambience", position: [-6.0, -1.5], radius: 2.2, label: "Mirar rosales", message: "Los rosales destacan con fuerza sobre la nieve." },
           { id: "garden_room_ambience", position: [4.5, -3.0], radius: 2.2, label: "Mirar estancia", message: "Una pequeña estancia circular se abre entre los muros del jardín." }
@@ -259,10 +266,12 @@ export const D8NIGHT: any = {
     market: {
       label: "MARKET",
       spawn: [0, 0.43, 7.2],
-      camera: { radius: 25, beta: 0.65, alpha: -Math.PI / 2.12 },
+      camera: { radius: 27, beta: 0.50, alpha: -Math.PI / 2.10 },
       MAP: {
         size: [30, 20],
         floor: "stone",
+        visualFloor: "market_cobble",
+        visualComposition: "market_reference",
         visualFloor: "market_cobble",
         objects: [
           { asset: "market_stall", position: [-10.2, -5.6], size: [3.8, 2.0], color: "purple" },
@@ -309,11 +318,12 @@ export const D8NIGHT: any = {
     mirror: {
       label: "MIRROR",
       spawn: [10.5, 0.43, 6.8],
-      camera: { radius: 25, beta: 0.61, alpha: -Math.PI / 2.18 },
+      camera: { radius: 27, beta: 0.47, alpha: -Math.PI / 2.16 },
       MAP: {
         size: [30, 20],
         floor: "ice",
         visualFloor: "ice",
+        visualComposition: "mirror_reference",
         objects: [
           { asset: "water_area", position: [2.0, 0.6], size: [18.0, 8.0] },
           { asset: "ice_crack", position: [2.0, 0.0], branches: 7, length: 5.2, rotation: 0.2 },
@@ -339,7 +349,7 @@ export const D8NIGHT: any = {
             { position: [4.0, 4.5, 1.0], color: [0.18, 0.36, 0.62], intensity: 0.30, range: 14 }
           ]
         },
-        vfx: { waterRipples: true, magicMotes: true, magicCount: 14, snowfall: true, snowCount: 18, snowSpeed: 0.20 },
+        vfx: { waterRipples: true, magicMotes: true, magicCount: 18, snowfall: true, snowCount: 22, snowSpeed: 0.18 },
         interactables: [
           { id: "mirror_ambience", position: [-7.3, -2.5], radius: 2.2, label: "Mirar espejo", message: "El espejo se alza sobre un pedestal rodeado de luz azulada." },
           { id: "ice_ambience", position: [4.5, 2.6], radius: 2.0, label: "Mirar hielo", message: "Grietas oscuras recorren la superficie helada." }
