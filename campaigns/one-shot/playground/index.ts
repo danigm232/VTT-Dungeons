@@ -71,12 +71,12 @@ export function createScene(engine: any, canvas: any) {
     const W=1024,H=1024;
 
     const palette:any={
-      cafe_stone:{base:"#4b3627",stone:["#6b4b33","#77563b","#5e412d","#896343"],line:"#251912"},
-      temple_stone:{base:"#242126",stone:["#39333a","#463e42","#302c32","#51464a"],line:"#171419"},
+      cafe_stone:{base:"#624732",stone:["#806044","#906a4a","#725139","#9a7350"],line:"#34251a"},
+      temple_stone:{base:"#443b3e",stone:["#5a4f52","#695b5d","#50474b","#746467"],line:"#292327"},
       night_cobble:{base:"#2b2927",stone:["#454039","#50483e","#393633","#5b5145"],line:"#171513"},
       market_cobble:{base:"#6b5138",stone:["#8a6c4b","#9a7953","#73583e","#ad875b"],line:"#3a2b20"},
       snow:{base:"#d9e2e7",stone:[],line:"#9aaeb9"},
-      ice:{base:"#4d89ad",stone:["#5c9bc0","#477e9f","#6aa5c5","#3f7394"],line:"#c4e6f3"}
+      ice:{base:"#5b9fc0",stone:["#73b5d2","#5594b2","#82c1d8","#4f88a4"],line:"#d3f3fb"}
     };
     const p=palette[preset]??palette.cafe_stone;
 
@@ -267,7 +267,7 @@ export function createScene(engine: any, canvas: any) {
     m.useAlphaFromDiffuseTexture=true;
     m.disableLighting=true;
     m.backFaceCulling=false;
-    m.alpha=1;
+    m.alpha=c.MAP.compositionOpacity??1;
 
     const size=c.MAP.size;
     const g=BABYLON.MeshBuilder.CreateGround("visualComposition",{width:size[0],height:size[1]},scene);
