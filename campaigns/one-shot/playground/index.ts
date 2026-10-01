@@ -301,6 +301,7 @@ export function createScene(engine: any, canvas: any) {
 
     const strength=cfg.strength??0.20;
     const textureStrength=cfg.textureStrength??0.22;
+    const diffuseBoost=cfg.diffuseBoost??1.0;
     const cache=new Map<any,any>();
 
     rt.root.getChildMeshes().forEach((mesh:any)=>{
@@ -316,6 +317,13 @@ export function createScene(engine: any, canvas: any) {
         m.ambientColor=new BABYLON.Color3(1,1,1);
         m.maxSimultaneousLights=32;
         m.specularColor=new BABYLON.Color3(0.025,0.025,0.025);
+        if(m.diffuseColor){
+          m.diffuseColor=new BABYLON.Color3(
+            Math.min(1,m.diffuseColor.r*diffuseBoost),
+            Math.min(1,m.diffuseColor.g*diffuseBoost),
+            Math.min(1,m.diffuseColor.b*diffuseBoost)
+          );
+        }
 
         if(m.diffuseTexture){
           m.emissiveTexture=m.diffuseTexture;
