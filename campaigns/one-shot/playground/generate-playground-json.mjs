@@ -36,9 +36,5 @@ const output = {
   tags: "d8-night,vtt,dnd"
 };
 
-const serialized = JSON.stringify(output);
-
-await fs.writeFile(path.join(here, outputName), serialized, "utf8");
-await fs.writeFile(path.join(here, "playground.json"), serialized, "utf8");
-
-console.log(`Generated ${outputName} and playground.json`);
+await fs.writeFile(path.join(here, outputName), JSON.stringify(output), "utf8");
+console.log(`Generated ${outputName}`);
