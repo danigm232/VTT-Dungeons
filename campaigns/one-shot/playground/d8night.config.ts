@@ -11,7 +11,7 @@ export const D8NIGHT: any = {
         visualComposition: "cafe_reference",
         compositionOpacity: 0,
         unlitBase: true,
-        readabilityFallback: { enabled: true, strength: 0.52, textureStrength: 0.90 },
+        readabilityFallback: { enabled: true, strength: 0.18, textureStrength: 0.20, diffuseBoost: 1.32, glowExclude: true },
         objects: [
           { asset: "wall", position: [0, -7.65], size: [24, 0.7] },
           { asset: "wall", position: [-11.65, -2.5], size: [0.7, 10] },
@@ -87,23 +87,23 @@ export const D8NIGHT: any = {
         triggers: []
       },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.13, 0.095, 0.060], fog: false, fogDensity: 0, exposure: 1.05, contrast: 1.00, toneMapping: false, vignette: false, glowIntensity: 0.28 },
+        environment: { clearColor: [0.10, 0.072, 0.045], fog: false, fogDensity: 0, exposure: 1.00, contrast: 1.03, toneMapping: false, vignette: false, glowIntensity: 0.12, sharpen: 0.62, sharpenColor: 1.04 },
         lighting: {
           mode: "interior",
-          ambientIntensity: 1.35,
-          ambientColor: [1.00, 0.90, 0.74],
+          ambientIntensity: 0.78,
+          ambientColor: [1.00, 0.88, 0.72],
           globalFill: {
             color: [1.00, 0.80, 0.60],
-            intensity: 0.92,
-            hemiIntensity: 1.00,
-            directionalIntensity: 0.18,
+            intensity: 0.58,
+            hemiIntensity: 0.52,
+            directionalIntensity: 0.22,
             direction: [-0.28, -1, 0.20],
             points: [
-              { position: [-6.5, 5.0, -4.0], color: [1.00, 0.72, 0.46], intensity: 1.45, range: 13.5 },
-              { position: [0.0, 5.2, -1.0], color: [1.00, 0.78, 0.54], intensity: 1.35, range: 14.5 },
-              { position: [6.5, 4.8, -2.5], color: [1.00, 0.70, 0.44], intensity: 1.25, range: 13.0 },
-              { position: [-5.5, 4.2, 4.5], color: [1.00, 0.76, 0.52], intensity: 1.15, range: 12.0 },
-              { position: [5.8, 4.0, 4.6], color: [0.62, 0.84, 0.86], intensity: 0.80, range: 10.0 }
+              { position: [-6.5, 5.0, -4.0], color: [1.00, 0.74, 0.50], intensity: 0.72, range: 11.5 },
+              { position: [0.0, 5.2, -1.0], color: [1.00, 0.80, 0.58], intensity: 0.66, range: 12.5 },
+              { position: [6.5, 4.8, -2.5], color: [1.00, 0.72, 0.48], intensity: 0.62, range: 11.2 },
+              { position: [-5.5, 4.2, 4.5], color: [1.00, 0.78, 0.54], intensity: 0.58, range: 10.5 },
+              { position: [5.8, 4.0, 4.6], color: [0.64, 0.86, 0.88], intensity: 0.42, range: 8.8 }
             ]
           },
           shadows: { enabled: false },
