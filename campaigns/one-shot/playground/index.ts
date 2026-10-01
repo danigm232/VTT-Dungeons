@@ -175,9 +175,9 @@ export function createScene(engine: any, canvas: any) {
       base.alpha=1;
       if(base.diffuseTexture){
         base.emissiveTexture=base.diffuseTexture;
-        base.emissiveColor=new BABYLON.Color3(0.42,0.42,0.42);
+        base.emissiveColor=new BABYLON.Color3(0.82,0.82,0.82);
       }else{
-        base.emissiveColor=new BABYLON.Color3(0.20,0.16,0.12);
+        base.emissiveColor=new BABYLON.Color3(0.42,0.32,0.24);
       }
       m=base;
       rt.disposables.push(base);
@@ -289,6 +289,45 @@ export function createScene(engine: any, canvas: any) {
     g.position.y=0.028;
     g.material=m;
     g.parent=parentFor("BASE");
+  }
+
+  function applyReadableFallback(c:any){
+    const cfg=c.MAP.readabilityFallback;
+    if(!cfg?.enabled)return;
+
+    const strength=cfg.strength??0.42;
+    const textureStrength=cfg.textureStrength??0.72;
+    const cache=new Map<any,any>();
+
+    rt.root.getChildMeshes().forEach((mesh:any)=>{
+      if(!mesh.material)return;
+      if(mesh.parent===rt.layers?.VFX)return;
+      if(mesh.name.includes("Flame")||mesh.name.includes("fire")||mesh.name.includes("smoke")||mesh.name.includes("dust")||mesh.name.includes("ripple")||mesh.name.includes("poolGlow"))return;
+
+      const source=mesh.material;
+      let m=cache.get(source);
+      if(!m){
+        m=source.clone(source.name+"_readable_"+rt.id);
+        m.disableLighting=false;
+        m.ambientColor=new BABYLON.Color3(1,1,1);
+        m.maxSimultaneousLights=32;
+
+        if(m.diffuseTexture){
+          m.emissiveTexture=m.diffuseTexture;
+          m.emissiveColor=new BABYLON.Color3(textureStrength,textureStrength,textureStrength);
+        }else{
+          const d=m.diffuseColor??new BABYLON.Color3(0.45,0.35,0.25);
+          m.emissiveColor=new BABYLON.Color3(
+            Math.min(1,d.r*strength+0.055),
+            Math.min(1,d.g*strength+0.045),
+            Math.min(1,d.b*strength+0.035)
+          );
+        }
+        cache.set(source,m);
+        rt.disposables.push(m);
+      }
+      mesh.material=m;
+    });
   }
 
   function grid(c:any){
@@ -819,7 +858,7 @@ export function createScene(engine: any, canvas: any) {
 
   const ui=BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"),panel=new BABYLON.GUI.StackPanel();
   panel.width="190px";panel.horizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;panel.paddingLeft="15px";panel.paddingTop="15px";ui.addControl(panel);
-  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V11.1";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
+  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V11.2";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
   const order=["temple","cafe","dinner","garden","market","mirror"],labels:any={temple:"1 · TEMPLO",cafe:"2 · CAFÉ",dinner:"3 · DINNER",garden:"4 · GARDEN",market:"5 · MARKET",mirror:"6 · MIRROR"},buttons:any={};
   order.forEach(id=>{const b=BABYLON.GUI.Button.CreateSimpleButton("btn_"+id,labels[id]);b.width="175px";b.height="37px";b.color="#dfcfb2";b.background="#25252a";b.cornerRadius=5;b.paddingBottom="4px";b.onPointerClickObservable.add(()=>loadMap(id));buttons[id]=b;panel.addControl(b);});
   const help=new BABYLON.GUI.TextBlock();help.text="\nWASD · mover\nE · interactuar\nG · grid\nC · cámara";help.height="100px";help.color="#888";help.fontSize=11;help.textHorizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.addControl(help);
@@ -828,7 +867,7 @@ export function createScene(engine: any, canvas: any) {
   const msg=new BABYLON.GUI.TextBlock();msg.width="650px";msg.height="55px";msg.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;msg.top="15px";msg.color="#efdfc3";msg.fontSize=13;ui.addControl(msg);
   let timer:any=null;const show=(t:string)=>{msg.text=t;if(timer)clearTimeout(timer);timer=setTimeout(()=>msg.text="",3000);};
 
-  function loadMap(id:string){const c=D8NIGHT.maps[id];if(!c)return;reset(id,c);env(c);floor(c);visualComposition(c);grid(c);c.MAP.objects.forEach(asset);lights(c);vfx(c);shadows(c);rt.interactables=[...(c.CANON.interactables??[]),...(c.VTT_AMBIENCE.interactables??[])];player.position.set(c.spawn[0],c.spawn[1],c.spawn[2]);if(!overview&&c.camera){camera.radius=c.camera.radius??20;camera.beta=c.camera.beta??0.70;camera.alpha=c.camera.alpha??-Math.PI/2.15;}camera.target.set(player.position.x,0,player.position.z);ring.isVisible=false;title.text=c.label+" · V11.1";Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");show("Mapa cargado: "+c.label);}
+  function loadMap(id:string){const c=D8NIGHT.maps[id];if(!c)return;reset(id,c);env(c);floor(c);visualComposition(c);grid(c);c.MAP.objects.forEach(asset);applyReadableFallback(c);lights(c);vfx(c);shadows(c);rt.interactables=[...(c.CANON.interactables??[]),...(c.VTT_AMBIENCE.interactables??[])];player.position.set(c.spawn[0],c.spawn[1],c.spawn[2]);if(!overview&&c.camera){camera.radius=c.camera.radius??20;camera.beta=c.camera.beta??0.70;camera.alpha=c.camera.alpha??-Math.PI/2.15;}camera.target.set(player.position.x,0,player.position.z);ring.isVisible=false;title.text=c.label+" · V11.2";Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");show("Mapa cargado: "+c.label);}
 
   const keys:any={};
   window.addEventListener("keydown",(e:KeyboardEvent)=>{const k=e.key.toLowerCase();keys[k]=true;if(k>="1"&&k<="6")loadMap(order[Number(k)-1]);if(k==="e"&&!e.repeat&&nearest)show(nearest.message);if(k==="g"&&!e.repeat){gridVisible=!gridVisible;if(rt.grid)rt.grid.setEnabled(gridVisible);show(gridVisible?"Grid activado":"Grid oculto");}if(k==="c"&&!e.repeat){overview=!overview;const cfg=rt.config?.camera??{};const size=rt.config?.MAP?.size??[24,16];if(overview){camera.radius=Math.max(size[0],size[1])*1.05;camera.beta=0.46;}else{camera.radius=cfg.radius??20;camera.beta=cfg.beta??0.70;camera.alpha=cfg.alpha??-Math.PI/2.15;}show(overview?"Cámara general":"Cámara de escena");}});
