@@ -8,7 +8,7 @@ export function createScene(engine: any, canvas: any) {
 
   const hemi=new BABYLON.HemisphericLight("global",new BABYLON.Vector3(0,1,0),scene);
   hemi.intensity=0.28;
-  const glow=new BABYLON.GlowLayer("glow",scene); glow.intensity=0.5;
+  const glow=new BABYLON.GlowLayer("glow",scene); glow.intensity=0.72;
 
   function mat(name:string,c:number[],o:any={}) {
     const m=new BABYLON.StandardMaterial(name,scene);
@@ -17,7 +17,7 @@ export function createScene(engine: any, canvas: any) {
     if(o.emissive)m.emissiveColor=new BABYLON.Color3(o.emissive[0],o.emissive[1],o.emissive[2]);
     if(o.alpha!==undefined)m.alpha=o.alpha;
     if(o.disableLighting)m.disableLighting=true;
-    m.maxSimultaneousLights=o.maxLights??12;
+    m.maxSimultaneousLights=o.maxLights??24;
     return m;
   }
 
@@ -155,7 +155,7 @@ export function createScene(engine: any, canvas: any) {
     m.diffuseTexture=tex;
     m.specularColor=preset==="ice"?new BABYLON.Color3(0.30,0.38,0.44):new BABYLON.Color3(0.025,0.025,0.025);
     m.roughness=preset==="ice"?0.42:0.92;
-    m.maxSimultaneousLights=12;
+    m.maxSimultaneousLights=24;
     VISUAL_FLOORS[preset]=m;
     return m;
   }
@@ -332,7 +332,7 @@ export function createScene(engine: any, canvas: any) {
       const flame=sph("candleFlame",x,0.70+h+0.10,z,0.12*s,M.fireInner);
       flame.scaling.y=1.35;
       const light=track(new BABYLON.PointLight("candleLight",new BABYLON.Vector3(x,0.70+h+0.18,z),scene));
-      light.parent=rt.root; light.diffuse=new BABYLON.Color3(1,0.48,0.13); light.range=o.range??2.7; light.intensity=o.intensity??0.22;
+      light.parent=rt.root; light.diffuse=new BABYLON.Color3(1,0.52,0.16); light.range=o.range??3.2; light.intensity=o.intensity??0.30;
       const base=flame.position.y,seed=x*1.7+z*2.3;
       rt.updaters.push((t:number)=>{const f=Math.sin(t*12.7+seed);flame.scaling.y=1.35+f*0.16;flame.position.y=base+f*0.012;light.intensity=(o.intensity??0.22)+f*0.03;});
     }
@@ -405,8 +405,8 @@ export function createScene(engine: any, canvas: any) {
       const outer=sph("torchOuter",x,h+0.60,z-0.22*s,0.40*s,M.fireOuter,"VFX");
       outer.scaling.set(0.75,1.55,0.75);
       const light=track(new BABYLON.PointLight("torchLight",new BABYLON.Vector3(x,h+0.64,z-0.20*s),scene));
-      light.parent=rt.root;light.diffuse=new BABYLON.Color3(1,0.34,0.055);
-      light.range=o.range??6.2;light.intensity=o.intensity??0.90;
+      light.parent=rt.root;light.diffuse=new BABYLON.Color3(1,0.40,0.08);
+      light.range=o.range??7.5;light.intensity=o.intensity??1.20;
       const seed=x*1.37+z*2.11,fy=flame.position.y,oy=outer.position.y;
       rt.updaters.push((t:number)=>{
         const a=Math.sin(t*9.3+seed),b=Math.sin(t*15.7+seed*0.7);
@@ -429,8 +429,8 @@ export function createScene(engine: any, canvas: any) {
         rt.updaters.push((t:number)=>{const f=Math.sin(t*10.4+seed)*0.08;flame.position.y=by+f*0.025;flame.scaling.y=1.35+f*0.4;});
       }
       const light=track(new BABYLON.PointLight("chandelierLight",new BABYLON.Vector3(x,y+0.30,z),scene));
-      light.parent=rt.root;light.diffuse=new BABYLON.Color3(1,0.48,0.14);
-      light.range=o.range??8.5;light.intensity=o.intensity??1.15;
+      light.parent=rt.root;light.diffuse=new BABYLON.Color3(1,0.52,0.16);
+      light.range=o.range??10.0;light.intensity=o.intensity??1.55;
       const seed=x*0.73+z*1.31;
       rt.updaters.push((t:number)=>light.intensity=(o.intensity??1.15)+Math.sin(t*6.7+seed)*0.055);
     }
@@ -443,8 +443,8 @@ export function createScene(engine: any, canvas: any) {
       const inner=sph("brazierInner",x,y+0.55*s,z,0.55*s,M.fireInner,"VFX");inner.scaling.y=1.55;
       const outer=sph("brazierOuter",x,y+0.50*s,z,0.78*s,M.fireOuter,"VFX");outer.scaling.y=1.40;
       const light=track(new BABYLON.PointLight("brazierLight",new BABYLON.Vector3(x,y+0.75*s,z),scene));
-      light.parent=rt.root;light.diffuse=new BABYLON.Color3(1,0.30,0.04);
-      light.range=o.range??7.5;light.intensity=o.intensity??1.55;
+      light.parent=rt.root;light.diffuse=new BABYLON.Color3(1,0.34,0.06);
+      light.range=o.range??9.0;light.intensity=o.intensity??2.00;
       const seed=x*1.21+z*0.91,iy=inner.position.y,oy=outer.position.y;
       rt.updaters.push((t:number)=>{
         const a=Math.sin(t*8.9+seed),b=Math.sin(t*14.8+seed);
@@ -619,7 +619,7 @@ export function createScene(engine: any, canvas: any) {
       cyl("magicRing",x,0.42,z,1.95*s,0.20,M.gold);
       const core=cyl("magicCore",x,0.64,z,1.45*s,0.26,M.magicBlue);
       const light=track(new BABYLON.PointLight("magicPedestalLight",new BABYLON.Vector3(x,1.0,z),scene));
-      const mc=o.lightColor??[0.10,0.55,1];light.parent=rt.root;light.diffuse=new BABYLON.Color3(mc[0],mc[1],mc[2]);light.range=o.range??8;light.intensity=o.intensity??0.95;
+      const mc=o.lightColor??[0.10,0.55,1];light.parent=rt.root;light.diffuse=new BABYLON.Color3(mc[0],mc[1],mc[2]);light.range=o.range??11;light.intensity=o.intensity??1.35;
       rt.markers.magic.push({x,z,mesh:core,light,seed:x+z});
       collider(x,z,2.3*s,2.3*s);
     }
@@ -643,7 +643,7 @@ export function createScene(engine: any, canvas: any) {
         const lc=o.lightColor;
         const glow=track(new BABYLON.PointLight("crystalGlow",new BABYLON.Vector3(x,h*0.75,z),scene));
         glow.parent=rt.root;glow.diffuse=new BABYLON.Color3(lc[0],lc[1],lc[2]);
-        glow.intensity=o.intensity??0.72;glow.range=o.range??7;
+        glow.intensity=o.intensity??1.00;glow.range=o.range??9;
         rt.updaters.push((t:number)=>glow.intensity=(o.intensity??0.72)+Math.sin(t*1.8+seed)*0.08);
       }
     }
@@ -692,7 +692,7 @@ export function createScene(engine: any, canvas: any) {
     });
   }
 
-  function fire(marker:any,v:any){const a=sph("fireOuter",marker.x,0.45,marker.z,0.58,M.fireOuter,"VFX");a.scaling.y=1.75;const b=sph("fireInner",marker.x,0.38,marker.z,0.32,M.fireInner,"VFX");b.scaling.y=1.7;const l=track(new BABYLON.PointLight("fireLight",new BABYLON.Vector3(marker.x,1.2,marker.z),scene));l.parent=rt.root;l.diffuse=new BABYLON.Color3(1,0.24,0.02);l.range=10.5;l.intensity=3.45;const ay=a.position.y,by=b.position.y;rt.updaters.push((t:number)=>{const x=Math.sin(t*9.4),y=Math.sin(t*14.2);a.position.y=ay+x*0.04;b.position.y=by+y*0.025;a.scaling.x=1+x*0.09;l.intensity=3.30+x*0.38+y*0.18;});if(v.smoke)for(let i=0;i<6;i++){const s=sph("smoke",marker.x,0.8+i*0.2,marker.z,0.3+i*0.05,M.smoke,"VFX"),o=i/6;rt.updaters.push((t:number)=>{const c=(t*0.18+o)%1;s.position.y=0.75+c*3;s.position.x=marker.x+Math.sin(t*0.6+i)*0.18;const k=0.7+c*1.4;s.scaling.set(k,k*1.2,k);});}}
+  function fire(marker:any,v:any){const a=sph("fireOuter",marker.x,0.45,marker.z,0.58,M.fireOuter,"VFX");a.scaling.y=1.75;const b=sph("fireInner",marker.x,0.38,marker.z,0.32,M.fireInner,"VFX");b.scaling.y=1.7;const l=track(new BABYLON.PointLight("fireLight",new BABYLON.Vector3(marker.x,1.2,marker.z),scene));l.parent=rt.root;l.diffuse=new BABYLON.Color3(1,0.24,0.02);l.range=13.0;l.intensity=5.20;const ay=a.position.y,by=b.position.y;rt.updaters.push((t:number)=>{const x=Math.sin(t*9.4),y=Math.sin(t*14.2);a.position.y=ay+x*0.04;b.position.y=by+y*0.025;a.scaling.x=1+x*0.09;l.intensity=4.90+x*0.55+y*0.24;});if(v.smoke)for(let i=0;i<6;i++){const s=sph("smoke",marker.x,0.8+i*0.2,marker.z,0.3+i*0.05,M.smoke,"VFX"),o=i/6;rt.updaters.push((t:number)=>{const c=(t*0.18+o)%1;s.position.y=0.75+c*3;s.position.x=marker.x+Math.sin(t*0.6+i)*0.18;const k=0.7+c*1.4;s.scaling.set(k,k*1.2,k);});}}
   function dust(){for(let i=0;i<16;i++){const x=-9+((i*37)%18),z=-5+((i*23)%10),m=sph("dust",x,0.7+(i%5)*0.42,z,0.035,M.dust,"VFX"),y=m.position.y;rt.updaters.push((t:number)=>m.position.y=y+Math.sin(t*0.7+i)*0.14);}}
   function ripple(x:number,z:number,o:number){const p:any[]=[];for(let i=0;i<=40;i++){const a=i/40*Math.PI*2;p.push(new BABYLON.Vector3(Math.cos(a)*0.45,0,Math.sin(a)*0.45));}const r=BABYLON.MeshBuilder.CreateLines("ripple",{points:p},scene);r.parent=parentFor("VFX");r.position.set(x,0.13,z);r.color=new BABYLON.Color3(0.2,0.75,0.8);rt.updaters.push((t:number)=>{const c=(t*0.2+o)%1,k=0.5+c*4;r.scaling.set(k,1,k);r.alpha=0.3*(1-c);});}
   function embers(marker:any){
@@ -771,7 +771,7 @@ export function createScene(engine: any, canvas: any) {
 
   const ui=BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"),panel=new BABYLON.GUI.StackPanel();
   panel.width="190px";panel.horizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;panel.paddingLeft="15px";panel.paddingTop="15px";ui.addControl(panel);
-  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V9";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
+  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V10";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
   const order=["temple","cafe","dinner","garden","market","mirror"],labels:any={temple:"1 · TEMPLO",cafe:"2 · CAFÉ",dinner:"3 · DINNER",garden:"4 · GARDEN",market:"5 · MARKET",mirror:"6 · MIRROR"},buttons:any={};
   order.forEach(id=>{const b=BABYLON.GUI.Button.CreateSimpleButton("btn_"+id,labels[id]);b.width="175px";b.height="37px";b.color="#dfcfb2";b.background="#25252a";b.cornerRadius=5;b.paddingBottom="4px";b.onPointerClickObservable.add(()=>loadMap(id));buttons[id]=b;panel.addControl(b);});
   const help=new BABYLON.GUI.TextBlock();help.text="\nWASD · mover\nE · interactuar\nG · grid\nC · cámara";help.height="100px";help.color="#888";help.fontSize=11;help.textHorizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.addControl(help);
@@ -780,7 +780,7 @@ export function createScene(engine: any, canvas: any) {
   const msg=new BABYLON.GUI.TextBlock();msg.width="650px";msg.height="55px";msg.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;msg.top="15px";msg.color="#efdfc3";msg.fontSize=13;ui.addControl(msg);
   let timer:any=null;const show=(t:string)=>{msg.text=t;if(timer)clearTimeout(timer);timer=setTimeout(()=>msg.text="",3000);};
 
-  function loadMap(id:string){const c=D8NIGHT.maps[id];if(!c)return;reset(id,c);env(c);floor(c);visualComposition(c);grid(c);c.MAP.objects.forEach(asset);lights(c);vfx(c);shadows(c);rt.interactables=[...(c.CANON.interactables??[]),...(c.VTT_AMBIENCE.interactables??[])];player.position.set(c.spawn[0],c.spawn[1],c.spawn[2]);if(!overview&&c.camera){camera.radius=c.camera.radius??20;camera.beta=c.camera.beta??0.70;camera.alpha=c.camera.alpha??-Math.PI/2.15;}camera.target.set(player.position.x,0,player.position.z);ring.isVisible=false;title.text=c.label+" · V9";Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");show("Mapa cargado: "+c.label);}
+  function loadMap(id:string){const c=D8NIGHT.maps[id];if(!c)return;reset(id,c);env(c);floor(c);visualComposition(c);grid(c);c.MAP.objects.forEach(asset);lights(c);vfx(c);shadows(c);rt.interactables=[...(c.CANON.interactables??[]),...(c.VTT_AMBIENCE.interactables??[])];player.position.set(c.spawn[0],c.spawn[1],c.spawn[2]);if(!overview&&c.camera){camera.radius=c.camera.radius??20;camera.beta=c.camera.beta??0.70;camera.alpha=c.camera.alpha??-Math.PI/2.15;}camera.target.set(player.position.x,0,player.position.z);ring.isVisible=false;title.text=c.label+" · V10";Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");show("Mapa cargado: "+c.label);}
 
   const keys:any={};
   window.addEventListener("keydown",(e:KeyboardEvent)=>{const k=e.key.toLowerCase();keys[k]=true;if(k>="1"&&k<="6")loadMap(order[Number(k)-1]);if(k==="e"&&!e.repeat&&nearest)show(nearest.message);if(k==="g"&&!e.repeat){gridVisible=!gridVisible;if(rt.grid)rt.grid.setEnabled(gridVisible);show(gridVisible?"Grid activado":"Grid oculto");}if(k==="c"&&!e.repeat){overview=!overview;const cfg=rt.config?.camera??{};const size=rt.config?.MAP?.size??[24,16];if(overview){camera.radius=Math.max(size[0],size[1])*1.05;camera.beta=0.46;}else{camera.radius=cfg.radius??20;camera.beta=cfg.beta??0.70;camera.alpha=cfg.alpha??-Math.PI/2.15;}show(overview?"Cámara general":"Cámara de escena");}});
