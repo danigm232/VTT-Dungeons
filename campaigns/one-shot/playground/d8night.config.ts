@@ -11,6 +11,7 @@ export const D8NIGHT: any = {
         visualComposition: "cafe_reference",
         compositionOpacity: 0,
         unlitBase: true,
+        readabilityFallback: { enabled: true, strength: 0.52, textureStrength: 0.90 },
         objects: [
           { asset: "wall", position: [0, -7.65], size: [24, 0.7] },
           { asset: "wall", position: [-11.65, -2.5], size: [0.7, 10] },
@@ -86,15 +87,15 @@ export const D8NIGHT: any = {
         triggers: []
       },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.085, 0.060, 0.040], fog: false, fogDensity: 0, exposure: 1.10, contrast: 1.00, toneMapping: false, vignette: false, glowIntensity: 0.38 },
+        environment: { clearColor: [0.13, 0.095, 0.060], fog: false, fogDensity: 0, exposure: 1.05, contrast: 1.00, toneMapping: false, vignette: false, glowIntensity: 0.28 },
         lighting: {
           mode: "interior",
-          ambientIntensity: 1.10,
-          ambientColor: [1.00, 0.86, 0.68],
+          ambientIntensity: 1.35,
+          ambientColor: [1.00, 0.90, 0.74],
           globalFill: {
             color: [1.00, 0.80, 0.60],
-            intensity: 0.78,
-            hemiIntensity: 0.78,
+            intensity: 0.92,
+            hemiIntensity: 1.00,
             directionalIntensity: 0.18,
             direction: [-0.28, -1, 0.20],
             points: [
