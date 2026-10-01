@@ -4,6 +4,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+const version = (await fs.readFile(path.join(here, "VERSION"), "utf8")).trim();
+const outputName = `playground_v${version}.json`;
 
 const files = {
   "index.ts": await fs.readFile(path.join(here, "index.ts"), "utf8"),
@@ -29,17 +31,14 @@ const payload = {
 
 const output = {
   payload: JSON.stringify(payload),
-  name: "D8 Night VTT",
-  description: "D8 Night VTT Babylon Playground",
+  name: `D8 Night VTT · v${version}`,
+  description: `D8 Night VTT Babylon Playground · Scene Engine v${version}`,
   tags: "d8-night,vtt,dnd"
 };
 
-await fs.writeFile(
-  path.join(here, "playground.json"),
-  JSON.stringify(output),
-  "utf8"
-);
+const serialized = JSON.stringify(output);
 
-console.log("Generated playground.json");
+await fs.writeFile(path.join(here, outputName), serialized, "utf8");
+await fs.writeFile(path.join(here, "playground.json"), serialized, "utf8");
 
-// trigger rebuild
+console.log(`Generated ${outputName} and playground.json`);
