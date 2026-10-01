@@ -3,10 +3,11 @@ export const D8NIGHT: any = {
     cafe: {
       label: "CAFÉ",
       spawn: [0, 0.43, 4.1],
-      camera: { radius: 22, beta: 0.52, alpha: -Math.PI / 2.08 },
+      camera: { radius: 23.5, beta: 0.43, alpha: -Math.PI / 2.04 },
       MAP: {
         size: [24, 16],
         floor: "stone_tavern",
+        visualFloor: "cafe_stone",
         objects: [
           { asset: "wall", position: [0, -7.65], size: [24, 0.7] },
           { asset: "wall", position: [-11.65, -2.5], size: [0.7, 10] },
@@ -73,7 +74,7 @@ export const D8NIGHT: any = {
         triggers: []
       },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.010, 0.008, 0.008], fog: true, fogDensity: 0.005, exposure: 1.08, contrast: 1.16, toneMapping: true },
+        environment: { clearColor: [0.010, 0.008, 0.008], fog: true, fogDensity: 0.004, exposure: 1.10, contrast: 1.22, toneMapping: true, vignette: true, vignetteWeight: 1.55, vignetteStretch: 0.22 },
         lighting: {
           ambientIntensity: 0.19,
           shadows: {
@@ -109,6 +110,8 @@ export const D8NIGHT: any = {
       MAP: {
         size: [28, 18],
         floor: "stone",
+        visualFloor: "night_cobble",
+        visualFloor: "temple_stone",
         objects: [
           { asset: "wall", position: [0, -8.65], size: [27.5, 0.55], height: 1.9 },
           { asset: "wall", position: [-13.65, -2.0], size: [0.55, 13.5], height: 1.7 },
@@ -139,7 +142,7 @@ export const D8NIGHT: any = {
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.012, 0.010, 0.020], fog: true, fogDensity: 0.007 },
+        environment: { clearColor: [0.012, 0.010, 0.020], fog: true, fogDensity: 0.006, exposure: 1.02, contrast: 1.14, toneMapping: true, vignette: true, vignetteWeight: 1.35 },
         lighting: {
           ambientIntensity: 0.16,
           shadows: { enabled: true, position: [-8, 9, 4], direction: [0.55, -1, -0.18], intensity: 0.30, mapSize: 1024, blurKernel: 14 },
@@ -185,7 +188,7 @@ export const D8NIGHT: any = {
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.018, 0.022, 0.045], fog: true, fogDensity: 0.006 },
+        environment: { clearColor: [0.018, 0.022, 0.045], fog: true, fogDensity: 0.005, exposure: 1.03, contrast: 1.16, toneMapping: true, vignette: true, vignetteWeight: 1.40 },
         lighting: {
           ambientIntensity: 0.20,
           shadows: { enabled: true, position: [-8, 8, -2], direction: [0.55, -1, 0.30], intensity: 0.32, mapSize: 1024, blurKernel: 12 },
@@ -210,6 +213,7 @@ export const D8NIGHT: any = {
       MAP: {
         size: [28, 20],
         floor: "snow",
+        visualFloor: "snow",
         objects: [
           { asset: "path", position: [-1.0, 4.8], size: [23.0, 2.2] },
           { asset: "path", position: [5.8, 0.2], size: [2.2, 11.0] },
@@ -234,7 +238,7 @@ export const D8NIGHT: any = {
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.055, 0.080, 0.12], fog: true, fogDensity: 0.011 },
+        environment: { clearColor: [0.055, 0.080, 0.12], fog: true, fogDensity: 0.010, exposure: 1.05, contrast: 1.12, toneMapping: true, vignette: true, vignetteWeight: 1.20 },
         lighting: {
           ambientIntensity: 0.38,
           shadows: { enabled: true, position: [-7, 10, -7], direction: [0.40, -1, 0.38], intensity: 0.28, mapSize: 1024, blurKernel: 14 },
@@ -259,6 +263,7 @@ export const D8NIGHT: any = {
       MAP: {
         size: [30, 20],
         floor: "stone",
+        visualFloor: "market_cobble",
         objects: [
           { asset: "market_stall", position: [-10.2, -5.6], size: [3.8, 2.0], color: "purple" },
           { asset: "market_stall", position: [-4.9, -5.9], size: [3.7, 2.0], color: "yellow" },
@@ -284,7 +289,7 @@ export const D8NIGHT: any = {
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.018, 0.018, 0.034], fog: true, fogDensity: 0.0045 },
+        environment: { clearColor: [0.018, 0.018, 0.034], fog: true, fogDensity: 0.004, exposure: 1.06, contrast: 1.17, toneMapping: true, vignette: true, vignetteWeight: 1.35 },
         lighting: {
           ambientIntensity: 0.19,
           shadows: { enabled: true, position: [-10, 9, -5], direction: [0.5, -1, 0.3], intensity: 0.30, mapSize: 1024, blurKernel: 12 },
@@ -308,6 +313,7 @@ export const D8NIGHT: any = {
       MAP: {
         size: [30, 20],
         floor: "ice",
+        visualFloor: "ice",
         objects: [
           { asset: "water_area", position: [2.0, 0.6], size: [18.0, 8.0] },
           { asset: "ice_crack", position: [2.0, 0.0], branches: 7, length: 5.2, rotation: 0.2 },
@@ -324,7 +330,7 @@ export const D8NIGHT: any = {
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.010, 0.035, 0.070], fog: true, fogDensity: 0.012 },
+        environment: { clearColor: [0.010, 0.035, 0.070], fog: true, fogDensity: 0.010, exposure: 1.08, contrast: 1.18, toneMapping: true, vignette: true, vignetteWeight: 1.15 },
         lighting: {
           ambientIntensity: 0.32,
           shadows: { enabled: true, position: [7, 10, 3], direction: [-0.45, -1, -0.25], intensity: 0.22, mapSize: 1024, blurKernel: 16 },
