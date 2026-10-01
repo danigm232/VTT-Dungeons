@@ -3,11 +3,40 @@ export const D8NIGHT: any = {
     cafe: {
       label: "CAFÉ",
       spawn: [0, 0.43, 4.1],
-      camera: { radius: 21.5, beta: 0.66, alpha: -Math.PI / 2.04 },
+      camera: { radius: 29, beta: 0.34, alpha: -Math.PI / 2 },
       MAP: {
         size: [24, 16],
+        renderMode: "reference_v14",
+        referenceUrl: "https://raw.githubusercontent.com/danigm232/VTT-Dungeons/main/campaigns/one-shot/source/Cafe%20no-me-olvides%20IA.png",
+        referenceTarget: [0, 0],
+        cameraFollow: false,
+        referenceLook: {
+          clearColor: [0.035, 0.024, 0.016],
+          fallbackColor: [0.22, 0.16, 0.11],
+          imageBrightness: 0.98,
+          exposure: 1,
+          contrast: 1,
+          glow: 0.12
+        },
+        referenceColliders: [
+          { position: [0, -7.7], size: [24, 0.55] },
+          { position: [-11.7, -1.5], size: [0.55, 12] },
+          { position: [11.7, -1.8], size: [0.55, 11.5] },
+          { position: [-2.9, -5], size: [11, 1] },
+          { position: [-9.6, -1.2], size: [2.5, 2.1] },
+          { position: [6.2, -5], size: [3.3, 2.2] },
+          { position: [8.45, 1.4], size: [0.6, 7.8] },
+          { position: [10.1, -2.5], size: [3.7, 0.6] },
+          { position: [-5.2, 0.6], size: [2.1, 2.1] },
+          { position: [1.55, 2.1], size: [2.1, 2.1] },
+          { position: [5.05, -0.45], size: [2.1, 2.1] }
+        ],
+        referenceEffects: [
+          { position: [-9.4, -1], size: [6.4, 5.2], color: [1, 0.24, 0.05], alpha: 0.16, pulse: true, speed: 2.4 },
+          { position: [-2.8, -5], size: [10.5, 3.6], color: [1, 0.5, 0.16], alpha: 0.07 },
+          { position: [3.6, 6], size: [6, 4], color: [0.06, 0.55, 0.68], alpha: 0.08, pulse: true, speed: 1.1 }
+        ],
         floor: "stone_tavern",
-        renderMode: "clean_v12",
         visualFloor: "cafe_stone",
         visualComposition: "cafe_reference",
         objects: [
@@ -146,9 +175,35 @@ export const D8NIGHT: any = {
     temple: {
       label: "TEMPLO",
       spawn: [0, 0.43, 6.6],
-      camera: { radius: 24.5, beta: 0.60, alpha: -Math.PI / 2.04 },
+      camera: { radius: 32, beta: 0.33, alpha: -Math.PI / 2 },
       MAP: {
-        size: [28, 18],
+        size: [27, 18],
+        renderMode: "reference_v14",
+        referenceUrl: "https://raw.githubusercontent.com/danigm232/VTT-Dungeons/main/campaigns/one-shot/source/temple-original.png",
+        referenceTarget: [0, 0],
+        cameraFollow: false,
+        referenceLook: {
+          clearColor: [0.028, 0.02, 0.025],
+          fallbackColor: [0.18, 0.13, 0.14],
+          imageBrightness: 0.98,
+          exposure: 1,
+          contrast: 1,
+          glow: 0.12
+        },
+        referenceColliders: [
+          { position: [0, -8.7], size: [27, 0.6] },
+          { position: [-13.2, 0], size: [0.6, 18] },
+          { position: [13.2, 0], size: [0.6, 18] },
+          { position: [0, 0.7], size: [7.5, 2.3] },
+          { position: [-8.2, -1.5], size: [1.5, 8.5] },
+          { position: [8.2, -1.5], size: [1.5, 8.5] },
+          { position: [0, 6.8], size: [3.5, 2.2] }
+        ],
+        referenceEffects: [
+          { position: [0, 0.8], size: [10, 5.4], color: [1, 0.48, 0.14], alpha: 0.1, pulse: true, speed: 1.2 },
+          { position: [-5.5, -4.8], size: [4.8, 4], color: [1, 0.24, 0.04], alpha: 0.1, pulse: true, speed: 2 },
+          { position: [5.5, -4.8], size: [4.8, 4], color: [1, 0.24, 0.04], alpha: 0.1, pulse: true, speed: 2.2 }
+        ],
         floor: "stone",
         visualFloor: "temple_stone",
         visualComposition: "temple_reference",
@@ -244,9 +299,33 @@ export const D8NIGHT: any = {
     dinner: {
       label: "DINNER",
       spawn: [0, 0.43, 7.0],
-      camera: { radius: 24.8, beta: 0.60, alpha: -Math.PI / 2.08 },
+      camera: { radius: 32, beta: 0.33, alpha: -Math.PI / 2 },
       MAP: {
-        size: [28, 18],
+        size: [27, 18],
+        renderMode: "reference_v14",
+        referenceUrl: "https://raw.githubusercontent.com/danigm232/VTT-Dungeons/main/campaigns/one-shot/source/Cena%20con%20Anteros.png",
+        referenceTarget: [0, 0],
+        cameraFollow: false,
+        referenceLook: {
+          clearColor: [0.018, 0.022, 0.035],
+          fallbackColor: [0.12, 0.13, 0.17],
+          imageBrightness: 0.99,
+          exposure: 1,
+          contrast: 1,
+          glow: 0.11
+        },
+        referenceColliders: [
+          { position: [0, -5.1], size: [12.5, 5.7] },
+          { position: [0, 3.1], size: [2.4, 2.2] },
+          { position: [-9.2, 1.8], size: [4, 3] },
+          { position: [8.8, -0.2], size: [3.2, 2.2] },
+          { position: [8.2, 5.6], size: [3.5, 2.5] }
+        ],
+        referenceEffects: [
+          { position: [0, -3.8], size: [11.5, 5.2], color: [1, 0.42, 0.12], alpha: 0.09, pulse: true, speed: 1.5 },
+          { position: [0, 3.2], size: [6.2, 5.2], color: [1, 0.58, 0.22], alpha: 0.11, pulse: true, speed: 1.1 },
+          { position: [9.2, -0.2], size: [4.2, 4.2], color: [1, 0.48, 0.15], alpha: 0.08, pulse: true, speed: 1.7 }
+        ],
         floor: "stone",
         visualFloor: "night_cobble",
         visualComposition: "dinner_reference",
@@ -313,9 +392,33 @@ export const D8NIGHT: any = {
     garden: {
       label: "GARDEN",
       spawn: [-10.5, 0.43, 6.0],
-      camera: { radius: 25.8, beta: 0.58, alpha: -Math.PI / 2.00 },
+      camera: { radius: 34, beta: 0.32, alpha: -Math.PI / 2 },
       MAP: {
-        size: [28, 20],
+        size: [27.55, 20],
+        renderMode: "reference_v14",
+        referenceUrl: "https://raw.githubusercontent.com/danigm232/VTT-Dungeons/main/campaigns/one-shot/source/El%20jardin%20de%20la%20srta%20fritz%20IA.png",
+        referenceTarget: [0, 0],
+        cameraFollow: false,
+        referenceLook: {
+          clearColor: [0.1, 0.085, 0.075],
+          fallbackColor: [0.3, 0.28, 0.26],
+          imageBrightness: 1,
+          exposure: 1,
+          contrast: 1,
+          glow: 0.08
+        },
+        referenceColliders: [
+          { position: [7, -1], size: [0.7, 9.5] },
+          { position: [9.9, -1], size: [0.7, 9.5] },
+          { position: [8.45, -5.5], size: [3.5, 0.7] },
+          { position: [8.45, 3.5], size: [3.5, 0.7] },
+          { position: [-10.5, -2], size: [2.5, 13] },
+          { position: [-1, -8.8], size: [17, 1] }
+        ],
+        referenceEffects: [
+          { position: [6.5, -2], size: [10, 7.5], color: [1, 0.58, 0.24], alpha: 0.06 },
+          { position: [-5, 2.5], size: [12.5, 8], color: [1, 0.7, 0.34], alpha: 0.05 }
+        ],
         floor: "snow",
         visualFloor: "snow",
         visualComposition: "garden_reference",
@@ -384,9 +487,34 @@ export const D8NIGHT: any = {
     market: {
       label: "MARKET",
       spawn: [0, 0.43, 7.2],
-      camera: { radius: 26.2, beta: 0.60, alpha: -Math.PI / 2.08 },
+      camera: { radius: 35, beta: 0.32, alpha: -Math.PI / 2 },
       MAP: {
         size: [30, 20],
+        renderMode: "reference_v14",
+        referenceUrl: "https://raw.githubusercontent.com/danigm232/VTT-Dungeons/main/campaigns/one-shot/source/El%20Mercado%20Nocturno%20IA.png",
+        referenceTarget: [0, 0],
+        cameraFollow: false,
+        referenceLook: {
+          clearColor: [0.1, 0.07, 0.045],
+          fallbackColor: [0.3, 0.23, 0.16],
+          imageBrightness: 1,
+          exposure: 1,
+          contrast: 1,
+          glow: 0.08
+        },
+        referenceColliders: [
+          { position: [-7.5, -6.1], size: [8.5, 2.8] },
+          { position: [4.5, -6.1], size: [10.5, 2.8] },
+          { position: [-10.6, -1], size: [4.4, 2.8] },
+          { position: [10.4, -0.8], size: [4.4, 2.8] },
+          { position: [-7, 4.8], size: [5.5, 3] },
+          { position: [7.5, 5], size: [5.8, 3.2] },
+          { position: [0.5, -0.2], size: [4, 2] }
+        ],
+        referenceEffects: [
+          { position: [-4.5, -1.5], size: [17, 11], color: [1, 0.58, 0.2], alpha: 0.05 },
+          { position: [7.5, 1.5], size: [13, 9], color: [1, 0.7, 0.3], alpha: 0.045 }
+        ],
         floor: "stone",
         visualFloor: "market_cobble",
         visualComposition: "market_reference",
@@ -459,9 +587,31 @@ export const D8NIGHT: any = {
     mirror: {
       label: "MIRROR",
       spawn: [10.5, 0.43, 6.8],
-      camera: { radius: 26.5, beta: 0.56, alpha: -Math.PI / 2.14 },
+      camera: { radius: 35, beta: 0.31, alpha: -Math.PI / 2 },
       MAP: {
         size: [30, 20],
+        renderMode: "reference_v14",
+        referenceUrl: "https://raw.githubusercontent.com/danigm232/VTT-Dungeons/main/campaigns/one-shot/source/El%20Espejo%20de%20plata%20del%20amor%20verdadero%20IA.png",
+        referenceTarget: [0, 0],
+        cameraFollow: false,
+        referenceLook: {
+          clearColor: [0.018, 0.055, 0.075],
+          fallbackColor: [0.1, 0.24, 0.32],
+          imageBrightness: 1,
+          exposure: 1,
+          contrast: 1,
+          glow: 0.16
+        },
+        referenceColliders: [
+          { position: [-11.5, -2.5], size: [4.5, 4.5] },
+          { position: [-1, 5.5], size: [10, 2] },
+          { position: [6, -6], size: [12, 2] }
+        ],
+        referenceEffects: [
+          { position: [-11, -2.6], size: [9.5, 8], color: [0.05, 0.78, 0.98], alpha: 0.14, pulse: true, speed: 1.3 },
+          { position: [2.5, 0.5], size: [17, 11], color: [0.06, 0.48, 0.82], alpha: 0.06, pulse: true, speed: 0.7 },
+          { position: [8, 3], size: [10, 8], color: [0.1, 0.92, 0.58], alpha: 0.055, pulse: true, speed: 0.9 }
+        ],
         floor: "ice",
         visualFloor: "ice",
         visualComposition: "mirror_reference",
