@@ -78,9 +78,9 @@ export const D8NIGHT: any = {
         triggers: []
       },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.010, 0.008, 0.008], fog: true, fogDensity: 0.004, exposure: 1.10, contrast: 1.22, toneMapping: true, vignette: true, vignetteWeight: 1.55, vignetteStretch: 0.22 },
+        environment: { clearColor: [0.020, 0.015, 0.012], fog: true, fogDensity: 0.0025, exposure: 1.24, contrast: 1.10, toneMapping: true, vignette: true, vignetteWeight: 0.78, vignetteStretch: 0.18 },
         lighting: {
-          ambientIntensity: 0.19,
+          ambientIntensity: 0.44,
           shadows: {
             enabled: true,
             position: [-8, 7, -4],
@@ -146,12 +146,12 @@ export const D8NIGHT: any = {
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.012, 0.010, 0.020], fog: true, fogDensity: 0.006, exposure: 1.02, contrast: 1.14, toneMapping: true, vignette: true, vignetteWeight: 1.35 },
+        environment: { clearColor: [0.025, 0.022, 0.032], fog: true, fogDensity: 0.0035, exposure: 1.18, contrast: 1.08, toneMapping: true, vignette: true, vignetteWeight: 0.76 },
         lighting: {
-          ambientIntensity: 0.16,
+          ambientIntensity: 0.28,
           shadows: { enabled: true, position: [-8, 9, 4], direction: [0.55, -1, -0.18], intensity: 0.30, mapSize: 1024, blurKernel: 14 },
           lights: [
-            { position: [0, 3.8, -5.2], color: [0.30, 0.34, 0.55], intensity: 0.36, range: 11 },
+            { position: [0, 3.8, -5.2], color: [0.38, 0.42, 0.62], intensity: 0.46, range: 12 },
             { position: [0, 2.8, 2.0], color: [1, 0.38, 0.12], intensity: 0.20, range: 8 }
           ]
         },
@@ -194,13 +194,13 @@ export const D8NIGHT: any = {
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.018, 0.022, 0.045], fog: true, fogDensity: 0.005, exposure: 1.03, contrast: 1.16, toneMapping: true, vignette: true, vignetteWeight: 1.40 },
+        environment: { clearColor: [0.030, 0.034, 0.060], fog: true, fogDensity: 0.0030, exposure: 1.20, contrast: 1.08, toneMapping: true, vignette: true, vignetteWeight: 0.78 },
         lighting: {
-          ambientIntensity: 0.20,
+          ambientIntensity: 0.32,
           shadows: { enabled: true, position: [-8, 8, -2], direction: [0.55, -1, 0.30], intensity: 0.32, mapSize: 1024, blurKernel: 12 },
           lights: [
             { position: [0, 2.1, -7.4], color: [1, 0.42, 0.12], intensity: 0.48, range: 8 },
-            { position: [0, 5.0, 4.0], color: [0.18, 0.22, 0.42], intensity: 0.24, range: 12 }
+            { position: [0, 5.0, 4.0], color: [0.24, 0.30, 0.50], intensity: 0.34, range: 13 }
           ]
         },
         vfx: { fireflies: true, fireflyCount: 20, roseSway: true },
@@ -245,9 +245,9 @@ export const D8NIGHT: any = {
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.055, 0.080, 0.12], fog: true, fogDensity: 0.010, exposure: 1.05, contrast: 1.12, toneMapping: true, vignette: true, vignetteWeight: 1.20 },
+        environment: { clearColor: [0.090, 0.120, 0.165], fog: true, fogDensity: 0.006, exposure: 1.15, contrast: 1.06, toneMapping: true, vignette: true, vignetteWeight: 0.68 },
         lighting: {
-          ambientIntensity: 0.38,
+          ambientIntensity: 0.50,
           shadows: { enabled: true, position: [-7, 10, -7], direction: [0.40, -1, 0.38], intensity: 0.28, mapSize: 1024, blurKernel: 14 },
           lights: [
             { position: [-6, 5.5, -2], color: [0.36, 0.48, 0.70], intensity: 0.38, range: 16 },
@@ -297,12 +297,12 @@ export const D8NIGHT: any = {
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.018, 0.018, 0.034], fog: true, fogDensity: 0.004, exposure: 1.06, contrast: 1.17, toneMapping: true, vignette: true, vignetteWeight: 1.35 },
+        environment: { clearColor: [0.032, 0.030, 0.044], fog: true, fogDensity: 0.0025, exposure: 1.22, contrast: 1.09, toneMapping: true, vignette: true, vignetteWeight: 0.76 },
         lighting: {
-          ambientIntensity: 0.19,
+          ambientIntensity: 0.33,
           shadows: { enabled: true, position: [-10, 9, -5], direction: [0.5, -1, 0.3], intensity: 0.30, mapSize: 1024, blurKernel: 12 },
           lights: [
-            { position: [0, 6.0, 0], color: [0.18, 0.22, 0.42], intensity: 0.28, range: 18 }
+            { position: [0, 6.0, 0], color: [0.24, 0.28, 0.50], intensity: 0.38, range: 19 }
           ]
         },
         vfx: { dust: true, fireflies: true, fireflyCount: 10 },
@@ -339,7 +339,7 @@ export const D8NIGHT: any = {
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.010, 0.035, 0.070], fog: true, fogDensity: 0.010, exposure: 1.08, contrast: 1.18, toneMapping: true, vignette: true, vignetteWeight: 1.15 },
+        environment: { clearColor: [0.025, 0.065, 0.105], fog: true, fogDensity: 0.0065, exposure: 1.18, contrast: 1.08, toneMapping: true, vignette: true, vignetteWeight: 0.70 },
         lighting: {
           ambientIntensity: 0.32,
           shadows: { enabled: true, position: [7, 10, 3], direction: [-0.45, -1, -0.25], intensity: 0.22, mapSize: 1024, blurKernel: 16 },
