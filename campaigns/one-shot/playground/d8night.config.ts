@@ -155,19 +155,32 @@ export const D8NIGHT: any = {
     },
     temple: {
       label: "TEMPLO",
-      spawn: [0, 0.43, 6.6],
-      camera: { radius: 24.5, beta: 0.60, alpha: -Math.PI / 2.04 },
+      spawn: [0, 0.43, 11.1],
+      camera: { radius: 29.5, beta: 0.58, alpha: -Math.PI / 2.04 },
       MAP: {
-        size: [28, 18],
+        size: [28, 24],
         floor: "stone",
         visualFloor: "temple_stone",
         visualComposition: "temple_reference",
         compositionOpacity: 0.12,
         objects: [
+          // V14.9 TEMPLE ACCESS: enclosed interior with one southern entrance.
           { asset: "wall", position: [0, -8.65], size: [27.5, 0.55], height: 1.9 },
-          { asset: "wall", position: [-13.65, -2.0], size: [0.55, 13.5], height: 1.7 },
-          { asset: "wall", position: [13.65, -2.0], size: [0.55, 13.5], height: 1.7 },
-          { asset: "archway", position: [0, -7.9], size: [4.2, 0.7], height: 4.2 },
+          { asset: "wall", position: [-13.65, -0.45], size: [0.55, 17.0], height: 1.9 },
+          { asset: "wall", position: [13.65, -0.45], size: [0.55, 17.0], height: 1.9 },
+          { asset: "wall", position: [-7.8, 7.75], size: [11.5, 0.55], height: 1.9 },
+          { asset: "wall", position: [7.8, 7.75], size: [11.5, 0.55], height: 1.9 },
+          { asset: "archway", position: [0, 7.45], size: [4.2, 0.7], height: 3.4 },
+
+          // Exterior approach: water crossed by a narrow wooden bridge, then stone stairs.
+          { asset: "water_area", position: [0, 10.15], size: [24.0, 3.7] },
+          { asset: "bridge", position: [0, 10.15], size: [2.6, 4.25], planks: 13 },
+          { asset: "stairs", position: [0, 7.95], size: [2.9, 2.35], steps: 5, height: 0.62, material: "stone" },
+          { asset: "path", position: [0, 6.75], size: [3.0, 1.4] },
+
+          // Water is not walkable except via the bridge.
+          { asset: "collider_only", position: [-7.1, 10.15], size: [10.9, 3.7] },
+          { asset: "collider_only", position: [7.1, 10.15], size: [10.9, 3.7] },
           { asset: "column", position: [-8.2, -5.5], height: 3.8 },
           { asset: "column", position: [8.2, -5.5], height: 3.8 },
           { asset: "column", position: [-8.2, -1.6], height: 3.5 },
@@ -175,12 +188,8 @@ export const D8NIGHT: any = {
           { asset: "column", position: [-8.2, 2.4], height: 3.1 },
           { asset: "column", position: [8.2, 2.4], height: 3.1 },
           { asset: "long_table", position: [0, 0.7], size: [6.8, 1.5] },
-          { asset: "chair", position: [-2.5, -0.7], rotation: 0 },
-          { asset: "chair", position: [0, -0.7], rotation: 0 },
-          { asset: "chair", position: [2.5, -0.7], rotation: 0 },
-          { asset: "chair", position: [-2.5, 2.1], rotation: Math.PI },
-          { asset: "chair", position: [0, 2.1], rotation: Math.PI },
-          { asset: "chair", position: [2.5, 2.1], rotation: Math.PI },
+          { asset: "chair", position: [0, -0.75], rotation: 0 },
+          { asset: "chair", position: [0, 2.15], rotation: Math.PI },
           { asset: "candle", position: [-2.0, 0.7], intensity: 0.55, range: 4.8 },
           { asset: "candle", position: [0, 0.7], intensity: 0.58, range: 5.0 },
           { asset: "candle", position: [2.0, 0.7], intensity: 0.55, range: 4.8 },
@@ -201,8 +210,8 @@ export const D8NIGHT: any = {
           { asset: "wall_sconce", position: [-10.8, 4.0], intensity: 0.84, range: 6.6 },
           { asset: "wall_sconce", position: [10.8, 4.0], intensity: 0.84, range: 6.6 },
           { asset: "statue", position: [0, -5.7] },
-          { asset: "rose_patch", position: [-9.9, 5.1], size: [3.4, 1.5], count: 14 },
-          { asset: "rose_patch", position: [9.9, 5.1], size: [3.4, 1.5], count: 14 },
+          { asset: "rose_patch", position: [-9.4, 5.45], size: [3.0, 1.3], count: 12 },
+          { asset: "rose_patch", position: [9.4, 5.45], size: [3.0, 1.3], count: 12 },
           { asset: "rose_patch", position: [-10.2, -4.1], size: [2.4, 1.3], count: 10 },
           { asset: "rose_patch", position: [10.2, -4.1], size: [2.4, 1.3], count: 10 }
         ]
@@ -244,7 +253,8 @@ export const D8NIGHT: any = {
           lightPools: [
             { position: [0, 0.7], size: [10.0, 5.4], color: [1.00, 0.50, 0.16], alpha: 0.13 },
             { position: [-5.5, -5.0], size: [5.0, 4.0], color: [1.00, 0.22, 0.04], alpha: 0.13 },
-            { position: [5.5, -5.0], size: [5.0, 4.0], color: [1.00, 0.22, 0.04], alpha: 0.13 }
+            { position: [5.5, -5.0], size: [5.0, 4.0], color: [1.00, 0.22, 0.04], alpha: 0.13 },
+            { position: [0, 10.1], size: [8.0, 4.0], color: [0.08, 0.38, 0.52], alpha: 0.08 }
           ]
         },
         audio: { music: null, ambience: null }
