@@ -1,0 +1,37 @@
+name: Build D8 Night Playground JSON
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "campaigns/one-shot/playground/index.ts"
+      - "campaigns/one-shot/playground/d8night.config.ts"
+      - "campaigns/one-shot/playground/generate-playground-json.mjs"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Generate playground.json
+        run: node campaigns/one-shot/playground/generate-playground-json.mjs
+
+      - name: Commit generated JSON
+        run: |
+          if git diff --quiet -- campaigns/one-shot/playground/playground.json; then
+            echo "No changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add campaigns/one-shot/playground/playground.json
+          git commit -m "Build D8 Night playground.json"
+          git push
