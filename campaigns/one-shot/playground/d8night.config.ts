@@ -272,7 +272,6 @@ export const D8NIGHT: any = {
         floor: "stone",
         visualFloor: "market_cobble",
         visualComposition: "market_reference",
-        visualFloor: "market_cobble",
         objects: [
           { asset: "market_stall", position: [-10.2, -5.6], size: [3.8, 2.0], color: "purple" },
           { asset: "market_stall", position: [-4.9, -5.9], size: [3.7, 2.0], color: "yellow" },
