@@ -31,17 +31,22 @@ export function createScene(engine: any, canvas: any) {
     smoke:mat("smoke",[0.15,0.14,0.13],{alpha:0.13,disableLighting:true}), dust:mat("dust",[1,0.70,0.25],{alpha:0.5,emissive:[0.35,0.14,0]}),
     player:mat("player",[0.02,0.58,1],{emissive:[0,0.08,0.18]}), gold:mat("gold",[0.72,0.43,0.07]),
     wax:mat("wax",[0.82,0.72,0.53]), ceramic:mat("ceramic",[0.72,0.67,0.56],{specular:0.12}),
-    iron:mat("iron",[0.12,0.11,0.10],{specular:0.18}), clothRed:mat("clothRed",[0.34,0.035,0.025]), clothBlue:mat("clothBlue",[0.05,0.12,0.24])
+    iron:mat("iron",[0.12,0.11,0.10],{specular:0.18}), clothRed:mat("clothRed",[0.34,0.035,0.025]), clothBlue:mat("clothBlue",[0.05,0.12,0.24]),
+    rose:mat("rose",[0.62,0.025,0.035],{emissive:[0.025,0,0]}), rosePink:mat("rosePink",[0.78,0.14,0.22]), leaf:mat("leaf",[0.08,0.24,0.07]), leafDark:mat("leafDark",[0.035,0.12,0.035]),
+    frost:mat("frost",[0.70,0.88,1],{alpha:0.80,specular:0.6,emissive:[0.02,0.05,0.08]}), magicBlue:mat("magicBlue",[0.08,0.52,1],{emissive:[0.03,0.30,0.85],alpha:0.92}),
+    magicWhite:mat("magicWhite",[0.78,0.92,1],{emissive:[0.35,0.58,0.85]}), roof:mat("roof",[0.17,0.055,0.025]), plaster:mat("plaster",[0.46,0.40,0.32]),
+    soil:mat("soil",[0.17,0.08,0.035]), grass:mat("grass",[0.09,0.22,0.055]), lanternGlass:mat("lanternGlass",[1,0.56,0.10],{emissive:[0.9,0.28,0.02],alpha:0.72})
   };
 
-  let rt:any={id:null,config:null,root:null,colliders:[],interactables:[],updaters:[],grid:null,disposables:[],markers:{fireplaces:[],pools:[]}};
+  let rt:any={id:null,config:null,root:null,colliders:[],interactables:[],updaters:[],grid:null,disposables:[],markers:{fireplaces:[],pools:[],roses:[],magic:[]}};
   let gridVisible=true, overview=false, nearest:any=null, elapsed=0;
-  const reset=(id:string,c:any)=>{ if(rt.disposables)rt.disposables.forEach((d:any)=>{try{d.dispose();}catch{}}); if(rt.root)rt.root.dispose(false,false); rt={id,config:c,root:new BABYLON.TransformNode("MAP_"+id,scene),colliders:[],interactables:[],updaters:[],grid:null,disposables:[],markers:{fireplaces:[],pools:[]}}; };
+  const reset=(id:string,c:any)=>{ if(rt.disposables)rt.disposables.forEach((d:any)=>{try{d.dispose();}catch{}}); if(rt.root)rt.root.dispose(false,false); rt={id,config:c,root:new BABYLON.TransformNode("MAP_"+id,scene),colliders:[],interactables:[],updaters:[],grid:null,disposables:[],markers:{fireplaces:[],pools:[],roses:[],magic:[]}}; };
 
   const box=(n:string,x:number,y:number,z:number,w:number,h:number,d:number,m:any)=>{const q=BABYLON.MeshBuilder.CreateBox(n,{width:w,height:h,depth:d},scene);q.position.set(x,y,z);q.material=m;q.parent=rt.root;return q;};
   const cyl=(n:string,x:number,y:number,z:number,d:number,h:number,m:any)=>{const q=BABYLON.MeshBuilder.CreateCylinder(n,{diameter:d,height:h,tessellation:24},scene);q.position.set(x,y,z);q.material=m;q.parent=rt.root;return q;};
   const sph=(n:string,x:number,y:number,z:number,d:number,m:any)=>{const q=BABYLON.MeshBuilder.CreateSphere(n,{diameter:d,segments:12},scene);q.position.set(x,y,z);q.material=m;q.parent=rt.root;return q;};
   const collider=(x:number,z:number,w:number,d:number)=>rt.colliders.push({minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2});
+  const track=(d:any)=>{rt.disposables.push(d);return d;};
 
   function floor(c:any){
     let m=M.stone; if(c.MAP.floor==="snow")m=M.snow; if(c.MAP.floor==="ice")m=M.ice; if(c.MAP.floor==="stone_tavern")m=M.stoneDark;
@@ -58,7 +63,11 @@ export function createScene(engine: any, canvas: any) {
 
   function asset(o:any){
     const x=o.position[0],z=o.position[1],s=o.scale??1;
-    if(o.asset==="wall"){box("wall",x,0.8,z,o.size[0],1.6,o.size[1],M.stoneDark);collider(x,z,o.size[0],o.size[1]);}
+    if(o.asset==="wall"){
+      const h=o.height??1.6,material=M[o.material]??M.stoneDark;
+      box("wall",x,h/2,z,o.size[0],h,o.size[1],material);
+      collider(x,z,o.size[0],o.size[1]);
+    }
     else if(o.asset==="room_floor"){box("roomFloor",x,0.06,z,o.size[0],0.12,o.size[1],M[o.material]??M.wood);}
     else if(o.asset==="bar"){box("bar",x,0.56,z,10.8,1.12,1.05,M.wood);box("barTop",x,1.17,z,11.2,0.15,1.25,M.woodLight);box("barBack",x,0.85,z-1.55,10.6,1.7,0.38,M.woodDark);collider(x,z,10.8,1.05);for(let i=0;i<16;i++)cyl("bottle",x-4.8+i*0.63,1.24,z-1.15,0.14,0.45,i%3===0?M.green:(i%3===1?M.yellow:M.red));}
     else if(o.asset==="barrel_large"){cyl("barrel",x,1.05,z,1.65,2.1,M.wood);for(let i=0;i<4;i++)cyl("ring",x,0.2+i*0.58,z,1.72,0.05,M.stoneDark);collider(x,z,1.3,1.3);}
@@ -102,7 +111,7 @@ export function createScene(engine: any, canvas: any) {
       cyl("candleBody",x,h/2+0.70,z,0.10*s,h,M.wax);
       const flame=sph("candleFlame",x,0.70+h+0.10,z,0.12*s,M.fireInner);
       flame.scaling.y=1.35;
-      const light=new BABYLON.PointLight("candleLight",new BABYLON.Vector3(x,0.70+h+0.18,z),scene);
+      const light=track(new BABYLON.PointLight("candleLight",new BABYLON.Vector3(x,0.70+h+0.18,z),scene));
       light.parent=rt.root; light.diffuse=new BABYLON.Color3(1,0.48,0.13); light.range=o.range??2.7; light.intensity=o.intensity??0.22;
       const base=flame.position.y,seed=x*1.7+z*2.3;
       rt.updaters.push((t:number)=>{const f=Math.sin(t*12.7+seed);flame.scaling.y=1.35+f*0.16;flame.position.y=base+f*0.012;light.intensity=(o.intensity??0.22)+f*0.03;});
@@ -112,6 +121,166 @@ export function createScene(engine: any, canvas: any) {
       cyl("smallBarrel",x,h/2,z,d,h,M.wood);
       for(let i=0;i<3;i++)cyl("smallBarrelRing",x,0.14+i*(h-0.28)/2,z,d*1.04,0.045,M.iron);
       collider(x,z,d*0.75,d*0.75);
+    }
+    else if(o.asset==="round_room"){
+      const radius=o.radius??3.0,segments=o.segments??18,opening=o.opening??2;
+      const segLen=2*Math.PI*radius/segments*0.95;
+      for(let i=0;i<segments;i++){
+        if(i<opening)continue;
+        const a=i/segments*Math.PI*2,px=x+Math.cos(a)*radius,pz=z+Math.sin(a)*radius;
+        const w=segLen,d=0.42,h=o.height??1.55;
+        const q=box("roundRoomWall",px,h/2,pz,w,h,d,M.stoneDark);
+        q.rotation.y=-a;
+        const aw=Math.abs(Math.cos(a))*w+Math.abs(Math.sin(a))*d;
+        const ad=Math.abs(Math.sin(a))*w+Math.abs(Math.cos(a))*d;
+        collider(px,pz,aw,ad);
+      }
+      cyl("roundRoomFloor",x,0.035,z,radius*1.8,0.07,M.stone2);
+    }
+    else if(o.asset==="bed"){
+      const w=(o.size?.[0]??1.25)*s,d=(o.size?.[1]??2.25)*s;
+      box("bedFrame",x,0.26,z,w,0.28,d,M.woodDark);
+      box("mattress",x,0.46,z,w*0.90,0.22,d*0.90,M.ceramic);
+      box("pillow",x,0.62,z-d*0.33,w*0.55,0.16,d*0.20,M.wax);
+      collider(x,z,w,d);
+    }
+    else if(o.asset==="rose_patch"){
+      const count=o.count??14,spreadX=o.size?.[0]??3.0,spreadZ=o.size?.[1]??1.8;
+      box("roseSoil",x,0.055,z,spreadX,0.08,spreadZ,M.soil);
+      for(let i=0;i<count;i++){
+        const px=x-spreadX*0.42+((i*37)%100)/100*spreadX*0.84;
+        const pz=z-spreadZ*0.38+((i*61)%100)/100*spreadZ*0.76;
+        const h=0.38+(i%4)*0.07;
+        cyl("roseStem",px,h/2+0.08,pz,0.045,h,M.leafDark);
+        const head=sph("roseHead",px,h+0.12,pz,0.20+(i%3)*0.025,i%4===0?M.rosePink:M.rose);
+        head.scaling.y=0.75;
+        rt.markers.roses.push({mesh:head,baseY:head.position.y,seed:i});
+      }
+    }
+    else if(o.asset==="snow_tree"){
+      const h=(o.height??3.6)*s;
+      cyl("snowTreeTrunk",x,h*0.34,z,0.42*s,h*0.68,M.woodDark);
+      for(let i=0;i<7;i++){
+        const a=i/7*Math.PI*2,len=(1.0+(i%3)*0.22)*s,y=h*0.55+(i%3)*0.25;
+        const branch=box("snowBranch",x+Math.cos(a)*len*0.36,y,z+Math.sin(a)*len*0.36,len,0.10,0.10,M.woodDark);
+        branch.rotation.y=-a;
+        branch.rotation.z=(i%2?0.18:-0.15);
+        const snow=sph("branchSnow",x+Math.cos(a)*len*0.72,y+0.11,z+Math.sin(a)*len*0.72,0.42*s,M.snow);
+        snow.scaling.y=0.35;
+      }
+      collider(x,z,0.65*s,0.65*s);
+    }
+    else if(o.asset==="market_stall"){
+      const w=(o.size?.[0]??3.7)*s,d=(o.size?.[1]??2.0)*s,cloth=M[o.color]??M.clothRed;
+      box("stallCounter",x,0.62,z,w,0.20,d*0.55,M.woodLight);
+      for(const sx of [-1,1])for(const sz of [-1,1])box("stallPost",x+sx*w*0.43,1.15,z+sz*d*0.38,0.12,2.3,0.12,M.woodDark);
+      const canopy=box("stallCanopy",x,2.20,z,w*1.08,0.12,d*1.10,cloth);
+      canopy.rotation.z=0.03;
+      collider(x,z,w*0.92,d*0.72);
+      for(let i=0;i<5;i++)sph("produce",x-w*0.32+i*w*0.16,0.82,z,0.18,i%2?M.green:M.red);
+    }
+    else if(o.asset==="trough"){
+      const w=(o.size?.[0]??2.8)*s,d=(o.size?.[1]??1.0)*s;
+      box("troughBottom",x,0.24,z,w,0.18,d,M.woodDark);
+      box("troughSideA",x,0.48,z-d*0.44,w,0.48,0.12,M.wood);
+      box("troughSideB",x,0.48,z+d*0.44,w,0.48,0.12,M.wood);
+      box("troughEndA",x-w*0.47,0.48,z,0.12,0.48,d,M.wood);
+      box("troughEndB",x+w*0.47,0.48,z,0.12,0.48,d,M.wood);
+      box("troughWater",x,0.43,z,w*0.86,0.04,d*0.70,M.water);
+      collider(x,z,w,d);
+    }
+    else if(o.asset==="cow_proxy"){
+      const body=sph("cowBody",x,1.0,z,1.55*s,M.ceramic);body.scaling.set(1.35,0.75,0.82);
+      const hx=x+(o.facing??1)*0.95*s;
+      const head=sph("cowHead",hx,1.02,z,0.72*s,M.ceramic);head.scaling.set(0.95,0.82,0.75);
+      for(const lx of [-0.45,0.45])for(const lz of [-0.38,0.38])cyl("cowLeg",x+lx*s,0.40,z+lz*s,0.14*s,0.80*s,M.woodDark);
+      cyl("cowHornA",hx+(o.facing??1)*0.20,1.36,z-0.22*s,0.10*s,0.38*s,M.wax);
+      cyl("cowHornB",hx+(o.facing??1)*0.20,1.36,z+0.22*s,0.10*s,0.38*s,M.wax);
+      collider(x,z,1.9*s,1.2*s);
+    }
+    else if(o.asset==="lantern_post"){
+      const h=(o.height??2.6)*s;
+      cyl("lanternPost",x,h/2,z,0.12*s,h,M.iron);
+      box("lanternBox",x,h+0.05,z,0.38*s,0.52*s,0.38*s,M.iron);
+      const glowBox=box("lanternGlow",x,h+0.05,z,0.24*s,0.34*s,0.24*s,M.lanternGlass);
+      const light=track(new BABYLON.PointLight("lanternLight",new BABYLON.Vector3(x,h+0.05,z),scene));
+      light.parent=rt.root;light.diffuse=new BABYLON.Color3(1,0.45,0.10);light.range=o.range??5;light.intensity=o.intensity??0.62;
+      const seed=x*0.7+z*1.3;
+      rt.updaters.push((t:number)=>{const f=Math.sin(t*8.1+seed)*0.08+Math.sin(t*13.3+seed)*0.04;light.intensity=(o.intensity??0.62)+f;glowBox.scaling.y=1+f*0.18;});
+      collider(x,z,0.32*s,0.32*s);
+    }
+    else if(o.asset==="house"){
+      const w=(o.size?.[0]??8)*s,d=(o.size?.[1]??5)*s,h=(o.height??2.7)*s;
+      box("houseBody",x,h/2,z,w,h,d,M.plaster);
+      box("houseBeamTop",x,h*0.88,z-d*0.51,w*1.02,0.16,0.14,M.woodDark);
+      for(const bx of [-0.35,0.35])box("houseBeam",x+w*bx,h*0.50,z-d*0.51,0.16,h*0.90,0.14,M.woodDark);
+      const roofA=box("roofA",x-w*0.23,h+0.72,z,w*0.58,0.18,d*1.18,M.roof);roofA.rotation.z=0.55;
+      const roofB=box("roofB",x+w*0.23,h+0.72,z,w*0.58,0.18,d*1.18,M.roof);roofB.rotation.z=-0.55;
+      const door=box("houseDoor",x-w*0.28,h*0.38,z-d*0.515,w*0.18,h*0.76,0.10,M.woodDark);
+      for(const wx of [0.05,0.30]){
+        const win=box("windowGlow",x+w*wx,h*0.58,z-d*0.52,w*0.16,h*0.28,0.08,M.lanternGlass);
+        win.scaling.y=1;
+      }
+      collider(x,z,w,d);
+    }
+    else if(o.asset==="long_table"){
+      const w=(o.size?.[0]??5.2)*s,d=(o.size?.[1]??1.35)*s;
+      box("longTableTop",x,0.78,z,w,0.18,d,M.woodLight);
+      for(const sx of [-1,1])for(const sz of [-1,1])box("longTableLeg",x+sx*w*0.38,0.37,z+sz*d*0.30,0.16,0.74,0.16,M.woodDark);
+      collider(x,z,w*0.88,d*0.88);
+    }
+    else if(o.asset==="column"){
+      const h=(o.height??3.0)*s,d=(o.diameter??0.75)*s;
+      cyl("columnBase",x,0.12,z,d*1.35,0.24,M.stone2);
+      cyl("column",x,h/2+0.20,z,d,h,M.stoneLight);
+      cyl("columnCap",x,h+0.30,z,d*1.35,0.22,M.stone2);
+      collider(x,z,d,d);
+    }
+    else if(o.asset==="archway"){
+      const w=(o.size?.[0]??3.2)*s,h=(o.height??3.2)*s;
+      box("archLeft",x-w*0.43,h*0.45,z,0.45,h*0.90,0.60,M.stoneDark);
+      box("archRight",x+w*0.43,h*0.45,z,0.45,h*0.90,0.60,M.stoneDark);
+      const top=box("archTop",x,h*0.91,z,w,0.48,0.60,M.stone2);
+      top.rotation.z=0.02;
+      collider(x-w*0.43,z,0.45,0.60);collider(x+w*0.43,z,0.45,0.60);
+    }
+    else if(o.asset==="ice_crack"){
+      const branches=o.branches??5,length=(o.length??3.0)*s;
+      for(let b=0;b<branches;b++){
+        const points:any[]=[new BABYLON.Vector3(x,0.085,z)];
+        const a=(b/branches)*Math.PI*2+(o.rotation??0);
+        for(let i=1;i<=4;i++){
+          const t=i/4,j=(b*17+i*13)%7*0.035;
+          points.push(new BABYLON.Vector3(x+Math.cos(a+j)*length*t,0.086,z+Math.sin(a+j)*length*t));
+        }
+        const line=BABYLON.MeshBuilder.CreateLines("iceCrack",{points},scene);line.parent=rt.root;line.color=new BABYLON.Color3(0.08,0.32,0.58);line.alpha=0.78;
+      }
+    }
+    else if(o.asset==="magic_pedestal"){
+      const base=cyl("magicBase",x,0.18,z,2.5*s,0.36,M.stoneDark);
+      cyl("magicRing",x,0.42,z,1.95*s,0.20,M.gold);
+      const core=cyl("magicCore",x,0.64,z,1.45*s,0.26,M.magicBlue);
+      const light=track(new BABYLON.PointLight("magicPedestalLight",new BABYLON.Vector3(x,1.0,z),scene));
+      light.parent=rt.root;light.diffuse=new BABYLON.Color3(0.10,0.55,1);light.range=6;light.intensity=o.intensity??0.75;
+      rt.markers.magic.push({x,z,mesh:core,light,seed:x+z});
+      collider(x,z,2.3*s,2.3*s);
+    }
+    else if(o.asset==="mirror_frame"){
+      const root=new BABYLON.TransformNode("mirrorFrame",scene);root.parent=rt.root;root.position.set(x,0,z);root.rotation.y=o.rotation??0;
+      const frame=BABYLON.MeshBuilder.CreateTorus("mirrorFrameRing",{diameter:2.35*s,thickness:0.18*s,tessellation:40},scene);
+      frame.parent=root;frame.position.y=1.65*s;frame.rotation.x=Math.PI/2;frame.material=M.gold;
+      const glass=BABYLON.MeshBuilder.CreateDisc("mirrorGlass",{radius:0.96*s,tessellation:40},scene);
+      glass.parent=root;glass.position.y=1.65*s;glass.rotation.y=Math.PI;glass.material=M.frost;
+      box("mirrorSupport",x,0.85,z,0.28*s,1.70*s,0.32*s,M.gold);
+      rt.markers.magic.push({x,z,mesh:glass,seed:x-z});
+      collider(x,z,1.4*s,1.0*s);
+    }
+    else if(o.asset==="ice_crystal"){
+      const h=(o.height??1.4)*s;
+      const q=BABYLON.MeshBuilder.CreateCylinder("iceCrystal",{diameterTop:0,diameterBottom:0.52*s,height:h,tessellation:5},scene);
+      q.position.set(x,h/2,z);q.material=M.frost;q.parent=rt.root;q.rotation.y=(o.rotation??0);
+      const baseY=q.position.y,seed=x*1.3+z*0.7;
+      rt.updaters.push((t:number)=>{q.position.y=baseY+Math.sin(t*1.6+seed)*0.035;q.rotation.y+=0.0015;});
     }
     else if(o.asset==="fireplace"){box("fireplace",x-0.9,0.85,z,1.4,1.7,3.9,M.stoneDark);box("opening",x,0.4,z,0.25,0.8,1.4,M.woodDark);collider(x-0.7,z,1.4,3.9);rt.markers.fireplaces.push({x,z});}
     else if(o.asset==="rug"){box("rugBorder",x,0.075,z,o.size[0],0.04,o.size[1],M.yellow);box("rug",x,0.09,z,o.size[0]-0.25,0.025,o.size[1]-0.25,M.green);}
@@ -127,9 +296,9 @@ export function createScene(engine: any, canvas: any) {
   }
 
   function env(c:any){const e=c.VTT_AMBIENCE.environment;scene.clearColor=new BABYLON.Color4(e.clearColor[0],e.clearColor[1],e.clearColor[2],1);if(e.fog){scene.fogMode=BABYLON.Scene.FOGMODE_EXP2;scene.fogDensity=e.fogDensity;scene.fogColor=new BABYLON.Color3(e.clearColor[0],e.clearColor[1],e.clearColor[2]);}else scene.fogMode=BABYLON.Scene.FOGMODE_NONE;}
-  function lights(c:any){const l=c.VTT_AMBIENCE.lighting;hemi.intensity=l.ambientIntensity;(l.lights??[]).forEach((d:any)=>{const q=new BABYLON.PointLight("mapLight",new BABYLON.Vector3(d.position[0],d.position[1],d.position[2]),scene);q.parent=rt.root;q.diffuse=new BABYLON.Color3(d.color[0],d.color[1],d.color[2]);q.intensity=d.intensity;q.range=d.range;});}
+  function lights(c:any){const l=c.VTT_AMBIENCE.lighting;hemi.intensity=l.ambientIntensity;(l.lights??[]).forEach((d:any)=>{const q=track(new BABYLON.PointLight("mapLight",new BABYLON.Vector3(d.position[0],d.position[1],d.position[2]),scene));q.parent=rt.root;q.diffuse=new BABYLON.Color3(d.color[0],d.color[1],d.color[2]);q.intensity=d.intensity;q.range=d.range;});}
 
-  function fire(marker:any,v:any){const a=sph("fireOuter",marker.x,0.45,marker.z,0.58,M.fireOuter);a.scaling.y=1.75;const b=sph("fireInner",marker.x,0.38,marker.z,0.32,M.fireInner);b.scaling.y=1.7;const l=new BABYLON.PointLight("fireLight",new BABYLON.Vector3(marker.x,1.2,marker.z),scene);l.parent=rt.root;l.diffuse=new BABYLON.Color3(1,0.24,0.02);l.range=7;l.intensity=2.1;const ay=a.position.y,by=b.position.y;rt.updaters.push((t:number)=>{const x=Math.sin(t*9.4),y=Math.sin(t*14.2);a.position.y=ay+x*0.04;b.position.y=by+y*0.025;a.scaling.x=1+x*0.09;l.intensity=2+x*0.22+y*0.1;});if(v.smoke)for(let i=0;i<6;i++){const s=sph("smoke",marker.x,0.8+i*0.2,marker.z,0.3+i*0.05,M.smoke),o=i/6;rt.updaters.push((t:number)=>{const c=(t*0.18+o)%1;s.position.y=0.75+c*3;s.position.x=marker.x+Math.sin(t*0.6+i)*0.18;const k=0.7+c*1.4;s.scaling.set(k,k*1.2,k);});}}
+  function fire(marker:any,v:any){const a=sph("fireOuter",marker.x,0.45,marker.z,0.58,M.fireOuter);a.scaling.y=1.75;const b=sph("fireInner",marker.x,0.38,marker.z,0.32,M.fireInner);b.scaling.y=1.7;const l=track(new BABYLON.PointLight("fireLight",new BABYLON.Vector3(marker.x,1.2,marker.z),scene));l.parent=rt.root;l.diffuse=new BABYLON.Color3(1,0.24,0.02);l.range=7;l.intensity=2.1;const ay=a.position.y,by=b.position.y;rt.updaters.push((t:number)=>{const x=Math.sin(t*9.4),y=Math.sin(t*14.2);a.position.y=ay+x*0.04;b.position.y=by+y*0.025;a.scaling.x=1+x*0.09;l.intensity=2+x*0.22+y*0.1;});if(v.smoke)for(let i=0;i<6;i++){const s=sph("smoke",marker.x,0.8+i*0.2,marker.z,0.3+i*0.05,M.smoke),o=i/6;rt.updaters.push((t:number)=>{const c=(t*0.18+o)%1;s.position.y=0.75+c*3;s.position.x=marker.x+Math.sin(t*0.6+i)*0.18;const k=0.7+c*1.4;s.scaling.set(k,k*1.2,k);});}}
   function dust(){for(let i=0;i<16;i++){const x=-9+((i*37)%18),z=-5+((i*23)%10),m=sph("dust",x,0.7+(i%5)*0.42,z,0.035,M.dust),y=m.position.y;rt.updaters.push((t:number)=>m.position.y=y+Math.sin(t*0.7+i)*0.14);}}
   function ripple(x:number,z:number,o:number){const p:any[]=[];for(let i=0;i<=40;i++){const a=i/40*Math.PI*2;p.push(new BABYLON.Vector3(Math.cos(a)*0.45,0,Math.sin(a)*0.45));}const r=BABYLON.MeshBuilder.CreateLines("ripple",{points:p},scene);r.parent=rt.root;r.position.set(x,0.13,z);r.color=new BABYLON.Color3(0.2,0.75,0.8);rt.updaters.push((t:number)=>{const c=(t*0.2+o)%1,k=0.5+c*4;r.scaling.set(k,1,k);r.alpha=0.3*(1-c);});}
   function embers(marker:any){
@@ -138,12 +307,49 @@ export function createScene(engine: any, canvas: any) {
       rt.updaters.push((t:number)=>{const c=(t*0.55+off)%1;e.position.y=0.35+c*1.6;e.position.x=marker.x+Math.sin(t*2+i)*0.18*c;e.position.z=marker.z+Math.cos(t*1.7+i)*0.13*c;const k=1-c;e.scaling.set(k,k,k);});
     }
   }
+  function snowfall(c:any,v:any){
+    const size=c.MAP.size,count=v.snowCount??34;
+    for(let i=0;i<count;i++){
+      const x=-size[0]/2+((i*47)%100)/100*size[0],z=-size[1]/2+((i*71)%100)/100*size[1];
+      const flake=sph("snowFlake",x,0.8+((i*31)%100)/100*4.5,z,0.045+(i%3)*0.018,M.magicWhite);
+      const startY=flake.position.y,seed=i*0.73;
+      rt.updaters.push((t:number)=>{
+        let y=startY-((t*(v.snowSpeed??0.45)+seed)%5.2);
+        if(y<0.18)y+=5.2;
+        flake.position.y=y;flake.position.x=x+Math.sin(t*0.65+seed)*0.28;flake.position.z=z+Math.cos(t*0.4+seed)*0.12;
+      });
+    }
+  }
+  function fireflies(c:any,v:any){
+    const count=v.fireflyCount??18,size=c.MAP.size;
+    for(let i=0;i<count;i++){
+      const x=-size[0]*0.38+((i*43)%100)/100*size[0]*0.76,z=-size[1]*0.36+((i*67)%100)/100*size[1]*0.72;
+      const f=sph("firefly",x,0.55+(i%5)*0.35,z,0.035,M.lanternGlass),baseY=f.position.y,seed=i*1.17;
+      rt.updaters.push((t:number)=>{f.position.y=baseY+Math.sin(t*1.1+seed)*0.22;f.position.x=x+Math.sin(t*0.55+seed)*0.35;f.position.z=z+Math.cos(t*0.72+seed)*0.28;const k=0.65+Math.sin(t*3.2+seed)*0.25;f.scaling.set(k,k,k);});
+    }
+  }
+  function roseSway(){
+    rt.markers.roses.forEach((r:any)=>rt.updaters.push((t:number)=>{r.mesh.position.y=r.baseY+Math.sin(t*1.4+r.seed)*0.018;r.mesh.rotation.z=Math.sin(t*1.1+r.seed)*0.08;}));
+  }
+  function magicMotes(v:any){
+    rt.markers.magic.forEach((m:any)=>{
+      for(let i=0;i<(v.magicCount??12);i++){
+        const p=sph("magicMote",m.x,0.55,m.z,0.045+(i%3)*0.012,i%2?M.magicBlue:M.magicWhite),off=i/12,seed=i*0.9+m.seed;
+        rt.updaters.push((t:number)=>{const a=t*0.65+seed,r=0.55+((i%4)*0.16);p.position.x=m.x+Math.cos(a)*r;p.position.z=m.z+Math.sin(a)*r;p.position.y=0.45+((t*0.22+off)%1)*2.7;const k=0.55+Math.sin(t*3+seed)*0.25;p.scaling.set(k,k,k);});
+      }
+      if(m.light)rt.updaters.push((t:number)=>m.light.intensity=0.70+Math.sin(t*2+m.seed)*0.12);
+    });
+  }
   function vfx(c:any){
     const v=c.VTT_AMBIENCE.vfx??{};
     if(v.fireplace)rt.markers.fireplaces.forEach((m:any)=>{fire(m,v);if(v.embers)embers(m);});
     if(v.dust)dust();
     if(v.waterRipples)rt.markers.pools.forEach((m:any)=>{ripple(m.x,m.z,0);ripple(m.x,m.z,0.33);ripple(m.x,m.z,0.66);});
     if(v.waterMotion)rt.markers.pools.forEach((m:any)=>{if(!m.mesh)return;rt.updaters.push((t:number)=>{m.mesh.position.y=m.baseY+Math.sin(t*1.7)*0.016;m.mesh.scaling.z=1+Math.sin(t*1.2)*0.012;});});
+    if(v.snowfall)snowfall(c,v);
+    if(v.fireflies)fireflies(c,v);
+    if(v.roseSway)roseSway();
+    if(v.magicMotes)magicMotes(v);
   }
 
   function shadows(c:any){
@@ -174,7 +380,7 @@ export function createScene(engine: any, canvas: any) {
   const msg=new BABYLON.GUI.TextBlock();msg.width="650px";msg.height="55px";msg.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;msg.top="15px";msg.color="#efdfc3";msg.fontSize=13;ui.addControl(msg);
   let timer:any=null;const show=(t:string)=>{msg.text=t;if(timer)clearTimeout(timer);timer=setTimeout(()=>msg.text="",3000);};
 
-  function loadMap(id:string){const c=D8NIGHT.maps[id];if(!c)return;reset(id,c);env(c);floor(c);grid(c);c.MAP.objects.forEach(asset);lights(c);vfx(c);shadows(c);rt.interactables=[...(c.CANON.interactables??[]),...(c.VTT_AMBIENCE.interactables??[])];player.position.set(c.spawn[0],c.spawn[1],c.spawn[2]);camera.target.set(player.position.x,0,player.position.z);ring.isVisible=false;title.text=c.label;Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");show("Mapa cargado: "+c.label);}
+  function loadMap(id:string){const c=D8NIGHT.maps[id];if(!c)return;reset(id,c);env(c);floor(c);grid(c);c.MAP.objects.forEach(asset);lights(c);vfx(c);shadows(c);rt.interactables=[...(c.CANON.interactables??[]),...(c.VTT_AMBIENCE.interactables??[])];player.position.set(c.spawn[0],c.spawn[1],c.spawn[2]);if(!overview&&c.camera){camera.radius=c.camera.radius??20;camera.beta=c.camera.beta??0.70;camera.alpha=c.camera.alpha??-Math.PI/2.15;}camera.target.set(player.position.x,0,player.position.z);ring.isVisible=false;title.text=c.label;Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");show("Mapa cargado: "+c.label);}
 
   const keys:any={};
   window.addEventListener("keydown",(e:KeyboardEvent)=>{const k=e.key.toLowerCase();keys[k]=true;if(k>="1"&&k<="6")loadMap(order[Number(k)-1]);if(k==="e"&&!e.repeat&&nearest)show(nearest.message);if(k==="g"&&!e.repeat){gridVisible=!gridVisible;if(rt.grid)rt.grid.setEnabled(gridVisible);show(gridVisible?"Grid activado":"Grid oculto");}if(k==="c"&&!e.repeat){overview=!overview;camera.radius=overview?28:20;camera.beta=overview?0.56:0.70;show(overview?"Cámara general":"Cámara jugador");}});
