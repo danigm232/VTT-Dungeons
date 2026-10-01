@@ -752,7 +752,6 @@ export function createScene(engine: any, canvas: any) {
         const q=box("stair",x,h/2,zz,sw,h,d+0.02,M[o.material]??M.stone);
         if(glow.addExcludedMesh)glow.addExcludedMesh(q);
       }
-      collider(x,z,sw,depth);
     }
     else if(o.asset==="bridge"){
       const bw=o.size?.[0]??2.4,bl=o.size?.[1]??4.8,planks=o.planks??12;
@@ -769,8 +768,8 @@ export function createScene(engine: any, canvas: any) {
           box("bridgePost",x+side*(bw/2-0.08),0.34,zz,0.12,0.68,0.12,M.woodDark);
         }
       }
-      collider(x,z,bw,bl);
     }
+    else if(o.asset==="collider_only"){collider(x,z,o.size[0],o.size[1]);}
     else if(o.asset==="path"){box("path",x,0.04,z,o.size[0],0.08,o.size[1],M.stone);}
     else if(o.asset==="tree"){box("treeTrunk",x,1.2,z,0.7,2.4,0.7,M.woodDark);sph("treeCrown",x,2.5,z,2.8,M.purple);collider(x,z,0.8,0.8);}
     else if(o.asset==="stall"){box("stall",x,0.5,z,4,1,1.4,M.wood);box("canopy",x,1.55,z,4.5,0.12,2,M[o.color]??M.green);collider(x,z,4,1.4);}
