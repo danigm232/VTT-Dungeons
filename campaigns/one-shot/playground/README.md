@@ -59,28 +59,18 @@ Perfiles actuales:
 - Garden: `garden_golden_hour`
 - Market: `market_golden_hour`
 - Mirror: `mirror_aurora_cave`
+  
+## Dirección visual v14.7
 
+Las seis escenas permanecen como escenas nativas 2.5D de Babylon.js.
 
-## Reference Match v14.6
+Las imágenes canónicas del proyecto se usan únicamente como dirección artística para:
+- composición y proporciones;
+- paleta y materiales;
+- densidad y posición de props;
+- iluminación;
+- encuadre y cámara.
 
-La pasada v14.1–v14.6 cambia las seis escenas al modo `reference_v14`.
+No se renderizan como fondos PNG ni como mapas planos.
 
-Objetivo: máxima fidelidad visual a las referencias canónicas del proyecto.
-
-Cada escena usa su imagen de referencia como base visual completa y separa encima:
-
-- colisiones invisibles de gameplay;
-- grid opcional;
-- personaje;
-- interacciones;
-- VFX ambientales sutiles.
-
-Referencias:
-- Café: `Cafe no-me-olvides IA.png`
-- Templo: `temple-original.png`
-- Dinner: `Cena con Anteros.png`
-- Garden: `El jardin de la srta fritz IA.png`
-- Market: `El Mercado Nocturno IA.png`
-- Mirror: `El Espejo de plata del amor verdadero IA.png`
-
-Las imágenes son CANON visual. Los halos, pulsos y demás efectos añadidos son VTT_AMBIENCE.
+Objetivo: aproximar el 2.5D a las referencias sin sustituir la escena interactiva por una imagen.
