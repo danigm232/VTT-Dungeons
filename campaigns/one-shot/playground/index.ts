@@ -611,17 +611,6 @@ export function createScene(engine: any, canvas: any) {
     hemi.diffuse=new BABYLON.Color3(hc[0],hc[1],hc[2]);
     hemi.groundColor=new BABYLON.Color3((hc[0]??1)*0.18,(hc[1]??1)*0.18,(hc[2]??1)*0.18);
 
-    if(l.mode==="exterior"&&l.natural){
-      const n=l.natural;
-      const dir=n.direction??[-0.45,-1,0.30];
-      const color=n.color??[0.55,0.68,0.90];
-      const sun=track(new BABYLON.DirectionalLight("naturalLight",new BABYLON.Vector3(dir[0],dir[1],dir[2]),scene));
-      sun.position=new BABYLON.Vector3(...(n.position??[8,12,-8]));
-      sun.diffuse=new BABYLON.Color3(color[0],color[1],color[2]);
-      sun.specular=new BABYLON.Color3(color[0]*0.35,color[1]*0.35,color[2]*0.35);
-      sun.intensity=n.intensity??0.42;
-    }
-
     (l.lights??[]).forEach((d:any)=>{
       const q=track(new BABYLON.PointLight("mapLight",new BABYLON.Vector3(d.position[0],d.position[1],d.position[2]),scene));
       q.parent=rt.root;
@@ -688,11 +677,14 @@ export function createScene(engine: any, canvas: any) {
   function shadows(c:any){
     const sh=c.VTT_AMBIENCE.lighting?.shadows;
     if(!sh?.enabled)return;
-    const p=sh.position??[-8,6,-4],d=sh.direction??[0.8,-1,0.25];
-    const light=new BABYLON.DirectionalLight("shadowLight",new BABYLON.Vector3(d[0],d[1],d[2]),scene);
+    const lighting=c.VTT_AMBIENCE.lighting??{};
+    const natural=lighting.mode==="exterior"?(lighting.natural??{}):{};
+    const p=natural.position??sh.position??[-8,6,-4];
+    const d=natural.direction??sh.direction??[0.8,-1,0.25];
+    const light=new BABYLON.DirectionalLight(lighting.mode==="exterior"?"naturalLight":"shadowLight",new BABYLON.Vector3(d[0],d[1],d[2]),scene);
     light.position=new BABYLON.Vector3(p[0],p[1],p[2]);
-    light.intensity=sh.intensity??0.12;
-    const sc=sh.color??[0.55,0.65,0.80];
+    light.intensity=lighting.mode==="exterior"?(natural.intensity??0.36):(sh.intensity??0.08);
+    const sc=lighting.mode==="exterior"?(natural.color??[0.55,0.65,0.82]):(sh.color??[0.75,0.58,0.38]);
     light.diffuse=new BABYLON.Color3(sc[0],sc[1],sc[2]);
     const gen=new BABYLON.ShadowGenerator(sh.mapSize??1024,light); gen.useBlurExponentialShadowMap=true; gen.blurKernel=sh.blurKernel??12;
     rt.root.getChildMeshes().forEach((m:any)=>{m.receiveShadows=true;if(m.name!=="floorStone"&&!m.name.includes("smoke")&&!m.name.includes("dust")&&!m.name.includes("ripple")&&!m.name.includes("poolWater")&&!m.name.includes("poolGlow"))gen.addShadowCaster(m);});
