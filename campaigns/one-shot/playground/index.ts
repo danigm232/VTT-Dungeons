@@ -181,33 +181,35 @@ export function createScene(engine: any, canvas: any) {
   }
 
   function floor(c:any){
-    let m=M.stone;
-    if(c.MAP.visualFloor)m=visualFloorMaterial(c.MAP.visualFloor);
-    else if(c.MAP.floor==="snow")m=M.snow;
-    else if(c.MAP.floor==="ice")m=M.ice;
-    else if(c.MAP.floor==="stone_tavern")m=M.stoneDark;
+    let source=M.stone;
+    if(c.MAP.visualFloor)source=visualFloorMaterial(c.MAP.visualFloor);
+    else if(c.MAP.floor==="snow")source=M.snow;
+    else if(c.MAP.floor==="ice")source=M.ice;
+    else if(c.MAP.floor==="stone_tavern")source=M.stoneDark;
 
-    if(c.MAP.unlitBase){
-      const base=m.clone("unlitBase_"+rt.id);
-      base.disableLighting=true;
-      base.alpha=1;
-      if(base.diffuseTexture){
-        base.emissiveTexture=base.diffuseTexture;
-        base.emissiveColor=new BABYLON.Color3(0.34,0.34,0.34);
-      }else{
-        base.emissiveColor=new BABYLON.Color3(0.22,0.17,0.12);
-      }
-      m=base;
-      rt.disposables.push(base);
+    // Guaranteed-visible 2.5D floor. We keep the procedural texture, but the base
+    // does not depend on local lights/shadow limits to be visible.
+    let m=source.clone("floorSafe_"+rt.id);
+    m.alpha=1;
+    m.disableLighting=true;
+    m.backFaceCulling=false;
+    m.specularColor=new BABYLON.Color3(0,0,0);
+    if(m.diffuseTexture){
+      m.emissiveTexture=m.diffuseTexture;
+      m.emissiveColor=new BABYLON.Color3(0.92,0.92,0.92);
+    }else if(m.diffuseColor){
+      const d=m.diffuseColor;
+      m.emissiveColor=new BABYLON.Color3(Math.max(0.16,d.r*0.72),Math.max(0.16,d.g*0.72),Math.max(0.16,d.b*0.72));
     }
+    rt.disposables.push(m);
 
     const g=BABYLON.MeshBuilder.CreateGround("floor",{width:c.MAP.size[0],height:c.MAP.size[1]},scene);
     g.material=m;
-    g.position.y=0.004;
+    g.position.y=0.006;
     g.parent=parentFor("BASE");
-    g.receiveShadows=true;
+    g.receiveShadows=false;
+    g.isPickable=false;
     if(glow.addExcludedMesh)glow.addExcludedMesh(g);
-    if(c.MAP.readabilityFallback?.glowExclude&&glow.addExcludedMesh)glow.addExcludedMesh(g);
 
     // Legacy primitive stone floor remains available only when no visual texture preset is set.
     if(!c.MAP.visualFloor&&c.MAP.floor==="stone_tavern"){
@@ -299,9 +301,10 @@ export function createScene(engine: any, canvas: any) {
 
     const m=new BABYLON.StandardMaterial("compositionMat_"+preset,scene);
     m.diffuseTexture=tex;
-    m.opacityTexture=tex;
     m.useAlphaFromDiffuseTexture=true;
+    m.transparencyMode=BABYLON.Material.MATERIAL_ALPHABLEND;
     m.disableLighting=true;
+    m.disableDepthWrite=true;
     m.backFaceCulling=false;
     m.alpha=opacity;
 
@@ -740,6 +743,34 @@ export function createScene(engine: any, canvas: any) {
     else if(o.asset==="cabinet"){box("cabinet",x,0.48,z,o.size[0],0.96,o.size[1],M.woodDark);collider(x,z,o.size[0],o.size[1]);}
     else if(o.asset==="crate"){const q=0.8*s;box("crate",x,q/2,z,q,q,q,M.wood);box("crateCross",x,q+0.02,z,q*0.9,0.04,0.1,M.woodDark);collider(x,z,q,q);}
     else if(o.asset==="statue"){box("statueBase",x,0.3,z,2,0.6,1.4,M.stoneLight);box("statue",x,1.5,z,0.8,2.4,0.7,M.stoneLight);collider(x,z,2,1.4);}
+    else if(o.asset==="stairs"){
+      const steps=o.steps??5,sw=o.size?.[0]??2.6,depth=o.size?.[1]??2.8,totalH=o.height??0.75;
+      for(let i=0;i<steps;i++){
+        const h=totalH*(i+1)/steps;
+        const d=depth/steps;
+        const zz=z-depth/2+d*(i+0.5);
+        const q=box("stair",x,h/2,zz,sw,h,d+0.02,M[o.material]??M.stone);
+        if(glow.addExcludedMesh)glow.addExcludedMesh(q);
+      }
+      collider(x,z,sw,depth);
+    }
+    else if(o.asset==="bridge"){
+      const bw=o.size?.[0]??2.4,bl=o.size?.[1]??4.8,planks=o.planks??12;
+      const plankD=bl/planks;
+      for(let i=0;i<planks;i++){
+        const zz=z-bl/2+plankD*(i+0.5);
+        const q=box("bridgePlank",x,0.14,zz,bw,0.18,plankD*0.88,M[o.material]??M.wood);
+        q.rotation.y=(i%2?0.012:-0.012);
+      }
+      for(const side of [-1,1]){
+        box("bridgeRail",x+side*(bw/2-0.08),0.54,z,0.10,0.10,bl,M.woodDark);
+        for(let i=0;i<4;i++){
+          const zz=z-bl/2+(i+0.5)*(bl/4);
+          box("bridgePost",x+side*(bw/2-0.08),0.34,zz,0.12,0.68,0.12,M.woodDark);
+        }
+      }
+      collider(x,z,bw,bl);
+    }
     else if(o.asset==="path"){box("path",x,0.04,z,o.size[0],0.08,o.size[1],M.stone);}
     else if(o.asset==="tree"){box("treeTrunk",x,1.2,z,0.7,2.4,0.7,M.woodDark);sph("treeCrown",x,2.5,z,2.8,M.purple);collider(x,z,0.8,0.8);}
     else if(o.asset==="stall"){box("stall",x,0.5,z,4,1,1.4,M.wood);box("canopy",x,1.55,z,4.5,0.12,2,M[o.color]??M.green);collider(x,z,4,1.4);}
@@ -894,7 +925,7 @@ export function createScene(engine: any, canvas: any) {
 
   const ui=BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"),panel=new BABYLON.GUI.StackPanel();
   panel.width="190px";panel.horizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;panel.paddingLeft="15px";panel.paddingTop="15px";ui.addControl(panel);
-  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V14.8";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
+  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V14.9";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
   const order=["temple","cafe","dinner","garden","market","mirror"],labels:any={temple:"1 · TEMPLO",cafe:"2 · CAFÉ",dinner:"3 · DINNER",garden:"4 · GARDEN",market:"5 · MARKET",mirror:"6 · MIRROR"},buttons:any={};
   order.forEach(id=>{const b=BABYLON.GUI.Button.CreateSimpleButton("btn_"+id,labels[id]);b.width="175px";b.height="37px";b.color="#dfcfb2";b.background="#25252a";b.cornerRadius=5;b.paddingBottom="4px";b.onPointerClickObservable.add(()=>loadMap(id));buttons[id]=b;panel.addControl(b);});
   const help=new BABYLON.GUI.TextBlock();help.text="\nWASD · mover\nE · interactuar\nG · grid\nC · cámara";help.height="100px";help.color="#888";help.fontSize=11;help.textHorizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.addControl(help);
@@ -1137,6 +1168,7 @@ export function createScene(engine: any, canvas: any) {
     const boost=v.diffuseBoost??1.0, emissive=v.emissiveFloor??0.0, spec=v.specular??0.025;
     rt.root.getChildMeshes().forEach((mesh:any)=>{
       if(!mesh.material)return;
+      if(mesh.name==="floor")return;
       if(mesh.parent===rt.layers?.VFX||mesh.name.includes("Flame")||mesh.name.includes("fire")||mesh.name.includes("smoke")||mesh.name.includes("mote")||mesh.name.includes("firefly"))return;
       if(glow.addExcludedMesh)glow.addExcludedMesh(mesh);
       const source=mesh.material;
@@ -1200,8 +1232,8 @@ export function createScene(engine: any, canvas: any) {
     player.position.set(c.spawn[0],c.spawn[1],c.spawn[2]);
     if(!overview&&c.camera){camera.radius=c.camera.radius??20;camera.beta=c.camera.beta??0.70;camera.alpha=c.camera.alpha??-Math.PI/2.15;}
     camera.target.set(player.position.x,0,player.position.z);ring.isVisible=false;
-    title.text=c.label+" · V14.8";
-    if(id==="cafe")console.log("[D8 v14.8] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
+    title.text=c.label+" · V14.9";
+    if(id==="cafe")console.log("[D8 v14.9] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
     Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");
     show("Mapa cargado: "+c.label);
   }
