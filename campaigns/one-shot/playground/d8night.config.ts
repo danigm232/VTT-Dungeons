@@ -3,15 +3,13 @@ export const D8NIGHT: any = {
     cafe: {
       label: "CAFÉ",
       spawn: [0, 0.43, 4.1],
-      camera: { radius: 23.5, beta: 0.43, alpha: -Math.PI / 2.04 },
+      camera: { radius: 20.5, beta: 0.72, alpha: -Math.PI / 2.05 },
       MAP: {
         size: [24, 16],
         floor: "stone_tavern",
+        renderMode: "clean_v12",
         visualFloor: "cafe_stone",
         visualComposition: "cafe_reference",
-        compositionOpacity: 0,
-        unlitBase: true,
-        readabilityFallback: { enabled: true, strength: 0.18, textureStrength: 0.20, diffuseBoost: 1.32, glowExclude: true },
         objects: [
           { asset: "wall", position: [0, -7.65], size: [24, 0.7] },
           { asset: "wall", position: [-11.65, -2.5], size: [0.7, 10] },
