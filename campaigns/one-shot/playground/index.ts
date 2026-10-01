@@ -248,9 +248,11 @@ export function createScene(engine: any, canvas: any) {
     } else if(preset==="mirror_reference"){
       rect(0.00,0.00,1,1,"rgba(14,64,98,0.035)");
       ellipse(0.58,0.52,0.34,0.23,"rgba(10,78,112,0.12)");
-      glowRadial(0.19,0.42,0.20,"rgba(40,150,255,0.23)","rgba(40,150,255,0)");
-      glowRadial(0.52,0.50,0.27,"rgba(130,220,255,0.08)","rgba(130,220,255,0)");
-      ctx.strokeStyle="rgba(200,238,255,0.18)";ctx.lineWidth=5;
+      glowRadial(0.19,0.42,0.20,"rgba(40,150,255,0.25)","rgba(40,150,255,0)");
+      glowRadial(0.52,0.50,0.27,"rgba(92,235,255,0.10)","rgba(92,235,255,0)");
+      glowRadial(0.70,0.36,0.24,"rgba(55,255,165,0.13)","rgba(55,255,165,0)");
+      glowRadial(0.48,0.72,0.22,"rgba(72,240,175,0.10)","rgba(72,240,175,0)");
+      ctx.strokeStyle="rgba(160,245,225,0.20)";ctx.lineWidth=5;
       ctx.beginPath();ctx.moveTo(0.30*W,0.48*H);ctx.lineTo(0.48*W,0.42*H);ctx.lineTo(0.57*W,0.55*H);ctx.lineTo(0.74*W,0.48*H);ctx.stroke();
     }
 
