@@ -190,7 +190,7 @@ export const D8NIGHT: any = {
         enableVisualComposition: false,
         compositionOpacity: 0,
         objects: [
-          // V30 TEMPLE MASTER PLAN
+          // V31 TEMPLE MASTER PLAN
           // Bridge -> stairs -> monumental gate -> walled processional court -> nave -> altar.
 
           // --- NAVE / SANCTUARY ---
@@ -240,7 +240,7 @@ export const D8NIGHT: any = {
           { asset: "collider_only", position: [-10.9, 23.45], size: [18.3, 5.8] },
           { asset: "collider_only", position: [10.9, 23.45], size: [18.3, 5.8] },
 
-          // V30 naturalized water banks: stone, reeds and vegetation with a bridge gap.
+          // V31 naturalized water banks: stone, reeds and vegetation with a bridge gap.
           { asset: "water_bank", position: [0, 20.45], length: 40.0, depth: 1.0, gap: 5.0, count: 40, side: -1 },
           { asset: "water_bank", position: [0, 26.45], length: 40.0, depth: 1.0, gap: 5.0, count: 40, side: 1 },
           { asset: "water_bank", position: [-20.0, 23.45], length: 5.8, depth: 0.9, count: 9, rotation: Math.PI / 2 },
