@@ -8,7 +8,7 @@
 // Garden -> El jardin de la srta fritz IA.png
 // Market -> El Mercado Nocturno IA.png
 // Mirror -> El Espejo de plata del amor verdadero IA.png
-export const D8_VERSION = "V27";
+export const D8_VERSION = "V28";
 
 export const D8NIGHT: any = {
   maps: {
@@ -275,7 +275,7 @@ export const D8NIGHT: any = {
           { asset: "lantern_post", position: [8.2, 18.4], intensity: 0.28, range: 4.4, height: 2.25 },
 
           // Water now sits beyond the forecourt instead of touching the temple entrance.
-          { asset: "water_area", position: [0, 22.4], size: [35.0, 4.6] },
+          { asset: "water_area", position: [0, 22.4], size: [35.0, 4.6], rippleCount: 9, shimmer: 0.16, flow: 0.22 },
           { asset: "bridge", position: [0, 22.4], size: [3.0, 5.2], planks: 16 },
           { asset: "collider_only", position: [-9.8, 22.4], size: [15.2, 4.6] },
           { asset: "collider_only", position: [9.8, 22.4], size: [15.2, 4.6] },
@@ -297,7 +297,7 @@ export const D8NIGHT: any = {
           { asset: "column", position: [8.2, -1.6], height: 3.5 },
           { asset: "column", position: [-8.2, 2.4], height: 3.1 },
           { asset: "column", position: [8.2, 2.4], height: 3.1 },
-          { asset: "room_floor", position: [0, -0.45], size: [26.7, 16.2], material: "stone" },
+          { asset: "temple_floor", position: [0, -0.45], size: [26.7, 16.2], material: "stone" },
           { asset: "long_table", position: [0, 0.7], size: [6.8, 1.5] },
           { asset: "chair", position: [-4.25, 0.7], rotation: -Math.PI / 2 },
           { asset: "chair", position: [4.25, 0.7], rotation: Math.PI / 2 },
@@ -388,7 +388,7 @@ export const D8NIGHT: any = {
             { position: [0, 2.8, -6.2], color: [1.00, 0.52, 0.20], intensity: 0.68, range: 10.0 }
           ]
         },
-        vfx: { dust: true, fireflies: true, fireflyCount: 6, roseSway: true },
+        vfx: { dust: true, fireflies: true, fireflyCount: 8, roseSway: true, waterRipples: true, waterMotion: true },
         interactables: [
           { id: "temple_table_ambience", position: [0, 0.7], radius: 2.6, label: "Interactuar con el candelabro", message: "El único candelabro ilumina las rosas, los platos y los cubiertos de la mesa.", action: { type: "toggle_local", radius: 3.4, meshMatch: ["tableCandelabrumFlame"], lights: true, offMessage: "Apagas el candelabro.", onMessage: "Vuelves a encender el candelabro." } },
           { id: "temple_altar_ambience", position: [0, -5.8], radius: 2.4, label: "Examinar altar", message: "El altar de piedra marca el final del eje ceremonial del templo.", action: { type: "pulse", color: [1.00, 0.50, 0.18], range: 3.4 } },
