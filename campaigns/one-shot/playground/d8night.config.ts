@@ -8,7 +8,7 @@
 // Garden -> El jardin de la srta fritz IA.png
 // Market -> El Mercado Nocturno IA.png
 // Mirror -> El Espejo de plata del amor verdadero IA.png
-export const D8_VERSION = "V30";
+export const D8_VERSION = "V31";
 
 export const D8NIGHT: any = {
   maps: {
@@ -194,7 +194,7 @@ export const D8NIGHT: any = {
           // Bridge -> stairs -> monumental gate -> walled processional court -> nave -> altar.
 
           // --- NAVE / SANCTUARY ---
-          { asset: "temple_floor", position: [0, -0.45], size: [27.3, 17.0], material: "stone", tileSize: 1.85, border: true },
+          { asset: "temple_floor", position: [0, -0.45], size: [27.3, 17.0], material: "stone", tileSize: 2.15, border: true },
           { asset: "temple_wall", position: [0, -9.0], size: [28.2, 1.00], height: 5.6, tiers: true },
 
           // Segmented side walls leave true window openings.
@@ -222,7 +222,7 @@ export const D8NIGHT: any = {
           { asset: "temple_buttress", position: [14.40, 7.6], height: 3.6, width: 0.84, depth: 1.15 },
 
           // --- PROCESSIONAL COURT: walls now continue all the way to the bridge stairs ---
-          { asset: "temple_floor", position: [0, 13.05], size: [27.3, 10.15], material: "stone", tileSize: 2.05, border: true },
+          { asset: "temple_floor", position: [0, 13.05], size: [27.3, 10.15], material: "stone", tileSize: 2.35, border: true },
           { asset: "temple_wall", position: [-14.0, 13.05], size: [1.00, 10.20], height: 4.25, tiers: true },
           { asset: "temple_wall", position: [14.0, 13.05], size: [1.00, 10.20], height: 4.25, tiers: true },
           { asset: "temple_wall", position: [-8.55, 18.15], size: [10.25, 1.00], height: 4.35, tiers: true },
@@ -250,7 +250,7 @@ export const D8NIGHT: any = {
           { asset: "temple_hedge", position: [-18.4, 7.0], length: 8.5, rotation: Math.PI / 2, height: 0.95, blocking: false },
           { asset: "temple_hedge", position: [18.4, 7.0], length: 8.5, rotation: Math.PI / 2, height: 0.95, blocking: false },
           { asset: "temple_hedge", position: [-18.3, 24.0], length: 5.0, rotation: 0, height: 0.90, blocking: false },
-          { asset: "temple_hedge", position: [18.3, 24.0], length: 5.0, rotation: 0, height: 0.90, blocking: false }
+          { asset: "temple_hedge", position: [18.3, 24.0], length: 5.0, rotation: 0, height: 0.90, blocking: false },
 
           // Arrival path over the lawn.
           { asset: "path", position: [0, 28.55], size: [5.4, 4.4] },
@@ -406,7 +406,7 @@ export const D8NIGHT: any = {
           { id: "temple_statue_ambience", position: [0, -7.5], radius: 2.0, label: "Examinar estatua", message: "La figura de piedra se alza detrás del altar.", action: { type: "pulse", color: [0.75, 0.64, 0.48], range: 3.2 } }
         ],
         visual: {
-          profile: "temple_architecture_garden_v30",
+          profile: "temple_architecture_garden_v31",
           glow: 0.11,
           exposure: 1.18,
           contrast: 1.02,
