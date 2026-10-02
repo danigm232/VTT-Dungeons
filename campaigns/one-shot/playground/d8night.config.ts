@@ -8,7 +8,7 @@
 // Garden -> El jardin de la srta fritz IA.png
 // Market -> El Mercado Nocturno IA.png
 // Mirror -> El Espejo de plata del amor verdadero IA.png
-export const D8_VERSION = "V32";
+export const D8_VERSION = "V33";
 
 export const D8NIGHT: any = {
   maps: {
@@ -152,7 +152,7 @@ export const D8NIGHT: any = {
           { id: "pool_ambience", position: [3.5, 4.8], radius: 1.8, label: "Tocar el agua", message: "La superficie del agua se mueve suavemente.", action: { type: "ripple", color: [0.08, 0.64, 0.76], size: 0.9 } }
         ],
         visual: {
-          profile: "cafe_warm_fireplace",
+          profile: "cafe_warm_stone_v33",
           glow: 0.20,
           exposure: 1.06,
           contrast: 1.08,
@@ -190,7 +190,7 @@ export const D8NIGHT: any = {
         enableVisualComposition: false,
         compositionOpacity: 0,
         objects: [
-          // V32 TEMPLE MASTER PLAN
+          // V33 TEMPLE MASTER PLAN
           // Bridge -> stairs -> monumental gate -> walled processional court -> nave -> altar.
 
           // --- NAVE / SANCTUARY ---
@@ -240,7 +240,7 @@ export const D8NIGHT: any = {
           { asset: "collider_only", position: [-10.9, 23.45], size: [18.3, 5.8] },
           { asset: "collider_only", position: [10.9, 23.45], size: [18.3, 5.8] },
 
-          // V32 naturalized water banks: stone, reeds and vegetation with a bridge gap.
+          // V33 naturalized water banks: stone, reeds and vegetation with a bridge gap.
           { asset: "water_bank", position: [0, 20.45], length: 40.0, depth: 1.0, gap: 5.0, count: 40, side: -1 },
           { asset: "water_bank", position: [0, 26.45], length: 40.0, depth: 1.0, gap: 5.0, count: 40, side: 1 },
           { asset: "water_bank", position: [-20.0, 23.45], length: 5.8, depth: 0.9, count: 9, rotation: Math.PI / 2 },
@@ -406,7 +406,7 @@ export const D8NIGHT: any = {
           { id: "temple_statue_ambience", position: [0, -7.5], radius: 2.0, label: "Examinar estatua", message: "La figura de piedra se alza detrás del altar.", action: { type: "pulse", color: [0.75, 0.64, 0.48], range: 3.2 } }
         ],
         visual: {
-          profile: "temple_cutaway_stone_v32",
+          profile: "temple_cutaway_stone_v33",
           glow: 0.11,
           exposure: 1.18,
           contrast: 1.02,
