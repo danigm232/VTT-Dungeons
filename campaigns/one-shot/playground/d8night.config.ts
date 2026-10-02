@@ -99,6 +99,7 @@ export const D8NIGHT: any = {
           { asset: "floor_scatter", position: [8.4, 4.8], size: [4.0, 3.0], count: 10, material: "stoneDark" }
         ],
         navigation: {
+          bounds: [-11.55, 11.55, -7.55, 7.55],
           blockers: [],
           zones: [
             { type: "walkable", label: "sala principal", position: [0, -0.2], size: [22.8, 14.0] },
@@ -266,6 +267,7 @@ export const D8NIGHT: any = {
           { asset: "rock_cluster", position: [10.8, 10.8], spread: 1.2, count: 5, material: "stoneDark" }
         ],
         navigation: {
+          bounds: [-13.55, 13.55, -8.55, 11.70],
           blockers: [
             { position: [-7.1, 10.15], size: [10.9, 3.7] },
             { position: [7.1, 10.15], size: [10.9, 3.7] }
@@ -382,6 +384,7 @@ export const D8NIGHT: any = {
           { asset: "low_wall", position: [6.4, -1.7], size: [3.4, 0.38], height: 0.48, material: "stone2" }
         ],
         navigation: {
+          bounds: [-13.55, 13.55, -8.55, 8.55],
           blockers: [],
           zones: [
             { type: "walkable", label: "patio", position: [0, 3.2], size: [6.8, 6.4] },
@@ -492,6 +495,7 @@ export const D8NIGHT: any = {
           { asset: "plant_cluster", position: [-10.2, 5.8], spread: 1.2, count: 8, material: "rosePink" }
         ],
         navigation: {
+          bounds: [-13.55, 13.55, -9.55, 9.55],
           blockers: [],
           zones: [
             { type: "walkable", label: "sendero", position: [-1.0, 4.8], size: [23.0, 2.2] },
@@ -606,6 +610,7 @@ export const D8NIGHT: any = {
           { asset: "floor_scatter", position: [0, 6.8], size: [8.5, 2.5], count: 16, material: "stoneDark" }
         ],
         navigation: {
+          bounds: [-14.55, 14.55, -9.55, 9.55],
           blockers: [],
           zones: [
             { type: "walkable", label: "plaza central", position: [0, 0.5], size: [15.5, 10.5] },
@@ -715,6 +720,7 @@ export const D8NIGHT: any = {
           { asset: "rock_cluster", position: [-8.7, 6.8], spread: 1.2, count: 6, material: "stoneDark" }
         ],
         navigation: {
+          bounds: [-14.55, 14.55, -9.55, 9.55],
           blockers: [],
           zones: [
             { type: "walkable", label: "hielo firme", position: [-9.0, -2.5], size: [6.5, 6.0] },
