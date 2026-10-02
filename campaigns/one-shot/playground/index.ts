@@ -181,53 +181,106 @@ export function createScene(engine: any, canvas: any) {
   }
 
   function floor(c:any){
-    let source=M.stone;
-    if(c.MAP.visualFloor)source=visualFloorMaterial(c.MAP.visualFloor);
-    else if(c.MAP.floor==="snow")source=M.snow;
-    else if(c.MAP.floor==="ice")source=M.ice;
-    else if(c.MAP.floor==="stone_tavern")source=M.stoneDark;
+    // V14.10 FLOOR AUDIT FIX
+    // Do not rely on DynamicTexture/lighting for the base surface.
+    // Every map gets a solid native 2.5D base first; procedural detail is drawn
+    // as line geometry above it. This guarantees the floor remains visible.
+    const preset=c.MAP.visualFloor??c.MAP.floor??"stone";
+    const palettes:any={
+      cafe_stone:{base:[0.40,0.29,0.20],line:[0.17,0.11,0.075]},
+      temple_stone:{base:[0.34,0.29,0.28],line:[0.15,0.12,0.13]},
+      night_cobble:{base:[0.25,0.24,0.23],line:[0.10,0.09,0.085]},
+      market_cobble:{base:[0.50,0.37,0.24],line:[0.23,0.16,0.10]},
+      snow:{base:[0.82,0.87,0.89],line:[0.56,0.66,0.72]},
+      ice:{base:[0.34,0.62,0.75],line:[0.12,0.33,0.48]},
+      stone:{base:[0.38,0.34,0.30],line:[0.18,0.15,0.13]},
+      stone_tavern:{base:[0.40,0.29,0.20],line:[0.17,0.11,0.075]}
+    };
+    const p=palettes[preset]??palettes.stone;
 
-    // Guaranteed-visible 2.5D floor. We keep the procedural texture, but the base
-    // does not depend on local lights/shadow limits to be visible.
-    let m=source.clone("floorSafe_"+rt.id);
-    m.alpha=1;
-    m.disableLighting=true;
-    m.backFaceCulling=false;
-    m.specularColor=new BABYLON.Color3(0,0,0);
-    if(m.diffuseTexture){
-      m.diffuseTexture.hasAlpha=false;
-      m.emissiveTexture=m.diffuseTexture;
-      m.diffuseColor=new BABYLON.Color3(1,1,1);
-      m.emissiveColor=new BABYLON.Color3(1,1,1);
-    }else if(m.diffuseColor){
-      const d=m.diffuseColor;
-      m.emissiveColor=new BABYLON.Color3(Math.max(0.24,d.r*0.88),Math.max(0.24,d.g*0.88),Math.max(0.24,d.b*0.88));
-    }
-    rt.disposables.push(m);
+    const baseMat=new BABYLON.StandardMaterial("floorBaseMat_"+rt.id,scene);
+    baseMat.diffuseColor=new BABYLON.Color3(p.base[0],p.base[1],p.base[2]);
+    baseMat.emissiveColor=new BABYLON.Color3(p.base[0]*0.88,p.base[1]*0.88,p.base[2]*0.88);
+    baseMat.ambientColor=new BABYLON.Color3(1,1,1);
+    baseMat.specularColor=new BABYLON.Color3(0,0,0);
+    baseMat.disableLighting=true;
+    baseMat.alpha=1;
+    baseMat.backFaceCulling=false;
+    rt.disposables.push(baseMat);
 
-    const g=BABYLON.MeshBuilder.CreateBox("floor",{width:c.MAP.size[0],height:0.08,depth:c.MAP.size[1]},scene);
-    g.material=m;
-    g.position.y=-0.04;
-    g.parent=parentFor("BASE");
-    g.receiveShadows=false;
-    g.isPickable=false;
-    g.alwaysSelectAsActiveMesh=true;
-    if(glow.addExcludedMesh)glow.addExcludedMesh(g);
+    const base=BABYLON.MeshBuilder.CreateBox("floor",{
+      width:c.MAP.size[0],
+      height:0.10,
+      depth:c.MAP.size[1]
+    },scene);
+    base.position.y=-0.05;
+    base.material=baseMat;
+    base.parent=parentFor("BASE");
+    base.receiveShadows=false;
+    base.isPickable=false;
+    base.alwaysSelectAsActiveMesh=true;
+    if(glow.addExcludedMesh)glow.addExcludedMesh(base);
 
-    // Legacy primitive stone floor remains available only when no visual texture preset is set.
-    if(!c.MAP.visualFloor&&c.MAP.floor==="stone_tavern"){
+    // Native geometric detail layer: no texture sampling, no opacity material.
+    const w=c.MAP.size[0],h=c.MAP.size[1],lines:any[]=[];
+    const y=0.012;
+
+    if(preset==="ice"){
+      for(let i=0;i<42;i++){
+        const sx=-w/2+seeded(i*11.7)*w;
+        const sz=-h/2+seeded(i*17.3)*h;
+        const pts=[new BABYLON.Vector3(sx,y,sz)];
+        let x=sx,z=sz;
+        const seg=3+Math.floor(seeded(i*7.1)*4);
+        for(let j=0;j<seg;j++){
+          x+=(seeded(i*31+j)-0.5)*2.8;
+          z+=(seeded(i*47+j)-0.5)*2.2;
+          pts.push(new BABYLON.Vector3(x,y,z));
+        }
+        lines.push(pts);
+      }
+    }else if(preset==="snow"){
+      // Sparse shallow tracks / icy seams so snow is not a flat white slab.
+      for(let i=0;i<24;i++){
+        const sx=-w/2+seeded(i*13.2)*w;
+        const sz=-h/2+seeded(i*21.9)*h;
+        lines.push([
+          new BABYLON.Vector3(sx,y,sz),
+          new BABYLON.Vector3(sx+0.8+seeded(i+1)*1.8,y,sz-0.25+seeded(i+2)*0.5)
+        ]);
+      }
+    }else{
+      // Irregular cobble/stone courses.
+      const cell=preset==="market_cobble"?1.35:1.45;
       let row=0;
-      for(let z=-7.1;z<=7.1;z+=1){
+      for(let z=-h/2+0.5;z<h/2;z+=cell){
+        const zz=z+(seeded(row*7.7)-0.5)*0.12;
+        lines.push([new BABYLON.Vector3(-w/2,y,zz),new BABYLON.Vector3(w/2,y,zz)]);
         let col=0;
-        for(let x=-11;x<=11;x+=1.15){
-          const n=row*37+col*19;
-          const stone=box("floorStone",x+(row%2?0.25:0),0.018,z,0.82,0.035,0.65,n%2?M.stone:M.stone2,"BASE");
-          stone.rotation.y=Math.sin(n)*0.07;
+        const offset=(row%2)*cell*0.45;
+        for(let x=-w/2+offset;x<w/2;x+=cell){
+          const xx=x+(seeded(row*101+col*17)-0.5)*0.14;
+          lines.push([
+            new BABYLON.Vector3(xx,y,Math.max(-h/2,zz-cell*0.55)),
+            new BABYLON.Vector3(xx,y,Math.min(h/2,zz+cell*0.55))
+          ]);
           col++;
         }
         row++;
       }
     }
+
+    if(lines.length){
+      const detail=BABYLON.MeshBuilder.CreateLineSystem("floorDetail",{lines},scene);
+      detail.parent=parentFor("BASE");
+      detail.color=new BABYLON.Color3(p.line[0],p.line[1],p.line[2]);
+      detail.alpha=preset==="snow"?0.24:(preset==="ice"?0.52:0.48);
+      detail.isPickable=false;
+      detail.alwaysSelectAsActiveMesh=true;
+      if(glow.addExcludedMesh)glow.addExcludedMesh(detail);
+    }
+
+    console.log("[D8 v14.10] floor",rt.id,preset,"base",p.base,"size",c.MAP.size);
   }
 
   function visualComposition(c:any){
@@ -331,6 +384,7 @@ export function createScene(engine: any, canvas: any) {
 
     rt.root.getChildMeshes().forEach((mesh:any)=>{
       if(!mesh.material)return;
+      if(mesh.name==="floor"||mesh.name==="floorDetail")return;
       if(mesh.parent===rt.layers?.VFX)return;
       if(mesh.name.includes("Flame")||mesh.name.includes("fire")||mesh.name.includes("smoke")||mesh.name.includes("dust")||mesh.name.includes("ripple")||mesh.name.includes("poolGlow"))return;
 
@@ -1175,7 +1229,7 @@ export function createScene(engine: any, canvas: any) {
     const boost=v.diffuseBoost??1.0, emissive=v.emissiveFloor??0.0, spec=v.specular??0.025;
     rt.root.getChildMeshes().forEach((mesh:any)=>{
       if(!mesh.material)return;
-      if(mesh.name==="floor")return;
+      if(mesh.name==="floor"||mesh.name==="floorDetail")return;
       if(mesh.parent===rt.layers?.VFX||mesh.name.includes("Flame")||mesh.name.includes("fire")||mesh.name.includes("smoke")||mesh.name.includes("mote")||mesh.name.includes("firefly"))return;
       if(glow.addExcludedMesh)glow.addExcludedMesh(mesh);
       const source=mesh.material;
