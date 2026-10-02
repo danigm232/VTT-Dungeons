@@ -40,7 +40,7 @@ export function createScene(engine: any, canvas: any) {
     soil:mat("soil",[0.17,0.08,0.035]), grass:mat("grass",[0.09,0.22,0.055]), lanternGlass:mat("lanternGlass",[1,0.56,0.10],{emissive:[0.9,0.28,0.02],alpha:0.72})
   };
 
-  let rt:any={id:null,config:null,root:null,layers:{},colliders:[],interactables:[],updaters:[],grid:null,disposables:[],markers:{fireplaces:[],pools:[],roses:[],magic:[]}};
+  let rt:any={id:null,config:null,root:null,layers:{},colliders:[],interactables:[],geometryInteractables:[],navZones:[],navDebug:[],updaters:[],grid:null,disposables:[],markers:{fireplaces:[],pools:[],roses:[],magic:[]}};
   let gridVisible=false, overview=false, nearest:any=null, elapsed=0;
   const reset=(id:string,c:any)=>{
     if(rt.disposables)rt.disposables.forEach((d:any)=>{try{d.dispose();}catch{}});
@@ -50,7 +50,7 @@ export function createScene(engine: any, canvas: any) {
     for(const name of ["BASE","PROPS","VFX","INTERACTABLES","DEBUG"]){
       const node=new BABYLON.TransformNode("LAYER_"+name,scene);node.parent=root;layers[name]=node;
     }
-    rt={id,config:c,root,layers,colliders:[],interactables:[],updaters:[],grid:null,disposables:[],markers:{fireplaces:[],pools:[],roses:[],magic:[]}};
+    rt={id,config:c,root,layers,colliders:[],interactables:[],geometryInteractables:[],navZones:[],navDebug:[],updaters:[],grid:null,disposables:[],markers:{fireplaces:[],pools:[],roses:[],magic:[]}};
   };
 
   const parentFor=(layer:string="PROPS")=>rt.layers?.[layer]??rt.root;
@@ -280,7 +280,7 @@ export function createScene(engine: any, canvas: any) {
       if(glow.addExcludedMesh)glow.addExcludedMesh(detail);
     }
 
-    console.log("[D8 v16] floor",rt.id,preset,"base",p.base,"size",c.MAP.size);
+    console.log("[D8 v17] floor",rt.id,preset,"base",p.base,"size",c.MAP.size);
   }
 
   function visualComposition(c:any){
@@ -1155,10 +1155,11 @@ export function createScene(engine: any, canvas: any) {
 
   const ui=BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"),panel=new BABYLON.GUI.StackPanel();
   panel.width="190px";panel.horizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;panel.paddingLeft="15px";panel.paddingTop="15px";ui.addControl(panel);
-  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V16";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
+  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V17";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
   const order=["temple","cafe","dinner","garden","market","mirror"],labels:any={temple:"1 · TEMPLO",cafe:"2 · CAFÉ",dinner:"3 · DINNER",garden:"4 · GARDEN",market:"5 · MARKET",mirror:"6 · MIRROR"},buttons:any={};
   order.forEach(id=>{const b=BABYLON.GUI.Button.CreateSimpleButton("btn_"+id,labels[id]);b.width="175px";b.height="37px";b.color="#dfcfb2";b.background="#25252a";b.cornerRadius=5;b.paddingBottom="4px";b.onPointerClickObservable.add(()=>loadMap(id));buttons[id]=b;panel.addControl(b);});
-  const help=new BABYLON.GUI.TextBlock();help.text="\nWASD · mover\nE · interactuar\nG · grid\nC · cámara";help.height="100px";help.color="#888";help.fontSize=11;help.textHorizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.addControl(help);
+  const help=new BABYLON.GUI.TextBlock();help.text="\nWASD · mover\nE · interactuar\nG · grid/zonas\nC · cámara";help.height="100px";help.color="#888";help.fontSize=11;help.textHorizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.addControl(help);
+  const terrainText=new BABYLON.GUI.TextBlock();terrainText.text="";terrainText.height="30px";terrainText.color="#b9aa8e";terrainText.fontSize=11;terrainText.textHorizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.addControl(terrainText);
   const ip=new BABYLON.GUI.Rectangle();ip.width="330px";ip.height="48px";ip.cornerRadius=8;ip.color="#c9aa70";ip.background="#101116E8";ip.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;ip.top="-25px";ip.isVisible=false;ui.addControl(ip);
   const it=new BABYLON.GUI.TextBlock();it.color="#fff";it.fontSize=14;ip.addControl(it);
   const msg=new BABYLON.GUI.TextBlock();msg.width="650px";msg.height="55px";msg.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;msg.top="15px";msg.color="#efdfc3";msg.fontSize=13;ui.addControl(msg);
@@ -1516,6 +1517,63 @@ export function createScene(engine: any, canvas: any) {
     trimPointLightsV13(v.maxRealPointLights??5);
   }
 
+  function setupGameplayGeometryV17(c:any){
+    const nav=c.MAP.navigation??{};
+    rt.navZones=[...(nav.zones??[])];
+    rt.geometryInteractables=[...(nav.interactions??[])];
+
+    (nav.blockers??[]).forEach((q:any)=>collider(q.position[0],q.position[1],q.size[0],q.size[1]));
+    rt.navZones.forEach((q:any)=>{if(q.blocking)collider(q.position[0],q.position[1],q.size[0],q.size[1]);});
+
+    const zoneColors:any={
+      walkable:[0.18,0.65,0.24],
+      entry:[0.20,0.55,0.92],
+      bridge:[0.78,0.58,0.18],
+      stairs:[0.68,0.56,0.36],
+      difficult:[0.82,0.48,0.12],
+      water:[0.10,0.46,0.76],
+      hazard:[0.78,0.14,0.12],
+      blocked:[0.45,0.08,0.08]
+    };
+
+    rt.navDebug=[];
+    rt.navZones.forEach((q:any,i:number)=>{
+      if(!q.size)return;
+      const col=zoneColors[q.type]??[0.65,0.65,0.65];
+      const m=new BABYLON.StandardMaterial("navZoneMat_"+rt.id+"_"+i,scene);
+      m.diffuseColor=new BABYLON.Color3(col[0],col[1],col[2]);
+      m.emissiveColor=new BABYLON.Color3(col[0]*0.35,col[1]*0.35,col[2]*0.35);
+      m.alpha=q.debugAlpha??0.13;
+      m.disableLighting=true;
+      m.disableDepthWrite=true;
+      m.backFaceCulling=false;
+      rt.disposables.push(m);
+
+      const g=BABYLON.MeshBuilder.CreateGround("navZone_"+rt.id+"_"+i,{width:q.size[0],height:q.size[1]},scene);
+      g.position.set(q.position[0],0.115,q.position[1]);
+      g.material=m;g.parent=parentFor("DEBUG");g.isPickable=false;g.setEnabled(gridVisible);
+      rt.navDebug.push(g);
+      if(glow.addExcludedMesh)glow.addExcludedMesh(g);
+    });
+  }
+
+  function navigationZoneAtV17(x:number,z:number){
+    let found:any=null;
+    for(const q of rt.navZones??[]){
+      if(!q.size)continue;
+      const hw=q.size[0]/2,hd=q.size[1]/2;
+      if(x>=q.position[0]-hw&&x<=q.position[0]+hw&&z>=q.position[1]-hd&&z<=q.position[1]+hd)found=q;
+    }
+    return found;
+  }
+
+  function updateTerrainHudV17(){
+    const q=navigationZoneAtV17(player.position.x,player.position.z);
+    if(!q){terrainText.text="";return;}
+    const labels:any={walkable:"transitable",entry:"entrada",bridge:"puente",stairs:"escaleras",difficult:"terreno difícil",water:"agua",hazard:"peligro",blocked:"bloqueado"};
+    terrainText.text="ZONA · "+(q.label??labels[q.type]??q.type);
+  }
+
   function loadMap(id:string){
     const c=D8NIGHT.maps[id];if(!c)return;
     reset(id,c);
@@ -1527,25 +1585,26 @@ export function createScene(engine: any, canvas: any) {
       env(c);floor(c);visualComposition(c);grid(c);c.MAP.objects.forEach(asset);applyReadableFallback(c);lights(c);vfx(c);shadows(c);
       applyScenePolishV13(id,c);
     }
-    rt.interactables=[...(c.CANON.interactables??[]),...(c.VTT_AMBIENCE.interactables??[])];
+    setupGameplayGeometryV17(c);
+    rt.interactables=[...(c.CANON.interactables??[]),...(c.VTT_AMBIENCE.interactables??[]),...(rt.geometryInteractables??[])];
     player.position.set(c.spawn[0],c.spawn[1],c.spawn[2]);
     if(!overview&&c.camera){camera.radius=c.camera.radius??20;camera.beta=c.camera.beta??0.70;camera.alpha=c.camera.alpha??-Math.PI/2.15;}
     camera.target.set(player.position.x,0,player.position.z);ring.isVisible=false;
-    title.text=c.label+" · V16";
-    if(id==="cafe")console.log("[D8 v16] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
+    title.text=c.label+" · V17";
+    if(id==="cafe")console.log("[D8 v17] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
     Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");
     show("Mapa cargado: "+c.label);
   }
 
   const keys:any={};
-  window.addEventListener("keydown",(e:KeyboardEvent)=>{const k=e.key.toLowerCase();keys[k]=true;if(k>="1"&&k<="6")loadMap(order[Number(k)-1]);if(k==="e"&&!e.repeat&&nearest)show(nearest.message);if(k==="g"&&!e.repeat){gridVisible=!gridVisible;if(rt.grid)rt.grid.setEnabled(gridVisible);show(gridVisible?"Grid activado":"Grid oculto");}if(k==="c"&&!e.repeat){overview=!overview;const cfg=rt.config?.camera??{};const size=rt.config?.MAP?.size??[24,16];if(overview){camera.radius=Math.max(size[0],size[1])*1.05;camera.beta=0.46;}else{camera.radius=cfg.radius??20;camera.beta=cfg.beta??0.70;camera.alpha=cfg.alpha??-Math.PI/2.15;}show(overview?"Cámara general":"Cámara de escena");}});
+  window.addEventListener("keydown",(e:KeyboardEvent)=>{const k=e.key.toLowerCase();keys[k]=true;if(k>="1"&&k<="6")loadMap(order[Number(k)-1]);if(k==="e"&&!e.repeat&&nearest)show(nearest.message);if(k==="g"&&!e.repeat){gridVisible=!gridVisible;if(rt.grid)rt.grid.setEnabled(gridVisible);(rt.navDebug??[]).forEach((m:any)=>m.setEnabled(gridVisible));show(gridVisible?"Grid + geometría activados":"Grid oculto");}if(k==="c"&&!e.repeat){overview=!overview;const cfg=rt.config?.camera??{};const size=rt.config?.MAP?.size??[24,16];if(overview){camera.radius=Math.max(size[0],size[1])*1.05;camera.beta=0.46;}else{camera.radius=cfg.radius??20;camera.beta=cfg.beta??0.70;camera.alpha=cfg.alpha??-Math.PI/2.15;}show(overview?"Cámara general":"Cámara de escena");}});
   window.addEventListener("keyup",(e:KeyboardEvent)=>keys[e.key.toLowerCase()]=false);
 
   const radius=0.32;
   function blocked(x:number,z:number){const s=rt.config.MAP.size;if(x<-s[0]/2+radius||x>s[0]/2-radius||z<-s[1]/2+radius||z>s[1]/2-radius)return true;for(const c of rt.colliders)if(x>=c.minX-radius&&x<=c.maxX+radius&&z>=c.minZ-radius&&z<=c.maxZ+radius)return true;return false;}
   function interaction(){nearest=null;ip.isVisible=false;ring.isVisible=false;let best=Infinity;rt.interactables.forEach((q:any)=>{const dx=player.position.x-q.position[0],dz=player.position.z-q.position[1],d=Math.sqrt(dx*dx+dz*dz);if(d<=q.radius&&d<best){best=d;nearest=q;}});if(nearest){ip.isVisible=true;it.text="[ E ]   "+nearest.label;ring.position.set(nearest.position[0],0.09,nearest.position[1]);ring.isVisible=true;}}
 
-  scene.onBeforeRenderObservable.add(()=>{if(!rt.config)return;const dt=Math.min(engine.getDeltaTime()/1000,0.05);elapsed+=dt;let dx=0,dz=0;if(keys.w)dz--;if(keys.s)dz++;if(keys.a)dx--;if(keys.d)dx++;if(dx||dz){const l=Math.sqrt(dx*dx+dz*dz);dx/=l;dz/=l;const d=4*dt,nx=player.position.x+dx*d,nz=player.position.z+dz*d;if(!blocked(nx,player.position.z))player.position.x=nx;if(!blocked(player.position.x,nz))player.position.z=nz;player.rotation.y=Math.atan2(dx,dz);}const target=new BABYLON.Vector3(player.position.x,0,player.position.z);camera.target=BABYLON.Vector3.Lerp(camera.target,target,overview?0.035:0.085);interaction();rt.updaters.forEach((u:any)=>u(elapsed));});
+  scene.onBeforeRenderObservable.add(()=>{if(!rt.config)return;const dt=Math.min(engine.getDeltaTime()/1000,0.05);elapsed+=dt;let dx=0,dz=0;if(keys.w)dz--;if(keys.s)dz++;if(keys.a)dx--;if(keys.d)dx++;if(dx||dz){const l=Math.sqrt(dx*dx+dz*dz);dx/=l;dz/=l;const d=4*dt,nx=player.position.x+dx*d,nz=player.position.z+dz*d;if(!blocked(nx,player.position.z))player.position.x=nx;if(!blocked(player.position.x,nz))player.position.z=nz;player.rotation.y=Math.atan2(dx,dz);}const target=new BABYLON.Vector3(player.position.x,0,player.position.z);camera.target=BABYLON.Vector3.Lerp(camera.target,target,overview?0.035:0.085);interaction();updateTerrainHudV17();rt.updaters.forEach((u:any)=>u(elapsed));});
 
   loadMap("cafe");
   return scene;
