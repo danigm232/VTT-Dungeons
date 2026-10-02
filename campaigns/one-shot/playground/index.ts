@@ -280,7 +280,7 @@ export function createScene(engine: any, canvas: any) {
       if(glow.addExcludedMesh)glow.addExcludedMesh(detail);
     }
 
-    console.log("[D8 v15] floor",rt.id,preset,"base",p.base,"size",c.MAP.size);
+    console.log("[D8 v16] floor",rt.id,preset,"base",p.base,"size",c.MAP.size);
   }
 
   function visualComposition(c:any){
@@ -917,6 +917,56 @@ export function createScene(engine: any, canvas: any) {
       const top=BABYLON.MeshBuilder.CreateCylinder("iceFloeTop",{diameter:d,height:h,tessellation:o.tessellation??7},scene);
       top.position.set(x,h*1.1,z);top.scaling.z=o.depthScale??0.72;top.rotation.y=(o.rotation??0)+0.08;top.material=M.frost;top.parent=rt.root;
     }
+    else if(o.asset==="patio_ring"){
+      const d=(o.diameter??5.0)*s,th=(o.thickness??0.28)*s;
+      const ring=BABYLON.MeshBuilder.CreateTorus("patioRing",{diameter:d,thickness:th,tessellation:48},scene);
+      ring.position.set(x,0.075,z);ring.rotation.x=Math.PI/2;ring.material=M[o.material]??M.stone2;ring.parent=rt.root;
+      if(glow.addExcludedMesh)glow.addExcludedMesh(ring);
+    }
+    else if(o.asset==="well"){
+      const d=(o.diameter??2.0)*s,h=(o.height??0.70)*s;
+      const base=cyl("wellBase",x,h*0.36,z,d,h*0.72,M[o.material]??M.stoneDark);
+      const lip=BABYLON.MeshBuilder.CreateTorus("wellLip",{diameter:d*0.92,thickness:0.20*s,tessellation:32},scene);
+      lip.position.set(x,h*0.82,z);lip.rotation.x=Math.PI/2;lip.material=M.stone2;lip.parent=rt.root;
+      const water=cyl("wellWater",x,h*0.70,z,d*0.72,0.05,M.water);rt.markers.pools.push({x,z,mesh:water,baseY:water.position.y});
+      collider(x,z,d,d);
+    }
+    else if(o.asset==="fence"){
+      const len=(o.length??5.0)*s,rot=o.rotation??0,posts=o.posts??5,h=(o.height??0.85)*s;
+      const root=new BABYLON.TransformNode("fence",scene);root.parent=rt.root;root.position.set(x,0,z);root.rotation.y=rot;
+      for(let i=0;i<posts;i++){
+        const t=posts===1?0:(i/(posts-1)-0.5)*len;
+        const p=BABYLON.MeshBuilder.CreateBox("fencePost",{width:0.13*s,height:h,depth:0.13*s},scene);
+        p.position.set(t,h/2,0);p.material=M[o.material]??M.woodDark;p.parent=root;
+      }
+      for(const yy of [h*0.38,h*0.70]){
+        const r=BABYLON.MeshBuilder.CreateBox("fenceRail",{width:len,height:0.10*s,depth:0.10*s},scene);
+        r.position.set(0,yy,0);r.material=M[o.material]??M.wood;r.parent=root;
+      }
+      if(o.blocking!==false){
+        const aw=Math.abs(Math.cos(rot))*len+Math.abs(Math.sin(rot))*0.18;
+        const ad=Math.abs(Math.sin(rot))*len+Math.abs(Math.cos(rot))*0.18;
+        collider(x,z,aw,ad);
+      }
+    }
+    else if(o.asset==="arch_ruin"){
+      const w=(o.size?.[0]??3.4)*s,h=(o.height??2.5)*s;
+      box("ruinPierL",x-w*0.42,h*0.43,z,0.46*s,h*0.86,0.58*s,M.stoneDark);
+      box("ruinPierR",x+w*0.42,h*0.36,z,0.46*s,h*0.72,0.58*s,M.stoneDark);
+      const top=box("ruinLintel",x-w*0.05,h*0.88,z,w*0.78,0.34*s,0.58*s,M.stone2);top.rotation.z=o.tilt??-0.05;
+      collider(x-w*0.42,z,0.46*s,0.58*s);collider(x+w*0.42,z,0.46*s,0.58*s);
+    }
+    else if(o.asset==="ice_ridge"){
+      const len=(o.length??4.0)*s,count=o.count??7,rot=o.rotation??0;
+      for(let i=0;i<count;i++){
+        const t=count===1?0:i/(count-1)-0.5;
+        const along=t*len;
+        const px=x+Math.cos(rot)*along,pz=z-Math.sin(rot)*along;
+        const h=(0.45+seeded(i*8.3+x)*0.85)*s;
+        const q=BABYLON.MeshBuilder.CreateCylinder("iceRidge",{diameterTop:0,diameterBottom:(0.28+seeded(i*3.7)*0.28)*s,height:h,tessellation:5},scene);
+        q.position.set(px,h/2,pz);q.rotation.y=rot+seeded(i*5.1)*0.5;q.material=i%3===0?M.magicBlue:M.frost;q.parent=rt.root;
+      }
+    }
     else if(o.asset==="water_area"){box("waterArea",x,0.04,z,o.size[0],0.08,o.size[1],M.water);rt.markers.pools.push({x,z});}
     else if(o.asset==="mirror"){box("mirrorBase",x,0.45,z,2.5,0.9,2.5,M.stoneDark);box("mirror",x,1.8,z,1.6,2.2,0.25,M.gold);collider(x,z,2.5,2.5);}
   }
@@ -1068,7 +1118,7 @@ export function createScene(engine: any, canvas: any) {
 
   const ui=BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"),panel=new BABYLON.GUI.StackPanel();
   panel.width="190px";panel.horizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;panel.paddingLeft="15px";panel.paddingTop="15px";ui.addControl(panel);
-  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V15";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
+  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V16";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
   const order=["temple","cafe","dinner","garden","market","mirror"],labels:any={temple:"1 · TEMPLO",cafe:"2 · CAFÉ",dinner:"3 · DINNER",garden:"4 · GARDEN",market:"5 · MARKET",mirror:"6 · MIRROR"},buttons:any={};
   order.forEach(id=>{const b=BABYLON.GUI.Button.CreateSimpleButton("btn_"+id,labels[id]);b.width="175px";b.height="37px";b.color="#dfcfb2";b.background="#25252a";b.cornerRadius=5;b.paddingBottom="4px";b.onPointerClickObservable.add(()=>loadMap(id));buttons[id]=b;panel.addControl(b);});
   const help=new BABYLON.GUI.TextBlock();help.text="\nWASD · mover\nE · interactuar\nG · grid\nC · cámara";help.height="100px";help.color="#888";help.fontSize=11;help.textHorizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.addControl(help);
@@ -1266,6 +1316,21 @@ export function createScene(engine: any, canvas: any) {
     lightPool("tableC",5.05,-0.45,3.5,3.5,[1.00,0.54,0.16],0.085);
     lightPool("water",3.5,6.15,6.3,4.6,[0.06,0.58,0.70],0.13);
 
+    // V16 Café reference-match: strengthen the silhouette and match the reference composition.
+    b("frontWallL",-7.15,0.42,7.55,9.4,0.84,0.52,stoneDark);collider(-7.15,7.55,9.4,0.52);
+    b("frontWallR",8.45,0.42,7.55,6.3,0.84,0.52,stoneDark);collider(8.45,7.55,6.3,0.52);
+    b("entryPierL",-2.05,0.72,7.45,0.55,1.44,0.62,stone);
+    b("entryPierR",2.05,0.72,7.45,0.55,1.44,0.62,stone);
+
+    // Stone coping gives the pool a built-in, architectural look instead of a loose prop.
+    for(const [px,pz,ww,dd] of [[3.5,5.22,5.8,0.32],[3.5,7.28,5.8,0.32],[0.75,6.25,0.32,2.35],[6.25,6.25,0.32,2.35]] as any[]){
+      b("poolCoping",px,0.16,pz,ww,0.28,dd,stoneLight);
+    }
+    // Additional wall shelves / crockery to match the dense tavern backdrop.
+    b("rearNiche",-8.7,1.35,-6.18,1.5,1.20,0.30,woodDark);
+    for(let i=0;i<4;i++)cy("rearPlate",-9.15+i*0.30,1.32,-6.00,0.22,0.035,ceramic);
+    b("sideNiche",10.35,1.20,1.45,1.4,1.15,0.28,woodDark);
+
     // V15 Café art pass: more architectural depth without changing gameplay.
     const beamXs=[-10.9,-7.2,-3.5,0.2,3.9,7.6,10.9];
     for(const bx of beamXs){
@@ -1429,8 +1494,8 @@ export function createScene(engine: any, canvas: any) {
     player.position.set(c.spawn[0],c.spawn[1],c.spawn[2]);
     if(!overview&&c.camera){camera.radius=c.camera.radius??20;camera.beta=c.camera.beta??0.70;camera.alpha=c.camera.alpha??-Math.PI/2.15;}
     camera.target.set(player.position.x,0,player.position.z);ring.isVisible=false;
-    title.text=c.label+" · V15";
-    if(id==="cafe")console.log("[D8 v15] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
+    title.text=c.label+" · V16";
+    if(id==="cafe")console.log("[D8 v16] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
     Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");
     show("Mapa cargado: "+c.label);
   }
