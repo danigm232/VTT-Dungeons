@@ -89,3 +89,20 @@ Cambios:
 - Market: mercancía y densidad de plaza;
 - Mirror: placas de hielo y rocas;
 - cámaras reajustadas manteniendo lectura táctica.
+
+
+## V17 — Interactive Scenery Geometry
+
+V17 se centra únicamente en el escenario y su interacción, no en automatizar reglas o decisiones de D&D.
+
+Incluye:
+- zonas de navegación por mapa;
+- límites de movimiento definidos por escena;
+- bloqueadores físicos adicionales;
+- visualización de zonas con G junto al grid;
+- HUD de tipo de terreno/zona;
+- inspección con E de elementos relevantes del escenario;
+- generación automática de puntos de inspección VTT_AMBIENCE para props visuales;
+- input ligado a la escena de Babylon para evitar listeners duplicados al recargar Playground.
+
+Las zonas y mensajes de inspección añadidos por este sistema son VTT_AMBIENCE salvo que aparezcan expresamente en CANON.
