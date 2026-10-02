@@ -263,7 +263,7 @@ export function createScene(engine: any, canvas: any) {
     baseMat.disableLighting=rt.id!=="temple";
     baseMat.alpha=1;
     if(rt.id==="temple"){
-      const grassTex=new BABYLON.DynamicTexture("templeGrassV29",{width:512,height:512},scene,false);
+      const grassTex=new BABYLON.DynamicTexture("templeGrassV30",{width:512,height:512},scene,false);
       const gc:any=grassTex.getContext();
       gc.fillStyle="#31552d";gc.fillRect(0,0,512,512);
       for(let i=0;i<720;i++){
@@ -327,7 +327,7 @@ export function createScene(engine: any, canvas: any) {
         ]);
       }
     }else if(rt.id==="temple"){
-      // V29: unused ground is lawn. Do not draw the old stone/earth crack field over grass.
+      // V30: unused ground is lawn. Do not draw the old stone/earth crack field over grass.
     }else{
       // Irregular cobble/stone courses.
       const cell=preset==="market_cobble"?1.35:1.45;
