@@ -395,7 +395,7 @@ export const D8NIGHT: any = {
           { id: "temple_statue_ambience", position: [0, -7.1], radius: 2.0, label: "Examinar estatua", message: "La figura de piedra se alza detrás del altar.", action: { type: "pulse", color: [0.75, 0.64, 0.48], range: 3.2 } }
         ],
         visual: {
-          profile: "temple_composition_golden_hour_v27",
+          profile: "temple_composition_golden_hour_v28",
           glow: 0.12,
           exposure: 1.22,
           contrast: 0.98,
