@@ -280,7 +280,7 @@ export function createScene(engine: any, canvas: any) {
       if(glow.addExcludedMesh)glow.addExcludedMesh(detail);
     }
 
-    console.log("[D8 v14.10] floor",rt.id,preset,"base",p.base,"size",c.MAP.size);
+    console.log("[D8 v14.11] floor",rt.id,preset,"base",p.base,"size",c.MAP.size);
   }
 
   function visualComposition(c:any){
@@ -384,7 +384,7 @@ export function createScene(engine: any, canvas: any) {
 
     rt.root.getChildMeshes().forEach((mesh:any)=>{
       if(!mesh.material)return;
-      if(mesh.name==="floor"||mesh.name==="floorDetail")return;
+      if(mesh.name==="floor"||mesh.name==="floorDetail"||mesh.name==="cafe14_floor"||mesh.name==="cafe14_floorDetail")return;
       if(mesh.parent===rt.layers?.VFX)return;
       if(mesh.name.includes("Flame")||mesh.name.includes("fire")||mesh.name.includes("smoke")||mesh.name.includes("dust")||mesh.name.includes("ripple")||mesh.name.includes("poolGlow"))return;
 
@@ -983,7 +983,7 @@ export function createScene(engine: any, canvas: any) {
 
   const ui=BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"),panel=new BABYLON.GUI.StackPanel();
   panel.width="190px";panel.horizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;panel.paddingLeft="15px";panel.paddingTop="15px";ui.addControl(panel);
-  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V14.10";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
+  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V14.11";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
   const order=["temple","cafe","dinner","garden","market","mirror"],labels:any={temple:"1 · TEMPLO",cafe:"2 · CAFÉ",dinner:"3 · DINNER",garden:"4 · GARDEN",market:"5 · MARKET",mirror:"6 · MIRROR"},buttons:any={};
   order.forEach(id=>{const b=BABYLON.GUI.Button.CreateSimpleButton("btn_"+id,labels[id]);b.width="175px";b.height="37px";b.color="#dfcfb2";b.background="#25252a";b.cornerRadius=5;b.paddingBottom="4px";b.onPointerClickObservable.add(()=>loadMap(id));buttons[id]=b;panel.addControl(b);});
   const help=new BABYLON.GUI.TextBlock();help.text="\nWASD · mover\nE · interactuar\nG · grid\nC · cámara";help.height="100px";help.color="#888";help.fontSize=11;help.textHorizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.addControl(help);
@@ -1039,33 +1039,58 @@ export function createScene(engine: any, canvas: any) {
     rt.disposables.push(shadowMat);
 
 
-    // Floor texture: warm, high-contrast stone. Kept outside GlowLayer.
-    const tex=new BABYLON.DynamicTexture("cafe12_floorTex",{width:2048,height:1365},scene,false);
-    const ctx:any=tex.getContext(),W=2048,H=1365;
-    ctx.fillStyle="#765b43";ctx.fillRect(0,0,W,H);
-    const cols=18,rows=12,cw=W/cols,ch=H/rows;
-    const floorCols=["#927154","#856348","#a07b5a","#73553e","#9b7758"];
-    for(let gy=0;gy<rows;gy++)for(let gx=0;gx<cols;gx++){
-      const n=gx*101+gy*211+17;
-      const r=(Math.sin(n*12.9898)*43758.5453)%1;
-      const rr=Math.abs(r);
-      const x=gx*cw+(gy%2?cw*0.22:0)+5,y=gy*ch+5;
-      const w=cw*(0.76+rr*0.15),h=ch*(0.72+((n%7)/7)*0.14);
-      ctx.fillStyle=floorCols[(gx+gy*2)%floorCols.length];
-      ctx.strokeStyle="#4e3829";ctx.lineWidth=6;
-      ctx.beginPath();ctx.roundRect(x,y,w,h,10);ctx.fill();ctx.stroke();
-      ctx.strokeStyle="rgba(255,220,170,0.10)";ctx.lineWidth=2;
-      ctx.beginPath();ctx.moveTo(x+w*0.14,y+h*0.20);ctx.lineTo(x+w*0.78,y+h*0.16);ctx.stroke();
-    }
-    tex.update();tex.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);tex.anisotropicFilteringLevel=8;
-    const floorMat=new BABYLON.StandardMaterial("cafe12_floorMat",scene);
-    floorMat.diffuseTexture=tex;floorMat.ambientColor=new BABYLON.Color3(1,1,1);
-    floorMat.emissiveTexture=tex;floorMat.emissiveColor=new BABYLON.Color3(0.18,0.18,0.18);
-    floorMat.specularColor=new BABYLON.Color3(0.015,0.015,0.015);floorMat.maxSimultaneousLights=6;
-    rt.disposables.push(tex,floorMat);
-    const ground=BABYLON.MeshBuilder.CreateGround("cafe12_floor",{width:24,height:16},scene);
-    ground.material=floorMat;ground.parent=parentFor("BASE");
+    // V14.11 CAFÉ FLOOR REBUILD
+    // The old Café floor used a DynamicTexture on a Ground mesh. It was the only
+    // map bypassing the audited global floor() pipeline and could disappear/black out.
+    // Rebuild it as native 2.5D geometry: solid base + geometric cobble lines.
+    const floorMat=new BABYLON.StandardMaterial("cafe14_floorBaseMat",scene);
+    floorMat.diffuseColor=new BABYLON.Color3(0.43,0.31,0.22);
+    floorMat.emissiveColor=new BABYLON.Color3(0.36,0.25,0.17);
+    floorMat.ambientColor=new BABYLON.Color3(1,1,1);
+    floorMat.specularColor=new BABYLON.Color3(0,0,0);
+    floorMat.disableLighting=true;
+    floorMat.alpha=1;
+    floorMat.backFaceCulling=false;
+    rt.disposables.push(floorMat);
+
+    const ground=BABYLON.MeshBuilder.CreateBox("cafe14_floor",{
+      width:24,
+      height:0.10,
+      depth:16
+    },scene);
+    ground.position.y=-0.05;
+    ground.material=floorMat;
+    ground.parent=parentFor("BASE");
+    ground.receiveShadows=false;
+    ground.isPickable=false;
+    ground.alwaysSelectAsActiveMesh=true;
     if(glow.addExcludedMesh)glow.addExcludedMesh(ground);
+
+    const floorLines:any[]=[];
+    const fw=24,fh=16,cell=1.35,fy=0.012;
+    let frow=0;
+    for(let z=-fh/2+0.5;z<fh/2;z+=cell){
+      const zz=z+(seeded(frow*7.7)-0.5)*0.10;
+      floorLines.push([new BABYLON.Vector3(-fw/2,fy,zz),new BABYLON.Vector3(fw/2,fy,zz)]);
+      let fcol=0;
+      const offset=(frow%2)*cell*0.44;
+      for(let x=-fw/2+offset;x<fw/2;x+=cell){
+        const xx=x+(seeded(frow*101+fcol*17)-0.5)*0.12;
+        floorLines.push([
+          new BABYLON.Vector3(xx,fy,Math.max(-fh/2,zz-cell*0.54)),
+          new BABYLON.Vector3(xx,fy,Math.min(fh/2,zz+cell*0.54))
+        ]);
+        fcol++;
+      }
+      frow++;
+    }
+    const floorDetail=BABYLON.MeshBuilder.CreateLineSystem("cafe14_floorDetail",{lines:floorLines},scene);
+    floorDetail.parent=parentFor("BASE");
+    floorDetail.color=new BABYLON.Color3(0.20,0.13,0.085);
+    floorDetail.alpha=0.52;
+    floorDetail.isPickable=false;
+    floorDetail.alwaysSelectAsActiveMesh=true;
+    if(glow.addExcludedMesh)glow.addExcludedMesh(floorDetail);
 
     const b=(n:string,x:number,y:number,z:number,w:number,h:number,d:number,m:any)=>{
       const q=box("cafe12_"+n,x,y,z,w,h,d,m);if(glow.addExcludedMesh)glow.addExcludedMesh(q);return q;
@@ -1084,7 +1109,7 @@ export function createScene(engine: any, canvas: any) {
       g.addColorStop(1,"rgba(0,0,0,0)");
       ctx.clearRect(0,0,256,256);ctx.fillStyle=g;ctx.fillRect(0,0,256,256);tex.update();
       const m=new BABYLON.StandardMaterial("cafe12_poolMat_"+name,scene);
-      m.diffuseTexture=tex;m.opacityTexture=tex;m.emissiveTexture=tex;m.disableLighting=true;m.backFaceCulling=false;
+      m.diffuseTexture=tex;m.opacityTexture=tex;m.emissiveTexture=tex;m.disableLighting=true;m.disableDepthWrite=true;m.backFaceCulling=false;
       const q=BABYLON.MeshBuilder.CreateGround("cafe12_lightPool_"+name,{width:w,height:d},scene);
       q.position.set(x,0.055,z);q.material=m;q.parent=parentFor("BASE");
       if(glow.addExcludedMesh)glow.addExcludedMesh(q);
@@ -1293,8 +1318,8 @@ export function createScene(engine: any, canvas: any) {
     player.position.set(c.spawn[0],c.spawn[1],c.spawn[2]);
     if(!overview&&c.camera){camera.radius=c.camera.radius??20;camera.beta=c.camera.beta??0.70;camera.alpha=c.camera.alpha??-Math.PI/2.15;}
     camera.target.set(player.position.x,0,player.position.z);ring.isVisible=false;
-    title.text=c.label+" · V14.10";
-    if(id==="cafe")console.log("[D8 v14.10] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
+    title.text=c.label+" · V14.11";
+    if(id==="cafe")console.log("[D8 v14.11] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
     Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");
     show("Mapa cargado: "+c.label);
   }
