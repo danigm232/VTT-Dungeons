@@ -158,7 +158,7 @@ export const D8NIGHT: any = {
     temple: {
       label: "TEMPLO",
       spawn: [0, 0.43, 11.1],
-      camera: { radius: 29.5, beta: 0.58, alpha: -Math.PI / 2.04 },
+      camera: { radius: 30.0, beta: 0.61, alpha: -Math.PI / 2.04 },
       MAP: {
         size: [28, 24],
         floor: "stone",
@@ -216,7 +216,19 @@ export const D8NIGHT: any = {
           { asset: "rose_patch", position: [-9.4, 5.45], size: [3.0, 1.3], count: 12 },
           { asset: "rose_patch", position: [9.4, 5.45], size: [3.0, 1.3], count: 12 },
           { asset: "rose_patch", position: [-10.2, -4.1], size: [2.4, 1.3], count: 10 },
-          { asset: "rose_patch", position: [10.2, -4.1], size: [2.4, 1.3], count: 10 }
+          { asset: "rose_patch", position: [10.2, -4.1], size: [2.4, 1.3], count: 10 },
+
+          // V15 TEMPLE — reference-guided 2.5D art pass
+          { asset: "runner", position: [0, 4.55], size: [1.9, 4.8], material: "clothRed", border: "yellow" },
+          { asset: "banner", position: [-13.25, -4.8], size: [1.05, 1.75], y: 2.55, material: "clothRed", rotation: Math.PI / 2 },
+          { asset: "banner", position: [13.25, -4.8], size: [1.05, 1.75], y: 2.55, material: "clothRed", rotation: -Math.PI / 2 },
+          { asset: "banner", position: [-13.25, 2.5], size: [1.05, 1.75], y: 2.45, material: "purple", rotation: Math.PI / 2 },
+          { asset: "banner", position: [13.25, 2.5], size: [1.05, 1.75], y: 2.45, material: "purple", rotation: -Math.PI / 2 },
+          { asset: "wall_trim", position: [0, -8.25], size: [26.5, 0.24], material: "stone2", y: 0.28 },
+          { asset: "wall_trim", position: [-13.20, -0.4], size: [16.2, 0.24], material: "stone2", y: 0.28, rotation: Math.PI / 2 },
+          { asset: "wall_trim", position: [13.20, -0.4], size: [16.2, 0.24], material: "stone2", y: 0.28, rotation: Math.PI / 2 },
+          { asset: "floor_scatter", position: [-5.8, 9.8], size: [7.0, 2.8], count: 16, material: "stoneDark" },
+          { asset: "floor_scatter", position: [5.8, 9.8], size: [7.0, 2.8], count: 16, material: "stoneDark" }
         ]
       },
       CANON: { interactables: [], triggers: [] },
@@ -267,7 +279,7 @@ export const D8NIGHT: any = {
     dinner: {
       label: "DINNER",
       spawn: [0, 0.43, 7.0],
-      camera: { radius: 24.8, beta: 0.60, alpha: -Math.PI / 2.08 },
+      camera: { radius: 25.2, beta: 0.62, alpha: -Math.PI / 2.08 },
       MAP: {
         size: [28, 18],
         floor: "stone",
@@ -291,7 +303,16 @@ export const D8NIGHT: any = {
           { asset: "small_barrel", position: [10.0, 1.8], scale: 0.9 },
           { asset: "bench", position: [-8.8, 1.8], size: [2.5, 0.68] },
           { asset: "rose_patch", position: [-8.8, -2.6], size: [3.1, 1.4], count: 12 },
-          { asset: "rose_patch", position: [8.8, -4.0], size: [2.8, 1.3], count: 10 }
+          { asset: "rose_patch", position: [8.8, -4.0], size: [2.8, 1.3], count: 10 },
+
+          // V15 DINNER — reference-guided 2.5D art pass
+          { asset: "plant_cluster", position: [-6.8, -2.5], spread: 1.3, count: 9 },
+          { asset: "plant_cluster", position: [6.4, -2.5], spread: 1.2, count: 8 },
+          { asset: "plant_cluster", position: [-7.4, 5.8], spread: 1.0, count: 7 },
+          { asset: "market_goods", position: [8.2, 1.2], size: [3.2, 1.8], count: 10 },
+          { asset: "floor_scatter", position: [-7.2, 3.8], size: [5.0, 4.0], count: 16, material: "stoneDark" },
+          { asset: "floor_scatter", position: [7.0, 4.6], size: [5.5, 3.6], count: 14, material: "stoneDark" },
+          { asset: "wall_trim", position: [0, -7.65], size: [12.0, 0.22], material: "woodDark", y: 0.24 }
         ]
       },
       CANON: { interactables: [], triggers: [] },
@@ -338,7 +359,7 @@ export const D8NIGHT: any = {
     garden: {
       label: "GARDEN",
       spawn: [-10.5, 0.43, 6.0],
-      camera: { radius: 25.8, beta: 0.58, alpha: -Math.PI / 2.00 },
+      camera: { radius: 26.0, beta: 0.61, alpha: -Math.PI / 2.00 },
       MAP: {
         size: [28, 20],
         floor: "snow",
@@ -365,7 +386,16 @@ export const D8NIGHT: any = {
           { asset: "snow_tree", position: [11.4, 4.6], height: 3.5 },
           { asset: "lantern_post", position: [3.7, 4.8], intensity: 0.45, range: 4.5 },
           { asset: "wall", position: [0, -9.6], size: [27.0, 0.45], height: 1.1, material: "stone2" },
-          { asset: "wall", position: [-13.5, 0], size: [0.45, 19.0], height: 1.1, material: "stone2" }
+          { asset: "wall", position: [-13.5, 0], size: [0.45, 19.0], height: 1.1, material: "stone2" },
+
+          // V15 GARDEN — reference-guided 2.5D art pass
+          { asset: "thorn_wall", position: [-7.2, -8.25], length: 9.2, count: 15, rotation: 0 },
+          { asset: "thorn_wall", position: [-12.1, -3.4], length: 8.0, count: 14, rotation: Math.PI / 2 },
+          { asset: "thorn_wall", position: [-7.4, 7.5], length: 9.0, count: 14, rotation: 0 },
+          { asset: "plant_cluster", position: [3.7, -5.7], spread: 1.3, count: 8 },
+          { asset: "plant_cluster", position: [10.5, -6.3], spread: 1.0, count: 7 },
+          { asset: "rock_cluster", position: [-2.5, 4.2], spread: 1.4, count: 8 },
+          { asset: "floor_scatter", position: [7.2, -3.0], size: [6.0, 6.0], count: 12, material: "stoneDark" }
         ]
       },
       CANON: { interactables: [], triggers: [] },
@@ -411,7 +441,7 @@ export const D8NIGHT: any = {
     market: {
       label: "MARKET",
       spawn: [0, 0.43, 7.2],
-      camera: { radius: 26.2, beta: 0.60, alpha: -Math.PI / 2.08 },
+      camera: { radius: 26.5, beta: 0.63, alpha: -Math.PI / 2.08 },
       MAP: {
         size: [30, 20],
         floor: "stone",
@@ -439,7 +469,17 @@ export const D8NIGHT: any = {
           { asset: "crate", position: [12.2, -3.0], scale: 0.9 },
           { asset: "small_barrel", position: [11.4, -3.0], scale: 0.9 },
           { asset: "bench", position: [-1.0, 5.6], size: [2.4, 0.65] },
-          { asset: "bench", position: [2.0, 5.6], size: [2.4, 0.65] }
+          { asset: "bench", position: [2.0, 5.6], size: [2.4, 0.65] },
+
+          // V15 MARKET — reference-guided 2.5D art pass
+          { asset: "market_goods", position: [-9.5, -3.9], size: [3.6, 2.1], count: 12 },
+          { asset: "market_goods", position: [-4.5, -4.0], size: [3.2, 2.0], count: 10 },
+          { asset: "market_goods", position: [5.8, -3.7], size: [3.4, 2.0], count: 11 },
+          { asset: "market_goods", position: [9.6, 1.6], size: [3.2, 2.0], count: 10 },
+          { asset: "market_goods", position: [-7.0, 3.2], size: [3.0, 1.9], count: 9 },
+          { asset: "floor_scatter", position: [0, 0.5], size: [13.0, 7.0], count: 28, material: "stoneDark" },
+          { asset: "plant_cluster", position: [12.5, 4.7], spread: 0.9, count: 6 },
+          { asset: "plant_cluster", position: [-12.4, 4.9], spread: 0.9, count: 6 }
         ]
       },
       CANON: { interactables: [], triggers: [] },
@@ -488,7 +528,7 @@ export const D8NIGHT: any = {
     mirror: {
       label: "MIRROR",
       spawn: [10.5, 0.43, 6.8],
-      camera: { radius: 26.5, beta: 0.56, alpha: -Math.PI / 2.14 },
+      camera: { radius: 27.0, beta: 0.59, alpha: -Math.PI / 2.14 },
       MAP: {
         size: [30, 20],
         floor: "ice",
@@ -511,7 +551,16 @@ export const D8NIGHT: any = {
           { asset: "ice_crystal", position: [1.8, -6.8], height: 1.1, rotation: 0.2, lightColor: [0.10, 0.95, 0.72], intensity: 0.98, range: 9.5 },
           { asset: "ice_crystal", position: [3.8, 6.5], height: 1.25, rotation: 1.0, lightColor: [0.12, 0.72, 1.00], intensity: 1.05, range: 9.8 },
           { asset: "ice_crystal", position: [-2.0, 6.0], height: 1.35, rotation: 0.55, lightColor: [0.16, 1.00, 0.70], intensity: 1.02, range: 9.8 },
-          { asset: "ice_crystal", position: [6.8, -1.8], height: 1.15, rotation: 1.25, lightColor: [0.08, 0.72, 1.00], intensity: 0.98, range: 9.5 }
+          { asset: "ice_crystal", position: [6.8, -1.8], height: 1.15, rotation: 1.25, lightColor: [0.08, 0.72, 1.00], intensity: 0.98, range: 9.5 },
+
+          // V15 MIRROR — reference-guided 2.5D art pass
+          { asset: "ice_floe", position: [-0.8, 0.8], diameter: 4.0, depthScale: 0.68, rotation: 0.25 },
+          { asset: "ice_floe", position: [4.0, 1.8], diameter: 3.6, depthScale: 0.62, rotation: 0.72 },
+          { asset: "ice_floe", position: [7.8, 0.0], diameter: 3.0, depthScale: 0.74, rotation: 1.1 },
+          { asset: "ice_floe", position: [1.8, -3.0], diameter: 3.3, depthScale: 0.64, rotation: 0.48 },
+          { asset: "rock_cluster", position: [12.0, -7.4], spread: 1.7, count: 8, material: "stoneDark" },
+          { asset: "rock_cluster", position: [-12.7, 6.4], spread: 1.5, count: 7, material: "stoneDark" },
+          { asset: "floor_scatter", position: [-8.8, -2.4], size: [4.5, 4.0], count: 10, material: "stoneDark" }
         ]
       },
       CANON: { interactables: [], triggers: [] },
