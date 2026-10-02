@@ -38,7 +38,7 @@ export function createScene(engine: any, canvas: any) {
       ssao.expensiveBlur=false;
       scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline("d8_v18_ssao",camera);
     }
-  }catch(err){console.warn("[D8 v32] SSAO2 unavailable; continuing without AO",err);ssao=null;}
+  }catch(err){console.warn("[D8 v33] SSAO2 unavailable; continuing without AO",err);ssao=null;}
 
   function graphicsV18(c:any){
     const e=c.VTT_AMBIENCE?.environment??{};
@@ -263,7 +263,7 @@ export function createScene(engine: any, canvas: any) {
     baseMat.disableLighting=rt.id!=="temple";
     baseMat.alpha=1;
     if(rt.id==="temple"){
-      const grassTex=new BABYLON.DynamicTexture("templeGrassV32",{width:512,height:512},scene,false);
+      const grassTex=new BABYLON.DynamicTexture("templeGrassV33",{width:512,height:512},scene,false);
       const gc:any=grassTex.getContext();
       gc.fillStyle="#31552d";gc.fillRect(0,0,512,512);
       for(let i=0;i<720;i++){
@@ -327,7 +327,7 @@ export function createScene(engine: any, canvas: any) {
         ]);
       }
     }else if(rt.id==="temple"){
-      // V32: unused ground is lawn. Do not draw the old stone/earth crack field over grass.
+      // V33: unused ground is lawn. Do not draw the old stone/earth crack field over grass.
     }else{
       // Irregular cobble/stone courses.
       const cell=preset==="market_cobble"?1.35:1.45;
@@ -359,7 +359,7 @@ export function createScene(engine: any, canvas: any) {
       if(glow.addExcludedMesh)glow.addExcludedMesh(detail);
     }
 
-    console.log("[D8 v32] floor",rt.id,preset,"base",p.base,"size",c.MAP.size);
+    console.log("[D8 v33] floor",rt.id,preset,"base",p.base,"size",c.MAP.size);
   }
 
   function visualComposition(c:any){
@@ -503,48 +503,84 @@ export function createScene(engine: any, canvas: any) {
     });
   }
 
-  function templeMaterialPassV23(){
+  function templeMaterialPassV33(){
     if(rt.id!=="temple")return;
 
-    const wallTex=new BABYLON.DynamicTexture("templeWallV23",{width:512,height:512},scene,false);
-    const wc:any=wallTex.getContext();wc.fillStyle="#796858";wc.fillRect(0,0,512,512);
-    const rows=9,rowH=57;
-    for(let r=0;r<rows;r++){
-      const offset=(r%2)*34;
-      for(let xx=-80;xx<600;xx+=68){
-        const v=108+Math.floor(seeded(r*21+xx*0.17)*36);
-        wc.fillStyle="rgb("+v+","+Math.max(60,v-13)+","+Math.max(52,v-21)+")";
-        wc.fillRect(xx+offset+2,r*rowH+2,64,rowH-4);
-      }
-    }
-    wc.strokeStyle="rgba(33,27,24,0.72)";wc.lineWidth=3;
-    for(let r=0;r<=rows;r++){wc.beginPath();wc.moveTo(0,r*rowH);wc.lineTo(512,r*rowH);wc.stroke();}
-    for(let i=0;i<34;i++){const x=seeded(i*4.1)*512,y=seeded(i*8.3)*512;wc.fillStyle="rgba(28,42,26,0.10)";wc.beginPath();wc.arc(x,y,3+seeded(i*5.6)*12,0,Math.PI*2);wc.fill();}
-    wallTex.update();wallTex.wrapU=BABYLON.Texture.WRAP_ADDRESSMODE;wallTex.wrapV=BABYLON.Texture.WRAP_ADDRESSMODE;wallTex.uScale=2.5;wallTex.vScale=2.0;
-
-    const floorTex=new BABYLON.DynamicTexture("templeFloorV23",{width:512,height:512},scene,false);
-    const fc:any=floorTex.getContext();fc.fillStyle="#6e6258";fc.fillRect(0,0,512,512);
-    const tw=86,th=58;
+    const wallTex=new BABYLON.DynamicTexture("templeWallV33",{width:768,height:768},scene,false);
+    const wc:any=wallTex.getContext();
+    wc.fillStyle="#756553";wc.fillRect(0,0,768,768);
+    const wallRowH=92;
     for(let r=0;r<10;r++){
-      const off=(r%2)*43;
-      for(let xx=-90;xx<600;xx+=tw){
-        const vv=96+Math.floor(seeded(r*14+xx*0.11)*30);
-        fc.fillStyle="rgb("+vv+","+Math.max(58,vv-7)+","+Math.max(54,vv-10)+")";
-        fc.fillRect(xx+off+3,r*th+3,tw-7,th-7);
-        fc.strokeStyle="rgba(29,25,23,0.70)";fc.lineWidth=3;fc.strokeRect(xx+off+2,r*th+2,tw-5,th-5);
+      const y=r*wallRowH;
+      let xx=(r%2)*-70;
+      let c=0;
+      while(xx<820){
+        const seed=r*97+c*31;
+        const bw=112+Math.floor(seeded(seed)*82);
+        const bh=wallRowH-7;
+        const base=112+Math.floor(seeded(seed+1)*28);
+        wc.fillStyle="rgb("+base+","+Math.max(76,base-12)+","+Math.max(62,base-25)+")";
+        wc.fillRect(xx+4,y+4,bw-8,bh-3);
+        wc.strokeStyle="rgba(42,34,27,0.58)";wc.lineWidth=4;
+        wc.strokeRect(xx+2,y+2,bw-4,bh+1);
+        if(seeded(seed+2)>0.62){
+          wc.fillStyle="rgba(192,162,112,0.08)";
+          wc.fillRect(xx+8,y+8,bw*0.46,8+seeded(seed+3)*10);
+        }
+        xx+=bw;c++;
       }
     }
-    for(let i=0;i<90;i++){const x=seeded(i*3.7)*512,y=seeded(i*9.5)*512;fc.fillStyle="rgba(20,17,15,"+(0.025+seeded(i*2.2)*0.06)+")";fc.fillRect(x,y,2+seeded(i*5.1)*7,1+seeded(i*7.2)*4);}
-    floorTex.update();floorTex.wrapU=BABYLON.Texture.WRAP_ADDRESSMODE;floorTex.wrapV=BABYLON.Texture.WRAP_ADDRESSMODE;floorTex.uScale=3.6;floorTex.vScale=3.0;
+    for(let i=0;i<48;i++){
+      const x=seeded(i*4.7)*768,y=seeded(i*8.9)*768,r=4+seeded(i*5.6)*18;
+      wc.fillStyle="rgba(35,54,31,"+(0.025+seeded(i*3.2)*0.055)+")";
+      wc.beginPath();wc.arc(x,y,r,0,Math.PI*2);wc.fill();
+    }
+    wallTex.update();
+    wallTex.wrapU=BABYLON.Texture.WRAP_ADDRESSMODE;wallTex.wrapV=BABYLON.Texture.WRAP_ADDRESSMODE;
+    wallTex.uScale=1.55;wallTex.vScale=1.30;
 
-    const wallMat=new BABYLON.StandardMaterial("templeWallMatV23",scene);
-    wallMat.diffuseTexture=wallTex;wallMat.diffuseColor=new BABYLON.Color3(1.00,0.92,0.80);wallMat.ambientColor=new BABYLON.Color3(0.68,0.60,0.50);
-    wallMat.emissiveTexture=wallTex;wallMat.emissiveColor=new BABYLON.Color3(0.20,0.16,0.12);
+    const floorTex=new BABYLON.DynamicTexture("templeFloorV33",{width:768,height:768},scene,false);
+    const fc:any=floorTex.getContext();
+    fc.fillStyle="#746c5f";fc.fillRect(0,0,768,768);
+    const slabW=150,slabH=112;
+    for(let r=0;r<8;r++){
+      const off=(r%2)*slabW*0.48;
+      for(let xx=-slabW;xx<850;xx+=slabW){
+        const seed=r*113+Math.floor(xx);
+        const jx=(seeded(seed)-0.5)*14;
+        const jy=(seeded(seed+1)-0.5)*10;
+        const vv=116+Math.floor(seeded(seed+2)*30);
+        fc.fillStyle="rgb("+vv+","+Math.max(86,vv-5)+","+Math.max(76,vv-13)+")";
+        fc.fillRect(xx+off+7+jx,r*slabH+7+jy,slabW-15,slabH-15);
+        fc.strokeStyle="rgba(38,33,28,0.62)";fc.lineWidth=5;
+        fc.strokeRect(xx+off+5+jx,r*slabH+5+jy,slabW-11,slabH-11);
+        if(seeded(seed+3)>0.66){
+          fc.strokeStyle="rgba(54,46,39,0.28)";fc.lineWidth=2;
+          fc.beginPath();
+          fc.moveTo(xx+off+25+jx,r*slabH+34+jy);
+          fc.lineTo(xx+off+70+jx,r*slabH+48+jy);
+          fc.lineTo(xx+off+105+jx,r*slabH+40+jy);
+          fc.stroke();
+        }
+      }
+    }
+    for(let i=0;i<110;i++){
+      const x=seeded(i*3.7)*768,y=seeded(i*9.5)*768;
+      fc.fillStyle="rgba(32,28,24,"+(0.018+seeded(i*2.2)*0.040)+")";
+      fc.beginPath();fc.arc(x,y,2+seeded(i*5.1)*8,0,Math.PI*2);fc.fill();
+    }
+    floorTex.update();
+    floorTex.wrapU=BABYLON.Texture.WRAP_ADDRESSMODE;floorTex.wrapV=BABYLON.Texture.WRAP_ADDRESSMODE;
+    floorTex.uScale=1.35;floorTex.vScale=1.18;
+
+    const wallMat=new BABYLON.StandardMaterial("templeWallMatV33",scene);
+    wallMat.diffuseTexture=wallTex;wallMat.diffuseColor=new BABYLON.Color3(0.94,0.88,0.78);wallMat.ambientColor=new BABYLON.Color3(0.66,0.60,0.52);
+    wallMat.emissiveTexture=wallTex;wallMat.emissiveColor=new BABYLON.Color3(0.075,0.060,0.045);
     wallMat.specularColor=new BABYLON.Color3(0.040,0.035,0.030);wallMat.maxSimultaneousLights=8;
 
-    const floorMat=new BABYLON.StandardMaterial("templeFloorMatV23",scene);
-    floorMat.diffuseTexture=floorTex;floorMat.diffuseColor=new BABYLON.Color3(0.95,0.87,0.76);floorMat.ambientColor=new BABYLON.Color3(0.66,0.59,0.50);
-    floorMat.emissiveTexture=floorTex;floorMat.emissiveColor=new BABYLON.Color3(0.16,0.13,0.10);
+    const floorMat=new BABYLON.StandardMaterial("templeFloorMatV33",scene);
+    floorMat.diffuseTexture=floorTex;floorMat.diffuseColor=new BABYLON.Color3(0.93,0.90,0.83);floorMat.ambientColor=new BABYLON.Color3(0.70,0.66,0.59);
+    floorMat.emissiveTexture=floorTex;floorMat.emissiveColor=new BABYLON.Color3(0.055,0.050,0.043);
     floorMat.specularColor=new BABYLON.Color3(0.020,0.020,0.020);floorMat.maxSimultaneousLights=8;
 
     rt.disposables.push(wallTex,floorTex,wallMat,floorMat);
@@ -1759,21 +1795,46 @@ export function createScene(engine: any, canvas: any) {
     rt.disposables.push(shadowMat);
 
 
-    // V14.11 CAFÉ FLOOR REBUILD
-    // The old Café floor used a DynamicTexture on a Ground mesh. It was the only
-    // map bypassing the audited global floor() pipeline and could disappear/black out.
-    // Rebuild it as native 2.5D geometry: solid base + geometric cobble lines.
-    const floorMat=new BABYLON.StandardMaterial("cafe14_floorBaseMat",scene);
-    floorMat.diffuseColor=new BABYLON.Color3(0.43,0.31,0.22);
-    floorMat.emissiveColor=new BABYLON.Color3(0.36,0.25,0.17);
-    floorMat.ambientColor=new BABYLON.Color3(1,1,1);
-    floorMat.specularColor=new BABYLON.Color3(0,0,0);
-    floorMat.disableLighting=true;
-    floorMat.alpha=1;
-    floorMat.backFaceCulling=false;
-    rt.disposables.push(floorMat);
+    // V33 CAFÉ FLOOR — procedural warm stone, no geometric/debug line system.
+    const floorTex=new BABYLON.DynamicTexture("cafeFloorV33",{width:1024,height:1024},scene,false);
+    const fctx:any=floorTex.getContext();
+    fctx.fillStyle="#3c2a20";fctx.fillRect(0,0,1024,1024);
+    const cw=165,ch=118;
+    for(let r=0;r<10;r++){
+      const off=(r%2)*cw*0.48;
+      for(let xx=-cw;xx<1120;xx+=cw){
+        const seed=r*137+Math.floor(xx);
+        const jx=(seeded(seed)-0.5)*18,jy=(seeded(seed+1)-0.5)*10;
+        const rr=80+Math.floor(seeded(seed+2)*26);
+        const gg=58+Math.floor(seeded(seed+3)*20);
+        const bb=43+Math.floor(seeded(seed+4)*15);
+        fctx.fillStyle="rgb("+rr+","+gg+","+bb+")";
+        fctx.fillRect(xx+off+7+jx,r*ch+7+jy,cw-15,ch-15);
+        fctx.strokeStyle="rgba(31,21,16,0.74)";fctx.lineWidth=6;
+        fctx.strokeRect(xx+off+5+jx,r*ch+5+jy,cw-11,ch-11);
+      }
+    }
+    for(let i=0;i<95;i++){
+      const x=seeded(i*4.1)*1024,y=seeded(i*7.9)*1024;
+      const rad=5+seeded(i*5.7)*28;
+      fctx.fillStyle="rgba(28,17,12,"+(0.025+seeded(i*2.9)*0.055)+")";
+      fctx.beginPath();fctx.arc(x,y,rad,0,Math.PI*2);fctx.fill();
+    }
+    floorTex.update();
+    floorTex.wrapU=BABYLON.Texture.WRAP_ADDRESSMODE;floorTex.wrapV=BABYLON.Texture.WRAP_ADDRESSMODE;
+    floorTex.uScale=1.55;floorTex.vScale=1.25;
 
-    const ground=BABYLON.MeshBuilder.CreateBox("cafe14_floor",{
+    const floorMat=new BABYLON.StandardMaterial("cafeFloorMatV33",scene);
+    floorMat.diffuseTexture=floorTex;
+    floorMat.diffuseColor=new BABYLON.Color3(0.92,0.78,0.66);
+    floorMat.ambientColor=new BABYLON.Color3(0.70,0.58,0.48);
+    floorMat.emissiveTexture=floorTex;
+    floorMat.emissiveColor=new BABYLON.Color3(0.055,0.038,0.028);
+    floorMat.specularColor=new BABYLON.Color3(0.018,0.014,0.012);
+    floorMat.maxSimultaneousLights=6;
+    rt.disposables.push(floorTex,floorMat);
+
+    const ground=BABYLON.MeshBuilder.CreateBox("cafe33_floor",{
       width:24,
       height:0.10,
       depth:16
@@ -1781,36 +1842,24 @@ export function createScene(engine: any, canvas: any) {
     ground.position.y=-0.05;
     ground.material=floorMat;
     ground.parent=parentFor("BASE");
-    ground.receiveShadows=false;
+    ground.receiveShadows=true;
     ground.isPickable=false;
     ground.alwaysSelectAsActiveMesh=true;
     if(glow.addExcludedMesh)glow.addExcludedMesh(ground);
 
-    const floorLines:any[]=[];
-    const fw=24,fh=16,cell=1.35,fy=0.012;
-    let frow=0;
-    for(let z=-fh/2+0.5;z<fh/2;z+=cell){
-      const zz=z+(seeded(frow*7.7)-0.5)*0.10;
-      floorLines.push([new BABYLON.Vector3(-fw/2,fy,zz),new BABYLON.Vector3(fw/2,fy,zz)]);
-      let fcol=0;
-      const offset=(frow%2)*cell*0.44;
-      for(let x=-fw/2+offset;x<fw/2;x+=cell){
-        const xx=x+(seeded(frow*101+fcol*17)-0.5)*0.12;
-        floorLines.push([
-          new BABYLON.Vector3(xx,fy,Math.max(-fh/2,zz-cell*0.54)),
-          new BABYLON.Vector3(xx,fy,Math.min(fh/2,zz+cell*0.54))
-        ]);
-        fcol++;
-      }
-      frow++;
+    const cafeWallTex=new BABYLON.DynamicTexture("cafeWallV33",{width:512,height:512},scene,false);
+    const cwctx:any=cafeWallTex.getContext();cwctx.fillStyle="#6d4630";cwctx.fillRect(0,0,512,512);
+    for(let i=0;i<180;i++){
+      const x=seeded(i*3.9)*512,y=seeded(i*7.3)*512;
+      const a=0.018+seeded(i*2.2)*0.05;
+      cwctx.fillStyle=seeded(i*5.1)>0.5?"rgba(210,143,91,"+a+")":"rgba(52,29,19,"+a+")";
+      cwctx.fillRect(x,y,3+seeded(i*4.7)*18,2+seeded(i*9.1)*9);
     }
-    const floorDetail=BABYLON.MeshBuilder.CreateLineSystem("cafe14_floorDetail",{lines:floorLines},scene);
-    floorDetail.parent=parentFor("BASE");
-    floorDetail.color=new BABYLON.Color3(0.20,0.13,0.085);
-    floorDetail.alpha=0.52;
-    floorDetail.isPickable=false;
-    floorDetail.alwaysSelectAsActiveMesh=true;
-    if(glow.addExcludedMesh)glow.addExcludedMesh(floorDetail);
+    cafeWallTex.update();cafeWallTex.wrapU=BABYLON.Texture.WRAP_ADDRESSMODE;cafeWallTex.wrapV=BABYLON.Texture.WRAP_ADDRESSMODE;
+    cafeWallTex.uScale=1.8;cafeWallTex.vScale=1.2;
+    stoneDark.diffuseTexture=cafeWallTex;stoneDark.emissiveTexture=cafeWallTex;stoneDark.emissiveColor=new BABYLON.Color3(0.045,0.028,0.018);
+    stone.diffuseTexture=cafeWallTex;stone.emissiveTexture=cafeWallTex;stone.emissiveColor=new BABYLON.Color3(0.040,0.026,0.018);
+    rt.disposables.push(cafeWallTex);
 
     const b=(n:string,x:number,y:number,z:number,w:number,h:number,d:number,m:any)=>{
       const q=box("cafe12_"+n,x,y,z,w,h,d,m);if(glow.addExcludedMesh)glow.addExcludedMesh(q);return q;
@@ -2064,20 +2113,20 @@ export function createScene(engine: any, canvas: any) {
     trimPointLightsV13(v.maxRealPointLights??5);
   }
 
-  function templeVisibilityPassV32(){
+  function templeVisibilityPassV33(){
     if(rt.id!=="temple")return;
-    const wallMat:any=scene.getMaterialByName?.("templeWallMatV23")??null;
-    const floorMat:any=scene.getMaterialByName?.("templeFloorMatV23")??null;
+    const wallMat:any=scene.getMaterialByName?.("templeWallMatV33")??null;
+    const floorMat:any=scene.getMaterialByName?.("templeFloorMatV33")??null;
 
     if(wallMat){
-      wallMat.diffuseColor=new BABYLON.Color3(1.00,0.91,0.78);
-      wallMat.emissiveColor=new BABYLON.Color3(0.095,0.075,0.055);
+      wallMat.diffuseColor=new BABYLON.Color3(0.94,0.88,0.78);
+      wallMat.emissiveColor=new BABYLON.Color3(0.075,0.060,0.045);
       wallMat.ambientColor=new BABYLON.Color3(0.72,0.64,0.54);
       wallMat.specularColor=new BABYLON.Color3(0.025,0.022,0.018);
     }
     if(floorMat){
-      floorMat.diffuseColor=new BABYLON.Color3(1.00,0.94,0.84);
-      floorMat.emissiveColor=new BABYLON.Color3(0.075,0.065,0.050);
+      floorMat.diffuseColor=new BABYLON.Color3(0.93,0.90,0.83);
+      floorMat.emissiveColor=new BABYLON.Color3(0.055,0.050,0.043);
       floorMat.ambientColor=new BABYLON.Color3(0.78,0.71,0.62);
       floorMat.specularColor=new BABYLON.Color3(0.018,0.018,0.016);
     }
@@ -2127,7 +2176,7 @@ export function createScene(engine: any, canvas: any) {
         mergedGroups++;
         mergedSources+=list.length;
       }catch(err){
-        console.warn("[D8 v32] merge skipped",key,err);
+        console.warn("[D8 v33] merge skipped",key,err);
       }
     }
     rt.optimization={...(rt.optimization??{}),mergedGroups,mergedSources};
@@ -2139,7 +2188,7 @@ export function createScene(engine: any, canvas: any) {
     const activeLights=mapLights.filter((l:any)=>l.isEnabled?.()!==false);
     const frozen=meshes.filter((m:any)=>m.isWorldMatrixFrozen).length;
     const vfxMeshes=rt.layers?.VFX?.getChildMeshes?.().length??0;
-    console.log("[D8 v32 audit]",rt.id,{meshes:meshes.length,frozen,vfxMeshes,lights:mapLights.length,activeLights:activeLights.length,updaters:rt.updaters.length,colliders:rt.colliders.length,interactables:rt.interactables.length,mergedGroups:rt.optimization?.mergedGroups??0,mergedSources:rt.optimization?.mergedSources??0});
+    console.log("[D8 v33 audit]",rt.id,{meshes:meshes.length,frozen,vfxMeshes,lights:mapLights.length,activeLights:activeLights.length,updaters:rt.updaters.length,colliders:rt.colliders.length,interactables:rt.interactables.length,mergedGroups:rt.optimization?.mergedGroups??0,mergedSources:rt.optimization?.mergedSources??0});
   }
 
   function optimizeStaticMeshesV24(){
@@ -2387,12 +2436,12 @@ export function createScene(engine: any, canvas: any) {
       grid(c);
       c.MAP.objects.forEach(asset);
       applyReadableFallback(c);
-      templeMaterialPassV23();
+      templeMaterialPassV33();
       lights(c);
       lightingV19(c);
       vfx(c);
       applyScenePolishV13(id,c);
-      templeVisibilityPassV32();
+      templeVisibilityPassV33();
       mergeStaticDetailMeshesV24();
       shadows(c);
     }
@@ -2416,7 +2465,7 @@ export function createScene(engine: any, canvas: any) {
     const camOff=c.camera?.targetOffset??[0,0,0];
     camera.target.set(player.position.x+(camOff[0]??0),camOff[1]??0,player.position.z+(camOff[2]??0));ring.isVisible=false;
     title.text=c.label+" · "+D8_VERSION;
-    if(id==="cafe")console.log("[D8 v32] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
+    if(id==="cafe")console.log("[D8 v33] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
     Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");
     show("Mapa cargado: "+c.label);
   }
