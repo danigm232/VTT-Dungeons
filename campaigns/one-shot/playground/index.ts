@@ -40,7 +40,7 @@ export function createScene(engine: any, canvas: any) {
     soil:mat("soil",[0.17,0.08,0.035]), grass:mat("grass",[0.09,0.22,0.055]), lanternGlass:mat("lanternGlass",[1,0.56,0.10],{emissive:[0.9,0.28,0.02],alpha:0.72})
   };
 
-  let rt:any={id:null,config:null,root:null,layers:{},colliders:[],interactables:[],geometryInteractables:[],navZones:[],navDebug:[],updaters:[],grid:null,disposables:[],markers:{fireplaces:[],pools:[],roses:[],magic:[]}};
+  let rt:any={id:null,config:null,root:null,layers:{},colliders:[],interactables:[],geometryInteractables:[],navZones:[],navDebug:[],navBounds:null,updaters:[],grid:null,disposables:[],markers:{fireplaces:[],pools:[],roses:[],magic:[]}};
   let gridVisible=false, overview=false, nearest:any=null, elapsed=0;
   const reset=(id:string,c:any)=>{
     if(rt.disposables)rt.disposables.forEach((d:any)=>{try{d.dispose();}catch{}});
@@ -1520,6 +1520,7 @@ export function createScene(engine: any, canvas: any) {
   function setupGameplayGeometryV17(c:any){
     const nav=c.MAP.navigation??{};
     rt.navZones=[...(nav.zones??[])];
+    rt.navBounds=nav.bounds??null;
     rt.geometryInteractables=[...(nav.interactions??[])];
 
     (nav.blockers??[]).forEach((q:any)=>collider(q.position[0],q.position[1],q.size[0],q.size[1]));
@@ -1574,6 +1575,66 @@ export function createScene(engine: any, canvas: any) {
     terrainText.text="ZONA · "+(q.label??labels[q.type]??q.type);
   }
 
+  function buildAmbientInspectablesV17(c:any){
+    const defs:any={
+      bar:["Examinar barra","La barra muestra botellas, utensilios y señales de uso."],
+      fireplace:["Examinar chimenea","La chimenea aporta calor, luz y movimiento al espacio."],
+      pool:["Examinar estanque","El agua forma un pequeño punto de interés dentro de la sala."],
+      wall_shelf:["Examinar estantería","La estantería está cargada de objetos y recipientes."],
+      barrel_cluster:["Examinar barriles","Varios barriles ocupan esta zona del escenario."],
+      sideboard:["Examinar aparador","El aparador reúne vajilla y pequeños objetos."],
+      statue:["Examinar estatua","La estatua domina visualmente esta parte de la estancia."],
+      long_table:["Examinar mesa","La mesa ocupa el centro del espacio y organiza la escena."],
+      bridge:["Examinar puente","El puente conecta las dos orillas y define la ruta de paso."],
+      stairs:["Examinar escaleras","Las escaleras marcan el acceso entre niveles."],
+      brazier:["Examinar brasero","El brasero ilumina y calienta el entorno inmediato."],
+      chandelier:["Examinar candelabro","El candelabro cuelga sobre la zona principal."],
+      house:["Examinar edificio","El edificio estructura el límite principal de la escena."],
+      market_stall:["Examinar puesto","El puesto contiene mercancía y estrecha el paso cercano."],
+      market_goods:["Examinar mercancías","Cajas y productos se acumulan alrededor del puesto."],
+      well:["Examinar pozo","El pozo ocupa una parte del espacio exterior."],
+      trough:["Examinar pilón","El pilón es un elemento fijo que condiciona el paso."],
+      cow_proxy:["Examinar animal","El animal permanece junto al pilón."],
+      round_room:["Examinar estancia","La pequeña estancia circular forma un espacio diferenciado."],
+      bed:["Examinar cama","La cama ocupa parte del interior del refugio."],
+      rose_patch:["Examinar rosales","Los rosales forman una masa densa dentro del jardín."],
+      thorn_wall:["Examinar espinos","Los espinos crean una barrera visual y física."],
+      snow_tree:["Examinar árbol","El árbol sobresale sobre la nieve."],
+      magic_pedestal:["Examinar pedestal","El pedestal concentra la atención de la cueva helada."],
+      mirror_frame:["Examinar espejo","El espejo se alza sobre el pedestal."],
+      ice_crystal:["Examinar cristal","El cristal emite un brillo frío sobre el hielo."],
+      ice_floe:["Examinar placa de hielo","La placa de hielo rompe la continuidad de la superficie."],
+      ice_ridge:["Examinar cresta de hielo","La cresta helada forma un límite irregular."],
+      water_area:["Examinar agua","La superficie de agua delimita una zona distinta del terreno."]
+    };
+
+    const existing=[...(c.CANON?.interactables??[]),...(c.VTT_AMBIENCE?.interactables??[]),...(rt.geometryInteractables??[])];
+    const out:any[]=[];
+    const objects=c.MAP?.objects??[];
+    let serial=0;
+    for(const o of objects){
+      const d=defs[o.asset];if(!d||!o.position)continue;
+      const x=o.position[0],z=o.position[1];
+      const duplicate=existing.some((q:any)=>{
+        const dx=(q.position?.[0]??999)-x,dz=(q.position?.[1]??999)-z;
+        return Math.sqrt(dx*dx+dz*dz)<0.85;
+      })||out.some((q:any)=>{
+        const dx=q.position[0]-x,dz=q.position[1]-z;
+        return Math.sqrt(dx*dx+dz*dz)<0.85;
+      });
+      if(duplicate)continue;
+      out.push({
+        id:"auto_"+rt.id+"_"+(serial++),
+        position:[x,z],
+        radius:o.asset==="long_table"||o.asset==="market_stall"||o.asset==="rose_patch"?1.9:1.5,
+        label:d[0],
+        message:d[1],
+        source:"VTT_AMBIENCE"
+      });
+    }
+    return out;
+  }
+
   function loadMap(id:string){
     const c=D8NIGHT.maps[id];if(!c)return;
     reset(id,c);
@@ -1586,7 +1647,8 @@ export function createScene(engine: any, canvas: any) {
       applyScenePolishV13(id,c);
     }
     setupGameplayGeometryV17(c);
-    rt.interactables=[...(c.CANON.interactables??[]),...(c.VTT_AMBIENCE.interactables??[]),...(rt.geometryInteractables??[])];
+    const autoInspectables=buildAmbientInspectablesV17(c);
+    rt.interactables=[...(c.CANON.interactables??[]),...(c.VTT_AMBIENCE.interactables??[]),...(rt.geometryInteractables??[]),...autoInspectables];
     player.position.set(c.spawn[0],c.spawn[1],c.spawn[2]);
     if(!overview&&c.camera){camera.radius=c.camera.radius??20;camera.beta=c.camera.beta??0.70;camera.alpha=c.camera.alpha??-Math.PI/2.15;}
     camera.target.set(player.position.x,0,player.position.z);ring.isVisible=false;
@@ -1597,12 +1659,46 @@ export function createScene(engine: any, canvas: any) {
   }
 
   const keys:any={};
-  window.addEventListener("keydown",(e:KeyboardEvent)=>{const k=e.key.toLowerCase();keys[k]=true;if(k>="1"&&k<="6")loadMap(order[Number(k)-1]);if(k==="e"&&!e.repeat&&nearest)show(nearest.message);if(k==="g"&&!e.repeat){gridVisible=!gridVisible;if(rt.grid)rt.grid.setEnabled(gridVisible);(rt.navDebug??[]).forEach((m:any)=>m.setEnabled(gridVisible));show(gridVisible?"Grid + geometría activados":"Grid oculto");}if(k==="c"&&!e.repeat){overview=!overview;const cfg=rt.config?.camera??{};const size=rt.config?.MAP?.size??[24,16];if(overview){camera.radius=Math.max(size[0],size[1])*1.05;camera.beta=0.46;}else{camera.radius=cfg.radius??20;camera.beta=cfg.beta??0.70;camera.alpha=cfg.alpha??-Math.PI/2.15;}show(overview?"Cámara general":"Cámara de escena");}});
-  window.addEventListener("keyup",(e:KeyboardEvent)=>keys[e.key.toLowerCase()]=false);
+  scene.onKeyboardObservable.add((kb:any)=>{
+    const e=kb.event as KeyboardEvent;
+    const k=e.key.toLowerCase();
+    if(kb.type===BABYLON.KeyboardEventTypes.KEYDOWN){
+      keys[k]=true;
+      if(e.repeat)return;
+      if(k>="1"&&k<="6")loadMap(order[Number(k)-1]);
+      if(k==="e"&&nearest)show(nearest.message);
+      if(k==="g"){
+        gridVisible=!gridVisible;
+        if(rt.grid)rt.grid.setEnabled(gridVisible);
+        (rt.navDebug??[]).forEach((m:any)=>m.setEnabled(gridVisible));
+        show(gridVisible?"Grid + geometría VTT":"Grid oculto");
+      }
+      if(k==="c"){
+        overview=!overview;
+        const cfg=rt.config?.camera??{};
+        const size=rt.config?.MAP?.size??[24,16];
+        if(overview){camera.radius=Math.max(size[0],size[1])*1.05;camera.beta=0.46;}
+        else{camera.radius=cfg.radius??20;camera.beta=cfg.beta??0.70;camera.alpha=cfg.alpha??-Math.PI/2.15;}
+        show(overview?"Cámara general":"Cámara de escena");
+      }
+    }else if(kb.type===BABYLON.KeyboardEventTypes.KEYUP){
+      keys[k]=false;
+    }
+  });
 
   const radius=0.32;
-  function blocked(x:number,z:number){const s=rt.config.MAP.size;if(x<-s[0]/2+radius||x>s[0]/2-radius||z<-s[1]/2+radius||z>s[1]/2-radius)return true;for(const c of rt.colliders)if(x>=c.minX-radius&&x<=c.maxX+radius&&z>=c.minZ-radius&&z<=c.maxZ+radius)return true;return false;}
-  function interaction(){nearest=null;ip.isVisible=false;ring.isVisible=false;let best=Infinity;rt.interactables.forEach((q:any)=>{const dx=player.position.x-q.position[0],dz=player.position.z-q.position[1],d=Math.sqrt(dx*dx+dz*dz);if(d<=q.radius&&d<best){best=d;nearest=q;}});if(nearest){ip.isVisible=true;it.text="[ E ]   "+nearest.label;ring.position.set(nearest.position[0],0.09,nearest.position[1]);ring.isVisible=true;}}
+  function blocked(x:number,z:number){
+    const b=rt.navBounds;
+    if(b){
+      if(x<b[0]+radius||x>b[1]-radius||z<b[2]+radius||z>b[3]-radius)return true;
+    }else{
+      const ms=rt.config.MAP.size;
+      if(x<-ms[0]/2+radius||x>ms[0]/2-radius||z<-ms[1]/2+radius||z>ms[1]/2-radius)return true;
+    }
+    for(const c of rt.colliders)if(x>=c.minX-radius&&x<=c.maxX+radius&&z>=c.minZ-radius&&z<=c.maxZ+radius)return true;
+    return false;
+  }
+  function interaction(){nearest=null;ip.isVisible=false;ring.isVisible=false;const zone=navigationZoneAtV17(player.position.x,player.position.z);player.metadata={...(player.metadata??{}),vttZone:zone?.label??zone?.type??null};let best=Infinity;rt.interactables.forEach((q:any)=>{const dx=player.position.x-q.position[0],dz=player.position.z-q.position[1],d=Math.sqrt(dx*dx+dz*dz);if(d<=q.radius&&d<best){best=d;nearest=q;}});if(nearest){ip.isVisible=true;it.text="[ E ]   "+nearest.label;ring.position.set(nearest.position[0],0.09,nearest.position[1]);ring.isVisible=true;}}
 
   scene.onBeforeRenderObservable.add(()=>{if(!rt.config)return;const dt=Math.min(engine.getDeltaTime()/1000,0.05);elapsed+=dt;let dx=0,dz=0;if(keys.w)dz--;if(keys.s)dz++;if(keys.a)dx--;if(keys.d)dx++;if(dx||dz){const l=Math.sqrt(dx*dx+dz*dz);dx/=l;dz/=l;const d=4*dt,nx=player.position.x+dx*d,nz=player.position.z+dz*d;if(!blocked(nx,player.position.z))player.position.x=nx;if(!blocked(player.position.x,nz))player.position.z=nz;player.rotation.y=Math.atan2(dx,dz);}const target=new BABYLON.Vector3(player.position.x,0,player.position.z);camera.target=BABYLON.Vector3.Lerp(camera.target,target,overview?0.035:0.085);interaction();updateTerrainHudV17();rt.updaters.forEach((u:any)=>u(elapsed));});
 
