@@ -38,7 +38,7 @@ export function createScene(engine: any, canvas: any) {
       ssao.expensiveBlur=false;
       scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline("d8_v18_ssao",camera);
     }
-  }catch(err){console.warn("[D8 v30] SSAO2 unavailable; continuing without AO",err);ssao=null;}
+  }catch(err){console.warn("[D8 v31] SSAO2 unavailable; continuing without AO",err);ssao=null;}
 
   function graphicsV18(c:any){
     const e=c.VTT_AMBIENCE?.environment??{};
@@ -359,7 +359,7 @@ export function createScene(engine: any, canvas: any) {
       if(glow.addExcludedMesh)glow.addExcludedMesh(detail);
     }
 
-    console.log("[D8 v30] floor",rt.id,preset,"base",p.base,"size",c.MAP.size);
+    console.log("[D8 v31] floor",rt.id,preset,"base",p.base,"size",c.MAP.size);
   }
 
   function visualComposition(c:any){
@@ -549,7 +549,7 @@ export function createScene(engine: any, canvas: any) {
 
     rt.disposables.push(wallTex,floorTex,wallMat,floorMat);
 
-    const wallNames=["templeWallBody","templeGatePier","templeGateLintel","templeGateCrown","wall","archLeft","archRight","archTop","column","columnBase","columnCap","templeAltar","templeWindow","templeButtress","templeBackdrop"];
+    const wallNames=["templeWallBody","templeWallPilaster","templeGatePier","templeGateLintel","templeGateCrown","wall","archLeft","archRight","archTop","column","columnBase","columnCap","templeAltar","templeWindow","templeButtress","templeBackdrop"];
     const floorNames=["templeFloorMain","path","patioInner","stair"];
     rt.root.getChildMeshes().forEach((m:any)=>{
       const n=m.name??"";
@@ -593,10 +593,22 @@ export function createScene(engine: any, canvas: any) {
       const cap=box("templeWallCap",x,h+0.14,z,w*1.055,0.28,d*1.18,M.stoneLight);
       body.isPickable=foot.isPickable=cap.isPickable=false;
       if(o.tiers){
-        const horizontal=w>=d;
-        const band1=box("templeWallBand",x,h*0.34,z,horizontal?w*1.012:d*1.22,0.13,horizontal?d*1.16:w*1.012,M.stoneLight);
-        const band2=box("templeWallBand",x,h*0.69,z,horizontal?w*1.012:d*1.22,0.13,horizontal?d*1.16:w*1.012,M.stoneDark);
+        const band1=box("templeWallBand",x,h*0.34,z,w*1.04,0.13,d*1.18,M.stoneLight);
+        const band2=box("templeWallBand",x,h*0.69,z,w*1.04,0.13,d*1.18,M.stoneDark);
         band1.isPickable=band2.isPickable=false;
+
+        // Endpoint pilasters add vertical rhythm without spanning across the map.
+        if(w>=d){
+          const px=w*0.5-0.24;
+          const p1=box("templeWallPilaster",x-px,h*0.50,z,0.34,h*0.92,d*1.30,M.stone2);
+          const p2=box("templeWallPilaster",x+px,h*0.50,z,0.34,h*0.92,d*1.30,M.stone2);
+          p1.isPickable=p2.isPickable=false;
+        }else{
+          const pz=d*0.5-0.24;
+          const p1=box("templeWallPilaster",x,h*0.50,z-pz,w*1.30,h*0.92,0.34,M.stone2);
+          const p2=box("templeWallPilaster",x,h*0.50,z+pz,w*1.30,h*0.92,0.34,M.stone2);
+          p1.isPickable=p2.isPickable=false;
+        }
       }
       collider(x,z,w,d);
     }
@@ -619,7 +631,7 @@ export function createScene(engine: any, canvas: any) {
       }
       if(lines.length){
         const g=BABYLON.MeshBuilder.CreateLineSystem("templeFloorJoints",{lines},scene);
-        g.parent=parentFor("BASE");g.color=new BABYLON.Color3(0.10,0.075,0.055);g.alpha=0.34;g.isPickable=false;
+        g.parent=parentFor("BASE");g.color=new BABYLON.Color3(0.085,0.065,0.050);g.alpha=0.20;g.isPickable=false;
         if(glow.addExcludedMesh)glow.addExcludedMesh(g);
       }
       if(o.border){
@@ -2055,11 +2067,11 @@ export function createScene(engine: any, canvas: any) {
     trimPointLightsV13(v.maxRealPointLights??5);
   }
 
-  function templeVisibilityPassV30(){
+  function templeVisibilityPassV31(){
     if(rt.id!=="temple")return;
     for(const m of rt.root.getChildMeshes()){
       const n=(m.name??"").toLowerCase();
-      if(n.includes("templewallbody")||n.includes("templegatepier")||n.includes("templegatelintel")||n.includes("templegatecrown")){
+      if(n.includes("templewallbody")||n.includes("templewallpilaster")||n.includes("templegatepier")||n.includes("templegatelintel")||n.includes("templegatecrown")){
         const mat=m.material;
         if(mat){
           mat.diffuseColor=new BABYLON.Color3(0.95,0.84,0.70);
@@ -2112,7 +2124,7 @@ export function createScene(engine: any, canvas: any) {
         mergedGroups++;
         mergedSources+=list.length;
       }catch(err){
-        console.warn("[D8 v30] merge skipped",key,err);
+        console.warn("[D8 v31] merge skipped",key,err);
       }
     }
     rt.optimization={...(rt.optimization??{}),mergedGroups,mergedSources};
@@ -2124,7 +2136,7 @@ export function createScene(engine: any, canvas: any) {
     const activeLights=mapLights.filter((l:any)=>l.isEnabled?.()!==false);
     const frozen=meshes.filter((m:any)=>m.isWorldMatrixFrozen).length;
     const vfxMeshes=rt.layers?.VFX?.getChildMeshes?.().length??0;
-    console.log("[D8 v30 audit]",rt.id,{meshes:meshes.length,frozen,vfxMeshes,lights:mapLights.length,activeLights:activeLights.length,updaters:rt.updaters.length,colliders:rt.colliders.length,interactables:rt.interactables.length,mergedGroups:rt.optimization?.mergedGroups??0,mergedSources:rt.optimization?.mergedSources??0});
+    console.log("[D8 v31 audit]",rt.id,{meshes:meshes.length,frozen,vfxMeshes,lights:mapLights.length,activeLights:activeLights.length,updaters:rt.updaters.length,colliders:rt.colliders.length,interactables:rt.interactables.length,mergedGroups:rt.optimization?.mergedGroups??0,mergedSources:rt.optimization?.mergedSources??0});
   }
 
   function optimizeStaticMeshesV24(){
@@ -2377,7 +2389,7 @@ export function createScene(engine: any, canvas: any) {
       lightingV19(c);
       vfx(c);
       applyScenePolishV13(id,c);
-      templeVisibilityPassV30();
+      templeVisibilityPassV31();
       mergeStaticDetailMeshesV24();
       shadows(c);
     }
@@ -2401,7 +2413,7 @@ export function createScene(engine: any, canvas: any) {
     const camOff=c.camera?.targetOffset??[0,0,0];
     camera.target.set(player.position.x+(camOff[0]??0),camOff[1]??0,player.position.z+(camOff[2]??0));ring.isVisible=false;
     title.text=c.label+" · "+D8_VERSION;
-    if(id==="cafe")console.log("[D8 v30] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
+    if(id==="cafe")console.log("[D8 v31] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
     Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");
     show("Mapa cargado: "+c.label);
   }
