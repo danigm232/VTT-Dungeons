@@ -20,6 +20,8 @@ export const D8NIGHT: any = {
         renderMode: "clean_v12",
         visualFloor: "cafe_stone",
         visualComposition: "cafe_reference",
+        enableVisualComposition: false,
+        compositionOpacity: 0,
         objects: [
           { asset: "wall", position: [0, -7.65], size: [24, 0.7] },
           { asset: "wall", position: [-11.65, -2.5], size: [0.7, 10] },
@@ -162,7 +164,8 @@ export const D8NIGHT: any = {
         floor: "stone",
         visualFloor: "temple_stone",
         visualComposition: "temple_reference",
-        compositionOpacity: 0.12,
+        enableVisualComposition: false,
+        compositionOpacity: 0,
         objects: [
           // V14.9 TEMPLE ACCESS: enclosed interior with one southern entrance.
           { asset: "wall", position: [0, -8.65], size: [27.5, 0.55], height: 1.9 },
@@ -270,6 +273,8 @@ export const D8NIGHT: any = {
         floor: "stone",
         visualFloor: "night_cobble",
         visualComposition: "dinner_reference",
+        enableVisualComposition: false,
+        compositionOpacity: 0,
         objects: [
           { asset: "house", position: [0, -4.9], size: [12.0, 5.4], height: 2.8, windowLightIntensity: 0.95, windowLightRange: 6.8 },
           { asset: "path", position: [0, 3.2], size: [13.0, 3.0] },
@@ -339,6 +344,8 @@ export const D8NIGHT: any = {
         floor: "snow",
         visualFloor: "snow",
         visualComposition: "garden_reference",
+        enableVisualComposition: false,
+        compositionOpacity: 0,
         objects: [
           { asset: "path", position: [-1.0, 4.8], size: [23.0, 2.2] },
           { asset: "path", position: [5.8, 0.2], size: [2.2, 11.0] },
@@ -410,6 +417,8 @@ export const D8NIGHT: any = {
         floor: "stone",
         visualFloor: "market_cobble",
         visualComposition: "market_reference",
+        enableVisualComposition: false,
+        compositionOpacity: 0,
         objects: [
           { asset: "market_stall", position: [-10.2, -5.6], size: [3.8, 2.0], color: "purple" },
           { asset: "market_stall", position: [-4.9, -5.9], size: [3.7, 2.0], color: "yellow" },
@@ -485,7 +494,8 @@ export const D8NIGHT: any = {
         floor: "ice",
         visualFloor: "ice",
         visualComposition: "mirror_reference",
-        compositionOpacity: 0.20,
+        enableVisualComposition: false,
+        compositionOpacity: 0,
         objects: [
           { asset: "water_area", position: [2.0, 0.6], size: [18.0, 8.0] },
           { asset: "ice_crack", position: [2.0, 0.0], branches: 7, length: 5.2, rotation: 0.2 },
