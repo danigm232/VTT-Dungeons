@@ -38,7 +38,7 @@ export function createScene(engine: any, canvas: any) {
       ssao.expensiveBlur=false;
       scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline("d8_v18_ssao",camera);
     }
-  }catch(err){console.warn("[D8 v31] SSAO2 unavailable; continuing without AO",err);ssao=null;}
+  }catch(err){console.warn("[D8 v32] SSAO2 unavailable; continuing without AO",err);ssao=null;}
 
   function graphicsV18(c:any){
     const e=c.VTT_AMBIENCE?.environment??{};
@@ -263,7 +263,7 @@ export function createScene(engine: any, canvas: any) {
     baseMat.disableLighting=rt.id!=="temple";
     baseMat.alpha=1;
     if(rt.id==="temple"){
-      const grassTex=new BABYLON.DynamicTexture("templeGrassV31",{width:512,height:512},scene,false);
+      const grassTex=new BABYLON.DynamicTexture("templeGrassV32",{width:512,height:512},scene,false);
       const gc:any=grassTex.getContext();
       gc.fillStyle="#31552d";gc.fillRect(0,0,512,512);
       for(let i=0;i<720;i++){
@@ -327,7 +327,7 @@ export function createScene(engine: any, canvas: any) {
         ]);
       }
     }else if(rt.id==="temple"){
-      // V31: unused ground is lawn. Do not draw the old stone/earth crack field over grass.
+      // V32: unused ground is lawn. Do not draw the old stone/earth crack field over grass.
     }else{
       // Irregular cobble/stone courses.
       const cell=preset==="market_cobble"?1.35:1.45;
@@ -359,7 +359,7 @@ export function createScene(engine: any, canvas: any) {
       if(glow.addExcludedMesh)glow.addExcludedMesh(detail);
     }
 
-    console.log("[D8 v31] floor",rt.id,preset,"base",p.base,"size",c.MAP.size);
+    console.log("[D8 v32] floor",rt.id,preset,"base",p.base,"size",c.MAP.size);
   }
 
   function visualComposition(c:any){
@@ -589,24 +589,19 @@ export function createScene(engine: any, canvas: any) {
       const h=o.height??4.4,w=o.size[0],d=o.size[1];
       const body=box("templeWallBody",x,h/2,z,w,h,d,M.stone2);
       body.receiveShadows=true;
-      const foot=box("templeWallFoot",x,0.22,z,w*1.035,0.44,d*1.16,M.stoneDark);
-      const cap=box("templeWallCap",x,h+0.14,z,w*1.055,0.28,d*1.18,M.stoneLight);
+      const foot=box("templeWallFoot",x,0.16,z,w*1.02,0.32,d*1.10,M.stoneDark);
+      const cap=box("templeWallCap",x,h+0.08,z,w*1.03,0.16,d*1.10,M.stoneLight);
       body.isPickable=foot.isPickable=cap.isPickable=false;
-      if(o.tiers){
-        const band1=box("templeWallBand",x,h*0.34,z,w*1.04,0.13,d*1.18,M.stoneLight);
-        const band2=box("templeWallBand",x,h*0.69,z,w*1.04,0.13,d*1.18,M.stoneDark);
-        band1.isPickable=band2.isPickable=false;
-
-        // Endpoint pilasters add vertical rhythm without spanning across the map.
+      if(o.pilasters){
         if(w>=d){
-          const px=w*0.5-0.24;
-          const p1=box("templeWallPilaster",x-px,h*0.50,z,0.34,h*0.92,d*1.30,M.stone2);
-          const p2=box("templeWallPilaster",x+px,h*0.50,z,0.34,h*0.92,d*1.30,M.stone2);
+          const px=Math.max(0,w*0.5-0.26);
+          const p1=box("templeWallPilaster",x-px,h*0.49,z,0.38,h*0.94,d*1.24,M.stone2);
+          const p2=box("templeWallPilaster",x+px,h*0.49,z,0.38,h*0.94,d*1.24,M.stone2);
           p1.isPickable=p2.isPickable=false;
         }else{
-          const pz=d*0.5-0.24;
-          const p1=box("templeWallPilaster",x,h*0.50,z-pz,w*1.30,h*0.92,0.34,M.stone2);
-          const p2=box("templeWallPilaster",x,h*0.50,z+pz,w*1.30,h*0.92,0.34,M.stone2);
+          const pz=Math.max(0,d*0.5-0.26);
+          const p1=box("templeWallPilaster",x,h*0.49,z-pz,w*1.24,h*0.94,0.38,M.stone2);
+          const p2=box("templeWallPilaster",x,h*0.49,z+pz,w*1.24,h*0.94,0.38,M.stone2);
           p1.isPickable=p2.isPickable=false;
         }
       }
@@ -621,18 +616,20 @@ export function createScene(engine: any, canvas: any) {
       const w=o.size[0],d=o.size[1],tile=o.tileSize??1.35;
       const q=box("templeFloorMain",x,0.14,z,w,0.28,d,M.stone2,"BASE");
       q.receiveShadows=true;q.isPickable=false;
-      const lines:any[]=[];
-      const y=0.292;
-      for(let gx=-w/2+tile;gx<w/2;gx+=tile){
-        lines.push([new BABYLON.Vector3(x+gx,y,z-d/2+0.12),new BABYLON.Vector3(x+gx,y,z+d/2-0.12)]);
-      }
-      for(let gz=-d/2+tile;gz<d/2;gz+=tile){
-        lines.push([new BABYLON.Vector3(x-w/2+0.12,y,z+gz),new BABYLON.Vector3(x+w/2-0.12,y,z+gz)]);
-      }
-      if(lines.length){
-        const g=BABYLON.MeshBuilder.CreateLineSystem("templeFloorJoints",{lines},scene);
-        g.parent=parentFor("BASE");g.color=new BABYLON.Color3(0.085,0.065,0.050);g.alpha=0.20;g.isPickable=false;
-        if(glow.addExcludedMesh)glow.addExcludedMesh(g);
+      if(o.joints!==false){
+        const lines:any[]=[];
+        const y=0.292;
+        for(let gx=-w/2+tile;gx<w/2;gx+=tile){
+          lines.push([new BABYLON.Vector3(x+gx,y,z-d/2+0.12),new BABYLON.Vector3(x+gx,y,z+d/2-0.12)]);
+        }
+        for(let gz=-d/2+tile;gz<d/2;gz+=tile){
+          lines.push([new BABYLON.Vector3(x-w/2+0.12,y,z+gz),new BABYLON.Vector3(x+w/2-0.12,y,z+gz)]);
+        }
+        if(lines.length){
+          const g=BABYLON.MeshBuilder.CreateLineSystem("templeFloorJoints",{lines},scene);
+          g.parent=parentFor("BASE");g.color=new BABYLON.Color3(0.085,0.065,0.050);g.alpha=0.12;g.isPickable=false;
+          if(glow.addExcludedMesh)glow.addExcludedMesh(g);
+        }
       }
       if(o.border){
         box("templeFloorBorderN",x,0.31,z-d/2+0.12,w,0.10,0.24,M.stoneLight,"BASE");
@@ -2067,24 +2064,30 @@ export function createScene(engine: any, canvas: any) {
     trimPointLightsV13(v.maxRealPointLights??5);
   }
 
-  function templeVisibilityPassV31(){
+  function templeVisibilityPassV32(){
     if(rt.id!=="temple")return;
+    const wallMat:any=scene.getMaterialByName?.("templeWallMatV23")??null;
+    const floorMat:any=scene.getMaterialByName?.("templeFloorMatV23")??null;
+
+    if(wallMat){
+      wallMat.diffuseColor=new BABYLON.Color3(1.00,0.91,0.78);
+      wallMat.emissiveColor=new BABYLON.Color3(0.095,0.075,0.055);
+      wallMat.ambientColor=new BABYLON.Color3(0.72,0.64,0.54);
+      wallMat.specularColor=new BABYLON.Color3(0.025,0.022,0.018);
+    }
+    if(floorMat){
+      floorMat.diffuseColor=new BABYLON.Color3(1.00,0.94,0.84);
+      floorMat.emissiveColor=new BABYLON.Color3(0.075,0.065,0.050);
+      floorMat.ambientColor=new BABYLON.Color3(0.78,0.71,0.62);
+      floorMat.specularColor=new BABYLON.Color3(0.018,0.018,0.016);
+    }
+
     for(const m of rt.root.getChildMeshes()){
       const n=(m.name??"").toLowerCase();
-      if(n.includes("templewallbody")||n.includes("templewallpilaster")||n.includes("templegatepier")||n.includes("templegatelintel")||n.includes("templegatecrown")){
-        const mat=m.material;
-        if(mat){
-          mat.diffuseColor=new BABYLON.Color3(0.95,0.84,0.70);
-          mat.emissiveColor=new BABYLON.Color3(0.16,0.12,0.085);
-          mat.ambientColor=new BABYLON.Color3(0.72,0.64,0.54);
-        }
-      }else if(n.includes("templefloormain")){
-        const mat=m.material;
-        if(mat){
-          mat.diffuseColor=new BABYLON.Color3(0.88,0.80,0.68);
-          mat.emissiveColor=new BABYLON.Color3(0.14,0.11,0.08);
-          mat.ambientColor=new BABYLON.Color3(0.70,0.64,0.56);
-        }
+      if(wallMat&&(n.includes("templewallbody")||n.includes("templewallpilaster")||n.includes("templegatepier")||n.includes("templegatelintel")||n.includes("templegatecrown"))){
+        m.material=wallMat;m.receiveShadows=true;
+      }else if(floorMat&&n.includes("templefloormain")){
+        m.material=floorMat;m.receiveShadows=true;
       }
     }
   }
@@ -2124,7 +2127,7 @@ export function createScene(engine: any, canvas: any) {
         mergedGroups++;
         mergedSources+=list.length;
       }catch(err){
-        console.warn("[D8 v31] merge skipped",key,err);
+        console.warn("[D8 v32] merge skipped",key,err);
       }
     }
     rt.optimization={...(rt.optimization??{}),mergedGroups,mergedSources};
@@ -2136,7 +2139,7 @@ export function createScene(engine: any, canvas: any) {
     const activeLights=mapLights.filter((l:any)=>l.isEnabled?.()!==false);
     const frozen=meshes.filter((m:any)=>m.isWorldMatrixFrozen).length;
     const vfxMeshes=rt.layers?.VFX?.getChildMeshes?.().length??0;
-    console.log("[D8 v31 audit]",rt.id,{meshes:meshes.length,frozen,vfxMeshes,lights:mapLights.length,activeLights:activeLights.length,updaters:rt.updaters.length,colliders:rt.colliders.length,interactables:rt.interactables.length,mergedGroups:rt.optimization?.mergedGroups??0,mergedSources:rt.optimization?.mergedSources??0});
+    console.log("[D8 v32 audit]",rt.id,{meshes:meshes.length,frozen,vfxMeshes,lights:mapLights.length,activeLights:activeLights.length,updaters:rt.updaters.length,colliders:rt.colliders.length,interactables:rt.interactables.length,mergedGroups:rt.optimization?.mergedGroups??0,mergedSources:rt.optimization?.mergedSources??0});
   }
 
   function optimizeStaticMeshesV24(){
@@ -2389,7 +2392,7 @@ export function createScene(engine: any, canvas: any) {
       lightingV19(c);
       vfx(c);
       applyScenePolishV13(id,c);
-      templeVisibilityPassV31();
+      templeVisibilityPassV32();
       mergeStaticDetailMeshesV24();
       shadows(c);
     }
@@ -2413,7 +2416,7 @@ export function createScene(engine: any, canvas: any) {
     const camOff=c.camera?.targetOffset??[0,0,0];
     camera.target.set(player.position.x+(camOff[0]??0),camOff[1]??0,player.position.z+(camOff[2]??0));ring.isVisible=false;
     title.text=c.label+" · "+D8_VERSION;
-    if(id==="cafe")console.log("[D8 v31] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
+    if(id==="cafe")console.log("[D8 v32] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
     Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");
     show("Mapa cargado: "+c.label);
   }
