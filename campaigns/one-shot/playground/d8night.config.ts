@@ -8,7 +8,7 @@
 // Garden -> El jardin de la srta fritz IA.png
 // Market -> El Mercado Nocturno IA.png
 // Mirror -> El Espejo de plata del amor verdadero IA.png
-export const D8_VERSION = "V26";
+export const D8_VERSION = "V27";
 
 export const D8NIGHT: any = {
   maps: {
@@ -181,7 +181,7 @@ export const D8NIGHT: any = {
     temple: {
       label: "TEMPLO",
       spawn: [0, 0.43, 28.0],
-      camera: { radius: 52.0, beta: 0.54, alpha: -Math.PI / 2.04 },
+      camera: { radius: 41.5, beta: 0.57, alpha: -Math.PI / 2.04, targetOffset: [0, 0, -11.0] },
       MAP: {
         size: [50, 60],
         floor: "stone",
@@ -235,8 +235,10 @@ export const D8NIGHT: any = {
           { asset: "path", position: [0, 10.6], size: [4.8, 4.0] },
 
           // Main forecourt: large enough to read as a true exterior area.
-          { asset: "room_floor", position: [0, 14.25], size: [46.5, 10.8], material: "stone2" },
-          { asset: "path", position: [0, 14.3], size: [5.6, 10.2] },
+          { asset: "room_floor", position: [0, 14.25], size: [27.5, 10.8], material: "stone2" },
+          { asset: "path", position: [0, 14.3], size: [5.8, 10.2] },
+          { asset: "room_floor", position: [-18.2, 14.25], size: [8.5, 10.8], material: "grass" },
+          { asset: "room_floor", position: [18.2, 14.25], size: [8.5, 10.8], material: "grass" },
 
           // Left circular patio / resting pocket.
           { asset: "patio_round", position: [-12.8, 14.6], diameter: 7.8, material: "stone2", border: "stoneDark" },
@@ -253,6 +255,10 @@ export const D8NIGHT: any = {
           { asset: "plant_cluster", position: [20.8, 15.2], spread: 1.65, count: 13 },
           { asset: "plant_cluster", position: [-7.2, 18.0], spread: 1.10, count: 8 },
           { asset: "plant_cluster", position: [7.5, 18.0], spread: 1.10, count: 8 },
+          { asset: "plant_cluster", position: [-16.8, 9.7], spread: 1.45, count: 12 },
+          { asset: "plant_cluster", position: [16.8, 9.7], spread: 1.45, count: 12 },
+          { asset: "temple_garden_bed", position: [-17.3, 8.9], size: [5.2, 2.2], count: 16 },
+          { asset: "temple_garden_bed", position: [17.3, 8.9], size: [5.2, 2.2], count: 16 },
 
           // Stone scatter breaks the clean rectangular silhouette.
           { asset: "rock_cluster", position: [-5.8, 17.9], spread: 1.25, count: 8, material: "stoneDark" },
@@ -275,8 +281,10 @@ export const D8NIGHT: any = {
           { asset: "collider_only", position: [9.8, 22.4], size: [15.2, 4.6] },
 
           // Outer arrival terrace with additional vegetation.
-          { asset: "room_floor", position: [0, 27.1], size: [48.0, 5.2], material: "stone2" },
+          { asset: "room_floor", position: [0, 27.1], size: [30.0, 5.2], material: "stone2" },
           { asset: "path", position: [0, 27.0], size: [6.0, 5.0] },
+          { asset: "room_floor", position: [-19.2, 27.1], size: [8.0, 5.2], material: "grass" },
+          { asset: "room_floor", position: [19.2, 27.1], size: [8.0, 5.2], material: "grass" },
           { asset: "low_wall", position: [-15.0, 29.2], size: [17.0, 0.52], height: 0.95, material: "stoneDark" },
           { asset: "low_wall", position: [15.0, 29.2], size: [17.0, 0.52], height: 0.95, material: "stoneDark" },
           { asset: "temple_garden_bed", position: [-19.0, 27.2], size: [5.0, 2.2], count: 15 },
@@ -369,15 +377,15 @@ export const D8NIGHT: any = {
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.115, 0.070, 0.045], fog: false, fogDensity: 0, exposure: 1.14, contrast: 1.04, toneMapping: true, vignette: true, vignetteWeight: 0.18, vignetteStretch: 0.12 },
+        environment: { clearColor: [0.155, 0.095, 0.055], fog: false, fogDensity: 0, exposure: 1.22, contrast: 0.98, toneMapping: true, vignette: true, vignetteWeight: 0.10, vignetteStretch: 0.08 },
         lighting: {
           mode: "interior",
-          ambientIntensity: 0.30,
-          ambientColor: [0.88, 0.72, 0.56],
-          globalFill: { color: [0.82, 0.66, 0.50], intensity: 0.16, hemiIntensity: 0.22, directionalIntensity: 0.08, direction: [0.88, -0.50, 0.18] },
-          shadows: { enabled: true, mapSize: 2048, blurKernel: 18, intensity: 1.18, color: [1.00, 0.66, 0.38], direction: [0.88, -0.50, 0.18], position: [-22, 13, 4], darkness: 0.24 },
+          ambientIntensity: 0.48,
+          ambientColor: [0.94, 0.78, 0.62],
+          globalFill: { color: [0.88, 0.70, 0.52], intensity: 0.24, hemiIntensity: 0.34, directionalIntensity: 0.16, direction: [0.88, -0.50, 0.18] },
+          shadows: { enabled: true, mapSize: 2048, blurKernel: 18, intensity: 1.35, color: [1.00, 0.70, 0.42], direction: [0.88, -0.50, 0.18], position: [-22, 13, 4], darkness: 0.18 },
           lights: [
-            { position: [0, 2.8, -6.2], color: [1.00, 0.50, 0.18], intensity: 0.52, range: 9.0 }
+            { position: [0, 2.8, -6.2], color: [1.00, 0.52, 0.20], intensity: 0.68, range: 10.0 }
           ]
         },
         vfx: { dust: true, fireflies: true, fireflyCount: 6, roseSway: true },
@@ -387,19 +395,19 @@ export const D8NIGHT: any = {
           { id: "temple_statue_ambience", position: [0, -7.1], radius: 2.0, label: "Examinar estatua", message: "La figura de piedra se alza detrás del altar.", action: { type: "pulse", color: [0.75, 0.64, 0.48], range: 3.2 } }
         ],
         visual: {
-          profile: "temple_readability_golden_hour_v26",
+          profile: "temple_composition_golden_hour_v27",
           glow: 0.12,
-          exposure: 1.14,
-          contrast: 1.04,
+          exposure: 1.22,
+          contrast: 0.98,
           fov: 0.70,
-          sceneAmbient: [0.145, 0.115, 0.090],
-          diffuseBoost: 1.18,
-          emissiveFloor: 0.10,
+          sceneAmbient: [0.24, 0.18, 0.13],
+          diffuseBoost: 1.26,
+          emissiveFloor: 0.16,
           specular: 0.020,
           maxRealPointLights: 12,
           maxMaterialLights: 8,
-          aoStrength: 0.40,
-          aoRadius: 0.95,
+          aoStrength: 0.24,
+          aoRadius: 0.78,
           bloomWeight: 0.11,
           bloomThreshold: 0.86,
           contactShadows: [
