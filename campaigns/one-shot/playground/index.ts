@@ -38,7 +38,7 @@ export function createScene(engine: any, canvas: any) {
       ssao.expensiveBlur=false;
       scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline("d8_v18_ssao",camera);
     }
-  }catch(err){console.warn("[D8 v28] SSAO2 unavailable; continuing without AO",err);ssao=null;}
+  }catch(err){console.warn("[D8 v29] SSAO2 unavailable; continuing without AO",err);ssao=null;}
 
   function graphicsV18(c:any){
     const e=c.VTT_AMBIENCE?.environment??{};
@@ -252,7 +252,7 @@ export function createScene(engine: any, canvas: any) {
       stone:{base:[0.38,0.34,0.30],line:[0.18,0.15,0.13]},
       stone_tavern:{base:[0.40,0.29,0.20],line:[0.17,0.11,0.075]}
     };
-    const p=rt.id==="temple"?{base:[0.18,0.135,0.085],line:[0.075,0.055,0.035]}:(palettes[preset]??palettes.stone);
+    const p=rt.id==="temple"?{base:[0.105,0.185,0.070],line:[0.050,0.090,0.040]}:(palettes[preset]??palettes.stone);
 
     const baseMat=new BABYLON.StandardMaterial("floorBaseMat_"+rt.id,scene);
     baseMat.diffuseColor=new BABYLON.Color3(p.base[0],p.base[1],p.base[2]);
@@ -307,18 +307,7 @@ export function createScene(engine: any, canvas: any) {
         ]);
       }
     }else if(rt.id==="temple"){
-      // V26: exterior ground is natural earth, not a giant tiled stone slab.
-      // Only sparse cracks/tracks remain on the map-wide base; authored room/path meshes carry the stonework.
-      for(let i=0;i<42;i++){
-        const sx=-w/2+seeded(i*9.7)*w;
-        const sz=-h/2+seeded(i*15.3)*h;
-        const len=0.45+seeded(i*5.1)*1.25;
-        const ang=seeded(i*8.4)*Math.PI*2;
-        lines.push([
-          new BABYLON.Vector3(sx,y,sz),
-          new BABYLON.Vector3(sx+Math.cos(ang)*len,y,sz+Math.sin(ang)*len)
-        ]);
-      }
+      // V29: unused ground is lawn. Do not draw the old stone/earth crack field over grass.
     }else{
       // Irregular cobble/stone courses.
       const cell=preset==="market_cobble"?1.35:1.45;
@@ -350,7 +339,7 @@ export function createScene(engine: any, canvas: any) {
       if(glow.addExcludedMesh)glow.addExcludedMesh(detail);
     }
 
-    console.log("[D8 v28] floor",rt.id,preset,"base",p.base,"size",c.MAP.size);
+    console.log("[D8 v29] floor",rt.id,preset,"base",p.base,"size",c.MAP.size);
   }
 
   function visualComposition(c:any){
@@ -540,8 +529,8 @@ export function createScene(engine: any, canvas: any) {
 
     rt.disposables.push(wallTex,floorTex,wallMat,floorMat);
 
-    const wallNames=["templeWallBody","templeWallFoot","templeWallCap","wall","archLeft","archRight","archTop","column","columnBase","columnCap","templeAltar","templeWindow","templeButtress","templeBackdrop","lowWall","wallTrim"];
-    const floorNames=["templeFloorMain","roomFloor","path","patioInner","stair"];
+    const wallNames=["templeWallBody","templeWallFoot","templeWallCap","templeGatePier","templeGateCap","templeGateLintel","templeGateCrown","wall","archLeft","archRight","archTop","column","columnBase","columnCap","templeAltar","templeWindow","templeButtress","templeBackdrop","lowWall","wallTrim"];
+    const floorNames=["templeFloorMain","path","patioInner","stair"];
     rt.root.getChildMeshes().forEach((m:any)=>{
       const n=m.name??"";
       if(wallNames.some(q=>n.includes(q))){m.material=wallMat;m.receiveShadows=true;}
@@ -558,7 +547,19 @@ export function createScene(engine: any, canvas: any) {
 
   function asset(o:any){
     const x=o.position[0],z=o.position[1],s=o.scale??1;
-    if(o.asset==="temple_wall"){
+    if(o.asset==="temple_gate"){
+      const w=(o.width??6.4)*s,h=(o.height??4.5)*s,d=(o.depth??0.9)*s;
+      const pierW=0.85*s;
+      const left=box("templeGatePierL",x-w*0.50,h*0.48,z,pierW,h*0.96,d,M.stone2);
+      const right=box("templeGatePierR",x+w*0.50,h*0.48,z,pierW,h*0.96,d,M.stone2);
+      const capL=box("templeGateCapL",x-w*0.50,h*0.98,z,pierW*1.30,0.22*s,d*1.12,M.stoneLight);
+      const capR=box("templeGateCapR",x+w*0.50,h*0.98,z,pierW*1.30,0.22*s,d*1.12,M.stoneLight);
+      const lintel=box("templeGateLintel",x,h*0.91,z,w+0.95*s,0.42*s,d,M.stoneLight);
+      const crown=box("templeGateCrown",x,h*1.02,z,w*0.62,0.28*s,d*0.82,M.stone2);
+      left.receiveShadows=right.receiveShadows=lintel.receiveShadows=crown.receiveShadows=true;
+      collider(x-w*0.50,z,pierW,d);collider(x+w*0.50,z,pierW,d);
+    }
+    else if(o.asset==="temple_wall"){
       const h=o.height??4.4,w=o.size[0],d=o.size[1];
       const body=box("templeWallBody",x,h/2,z,w,h,d,M.stone2);
       body.receiveShadows=true;
@@ -1144,6 +1145,27 @@ export function createScene(engine: any, canvas: any) {
     }
     else if(o.asset==="collider_only"){collider(x,z,o.size[0],o.size[1]);}
     else if(o.asset==="path"){box("path",x,0.04,z,o.size[0],0.08,o.size[1],M.stone);}
+    else if(o.asset==="temple_tree"){
+      const h=(o.height??4.1)*s,c=(o.crown??3.0)*s;
+      cyl("templeTreeTrunk",x,h*0.38,z,0.48*s,h*0.76,M.woodDark);
+      const crownA=sph("templeTreeCrown",x,h*0.78,z,c,M.green);crownA.scaling.set(1.0,0.82,0.95);
+      const crownB=sph("templeTreeCrown",x-c*0.28,h*0.72,z+c*0.12,c*0.68,M.leaf);crownB.scaling.set(1.0,0.82,0.95);
+      const crownC=sph("templeTreeCrown",x+c*0.30,h*0.75,z-c*0.10,c*0.72,M.leafDark);crownC.scaling.set(1.0,0.86,1.0);
+      collider(x,z,0.75*s,0.75*s);
+    }
+    else if(o.asset==="grass_tufts"){
+      const count=o.count??14,spread=(o.spread??2.5)*s;
+      for(let i=0;i<count;i++){
+        const a=seeded(i*12.7+x*1.9-z)*Math.PI*2;
+        const r=seeded(i*19.3+z*2.1+x)*spread;
+        const px=x+Math.cos(a)*r,pz=z+Math.sin(a)*r;
+        const hh=(0.16+seeded(i*7.7)*0.22)*s;
+        const stem=cyl("grassStem",px,hh*0.48,pz,0.025*s,hh,M.leafDark);
+        stem.rotation.z=(seeded(i*3.3)-0.5)*0.35;
+        const blade=sph("grassLeaf",px,hh,pz,(0.10+seeded(i*5.1)*0.08)*s,i%3===0?M.green:M.leaf);
+        blade.scaling.set(0.55,1.35,0.45);
+      }
+    }
     else if(o.asset==="tree"){box("treeTrunk",x,1.2,z,0.7,2.4,0.7,M.woodDark);sph("treeCrown",x,2.5,z,2.8,M.purple);collider(x,z,0.8,0.8);}
     else if(o.asset==="stall"){box("stall",x,0.5,z,4,1,1.4,M.wood);box("canopy",x,1.55,z,4.5,0.12,2,M[o.color]??M.green);collider(x,z,4,1.4);}
     else if(o.asset==="wall_trim"){
@@ -1945,7 +1967,7 @@ export function createScene(engine: any, canvas: any) {
     if(rt.id!=="temple")return;
     for(const m of rt.root.getChildMeshes()){
       const n=(m.name??"").toLowerCase();
-      if(n.includes("templewall")){
+      if(n.includes("templewall")||n.includes("templegate")){
         const mat=m.material;
         if(mat){
           mat.diffuseColor=new BABYLON.Color3(0.95,0.84,0.70);
@@ -1998,7 +2020,7 @@ export function createScene(engine: any, canvas: any) {
         mergedGroups++;
         mergedSources+=list.length;
       }catch(err){
-        console.warn("[D8 v28] merge skipped",key,err);
+        console.warn("[D8 v29] merge skipped",key,err);
       }
     }
     rt.optimization={...(rt.optimization??{}),mergedGroups,mergedSources};
@@ -2010,7 +2032,7 @@ export function createScene(engine: any, canvas: any) {
     const activeLights=mapLights.filter((l:any)=>l.isEnabled?.()!==false);
     const frozen=meshes.filter((m:any)=>m.isWorldMatrixFrozen).length;
     const vfxMeshes=rt.layers?.VFX?.getChildMeshes?.().length??0;
-    console.log("[D8 v26 audit]",rt.id,{meshes:meshes.length,frozen,vfxMeshes,lights:mapLights.length,activeLights:activeLights.length,updaters:rt.updaters.length,colliders:rt.colliders.length,interactables:rt.interactables.length,mergedGroups:rt.optimization?.mergedGroups??0,mergedSources:rt.optimization?.mergedSources??0});
+    console.log("[D8 v29 audit]",rt.id,{meshes:meshes.length,frozen,vfxMeshes,lights:mapLights.length,activeLights:activeLights.length,updaters:rt.updaters.length,colliders:rt.colliders.length,interactables:rt.interactables.length,mergedGroups:rt.optimization?.mergedGroups??0,mergedSources:rt.optimization?.mergedSources??0});
   }
 
   function optimizeStaticMeshesV24(){
@@ -2287,7 +2309,7 @@ export function createScene(engine: any, canvas: any) {
     const camOff=c.camera?.targetOffset??[0,0,0];
     camera.target.set(player.position.x+(camOff[0]??0),camOff[1]??0,player.position.z+(camOff[2]??0));ring.isVisible=false;
     title.text=c.label+" · "+D8_VERSION;
-    if(id==="cafe")console.log("[D8 v28] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
+    if(id==="cafe")console.log("[D8 v29] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
     Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");
     show("Mapa cargado: "+c.label);
   }
