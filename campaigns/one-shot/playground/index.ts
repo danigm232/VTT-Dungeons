@@ -1851,8 +1851,8 @@ export function createScene(engine: any, canvas: any) {
     rt.disposables.push(shadowMat);
 
 
-    // V33 CAFÉ FLOOR — procedural warm stone, no geometric/debug line system.
-    const floorTex=new BABYLON.DynamicTexture("cafeFloorV33",{width:1024,height:1024},scene,false);
+    // V34 TABERNA FLOOR — procedural warm stone, no geometric/debug line system.
+    const floorTex=new BABYLON.DynamicTexture("tavernFloorV34",{width:1024,height:1024},scene,false);
     const fctx:any=floorTex.getContext();
     fctx.fillStyle="#5a3e2d";fctx.fillRect(0,0,1024,1024);
     const cw=165,ch=118;
@@ -1880,7 +1880,7 @@ export function createScene(engine: any, canvas: any) {
     floorTex.wrapU=BABYLON.Texture.WRAP_ADDRESSMODE;floorTex.wrapV=BABYLON.Texture.WRAP_ADDRESSMODE;
     floorTex.uScale=1.55;floorTex.vScale=1.25;
 
-    const floorMat=new BABYLON.StandardMaterial("cafeFloorMatV33",scene);
+    const floorMat=new BABYLON.StandardMaterial("tavernFloorMatV34",scene);
     floorMat.diffuseTexture=floorTex;
     floorMat.diffuseColor=new BABYLON.Color3(0.98,0.86,0.73);
     floorMat.ambientColor=new BABYLON.Color3(0.82,0.70,0.58);
@@ -1904,7 +1904,7 @@ export function createScene(engine: any, canvas: any) {
     if(glow.addExcludedMesh)glow.addExcludedMesh(ground);
 
     // V34: explicit interior floor perimeter / threshold keeps the tavern readable against the exterior yard.
-    const cafeWallTex=new BABYLON.DynamicTexture("cafeWallV33",{width:512,height:512},scene,false);
+    const cafeWallTex=new BABYLON.DynamicTexture("tavernWallV34",{width:512,height:512},scene,false);
     const cwctx:any=cafeWallTex.getContext();cwctx.fillStyle="#6d4630";cwctx.fillRect(0,0,512,512);
     for(let i=0;i<180;i++){
       const x=seeded(i*3.9)*512,y=seeded(i*7.3)*512;
@@ -2055,6 +2055,12 @@ export function createScene(engine: any, canvas: any) {
     b("troughSideE",tx+tw*0.48,0.38,tz,0.24,0.70,td,woodDark);
     const troughWater=b("horseTroughWater",tx,0.28,tz,tw-0.42,0.10,td-0.42,troughWaterMat);
     rt.markers.pools.push({x:tx,z:tz,mesh:troughWater,baseY:troughWater.position.y});
+    const troughY=troughWater.position.y;
+    rt.updaters.push((tt:number)=>{
+      troughWater.position.y=troughY+Math.sin(tt*1.25)*0.010;
+      troughWater.scaling.x=1+Math.sin(tt*0.55)*0.006;
+      troughWater.scaling.z=1+Math.cos(tt*0.48)*0.008;
+    });
     collider(tx,tz,tw,td);
 
     const hx=-5.4,hz=10.0;
