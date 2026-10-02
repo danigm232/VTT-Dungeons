@@ -97,7 +97,20 @@ export const D8NIGHT: any = {
           { asset: "wall_trim", position: [-8.3, 7.15], size: [6.0, 0.18], y: 0.65, material: "stone2" },
           { asset: "wall_trim", position: [8.5, 7.15], size: [6.2, 0.18], y: 0.65, material: "stone2" },
           { asset: "floor_scatter", position: [8.4, 4.8], size: [4.0, 3.0], count: 10, material: "stoneDark" }
-        ]
+        ],
+        navigation: {
+          blockers: [],
+          zones: [
+            { type: "walkable", label: "sala principal", position: [0, -0.2], size: [22.8, 14.0] },
+            { type: "entry", label: "entrada", position: [0, 7.0], size: [3.8, 1.2] },
+            { type: "water", label: "estanque", position: [3.5, 6.25], size: [5.6, 2.25] },
+            { type: "difficult", label: "zona de mobiliario", position: [-5.1, 0.6], size: [4.3, 4.0] }
+          ],
+          interactions: [
+            { id: "cafe_entry_geom", position: [0, 6.8], radius: 1.5, label: "Examinar entrada", message: "La entrada comunica con la sala principal." },
+            { id: "cafe_pool_geom", position: [3.5, 5.0], radius: 1.6, label: "Examinar estanque", message: "El estanque ocupa una parte del borde de la sala." }
+          ]
+        }
       },
       CANON: {
         interactables: [],
@@ -251,7 +264,25 @@ export const D8NIGHT: any = {
           { asset: "runner", position: [0, 6.25], size: [1.8, 2.5], material: "clothRed", border: "yellow" },
           { asset: "rock_cluster", position: [-10.8, 10.8], spread: 1.2, count: 5, material: "stoneDark" },
           { asset: "rock_cluster", position: [10.8, 10.8], spread: 1.2, count: 5, material: "stoneDark" }
-        ]
+        ],
+        navigation: {
+          blockers: [
+            { position: [-7.1, 10.15], size: [10.9, 3.7] },
+            { position: [7.1, 10.15], size: [10.9, 3.7] }
+          ],
+          zones: [
+            { type: "walkable", label: "interior del templo", position: [0, -0.5], size: [26.0, 15.5] },
+            { type: "bridge", label: "puente", position: [0, 10.15], size: [2.6, 4.25] },
+            { type: "stairs", label: "escaleras", position: [0, 7.95], size: [2.9, 2.35] },
+            { type: "water", label: "agua", position: [-7.1, 10.15], size: [10.9, 3.7] },
+            { type: "water", label: "agua", position: [7.1, 10.15], size: [10.9, 3.7] },
+            { type: "entry", label: "acceso al templo", position: [0, 7.0], size: [4.0, 1.5] }
+          ],
+          interactions: [
+            { id: "temple_bridge_geom", position: [0, 10.1], radius: 1.6, label: "Examinar puente", message: "El puente es la vía de paso sobre el agua." },
+            { id: "temple_stairs_geom", position: [0, 8.0], radius: 1.4, label: "Examinar escaleras", message: "Las escaleras conducen al interior del templo." }
+          ]
+        }
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
@@ -349,7 +380,21 @@ export const D8NIGHT: any = {
           { asset: "well", position: [9.4, 5.3], diameter: 2.1 },
           { asset: "low_wall", position: [-6.5, -1.7], size: [3.5, 0.38], height: 0.48, material: "stone2" },
           { asset: "low_wall", position: [6.4, -1.7], size: [3.4, 0.38], height: 0.48, material: "stone2" }
-        ]
+        ],
+        navigation: {
+          blockers: [],
+          zones: [
+            { type: "walkable", label: "patio", position: [0, 3.2], size: [6.8, 6.4] },
+            { type: "walkable", label: "camino", position: [0, 6.0], size: [13.0, 2.0] },
+            { type: "entry", label: "acceso exterior", position: [0, 7.7], size: [4.0, 1.0] },
+            { type: "difficult", label: "vegetación", position: [-7.0, -2.6], size: [3.8, 3.0] },
+            { type: "difficult", label: "vegetación", position: [6.6, -2.6], size: [3.6, 3.0] }
+          ],
+          interactions: [
+            { id: "dinner_patio_geom", position: [0, 3.2], radius: 1.8, label: "Examinar patio", message: "El patio concentra la zona de reunión exterior." },
+            { id: "dinner_well_geom", position: [9.0, 5.5], radius: 1.4, label: "Examinar pozo", message: "El pozo ocupa el extremo del exterior." }
+          ]
+        }
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
@@ -445,7 +490,22 @@ export const D8NIGHT: any = {
           { asset: "thorn_wall", position: [12.0, -1.2], length: 6.2, count: 11, rotation: Math.PI / 2 },
           { asset: "low_wall", position: [7.2, 0.2], size: [5.6, 0.34], height: 0.48, material: "stone2" },
           { asset: "plant_cluster", position: [-10.2, 5.8], spread: 1.2, count: 8, material: "rosePink" }
-        ]
+        ],
+        navigation: {
+          blockers: [],
+          zones: [
+            { type: "walkable", label: "sendero", position: [-1.0, 4.8], size: [23.0, 2.2] },
+            { type: "walkable", label: "sendero", position: [5.8, 0.2], size: [2.2, 11.0] },
+            { type: "walkable", label: "refugio circular", position: [7.2, -3.0], size: [6.2, 6.2] },
+            { type: "difficult", label: "rosales", position: [-7.8, -2.0], size: [4.6, 8.2] },
+            { type: "difficult", label: "rosales", position: [-2.7, -3.2], size: [3.8, 5.8] },
+            { type: "hazard", label: "espinos densos", position: [-7.2, -8.25], size: [9.4, 1.0] }
+          ],
+          interactions: [
+            { id: "garden_room_geom", position: [7.2, -0.8], radius: 1.5, label: "Examinar refugio", message: "El refugio circular forma una zona interior dentro del jardín." },
+            { id: "garden_roses_geom", position: [-6.4, -2.0], radius: 1.7, label: "Examinar rosales", message: "Los rosales forman una masa densa junto al sendero." }
+          ]
+        }
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
@@ -544,7 +604,21 @@ export const D8NIGHT: any = {
           { asset: "market_goods", position: [-10.2, 2.2], size: [3.0, 1.8], count: 9 },
           { asset: "well", position: [-1.8, 1.8], diameter: 1.8 },
           { asset: "floor_scatter", position: [0, 6.8], size: [8.5, 2.5], count: 16, material: "stoneDark" }
-        ]
+        ],
+        navigation: {
+          blockers: [],
+          zones: [
+            { type: "walkable", label: "plaza central", position: [0, 0.5], size: [15.5, 10.5] },
+            { type: "walkable", label: "corredor norte", position: [0, 6.2], size: [14.0, 2.2] },
+            { type: "difficult", label: "mercancías", position: [-9.0, -4.0], size: [5.0, 2.8] },
+            { type: "difficult", label: "mercancías", position: [6.0, -3.8], size: [4.8, 2.8] },
+            { type: "entry", label: "acceso a la plaza", position: [0, 8.8], size: [5.0, 1.2] }
+          ],
+          interactions: [
+            { id: "market_center_geom", position: [0, 1.2], radius: 1.7, label: "Examinar plaza", message: "Los puestos rodean la zona central de paso." },
+            { id: "market_trough_geom", position: [2.4, 2.4], radius: 1.6, label: "Examinar pilón", message: "El pilón ocupa una parte de la plaza y condiciona el paso." }
+          ]
+        }
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
@@ -639,7 +713,21 @@ export const D8NIGHT: any = {
           { asset: "ice_ridge", position: [12.6, 1.5], length: 6.2, count: 8, rotation: Math.PI / 2 },
           { asset: "ice_ridge", position: [1.0, -8.5], length: 8.0, count: 10, rotation: 0 },
           { asset: "rock_cluster", position: [-8.7, 6.8], spread: 1.2, count: 6, material: "stoneDark" }
-        ]
+        ],
+        navigation: {
+          blockers: [],
+          zones: [
+            { type: "walkable", label: "hielo firme", position: [-9.0, -2.5], size: [6.5, 6.0] },
+            { type: "hazard", label: "hielo fracturado", position: [2.0, 0.6], size: [18.0, 8.0] },
+            { type: "walkable", label: "borde helado", position: [8.5, -5.5], size: [10.0, 3.0] },
+            { type: "walkable", label: "borde helado", position: [7.0, 5.5], size: [12.0, 3.0] },
+            { type: "entry", label: "acceso a la cueva", position: [-12.5, 7.8], size: [4.0, 1.2] }
+          ],
+          interactions: [
+            { id: "mirror_pedestal_geom", position: [-9.2, -2.5], radius: 1.8, label: "Examinar pedestal", message: "El pedestal marca el principal punto de interés de la cueva." },
+            { id: "mirror_ice_geom", position: [2.0, 0.6], radius: 1.8, label: "Examinar hielo", message: "La superficie central está fracturada y debe tratarse como una zona distinta." }
+          ]
+        }
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
