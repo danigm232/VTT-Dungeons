@@ -8,19 +8,19 @@
 // Garden -> El jardin de la srta fritz IA.png
 // Market -> El Mercado Nocturno IA.png
 // Mirror -> El Espejo de plata del amor verdadero IA.png
-export const D8_VERSION = "V33";
+export const D8_VERSION = "V34";
 
 export const D8NIGHT: any = {
   maps: {
     cafe: {
-      label: "CAFÉ",
-      spawn: [0, 0.43, 4.1],
-      camera: { radius: 22.2, beta: 0.63, alpha: -Math.PI / 2.04 },
+      label: "TABERNA",
+      spawn: [0, 0.43, 10.0],
+      camera: { radius: 27.0, beta: 0.64, alpha: -Math.PI / 2.04, targetOffset: [0, 0, -3.0] },
       MAP: {
-        size: [24, 16],
+        size: [28, 24],
         floor: "stone_tavern",
-        renderMode: "clean_v12",
-        visualFloor: "cafe_stone",
+        renderMode: "tavern_v34",
+        visualFloor: "tavern_stone",
         visualComposition: "cafe_reference",
         enableVisualComposition: false,
         compositionOpacity: 0,
@@ -80,8 +80,10 @@ export const D8NIGHT: any = {
           { asset: "wall_shelf", position: [10.25, 1.15], size: [1.5, 0.5], scale: 0.9 },
           { asset: "plate_stack", position: [10.0, 0.6], count: 5, scale: 0.9 },
           { asset: "small_barrel", position: [9.4, 3.6], scale: 0.82 },
-          { asset: "pool", position: [3.5, 6.25] },
           { asset: "bench", position: [7.1, 5.8], size: [2.0, 0.62], scale: 0.9 },
+          { asset: "horse_trough", position: [5.6, 10.0], size: [4.8, 1.55] },
+          { asset: "hitching_post", position: [-5.4, 10.0], size: [5.2, 0.5] },
+          { asset: "hay_bale", position: [9.2, 9.8], scale: 1.0 },
           { asset: "table_round", position: [10.0, -5.15], scale: 0.78 },
           { asset: "table_dressing", position: [10.0, -5.15], count: 3, radius: 0.46 },
           { asset: "candle", position: [10.0, -5.15], intensity: 0.48, range: 4.4 },
@@ -101,17 +103,19 @@ export const D8NIGHT: any = {
           { asset: "floor_scatter", position: [8.4, 4.8], size: [4.0, 3.0], count: 10, material: "stoneDark" }
         ],
         navigation: {
-          bounds: [-11.55, 11.55, -7.55, 7.55],
+          bounds: [-13.55, 13.55, -7.55, 11.55],
           blockers: [],
           zones: [
-            { type: "walkable", label: "sala principal", position: [0, -0.2], size: [22.8, 14.0] },
-            { type: "entry", label: "entrada", position: [0, 7.0], size: [3.8, 1.2] },
-            { type: "water", label: "estanque", position: [3.5, 6.25], size: [5.6, 2.25] },
+            { type: "walkable", label: "sala principal de la taberna", position: [0, -0.2], size: [22.8, 14.0] },
+            { type: "entry", label: "entrada de la taberna", position: [0, 7.0], size: [3.8, 1.2] },
+            { type: "walkable", label: "patio exterior", position: [0, 9.7], size: [26.0, 4.8] },
+            { type: "water", label: "abrevadero", position: [5.6, 10.0], size: [4.8, 1.55] },
             { type: "difficult", label: "zona de mobiliario", position: [-5.1, 0.6], size: [4.3, 4.0] }
           ],
           interactions: [
-            { id: "cafe_entry_geom", position: [0, 6.8], radius: 1.5, label: "Examinar entrada", message: "La entrada comunica con la sala principal." },
-            { id: "cafe_pool_geom", position: [3.5, 5.0], radius: 1.6, label: "Examinar estanque", message: "El estanque ocupa una parte del borde de la sala." }
+            { id: "cafe_entry_geom", position: [0, 6.8], radius: 1.5, label: "Examinar entrada", message: "La entrada comunica el patio exterior con la sala principal de la taberna." },
+            { id: "tavern_trough_geom", position: [5.6, 10.0], radius: 2.0, label: "Examinar abrevadero", message: "Un abrevadero de madera con agua limpia espera junto a la entrada para las monturas.", action: { type: "ripple", color: [0.08, 0.52, 0.64], size: 0.8 } },
+            { id: "tavern_hitch_geom", position: [-5.4, 10.0], radius: 2.0, label: "Examinar poste de amarre", message: "El poste de madera permite dejar una montura atada junto a la taberna." }
           ]
         }
       },
@@ -142,17 +146,17 @@ export const D8NIGHT: any = {
           shadows: { enabled: false },
           lights: [
             { position: [-9.2, 2.0, -1.3], color: [1.00, 0.44, 0.16], intensity: 1.05, range: 12.5 },
-            { position: [3.5, 0.85, 6.2], color: [0.03, 0.54, 0.68], intensity: 0.48, range: 6.5 }
+            { position: [5.6, 0.80, 10.0], color: [0.08, 0.42, 0.50], intensity: 0.22, range: 5.2 }
           ]
         },
         vfx: { fireplace: true, smoke: true, embers: true, dust: true, waterRipples: true, waterMotion: true },
         interactables: [
           { id: "fireplace_ambience", position: [-9.1, -1.3], radius: 2, label: "Interactuar con chimenea", message: "El fuego proyecta luz cálida sobre la piedra.", action: { type: "toggle_local", radius: 2.8, meshMatch: ["fire"], lights: true, offMessage: "Apagas la chimenea.", onMessage: "Vuelves a encender la chimenea." } },
           { id: "bar_ambience", position: [-3.2, -3.6], radius: 1.8, label: "Examinar barra", message: "La barra está llena de botellas, platos y utensilios.", action: { type: "pulse", color: [1.00, 0.56, 0.20], range: 3.6 } },
-          { id: "pool_ambience", position: [3.5, 4.8], radius: 1.8, label: "Tocar el agua", message: "La superficie del agua se mueve suavemente.", action: { type: "ripple", color: [0.08, 0.64, 0.76], size: 0.9 } }
+          { id: "trough_ambience", position: [5.6, 10.0], radius: 2.0, label: "Tocar el agua del abrevadero", message: "El agua del abrevadero se agita suavemente.", action: { type: "ripple", color: [0.08, 0.60, 0.70], size: 0.8 } }
         ],
         visual: {
-          profile: "cafe_warm_stone_v33",
+          profile: "tavern_warm_v34",
           glow: 0.20,
           exposure: 1.06,
           contrast: 1.08,
@@ -172,7 +176,7 @@ export const D8NIGHT: any = {
           lightPools: [
             { position: [-8.9, -1.2], size: [7.0, 5.0], color: [1.00, 0.22, 0.05], alpha: 0.22 },
             { position: [-2.8, -4.6], size: [10.5, 3.6], color: [1.00, 0.48, 0.14], alpha: 0.09 },
-            { position: [3.5, 6.0], size: [6.1, 4.4], color: [0.05, 0.58, 0.70], alpha: 0.12 }
+            { position: [0, 8.7], size: [9.0, 3.6], color: [1.00, 0.48, 0.18], alpha: 0.055 }
           ]
         },
         audio: { music: null, ambience: null }
@@ -190,7 +194,7 @@ export const D8NIGHT: any = {
         enableVisualComposition: false,
         compositionOpacity: 0,
         objects: [
-          // V33 TEMPLE MASTER PLAN
+          // V34 TEMPLE MASTER PLAN
           // Bridge -> stairs -> monumental gate -> walled processional court -> nave -> altar.
 
           // --- NAVE / SANCTUARY ---
@@ -240,7 +244,7 @@ export const D8NIGHT: any = {
           { asset: "collider_only", position: [-10.9, 23.45], size: [18.3, 5.8] },
           { asset: "collider_only", position: [10.9, 23.45], size: [18.3, 5.8] },
 
-          // V33 naturalized water banks: stone, reeds and vegetation with a bridge gap.
+          // V34 naturalized water banks: stone, reeds and vegetation with a bridge gap.
           { asset: "water_bank", position: [0, 20.45], length: 40.0, depth: 1.0, gap: 5.0, count: 40, side: -1 },
           { asset: "water_bank", position: [0, 26.45], length: 40.0, depth: 1.0, gap: 5.0, count: 40, side: 1 },
           { asset: "water_bank", position: [-20.0, 23.45], length: 5.8, depth: 0.9, count: 9, rotation: Math.PI / 2 },
@@ -274,6 +278,20 @@ export const D8NIGHT: any = {
           { asset: "runner", position: [0, -6.1], size: [5.1, 2.6], material: "templeBurgundy", border: "stoneLight" },
           { asset: "temple_altar", position: [0, -6.2], size: [5.4, 2.1], height: 1.10 },
           { asset: "statue", position: [0, -7.65] },
+
+          // V34 ritual furniture: enrich side aisles while keeping the central axis clear.
+          { asset: "temple_pew", position: [-9.8, -2.9], length: 3.5, rotation: Math.PI / 2 },
+          { asset: "temple_pew", position: [9.8, -2.9], length: 3.5, rotation: -Math.PI / 2 },
+          { asset: "temple_pew", position: [-9.8, 1.9], length: 3.5, rotation: Math.PI / 2 },
+          { asset: "temple_pew", position: [9.8, 1.9], length: 3.5, rotation: -Math.PI / 2 },
+          { asset: "temple_lectern", position: [-2.9, -4.0], rotation: 0 },
+          { asset: "temple_pedestal", position: [-10.8, -6.0], bowl: true },
+          { asset: "temple_pedestal", position: [10.8, -6.0], bowl: true },
+          { asset: "temple_amphora_cluster", position: [-11.0, 5.5], count: 3 },
+          { asset: "temple_amphora_cluster", position: [11.0, 5.5], count: 3 },
+          { asset: "temple_floor_candelabrum", position: [-6.6, 4.7], arms: 3 },
+          { asset: "temple_floor_candelabrum", position: [6.6, 4.7], arms: 3 },
+          { asset: "temple_offering_table", position: [7.2, -4.2], size: [2.4, 0.9] },
 
           { asset: "temple_brazier", position: [-4.7, -6.35], intensity: 1.38, range: 7.4 },
           { asset: "temple_brazier", position: [4.7, -6.35], intensity: 1.38, range: 7.4 },
@@ -406,7 +424,7 @@ export const D8NIGHT: any = {
           { id: "temple_statue_ambience", position: [0, -7.5], radius: 2.0, label: "Examinar estatua", message: "La figura de piedra se alza detrás del altar.", action: { type: "pulse", color: [0.75, 0.64, 0.48], range: 3.2 } }
         ],
         visual: {
-          profile: "temple_cutaway_stone_v33",
+          profile: "temple_furnished_warmstone_v34",
           glow: 0.11,
           exposure: 1.18,
           contrast: 1.02,
