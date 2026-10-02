@@ -260,8 +260,28 @@ export function createScene(engine: any, canvas: any) {
     baseMat.emissiveColor=new BABYLON.Color3(p.base[0]*baseEmit,p.base[1]*baseEmit,p.base[2]*baseEmit);
     baseMat.ambientColor=new BABYLON.Color3(1,1,1);
     baseMat.specularColor=new BABYLON.Color3(0,0,0);
-    baseMat.disableLighting=true;
+    baseMat.disableLighting=rt.id!=="temple";
     baseMat.alpha=1;
+    if(rt.id==="temple"){
+      const grassTex=new BABYLON.DynamicTexture("templeGrassV29",{width:512,height:512},scene,false);
+      const gc:any=grassTex.getContext();
+      gc.fillStyle="#31552d";gc.fillRect(0,0,512,512);
+      for(let i=0;i<720;i++){
+        const gx=seeded(i*7.31)*512,gy=seeded(i*11.17)*512;
+        const light=seeded(i*5.93)>0.58;
+        gc.fillStyle=light?"rgba(118,145,72,0.18)":"rgba(24,55,24,0.22)";
+        gc.fillRect(gx,gy,1+seeded(i*13.4)*2,2+seeded(i*17.9)*5);
+      }
+      for(let i=0;i<90;i++){
+        const gx=seeded(i*19.1)*512,gy=seeded(i*23.7)*512;
+        gc.strokeStyle="rgba(150,165,90,0.12)";gc.lineWidth=1;
+        gc.beginPath();gc.moveTo(gx,gy);gc.lineTo(gx+2+seeded(i*4.2)*5,gy-4-seeded(i*6.8)*7);gc.stroke();
+      }
+      grassTex.update();grassTex.wrapU=BABYLON.Texture.WRAP_ADDRESSMODE;grassTex.wrapV=BABYLON.Texture.WRAP_ADDRESSMODE;grassTex.uScale=5.2;grassTex.vScale=6.4;
+      baseMat.diffuseTexture=grassTex;baseMat.emissiveTexture=grassTex;baseMat.emissiveColor=new BABYLON.Color3(0.075,0.095,0.050);
+      baseMat.specularColor=new BABYLON.Color3(0.015,0.020,0.012);baseMat.maxSimultaneousLights=6;
+      rt.disposables.push(grassTex);
+    }
     baseMat.backFaceCulling=false;
     rt.disposables.push(baseMat);
 
@@ -273,7 +293,7 @@ export function createScene(engine: any, canvas: any) {
     base.position.y=-0.05;
     base.material=baseMat;
     base.parent=parentFor("BASE");
-    base.receiveShadows=false;
+    base.receiveShadows=rt.id==="temple";
     base.isPickable=false;
     base.alwaysSelectAsActiveMesh=true;
     if(glow.addExcludedMesh)glow.addExcludedMesh(base);
@@ -1963,7 +1983,7 @@ export function createScene(engine: any, canvas: any) {
     trimPointLightsV13(v.maxRealPointLights??5);
   }
 
-  function templeVisibilityPassV28(){
+  function templeVisibilityPassV29(){
     if(rt.id!=="temple")return;
     for(const m of rt.root.getChildMeshes()){
       const n=(m.name??"").toLowerCase();
@@ -1987,7 +2007,7 @@ export function createScene(engine: any, canvas: any) {
 
   function mergeStaticDetailMeshesV24(){
     const mergeNames=new Set([
-      "floorScatter","rock","plantStem","plantLeaf",
+      "floorScatter","rock","plantStem","plantLeaf","grassStem","grassLeaf","templeTreeTrunk","templeTreeCrown",
       "templeGardenStem","templeGardenLeaf","tableRoseStem","roseStem",
       "thornBranch","snowBranch","branchSnow",
       "iceRidge","iceFloeUnder","iceFloeTop",
@@ -2285,7 +2305,7 @@ export function createScene(engine: any, canvas: any) {
       lightingV19(c);
       vfx(c);
       applyScenePolishV13(id,c);
-      templeVisibilityPassV28();
+      templeVisibilityPassV29();
       mergeStaticDetailMeshesV24();
       shadows(c);
     }
