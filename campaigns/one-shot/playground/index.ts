@@ -529,18 +529,18 @@ export function createScene(engine: any, canvas: any) {
     floorTex.update();floorTex.wrapU=BABYLON.Texture.WRAP_ADDRESSMODE;floorTex.wrapV=BABYLON.Texture.WRAP_ADDRESSMODE;floorTex.uScale=3.6;floorTex.vScale=3.0;
 
     const wallMat=new BABYLON.StandardMaterial("templeWallMatV23",scene);
-    wallMat.diffuseTexture=wallTex;wallMat.diffuseColor=new BABYLON.Color3(0.88,0.80,0.70);wallMat.ambientColor=new BABYLON.Color3(0.55,0.48,0.40);
-    wallMat.emissiveTexture=wallTex;wallMat.emissiveColor=new BABYLON.Color3(0.10,0.085,0.070);
+    wallMat.diffuseTexture=wallTex;wallMat.diffuseColor=new BABYLON.Color3(1.00,0.92,0.80);wallMat.ambientColor=new BABYLON.Color3(0.68,0.60,0.50);
+    wallMat.emissiveTexture=wallTex;wallMat.emissiveColor=new BABYLON.Color3(0.20,0.16,0.12);
     wallMat.specularColor=new BABYLON.Color3(0.040,0.035,0.030);wallMat.maxSimultaneousLights=8;
 
     const floorMat=new BABYLON.StandardMaterial("templeFloorMatV23",scene);
-    floorMat.diffuseTexture=floorTex;floorMat.diffuseColor=new BABYLON.Color3(0.82,0.77,0.70);floorMat.ambientColor=new BABYLON.Color3(0.52,0.48,0.44);
-    floorMat.emissiveTexture=floorTex;floorMat.emissiveColor=new BABYLON.Color3(0.075,0.070,0.065);
+    floorMat.diffuseTexture=floorTex;floorMat.diffuseColor=new BABYLON.Color3(0.95,0.87,0.76);floorMat.ambientColor=new BABYLON.Color3(0.66,0.59,0.50);
+    floorMat.emissiveTexture=floorTex;floorMat.emissiveColor=new BABYLON.Color3(0.16,0.13,0.10);
     floorMat.specularColor=new BABYLON.Color3(0.020,0.020,0.020);floorMat.maxSimultaneousLights=8;
 
     rt.disposables.push(wallTex,floorTex,wallMat,floorMat);
 
-    const wallNames=["wall","archLeft","archRight","archTop","column","columnBase","columnCap","templeAltar","templeWindow","templeButtress","templeBackdrop","lowWall","wallTrim"];
+    const wallNames=["templeWallBody","templeWallFoot","templeWallCap","wall","archLeft","archRight","archTop","column","columnBase","columnCap","templeAltar","templeWindow","templeButtress","templeBackdrop","lowWall","wallTrim"];
     const floorNames=["templeFloorMain","roomFloor","path","patioInner","stair"];
     rt.root.getChildMeshes().forEach((m:any)=>{
       const n=m.name??"";
@@ -558,15 +558,43 @@ export function createScene(engine: any, canvas: any) {
 
   function asset(o:any){
     const x=o.position[0],z=o.position[1],s=o.scale??1;
-    if(o.asset==="wall"){
+    if(o.asset==="temple_wall"){
+      const h=o.height??4.4,w=o.size[0],d=o.size[1];
+      const body=box("templeWallBody",x,h/2,z,w,h,d,M.stone2);
+      body.receiveShadows=true;
+      const foot=box("templeWallFoot",x,0.18,z,w*1.015,0.36,d*1.10,M.stoneDark);
+      const cap=box("templeWallCap",x,h+0.10,z,w*1.025,0.20,d*1.14,M.stoneLight);
+      body.isPickable=foot.isPickable=cap.isPickable=false;
+      collider(x,z,w,d);
+    }
+    else if(o.asset==="wall"){
       const h=o.height??1.6,material=M[o.material]??M.stoneDark;
       box("wall",x,h/2,z,o.size[0],h,o.size[1],material);
       collider(x,z,o.size[0],o.size[1]);
     }
     else if(o.asset==="temple_floor"){
-      const q=box("templeFloorMain",x,0.095,z,o.size[0],0.19,o.size[1],M[o.material]??M.stone,"BASE");
-      q.receiveShadows=true;
-      q.isPickable=false;
+      const w=o.size[0],d=o.size[1],tile=o.tileSize??1.35;
+      const q=box("templeFloorMain",x,0.14,z,w,0.28,d,M.stone2,"BASE");
+      q.receiveShadows=true;q.isPickable=false;
+      const lines:any[]=[];
+      const y=0.292;
+      for(let gx=-w/2+tile;gx<w/2;gx+=tile){
+        lines.push([new BABYLON.Vector3(x+gx,y,z-d/2+0.12),new BABYLON.Vector3(x+gx,y,z+d/2-0.12)]);
+      }
+      for(let gz=-d/2+tile;gz<d/2;gz+=tile){
+        lines.push([new BABYLON.Vector3(x-w/2+0.12,y,z+gz),new BABYLON.Vector3(x+w/2-0.12,y,z+gz)]);
+      }
+      if(lines.length){
+        const g=BABYLON.MeshBuilder.CreateLineSystem("templeFloorJoints",{lines},scene);
+        g.parent=parentFor("BASE");g.color=new BABYLON.Color3(0.18,0.135,0.10);g.alpha=0.78;g.isPickable=false;
+        if(glow.addExcludedMesh)glow.addExcludedMesh(g);
+      }
+      if(o.border){
+        box("templeFloorBorderN",x,0.31,z-d/2+0.12,w,0.10,0.24,M.stoneLight,"BASE");
+        box("templeFloorBorderS",x,0.31,z+d/2-0.12,w,0.10,0.24,M.stoneLight,"BASE");
+        box("templeFloorBorderW",x-w/2+0.12,0.31,z,0.24,0.10,d,M.stoneLight,"BASE");
+        box("templeFloorBorderE",x+w/2-0.12,0.31,z,0.24,0.10,d,M.stoneLight,"BASE");
+      }
     }
     else if(o.asset==="room_floor"){box("roomFloor",x,0.06,z,o.size[0],0.12,o.size[1],M[o.material]??M.wood);}
     else if(o.asset==="bar"){box("bar",x,0.56,z,10.8,1.12,1.05,M.wood);box("barTop",x,1.17,z,11.2,0.15,1.25,M.woodLight);box("barBack",x,0.85,z-1.55,10.6,1.7,0.38,M.woodDark);collider(x,z,10.8,1.05);for(let i=0;i<16;i++)cyl("bottle",x-4.8+i*0.63,1.24,z-1.15,0.14,0.45,i%3===0?M.green:(i%3===1?M.yellow:M.red));}
@@ -1913,6 +1941,28 @@ export function createScene(engine: any, canvas: any) {
     trimPointLightsV13(v.maxRealPointLights??5);
   }
 
+  function templeVisibilityPassV28(){
+    if(rt.id!=="temple")return;
+    for(const m of rt.root.getChildMeshes()){
+      const n=(m.name??"").toLowerCase();
+      if(n.includes("templewall")){
+        const mat=m.material;
+        if(mat){
+          mat.diffuseColor=new BABYLON.Color3(0.95,0.84,0.70);
+          mat.emissiveColor=new BABYLON.Color3(0.16,0.12,0.085);
+          mat.ambientColor=new BABYLON.Color3(0.72,0.64,0.54);
+        }
+      }else if(n.includes("templefloormain")){
+        const mat=m.material;
+        if(mat){
+          mat.diffuseColor=new BABYLON.Color3(0.88,0.80,0.68);
+          mat.emissiveColor=new BABYLON.Color3(0.14,0.11,0.08);
+          mat.ambientColor=new BABYLON.Color3(0.70,0.64,0.56);
+        }
+      }
+    }
+  }
+
   function mergeStaticDetailMeshesV24(){
     const mergeNames=new Set([
       "floorScatter","rock","plantStem","plantLeaf",
@@ -2213,6 +2263,7 @@ export function createScene(engine: any, canvas: any) {
       lightingV19(c);
       vfx(c);
       applyScenePolishV13(id,c);
+      templeVisibilityPassV28();
       mergeStaticDetailMeshesV24();
       shadows(c);
     }
