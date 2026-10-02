@@ -280,7 +280,7 @@ export function createScene(engine: any, canvas: any) {
       if(glow.addExcludedMesh)glow.addExcludedMesh(detail);
     }
 
-    console.log("[D8 v14.11] floor",rt.id,preset,"base",p.base,"size",c.MAP.size);
+    console.log("[D8 v15] floor",rt.id,preset,"base",p.base,"size",c.MAP.size);
   }
 
   function visualComposition(c:any){
@@ -832,6 +832,91 @@ export function createScene(engine: any, canvas: any) {
     else if(o.asset==="path"){box("path",x,0.04,z,o.size[0],0.08,o.size[1],M.stone);}
     else if(o.asset==="tree"){box("treeTrunk",x,1.2,z,0.7,2.4,0.7,M.woodDark);sph("treeCrown",x,2.5,z,2.8,M.purple);collider(x,z,0.8,0.8);}
     else if(o.asset==="stall"){box("stall",x,0.5,z,4,1,1.4,M.wood);box("canopy",x,1.55,z,4.5,0.12,2,M[o.color]??M.green);collider(x,z,4,1.4);}
+    else if(o.asset==="wall_trim"){
+      const w=(o.size?.[0]??4)*s,d=(o.size?.[1]??0.22)*s,h=(o.height??0.20)*s,y=(o.y??0.22)*s;
+      const q=box("wallTrim",x,y,z,w,h,d,M[o.material]??M.stone2);
+      q.rotation.y=o.rotation??0;
+    }
+    else if(o.asset==="runner"){
+      const w=(o.size?.[0]??2.0)*s,d=(o.size?.[1]??5.0)*s;
+      const border=box("runnerBorder",x,0.045,z,w,0.045,d,M[o.border]??M.yellow);
+      const inner=box("runner",x,0.070,z,Math.max(0.2,w-0.18),0.035,Math.max(0.2,d-0.18),M[o.material]??M.clothRed);
+      border.rotation.y=inner.rotation.y=o.rotation??0;
+      if(glow.addExcludedMesh){glow.addExcludedMesh(border);glow.addExcludedMesh(inner);}
+    }
+    else if(o.asset==="banner"){
+      const root=new BABYLON.TransformNode("banner",scene);root.parent=rt.root;root.position.set(x,0,z);root.rotation.y=o.rotation??0;
+      const w=(o.size?.[0]??1.15)*s,h=(o.size?.[1]??1.9)*s;
+      const rod=BABYLON.MeshBuilder.CreateCylinder("bannerRod",{diameter:0.07*s,height:w*1.18,tessellation:12},scene);
+      rod.rotation.z=Math.PI/2;rod.position.y=(o.y??2.35)*s;rod.material=M.woodDark;rod.parent=root;
+      const cloth=BABYLON.MeshBuilder.CreateBox("bannerCloth",{width:w,height:h,depth:0.055*s},scene);
+      cloth.position.set(0,(o.y??2.35)*s-h*0.52,0);cloth.material=M[o.material]??M.clothRed;cloth.parent=root;
+      const tip=cloth.clone("bannerTip");tip.scaling.x=0.72;tip.scaling.y=0.20;tip.position.y-=h*0.56;tip.material=cloth.material;
+    }
+    else if(o.asset==="floor_scatter"){
+      const count=o.count??10,spreadX=(o.size?.[0]??3.0)*s,spreadZ=(o.size?.[1]??2.0)*s;
+      for(let i=0;i<count;i++){
+        const px=x+(seeded(i*17.1+x*3.7)-0.5)*spreadX;
+        const pz=z+(seeded(i*29.7+z*4.3)-0.5)*spreadZ;
+        const sx=(0.10+seeded(i*11.2)*0.22)*s,sz=(0.08+seeded(i*7.4)*0.18)*s;
+        const q=box("floorScatter",px,0.045,pz,sx,0.06,sz,M[o.material]??M.stoneDark);
+        q.rotation.y=seeded(i*5.9)*Math.PI;
+      }
+    }
+    else if(o.asset==="rock_cluster"){
+      const count=o.count??7,spread=(o.spread??1.5)*s;
+      for(let i=0;i<count;i++){
+        const a=seeded(i*13.3+x)*Math.PI*2,r=seeded(i*19.1+z)*spread;
+        const d=(0.25+seeded(i*23.7)*0.55)*s;
+        const q=sph("rock",x+Math.cos(a)*r,d*0.30,z+Math.sin(a)*r,d,M[o.material]??M.stoneDark);
+        q.scaling.set(1,0.55+seeded(i*3.1)*0.25,0.75+seeded(i*5.2)*0.35);
+      }
+    }
+    else if(o.asset==="plant_cluster"){
+      const count=o.count??7,spread=(o.spread??1.1)*s;
+      for(let i=0;i<count;i++){
+        const a=seeded(i*7.3+x*2.1)*Math.PI*2,r=seeded(i*9.1+z*2.7)*spread;
+        const px=x+Math.cos(a)*r,pz=z+Math.sin(a)*r,h=(0.24+seeded(i*4.7)*0.38)*s;
+        cyl("plantStem",px,h/2+0.04,pz,0.045*s,h,M.leafDark);
+        const leaf=sph("plantLeaf",px,h+0.05,pz,(0.22+seeded(i*3.9)*0.20)*s,M[o.material]??M.leaf);
+        leaf.scaling.set(1.2,0.55,0.8);
+      }
+    }
+    else if(o.asset==="thorn_wall"){
+      const len=(o.length??5.0)*s,count=o.count??11,rot=o.rotation??0;
+      for(let i=0;i<count;i++){
+        const t=count===1?0:i/(count-1)-0.5;
+        const along=t*len;
+        const px=x+Math.cos(rot)*along,pz=z-Math.sin(rot)*along;
+        const h=(0.55+(i%4)*0.12)*s;
+        const branch=box("thornBranch",px,h*0.55,pz,0.10*s,h,0.10*s,M.woodDark);
+        branch.rotation.y=rot+(i%2?0.25:-0.20);branch.rotation.z=(i%2?0.42:-0.35);
+        if(i%2===0){
+          const rose=sph("thornRose",px,h+0.06,pz,0.24*s,(i%4===0?M.rosePink:M.rose));
+          rose.scaling.y=0.72;
+          rt.markers.roses.push({mesh:rose,baseY:rose.position.y,seed:i+x+z});
+        }
+      }
+      collider(x,z,Math.abs(Math.cos(rot))*len+0.45,Math.abs(Math.sin(rot))*len+0.45);
+    }
+    else if(o.asset==="market_goods"){
+      const count=o.count??8,spreadX=(o.size?.[0]??2.6)*s,spreadZ=(o.size?.[1]??1.5)*s;
+      for(let i=0;i<count;i++){
+        const px=x+(seeded(i*13.7+x)-0.5)*spreadX,pz=z+(seeded(i*17.9+z)-0.5)*spreadZ;
+        if(i%3===0){
+          const q=0.42*s;box("goodsCrate",px,q/2,pz,q,q,q,M.wood);
+        }else{
+          sph("marketProduce",px,0.15,pz,(0.14+seeded(i*4.1)*0.11)*s,i%2?M.red:M.green);
+        }
+      }
+    }
+    else if(o.asset==="ice_floe"){
+      const d=(o.diameter??3.0)*s,h=(o.height??0.10)*s;
+      const under=BABYLON.MeshBuilder.CreateCylinder("iceFloeUnder",{diameter:d*1.05,height:h*1.3,tessellation:o.tessellation??7},scene);
+      under.position.set(x,h*0.45,z);under.scaling.z=o.depthScale??0.72;under.rotation.y=o.rotation??0;under.material=M.ice;under.parent=rt.root;
+      const top=BABYLON.MeshBuilder.CreateCylinder("iceFloeTop",{diameter:d,height:h,tessellation:o.tessellation??7},scene);
+      top.position.set(x,h*1.1,z);top.scaling.z=o.depthScale??0.72;top.rotation.y=(o.rotation??0)+0.08;top.material=M.frost;top.parent=rt.root;
+    }
     else if(o.asset==="water_area"){box("waterArea",x,0.04,z,o.size[0],0.08,o.size[1],M.water);rt.markers.pools.push({x,z});}
     else if(o.asset==="mirror"){box("mirrorBase",x,0.45,z,2.5,0.9,2.5,M.stoneDark);box("mirror",x,1.8,z,1.6,2.2,0.25,M.gold);collider(x,z,2.5,2.5);}
   }
@@ -983,7 +1068,7 @@ export function createScene(engine: any, canvas: any) {
 
   const ui=BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"),panel=new BABYLON.GUI.StackPanel();
   panel.width="190px";panel.horizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;panel.paddingLeft="15px";panel.paddingTop="15px";ui.addControl(panel);
-  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V14.11";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
+  const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · V15";title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
   const order=["temple","cafe","dinner","garden","market","mirror"],labels:any={temple:"1 · TEMPLO",cafe:"2 · CAFÉ",dinner:"3 · DINNER",garden:"4 · GARDEN",market:"5 · MARKET",mirror:"6 · MIRROR"},buttons:any={};
   order.forEach(id=>{const b=BABYLON.GUI.Button.CreateSimpleButton("btn_"+id,labels[id]);b.width="175px";b.height="37px";b.color="#dfcfb2";b.background="#25252a";b.cornerRadius=5;b.paddingBottom="4px";b.onPointerClickObservable.add(()=>loadMap(id));buttons[id]=b;panel.addControl(b);});
   const help=new BABYLON.GUI.TextBlock();help.text="\nWASD · mover\nE · interactuar\nG · grid\nC · cámara";help.height="100px";help.color="#888";help.fontSize=11;help.textHorizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.addControl(help);
@@ -1181,6 +1266,32 @@ export function createScene(engine: any, canvas: any) {
     lightPool("tableC",5.05,-0.45,3.5,3.5,[1.00,0.54,0.16],0.085);
     lightPool("water",3.5,6.15,6.3,4.6,[0.06,0.58,0.70],0.13);
 
+    // V15 Café art pass: more architectural depth without changing gameplay.
+    const beamXs=[-10.9,-7.2,-3.5,0.2,3.9,7.6,10.9];
+    for(const bx of beamXs){
+      const beam=b("wallBeam",bx,1.02,-7.30,0.18,1.85,0.22,woodDark);
+      beam.name="cafe15_wallBeam";
+    }
+    b("backShelfLip",-3.15,1.78,-6.18,10.4,0.12,0.40,woodLight);
+    for(const bx of [-8.0,-6.2,-4.4,-2.6,-0.8,1.0]){
+      const jar=cy("barJar",bx,1.66,-6.02,0.20,0.32,(Math.round((bx+8)*10)%2)?bottleA:bottleG);
+      jar.scaling.y=1.1;
+    }
+    b("fireMantel",-9.65,2.30,-1.30,2.95,0.22,1.70,stoneLight);
+    for(let i=0;i<5;i++){
+      const log=b("firewood",-9.65+(i-2)*0.28,0.15,-0.40,0.22,0.20,0.95,woodDark);
+      log.rotation.z=(i%2?0.14:-0.10);
+    }
+    // Small floor wear patches around high-traffic zones.
+    for(const [px,pz,ww,dd] of [[-3.0,-3.4,7.0,1.0],[-5.3,0.45,3.2,2.6],[1.55,2.25,3.0,2.5],[5.0,-0.45,3.0,2.4]] as any[]){
+      const wear=new BABYLON.StandardMaterial("cafe15_wearMat",scene);
+      wear.diffuseColor=new BABYLON.Color3(0.23,0.15,0.10);wear.emissiveColor=new BABYLON.Color3(0.08,0.05,0.03);
+      wear.disableLighting=true;wear.alpha=0.18;wear.transparencyMode=BABYLON.Material.MATERIAL_ALPHABLEND;wear.disableDepthWrite=true;
+      rt.disposables.push(wear);
+      const patch=box("cafe15_floorWear",px,0.012,pz,ww,0.012,dd,wear);
+      if(glow.addExcludedMesh)glow.addExcludedMesh(patch);
+    }
+
     // Local light helper with visible source.
     const warmLight=(name:string,x:number,y:number,z:number,intensity:number,range:number,color=[1,0.42,0.11])=>{
       const l=track(new BABYLON.PointLight("cafe12_"+name,new BABYLON.Vector3(x,y,z),scene));
@@ -1318,8 +1429,8 @@ export function createScene(engine: any, canvas: any) {
     player.position.set(c.spawn[0],c.spawn[1],c.spawn[2]);
     if(!overview&&c.camera){camera.radius=c.camera.radius??20;camera.beta=c.camera.beta??0.70;camera.alpha=c.camera.alpha??-Math.PI/2.15;}
     camera.target.set(player.position.x,0,player.position.z);ring.isVisible=false;
-    title.text=c.label+" · V14.11";
-    if(id==="cafe")console.log("[D8 v14.11] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
+    title.text=c.label+" · V15";
+    if(id==="cafe")console.log("[D8 v15] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
     Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");
     show("Mapa cargado: "+c.label);
   }
