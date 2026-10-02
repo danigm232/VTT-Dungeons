@@ -8,7 +8,7 @@
 // Garden -> El jardin de la srta fritz IA.png
 // Market -> El Mercado Nocturno IA.png
 // Mirror -> El Espejo de plata del amor verdadero IA.png
-export const D8_VERSION = "V29";
+export const D8_VERSION = "V30";
 
 export const D8NIGHT: any = {
   maps: {
@@ -181,7 +181,7 @@ export const D8NIGHT: any = {
     temple: {
       label: "TEMPLO",
       spawn: [0, 0.43, 29.0],
-      camera: { radius: 44.8, beta: 0.57, alpha: -Math.PI / 2.04, targetOffset: [0, 0, -14.2] },
+      camera: { radius: 46.0, beta: 0.68, alpha: -Math.PI / 2.04, targetOffset: [0, 0.35, -13.6] },
       MAP: {
         size: [52, 68],
         floor: "grass",
@@ -194,18 +194,18 @@ export const D8NIGHT: any = {
           // Bridge -> stairs -> monumental gate -> walled processional court -> nave -> altar.
 
           // --- NAVE / SANCTUARY ---
-          { asset: "temple_floor", position: [0, -0.45], size: [27.3, 17.0], material: "stone", tileSize: 1.35, border: true },
-          { asset: "temple_wall", position: [0, -9.0], size: [28.2, 0.82], height: 4.8 },
+          { asset: "temple_floor", position: [0, -0.45], size: [27.3, 17.0], material: "stone", tileSize: 1.85, border: true },
+          { asset: "temple_wall", position: [0, -9.0], size: [28.2, 1.00], height: 5.6, tiers: true },
 
           // Segmented side walls leave true window openings.
-          { asset: "temple_wall", position: [-14.0, -7.30], size: [0.82, 3.05], height: 4.8 },
-          { asset: "temple_wall", position: [-14.0, -2.55], size: [0.82, 3.00], height: 4.8 },
-          { asset: "temple_wall", position: [-14.0, 2.20], size: [0.82, 3.00], height: 4.8 },
-          { asset: "temple_wall", position: [-14.0, 6.85], size: [0.82, 2.70], height: 4.6 },
-          { asset: "temple_wall", position: [14.0, -7.30], size: [0.82, 3.05], height: 4.8 },
-          { asset: "temple_wall", position: [14.0, -2.55], size: [0.82, 3.00], height: 4.8 },
-          { asset: "temple_wall", position: [14.0, 2.20], size: [0.82, 3.00], height: 4.8 },
-          { asset: "temple_wall", position: [14.0, 6.85], size: [0.82, 2.70], height: 4.6 },
+          { asset: "temple_wall", position: [-14.0, -7.30], size: [1.00, 3.05], height: 5.1, tiers: true },
+          { asset: "temple_wall", position: [-14.0, -2.55], size: [1.00, 3.00], height: 5.1, tiers: true },
+          { asset: "temple_wall", position: [-14.0, 2.20], size: [1.00, 3.00], height: 5.1, tiers: true },
+          { asset: "temple_wall", position: [-14.0, 6.85], size: [1.00, 2.70], height: 4.9, tiers: true },
+          { asset: "temple_wall", position: [14.0, -7.30], size: [1.00, 3.05], height: 5.1, tiers: true },
+          { asset: "temple_wall", position: [14.0, -2.55], size: [1.00, 3.00], height: 5.1, tiers: true },
+          { asset: "temple_wall", position: [14.0, 2.20], size: [1.00, 3.00], height: 5.1, tiers: true },
+          { asset: "temple_wall", position: [14.0, 6.85], size: [1.00, 2.70], height: 4.9, tiers: true },
 
           { asset: "temple_window", width: 2.05, height: 2.75, y: 2.15, position: [-13.97, -4.88], rotation: Math.PI / 2, sunlit: true, direction: [1, -0.23, 0.04], intensity: 2.45, beamLength: 7.0 },
           { asset: "temple_window", width: 2.05, height: 2.75, y: 2.15, position: [-13.97, -0.12], rotation: Math.PI / 2, sunlit: true, direction: [1, -0.23, 0.04], intensity: 2.30, beamLength: 6.7 },
@@ -222,23 +222,35 @@ export const D8NIGHT: any = {
           { asset: "temple_buttress", position: [14.40, 7.6], height: 3.6, width: 0.84, depth: 1.15 },
 
           // --- PROCESSIONAL COURT: walls now continue all the way to the bridge stairs ---
-          { asset: "temple_floor", position: [0, 13.05], size: [27.3, 10.15], material: "stone", tileSize: 1.55, border: true },
-          { asset: "temple_wall", position: [-14.0, 13.05], size: [0.82, 10.20], height: 3.65 },
-          { asset: "temple_wall", position: [14.0, 13.05], size: [0.82, 10.20], height: 3.65 },
-          { asset: "temple_wall", position: [-8.55, 18.15], size: [10.25, 0.82], height: 3.8 },
-          { asset: "temple_wall", position: [8.55, 18.15], size: [10.25, 0.82], height: 3.8 },
-          { asset: "temple_gate", position: [0, 18.15], width: 6.7, height: 4.65, depth: 0.95 },
+          { asset: "temple_floor", position: [0, 13.05], size: [27.3, 10.15], material: "stone", tileSize: 2.05, border: true },
+          { asset: "temple_wall", position: [-14.0, 13.05], size: [1.00, 10.20], height: 4.25, tiers: true },
+          { asset: "temple_wall", position: [14.0, 13.05], size: [1.00, 10.20], height: 4.25, tiers: true },
+          { asset: "temple_wall", position: [-8.55, 18.15], size: [10.25, 1.00], height: 4.35, tiers: true },
+          { asset: "temple_wall", position: [8.55, 18.15], size: [10.25, 1.00], height: 4.35, tiers: true },
+          { asset: "temple_gate", position: [0, 18.15], width: 7.2, height: 5.35, depth: 1.10, pediment: true },
 
           // Continuous ceremonial axis.
           { asset: "runner", position: [0, -2.0], size: [1.95, 11.8], material: "templeBurgundy", border: "stoneLight" },
           { asset: "runner", position: [0, 12.8], size: [2.15, 9.2], material: "templeBurgundy", border: "stoneLight" },
 
           // Bridge ends at the stairs. There is no loose dirt gap anymore.
-          { asset: "stairs", position: [0, 19.85], size: [5.4, 3.2], steps: 8, height: 1.05, material: "stone" },
+          { asset: "stairs", position: [0, 19.85], size: [6.2, 3.4], steps: 9, height: 1.18, material: "stone" },
           { asset: "water_area", position: [0, 23.45], size: [40.0, 5.8], rippleCount: 12, shimmer: 0.18, flow: 0.24 },
           { asset: "bridge", position: [0, 23.45], size: [3.5, 5.9], planks: 18 },
           { asset: "collider_only", position: [-10.9, 23.45], size: [18.3, 5.8] },
           { asset: "collider_only", position: [10.9, 23.45], size: [18.3, 5.8] },
+
+          // V30 naturalized water banks: stone, reeds and vegetation with a bridge gap.
+          { asset: "water_bank", position: [0, 20.45], length: 40.0, depth: 1.0, gap: 5.0, count: 40, side: -1 },
+          { asset: "water_bank", position: [0, 26.45], length: 40.0, depth: 1.0, gap: 5.0, count: 40, side: 1 },
+          { asset: "water_bank", position: [-20.0, 23.45], length: 5.8, depth: 0.9, count: 9, rotation: Math.PI / 2 },
+          { asset: "water_bank", position: [20.0, 23.45], length: 5.8, depth: 0.9, count: 9, rotation: Math.PI / 2 },
+
+          // Clipped hedges make garden rooms without becoming gameplay walls.
+          { asset: "temple_hedge", position: [-18.4, 7.0], length: 8.5, rotation: Math.PI / 2, height: 0.95, blocking: false },
+          { asset: "temple_hedge", position: [18.4, 7.0], length: 8.5, rotation: Math.PI / 2, height: 0.95, blocking: false },
+          { asset: "temple_hedge", position: [-18.3, 24.0], length: 5.0, rotation: 0, height: 0.90, blocking: false },
+          { asset: "temple_hedge", position: [18.3, 24.0], length: 5.0, rotation: 0, height: 0.90, blocking: false }
 
           // Arrival path over the lawn.
           { asset: "path", position: [0, 28.55], size: [5.4, 4.4] },
@@ -297,6 +309,8 @@ export const D8NIGHT: any = {
           { asset: "temple_tree", position: [20.8, 16.0], height: 4.3, crown: 3.1 },
           { asset: "temple_tree", position: [-21.0, 28.4], height: 3.9, crown: 2.8 },
           { asset: "temple_tree", position: [21.0, 28.1], height: 4.1, crown: 2.9 },
+          { asset: "temple_tree", position: [-23.0, -12.0], height: 5.0, crown: 3.6 },
+          { asset: "temple_tree", position: [23.0, -12.0], height: 5.0, crown: 3.6 },
 
           { asset: "temple_garden_bed", position: [-19.0, -0.2], size: [6.0, 2.5], count: 19 },
           { asset: "temple_garden_bed", position: [19.0, 0.2], size: [6.0, 2.5], count: 19 },
@@ -331,6 +345,10 @@ export const D8NIGHT: any = {
           { asset: "bench", position: [-19.0, 14.5], size: [2.8, 0.68] },
           { asset: "patio_round", position: [19.0, 13.8], diameter: 6.4, material: "stone2", border: "stoneDark" },
           { asset: "bench", position: [19.0, 14.5], size: [2.8, 0.68] },
+          { asset: "stone_lantern", position: [-16.0, 17.0], intensity: 0.30, range: 4.2 },
+          { asset: "stone_lantern", position: [16.0, 17.0], intensity: 0.30, range: 4.2 },
+          { asset: "stone_lantern", position: [-8.0, 29.2], intensity: 0.24, range: 3.8 },
+          { asset: "stone_lantern", position: [8.0, 29.2], intensity: 0.24, range: 3.8 },
 
           // Low perimeter accents frame the garden without boxing the camera in.
           { asset: "low_wall", position: [-25.0, 9.0], size: [15.0, 0.48], height: 0.72, material: "stoneDark", rotation: Math.PI / 2 },
@@ -381,14 +399,14 @@ export const D8NIGHT: any = {
             { position: [0, 2.4, 16.7], color: [1.00, 0.50, 0.20], intensity: 0.34, range: 8.0 }
           ]
         },
-        vfx: { dust: true, fireflies: true, fireflyCount: 5, roseSway: true, waterRipples: true, waterMotion: true },
+        vfx: { dust: true, fireflies: true, fireflyCount: 4, roseSway: true, waterRipples: true, waterMotion: true, gardenMotes: true, gardenMoteCount: 18 },
         interactables: [
           { id: "temple_table_ambience", position: [0, 0.8], radius: 2.6, label: "Interactuar con el candelabro", message: "El único candelabro ilumina las rosas, los platos y los cubiertos de la mesa.", action: { type: "toggle_local", radius: 3.4, meshMatch: ["tableCandelabrumFlame"], lights: true, offMessage: "Apagas el candelabro.", onMessage: "Vuelves a encender el candelabro." } },
           { id: "temple_altar_ambience", position: [0, -6.0], radius: 2.4, label: "Examinar altar", message: "El altar de piedra marca el final del eje ceremonial del templo.", action: { type: "pulse", color: [1.00, 0.50, 0.18], range: 3.4 } },
           { id: "temple_statue_ambience", position: [0, -7.5], radius: 2.0, label: "Examinar estatua", message: "La figura de piedra se alza detrás del altar.", action: { type: "pulse", color: [0.75, 0.64, 0.48], range: 3.2 } }
         ],
         visual: {
-          profile: "temple_full_garden_v29",
+          profile: "temple_architecture_garden_v30",
           glow: 0.11,
           exposure: 1.18,
           contrast: 1.02,
