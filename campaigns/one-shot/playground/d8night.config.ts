@@ -89,7 +89,14 @@ export const D8NIGHT: any = {
           { asset: "bottle_cluster", position: [-7.65, 5.55], count: 4, scale: 0.72 },
           { asset: "crate", position: [9.1, -6.5] },
           { asset: "crate", position: [10, -6.5], scale: 0.8 },
-          { asset: "crate", position: [10.8, -6.5], scale: 0.85 }
+          { asset: "crate", position: [10.8, -6.5], scale: 0.85 },
+
+          // V16 CAFE — reference match 2.5D
+          { asset: "low_wall", position: [-8.3, 7.35], size: [6.0, 0.42], height: 0.58, material: "stoneDark" },
+          { asset: "low_wall", position: [8.5, 7.35], size: [6.2, 0.42], height: 0.58, material: "stoneDark" },
+          { asset: "wall_trim", position: [-8.3, 7.15], size: [6.0, 0.18], y: 0.65, material: "stone2" },
+          { asset: "wall_trim", position: [8.5, 7.15], size: [6.2, 0.18], y: 0.65, material: "stone2" },
+          { asset: "floor_scatter", position: [8.4, 4.8], size: [4.0, 3.0], count: 10, material: "stoneDark" }
         ]
       },
       CANON: {
@@ -158,7 +165,7 @@ export const D8NIGHT: any = {
     temple: {
       label: "TEMPLO",
       spawn: [0, 0.43, 11.1],
-      camera: { radius: 30.0, beta: 0.61, alpha: -Math.PI / 2.04 },
+      camera: { radius: 30.5, beta: 0.58, alpha: -Math.PI / 2.04 },
       MAP: {
         size: [28, 24],
         floor: "stone",
@@ -236,7 +243,14 @@ export const D8NIGHT: any = {
           { asset: "arch_ruin", position: [8.8, 6.2], size: [3.0, 0.6], height: 2.5, tilt: 0.08 },
           { asset: "rock_cluster", position: [-9.2, 6.0], spread: 1.2, count: 6 },
           { asset: "rock_cluster", position: [9.2, 6.0], spread: 1.2, count: 6 },
-          { asset: "floor_scatter", position: [0, -6.2], size: [8.0, 2.0], count: 18, material: "stoneDark" }
+          { asset: "floor_scatter", position: [0, -6.2], size: [8.0, 2.0], count: 18, material: "stoneDark" },
+
+          // V16 TEMPLE — reference match 2.5D
+          { asset: "low_wall", position: [-11.2, 8.6], size: [4.0, 0.40], height: 0.55, material: "stoneDark" },
+          { asset: "low_wall", position: [11.2, 8.6], size: [4.0, 0.40], height: 0.55, material: "stoneDark" },
+          { asset: "runner", position: [0, 6.25], size: [1.8, 2.5], material: "clothRed", border: "yellow" },
+          { asset: "rock_cluster", position: [-10.8, 10.8], spread: 1.2, count: 5, material: "stoneDark" },
+          { asset: "rock_cluster", position: [10.8, 10.8], spread: 1.2, count: 5, material: "stoneDark" }
         ]
       },
       CANON: { interactables: [], triggers: [] },
@@ -287,7 +301,7 @@ export const D8NIGHT: any = {
     dinner: {
       label: "DINNER",
       spawn: [0, 0.43, 7.0],
-      camera: { radius: 25.2, beta: 0.62, alpha: -Math.PI / 2.08 },
+      camera: { radius: 25.8, beta: 0.58, alpha: -Math.PI / 2.08 },
       MAP: {
         size: [28, 18],
         floor: "stone",
@@ -328,7 +342,13 @@ export const D8NIGHT: any = {
           { asset: "fence", position: [-10.7, 5.9], length: 4.8, posts: 5, height: 0.82, rotation: 0, blocking: true },
           { asset: "fence", position: [11.0, 4.4], length: 4.4, posts: 5, height: 0.82, rotation: Math.PI / 2, blocking: true },
           { asset: "plant_cluster", position: [-10.2, -5.8], spread: 1.1, count: 7 },
-          { asset: "plant_cluster", position: [10.4, -5.6], spread: 1.1, count: 7 }
+          { asset: "plant_cluster", position: [10.4, -5.6], spread: 1.1, count: 7 },
+
+          // V16 DINNER — reference match 2.5D
+          { asset: "patio_round", position: [0, 3.2], diameter: 6.8, material: "stone2", border: "stoneDark" },
+          { asset: "well", position: [9.4, 5.3], diameter: 2.1 },
+          { asset: "low_wall", position: [-6.5, -1.7], size: [3.5, 0.38], height: 0.48, material: "stone2" },
+          { asset: "low_wall", position: [6.4, -1.7], size: [3.4, 0.38], height: 0.48, material: "stone2" }
         ]
       },
       CANON: { interactables: [], triggers: [] },
@@ -375,7 +395,7 @@ export const D8NIGHT: any = {
     garden: {
       label: "GARDEN",
       spawn: [-10.5, 0.43, 6.0],
-      camera: { radius: 26.0, beta: 0.61, alpha: -Math.PI / 2.00 },
+      camera: { radius: 26.6, beta: 0.58, alpha: -Math.PI / 2.00 },
       MAP: {
         size: [28, 20],
         floor: "snow",
@@ -418,7 +438,13 @@ export const D8NIGHT: any = {
           { asset: "thorn_wall", position: [11.8, 1.2], length: 7.8, count: 13, rotation: Math.PI / 2 },
           { asset: "arch_ruin", position: [3.8, 4.8], size: [2.7, 0.6], height: 2.2, tilt: 0.04 },
           { asset: "plant_cluster", position: [-4.8, -6.5], spread: 1.5, count: 10 },
-          { asset: "rock_cluster", position: [10.8, 5.6], spread: 1.3, count: 8 }
+          { asset: "rock_cluster", position: [10.8, 5.6], spread: 1.3, count: 8 },
+
+          // V16 GARDEN — reference match 2.5D
+          { asset: "thorn_wall", position: [2.1, -8.5], length: 5.4, count: 10, rotation: 0 },
+          { asset: "thorn_wall", position: [12.0, -1.2], length: 6.2, count: 11, rotation: Math.PI / 2 },
+          { asset: "low_wall", position: [7.2, 0.2], size: [5.6, 0.34], height: 0.48, material: "stone2" },
+          { asset: "plant_cluster", position: [-10.2, 5.8], spread: 1.2, count: 8, material: "rosePink" }
         ]
       },
       CANON: { interactables: [], triggers: [] },
@@ -464,7 +490,7 @@ export const D8NIGHT: any = {
     market: {
       label: "MARKET",
       spawn: [0, 0.43, 7.2],
-      camera: { radius: 26.5, beta: 0.63, alpha: -Math.PI / 2.08 },
+      camera: { radius: 27.0, beta: 0.59, alpha: -Math.PI / 2.08 },
       MAP: {
         size: [30, 20],
         floor: "stone",
@@ -510,7 +536,14 @@ export const D8NIGHT: any = {
           { asset: "fence", position: [13.2, 1.8], length: 5.2, posts: 6, height: 0.78, rotation: Math.PI / 2, blocking: true },
           { asset: "market_goods", position: [0.2, 6.5], size: [5.5, 2.2], count: 15 },
           { asset: "market_goods", position: [-12.0, 1.6], size: [2.5, 3.2], count: 11 },
-          { asset: "market_goods", position: [12.0, 1.5], size: [2.5, 3.2], count: 11 }
+          { asset: "market_goods", position: [12.0, 1.5], size: [2.5, 3.2], count: 11 },
+
+          // V16 MARKET — reference match 2.5D
+          { asset: "market_goods", position: [0.6, -3.6], size: [3.4, 1.9], count: 10 },
+          { asset: "market_goods", position: [7.2, 3.2], size: [3.0, 1.8], count: 9 },
+          { asset: "market_goods", position: [-10.2, 2.2], size: [3.0, 1.8], count: 9 },
+          { asset: "well", position: [-1.8, 1.8], diameter: 1.8 },
+          { asset: "floor_scatter", position: [0, 6.8], size: [8.5, 2.5], count: 16, material: "stoneDark" }
         ]
       },
       CANON: { interactables: [], triggers: [] },
@@ -559,7 +592,7 @@ export const D8NIGHT: any = {
     mirror: {
       label: "MIRROR",
       spawn: [10.5, 0.43, 6.8],
-      camera: { radius: 27.0, beta: 0.59, alpha: -Math.PI / 2.14 },
+      camera: { radius: 27.8, beta: 0.56, alpha: -Math.PI / 2.14 },
       MAP: {
         size: [30, 20],
         floor: "ice",
@@ -599,7 +632,13 @@ export const D8NIGHT: any = {
           { asset: "ice_ridge", position: [12.0, -6.4], length: 4.6, count: 7, rotation: 0.10 },
           { asset: "rock_cluster", position: [-10.4, -7.2], spread: 1.7, count: 9, material: "stoneDark" },
           { asset: "ice_floe", position: [-5.0, 2.4], diameter: 2.7, depthScale: 0.68, rotation: 0.3 },
-          { asset: "ice_floe", position: [8.6, 3.7], diameter: 2.5, depthScale: 0.66, rotation: 0.9 }
+          { asset: "ice_floe", position: [8.6, 3.7], diameter: 2.5, depthScale: 0.66, rotation: 0.9 },
+
+          // V16 MIRROR — reference match 2.5D
+          { asset: "ice_ridge", position: [-12.8, -1.2], length: 6.0, count: 8, rotation: Math.PI / 2 },
+          { asset: "ice_ridge", position: [12.6, 1.5], length: 6.2, count: 8, rotation: Math.PI / 2 },
+          { asset: "ice_ridge", position: [1.0, -8.5], length: 8.0, count: 10, rotation: 0 },
+          { asset: "rock_cluster", position: [-8.7, 6.8], spread: 1.2, count: 6, material: "stoneDark" }
         ]
       },
       CANON: { interactables: [], triggers: [] },
