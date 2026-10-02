@@ -8,6 +8,8 @@
 // Garden -> El jardin de la srta fritz IA.png
 // Market -> El Mercado Nocturno IA.png
 // Mirror -> El Espejo de plata del amor verdadero IA.png
+export const D8_VERSION = "V26";
+
 export const D8NIGHT: any = {
   maps: {
     cafe: {
@@ -178,10 +180,10 @@ export const D8NIGHT: any = {
     },
     temple: {
       label: "TEMPLO",
-      spawn: [0, 0.43, 11.1],
-      camera: { radius: 30.5, beta: 0.58, alpha: -Math.PI / 2.04 },
+      spawn: [0, 0.43, 28.0],
+      camera: { radius: 52.0, beta: 0.54, alpha: -Math.PI / 2.04 },
       MAP: {
-        size: [28, 24],
+        size: [50, 60],
         floor: "stone",
         visualFloor: "temple_stone",
         visualComposition: "temple_reference",
@@ -189,58 +191,129 @@ export const D8NIGHT: any = {
         compositionOpacity: 0,
         objects: [
           // V14.9 TEMPLE ACCESS: enclosed interior with one southern entrance.
-          { asset: "wall", position: [0, -8.65], size: [27.5, 0.55], height: 1.9 },
-          { asset: "wall", position: [-13.65, -0.45], size: [0.55, 17.0], height: 1.9 },
-          { asset: "wall", position: [13.65, -0.45], size: [0.55, 17.0], height: 1.9 },
-          { asset: "wall", position: [-7.8, 7.75], size: [11.5, 0.55], height: 1.9 },
-          { asset: "wall", position: [7.8, 7.75], size: [11.5, 0.55], height: 1.9 },
-          { asset: "archway", position: [0, 7.45], size: [4.2, 0.7], height: 3.4 },
+          { asset: "wall", position: [0, -8.65], size: [27.5, 0.65], height: 3.4 },
+          // V22: lateral walls are segmented so golden-hour light can enter through real openings.
+          { asset: "wall", position: [-13.65, -7.18], size: [0.55, 2.95], height: 3.6 },
+          { asset: "wall", position: [-13.65, -2.55], size: [0.55, 2.90], height: 3.6 },
+          { asset: "wall", position: [-13.65, 2.05], size: [0.55, 2.90], height: 3.6 },
+          { asset: "wall", position: [-13.65, 6.48], size: [0.55, 2.55], height: 3.6 },
+          { asset: "wall", position: [13.65, -7.18], size: [0.55, 2.95], height: 3.6 },
+          { asset: "wall", position: [13.65, -2.55], size: [0.55, 2.90], height: 3.6 },
+          { asset: "wall", position: [13.65, 2.05], size: [0.55, 2.90], height: 3.6 },
+          { asset: "wall", position: [13.65, 6.48], size: [0.55, 2.55], height: 3.6 },
+          { asset: "temple_window", position: [-13.62, -4.85], rotation: Math.PI / 2, sunlit: true, direction: [1, -0.24, 0.05], intensity: 2.35, beamLength: 6.2 },
+          { asset: "temple_window", position: [-13.62, -0.25], rotation: Math.PI / 2, sunlit: true, direction: [1, -0.24, 0.05], intensity: 2.20, beamLength: 6.0 },
+          { asset: "temple_window", position: [-13.62, 4.35], rotation: Math.PI / 2, sunlit: true, direction: [1, -0.24, 0.05], intensity: 2.10, beamLength: 5.8 },
+          { asset: "temple_window", position: [13.62, -4.85], rotation: -Math.PI / 2, sunlit: false },
+          { asset: "temple_window", position: [13.62, -0.25], rotation: -Math.PI / 2, sunlit: false },
+          { asset: "temple_window", position: [13.62, 4.35], rotation: -Math.PI / 2, sunlit: false },
+          { asset: "low_wall", position: [-13.65, -4.85], size: [1.70, 0.55], height: 0.62, material: "stoneDark", rotation: Math.PI / 2 },
+          { asset: "low_wall", position: [-13.65, -0.25], size: [1.70, 0.55], height: 0.62, material: "stoneDark", rotation: Math.PI / 2 },
+          { asset: "low_wall", position: [-13.65, 4.35], size: [1.70, 0.55], height: 0.62, material: "stoneDark", rotation: Math.PI / 2 },
+          { asset: "low_wall", position: [13.65, -4.85], size: [1.70, 0.55], height: 0.62, material: "stoneDark", rotation: Math.PI / 2 },
+          { asset: "low_wall", position: [13.65, -0.25], size: [1.70, 0.55], height: 0.62, material: "stoneDark", rotation: Math.PI / 2 },
+          { asset: "low_wall", position: [13.65, 4.35], size: [1.70, 0.55], height: 0.62, material: "stoneDark", rotation: Math.PI / 2 },
+          { asset: "wall", position: [-7.8, 7.75], size: [11.5, 0.60], height: 2.45 },
+          { asset: "wall", position: [7.8, 7.75], size: [11.5, 0.60], height: 2.45 },
+          { asset: "archway", position: [0, 7.45], size: [4.6, 0.8], height: 4.15 },
+          { asset: "temple_buttress", position: [-14.05, -6.7], height: 3.35, width: 0.82, depth: 1.15 },
+          { asset: "temple_buttress", position: [-14.05, 1.9], height: 3.25, width: 0.80, depth: 1.10 },
+          { asset: "temple_buttress", position: [-14.05, 6.8], height: 3.15, width: 0.78, depth: 1.05 },
+          { asset: "temple_buttress", position: [14.05, -6.7], height: 3.35, width: 0.82, depth: 1.15 },
+          { asset: "temple_buttress", position: [14.05, 1.9], height: 3.25, width: 0.80, depth: 1.10 },
+          { asset: "temple_buttress", position: [14.05, 6.8], height: 3.15, width: 0.78, depth: 1.05 },
+          { asset: "wall_trim", position: [0, -8.65], size: [27.8, 0.78], material: "stoneLight", y: 3.46 },
+          { asset: "wall_trim", position: [-13.70, -7.18], size: [2.95, 0.72], material: "stoneLight", y: 3.66, rotation: Math.PI / 2 },
+          { asset: "wall_trim", position: [-13.70, -2.55], size: [2.90, 0.72], material: "stoneLight", y: 3.66, rotation: Math.PI / 2 },
+          { asset: "wall_trim", position: [-13.70, 2.05], size: [2.90, 0.72], material: "stoneLight", y: 3.66, rotation: Math.PI / 2 },
+          { asset: "wall_trim", position: [13.70, -7.18], size: [2.95, 0.72], material: "stoneLight", y: 3.66, rotation: Math.PI / 2 },
+          { asset: "wall_trim", position: [13.70, -2.55], size: [2.90, 0.72], material: "stoneLight", y: 3.66, rotation: Math.PI / 2 },
+          { asset: "wall_trim", position: [13.70, 2.05], size: [2.90, 0.72], material: "stoneLight", y: 3.66, rotation: Math.PI / 2 },
 
-          // Exterior approach: water crossed by a narrow wooden bridge, then stone stairs.
-          { asset: "water_area", position: [0, 10.15], size: [24.0, 3.7] },
-          { asset: "bridge", position: [0, 10.15], size: [2.6, 4.25], planks: 13 },
-          { asset: "stairs", position: [0, 7.95], size: [2.9, 2.35], steps: 5, height: 0.62, material: "stone" },
-          { asset: "path", position: [0, 6.75], size: [3.0, 1.4] },
+          // V26 TEMPLE EXTERIOR — deliberately large exterior before the water.
+          { asset: "stairs", position: [0, 8.65], size: [3.8, 3.0], steps: 7, height: 0.82, material: "stone" },
+          { asset: "path", position: [0, 10.6], size: [4.8, 4.0] },
 
-          // Water is not walkable except via the bridge.
-          { asset: "collider_only", position: [-7.1, 10.15], size: [10.9, 3.7] },
-          { asset: "collider_only", position: [7.1, 10.15], size: [10.9, 3.7] },
+          // Main forecourt: large enough to read as a true exterior area.
+          { asset: "room_floor", position: [0, 14.25], size: [46.5, 10.8], material: "stone2" },
+          { asset: "path", position: [0, 14.3], size: [5.6, 10.2] },
+
+          // Left circular patio / resting pocket.
+          { asset: "patio_round", position: [-12.8, 14.6], diameter: 7.8, material: "stone2", border: "stoneDark" },
+          { asset: "bench", position: [-12.8, 15.4], size: [3.1, 0.72] },
+          { asset: "bench", position: [-15.3, 13.3], size: [2.4, 0.65] },
+
+          // Exterior vegetation and garden beds.
+          { asset: "temple_garden_bed", position: [12.8, 14.8], size: [7.0, 3.0], count: 24 },
+          { asset: "temple_garden_bed", position: [19.2, 11.8], size: [4.2, 2.4], count: 14 },
+          { asset: "temple_garden_bed", position: [-19.4, 11.8], size: [4.2, 2.4], count: 14 },
+          { asset: "temple_garden_bed", position: [19.0, 17.8], size: [4.6, 2.3], count: 14 },
+          { asset: "temple_garden_bed", position: [-19.0, 17.8], size: [4.6, 2.3], count: 14 },
+          { asset: "plant_cluster", position: [-20.8, 15.0], spread: 1.65, count: 13 },
+          { asset: "plant_cluster", position: [20.8, 15.2], spread: 1.65, count: 13 },
+          { asset: "plant_cluster", position: [-7.2, 18.0], spread: 1.10, count: 8 },
+          { asset: "plant_cluster", position: [7.5, 18.0], spread: 1.10, count: 8 },
+
+          // Stone scatter breaks the clean rectangular silhouette.
+          { asset: "rock_cluster", position: [-5.8, 17.9], spread: 1.25, count: 8, material: "stoneDark" },
+          { asset: "rock_cluster", position: [6.2, 17.6], spread: 1.25, count: 8, material: "stoneDark" },
+          { asset: "floor_scatter", position: [-17.0, 14.2], size: [7.0, 8.0], count: 28, material: "stoneDark" },
+          { asset: "floor_scatter", position: [17.0, 14.2], size: [7.0, 8.0], count: 28, material: "stoneDark" },
+
+          // Courtyard perimeter and lights.
+          { asset: "low_wall", position: [-23.4, 14.4], size: [10.2, 0.52], height: 0.95, material: "stoneDark", rotation: Math.PI / 2 },
+          { asset: "low_wall", position: [23.4, 14.4], size: [10.2, 0.52], height: 0.95, material: "stoneDark", rotation: Math.PI / 2 },
+          { asset: "lantern_post", position: [-18.6, 10.2], intensity: 0.32, range: 4.8, height: 2.35 },
+          { asset: "lantern_post", position: [18.6, 10.2], intensity: 0.32, range: 4.8, height: 2.35 },
+          { asset: "lantern_post", position: [-8.0, 18.4], intensity: 0.28, range: 4.4, height: 2.25 },
+          { asset: "lantern_post", position: [8.2, 18.4], intensity: 0.28, range: 4.4, height: 2.25 },
+
+          // Water now sits beyond the forecourt instead of touching the temple entrance.
+          { asset: "water_area", position: [0, 22.4], size: [35.0, 4.6] },
+          { asset: "bridge", position: [0, 22.4], size: [3.0, 5.2], planks: 16 },
+          { asset: "collider_only", position: [-9.8, 22.4], size: [15.2, 4.6] },
+          { asset: "collider_only", position: [9.8, 22.4], size: [15.2, 4.6] },
+
+          // Outer arrival terrace with additional vegetation.
+          { asset: "room_floor", position: [0, 27.1], size: [48.0, 5.2], material: "stone2" },
+          { asset: "path", position: [0, 27.0], size: [6.0, 5.0] },
+          { asset: "low_wall", position: [-15.0, 29.2], size: [17.0, 0.52], height: 0.95, material: "stoneDark" },
+          { asset: "low_wall", position: [15.0, 29.2], size: [17.0, 0.52], height: 0.95, material: "stoneDark" },
+          { asset: "temple_garden_bed", position: [-19.0, 27.2], size: [5.0, 2.2], count: 15 },
+          { asset: "temple_garden_bed", position: [19.0, 27.2], size: [5.0, 2.2], count: 15 },
+          { asset: "plant_cluster", position: [-11.0, 28.0], spread: 1.25, count: 9 },
+          { asset: "plant_cluster", position: [11.2, 28.0], spread: 1.25, count: 9 },
           { asset: "column", position: [-8.2, -5.5], height: 3.8 },
           { asset: "column", position: [8.2, -5.5], height: 3.8 },
           { asset: "column", position: [-8.2, -1.6], height: 3.5 },
           { asset: "column", position: [8.2, -1.6], height: 3.5 },
           { asset: "column", position: [-8.2, 2.4], height: 3.1 },
           { asset: "column", position: [8.2, 2.4], height: 3.1 },
+          { asset: "room_floor", position: [0, -0.45], size: [26.7, 16.2], material: "stone" },
           { asset: "long_table", position: [0, 0.7], size: [6.8, 1.5] },
-          { asset: "chair", position: [0, -0.75], rotation: 0 },
-          { asset: "chair", position: [0, 2.15], rotation: Math.PI },
-          { asset: "candle", position: [-2.0, 0.7], intensity: 0.55, range: 4.8 },
-          { asset: "candle", position: [0, 0.7], intensity: 0.58, range: 5.0 },
-          { asset: "candle", position: [2.0, 0.7], intensity: 0.55, range: 4.8 },
-          { asset: "candle", position: [-3.0, 0.7], intensity: 0.48, range: 4.5 },
-          { asset: "candle", position: [3.0, 0.7], intensity: 0.48, range: 4.5 },
-          { asset: "candle", position: [-1.0, 0.7], intensity: 0.50, range: 4.6 },
-          { asset: "candle", position: [1.0, 0.7], intensity: 0.50, range: 4.6 },
-          { asset: "chandelier", position: [0, -1.6], height: 3.4, radius: 1.35, count: 10, intensity: 1.90, range: 11.5 },
-          { asset: "chandelier", position: [0, 3.5], height: 3.25, radius: 1.20, count: 8, intensity: 1.65, range: 10.5 },
-          { asset: "brazier", position: [-5.5, -5.0], intensity: 2.35, range: 10.0 },
-          { asset: "brazier", position: [5.5, -5.0], intensity: 2.35, range: 10.0 },
-          { asset: "brazier", position: [-6.5, 3.6], intensity: 1.85, range: 8.8 },
-          { asset: "brazier", position: [6.5, 3.6], intensity: 1.85, range: 8.8 },
-          { asset: "wall_sconce", position: [-10.8, -5.2], intensity: 0.98, range: 7.2 },
-          { asset: "wall_sconce", position: [10.8, -5.2], intensity: 0.98, range: 7.2 },
-          { asset: "wall_sconce", position: [-10.8, -0.8], intensity: 0.90, range: 6.9 },
-          { asset: "wall_sconce", position: [10.8, -0.8], intensity: 0.90, range: 6.9 },
-          { asset: "wall_sconce", position: [-10.8, 4.0], intensity: 0.84, range: 6.6 },
-          { asset: "wall_sconce", position: [10.8, 4.0], intensity: 0.84, range: 6.6 },
-          { asset: "statue", position: [0, -5.7] },
+          { asset: "chair", position: [-4.25, 0.7], rotation: -Math.PI / 2 },
+          { asset: "chair", position: [4.25, 0.7], rotation: Math.PI / 2 },
+          { asset: "table_candelabrum", position: [0, 0.7], arms: 5, spread: 0.68, intensity: 0.82, range: 5.8 },
+          { asset: "banquet_setting", position: [0, 0.7], size: [6.2, 1.15] },
+          { asset: "temple_brazier", position: [-4.4, -6.1], intensity: 1.22, range: 6.8 },
+          { asset: "temple_brazier", position: [4.4, -6.1], intensity: 1.22, range: 6.8 },
+          { asset: "temple_torch", position: [-12.35, -5.0], intensity: 1.32, range: 7.8 },
+          { asset: "temple_torch", position: [12.35, -5.0], intensity: 1.32, range: 7.8 },
+          { asset: "temple_torch", position: [-12.35, -0.4], intensity: 1.18, range: 7.2 },
+          { asset: "temple_torch", position: [12.35, -0.4], intensity: 1.18, range: 7.2 },
+          { asset: "temple_torch", position: [-12.35, 4.3], intensity: 1.10, range: 6.8 },
+          { asset: "temple_torch", position: [12.35, 4.3], intensity: 1.10, range: 6.8 },
+          { asset: "temple_altar_backdrop", position: [0, -8.18], size: [7.6, 0.5], height: 3.15, depth: 0.52 },
+          { asset: "runner", position: [0, -5.9], size: [4.9, 2.4], material: "templeBurgundy", border: "stoneLight" },
+          { asset: "temple_altar", position: [0, -6.0], size: [5.2, 2.0], height: 1.08 },
+          { asset: "statue", position: [0, -7.35] },
           { asset: "rose_patch", position: [-9.4, 5.45], size: [3.0, 1.3], count: 12 },
           { asset: "rose_patch", position: [9.4, 5.45], size: [3.0, 1.3], count: 12 },
           { asset: "rose_patch", position: [-10.2, -4.1], size: [2.4, 1.3], count: 10 },
           { asset: "rose_patch", position: [10.2, -4.1], size: [2.4, 1.3], count: 10 },
 
           // V15 TEMPLE — reference-guided 2.5D art pass
-          { asset: "runner", position: [0, 4.55], size: [1.9, 4.8], material: "clothRed", border: "yellow" },
+          { asset: "runner", position: [0, 4.55], size: [1.9, 4.8], material: "templeBurgundy", border: "stoneLight" },
           { asset: "banner", position: [-13.25, -4.8], size: [1.05, 1.75], y: 2.55, material: "clothRed", rotation: Math.PI / 2 },
           { asset: "banner", position: [13.25, -4.8], size: [1.05, 1.75], y: 2.55, material: "clothRed", rotation: -Math.PI / 2 },
           { asset: "banner", position: [-13.25, 2.5], size: [1.05, 1.75], y: 2.45, material: "purple", rotation: Math.PI / 2 },
@@ -252,79 +325,100 @@ export const D8NIGHT: any = {
           { asset: "floor_scatter", position: [5.8, 9.8], size: [7.0, 2.8], count: 16, material: "stoneDark" },
 
           // V16 REFERENCE MATCH — ceremonial depth and ruined temple framing
-          { asset: "runner", position: [0, -1.6], size: [1.75, 10.2], material: "clothRed", border: "yellow" },
+          { asset: "runner", position: [0, -1.6], size: [1.75, 10.2], material: "templeBurgundy", border: "stoneLight" },
           { asset: "arch_ruin", position: [-8.8, 6.2], size: [3.0, 0.6], height: 2.5, tilt: -0.09 },
           { asset: "arch_ruin", position: [8.8, 6.2], size: [3.0, 0.6], height: 2.5, tilt: 0.08 },
           { asset: "rock_cluster", position: [-9.2, 6.0], spread: 1.2, count: 6 },
           { asset: "rock_cluster", position: [9.2, 6.0], spread: 1.2, count: 6 },
           { asset: "floor_scatter", position: [0, -6.2], size: [8.0, 2.0], count: 18, material: "stoneDark" },
+          { asset: "floor_scatter", position: [-10.8, -1.0], size: [3.0, 12.0], count: 20, material: "stoneDark" },
+          { asset: "floor_scatter", position: [10.8, -1.0], size: [3.0, 12.0], count: 18, material: "stoneDark" },
+          { asset: "plant_cluster", position: [-11.5, 6.1], spread: 0.85, count: 6 },
+          { asset: "plant_cluster", position: [11.2, 6.3], spread: 0.80, count: 5 },
 
           // V16 TEMPLE — reference match 2.5D
-          { asset: "low_wall", position: [-11.2, 8.6], size: [4.0, 0.40], height: 0.55, material: "stoneDark" },
-          { asset: "low_wall", position: [11.2, 8.6], size: [4.0, 0.40], height: 0.55, material: "stoneDark" },
-          { asset: "runner", position: [0, 6.25], size: [1.8, 2.5], material: "clothRed", border: "yellow" },
-          { asset: "rock_cluster", position: [-10.8, 10.8], spread: 1.2, count: 5, material: "stoneDark" },
-          { asset: "rock_cluster", position: [10.8, 10.8], spread: 1.2, count: 5, material: "stoneDark" }
+          { asset: "low_wall", position: [-11.2, 8.9], size: [4.0, 0.40], height: 0.55, material: "stoneDark" },
+          { asset: "low_wall", position: [11.2, 8.9], size: [4.0, 0.40], height: 0.55, material: "stoneDark" },
+          { asset: "runner", position: [0, 6.25], size: [1.8, 2.5], material: "templeBurgundy", border: "stoneLight" }
         ],
         navigation: {
-          bounds: [-13.55, 13.55, -8.55, 11.70],
+          bounds: [-24.55, 24.55, -8.95, 29.45],
           blockers: [
-            { position: [-7.1, 10.15], size: [10.9, 3.7] },
-            { position: [7.1, 10.15], size: [10.9, 3.7] }
+            { position: [-9.8, 22.4], size: [15.2, 4.6] },
+            { position: [9.8, 22.4], size: [15.2, 4.6] }
           ],
           zones: [
             { type: "walkable", label: "interior del templo", position: [0, -0.5], size: [26.0, 15.5] },
-            { type: "bridge", label: "puente", position: [0, 10.15], size: [2.6, 4.25] },
-            { type: "stairs", label: "escaleras", position: [0, 7.95], size: [2.9, 2.35] },
-            { type: "water", label: "agua", position: [-7.1, 10.15], size: [10.9, 3.7] },
-            { type: "water", label: "agua", position: [7.1, 10.15], size: [10.9, 3.7] },
-            { type: "entry", label: "acceso al templo", position: [0, 7.0], size: [4.0, 1.5] }
+            { type: "stairs", label: "escaleras", position: [0, 8.65], size: [3.8, 3.0] },
+            { type: "entry", label: "acceso al templo", position: [0, 7.2], size: [4.6, 1.8] },
+            { type: "walkable", label: "gran atrio exterior", position: [0, 14.25], size: [46.0, 10.5] },
+            { type: "walkable", label: "patio circular", position: [-12.8, 14.6], size: [7.8, 7.5] },
+            { type: "difficult", label: "vegetación exterior", position: [-20.0, 14.8], size: [6.0, 10.0] },
+            { type: "difficult", label: "vegetación exterior", position: [20.0, 14.8], size: [6.0, 10.0] },
+            { type: "bridge", label: "puente", position: [0, 22.4], size: [3.0, 5.2] },
+            { type: "water", label: "agua", position: [-9.8, 22.4], size: [15.2, 4.6] },
+            { type: "water", label: "agua", position: [9.8, 22.4], size: [15.2, 4.6] },
+            { type: "walkable", label: "terraza exterior", position: [0, 27.1], size: [48.0, 5.2] }
           ],
           interactions: [
-            { id: "temple_bridge_geom", position: [0, 10.1], radius: 1.6, label: "Tocar el agua junto al puente", message: "El puente es la vía de paso sobre el agua.", action: { type: "ripple", color: [0.10, 0.50, 0.68], size: 1.0 } },
-            { id: "temple_stairs_geom", position: [0, 8.0], radius: 1.4, label: "Examinar escaleras", message: "Las escaleras conducen al interior del templo." }
+            { id: "temple_bridge_geom", position: [0, 22.4], radius: 1.9, label: "Tocar el agua junto al puente", message: "El puente cruza el agua después del gran atrio exterior.", action: { type: "ripple", color: [0.10, 0.50, 0.68], size: 1.0 } },
+            { id: "temple_stairs_geom", position: [0, 8.65], radius: 1.6, label: "Examinar escaleras", message: "Las escaleras elevan la entrada sobre el gran atrio exterior." },
+            { id: "temple_courtyard_geom", position: [-12.8, 14.6], radius: 2.5, label: "Examinar patio exterior", message: "El gran atrio exterior está delimitado por piedra, vegetación y zonas de descanso." }
           ]
         }
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.050, 0.035, 0.025], fog: false, fogDensity: 0, exposure: 1.20, contrast: 1.00, toneMapping: false, vignette: false },
+        environment: { clearColor: [0.115, 0.070, 0.045], fog: false, fogDensity: 0, exposure: 1.14, contrast: 1.04, toneMapping: true, vignette: true, vignetteWeight: 0.18, vignetteStretch: 0.12 },
         lighting: {
           mode: "interior",
-          ambientIntensity: 0.82,
-          ambientColor: [1.00, 0.80, 0.58],
-          globalFill: { color: [1.00, 0.78, 0.56], intensity: 0.50, hemiIntensity: 0.44, directionalIntensity: 0.30, direction: [-0.24, -1, 0.18] },
-          shadows: { enabled: false },
+          ambientIntensity: 0.30,
+          ambientColor: [0.88, 0.72, 0.56],
+          globalFill: { color: [0.82, 0.66, 0.50], intensity: 0.16, hemiIntensity: 0.22, directionalIntensity: 0.08, direction: [0.88, -0.50, 0.18] },
+          shadows: { enabled: true, mapSize: 2048, blurKernel: 18, intensity: 1.18, color: [1.00, 0.66, 0.38], direction: [0.88, -0.50, 0.18], position: [-22, 13, 4], darkness: 0.24 },
           lights: [
-            { position: [0, 2.8, 0.8], color: [1.00, 0.54, 0.20], intensity: 0.55, range: 10.5 }
+            { position: [0, 2.8, -6.2], color: [1.00, 0.50, 0.18], intensity: 0.52, range: 9.0 }
           ]
         },
-        vfx: { dust: true, fireflies: true, fireflyCount: 10, roseSway: true },
+        vfx: { dust: true, fireflies: true, fireflyCount: 6, roseSway: true },
         interactables: [
-          { id: "temple_table_ambience", position: [0, 2.7], radius: 2.4, label: "Interactuar con velas", message: "Las velas bañan la mesa y las rosas con una luz cálida.", action: { type: "toggle_local", radius: 3.4, meshMatch: ["candleFlame"], lights: true, offMessage: "Apagas las velas cercanas.", onMessage: "Vuelves a encender las velas." } },
-          { id: "temple_statue_ambience", position: [0, -4.0], radius: 2.2, label: "Examinar estatua", message: "La figura de piedra domina el extremo del salón.", action: { type: "pulse", color: [0.75, 0.64, 0.48], range: 3.2 } }
+          { id: "temple_table_ambience", position: [0, 0.7], radius: 2.6, label: "Interactuar con el candelabro", message: "El único candelabro ilumina las rosas, los platos y los cubiertos de la mesa.", action: { type: "toggle_local", radius: 3.4, meshMatch: ["tableCandelabrumFlame"], lights: true, offMessage: "Apagas el candelabro.", onMessage: "Vuelves a encender el candelabro." } },
+          { id: "temple_altar_ambience", position: [0, -5.8], radius: 2.4, label: "Examinar altar", message: "El altar de piedra marca el final del eje ceremonial del templo.", action: { type: "pulse", color: [1.00, 0.50, 0.18], range: 3.4 } },
+          { id: "temple_statue_ambience", position: [0, -7.1], radius: 2.0, label: "Examinar estatua", message: "La figura de piedra se alza detrás del altar.", action: { type: "pulse", color: [0.75, 0.64, 0.48], range: 3.2 } }
         ],
         visual: {
-          profile: "temple_banquet",
-          glow: 0.18,
-          exposure: 1.10,
-          contrast: 1.08,
+          profile: "temple_readability_golden_hour_v26",
+          glow: 0.12,
+          exposure: 1.14,
+          contrast: 1.04,
           fov: 0.70,
-          sceneAmbient: [0.085, 0.060, 0.045],
-          diffuseBoost: 1.06,
-          emissiveFloor: 0.025,
-          specular: 0.025,
-          maxRealPointLights: 5,
+          sceneAmbient: [0.145, 0.115, 0.090],
+          diffuseBoost: 1.18,
+          emissiveFloor: 0.10,
+          specular: 0.020,
+          maxRealPointLights: 12,
+          maxMaterialLights: 8,
+          aoStrength: 0.40,
+          aoRadius: 0.95,
+          bloomWeight: 0.11,
+          bloomThreshold: 0.86,
           contactShadows: [
             { position: [0, 0.7], size: [8.0, 2.4], alpha: 0.16 },
             { position: [-8.2, -1.5], size: [2.0, 8.8], alpha: 0.11 },
-            { position: [8.2, -1.5], size: [2.0, 8.8], alpha: 0.11 }
+            { position: [8.2, -1.5], size: [2.0, 8.8], alpha: 0.11 },
+            { position: [0, -6.8], size: [8.4, 3.6], alpha: 0.17 },
+            { position: [-12.8, 14.6], size: [6.8, 6.3], alpha: 0.10 }
           ],
           lightPools: [
-            { position: [0, 0.7], size: [10.0, 5.4], color: [1.00, 0.50, 0.16], alpha: 0.13 },
-            { position: [-5.5, -5.0], size: [5.0, 4.0], color: [1.00, 0.22, 0.04], alpha: 0.13 },
-            { position: [5.5, -5.0], size: [5.0, 4.0], color: [1.00, 0.22, 0.04], alpha: 0.13 },
-            { position: [0, 10.1], size: [8.0, 4.0], color: [0.08, 0.38, 0.52], alpha: 0.08 }
+            { position: [0, 0.7], size: [8.0, 3.8], color: [1.00, 0.46, 0.12], alpha: 0.10 },
+            { position: [-9.8, -4.85], size: [7.0, 2.0], color: [1.00, 0.55, 0.22], alpha: 0.15 },
+            { position: [-9.8, -0.25], size: [7.0, 2.0], color: [1.00, 0.55, 0.22], alpha: 0.14 },
+            { position: [-9.8, 4.35], size: [7.0, 2.0], color: [1.00, 0.55, 0.22], alpha: 0.13 },
+            { position: [0, -6.0], size: [7.0, 3.8], color: [1.00, 0.30, 0.06], alpha: 0.11 },
+            { position: [0, 14.2], size: [26.0, 7.4], color: [1.00, 0.58, 0.24], alpha: 0.080 },
+            { position: [-12.8, 14.6], size: [7.2, 6.4], color: [1.00, 0.47, 0.16], alpha: 0.062 },
+            { position: [12.8, 14.8], size: [8.0, 5.4], color: [1.00, 0.48, 0.16], alpha: 0.058 },
+            { position: [0, 27.1], size: [22.0, 3.6], color: [1.00, 0.60, 0.28], alpha: 0.065 }
           ]
         },
         audio: { music: null, ambience: null }
