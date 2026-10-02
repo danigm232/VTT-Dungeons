@@ -38,7 +38,7 @@ export function createScene(engine: any, canvas: any) {
       ssao.expensiveBlur=false;
       scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline("d8_v18_ssao",camera);
     }
-  }catch(err){console.warn("[D8 v33] SSAO2 unavailable; continuing without AO",err);ssao=null;}
+  }catch(err){console.warn("[D8 v34] SSAO2 unavailable; continuing without AO",err);ssao=null;}
 
   function graphicsV18(c:any){
     const e=c.VTT_AMBIENCE?.environment??{};
@@ -263,7 +263,7 @@ export function createScene(engine: any, canvas: any) {
     baseMat.disableLighting=rt.id!=="temple";
     baseMat.alpha=1;
     if(rt.id==="temple"){
-      const grassTex=new BABYLON.DynamicTexture("templeGrassV33",{width:512,height:512},scene,false);
+      const grassTex=new BABYLON.DynamicTexture("templeGrassV34",{width:512,height:512},scene,false);
       const gc:any=grassTex.getContext();
       gc.fillStyle="#31552d";gc.fillRect(0,0,512,512);
       for(let i=0;i<720;i++){
@@ -327,7 +327,7 @@ export function createScene(engine: any, canvas: any) {
         ]);
       }
     }else if(rt.id==="temple"){
-      // V33: unused ground is lawn. Do not draw the old stone/earth crack field over grass.
+      // V34: unused ground is lawn. Do not draw the old stone/earth crack field over grass.
     }else{
       // Irregular cobble/stone courses.
       const cell=preset==="market_cobble"?1.35:1.45;
@@ -359,7 +359,7 @@ export function createScene(engine: any, canvas: any) {
       if(glow.addExcludedMesh)glow.addExcludedMesh(detail);
     }
 
-    console.log("[D8 v33] floor",rt.id,preset,"base",p.base,"size",c.MAP.size);
+    console.log("[D8 v34] floor",rt.id,preset,"base",p.base,"size",c.MAP.size);
   }
 
   function visualComposition(c:any){
@@ -503,10 +503,10 @@ export function createScene(engine: any, canvas: any) {
     });
   }
 
-  function templeMaterialPassV33(){
+  function templeMaterialPassV34(){
     if(rt.id!=="temple")return;
 
-    const wallTex=new BABYLON.DynamicTexture("templeWallV33",{width:768,height:768},scene,false);
+    const wallTex=new BABYLON.DynamicTexture("templeWallV34",{width:768,height:768},scene,false);
     const wc:any=wallTex.getContext();
     wc.fillStyle="#756553";wc.fillRect(0,0,768,768);
     const wallRowH=92;
@@ -539,9 +539,9 @@ export function createScene(engine: any, canvas: any) {
     wallTex.wrapU=BABYLON.Texture.WRAP_ADDRESSMODE;wallTex.wrapV=BABYLON.Texture.WRAP_ADDRESSMODE;
     wallTex.uScale=1.55;wallTex.vScale=1.30;
 
-    const floorTex=new BABYLON.DynamicTexture("templeFloorV33",{width:768,height:768},scene,false);
+    const floorTex=new BABYLON.DynamicTexture("templeFloorV34",{width:768,height:768},scene,false);
     const fc:any=floorTex.getContext();
-    fc.fillStyle="#746c5f";fc.fillRect(0,0,768,768);
+    fc.fillStyle="#665b4e";fc.fillRect(0,0,768,768);
     const slabW=150,slabH=112;
     for(let r=0;r<8;r++){
       const off=(r%2)*slabW*0.48;
@@ -549,10 +549,10 @@ export function createScene(engine: any, canvas: any) {
         const seed=r*113+Math.floor(xx);
         const jx=(seeded(seed)-0.5)*14;
         const jy=(seeded(seed+1)-0.5)*10;
-        const vv=116+Math.floor(seeded(seed+2)*30);
+        const vv=100+Math.floor(seeded(seed+2)*24);
         fc.fillStyle="rgb("+vv+","+Math.max(86,vv-5)+","+Math.max(76,vv-13)+")";
         fc.fillRect(xx+off+7+jx,r*slabH+7+jy,slabW-15,slabH-15);
-        fc.strokeStyle="rgba(38,33,28,0.62)";fc.lineWidth=5;
+        fc.strokeStyle="rgba(43,36,30,0.42)";fc.lineWidth=4;
         fc.strokeRect(xx+off+5+jx,r*slabH+5+jy,slabW-11,slabH-11);
         if(seeded(seed+3)>0.66){
           fc.strokeStyle="rgba(54,46,39,0.28)";fc.lineWidth=2;
@@ -573,14 +573,14 @@ export function createScene(engine: any, canvas: any) {
     floorTex.wrapU=BABYLON.Texture.WRAP_ADDRESSMODE;floorTex.wrapV=BABYLON.Texture.WRAP_ADDRESSMODE;
     floorTex.uScale=1.35;floorTex.vScale=1.18;
 
-    const wallMat=new BABYLON.StandardMaterial("templeWallMatV33",scene);
+    const wallMat=new BABYLON.StandardMaterial("templeWallMatV34",scene);
     wallMat.diffuseTexture=wallTex;wallMat.diffuseColor=new BABYLON.Color3(0.94,0.88,0.78);wallMat.ambientColor=new BABYLON.Color3(0.66,0.60,0.52);
     wallMat.emissiveTexture=wallTex;wallMat.emissiveColor=new BABYLON.Color3(0.075,0.060,0.045);
     wallMat.specularColor=new BABYLON.Color3(0.040,0.035,0.030);wallMat.maxSimultaneousLights=8;
 
-    const floorMat=new BABYLON.StandardMaterial("templeFloorMatV33",scene);
-    floorMat.diffuseTexture=floorTex;floorMat.diffuseColor=new BABYLON.Color3(0.93,0.90,0.83);floorMat.ambientColor=new BABYLON.Color3(0.70,0.66,0.59);
-    floorMat.emissiveTexture=floorTex;floorMat.emissiveColor=new BABYLON.Color3(0.055,0.050,0.043);
+    const floorMat=new BABYLON.StandardMaterial("templeFloorMatV34",scene);
+    floorMat.diffuseTexture=floorTex;floorMat.diffuseColor=new BABYLON.Color3(0.88,0.82,0.72);floorMat.ambientColor=new BABYLON.Color3(0.66,0.61,0.54);
+    floorMat.emissiveTexture=floorTex;floorMat.emissiveColor=new BABYLON.Color3(0.035,0.030,0.025);
     floorMat.specularColor=new BABYLON.Color3(0.020,0.020,0.020);floorMat.maxSimultaneousLights=8;
 
     rt.disposables.push(wallTex,floorTex,wallMat,floorMat);
@@ -1066,6 +1066,62 @@ export function createScene(engine: any, canvas: any) {
       const seed=x*0.87+z*1.41,fy=flame.position.y,oy=outer.position.y;
       rt.updaters.push((time:number)=>{const a=Math.sin(time*9.0+seed),b=Math.sin(time*14.4+seed);flame.position.y=fy+a*0.022;outer.position.y=oy+b*0.018;light.intensity=(o.intensity??1.25)+a*0.10+b*0.04;});
       collider(x,z,0.72*s,0.72*s);
+    }
+    else if(o.asset==="temple_pew"){
+      const len=(o.length??3.4)*s;
+      const root=new BABYLON.TransformNode("templePew",scene);root.parent=rt.root;root.position.set(x,0,z);root.rotation.y=o.rotation??0;
+      const seat=BABYLON.MeshBuilder.CreateBox("templePewSeat",{width:len,height:0.18,depth:0.72*s},scene);seat.position.y=0.48;seat.material=M.woodLight;seat.parent=root;
+      const back=BABYLON.MeshBuilder.CreateBox("templePewBack",{width:len,height:0.82,depth:0.14*s},scene);back.position.set(0,0.88,0.30*s);back.material=M.woodDark;back.parent=root;
+      for(const lx of [-len*0.36,len*0.36]){
+        const leg=BABYLON.MeshBuilder.CreateBox("templePewLeg",{width:0.16*s,height:0.48,depth:0.54*s},scene);leg.position.set(lx,0.24,0);leg.material=M.woodDark;leg.parent=root;
+      }
+      collider(x,z,Math.abs(Math.cos(root.rotation.y))*len+Math.abs(Math.sin(root.rotation.y))*0.75,Math.abs(Math.sin(root.rotation.y))*len+Math.abs(Math.cos(root.rotation.y))*0.75);
+    }
+    else if(o.asset==="temple_lectern"){
+      const root=new BABYLON.TransformNode("templeLectern",scene);root.parent=rt.root;root.position.set(x,0,z);root.rotation.y=o.rotation??0;
+      const base=BABYLON.MeshBuilder.CreateBox("templeLecternBase",{width:0.90,height:0.16,depth:0.72},scene);base.position.y=0.08;base.material=M.woodDark;base.parent=root;
+      const post=BABYLON.MeshBuilder.CreateBox("templeLecternPost",{width:0.24,height:1.05,depth:0.24},scene);post.position.y=0.62;post.material=M.wood;post.parent=root;
+      const top=BABYLON.MeshBuilder.CreateBox("templeLecternTop",{width:1.18,height:0.16,depth:0.78},scene);top.position.set(0,1.18,0);top.rotation.x=-0.28;top.material=M.woodLight;top.parent=root;
+      const page=BABYLON.MeshBuilder.CreateBox("templeLecternPage",{width:0.88,height:0.025,depth:0.54},scene);page.position.set(0,1.28,-0.06);page.rotation.x=-0.28;page.material=M.wax;page.parent=root;
+      collider(x,z,1.0,0.8);
+    }
+    else if(o.asset==="temple_pedestal"){
+      box("templePedestalBase",x,0.12,z,1.05,0.24,1.05,M.stoneDark);
+      box("templePedestalStem",x,0.66,z,0.68,0.92,0.68,M.stone2);
+      box("templePedestalTop",x,1.18,z,1.00,0.16,1.00,M.stoneLight);
+      if(o.bowl){
+        const bowl=cyl("templeOfferingBowl",x,1.34,z,0.62,0.20,M.gold);
+        bowl.scaling.y=0.55;
+      }
+      collider(x,z,0.95,0.95);
+    }
+    else if(o.asset==="temple_amphora_cluster"){
+      const count=o.count??3;
+      for(let i=0;i<count;i++){
+        const ox=(i-(count-1)/2)*0.52,oz=(i%2?0.20:-0.16);
+        const body=sph("templeAmphora",x+ox,0.42,z+oz,0.58,M.wood);
+        body.scaling.set(0.72,1.20,0.72);
+        cyl("templeAmphoraNeck",x+ox,0.76,z+oz,0.22,0.28,M.woodLight);
+      }
+    }
+    else if(o.asset==="temple_floor_candelabrum"){
+      const arms=o.arms??3,h=1.65*s;
+      cyl("templeFloorCandBase",x,0.08,z,0.76*s,0.16,M.iron);
+      cyl("templeFloorCandStem",x,h*0.48,z,0.12*s,h*0.86,M.iron);
+      for(let i=0;i<arms;i++){
+        const dx=(i-(arms-1)/2)*0.42*s;
+        const arm=box("templeFloorCandArm",x+dx*0.5,h*0.86,z,Math.abs(dx)+0.18,0.08,0.08,M.iron);
+        const flame=sph("templeFloorCandFlame",x+dx,h*0.98,z,0.12*s,M.fireInner,"VFX");flame.scaling.y=1.35;
+      }
+      collider(x,z,0.75,0.75);
+    }
+    else if(o.asset==="temple_offering_table"){
+      const w=(o.size?.[0]??2.4)*s,d=(o.size?.[1]??0.9)*s;
+      box("templeOfferingTable",x,0.58,z,w,0.16,d,M.woodLight);
+      box("templeOfferingLegL",x-w*0.36,0.28,z,0.16,0.56,0.16,M.woodDark);
+      box("templeOfferingLegR",x+w*0.36,0.28,z,0.16,0.56,0.16,M.woodDark);
+      for(const dx of [-0.62,0,0.62])cyl("templeOfferingDish",x+dx,0.72,z,0.34,0.06,M.ceramic);
+      collider(x,z,w*0.92,d*0.92);
     }
     else if(o.asset==="temple_altar"){
       const w=(o.size?.[0]??5.2)*s,d=(o.size?.[1]??2.0)*s,h=(o.height??1.08)*s;
@@ -1739,7 +1795,7 @@ export function createScene(engine: any, canvas: any) {
   const ui=BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"),panel=new BABYLON.GUI.StackPanel();
   panel.width="190px";panel.horizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;panel.paddingLeft="15px";panel.paddingTop="15px";ui.addControl(panel);
   const title=new BABYLON.GUI.TextBlock();title.text="D8 NIGHT · "+D8_VERSION;title.height="42px";title.fontSize=20;title.color="#efd5a5";panel.addControl(title);
-  const order=["temple","cafe","dinner","garden","market","mirror"],labels:any={temple:"1 · TEMPLO",cafe:"2 · CAFÉ",dinner:"3 · DINNER",garden:"4 · GARDEN",market:"5 · MARKET",mirror:"6 · MIRROR"},buttons:any={};
+  const order=["temple","cafe","dinner","garden","market","mirror"],labels:any={temple:"1 · TEMPLO",cafe:"2 · TABERNA",dinner:"3 · DINNER",garden:"4 · GARDEN",market:"5 · MARKET",mirror:"6 · MIRROR"},buttons:any={};
   order.forEach(id=>{const b=BABYLON.GUI.Button.CreateSimpleButton("btn_"+id,labels[id]);b.width="175px";b.height="37px";b.color="#dfcfb2";b.background="#25252a";b.cornerRadius=5;b.paddingBottom="4px";b.onPointerClickObservable.add(()=>loadMap(id));buttons[id]=b;panel.addControl(b);});
   const help=new BABYLON.GUI.TextBlock();help.text="\nWASD · mover\nE · interactuar\nG · grid/zonas\nC · cámara";help.height="100px";help.color="#888";help.fontSize=11;help.textHorizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.addControl(help);
   const terrainText=new BABYLON.GUI.TextBlock();terrainText.text="";terrainText.height="30px";terrainText.color="#b9aa8e";terrainText.fontSize=11;terrainText.textHorizontalAlignment=BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;panel.addControl(terrainText);
@@ -1748,8 +1804,8 @@ export function createScene(engine: any, canvas: any) {
   const msg=new BABYLON.GUI.TextBlock();msg.width="650px";msg.height="55px";msg.verticalAlignment=BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;msg.top="15px";msg.color="#efdfc3";msg.fontSize=13;ui.addControl(msg);
   let timer:any=null;const show=(t:string)=>{msg.text=t;if(timer)clearTimeout(timer);timer=setTimeout(()=>msg.text="",3000);};
 
-  function buildCafeCleanV12(c:any){
-    // Café rebuilt from scratch: no legacy composition overlay, no readability hack,
+  function buildTavernV34(c:any){
+    // V34 Taberna: interior 2.5D + exterior horse yard. No legacy composition overlay,
     // no sharpen post-process. Base materials have a controlled emissive floor so
     // geometry stays readable while still reacting to real local lights.
     scene.fogMode=BABYLON.Scene.FOGMODE_NONE;
@@ -1798,16 +1854,16 @@ export function createScene(engine: any, canvas: any) {
     // V33 CAFÉ FLOOR — procedural warm stone, no geometric/debug line system.
     const floorTex=new BABYLON.DynamicTexture("cafeFloorV33",{width:1024,height:1024},scene,false);
     const fctx:any=floorTex.getContext();
-    fctx.fillStyle="#3c2a20";fctx.fillRect(0,0,1024,1024);
+    fctx.fillStyle="#5a3e2d";fctx.fillRect(0,0,1024,1024);
     const cw=165,ch=118;
     for(let r=0;r<10;r++){
       const off=(r%2)*cw*0.48;
       for(let xx=-cw;xx<1120;xx+=cw){
         const seed=r*137+Math.floor(xx);
         const jx=(seeded(seed)-0.5)*18,jy=(seeded(seed+1)-0.5)*10;
-        const rr=80+Math.floor(seeded(seed+2)*26);
-        const gg=58+Math.floor(seeded(seed+3)*20);
-        const bb=43+Math.floor(seeded(seed+4)*15);
+        const rr=102+Math.floor(seeded(seed+2)*30);
+        const gg=72+Math.floor(seeded(seed+3)*22);
+        const bb=52+Math.floor(seeded(seed+4)*18);
         fctx.fillStyle="rgb("+rr+","+gg+","+bb+")";
         fctx.fillRect(xx+off+7+jx,r*ch+7+jy,cw-15,ch-15);
         fctx.strokeStyle="rgba(31,21,16,0.74)";fctx.lineWidth=6;
@@ -1826,10 +1882,10 @@ export function createScene(engine: any, canvas: any) {
 
     const floorMat=new BABYLON.StandardMaterial("cafeFloorMatV33",scene);
     floorMat.diffuseTexture=floorTex;
-    floorMat.diffuseColor=new BABYLON.Color3(0.92,0.78,0.66);
-    floorMat.ambientColor=new BABYLON.Color3(0.70,0.58,0.48);
+    floorMat.diffuseColor=new BABYLON.Color3(0.98,0.86,0.73);
+    floorMat.ambientColor=new BABYLON.Color3(0.82,0.70,0.58);
     floorMat.emissiveTexture=floorTex;
-    floorMat.emissiveColor=new BABYLON.Color3(0.055,0.038,0.028);
+    floorMat.emissiveColor=new BABYLON.Color3(0.085,0.055,0.038);
     floorMat.specularColor=new BABYLON.Color3(0.018,0.014,0.012);
     floorMat.maxSimultaneousLights=6;
     rt.disposables.push(floorTex,floorMat);
@@ -1847,6 +1903,7 @@ export function createScene(engine: any, canvas: any) {
     ground.alwaysSelectAsActiveMesh=true;
     if(glow.addExcludedMesh)glow.addExcludedMesh(ground);
 
+    // V34: explicit interior floor perimeter / threshold keeps the tavern readable against the exterior yard.
     const cafeWallTex=new BABYLON.DynamicTexture("cafeWallV33",{width:512,height:512},scene,false);
     const cwctx:any=cafeWallTex.getContext();cwctx.fillStyle="#6d4630";cwctx.fillRect(0,0,512,512);
     for(let i=0;i<180;i++){
@@ -1867,6 +1924,25 @@ export function createScene(engine: any, canvas: any) {
     const cy=(n:string,x:number,y:number,z:number,d:number,h:number,m:any)=>{
       const q=cyl("cafe12_"+n,x,y,z,d,h,m);if(glow.addExcludedMesh)glow.addExcludedMesh(q);return q;
     };
+
+    // V34 tavern floor frame and exterior arrival yard.
+    b("floorEdgeBack",0,0.07,-7.86,24.2,0.14,0.22,woodDark);
+    b("floorEdgeLeft",-11.86,0.07,0,0.22,0.14,15.8,woodDark);
+    b("floorEdgeRight",11.86,0.07,0,0.22,0.14,15.8,woodDark);
+    b("floorEdgeFrontL",-7.2,0.07,7.82,9.4,0.14,0.22,woodDark);
+    b("floorEdgeFrontR",7.2,0.07,7.82,9.4,0.14,0.22,woodDark);
+
+    const yardMat=new BABYLON.StandardMaterial("tavernYardMatV34",scene);
+    yardMat.diffuseColor=new BABYLON.Color3(0.28,0.20,0.13);
+    yardMat.ambientColor=new BABYLON.Color3(0.55,0.45,0.34);
+    yardMat.emissiveColor=new BABYLON.Color3(0.035,0.025,0.018);
+    yardMat.specularColor=new BABYLON.Color3(0.01,0.01,0.01);
+    rt.disposables.push(yardMat);
+    const yard=box("tavernExteriorYard",0,-0.055,9.85,28,0.10,4.9,yardMat,"BASE");
+    yard.receiveShadows=true;yard.isPickable=false;
+
+    const porch=b("porchStep",0,0.10,8.15,4.6,0.20,1.15,stoneLight);
+    porch.receiveShadows=true;
 
     const lightPool=(name:string,x:number,z:number,w:number,d:number,color:number[],alpha:number)=>{
       const tex=new BABYLON.DynamicTexture("cafe12_poolTex_"+name,{width:256,height:256},scene,false);
@@ -1903,6 +1979,17 @@ export function createScene(engine: any, canvas: any) {
     for(let i=0;i<12;i++)cy("backBottle",-7.8+i*0.84,1.33,-6.0,0.14,0.46,i%2?bottleA:bottleG);
     for(const x of [-6.8,-4.35,-1.9,0.55]){cy("stoolSeat",x,0.48,-3.7,0.72,0.15,woodLight);cy("stoolLeg",x,0.23,-3.7,0.18,0.46,woodDark);}
 
+    // V34 tavern dressing: mugs, hanging herbs, sacks and a wall sign.
+    for(let i=0;i<7;i++){
+      cy("barMug",-6.3+i*1.10,1.34,-4.72,0.16,0.22,ceramic);
+    }
+    for(const [sx,sz] of [[7.9,-5.9],[8.7,-5.9],[9.5,-5.9]] as any[]){
+      const sack=sph("grainSack",sx,0.34,sz,0.72,cmat("sack_"+sx,[0.44,0.32,0.20],0.10));
+      sack.scaling.set(0.72,1.0,0.82);
+    }
+    const tavernSign=b("tavernWallSign",8.7,1.55,-7.18,3.0,0.78,0.16,woodLight);
+    tavernSign.rotation.y=0;
+
     // Fireplace body.
     b("hearth",-9.65,0.26,-1.3,2.7,0.52,1.75,stoneDark);
     b("fireL",-10.7,1.20,-1.3,0.45,2.15,1.55,stone);
@@ -1934,10 +2021,10 @@ export function createScene(engine: any, canvas: any) {
     b("sideboard",-8.4,0.48,5.75,4.2,0.96,0.78,woodDark);b("sideboardTop",-8.4,1.00,5.75,4.28,0.10,0.84,woodLight);
     for(const x of [5.25,7.05]){contactShadow("barrel"+x,x,-5.25,1.35,1.0,0.75);cy("barrel",x,0.92,-5.25,1.46,1.84,wood);for(let r=0;r<3;r++)cy("barrelRing",x,0.18+r*0.74,-5.25,1.52,0.05,iron);collider(x,-5.25,1.2,1.2);}
 
-    // Pool: readable cyan focal point.
-    const poolBorder=cy("poolBorder",3.5,0.09,6.25,5.2,0.18,stoneLight);
-    const waterMat=new BABYLON.StandardMaterial("cafe12_water",scene);waterMat.diffuseColor=new BABYLON.Color3(0.04,0.38,0.46);waterMat.emissiveColor=new BABYLON.Color3(0.02,0.13,0.16);waterMat.alpha=0.92;waterMat.specularColor=new BABYLON.Color3(0.25,0.35,0.38);rt.disposables.push(waterMat);
-    const water=cy("poolWater",3.5,0.15,6.25,4.55,0.10,waterMat);rt.markers.pools.push({x:3.5,z:6.25,mesh:water,baseY:water.position.y});
+    // V34: the indoor pool is removed. This is usable tavern floor near the entrance.
+    b("entryBench",6.9,0.42,5.9,3.2,0.16,0.68,woodLight);
+    b("entryBenchBack",6.9,0.78,6.16,3.2,0.62,0.10,woodDark);
+    b("entryCrate",9.8,0.38,5.9,0.78,0.76,0.78,wood);
 
     // Crates.
     for(const [x,z,sc] of [[9.1,-6.5,1],[10,-6.5,.8],[10.8,-6.5,.85]] as any[]){b("crate",x,0.38*sc,z,0.78*sc,0.76*sc,0.78*sc,wood);}
@@ -1948,7 +2035,6 @@ export function createScene(engine: any, canvas: any) {
     lightPool("tableA",-5.3,0.45,3.6,3.6,[1.00,0.58,0.20],0.10);
     lightPool("tableB",1.55,2.25,3.8,3.8,[1.00,0.56,0.18],0.10);
     lightPool("tableC",5.05,-0.45,3.5,3.5,[1.00,0.54,0.16],0.085);
-    lightPool("water",3.5,6.15,6.3,4.6,[0.06,0.58,0.70],0.13);
 
     // V16 Café reference-match: strengthen the silhouette and match the reference composition.
     b("frontWallL",-7.15,0.42,7.55,9.4,0.84,0.52,stoneDark);collider(-7.15,7.55,9.4,0.52);
@@ -1956,10 +2042,33 @@ export function createScene(engine: any, canvas: any) {
     b("entryPierL",-2.05,0.72,7.45,0.55,1.44,0.62,stone);
     b("entryPierR",2.05,0.72,7.45,0.55,1.44,0.62,stone);
 
-    // Stone coping gives the pool a built-in, architectural look instead of a loose prop.
-    for(const [px,pz,ww,dd] of [[3.5,5.22,5.8,0.32],[3.5,7.28,5.8,0.32],[0.75,6.25,0.32,2.35],[6.25,6.25,0.32,2.35]] as any[]){
-      b("poolCoping",px,0.16,pz,ww,0.28,dd,stoneLight);
+    // V34 exterior horse area.
+    const troughWaterMat=new BABYLON.StandardMaterial("tavernTroughWaterV34",scene);
+    troughWaterMat.diffuseColor=new BABYLON.Color3(0.05,0.34,0.40);
+    troughWaterMat.emissiveColor=new BABYLON.Color3(0.018,0.075,0.085);
+    troughWaterMat.specularColor=new BABYLON.Color3(0.22,0.30,0.32);troughWaterMat.alpha=0.92;
+    rt.disposables.push(troughWaterMat);
+    const tx=5.6,tz=10.0,tw=4.8,td=1.55;
+    b("troughSideN",tx,0.38,tz-td*0.48,tw,0.70,0.24,woodDark);
+    b("troughSideS",tx,0.38,tz+td*0.48,tw,0.70,0.24,woodDark);
+    b("troughSideW",tx-tw*0.48,0.38,tz,0.24,0.70,td,woodDark);
+    b("troughSideE",tx+tw*0.48,0.38,tz,0.24,0.70,td,woodDark);
+    const troughWater=b("horseTroughWater",tx,0.28,tz,tw-0.42,0.10,td-0.42,troughWaterMat);
+    rt.markers.pools.push({x:tx,z:tz,mesh:troughWater,baseY:troughWater.position.y});
+    collider(tx,tz,tw,td);
+
+    const hx=-5.4,hz=10.0;
+    b("hitchPostL",hx-2.15,0.80,hz,0.28,1.60,0.28,woodDark);
+    b("hitchPostR",hx+2.15,0.80,hz,0.28,1.60,0.28,woodDark);
+    b("hitchRail",hx,1.18,hz,4.6,0.24,0.24,wood);
+    b("hitchBase",hx,0.14,hz,5.0,0.16,0.55,stoneDark);
+
+    const straw=cmat("straw",[0.62,0.46,0.16],0.12);
+    for(const [bx,bz,rot] of [[9.2,9.75,0],[10.2,10.35,Math.PI/2]] as any[]){
+      const bale=b("hayBale",bx,0.42,bz,1.25,0.84,0.72,straw);bale.rotation.y=rot;
     }
+    b("outsideCrate",-9.4,0.38,9.8,0.84,0.76,0.84,wood);
+
     // Additional wall shelves / crockery to match the dense tavern backdrop.
     b("rearNiche",-8.7,1.35,-6.18,1.5,1.20,0.30,woodDark);
     for(let i=0;i<4;i++)cy("rearPlate",-9.15+i*0.30,1.32,-6.00,0.22,0.035,ceramic);
@@ -2018,10 +2127,17 @@ export function createScene(engine: any, canvas: any) {
       const flame=sph("cafe12_candleFlame",x,1.10,z,0.10,M.fireInner,"VFX");flame.scaling.y=1.28;
     }
 
+    // V34 hanging tavern lanterns.
+    for(const [lx,lz] of [[-1.5,1.8],[5.0,2.4]] as any[]){
+      cyl("hangingLanternChain",lx,2.40,lz,0.05,1.00,iron);
+      const lamp=sph("hangingLanternGlow",lx,1.88,lz,0.28,M.fireInner,"VFX");
+      lamp.scaling.y=1.18;
+    }
+
     // Only a few broad real lights: safe for WebGL2 shader limits.
     warmLight("wallFillLeft",-4.8,3.1,-4.25,0.58,9.6,[1,0.48,0.17]);
     warmLight("wallFillRight",5.4,3.0,-3.8,0.50,8.8,[1,0.42,0.12]);
-    warmLight("poolFill",3.5,1.7,5.7,0.28,6.4,[0.08,0.56,0.68]);
+    warmLight("porchFill",0,2.0,8.7,0.32,6.6,[1.00,0.48,0.18]);
 
     // One subtle warm bounce. Total scene lights affecting Café materials now stays <= 6.
     const bounce=track(new BABYLON.HemisphericLight("cafe12_bounce",new BABYLON.Vector3(0,1,0),scene));
@@ -2113,10 +2229,10 @@ export function createScene(engine: any, canvas: any) {
     trimPointLightsV13(v.maxRealPointLights??5);
   }
 
-  function templeVisibilityPassV33(){
+  function templeVisibilityPassV34(){
     if(rt.id!=="temple")return;
-    const wallMat:any=scene.getMaterialByName?.("templeWallMatV33")??null;
-    const floorMat:any=scene.getMaterialByName?.("templeFloorMatV33")??null;
+    const wallMat:any=scene.getMaterialByName?.("templeWallMatV34")??null;
+    const floorMat:any=scene.getMaterialByName?.("templeFloorMatV34")??null;
 
     if(wallMat){
       wallMat.diffuseColor=new BABYLON.Color3(0.94,0.88,0.78);
@@ -2125,8 +2241,8 @@ export function createScene(engine: any, canvas: any) {
       wallMat.specularColor=new BABYLON.Color3(0.025,0.022,0.018);
     }
     if(floorMat){
-      floorMat.diffuseColor=new BABYLON.Color3(0.93,0.90,0.83);
-      floorMat.emissiveColor=new BABYLON.Color3(0.055,0.050,0.043);
+      floorMat.diffuseColor=new BABYLON.Color3(0.88,0.82,0.72);
+      floorMat.emissiveColor=new BABYLON.Color3(0.035,0.030,0.025);
       floorMat.ambientColor=new BABYLON.Color3(0.78,0.71,0.62);
       floorMat.specularColor=new BABYLON.Color3(0.018,0.018,0.016);
     }
@@ -2176,7 +2292,7 @@ export function createScene(engine: any, canvas: any) {
         mergedGroups++;
         mergedSources+=list.length;
       }catch(err){
-        console.warn("[D8 v33] merge skipped",key,err);
+        console.warn("[D8 v34] merge skipped",key,err);
       }
     }
     rt.optimization={...(rt.optimization??{}),mergedGroups,mergedSources};
@@ -2188,7 +2304,7 @@ export function createScene(engine: any, canvas: any) {
     const activeLights=mapLights.filter((l:any)=>l.isEnabled?.()!==false);
     const frozen=meshes.filter((m:any)=>m.isWorldMatrixFrozen).length;
     const vfxMeshes=rt.layers?.VFX?.getChildMeshes?.().length??0;
-    console.log("[D8 v33 audit]",rt.id,{meshes:meshes.length,frozen,vfxMeshes,lights:mapLights.length,activeLights:activeLights.length,updaters:rt.updaters.length,colliders:rt.colliders.length,interactables:rt.interactables.length,mergedGroups:rt.optimization?.mergedGroups??0,mergedSources:rt.optimization?.mergedSources??0});
+    console.log("[D8 v34 audit]",rt.id,{meshes:meshes.length,frozen,vfxMeshes,lights:mapLights.length,activeLights:activeLights.length,updaters:rt.updaters.length,colliders:rt.colliders.length,interactables:rt.interactables.length,mergedGroups:rt.optimization?.mergedGroups??0,mergedSources:rt.optimization?.mergedSources??0});
   }
 
   function optimizeStaticMeshesV24(){
@@ -2421,8 +2537,8 @@ export function createScene(engine: any, canvas: any) {
   function loadMap(id:string){
     const c=D8NIGHT.maps[id];if(!c)return;
     reset(id,c);
-    if(id==="cafe"&&c.MAP.renderMode==="clean_v12"){
-      buildCafeCleanV12(c);
+    if(id==="cafe"&&c.MAP.renderMode==="tavern_v34"){
+      buildTavernV34(c);
       graphicsV18(c);
       lightingV19(c);
       shadows(c);
@@ -2436,12 +2552,12 @@ export function createScene(engine: any, canvas: any) {
       grid(c);
       c.MAP.objects.forEach(asset);
       applyReadableFallback(c);
-      templeMaterialPassV33();
+      templeMaterialPassV34();
       lights(c);
       lightingV19(c);
       vfx(c);
       applyScenePolishV13(id,c);
-      templeVisibilityPassV33();
+      templeVisibilityPassV34();
       mergeStaticDetailMeshesV24();
       shadows(c);
     }
@@ -2465,7 +2581,7 @@ export function createScene(engine: any, canvas: any) {
     const camOff=c.camera?.targetOffset??[0,0,0];
     camera.target.set(player.position.x+(camOff[0]??0),camOff[1]??0,player.position.z+(camOff[2]??0));ring.isVisible=false;
     title.text=c.label+" · "+D8_VERSION;
-    if(id==="cafe")console.log("[D8 v33] Café meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
+    if(id==="cafe")console.log("[D8 v34] Taberna meshes:",rt.root.getChildMeshes().length,"scene lights:",scene.lights.length);
     Object.keys(buttons).forEach(k=>buttons[k].background=k===id?"#765127":"#25252a");
     show("Mapa cargado: "+c.label);
   }
