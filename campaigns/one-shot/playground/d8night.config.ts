@@ -181,9 +181,9 @@ export const D8NIGHT: any = {
     temple: {
       label: "TEMPLO",
       spawn: [0, 0.43, 29.0],
-      camera: { radius: 44.0, beta: 0.57, alpha: -Math.PI / 2.04, targetOffset: [0, 0, -14.2] },
+      camera: { radius: 44.8, beta: 0.57, alpha: -Math.PI / 2.04, targetOffset: [0, 0, -14.2] },
       MAP: {
-        size: [52, 64],
+        size: [52, 68],
         floor: "grass",
         visualFloor: "grass",
         visualComposition: "temple_reference",
@@ -339,7 +339,7 @@ export const D8NIGHT: any = {
           { asset: "low_wall", position: [18.5, 31.1], size: [12.0, 0.48], height: 0.72, material: "stoneDark" }
         ],
         navigation: {
-          bounds: [-25.55, 25.55, -9.45, 31.55],
+          bounds: [-25.55, 25.55, -9.45, 33.45],
           blockers: [
             { position: [-10.9, 23.45], size: [18.3, 5.8] },
             { position: [10.9, 23.45], size: [18.3, 5.8] }
