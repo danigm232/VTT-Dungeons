@@ -13,7 +13,7 @@ export const D8NIGHT: any = {
     cafe: {
       label: "CAFÉ",
       spawn: [0, 0.43, 4.1],
-      camera: { radius: 21.5, beta: 0.66, alpha: -Math.PI / 2.04 },
+      camera: { radius: 22.2, beta: 0.63, alpha: -Math.PI / 2.04 },
       MAP: {
         size: [24, 16],
         floor: "stone_tavern",
@@ -228,7 +228,15 @@ export const D8NIGHT: any = {
           { asset: "wall_trim", position: [-13.20, -0.4], size: [16.2, 0.24], material: "stone2", y: 0.28, rotation: Math.PI / 2 },
           { asset: "wall_trim", position: [13.20, -0.4], size: [16.2, 0.24], material: "stone2", y: 0.28, rotation: Math.PI / 2 },
           { asset: "floor_scatter", position: [-5.8, 9.8], size: [7.0, 2.8], count: 16, material: "stoneDark" },
-          { asset: "floor_scatter", position: [5.8, 9.8], size: [7.0, 2.8], count: 16, material: "stoneDark" }
+          { asset: "floor_scatter", position: [5.8, 9.8], size: [7.0, 2.8], count: 16, material: "stoneDark" },
+
+          // V16 REFERENCE MATCH — ceremonial depth and ruined temple framing
+          { asset: "runner", position: [0, -1.6], size: [1.75, 10.2], material: "clothRed", border: "yellow" },
+          { asset: "arch_ruin", position: [-8.8, 6.2], size: [3.0, 0.6], height: 2.5, tilt: -0.09 },
+          { asset: "arch_ruin", position: [8.8, 6.2], size: [3.0, 0.6], height: 2.5, tilt: 0.08 },
+          { asset: "rock_cluster", position: [-9.2, 6.0], spread: 1.2, count: 6 },
+          { asset: "rock_cluster", position: [9.2, 6.0], spread: 1.2, count: 6 },
+          { asset: "floor_scatter", position: [0, -6.2], size: [8.0, 2.0], count: 18, material: "stoneDark" }
         ]
       },
       CANON: { interactables: [], triggers: [] },
@@ -312,7 +320,15 @@ export const D8NIGHT: any = {
           { asset: "market_goods", position: [8.2, 1.2], size: [3.2, 1.8], count: 10 },
           { asset: "floor_scatter", position: [-7.2, 3.8], size: [5.0, 4.0], count: 16, material: "stoneDark" },
           { asset: "floor_scatter", position: [7.0, 4.6], size: [5.5, 3.6], count: 14, material: "stoneDark" },
-          { asset: "wall_trim", position: [0, -7.65], size: [12.0, 0.22], material: "woodDark", y: 0.24 }
+          { asset: "wall_trim", position: [0, -7.65], size: [12.0, 0.22], material: "woodDark", y: 0.24 },
+
+          // V16 REFERENCE MATCH — patio, well and lived-in exterior
+          { asset: "patio_ring", position: [0, 3.2], diameter: 6.4, thickness: 0.24, material: "stone2" },
+          { asset: "well", position: [9.0, 5.5], diameter: 1.9, height: 0.68 },
+          { asset: "fence", position: [-10.7, 5.9], length: 4.8, posts: 5, height: 0.82, rotation: 0, blocking: true },
+          { asset: "fence", position: [11.0, 4.4], length: 4.4, posts: 5, height: 0.82, rotation: Math.PI / 2, blocking: true },
+          { asset: "plant_cluster", position: [-10.2, -5.8], spread: 1.1, count: 7 },
+          { asset: "plant_cluster", position: [10.4, -5.6], spread: 1.1, count: 7 }
         ]
       },
       CANON: { interactables: [], triggers: [] },
@@ -395,7 +411,14 @@ export const D8NIGHT: any = {
           { asset: "plant_cluster", position: [3.7, -5.7], spread: 1.3, count: 8 },
           { asset: "plant_cluster", position: [10.5, -6.3], spread: 1.0, count: 7 },
           { asset: "rock_cluster", position: [-2.5, 4.2], spread: 1.4, count: 8 },
-          { asset: "floor_scatter", position: [7.2, -3.0], size: [6.0, 6.0], count: 12, material: "stoneDark" }
+          { asset: "floor_scatter", position: [7.2, -3.0], size: [6.0, 6.0], count: 12, material: "stoneDark" },
+
+          // V16 REFERENCE MATCH — rose enclosure and ruined garden threshold
+          { asset: "thorn_wall", position: [-2.0, 7.7], length: 7.0, count: 13, rotation: 0 },
+          { asset: "thorn_wall", position: [11.8, 1.2], length: 7.8, count: 13, rotation: Math.PI / 2 },
+          { asset: "arch_ruin", position: [3.8, 4.8], size: [2.7, 0.6], height: 2.2, tilt: 0.04 },
+          { asset: "plant_cluster", position: [-4.8, -6.5], spread: 1.5, count: 10 },
+          { asset: "rock_cluster", position: [10.8, 5.6], spread: 1.3, count: 8 }
         ]
       },
       CANON: { interactables: [], triggers: [] },
@@ -479,7 +502,15 @@ export const D8NIGHT: any = {
           { asset: "market_goods", position: [-7.0, 3.2], size: [3.0, 1.9], count: 9 },
           { asset: "floor_scatter", position: [0, 0.5], size: [13.0, 7.0], count: 28, material: "stoneDark" },
           { asset: "plant_cluster", position: [12.5, 4.7], spread: 0.9, count: 6 },
-          { asset: "plant_cluster", position: [-12.4, 4.9], spread: 0.9, count: 6 }
+          { asset: "plant_cluster", position: [-12.4, 4.9], spread: 0.9, count: 6 },
+
+          // V16 REFERENCE MATCH — denser perimeter and central market read
+          { asset: "well", position: [0.0, 1.6], diameter: 2.2, height: 0.62 },
+          { asset: "fence", position: [-13.2, 1.5], length: 5.4, posts: 6, height: 0.78, rotation: Math.PI / 2, blocking: true },
+          { asset: "fence", position: [13.2, 1.8], length: 5.2, posts: 6, height: 0.78, rotation: Math.PI / 2, blocking: true },
+          { asset: "market_goods", position: [0.2, 6.5], size: [5.5, 2.2], count: 15 },
+          { asset: "market_goods", position: [-12.0, 1.6], size: [2.5, 3.2], count: 11 },
+          { asset: "market_goods", position: [12.0, 1.5], size: [2.5, 3.2], count: 11 }
         ]
       },
       CANON: { interactables: [], triggers: [] },
@@ -560,7 +591,15 @@ export const D8NIGHT: any = {
           { asset: "ice_floe", position: [1.8, -3.0], diameter: 3.3, depthScale: 0.64, rotation: 0.48 },
           { asset: "rock_cluster", position: [12.0, -7.4], spread: 1.7, count: 8, material: "stoneDark" },
           { asset: "rock_cluster", position: [-12.7, 6.4], spread: 1.5, count: 7, material: "stoneDark" },
-          { asset: "floor_scatter", position: [-8.8, -2.4], size: [4.5, 4.0], count: 10, material: "stoneDark" }
+          { asset: "floor_scatter", position: [-8.8, -2.4], size: [4.5, 4.0], count: 10, material: "stoneDark" },
+
+          // V16 REFERENCE MATCH — cave framing and layered ice silhouette
+          { asset: "ice_ridge", position: [-12.0, 5.8], length: 5.5, count: 8, rotation: 0.25 },
+          { asset: "ice_ridge", position: [11.8, 5.4], length: 5.2, count: 8, rotation: -0.35 },
+          { asset: "ice_ridge", position: [12.0, -6.4], length: 4.6, count: 7, rotation: 0.10 },
+          { asset: "rock_cluster", position: [-10.4, -7.2], spread: 1.7, count: 9, material: "stoneDark" },
+          { asset: "ice_floe", position: [-5.0, 2.4], diameter: 2.7, depthScale: 0.68, rotation: 0.3 },
+          { asset: "ice_floe", position: [8.6, 3.7], diameter: 2.5, depthScale: 0.66, rotation: 0.9 }
         ]
       },
       CANON: { interactables: [], triggers: [] },
