@@ -74,3 +74,18 @@ Las imágenes canónicas del proyecto se usan únicamente como dirección artís
 No se renderizan como fondos PNG ni como mapas planos.
 
 Objetivo: aproximar el 2.5D a las referencias sin sustituir la escena interactiva por una imagen.
+
+
+## V15 — 2.5D Art Pass
+
+Objetivo: acercar las seis escenas a sus referencias visuales sin convertirlas en mapas planos.
+
+Cambios:
+- biblioteca reutilizable de detalles 2.5D: banners, runners, trims, plantas, rocas, mercancía, espinos e ice floes;
+- Café: arquitectura y clutter adicionales en el renderer específico;
+- Templo: decoración ceremonial y acceso más integrado;
+- Dinner: vegetación, mercado y desgaste exterior;
+- Garden: espinos/rosas y borde orgánico más denso;
+- Market: mercancía y densidad de plaza;
+- Mirror: placas de hielo y rocas;
+- cámaras reajustadas manteniendo lectura táctica.
