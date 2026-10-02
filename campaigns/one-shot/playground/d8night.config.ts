@@ -190,7 +190,7 @@ export const D8NIGHT: any = {
         enableVisualComposition: false,
         compositionOpacity: 0,
         objects: [
-          // V29 TEMPLE MASTER PLAN
+          // V30 TEMPLE MASTER PLAN
           // Bridge -> stairs -> monumental gate -> walled processional court -> nave -> altar.
 
           // --- NAVE / SANCTUARY ---
