@@ -967,6 +967,43 @@ export function createScene(engine: any, canvas: any) {
         q.position.set(px,h/2,pz);q.rotation.y=rot+seeded(i*5.1)*0.5;q.material=i%3===0?M.magicBlue:M.frost;q.parent=rt.root;
       }
     }
+    else if(o.asset==="patio_round"){
+      const d=(o.diameter??6.0)*s,h=(o.height??0.10)*s;
+      const rim=BABYLON.MeshBuilder.CreateCylinder("patioRim",{diameter:d,height:h*1.15,tessellation:40},scene);
+      rim.position.set(x,h*0.45,z);rim.material=M[o.border]??M.stoneDark;rim.parent=rt.root;
+      const inner=BABYLON.MeshBuilder.CreateCylinder("patioInner",{diameter:d*0.92,height:h,tessellation:40},scene);
+      inner.position.set(x,h*1.12,z);inner.material=M[o.material]??M.stone2;inner.parent=rt.root;
+      if(glow.addExcludedMesh){glow.addExcludedMesh(rim);glow.addExcludedMesh(inner);}
+    }
+    else if(o.asset==="well"){
+      const d=(o.diameter??2.2)*s,h=(o.height??0.75)*s;
+      const outer=BABYLON.MeshBuilder.CreateCylinder("wellOuter",{diameter:d,height:h,tessellation:18},scene);
+      outer.position.set(x,h/2,z);outer.material=M.stoneDark;outer.parent=rt.root;
+      const inner=BABYLON.MeshBuilder.CreateCylinder("wellInner",{diameter:d*0.68,height:h+0.04,tessellation:18},scene);
+      inner.position.set(x,h/2+0.03,z);inner.material=M.water;inner.parent=rt.root;
+      for(const side of [-1,1])box("wellPost",x+side*d*0.47,h+0.80,z,0.12,1.60,0.12,M.woodDark);
+      const bar=box("wellBar",x,h+1.45,z,d*1.05,0.12,0.12,M.woodDark);
+      collider(x,z,d,d);
+    }
+    else if(o.asset==="low_wall"){
+      const h=(o.height??0.62)*s,w=(o.size?.[0]??4)*s,d=(o.size?.[1]??0.42)*s;
+      const q=box("lowWall",x,h/2,z,w,h,d,M[o.material]??M.stoneDark);
+      q.rotation.y=o.rotation??0;
+      const aw=Math.abs(Math.cos(q.rotation.y))*w+Math.abs(Math.sin(q.rotation.y))*d;
+      const ad=Math.abs(Math.sin(q.rotation.y))*w+Math.abs(Math.cos(q.rotation.y))*d;
+      collider(x,z,aw,ad);
+    }
+    else if(o.asset==="ice_ridge"){
+      const count=o.count??6,length=(o.length??5.0)*s,rot=o.rotation??0;
+      for(let i=0;i<count;i++){
+        const t=count===1?0:i/(count-1)-0.5;
+        const along=t*length;
+        const px=x+Math.cos(rot)*along,pz=z-Math.sin(rot)*along;
+        const h=(0.35+seeded(i*9.7+x+z)*0.75)*s;
+        const q=BABYLON.MeshBuilder.CreateCylinder("iceRidge",{diameterTop:0,diameterBottom:(0.28+seeded(i*4.2)*0.28)*s,height:h,tessellation:5},scene);
+        q.position.set(px,h/2,pz);q.rotation.y=rot+seeded(i*2.1)*0.5;q.material=M.frost;q.parent=rt.root;
+      }
+    }
     else if(o.asset==="water_area"){box("waterArea",x,0.04,z,o.size[0],0.08,o.size[1],M.water);rt.markers.pools.push({x,z});}
     else if(o.asset==="mirror"){box("mirrorBase",x,0.45,z,2.5,0.9,2.5,M.stoneDark);box("mirror",x,1.8,z,1.6,2.2,0.25,M.gold);collider(x,z,2.5,2.5);}
   }
