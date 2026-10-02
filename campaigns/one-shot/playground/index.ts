@@ -50,7 +50,7 @@ export function createScene(engine: any, canvas: any) {
     for(const name of ["BASE","PROPS","VFX","INTERACTABLES","DEBUG"]){
       const node=new BABYLON.TransformNode("LAYER_"+name,scene);node.parent=root;layers[name]=node;
     }
-    rt={id,config:c,root,layers,colliders:[],interactables:[],geometryInteractables:[],navZones:[],navDebug:[],updaters:[],grid:null,disposables:[],markers:{fireplaces:[],pools:[],roses:[],magic:[]}};
+    rt={id,config:c,root,layers,colliders:[],interactables:[],geometryInteractables:[],navZones:[],navDebug:[],interactionState:{},updaters:[],grid:null,disposables:[],markers:{fireplaces:[],pools:[],roses:[],magic:[]}};
   };
 
   const parentFor=(layer:string="PROPS")=>rt.layers?.[layer]??rt.root;
@@ -1570,7 +1570,7 @@ export function createScene(engine: any, canvas: any) {
 
   function updateTerrainHudV17(){
     const q=navigationZoneAtV17(player.position.x,player.position.z);
-    if(!q){terrainText.text="";return;}
+    if(!gridVisible||!q){terrainText.text="";return;}
     const labels:any={walkable:"transitable",entry:"entrada",bridge:"puente",stairs:"escaleras",difficult:"terreno difícil",water:"agua",hazard:"peligro",blocked:"bloqueado"};
     terrainText.text="ZONA · "+(q.label??labels[q.type]??q.type);
   }
@@ -1633,6 +1633,99 @@ export function createScene(engine: any, canvas: any) {
       });
     }
     return out;
+  }
+
+  function meshesNearV17(pos:number[],radius:number,match?:string[]){
+    return rt.root.getChildMeshes().filter((m:any)=>{
+      const p=m.getAbsolutePosition?m.getAbsolutePosition():m.position;
+      const dx=p.x-pos[0],dz=p.z-pos[1];
+      if(dx*dx+dz*dz>radius*radius)return false;
+      if(!match?.length)return true;
+      const n=(m.name??"").toLowerCase();
+      return match.some((q:string)=>n.includes(q.toLowerCase()));
+    });
+  }
+
+  function lightsNearV17(pos:number[],radius:number){
+    return (scene.lights??[]).filter((l:any)=>{
+      if(l.parent!==rt.root||!l.position)return false;
+      const p=l.getAbsolutePosition?l.getAbsolutePosition():l.position;
+      const dx=p.x-pos[0],dz=p.z-pos[1];
+      return dx*dx+dz*dz<=radius*radius;
+    });
+  }
+
+  function rippleV17(pos:number[],color:number[]=[0.20,0.70,0.90],size=0.8){
+    const mat=new BABYLON.StandardMaterial("sceneryRippleMat",scene);
+    mat.emissiveColor=new BABYLON.Color3(color[0],color[1],color[2]);
+    mat.diffuseColor=new BABYLON.Color3(color[0]*0.25,color[1]*0.25,color[2]*0.25);
+    mat.alpha=0.78;mat.disableLighting=true;mat.disableDepthWrite=true;
+    const ring=BABYLON.MeshBuilder.CreateTorus("sceneryRipple",{diameter:size,thickness:0.055,tessellation:40},scene);
+    ring.position.set(pos[0],0.14,pos[1]);ring.rotation.x=Math.PI/2;ring.material=mat;ring.parent=parentFor("VFX");
+    if(glow.addExcludedMesh)glow.addExcludedMesh(ring);
+    rt.disposables.push(mat,ring);
+    const born=elapsed;
+    rt.updaters.push(()=>{
+      if(ring.isDisposed?.())return;
+      const age=elapsed-born;
+      if(age>1.25){ring.dispose();mat.dispose();return;}
+      const k=1+age*2.4;ring.scaling.set(k,k,k);mat.alpha=Math.max(0,0.78*(1-age/1.25));
+    });
+  }
+
+  function pulseV17(pos:number[],color:number[]=[1,0.55,0.18],radius=4.0){
+    const light=track(new BABYLON.PointLight("sceneryPulseLight",new BABYLON.Vector3(pos[0],1.1,pos[1]),scene));
+    light.parent=rt.root;light.diffuse=new BABYLON.Color3(color[0],color[1],color[2]);light.range=radius;light.intensity=0;
+    const born=elapsed;
+    rt.updaters.push(()=>{
+      if(light.isDisposed?.())return;
+      const age=elapsed-born;
+      if(age>1.0){light.dispose();return;}
+      light.intensity=Math.sin(Math.PI*Math.min(1,age))*0.75;
+    });
+  }
+
+  function performSceneryActionV17(q:any){
+    show(q.message??q.label??"");
+    const a=q.action;if(!a)return;
+    const pos=q.position??[player.position.x,player.position.z];
+    const radius=a.radius??2.5;
+
+    if(a.type==="ripple"){
+      rippleV17(pos,a.color??[0.20,0.70,0.90],a.size??0.9);
+      return;
+    }
+    if(a.type==="pulse"){
+      pulseV17(pos,a.color??[1,0.55,0.18],a.range??4.0);
+      return;
+    }
+    if(a.type==="toggle_local"){
+      const state=!(rt.interactionState[q.id]??false);
+      rt.interactionState[q.id]=state;
+      if(a.lights!==false){
+        lightsNearV17(pos,radius).forEach((l:any)=>l.setEnabled(!state));
+      }
+      if(a.meshMatch?.length){
+        meshesNearV17(pos,radius,a.meshMatch).forEach((m:any)=>m.setEnabled(!state));
+      }
+      show(state?(a.offMessage??"La fuente se apaga."):(a.onMessage??"La fuente vuelve a encenderse."));
+      return;
+    }
+    if(a.type==="nudge"){
+      const targets=meshesNearV17(pos,radius,a.meshMatch??[]);
+      const born=elapsed;
+      const bases=targets.map((m:any)=>({m,y:m.position.y,ry:m.rotation?.y??0}));
+      rt.updaters.push(()=>{
+        const age=elapsed-born;if(age>1.15)return;
+        const wave=Math.sin(age*10)*Math.max(0,1-age/1.15);
+        bases.forEach((b:any,i:number)=>{
+          if(b.m.isDisposed?.())return;
+          b.m.position.y=b.y+wave*0.035*(1+(i%3)*0.15);
+          if(b.m.rotation)b.m.rotation.y=b.ry+wave*0.035;
+        });
+      });
+      return;
+    }
   }
 
   function loadMap(id:string){
