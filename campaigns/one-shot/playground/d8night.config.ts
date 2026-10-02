@@ -145,9 +145,9 @@ export const D8NIGHT: any = {
         },
         vfx: { fireplace: true, smoke: true, embers: true, dust: true, waterRipples: true, waterMotion: true },
         interactables: [
-          { id: "fireplace_ambience", position: [-9.1, -1.3], radius: 2, label: "Mirar chimenea", message: "El fuego proyecta luz cálida sobre la piedra." },
-          { id: "bar_ambience", position: [-3.2, -3.6], radius: 1.8, label: "Mirar barra", message: "La barra está llena de botellas, platos y utensilios." },
-          { id: "pool_ambience", position: [3.5, 4.8], radius: 1.8, label: "Mirar estanque", message: "La superficie del agua se mueve suavemente." }
+          { id: "fireplace_ambience", position: [-9.1, -1.3], radius: 2, label: "Interactuar con chimenea", message: "El fuego proyecta luz cálida sobre la piedra.", action: { type: "toggle_local", radius: 2.8, meshMatch: ["fire"], lights: true, offMessage: "Apagas la chimenea.", onMessage: "Vuelves a encender la chimenea." } },
+          { id: "bar_ambience", position: [-3.2, -3.6], radius: 1.8, label: "Examinar barra", message: "La barra está llena de botellas, platos y utensilios.", action: { type: "pulse", color: [1.00, 0.56, 0.20], range: 3.6 } },
+          { id: "pool_ambience", position: [3.5, 4.8], radius: 1.8, label: "Tocar el agua", message: "La superficie del agua se mueve suavemente.", action: { type: "ripple", color: [0.08, 0.64, 0.76], size: 0.9 } }
         ],
         visual: {
           profile: "cafe_warm_fireplace",
@@ -281,7 +281,7 @@ export const D8NIGHT: any = {
             { type: "entry", label: "acceso al templo", position: [0, 7.0], size: [4.0, 1.5] }
           ],
           interactions: [
-            { id: "temple_bridge_geom", position: [0, 10.1], radius: 1.6, label: "Examinar puente", message: "El puente es la vía de paso sobre el agua." },
+            { id: "temple_bridge_geom", position: [0, 10.1], radius: 1.6, label: "Tocar el agua junto al puente", message: "El puente es la vía de paso sobre el agua.", action: { type: "ripple", color: [0.10, 0.50, 0.68], size: 1.0 } },
             { id: "temple_stairs_geom", position: [0, 8.0], radius: 1.4, label: "Examinar escaleras", message: "Las escaleras conducen al interior del templo." }
           ]
         }
@@ -301,8 +301,8 @@ export const D8NIGHT: any = {
         },
         vfx: { dust: true, fireflies: true, fireflyCount: 10, roseSway: true },
         interactables: [
-          { id: "temple_table_ambience", position: [0, 2.7], radius: 2.4, label: "Mirar mesa", message: "Las velas bañan la mesa y las rosas con una luz cálida." },
-          { id: "temple_statue_ambience", position: [0, -4.0], radius: 2.2, label: "Mirar estatua", message: "La figura de piedra domina el extremo del salón." }
+          { id: "temple_table_ambience", position: [0, 2.7], radius: 2.4, label: "Interactuar con velas", message: "Las velas bañan la mesa y las rosas con una luz cálida.", action: { type: "toggle_local", radius: 3.4, meshMatch: ["candleFlame"], lights: true, offMessage: "Apagas las velas cercanas.", onMessage: "Vuelves a encender las velas." } },
+          { id: "temple_statue_ambience", position: [0, -4.0], radius: 2.2, label: "Examinar estatua", message: "La figura de piedra domina el extremo del salón.", action: { type: "pulse", color: [0.75, 0.64, 0.48], range: 3.2 } }
         ],
         visual: {
           profile: "temple_banquet",
@@ -395,7 +395,7 @@ export const D8NIGHT: any = {
           ],
           interactions: [
             { id: "dinner_patio_geom", position: [0, 3.2], radius: 1.8, label: "Examinar patio", message: "El patio concentra la zona de reunión exterior." },
-            { id: "dinner_well_geom", position: [9.0, 5.5], radius: 1.4, label: "Examinar pozo", message: "El pozo ocupa el extremo del exterior." }
+            { id: "dinner_well_geom", position: [9.0, 5.5], radius: 1.4, label: "Tocar el agua del pozo", message: "El pozo ocupa el extremo del exterior.", action: { type: "ripple", color: [0.10, 0.48, 0.62], size: 0.75 } }
           ]
         }
       },
@@ -412,8 +412,8 @@ export const D8NIGHT: any = {
         },
         vfx: { fireflies: true, fireflyCount: 20, roseSway: true },
         interactables: [
-          { id: "dinner_table_ambience", position: [0, 4.8], radius: 2.0, label: "Mirar cena", message: "La mesa exterior está preparada bajo la luz de las linternas." },
-          { id: "dinner_house_ambience", position: [0, -1.8], radius: 2.4, label: "Mirar casa", message: "Una luz cálida se filtra por las ventanas de la casa." }
+          { id: "dinner_table_ambience", position: [0, 4.8], radius: 2.0, label: "Interactuar con la mesa", message: "La mesa exterior está preparada bajo la luz de las linternas.", action: { type: "pulse", color: [1.00, 0.52, 0.16], range: 3.8 } },
+          { id: "dinner_house_ambience", position: [0, -1.8], radius: 2.4, label: "Interactuar con luces de la casa", message: "Una luz cálida se filtra por las ventanas de la casa.", action: { type: "toggle_local", radius: 6.0, meshMatch: ["windowGlow"], lights: true, offMessage: "Las ventanas quedan a oscuras.", onMessage: "La luz vuelve a las ventanas." } }
         ],
         visual: {
           profile: "dinner_twilight",
@@ -507,7 +507,7 @@ export const D8NIGHT: any = {
           ],
           interactions: [
             { id: "garden_room_geom", position: [7.2, -0.8], radius: 1.5, label: "Examinar refugio", message: "El refugio circular forma una zona interior dentro del jardín." },
-            { id: "garden_roses_geom", position: [-6.4, -2.0], radius: 1.7, label: "Examinar rosales", message: "Los rosales forman una masa densa junto al sendero." }
+            { id: "garden_roses_geom", position: [-6.4, -2.0], radius: 1.7, label: "Apartar los rosales", message: "Los rosales forman una masa densa junto al sendero.", action: { type: "nudge", radius: 3.0, meshMatch: ["roseHead", "thornRose"] } }
           ]
         }
       },
@@ -524,8 +524,8 @@ export const D8NIGHT: any = {
         },
         vfx: { snowfall: true, snowCount: 50, snowSpeed: 0.40, roseSway: true, fireflies: true, fireflyCount: 7 },
         interactables: [
-          { id: "garden_roses_ambience", position: [-6.0, -1.5], radius: 2.2, label: "Mirar rosales", message: "Los rosales destacan con fuerza sobre la nieve." },
-          { id: "garden_room_ambience", position: [4.5, -3.0], radius: 2.2, label: "Mirar estancia", message: "Una pequeña estancia circular se abre entre los muros del jardín." }
+          { id: "garden_roses_ambience", position: [-6.0, -1.5], radius: 2.2, label: "Rozar rosales", message: "Los rosales destacan con fuerza sobre la nieve.", action: { type: "nudge", radius: 3.0, meshMatch: ["roseHead", "thornRose"] } },
+          { id: "garden_room_ambience", position: [4.5, -3.0], radius: 2.2, label: "Examinar estancia", message: "Una pequeña estancia circular se abre entre los muros del jardín.", action: { type: "pulse", color: [1.00, 0.62, 0.24], range: 3.2 } }
         ],
         visual: {
           profile: "garden_golden_hour",
@@ -621,7 +621,7 @@ export const D8NIGHT: any = {
           ],
           interactions: [
             { id: "market_center_geom", position: [0, 1.2], radius: 1.7, label: "Examinar plaza", message: "Los puestos rodean la zona central de paso." },
-            { id: "market_trough_geom", position: [2.4, 2.4], radius: 1.6, label: "Examinar pilón", message: "El pilón ocupa una parte de la plaza y condiciona el paso." }
+            { id: "market_trough_geom", position: [2.4, 2.4], radius: 1.6, label: "Agitar el agua del pilón", message: "El pilón ocupa una parte de la plaza y condiciona el paso.", action: { type: "ripple", color: [0.15, 0.60, 0.68], size: 0.85 } }
           ]
         }
       },
@@ -638,8 +638,8 @@ export const D8NIGHT: any = {
         },
         vfx: { dust: true, fireflies: true, fireflyCount: 10 },
         interactables: [
-          { id: "market_trough_ambience", position: [2.4, 4.0], radius: 2.0, label: "Mirar abrevadero", message: "Una vaca permanece junto al abrevadero entre los puestos." },
-          { id: "market_stalls_ambience", position: [-4.9, -3.8], radius: 2.0, label: "Mirar puestos", message: "Los puestos forman calles estrechas iluminadas por faroles." }
+          { id: "market_trough_ambience", position: [2.4, 4.0], radius: 2.0, label: "Tocar el agua", message: "Una vaca permanece junto al abrevadero entre los puestos.", action: { type: "ripple", color: [0.18, 0.58, 0.68], size: 0.75 } },
+          { id: "market_stalls_ambience", position: [-4.9, -3.8], radius: 2.0, label: "Examinar mercancía", message: "Los puestos forman calles estrechas iluminadas por faroles.", action: { type: "nudge", radius: 2.8, meshMatch: ["marketProduce", "goodsCrate"] } }
         ],
         visual: {
           profile: "market_golden_hour",
@@ -730,7 +730,7 @@ export const D8NIGHT: any = {
             { type: "entry", label: "acceso a la cueva", position: [-12.5, 7.8], size: [4.0, 1.2] }
           ],
           interactions: [
-            { id: "mirror_pedestal_geom", position: [-9.2, -2.5], radius: 1.8, label: "Examinar pedestal", message: "El pedestal marca el principal punto de interés de la cueva." },
+            { id: "mirror_pedestal_geom", position: [-9.2, -2.5], radius: 1.8, label: "Activar pulso del pedestal", message: "El pedestal marca el principal punto de interés de la cueva.", action: { type: "pulse", color: [0.05, 0.88, 0.92], range: 6.5 } },
             { id: "mirror_ice_geom", position: [2.0, 0.6], radius: 1.8, label: "Examinar hielo", message: "La superficie central está fracturada y debe tratarse como una zona distinta." }
           ]
         }
@@ -752,8 +752,8 @@ export const D8NIGHT: any = {
         },
         vfx: { waterRipples: true, magicMotes: true, magicCount: 18, snowfall: true, snowCount: 22, snowSpeed: 0.18 },
         interactables: [
-          { id: "mirror_ambience", position: [-7.3, -2.5], radius: 2.2, label: "Mirar espejo", message: "El espejo se alza sobre un pedestal rodeado de luz azulada." },
-          { id: "ice_ambience", position: [4.5, 2.6], radius: 2.0, label: "Mirar hielo", message: "Grietas oscuras recorren la superficie helada." }
+          { id: "mirror_ambience", position: [-7.3, -2.5], radius: 2.2, label: "Activar resplandor", message: "El espejo se alza sobre un pedestal rodeado de luz azulada.", action: { type: "pulse", color: [0.06, 0.86, 0.94], range: 6.0 } },
+          { id: "ice_ambience", position: [4.5, 2.6], radius: 2.0, label: "Golpear suavemente el hielo", message: "Grietas oscuras recorren la superficie helada.", action: { type: "ripple", color: [0.12, 0.72, 1.00], size: 1.1 } }
         ],
         visual: {
           profile: "mirror_aurora_cave",
