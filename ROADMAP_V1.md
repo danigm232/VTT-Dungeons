@@ -91,7 +91,7 @@ La candidata de esta revisión es base r32 + overlay r34 + overlay r35, en ese o
 | FALTA | M7: playtest en móvil/proyector/teclado físicos, medición FPS y aceptación del usuario. Guion preparado en el gate privado enlazado arriba. El arbitraje de tiradas y escenas no se automatiza. |
 | YA NO ES NECESARIO | Rehacer controles/guardado o zombis/arpías; convertir sala de pruebas en zona narrativa; instalar otro motor o crear nueve mapas inconexos. |
 
-Versión actual de carpeta `0.3.2-dev.3`; última aceptada operativamente Alpha 0.2 RC2. F0/F1/F2 de D8 tienen evidencia del 19/09 y no vuelven a TODO; F3–F7 no se dan por cerradas. El 23/09 pasan 104/104 pruebas, tipos, build cliente/servidor e integración general del ejecutable compilado. No es aceptación del capítulo ni de los dispositivos.
+Versión actual de carpeta `0.3.2-dev.6` (03/10/2026); última aceptada operativamente Alpha 0.2 RC2. F0/F1/F2 de D8 tienen evidencia del 19/09 y no vuelven a TODO; F3–F7 no se dan por cerradas. Por instrucción posterior del usuario, D8 V35 tiene una integración visual anticipada en las seis escenas del VTT; no cierra las fases de reglas ni aceptación física. La candidata tiene 208/208 pruebas, tipos y build cliente/servidor PASS. Véase [resultados de aceptación](docs/ACCEPTANCE_RESULTS.md); quedan móvil, ordenador y proyector pendientes.
 
 Auditoría y fuente: [PECIO_AUDIT_20260921.md](campaigns/stormwreck-isle/private/PECIO_AUDIT_20260921.md). Arquitectura, grafo dirigido y fichas A–H: [PECIO_SPATIAL_PLAN.md](campaigns/stormwreck-isle/private/PECIO_SPATIAL_PLAN.md). Ambos privados; no servir al navegador público.
 

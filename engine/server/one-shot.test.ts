@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import { oneShotBundle } from '../../campaigns/one-shot/server.js';
+import { D8NIGHT } from '../../campaigns/one-shot/playground/d8night.config.js';
+import { d8PublicRendererConfig } from '../../campaigns/one-shot/renderer-config.js';
+import { supportsCameraOrientation } from '../shared/camera.js';
+import { basicCombatActionAnimationStates, explorationBasicActionCatalogue } from '../shared/protocol.js';
 import { compileCampaignBundle } from './campaign.js';
 import { GameState } from './game.js';
 
@@ -11,11 +16,98 @@ const beginCombat = (state: GameState, firstId: string) => {
   expect(state.setInitiativeOrder(state.combat.order, true)).toBe(true);
 };
 
+describe('protección de la pasada artística V40', () => {
+  it('mantiene intactas Cena y la configuración del templo aprobado', () => {
+    const hash = (map: unknown) => createHash('sha256').update(JSON.stringify(map)).digest('hex');
+    expect(hash(D8NIGHT.maps.dinner)).toBe('7152dca9b5babc7875828d25c9c949887829a9c2b0e7cf1576e11e4a3577ea67');
+    expect(hash(D8NIGHT.maps.temple)).toBe('278a8c5657ae89aba6594275e1e2999b2e66103c0d29bd6dfd97d7941f181317');
+  });
+
+  it('mantiene escenarios nativos y presupuestos limitados de luz en los cuatro mapas', () => {
+    for (const id of ['cafe', 'garden', 'market', 'mirror']) {
+      const map = D8NIGHT.maps[id];
+      expect(map.MAP.enableVisualComposition).toBe(false);
+      expect(map.MAP.navigation.bounds).toHaveLength(4);
+      expect(map.VTT_AMBIENCE.visual.maxMaterialLights).toBe(8);
+      expect(map.VTT_AMBIENCE.visual.maxRealPointLights).toBeLessThanOrEqual(13);
+      expect(map.camera.alpha).toBeGreaterThan(0);
+    }
+  });
+});
+const nearbyWalkableCell = (sceneId: string, center: { col: number; row: number }, excluded: { col: number; row: number }[] = []) => {
+  const scene = oneShotBundle.public.scenes.find(candidate => candidate.id === sceneId)!;
+  const excludedKeys = new Set(excluded.map(cell => `${cell.col},${cell.row}`));
+  return [...scene.walkable].filter(cell => !excludedKeys.has(`${cell.col},${cell.row}`))
+    .sort((a, b) => Math.abs(a.col - center.col) + Math.abs(a.row - center.row)
+      - Math.abs(b.col - center.col) - Math.abs(b.row - center.row) || a.row - b.row || a.col - b.col)[0]!;
+};
+const placeAoifeNearNpc = (state: GameState, npcId = 'anteros-temple') => {
+  const aoife = state.characters.get('aoife')!, npc = state.npcs.get(npcId)!;
+  aoife.cell = nearbyWalkableCell(npc.sceneId, npc.cell, [npc.cell]);
+  return aoife.cell;
+};
+
 describe('independent private one-shot pack', () => {
+  it('mantiene el templo nativo, su eje de acceso y la decoración de fondo fuera del tablero', () => {
+    const temple = D8NIGHT.maps.temple;
+    expect(temple.MAP.enableVisualComposition).toBe(false);
+    expect(temple.camera.alpha).toBeGreaterThan(0);
+    expect(temple.MAP.objects.filter((object: any) => object.asset === 'temple_floor')).toHaveLength(2);
+    for (const asset of ['bridge', 'stairs', 'temple_gate', 'long_table', 'statue', 'temple_sanctuary_details']) {
+      expect(temple.MAP.objects.some((object: any) => object.asset === asset)).toBe(true);
+    }
+    expect(temple.MAP.objects.filter((object: any) => object.asset === 'temple_window')).toHaveLength(8);
+    const woodland = temple.MAP.objects.filter((object: any) => object.asset === 'temple_tree' && object.position[1] < -14);
+    expect(woodland).toHaveLength(14);
+    expect(woodland.every((object: any) => object.position[1] < temple.MAP.navigation.bounds[2])).toBe(true);
+  });
+
+  it('sirve los mapas de Babylon sin enviar CANON ni interacciones privadas al navegador', () => {
+    const renderer = d8PublicRendererConfig();
+    const serialized = JSON.stringify(renderer);
+    expect(renderer.version).toBe('V40');
+    expect(Object.keys(renderer.maps).sort()).toEqual(['cafe', 'dinner', 'garden', 'market', 'mirror', 'temple']);
+
+    const forbiddenKeys: string[] = [];
+    const visit = (value: unknown) => {
+      if (!value || typeof value !== 'object') return;
+      for (const [key, child] of Object.entries(value)) {
+        if (/canon|secret|interact|dialog|message|story|reveal|trigger|narrative|spoiler/i.test(key)) forbiddenKeys.push(key);
+        visit(child);
+      }
+    };
+    visit(renderer);
+    expect(forbiddenKeys).toEqual([]);
+
+    const publicStrings = new Set<string>();
+    const collect = (value: unknown, result: Set<string>) => {
+      if (typeof value === 'string') result.add(value);
+      else if (Array.isArray(value)) value.forEach(item => collect(item, result));
+      else if (value && typeof value === 'object') Object.values(value).forEach(item => collect(item, result));
+    };
+    collect(renderer, publicStrings);
+    const secretOnlyStrings: string[] = [];
+    for (const map of Object.values(D8NIGHT.maps) as any[]) collect(map.CANON, {
+      add(value: string) { if (value.length > 20 && !publicStrings.has(value)) secretOnlyStrings.push(value); }
+    } as Set<string>);
+    expect(secretOnlyStrings.some(secret => serialized.includes(secret))).toBe(false);
+    expect(Object.values(renderer.maps).every((map: any) => map.MAP.objects.length > 0)).toBe(true);
+  });
+
   it('compiles six locations, both level-1 characters and hidden encounters chosen by the DM', () => {
     const compiled = compileCampaignBundle(oneShotBundle);
     expect(compiled.public.campaignId).toBe('d8-night-private');
     expect(compiled.public.scenes.map(scene => scene.id)).toEqual(['temple', 'garden', 'cafe', 'market', 'mirror', 'dinner']);
+    for (const scene of compiled.public.scenes) {
+      expect(scene.renderer).toBe('babylon-d8');
+      expect(supportsCameraOrientation(scene)).toBe(true);
+      const legal = new Set(scene.walkable.map(cell => `${cell.col},${cell.row}`));
+      const starts = [...scene.spawns, ...(scene.stageActors ?? []).map(actor => actor.cell), ...scene.props.map(prop => prop.cell)];
+      expect(scene.walkable.length).toBeGreaterThan(20);
+      expect(starts.every(cell => legal.has(`${cell.col},${cell.row}`))).toBe(true);
+      expect(starts.every(cell => cell.col >= 0 && cell.row >= 0 && cell.col < scene.grid.cols && cell.row < scene.grid.rows)).toBe(true);
+      expect((scene.stageActors ?? []).every(actor => !scene.spawns.some(spawn => spawn.col === actor.cell.col && spawn.row === actor.cell.row))).toBe(true);
+    }
     expect(compiled.encounter?.creature.tokenId).toBe('reflection');
     expect(compiled.public.roster.map(character => character.id)).toEqual(['maria', 'aoife']);
     expect(compiled.characters.aoife?.sheet?.details?.find(section => section.title === 'Características')?.entries).toContain('FUE 10 (+0) · DES 14 (+2) · CON 14 (+2)');
@@ -43,8 +135,10 @@ describe('independent private one-shot pack', () => {
       expect(existsSync(resolve('campaigns/one-shot/public', asset.portraitUrl.slice(1)))).toBe(true);
     expect(compiled.public.tokens['silverfarben-hotel']?.portraitUrl).toContain('silverfarben_hotel_portrait_normal.png');
     expect(compiled.public.tokens.anteros?.portraitUrl).toContain('anteros_portrait_normal.png');
-    for (const animationSet of Object.values(compiled.public.tokenAnimations)) for (const animation of Object.values(animationSet)) for (const frame of animation.frames)
-      expect(existsSync(resolve('campaigns/one-shot/public', frame.slice(1)))).toBe(true);
+    for (const animationSet of Object.values(compiled.public.tokenAnimations)) for (const animation of Object.values(animationSet)) for (const frame of animation.frames) {
+      const url = typeof frame === 'string' ? frame : frame.url;
+      expect(existsSync(resolve('campaigns/one-shot/public', url.slice(1)))).toBe(true);
+    }
     for (const asset of Object.values(compiled.public.props)) for (const variant of Object.values(asset.variants))
       expect(existsSync(resolve('campaigns/one-shot/public', variant.url.slice(1)))).toBe(true);
   });
@@ -62,6 +156,85 @@ describe('independent private one-shot pack', () => {
     });
     expect(state.declareExplorationBasicAction('aoife', 'jump', undefined, beyondStrength)).toMatchObject({ ok: false, code: 'JUMP_OUT_OF_RANGE' });
     expect(maria.sheet?.strengthScore).toBe(8);
+  });
+
+  it('anima caminar y correr de Silverfarben en los ocho rumbos sin perder orientación', () => {
+    const movement = oneShotBundle.public.tokenAnimations['silverfarben-hotel']!;
+    expect(movement['moving-s']).toMatchObject({ fps: 8, frames: expect.arrayContaining(['/art/tokens/Silverfarben Hotel/silverfarben_hotel_caminar_01.png']) });
+    for (const direction of ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw']) {
+      expect(movement[`moving-${direction}`]?.frames).toHaveLength(4);
+      expect(movement[`running-${direction}`]).toMatchObject({ fps: 10, frames: expect.any(Array) });
+      expect(movement[`running-${direction}`]?.frames).toHaveLength(4);
+    }
+    expect(movement['moving-sw']).toMatchObject({ flipX: true, frames: expect.any(Array) });
+    expect(movement['moving-nw']).toMatchObject({ flipX: true, frames: expect.any(Array) });
+    expect(movement['moving-w']).toMatchObject({ flipX: true, frames: expect.any(Array) });
+    expect(movement['running-sw']).toMatchObject({ flipX: true, frames: expect.any(Array) });
+    expect(movement['running-nw']).toMatchObject({ flipX: true, frames: expect.any(Array) });
+    expect(movement['running-w']).toMatchObject({ flipX: true, frames: expect.any(Array) });
+    for (const state of ['moving-n', 'moving-ne', 'moving-e', 'running-n', 'running-ne', 'running-e']) {
+      for (const frame of movement[state]!.frames) {
+        expect(typeof frame).not.toBe('string');
+        if (typeof frame !== 'string') {
+          expect(frame.url).toContain(state.startsWith('moving-') ? 'walk_orientations_atlas.png' : 'run_orientations_atlas.png');
+          expect(frame.x + frame.width).toBeLessThanOrEqual(state.startsWith('moving-') ? 1448 : 1122);
+          expect(frame.y + frame.height).toBeLessThanOrEqual(state.startsWith('moving-') ? 1086 : 1402);
+          expect(frame.logicalWidth).toBe(92);
+          expect(frame.logicalHeight).toBe(92);
+        }
+      }
+    }
+  });
+
+  it('conecta acciones universales y ataques con sus ciclos visuales reales', () => {
+    const animations = oneShotBundle.public.tokenAnimations['silverfarben-hotel']!;
+    const declaredStates = [
+      ...Object.values(explorationBasicActionCatalogue).map(action => action.animation),
+      ...Object.values(basicCombatActionAnimationStates)
+    ];
+    for (const state of new Set(declaredStates)) {
+      if (state === 'disengage') {
+        for (const direction of ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'])
+          expect(animations[`direction-${direction}`]).toBeDefined();
+      } else expect(animations[state]).toBeDefined();
+    }
+    expect(animations.attack?.frames).toHaveLength(4);
+    expect(animations['attack-arrow']?.frames).toHaveLength(4);
+    expect(animations['attack-arrow-mirrored']).toMatchObject({ flipX: true, frames: expect.any(Array) });
+    expect(animations['attack-throw']?.frames).toHaveLength(4);
+    expect(animations['attack-throw-mirrored']).toMatchObject({ flipX: true, frames: expect.any(Array) });
+    expect(animations.prone?.frames).toHaveLength(1);
+    expect(animations.crawl?.frames).toHaveLength(4);
+    expect(animations.defeated?.frames).toEqual([
+      '/art/tokens/Silverfarben Hotel/silverfarben_hotel_derrotada.png'
+    ]);
+  });
+
+  it('asigna a cada PNJ de D8 Night sus ciclos propios de movimiento, interacción y ataque', () => {
+    const animations = oneShotBundle.public.tokenAnimations;
+    const framesAtRow = (tokenId: string, state: string) => animations[tokenId]?.[state]?.frames.map(frame =>
+      typeof frame === 'string' ? null : frame.y);
+
+    expect(framesAtRow('anteros', 'moving')).toEqual([0, 0, 0, 0]);
+    expect(framesAtRow('anteros', 'talk')).toEqual([280, 280, 280, 280]);
+    expect(framesAtRow('anteros', 'attack')).toEqual([0, 0, 0, 0]);
+    expect(framesAtRow('anteros', 'attack-arrow')).toEqual([362, 362, 362, 362]);
+    expect(framesAtRow('anteros', 'spell')).toEqual([724, 724, 724, 724]);
+    expect(animations.anteros?.defeated?.frames).toEqual(['/art/tokens/Anteros/anteros_defeated.png']);
+    expect(animations['anteros-dinner']?.idle?.frames).toEqual(['/art/tokens/Anteros/anteros_dinner_idle.png']);
+    expect(framesAtRow('anteros-dinner', 'react')).toEqual([1121, 1121, 1121, 1121]);
+
+    expect(framesAtRow('patron-woman', 'talk')).toEqual([0, 0, 0, 0]);
+    expect(framesAtRow('patron-woman', 'moving')).toEqual([362, 362, 362, 362]);
+    expect(animations['patron-woman']?.hit?.frames).toHaveLength(4);
+    expect(animations['patron-woman']?.hit?.frames.every(frame => typeof frame !== 'string' && frame.url.includes('generated-20261003/patron-woman-motion.png'))).toBe(true);
+    expect(framesAtRow('bartender', 'serve')).toEqual([623, 623, 623, 623]);
+    expect(framesAtRow('patron', 'moving')).toEqual([1086, 1086, 1086, 1086]);
+
+    for (const [tokenId, row] of [['fritz', 0], ['ben', 303], ['margaret', 607], ['boris', 910]] as const)
+      expect(framesAtRow(tokenId, 'attack')).toEqual(Array(4).fill(row));
+    for (const tokenId of ['fritz', 'roses', 'patron-woman', 'bartender', 'patron', 'ben', 'margaret', 'boris', 'cow'])
+      expect(animations[tokenId]?.idle?.frames.length).toBeGreaterThan(0);
   });
 
   it('recupera la FUE de María del perfil de campaña al abrir un guardado anterior', () => {
@@ -84,7 +257,7 @@ describe('independent private one-shot pack', () => {
   it('trata el espejo como objeto y copia al jugador que lo activa, no al primer PJ conectado', () => {
     const state = new GameState(oneShotBundle), mariaToken = 'f'.repeat(32), silverToken = '9'.repeat(32);
     state.changeScene('mirror'); state.claim(mariaToken, 'socket-maria', 'maria'); state.claim(silverToken, 'socket-silver', 'aoife');
-    state.characters.get('aoife')!.cell = { col: 16, row: 10 };
+    state.characters.get('aoife')!.cell = oneShotBundle.mirrorInteraction!.cells[0]!;
     expect(state.npcs.get('true-love-mirror')).toBeUndefined();
     expect(state.publicSnapshot().props.some(prop => prop.id === 'true-love-mirror')).toBe(true);
     expect(state.mirrorInteractionFor('aoife', 'true-love-mirror')?.nearbyLabel).toBe('Mirar en el espejo');
@@ -95,7 +268,7 @@ describe('independent private one-shot pack', () => {
 
   it('configura el acercamiento y las reglas auditadas de Anteros sin automatizar el desenlace', () => {
     const state = new GameState(oneShotBundle), token = 'e'.repeat(32);
-    state.claim(token, 'socket-aoife', 'aoife'); state.characters.get('aoife')!.cell = { col: 22, row: 11 };
+    state.claim(token, 'socket-aoife', 'aoife'); placeAoifeNearNpc(state);
     expect(state.playerPrivate(token)).toMatchObject({ canInteract: true, nearbyInteraction: 'Hablar con Anteros', interactionTargetId: 'anteros-temple' });
     expect(state.stageActorInteractionFor('aoife', 'anteros-temple')).toMatchObject({ responseAnimation: 'talk' });
     const anteros = state.npcs.get('anteros-temple')!;
@@ -137,7 +310,7 @@ describe('independent private one-shot pack', () => {
     const state = new GameState(oneShotBundle); const token = 'c'.repeat(32);
     state.claim(token, 'socket-aoife', 'aoife');
     const aoife = state.characters.get('aoife')!, anteros = state.npcs.get('anteros-temple')!;
-    aoife.cell = { col: 14, row: 16 }; anteros.cell = { col: 15, row: 16 };
+    placeAoifeNearNpc(state);
     beginCombat(state, 'aoife');
     expect(state.declareCombatAction('aoife', 'anteros-temple', 'aoife-shortbow')).toMatchObject({ ok: true, code: 'ROLL_REQUIRED' });
     const attackPrompt = state.playerPrivate(token).combat?.prompt;
@@ -155,13 +328,13 @@ describe('independent private one-shot pack', () => {
     const state = new GameState(oneShotBundle); const token = 'd'.repeat(32);
     state.claim(token, 'socket-aoife', 'aoife');
     const aoife = state.characters.get('aoife')!, anteros = state.npcs.get('anteros-temple')!;
-    aoife.cell = { col: 14, row: 16 }; anteros.cell = { col: 15, row: 16 };
+    placeAoifeNearNpc(state);
     beginCombat(state, 'aoife');
     expect(state.declareCombatAction('aoife', 'anteros-temple', 'magic-missile')).toMatchObject({ ok: true, code: 'ROLL_REQUIRED' });
     const prompt = state.playerPrivate(token).combat?.prompt;
     expect(prompt).toMatchObject({ stage: 'damage', targetId: 'anteros-temple' });
     expect(state.submitCombatRoll('player', 'aoife', 'damage', prompt!.id, 2)).toMatchObject({ ok: true, code: 'ATTACK_RESOLVED' });
-    expect(aoife.combat.resources['spell-slot-1']).toMatchObject({ current: 2, max: 2 });
+    expect(aoife.combat.resources['spell-slot-1']).toMatchObject({ current: 1, max: 2 });
     expect(state.declareCombatAction('aoife', 'anteros-temple', 'magic-missile')).toMatchObject({ ok: true, code: 'ROLL_REQUIRED' });
     expect(state.submitCombatRoll('player', 'aoife', 'damage', state.combat.pending!.id, 3)).toMatchObject({ ok: true, code: 'ATTACK_RESOLVED' });
     expect(state.declareCombatAction('aoife', 'anteros-temple', 'magic-missile')).toMatchObject({ ok: true, code: 'ROLL_REQUIRED' });
@@ -175,19 +348,19 @@ describe('independent private one-shot pack', () => {
     const state = new GameState(oneShotBundle);
     state.claim('e'.repeat(32), 'socket-aoife', 'aoife');
     const aoife = state.characters.get('aoife')!, anteros = state.npcs.get('anteros-temple')!;
-    aoife.cell = { col: 14, row: 16 }; anteros.cell = { col: 15, row: 16 };
+    placeAoifeNearNpc(state);
     beginCombat(state, 'aoife');
-    expect(state.declareCombatAction('aoife', undefined, 'fog-cloud', false, { col: 16, row: 16 })).toMatchObject({ ok: true, code: 'GUIDED_RESOLUTION' });
+    expect(state.declareCombatAction('aoife', undefined, 'fog-cloud', false, nearbyWalkableCell('temple', aoife.cell))).toMatchObject({ ok: true, code: 'GUIDED_RESOLUTION' });
     expect(aoife.combat.resources['spell-slot-1']).toMatchObject({ current: 1, max: 2 });
     expect(state.concentration.aoife?.actionId).toBe('fog-cloud');
-    expect(state.publicSnapshot().combat.lastEvent?.text).toContain('casilla 17, 17');
+    expect(state.publicSnapshot().combat.lastEvent?.text).toContain('casilla');
   });
 
   it('consume de la mochila las dagas lanzadas y las antorchas utilizadas', () => {
     const state = new GameState(oneShotBundle); state.claim('1'.repeat(32), 'socket-aoife', 'aoife');
-    const aoife = state.characters.get('aoife')!, anteros = state.npcs.get('anteros-temple')!; aoife.cell = { col: 14, row: 16 }; anteros.cell = { col: 15, row: 16 };
+    const aoife = state.characters.get('aoife')!; placeAoifeNearNpc(state);
     beginCombat(state, 'aoife');
-    expect(state.declareCombatAction('aoife', undefined, 'light-torch', false, { col: 14, row: 16 })).toMatchObject({ ok: true, code: 'GUIDED_RESOLUTION' });
+    expect(state.declareCombatAction('aoife', undefined, 'light-torch', false, aoife.cell)).toMatchObject({ ok: true, code: 'GUIDED_RESOLUTION' });
     expect(aoife.inventory).toContain('antorchas ×1');
     state.combat.actionUsed.aoife = false;
     expect(state.declareCombatAction('aoife', 'anteros-temple', 'aoife-thrown-dagger')).toMatchObject({ ok: true });
@@ -197,9 +370,9 @@ describe('independent private one-shot pack', () => {
 
   it('limita a un espacio de conjuro por turno y permite otro en un turno posterior', () => {
     const state = new GameState(oneShotBundle); state.claim('f'.repeat(32), 'socket-aoife', 'aoife');
-    const aoife = state.characters.get('aoife')!, anteros = state.npcs.get('anteros-temple')!; aoife.cell = { col: 14, row: 16 }; anteros.cell = { col: 15, row: 16 };
+    const aoife = state.characters.get('aoife')!; placeAoifeNearNpc(state);
     beginCombat(state, 'aoife');
-    expect(state.declareCombatAction('aoife', undefined, 'fog-cloud', false, { col: 16, row: 16 })).toMatchObject({ ok: true });
+    expect(state.declareCombatAction('aoife', undefined, 'fog-cloud', false, nearbyWalkableCell('temple', aoife.cell))).toMatchObject({ ok: true });
     state.combat.actionUsed.aoife = false;
     expect(state.declareCombatAction('aoife', 'aoife', 'feather-fall')).toMatchObject({ ok: false, code: 'SPELL_SLOT_USED_THIS_TURN' });
     do expect(state.nextCombatTurn()).toBe(true); while (state.publicSnapshot().combat.currentId !== 'aoife');
@@ -208,9 +381,9 @@ describe('independent private one-shot pack', () => {
 
   it('solicita salvación de Constitución al dañar a quien se concentra', () => {
     const state = new GameState(oneShotBundle); state.claim('g'.repeat(32), 'socket-aoife', 'aoife');
-    const aoife = state.characters.get('aoife')!, anteros = state.npcs.get('anteros-temple')!; aoife.cell = { col: 14, row: 16 }; anteros.cell = { col: 15, row: 16 };
+    const aoife = state.characters.get('aoife')!; placeAoifeNearNpc(state);
     beginCombat(state, 'aoife'); state.setInitiative([{ id: 'aoife', initiative: 20 }, { id: 'anteros-temple', initiative: 10 }]);
-    state.declareCombatAction('aoife', undefined, 'fog-cloud', false, { col: 16, row: 16 });
+    state.declareCombatAction('aoife', undefined, 'fog-cloud', false, nearbyWalkableCell('temple', aoife.cell));
     expect(state.nextCombatTurn()).toBe(true);
     state.declareCombatAction('anteros-temple', 'aoife', 'longsword');
     state.submitCombatRoll('dm', null, 'attack', state.combat.pending!.id, 20);
@@ -222,10 +395,11 @@ describe('independent private one-shot pack', () => {
 
   it('lanza rituales y conjuros de punto fuera de combate con sus recursos correctos', () => {
     const state = new GameState(oneShotBundle); state.claim('h'.repeat(32), 'socket-aoife', 'aoife'); const aoife = state.characters.get('aoife')!;
-    aoife.cell = { col: 14, row: 16 };
-    expect(state.declareExplorationAction('aoife', undefined, 'floating-disk', { col: 16, row: 16 })).toMatchObject({ ok: true });
+    aoife.cell = oneShotBundle.public.scenes.find(scene => scene.id === 'temple')!.spawns[0]!;
+    const target = nearbyWalkableCell('temple', aoife.cell);
+    expect(state.declareExplorationAction('aoife', undefined, 'floating-disk', target)).toMatchObject({ ok: true });
     expect(aoife.combat.resources['spell-slot-1']?.current).toBe(2);
-    expect(state.declareExplorationAction('aoife', undefined, 'fog-cloud-exploration', { col: 16, row: 16 })).toMatchObject({ ok: true });
+    expect(state.declareExplorationAction('aoife', undefined, 'fog-cloud-exploration', target)).toMatchObject({ ok: true });
     expect(aoife.combat.resources['spell-slot-1']?.current).toBe(1);
     expect(state.concentration.aoife?.actionId).toBe('fog-cloud-exploration');
   });
@@ -233,6 +407,7 @@ describe('independent private one-shot pack', () => {
   it('recupera un guardado legado de D8 con la antigua plantilla y una casilla de PNJ reclasificada', () => {
     const original = new GameState(oneShotBundle); original.changeScene('mirror');
     const payload = original.captureDurable();
+    payload.d8GridVersion = 1;
     const mirrorScene = payload.scenes.find(scene => scene.sceneId === 'mirror')!;
     mirrorScene.objects = []; // save created before the mirror was an object
     const maria = payload.characters.find(character => character.id === 'maria')!;
@@ -250,5 +425,11 @@ describe('independent private one-shot pack', () => {
     expect(restored.npcs.get('boris-market')?.cell).not.toEqual({ col: 25, row: 12 });
     expect(restored.npcs.get('rose-garden-1')).toBeDefined();
     expect(restored.publicSnapshot().props.some(prop => prop.id === 'true-love-mirror')).toBe(true);
+
+    const migrated = restored.captureDurable();
+    expect(migrated.d8GridVersion).toBe(2);
+    const restoredAgain = new GameState(oneShotBundle); restoredAgain.restoreDurable(migrated);
+    expect(restoredAgain.characters.get('maria')?.cell).toEqual(restored.characters.get('maria')?.cell);
+    expect(restoredAgain.npcs.get('boris-market')?.cell).toEqual(restored.npcs.get('boris-market')?.cell);
   });
 });

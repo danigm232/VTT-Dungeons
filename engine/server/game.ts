@@ -8,6 +8,7 @@ import {
 import type { CampRestState } from '../shared/camp-rest.js';
 import type { PickupDefinition, PropDefinition, Rotation } from '../shared/campaign.js';
 import { cellKey, footprintFor, sameCell } from '../shared/geometry.js';
+import { supportsCameraOrientation } from '../shared/camera.js';
 import { surfaceNeighbors } from '../shared/terrain.js';
 import { carriedLightRadiusMeters } from '../shared/carried-light.js';
 import { jumpGuidance } from '../shared/jumping.js';
@@ -614,10 +615,44 @@ export class GameState {
     // non-character object when opening those campaigns so valid tables do not
     // lose their checkpoint just because the visual model improved.
     const mirrorScene = payload.scenes.find(scene => scene.sceneId === 'mirror');
-    if (mirrorScene && !mirrorScene.objects.some(object => object.id === 'true-love-mirror')) mirrorScene.objects.push({ id: 'true-love-mirror', kind: 'crate', cell: { col: 17, row: 10 }, rotation: 0, structure: 'intact' });
+    if (mirrorScene && !mirrorScene.objects.some(object => object.id === 'true-love-mirror')) {
+      const mirror = this.objectScenes.get('mirror')?.objects.find(object => object.id === 'true-love-mirror');
+      if (mirror) mirrorScene.objects.push({ id: 'true-love-mirror', kind: 'crate', cell: cloneCell(mirror.cell), rotation: 0, structure: 'intact' });
+    }
     const validEntityIds = new Set([...this.characters.keys(), ...this.npcs.keys(), ...(this.creature ? [this.creature.id] : [])]);
     if (payload.combat?.active && (!payload.combat.participantIds.every(id => validEntityIds.has(id)) || !payload.combat.order.every(id => validEntityIds.has(id)))) payload.combat = null;
     if (payload.camera.focusId && !validEntityIds.has(payload.camera.focusId)) payload.camera.focusId = null;
+  }
+  /** Keep existing private D8 saves on the same locations when the new 2.5D
+   * maps replace the provisional 32 × 21 authoring grids with metre-aligned
+   * tactical cells. The version marker prevents scaling an already-upgraded
+   * save a second time. */
+  private migrateD8NightGrid(payload: DurablePayload) {
+    if (this.campaign.public.campaignId !== 'd8-night-private' || (payload.d8GridVersion ?? 1) >= 2) return false;
+    const legacySize = (sceneId: string) => sceneId === 'garden' ? { cols: 29, rows: 21 } : { cols: 32, rows: 21 };
+    const remap = (sceneId: string, cell: Cell): Cell => {
+      const definition = this.campaign.public.scenes.find(scene => scene.id === sceneId);
+      if (!definition) return cloneCell(cell);
+      const old = legacySize(sceneId), target = {
+        col: Math.max(0, Math.min(definition.grid.cols - 1, Math.floor((cell.col + .5) * definition.grid.cols / old.cols))),
+        row: Math.max(0, Math.min(definition.grid.rows - 1, Math.floor((cell.row + .5) * definition.grid.rows / old.rows)))
+      };
+      const walkable = definition.walkable;
+      const legal = new Set(walkable.map(item => cellKey(item)));
+      if (legal.has(cellKey(target))) return target;
+      return [...walkable].sort((a, b) => Math.abs(a.col - target.col) + Math.abs(a.row - target.row)
+        - Math.abs(b.col - target.col) - Math.abs(b.row - target.row) || a.row - b.row || a.col - b.col)[0] ?? target;
+    };
+    for (const saved of payload.scenes) {
+      const definition = this.campaign.public.scenes.find(scene => scene.id === saved.sceneId);
+      if (!definition) continue;
+      for (const object of saved.objects) object.cell = remap(saved.sceneId, object.cell);
+    }
+    for (const character of payload.characters) character.cell = remap(character.sceneId ?? payload.sceneId, character.cell);
+    for (const npc of payload.npcs ?? []) npc.cell = remap(npc.sceneId, npc.cell);
+    if (payload.creature) payload.creature.cell = remap(payload.creature.sceneId, payload.creature.cell);
+    payload.d8GridVersion = 2;
+    return true;
   }
   /** Collapse legacy deck-specific scene IDs into the one physical ship scene.
    * Surface IDs retain each actor's height; no character is teleported to the
@@ -1281,8 +1316,17 @@ export class GameState {
       }) : [];
     const movement = this.combatMovement();
     const playerCombat = character && this.combat.active && this.combat.participantIds.includes(character.id)
-      ? { isTurn: movement?.actorId === character.id, ready: this.combat.stances[character.id]?.action === 'ready', movement: movement?.actorId === character.id ? { remainingSquares: movement.remainingSquares, maximumSquares: movement.maximumSquares } : null, attacks: structuredClone(character.combat.attacks), conditions: [...this.conditionsFor(character.id)], prompt: this.combatPromptFor('player', character.id), initiative: { pending: this.combat.initiativePending, submitted: Boolean(this.combat.initiativeSubmitted[character.id]), total: this.combat.initiativeSubmitted[character.id] ? this.combat.initiative[character.id] ?? null : null, modifier: character.combat.initiativeBonus }, actionUsed: Boolean(this.combat.actionUsed[character.id]), bonusActionUsed: Boolean(this.combat.bonusActionUsed[character.id]), reactionUsed: Boolean(this.combat.reactionUsed[character.id]), basicActions: ['dash', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'ready', 'search', 'study', 'use-object'] as BasicCombatAction[], recharge: { ...(this.combat.recharge[character.id] ?? {}) }, resources: structuredClone(character.combat.resources), ...(character.combat.spellAttackBonus !== undefined ? { spellAttackBonus: character.combat.spellAttackBonus } : {}), ...(character.combat.spellSaveDc !== undefined ? { spellSaveDc: character.combat.spellSaveDc } : {}) }
+      ? { isTurn: movement?.actorId === character.id, ready: this.combat.stances[character.id]?.action === 'ready', movement: movement?.actorId === character.id ? { remainingSquares: movement.remainingSquares, maximumSquares: movement.maximumSquares } : null, attacks: structuredClone(character.combat.attacks), conditions: [...this.conditionsFor(character.id)], prompt: this.combatPromptFor('player', character.id), initiative: { pending: this.combat.initiativePending, submitted: Boolean(this.combat.initiativeSubmitted[character.id]), total: this.combat.initiativeSubmitted[character.id] ? this.combat.initiative[character.id] ?? null : null, modifier: character.combat.initiativeBonus }, actionUsed: Boolean(this.combat.actionUsed[character.id]), bonusActionUsed: Boolean(this.combat.bonusActionUsed[character.id]), reactionUsed: Boolean(this.combat.reactionUsed[character.id]), basicActions: ['dash', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'ready', 'search', 'study', 'use-object'] as BasicCombatAction[], recharge: { ...(this.combat.recharge[character.id] ?? {}) }, resources: structuredClone(character.combat.resources), ...(this.combat.sequences[character.id] ? { sequence: { actionId: this.combat.sequences[character.id]!.actionId, remaining: this.combat.sequences[character.id]!.remaining } } : {}), ...(character.combat.spellAttackBonus !== undefined ? { spellAttackBonus: character.combat.spellAttackBonus } : {}), ...(character.combat.spellSaveDc !== undefined ? { spellSaveDc: character.combat.spellSaveDc } : {}) }
       : null;
+    const pending = this.combat.pending, opening = this.combat.openingAction;
+    if (playerCombat && character && (pending?.attackerId === character.id || (!pending && opening?.attackerId === character.id))) {
+      const selection = pending ?? opening!;
+      Object.assign(playerCombat, { pendingAction: {
+        ...(pending ? { promptId: pending.id } : {}),
+        label: character.combat.attacks.find(action => action.id === selection.actionId)?.label ?? 'Acción',
+        cancellable: pending ? this.canCancelCombatAction() : true
+      } });
+    }
     return {
       runtimeEpoch: this.runtimeEpoch,
       characterId: character?.id ?? null, label: character?.label ?? null, hp: character?.hp ?? null, maxHp: character?.maxHp ?? null,
@@ -1306,6 +1350,9 @@ export class GameState {
     return {
       runtimeEpoch: this.runtimeEpoch,
       campaignTitle: this.campaign.public.title, sceneId: this.sceneId, sceneEpoch: this.sceneEpoch, objectRevision: objectState.revision,
+      ...(this.campaign.public.campaignId === 'd8-night-private' ? { animationAudit: [...this.characters.values()]
+        .filter(character => character.sceneId === this.sceneId && Boolean(character.sessionToken))
+        .map(character => ({ id: character.id, attacks: structuredClone(character.combat.attacks), explorationActions: structuredClone(character.explorationActions ?? []), explorationBasics: [...(character.explorationBasics ?? [])] })) } : {}),
       characters: [...this.characters.values()].map(character => ({
         id: character.id, label: character.label, archetype: character.archetype, color: character.color, tokenId: character.tokenId,
         claimed: Boolean(character.sessionToken), connected: Boolean(character.socketId), hp: character.hp, maxHp: character.maxHp,
@@ -1313,7 +1360,7 @@ export class GameState {
       })),
       creature: this.creature ? { id: this.creature.id, label: this.creature.label, visible: this.creature.visible, cell: cloneCell(this.creature.cell), surfaceId: this.creature.surfaceId, sceneId: this.creature.sceneId, hp: this.creature.hp, maxHp: this.creature.maxHp, armorClass: this.creature.armorClass, speedMeters: this.creature.speedMeters, traits: [...this.creature.traits], actions: [...this.creature.actions] } : null,
       npcs: [...this.npcs.values()].filter(npc => npc.sceneId === this.sceneId).map(npc => ({ id: npc.id, label: npc.label, tokenId: npc.tokenId, color: npc.color, cell: cloneCell(npc.cell), surfaceId: npc.surfaceId, hp: npc.hp, maxHp: npc.maxHp, armorClass: npc.armorClass, speedMeters: npc.speedMeters, traits: [...npc.traits], attacks: structuredClone(npc.attacks), combatEnabled: npc.combatEnabled, visible: npc.visible })),
-      combat: { active: this.combat.active, round: this.combat.round, currentId: this.currentCombatId(), movement: this.combatMovement(), participants: this.combat.active ? this.combatParticipants() : [], lastEvent: this.combat.active ? this.combat.lastEvent : null, prompt: this.combatPromptFor('dm'), initiativePending: this.combat.initiativePending, initiativeSubmitted: { ...this.combat.initiativeSubmitted }, actionUsed: { ...this.combat.actionUsed }, bonusActionUsed: { ...this.combat.bonusActionUsed }, reactionUsed: { ...this.combat.reactionUsed }, concentration: structuredClone(this.concentration), recharge: structuredClone(this.combat.recharge), order: this.combat.order.map(id => {
+      combat: { sequences: structuredClone(this.combat.sequences), active: this.combat.active, round: this.combat.round, currentId: this.currentCombatId(), movement: this.combatMovement(), participants: this.combat.active ? this.combatParticipants() : [], lastEvent: this.combat.active ? this.combat.lastEvent : null, prompt: this.combatPromptFor('dm'), initiativePending: this.combat.initiativePending, initiativeSubmitted: { ...this.combat.initiativeSubmitted }, actionUsed: { ...this.combat.actionUsed }, bonusActionUsed: { ...this.combat.bonusActionUsed }, reactionUsed: { ...this.combat.reactionUsed }, concentration: structuredClone(this.concentration), recharge: structuredClone(this.combat.recharge), order: this.combat.order.map(id => {
         const entity = this.combatEntity(id); if (!entity) throw new Error('COMBAT_ENTITY_MISSING'); return { id, label: entity.label, kind: entity.kind };
       }) },
       privateNotes: { creature: this.campaign.encounter?.note ?? '', wheel: this.campaign.wheelInteraction?.note ?? '' },
@@ -1506,7 +1553,11 @@ export class GameState {
     const players = [...this.characters.values()].filter(character => Boolean(character.sessionToken) && character.sceneId === this.sceneId).map(character => character.id);
     const creature = this.creature?.visible && this.creature.hp > 0 && this.creature.sceneId === this.sceneId ? [this.creature.id] : [];
     const npcs = [...this.npcs.values()].filter(npc => npc.sceneId === this.sceneId && npc.visible && npc.combatEnabled).map(npc => npc.id);
-    const participantIds = [...players, ...creature, ...npcs].filter(id => (this.combatEntity(id)?.hp ?? 0) > 0);
+    // Los PJ a 0 PG siguen participando para sus salvaciones de muerte.
+    const participantIds = [...players, ...creature, ...npcs].filter(id => {
+      const entity = this.combatEntity(id);
+      return entity && (entity.kind === 'player' ? entity.deathSaves.failures < 3 : entity.hp > 0);
+    });
     if (!players.length || participantIds.length < 2) return false;
     // Las tiradas pertenecen a la mesa: el servidor sólo recibe el total que
     // cada participante ha tirado físicamente y nunca genera un d20 aquí.
@@ -1768,9 +1819,14 @@ export class GameState {
     return this.combat.participantIds.some(id => id !== attackerId && id !== targetId && this.combatEntity(id)?.controller === attacker.controller && (this.combatEntity(id)?.hp ?? 0) > 0 && Math.max(Math.abs((this.entityCell(id)?.col ?? 999) - targetCell.col), Math.abs((this.entityCell(id)?.row ?? 999) - targetCell.row)) <= 1);
   }
   private actionCost(action: CombatAction) { return action.actionCost ?? 'action'; }
+  private combatResourcesFor(entityId: string) {
+    return this.characters.get(entityId)?.combat.resources ?? (this.creature?.id === entityId ? this.creature.resources : {});
+  }
   private hasActionAvailable(entityId: string, action: CombatAction) {
+    if (!this.combat.active || this.combat.initiativePending || !this.combat.participantIds.includes(entityId)) return false;
     const cost = this.actionCost(action);
-    const prepared = this.combat.stances[entityId]?.action === 'ready';
+    const prepared = this.combat.stances[entityId]?.action === 'ready' && !this.combat.reactionUsed[entityId];
+    if (this.combat.sequences[entityId]?.actionId === action.id) return this.currentCombatId() === entityId || prepared;
     return cost === 'reaction' ? !this.combat.reactionUsed[entityId] : cost === 'bonus' ? this.currentCombatId() === entityId && !this.combat.bonusActionUsed[entityId] : this.currentCombatId() === entityId && !this.combat.actionUsed[entityId] || prepared;
   }
   private consumeActionCost(entityId: string, action: CombatAction) {
@@ -1783,17 +1839,21 @@ export class GameState {
     const prepared = this.combat.stances[attackerId]?.action === 'ready', finish = () => {
       if (prepared) { this.combat.reactionUsed[attackerId] = true; delete this.combat.stances[attackerId]; }
       else this.consumeActionCost(attackerId, action);
-      this.consumeActionResource(attackerId, action);
     };
     const sequence = this.combat.sequences[attackerId];
+    this.consumeActionResource(attackerId, action, Boolean(sequence));
     if (sequence?.actionId === action.id) { sequence.remaining--; if (sequence.remaining <= 0) { delete this.combat.sequences[attackerId]; finish(); } return; }
-    const count = action.attackCount ?? 1;
-    if (count > 1) this.combat.sequences[attackerId] = { actionId: action.id, remaining: count - 1, ...(action.lockSequenceTarget && targetId ? { targetId } : {}) };
+    // Extra Attack applies on your own turn, not to a readied weapon attack.
+    const count = prepared && !action.magical ? 1 : action.attackCount ?? 1;
+    if (count > 1) {
+      if (!prepared) this.consumeActionCost(attackerId, action);
+      this.combat.sequences[attackerId] = { actionId: action.id, remaining: count - 1, ...(action.lockSequenceTarget && targetId ? { targetId } : {}) };
+    }
     else finish();
   }
-  private consumeActionResource(attackerId: string, action: CombatAction) {
-    if (action.resource) {
-      const resource = this.characters.get(attackerId)?.combat.resources[action.resource.id];
+  private consumeActionResource(attackerId: string, action: CombatAction, continuing = false) {
+    if (action.resource && !continuing) {
+      const resource = this.combatResourcesFor(attackerId)[action.resource.id];
       if (resource) resource.current = Math.max(0, resource.current - action.resource.cost);
       if (this.isSlottedSpell(action)) this.combat.spellSlotUsedTurn[attackerId] = this.combatTurnKey();
     }
@@ -1844,7 +1904,7 @@ export class GameState {
     // El DM puede resolver cualquier dado desde su consola; el jugador solo
     // recibe el suyo propio. Esto mantiene una mesa presencial bajo control.
     if (controller === 'player' && (actor?.controller !== 'player' || rollingId !== characterId)) return null;
-    return this.promptFor(pending);
+    return { ...this.promptFor(pending), selectionActorId: pending.attackerId, cancellable: this.canCancelCombatAction() };
   }
 
   private continueOpportunityMovement(movement: PendingMovement) {
@@ -1899,15 +1959,15 @@ export class GameState {
     const attacker = this.combatEntity(attackerId), target = targetId ? this.combatEntity(targetId) : undefined;
     if (!attacker) return { ok: false as const, code: 'UNKNOWN_ACTOR' };
     const action = attacker.attacks.find(item => item.id === actionId); if (!action) return { ok: false as const, code: 'UNKNOWN_ACTION' };
-    if (this.attackNeedsThrownDagger(action) && !this.hasInventoryStack(attackerId, /\bdagas?\b/i)
-      || this.attackNeedsArrows(action) && !this.hasInventoryStack(attackerId, /\bflechas?\b/i)) return { ok: false as const, code: 'RESOURCE_DEPLETED' };
+    if (this.characters.has(attackerId) && (this.attackNeedsThrownDagger(action) && !this.hasInventoryStack(attackerId, /\bdagas?\b/i)
+      || this.attackNeedsArrows(action) && !this.hasInventoryStack(attackerId, /\bflechas?\b/i))) return { ok: false as const, code: 'RESOURCE_DEPLETED' };
     if (!this.hasActionAvailable(attackerId, action)) return { ok: false as const, code: this.currentCombatId() === attackerId ? 'ACTION_USED' : 'NOT_YOUR_TURN' };
     if (action.targeting === 'point') {
       if (targetId || !targetCell || !this.isCurrentSceneCell(targetCell)) return { ok: false as const, code: 'INVALID_TARGET' };
       const limit = action.range?.longMeters ?? action.range?.normalMeters;
       if (limit !== undefined && this.distanceToCellMeters(attackerId, targetCell) > limit + .001) return { ok: false as const, code: 'OUT_OF_RANGE' };
       if (this.conditionsFor(attackerId).some(condition => condition === 'inconsciente' || condition === 'paralizada')) return { ok: false as const, code: 'INCAPACITATED' };
-      const resource = action.resource ? this.characters.get(attackerId)?.combat.resources[action.resource.id] : undefined;
+      const resource = action.resource ? this.combatResourcesFor(attackerId)[action.resource.id] : undefined;
       if (action.resource && (!resource || resource.current < action.resource.cost)) return { ok: false as const, code: 'RESOURCE_DEPLETED' };
       if (action.id === 'light-torch' && !this.hasInventoryStack(attackerId, /\bantorchas?\b/i)) return { ok: false as const, code: 'RESOURCE_DEPLETED' };
       if (!this.spellSlotAvailable(attackerId, action)) return { ok: false as const, code: 'SPELL_SLOT_USED_THIS_TURN' };
@@ -1922,9 +1982,9 @@ export class GameState {
     if (action.resolution !== 'guided' && target.controller === attacker.controller) return { ok: false as const, code: 'INVALID_TARGET' };
     const combatTargetId = target.id;
     if (this.conditionsFor(attackerId).some(condition => condition === 'inconsciente' || condition === 'paralizada')) return { ok: false as const, code: 'INCAPACITATED' };
-    const resource = action.resource ? this.characters.get(attackerId)?.combat.resources[action.resource.id] : undefined;
-    if (action.resource && (!resource || resource.current < action.resource.cost)) return { ok: false as const, code: 'RESOURCE_DEPLETED' };
+    const resource = action.resource ? this.combatResourcesFor(attackerId)[action.resource.id] : undefined;
     const sequence = this.combat.sequences[attackerId];
+    if (!sequence && action.resource && (!resource || resource.current < action.resource.cost)) return { ok: false as const, code: 'RESOURCE_DEPLETED' };
     if (sequence && sequence.actionId !== actionId) return { ok: false as const, code: 'ACTION_USED' };
     if (sequence?.targetId && sequence.targetId !== targetId) return { ok: false as const, code: 'INVALID_TARGET' };
     if (!sequence && !this.spellSlotAvailable(attackerId, action)) return { ok: false as const, code: 'SPELL_SLOT_USED_THIS_TURN' };
@@ -1937,7 +1997,6 @@ export class GameState {
       this.setCombatEvent(`${attacker.label} declara ${action.label}. Resolver con el DM: ${action.guidance ?? 'aplicar la consecuencia acordada y registrarla.'}`, 'turn', `${attacker.label} declara ${action.label}. Resolver con el DM.`, { actorId: attacker.id, targetId: target.id, animation: this.animationFor(action) });
       return { ok: true as const, code: 'GUIDED_RESOLUTION' };
     }
-    if (!sequence && action.concentration) this.startConcentration(attackerId, action.id, action.label);
     if (action.save) {
       const targetConditions = new Set(this.conditionsFor(combatTargetId));
       const targetTraits = target.ruleTraits;
@@ -1954,7 +2013,6 @@ export class GameState {
       const canSneak = useSneakAttack && this.canSneakAttack(attackerId, combatTargetId, action, advantage);
       this.combat.pending = { id: crypto.randomUUID(), stage: 'attack', attackerId, targetId: combatTargetId, actionId, advantage, useSneakAttack: canSneak, ...(canSneak ? { sneakAttackDice: attacker.ruleTraits.sneakAttackDice } : {}) };
     }
-    for (const condition of ['oculta', 'invisible'] as const) if (this.conditionsFor(attackerId).includes(condition)) this.setCombatCondition(attackerId, condition, false);
     return { ok: true as const, code: 'ROLL_REQUIRED' };
   }
   private damageDiceRange(formula: string) {
@@ -2007,6 +2065,12 @@ export class GameState {
       return { ok: true as const, code: success ? 'HIDE_SUCCESS' : 'HIDE_FAILED' };
     }
     const action = attacker.attacks.find(item => item.id === pending.actionId);
+    // La selección pendiente todavía no es un lanzamiento ni un ataque.
+    // Sus efectos empiezan cuando la mesa confirma la primera tirada.
+    if (action && this.canCancelCombatAction()) {
+      if (action.concentration && !this.combat.sequences[attacker.id]) this.startConcentration(attacker.id, action.id, action.label);
+      for (const condition of ['oculta', 'invisible'] as const) if (this.conditionsFor(attacker.id).includes(condition)) this.setCombatCondition(attacker.id, condition, false);
+    }
     if (!action) return { ok: false as const, code: 'UNKNOWN_ACTION' };
     if (pending.stage === 'save') {
       const automaticallyFails = this.conditionsFor(target.id).includes('paralizada') && (action.save?.ability === 'str' || action.save?.ability === 'dex');
@@ -2153,7 +2217,69 @@ export class GameState {
     }
     return false;
   }
-  endCombat() { if (!this.combat.active) return false; this.combat = emptyCombat(); return true; }
+  canCancelCombatAction() {
+    const pending = this.combat.pending;
+    if (!pending || pending.opportunity || this.combat.sequences[pending.attackerId]) return false;
+    if (pending.stage === 'attack' || pending.stage === 'save') return true;
+    const action = this.combatEntity(pending.attackerId)?.attacks.find(item => item.id === pending.actionId);
+    return pending.stage === 'damage' && Boolean(action?.automaticHit) && pending.critical === undefined;
+  }
+
+  cancelCombatAction(attackerId: string, promptId?: string) {
+    if (!this.combat.active) return { ok: false as const, code: 'COMBAT_INACTIVE' };
+    if (!this.combat.pending && this.combat.openingAction?.attackerId === attackerId && !promptId) {
+      this.combat.openingAction = null;
+    } else {
+      const pending = this.combat.pending;
+      if (!pending || pending.id !== promptId) return { ok: false as const, code: 'PROMPT_STALE' };
+      if (pending.attackerId !== attackerId) return { ok: false as const, code: 'NOT_YOUR_ACTION' };
+      // No se permite borrar daño tras ver el d20, salvaciones obligatorias ni
+      // ataques de oportunidad ya aceptados. El DM conserva Deshacer para errores.
+      if (!this.canCancelCombatAction()) return { ok: false as const, code: 'ACTION_ALREADY_RESOLVING' };
+      this.combat.pending = null;
+    }
+    this.setCombatEvent(`${this.combatEntity(attackerId)?.label ?? 'Combatiente'} cancela su selección antes de tirar; no consume recursos.`, 'turn');
+    return { ok: true as const, code: 'ACTION_CANCELLED' };
+  }
+
+  requestCombatFlee(entityId: string) {
+    if (!this.combat.active || !this.combat.participantIds.includes(entityId)) return { ok: false as const, code: 'COMBAT_INACTIVE' };
+    if (this.conditionsFor(entityId).some(condition => condition === 'inconsciente' || condition === 'paralizada')) return { ok: false as const, code: 'INCAPACITATED' };
+    this.setCombatEvent(`${this.combatEntity(entityId)!.label} quiere huir. Usa su movimiento en su turno, Correr para ganar distancia o Destrabarse para evitar ataques de oportunidad. El DM confirma cuándo está fuera de peligro o inicia una persecución.`, 'turn', undefined, { actorId: entityId });
+    return { ok: true as const, code: 'FLEE_REQUESTED' };
+  }
+
+  withdrawCombatant(entityId: string) {
+    if (!this.combat.active || !this.combat.participantIds.includes(entityId)) return { ok: false as const, code: 'INVALID_COMBATANT' };
+    if (this.combat.pending) return { ok: false as const, code: 'ROLL_PENDING' };
+    const currentId = this.currentCombatId(), previousIndex = this.combat.order.indexOf(entityId);
+    this.combat.participantIds = this.combat.participantIds.filter(id => id !== entityId);
+    this.combat.order = this.combat.order.filter(id => id !== entityId);
+    for (const record of [this.combat.initiative, this.combat.initiativeSubmitted, this.combat.spentSquares, this.combat.dashSquares, this.combat.actionUsed, this.combat.bonusActionUsed, this.combat.reactionUsed, this.combat.sneakAttackUsed, this.combat.sneakAttackUsedTurn, this.combat.spellSlotUsedTurn, this.combat.stances, this.combat.sequences, this.combat.recharge]) delete record[entityId];
+    for (const [id, stance] of Object.entries(this.combat.stances)) if (stance.targetId === entityId) delete this.combat.stances[id];
+    for (const [id, sequence] of Object.entries(this.combat.sequences)) if (sequence.targetId === entityId) delete this.combat.sequences[id];
+    if (this.combat.openingAction?.attackerId === entityId || this.combat.openingAction?.targetId === entityId) this.combat.openingAction = null;
+    // El DM ha adjudicado la salida; el actor sigue en el mapa y conserva PG y efectos.
+    if (this.combat.participantIds.length < 2) { this.endCombat(); return { ok: true as const, code: 'COMBAT_ENDED' }; }
+    if (this.combat.initiativePending) this.combat.turnIndex = 0;
+    else if (currentId === entityId) {
+      this.combat.turnIndex = Math.min(previousIndex, this.combat.order.length) - 1;
+      this.nextCombatTurn();
+    } else this.combat.turnIndex = Math.max(0, this.combat.order.indexOf(currentId!));
+    this.setCombatEvent(`${this.combatEntity(entityId)?.label ?? 'Combatiente'} sale del combate por decisión del DM.`, 'turn');
+    return { ok: true as const, code: 'COMBATANT_WITHDRAWN' };
+  }
+
+  cancelCombat() {
+    if (!this.combat.active || !this.combat.initiativePending) return false;
+    return this.endCombat();
+  }
+
+  endCombat() {
+    if (!this.combat.active || this.combat.pending) return false;
+    for (const character of this.characters.values()) character.input.held = null;
+    this.combat = emptyCombat(); return true;
+  }
 
   private validateObject(object: ObjectRuntime, candidate: Partial<ObjectRuntime>, sceneId = this.sceneId) {
     const scene = this.sceneById(sceneId), next = { ...object, ...candidate } as ObjectRuntime;
@@ -2400,6 +2526,7 @@ export class GameState {
     return durablePayloadSchema.parse({
       sceneId: this.sceneId,
       ...(this.campaign.public.campaignId === 'stormwreck-isle' ? { wreckGridVersion: 3 } : {}),
+      ...(this.campaign.public.campaignId === 'd8-night-private' ? { d8GridVersion: 2 } : {}),
       ...(this.campRest ? { campRest: structuredClone(this.campRest) } : {}),
       characters: [...this.characters.values()].map(character => ({ id: character.id, hp: character.hp, maxHp: character.maxHp, inventory: [...character.inventory], sheet: character.sheet ? structuredClone(character.sheet) : null, resources: structuredClone(character.combat.resources), deathSaves: { ...character.deathSaves }, sceneId: character.sceneId, cell: cloneCell(character.cell), surfaceId: character.step?.toSurfaceId ?? character.surfaceId, facing: character.facing })).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
       npcs: [...this.npcs.values()].map(npc => ({ id: npc.id, sceneId: npc.sceneId, surfaceId: npc.surfaceId, cell: cloneCell(npc.cell), facing: npc.facing, hp: npc.hp, maxHp: npc.maxHp, combatEnabled: npc.combatEnabled, visible: npc.visible })).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
@@ -2423,6 +2550,7 @@ export class GameState {
 
   restoreDurable(raw: DurablePayload, now = Date.now()) {
     const payload = durablePayloadSchema.parse(structuredClone(raw));
+    const migratedD8Grid = this.migrateD8NightGrid(payload);
     this.migrateD8NightLegacyRoster(payload);
     this.migrateStormwreckScenes(payload);
     this.migrateStormwreckGrid(payload);
@@ -2610,7 +2738,7 @@ export class GameState {
     const restoredSequences = Object.fromEntries(Object.entries(payload.combat?.sequences ?? {}).map(([id, sequence]) => [id, { actionId: sequence.actionId, remaining: sequence.remaining }])) as CombatState['sequences'];
     this.combat = payload.combat?.active ? { ...emptyCombat(), active: true, round: payload.combat.round, order: [...payload.combat.order], turnIndex: payload.combat.turnIndex, participantIds: [...payload.combat.participantIds], initiative: { ...payload.combat.initiative }, initiativeSubmitted: { ...(payload.combat.initiativeSubmitted ?? Object.fromEntries(payload.combat.participantIds.map(id => [id, true]))) }, initiativePending: payload.combat.initiativePending ?? false, spentSquares: { ...payload.combat.spentSquares }, dashSquares: { ...(payload.combat.dashSquares ?? {}) }, actionUsed: { ...payload.combat.actionUsed }, bonusActionUsed: { ...(payload.combat.bonusActionUsed ?? {}) }, reactionUsed: { ...(payload.combat.reactionUsed ?? {}) }, sneakAttackUsed: { ...(payload.combat.sneakAttackUsed ?? {}) }, sneakAttackUsedTurn: { ...(payload.combat.sneakAttackUsedTurn ?? {}) }, spellSlotUsedTurn: { ...(payload.combat.spellSlotUsedTurn ?? {}) }, stances: restoredStances, sequences: restoredSequences, recharge: structuredClone(payload.combat.recharge ?? {}), openingAction: structuredClone(payload.combat.openingAction ?? null), pending: structuredClone(payload.combat.pending ?? null), lastEvent: { id: crypto.randomUUID(), text: payload.combat.initiativePending ? 'Iniciativa pendiente de completar' : `Ronda ${payload.combat.round} restaurada`, publicText: payload.combat.initiativePending ? 'Iniciativa pendiente de completar' : `Ronda ${payload.combat.round} restaurada`, kind: 'turn' } } : emptyCombat();
     this.interactions = []; this.projectorReady = false;
-    return migratedObjectInteractions || migratedCharacterSheets;
+    return migratedD8Grid || migratedObjectInteractions || migratedCharacterSheets;
   }
 }
 
@@ -2634,7 +2762,6 @@ export class GameServer {
   private sessionSockets = new Map<string, string>();
   private processedCommands = new Map<string, { at: number; fingerprint: string; result: CommandResult }>();
   private gameplayUndo: Array<{ label: string; payload: DurablePayload }> = [];
-  private lastFootstepAt = new Map<string, number>();
   private sharedCameraOrientations = new Map<SceneId, number>();
   private cameraSharingEnabled = false;
 
@@ -2752,7 +2879,7 @@ export class GameServer {
       || event.sceneId !== this.state.sceneId
       || (event.step !== null && (!Number.isInteger(event.step) || Number(event.step) < 0 || Number(event.step) > 7))) return;
     const scene = this.state.campaign.public.scenes.find(candidate => candidate.id === event.sceneId);
-    if (scene?.renderer !== 'babylon-hd2d' || !scene.terrain) return;
+    if (!supportsCameraOrientation(scene)) return;
     if (event.step === null) {
       this.cameraSharingEnabled = false;
       this.sharedCameraOrientations.clear();
@@ -2935,6 +3062,10 @@ export class GameServer {
     if (parsed.data.type === 'combat:initiative') {
       if (!this.state.submitInitiative(character.id, parsed.data.total)) return finish({ commandId: parsed.data.commandId, ok: false, code: 'INVALID_INITIATIVE' });
       resultCode = 'INITIATIVE_RECORDED';
+    } else if (parsed.data.type === 'combat:cancelAction') {
+      const result = this.state.cancelCombatAction(character.id, parsed.data.promptId); if (!result.ok) return finish({ commandId: parsed.data.commandId, ...result }); resultCode = result.code;
+    } else if (parsed.data.type === 'combat:flee') {
+      const result = this.state.requestCombatFlee(character.id); if (!result.ok) return finish({ commandId: parsed.data.commandId, ...result }); resultCode = result.code;
     } else if (parsed.data.type === 'combat:endTurn') {
       if (this.state.publicSnapshot().combat.currentId !== character.id) return finish({ commandId: parsed.data.commandId, ok: false, code: 'NOT_YOUR_TURN' });
       if (this.state.combat.pending) return finish({ commandId: parsed.data.commandId, ok: false, code: 'ROLL_PENDING' });
@@ -3146,7 +3277,7 @@ export class GameServer {
 
   applyDmCommand(command: DmCommand): CommandResult {
     const staleTypes = new Set(['scene', 'view:focus', 'entity:portal', 'scene:animation', 'creature', 'npc:visible', 'camera', 'environment', 'camp:rest', 'entity:move', 'resolveInteraction', 'combat:start', 'combat:participant', 'combat:initiative', 'combat:initiativeOrder', 'combat:condition', 'combat:endTurn', 'combat:next', 'combat:end', 'combat:declare', 'combat:basic', 'combat:stand', 'combat:dropProne', 'combat:reaction', 'combat:rollAttack', 'combat:rollDamage', 'combat:rollSave', 'combat:rollDeathSave', 'combat:recharge', 'progress:toggle', 'pickup:take']);
-    if (staleTypes.has(command.type) && 'sceneEpoch' in command && command.sceneEpoch !== this.state.sceneEpoch) {
+    if ((staleTypes.has(command.type) || command.type.startsWith('combat:')) && 'sceneEpoch' in command && command.sceneEpoch !== this.state.sceneEpoch) {
       return { commandId: command.commandId, ok: false, code: 'STALE_SCENE' };
     }
     if (command.type === 'object:door' || command.type === 'object:interact' || command.type === 'object:transform' || command.type === 'object:detach' || command.type === 'object:structure' || command.type === 'object:undo') {
@@ -3222,7 +3353,14 @@ export class GameServer {
       if (this.state.combat.pending) return { commandId: command.commandId, ok: false, code: 'ROLL_PENDING' };
       if (!this.state.nextCombatTurn()) return { commandId: command.commandId, ok: false, code: 'COMBAT_INACTIVE' };
     } else if (command.type === 'combat:end') {
+      if (this.state.combat.pending) return { commandId: command.commandId, ok: false, code: 'ROLL_PENDING' };
       if (!this.state.endCombat()) return { commandId: command.commandId, ok: false, code: 'COMBAT_INACTIVE' };
+    } else if (command.type === 'combat:cancel') {
+      if (!this.state.cancelCombat()) return { commandId: command.commandId, ok: false, code: 'COMBAT_ALREADY_STARTED' };
+    } else if (command.type === 'combat:cancelAction') {
+      const result = this.state.cancelCombatAction(command.attackerId, command.promptId); if (!result.ok) return { commandId: command.commandId, ...result };
+    } else if (command.type === 'combat:withdraw') {
+      const result = this.state.withdrawCombatant(command.entityId); if (!result.ok) return { commandId: command.commandId, ...result };
     } else if (command.type === 'combat:declare') {
       const result = this.state.declareCombatAction(command.attackerId, command.targetId, command.actionId, command.useSneakAttack, command.targetCell); if (!result.ok) return { commandId: command.commandId, ...result };
     } else if (command.type === 'combat:basic') {
@@ -3416,13 +3554,27 @@ export class GameServer {
 
   private emitCombatAnimation(pending: PendingCombatResolution, hit: boolean) {
     const action = this.state.combatEntity(pending.attackerId)?.attacks.find(item => item.id === pending.actionId);
+    const animationType = visualAnimationType(action);
     this.io.emit('combat:animation', {
       runtimeEpoch: this.state.runtimeEpoch, attackerId: pending.attackerId, targetId: pending.targetId,
-      type: visualAnimationType(action), hit,
+      type: animationType, hit,
       sneakAttack: Boolean(pending.sneakAttackDice),
       frozen: pending.attackerId === this.state.creature?.id && this.state.campaign.encounter?.mirrorPlayer === true
     });
+    if (!action?.soundId && animationType === 'arrow') {
+      const runtimeEpoch = this.state.runtimeEpoch, sceneEpoch = this.state.sceneEpoch;
+      this.emitProjectorSfx('d8-night-sfx-bow-release');
+      setTimeout(() => {
+        if (this.state.runtimeEpoch !== runtimeEpoch || this.state.sceneEpoch !== sceneEpoch) return;
+        this.emitProjectorSfx('d8-night-sfx-arrow-swish');
+        if (hit) setTimeout(() => {
+          if (this.state.runtimeEpoch === runtimeEpoch && this.state.sceneEpoch === sceneEpoch) this.emitProjectorSfx('d8-night-sfx-arrow-hit');
+        }, 280);
+      }, 110);
+      return;
+    }
     const sfxId = action?.soundId ?? (action?.animationType === 'fireProjectile' ? 'd8-night-sfx-spell-fire'
+      : animationType === 'vine' ? 'd8-night-sfx-attack-whip-crack'
       : action?.magical ? 'd8-night-sfx-spell-arcane'
       : hit ? 'd8-night-sfx-attack-hit' : 'd8-night-sfx-attack-swing');
     this.emitProjectorSfx(sfxId);
@@ -3438,8 +3590,8 @@ export class GameServer {
     this.io.emit('scene:animation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, entityId, state: basicCombatActionAnimationStates[action], durationMs: action === 'dash' ? 900 : 700 });
     if (action === 'dash') this.emitMovementSfx(entityId, 900);
     else if (action === 'magic') this.emitProjectorSfx('d8-night-sfx-spell-arcane');
-    else if (action === 'hide') this.emitProjectorSfx('d8-night-sfx-world-leather-pack');
-    else if (action === 'use-object' || action === 'search' || action === 'study') this.emitProjectorSfx('d8-night-sfx-world-book-open');
+    else if (action === 'hide' || action === 'use-object') this.emitProjectorSfx('d8-night-sfx-world-leather-pack');
+    else if (action === 'study') this.emitProjectorSfx('d8-night-sfx-world-book-open');
   }
 
   private emitAreaEffect(actionId: string, cell: Cell) {
@@ -3453,16 +3605,15 @@ export class GameServer {
   }
 
   private emitMovementSfx(entityId: string, durationMs = STEP_DURATION_MS) {
-    const now = Date.now(), previous = this.lastFootstepAt.get(entityId) ?? 0;
-    if (now - previous < 250) return;
-    this.lastFootstepAt.set(entityId, now);
     const character = this.state.characters.get(entityId);
     const creature = this.state.creature?.id === entityId ? this.state.creature : null;
     const npc = this.state.npcs.get(entityId) ?? null;
     // La superficie pertenece a la ficha, no a la vista que esté enfocando el
     // DM; así los pasos siguen siendo correctos en mapas con varias plantas.
     const surface = character?.surfaceId ?? creature?.surfaceId ?? npc?.surfaceId ?? this.state.currentScene().surfaceId;
-    const sfxId = surface === 'cafe' || surface === 'village' || surface === 'deck' || surface === 'objects-deck'
+    const sfxId = surface === 'ice'
+      ? 'd8-night-sfx-step-ice'
+      : surface === 'cafe' || surface === 'village' || surface === 'deck' || surface === 'objects-deck'
       ? 'd8-night-sfx-step-wood'
       : surface === 'garden' || surface === 'market' || surface === 'beach' || surface === 'shore'
         ? 'd8-night-sfx-movement-gravel'
@@ -3472,11 +3623,10 @@ export class GameServer {
 
   private emitSceneAnimationSfx(state: string) {
     const byAnimation: Record<string, string> = {
-      attack: 'd8-night-sfx-attack-swing', entangle: 'd8-night-sfx-creature-growl', transform: 'd8-night-sfx-magic-ritual',
+      attack: 'd8-night-sfx-attack-swing', entangle: 'd8-night-sfx-attack-whip-crack', transform: 'd8-night-sfx-magic-ritual',
       activate: 'd8-night-sfx-magic-reveal', copy: 'd8-night-sfx-magic-teleport', interact: 'd8-night-sfx-world-book-open',
       give: 'd8-night-sfx-coins', 'receive-coins': 'd8-night-sfx-coins', 'give-beans': 'd8-night-sfx-world-wood-impact',
-      'give-steak': 'd8-night-sfx-world-wood-impact', 'throw-cow': 'd8-night-sfx-world-wood-impact', 'guide-cow': 'd8-night-sfx-movement-gravel',
-      react: 'd8-night-sfx-creature-growl', resist: 'd8-night-sfx-creature-growl'
+      'give-steak': 'd8-night-sfx-world-wood-impact', 'throw-cow': 'd8-night-sfx-market-cow-moo', 'guide-cow': 'd8-night-sfx-market-cow-moo'
     };
     if (byAnimation[state]) this.emitProjectorSfx(byAnimation[state]!);
   }

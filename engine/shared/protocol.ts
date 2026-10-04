@@ -105,7 +105,9 @@ export interface CombatPrompt {
   id: string; stage: 'attack' | 'damage' | 'save' | 'escape' | 'check' | 'death-save' | 'concentration' | 'reaction'; actorId: string; targetId: string;
   title: string; instruction: string; advantage: 'normal' | 'advantage' | 'disadvantage';
   minimum?: number; maximum?: number;
+  selectionActorId?: string; cancellable?: boolean;
 }
+export interface PendingActionSelection { promptId?: string; label: string; cancellable: boolean }
 
 type PropCommon = { id: string; label: string; assetId: string; cell: Cell; surfaceId: string; capabilities: { transform: boolean; detach: boolean; structure: boolean } };
 export type PublicObjectInteraction =
@@ -204,7 +206,7 @@ export interface PlayerPrivate {
   explorationAttacks: CombatAction[];
   explorationBasics: ExplorationBasicAction[];
   sceneMovementEnabled: boolean;
-  combat: { isTurn: boolean; ready: boolean; movement: { remainingSquares: number; maximumSquares: number } | null; attacks: CombatAction[]; conditions: CombatCondition[]; prompt: CombatPrompt | null; initiative: { pending: boolean; submitted: boolean; total: number | null; modifier: number }; actionUsed: boolean; bonusActionUsed: boolean; reactionUsed: boolean; basicActions: BasicCombatAction[]; recharge: Record<string, boolean>; resources: Record<string, { label: string; current: number; max: number }>; spellAttackBonus?: number; spellSaveDc?: number } | null;
+  combat: { isTurn: boolean; ready: boolean; movement: { remainingSquares: number; maximumSquares: number } | null; attacks: CombatAction[]; conditions: CombatCondition[]; prompt: CombatPrompt | null; pendingAction?: PendingActionSelection; sequence?: { actionId: string; remaining: number }; initiative: { pending: boolean; submitted: boolean; total: number | null; modifier: number }; actionUsed: boolean; bonusActionUsed: boolean; reactionUsed: boolean; basicActions: BasicCombatAction[]; recharge: Record<string, boolean>; resources: Record<string, { label: string; current: number; max: number }>; spellAttackBonus?: number; spellSaveDc?: number } | null;
   notice?: string;
 }
 
@@ -218,6 +220,8 @@ export interface InteractionRequest {
 }
 
 export interface DmState {
+  /** D8-only, DM-only action catalogue for local visual QA; never authorizes gameplay. */
+  animationAudit?: Array<{ id: string; attacks: CombatAction[]; explorationActions: ExplorationAction[]; explorationBasics: ExplorationBasicAction[] }>;
   runtimeEpoch: string;
   campaignTitle: string;
   sceneId: SceneId;
@@ -226,7 +230,7 @@ export interface DmState {
   characters: Array<CharacterPublic & { hp: number; maxHp: number; session: boolean; sceneId: SceneId; cell: Cell; surfaceId: string; step: StepState | null; inventory: string[]; sheet: CharacterSheetView | null; resources: Record<string, { label: string; current: number; max: number }>; concentration: { actionId: string; label: string } | null; deathSaves: { successes: number; failures: number; stable: boolean } }>;
   creature: { id: string; label: string; visible: boolean; cell: Cell; surfaceId: string; sceneId: SceneId; hp: number; maxHp: number; armorClass: number; speedMeters: number; traits: string[]; actions: string[] } | null;
   npcs: Array<{ id: string; label: string; tokenId: string; color: string; cell: Cell; surfaceId: string; hp: number; maxHp: number; armorClass: number; speedMeters: number; traits: string[]; attacks: CombatAction[]; combatEnabled: boolean; visible: boolean }>;
-  combat: { active: boolean; round: number; currentId: string | null; movement: { actorId: string; maximumSquares: number; spentSquares: number; remainingSquares: number } | null; participants: CombatParticipant[]; lastEvent: CombatEvent | null; prompt: CombatPrompt | null; initiativePending: boolean; initiativeSubmitted: Record<string, boolean>; actionUsed: Record<string, boolean>; bonusActionUsed: Record<string, boolean>; reactionUsed: Record<string, boolean>; concentration: Record<string, { actionId: string; label: string }>; recharge: Record<string, Record<string, boolean>>; order: Array<{ id: string; label: string; kind: 'player' | 'creature' | 'npc' }> };
+  combat: { sequences: Record<string, { actionId: string; remaining: number; targetId?: string }>; active: boolean; round: number; currentId: string | null; movement: { actorId: string; maximumSquares: number; spentSquares: number; remainingSquares: number } | null; participants: CombatParticipant[]; lastEvent: CombatEvent | null; prompt: CombatPrompt | null; initiativePending: boolean; initiativeSubmitted: Record<string, boolean>; actionUsed: Record<string, boolean>; bonusActionUsed: Record<string, boolean>; reactionUsed: Record<string, boolean>; concentration: Record<string, { actionId: string; label: string }>; recharge: Record<string, Record<string, boolean>>; order: Array<{ id: string; label: string; kind: 'player' | 'creature' | 'npc' }> };
   privateNotes: { creature: string; wheel: string };
   camera: CameraState;
   environment: EnvironmentState;
@@ -266,6 +270,8 @@ export const explorationActionSchema = z.discriminatedUnion('type', [
 ]);
 export const inventoryUpdateSchema = z.object({ runtimeEpoch: runtimeEpochSchema.optional(), commandId: commandIdSchema, items: z.array(z.string().trim().min(1).max(180)).max(80) }).strict();
 export const playerCombatSchema = z.discriminatedUnion('type', [
+  z.object({ runtimeEpoch: runtimeEpochSchema.optional(), type: z.literal('combat:cancelAction'), commandId: commandIdSchema, sceneEpoch: epochSchema, promptId: commandIdSchema.optional() }).strict(),
+  z.object({ runtimeEpoch: runtimeEpochSchema.optional(), type: z.literal('combat:flee'), commandId: commandIdSchema, sceneEpoch: epochSchema }).strict(),
   z.object({ runtimeEpoch: runtimeEpochSchema.optional(), type: z.literal('combat:initiative'), commandId: commandIdSchema, sceneEpoch: epochSchema, total: z.number().int().min(-20).max(40) }).strict(),
   z.object({ runtimeEpoch: runtimeEpochSchema.optional(), type: z.literal('combat:endTurn'), commandId: commandIdSchema, sceneEpoch: epochSchema }).strict(),
   z.object({ runtimeEpoch: runtimeEpochSchema.optional(), type: z.literal('combat:hp'), commandId: commandIdSchema, sceneEpoch: epochSchema, delta: z.number().int().min(-99).max(99).refine(delta => delta !== 0) }).strict(),
@@ -336,6 +342,9 @@ export const dmCommandSchema = z.discriminatedUnion('type', [
   z.object({ ...runtimeField, type: z.literal('combat:endTurn'), commandId: commandIdSchema, sceneEpoch: epochSchema }).strict(),
   z.object({ ...runtimeField, type: z.literal('combat:next'), commandId: commandIdSchema, sceneEpoch: epochSchema }).strict(),
   z.object({ ...runtimeField, type: z.literal('combat:end'), commandId: commandIdSchema, sceneEpoch: epochSchema }).strict(),
+  z.object({ ...runtimeField, type: z.literal('combat:cancel'), commandId: commandIdSchema, sceneEpoch: epochSchema }).strict(),
+  z.object({ ...runtimeField, type: z.literal('combat:cancelAction'), commandId: commandIdSchema, sceneEpoch: epochSchema, attackerId: idSchema, promptId: commandIdSchema.optional() }).strict(),
+  z.object({ ...runtimeField, type: z.literal('combat:withdraw'), commandId: commandIdSchema, sceneEpoch: epochSchema, entityId: idSchema }).strict(),
   z.object({ ...runtimeField, type: z.literal('combat:declare'), commandId: commandIdSchema, sceneEpoch: epochSchema, attackerId: idSchema, targetId: idSchema.optional(), targetCell: cellSchema.optional(), actionId: idSchema, useSneakAttack: z.boolean().optional() }).strict(),
   z.object({ ...runtimeField, type: z.literal('combat:basic'), commandId: commandIdSchema, sceneEpoch: epochSchema, attackerId: idSchema, action: z.enum(['dash', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'ready', 'search', 'study', 'use-object']), targetId: idSchema.optional() }).strict(),
   z.object({ ...runtimeField, type: z.literal('combat:escape'), commandId: commandIdSchema, sceneEpoch: epochSchema, attackerId: idSchema }).strict(),

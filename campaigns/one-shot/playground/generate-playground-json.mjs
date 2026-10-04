@@ -17,6 +17,7 @@ const currentName = "playground_current.json";
 
 const files = {
   "index.ts": await fs.readFile(path.join(here, "index.ts"), "utf8"),
+  "renderer.ts": await fs.readFile(path.join(here, "renderer.ts"), "utf8"),
   "d8night.config.ts": await fs.readFile(path.join(here, "d8night.config.ts"), "utf8")
 };
 

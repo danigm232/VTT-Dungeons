@@ -5,7 +5,7 @@ audio, voces, texto ni mapas extraídos de la aventura comercial.
 
 | Recursos locales | Autor y origen | Licencia |
 | --- | --- | --- |
-| Archivo de pasos, puertas, barco, objetos y acciones (no usado por los disparadores actuales) | [50 RPG sound effects · Kenney](https://opengameart.org/node/21999) | CC0 |
+| Clips CC0 seleccionados para objetos y acciones concretas (el resto del paquete se conserva fuera de `public`) | [50 RPG sound effects · Kenney](https://opengameart.org/node/21999) | CC0 |
 | Pasos de cubierta | [Footsteps Walking Boots Parquet 1 · SoundReality](https://pixabay.com/sound-effects/film-special-effects-footsteps-walking-boots-parquet-1-420135/) | Pixabay Content License |
 | Pasos de basalto, grava y carrera | [Stone Steps](https://pixabay.com/sound-effects/film-special-effects-stone-steps-6748/), [Footsteps on gravel](https://pixabay.com/sound-effects/film-special-effects-footsteps-on-gravel-61337/) y [running sounds](https://pixabay.com/sound-effects/film-special-effects-running-sounds-6003/) · freesound_community | Pixabay Content License |
 | Combate de costa, heroico y oscuro | [Battle Epic · Kulakovka](https://pixabay.com/music/main-title-battle-epic-274997/), [Heroic Battle · leberch](https://pixabay.com/music/main-title-heroic-battle-251914/), [Blackout - Epic Fantasy Music · Cyberwave-Orchestra](https://pixabay.com/music/main-title-blackout-epic-fantasy-music-295150/) | Pixabay Content License |

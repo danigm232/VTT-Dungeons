@@ -41,6 +41,7 @@ body>.action-tooltip.touch-visible{position:fixed;z-index:30;right:auto;left:50%
 .contextual-action-arrow{color:#d7bd7d;font-size:1.25rem;line-height:1}
 @media(max-width:560px){.contextual-action{min-height:34px;margin:.3rem .38rem .1rem;width:calc(100% - .76rem);padding:.3rem .45rem;gap:.32rem}.contextual-action strong{font-size:.74rem}}
 @media(prefers-reduced-motion:reduce){#actionToggle.has-context::after{animation:none}}
+
 /* Barra de combate ultracompacta: una categoría abierta y una sola fila de acciones. */
 #targetMenu{width:min(430px,calc(100vw - 1.2rem));max-height:126px}
 #targetMenu .action-panel-header{min-height:27px;padding:.25rem .42rem}
@@ -198,3 +199,34 @@ body:not(.combat-active) #actionToggle[aria-expanded="true"]{display:grid!import
 @media(max-width:560px){.radial-action{width:42px;min-width:42px;height:42px;min-height:42px}.radial-action-glyph{font-size:1.15rem}.radial-action-label{font-size:.68rem}.radial-action .action-tooltip{width:min(260px,calc(100vw - 1.5rem))}}
 @media(orientation:landscape) and (max-height:550px){.radial-action{width:40px;min-width:40px;height:40px;min-height:40px}.radial-action-label{font-size:.65rem}}
 @media(prefers-reduced-motion:reduce){#actionToggle.has-context::after{animation:none}}
+
+/* Shared tactical controls: legible categories and an explicit escape route. */
+.radial-navigation{position:fixed;z-index:18;left:50%;top:max(118px,16vh);display:flex;align-items:center;gap:.7rem;max-width:calc(100vw - 24px);padding:.5rem .7rem;border:1px solid #ac8c50;border-radius:7px;background:#101d24f5;box-shadow:0 8px 26px #000a;transform:translateX(-50%);pointer-events:auto}
+.radial-navigation strong{color:#f3dfb2;font-family:Georgia,serif;font-size:.9rem}.radial-navigation button{min-height:36px;padding:.3rem .55rem;font-size:.75rem;border-color:#796342;background:#192c32}
+.radial-action:disabled{opacity:.45;cursor:not-allowed}.radial-pagination{transform:translate(-50%,-50%);padding:4px}.radial-page-control{width:32px;min-width:32px;height:32px;min-height:32px}.radial-page-number{min-width:32px;font-size:.72rem}
+.selected-action{position:fixed;z-index:19;left:50%;bottom:110px;display:flex;align-items:center;gap:.7rem;max-width:calc(100vw - 28px);padding:.5rem .65rem;border:1px solid #d3b36c;border-radius:6px;background:#13252bf2;color:#f2e5c9;box-shadow:0 8px 24px #0009;transform:translateX(-50%);font-size:.82rem}.selected-action span{min-width:0}.selected-action button{flex-shrink:0;min-height:36px;padding:.3rem .6rem;background:#34292c;border-color:#b39a6d}
+.combat-initiative-roster{max-height:calc(100vh - 185px)}.combat-command-bar{max-width:calc(100vw - 300px)}
+@media(max-width:720px){.radial-navigation{top:118px;gap:.35rem;width:max-content}.radial-navigation strong{font-size:.75rem}.radial-navigation button{font-size:.68rem}.selected-action{bottom:76px;font-size:.72rem;max-width:calc(100vw - 16px);width:max-content}.combat-command-bar{max-width:none}.combat-initiative-roster{max-height:none}}
+@media(orientation:landscape) and (max-height:550px){.radial-navigation{top:10px}.selected-action{bottom:73px}}
+@media(min-width:1051px){.combat-command-bar{left:auto;right:16px;width:min(1040px,calc(100vw - 310px));min-width:0;max-width:none;transform:none}.combat-command{flex:1;min-width:58px}.combat-command-title{min-width:108px}}
+@media(min-width:721px) and (max-width:1050px){.combat-command-bar{width:calc(100vw - 32px);max-width:none;overflow-x:auto}}
+
+/* Turn economy never disappears at the compact breakpoint or needs a hover. */
+.combat-resources{position:fixed;z-index:15;left:50%;bottom:92px;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px;width:max-content;max-width:calc(100vw - 32px);padding:5px;border:1px solid #a7844d;border-radius:4px;background:#101d24f7;box-shadow:0 6px 20px #0008;transform:translateX(-50%)}
+.turn-resource{display:grid;gap:2px;min-width:64px;padding:3px 9px;border-left:2px solid #65717a;background:#14232b;color:#b3c0c4;font-variant-numeric:tabular-nums}
+.turn-resource.ready{border-left-color:#64d6a0;color:#e1f7e9}.turn-resource small{font-size:.65rem}.turn-resource b{font-size:.76rem}
+.combat-overview{min-height:38px;padding:.35rem .5rem;border-color:#897548;background:#23313a;color:#ead8ae;font-size:.7rem}.combat-overview[aria-pressed="true"]{border-color:#77caff;background:#1c4760}
+.combat-active-effects{flex-basis:100%;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.68rem;color:#d9b5ff;text-align:center}
+.selected-action{bottom:154px;max-width:min(620px,calc(100vw - 32px));max-height:160px;overflow:auto}.selected-action>span{display:grid;gap:5px}.selected-action strong{font:700 .82rem Georgia,serif}.selected-action small{color:#c2d6d5;font-size:.72rem;line-height:1.4}
+.combat-command-title small{display:none}
+@media(max-width:1050px){
+  body.combat-active .combat-notice{top:8px;right:8px;width:auto;min-height:29px;padding:.35rem .5rem;font-size:.7rem}
+  .combat-initiative{top:46px;left:8px;right:8px;width:auto;max-height:66px}
+  .combat-initiative-header{padding:.25rem .45rem}.combat-initiative-header strong{font-size:.76rem}
+  .combat-initiative-roster{display:flex;overflow-x:auto;max-height:40px;padding:2px}
+  .initiative-row{flex:0 0 auto;width:auto;min-width:110px;min-height:30px;grid-template-columns:17px 25px minmax(52px,1fr);gap:.25rem;padding:.2rem .35rem}.initiative-row .initiative-portrait{width:24px;height:24px}.initiative-row b{font-size:.68rem}.initiative-row small{display:none}
+  .initiative-tooltip{position:fixed;top:118px;right:8px;left:8px;width:auto;transform:none}
+  .combat-resources{bottom:86px;max-width:calc(100vw - 16px)}
+}
+@media(max-width:720px){.combat-resources{bottom:68px;gap:3px;padding:3px}.turn-resource{min-width:0;padding:3px 5px}.turn-resource small{font-size:.58rem}.turn-resource b{font-size:.67rem}.combat-overview{min-height:34px;padding:.3rem;font-size:.6rem}.selected-action{bottom:136px;max-height:135px}.selected-action strong{font-size:.73rem}.selected-action small{font-size:.67rem}}
+@media(max-width:370px){.combat-resources{width:calc(100vw - 16px);justify-content:space-between}.turn-resource{padding:2px 4px}.combat-overview{flex-basis:100%;min-height:28px}}

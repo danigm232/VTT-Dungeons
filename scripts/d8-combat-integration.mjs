@@ -86,8 +86,16 @@ try {
   const mariaAttackPrompt = wait(maria, 'player:private', value => value.combat?.prompt?.stage === 'attack');
   const aoifeWithoutPrompt = wait(aoife, 'player:private', value => value.combat && value.combat.prompt === null);
   const declared = await emitResult(maria, 'player:combat', declare); assert.equal(declared.code, 'ROLL_REQUIRED');
-  const attackPrivate = await mariaAttackPrompt; await aoifeWithoutPrompt;
+  let attackPrivate = await mariaAttackPrompt; await aoifeWithoutPrompt;
   assert.equal((await emitResult(maria, 'player:combat', declare)).code, 'ROLL_REQUIRED', 'declaración duplicada no fue idempotente');
+  assert.equal((await emitResult(aoife, 'player:combat', { runtimeEpoch: dmInitial.runtimeEpoch, type: 'combat:cancelAction', commandId: crypto.randomUUID(), sceneEpoch: dmState.sceneEpoch, promptId: attackPrivate.combat.prompt.id })).code, 'NOT_YOUR_ACTION');
+  assert.equal((await emitResult(dm, 'dm:command', { runtimeEpoch: dmInitial.runtimeEpoch, type: 'combat:end', commandId: crypto.randomUUID(), sceneEpoch: dmState.sceneEpoch })).code, 'ROLL_PENDING');
+  const cancelled = wait(maria, 'player:private', value => value.combat && !value.combat.prompt && !value.combat.pendingAction);
+  assert.equal((await emitResult(maria, 'player:combat', { runtimeEpoch: dmInitial.runtimeEpoch, type: 'combat:cancelAction', commandId: crypto.randomUUID(), sceneEpoch: dmState.sceneEpoch, promptId: attackPrivate.combat.prompt.id })).code, 'ACTION_CANCELLED');
+  assert.equal((await cancelled).combat.actionUsed, false);
+  const redeclared = wait(maria, 'player:private', value => value.combat?.prompt?.stage === 'attack');
+  assert.equal((await emitResult(maria, 'player:combat', { ...declare, commandId: crypto.randomUUID() })).code, 'ROLL_REQUIRED');
+  attackPrivate = await redeclared;
   const promptId = attackPrivate.combat.prompt.id;
   const wrongActor = await emitResult(aoife, 'player:combat', { runtimeEpoch: dmInitial.runtimeEpoch, type: 'combat:rollAttack', commandId: crypto.randomUUID(), sceneEpoch: dmState.sceneEpoch, promptId, d20: 20 });
   assert.equal(wrongActor.code, 'WRONG_ACTOR');
@@ -96,6 +104,7 @@ try {
   const damagePrivatePromise = wait(maria, 'player:private', value => value.combat?.prompt?.stage === 'damage');
   assert.equal((await emitResult(maria, 'player:combat', attackCommand)).code, 'DAMAGE_REQUIRED');
   const damagePrivate = await damagePrivatePromise, damageId = damagePrivate.combat.prompt.id;
+  assert.equal((await emitResult(maria, 'player:combat', { runtimeEpoch: dmInitial.runtimeEpoch, type: 'combat:cancelAction', commandId: crypto.randomUUID(), sceneEpoch: dmState.sceneEpoch, promptId: damageId })).code, 'ACTION_ALREADY_RESOLVING');
   assert.notEqual(damageId, promptId);
   assert.equal((await emitResult(maria, 'player:combat', attackCommand)).code, 'DAMAGE_REQUIRED', 'ataque repetido no conservó recibo');
   const wrongStage = await emitResult(maria, 'player:combat', { runtimeEpoch: dmInitial.runtimeEpoch, type: 'combat:rollAttack', commandId: crypto.randomUUID(), sceneEpoch: dmState.sceneEpoch, promptId: damageId, d20: 4 });
@@ -108,9 +117,15 @@ try {
   const after = (await afterDamagePromise).combat.participants.find(item => item.id === 'anteros-temple').hp;
   assert.equal(before - after, 15, 'crítico de arco: suma física12 + modificador3; no debe aplicarse dos veces');
   const duplicateDamage = await emitResult(maria, 'player:combat', damageCommand); assert.equal(duplicateDamage.code, 'ATTACK_RESOLVED');
+  assert.equal((await emitResult(maria, 'player:combat', { runtimeEpoch: dmInitial.runtimeEpoch, type: 'combat:flee', commandId: crypto.randomUUID(), sceneEpoch: dmState.sceneEpoch })).code, 'FLEE_REQUESTED');
+  const afterWithdrawal = wait(dm, 'dm:state', value => value.combat.currentId === 'aoife' && !value.combat.participants.some(item => item.id === 'maria'));
+  assert.equal((await emitResult(dm, 'dm:command', { runtimeEpoch: dmInitial.runtimeEpoch, type: 'combat:withdraw', commandId: crypto.randomUUID(), sceneEpoch: dmState.sceneEpoch, entityId: 'maria' })).ok, true);
+  await afterWithdrawal;
+  const ended = wait(dm, 'dm:state', value => !value.combat.active);
+  assert.equal((await emitResult(dm, 'dm:command', { runtimeEpoch: dmInitial.runtimeEpoch, type: 'combat:withdraw', commandId: crypto.randomUUID(), sceneEpoch: dmState.sceneEpoch, entityId: 'aoife' })).ok, true); await ended;
   await delay(100);
   sockets.forEach(socket => socket.disconnect()); await stop();
-  console.log('D8 combat integration PASS: two owners, private prompts, phase ids, stale-stage rejection and idempotent physical dice.');
+  console.log('D8 combat integration PASS: private prompts, manual dice, idempotency, cancellation authority, pending-end guard and DM-approved withdrawal.');
 } finally {
   sockets.forEach(socket => socket.disconnect());
   if (child?.exitCode === null) child.kill('SIGTERM');

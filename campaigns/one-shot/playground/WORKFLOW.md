@@ -18,7 +18,8 @@ Ruta:
 
 Solo son fuente maestra:
 
-- `index.ts` — motor, builders, render, VFX, interacción y utilidades.
+- `index.ts` — punto de entrada Babylon Playground.
+- `renderer.ts` — motor, builders, render, VFX e interacción ambiental; también lo usa el VTT.
 - `d8night.config.ts` — configuración de mapas, `CANON`, `VTT_AMBIENCE`, navegación y composición.
 - `VERSION` — número activo.
 - `generate-playground-json.mjs` — generador oficial.
@@ -39,7 +40,7 @@ Antes de modificar nada:
    - `payload.code`;
    - `payload.unicode`;
    - `payload.unicode === base64(UTF-8(payload.code))`.
-8. Confirmar que los `index.ts` y `d8night.config.ts` incrustados en el payload son exactamente los archivos fuente actuales.
+8. Confirmar que `index.ts`, `renderer.ts` y `d8night.config.ts` incrustados en el payload coinciden exactamente con sus fuentes.
 9. Revisar `historico/` y confirmar que la versión anterior está archivada.
 
 Si algo no coincide, **corregir primero el versionado/generación y después tocar el mapa**.
@@ -60,7 +61,7 @@ Para una nueva versión:
 
 1. Auditar el mapa actual en las fuentes reales.
 2. Identificar la causa del problema antes de añadir más geometría.
-3. Modificar `index.ts` y/o `d8night.config.ts`.
+3. Modificar `renderer.ts` y/o `d8night.config.ts`; mantener `index.ts` como el wrapper de Playground.
 4. Incrementar `VERSION`.
 5. Cambiar `D8_VERSION` al mismo valor.
 6. Generar los JSON con `generate-playground-json.mjs`.
@@ -95,7 +96,7 @@ Solo como fallback, si el entorno conectado a GitHub no puede ejecutar Node, se 
 - mismo `payload.code`;
 - `payload.unicode = base64 UTF-8(payload.code)`;
 - `current` y snapshot numerado idénticos;
-- fuentes incrustadas idénticas a GitHub.
+   - `index.ts`, `renderer.ts` y `d8night.config.ts` incrustados idénticos a sus fuentes.
 
 Nunca parchear a mano un JSON generado.
 
@@ -231,7 +232,7 @@ Antes de decir que una versión está terminada:
 - [ ] llaves/estructura de TS coherentes
 - [ ] `playground_current.json == playground_vN.json`
 - [ ] `payload.code == decoded(payload.unicode)`
-- [ ] fuentes incrustadas == fuentes GitHub
+- [ ] wrapper y `renderer.ts` incrustados == fuentes actuales
 - [ ] versión anterior archivada
 - [ ] versión activa única en raíz
 - [ ] mapa objetivo carga según su renderMode

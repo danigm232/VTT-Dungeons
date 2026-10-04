@@ -8,7 +8,8 @@ Esta carpeta contiene la fuente maestra del prototipo de **D8 Night** para Babyl
 
 La versión activa se construye únicamente desde:
 
-- `index.ts` — motor del Playground, builders, render y VFX.
+- `index.ts` — punto de entrada compatible con Babylon Playground.
+- `renderer.ts` — motor de render, builders y VFX; se comparte con la partida VTT.
 - `d8night.config.ts` — mapas, objetos, navegación, `CANON` y `VTT_AMBIENCE`.
 - `VERSION` — número de versión activa.
 - `generate-playground-json.mjs` — generador oficial.
@@ -34,6 +35,7 @@ playground/
 ├── WORKFLOW.md
 ├── VERSION
 ├── index.ts
+├── renderer.ts
 ├── d8night.config.ts
 ├── generate-playground-json.mjs
 ├── playground_current.json

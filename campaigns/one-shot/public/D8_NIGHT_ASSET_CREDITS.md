@@ -1,10 +1,10 @@
 # D8 Night · audio y VFX
 
-Los ficheros de esta biblioteca se han renombrado con el prefijo `d8-night-` para que la mesa pueda referirse a una intención narrativa, no al nombre de descarga original. Los ambientes y recursos visuales conservan sus créditos CC0; los efectos puntuales y las tres pistas de combate activas proceden de Pixabay y se rigen por su Content License.
+Los ficheros activos de esta biblioteca se han renombrado con el prefijo `d8-night-` para que la mesa pueda referirse a una intención narrativa, no al nombre de descarga original. Los ambientes y recursos visuales conservan sus créditos CC0. Las descargas de Pixabay que el catálogo ya no usa se conservan en `campaigns/one-shot/private/audio/archive` y no se sirven a la consola.
 
 | Uso en D8 Night | Recurso y autor | Licencia y origen |
 | --- | --- | --- |
-| Seis temas de escena y ambiente de templo | Fantasy Song Pack Volume 1 · troubadour | CC0 · https://opengameart.org/content/fantasy-song-pack-volume-1 |
+| Música de templo, espejo y desenlace | Fantasy Song Pack Volume 1 · troubadour | CC0 · https://opengameart.org/content/fantasy-song-pack-volume-1 |
 | Ambiente de jardín | Forest Ambience · TinyWorlds | CC0 · https://opengameart.org/content/forest-ambience |
 | Hoguera sin voces | Fire Crackling · AntumDeluge | CC0 · https://opengameart.org/content/fire-crackling/ |
 | Bullicio y gritos del mercado | Crowd Shouting/Speaking Ambience · StarNinjas | CC0 · https://opengameart.org/content/crowd-shoutingspeaking-ambience |
@@ -18,22 +18,8 @@ Los ficheros de esta biblioteca se han renombrado con el prefijo `d8-night-` par
 | Combate heroico (templo y jardín) | Heroic Battle · leberch | Pixabay Content License · https://pixabay.com/music/main-title-heroic-battle-251914/ |
 | Combate de calle (café y mercado) | Battle Epic · Kulakovka | Pixabay Content License · https://pixabay.com/music/main-title-battle-epic-274997/ |
 | Combate oscuro (espejo y cicatriz) | Blackout - Epic Fantasy Music · Cyberwave-Orchestra | Pixabay Content License · https://pixabay.com/music/main-title-blackout-epic-fantasy-music-295150/ |
-| Pasos sobre madera y cubierta | Footsteps Walking Boots Parquet 1 · SoundReality | Pixabay Content License · https://pixabay.com/sound-effects/film-special-effects-footsteps-walking-boots-parquet-1-420135/ |
-| Pasos de piedra y basalto | Stone Steps · freesound_community | Pixabay Content License · https://pixabay.com/sound-effects/film-special-effects-stone-steps-6748/ |
-| Pasos de grava | Footsteps on gravel · freesound_community | Pixabay Content License · https://pixabay.com/sound-effects/film-special-effects-footsteps-on-gravel-61337/ |
-| Carrera o persecución | running sounds · freesound_community | Pixabay Content License · https://pixabay.com/sound-effects/film-special-effects-running-sounds-6003/ |
-| Barrido, daga y choque de armas | Sword Slash and Swing · DavidDumaisAudio; Sword Clash/Hit · DRAGON-STUDIO | Pixabay Content License · https://pixabay.com/sound-effects/film-special-effects-sword-slash-and-swing-185432/ · https://pixabay.com/sound-effects/film-special-effects-sword-clashhit-393837/ |
-| Conjuro, ritual, maldición y traslado | Magic Spell · Universfield; Elemental Magic Spell Impact Outgoing · RescopicSound | Pixabay Content License · https://pixabay.com/sound-effects/film-special-effects-magic-spell-278824/ · https://pixabay.com/sound-effects/film-special-effects-elemental-magic-spell-impact-outgoing-228342/ |
-| Fuego, escarcha, chispa y curación | fire magic (5) · Yodguard; Frost Spell Impact · DRAGON-STUDIO; Magic Spell 02 · Universfield; Fantasy Healing Spell Soft Magic Chime #1 · Vadim_Makes_Sound | Pixabay Content License · https://pixabay.com/sound-effects/film-special-effects-fire-magic-5-378639/ · https://pixabay.com/sound-effects/film-special-effects-frost-spell-impact-499662/ · https://pixabay.com/sound-effects/film-special-effects-magic-spell-02-250240/ · https://pixabay.com/sound-effects/film-special-effects-fantasy-healing-spell-soft-magic-chime-1-546563/ |
-| Gruñidos, rugidos, zombi y criaturas | Efectos de criatura descargados de Pixabay; Zombie Groan · freesound_community | Pixabay Content License · https://pixabay.com/sound-effects/horror-zombie-groan-95051/ |
-| Puertas, escotillas, crujidos de silla y de casco | Opening Door · SoundReality | Pixabay Content License · https://pixabay.com/sound-effects/household-opening-door-411632/ |
 | Trueno y relámpago | Thunder clap · u_q2hb2391vb | Pixabay Content License · https://pixabay.com/sound-effects/film-special-effects-thunder-clap-521194/ |
-| Libros, páginas y diarios | Turn a Page · CreatorsHome | Pixabay Content License · https://pixabay.com/sound-effects/film-special-effects-turn-a-page-336933/ |
-| Monedas y tesoro | Coins Clinking Sound · Dihumichi | Pixabay Content License · https://pixabay.com/sound-effects/film-special-effects-coins-clinking-sound-410677/ |
-| Cadena, jarcia y grilletes | chain · freesound_community | Pixabay Content License · https://pixabay.com/sound-effects/film-special-effects-chain-6073/ |
 | Grito puntual de mercado | Crowd screaming · freesound_community | Pixabay Content License · https://pixabay.com/sound-effects/people-crowd-screaming-105007/ |
-| Vaso y bebida del café | Glass Clink · freesound_community; Drink Sip and Swallow · freesound_community | Pixabay Content License · https://pixabay.com/sound-effects/film-special-effects-glass-clink-57538/ · https://pixabay.com/sound-effects/people-drink-sip-and-swallow-6974/ |
-| Silla, madera, casco, caída y piedra | Wood Impact; Single Rock hit dirt 2 · freesound_community | Pixabay Content License · https://pixabay.com/sound-effects/film-special-effects-wood-impact-84721/ · https://pixabay.com/sound-effects/film-special-effects-single-rock-hit-dirt-2-83898/ |
 | Pasos, puerta, página, daga, cierres y crujido de barco | 50 RPG sound effects · Kenney | CC0 · https://opengameart.org/node/21999 |
 | Golpes, criaturas, cerraduras, cadena, gema, madera, piedra y fuego | 80 CC0 RPG SFX · rubberduck | CC0 · https://opengameart.org/node/86018 |
 | Barridos de arma | Swishes Sound Pack · artisticdude | CC0 · https://opengameart.org/content/swishes-sound-pack |
@@ -43,4 +29,36 @@ Los ficheros de esta biblioteca se han renombrado con el prefijo `d8-night-` par
 | Rayo | Lightning animation · Calinou | CC0 · https://opengameart.org/content/lightning-animation |
 | Niebla desplazable | Thick Fog · LFA | CC0 · https://opengameart.org/content/thick-fog |
 
-Los archivos de `audio/d8-night/` son los que consume la consola. Los de `art/vfx/d8-night/` son la biblioteca visual preparada para las siguientes variantes de clima, hechizos y acciones.
+## Descargas nuevas de Pixabay
+
+Los elementos activos de esta tanda están guardados en `campaigns/one-shot/public/audio/d8-night/`. El mugido alternativo y el golpe de vegetación que se descartó al elegir el latigazo se conservan en `campaigns/one-shot/private/audio/archive/`. Las fichas de origen indican Pixabay Content License.
+
+| Uso | Recurso y autor | Origen |
+| --- | --- | --- |
+| Taberna · ambiente largo con hoguera | Tavern ambience with openfire effect · Placidplace | https://pixabay.com/sound-effects/tavern-ambience-with-openfire-effect-no-loops-86151/ |
+| Temporal compuesto provisional | Rainstorm with wind · DRAGON-STUDIO | https://pixabay.com/sound-effects/nature-rainstorm-with-wind-351117/ |
+| Latigazo para las rosas | Mixed Whip Crack 1 · peterbullmusic | https://pixabay.com/de/sound-effects/film-spezialeffekte-mixed-whip-crack-1-102825/ |
+| Alternativa de golpe en vegetación (archivada; se eligió el latigazo) | Hit Tree 01 · u_xjrmmgxfru | https://pixabay.com/sound-effects/film-special-effects-hit-tree-01-266310/ |
+| Quiebre del espejo | Shattering Ice · DRAGON-STUDIO | https://pixabay.com/sound-effects/shattering-ice-454251/ |
+| Paso sobre hielo | Two step on thin ice · spinopel | https://pixabay.com/pt/sound-effects/two-step-on-thin-ice-456407/ |
+| Cuerda de arco | Bow release, bow and arrow 4 · freesound_community | https://pixabay.com/sound-effects/film-special-effects-bow-release-bow-and-arrow-4-101936/ |
+| Vuelo de flecha | Arrow Swish 03 · DJARTMUSIC | https://pixabay.com/sound-effects/film-special-effects-arrow-swish-03-306040/ |
+| Impacto de flecha | Arrow hit · 49053354 | https://pixabay.com/sound-effects/film-special-effects-arrow-hit-307490/ |
+| Mugido de mercado | Cow Moo · Universfield | https://pixabay.com/sound-effects/nature-cow-moo-122255/ |
+| Mugido alternativo archivado | Cow Moo 1 · DRAGON-STUDIO | https://pixabay.com/sound-effects/nature-cow-moo-1-472361/ |
+
+## Fuentes conservadas de originales archivados
+
+Estos archivos siguen en `campaigns/one-shot/private/audio/archive`; ya no forman parte del catálogo servido. Se conserva aquí su procedencia por si se restauran o reutilizan.
+
+| Grupo archivado | Fuente original |
+| --- | --- |
+| Temas de jardín, café y mercado que no correspondían a esas escenas sin música | Fantasy Song Pack Volume 1 · troubadour · CC0 · https://opengameart.org/content/fantasy-song-pack-volume-1 |
+| Pasos, carrera y superficies | Footsteps Walking Boots Parquet 1 · https://pixabay.com/sound-effects/film-special-effects-footsteps-walking-boots-parquet-1-420135/ · Stone Steps · https://pixabay.com/sound-effects/film-special-effects-stone-steps-6748/ · Footsteps on gravel · https://pixabay.com/sound-effects/film-special-effects-footsteps-on-gravel-61337/ · running sounds · https://pixabay.com/sound-effects/film-special-effects-running-sounds-6003/ |
+| Espadas y golpes | Sword Slash and Swing · https://pixabay.com/sound-effects/film-special-effects-sword-slash-and-swing-185432/ · Sword Clash/Hit · https://pixabay.com/sound-effects/film-special-effects-sword-clashhit-393837/ |
+| Conjuros, fuego, escarcha, curación | Magic Spell · https://pixabay.com/sound-effects/film-special-effects-magic-spell-278824/ · Elemental Magic Spell Impact Outgoing · https://pixabay.com/sound-effects/film-special-effects-elemental-magic-spell-impact-outgoing-228342/ · fire magic · https://pixabay.com/sound-effects/film-special-effects-fire-magic-5-378639/ · Frost Spell Impact · https://pixabay.com/sound-effects/film-special-effects-frost-spell-impact-499662/ · Magic Spell 02 · https://pixabay.com/sound-effects/film-special-effects-magic-spell-02-250240/ · Fantasy Healing Spell · https://pixabay.com/sound-effects/film-special-effects-fantasy-healing-spell-soft-magic-chime-1-546563/ |
+| Criaturas y zombi | Zombie Groan · https://pixabay.com/sound-effects/horror-zombie-groan-95051/ |
+| Puerta, libro, monedas, cadena y grito | Opening Door · https://pixabay.com/sound-effects/household-opening-door-411632/ · Turn a Page · https://pixabay.com/sound-effects/film-special-effects-turn-a-page-336933/ · Coins Clinking Sound · https://pixabay.com/sound-effects/film-special-effects-coins-clinking-sound-410677/ · chain · https://pixabay.com/sound-effects/film-special-effects-chain-6073/ · Crowd screaming · https://pixabay.com/sound-effects/people-crowd-screaming-105007/ |
+| Vaso, bebida, madera, piedra e impactos | Glass Clink · https://pixabay.com/sound-effects/film-special-effects-glass-clink-57538/ · Drink Sip and Swallow · https://pixabay.com/sound-effects/people-drink-sip-and-swallow-6974/ · Wood Impact · https://pixabay.com/sound-effects/film-special-effects-wood-impact-84721/ · Single Rock hit dirt 2 · https://pixabay.com/sound-effects/film-special-effects-single-rock-hit-dirt-2-83898/ |
+
+Los archivos activos de `audio/d8-night/` son los que consume la consola. Los originales sustituidos están preservados fuera de `public` para no cargarlos a los clientes. Los de `art/vfx/d8-night/` son la biblioteca visual preparada para las siguientes variantes de clima, hechizos y acciones.

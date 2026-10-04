@@ -1,6 +1,6 @@
 # Ruta de Sol: D8 fiable, motor reutilizable para Stormwreck
 
-**Prioridad21/09/2026:** conservado como ruta específica D8, fuera del camino crítico inmediato. El usuario prioriza mapas/capítulo completo del pecio en [ROADMAP_V1.md](../ROADMAP_V1.md). F0–F2 tienen evidencia19/09 y no se reinician; la instrucción inferior de empezarF0/F1 es histórica. Reutilizar el motor existente sin declarar F3–F7 terminadas ni borrarlas.
+**Actualización de prioridad 03/10/2026:** por petición expresa del usuario, se integra primero en el VTT el render D8 Babylon V34/V35 existente, sin esperar al cierre de todas las fases F3–F7. El alcance es un piloto jugable de representación, no una reescritura de arquitectura ni una declaración de H1 completa. F0–F2 no se reinician; F3–F7 siguen abiertos y conservan sus puertas de salida. Tras la prueba del usuario, el siguiente ciclo pedido es mejorar arquitectura reutilizable y después escenarios, texturas, iluminación y VFX.
 
 Fecha: 2026-09-18. Ruta viva de implementación. Las fases se marcan únicamente después de superar su puerta de salida y conservar evidencia reproducible. Sustituye el orden inmediato de los encargos anteriores, no borra sus compromisos ni declara aceptada una versión.
 
@@ -30,6 +30,12 @@ Leer antes [auditoría y evidencias](D8_NIGHT_AUDIT_20260918.md). Sol implementa
 | F6 | Consolas, sprites, móvil y ambiente pulidos | M | F5; arreglos bloqueantes de UX antes en F1 |
 | F7 | Aceptación integral D8 + regresión Stormwreck | M | F1–F6 |
 | H1 | Piloto HD-2D integrado, separado del cierre D8 | L, por definir | F7 y contrato específico aprobado |
+
+## Integración anticipada del VTT · candidata 0.3.2-dev.6 / D8 V35
+
+**Estado: IMPLEMENTADA TÉCNICAMENTE; revisión visual/física pendiente.** Bajo la instrucción del usuario del 03/10, el renderer Babylon existente se comparte entre Playground y la mesa D8. Todas las escenas declaran `babylon-d8`; las celdas transitables se derivan en servidor desde las zonas D8, los overlays proyectan la cuadrícula/fichas sobre la escena y el cliente carga el motor específico bajo demanda. La API pública sirve sólo cámara, geometría, iluminación/ambiente visual; CANON e interacciones permanecen privadas.
+
+Evidencia: typecheck cliente/servidor; Vitest 208/208; build Vite y servidor; smoke HTTP en servidor y guardado temporales; versión JSON Playground V35 reproducible. Migración de guardados legados a la nueva cuadrícula marcada/idempotente. Móvil, ordenador y proyector aún deben confirmar perspectiva, grid, movimiento, cambios de mapa y audio. Este avance no completa F3–F7 ni H1, y todavía no añade texturas o escenarios nuevos. Ver la entrada vigente de `PROJECT_STATE.md` y `docs/ACCEPTANCE_RESULTS.md`.
 
 S/M/L son magnitudes comparativas, no promesas de horas, tokens ni cuotas. Reestimar al cerrar F1 con resultados reales. F0–F7 son la ruta solicitada; H1 conserva la dirección futura, no amplía este encargo a una migración completa.
 

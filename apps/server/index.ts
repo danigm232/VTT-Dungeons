@@ -107,6 +107,13 @@ app.get('/api/campaign', (req, res) => {
   // autorizada concreta viaja después dentro de su snapshot de socket.
   return res.json(anonymousCampaignView(campaignBundle.public));
 });
+app.get('/api/d8/renderer-config', async (_req, res) => {
+  if (campaignChoice !== 'd8-night-private') return res.sendStatus(404);
+  const { d8PublicRendererConfig } = await import('../../campaigns/one-shot/renderer-config.js');
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  return res.json(d8PublicRendererConfig());
+});
 app.post('/__local/shutdown', (req, res) => {
   const remote = req.socket.remoteAddress ?? '';
   const localRequest = remote === '127.0.0.1' || remote === '::1' || remote.startsWith('::ffff:127.');

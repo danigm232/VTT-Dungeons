@@ -67,6 +67,8 @@ export const durablePayloadSchema = z.object({
   sceneId: idSchema,
   /** Geometry revision for campaigns whose saved grid coordinates can change. */
   wreckGridVersion: boundedInt.min(1).optional(),
+  /** Tactical cell layout revision for the private D8 maps. */
+  d8GridVersion: boundedInt.min(1).max(9).optional(),
   characters: z.array(z.object({ id: idSchema, hp: boundedInt.max(999), maxHp: boundedInt.min(1).max(999).optional(), inventory: z.array(z.string().min(1).max(200)).max(100), sheet: characterSheet.nullable().optional(), resources: z.record(idSchema, resource).optional(), deathSaves: z.object({ successes: boundedInt.max(3), failures: boundedInt.max(3), stable: z.boolean() }).strict().optional(), sceneId: idSchema.optional(), cell: cellSchema, surfaceId: idSchema, facing: z.enum(['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west']) }).strict()).min(1).max(20),
   npcs: z.array(z.object({ id: idSchema, sceneId: idSchema, surfaceId: idSchema, cell: cellSchema, facing: z.enum(['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west']), hp: boundedInt.max(999).optional(), maxHp: boundedInt.min(1).max(999).optional(), combatEnabled: z.boolean().optional(), visible: z.boolean().optional() }).strict()).max(100).optional(),
   creature: z.object({

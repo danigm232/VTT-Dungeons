@@ -6,6 +6,7 @@ type Channel = 'music' | 'ocean' | 'wind' | 'wood' | 'storm';
 const PAUSE_FADE_MS = 180;
 const PAUSE_AFTER_FADE_MS = 210;
 const MOVEMENT_FADE_MS = 55;
+const MOVEMENT_STOP_GRACE_MS = 80;
 type MovementSound = { assetId: string; sound: Howl; active: boolean; fadeTimer?: ReturnType<typeof setTimeout>; stopTimer?: ReturnType<typeof setTimeout> };
 export class AudioDirector {
   private channels = new Map<Channel, Howl>();
@@ -222,9 +223,15 @@ export class AudioDirector {
     } else if (!movement.sound.playing()) {
       movement.sound.play();
       movement.sound.fade(0, 0.42, MOVEMENT_FADE_MS);
+    } else if (movement.sound.volume() < 0.42) {
+      movement.sound.fade(movement.sound.volume(), 0.42, MOVEMENT_FADE_MS);
     }
     const safeDuration = Math.max(1, Math.round(durationMs));
-    const fadeAfter = Math.max(0, safeDuration - MOVEMENT_FADE_MS);
+    // Server step-completion ticks and socket delivery can land a few ms after
+    // the nominal cell duration. Keep the loop alive across that seam so each
+    // next tile doesn't sound like an unrelated, restarted footstep.
+    const stopAfter = safeDuration + MOVEMENT_STOP_GRACE_MS;
+    const fadeAfter = Math.max(0, stopAfter - MOVEMENT_FADE_MS);
     movement.fadeTimer = globalThis.setTimeout(() => {
       // Al finalizar una única casilla hay una salida breve, sin alargar la
       // ruta. Si llega la siguiente casilla antes, este temporizador se borra.
@@ -233,6 +240,6 @@ export class AudioDirector {
     movement.stopTimer = globalThis.setTimeout(() => {
       movement!.sound.stop(); movement!.active = false;
       movement!.fadeTimer = undefined; movement!.stopTimer = undefined;
-    }, safeDuration);
+    }, stopAfter);
   }
 }

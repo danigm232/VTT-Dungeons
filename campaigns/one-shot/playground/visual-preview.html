@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>D8 Night · auditoría visual del renderer</title>
+  <style>
+    :root { color-scheme: dark; font-family: Segoe UI, sans-serif; background: #071216; color: #eadbbd; }
+    * { box-sizing: border-box; }
+    body { margin: 0; height: 100vh; display: grid; grid-template-rows: 54px 1fr; overflow: hidden; }
+    nav { display: flex; gap: 8px; align-items: center; padding: 8px 12px; border-bottom: 1px solid #3a4c4d; background: #0c1b1e; }
+    nav strong { margin-right: 12px; font-size: 14px; letter-spacing: .04em; }
+    button { color: #eadbbd; background: #15282b; border: 1px solid #53696a; border-radius: 7px; padding: 7px 12px; cursor: pointer; }
+    button.active { color: #111; background: #d7b46c; border-color: #f0d18d; }
+    main { min-height: 0; position: relative; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    #status { position: absolute; right: 10px; bottom: 8px; padding: 5px 9px; font-size: 12px; color: #b7c4bf; background: #071216c9; border-radius: 5px; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <nav><strong>D8 NIGHT · REVISIÓN LOCAL</strong>
+    <button data-map="cafe">Taberna</button><button data-map="temple">Templo</button>
+    <button data-map="dinner">Cena</button><button data-map="garden">Jardín</button>
+    <button data-map="market">Mercado</button><button data-map="mirror">Espejo</button>
+    <button id="interior">Interior / conjunto</button><button id="audit">Comprobar</button><button id="cycle">Probar cambios de escena</button><button id="capture">Guardar imagen</button>
+  </nav>
+  <main><canvas id="map"></canvas><div id="status"></div><pre id="errors" style="position:absolute;left:8px;bottom:8px;max-width:48vw;max-height:28vh;overflow:auto;color:#ffd9c7;background:#291b1bcc;font:11px monospace;white-space:pre-wrap"></pre></main>
+  <script>
+    const errorBox = document.querySelector('#errors');
+    window.addEventListener('error', event => { errorBox.textContent += `ERROR: ${event.message} @ ${event.filename}:${event.lineno}\n`; });
+    window.addEventListener('unhandledrejection', event => { errorBox.textContent += `REJECTION: ${event.reason?.stack ?? event.reason}\n`; });
+    const originalError = console.error.bind(console);
+    console.error = (...args) => { errorBox.textContent += `CONSOLE: ${args.map(value => value?.stack ?? value).join(' ')}\n`; originalError(...args); };
+  </script>
+  <script type="module">
+    import { Engine } from '@babylonjs/core/Engines/engine.js';
+    import { createD8Scene } from '/campaigns/one-shot/playground/renderer.ts';
+    import { D8NIGHT, D8_VERSION } from '/campaigns/one-shot/playground/d8night.config.ts';
+    import { d8BabylonRuntime } from '/apps/web/d8-babylon-runtime.ts';
+
+    const canvas = document.querySelector('#map');
+    const status = document.querySelector('#status');
+    const engine = new Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, antialias: true, adaptToDeviceRatio: false });
+    engine.setHardwareScalingLevel(1);
+    let scene;
+    try {
+      scene = createD8Scene(engine, canvas, { config: D8NIGHT, version: D8_VERSION, babylon: d8BabylonRuntime, integrated: true, mapId: 'temple' });
+    } catch (error) {
+      document.querySelector('#errors').textContent += `SCENE: ${error?.stack ?? error}\n`;
+      throw error;
+    }
+    let currentMap = 'temple', interior = false;
+    function overview(id) {
+      const size=D8NIGHT.maps[id].MAP.size;
+      scene.activeCamera.setTarget(d8BabylonRuntime.Vector3.Zero());
+      scene.activeCamera.upperRadiusLimit=120;
+      scene.activeCamera.setTarget(new d8BabylonRuntime.Vector3(0,id==='temple'?.5:0,id==='temple'?8:0));
+      scene.activeCamera.radius=id==='temple'?66:Math.max(...size)*1.12;
+      scene.activeCamera.beta=id==='temple'?.86:.73;
+      scene.activeCamera.alpha=D8NIGHT.maps[id].camera?.alpha??-Math.PI/2.15;
+    }
+    function showMap(id) {
+      currentMap = id; interior = false;
+      scene.metadata.d8Vtt.loadMap(id);
+      overview(id);
+      document.querySelectorAll('[data-map]').forEach(button => button.classList.toggle('active', button.dataset.map === id));
+      status.textContent = `${D8NIGHT.maps[id].label} · ${D8_VERSION}`;
+    }
+    document.querySelectorAll('[data-map]').forEach(button => button.addEventListener('click', () => showMap(button.dataset.map)));
+    document.querySelector('[data-map="temple"]').classList.add('active');
+    overview('temple');
+    document.querySelector('#interior').addEventListener('click',()=>{
+      interior=!interior;
+      if(!interior){overview(currentMap);return;}
+      const targets={cafe:[-3,.8,-1],garden:[2,.6,-2],market:[0,.5,-1],mirror:[-3,.6,-1],temple:[0,1,-1],dinner:[0,1,-1]};
+      scene.activeCamera.setTarget(new d8BabylonRuntime.Vector3(...targets[currentMap]));scene.activeCamera.radius=currentMap==='temple'?38:25;scene.activeCamera.beta=currentMap==='temple'?.91:.85;
+    });
+    let renderMs=0;
+    engine.runRenderLoop(() => {
+      const began=performance.now();
+      scene.render();
+      renderMs=renderMs*.90+(performance.now()-began)*.10;
+      const context = engine._gl;
+      status.textContent = `${D8NIGHT.maps[currentMap].label} · ${D8_VERSION} · ${scene.meshes.length} meshes/${scene.getActiveMeshes().length} active · ${engine.getFps().toFixed(0)} fps · render ${renderMs.toFixed(1)} ms · cámara ${scene.activeCamera.alpha.toFixed(2)} · WebGL ${engine.webGLVersion} lost=${context?.isContextLost?.()} · ${canvas.width}×${canvas.height}`;
+    });
+    document.querySelector('#audit').addEventListener('click', () => {
+      const unavailable = scene.meshes.filter(mesh => mesh.isEnabled() && mesh.isVisible && mesh.subMeshes?.some(submesh => mesh.material?.isReadyForSubMesh && !mesh.material.isReadyForSubMesh(mesh,submesh)));
+      const textures=scene.textures.filter(texture=>!texture.isReady());
+      document.querySelector('#errors').textContent = unavailable.length ? unavailable.slice(0,6).map(mesh => `${mesh.name}: ${mesh.material?.name} · material not ready`).join('\n') : `OK: materiales visibles preparados · ${textures.length} texturas pendientes · ${scene.materials.length} materiales · ${scene.textures.length} texturas`;
+      {
+        const floor=scene.meshes.find(mesh=>mesh.name===(currentMap==='temple'?'templeFloorMain':currentMap==='dinner'?'floor':'artGround'));
+        const key=scene.lights.find(light=>light.name==='v19_key_'+currentMap);
+        const defs=floor?.subMeshes?.[0]?.materialDefines;
+        const shadowKeys=defs?Object.keys(defs).filter(key=>/^SHADOW\d$/.test(key)&&defs[key]):[];
+        document.querySelector('#errors').textContent+=`\nSombras: ${key?.getShadowGenerator()?.getShadowMap()?.renderList?.length??0} emisores · suelo ${floor?.receiveShadows} · shader ${shadowKeys.join(',')||'sin sombras'}`;
+      }
+    });
+    document.querySelector('#capture').addEventListener('click',()=>{
+      scene.render();const link=document.createElement('a');link.download=`d8-${currentMap}-${D8_VERSION}-${interior?'interior':'conjunto'}.png`;link.href=canvas.toDataURL('image/png');link.click();
+    });
+    document.querySelector('#cycle').addEventListener('click',async()=>{
+      const output=document.querySelector('#errors'),reports=[],seen=new Map();
+      for(let pass=0;pass<3;pass++)for(const id of ['cafe','temple','dinner','garden','market','mirror']){
+        showMap(id);await scene.whenReadyAsync();scene.render();
+        const meshes=scene.meshes.filter(mesh=>mesh.isEnabled()&&mesh.isVisible);
+        const missing=meshes.filter(mesh=>mesh.subMeshes?.some(submesh=>mesh.material?.isReadyForSubMesh&&!mesh.material.isReadyForSubMesh(mesh,submesh))).length;
+        const pending=scene.textures.filter(texture=>!texture.isReady()).length;
+        const counts=[scene.materials.length,scene.textures.length].join('/');
+        if(pass===1)seen.set(id,counts);
+        if(pass===2)reports.push(`${id}: ${missing===0&&pending===0&&seen.get(id)===counts?'OK':'ERROR'} · ${missing} materiales pendientes · ${pending} texturas pendientes · recursos ${counts} (antes ${seen.get(id)})`);
+        output.textContent=`Comprobando ciclo ${pass+1}/3: ${id}`;
+      }
+      output.textContent=reports.join('\n');
+    });
+    window.addEventListener('resize', () => engine.resize());
+  </script>
+</body>
+</html>

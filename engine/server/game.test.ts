@@ -71,6 +71,102 @@ const twoPlayerCombat = () => {
 
 afterEach(() => vi.useRealTimers());
 
+describe('combat lifecycle and cancellation', () => {
+  it('uses the creature own spell resources and does not demand a player backpack for copied attacks', () => {
+    const state = twoPlayerCombat(), beast = state.creature!;
+    beast.hp = 30; beast.resources['spell-slot-1'] = { label: 'Slots', current: 1, max: 1 };
+    beast.attacks.push({ ...beast.attacks[0]!, id: 'copied-spell', magical: true, automaticHit: true, damageDice: '1d4', damageBonus: 0, resource: { id: 'spell-slot-1', cost: 1 } });
+    state.nextCombatTurn(); state.nextCombatTurn();
+    expect(state.declareCombatAction(beast.id, 'alpha', 'copied-spell').ok).toBe(true);
+    state.submitCombatRoll('dm', null, 'damage', state.combat.pending!.id, 1);
+    expect(beast.resources['spell-slot-1']!.current).toBe(0);
+    state.combat.actionUsed[beast.id] = false;
+    expect(state.declareCombatAction(beast.id, 'alpha', 'copied-spell')).toMatchObject({ ok: false, code: 'RESOURCE_DEPLETED' });
+    beast.attacks[0]!.inventoryCost = 'arrow';
+    expect(state.declareCombatAction(beast.id, 'alpha', beast.attacks[0]!.id).ok).toBe(true);
+  });
+  it('rejects reactions during initiative and from non-participants', () => {
+    const state = twoPlayerCombat(), action = state.characters.get('alpha')!.combat.attacks[0]!;
+    action.actionCost = 'reaction'; state.combat.initiativePending = true;
+    expect(state.declareCombatAction('alpha', 'test-beast', action.id).ok).toBe(false);
+    state.combat.initiativePending = false; state.combat.participantIds = state.combat.participantIds.filter(id => id !== 'alpha');
+    expect(state.declareCombatAction('alpha', 'test-beast', action.id).ok).toBe(false);
+  });
+  it('cancels before rolling without revealing a hidden actor or spending resources', () => {
+    const state = twoPlayerCombat();
+    state.setCombatCondition('alpha', 'invisible', true);
+    expect(state.declareCombatAction('alpha', 'test-beast', 'basic-attack').ok).toBe(true);
+    const promptId = state.combat.pending!.id;
+    expect(state.playerPrivate('a'.repeat(32)).combat?.pendingAction).toMatchObject({ promptId, cancellable: true });
+    expect(state.conditionsFor('alpha')).toContain('invisible');
+    expect(state.cancelCombatAction('beta', promptId)).toMatchObject({ ok: false, code: 'NOT_YOUR_ACTION' });
+    expect(state.endCombat()).toBe(false);
+    expect(state.cancelCombatAction('alpha', promptId).ok).toBe(true);
+    expect(state.combat.pending).toBeNull();
+    expect(state.combat.actionUsed.alpha).toBe(false);
+    expect(state.conditionsFor('alpha')).toContain('invisible');
+    expect(state.endCombat()).toBe(true);
+  });
+
+  it('cannot cancel after seeing an attack roll or erase the pending damage', () => {
+    const state = twoPlayerCombat();
+    state.declareCombatAction('alpha', 'test-beast', 'basic-attack');
+    state.submitCombatRoll('player', 'alpha', 'attack', state.combat.pending!.id, 20);
+    expect(state.canCancelCombatAction()).toBe(false);
+    expect(state.cancelCombatAction('alpha', state.combat.pending!.id)).toMatchObject({ ok: false, code: 'ACTION_ALREADY_RESOLVING' });
+    expect(state.endCombat()).toBe(false);
+  });
+
+  it('flee is an intention, not a teleport or a free action', () => {
+    const state = twoPlayerCombat(), cell = { ...state.characters.get('alpha')!.cell };
+    expect(state.requestCombatFlee('alpha').ok).toBe(true);
+    expect(state.characters.get('alpha')!.cell).toEqual(cell);
+    expect(state.combat.actionUsed.alpha).toBe(false);
+    expect(state.combat.participantIds).toContain('alpha');
+    expect(state.withdrawCombatant('alpha').ok).toBe(true);
+    expect(state.publicSnapshot().combat.currentId).toBe('beta');
+    expect(state.combat.round).toBe(1);
+    expect(state.withdrawCombatant('beta').code).toBe('COMBAT_ENDED');
+    expect(state.combat.active).toBe(false);
+  });
+
+  it('includes living unconscious players and allows DM cancellation of preparation', () => {
+    const state = new GameState(bundleWithOptionalFeatures()); state.changeScene('open-floor');
+    state.claim('a'.repeat(32), 'socket-a', 'alpha'); state.creature!.visible = true;
+    state.applyHitPoints('alpha', -10);
+    expect(state.startCombat()).toBe(true);
+    expect(state.combat.participantIds).toContain('alpha');
+    expect(state.cancelCombat()).toBe(true);
+    expect(state.characters.get('alpha')!.hp).toBe(0);
+  });
+
+  it('spends the slot on the first missile and cannot refund it by abandoning the sequence', () => {
+    const state = twoPlayerCombat(), alpha = state.characters.get('alpha')!;
+    state.creature!.hp = 50; state.creature!.maxHp = 50;
+    alpha.combat.resources['spell-slot-1'] = { label: 'Slots', current: 1, max: 1 };
+    alpha.combat.attacks.push({ ...alpha.combat.attacks[0]!, id: 'missiles', magical: true, automaticHit: true, damageDice: '1d4', damageBonus: 1, attackCount: 3, resource: { id: 'spell-slot-1', cost: 1 } });
+    expect(state.declareCombatAction('alpha', 'test-beast', 'missiles').ok).toBe(true);
+    state.submitCombatRoll('player', 'alpha', 'damage', state.combat.pending!.id, 1);
+    expect(alpha.combat.resources['spell-slot-1']!.current).toBe(0);
+    expect(state.combat.actionUsed.alpha).toBe(true);
+    expect(state.declareCombatAction('alpha', 'test-beast', 'missiles').ok).toBe(true);
+    expect(state.canCancelCombatAction()).toBe(false);
+    state.submitCombatRoll('player', 'alpha', 'damage', state.combat.pending!.id, 1);
+    state.nextCombatTurn();
+    expect(alpha.combat.resources['spell-slot-1']!.current).toBe(0);
+  });
+
+  it('readied weapon attack spends one reaction and does not grant Extra Attack', () => {
+    const state = twoPlayerCombat(); state.characters.get('alpha')!.combat.attacks[0]!.attackCount = 2;
+    state.useBasicCombatAction('alpha', 'ready'); state.nextCombatTurn();
+    expect(state.declareCombatAction('alpha', 'test-beast', 'basic-attack').ok).toBe(true);
+    state.submitCombatRoll('player', 'alpha', 'attack', state.combat.pending!.id, 1);
+    expect(state.combat.reactionUsed.alpha).toBe(true);
+    expect(state.combat.sequences.alpha).toBeUndefined();
+    expect(state.declareCombatAction('alpha', 'test-beast', 'basic-attack').ok).toBe(false);
+  });
+});
+
 describe('inyección y privacidad', () => {
   it('emite las señales del epílogo solo tras confirmación del DM y mantiene privado el suspiro a bordo', () => {
     const io = new Server(), server = new GameServer(io, 'dm-test', stormwreckBundle), emit = vi.fn();
@@ -446,6 +542,21 @@ describe('inyección y privacidad', () => {
   it('rechaza bundles incoherentes antes de crear la partida', () => {
     const bundle = syntheticBundle(); bundle.public.scenes[0]!.spawns[0] = { col: 99, row: 99 };
     expect(() => compileCampaignBundle(bundle)).toThrow(/Campaña pública inválida|Spawn no transitable/);
+  });
+});
+
+describe('pasos durante el movimiento', () => {
+  it('no pierde un aviso de paso cuando cada casilla dura menos de 250 ms', () => {
+    vi.useFakeTimers();
+    const io = new Server(), server = new GameServer(io, 'dm-test', stormwreckBundle), emit = vi.fn();
+    vi.spyOn(io, 'to').mockReturnValue({ emit } as never);
+    const internal = server as unknown as { emitMovementSfx(entityId: string, durationMs: number): void };
+
+    internal.emitMovementSfx('maria', 220);
+    vi.advanceTimersByTime(220);
+    internal.emitMovementSfx('maria', 220);
+
+    expect(emit.mock.calls.filter(([event]) => event === 'sfx:movement')).toHaveLength(2);
   });
 });
 

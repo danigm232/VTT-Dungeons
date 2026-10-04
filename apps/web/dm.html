@@ -38,6 +38,23 @@
         <p class="muted">Tras recuperar una partida, los jugadores vuelven a elegir personaje y el historial Deshacer empieza vacío.</p>
       </section>
       <section id="explorationCard" class="card"><h2>Exploración</h2><div id="exploration"></div></section>
+      <section id="animationAuditCard" class="card animation-audit-card" hidden><h2>Pruebas visuales de acciones</h2>
+        <p class="note">Solo fichas visibles. Pruebas locales: no gastan recursos ni cambian la partida. ≈ significa un gesto reutilizado; «falta» señala una secuencia pendiente.</p>
+        <div class="animation-audit-controls">
+          <label>Blanco<select id="animationAuditTarget"><option value="">Sin blanco</option></select></label>
+          <label>Orientación visual<select id="animationAuditFacing"></select></label>
+          <label>Velocidad<select id="animationAuditSpeed"><option value=".25">¼ · muy lenta</option><option value=".5">½ · lenta</option><option value="1" selected>Normal</option><option value="1.5">1,5 ×</option></select></label>
+          <label class="animation-audit-check"><input id="animationAuditLoop" type="checkbox">Repetir</label>
+          <label class="animation-audit-check"><input id="animationAuditSound" type="checkbox" checked>Sonido</label>
+          <label class="animation-audit-check"><input id="animationAuditHit" type="checkbox" checked>Impacta</label>
+          <label class="animation-audit-check"><input id="animationAuditFocus" type="checkbox" checked>Encuadrar ficha</label>
+        </div>
+        <div class="animation-audit-playback"><button id="animationAuditPause">Pausar</button><button id="animationAuditStop">Detener</button><button id="animationAuditPrevious" aria-label="Fotograma anterior">‹</button><input id="animationAuditFrame" type="range" min="0" max="0" value="0" aria-label="Fotograma"><button id="animationAuditNext" aria-label="Fotograma siguiente">›</button><span id="animationAuditFrameLabel">—</span></div>
+        <p id="animationAuditStatus" class="note" role="status">Prueba local · no altera la partida</p>
+        <div class="button-row"><button id="animationAuditGood">Marcar correcta</button><button id="animationAuditBad">Marcar para revisar</button><button id="animationAuditExport">Exportar auditoría</button></div>
+        <label class="animation-audit-search">Filtrar personaje o acción<input id="animationAuditSearch" type="search" autocomplete="off" placeholder="Ej.: Anteros, correr, ataque"></label>
+        <div id="animationAuditList" class="animation-audit-list" aria-live="polite"><p class="note">Esperando el mapa actual…</p></div>
+      </section>
       <section id="encounterCard" class="card"><h2>Encuentro</h2><p id="creatureNote" class="note"></p>
         <button id="creature" class="danger">Revelar criatura</button>
         <div class="row"><label>Columna<input id="harpyCol" type="number" step="1" min="0"></label><label>Fila<input id="harpyRow" type="number" step="1" min="0"></label></div>
@@ -85,6 +102,7 @@
     <p class="release-notes-scope">Estos campamentos son escenas independientes. El mapa principal del Retiro no forma parte de esta actualización.</p>
     <form method="dialog" class="release-notes-footer"><button class="primary" type="submit">Entrar en la mesa</button></form>
   </dialog>
+  <dialog id="combatExitDialog" class="combat-sheet-dialog"><form method="dialog"><button class="close">Volver</button></form><p class="eyebrow">DECISIÓN DEL DM</p><h2 id="combatExitTitle">Finalizar combate</h2><p id="combatExitNote"></p><button id="confirmCombatExit" class="primary" type="button">Confirmar</button></dialog>
   <dialog id="combatSheetDialog" class="combat-sheet-dialog"><button id="closeCombatSheet" class="close">Cerrar</button><p id="combatSheetKicker" class="eyebrow">HOJA DE COMBATE</p><h2 id="combatSheetName">—</h2><p id="combatSheetSummary" class="muted"></p><div id="combatSheetStats" class="sheet-stats"></div><section id="combatSheetBody"></section></dialog>
   <dialog id="campPointDialog" class="combat-sheet-dialog camp-point-dialog"><form method="dialog"><button class="close" aria-label="Cerrar detalle">×</button></form><p id="campPointKind" class="eyebrow">PUNTO INTERACTIVO</p><h2 id="campPointTitle">—</h2><p id="campPointDescription" class="muted"></p><p id="campPointOwner" class="camp-point-owner" hidden></p><section><h3>Acciones disponibles para jugadores</h3><ul id="campPointActions"></ul></section><section id="campPointHistorySection" hidden><h3>Actividad reciente</h3><ul id="campPointHistory"></ul></section></dialog>
   <div id="toast" class="toast"></div><script type="module" src="/apps/web/dm.ts"></script>

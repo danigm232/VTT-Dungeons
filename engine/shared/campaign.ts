@@ -47,7 +47,7 @@ export const publicSceneSchema = z.object({
   id: sceneIdSchema, title: z.string().min(1).max(100), surfaceId: idSchema, movementEnabled: z.boolean(), background: z.string().regex(/^\/art\/[\p{L}\p{N}._,/ &-]+$/u),
   grid: gridSchema, walkable: z.array(cellSchema).max(65_536), spawns: z.array(cellSchema).min(1).max(20), props: z.array(propDefinitionSchema).max(100), waves: z.boolean().default(false),
   pickups: z.array(pickupSchema).max(30).optional(),
-  renderer: z.enum(['pixi', 'babylon-hd2d']).optional(),
+  renderer: z.enum(['pixi', 'babylon-hd2d', 'babylon-d8']).optional(),
   access: z.enum(['public', 'authorized']).optional(),
   terrain: terrainSchema.optional(),
   /** Optional data for camp/rest scenes; the same system can coexist with an adventure pack. */
@@ -76,7 +76,8 @@ const tokenAnimationSchema = z.object({
     url: artUrlSchema, x: z.number().int().min(0), y: z.number().int().min(0),
     width: z.number().int().positive(), height: z.number().int().positive(),
     logicalWidth: z.number().positive().max(2048).optional(), logicalHeight: z.number().positive().max(2048).optional(),
-    anchorY: z.number().min(0).max(1).optional()
+    anchorY: z.number().min(0).max(1).optional(),
+    anchorX: z.number().min(0).max(1).optional()
   }).strict()])).min(1).max(32), fps: z.number().positive().max(30).default(6), flipX: z.boolean().optional()
 }).strict();
 const audioUrl = z.string().regex(/^\/audio\/[a-zA-Z0-9._/-]+$/);
@@ -88,7 +89,11 @@ const audioLibraryItemSchema = z.object({
   category: audioCategorySchema.optional(),
   // Only continuous textures belong in a loop control. A sword impact or a
   // scream is deliberately kept as a one-shot, even if the DM can replay it.
-  loopable: z.boolean().optional()
+  loopable: z.boolean().optional(),
+  // Effects driven by token movement or an animation stay available to the
+  // runtime without adding a duplicate manual soundboard button. Missing
+  // means manually available for backward compatibility.
+  manual: z.boolean().optional()
 }).strict();
 const audioLibrarySchema = z.object({
   music: z.array(audioLibraryItemSchema).min(1).max(30),

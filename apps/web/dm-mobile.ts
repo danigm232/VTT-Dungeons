@@ -54,11 +54,13 @@ let swipe: { pointerId: number; x: number; y: number; lastX: number; lastTime: n
 const ambientMeta: Record<Exclude<Channel, 'music'>, { icon: string; description: string }> = {
   ocean: { icon: '≈', description: 'Oleaje y agua cercana' }, wind: { icon: '〰', description: 'Ráfagas y aire nocturno' }, wood: { icon: '⌇', description: 'Madera y aparejos' }, storm: { icon: '☁', description: 'Lluvia y tormenta lejana' }
 };
-const ambiencePresets: Array<{ id: string; icon: string; label: string; layers: Record<Exclude<Channel, 'music'>, { trackId: string; volume: number; playing: boolean }> }> = [
+const ambiencePresets: Array<{ id: string; icon: string; label: string; layers: Record<Exclude<Channel, 'music'>, { trackId: string; volume: number; playing: boolean; loop?: boolean; repeats?: number }> }> = [
   { id: 'horse', icon: '♞', label: 'Cabalgar', layers: { ocean: { trackId: 'd8-night-loop-horse-trot', volume: .42, playing: true }, wind: { trackId: 'd8-night-loop-mirror-icy-wind', volume: .12, playing: true }, wood: { trackId: 'd8-night-loop-horse-trot', volume: .08, playing: false }, storm: { trackId: 'd8-night-loop-storm', volume: .25, playing: false } } },
-  { id: 'tavern', icon: '♜', label: 'Taberna', layers: { ocean: { trackId: 'd8-night-loop-cafe-fireplace', volume: .25, playing: true }, wind: { trackId: 'd8-night-loop-tavern-voices', volume: .2, playing: true }, wood: { trackId: 'd8-night-loop-tavern-floor', volume: .1, playing: true }, storm: { trackId: 'd8-night-loop-storm', volume: .25, playing: false } } },
-  { id: 'market', icon: '◈', label: 'Mercado', layers: { ocean: { trackId: 'd8-night-loop-market-footsteps', volume: .15, playing: true }, wind: { trackId: 'd8-night-loop-market-crowd', volume: .22, playing: true }, wood: { trackId: 'd8-night-loop-tavern-floor', volume: .06, playing: false }, storm: { trackId: 'd8-night-loop-storm', volume: .25, playing: false } } },
-  { id: 'boat', icon: '≈', label: 'Barco', layers: { ocean: { trackId: 'd8-night-loop-boat-waves', volume: .36, playing: true }, wind: { trackId: 'd8-night-loop-mirror-icy-wind', volume: .16, playing: true }, wood: { trackId: 'd8-night-loop-boat-creak', volume: .1, playing: true }, storm: { trackId: 'd8-night-loop-storm', volume: .25, playing: false } } }
+  // Base elegida por el usuario; la capa de aire se mantiene separada para
+  // poder bajar la mezcla si la pista larga aporta demasiado ambiente.
+  { id: 'tavern', icon: '♜', label: 'Taberna', layers: { ocean: { trackId: 'd8-night-loop-tavern-openfire', volume: .25, playing: true, loop: false, repeats: 1 }, wind: { trackId: 'd8-night-loop-mirror-icy-wind', volume: .1, playing: true }, wood: { trackId: 'd8-night-loop-cafe-fireplace', volume: .1, playing: false }, storm: { trackId: 'd8-night-loop-storm', volume: .25, playing: false } } },
+  { id: 'market', icon: '◈', label: 'Mercado', layers: { ocean: { trackId: 'd8-night-loop-market-crowd', volume: .2, playing: true }, wind: { trackId: 'd8-night-loop-market-crowd', volume: .22, playing: false }, wood: { trackId: 'd8-night-loop-cafe-fireplace', volume: .06, playing: false }, storm: { trackId: 'd8-night-loop-storm', volume: .25, playing: false } } },
+  { id: 'boat', icon: '≈', label: 'Barco', layers: { ocean: { trackId: 'd8-night-loop-boat-waves', volume: .36, playing: true }, wind: { trackId: 'd8-night-loop-mirror-icy-wind', volume: .16, playing: true }, wood: { trackId: 'd8-night-loop-boat-waves', volume: .1, playing: false }, storm: { trackId: 'd8-night-loop-storm', volume: .25, playing: false } } }
 ];
 function hasAmbienceTrack(id: string) { return campaignAudio?.library?.ambience.some(track => track.id === id) ?? false; }
 function weatherPreset(intensity: number) {
@@ -67,7 +69,9 @@ function weatherPreset(intensity: number) {
   const stormwreck = hasAmbienceTrack('stormwreck-loop-rain');
   if (intensity <= .35) return { label: 'Llovizna', assetId: stormwreck ? 'stormwreck-loop-rain' : 'd8-night-loop-rain-drizzle' };
   if (intensity <= .7) return { label: 'Tormenta', assetId: stormwreck ? 'stormwreck-loop-storm' : 'd8-night-loop-storm' };
-  return { label: 'Temporal', assetId: stormwreck ? 'stormwreck-loop-storm' : 'd8-night-loop-rain-tempest' };
+  // D8 ya tiene una grabación compuesta para el estado más intenso. Stormwreck
+  // conserva su pista propia hasta separar también allí lluvia, viento y trueno.
+  return { label: 'Temporal', assetId: stormwreck ? 'stormwreck-loop-storm' : 'd8-night-loop-tempest' };
 }
 
 function toast(message: string) { const element = $('toast'); element.textContent = message; element.classList.add('show'); clearTimeout(toastTimer); toastTimer = window.setTimeout(() => element.classList.remove('show'), 2600); }
@@ -233,7 +237,7 @@ function renderEffects(force = false) {
   const iconFor = (category: EffectCategory) => ({ movement: '♟', combat: '⚔', magic: '✦', creature: '♞', object: '⌁', scene: '♜' })[category];
   const profile = state ? campaignAudio?.sceneProfiles?.[state.sceneId] : undefined, recommended = new Set(profile?.recommendedSfx ?? []);
   $('effectsTitle').textContent = effectFilter === 'recommended' ? `Recomendados · ${state ? (sceneTitles.get(state.sceneId) ?? state.sceneId) : 'mapa'}` : 'Biblioteca de acciones';
-  const effects = (campaignAudio?.library?.sfx ?? []).filter(effect => effectFilter === 'recommended' ? recommended.has(effect.id) : effectFilter === 'all' || groupFor(effect) === effectFilter);
+  const effects = (campaignAudio?.library?.sfx ?? []).filter(effect => (effect.manual !== false || state?.audio.sfxLoops[effect.id]?.playing) && (effectFilter === 'recommended' ? recommended.has(effect.id) : effectFilter === 'all' || groupFor(effect) === effectFilter));
   for (const effect of effects) {
     const button = document.createElement('button'), icon = document.createElement('span'), label = document.createTextNode(effect.label), detail = document.createElement('small');
     icon.textContent = iconFor(groupFor(effect)); detail.textContent = effect.description; button.title = effect.description; button.className = 'effect-trigger'; button.append(icon, label, detail);

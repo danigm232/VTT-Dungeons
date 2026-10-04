@@ -363,8 +363,8 @@ export function createCampVisuals(scene: Scene, definition: PublicSceneDefinitio
       outerTrees.forEach(([col, row, height], index) => {
         const at = cellPoint({ col, row });
         cylinder(`forest:outer-trunk:${index}`, .38, .62, 3.6, at.add(new Vector3(0, 1.8, 0)), M.bark, 6);
-        const sway = new TransformNode(`forest:outer-sway:${index}`, scene);
-        sway.parent = root; sway.position.set(at.x, 3.8, at.z); canopySways.push({ node: sway, phase: index * 1.35 });
+
+
         const canopyMaterial = index % 3 === 0 ? M.pine : index % 3 === 1 ? M.leaf2 : M.leaf;
         const layers = [0, 1, 2, 3].map(layer => {
           const crown = MeshBuilder.CreateCylinder(`forest:outer-crown:${index}:${layer}`, {
@@ -375,7 +375,7 @@ export function createCampVisuals(scene: Scene, definition: PublicSceneDefinitio
           crown.material = canopyMaterial; crown.isPickable = false; return crown;
         });
         const canopy = Mesh.MergeMeshes(layers, true, true, undefined, false, false);
-        if (canopy) { canopy.name = `forest:outer-canopy:${index}`; canopy.parent = sway; canopy.isPickable = false; meshes.push(canopy); }
+        if (canopy) { canopy.name = `forest:outer-canopy:${index}`; canopy.parent = root; canopy.position.set(at.x, 3.8, at.z); canopy.isPickable = false; meshes.push(canopy); }
       });
 
       // Path border pebbles along the main trail to define the path edges clearly

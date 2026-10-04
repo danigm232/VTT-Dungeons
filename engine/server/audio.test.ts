@@ -140,7 +140,7 @@ describe('AudioDirector', () => {
     expect(finished).toHaveBeenCalledWith('d8-night-sfx-step-wood', 123);
   });
 
-  it('mantiene un único paso durante una ruta y lo corta al terminar la última casilla', () => {
+  it('mantiene un único paso durante una ruta y tolera la latencia entre casillas', () => {
     const director = new AudioDirector(catalog);
     director.playMovementSfx('heroina', 'd8-night-sfx-step-wood', 300);
     const steps = fake.instances.find(instance => instance.src.includes('step-wood'))!;
@@ -148,6 +148,20 @@ describe('AudioDirector', () => {
     vi.advanceTimersByTime(200);
     director.playMovementSfx('heroina', 'd8-night-sfx-step-wood', 300);
     expect(steps.playCalls).toBe(1);
+    vi.advanceTimersByTime(379);
+    expect(steps.stopCalls).toBe(0);
+    vi.advanceTimersByTime(1);
+    expect(steps.stopCalls).toBe(1);
+  });
+
+  it('no reinicia el paso si el siguiente aviso llega justo después de completar la casilla', () => {
+    const director = new AudioDirector(catalog);
+    director.playMovementSfx('silverfarben', 'd8-night-sfx-step-wood', 220);
+    const steps = fake.instances.find(instance => instance.src.includes('step-wood'))!;
+    vi.advanceTimersByTime(233);
+    director.playMovementSfx('silverfarben', 'd8-night-sfx-step-wood', 220);
+    expect(steps.playCalls).toBe(1);
+    expect(steps.stopCalls).toBe(0);
     vi.advanceTimersByTime(299);
     expect(steps.stopCalls).toBe(0);
     vi.advanceTimersByTime(1);

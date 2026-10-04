@@ -1,5 +1,36 @@
 # Resultados de aceptación — RC4 y avance Alpha 0.2
 
+## Paridad de opciones de cámara entre Stormwreck y D8 Night — 2026-10-03
+
+Candidata de aplicación `0.3.2-dev.7`. La comparación confirma que las interfaces de DM, jugador y proyector, el panel móvil de audio, la cuadrícula, los modos fijo/semi-fijo/seguimiento, los ajustes del jugador y la colocación/tamaño de joystick y botón de acción ya usan las mismas vistas y preferencias en ambas campañas. La diferencia funcional era la cámara: D8 emplea `babylon-d8`, que estaba excluido de los controles y del evento de cámara compartida.
+
+D8 ya permite en cada mapa giros discretos de 45°, inclinación acotada, zoom por gesto de pinza y modos de seguimiento. Respeta el ángulo inicial propio de cada mapa; jugador y WASD/joystick usan la misma orientación solicitada; el DM puede compartir el giro con jugadores y proyector. La orientación, inclinación y zoom se guardan localmente por campaña, mapa y vista. La cámara permanece oblicua y no permite giro libre.
+
+| Comprobación | Resultado | Alcance |
+|---|---|---|
+| Typecheck cliente/servidor y build | PASS | Vite cliente y TypeScript servidor. Vite conserva el aviso conocido del atlas M5 del Pecio, servido por el servidor en runtime. |
+| Suite Vitest | PASS — 214/214 | 26 archivos; incluye límites de giro/inclinación y elegibilidad de los renderizadores de cámara. |
+| Smoke D8 | PASS | Instancia efímera en loopback; seis mapas, datos visuales saneados, recursos, guardado privado y evento real de orientación del DM recibido por el proyector. No usa el puerto 3000 ni los guardados del usuario. |
+| Móvil, navegador de escritorio y proyector físicos | PENDIENTE | Aún hay que confirmar visualmente giro, inclinación, zoom, seguimiento y controles de movimiento en la mesa del usuario. |
+
+## D8 Night V35 — integración del mapa Babylon en el VTT · 2026-10-03
+
+Candidata integrada: aplicación `0.3.2-dev.6`; paquete D8 `0.3.0-dev.2`; Playground `V35`. Los seis mapas del one-shot privado usan el render Babylon oblicuo 2.5D ya existente. El servidor deriva las casillas transitables de las zonas de navegación V34, así que el movimiento y las colisiones siguen siendo autoritativos y las fichas/overlay del VTT usan las mismas coordenadas. Las partidas con cuadrículas legadas (32×21; jardín 29×21) se remapean una sola vez al formato métrico nuevo.
+
+La integración expone únicamente datos visuales saneados mediante `/api/d8/renderer-config`. Las claves y cadenas privadas de `CANON` y las interacciones narrativas no aparecen en esa respuesta; encuentros y acciones siguen siendo control del DM. La escena Babylon se carga bajo demanda al abrir D8. No se ha diseñado arquitectura nueva ni se han creado aún los nuevos escenarios, texturas, iluminación o VFX que pertenecen al siguiente ciclo.
+
+| Comprobación | Resultado | Alcance |
+|---|---|---|
+| Typecheck cliente/servidor | PASS | Código y tipos actuales. |
+| Suite automatizada | PASS — 208/208 | 24 archivos; incluye filtro de secretos, seis grids/spawns transitables y migración de guardado D8. Además, el test específico one-shot volvió a pasar 16/16 tras ampliar sus aserciones. |
+| Build de producción | PASS | Vite cliente (2.120 módulos) y TypeScript servidor; render D8 separado en carga dinámica. Vite conserva un aviso conocido para `/art/ship/loot-atlas-m5.svg`; está bajo el directorio de assets servido dinámicamente. |
+| Smoke HTTP de D8 | PASS | Instancia temporal en loopback y carpeta desechable; seis mapas, configuración visual sin campos privados, fondos, fichas, animaciones, archivos de audio y guardado privado. No usa puerto 3000 ni `data/saves`. |
+| Artefacto Playground | PASS | `current == v35`; `unicode` coincide con UTF‑8 de `code`; wrapper/renderer/config incrustados coinciden con fuente; V34 queda en `historico/` y sólo V35 está activo. |
+| Render comprobado en navegador físico | PENDIENTE | La escena usa texturas `DynamicTexture` que requieren Canvas del navegador; `NullEngine` de Node no las emula. Hace falta revisar el mapa real en escritorio, móvil y proyector. |
+| Aceptación visual/física | PENDIENTE | Confirmar alineación de casillas/fichas, orientación de cámara, movimiento y audio en las seis escenas. No atribuir aceptación física del Pecio a D8. |
+
+No se declara cerrada ninguna fase F3–F7 de `docs/D8_NIGHT_SOL_ROADMAP.md`; esta integración visual anticipada es un bloque acotado por petición del usuario. La mejora posterior de arquitectura, escenarios, texturas, iluminación y VFX queda registrada como el siguiente ciclo después de probar esta candidata.
+
 ## Campamentos V1.4.2 — candidata visual A1, 2026-09-27
 
 La escena A1 adopta una planta irregular con seis habitaciones, plaza, estatua y hoguera. La fachada correspondiente se abre visualmente al entrar; rutas, casillas bloqueadas e interacciones mantienen sus datos de juego independientes. El cambio incluye un atlas de materiales y vegetación ilustrada. Es candidata técnica; el usuario aún debe revisar la lectura artística y el movimiento en los dispositivos de mesa.

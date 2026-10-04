@@ -8,14 +8,14 @@
 // Garden -> El jardin de la srta fritz IA.png
 // Market -> El Mercado Nocturno IA.png
 // Mirror -> El Espejo de plata del amor verdadero IA.png
-export const D8_VERSION = "V34";
+export const D8_VERSION = "V40";
 
 export const D8NIGHT: any = {
   maps: {
     cafe: {
       label: "TABERNA",
       spawn: [0, 0.43, 10.0],
-      camera: { radius: 27.0, beta: 0.64, alpha: -Math.PI / 2.04, targetOffset: [0, 0, -3.0] },
+      camera: { radius: 27.0, beta: 0.76, alpha: Math.PI / 2.18, targetOffset: [0, 0, -3.0] },
       MAP: {
         size: [28, 24],
         floor: "stone_tavern",
@@ -127,7 +127,7 @@ export const D8NIGHT: any = {
         environment: { clearColor: [0.10, 0.072, 0.045], fog: false, fogDensity: 0, exposure: 1.00, contrast: 1.03, toneMapping: false, vignette: false, glowIntensity: 0.12, sharpen: 0.62, sharpenColor: 1.04 },
         lighting: {
           mode: "interior",
-          ambientIntensity: 0.78,
+          ambientIntensity: 0.42,
           ambientColor: [1.00, 0.88, 0.72],
           globalFill: {
             color: [1.00, 0.80, 0.60],
@@ -143,7 +143,7 @@ export const D8NIGHT: any = {
               { position: [5.8, 4.0, 4.6], color: [0.64, 0.86, 0.88], intensity: 0.42, range: 8.8 }
             ]
           },
-          shadows: { enabled: false },
+          shadows: { enabled: true, mapSize: 1024, blurKernel: 10, intensity: 0.48, darkness: 0.42, position: [8, 9, -5], direction: [-0.42, -1, 0.28], color: [1.00, 0.83, 0.64] },
           lights: [
             { position: [-9.2, 2.0, -1.3], color: [1.00, 0.44, 0.16], intensity: 1.05, range: 12.5 },
             { position: [5.6, 0.80, 10.0], color: [0.08, 0.42, 0.50], intensity: 0.22, range: 5.2 }
@@ -165,7 +165,8 @@ export const D8NIGHT: any = {
           diffuseBoost: 1.02,
           emissiveFloor: 0.035,
           specular: 0.022,
-          maxRealPointLights: 5,
+          maxRealPointLights: 13,
+          maxMaterialLights: 8,
           contactShadows: [
             { position: [-3.2, -5.0], size: [11.5, 2.0], alpha: 0.14 },
             { position: [-5.3, 0.45], size: [2.6, 2.2], alpha: 0.16 },
@@ -185,7 +186,7 @@ export const D8NIGHT: any = {
     temple: {
       label: "TEMPLO",
       spawn: [0, 0.43, 29.0],
-      camera: { radius: 46.0, beta: 0.68, alpha: -Math.PI / 2.04, targetOffset: [0, 0.35, -13.6] },
+      camera: { radius: 46.0, beta: 0.86, alpha: Math.PI / 2.25, targetOffset: [0, 0.65, -13.6] },
       MAP: {
         size: [52, 68],
         floor: "grass",
@@ -199,24 +200,24 @@ export const D8NIGHT: any = {
 
           // --- NAVE / SANCTUARY ---
           { asset: "temple_floor", position: [0, -0.45], size: [27.3, 17.0], material: "stone", tileSize: 2.35, border: false, joints: false },
-          { asset: "temple_wall", position: [0, -9.0], size: [28.2, 0.92], height: 3.65, pilasters: true },
+          { asset: "temple_wall", position: [0, -9.0], size: [28.2, 0.92], height: 5.60, pilasters: true },
 
           // Segmented side walls leave true window openings.
-          { asset: "temple_wall", position: [-14.0, -7.30], size: [0.92, 3.05], height: 3.25, pilasters: true },
-          { asset: "temple_wall", position: [-14.0, -2.55], size: [0.92, 3.00], height: 3.25, pilasters: true },
-          { asset: "temple_wall", position: [-14.0, 2.20], size: [0.92, 3.00], height: 3.25, pilasters: true },
-          { asset: "temple_wall", position: [-14.0, 6.85], size: [0.92, 2.70], height: 3.10, pilasters: true },
-          { asset: "temple_wall", position: [14.0, -7.30], size: [0.92, 3.05], height: 3.25, pilasters: true },
-          { asset: "temple_wall", position: [14.0, -2.55], size: [0.92, 3.00], height: 3.25, pilasters: true },
-          { asset: "temple_wall", position: [14.0, 2.20], size: [0.92, 3.00], height: 3.25, pilasters: true },
-          { asset: "temple_wall", position: [14.0, 6.85], size: [0.92, 2.70], height: 3.10, pilasters: true },
+          { asset: "temple_wall", position: [-14.0, -7.30], size: [0.92, 3.05], height: 4.85, pilasters: true },
+          { asset: "temple_wall", position: [-14.0, -2.55], size: [0.92, 3.00], height: 4.65, pilasters: true },
+          { asset: "temple_wall", position: [-14.0, 2.20], size: [0.92, 3.00], height: 4.45, pilasters: true },
+          { asset: "temple_wall", position: [-14.0, 6.85], size: [0.92, 2.70], height: 4.10, pilasters: true },
+          { asset: "temple_wall", position: [14.0, -7.30], size: [0.92, 3.05], height: 4.85, pilasters: true },
+          { asset: "temple_wall", position: [14.0, -2.55], size: [0.92, 3.00], height: 4.65, pilasters: true },
+          { asset: "temple_wall", position: [14.0, 2.20], size: [0.92, 3.00], height: 4.45, pilasters: true },
+          { asset: "temple_wall", position: [14.0, 6.85], size: [0.92, 2.70], height: 4.10, pilasters: true },
 
-          { asset: "temple_window", width: 1.85, height: 1.85, y: 1.65, position: [-13.97, -4.88], rotation: Math.PI / 2, sunlit: true, direction: [1, -0.23, 0.04], intensity: 2.45, beamLength: 7.0 },
-          { asset: "temple_window", width: 1.85, height: 1.85, y: 1.65, position: [-13.97, -0.12], rotation: Math.PI / 2, sunlit: true, direction: [1, -0.23, 0.04], intensity: 2.30, beamLength: 6.7 },
-          { asset: "temple_window", width: 1.85, height: 1.85, y: 1.65, position: [-13.97, 4.58], rotation: Math.PI / 2, sunlit: true, direction: [1, -0.23, 0.04], intensity: 2.15, beamLength: 6.4 },
-          { asset: "temple_window", width: 1.85, height: 1.85, y: 1.65, position: [13.97, -4.88], rotation: -Math.PI / 2, sunlit: false },
-          { asset: "temple_window", width: 1.85, height: 1.85, y: 1.65, position: [13.97, -0.12], rotation: -Math.PI / 2, sunlit: false },
-          { asset: "temple_window", width: 1.85, height: 1.85, y: 1.65, position: [13.97, 4.58], rotation: -Math.PI / 2, sunlit: false },
+          { asset: "temple_window", width: 1.85, height: 3.35, y: 2.45, position: [-13.97, -4.88], rotation: Math.PI / 2, sunlit: true, direction: [1, -0.23, 0.04], intensity: 1.30, beamLength: 7.0 },
+          { asset: "temple_window", width: 1.85, height: 3.35, y: 2.45, position: [-13.97, -0.12], rotation: Math.PI / 2, sunlit: true, direction: [1, -0.23, 0.04], intensity: 1.15, beamLength: 6.7 },
+          { asset: "temple_window", width: 1.85, height: 3.35, y: 2.45, position: [-13.97, 4.58], rotation: Math.PI / 2, sunlit: true, direction: [1, -0.23, 0.04], intensity: 1.05, beamLength: 6.4 },
+          { asset: "temple_window", width: 1.85, height: 3.35, y: 2.45, position: [13.97, -4.88], rotation: -Math.PI / 2, sunlit: false },
+          { asset: "temple_window", width: 1.85, height: 3.35, y: 2.45, position: [13.97, -0.12], rotation: -Math.PI / 2, sunlit: false },
+          { asset: "temple_window", width: 1.85, height: 3.35, y: 2.45, position: [13.97, 4.58], rotation: -Math.PI / 2, sunlit: false },
 
           { asset: "temple_buttress", position: [-14.40, -7.5], height: 4.0, width: 0.92, depth: 1.25 },
           { asset: "temple_buttress", position: [-14.40, 0.0], height: 3.8, width: 0.88, depth: 1.20 },
@@ -234,8 +235,9 @@ export const D8NIGHT: any = {
           { asset: "temple_gate", position: [0, 18.15], width: 7.0, height: 4.35, depth: 1.00, pediment: true },
 
           // Continuous ceremonial axis.
-          { asset: "runner", position: [0, -2.0], size: [1.95, 11.8], material: "templeBurgundy", border: "stoneLight" },
-          { asset: "runner", position: [0, 12.8], size: [2.15, 9.2], material: "templeBurgundy", border: "stoneLight" },
+          { asset: "runner", position: [0, -2.0], size: [2.65, 11.8], material: "templeBurgundy", border: "stoneLight" },
+          { asset: "runner", position: [0, 12.8], size: [2.65, 9.2], material: "templeBurgundy", border: "stoneLight" },
+          { asset: "runner", position: [0, 0.8], size: [9.3, 4.8], material: "templeBurgundy", border: "gold" },
 
           // Bridge ends at the stairs. There is no loose dirt gap anymore.
           { asset: "stairs", position: [0, 19.85], size: [6.2, 3.4], steps: 9, height: 1.18, material: "stone" },
@@ -274,7 +276,12 @@ export const D8NIGHT: any = {
           { asset: "table_candelabrum", position: [0, 0.8], arms: 5, spread: 0.70, intensity: 0.92, range: 6.2 },
           { asset: "banquet_setting", position: [0, 0.8], size: [6.3, 1.16] },
 
-          { asset: "temple_altar_backdrop", position: [0, -8.45], size: [8.0, 0.52], height: 3.35, depth: 0.55 },
+          { asset: "temple_altar_backdrop", position: [0, -8.45], size: [8.0, 0.52], height: 5.40, depth: 0.55 },
+          { asset: "temple_sanctuary_details", position: [0, 0] },
+          // Rear woodland is outside the playable bounds; it frames the hall.
+          ...Array.from({ length: 14 }, (_, i) => ({ asset: "temple_tree", position: [-23 + (i % 7) * 7.4, -14.5 - Math.floor(i / 7) * 7.2], height: 5.2 + (i % 3) * 0.55, crown: 4.4 + (i % 2) * 0.45 })),
+          { asset: "temple_window", position: [-10.0, -8.46], width: 2.1, height: 4.2, y: 3.0, rotation: 0, sunlit: false },
+          { asset: "temple_window", position: [10.0, -8.46], width: 2.1, height: 4.2, y: 3.0, rotation: 0, sunlit: false },
           { asset: "runner", position: [0, -6.1], size: [5.1, 2.6], material: "templeBurgundy", border: "stoneLight" },
           { asset: "temple_altar", position: [0, -6.2], size: [5.4, 2.1], height: 1.10 },
           { asset: "statue", position: [0, -7.65] },
@@ -302,10 +309,12 @@ export const D8NIGHT: any = {
           { asset: "temple_torch", position: [-12.55, 4.6], intensity: 1.12, range: 6.9 },
           { asset: "temple_torch", position: [12.55, 4.6], intensity: 1.12, range: 6.9 },
 
-          { asset: "banner", position: [-13.50, -4.8], size: [1.05, 1.75], y: 2.65, material: "clothRed", rotation: Math.PI / 2 },
-          { asset: "banner", position: [13.50, -4.8], size: [1.05, 1.75], y: 2.65, material: "clothRed", rotation: -Math.PI / 2 },
-          { asset: "banner", position: [-13.50, 2.6], size: [1.05, 1.75], y: 2.55, material: "purple", rotation: Math.PI / 2 },
-          { asset: "banner", position: [13.50, 2.6], size: [1.05, 1.75], y: 2.55, material: "purple", rotation: -Math.PI / 2 },
+          { asset: "banner", position: [-13.30, -2.55], size: [1.30, 2.15], y: 3.70, material: "clothRed", rotation: Math.PI / 2 },
+          { asset: "banner", position: [13.30, -2.55], size: [1.30, 2.15], y: 3.70, material: "clothRed", rotation: -Math.PI / 2 },
+          { asset: "banner", position: [-13.30, 6.5], size: [1.30, 2.15], y: 3.45, material: "purple", rotation: Math.PI / 2 },
+          { asset: "banner", position: [13.30, 6.5], size: [1.30, 2.15], y: 3.45, material: "purple", rotation: -Math.PI / 2 },
+          { asset: "banner", position: [-5.1, -8.43], size: [1.35, 2.65], y: 4.45, material: "clothRed", rotation: 0 },
+          { asset: "banner", position: [5.1, -8.43], size: [1.35, 2.65], y: 4.45, material: "clothRed", rotation: 0 },
 
           { asset: "rose_patch", position: [-9.7, 5.7], size: [3.2, 1.4], count: 13 },
           { asset: "rose_patch", position: [9.7, 5.7], size: [3.2, 1.4], count: 13 },
@@ -404,16 +413,17 @@ export const D8NIGHT: any = {
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.075, 0.105, 0.065], fog: false, fogDensity: 0, exposure: 1.18, contrast: 1.02, toneMapping: true, vignette: true, vignetteWeight: 0.11, vignetteStretch: 0.08 },
+        environment: { clearColor: [0.024, 0.035, 0.062], fog: false, fogDensity: 0, exposure: 1.18, contrast: 1.10, toneMapping: true, vignette: true, vignetteWeight: 0.16, vignetteStretch: 0.08 },
         lighting: {
           mode: "exterior",
-          ambientIntensity: 0.46,
-          ambientColor: [0.92, 0.78, 0.60],
-          natural: { color: [1.00, 0.68, 0.38], intensity: 0.72, direction: [0.82, -0.58, 0.22], position: [-24, 16, 6] },
-          globalFill: { color: [0.82, 0.72, 0.58], intensity: 0.20, hemiIntensity: 0.32, directionalIntensity: 0.14, direction: [0.82, -0.58, 0.22] },
-          shadows: { enabled: true, mapSize: 2048, blurKernel: 20, intensity: 0.82, color: [1.00, 0.68, 0.38], direction: [0.82, -0.58, 0.22], position: [-24, 16, 6], darkness: 0.22 },
+          ambientIntensity: 0.40,
+          ambientColor: [0.54, 0.65, 0.88],
+          natural: { color: [0.60, 0.72, 1.00], intensity: 0.92, direction: [0.55, -0.85, -0.32], position: [-22, 28, 12] },
+          globalFill: { color: [0.52, 0.61, 0.86], intensity: 0.10, hemiIntensity: 0.14, directionalIntensity: 0.08, direction: [0.55, -0.85, -0.32] },
+          shadows: { enabled: true, mapSize: 2048, blurKernel: 12, intensity: 0.92, color: [0.60, 0.72, 1.00], direction: [0.55, -0.85, -0.32], position: [-22, 28, 12], darkness: 0.38 },
           lights: [
-            { position: [0, 2.8, -6.4], color: [1.00, 0.48, 0.18], intensity: 0.64, range: 10.5 },
+            { position: [0, 3.8, -6.4], color: [1.00, 0.58, 0.27], intensity: 2.10, range: 9.5 },
+            { position: [0, 2.3, 0.8], color: [1.00, 0.67, 0.34], intensity: 2.15, range: 7.5 },
             { position: [0, 2.4, 16.7], color: [1.00, 0.50, 0.20], intensity: 0.34, range: 8.0 }
           ]
         },
@@ -424,21 +434,21 @@ export const D8NIGHT: any = {
           { id: "temple_statue_ambience", position: [0, -7.5], radius: 2.0, label: "Examinar estatua", message: "La figura de piedra se alza detrás del altar.", action: { type: "pulse", color: [0.75, 0.64, 0.48], range: 3.2 } }
         ],
         visual: {
-          profile: "temple_furnished_warmstone_v34",
-          glow: 0.11,
+          profile: "temple_twilight_sanctuary",
+          glow: 0.18,
           exposure: 1.18,
-          contrast: 1.02,
+          contrast: 1.10,
           fov: 0.72,
-          sceneAmbient: [0.18, 0.20, 0.13],
-          diffuseBoost: 1.18,
-          emissiveFloor: 0.12,
+          sceneAmbient: [0.10, 0.13, 0.21],
+          diffuseBoost: 1.05,
+          emissiveFloor: 0.025,
           specular: 0.020,
           maxRealPointLights: 14,
           maxMaterialLights: 8,
-          aoStrength: 0.32,
-          aoRadius: 0.92,
-          bloomWeight: 0.10,
-          bloomThreshold: 0.87,
+          aoStrength: 0.65,
+          aoRadius: 0.72,
+          bloomWeight: 0.16,
+          bloomThreshold: 0.84,
           contactShadows: [
             { position: [0, 0.7], size: [8.2, 2.5], alpha: 0.17 },
             { position: [-8.5, -1.5], size: [2.1, 9.0], alpha: 0.12 },
@@ -448,11 +458,11 @@ export const D8NIGHT: any = {
             { position: [0, 19.0], size: [8.0, 3.0], alpha: 0.12 }
           ],
           lightPools: [
-            { position: [0, 0.8], size: [8.0, 3.8], color: [1.00, 0.46, 0.12], alpha: 0.10 },
+            { position: [0, 0.8], size: [9.0, 5.8], color: [1.00, 0.58, 0.24], alpha: 0.22 },
             { position: [-9.8, -4.88], size: [7.2, 2.1], color: [1.00, 0.55, 0.22], alpha: 0.15 },
             { position: [-9.8, -0.12], size: [7.2, 2.1], color: [1.00, 0.55, 0.22], alpha: 0.14 },
             { position: [-9.8, 4.58], size: [7.2, 2.1], color: [1.00, 0.55, 0.22], alpha: 0.13 },
-            { position: [0, -6.2], size: [7.2, 4.0], color: [1.00, 0.30, 0.06], alpha: 0.11 },
+            { position: [0, -6.2], size: [8.2, 4.5], color: [1.00, 0.54, 0.20], alpha: 0.25 },
             { position: [0, 16.0], size: [25.0, 6.5], color: [1.00, 0.58, 0.24], alpha: 0.055 },
             { position: [0, 28.5], size: [12.0, 4.0], color: [1.00, 0.60, 0.28], alpha: 0.050 }
           ]
@@ -473,7 +483,7 @@ export const D8NIGHT: any = {
         enableVisualComposition: false,
         compositionOpacity: 0,
         objects: [
-          { asset: "house", position: [0, -4.9], size: [12.0, 5.4], height: 2.8, windowLightIntensity: 0.95, windowLightRange: 6.8 },
+          { asset: "house", position: [0, -4.9], size: [12.0, 5.4], height: 2.8, cutaway: true, windowLightIntensity: 0.95, windowLightRange: 6.8 },
           { asset: "path", position: [0, 3.2], size: [13.0, 3.0] },
           { asset: "table_round", position: [0, 3.2], scale: 1.15 },
           { asset: "chair", position: [0, 1.4], rotation: 0 },
@@ -509,7 +519,9 @@ export const D8NIGHT: any = {
 
           // V16 DINNER — reference match 2.5D
           { asset: "patio_round", position: [0, 3.2], diameter: 6.8, material: "stone2", border: "stoneDark" },
-          { asset: "well", position: [9.4, 5.3], diameter: 2.1 },
+          { asset: "table_dressing", position: [0, 3.2], count: 4, radius: 0.68, paper: true },
+          { asset: "plant_cluster", position: [-5.8, -7.6], spread: 0.75, count: 5 },
+          { asset: "plant_cluster", position: [5.8, -7.6], spread: 0.75, count: 5 },
           { asset: "low_wall", position: [-6.5, -1.7], size: [3.5, 0.38], height: 0.48, material: "stone2" },
           { asset: "low_wall", position: [6.4, -1.7], size: [3.4, 0.38], height: 0.48, material: "stone2" }
         ],
@@ -531,13 +543,13 @@ export const D8NIGHT: any = {
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.028, 0.034, 0.060], fog: true, fogDensity: 0.0025, exposure: 1.02, contrast: 1.06, toneMapping: true, vignette: true, vignetteWeight: 0.76 },
+        environment: { clearColor: [0.014, 0.024, 0.052], fog: true, fogDensity: 0.0015, exposure: 1.11, contrast: 1.07, toneMapping: true, vignette: true, vignetteWeight: 0.24 },
         lighting: {
           mode: "exterior",
-          ambientIntensity: 0.34,
-          ambientColor: [0.58, 0.65, 0.84],
-          natural: { position: [-8, 11, -6], direction: [0.42, -1, 0.28], color: [0.54, 0.66, 0.88], intensity: 0.46 },
-          shadows: { enabled: true, mapSize: 1024, blurKernel: 12 },
+          ambientIntensity: 0.64,
+          ambientColor: [0.72, 0.78, 0.96],
+          natural: { position: [-8, 11, -6], direction: [0.42, -1, 0.28], color: [0.70, 0.78, 1.00], intensity: 0.68 },
+          shadows: { enabled: true, mapSize: 1024, blurKernel: 14, darkness: 0.52 },
           lights: []
         },
         vfx: { fireflies: true, fireflyCount: 20, roseSway: true },
@@ -551,9 +563,9 @@ export const D8NIGHT: any = {
           exposure: 1.08,
           contrast: 1.07,
           fov: 0.72,
-          sceneAmbient: [0.060, 0.070, 0.105],
-          diffuseBoost: 1.04,
-          emissiveFloor: 0.018,
+          sceneAmbient: [0.16, 0.18, 0.25],
+          diffuseBoost: 1.12,
+          emissiveFloor: 0.025,
           specular: 0.024,
           maxRealPointLights: 5,
           contactShadows: [
@@ -573,7 +585,7 @@ export const D8NIGHT: any = {
     garden: {
       label: "GARDEN",
       spawn: [-10.5, 0.43, 6.0],
-      camera: { radius: 26.6, beta: 0.58, alpha: -Math.PI / 2.00 },
+      camera: { radius: 26.6, beta: 0.68, alpha: Math.PI / 2.12 },
       MAP: {
         size: [28, 20],
         floor: "snow",
@@ -584,7 +596,9 @@ export const D8NIGHT: any = {
         objects: [
           { asset: "path", position: [-1.0, 4.8], size: [23.0, 2.2] },
           { asset: "path", position: [5.8, 0.2], size: [2.2, 11.0] },
-          { asset: "round_room", position: [7.2, -3.0], radius: 3.3, segments: 20, opening: 3, height: 1.6 },
+          { asset: "round_room", position: [7.2, -3.0], radius: 3.3, segments: 20, opening: 3, height: 1.25 },
+          { asset: "stone_lantern", position: [4.0, 4.8], height: 1.4, intensity: 0.42, range: 5 },
+          { asset: "stone_lantern", position: [8.0, 1.0], height: 1.4, intensity: 0.38, range: 4.8 },
           { asset: "bed", position: [7.2, -3.6], size: [1.3, 2.25] },
           { asset: "rug", position: [7.2, -1.1], size: [3.0, 2.0] },
           { asset: "candle", position: [6.2, -1.0], intensity: 0.18, range: 2.4 },
@@ -643,38 +657,40 @@ export const D8NIGHT: any = {
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.24, 0.15, 0.095], fog: true, fogDensity: 0.0032, exposure: 1.10, contrast: 1.03, toneMapping: true, vignette: true, vignetteWeight: 0.42 },
+        environment: { clearColor: [0.026, 0.060, 0.086], fog: true, fogDensity: 0.00115, exposure: 1.12, contrast: 1.07, toneMapping: true, vignette: true, vignetteWeight: 0.24 },
         lighting: {
           mode: "exterior",
-          ambientIntensity: 0.52,
-          ambientColor: [1.00, 0.78, 0.56],
-          natural: { position: [-10, 8, -10], direction: [0.62, -0.72, 0.38], color: [1.00, 0.58, 0.26], intensity: 0.82 },
-          shadows: { enabled: true, mapSize: 1024, blurKernel: 14 },
+          ambientIntensity: 0.50,
+          ambientColor: [0.65, 0.77, 0.91],
+          natural: { position: [-10, 8, -10], direction: [0.62, -0.72, 0.38], color: [0.54, 0.70, 0.95], intensity: 0.62 },
+          shadows: { enabled: true, mapSize: 1024, blurKernel: 16, darkness: 0.48 },
           lights: []
         },
-        vfx: { snowfall: true, snowCount: 50, snowSpeed: 0.40, roseSway: true, fireflies: true, fireflyCount: 7 },
+        vfx: { snowfall: true, snowCount: 56, snowSpeed: 0.32, roseSway: true, fireflies: true, fireflyCount: 12 },
         interactables: [
           { id: "garden_roses_ambience", position: [-6.0, -1.5], radius: 2.2, label: "Rozar rosales", message: "Los rosales destacan con fuerza sobre la nieve.", action: { type: "nudge", radius: 3.0, meshMatch: ["roseHead", "thornRose"] } },
           { id: "garden_room_ambience", position: [4.5, -3.0], radius: 2.2, label: "Examinar estancia", message: "Una pequeña estancia circular se abre entre los muros del jardín.", action: { type: "pulse", color: [1.00, 0.62, 0.24], range: 3.2 } }
         ],
         visual: {
-          profile: "garden_golden_hour",
+          profile: "garden_moonlit_snow",
+          aoStrength: 0.28,
           glow: 0.10,
-          exposure: 1.06,
-          contrast: 1.06,
+          exposure: 1.02,
+          contrast: 1.12,
           fov: 0.74,
-          sceneAmbient: [0.16, 0.115, 0.075],
+          sceneAmbient: [0.075, 0.12, 0.18],
           diffuseBoost: 1.05,
           emissiveFloor: 0.012,
           specular: 0.018,
-          maxRealPointLights: 4,
+          maxRealPointLights: 8,
+          maxMaterialLights: 8,
           contactShadows: [
             { position: [7.2, -3.0], size: [7.0, 6.2], color: [0.08, 0.07, 0.09], alpha: 0.10 },
             { position: [-7.8, -2.0], size: [6.0, 8.0], color: [0.14, 0.05, 0.06], alpha: 0.07 }
           ],
           lightPools: [
-            { position: [4.8, -1.0], size: [12.0, 8.0], color: [1.00, 0.54, 0.20], alpha: 0.08 },
-            { position: [-5.0, 2.5], size: [13.0, 9.0], color: [1.00, 0.66, 0.32], alpha: 0.06 }
+            { position: [7.2, -2.8], size: [7.0, 6.0], color: [1.00, 0.54, 0.20], alpha: 0.12 },
+            { position: [2.0, 4.6], size: [6.0, 5.0], color: [1.00, 0.66, 0.32], alpha: 0.07 }
           ]
         },
         audio: { music: null, ambience: null }
@@ -684,7 +700,7 @@ export const D8NIGHT: any = {
     market: {
       label: "MARKET",
       spawn: [0, 0.43, 7.2],
-      camera: { radius: 27.0, beta: 0.59, alpha: -Math.PI / 2.08 },
+      camera: { radius: 27.0, beta: 0.69, alpha: Math.PI / 2.22 },
       MAP: {
         size: [30, 20],
         floor: "stone",
@@ -757,13 +773,13 @@ export const D8NIGHT: any = {
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.25, 0.14, 0.070], fog: true, fogDensity: 0.0016, exposure: 1.12, contrast: 1.04, toneMapping: true, vignette: true, vignetteWeight: 0.36 },
+        environment: { clearColor: [0.025, 0.040, 0.075], fog: true, fogDensity: 0.00105, exposure: 1.13, contrast: 1.08, toneMapping: true, vignette: true, vignetteWeight: 0.22 },
         lighting: {
           mode: "exterior",
-          ambientIntensity: 0.50,
-          ambientColor: [1.00, 0.74, 0.48],
-          natural: { position: [-12, 8, -8], direction: [0.62, -0.72, 0.30], color: [1.00, 0.55, 0.20], intensity: 0.88 },
-          shadows: { enabled: true, mapSize: 1024, blurKernel: 12 },
+          ambientIntensity: 0.61,
+          ambientColor: [0.69, 0.76, 0.94],
+          natural: { position: [-12, 8, -8], direction: [0.62, -0.72, 0.30], color: [0.58, 0.70, 0.96], intensity: 0.42 },
+          shadows: { enabled: true, mapSize: 1024, blurKernel: 16, darkness: 0.46 },
           lights: []
         },
         vfx: { dust: true, fireflies: true, fireflyCount: 10 },
@@ -777,11 +793,12 @@ export const D8NIGHT: any = {
           exposure: 1.07,
           contrast: 1.08,
           fov: 0.73,
-          sceneAmbient: [0.16, 0.105, 0.060],
+          sceneAmbient: [0.13, 0.16, 0.24],
           diffuseBoost: 1.06,
           emissiveFloor: 0.010,
           specular: 0.020,
-          maxRealPointLights: 4,
+          maxRealPointLights: 12,
+          maxMaterialLights: 8,
           contactShadows: [
             { position: [-7.5, -5.5], size: [11.0, 3.0], alpha: 0.12 },
             { position: [4.5, -5.5], size: [12.0, 3.0], alpha: 0.12 },
@@ -801,7 +818,7 @@ export const D8NIGHT: any = {
     mirror: {
       label: "MIRROR",
       spawn: [10.5, 0.43, 6.8],
-      camera: { radius: 27.8, beta: 0.56, alpha: -Math.PI / 2.14 },
+      camera: { radius: 27.8, beta: 0.68, alpha: Math.PI / 2.24 },
       MAP: {
         size: [30, 20],
         floor: "ice",
@@ -815,7 +832,7 @@ export const D8NIGHT: any = {
           { asset: "ice_crack", position: [-3.2, 4.0], branches: 5, length: 3.0, rotation: 1.1 },
           { asset: "ice_crack", position: [7.8, -4.6], branches: 5, length: 2.8, rotation: 0.7 },
           { asset: "magic_pedestal", position: [-9.2, -2.5], scale: 1.05, intensity: 2.25, range: 14, lightColor: [0.08, 0.88, 0.92] },
-          { asset: "mirror_frame", position: [-9.2, -2.5], scale: 1.05, rotation: Math.PI / 2 },
+          { asset: "mirror_frame", position: [-9.2, -2.5], scale: 1.05, rotation: 0.18 },
           { asset: "ice_crystal", position: [-12.0, -5.5], height: 1.6, rotation: 0.3, lightColor: [0.12, 0.72, 1.00], intensity: 1.18, range: 10.5 },
           { asset: "ice_crystal", position: [-6.3, -6.2], height: 1.2, rotation: 1.1, lightColor: [0.15, 1.00, 0.66], intensity: 1.05, range: 9.8 },
           { asset: "ice_crystal", position: [-12.2, 2.0], height: 1.4, rotation: 0.8, lightColor: [0.18, 0.72, 1.00], intensity: 1.08, range: 10.0 },
@@ -867,17 +884,17 @@ export const D8NIGHT: any = {
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
-        environment: { clearColor: [0.035, 0.095, 0.105], fog: true, fogDensity: 0.0016, exposure: 1.18, contrast: 1.00, toneMapping: false, vignette: false },
+        environment: { clearColor: [0.010, 0.038, 0.058], fog: true, fogDensity: 0.0009, exposure: 1.05, contrast: 1.08, toneMapping: false, vignette: false },
         lighting: {
           mode: "interior",
-          ambientIntensity: 0.70,
-          ambientColor: [0.42, 0.96, 0.92],
-          globalFill: { color: [0.32, 0.92, 0.88], intensity: 0.46, hemiIntensity: 0.36, directionalIntensity: 0.20, direction: [0.28, -1, -0.20] },
-          shadows: { enabled: false },
+          ambientIntensity: 0.36,
+          ambientColor: [0.50, 0.72, 0.86],
+          globalFill: { color: [0.25, 0.48, 0.62], intensity: 0.15, hemiIntensity: 0.14, directionalIntensity: 0.10, direction: [0.28, -1, -0.20] },
+          shadows: { enabled: true, mapSize: 1024, blurKernel: 16, intensity: 0.38, darkness: 0.52, position: [-8, 11, -10], direction: [0.38, -1, 0.52], color: [0.42, 0.70, 1.00] },
           lights: [
-            { position: [1.0, 3.8, 0.5], color: [0.12, 0.82, 1.00], intensity: 0.90, range: 18 },
-            { position: [5.0, 2.8, 2.0], color: [0.18, 1.00, 0.66], intensity: 0.78, range: 16 },
-            { position: [-4.0, 2.4, -1.0], color: [0.14, 0.76, 1.00], intensity: 0.72, range: 15 }
+            { position: [1.0, 3.8, 0.5], color: [0.12, 0.72, 0.86], intensity: 0.58, range: 18 },
+            { position: [5.0, 2.8, 2.0], color: [0.18, 0.78, 0.58], intensity: 0.48, range: 16 },
+            { position: [-4.0, 2.4, -1.0], color: [0.14, 0.64, 0.82], intensity: 0.45, range: 15 }
           ]
         },
         vfx: { waterRipples: true, magicMotes: true, magicCount: 18, snowfall: true, snowCount: 22, snowSpeed: 0.18 },
@@ -887,15 +904,16 @@ export const D8NIGHT: any = {
         ],
         visual: {
           profile: "mirror_aurora_cave",
-          glow: 0.26,
-          exposure: 1.08,
+          glow: 0.16,
+          exposure: 1.02,
           contrast: 1.08,
           fov: 0.70,
-          sceneAmbient: [0.030, 0.105, 0.120],
+          sceneAmbient: [0.025, 0.050, 0.070],
           diffuseBoost: 1.05,
-          emissiveFloor: 0.035,
+          emissiveFloor: 0.022,
           specular: 0.11,
-          maxRealPointLights: 5,
+          maxRealPointLights: 8,
+          maxMaterialLights: 8,
           contactShadows: [
             { position: [-9.2, -2.5], size: [4.2, 3.2], color: [0.00, 0.04, 0.05], alpha: 0.16 }
           ],

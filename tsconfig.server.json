@@ -6,5 +6,5 @@
     "sourceMap": false
   },
   "include": ["apps/server/**/*.ts", "engine/shared/**/*.ts", "engine/server/**/*.ts", "campaigns/**/*.ts"],
-  "exclude": ["**/*.test.ts"]
+  "exclude": ["**/*.test.ts", "campaigns/one-shot/playground/**"]
 }

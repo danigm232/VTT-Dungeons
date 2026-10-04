@@ -1,6 +1,6 @@
 {
   "name": "dnd-immersive-engine",
-  "version": "0.3.2-dev.5",
+  "version": "0.3.2-dev.7",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.19.0",
