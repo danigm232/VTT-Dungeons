@@ -13,7 +13,8 @@ async function freePort() {
 
 const port = await freePort();
 const dataDir = await mkdtemp(path.join(tmpdir(), 'dungeons-alpha03-general-'));
-const child = spawn(process.execPath, ['dist/server/apps/server/index.js'], { cwd: process.cwd(), env: { ...process.env, HOST: '127.0.0.1', PORT: String(port), DM_PASSWORD: 'TESTPASS', DUNGEONS_DATA_DIR: dataDir }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+const serverBuild = path.resolve(process.cwd(), process.env.DUNGEONS_SERVER_BUILD || 'dist/server');
+const child = spawn(process.execPath, [path.join(serverBuild, 'apps/server/index.js')], { cwd: process.cwd(), env: { ...process.env, HOST: '127.0.0.1', PORT: String(port), DM_PASSWORD: 'TESTPASS', DUNGEONS_DATA_DIR: dataDir }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
 let output = '', settled = false;
 child.stdout.on('data', data => output += data); child.stderr.on('data', data => output += data);
 const ready = new Promise((resolve, reject) => {

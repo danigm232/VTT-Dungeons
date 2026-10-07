@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1040" viewBox="0 0 2000 1040" role="img" aria-labelledby="title desc">
+  <title id="title">Opciones de interfaz de combate para el DM</title>
+  <desc id="desc">Comparación entre un panel de turno junto al mapa y una vista de combate con mapa amplio y una línea de iniciativa compacta.</desc>
+  <defs>
+    <linearGradient id="bg" x2="0" y2="1"><stop stop-color="#14252a"/><stop offset="1" stop-color="#071013"/></linearGradient>
+    <linearGradient id="bar" x2="1"><stop stop-color="#263b39"/><stop offset="1" stop-color="#101d21"/></linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><rect width="32" height="32" fill="#646957"/><path d="M32 0H0V32" fill="none" stroke="#d3d4af" stroke-opacity=".46"/><path d="M4 5h6v4H4zm18 15h6v8h-6z" fill="#7e8068" opacity=".6"/></pattern>
+    <pattern id="water" width="32" height="32" patternUnits="userSpaceOnUse"><rect width="32" height="32" fill="#1c6570"/><path d="M2 10q6-4 12 0t12 0m-28 16q6-4 12 0t12 0" fill="none" stroke="#70bdba" stroke-opacity=".55" stroke-width="2"/></pattern>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000" flood-opacity=".42"/></filter>
+    <style>
+      text{font-family:Segoe UI,Arial,sans-serif;fill:#e9e5d8}.title{font-size:34px;font-weight:700;letter-spacing:.03em}.sub{font-size:17px;fill:#aab9b6}.label{font-size:13px;fill:#9eb3af;letter-spacing:.12em;font-weight:700}.body{font-size:16px}.small{font-size:13px;fill:#afbfbb}.tiny{font-size:11px;fill:#afbfbb}.gold{fill:#f1d895}.mint{fill:#83d3aa}.red{fill:#f08d80}.panel{fill:#101d20;stroke:#365258;stroke-width:1.5}.line{stroke:#345057;stroke-width:1}.btn{fill:#20373b;stroke:#536f70;stroke-width:1}.strong{fill:#bb9145;stroke:#e3c77a;stroke-width:1.5}.tokenBlue{fill:#276eaa;stroke:#8bd2ff;stroke-width:3}.tokenRed{fill:#8a353d;stroke:#ffb0a1;stroke-width:3}.tokenGold{fill:#aa7936;stroke:#ffe09a;stroke-width:3}
+    </style>
+  </defs>
+  <rect width="2000" height="1040" fill="#080f12"/>
+  <text x="60" y="58" class="title">COMBATE DEL DM</text><text x="60" y="88" class="sub">La decisión de diseño es dónde poner iniciativa, estado del turno y acciones sin tapar el mapa</text>
+  <g transform="translate(45 120)">
+    <rect width="930" height="865" rx="18" fill="#0c171a" stroke="#476267" stroke-width="2"/>
+    <text x="24" y="35" class="label gold">OPCIÓN A · TURNO A LA VISTA</text><text x="24" y="60" class="small">Panel lateral con acciones del combatiente actual y contexto del objetivo.</text>
+    <g transform="translate(18 82)" filter="url(#shadow)">
+      <rect width="894" height="752" rx="12" fill="#0a1417" stroke="#405b60"/>
+      <rect width="894" height="53" rx="12" fill="url(#bar)"/><path d="M0 53H894" class="line"/>
+      <text x="18" y="22" class="label gold">ENCUENTRO ACTIVO</text><text x="18" y="42" class="body">Ronda 2 · Turno de Mike</text>
+      <rect x="595" y="11" width="118" height="31" rx="7" fill="#352d1a" stroke="#a38243"/><text x="612" y="32" class="small gold">7,5 m disponibles</text><rect x="724" y="11" width="148" height="31" rx="7" class="strong"/><text x="746" y="32" class="small gold">Pasar turno →</text>
+      <rect x="12" y="64" width="870" height="55" rx="9" fill="#0f1e21" stroke="#334f53"/>
+      <g><rect x="23" y="73" width="143" height="36" rx="7" fill="#253f3d" stroke="#d0ae63"/><circle cx="42" cy="91" r="11" class="tokenBlue"/><text x="60" y="88" class="small gold">1 · Mike</text><text x="60" y="102" class="tiny">Tu turno · PG 18</text><rect x="177" y="73" width="143" height="36" rx="7" fill="#16272a" stroke="#40575b"/><circle cx="196" cy="91" r="11" class="tokenRed"/><text x="214" y="88" class="small">2 · Goblin</text><text x="214" y="102" class="tiny">PG 7 · CA 15</text><rect x="331" y="73" width="143" height="36" rx="7" fill="#16272a" stroke="#40575b"/><circle cx="350" cy="91" r="11" class="tokenRed"/><text x="368" y="88" class="small">3 · Cultista</text><text x="368" y="102" class="tiny">PG 12 · CA 12</text><rect x="485" y="73" width="143" height="36" rx="7" fill="#16272a" stroke="#40575b"/><circle cx="504" cy="91" r="11" class="tokenBlue"/><text x="522" y="88" class="small">4 · Maria</text><text x="522" y="102" class="tiny">PG 22 · CA 16</text><text x="659" y="97" class="small">Desliza para ver el orden →</text></g>
+      <rect x="12" y="131" width="548" height="542" rx="9" fill="url(#grid)"/>
+      <path d="M12 131h128q-18 65 21 104t8 93q-35 25-8 70t-8 100q-26 60 10 175H12z" fill="url(#water)"/>
+      <path d="M140 131h420v542H170q20-80-12-127t10-93q30-38-5-82t8-89q-35-44-31-151z" fill="#887755" opacity=".3"/>
+      <g fill="#505b51" stroke="#2b3a35" stroke-width="4"><path d="M286 174l34-21 37 19-4 40-40 12z"/><path d="M442 223l33-20 33 17-4 41-39 12z"/><path d="M358 380l33-19 36 17-3 37-38 14z"/><path d="M218 541l36-20 34 19-4 41-40 13z"/></g>
+      <g fill="#355138" stroke="#213b29" stroke-width="3"><circle cx="349" cy="178" r="17"/><circle cx="389" cy="190" r="14"/><circle cx="497" cy="498" r="20"/></g>
+      <path d="M187 313l112-29 29 67-115 24z" fill="#794d35" stroke="#d4b17a" stroke-width="4"/>
+      <g><circle cx="300" cy="428" r="16" class="tokenBlue"/><text x="295" y="433" font-size="10" font-weight="700">MI</text><circle cx="389" cy="345" r="16" class="tokenRed"/><text x="384" y="350" font-size="10" font-weight="700">G</text><circle cx="476" cy="296" r="16" class="tokenRed"/><text x="471" y="301" font-size="10" font-weight="700">C</text><circle cx="234" cy="501" r="16" class="tokenBlue"/><text x="229" y="506" font-size="10" font-weight="700">MA</text></g>
+      <rect x="25" y="145" width="176" height="36" rx="7" fill="#081416dd" stroke="#90a396"/><text x="38" y="168" class="label">MAPA · GRILLA ACTIVA</text>
+      <rect x="571" y="131" width="311" height="542" rx="9" class="panel"/>
+      <text x="591" y="160" class="label">TURNO ACTUAL</text><text x="591" y="188" class="title" font-size="24">Mike</text><text x="591" y="211" class="small">Explorador · PG 18/22 · CA 15</text>
+      <rect x="591" y="225" width="270" height="9" rx="5" fill="#263b3a"/><rect x="591" y="225" width="221" height="9" rx="5" fill="#75ba87"/>
+      <g><rect x="591" y="250" width="81" height="48" rx="8" fill="#15272a" stroke="#435f61"/><text x="605" y="270" class="tiny">MOVIMIENTO</text><text x="605" y="290" class="body gold">5/5 casillas</text><rect x="681" y="250" width="81" height="48" rx="8" fill="#15272a" stroke="#435f61"/><text x="695" y="270" class="tiny">ACCIÓN</text><text x="695" y="290" class="body mint">Disponible</text><rect x="771" y="250" width="81" height="48" rx="8" fill="#15272a" stroke="#435f61"/><text x="785" y="270" class="tiny">REACCIÓN</text><text x="785" y="290" class="body mint">Disponible</text></g>
+      <path d="M591 314H861" class="line"/><text x="591" y="339" class="label">OBJETIVO</text><rect x="591" y="350" width="270" height="40" rx="7" class="btn"/><text x="606" y="376" class="body">Goblin · CA 15  ▾</text>
+      <text x="591" y="419" class="label">ACCIONES RÁPIDAS</text><rect x="591" y="432" width="127" height="42" rx="7" class="strong"/><text x="608" y="458" class="small gold">⚔ Ataque</text><rect x="727" y="432" width="134" height="42" rx="7" class="btn"/><text x="742" y="458" class="small">Escabullirse</text><rect x="591" y="482" width="270" height="36" rx="7" class="btn"/><text x="607" y="505" class="small">Defenderse · Ayudar · Preparar</text>
+      <rect x="591" y="533" width="270" height="62" rx="8" fill="#302919" stroke="#9d7b43"/><text x="606" y="554" class="label gold">RESOLUCIÓN EN MESA</text><text x="606" y="577" class="small">Tira el dado fuera del programa y anota el total.</text>
+      <rect x="591" y="609" width="270" height="42" rx="7" fill="#1d2928" stroke="#4d645d"/><text x="606" y="635" class="small">Acciones pendientes · 0</text>
+      <rect x="12" y="684" width="870" height="52" rx="9" fill="#0f1e21" stroke="#3d585d"/><text x="29" y="706" class="label">REGISTRO</text><text x="29" y="725" class="small">Mike se mueve a D5 · Goblin a 3 m · Sin tiradas pendientes</text><rect x="700" y="694" width="165" height="32" rx="7" class="btn"/><text x="717" y="715" class="small">Finalizar combate</text>
+    </g>
+    <text x="28" y="855" class="small">Ventaja: el DM ve turno, gasto y acción sin perder el mapa.</text><text x="28" y="875" class="small">Auditar: mantener objetivos y dados físicos en primer plano.</text>
+  </g>
+  <g transform="translate(1025 120)">
+    <rect width="930" height="865" rx="18" fill="#0c171a" stroke="#476267" stroke-width="2"/>
+    <text x="24" y="35" class="label gold">OPCIÓN B · INICIATIVA + BANDEJA</text><text x="24" y="60" class="small">El orden permanece fijo; la barra inferior solo abre el bloque de acción necesario.</text>
+    <g transform="translate(18 82)" filter="url(#shadow)">
+      <rect width="894" height="752" rx="12" fill="#0a1417" stroke="#405b60"/>
+      <rect width="894" height="53" rx="12" fill="url(#bar)"/><path d="M0 53H894" class="line"/>
+      <text x="18" y="22" class="label gold">COMBATE · RONDA 2</text><text x="18" y="42" class="small">Turno de Mike · movimiento 7,5 m · acción disponible</text><rect x="730" y="11" width="145" height="31" rx="7" class="strong"/><text x="752" y="32" class="small gold">Terminar turno →</text>
+      <rect x="12" y="64" width="870" height="64" rx="9" fill="#101e21" stroke="#354f53"/>
+      <g><rect x="22" y="73" width="162" height="45" rx="8" fill="#273d35" stroke="#dfbf70" stroke-width="2"/><circle cx="45" cy="95" r="13" class="tokenBlue"/><text x="65" y="92" class="small gold">Mike · 18 PG</text><text x="65" y="108" class="tiny">INICIATIVA 18 · AHORA</text><rect x="195" y="73" width="153" height="45" rx="8" fill="#182629" stroke="#4a5e60"/><circle cx="218" cy="95" r="13" class="tokenRed"/><text x="238" y="92" class="small">Goblin · 7 PG</text><text x="238" y="108" class="tiny">INICIATIVA 15</text><rect x="359" y="73" width="153" height="45" rx="8" fill="#182629" stroke="#4a5e60"/><circle cx="382" cy="95" r="13" class="tokenRed"/><text x="402" y="92" class="small">Cultista · 12 PG</text><text x="402" y="108" class="tiny">INICIATIVA 12</text><rect x="523" y="73" width="153" height="45" rx="8" fill="#182629" stroke="#4a5e60"/><circle cx="546" cy="95" r="13" class="tokenBlue"/><text x="566" y="92" class="small">Maria · 22 PG</text><text x="566" y="108" class="tiny">INICIATIVA 9</text><text x="697" y="101" class="small">Ronda ▸</text></g>
+      <rect x="12" y="140" width="870" height="450" rx="9" fill="url(#grid)"/>
+      <path d="M12 140h150q-15 54 23 91t7 80q-30 22-7 60t-7 80q-22 52 8 139H12z" fill="url(#water)"/>
+      <path d="M163 140h719v450H187q18-68-10-109t9-80q25-33-4-70t7-77q-30-38-26-114z" fill="#887755" opacity=".3"/>
+      <g fill="#505b51" stroke="#2b3a35" stroke-width="4"><path d="M286 177l34-21 37 19-4 40-40 12z"/><path d="M725 196l33-20 33 17-4 41-39 12z"/><path d="M524 398l33-19 36 17-3 37-38 14z"/><path d="M281 493l36-20 34 19-4 41-40 13z"/></g>
+      <path d="M229 330l112-29 29 67-115 24z" fill="#794d35" stroke="#d4b17a" stroke-width="4"/>
+      <g><circle cx="371" cy="429" r="17" class="tokenBlue"/><text x="366" y="434" font-size="10" font-weight="700">MI</text><circle cx="488" cy="340" r="17" class="tokenRed"/><text x="483" y="345" font-size="10" font-weight="700">G</text><circle cx="668" cy="281" r="17" class="tokenRed"/><text x="663" y="286" font-size="10" font-weight="700">C</text><circle cx="274" cy="493" r="17" class="tokenBlue"/><text x="269" y="498" font-size="10" font-weight="700">MA</text></g>
+      <rect x="25" y="154" width="181" height="37" rx="7" fill="#081416dd" stroke="#90a396"/><text x="39" y="178" class="label">MAPA TÁCTICO</text>
+      <rect x="12" y="603" width="870" height="133" rx="10" fill="#0d1b1e" stroke="#49656a"/>
+      <text x="29" y="627" class="label">ACCIONES DE MIKE</text><text x="730" y="627" class="small gold">Selecciona · resuelve en mesa</text>
+      <rect x="28" y="640" width="128" height="42" rx="8" class="strong"/><text x="47" y="666" class="body gold">⚔ Acción</text><rect x="166" y="640" width="133" height="42" rx="8" class="btn"/><text x="185" y="666" class="body">✦ Bonus</text><rect x="309" y="640" width="143" height="42" rx="8" class="btn"/><text x="328" y="666" class="body">↶ Reacción</text><rect x="462" y="640" width="129" height="42" rx="8" class="btn"/><text x="482" y="666" class="body">➤ Mover</text><rect x="601" y="640" width="263" height="42" rx="8" fill="#182729" stroke="#3f585b"/><text x="617" y="658" class="tiny">ACCIÓN ELEGIDA</text><text x="617" y="675" class="small gold">Ataque corto · elige objetivo en el mapa</text>
+      <text x="29" y="713" class="small">Pendiente: nadie. Los recursos usados se apagan al resolver cada acción.</text>
+    </g>
+    <text x="28" y="855" class="small">Ventaja: menos fichas y paneles; el mapa conserva casi todo el ancho.</text><text x="28" y="875" class="small">Auditar: acceso rápido a condiciones, fichas y acciones especiales.</text>
+  </g>
+</svg>

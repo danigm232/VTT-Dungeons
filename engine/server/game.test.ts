@@ -276,10 +276,10 @@ describe('inyección y privacidad', () => {
     expect(json).not.toContain('test-beast'); expect(json).not.toContain('objectRevision'); expect(JSON.stringify(state.dmState())).toContain('test-beast');
   });
 
-  it('muestra al jugador la CA que debe superar, pero no PG, velocidad ni ataques privados', () => {
+  it('oculta al jugador CA, PG, velocidad y ataques de enemigos', () => {
     const state = twoPlayerCombat();
     const target = state.publicSnapshot(true).combat.participants.find(participant => participant.id === 'test-beast');
-    expect(target).toMatchObject({ armorClass: 10, hp: 0, maxHp: 0, speedMeters: 0, attacks: [] });
+    expect(target).toMatchObject({ armorClass: 0, hp: 0, maxHp: 0, speedMeters: 0, attacks: [] });
   });
 
   it('entrega inventario sólo al propietario y no duplica una reclamación', () => {
@@ -367,9 +367,16 @@ describe('inyección y privacidad', () => {
     confirmInitiative(state, [{ id: 'alpha', initiative: 20 }, { id: 'test-beast', initiative: 0 }]);
     expect(state.resolveAttack('alpha', 'test-beast', 'basic-attack', { attack: 20, damage: 4 })).toMatchObject({ ok: true, code: 'ATTACK_RESOLVED' });
     const combat = state.publicSnapshot().combat;
-    expect(combat.participants.find(participant => participant.id === 'test-beast')).toMatchObject({ hp: 0, active: false });
+    expect(state.creature?.hp).toBe(0);
+    expect(combat.active).toBe(false);
+    expect(combat.participants).toEqual([]);
+    expect(state.publicSnapshot().entities.some(entity => entity.id === 'test-beast')).toBe(false);
+    expect(combat.lastEvent).toMatchObject({ kind: 'defeat', actorId: 'alpha', targetId: 'test-beast', animation: expect.anything() });
     expect(combat.lastEvent?.text).toContain('queda fuera de combate');
+    expect(combat.lastEvent?.text).toContain('El combate termina');
     expect(combat.lastEvent?.text).not.toContain('CA');
+    expect(state.publicSnapshot(true).combat.lastEvent?.text).toContain('queda fuera de combate');
+    expect(state.publicSnapshot(true).combat.lastEvent?.text).not.toContain('CA');
   });
 
   it('no genera una tirada de combate cuando no se le facilita un dado físico', () => {
@@ -415,6 +422,17 @@ describe('inyección y privacidad', () => {
     expect(state.submitCombatRoll('dm', null, 'attack', state.combat.pending!.id, 1)).toMatchObject({ ok: true, code: 'ATTACK_MISSED' });
     expect(state.publicSnapshot().combat.lastEvent?.text).toContain('+99');
     expect(state.publicSnapshot(true).combat.lastEvent?.text).toBe('Bestia ataca: falla.');
+  });
+
+  it('oculta estadísticas de la acción enemiga también en un impacto y conserva el evento final', () => {
+    const state = twoPlayerCombat();
+    while (state.publicSnapshot().combat.currentId !== 'test-beast') state.nextCombatTurn();
+    state.creature!.attacks[0]!.label = 'Mordisco secreto · +99 · 9d9+9';
+    expect(state.resolveAttack('test-beast', 'alpha', 'basic-attack', { attack: 20, damage: 4 })).toMatchObject({ ok: true });
+    expect(state.publicSnapshot().combat.lastEvent?.text).toContain('+99');
+    const publicEvent = state.publicSnapshot(true).combat.lastEvent;
+    expect(publicEvent).toMatchObject({ actorId: 'test-beast', targetId: 'alpha', animation: expect.anything() });
+    expect(publicEvent?.text).not.toMatch(/secreto|\+99|9d9/);
   });
 
   it('aplica un rasgo de ataque furtivo a un PJ sintético sin depender de nombres D8', () => {

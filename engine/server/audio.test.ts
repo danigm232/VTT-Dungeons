@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AudioState } from '../shared/protocol';
 
 const fake = vi.hoisted(() => ({ instances: [] as any[], loaded: true }));
@@ -41,6 +41,7 @@ vi.mock('howler', () => ({
     off(event: string) { if (event === 'end') this.endHandlers = []; }
     once(event: string, handler: () => void) { if (event === 'load') this.loadHandlers.push(handler); }
     fireLoad() { for (const handler of this.loadHandlers) handler(); this.loadHandlers = []; }
+    fireEnd() { this.isPlaying = false; for (const handler of [...this.endHandlers]) handler(); }
   },
   Howler: { ctx: { state: 'running', resume: vi.fn() }, volume: vi.fn() }
 }));
@@ -63,11 +64,68 @@ const ocean = () => fake.instances.find(instance => instance.src.includes('ambie
 
 beforeEach(() => {
   vi.useFakeTimers();
+  vi.setSystemTime(123);
   fake.instances.length = 0;
   fake.loaded = true;
 });
+afterEach(() => vi.useRealTimers());
 
 describe('AudioDirector', () => {
+  it('does not revive expired finite effects when a player joins late', () => {
+    const finished = vi.fn(), director = new AudioDirector(catalog, finished), playing = state();
+    playing.sfxLoops['d8-night-sfx-step-wood'] = { ...track(true), startedAt: 123, loop: false, repeats: 2 };
+    vi.setSystemTime(45_123); director.apply(playing); director.apply(playing);
+    const sound = fake.instances.find(instance => instance.src.includes('step-wood'))!;
+    expect(sound.playCalls).toBe(0); expect(finished).toHaveBeenCalledExactlyOnceWith('d8-night-sfx-step-wood', 123);
+  });
+  it('resumes only the remaining repetitions at the shared timeline position', () => {
+    const director = new AudioDirector(catalog), playing = state();
+    playing.layers.ocean = { ...track(true), startedAt: 123, loop: false, repeats: 3 };
+    vi.setSystemTime(45_123); director.apply(playing);
+    expect(ocean().seekCalls).toEqual([5]); ocean().fireEnd(); director.apply(playing);
+    expect(ocean().playCalls).toBe(1);
+  });
+  it('uses load completion time and rejects obsolete SFX load callbacks', () => {
+    fake.loaded = false;
+    const finished = vi.fn(), director = new AudioDirector(catalog, finished), playing = state();
+    playing.sfxLoops['d8-night-sfx-step-wood'] = { ...track(true), startedAt: 123, loop: false };
+    director.apply(playing);
+    const sound = fake.instances.find(instance => instance.src.includes('step-wood'))!;
+    vi.setSystemTime(25_123); sound.fireLoad();
+    expect(sound.playCalls).toBe(0); expect(finished).toHaveBeenCalledTimes(1);
+    playing.sfxLoops['d8-night-sfx-step-wood']!.startedAt = 25_123; director.apply(playing);
+    playing.sfxLoops = {}; director.apply(playing); sound.fireLoad();
+    expect(sound.playCalls).toBe(0);
+  });
+  it('does not reset finite repetitions on unrelated mixer changes', () => {
+    const finished = vi.fn(), director = new AudioDirector(catalog, finished), repeated = state();
+    repeated.sfxLoops['d8-night-sfx-step-wood'] = { ...track(true), startedAt: 123, loop: false, repeats: 2 };
+    director.apply(repeated);
+    const sound = fake.instances.find(instance => instance.src.includes('step-wood'))!;
+    sound.fireEnd();
+    repeated.layers.wind.volume = .8; director.apply(repeated);
+    sound.fireEnd(); director.apply(repeated);
+    expect(sound.playCalls).toBe(2);
+    expect(finished).toHaveBeenCalledExactlyOnceWith('d8-night-sfx-step-wood', 123);
+  });
+  it('finishes one-shot sequences once, including stale snapshots and a deliberate replay', () => {
+    const finished = vi.fn(), director = new AudioDirector(catalog, finished), repeated = state();
+    repeated.sfxLoops['d8-night-sfx-step-wood'] = { ...track(true), startedAt: 123, loop: false };
+    director.apply(repeated);
+    const sound = fake.instances.find(instance => instance.src.includes('step-wood'))!;
+    sound.fireEnd(); director.apply(repeated); director.apply(repeated);
+    expect(sound.playCalls).toBe(1); expect(finished).toHaveBeenCalledTimes(1);
+    repeated.sfxLoops['d8-night-sfx-step-wood']!.playing = false; director.apply(repeated);
+    repeated.sfxLoops['d8-night-sfx-step-wood']!.playing = true; director.apply(repeated);
+    sound.fireEnd(); expect(sound.playCalls).toBe(2); expect(finished).toHaveBeenCalledTimes(2);
+  });
+  it('does not restart a completed finite ambience on a volume update', () => {
+    const director = new AudioDirector(catalog), playing = state();
+    playing.layers.ocean = { ...track(true), loop: false, repeats: 2 };
+    director.apply(playing); ocean().fireEnd();
+    playing.layers.wood.volume = .7; director.apply(playing); ocean().fireEnd();
+    director.apply(playing); expect(ocean().playCalls).toBe(2);
+  });
   it('mantiene la pausa pendiente de un canal cuando se actualiza otro', () => {
     const director = new AudioDirector(catalog);
     const playing = state();

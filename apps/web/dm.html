@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>DM · D&D Immersive Engine</title>
-  <link rel="stylesheet" href="/apps/web/common.css"><link rel="stylesheet" href="/apps/web/dm.css"><link rel="stylesheet" href="/apps/web/dm-time.css">
+  <link rel="stylesheet" href="/apps/web/common.css"><link rel="stylesheet" href="/apps/web/dm.css"><link rel="stylesheet" href="/apps/web/dm-time.css"><link rel="stylesheet" href="/apps/web/dm-combat.css"><link rel="stylesheet" href="/apps/web/dm-workspace.css">
 </head>
 <body>
   <section id="login" class="login" hidden><form id="loginForm">
@@ -13,29 +13,54 @@
     <button class="primary">ENTRAR</button><p id="loginError"></p>
   </form></section>
   <main id="app" hidden>
-    <header><div><p class="eyebrow">D&D IMMERSIVE ENGINE · ALPHA 0.3 EN DESARROLLO</p><h1 id="campaignTitle">Mesa de campaña</h1></div>
-      <div class="status"><button id="openCampUpdates" class="release-notes-button" type="button" aria-haspopup="dialog" hidden>✦ Novedades <span>V1.4.3</span></button><span class="badge"><i id="projectorDot" class="dot"></i><span id="projectorStatus">Proyector sin preparar</span></span><span class="badge"><i id="socketDot" class="dot"></i><span>Servidor</span></span></div>
+    <header class="dm-header"><div class="dm-header-identity"><p class="eyebrow">MESA DE DIRECCIÓN · PRIVADA</p><h1 id="campaignTitle">Mesa de campaña</h1><p id="headerScene" class="dm-header-scene">Preparando escena…</p></div>
+      <div class="status"><button id="headerRequests" class="dm-chip dm-info" type="button" data-open-window="interacciones">Sin solicitudes</button><button id="headerCombat" class="dm-chip dm-info" type="button" data-open-window="combatCard">Exploración</button><span id="projectorBadge" class="badge dm-pending"><i id="projectorDot" class="dot"></i><span id="projectorStatus">Proyector pendiente</span></span><span id="serverBadge" class="badge dm-pending"><i id="socketDot" class="dot"></i><span id="serverStatus">Conectando</span></span><button id="headerSave" class="dm-chip dm-pending" type="button" data-open-window="partida-y-copias">Comprobando guardado</button><button id="openCampUpdates" class="release-notes-button" type="button" aria-haspopup="dialog" hidden>✦ Novedades <span>V1.4.3</span></button></div>
     </header>
     <nav class="side-rail" aria-label="Navegación de la consola DM">
       <button id="sideControlToggle" class="side-control-toggle" type="button" aria-controls="sideControls" aria-expanded="false"><span aria-hidden="true">☰</span><span>Panel DM</span></button>
     </nav>
     <aside id="sideControls" class="side-controls" aria-label="Panel lateral del DM" aria-hidden="true">
       <header><div><p class="eyebrow">ESPACIO DE TRABAJO</p><h2>Panel DM</h2></div><button id="sideControlClose" class="side-close" type="button" aria-label="Cerrar menú">×</button></header>
-      <nav class="side-tabs" aria-label="Secciones del panel"><button class="side-tab active" type="button" data-drawer-tab="windows">Ventanas</button><button class="side-tab" type="button" data-drawer-tab="ambience">Ambiente</button></nav>
-      <section class="drawer-panel" data-drawer-panel="windows"><p class="eyebrow">DISPOSICIÓN</p><p class="note">Arrastra la cabecera para ordenar. Usa el tirador dorado de la esquina inferior derecha para cambiar tamaño: la ventana encaja en la cuadrícula y las demás se recolocan solas. — minimiza, □ amplía y × cierra; las cerradas se recuperan aquí.</p><div class="button-row"><button id="arrangeWorkspace" class="primary" type="button">Distribución recomendada</button><button id="resetWorkspace" type="button">Restablecer todo</button></div><div id="closedWindows" class="closed-windows" aria-live="polite"></div></section>
-      <div class="drawer-panel" data-drawer-panel="ambience" hidden>
-        <section><p class="eyebrow">LUZ DE ESCENA</p><h3>Día y noche</h3><p class="note">Cambia la iluminación de la escena sin alterar el descanso.</p><button id="timeOfDayToggle" class="day-night-toggle" type="button" aria-pressed="false"><span id="timeOfDayIcon" aria-hidden="true">☾</span><span id="timeOfDayLabel">Pasar a noche</span></button></section>
-        <section><p class="eyebrow">CLIMATOLOGÍA</p><h3>Tormenta</h3><p class="note">Lluvia animada, oscurecimiento y sonido sincronizado en el proyector.</p><button id="storm" class="primary">Activar tormenta</button><label>Intensidad <output id="stormIntensityValue">50%</output><input id="stormIntensity" type="range" min="0.05" max="1" step=".05"></label></section><section><p class="eyebrow">MÚSICA Y AMBIENTE</p><div id="audio"></div></section><section><p class="eyebrow">EFECTOS D8 NIGHT</p><div id="sfx" class="effects-list"></div></section>
+      <nav class="side-tabs" aria-label="Secciones del panel"><button class="side-tab active" type="button" data-drawer-tab="windows">Mesa</button><button class="side-tab" type="button" data-drawer-tab="ambience">Ambiente</button><button class="side-tab" type="button" data-drawer-tab="audio">Sonido</button><button class="side-tab" type="button" data-drawer-tab="settings">Ajustes</button></nav>
+      <section class="drawer-panel mesa-settings" data-drawer-panel="windows"><p class="eyebrow">DISPOSICIONES</p><h3>Tu mesa de dirección</h3><p class="note">Mapa y contexto primero. Puedes seguir moviendo y ajustando las ventanas.</p>
+        <div class="workspace-presets" aria-label="Vistas de la mesa">
+          <button class="workspace-preset" type="button" data-workspace-preset="map-scene"><span class="workspace-preview preview-map-scene" aria-hidden="true"><i class="map"></i><i class="focus"></i><i class="lower"></i><i class="lower"></i></span><span><b>Mapa y escena</b><small>Mapa amplio junto a exploración o combate</small></span></button>
+          <button class="workspace-preset" type="button" data-workspace-preset="two-columns"><span class="workspace-preview preview-two-columns" aria-hidden="true"><i class="map"></i><i class="focus"></i><i class="lower"></i><i class="lower"></i></span><span><b>Dos columnas</b><small>Mapa y paneles en parejas equilibradas</small></span></button>
+          <button class="workspace-preset" type="button" data-workspace-preset="tactical"><span class="workspace-preview preview-tactical" aria-hidden="true"><i class="map"></i><i class="focus"></i><i class="wide"></i><i class="lower"></i><i class="lower"></i></span><span><b>Control táctico</b><small>Más espacio para combate y participantes</small></span></button>
+          <button class="workspace-preset" type="button" data-workspace-preset="overview"><span class="workspace-preview preview-overview" aria-hidden="true"><i class="map"></i><i class="focus"></i><i class="lower"></i><i class="lower"></i><i class="lower"></i><i class="lower"></i></span><span><b>Vista general</b><small>Mapa arriba y varios paneles compactos</small></span></button>
+        </div>
+        <button id="arrangeWorkspace" class="workspace-recommendation" type="button">↺ Usar distribución recomendada</button>
+      </section>
+      <section class="drawer-panel mesa-settings" data-drawer-panel="settings" hidden><p class="eyebrow">PREFERENCIAS LOCALES</p><h3>Ajustes de consola</h3>
+        <details class="drawer-disclosure console-settings"><summary><span aria-hidden="true">⚙</span> Personalización</summary><div class="drawer-disclosure-body"><label for="consoleDensity">Espaciado<select id="consoleDensity"><option value="compact">Compacto</option><option value="comfortable">Cómodo</option><option value="spacious">Amplio</option></select></label><label for="consoleTextSize">Tamaño del texto<select id="consoleTextSize"><option value="small">Pequeño</option><option value="standard">Estándar</option><option value="large">Grande</option></select></label><button id="resetConsoleSettings" type="button">Restaurar ajustes visuales</button><p class="note">Tus ajustes y distribuciones se guardan en este navegador, por separado para exploración y combate.</p></div></details>
+        <details class="drawer-disclosure" open><summary><span aria-hidden="true">▣</span> Recuperar ventanas</summary><div id="closedWindows" class="closed-windows" aria-live="polite"></div></details>
+        <details class="drawer-disclosure"><summary><span aria-hidden="true">↺</span> Reiniciar distribuciones</summary><div class="drawer-disclosure-body"><p class="note">Vuelve a la distribución inicial de exploración y combate.</p><button id="resetWorkspace" type="button">Restablecer distribuciones</button></div></details>
+      </section>
+      <div class="drawer-panel weather-console" data-drawer-panel="ambience" hidden>
+        <section id="weatherVisual" class="weather-hero" aria-label="Estado del clima"><div id="weatherVisualIcon" class="weather-hero-icon" aria-hidden="true">☀</div><div><p class="eyebrow">ATMÓSFERA DE ESCENA</p><h3 id="weatherVisualTitle">Ambiente de escena</h3><p id="weatherVisualStatus" class="note">Despejado · Sin viento</p></div></section>
+        <section class="weather-card"><div class="weather-section-heading"><div><p class="eyebrow">ILUMINACIÓN</p><h3>Hora del día</h3></div><div id="timeOfDaySection"><button id="timeOfDayToggle" class="day-night-toggle" type="button" aria-pressed="false"><span id="timeOfDayIcon" aria-hidden="true">☾</span><span id="timeOfDayLabel">Pasar a noche</span></button></div></div>
+          <select id="weatherTime" hidden aria-label="Hora del día"><option value="auto">Ambiente de la escena</option><option value="day">Mediodía</option><option value="sunset">Atardecer</option><option value="night">Noche</option><option value="dawn">Madrugada</option></select>
+          <div class="weather-light-options" aria-label="Elegir iluminación"><button type="button" data-weather-time="auto" aria-pressed="true"><span aria-hidden="true">◐</span>Escena</button><button type="button" data-weather-time="day" aria-pressed="false"><span aria-hidden="true">☀</span>Día</button><button type="button" data-weather-time="sunset" aria-pressed="false"><span aria-hidden="true">◒</span>Ocaso</button><button type="button" data-weather-time="night" aria-pressed="false"><span aria-hidden="true">☾</span>Noche</button><button type="button" data-weather-time="dawn" aria-pressed="false"><span aria-hidden="true">☼</span>Alba</button></div>
+        </section>
+        <section class="weather-card"><p class="eyebrow">CIELO Y TIEMPO</p><h3>Precipitación</h3><select id="weatherKind" hidden aria-label="Precipitación"><option value="none">Despejado</option><option value="rain">Lluvia</option><option value="snow">Nieve</option></select><div class="weather-kind-options" aria-label="Elegir precipitación"><button type="button" data-weather-kind="none" aria-pressed="true"><span aria-hidden="true">☀</span>Despejado</button><button type="button" data-weather-kind="rain" aria-pressed="false"><span aria-hidden="true">☂</span>Lluvia</button><button type="button" data-weather-kind="snow" aria-pressed="false"><span aria-hidden="true">❄</span>Nieve</button></div><label class="weather-range" for="weatherLevel"><span>Intensidad</span><output id="weatherLevelValue" for="weatherLevel">Media</output><input id="weatherLevel" type="range" min="1" max="3" step="1" value="2"></label><label class="weather-range" for="weatherWind"><span>〰 Viento</span><output id="weatherWindValue" for="weatherWind">0%</output><input id="weatherWind" type="range" min="0" max="1" step=".05" value="0"></label></section>
+        <section class="weather-card weather-storm"><div class="weather-section-heading"><div><p class="eyebrow">RELÁMPAGOS Y SONIDO</p><h3>ϟ Tormenta</h3></div><button id="storm" type="button" aria-pressed="false">ϟ Activar</button></div><label class="weather-range" for="stormIntensity"><span>Fuerza</span><output id="stormIntensityValue" for="stormIntensity">50%</output><input id="stormIntensity" type="range" min="0.05" max="1" step=".05"></label><p class="note">Iluminación y sonido sincronizados con la mesa. Los interiores quedan protegidos.</p></section>
+      </div>
+      <div class="drawer-panel sound-console" data-drawer-panel="audio" hidden>
+        <section class="sound-now-playing"><div class="sound-mark" aria-hidden="true">♫</div><div><p class="eyebrow">SONIDO EN ESCENA</p><strong id="audioSceneName">Preparando sonido…</strong><span id="audioSceneStatus" class="sound-status">Esperando conexión</span></div></section>
+        <section class="sound-mixer"><div class="drawer-section-heading"><p class="eyebrow">MEZCLADOR</p><h3>Música y ambientes</h3><p class="note">Controla la pista principal y sus capas.</p></div><div id="audio" class="dm-audio-console"></div></section>
+        <details class="sound-effects"><summary><span><span class="eyebrow">EFECTOS</span><b>Disparos rápidos</b></span><span class="sound-effects-hint">Abrir</span></summary><div id="sfx" class="effects-list"></div></details>
       </div>
     </aside>
-    <section class="connection card"><div><h2>Conexión</h2><a id="playerUrl" target="_blank"></a><a id="projectorUrl" target="_blank">Abrir proyector</a><a id="dmMobileUrl" target="_blank">Abrir consola de sonido para el móvil DM</a><p class="muted">El móvil debe usar la misma red Wi‑Fi.</p></div><div class="connection-qrs"><figure><img id="qr" alt="QR para jugadores"><figcaption>Jugadores</figcaption></figure><figure><img id="dmMobileQr" alt="QR para la consola de sonido del DM"><figcaption>Consola DM</figcaption></figure></div></section>
+    <details id="connectionPanel" class="connection card"><summary><span>Conectar jugadores y proyector</span><span id="connectionSummary" class="dm-connection-summary">Preparando conexiones…</span><span class="dm-connection-manage">Gestionar conexiones</span></summary><div class="connection-body"><div><a id="playerUrl" target="_blank" rel="noopener"></a><a id="projectorUrl" target="_blank" rel="noopener">Abrir proyector</a><a id="dmMobileUrl" target="_blank" rel="noopener">Abrir consola de sonido para el móvil DM</a><p class="muted">El móvil debe usar la misma red Wi‑Fi.</p></div><div class="connection-qrs"><figure><img id="qr" alt="QR para jugadores"><figcaption>Jugadores</figcaption></figure><figure><img id="dmMobileQr" alt="QR para la consola de sonido del DM"><figcaption>Consola DM</figcaption></figure></div></div></details>
     <div class="grid">
-      <section class="card span"><h2>Partida y copias</h2><p id="saveStatus" class="note">Comprobando guardado…</p>
-        <div class="button-row"><button id="saveNow" class="primary">Guardar ahora</button><button id="gameUndo">Deshacer última acción</button><button id="retrySave" hidden>Reintentar guardado</button><button id="exportSave">Exportar copia privada</button><button id="backupPreview">Revisar copia anterior</button><button id="newPreview">Iniciar partida nueva</button><button id="showEvidence" hidden>Ver evidencias</button></div>
+      <section id="partida-y-copias" class="card span"><h2>Partida y copias</h2><div id="saveSummary" class="dm-save-summary" role="status"><strong id="saveSummaryTitle">Comprobando guardado…</strong><small id="saveSummaryTime"></small></div><p id="saveStatus" class="note" hidden>Comprobando guardado…</p>
+        <div class="button-row"><button id="saveNow" class="primary">Guardar ahora</button><button id="gameUndo">Deshacer última acción</button><button id="retrySave" hidden>Reintentar guardado</button></div>
+        <details id="saveCopies"><summary>Copias y recuperación</summary><div class="button-row"><button id="exportSave">Exportar copia privada</button><button id="backupPreview">Revisar copia anterior</button><button id="newPreview" class="danger">Iniciar partida nueva</button><button id="showEvidence" hidden>Ver evidencias</button></div>
         <div id="recoveryEvidence" class="note" hidden></div>
         <details><summary>Cargar partida</summary><div id="saveHistory" class="note">Cargando puntos de retorno…</div></details>
         <label>Restaurar copia privada<input id="restoreFile" type="file" accept="application/json,.json"></label>
-        <p class="muted">Tras recuperar una partida, los jugadores vuelven a elegir personaje y el historial Deshacer empieza vacío.</p>
+        <p class="muted">Al cargar, la mesa se sincroniza sin recargar: los jugadores conectados conservan su personaje. Deshacer empieza vacío.</p>
+        </details>
       </section>
       <section id="explorationCard" class="card"><h2>Exploración</h2><div id="exploration"></div></section>
       <section id="animationAuditCard" class="card animation-audit-card" hidden><h2>Pruebas visuales de acciones</h2>
@@ -51,42 +76,49 @@
         </div>
         <div class="animation-audit-playback"><button id="animationAuditPause">Pausar</button><button id="animationAuditStop">Detener</button><button id="animationAuditPrevious" aria-label="Fotograma anterior">‹</button><input id="animationAuditFrame" type="range" min="0" max="0" value="0" aria-label="Fotograma"><button id="animationAuditNext" aria-label="Fotograma siguiente">›</button><span id="animationAuditFrameLabel">—</span></div>
         <p id="animationAuditStatus" class="note" role="status">Prueba local · no altera la partida</p>
-        <div class="button-row"><button id="animationAuditGood">Marcar correcta</button><button id="animationAuditBad">Marcar para revisar</button><button id="animationAuditExport">Exportar auditoría</button></div>
+        <div class="button-row"><button id="animationAuditSequence">Recorrer todas las acciones visibles</button><button id="animationAuditGood">Marcar correcta</button><button id="animationAuditBad">Marcar para revisar</button><button id="animationAuditExport">Exportar auditoría</button></div>
         <label class="animation-audit-search">Filtrar personaje o acción<input id="animationAuditSearch" type="search" autocomplete="off" placeholder="Ej.: Anteros, correr, ataque"></label>
         <div id="animationAuditList" class="animation-audit-list" aria-live="polite"><p class="note">Esperando el mapa actual…</p></div>
       </section>
-      <section id="encounterCard" class="card"><h2>Encuentro</h2><p id="creatureNote" class="note"></p>
-        <button id="creature" class="danger">Revelar criatura</button>
+      <section id="encounterCard" class="card"><h2>Encuentro</h2><div id="creatureSummary" class="dm-chips"></div><details class="dm-disclosure"><summary>Información del encuentro</summary><p id="creatureNote" class="note"></p></details>
+        <button id="creature">Revelar criatura</button>
+        <details class="dm-disclosure"><summary>Editar posición · un paso</summary>
         <div class="row"><label>Columna<input id="harpyCol" type="number" step="1" min="0"></label><label>Fila<input id="harpyRow" type="number" step="1" min="0"></label></div>
         <button id="moveHarpy">Mover criatura 1 casilla</button>
+        </details>
         <div id="monsterSheet"></div>
         <div id="wheelCard"><h3>Timón</h3><p class="note">Acércate con un personaje para solicitarlo, o selecciónalo en el mapa para separarlo directamente.</p></div>
       </section>
-      <section id="mapWindow" class="card span object-editor"><div class="map-scene-controls" aria-label="Controles de escena y cámara"><h2>Escena, cámara y mapa</h2>
-          <label>Escena<select id="scene"></select></label>
+      <section id="mapWindow" class="card span object-editor"><h2>Escena, cámara y mapa</h2><div class="map-console-controls"><div class="dm-scene-heading"><label>Escena actual<select id="scene"></select></label><span id="mapWeatherStatus" class="dm-chip dm-info">Ambiente de escena</span></div><nav class="map-toolbar" aria-label="Herramientas del mapa">
+          <button id="mapBoardToggle" type="button" aria-pressed="true">⌖ Mapa</button>
+          <button id="mapObjectsToggle" type="button" aria-controls="mapObjectsPanel" aria-expanded="false">▣ Objetos <small id="mapObjectCount">0</small></button>
+          <button id="mapCameraToggle" type="button" aria-controls="mapCameraPanel" aria-expanded="false">◉ Cámara</button>
+          <button id="openWeather" type="button" aria-controls="sideControls" class="map-weather-button">☀ Ambiente</button>
+          <button id="undoObject" type="button" title="Deshacer última acción" disabled>↶ Deshacer</button>
+        </nav><div id="mapCameraPanel" class="map-scene-controls map-tool-panel" hidden aria-label="Controles de cámara">
           <label>Cámara<select id="camera"><option value="fixed">Fija oblicua</option><option value="semiFixed">Semi-fija</option><option value="follow">Seguimiento suave</option></select></label>
           <label>Foco<select id="focus"><option value="">Centro del mapa</option></select></label>
           <label class="grid-visibility"><input id="showGrid" type="checkbox" checked> Cuadrícula</label>
-          <button id="campInteractionToggle" class="camp-interaction-toggle" type="button" aria-pressed="false" hidden>◎ Resaltar objetos interactuables</button>
-          <div id="cameraOrbitControls" class="camera-orbit-controls" hidden aria-label="Orientación de cámara 3D">
+          <details id="cameraOrbitControls" class="camera-orbit-controls" hidden aria-label="Orientación de cámara 3D"><summary>Giro e inclinación de cámara · Q / E</summary><div class="camera-orbit-content">
             <button id="cameraTurnLeft" type="button" title="Girar 45° a la izquierda (Q)">↶ 45° <kbd>Q</kbd></button>
             <span id="cameraOrientationLabel" aria-live="polite">Vista inicial</span>
             <button id="cameraReset" type="button" title="Restablecer la vista inicial">Vista inicial</button>
             <button id="cameraTurnRight" type="button" title="Girar 45° a la derecha (E)">↷ 45° <kbd>E</kbd></button>
             <div class="camera-tilt-control">
-              <label for="cameraTilt">Ángulo vertical <output id="cameraTiltValue" for="cameraTilt">30°</output></label>
-              <input id="cameraTilt" type="range" min="20" max="65" step="1" value="30" aria-label="Ángulo vertical de cámara, de 20 a 65 grados">
-              <small>Límites: 20°–65°</small>
+              <label for="cameraTilt">Ángulo vertical <output id="cameraTiltValue" for="cameraTilt">45°</output></label>
+              <input id="cameraTilt" type="range" min="25" max="50" step="1" value="25" aria-label="Ángulo vertical de cámara, de 25 a 50 grados">
+              <small>Vista 2.5D · 25°–50°</small>
             </div>
             <label class="camera-share"><input id="shareCameraOrientation" type="checkbox" checked> Compartir giro con la mesa</label>
-          </div>
-      </div><div class="map-editor-tools"><p id="objectStatus" class="note">Haz clic en una ficha para moverla con WASD, o selecciona un objeto.</p><div id="objects"></div><div id="draftActions" class="button-row" hidden><button id="rotateObject">Girar</button><button id="applyObject" class="primary">Aplicar</button><button id="cancelObject">Cancelar</button></div><button id="undoObject" disabled>Deshacer última acción</button></div><div id="dmMap" aria-label="Mapa privado de trabajo"></div></section>
+          </div></details>
+      </div><div id="mapObjectsPanel" class="map-editor-tools map-tool-panel" hidden><div class="map-object-picker"><label>Objeto de escena<select id="mapObjectPicker"><option value="">Selecciona un objeto…</option></select></label><button id="campInteractionToggle" class="camp-interaction-toggle" type="button" aria-pressed="false" hidden>◎ Resaltar interactuables</button></div><p id="objectStatus" class="note">Haz clic en una ficha para moverla con WASD, o selecciona un objeto.</p><div id="objects"></div><div id="draftActions" class="button-row" hidden><button id="rotateObject">Girar</button><button id="applyObject" class="primary">Aplicar</button><button id="cancelObject">Cancelar</button></div></div></div><div id="dmMap" aria-label="Mapa privado de trabajo"></div></section>
       <section id="campRestCard" class="card span camp-rest-card" hidden><h2>Descanso de campamento</h2><p id="campSafety" class="note"></p><div id="campRestStatus" class="camp-rest-status" aria-live="polite"></div><div id="campRestActions" class="button-row"></div><label id="campInterruptLabel" class="camp-interrupt" hidden>Nota de interrupción<input id="campInterruptNote" maxlength="240" placeholder="Describe brevemente qué interrumpe el descanso"></label><div id="campPoints" class="camp-points"></div><div id="campRestLog" class="camp-rest-log"></div></section>
-      <section class="card span"><h2>Jugadores</h2><div id="players"></div></section>
-      <section class="card"><h2>PNJ de escena</h2><p class="note">El DM los mueve siempre de casilla en casilla; no entran en combate automáticamente.</p><div id="npcs"></div></section>
+      <section id="jugadores" class="card span"><h2>Jugadores</h2><div id="players"></div></section>
+      <section id="pnj-de-escena" class="card"><h2>PNJ de escena</h2><div id="npcs"></div></section>
       <section id="combatCard" class="card"><h2>Combate</h2><div id="combat"></div></section>
-      <section class="card"><h2>Interacciones</h2><p id="wheelNote" class="note"></p><div id="requests"><p class="muted">No hay solicitudes.</p></div></section>
+      <section id="interacciones" class="card"><h2>Interacciones</h2><div id="requests" aria-live="polite"><p class="muted">Sin solicitudes activas.</p></div><details class="dm-disclosure"><summary>Ayuda de interacción</summary><p id="wheelNote" class="note"></p></details></section>
     </div>
+    <nav class="dm-dock" aria-label="Accesos a las ventanas de la mesa"><button type="button" data-open-window="mapWindow">⌖ Mapa</button><button type="button" data-open-window="explorationCard">◎ Escena</button><button type="button" data-open-window="combatCard">⚔ Combate</button><button type="button" data-open-window="interacciones">◇ Solicitudes <small id="dockRequests">0</small></button><button type="button" data-open-window="jugadores">♙ Jugadores</button><button type="button" data-open-window="pnj-de-escena">♟ PNJ</button><button type="button" data-open-window="partida-y-copias">▣ Guardado</button></nav>
   </main>
   <dialog id="campUpdatesDialog" class="release-notes-dialog" aria-labelledby="campUpdatesTitle">
     <header class="release-notes-heading"><div><p class="eyebrow">MÓDULO DE CAMPAMENTOS</p><h2 id="campUpdatesTitle">Novedades</h2></div><span class="release-notes-version">V1.4.3</span></header>

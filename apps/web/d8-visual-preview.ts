@@ -53,7 +53,8 @@ export class D8VisualPreview {
         const x = a.x + dx * Math.min(1, t) - dy / length * miss * Math.min(1, t), cy = y + dy * Math.min(1, t) + dx / length * miss * Math.min(1, t);
         if (this.options.action.attackType === 'melee') {
           const slashX = b.x - dy / length * miss, slashY = endY + dx / length * miss;
-          g.moveTo(slashX - radius * 2, slashY - radius).quadraticCurveTo(slashX, slashY - radius * 3, slashX + radius * 2, slashY + radius).stroke({ color: '#f7e4b0', width: radius * .4, alpha: Math.max(0, 1 - Math.abs(t - .6)) });
+          if (this.options.action.state === 'attack-unarmed') g.circle(slashX, slashY, radius * 1.5).stroke({ color: '#f7e4b0', width: radius * .35, alpha: Math.max(0, 1 - Math.abs(t - .6)) });
+          else g.moveTo(slashX - radius * 2, slashY - radius).quadraticCurveTo(slashX, slashY - radius * 3, slashX + radius * 2, slashY + radius).stroke({ color: '#f7e4b0', width: radius * .4, alpha: Math.max(0, 1 - Math.abs(t - .6)) });
         } else if (t <= 1) {
           if (['arrow', 'radiantArrow', 'thrownWeapon'].includes(this.options.action.attackType)) {
             const twist = this.options.action.attackType === 'thrownWeapon' ? t * Math.PI * 6 : Math.atan2(dy, dx);

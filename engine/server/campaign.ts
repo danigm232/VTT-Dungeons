@@ -2,6 +2,7 @@ import type { PublicCampaignDefinition, PublicSceneDefinition } from '../shared/
 import { explorationBasicActionCatalogue, type ExplorationAction, type ExplorationBasicAction } from '../shared/protocol.js';
 import { cellKey, footprintFor } from '../shared/geometry.js';
 import { validatePublicCampaign } from '../shared/campaign.js';
+import { adventureDefinitionSchema, type AdventureDefinition } from '../shared/adventure.js';
 
 export type CharacterSheet = {
   level: number;
@@ -59,10 +60,12 @@ export type StageActorInteractionDefinition = { sceneId: string; targetId: strin
 export type MapAddress = { mapId: string; zoneId: string; surfaceId: string; cell: { col: number; row: number } };
 export type PortDefinition = {
   id: string; from: MapAddress; to: MapAddress;
-  mode: 'rigging' | 'stairs' | 'door' | 'rope-ladder' | 'hatch' | 'hole' | 'swim';
+  mode: 'rigging' | 'stairs' | 'road' | 'door' | 'rope-ladder' | 'hatch' | 'hole' | 'swim';
   return: 'explicit' | 'adjudicated'; conditionId?: string;
   /** Restricts automatic traversal to a direction; manual adjudication remains available. */
   autoDirection?: 'both' | 'forward' | 'manual';
+  /** Continuous physical approach before an automatic road transition. */
+  minimumApproachSteps?: number;
 };
 export type InteractiveObjectDefinition =
   | { sceneId: string; objectId: string; kind: 'barred-door'; barrier: 'barred' | 'removed' }
@@ -75,10 +78,12 @@ export type CampaignServerBundle = {
   characters: Record<string, CharacterPrivateSeed>;
   encounter?: EncounterDefinition;
   privateActors?: PrivateActorDefinition[];
+  encounterGroups?: Array<{ id: string; label: string; sceneId: string; actorIds: string[] }>;
   combatProfiles?: Record<string, CombatProfile>;
   wheelInteraction?: WheelInteractionDefinition;
   mirrorInteraction?: MirrorInteractionDefinition;
   stageActorInteractions?: StageActorInteractionDefinition[];
+  adventure?: AdventureDefinition;
   doorStates?: Record<string, Record<string, 'open' | 'closed' | 'locked'>>;
   ports?: PortDefinition[];
   interactiveObjects?: InteractiveObjectDefinition[];
@@ -91,6 +96,16 @@ export function compileCampaignBundle(input: CampaignServerBundle): CompiledCamp
   const errors: string[] = [];
   if (input.campaignStateVersion !== undefined && (!Number.isSafeInteger(input.campaignStateVersion) || input.campaignStateVersion < 1)) errors.push('campaignStateVersion inválida');
   const sceneIds = new Set(publicDefinition.scenes.map(scene => scene.id));
+  if (input.adventure) {
+    const parsed = adventureDefinitionSchema.safeParse(input.adventure);
+    if (!parsed.success) errors.push('Definición de aventura inválida');
+    else {
+      const objectives = new Set(parsed.data.objectives.map(item => item.id)), endings = new Set(parsed.data.endings.map(item => item.id));
+      if (objectives.size !== parsed.data.objectives.length || endings.size !== parsed.data.endings.length || Object.keys(parsed.data.sceneGuidance ?? {}).some(id => !sceneIds.has(id))
+        || parsed.data.objectives.some(item => !sceneIds.has(item.sceneId) || item.requires.some(id => !objectives.has(id) || id === item.id)
+          || new Set(item.choices.map(choice => choice.id)).size !== item.choices.length || item.choices.some(choice => !endings.has(choice.endingId) || `story.${item.id}.${choice.id}`.length > 40))) errors.push('Referencias de aventura inválidas');
+    }
+  }
   for (const actor of publicDefinition.roster) {
     const seed = input.characters[actor.id];
     if (!seed || !Number.isInteger(seed.maxHp) || seed.maxHp < 1 || seed.initialHp !== undefined && (!Number.isInteger(seed.initialHp) || seed.initialHp < 0 || seed.initialHp > seed.maxHp) || !Array.isArray(seed.inventory) || seed.inventory.some(item => typeof item !== 'string')) errors.push(`Semilla privada inválida para ${actor.id}`);
@@ -113,6 +128,11 @@ export function compileCampaignBundle(input: CampaignServerBundle): CompiledCamp
     if (sheet && (!Number.isInteger(sheet.maxHp) || sheet.maxHp < 1 || !Number.isInteger(sheet.armorClass) || sheet.armorClass < 1 || !Number.isFinite(sheet.speedMeters) || sheet.speedMeters <= 0 || [...sheet.traits, ...sheet.actions].some(value => typeof value !== 'string' || value.length > 200) || (sheet.combat && !validCombatProfile({ ...sheet.combat, maxHp: sheet.maxHp })))) errors.push('Hoja de criatura inválida');
   }
   const knownCombatIds = new Set([...publicDefinition.roster.map(actor => actor.id), ...publicDefinition.scenes.flatMap(scene => (scene.stageActors ?? []).map(actor => actor.id)), ...(input.encounter ? [input.encounter.creature.id] : [])]);
+  for (const group of input.encounterGroups ?? []) {
+    const actorIds = new Set([...(publicDefinition.scenes.find(scene => scene.id === group.sceneId)?.stageActors ?? []).map(actor => actor.id), ...(input.privateActors ?? []).filter(actor => actor.sceneId === group.sceneId).map(actor => actor.id)]);
+    if (!/^[a-z0-9][a-z0-9._-]{0,39}$/.test(group.id) || !group.label || group.label.length > 160 || !sceneIds.has(group.sceneId) || group.actorIds.length > 20 || new Set(group.actorIds).size !== group.actorIds.length || group.actorIds.some(id => !actorIds.has(id))) errors.push('Grupo de encuentro inválido');
+  }
+  if (new Set((input.encounterGroups ?? []).map(group => group.id)).size !== (input.encounterGroups ?? []).length) errors.push('ID de grupo duplicado');
   const privateIds = new Set<string>();
   for (const actor of input.privateActors ?? []) {
     const scene = publicDefinition.scenes.find(candidate => candidate.id === actor.sceneId);
@@ -169,6 +189,7 @@ export function compileCampaignBundle(input: CampaignServerBundle): CompiledCamp
   for (const port of input.ports ?? []) {
     if (!/^[a-z0-9][a-z0-9._-]{0,39}$/i.test(port.id) || portIds.has(port.id)) errors.push(`Puerto duplicado o inválido: ${port.id}`);
     portIds.add(port.id);
+    if(port.minimumApproachSteps!==undefined&&(!Number.isInteger(port.minimumApproachSteps)||port.minimumApproachSteps<1||port.minimumApproachSteps>20||port.mode!=='road'))errors.push(`Aproximación de camino inválida: ${port.id}`);
     if (!terrainHas(port.from) || !terrainHas(port.to)) errors.push(`Puerto fuera de una superficie: ${port.id}`);
     if (port.from.mapId === port.to.mapId && port.from.surfaceId === port.to.surfaceId && cellKey(port.from.cell) === cellKey(port.to.cell)) errors.push(`Puerto sin desplazamiento: ${port.id}`);
   }
@@ -224,6 +245,8 @@ export function compileCampaignBundle(input: CampaignServerBundle): CompiledCamp
   if (errors.length) throw new Error(`Bundle de campaña inválido:\n- ${errors.join('\n- ')}`);
   return {
     public: structuredClone(publicDefinition),
+    adventure: input.adventure ? structuredClone(input.adventure) : undefined,
+    encounterGroups: input.encounterGroups ? structuredClone(input.encounterGroups) : undefined,
     characters: structuredClone(input.characters), encounter: input.encounter ? structuredClone(input.encounter) : undefined,
     privateActors: input.privateActors ? structuredClone(input.privateActors) : undefined,
     combatProfiles: input.combatProfiles ? structuredClone(input.combatProfiles) : undefined,

@@ -132,6 +132,7 @@ assert.equal(infoRes.status, 200);
 const info = await infoRes.json();
 assert.match(info.playerUrl, /\/player$/);
 assert.equal(new URL(info.playerUrl).hostname, '127.0.0.1', 'el servidor ligado a loopback no anuncia una IP LAN');
+assert.equal(new URL(info.projectorUrl).hostname, '127.0.0.1', 'el enlace del proyector usa el host alcanzable anunciado por el servidor');
 assert.deepEqual(info.addresses, [], 'loopback no publica direcciones de red');
 assert.ok(info.qr.startsWith('data:image/png'));
 assert.equal((await fetch(`${base}/art/objects-v3/wreck-deck-clean-v3.png`)).status, 200);

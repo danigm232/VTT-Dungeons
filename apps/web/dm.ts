@@ -5,15 +5,31 @@ import type { PublicCampaignDefinition } from '../../engine/shared/campaign';
 import { supportsCameraOrientation } from '../../engine/shared/camera';
 import { footprintFor } from '../../engine/shared/geometry';
 import { commandId } from '../../engine/client/uuid';
+import { worldVectorToCellDelta } from '../../engine/client/camera-movement';
 import { readUiPreferences, writeUiPreferences } from '../../engine/client/ui-preferences';
 import { loadCampaign } from './campaign';
 import { WorldRenderer } from './world';
 import { renderD8AnimationAudit } from './d8-animation-audit';
-import { combatActionDescription, combatTurnIndicators } from '../../engine/client/combat-presentation';
+import { combatActionDescription, combatTurnIndicators, compactCombatPrompt } from '../../engine/client/combat-presentation';
+import { createDmWorkspacePreset, recommendedDmWorkspace, type DmWorkspacePresetId, type WorkspaceState, type WorkspaceMode, type WindowLayout } from '../../engine/client/dm-workspace';
+import { SceneLoadRecovery } from '../../engine/client/scene-load-recovery';
+import { chip, chips, disclosure, emptyState, localButton, preserveDisclosures, relativeTime, savePresentation, sceneBlock, sceneActions } from './ui/dm/presentation';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 let socket: Socket | null = null, state: DmState | null = null, world: WorldRenderer | null = null, campaign: PublicCampaignDefinition | null = null;
+const sceneLoadRecovery = new SceneLoadRecovery();
 let selectedId: string | null = null, draft: DmObject | null = null, latestSnapshot: WorldSnapshot | null = null, readyEpoch = -1, toastTimer = 0;
+let inspectedPickupId: string | null = null;
+let mapToolPanel: 'camera' | 'objects' | null = null;
+function setMapToolPanel(panel: typeof mapToolPanel) {
+  mapToolPanel = panel;
+  $('mapCameraPanel').hidden = panel !== 'camera';
+  $('mapObjectsPanel').hidden = panel !== 'objects';
+  $('mapCameraToggle').setAttribute('aria-expanded', String(panel === 'camera'));
+  $('mapObjectsToggle').setAttribute('aria-expanded', String(panel === 'objects'));
+  $('mapBoardToggle').setAttribute('aria-pressed', String(panel === null));
+  requestAnimationFrame(() => world?.refreshLayout());
+}
 type CampPoint = NonNullable<PublicCampaignDefinition['scenes'][number]['camp']>['interactionPoints'][number];
 let campInteractionMode = false, campPointSceneId: string | null = null;
 let connectionGeneration = 0, pendingDraftCommand: { commandId: string; generation: number } | null = null;
@@ -30,20 +46,26 @@ const wreckC8Loot = [
   'Pergamino de Orden imperiosa'
 ];
 type DmCombatActionCategory = 'attack' | 'magic' | 'bonus' | 'reaction' | 'utility' | 'dm';
-type DmDrawerTab = 'windows' | 'ambience';
-type DmUiPreferences = { showGrid: boolean; sideControlsOpen: boolean; drawerTab: DmDrawerTab; combatActionCategory: DmCombatActionCategory; shareCameraOrientation: boolean };
+type DmDrawerTab = 'windows' | 'ambience' | 'audio' | 'settings';
+type DmConsoleDensity = 'compact' | 'comfortable' | 'spacious';
+type DmConsoleTextSize = 'small' | 'standard' | 'large';
+type DmUiPreferences = { showGrid: boolean; sideControlsOpen: boolean; drawerTab: DmDrawerTab; combatActionCategory: DmCombatActionCategory; shareCameraOrientation: boolean; consoleDensity?: DmConsoleDensity; consoleTextSize?: DmConsoleTextSize };
 const dmUiPreferencesStorageKey = 'dnd-dm-ui-preferences.v1';
-const defaultDmUiPreferences: DmUiPreferences = { showGrid: true, sideControlsOpen: false, drawerTab: 'windows', combatActionCategory: 'attack', shareCameraOrientation: true };
+const defaultDmUiPreferences: DmUiPreferences = { showGrid: true, sideControlsOpen: false, drawerTab: 'windows', combatActionCategory: 'attack', shareCameraOrientation: true, consoleDensity: 'comfortable', consoleTextSize: 'standard' };
 const dmCombatCategories: DmCombatActionCategory[] = ['attack', 'magic', 'bonus', 'reaction', 'utility', 'dm'];
+const dmConsoleDensities: DmConsoleDensity[] = ['compact', 'comfortable', 'spacious'];
+const dmConsoleTextSizes: DmConsoleTextSize[] = ['small', 'standard', 'large'];
 const isDmUiPreferences = (value: unknown): value is DmUiPreferences => {
   if (!value || typeof value !== 'object') return false;
   const saved = value as Partial<DmUiPreferences>;
   return typeof saved.showGrid === 'boolean' && typeof saved.sideControlsOpen === 'boolean'
-    && (saved.drawerTab === 'windows' || saved.drawerTab === 'ambience')
+    && (saved.drawerTab === 'windows' || saved.drawerTab === 'ambience' || saved.drawerTab === 'audio' || saved.drawerTab === 'settings')
     && typeof saved.combatActionCategory === 'string' && dmCombatCategories.includes(saved.combatActionCategory as DmCombatActionCategory)
-    && typeof saved.shareCameraOrientation === 'boolean';
+    && typeof saved.shareCameraOrientation === 'boolean'
+    && (saved.consoleDensity === undefined || dmConsoleDensities.includes(saved.consoleDensity))
+    && (saved.consoleTextSize === undefined || dmConsoleTextSizes.includes(saved.consoleTextSize));
 };
-let dmUiPreferences = readUiPreferences(dmUiPreferencesStorageKey, defaultDmUiPreferences, isDmUiPreferences);
+let dmUiPreferences: DmUiPreferences = { ...defaultDmUiPreferences, ...readUiPreferences(dmUiPreferencesStorageKey, defaultDmUiPreferences, isDmUiPreferences) };
 let dmCombatActionCategory: DmCombatActionCategory = dmUiPreferences.combatActionCategory;
 function updateDmUiPreferences<K extends keyof DmUiPreferences>(key: K, value: DmUiPreferences[K]) {
   dmUiPreferences = { ...dmUiPreferences, [key]: value };
@@ -52,18 +74,25 @@ function updateDmUiPreferences<K extends keyof DmUiPreferences>(key: K, value: D
 type SaveStatus = { mode: string; stateRevision: number; savedStateRevision: number | null; generation: number | null; savedAt: string | null; dirty: boolean; errorCode: string | null; runtimeEpoch: string };
 let saveStatus: SaveStatus | null = null;
 let draftAction: { type: 'transform' | 'detach' | 'structure'; outcome?: 'caught' | 'fallen'; structure?: 'damaged' | 'destroyed'; requestId?: string; objectRevision: number; sceneEpoch: number; connectionGeneration: number } | null = null;
-const epochCommands = new Set(['scene', 'view:focus', 'entity:portal', 'scene:animation', 'creature', 'npc:visible', 'camera', 'environment', 'entity:move', 'combat:start', 'combat:participant', 'combat:initiative', 'combat:initiativeOrder', 'combat:condition', 'combat:endTurn', 'combat:next', 'combat:end', 'combat:declare', 'combat:basic', 'combat:escape', 'combat:rollAttack', 'combat:rollDamage', 'combat:rollSave', 'combat:rollDeathSave', 'combat:recharge', 'resolveInteraction', 'object:door', 'object:interact', 'object:transform', 'object:detach', 'object:structure', 'object:undo', 'pickup:take', 'camp:rest']);
+const epochCommands = new Set(['scene', 'view:focus', 'entity:portal', 'scene:animation', 'creature', 'npc:visible', 'camera', 'environment', 'entity:move', 'entity:seat', 'combat:start', 'combat:participant', 'combat:initiative', 'combat:initiativeOrder', 'combat:condition', 'combat:endTurn', 'combat:next', 'combat:end', 'combat:declare', 'combat:basic', 'combat:escape', 'combat:rollAttack', 'combat:rollDamage', 'combat:rollSave', 'combat:rollDeathSave', 'combat:recharge', 'resolveInteraction', 'object:door', 'object:interact', 'object:transform', 'object:detach', 'object:structure', 'object:undo', 'pickup:take', 'camp:rest']);
 
-type WindowLayout = { span?: number; height?: number };
-type WorkspaceState = { closed: string[]; minimized: string[]; maximized: string[]; windows: Record<string, WindowLayout>; order: string[] };
-type WorkspaceMode = 'exploration' | 'combat';
 type WorkspaceLayouts = Partial<Record<WorkspaceMode, WorkspaceState>>;
-const workspaceStorageKey = 'dnd-dm-workspace-v10', legacyWorkspaceStorageKey = 'dnd-dm-workspace-v9', workspaceGap = 16, workspaceColumns = 12, minimumWindowHeight = 132;
+const workspaceStorageKey = 'dnd-dm-workspace-v10', legacyWorkspaceStorageKey = 'dnd-dm-workspace-v9', workspaceColumns = 12, minimumWindowHeight = 132;
+let workspaceGap = 16;
 const workspaceWindows = new Map<string, HTMLElement>();
 let workspaceLayouts: WorkspaceLayouts = {};
 let activeWorkspaceMode: WorkspaceMode = 'exploration', requestedWorkspaceMode: WorkspaceMode = 'exploration';
 let workspaceReady = false;
 function workspace() { return document.querySelector<HTMLElement>('.grid.workspace'); }
+function applyConsoleCustomization() {
+  const density = dmUiPreferences.consoleDensity ?? defaultDmUiPreferences.consoleDensity!;
+  const textSize = dmUiPreferences.consoleTextSize ?? defaultDmUiPreferences.consoleTextSize!;
+  workspaceGap = density === 'compact' ? 10 : density === 'spacious' ? 22 : 16;
+  document.documentElement.dataset.dmDensity = density;
+  document.documentElement.dataset.dmTextSize = textSize;
+  document.documentElement.style.setProperty('--dm-gap', `${workspaceGap}px`);
+}
+applyConsoleCustomization();
 function normalizeWorkspace(value: unknown): WorkspaceState | null {
   if (!value || typeof value !== 'object') return null;
   const saved = value as Partial<WorkspaceState>;
@@ -110,7 +139,7 @@ function persistWorkspaceLayouts() {
   catch { /* La consola sigue funcionando aunque el navegador bloquee el almacenamiento local. */ }
 }
 function setDrawerTab(tab: DmDrawerTab, persist = true) {
-  document.querySelectorAll<HTMLButtonElement>('[data-drawer-tab]').forEach(button => button.classList.toggle('active', button.dataset.drawerTab === tab));
+  document.querySelectorAll<HTMLButtonElement>('[data-drawer-tab]').forEach(button => { button.classList.toggle('active', button.dataset.drawerTab === tab); button.setAttribute('aria-pressed', String(button.dataset.drawerTab === tab)); });
   document.querySelectorAll<HTMLElement>('[data-drawer-panel]').forEach(panel => { panel.hidden = panel.dataset.drawerPanel !== tab; });
   if (persist) updateDmUiPreferences('drawerTab', tab);
 }
@@ -161,16 +190,15 @@ function syncRowHeight(card: HTMLElement, height: number) {
   for (const peer of visibleWorkspaceWindows()) if (Math.abs(peer.getBoundingClientRect().top - top) < 2) peer.style.setProperty('--window-height', `${Math.round(height)}px`);
 }
 function syncWorkspaceRowHeights() {
-  const rows: HTMLElement[][] = [];
-  for (const card of visibleWorkspaceWindows()) {
-    const top = card.getBoundingClientRect().top;
-    const row = rows.find(items => Math.abs(items[0]!.getBoundingClientRect().top - top) < 2);
-    (row ?? rows[rows.push([]) - 1]!).push(card);
-  }
-  for (const row of rows) {
-    const height = Math.max(...row.map(card => card.getBoundingClientRect().height));
-    for (const card of row) card.style.setProperty('--window-height', `${Math.round(height)}px`);
-  }
+  // Only the primary map/context pair needs equal heights. Secondary windows
+  // stay content-sized; explicit user heights are still respected/persisted.
+  const visible = visibleWorkspaceWindows(), map = visible.find(card => card.id === 'mapWindow');
+  const context = visible.find(card => card.id === (activeWorkspaceMode === 'combat' ? 'combatCard' : 'explorationCard'));
+  if (!map || !context || Math.abs(map.getBoundingClientRect().top - context.getBoundingClientRect().top) >= 2) return;
+  if (!map.style.getPropertyValue('--window-height') && !context.style.getPropertyValue('--window-height')) return;
+  const height = Math.max(map.getBoundingClientRect().height, context.getBoundingClientRect().height);
+  map.style.setProperty('--window-height', `${Math.round(height)}px`);
+  context.style.setProperty('--window-height', `${Math.round(height)}px`);
 }
 function updateMinimizeControl(card: HTMLElement) {
   const button = card.querySelector<HTMLButtonElement>('[data-window-action="minimize"]');
@@ -180,7 +208,7 @@ function updateMinimizeControl(card: HTMLElement) {
 }
 function restoreWorkspaceLayout(saved: WorkspaceState | null) {
   const desk = workspace(); if (!desk) return;
-  const layout = saved ?? { closed: [], minimized: [], maximized: [], windows: {}, order: [] };
+  const layout = saved ?? recommendedDmWorkspace(activeWorkspaceMode, desk.clientWidth);
   for (const [id, card] of workspaceWindows) {
     const bounds = layout.windows[id];
     card.classList.remove('window-closed', 'window-minimized', 'window-maximized', 'dragging', 'resizing', 'drop-target');
@@ -207,14 +235,34 @@ function switchWorkspaceMode(mode: WorkspaceMode) {
   requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); });
 }
 function arrangeWorkspace() {
-  for (const card of workspaceWindows.values()) {
-    card.classList.remove('window-closed', 'window-minimized', 'window-maximized');
-    card.style.removeProperty('--window-height'); setWindowSpan(card, defaultWindowSpan(card)); updateMinimizeControl(card);
-  }
-  workspace()?.append(...workspaceWindows.values()); renderClosedWindows();
+  restoreWorkspaceLayout(null);
+  requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); });
+}
+function applyWorkspacePreset(preset: DmWorkspacePresetId) {
+  const current = captureWorkspace(), layout = createDmWorkspacePreset(activeWorkspaceMode, preset);
+  const order = [...layout.order, ...current.order.filter(id => !layout.order.includes(id)), ...[...workspaceWindows.keys()].filter(id => !layout.order.includes(id) && !current.order.includes(id))];
+  const windows = { ...current.windows, ...layout.windows };
+  // A preset changes the arrangement, not the user's decision to close/minimize
+  // a panel. Clear custom heights/maximize so the new rows can size evenly.
+  for (const bounds of Object.values(windows)) delete bounds.height;
+  restoreWorkspaceLayout({ closed: current.closed, minimized: current.minimized, maximized: [], order, windows });
   requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); });
 }
 function windowTitle(card: HTMLElement) { return card.querySelector('h2')?.textContent?.trim() || 'Ventana'; }
+function openWorkspaceWindow(id: string) {
+  const card = workspaceWindows.get(id);
+  if (!card || card.hidden) { toast('Esta herramienta no está disponible en la escena actual.'); return; }
+  card.classList.remove('window-closed', 'window-minimized'); updateMinimizeControl(card); renderClosedWindows();
+  card.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  card.querySelector<HTMLButtonElement>('.window-control')?.focus({ preventScroll: true });
+  requestAnimationFrame(() => { writeWorkspace(); world?.refreshLayout(); });
+}
+function focusEntityOnMap(id: string, cell: Cell, surfaceId: string) {
+  clearDraft(); selectedId = null; selectedMapEntityId = id;
+  world?.setSelectedEntity(id); world?.setCameraFocusCell(cell, surfaceId); setMapToolPanel(null);
+  openWorkspaceWindow('mapWindow'); if (state) renderObjects(state);
+  toast('Ficha seleccionada. Muévela con WASD, un paso por pulsación.');
+}
 function renderClosedWindows() {
   const list = $('closedWindows'); list.replaceChildren(); const closed = [...workspaceWindows.values()].filter(card => !card.hidden && card.classList.contains('window-closed'));
   if (!closed.length) { const note = document.createElement('p'); note.className = 'note'; note.textContent = 'No hay ventanas cerradas.'; list.append(note); return; }
@@ -260,9 +308,30 @@ function setupWorkspace() {
     const bounds = saved?.windows[id]; setWindowSpan(card, bounds?.span ?? defaultWindowSpan(card)); if (bounds?.height) card.style.setProperty('--window-height', `${Math.max(minimumWindowHeight, bounds.height)}px`); if (saved?.closed.includes(id)) card.classList.add('window-closed'); if (saved?.minimized.includes(id)) card.classList.add('window-minimized'); if (saved?.maximized.includes(id)) card.classList.add('window-maximized'); updateMinimizeControl(card);
   }
   const ordered = (saved?.order ?? []).map(id => workspaceWindows.get(id)).filter((card): card is HTMLElement => Boolean(card)); const remaining = [...workspaceWindows.values()].filter(card => !ordered.includes(card)); desk.append(...ordered, ...remaining);
-  $('arrangeWorkspace').onclick = arrangeWorkspace; $('resetWorkspace').onclick = () => { localStorage.removeItem(workspaceStorageKey); localStorage.removeItem(legacyWorkspaceStorageKey); localStorage.removeItem(dmUiPreferencesStorageKey); location.reload(); };
-  document.querySelectorAll<HTMLButtonElement>('[data-drawer-tab]').forEach(button => button.onclick = () => { const tab = button.dataset.drawerTab; if (tab === 'windows' || tab === 'ambience') setDrawerTab(tab); });
+  $('arrangeWorkspace').onclick = arrangeWorkspace; $('resetWorkspace').onclick = () => { localStorage.removeItem(workspaceStorageKey); localStorage.removeItem(legacyWorkspaceStorageKey); location.reload(); };
+  document.querySelectorAll<HTMLButtonElement>('[data-drawer-tab]').forEach(button => button.onclick = () => { const tab = button.dataset.drawerTab; if (tab === 'windows' || tab === 'ambience' || tab === 'audio' || tab === 'settings') setDrawerTab(tab); });
+  document.querySelectorAll<HTMLButtonElement>('[data-workspace-preset]').forEach(button => button.onclick = () => {
+    const preset = button.dataset.workspacePreset;
+    if (preset === 'map-scene' || preset === 'two-columns' || preset === 'tactical' || preset === 'overview') applyWorkspacePreset(preset);
+  });
+  const density = $('consoleDensity') as HTMLSelectElement, textSize = $('consoleTextSize') as HTMLSelectElement;
+  density.value = dmUiPreferences.consoleDensity ?? 'comfortable'; textSize.value = dmUiPreferences.consoleTextSize ?? 'standard';
+  density.onchange = () => {
+    if (!dmConsoleDensities.includes(density.value as DmConsoleDensity)) return;
+    updateDmUiPreferences('consoleDensity', density.value as DmConsoleDensity); applyConsoleCustomization();
+    requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); });
+  };
+  textSize.onchange = () => {
+    if (!dmConsoleTextSizes.includes(textSize.value as DmConsoleTextSize)) return;
+    updateDmUiPreferences('consoleTextSize', textSize.value as DmConsoleTextSize); applyConsoleCustomization();
+  };
+  $('resetConsoleSettings').onclick = () => {
+    dmUiPreferences = { ...dmUiPreferences, consoleDensity: 'comfortable', consoleTextSize: 'standard' };
+    writeUiPreferences(dmUiPreferencesStorageKey, dmUiPreferences); density.value = 'comfortable'; textSize.value = 'standard'; applyConsoleCustomization();
+    requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); });
+  };
   setDrawerTab(dmUiPreferences.drawerTab, false); renderClosedWindows();
+  document.querySelectorAll<HTMLButtonElement>('[data-open-window]').forEach(button => button.onclick = () => openWorkspaceWindow(button.dataset.openWindow!));
 }
 function activateWorkspace() {
   workspaceReady = true;
@@ -275,7 +344,7 @@ function toast(message: string) { const element = $('toast'); element.textConten
 function command(body: Record<string, unknown>) {
   if (!socket?.connected || !runtimeEpoch) { toast('Sin conexión: el cambio no se ha enviado.'); return null; }
   const id = commandId();
-  const epoch = epochCommands.has(String(body.type)) || String(body.type).startsWith('combat:') ? { sceneEpoch: state?.sceneEpoch } : {};
+  const epoch = epochCommands.has(String(body.type)) || String(body.type).startsWith('combat:') || String(body.type).startsWith('story:') || String(body.type).startsWith('encounter:') ? { sceneEpoch: state?.sceneEpoch } : {};
   const objectVersion = String(body.type).startsWith('object:') || body.type === 'resolveInteraction' ? { objectRevision: state?.objectRevision ?? 0 } : {};
   socket.emit('dm:command', { commandId: id, runtimeEpoch, ...epoch, ...objectVersion, ...body }); return id;
 }
@@ -329,13 +398,20 @@ function selectCurrentScene(sceneId: string) {
   select.value = sceneId;
 }
 
+function renderConnectionStatus() {
+  const connected = Boolean(socket?.connected);
+  $('serverStatus').textContent = connected ? 'Servidor conectado' : 'Servidor desconectado';
+  $('serverBadge').className = `badge dm-${connected ? 'positive' : 'error'}`;
+  const players = state?.characters.filter(character => character.connected).length ?? 0;
+  $('connectionSummary').textContent = `${players} jugador${players === 1 ? '' : 'es'} conectado${players === 1 ? '' : 's'} · Proyector ${state?.projectorReady ? 'listo' : 'pendiente'} · Servidor ${connected ? 'conectado' : 'desconectado'}`;
+}
 function connect() {
   socket = io({ auth: { role: 'dm', protocolVersion: PROTOCOL_VERSION, objectModelVersion: OBJECT_MODEL_VERSION } });
-  socket.on('connect', () => { connectionGeneration++; $('socketDot').classList.add('on'); readyEpoch = -1; latestSnapshot = null; lastSharedCameraKey = null; clearDraft(); world?.resetConnection(); });
-  socket.on('disconnect', () => { connectionGeneration++; $('socketDot').classList.remove('on'); readyEpoch = -1; latestSnapshot = null; renderAnimationAudit(null, true); clearDraft(); });
+  socket.on('connect', () => { sceneLoadRecovery.reset(); connectionGeneration++; $('socketDot').classList.add('on'); renderConnectionStatus(); readyEpoch = -1; latestSnapshot = null; lastSharedCameraKey = null; clearDraft(); world?.resetConnection(); });
+  socket.on('disconnect', () => { sceneLoadRecovery.reset(); connectionGeneration++; $('socketDot').classList.remove('on'); renderConnectionStatus(); readyEpoch = -1; latestSnapshot = null; renderAnimationAudit(null, true); clearDraft(); });
   socket.on('auth:error', (error: { code?: string }) => { if (error.code === 'PROTOCOL_MISMATCH' || error.code === 'DM_AUTH_REQUIRED') { location.reload(); return; } showLogin(); });
   socket.on('runtime:reset', (event: { runtimeEpoch: string; reason?: string }) => {
-    if (runtimeEpoch && runtimeEpoch !== event.runtimeEpoch) { location.reload(); return; }
+    sceneLoadRecovery.reset();
     connectionGeneration++; runtimeEpoch = event.runtimeEpoch; state = null; latestSnapshot = null; renderAnimationAudit(null, true); readyEpoch = -1; lastSharedCameraKey = null; clearDraft(); world?.resetConnection();
     void fetch('/api/dm/save/status', { cache: 'no-store' }).then(x => x.ok ? x.json() : null).then(next => { if (next?.runtimeEpoch === runtimeEpoch) { saveStatus = next; renderSave(); } });
   });
@@ -353,16 +429,24 @@ function connect() {
     }
     else if (result.code === 'APPLIED' && pending && pending.commandId === result.commandId && pending.generation === connectionGeneration) { clearDraft(); toast('Cambio aplicado.'); }
   });
-  socket.on('combat:animation', (event: { runtimeEpoch: string; attackerId: string; targetId: string; type: 'melee' | 'arrow' | 'thrownWeapon' | 'radiantArrow' | 'vine' | 'fireProjectile' | 'magicalProjectile'; hit: boolean; frozen: boolean; sneakAttack?: boolean }) => { if (event.runtimeEpoch === runtimeEpoch) world?.playRangedAttack(event.attackerId, event.targetId, event.type, event.hit, event.frozen, event.sneakAttack); });
+socket.on('combat:animation', (event: { runtimeEpoch: string; sceneEpoch?: number; bodyState?: string; attackerId: string; targetId: string; type: 'melee' | 'arrow' | 'thrownWeapon' | 'radiantArrow' | 'vine' | 'fireProjectile' | 'magicalProjectile'; hit: boolean; frozen: boolean; sneakAttack?: boolean }) => { if (event.runtimeEpoch === runtimeEpoch && (event.sceneEpoch === undefined || event.sceneEpoch === latestSnapshot?.sceneEpoch)) world?.playRangedAttack(event.attackerId, event.targetId, event.type, event.hit, event.frozen, event.sneakAttack, event.bodyState); });
   socket.on('scene:animation', (event: { runtimeEpoch: string; sceneEpoch: number; entityId: string; state: string; durationMs: number }) => { if (event.runtimeEpoch === runtimeEpoch && event.sceneEpoch === latestSnapshot?.sceneEpoch) world?.playTokenAnimation(event.entityId, event.state, event.durationMs); });
   socket.on('scene:area-effect', (event: { runtimeEpoch: string; sceneEpoch: number; cell: { col: number; row: number }; type: 'fog'; radiusMeters: number; durationMs: number }) => { if (event.runtimeEpoch === runtimeEpoch && event.sceneEpoch === latestSnapshot?.sceneEpoch) world?.playAreaEffect(event.cell, event.type, event.radiusMeters, event.durationMs); });
   socket.on('mirror:transformation', (event: { runtimeEpoch: string; sceneEpoch: number; propId: string; sourceId: string; reflectionId: string; frames: string[]; durationMs: number }) => { if (event.runtimeEpoch === runtimeEpoch && event.sceneEpoch === latestSnapshot?.sceneEpoch) world?.playMirrorTransformation(event.propId, event.sourceId, event.reflectionId, event.frames, event.durationMs); });
 }
 
 async function installSnapshot(snapshot: WorldSnapshot) {
+  try {
   const installed = await world?.applySnapshot(snapshot);
+  if (installed) sceneLoadRecovery.reset();
   if (installed) { updateCameraOrbitControls(snapshot.sceneId); publishCameraOrientation(); }
   if (installed && socket?.connected && latestSnapshot?.sceneEpoch === snapshot.sceneEpoch && latestSnapshot?.runtimeEpoch === snapshot.runtimeEpoch && readyEpoch !== snapshot.sceneEpoch) { readyEpoch = snapshot.sceneEpoch; socket.emit('scene:ready', { runtimeEpoch, sceneEpoch: snapshot.sceneEpoch }); }
+  } catch (error) {
+    if (!socket?.connected || snapshot.runtimeEpoch !== runtimeEpoch) return;
+    if (sceneLoadRecovery.failed(() => { if (socket?.connected && latestSnapshot?.runtimeEpoch === runtimeEpoch) void installSnapshot(latestSnapshot); })) {
+      console.error('No se pudo cargar el mapa DM', error); toast('No se pudo cargar el mapa. Reintentando…');
+    }
+  }
 }
 
 const cameraOrientationLabels = ['Vista inicial', '45° a la derecha', '90° a la derecha', '135° a la derecha', '180° · lado opuesto', '135° a la izquierda', '90° a la izquierda', '45° a la izquierda'];
@@ -432,26 +516,62 @@ function render(current: DmState) {
   $('app').classList.toggle('combat-mode', current.combat.active);
   const timeOfDayButton = $('timeOfDayToggle') as HTMLButtonElement;
   timeOfDayButton.hidden = !campaign?.scenes.find(scene => scene.id === current.sceneId)?.camp;
+  $('timeOfDaySection').hidden=timeOfDayButton.hidden;
   const isNight = (current.environment.timeOfDay ?? 'auto') === 'night' || (current.environment.timeOfDay ?? 'auto') === 'auto' && current.campRest?.sceneId === current.sceneId && current.campRest.phase === 'night';
   $('timeOfDayIcon').textContent = isNight ? '☀' : '☾'; $('timeOfDayLabel').textContent = isNight ? 'Pasar a día' : 'Pasar a noche';
   timeOfDayButton.setAttribute('aria-pressed', String(isNight));
   timeOfDayButton.title = isNight ? 'La escena está de noche. Cambiar a día.' : 'La escena está de día. Cambiar a noche.';
   $('campaignTitle').textContent = current.campaignTitle; $('creatureNote').textContent = current.privateNotes.creature; $('wheelNote').textContent = current.privateNotes.wheel;
+  $('headerScene').textContent = campaign?.scenes.find(scene => scene.id === current.sceneId)?.title ?? current.sceneId;
+  $('headerCombat').textContent = current.combat.active ? current.combat.initiativePending ? '⚔ Iniciativa pendiente' : `⚔ Combate · ronda ${current.combat.round}` : '◎ Exploración';
+  $('headerCombat').className = `dm-chip dm-${current.combat.active ? 'pending' : 'info'}`;
+  const pendingCount = current.interactions.filter(request => request.status === 'pending').length;
+  $('headerRequests').textContent = pendingCount ? `${pendingCount} solicitud${pendingCount === 1 ? '' : 'es'} pendiente${pendingCount === 1 ? '' : 's'}` : 'Sin solicitudes';
+  $('headerRequests').className = `dm-chip dm-${pendingCount ? 'pending' : 'info'}`;
+  $('dockRequests').textContent = String(pendingCount);
+  $('interacciones').classList.toggle('has-attention', pendingCount > 0);
+  renderConnectionStatus();
   selectCurrentScene(current.sceneId); ($('camera') as HTMLSelectElement).value = current.camera.mode; renderFocus(current); updateCameraOrbitControls(current.sceneId);
-  $('storm').textContent = current.environment.storm ? 'Detener tormenta' : 'Activar tormenta';
+  $('storm').textContent = current.environment.storm ? 'ϟ Detener' : 'ϟ Activar';
+  $('storm').setAttribute('aria-pressed', String(current.environment.storm));
+  const phaseNames={auto:'Ambiente de escena',day:'Mediodía',sunset:'Atardecer',night:'Noche',dawn:'Madrugada'};
+  const precipitation=current.environment.precipitation??(current.environment.storm?'rain':'none');
+  $('mapWeatherStatus').textContent=`${phaseNames[current.environment.timeOfDay??'auto']} · ${precipitation==='none'?'Despejado':`${precipitation==='rain'?'Lluvia':'Nieve'} ${['suave','media','intensa'][(current.environment.precipitationLevel??2)-1]}`}`;
+  for(const [id,value] of Object.entries({weatherTime:current.environment.timeOfDay??'auto',weatherKind:current.environment.precipitation??(current.environment.storm?'rain':'none'),weatherLevel:String(current.environment.precipitationLevel??2),weatherWind:String(current.environment.windIntensity??0)})){
+    const input=$(id) as HTMLInputElement;if(!input.matches(':focus'))input.value=value;
+  }
   const stormIntensity = $('stormIntensity') as HTMLInputElement;
   if (!stormIntensity.matches(':focus')) stormIntensity.value = String(current.environment.stormIntensity);
   $('stormIntensityValue').textContent = `${Math.round(current.environment.stormIntensity * 100)}%`;
+  const weatherTime = current.environment.timeOfDay ?? 'auto';
+  document.querySelectorAll<HTMLButtonElement>('[data-weather-time]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.weatherTime === weatherTime)));
+  document.querySelectorAll<HTMLButtonElement>('[data-weather-kind]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.weatherKind === precipitation)));
+  $('weatherLevelValue').textContent = ['Suave', 'Media', 'Intensa'][Number(($('weatherLevel') as HTMLInputElement).value) - 1] ?? 'Media';
+  const wind = Math.round(Number(($('weatherWind') as HTMLInputElement).value) * 100);
+  $('weatherWindValue').textContent = `${wind}%`;
+  $('weatherVisualIcon').textContent = current.environment.storm ? 'ϟ' : precipitation === 'snow' ? '❄' : precipitation === 'rain' ? '☂' : isNight ? '☾' : '☀';
+  $('weatherVisualTitle').textContent = phaseNames[weatherTime];
+  $('weatherVisualStatus').textContent = `${current.environment.storm ? 'Tormenta' : precipitation === 'snow' ? 'Nieve' : precipitation === 'rain' ? 'Lluvia' : 'Despejado'} · ${wind ? `Viento ${wind}%` : 'Sin viento'}`;
+  $('weatherVisual').dataset.weather = current.environment.storm ? 'storm' : isNight ? 'night' : precipitation;
   const encounter = $('encounterCard'); encounter.hidden = !current.creature || current.sceneId !== current.creature.sceneId;
   if (current.creature) {
+    $('creatureSummary').replaceChildren(...chips([current.creature.label, [current.creature.visible ? 'Visible' : 'Oculta', current.creature.visible ? 'positive' : 'info'], `PG ${current.creature.hp}/${current.creature.maxHp}`, `Casilla ${current.creature.cell.col},${current.creature.cell.row}`]).childNodes);
     $('creature').textContent = current.creature.visible ? `Ocultar ${current.creature.label}` : `Revelar ${current.creature.label}`;
     if (!($('harpyCol') as HTMLInputElement).matches(':focus')) ($('harpyCol') as HTMLInputElement).value = String(current.creature.cell.col);
     if (!($('harpyRow') as HTMLInputElement).matches(':focus')) ($('harpyRow') as HTMLInputElement).value = String(current.creature.cell.row);
   }
   $('wheelCard').hidden = !current.objects.some(object => object.kind === 'wheel');
   $('projectorDot').classList.toggle('on', current.projectorReady); $('projectorStatus').textContent = current.projectorReady ? 'Proyector conectado' : 'Proyector sin preparar';
+  $('projectorStatus').textContent = current.projectorReady ? 'Proyector listo' : 'Proyector pendiente';
+  $('projectorBadge').className = `badge dm-${current.projectorReady ? 'positive' : 'pending'}`;
   const gameUndo = $('gameUndo') as HTMLButtonElement; gameUndo.disabled = !current.gameUndo.canUndo; gameUndo.textContent = current.gameUndo.label ? `Deshacer: ${current.gameUndo.label}` : 'Deshacer última acción';
   renderMonsterSheet(current); renderPlayers(current); renderNpcs(current); renderCombat(current); renderExploration(current); renderObjects(current); renderAudio(current); renderSfx(current); renderRequests(current); renderCampRest(current);
+  // Availability follows the current render, not the previous scene/mode.
+  document.querySelectorAll<HTMLElement>('[data-open-window]').forEach(button => {
+    const id = button.dataset.openWindow!; button.classList.toggle('has-attention', id === 'interacciones' && pendingCount > 0);
+    button.setAttribute('aria-current', String(id === (current.combat.active ? 'combatCard' : 'explorationCard')));
+    if (button instanceof HTMLButtonElement) button.disabled = Boolean(workspaceWindows.get(id)?.hidden);
+  });
 }
 
 const restPhaseLabels: Record<string, string> = { arrival: 'Llegada', dusk: 'Anochecer', night: 'Noche', dawn: 'Amanecer', finalization: 'Finalización' };
@@ -603,7 +723,14 @@ function wreckChapterEnding(current: DmState) {
 }
 
 function renderExploration(current: DmState) {
-  const card = $('explorationCard'), box = $('exploration'); card.hidden = current.combat.active; box.replaceChildren();
+  const card = $('explorationCard'), box = $('exploration'); card.hidden = current.combat.active;
+  preserveDisclosures(box, `exploration:${current.sceneId}`);
+  if (current.adventure) {
+    const key = JSON.stringify([current.runtimeEpoch, current.sceneEpoch, current.sceneId, current.combat.active, current.adventure, current.encounterGroups, current.lastExplorationAction, current.objects.map(object => [object.id, object.label]), current.characters.map(character => [character.id, character.claimed, character.sceneId]), current.npcs.map(npc => [npc.id, npc.visible]), current.creature && [current.creature.id, current.creature.visible, current.creature.sceneId]]);
+    if (box.dataset.renderKey === key) return;
+    box.dataset.renderKey = key;
+  }
+  box.replaceChildren();
   const actionRequest = current.lastExplorationAction;
   if (actionRequest?.sceneId === current.sceneId) {
     const request = document.createElement('section'), title = document.createElement('b'), action = document.createElement('p'), guidance = document.createElement('p');
@@ -647,8 +774,10 @@ function renderExploration(current: DmState) {
 
     const endingDetails = wreckChapterEnding(current);
 
-    const present = document.createElement('p'); present.textContent = `Personajes reclamados aquí: ${current.characters.filter(character => character.claimed && character.sceneId === current.sceneId).map(character => character.label).join(', ') || 'ninguno'}.`;
-    box.append(title, present, arrivalDetails, eventDetails, lootDetails, endingDetails); return;
+    const present = sceneBlock('PRESENTES', current.characters.filter(character => character.claimed && character.sceneId === current.sceneId).map(character => character.label));
+    const objective = document.createElement('p'); objective.className = 'dm-scene-objective'; objective.textContent = 'Explorar el pecio y resolver su maldición.';
+    const objects = sceneActions('INTERACTUABLES', current.objects.map(object => ({ label: object.label, select: () => { selectObject(object.id); openWorkspaceWindow('mapWindow'); } })));
+    box.append(title, objective, present, objects, arrivalDetails, eventDetails, lootDetails, endingDetails); return;
   }
   if (current.sceneId === 'dragon-rest') {
     const title = document.createElement('b'); title.textContent = 'Retiro del Dragón · puerto y desenlace del Pecio';
@@ -657,8 +786,9 @@ function renderExploration(current: DmState) {
     const boat = document.createElement('p'); boat.textContent = 'Para ir al Pecio, prepara la barca del puerto: son unos 4 km (aprox. 1 h 40 min). Allí pueden amarrar a la jarcia caída de estribor y trepar a C1 —la vía normal, fácil y sin prueba forzada— o nadar hasta la brecha de popa y entrar por C9. En combate, trepar o nadar cuesta el doble de movimiento salvo que tengan la velocidad especial adecuada; pide Atletismo solo si la situación concreta lo dificulta. El viaje y el momento de salida los confirma el DM.';
     openingDetails.append(opening, boat);
     const objective = document.createElement('p'); objective.textContent = `La barca cubre unos 4 km en aproximadamente 1 h 40 min. La vía normal es trepar desde la barca por la jarcia caída hasta C1; la alternativa peligrosa es nadar por la brecha de popa hasta C9. Llegada registrada: ${current.progress['wreck.boat-arrived'] ? 'sí' : 'no'} · ya abordaron: ${current.progress['wreck.boarded'] ? 'sí' : 'no'}.`;
-    const present = document.createElement('p'); present.textContent = `Personajes presentes: ${current.characters.filter(character => character.claimed && character.sceneId === current.sceneId).map(character => character.label).join(', ') || 'ninguno'}.`;
-    box.append(title, openingDetails, objective, present, wreckChapterEnding(current)); return;
+    const present = sceneBlock('PRESENTES', current.characters.filter(character => character.claimed && character.sceneId === current.sceneId).map(character => character.label));
+    const shortObjective = document.createElement('p'); shortObjective.className = 'dm-scene-objective'; shortObjective.textContent = 'Preparar el viaje y resolver el desenlace del Pecio.';
+    openingDetails.append(objective); box.append(title, shortObjective, present, openingDetails, wreckChapterEnding(current)); return;
   }
   const campScene = campaign?.scenes.find(scene => scene.id === current.sceneId && scene.camp);
   if (campaign?.campaignId === 'stormwreck-isle' && campScene) {
@@ -671,11 +801,53 @@ function renderExploration(current: DmState) {
     temple: { objective: 'Entrar en la historia.', relevant: 'Introducción / templo' }, garden: { objective: 'Conseguir la rosa.', relevant: 'Rosas asesinas y señorita Fritz' }, cafe: { objective: 'Hablar y buscar pistas.', relevant: 'Café No-Me-Olvides' }, market: { objective: 'Resolver los asuntos del mercado.', relevant: 'Mercado nocturno' }, mirror: { objective: 'Afrontar el Reflejo helado.', relevant: 'Espejo de Plata del Amor Verdadero' }, dinner: { objective: 'Resolver el final de la noche.', relevant: 'Cena con Anteros · desenlace' }
   };
   const scene = scenes[current.sceneId] ?? { objective: 'Explorar la escena.', relevant: current.sceneId };
-  const title = document.createElement('b'); title.textContent = scene.relevant; const objective = document.createElement('p'); objective.textContent = `Objetivo actual: ${scene.objective}`;
-  const present = document.createElement('p'); present.textContent = `Personajes presentes: ${current.characters.filter(character => character.claimed && character.sceneId === current.sceneId).map(character => character.label).join(', ') || 'ninguno'}.`;
-  const interactables = document.createElement('p'); interactables.textContent = `Interactuables: ${current.objects.length ? current.objects.map(object => object.label).join(', ') : 'ninguno'}.`;
+  const currentObjective = current.adventure?.objectives.find(objective => objective.sceneId === current.sceneId);
+  if (currentObjective) scene.objective = `${currentObjective.label} · ${currentObjective.complete ? '✓ completado' : 'pendiente'}`;
+  const title = document.createElement('b'); title.textContent = campaign?.scenes.find(candidate => candidate.id === current.sceneId)?.title ?? scene.relevant; const objective = document.createElement('p'); objective.className = 'dm-scene-objective'; objective.textContent = scene.objective;
+  const sceneGuidance = document.createElement('details'), guidanceSummary = document.createElement('summary'); guidanceSummary.textContent = 'Guía de esta escena · solo DM'; sceneGuidance.append(guidanceSummary);
+  for (const text of current.adventure?.sceneGuidance[current.sceneId] ?? []) { const paragraph = document.createElement('p'); paragraph.className = 'note'; paragraph.textContent = text; sceneGuidance.append(paragraph); }
+  const presentNames = [...current.characters.filter(character => character.claimed && character.sceneId === current.sceneId).map(character => character.label), ...current.npcs.filter(npc => npc.visible).map(npc => npc.label), ...(current.creature?.visible && current.creature.sceneId === current.sceneId ? [current.creature.label] : [])];
+  const present = sceneBlock('PRESENTES', presentNames);
+  const seatCount=campaign?.scenes.find(scene=>scene.id===current.sceneId)?.seats?.length??0;
+  const interactables = sceneActions('INTERACTUABLES', current.objects.map(object => ({ label: object.label, select: () => { selectObject(object.id); openWorkspaceWindow('mapWindow'); } })), seatCount ? [`${seatCount} asientos`] : []);
   const progress = document.createElement('details'), summary = document.createElement('summary'); summary.textContent = 'Progreso D8 Night'; progress.append(summary);
-  for (const [flag, label] of Object.entries({ wine: 'Vino del Café', rose: 'Rosa de Fritz', steak: 'Filete del Mercado', mirror: 'Espejo de amor verdadero', ending1: 'Final 1', ending2: 'Final 2', ending3: 'Final 3' })) { const row = document.createElement('label'), input = document.createElement('input'); input.type = 'checkbox'; input.checked = Boolean(current.progress[flag]); input.onchange = () => command({ type: 'progress:toggle', flag, value: input.checked }); row.append(input, label); progress.append(row); }
+  for (const group of current.encounterGroups?.filter(group => group.sceneId === current.sceneId) ?? []) {
+    const row = document.createElement('div'), select = document.createElement('select'), reveal = document.createElement('button');
+    for (let count = 0; count <= group.maximum; count++) { const option = document.createElement('option'); option.value = String(count); option.textContent = String(count); select.append(option); }
+    select.value = String(group.visibleCount); reveal.textContent = group.label; reveal.onclick = () => command({ type: 'encounter:reveal', groupId: group.id, count: Number(select.value) }); row.append(select, reveal); box.append(row);
+  }
+  if (current.adventure) {
+    for (const goal of current.adventure.objectives) {
+      const row = document.createElement('section'), label = document.createElement('p'), select = document.createElement('select'), save = document.createElement('button');
+      label.textContent = `${goal.complete ? '✓' : '○'} ${goal.item}${goal.note ? ` · ${goal.note}` : ''}`;
+      const empty = document.createElement('option'); empty.value = ''; empty.textContent = goal.complete && !goal.choice ? 'Guardado antiguo · elige el resultado' : 'Pendiente'; select.append(empty);
+      for (const choice of goal.choices) { const option = document.createElement('option'); option.value = choice.id; option.textContent = choice.label; select.append(option); }
+      select.value = goal.choice?.id ?? ''; save.textContent = 'Registrar resultado';
+      save.onclick = () => {
+        const override = Boolean(select.value && !goal.available);
+        if (override && !confirm('El espejo debe ser la última prueba. ¿Registrar una excepción del DM?')) return;
+        const note = prompt(override ? 'Explica la excepción (obligatorio):' : 'Nota de la decisión (opcional):', goal.note);
+        if (note === null || override && !note.trim()) return;
+        command({ type: 'story:choice', objectiveId: goal.id, choiceId: select.value || null, note, override });
+      };
+      row.append(label, select, save); progress.append(row);
+    }
+    const score = document.createElement('p'); score.textContent = current.adventure.endings.map(ending => `${ending.label}: ${ending.score}`).join(' · '); progress.append(score);
+    const held = document.createElement('p'); held.textContent = `Objetos de misión: ${current.adventure.inventory.join(', ') || 'ninguno'}`; progress.append(held);
+    for (const ending of current.adventure.endings) {
+      const button = document.createElement('button'); button.textContent = `${ending.selected ? '✓ ' : ''}${ending.label}`;
+      button.onclick = () => {
+        const override = !current.adventure!.complete || !current.adventure!.candidates.includes(ending.id);
+        if (override && !confirm('Este final no corresponde al progreso/puntuación actual. ¿Aplicar excepción del DM (por ejemplo rechazo de la misión)?')) return;
+        const reason = prompt('Motivo del final (obligatorio en empate o excepción):', ending.reason);
+        if (reason === null) return;
+        command({ type: 'story:ending', endingId: ending.id, reason, override });
+      }; progress.append(button);
+    }
+    const back = document.createElement('button'); back.textContent = 'Volver al templo'; back.onclick = () => command({ type: 'scene', sceneId: 'temple' });
+    const inventory = document.createElement('p'); inventory.className = 'note'; inventory.textContent = `Componentes: ${current.adventure.inventory.length}/4. El DM registra el resultado tras abandonar cada lugar; después vuelve al templo. El espejo es la última prueba.`;
+    progress.append(inventory, back);
+  }
   const currentDefinition = campaign?.scenes.find(candidate => candidate.id === current.sceneId);
   const stageActors = current.progress['wreck.curse-day-after'] && current.sceneId === 'wreck-ship' ? [] : currentDefinition?.stageActors ?? [];
   if (stageActors.length && campaign) {
@@ -690,9 +862,9 @@ function renderExploration(current: DmState) {
         const button = document.createElement('button'); button.textContent = `${actor.label} · ${labels[stateName] ?? stateName}`; button.onclick = () => command({ type: 'scene:animation', entityId: actor.id, state: stateName, durationMs: 1_600 }); cueButtons.append(button);
       }
     }
-    box.append(title, objective, present, interactables, progress, cues); return;
+    box.append(title, objective, present, interactables, sceneGuidance, progress, cues); return;
   }
-  box.append(title, objective, present, interactables, progress);
+  box.append(title, objective, present, interactables, sceneGuidance, progress);
 }
 
 function renderFocus(current: DmState) {
@@ -716,6 +888,8 @@ function draftValid(object: DmObject) {
 }
 
 function selectObject(id: string | null) {
+  inspectedPickupId = null;
+  if (id) setMapToolPanel('objects');
   selectedMapEntityId = null; world?.setSelectedEntity(null);
   selectedId = id; const object = state?.objects.find(item => item.id === id) ?? null;
   draft = object && object.structure !== 'destroyed' && (object.kind === 'crate' || (object.kind === 'wheel' && object.attachment === 'detached')) ? structuredClone(object) : null;
@@ -723,11 +897,13 @@ function selectObject(id: string | null) {
   renderObjects(state!);
 }
 function startWheelDraft(object: Extract<DmObject, { kind: 'wheel' }>, outcome: 'caught' | 'fallen', requestId?: string) {
+  inspectedPickupId = null; setMapToolPanel('objects');
   selectedId = object.id; draft = structuredClone(object); draft.attachment = 'detached'; draft.state = outcome; draft.cell = { col: object.mount.cell.col + 1, row: object.mount.cell.row };
   draftAction = { type: 'detach', outcome, requestId, objectRevision: state!.objectRevision, sceneEpoch: state!.sceneEpoch, connectionGeneration }; renderObjects(state!);
 }
 
 function startStructureDraft(object: DmObject, structure: 'damaged' | 'destroyed') {
+  inspectedPickupId = null; setMapToolPanel('objects');
   selectedId = object.id; draft = structuredClone(object); draft.structure = structure;
   draftAction = { type: 'structure', structure, objectRevision: state!.objectRevision, sceneEpoch: state!.sceneEpoch, connectionGeneration }; renderObjects(state!);
 }
@@ -754,6 +930,7 @@ function onMapClick(cell: Cell, entityId?: string) {
   if (draft) { draft.cell = { ...cell }; renderDraft(); return; }
   const entity = [...(latestSnapshot?.entities ?? [])].reverse().find(candidate => entityId ? candidate.id === entityId : sameCell(candidate.cell, cell));
   if (entity) {
+    inspectedPickupId = null;
     selectedMapEntityId = entity.id; selectedId = null; draft = null; draftAction = null;
     world?.setSelectedEntity(entity.id);
     world?.setCameraFocusCell(cell, entity.surfaceId);
@@ -775,8 +952,14 @@ function renderDraft() {
 
 function renderObjects(current: DmState) {
   if (selectedId && !current.objects.some(object => object.id === selectedId)) { selectedId = null; draft = null; draftAction = null; }
+  if (inspectedPickupId && !current.pickups?.some(pickup => pickup.id === inspectedPickupId)) inspectedPickupId = null;
+  const picker = $('mapObjectPicker') as HTMLSelectElement;
+  const options: Array<[string, string]> = [['', 'Selecciona un objeto…'], ...current.objects.map(object => [`object:${object.id}`, object.label] as [string, string]), ...(current.pickups ?? []).map(pickup => [`pickup:${pickup.id}`, pickup.label] as [string, string])];
+  picker.replaceChildren(...options.map(([value, label]) => { const option = document.createElement('option'); option.value = value; option.textContent = label; return option; }));
+  picker.value = selectedId ? `object:${selectedId}` : inspectedPickupId ? `pickup:${inspectedPickupId}` : '';
+  $('mapObjectCount').textContent = String(options.length - 1);
   const box = $('objects'); box.replaceChildren();
-  for (const pickup of current.pickups ?? []) {
+  for (const pickup of (current.pickups ?? []).filter(pickup => pickup.id === inspectedPickupId)) {
     const row = document.createElement('div'); row.className = 'object-row';
     const label = document.createElement('b'); label.textContent = pickup.label;
     const status = document.createElement('span'); status.textContent = pickup.collected ? 'Recogido' : !pickup.available ? 'Tras la puerta de C4' : pickup.kind === 'unlit-torch' ? `Apagada · ${pickup.cell.col},${pickup.cell.row}` : `Disponible · ${pickup.cell.col},${pickup.cell.row}`;
@@ -788,7 +971,7 @@ function renderObjects(current: DmState) {
     }
     box.append(row);
   }
-  for (const object of current.objects) {
+  for (const object of current.objects.filter(object => object.id === selectedId)) {
     const row = document.createElement('div'); row.className = `object-row${object.id === selectedId ? ' selected' : ''}`;
     const isC8LootObject = object.id.startsWith('c8-container-');
     const isC8Barrel = object.id.startsWith('c8-barrel-');
@@ -796,7 +979,9 @@ function renderObjects(current: DmState) {
     const interaction = object.kind === 'door' || object.kind === 'crate' ? object.interaction : undefined;
     const interactionStatus = !interaction ? '' : interaction.kind === 'barred-door' ? ` · listón ${interaction.barrier === 'barred' ? 'puesto' : 'retirado'}` : interaction.kind === 'trap-stash' ? ` · ${interaction.revealed ? interaction.open ? 'abierto' : 'descubierto' : 'oculto'} · trampa ${interaction.trap === 'armed' ? 'armada' : 'gastada'}` : interaction.kind === 'container' ? ` · ${interaction.open ? 'abierto' : 'cerrado'}${isC8LootObject ? interaction.lootId.startsWith('wreck-c8-result-') ? ` · ${interaction.lootLabel}` : ' · botín sin asignar' : isC8Barrel ? ' · sin tirada de la tabla d6' : ''}` : ` · ${interaction.location === 'submerged' ? 'sumergido' : 'fuera del agua'} · ${interaction.open ? 'abierto' : 'cerrado'} · ${current.progress['wreck.curse-aboard'] ? 'talismán destruido' : current.progress['wreck.items-given-to-runara'] ? 'entregado a Runara' : `paquete ${interaction.package}`}`;
     const label = document.createElement('b'); label.textContent = object.label; const status = document.createElement('span'); status.textContent = (object.kind === 'door' ? `${({ open: 'abierta', closed: 'cerrada', locked: 'bloqueada' } as const)[object.state]} · ${structureLabel}` : object.kind === 'wheel' ? `${object.attachment === 'attached' ? 'montado' : object.state === 'caught' ? 'sujeto' : 'caído'} · ${structureLabel} · ${object.rotation}°` : `${structureLabel} · ${object.rotation}°`) + interactionStatus;
-    const choose = document.createElement('button'); choose.textContent = object.structure === 'destroyed' || object.kind === 'wheel' && object.attachment === 'attached' || interaction?.kind === 'trap-stash' ? 'Seleccionar' : 'Mover'; choose.disabled = interaction?.kind === 'trap-stash'; choose.onclick = () => selectObject(object.id); row.append(label, status, choose);
+    const choose = document.createElement('button'); choose.textContent = object.structure === 'destroyed' || object.kind === 'wheel' && object.attachment === 'attached' || interaction?.kind === 'trap-stash' ? 'Seleccionar' : 'Mover'; choose.disabled = interaction?.kind === 'trap-stash'; choose.onclick = () => selectObject(object.id);
+    const states = chips(status.textContent.split(' · ').map(text => [text, /roto|gastada/.test(text) ? 'error' : /bloqueada|dañado|armada/.test(text) ? 'pending' : /abierta|intacto/.test(text) ? 'positive' : 'info']));
+    states.append(chip(({ door: 'Puerta', crate: 'Contenedor', wheel: 'Timón' } as const)[object.kind])); row.append(label, states, choose);
     if (object.kind === 'door') for (const [text, next] of [['Abrir', 'open'], ['Cerrar', 'closed'], ['Bloquear', 'locked']] as const) { const button = document.createElement('button'); button.textContent = text; button.disabled = object.structure === 'destroyed'; button.onclick = () => command({ type: 'object:door', objectId: object.id, state: next }); row.append(button); }
     const interact = (text: string, action: string, characterId?: string, resultId?: number) => { const button = document.createElement('button'); button.textContent = text; button.onclick = () => command({ type: 'object:interact', objectId: object.id, action, ...(characterId ? { characterId } : {}), ...(resultId ? { resultId } : {}) }); row.append(button); };
     if (interaction?.kind === 'barred-door') interact(interaction.barrier === 'barred' ? 'Retirar listón' : 'Reponer listón', interaction.barrier === 'barred' ? 'remove-bar' : 'replace-bar');
@@ -829,16 +1014,17 @@ function renderObjects(current: DmState) {
     }
     if (object.kind === 'wheel' && object.attachment === 'attached') for (const [text, outcome] of [['Separar · sujeto', 'caught'], ['Separar · caído', 'fallen']] as const) { const button = document.createElement('button'); button.textContent = text; button.onclick = () => startWheelDraft(object, outcome); row.append(button); }
     if (object.capabilities.structure && object.structure === 'intact') { const damage = document.createElement('button'); damage.textContent = 'Dañar'; damage.onclick = () => startStructureDraft(object, 'damaged'); row.append(damage); }
-    if (object.capabilities.structure && object.structure !== 'destroyed') { const destroy = document.createElement('button'); destroy.textContent = 'Romper'; destroy.disabled = object.kind === 'wheel' && object.attachment === 'attached'; destroy.title = destroy.disabled ? 'Separa el timón antes de romperlo.' : ''; destroy.onclick = () => startStructureDraft(object, 'destroyed'); row.append(destroy); }
+    if (object.capabilities.structure && object.structure !== 'destroyed') { const destroy = document.createElement('button'); destroy.className = 'danger'; destroy.textContent = 'Romper'; destroy.disabled = object.kind === 'wheel' && object.attachment === 'attached'; destroy.title = destroy.disabled ? 'Separa el timón antes de romperlo.' : ''; destroy.onclick = () => startStructureDraft(object, 'destroyed'); row.append(destroy); }
     box.append(row);
   }
-  const undo = $('undoObject') as HTMLButtonElement; undo.disabled = !current.undo.canUndo; undo.textContent = current.undo.label ? `Deshacer: ${current.undo.label}` : 'Deshacer última acción'; renderDraft();
+  if (!box.childElementCount) box.append(emptyState(options.length === 1 ? 'Sin objetos editables en esta escena' : 'Selecciona un objeto', options.length === 1 ? 'El mapa y sus fichas siguen disponibles.' : 'Elige en la lista o pulsa un objeto en el mapa.'));
+  const undo = $('undoObject') as HTMLButtonElement; undo.disabled = !current.undo.canUndo; undo.textContent = '↶ Deshacer'; undo.title = current.undo.label ? `Deshacer: ${current.undo.label}` : 'Deshacer última acción'; undo.setAttribute('aria-label', undo.title); renderDraft();
 }
 
 function renderPlayers(current: DmState) {
   const box = $('players'); if (box.contains(document.activeElement) && document.activeElement instanceof HTMLInputElement) return; box.replaceChildren();
   const present = current.characters.filter(character => character.claimed || character.connected);
-  if (!present.length) { box.textContent = 'No hay jugadores seleccionados en esta sesión.'; return; }
+  if (!present.length) { box.append(emptyState('Sin jugadores asignados', 'Abre las conexiones para que el grupo elija personaje.'), localButton('Gestionar conexiones', () => { ($('connectionPanel') as HTMLDetailsElement).open = true; $('connectionPanel').scrollIntoView({ block: 'start' }); })); return; }
   for (const character of present) {
     const article = document.createElement('article'); article.className = 'player-card'; const info = document.createElement('div'), heading = document.createElement('h3'), dot = document.createElement('span'), small = document.createElement('small');
     info.className = 'player-info';
@@ -860,8 +1046,21 @@ function renderPlayers(current: DmState) {
     }
     const release = document.createElement('button'); release.className = 'player-release'; release.textContent = 'Liberar'; release.disabled = !character.claimed; release.onclick = () => command({ type: 'release', characterId: character.id });
     const actions = document.createElement('div'); actions.className = 'player-actions'; actions.append(routes, release);
+    if(!current.combat.active)for(const seat of campaign?.scenes.find(scene=>scene.id===character.sceneId)?.seats??[]){
+      if(character.sceneId!==current.sceneId||Math.max(Math.abs(seat.cell.col-character.cell.col),Math.abs(seat.cell.row-character.cell.row))>1)continue;
+      const seated=latestSnapshot?.entities.find(entity=>entity.id===character.id)?.seatId===seat.id;
+      const button=document.createElement('button');button.textContent=`${seated?'Levantarte':'Sentarte'} · ${seat.label}`;button.onclick=()=>command({type:'entity:seat',entityId:character.id,seatId:seat.id});actions.append(button);
+    }
+    if (character.concentration) {
+      const end = document.createElement('button'); end.textContent = `Terminar concentración · ${character.concentration.label}`;
+      end.onclick = () => command({ type: 'combat:endConcentration', entityId: character.id }); actions.append(end);
+    }
     for (const [resourceId, resource] of Object.entries(character.resources)) { const label = document.createElement('label'), input = document.createElement('input'); label.append(resource.label, input); input.type = 'number'; input.min = '0'; input.max = String(resource.max); input.value = String(resource.current); input.onchange = () => command({ type: 'resource', characterId: character.id, resourceId, current: Number(input.value) }); resources.append(label); }
-    article.append(info, hpLabel, position, resources, location, actions); box.append(article);
+    article.className = 'dm-entity-card'; actions.className = 'dm-entity-actions'; release.className = 'dm-ghost';
+    actions.prepend(localButton('Mover en mapa', () => focusEntityOnMap(character.id, character.cell, character.surfaceId)));
+    const fields = document.createElement('div'); fields.className = 'dm-editor-fields'; fields.append(hpLabel, position, resources, location);
+    const summary = chips([`PG ${character.hp}/${character.maxHp}`, ...Object.values(character.resources).map(resource => `${resource.label}: ${resource.current}/${resource.max}`), `Casilla ${character.cell.col},${character.cell.row}`, [character.connected ? 'Conectado' : 'Desconectado', character.connected ? 'positive' : 'pending'], character.claimed ? 'Asignada' : 'Libre']);
+    article.append(info, summary, actions, disclosure(`player:${character.id}`, 'Editar ficha y posición', fields)); box.append(article);
   }
 }
 function renderMonsterSheet(current: DmState) {
@@ -876,14 +1075,19 @@ function renderMonsterSheet(current: DmState) {
 function renderNpcs(current: DmState) {
   const box = $('npcs'); if (box.contains(document.activeElement) && document.activeElement instanceof HTMLInputElement) return; box.replaceChildren();
   const npcs = current.npcs.filter(npc => npc.id !== 'wreck-rowboat');
-  if (!npcs.length) { box.textContent = 'No hay PNJ en esta escena.'; return; }
+  if (!npcs.length) { box.append(emptyState('Sin PNJ en esta escena', 'Los personajes de escena aparecerán aquí.')); return; }
   for (const npc of npcs) {
     const row = document.createElement('div'); row.className = 'object-row'; const name = document.createElement('button'); name.className = 'link-button'; name.textContent = npc.label; name.title = `Abrir hoja de ${npc.label}`; name.onclick = () => openNpcSheet(npc);
     const reveal = document.createElement('button'); reveal.textContent = npc.visible ? 'Ocultar' : `Invocar ${npc.label}`; reveal.disabled = current.combat.active; reveal.onclick = () => command({ type: 'npc:visible', entityId: npc.id, visible: !npc.visible });
     const col = coordinate('Col', npc.cell.col), line = coordinate('Fila', npc.cell.row), move = document.createElement('button'); move.textContent = 'Paso'; move.disabled = !npc.visible; move.onclick = () => command({ type: 'entity:move', entityId: npc.id, cell: { col: Number(col.input.value), row: Number(line.input.value) } });
     const combat = document.createElement('button'); combat.textContent = npc.combatEnabled ? 'Quitar de combate' : 'Añadir al combate'; combat.disabled = current.combat.active; combat.onclick = () => command({ type: 'combat:participant', entityId: npc.id, active: !npc.combatEnabled });
     const recover = document.createElement('button'); recover.textContent = 'Recuperar 1 PG'; recover.hidden = npc.hp > 0; recover.onclick = () => command({ type: 'entity:hp', entityId: npc.id, hp: 1 });
-    row.append(name, reveal, col.label, line.label, move, combat, recover); box.append(row);
+    row.className = 'dm-entity-card'; name.className = 'link-button dm-npc-name';
+    const states = chips([[npc.visible ? 'Visible' : 'Oculto', npc.visible ? 'positive' : 'info'], `PG ${npc.hp}/${npc.maxHp}`, `Casilla ${npc.cell.col},${npc.cell.row}`, [npc.combatEnabled ? 'Participa en combate' : 'Fuera de combate', npc.combatEnabled ? 'pending' : 'info']]);
+    const fields = document.createElement('div'); fields.className = 'dm-editor-fields'; fields.append(col.label, line.label, move);
+    const actions = document.createElement('div'); actions.className = 'dm-entity-actions';
+    const focus = localButton('Mover en mapa', () => focusEntityOnMap(npc.id, npc.cell, npc.surfaceId)); focus.disabled = !npc.visible;
+    actions.append(reveal, focus, combat, recover); row.append(name, states, actions, disclosure(`npc:${npc.id}`, 'Editar posición · un paso', fields)); box.append(row);
   }
 }
 function renderCombatLegacy(current: DmState) {
@@ -941,7 +1145,8 @@ addEventListener('keydown', event => {
   if (event.target instanceof Element && event.target.matches('input,textarea,select')) return;
   const key = event.key.toLowerCase();
   if (!event.repeat && (key === 'q' || key === 'e') && supportsCameraOrbit(state?.sceneId)) { event.preventDefault(); rotateCamera(key === 'q' ? -1 : 1); return; }
-  const delta = key === 'w' ? { col: 0, row: -1 } : key === 'a' ? { col: -1, row: 0 } : key === 's' ? { col: 0, row: 1 } : key === 'd' ? { col: 1, row: 0 } : null;
+  const axes = key === 'w' ? { x: 0, up: 1 } : key === 'a' ? { x: -1, up: 0 } : key === 's' ? { x: 0, up: -1 } : key === 'd' ? { x: 1, up: 0 } : null;
+  const delta = axes ? worldVectorToCellDelta(world?.screenVectorToWorld(axes.x, axes.up) ?? { x: axes.x, z: -axes.up }) : null;
   const current = state;
   if (!delta || !current || !selectedMapEntityId || Date.now() - lastCombatMoveAt < 180) return;
   const entity = latestSnapshot?.entities.find(item => item.id === selectedMapEntityId);
@@ -953,8 +1158,17 @@ function coordinate(text: string, value: number) { const label = document.create
 
 const audioLabels: Record<string, string> = { music: 'Música', ocean: 'Océano', wind: 'Viento', wood: 'Madera', storm: 'Tormenta' };
 function renderAudio(current: DmState, force = false) {
-  const box = $('audio'); if (!force && box.contains(document.activeElement)) return; box.replaceChildren(); const entries: [string, AudioState['music']][] = [['music', current.audio.music], ...Object.entries(current.audio.layers)];
   const musicTracks = campaign?.audio.library?.music ?? [];
+  const currentTrackId = current.audio.music.assetId ?? musicTracks[0]?.id;
+  const currentTrack = musicTracks.find(track => track.id === currentTrackId);
+  const sceneName = $('audioSceneName');
+  const sceneStatus = $('audioSceneStatus');
+  if (sceneName) sceneName.textContent = currentTrack?.label ?? 'Sin tema musical';
+  if (sceneStatus) {
+    const activeLayers = Object.values(current.audio.layers).filter(track => track.playing).length;
+    sceneStatus.textContent = `${current.audio.music.playing ? 'Música activa' : 'Música en pausa'} · ${activeLayers} ${activeLayers === 1 ? 'ambiente activo' : 'ambientes activos'}`;
+  }
+  const box = $('audio'); if (!force && box.contains(document.activeElement)) return; box.replaceChildren(); const entries: [string, AudioState['music']][] = [['music', current.audio.music], ...Object.entries(current.audio.layers)];
   if (musicTracks.length) {
     const label = document.createElement('label'), select = document.createElement('select'); label.textContent = 'Tema musical';
     for (const track of musicTracks) { const option = document.createElement('option'); option.value = track.id; option.textContent = track.label; option.selected = track.id === (current.audio.music.assetId ?? musicTracks[0]?.id); select.append(option); }
@@ -963,10 +1177,12 @@ function renderAudio(current: DmState, force = false) {
   for (const [id, track] of entries) {
     const row = document.createElement('div'); row.className = 'audio-row';
     const button = document.createElement('button'), label = document.createElement('label'), range = document.createElement('input'), amount = document.createElement('span');
-    const setPlaying = (playing: boolean) => { button.textContent = playing ? 'Pausar' : 'Iniciar'; button.setAttribute('aria-pressed', String(playing)); button.title = playing ? 'Pausar sonido' : 'Iniciar sonido'; };
+    button.className = 'audio-toggle';
+    const setPlaying = (playing: boolean) => { button.textContent = playing ? 'Ⅱ' : '▶'; button.setAttribute('aria-pressed', String(playing)); button.title = playing ? 'Pausar sonido' : 'Iniciar sonido'; button.setAttribute('aria-label', button.title); };
     setPlaying(track.playing); range.type = 'range'; range.min = '0'; range.max = '1'; range.step = '.05'; range.value = String(track.volume);
     const layerLabel = id === 'music' ? undefined : campaign?.audio.layerLabels?.[id as keyof NonNullable<typeof campaign>['audio']['layers']]; label.append(layerLabel ?? audioLabels[id] ?? id, range); amount.textContent = `${Math.round(track.volume * 100)}%`;
     button.onclick = () => { const next = button.getAttribute('aria-pressed') !== 'true'; setPlaying(next); command({ type: 'audio', channel: id, playing: next, volume: Number(range.value) }); };
+    range.oninput = () => { amount.textContent = `${Math.round(Number(range.value) * 100)}%`; };
     range.onchange = () => command({ type: 'audio', channel: id, playing: button.getAttribute('aria-pressed') === 'true', volume: Number(range.value) }); row.append(button, label, amount); box.append(row);
   }
 }
@@ -1001,11 +1217,27 @@ function renderSfx(current: DmState) {
 
 function renderRequests(current: DmState) {
   const box = $('requests'), pending = current.interactions.filter(request => request.status === 'pending'); box.replaceChildren();
-  if (!pending.length) { const empty = document.createElement('p'); empty.className = 'muted'; empty.textContent = 'No hay solicitudes.'; box.append(empty); return; }
-  for (const request of pending) { const row = document.createElement('div'); row.className = 'request'; const label = document.createElement('b'); label.textContent = request.characterLabel; row.append(label, document.createTextNode(' solicita interactuar.')); const actions = document.createElement('div'); actions.className = 'button-row'; const wheel = current.objects.find((object): object is Extract<DmObject, { kind: 'wheel' }> => object.id === request.targetId && object.kind === 'wheel'); for (const [text, result] of [['Supera · sujetado', 'caught'], ['Falla · cae', 'fallen']] as const) { const button = document.createElement('button'); button.textContent = text; button.disabled = !wheel; button.onclick = () => { if (wheel) startWheelDraft(wheel, result, request.id); }; actions.append(button); } const cancel = document.createElement('button'); cancel.textContent = 'Cancelar solicitud'; cancel.onclick = () => command({ type: 'resolveInteraction', requestId: request.id, result: 'cancelled' }); actions.append(cancel); row.append(actions); box.append(row); }
+  if (!pending.length) { box.append(emptyState('Sin solicitudes activas', 'Las interacciones de los jugadores aparecerán aquí.')); return; }
+  for (const request of pending) {
+    const row = document.createElement('article'), label = document.createElement('strong'), target = document.createElement('span'), age = document.createElement('small'); row.className = 'dm-request';
+    const object = current.objects.find(object => object.id === request.targetId);
+    label.textContent = request.characterLabel; target.textContent = `→ ${object?.label ?? 'Objeto de escena'}`;
+    age.textContent = relativeTime(new Date(request.createdAt).toISOString());
+    const actions = document.createElement('div'); actions.className = 'button-row';
+    const wheel = object?.kind === 'wheel' ? object : null;
+    const results = document.createElement('div'); results.className = 'button-row';
+    for (const [text, result] of [['Supera · sujeto', 'caught'], ['Falla · cae', 'fallen']] as const) {
+      const button = localButton(text, () => { if (wheel) { startWheelDraft(wheel, result, request.id); openWorkspaceWindow('mapWindow'); } });
+      button.disabled = !wheel; results.append(button);
+    }
+    const resolver = disclosure(`request:${request.id}`, 'Resolver · resultado del dado físico', results);
+    const cancel = localButton('Rechazar', () => { command({ type: 'resolveInteraction', requestId: request.id, result: 'cancelled' }); }); cancel.className = 'dm-ghost';
+    const view = localButton('Ver en mapa', () => { if (object) { world?.setCameraFocusCell(object.cell, object.surfaceId); selectObject(object.id); openWorkspaceWindow('mapWindow'); } }); view.disabled = !object;
+    actions.append(view, cancel); row.append(label, target, age, resolver, actions); box.append(row);
+  }
 }
 
-function humanCode(code: string) { return ({ DOOR_LOCKED: 'la puerta está bloqueada', BLOCKED_CELL: 'casilla bloqueada', OCCUPIED_CELL: 'hay una criatura en la casilla', GRID_STEP_REQUIRED: 'cada movimiento debe ser a una casilla ortogonal contigua', MOVEMENT_SPENT: 'ese turno ya ha gastado todo su movimiento', ENTITY_MOVING: 'ese personaje ya está terminando un paso', NOT_YOUR_TURN: 'no es el turno de esa criatura', ACTION_USED: 'esa criatura ya ha usado su acción este turno', INVALID_TARGET: 'ese objetivo no puede recibir el ataque', UNKNOWN_ACTION: 'esa acción no está disponible', SPAWN_RESERVED: 'zona de aparición reservada', STALE_OBJECTS: 'otro cambio se aplicó antes; vuelve a intentarlo', STALE_SCENE: 'la escena cambió', REQUEST_STALE: 'la solicitud ya no es válida', OBJECT_ATTACHED: 'el timón sigue montado', INVALID_TRANSITION: 'esa transición no está permitida', CAPABILITY_UNAVAILABLE: 'el objeto no admite esa acción', COMMAND_ID_REUSED: 'petición repetida con datos distintos', PARTY_STILL_ABOARD: 'saca primero a todos los personajes del pecio; no debe desaparecer con nadie dentro', CAMP_FEATURE_UNAVAILABLE: 'esta escena no contiene interacciones de campamento', CAMP_INTERACTION_OUT_OF_REACH: 'el personaje debe estar junto al punto de interacción', CAMP_INTERACTION_NOT_YOURS: 'ese objeto pertenece a otro personaje', IN_COMBAT: 'no puedes usar objetos del campamento durante el combate', REST_ACTIVE_ELSEWHERE: 'ya hay un descanso en curso en otro campamento', REST_ALREADY_ACTIVE: 'el descanso ya está preparado', REST_NOT_ACTIVE: 'no hay descanso activo', REST_INTERRUPTED: 'reanuda el descanso antes de avanzar', REST_ALREADY_INTERRUPTED: 'el descanso ya está interrumpido', REST_NOT_INTERRUPTED: 'no hay una interrupción que reanudar', REST_NOT_AT_DAWN: 'la confirmación solo está disponible al amanecer', REST_NEEDS_FINAL_CONFIRMATION: 'confirma el resultado del descanso', INVALID_CAMP_ACTION: 'acción de descanso no válida' } as Record<string, string>)[code] ?? code; }
+function humanCode(code: string) { return ({ MIMIC_ACTION_MISMATCH: 'el Reflejo debe imitar la última acción del original; si es imposible, resuelve la excepción con el DM', MIMIC_TARGET_REQUIRED: 'elige el personaje cuya forma copia el Reflejo', LINE_OF_EFFECT_BLOCKED: 'una pared o puerta cerrada bloquea el efecto', STORY_PREREQUISITES: 'faltan las pruebas previas o un motivo de excepción del DM', STORY_TIE_REASON: 'hay empate: indica por qué el DM elige ese final', RECHARGE_REQUIRED: 'esta acción necesita recargarse', INVENTORY_DEPLETED: 'no queda munición o una daga disponible', DOOR_LOCKED: 'la puerta está bloqueada', BLOCKED_CELL: 'casilla bloqueada', OCCUPIED_CELL: 'hay una criatura en la casilla', GRID_STEP_REQUIRED: 'cada movimiento debe ser a una casilla ortogonal contigua', MOVEMENT_SPENT: 'ese turno ya ha gastado todo su movimiento', ENTITY_MOVING: 'ese personaje ya está terminando un paso', NOT_YOUR_TURN: 'no es el turno de esa criatura', ACTION_USED: 'esa criatura ya ha usado su acción este turno', INVALID_TARGET: 'ese objetivo no puede recibir el ataque', UNKNOWN_ACTION: 'esa acción no está disponible', SPAWN_RESERVED: 'zona de aparición reservada', STALE_OBJECTS: 'otro cambio se aplicó antes; vuelve a intentarlo', STALE_SCENE: 'la escena cambió', REQUEST_STALE: 'la solicitud ya no es válida', OBJECT_ATTACHED: 'el timón sigue montado', INVALID_TRANSITION: 'esa transición no está permitida', CAPABILITY_UNAVAILABLE: 'el objeto no admite esa acción', COMMAND_ID_REUSED: 'petición repetida con datos distintos', PARTY_STILL_ABOARD: 'saca primero a todos los personajes del pecio; no debe desaparecer con nadie dentro', CAMP_FEATURE_UNAVAILABLE: 'esta escena no contiene interacciones de campamento', CAMP_INTERACTION_OUT_OF_REACH: 'el personaje debe estar junto al punto de interacción', CAMP_INTERACTION_NOT_YOURS: 'ese objeto pertenece a otro personaje', IN_COMBAT: 'no puedes usar objetos del campamento durante el combate', REST_ACTIVE_ELSEWHERE: 'ya hay un descanso en curso en otro campamento', REST_ALREADY_ACTIVE: 'el descanso ya está preparado', REST_NOT_ACTIVE: 'no hay descanso activo', REST_INTERRUPTED: 'reanuda el descanso antes de avanzar', REST_ALREADY_INTERRUPTED: 'el descanso ya está interrumpido', REST_NOT_INTERRUPTED: 'no hay una interrupción que reanudar', REST_NOT_AT_DAWN: 'la confirmación solo está disponible al amanecer', REST_NEEDS_FINAL_CONFIRMATION: 'confirma el resultado del descanso', INVALID_CAMP_ACTION: 'acción de descanso no válida' } as Record<string, string>)[code] ?? code; }
 
 function friendlyErrorCode(code: string) {
   const chapterMessages: Record<string, string> = {
@@ -1025,6 +1257,20 @@ function friendlyErrorCode(code: string) {
 
 function renderSave() {
   const status = $('saveStatus');
+  const presentation = savePresentation(saveStatus);
+  $('headerSave').textContent = `${presentation.alert ? '⚠' : presentation.tone === 'positive' ? '✓' : '◷'} ${presentation.title}`;
+  $('headerSave').className = `dm-chip dm-${presentation.tone}`;
+  $('saveSummaryTitle').textContent = `${presentation.alert ? '⚠' : presentation.tone === 'positive' ? '✓' : '◷'} ${presentation.title}`;
+  $('saveSummaryTime').textContent = saveStatus?.savedAt ? relativeTime(saveStatus.savedAt) : 'Todavía no hay una copia confirmada';
+  $('saveSummaryTime').title = saveStatus?.savedAt ? new Date(saveStatus.savedAt).toLocaleString() : '';
+  $('partida-y-copias').classList.toggle('has-error', presentation.alert);
+  $('saveSummary').setAttribute('role', presentation.alert ? 'alert' : 'status');
+  status.hidden = !presentation.alert;
+  if (presentation.alert && $('saveSummary').dataset.alert !== 'true') {
+    $('partida-y-copias').classList.remove('window-minimized'); updateMinimizeControl($('partida-y-copias'));
+    ($('saveCopies') as HTMLDetailsElement).open = true;
+  }
+  $('saveSummary').dataset.alert = String(presentation.alert);
   if (!saveStatus) { status.textContent = 'Comprobando guardado…'; return; }
   const last = saveStatus.savedAt ? new Date(saveStatus.savedAt).toLocaleString() : 'todavía no guardada';
   status.textContent = saveStatus.mode === 'recovery' || saveStatus.mode === 'incompatible'
@@ -1045,7 +1291,13 @@ async function renderSaveHistory() {
     if (!entries.length) { box.textContent = 'Aún no hay puntos de retorno.'; return; }
     for (const entry of entries) {
       const row = document.createElement('div'); row.className = 'object-row'; const label = document.createElement('span');
-      label.textContent = `${new Date(entry.savedAt).toLocaleString()} · ${entry.sceneId} · ${entry.combat ? `Combate · ronda ${entry.round}` : 'Exploración'}`;
+      const sceneTitle = campaign?.scenes.find(scene => scene.id === entry.sceneId)?.title ?? entry.sceneId;
+      const actorLabel = entry.currentId ? state?.characters.find(actor => actor.id === entry.currentId)?.label
+        ?? state?.npcs.find(actor => actor.id === entry.currentId)?.label
+        ?? (state?.creature?.id === entry.currentId ? state?.creature?.label : undefined)
+        ?? campaign?.scenes.flatMap(scene => scene.stageActors ?? []).find(actor => actor.id === entry.currentId)?.label
+        ?? entry.currentId : null;
+      label.textContent = `${new Date(entry.savedAt).toLocaleString()} · ${sceneTitle} · ${entry.combat ? `Combate · ronda ${entry.round}${actorLabel ? ` · turno de ${actorLabel}` : ' · iniciativa pendiente'}` : 'Exploración'}`;
       const load = document.createElement('button'); load.textContent = 'Cargar'; load.onclick = async () => { try { await confirmRestore(await privatePost(`/api/dm/save/history/${encodeURIComponent(entry.id)}/preview`, { runtimeEpoch })); } catch (error) { toast(`No disponible: ${error instanceof Error ? error.message : error}`); } };
       row.append(label, load); box.append(row);
     }
@@ -1060,7 +1312,8 @@ async function privatePost(route: string, body: unknown, raw = false) {
   return result;
 }
 async function confirmRestore(preview: { token: string; expectedStateRevision: number; summary: { campaignId: string; sceneId: string; savedAt: string; kind: string } }) {
-  const message = `Restaurar ${preview.summary.kind === 'new' ? 'una partida nueva' : 'esta copia'} de ${preview.summary.campaignId}, escena ${preview.summary.sceneId}, fecha ${new Date(preview.summary.savedAt).toLocaleString()}? Se perderán los cambios posteriores de la mesa; los jugadores volverán a elegir personaje y Deshacer empezará vacío.`;
+  const playerNotice = preview.summary.kind === 'new' ? 'los jugadores volverán a elegir personaje' : 'los jugadores conectados conservarán su personaje y se sincronizarán sin recargar';
+  const message = `Restaurar ${preview.summary.kind === 'new' ? 'una partida nueva' : 'esta copia'} de ${preview.summary.campaignId}, escena ${preview.summary.sceneId}, fecha ${new Date(preview.summary.savedAt).toLocaleString()}? Se perderán los cambios posteriores de la mesa; ${playerNotice}. Deshacer empezará vacío.`;
   if (!window.confirm(message)) return;
   try { const result = await privatePost('/api/dm/save/restore', { token: preview.token, expectedStateRevision: preview.expectedStateRevision, runtimeEpoch, requestId: commandId() }); toast(`Partida restaurada · copia ${result.generation}.`); }
   catch (error) { toast(`Restauración pendiente: ${error instanceof Error ? error.message : error}`); }
@@ -1102,7 +1355,7 @@ async function confirmRestore(preview: { token: string; expectedStateRevision: n
 };
 
 $('scene').onchange = () => {
-    selectedId = null; draft = null; draftAction = null;
+    selectedId = null; inspectedPickupId = null; draft = null; draftAction = null; setMapToolPanel(null);
     campInteractionMode = false; world?.setCampInteractionHighlights(false);
     const campPointDialog = $('campPointDialog') as HTMLDialogElement; if (campPointDialog.open) campPointDialog.close(); campPointSceneId = null;
     const sceneId = ($('scene') as HTMLSelectElement).value;
@@ -1130,7 +1383,32 @@ $('cameraReset').onclick = () => { const sceneId = state?.sceneId ?? latestSnaps
   else stopSharingCameraOrientation();
 };
 $('camera').onchange = $('focus').onchange = () => command({ type: 'camera', mode: ($('camera') as HTMLSelectElement).value, focusId: ($('focus') as HTMLSelectElement).value || null });
-$('storm').onclick = () => command({ type: 'environment', storm: !state?.environment.storm, intensity: Number(($('stormIntensity') as HTMLInputElement).value) });
+$('storm').onclick = () => command({ type: 'environment', storm: !state?.environment.storm, precipitation:state?.environment.storm?'none':'rain',intensity: Number(($('stormIntensity') as HTMLInputElement).value) });
+$('openWeather').onclick=()=>{setDrawerTab('ambience');setSideControlsOpen(true);};
+$('mapBoardToggle').onclick = () => setMapToolPanel(null);
+$('mapCameraToggle').onclick = () => setMapToolPanel(mapToolPanel === 'camera' ? null : 'camera');
+$('mapObjectsToggle').onclick = () => setMapToolPanel(mapToolPanel === 'objects' ? null : 'objects');
+$('mapObjectPicker').onchange = () => {
+  const value = ($('mapObjectPicker') as HTMLSelectElement).value;
+  if (value.startsWith('object:')) selectObject(value.slice(7));
+  else { selectObject(null); inspectedPickupId = value.startsWith('pickup:') ? value.slice(7) : null; if (state) renderObjects(state); }
+};
+for (const [attribute, id] of [['weather-time', 'weatherTime'], ['weather-kind', 'weatherKind']] as const) {
+  document.querySelectorAll<HTMLButtonElement>(`[data-${attribute}]`).forEach(button => button.onclick = () => {
+    const control = $(id) as HTMLSelectElement;
+    control.value = button.getAttribute(`data-${attribute}`)!;
+    control.dispatchEvent(new Event('change'));
+  });
+}
+$('weatherLevel').oninput = () => { $('weatherLevelValue').textContent = ['Suave', 'Media', 'Intensa'][Number(($('weatherLevel') as HTMLInputElement).value) - 1] ?? 'Media'; };
+$('weatherWind').oninput = () => { $('weatherWindValue').textContent = `${Math.round(Number(($('weatherWind') as HTMLInputElement).value) * 100)}%`; };
+for(const id of ['weatherTime','weatherKind','weatherLevel','weatherWind'])$(id).onchange=()=>{
+  // Send only the edited field: an earlier snapshot must not undo another
+  // control changed while the previous command was in flight.
+  const field={weatherTime:'timeOfDay',weatherKind:'precipitation',weatherLevel:'precipitationLevel',weatherWind:'windIntensity'}[id]!;
+  const value=($(id) as HTMLInputElement).value;
+  command({type:'environment',storm:id==='weatherKind'?false:Boolean(state?.environment.storm),[field]:id==='weatherLevel'||id==='weatherWind'?Number(value):value});
+};
   $('timeOfDayToggle').onclick = () => {
     if (!state) return;
     const isNight = (state.environment.timeOfDay ?? 'auto') === 'night' || (state.environment.timeOfDay ?? 'auto') === 'auto' && state.campRest?.sceneId === state.sceneId && state.campRest.phase === 'night';
@@ -1138,11 +1416,23 @@ $('storm').onclick = () => command({ type: 'environment', storm: !state?.environ
   };
 ($('stormIntensity') as HTMLInputElement).oninput = () => { $('stormIntensityValue').textContent = `${Math.round(Number(($('stormIntensity') as HTMLInputElement).value) * 100)}%`; };
 ($('stormIntensity') as HTMLInputElement).onchange = () => command({ type: 'environment', storm: Boolean(state?.environment.storm), intensity: Number(($('stormIntensity') as HTMLInputElement).value) });
-$('creature').onclick = () => { if (state?.creature) command({ type: 'creature', visible: !state.creature.visible }); };
+$('creature').onclick = () => {
+  if (!state?.creature) return;
+  const candidates = state.characters.filter(character => character.claimed && character.sceneId === state!.sceneId);
+  let sourceId = candidates[0]?.id;
+  if (!state.creature.visible && campaign?.campaignId === 'd8-night-private' && candidates.length > 1) {
+    const answer = prompt(`¿Quién afronta el espejo?\n${candidates.map((character, i) => `${i + 1}: ${character.label}`).join('\n')}`, '1');
+    if (answer === null) return;
+    sourceId = candidates[Number(answer) - 1]?.id;
+    if (!sourceId) return toast('Elige uno de los personajes presentes.');
+  }
+  command({ type: 'creature', visible: !state.creature.visible, ...(sourceId ? { sourceId } : {}) });
+};
 $('moveHarpy').onclick = () => { if (state?.creature) command({ type: 'entity:move', entityId: state.creature.id, cell: { col: Number(($('harpyCol') as HTMLInputElement).value), row: Number(($('harpyRow') as HTMLInputElement).value) } }); };
 function setSideControlsOpen(open: boolean, focus = true, persist = true) {
   const panel = $('sideControls'), toggle = $('sideControlToggle');
   panel.classList.toggle('open', open); panel.setAttribute('aria-hidden', String(!open)); toggle.setAttribute('aria-expanded', String(open));
+  panel.inert = !open;
   if (persist) updateDmUiPreferences('sideControlsOpen', open);
   if (focus && open) requestAnimationFrame(() => ($('sideControlClose') as HTMLButtonElement).focus());
   else if (focus) toggle.focus();
@@ -1216,8 +1506,29 @@ function showCombatExit(cancel = false) {
   dialog.showModal();
 }
 
+function showCombatWithdrawal(entityId: string, label: string) {
+  if (!state?.combat.active || state.combat.prompt || !state.combat.participants.some(actor => actor.id === entityId)) return;
+  const dialog = $('combatExitDialog') as HTMLDialogElement;
+  $('combatExitTitle').textContent = `Retirada de ${label}`;
+  $('combatExitNote').textContent = 'Confirma que ya está fuera del enfrentamiento. Si sigue amenazado o perseguido, debe continuar en iniciativa. No se mueve ni se cura la ficha, ni se recuperan recursos.';
+  $('confirmCombatExit').onclick = () => { dialog.close(); command({ type: 'combat:withdraw', entityId }); };
+  if (!dialog.open) dialog.showModal();
+}
+
+const initiativeDrafts = new Map<string, string>();
+let initiativeDraftEpoch = '';
+let inspectedTurnId: string | null = null;
+const combatConditionIcons: Record<string, string> = { envenenada: '☠', apresada: '⛓', agarrada: '✊', derribada: '↧', asustada: '!', hechizada: '♡', paralizada: '❄', inconsciente: '☾', oculta: '◌', invisible: '◈', restringida: '⊠' };
 function renderCombat(current: DmState) {
   const box = $('combat'), combat = current.combat;
+  preserveDisclosures(box, `combat:${current.runtimeEpoch}:${current.sceneEpoch}`);
+  // Follow the turn unless the DM explicitly inspected another participant.
+  if (combat.currentId !== inspectedTurnId) {
+    if (!selectedCombatantId || selectedCombatantId === inspectedTurnId) selectedCombatantId = combat.currentId;
+    inspectedTurnId = combat.currentId;
+  }
+  const epoch = `${current.runtimeEpoch}:${current.sceneEpoch}:${combat.initiativePending}`;
+  if (initiativeDraftEpoch !== epoch) { initiativeDrafts.clear(); initiativeDraftEpoch = epoch; }
   const renderKey = JSON.stringify([combat, current.sceneId, selectedCombatantId, dmCombatActionCategory, armedDmCombatPoint?.actorId, armedDmCombatPoint?.action.id, current.characters.map(character => [character.id, character.claimed, character.sceneId, character.hp]), current.creature?.visible, current.creature?.hp, current.npcs.map(npc => [npc.id, npc.visible, npc.combatEnabled, npc.hp])]);
   if (box.dataset.renderKey === renderKey && box.childElementCount) return;
   box.dataset.renderKey = renderKey; box.replaceChildren();
@@ -1227,28 +1538,35 @@ function renderCombat(current: DmState) {
     const hasOpponent = Boolean(current.creature?.visible && current.creature.hp > 0) || current.npcs.some(npc => npc.visible && npc.combatEnabled && npc.hp > 0);
     const start = document.createElement('button'); start.className = 'primary'; start.textContent = 'Iniciar combate'; start.disabled = !hasOpponent || !current.characters.some(character => character.claimed); start.onclick = () => command({ type: 'combat:start' });
     const note = document.createElement('p'); note.className = 'note'; note.textContent = start.disabled ? 'Revela un oponente y asegúrate de que haya al menos un personaje conectado en esta escena.' : 'Declara quién participa en el encuentro. Cada implicado tira iniciativa; el DM registra los PNJ, decide los empates y confirma el orden. Si alguien es sorprendido, tira iniciativa con desventaja (2024).';
-    box.append(start, note); return;
+    box.append(emptyState('Sin combate activo', start.disabled ? 'Prepara un oponente y un personaje asignado.' : 'Participantes listos. El DM decide cuándo empezar.'), start, disclosure('combat:start-help', 'Iniciativa y criterios del DM', note));
+    if (combat.lastEvent?.kind === 'defeat') { const outcome = document.createElement('p'); outcome.className = 'combat-last-event'; outcome.textContent = combat.lastEvent.text; box.append(outcome); }
+    return;
   }
   if (combat.initiativePending) {
     const header = document.createElement('header'), title = document.createElement('div'), heading = document.createElement('h2'), note = document.createElement('p'), end = document.createElement('button');
-    heading.textContent = 'Iniciativa'; note.className = 'combat-turn'; note.textContent = 'Cada participante tira físicamente 1d20 + su modificador e introduce el total. El programa no tira dados.'; title.append(heading, note);
-    end.textContent = 'Cancelar preparación'; end.onclick = () => showCombatExit(true); header.className = 'combat-deck-header'; header.append(title, end); box.append(header);
-    const roster = document.createElement('div'); roster.className = 'combat-roster';
+    heading.textContent = 'Iniciativa'; note.className = 'note'; note.textContent = 'Cada participante tira físicamente 1d20 + su modificador e introduce el total. El DM resuelve los empates. El programa no tira dados.';
+    const help = document.createElement('details'), helpTitle = document.createElement('summary'); helpTitle.textContent = 'Dados físicos · cómo registrar'; help.append(helpTitle, note); title.append(heading, help);
+    end.textContent = 'Cancelar'; end.onclick = () => showCombatExit(true); header.className = 'combat-deck-header'; header.append(title, end); box.append(header);
+    const roster = document.createElement('div'); roster.className = 'combat-roster initiative-entry-list';
     for (const participant of combat.participants) {
       const card = document.createElement('article'), name = document.createElement('div'), identity = document.createElement('div'), label = document.createElement('b'), status = document.createElement('p'), input = document.createElement('input'), save = document.createElement('button');
       card.className = 'combat-card initiative-card'; name.className = 'combat-card-init-name'; label.textContent = participant.label; identity.className = 'combat-card-identity'; identity.append(label); name.append(combatantPortrait(current, participant), identity);
-      status.className = 'combat-card-meta'; status.textContent = participant.initiativeSubmitted ? `Registrada: ${participant.initiative}` : participant.controller === 'player' ? 'Pendiente del jugador (puede introducirla también el DM)' : 'Pendiente del DM';
-      input.type = 'number'; input.min = '-20'; input.max = '40'; input.placeholder = 'Total'; input.value = participant.initiativeSubmitted ? String(participant.initiative) : '';
-      save.textContent = participant.initiativeSubmitted ? 'Corregir' : 'Registrar';
-      const submit = () => { if (!input.value.trim()) return toast('Introduce el resultado de los dados.'); const total = Number(input.value); if (!Number.isInteger(total) || total < -20 || total > 40) return toast('Introduce un total entero entre -20 y 40.'); command({ type: 'combat:initiative', entries: [{ id: participant.id, initiative: total }] }); };
+      status.className = 'combat-card-meta'; status.textContent = participant.initiativeSubmitted ? `✓ Registrada · ${participant.initiative}` : participant.controller === 'player' ? 'Jugador · pendiente' : 'DM · pendiente'; identity.append(status);
+      input.type = 'number'; input.min = '-20'; input.max = '40'; input.placeholder = 'Total'; input.setAttribute('aria-label', `Iniciativa de ${participant.label}`); input.value = initiativeDrafts.get(participant.id) ?? (participant.initiativeSubmitted ? String(participant.initiative) : '');
+      input.oninput = () => initiativeDrafts.set(participant.id, input.value);
+      input.inputMode = 'numeric'; save.textContent = '✓'; save.title = `${participant.initiativeSubmitted ? 'Corregir' : 'Registrar'} iniciativa de ${participant.label}`; save.setAttribute('aria-label', save.title);
+      const submit = () => { if (!input.value.trim()) return toast('Introduce el resultado de los dados.'); const total = Number(input.value); if (!Number.isInteger(total) || total < -20 || total > 40) return toast('Introduce un total entero entre -20 y 40.'); initiativeDrafts.delete(participant.id); command({ type: 'combat:initiative', entries: [{ id: participant.id, initiative: total }] }); };
       save.onclick = submit; input.onkeydown = event => { if (event.key === 'Enter') submit(); };
-      card.append(name, status, input, save); roster.append(card);
+      card.append(name, input, save); roster.append(card);
     }
     box.append(roster);
     const allSubmitted = combat.participants.every(participant => participant.initiativeSubmitted);
-    if (!allSubmitted) return;
+    if (!allSubmitted) {
+      const footer = document.createElement('footer'), waiting = document.createElement('span'), confirm = document.createElement('button'); footer.className = 'initiative-confirm';
+      waiting.textContent = `${combat.participants.filter(participant => !participant.initiativeSubmitted).length} tiradas pendientes`; confirm.textContent = 'Empezar'; confirm.className = 'primary'; confirm.disabled = true; footer.append(waiting, confirm); box.append(footer); return;
+    }
     const orderPanel = document.createElement('section'), orderTitle = document.createElement('h3'), orderNote = document.createElement('p');
-    orderPanel.className = 'combat-panel'; orderTitle.textContent = 'Orden de turnos'; orderNote.className = 'note'; orderNote.textContent = 'El orden se calcula con los totales anotados. Si hay empate, el DM decide entre los empatados antes de confirmarlo.'; orderPanel.append(orderTitle, orderNote);
+    orderPanel.className = 'combat-panel initiative-order'; orderTitle.textContent = 'Orden de turnos'; orderNote.className = 'note'; orderNote.textContent = 'De mayor a menor. Las flechas solo ajustan empates.'; orderPanel.append(orderTitle, orderNote);
     const orderedIds = combat.order.map(item => item.id);
     for (let index = 0; index < orderedIds.length; index++) {
       const id = orderedIds[index]!, participant = combat.participants.find(item => item.id === id)!;
@@ -1258,46 +1576,62 @@ function renderCombat(current: DmState) {
       const following = index < orderedIds.length - 1 ? combat.participants.find(item => item.id === orderedIds[index + 1]) : undefined;
       up.textContent = '↑'; down.textContent = '↓'; up.title = 'Subir dentro de un empate'; down.title = 'Bajar dentro de un empate'; up.disabled = !previous || previous.initiative !== participant.initiative; down.disabled = !following || following.initiative !== participant.initiative;
       const move = (delta: -1 | 1) => { const next = [...orderedIds], other = index + delta; [next[index], next[other]] = [next[other]!, next[index]!]; command({ type: 'combat:initiativeOrder', order: next, confirm: false }); };
-      up.onclick = () => move(-1); down.onclick = () => move(1); row.append(label, up, down); orderPanel.append(row);
+      up.onclick = () => move(-1); down.onclick = () => move(1); row.className = 'initiative-order-row'; row.append(label); if (previous?.initiative === participant.initiative || following?.initiative === participant.initiative) row.append(up, down); orderPanel.append(row);
     }
-    const confirm = document.createElement('button'); confirm.className = 'primary'; confirm.textContent = 'Confirmar orden y empezar'; confirm.onclick = () => command({ type: 'combat:initiativeOrder', order: orderedIds, confirm: true }); orderPanel.append(confirm); box.append(orderPanel); return;
+    const footer = document.createElement('footer'), confirm = document.createElement('button'); footer.className = 'initiative-confirm'; confirm.className = 'primary'; confirm.textContent = 'Confirmar y empezar'; confirm.onclick = () => command({ type: 'combat:initiativeOrder', order: orderedIds, confirm: true }); footer.append(confirm); box.append(orderPanel, footer); return;
   }
   const active = combat.participants.find(participant => participant.id === combat.currentId), header = document.createElement('header'), title = document.createElement('div'), heading = document.createElement('h2'), turn = document.createElement('p'), controls = document.createElement('div');
   const activeIncapacitated = Boolean(active?.conditions.some(condition => condition === 'paralizada' || condition === 'inconsciente'));
   heading.textContent = `Ronda ${combat.round}`; turn.className = 'combat-turn'; turn.textContent = `Turno de ${active?.label ?? '—'}${activeIncapacitated ? ' · incapacitada' : combat.movement ? ` · ${(combat.movement.remainingSquares * 1.5).toFixed(1)} m disponibles` : ''}`; title.append(heading, turn);
-  const next = document.createElement('button'); next.className = 'primary'; next.textContent = '⌛ Pasar turno'; next.disabled = Boolean(combat.prompt); next.onclick = () => command({ type: 'combat:endTurn' });
-  const end = document.createElement('button'); end.textContent = 'Finalizar combate'; end.disabled = Boolean(combat.prompt); end.title = combat.prompt ? 'Resuelve la acción pendiente antes de finalizar.' : 'El DM confirma el fin de las hostilidades.'; end.onclick = () => showCombatExit();
-  const overview = document.createElement('button'); overview.textContent = world?.combatOverview ? '◎ Ver combate' : '▧ Mapa completo'; overview.setAttribute('aria-pressed', String(Boolean(world?.combatOverview))); overview.onclick = () => { world?.setCombatOverview(!world.combatOverview); delete box.dataset.renderKey; renderCombat(current); };
-  controls.className = 'button-row'; controls.append(overview, next, end); header.className = 'combat-deck-header'; header.append(title, controls); box.append(header);
-  const roster = document.createElement('div'); roster.className = 'combat-roster';
+  const next = document.createElement('button'); next.className = 'primary'; next.textContent = 'Siguiente →'; next.disabled = Boolean(combat.prompt); next.onclick = () => command({ type: 'combat:endTurn' });
+  const end = document.createElement('button'); end.className = 'danger'; end.textContent = 'Finalizar combate'; end.disabled = Boolean(combat.prompt); end.title = combat.prompt ? 'Resuelve la acción pendiente antes de finalizar.' : 'El DM confirma el fin de las hostilidades.'; end.onclick = () => showCombatExit();
+  const overview = document.createElement('button'); overview.textContent = '⌖'; overview.title = world?.combatOverview ? 'Ver combate' : 'Mapa completo'; overview.setAttribute('aria-label', overview.title); overview.setAttribute('aria-pressed', String(Boolean(world?.combatOverview))); overview.onclick = () => { world?.setCombatOverview(!world.combatOverview); delete box.dataset.renderKey; renderCombat(current); };
+  const management = document.createElement('details'), managementTitle = document.createElement('summary'); management.className = 'combat-management'; managementTitle.textContent = '⋯'; managementTitle.setAttribute('aria-label', 'Gestionar combate'); management.append(managementTitle, end);
+  controls.className = 'button-row'; controls.append(overview, next, management); header.className = 'combat-deck-header'; header.append(title, controls); box.append(header);
+  const roster = document.createElement('div'); roster.className = 'combat-roster combat-participant-strip'; roster.setAttribute('aria-label', 'Orden de turnos · selecciona un combatiente');
   const orderedParticipants = combat.order.flatMap(entry => combat.participants.filter(participant => participant.id === entry.id));
   for (const participant of orderedParticipants) {
-    const card = document.createElement('article'); card.className = `combat-card${participant.id === combat.currentId ? ' current' : ''}`;
-    const name = document.createElement('button'), identity = document.createElement('span'), nameLabel = document.createElement('span'), sheetLabel = document.createElement('small'); name.className = 'combat-card-name'; nameLabel.textContent = `${participant.id === combat.currentId ? '✦ ' : ''}${participant.label}`; sheetLabel.textContent = 'Ver ficha'; identity.className = 'combat-card-identity'; identity.append(nameLabel, sheetLabel); name.append(combatantPortrait(current, participant), identity); name.onclick = () => openCombatSheet(current, participant);
-    const meta = document.createElement('p'); meta.className = 'combat-card-meta'; meta.textContent = `#${orderedParticipants.indexOf(participant) + 1} · Iniciativa ${participant.initiative} · PG ${participant.hp}/${participant.maxHp} · CA ${participant.armorClass}`;
+    const card = document.createElement('button'), name = document.createElement('span'), ordinal = document.createElement('small');
+    card.type = 'button'; card.className = `combat-participant${participant.id === combat.currentId ? ' current' : ''}`;
+    card.setAttribute('aria-pressed', String(participant.id === (selectedCombatantId ?? combat.currentId)));
+    card.setAttribute('aria-label', `Seleccionar ${participant.label}, PG ${participant.hp}/${participant.maxHp}${participant.id === combat.currentId ? ', en turno' : ''}`);
+    ordinal.textContent = String(orderedParticipants.indexOf(participant) + 1); name.textContent = participant.label;
     const bar = document.createElement('div'), fill = document.createElement('i'); bar.className = 'combat-card-hp'; fill.style.width = `${Math.max(0, Math.min(100, participant.hp / Math.max(1, participant.maxHp) * 100))}%`; bar.append(fill);
-    const conditions = document.createElement('div'); conditions.className = 'condition-pills'; conditions.replaceChildren(...(participant.conditions.length ? participant.conditions : ['sin condiciones']).map(condition => { const pill = document.createElement('span'); pill.className = 'condition-pill'; pill.textContent = condition; return pill; }));
-    const control = document.createElement('button'); control.className = 'combat-card-control'; control.textContent = participant.id === selectedCombatantId ? 'Controlando' : 'Seleccionar';
-    control.onclick = () => { selectedCombatantId = participant.id; renderCombat(current); };
-    card.append(name, meta, bar, conditions, control); roster.append(card);
+    card.append(ordinal, combatantPortrait(current, participant), name, bar);
+    card.onclick = () => { selectedCombatantId = participant.id; renderCombat(current); }; roster.append(card);
   }
   box.append(roster);
   const panel = document.createElement('section'); panel.className = 'combat-panel';
   if (!active) { panel.textContent = 'Esperando al siguiente combatiente.'; box.append(panel); return; }
   const selected = combat.participants.find(participant => participant.id === selectedCombatantId) ?? active;
-  const panelTitle = document.createElement('h3'); panelTitle.textContent = selected.id === active.id ? `Control de ${selected.label}` : `Consulta DM · ${selected.label}`; panel.append(panelTitle);
+  const panelTitle = document.createElement('button'), panelIdentity = document.createElement('span'), panelName = document.createElement('strong'), panelHint = document.createElement('small'); panelTitle.type = 'button'; panelTitle.className = 'combat-inspector-name'; panelName.textContent = selected.label; panelHint.textContent = `${selected.id === active.id ? 'En turno' : 'Consulta'} · abrir ficha`; panelIdentity.append(panelName, panelHint); panelTitle.append(combatantPortrait(current, selected), panelIdentity); panelTitle.onclick = () => openCombatSheet(current, selected); panel.append(panelTitle);
   const grid = document.createElement('div'); grid.className = 'combat-panel-grid'; const summary = document.createElement('div'), actions = document.createElement('div');
   const incapacitated = selected.conditions.some(condition => condition === 'paralizada' || condition === 'inconsciente');
-  const stats = document.createElement('div'); stats.className = 'combat-stat-row'; for (const [label, value] of [['PG', `${selected.hp}/${selected.maxHp}`], ['CA', String(selected.armorClass)], ['Velocidad', `${selected.speedMeters} m`]]) { const stat = document.createElement('div'), caption = document.createElement('b'), text = document.createElement('span'); stat.className = 'combat-stat'; caption.textContent = label ?? ''; text.textContent = value ?? ''; stat.append(caption, text); stats.append(stat); }
+  const stats = document.createElement('div'); stats.className = 'combat-stat-row';
+  const hpLabel = document.createElement('label'), hpInput = document.createElement('input'), hpMaximum = document.createElement('span'); hpLabel.className = 'combat-hp-editor'; hpLabel.append('PG '); hpInput.type = 'number'; hpInput.inputMode = 'numeric'; hpInput.min = '0'; hpInput.max = String(selected.maxHp); hpInput.value = String(selected.hp); hpInput.setAttribute('aria-label', `Puntos de golpe de ${selected.label}`); hpMaximum.textContent = `/ ${selected.maxHp}`;
+  hpInput.onchange = () => { const hp = Number(hpInput.value); if (!hpInput.value.trim() || !Number.isInteger(hp) || hp < 0 || hp > selected.maxHp) { hpInput.value = String(selected.hp); toast('Introduce PG entre 0 y el máximo.'); return; } command(selected.kind === 'player' ? { type: 'hp', characterId: selected.id, hp } : { type: 'entity:hp', entityId: selected.id, hp }); };
+  hpLabel.append(hpInput, hpMaximum); stats.append(hpLabel);
+  for (const value of [`CA ${selected.armorClass}`, `${selected.speedMeters} m`]) { const stat = document.createElement('span'); stat.className = 'combat-stat-chip'; stat.textContent = value; stats.append(stat); }
   summary.append(stats);
   const economy = document.createElement('div'); economy.className = 'dm-turn-resources'; economy.setAttribute('aria-label', `Recursos de ${selected.label}`);
   for (const indicator of combatTurnIndicators({ pending: combat.initiativePending, incapacitated, isTurn: selected.id === combat.currentId, remainingSquares: combat.movement?.remainingSquares, maximumSquares: combat.movement?.maximumSquares, actionUsed: Boolean(combat.actionUsed[selected.id]), bonusActionUsed: Boolean(combat.bonusActionUsed[selected.id]), reactionUsed: Boolean(combat.reactionUsed[selected.id]), hasBonus: selected.attacks.some(action => action.actionCost === 'bonus') })) {
     const item = document.createElement('span'); item.className = indicator.ready ? 'ready' : ''; item.textContent = `${indicator.label}: ${indicator.value}`; economy.append(item);
   }
   summary.append(economy);
-  const withdraw = document.createElement('button'); withdraw.textContent = '↪ Confirmar retirada de este combatiente'; withdraw.disabled = Boolean(combat.prompt); withdraw.title = 'Úsalo cuando haya escapado, se haya rendido o ya no participe. No mueve ni cura la ficha.';
-  withdraw.onclick = () => { if (window.confirm(`¿${selected.label} ya está fuera del enfrentamiento? Si sigue amenazado o perseguido, debe continuar en iniciativa.`)) command({ type: 'combat:withdraw', entityId: selected.id }); }; summary.append(withdraw);
-  const event = document.createElement('p'); event.className = 'combat-last-event'; event.textContent = combat.lastEvent?.text ?? ''; summary.append(event);
+  if (selected.conditions.length || combat.concentration[selected.id]) {
+    const states = document.createElement('button'); states.type = 'button'; states.className = 'combat-state-summary'; states.textContent = [selected.conditions.map(condition => combatConditionIcons[condition] ?? '◈').join(' '), combat.concentration[selected.id] ? '✦ Concentración' : ''].filter(Boolean).join(' · '); states.title = [...selected.conditions, ...(combat.concentration[selected.id] ? [combat.concentration[selected.id]!.label] : [])].join(', '); states.setAttribute('aria-label', `Gestionar estados: ${states.title}`); states.onclick = () => { dmCombatActionCategory = 'dm'; renderCombat(current); }; summary.append(states);
+  }
+  if (current.mimicInstruction?.entityId === selected.id) {
+    const instruction = document.createElement('p'); instruction.className = 'note'; instruction.textContent = `Imita a ${combat.participants.find(actor => actor.id === current.mimicInstruction!.sourceId)?.label ?? current.mimicInstruction.sourceId}: ${current.mimicInstruction.label}`;
+    summary.append(instruction);
+    const exception = document.createElement('button'); exception.textContent = 'Resolver imitación imposible con el DM';
+    exception.disabled = selected.id !== combat.currentId || Boolean(combat.prompt) || Boolean(combat.actionUsed[selected.id]);
+    exception.onclick = () => { if (confirm('Usar la acción del Reflejo para una excepción narrada por el DM (sin daño ni efectos automáticos). Gestiona cualquier consecuencia desde la ficha.')) command({ type: 'combat:basic', attackerId: selected.id, action: 'magic' }); };
+    summary.append(exception);
+  }
+  const withdraw = document.createElement('button'); withdraw.textContent = `Retirar a ${selected.label}`; withdraw.disabled = Boolean(combat.prompt); withdraw.title = 'Úsalo cuando haya escapado, se haya rendido o ya no participe. No mueve ni cura la ficha.';
+  withdraw.onclick = () => showCombatWithdrawal(selected.id, selected.label); management.append(withdraw);
+  if (combat.lastEvent?.text) { const history = document.createElement('details'), historyTitle = document.createElement('summary'), event = document.createElement('p'); history.className = 'combat-event-disclosure'; historyTitle.textContent = 'Último suceso'; event.className = 'combat-last-event'; event.textContent = combat.lastEvent.text; history.append(historyTitle, event); summary.append(history); }
   const canControl = selected.active && selected.id === active.id;
   const enemies = combat.participants.filter(item => item.id !== selected.id && item.active && item.controller !== selected.controller);
   const target = document.createElement('select'); target.className = 'dm-combat-target'; target.setAttribute('aria-label', `Objetivo de ${selected.label}`);
@@ -1327,8 +1661,10 @@ function renderCombat(current: DmState) {
   for (const action of selected.attacks) counts.set(categoryFor(action), (counts.get(categoryFor(action)) ?? 0) + 1);
   for (const action of basicActions) counts.set(action.category, (counts.get(action.category) ?? 0) + 1);
   counts.set('dm', (counts.get('dm') ?? 0) + 1 + Number(selected.conditions.some(condition => condition === 'apresada' || condition === 'restringida')));
+  if (!counts.get(dmCombatActionCategory)) dmCombatActionCategory = categories.find(category => counts.get(category.id))?.id ?? 'dm';
   const tabs = document.createElement('div'); tabs.className = 'dm-combat-tabs'; tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', `Acciones de ${selected.label}`);
   for (const category of categories) {
+    if (!counts.get(category.id)) continue;
     const tab = document.createElement('button'), icon = document.createElement('i'), label = document.createElement('span'), count = document.createElement('small');
     tab.type = 'button'; tab.className = 'dm-combat-tab'; tab.setAttribute('role', 'tab'); tab.setAttribute('aria-selected', String(dmCombatActionCategory === category.id)); tab.setAttribute('aria-label', `${category.label}, ${counts.get(category.id) ?? 0} acciones`); tab.title = category.label;
     icon.setAttribute('aria-hidden', 'true'); icon.textContent = category.icon; label.textContent = category.label; count.textContent = String(counts.get(category.id) ?? 0); tab.append(icon, label, count);
@@ -1342,11 +1678,12 @@ function renderCombat(current: DmState) {
   status.textContent = incapacitated ? 'Incapacitada · sin movimiento, acciones ni reacciones' : selected.id !== active.id ? 'Fuera de su turno · sólo reacciones con desencadenante válido' : 'Turno propio · consulta los recursos disponibles en el panel';
   actions.append(status);
   if (armedDmCombatPoint?.actorId === selected.id) {
-    const choice = armedDmCombatPoint, selection = document.createElement('div'), note = document.createElement('p'), cancel = document.createElement('button');
-    const updateNote = () => { note.textContent = `${choice.action.label}. ${combatActionDescription(choice.action, enemies.find(enemy => enemy.id === target.value)?.armorClass)} Alcance marcado: elige ${choice.action.targeting === 'point' ? 'una casilla' : 'una ficha'} en el mapa. Escape cancela sin gastar recursos.`; };
+    const choice = armedDmCombatPoint, selection = document.createElement('div'), note = document.createElement('p'), cancel = document.createElement('button'), rules = document.createElement('details'), rulesTitle = document.createElement('summary'), rulesText = document.createElement('p');
+    rulesTitle.textContent = 'Reglas de la acción'; rules.append(rulesTitle, rulesText);
+    const updateNote = () => { note.textContent = `${choice.action.label.split(' · ')[0]} · elige ${choice.action.targeting === 'point' ? 'una casilla' : 'una ficha'} en el mapa.`; rulesText.textContent = `${combatActionDescription(choice.action, enemies.find(enemy => enemy.id === target.value)?.armorClass)} Escape cancela sin gastar recursos.`; };
     updateNote(); target.onchange = updateNote;
     cancel.textContent = 'Cancelar selección'; cancel.onclick = () => { armedDmCombatPoint = null; world?.clearAttackRange(); renderCombat(current); };
-    selection.className = 'combat-prompt'; selection.append(note, cancel);
+    selection.className = 'combat-prompt'; selection.append(note, rules, cancel);
     if (choice.action.targeting !== 'point') {
       const confirm = document.createElement('button'); confirm.textContent = 'Declarar sobre el objetivo elegido'; confirm.disabled = !enemies.length || Boolean(combat.prompt);
       confirm.onclick = () => { command({ type: 'combat:declare', attackerId: selected.id, targetId: target.value, actionId: choice.action.id, useSneakAttack: true }); armedDmCombatPoint = null; world?.clearAttackRange(); renderCombat(current); };
@@ -1360,24 +1697,35 @@ function renderCombat(current: DmState) {
     const actionList = document.createElement('div'); actionList.className = 'combat-action-list';
     const appendAttack = (action: CombatAction) => {
       const button = document.createElement('button'), costUsed = action.actionCost === 'reaction' ? combat.reactionUsed[selected.id] : action.actionCost === 'bonus' ? combat.bonusActionUsed[selected.id] : combat.actionUsed[selected.id];
-      const detail = combatActionDescription(action, enemies.find(enemy => enemy.id === target.value)?.armorClass);
-      button.type = 'button'; button.textContent = action.label; button.title = detail; button.setAttribute('aria-label', `${action.label}. ${detail}`);
+      const sequence = combat.sequences?.[selected.id];
+      const detail = combatActionDescription(action, enemies.find(enemy => enemy.id === target.value)?.armorClass, sequence?.actionId === action.id ? sequence.remaining : undefined);
+      button.type = 'button'; button.textContent = `${action.magical ? '✦' : action.range?.kind === 'ranged' ? '➶' : '⚔'} ${action.label.split(' · ')[0]}`; button.title = detail; button.setAttribute('aria-label', `${action.label}. ${detail}`);
       const continuing = combat.sequences?.[selected.id]?.actionId === action.id;
       button.disabled = incapacitated || action.targeting !== 'point' && !enemies.length || Boolean(combat.prompt) || !continuing && (Boolean(costUsed) || Boolean(action.recharge && combat.recharge[selected.id]?.[action.id] === false));
       button.onclick = () => {
         armedDmCombatPoint = { actorId: selected.id, action }; world?.showAttackRange(selected.id, action.range?.normalMeters ?? 0, action.range?.longMeters); renderCombat(current);
       }; actionList.append(button);
+      if (action.recharge && combat.recharge[selected.id]?.[action.id] === false) {
+        const recharge = document.createElement('button'); recharge.type = 'button'; recharge.textContent = 'Recarga · tirar 1d6';
+        recharge.disabled = selected.id !== combat.currentId || Boolean(combat.prompt) || Boolean(combat.actionUsed[selected.id]);
+        recharge.onclick = () => { const answer = prompt('D6 físico de recarga (1–6). Solo un intento por turno:'); if (answer === null) return; const d6 = Number(answer); if (Number.isInteger(d6) && d6 >= 1 && d6 <= 6) command({ type: 'combat:recharge', attackerId: selected.id, actionId: action.id, d6 }); };
+        actionList.append(recharge);
+      }
     };
     const appendBasic = (action: BasicCombatAction, label: string) => {
-      const button = document.createElement('button'); button.type = 'button'; button.textContent = label; button.title = actionTips[action]; button.disabled = incapacitated || Boolean(combat.prompt) || Boolean(combat.actionUsed[selected.id]) || action === 'help' && !enemies.length;
+      const button = document.createElement('button'); button.type = 'button'; button.textContent = label; button.title = actionTips[action]; button.disabled = !canControl || incapacitated || Boolean(combat.prompt) || Boolean(combat.actionUsed[selected.id]) || action === 'help' && !enemies.length;
       button.onclick = () => command({ type: 'combat:basic', attackerId: selected.id, action, ...(action === 'help' ? { targetId: target.value } : {}) }); actionList.append(button);
     };
     if (dmCombatActionCategory === 'dm') {
       const controls = document.createElement('div'); controls.className = 'dm-combat-dm-controls';
       const sheet = document.createElement('button'); sheet.textContent = 'Ver ficha del combatiente'; sheet.onclick = () => openCombatSheet(current, selected); controls.append(sheet);
+      if (combat.concentration[selected.id]) {
+        const end = document.createElement('button'); end.textContent = 'Terminar concentración';
+        end.onclick = () => command({ type: 'combat:endConcentration', entityId: selected.id }); controls.append(end);
+      }
       const conditionRow = document.createElement('div'); conditionRow.className = 'dm-combat-conditions'; conditionRow.setAttribute('aria-label', 'Condiciones del combatiente');
       for (const condition of ['envenenada', 'apresada', 'agarrada', 'derribada', 'asustada', 'hechizada', 'paralizada', 'inconsciente', 'oculta', 'invisible', 'restringida'] as const) {
-        const button = document.createElement('button'), enabled = selected.conditions.includes(condition); button.type = 'button'; button.className = 'condition-pill'; button.textContent = enabled ? `✓ ${condition}` : condition; button.setAttribute('aria-pressed', String(enabled)); button.onclick = () => command({ type: 'combat:condition', entityId: selected.id, condition, active: !enabled }); conditionRow.append(button);
+        const button = document.createElement('button'), enabled = selected.conditions.includes(condition); button.type = 'button'; button.className = 'condition-pill'; button.textContent = combatConditionIcons[condition] ?? '◈'; button.title = `${enabled ? 'Quitar' : 'Añadir'} ${condition}`; button.setAttribute('aria-label', button.title); button.setAttribute('aria-pressed', String(enabled)); button.onclick = () => command({ type: 'combat:condition', entityId: selected.id, condition, active: !enabled }); conditionRow.append(button);
       }
       controls.append(conditionRow);
       const useObject = document.createElement('button'); useObject.textContent = 'Utilizar objeto'; useObject.title = actionTips['use-object']; useObject.disabled = !canControl || incapacitated || Boolean(combat.prompt) || Boolean(combat.actionUsed[selected.id]); useObject.onclick = () => command({ type: 'combat:basic', attackerId: selected.id, action: 'use-object' }); controls.append(useObject);
@@ -1395,14 +1743,15 @@ function renderCombat(current: DmState) {
   }
   grid.append(summary, actions); panel.append(grid);
   if (combat.prompt) {
-    const prompt = document.createElement('section'), text = document.createElement('p'); prompt.className = 'combat-prompt'; text.textContent = `${combat.prompt.title} · ${combat.prompt.instruction}`; prompt.append(text);
+    const prompt = document.createElement('section'), text = document.createElement('strong'), instruction = document.createElement('p'), compact = compactCombatPrompt(combat.prompt); prompt.className = 'combat-prompt combat-roll-card'; text.textContent = `${compact.label} · ${compact.title}`; instruction.className = 'note'; instruction.textContent = compact.instruction; prompt.append(text, instruction);
     if (combat.prompt.stage === 'reaction') {
       const choices = document.createElement('div'), accept = document.createElement('button'), decline = document.createElement('button'); choices.className = 'button-row'; accept.className = 'primary'; accept.textContent = 'Atacar · gastar reacción'; decline.textContent = 'Dejar pasar'; accept.onclick = () => command({ type: 'combat:reaction', promptId: combat.prompt!.id, accept: true }); decline.onclick = () => command({ type: 'combat:reaction', promptId: combat.prompt!.id, accept: false }); choices.append(accept, decline); prompt.append(choices);
     } else {
-      const input = document.createElement('input'), submit = document.createElement('button'); input.type = 'number'; input.min = String(combat.prompt.minimum ?? 0); input.max = String(combat.prompt.maximum ?? 200); submit.className = 'primary'; submit.textContent = combat.prompt.stage === 'damage' ? 'Aplicar daño' : 'Confirmar dado'; submit.onclick = () => { const value = Number(input.value); if (!input.value.trim() || !Number.isInteger(value) || value < (combat.prompt!.minimum ?? -30) || value > (combat.prompt!.maximum ?? 200)) return toast('Introduce un resultado entero.'); const type = combat.prompt!.stage === 'attack' ? 'combat:rollAttack' : combat.prompt!.stage === 'damage' ? 'combat:rollDamage' : combat.prompt!.stage === 'death-save' ? 'combat:rollDeathSave' : 'combat:rollSave'; command({ type, promptId: combat.prompt!.id, ...(type === 'combat:rollAttack' || type === 'combat:rollDeathSave' ? { d20: value } : type === 'combat:rollDamage' ? { diceTotal: value } : { total: value }) }); }; prompt.append(input, submit);
+      const input = document.createElement('input'), submit = document.createElement('button'), row = document.createElement('div'); row.className = 'combat-roll-input'; input.type = 'number'; input.inputMode = 'numeric'; input.placeholder = compact.placeholder; input.setAttribute('aria-label', `${compact.label} física`); input.min = String(combat.prompt.minimum ?? -30); input.max = String(combat.prompt.maximum ?? 200); submit.className = 'primary'; submit.textContent = 'Confirmar'; submit.onclick = () => { const value = Number(input.value); if (!input.value.trim() || !Number.isInteger(value) || value < (combat.prompt!.minimum ?? -30) || value > (combat.prompt!.maximum ?? 200)) return toast('Introduce un resultado entero.'); const type = combat.prompt!.stage === 'attack' ? 'combat:rollAttack' : combat.prompt!.stage === 'damage' ? 'combat:rollDamage' : combat.prompt!.stage === 'death-save' ? 'combat:rollDeathSave' : 'combat:rollSave'; command({ type, promptId: combat.prompt!.id, ...(type === 'combat:rollAttack' || type === 'combat:rollDeathSave' ? { d20: value } : type === 'combat:rollDamage' ? { diceTotal: value } : { total: value }) }); }; input.onkeydown = event => { if (event.key === 'Enter') submit.click(); }; row.append(input, submit); prompt.append(row);
     }
-    if (combat.prompt.cancellable) { const cancel = document.createElement('button'); cancel.textContent = 'Cancelar selección antes de tirar'; cancel.onclick = () => command({ type: 'combat:cancelAction', attackerId: combat.prompt!.selectionActorId, promptId: combat.prompt!.id }); prompt.append(cancel); }
-    panel.append(prompt);
+    const details = document.createElement('details'), caption = document.createElement('summary'), explanation = document.createElement('p'); caption.textContent = 'Detalles'; explanation.textContent = `${combat.prompt.title} · ${combat.prompt.instruction}`; details.append(caption, explanation); prompt.append(details);
+    if (combat.prompt.cancellable) { const cancel = document.createElement('button'); cancel.className = 'combat-roll-cancel'; cancel.textContent = 'Cancelar'; cancel.onclick = () => command({ type: 'combat:cancelAction', attackerId: combat.prompt!.selectionActorId, promptId: combat.prompt!.id }); prompt.append(cancel); }
+    box.insertBefore(prompt, roster);
   }
   box.append(panel);
 }

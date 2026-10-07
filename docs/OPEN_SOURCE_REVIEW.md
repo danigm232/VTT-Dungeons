@@ -1,5 +1,13 @@
 # Revisión open source y reutilización — actualizado 2026-09-22
 
+## Auditoría final D8 — 05/10/2026
+
+ADAPT: controles HTML nativos (`details`), gestor de ventanas existente, reintento del cargador existente, Pixi/Babylon y conciliación de snapshots autoritativos. Se extrae únicamente la programación de reintentos para compartirla entre los tres clientes; no otro estado del mundo ni otro sistema de guardado. REJECT para esta corrección: framework nuevo de paneles o caché/red, porque duplicaría mecanismos ya integrados. Assets existentes: comprobados sin descargar ni regenerar ilustraciones correctas. Sin dependencia externa nueva.
+
+## Cierre D8 — 04/10/2026
+
+ADAPT: Node/fs/JSON/Zod, geometría/navegación, Socket.IO, renderer Babylon y sprites/audio ya integrados. Progreso/encuentros se declaran por pack sobre el mismo estado/save, sin nueva dependencia. REJECT para este alcance: segundo gestor de guardado, otro motor y framework de formularios; duplicarían contratos que ya funcionan. No se ha descargado arte, biblioteca ni recurso externo nuevo. La aldeana existente se verificó en render; no se oculta un fondo mediante CSS ni se regenera por defecto un asset con alpha correcto.
+
 ## Regla vigente de fuentes — 2026-09-22
 
 La carpeta privada [DnD VTT del usuario](https://drive.google.com/drive/folders/1p-X5BsVtg2GOjTPylhV4Jk6i8CQCwIAs) es la fuente prioritaria y viva para personajes, PNJ, objetos y entorno. Su inventario y procedimiento están en `ASSET_SOURCES.md`. Antes de declarar ausente o generar un recurso, consultar de nuevo la carpeta relevante; después usar bibliotecas gratuitas/open source cuando ahorren trabajo y encajen. La autorización cubre la integración rutinaria en este programa personal y privado, pero no asigna una licencia abierta a los originales.

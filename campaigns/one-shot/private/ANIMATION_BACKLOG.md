@@ -17,13 +17,23 @@
 
 La pasada de los seis puntos está documentada en ANIMATION_AUDIT_20261004.md. Se añadieron 200 poses PNG, controles locales completos, cobertura visible de acciones reales, recortes por silueta, orientación de PNJ, integración de despertar/levantarse y escala compatible con la cámara actual. No se reinició la mesa del puerto 3000.
 
-## Para una siguiente pasada
+## Cierre de la siguiente pasada · 4 de octubre de 2026
 
-- Completar las acciones que ahora aparecen explícitamente como «falta»; no confundir una secuencia reutilizada con una acción dibujada propia.
-- Añadir ciclos propios de carrera para ocho rumbos de todos los PNJ; algunos rumbos reutilizan caminar acelerado.
-- VFX específicos de plumas/chispas presentes en la prueba local; falta llevar su duración y finalización persistente al estado de la partida, sin automatizar consecuencias que decide el DM.
-- Transiciones de entrada/salida entre movimiento, acción y condición; oclusión parcial en vez de ocultación completa cuando sólo se tapa una parte del cuerpo.
-- Confirmar alturas exactas: las de María, Ben, Margaret y vaca son estimaciones visuales, no modificaciones de sus reglas.
-- La suite global tiene un fallo ajeno a D8 en el catálogo anónimo de Stormwreck (wreck-m3.test.ts). Coordinar con ese proyecto; no modificarlo desde esta entrega.
+Los seis puntos anteriores están integrados. Detalle y verificaciones en `ANIMATION_CLOSEOUT_20261004.md`.
 
-Mantener los cambios de arte en campaigns/one-shot y preservar los trabajos paralelos en el motor y otras campañas. Activar la mesa habitual con INICIAR-ONE-SHOT.cmd cuando esté libre.
+- 24 PNG nuevos, 736 poses transparentes. Carrera propia en ocho rumbos para ocho PNJ humanos, vaca y rosas; se conservan los ciclos de ambos jugadores.
+- Saltar, trepar, nadar, esquivar, esconderse, buscar/estudiar, preparar, interactuar, caer y levantarse. Los gestos compartidos se identifican como reutilizados.
+- Golpe sin armas propio para María/Trinity y Silverfarben, sin mostrar una daga. Flechas radiantes de Anteros y Enredar usan su pose correcta.
+- Niebla, plumas y chispas autoritativas: reconexión, guardado, caducidad y cancelación de concentración. Son señales visuales; no automatizan consecuencias narrativas, visión, rituales ni reacciones situacionales.
+- Transición de 90 ms entre estados, reloj por secuencia y sin reiniciar la textura en cada snapshot. Oclusión parcial muestreada; escala estable frente al zoom y a fotogramas recortados.
+- Recorrido de acciones visibles, pausa/fotogramas, marcas persistentes y exportación. No se conceden poderes ni se gastan recursos durante la prueba local.
+- El fallo antiguo de Stormwreck y las expectativas V40 se resolvieron en el trabajo compartido: la suite global de 326 pruebas pasó.
+
+## Pendientes de aceptación, no de conexión
+
+- Tu aprobación artística de los gestos mediante «Pruebas visuales de acciones». La cobertura automática no certifica que cada dibujo te guste.
+- Confirmar alturas exactas de María, Ben, Margaret y vaca: siguen siendo estimaciones visuales, no modificaciones de sus reglas.
+- Validar fluidez y sonido por escucha en el móvil/proyector físicos. El control del navegador permitió inspeccionar la consola, pero sus clics de prueba dieron timeout; no se declara aceptación visual completa.
+- Más fotogramas, orientaciones dibujadas propias para cada gesto no locomotor y profundidad 3D de todos los VFX son mejoras posteriores, no requisitos de cobertura del catálogo actual.
+
+Se conservan los originales y los cambios V41 del trabajo compartido. Los prompts finales están en `ANIMATION_PROMPTS_20261004.json`.

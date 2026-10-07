@@ -62,7 +62,9 @@ export class PersistenceCoordinator {
     } else this.markDirty();
     this.report();
     this.audioTimer = setInterval(() => {
-      if (this.mode === 'ready' && Object.values({ music: this.current().audio.music, ...this.current().audio.layers }).some(track => track.playing)) void this.saveNow().catch(() => {});
+      // Advancing playback alone is not a new game checkpoint. Otherwise an
+      // idle table loses all ten useful saves after five minutes of music.
+      if (this.mode === 'ready' && this.status().dirty) void this.saveNow().catch(() => {});
     }, 30_000);
   }
   private candidate(save: SaveV1) {

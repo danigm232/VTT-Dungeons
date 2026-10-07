@@ -2270,14 +2270,16 @@ export function createDragonRestVisuals(scene) {
   }
 
   for (const key of ['grid', 'labels', 'markers', 'spawns', 'player', 'navGrid', 'navBlocked', 'navPreview'])
-    for (const mesh of ctx.group[key] ?? []) mesh.dispose(false, true);
+    for (const mesh of ctx.group[key] ?? []) mesh.dispose(false, false);
   for (const key of ['upperRoof', 'houseRoof', 'templeRoof'])
-    for (const mesh of ctx.group[key] ?? []) mesh.dispose(false, true);
+    // Roofs share paint with floors, walls and furniture. Removing a roof
+    // must preserve those materials for every camera orientation.
+    for (const mesh of ctx.group[key] ?? []) mesh.dispose(false, false);
   if (ctx.doorPivot) ctx.doorPivot.rotation.y = -Math.PI / 2;
 
   const candidates = scene.meshes.filter(mesh => !before.has(mesh) && !mesh.parent
     && mesh.material && mesh.material.alpha >= .99 && !mesh.isLinesMesh
-    && !mesh.name.includes('A4_REINFORCED_DOOR'));
+    && !mesh.name.includes('A4_REINFORCED_DOOR') && !mesh.name.startsWith('A1_VARNOTH_ENTRY_'));
   const sharedMaterials = new Map();
   const materialColor = color => color?.asArray?.().map(value => Math.round(value * 100_000) / 100_000) ?? null;
   for (const mesh of candidates) {

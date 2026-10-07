@@ -1,8 +1,10 @@
 import { Matrix, Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import { Plane } from '@babylonjs/core/Maths/math.plane.js';
 import { Ray } from '@babylonjs/core/Culling/ray.js';
+import { surfaceHeight, terrainTile, type TerrainDefinition } from '../shared/terrain';
+import { CAMERA_DEFAULT_TILT, CAMERA_MAX_TILT, CAMERA_MIN_TILT } from './camera-profile';
 
-export const D8_CAMERA_DEFAULT_TILT = 45;
+export const D8_CAMERA_DEFAULT_TILT = 25;
 export type D8CameraPoint = { x: number; y: number; z: number };
 export type D8CameraPose = { alpha: number; beta: number; halfHeight: number; target: D8CameraPoint };
 
@@ -12,17 +14,44 @@ export function d8CameraBaseAlpha(authoredAlpha: number) {
   return Math.round((alpha - Math.PI / 4) / (Math.PI / 2)) * Math.PI / 2 + Math.PI / 4;
 }
 
-export function d8CellWorldPoint(cell: { col: number; row: number }, size: [number, number], grid: { cols: number; rows: number }): D8CameraPoint {
-  return { x: -size[0] / 2 + (cell.col + .5) * size[0] / grid.cols, y: .045, z: -size[1] / 2 + (cell.row + .5) * size[1] / grid.rows };
+export function d8GroundHeight(terrain: TerrainDefinition | undefined, col: number, row: number) {
+  if (!terrain) return .045;
+  const candidates = [{ col: Math.floor(col), row: Math.floor(row) }];
+  if (Number.isInteger(col)) candidates.push({ col: col - 1, row: Math.floor(row) });
+  if (Number.isInteger(row)) candidates.push({ col: Math.floor(col), row: row - 1 });
+  if (Number.isInteger(col) && Number.isInteger(row)) candidates.push({ col: col - 1, row: row - 1 });
+  const heights = candidates.filter(cell => terrainTile(terrain, { surfaceId: terrain.baseSurfaceId, cell }))
+    .map(cell => surfaceHeight(terrain, { surfaceId: terrain.baseSurfaceId, cell }, col - cell.col, row - cell.row));
+  return (heights.length ? Math.max(...heights) : 0) + .045;
+}
+type D8Grid = {cols:number;rows:number;worldOrigin?:{x:number;z:number}};
+export function d8GridWorldPoint(col:number,row:number,size:[number,number],grid:D8Grid) {
+  return {x:(grid.worldOrigin?.x??-size[0]/2)+col*(grid.worldOrigin?1.5:size[0]/grid.cols),z:(grid.worldOrigin?.z??-size[1]/2)+row*(grid.worldOrigin?1.5:size[1]/grid.rows)};
+}
+export function d8CellWorldPoint(cell: { col: number; row: number }, size: [number, number], grid: D8Grid, terrain?: TerrainDefinition): D8CameraPoint {
+  return {...d8GridWorldPoint(cell.col+.5,cell.row+.5,size,grid), y: d8GroundHeight(terrain, cell.col + .5, cell.row + .5)};
 }
 
-export function d8PickCell(point: { x: number; y: number }, viewport: { width: number; height: number }, view: Matrix, projection: Matrix, size: [number, number], grid: { cols: number; rows: number }) {
+export function d8PickCell(point: { x: number; y: number }, viewport: { width: number; height: number }, view: Matrix, projection: Matrix, size: [number, number], grid: D8Grid, terrain?: TerrainDefinition) {
   // Both sides use screen units, independently of engine hardware scaling.
   const ray = Ray.CreateNew(point.x, point.y, viewport.width, viewport.height, Matrix.Identity(), view, projection);
+  if (terrain) {
+    let nearest = Infinity, selected: { col: number; row: number } | null = null;
+    for (const tile of terrain.surfaces.find(surface => surface.id === terrain.baseSurfaceId)!.tiles) {
+      const { col, row } = tile.cell;
+      const corners = [[col,row],[col+1,row],[col+1,row+1],[col,row+1]].map(([c,r], index) => {const p=d8GridWorldPoint(c!,r!,size,grid);return new Vector3(p.x,tile.corners[index]!+.045,p.z);});
+      for (const [a,b,c] of [[0,1,2],[0,2,3]]) {
+        const hit = ray.intersectsTriangle(corners[a!]!, corners[b!]!, corners[c!]!);
+        if (hit && hit.distance >= 0 && hit.distance < nearest) { nearest = hit.distance; selected = tile.cell; }
+      }
+    }
+    return selected;
+  }
   const distance = ray.intersectsPlane(Plane.FromPositionAndNormal(new Vector3(0, .045, 0), Vector3.Up()));
   if (distance === null || distance < 0) return null;
   const hit = ray.origin.add(ray.direction.scale(distance));
-  const col = Math.floor((hit.x + size[0] / 2) * grid.cols / size[0]), row = Math.floor((hit.z + size[1] / 2) * grid.rows / size[1]);
+  const origin=grid.worldOrigin??{x:-size[0]/2,z:-size[1]/2};
+  const col = Math.floor((hit.x-origin.x)/(grid.worldOrigin?1.5:size[0]/grid.cols)), row = Math.floor((hit.z-origin.z)/(grid.worldOrigin?1.5:size[1]/grid.rows));
   return col >= 0 && row >= 0 && col < grid.cols && row < grid.rows ? { col, row } : null;
 }
 
@@ -69,7 +98,7 @@ export class D8CameraMotion {
       const next = damp(this.pose.target[key], target.target[key], this.velocity[key], seconds, .20);
       this.pose.target[key] = next.value; this.velocity[key] = next.velocity;
     }
-    const beta = Math.max(25 * Math.PI / 180, Math.min(70 * Math.PI / 180, this.pose.beta));
+    const beta = Math.max((90 - CAMERA_MAX_TILT) * Math.PI / 180, Math.min((90 - CAMERA_MIN_TILT) * Math.PI / 180, this.pose.beta));
     if (beta !== this.pose.beta) { this.pose.beta = beta; this.velocity.beta = 0; }
     if (this.pose.halfHeight < .75) { this.pose.halfHeight = .75; this.velocity.halfHeight = 0; }
     return this.pose;

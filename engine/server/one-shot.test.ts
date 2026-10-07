@@ -1,14 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
-import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
-import { oneShotBundle } from '../../campaigns/one-shot/server.js';
-import { D8NIGHT } from '../../campaigns/one-shot/playground/d8night.config.js';
+import { d8VillageRoads, oneShotBundle } from '../../campaigns/one-shot/server.js';
+import { D8NIGHT, D8_VERSION } from '../../campaigns/one-shot/playground/d8night.config.js';
 import { d8PublicRendererConfig } from '../../campaigns/one-shot/renderer-config.js';
 import { supportsCameraOrientation } from '../shared/camera.js';
 import { basicCombatActionAnimationStates, explorationBasicActionCatalogue } from '../shared/protocol.js';
 import { compileCampaignBundle } from './campaign.js';
 import { GameState } from './game.js';
+import { STEP_DURATION_MS, type Facing } from '../shared/protocol.js';
+import { surfaceNeighbors } from '../shared/terrain.js';
 
 const beginCombat = (state: GameState, firstId: string) => {
   expect(state.startCombat()).toBe(true);
@@ -16,11 +17,12 @@ const beginCombat = (state: GameState, firstId: string) => {
   expect(state.setInitiativeOrder(state.combat.order, true)).toBe(true);
 };
 
-describe('protección de la pasada artística V40', () => {
-  it('mantiene intactas Cena y la configuración del templo aprobado', () => {
-    const hash = (map: unknown) => createHash('sha256').update(JSON.stringify(map)).digest('hex');
-    expect(hash(D8NIGHT.maps.dinner)).toBe('7152dca9b5babc7875828d25c9c949887829a9c2b0e7cf1576e11e4a3577ea67');
-    expect(hash(D8NIGHT.maps.temple)).toBe('278a8c5657ae89aba6594275e1e2999b2e66103c0d29bd6dfd97d7941f181317');
+describe('protección de la pasada artística aprobada', () => {
+  it('conserva el contenido jugable mientras el horizonte de Cena y Templo evoluciona', () => {
+    expect(D8NIGHT.maps.dinner.MAP.objects.some((object: any) => object.asset === 'patio_round')).toBe(true);
+    expect(D8NIGHT.maps.temple.MAP.objects.some((object: any) => object.asset === 'temple_gate')).toBe(true);
+    expect(D8NIGHT.maps.dinner.VTT_AMBIENCE.horizon.style).toBe('estate');
+    expect(D8NIGHT.maps.temple.VTT_AMBIENCE.horizon.style).toBe('coast');
   });
 
   it('mantiene escenarios nativos y presupuestos limitados de luz en los cuatro mapas', () => {
@@ -48,11 +50,34 @@ const placeAoifeNearNpc = (state: GameState, npcId = 'anteros-temple') => {
 };
 
 describe('independent private one-shot pack', () => {
+  it('une Templo, Café y Mercado solo tras recorrer cinco casillas de sus caminos extendidos, en ambos sentidos', () => {
+    for(const road of d8VillageRoads)for(const reverse of [false,true]){
+      const state=new GameState(oneShotBundle);state.claim('a'.repeat(32),'socket-road','maria');
+      const from=reverse?road.to:road.from,to=reverse?road.from:road.to;state.changeScene(from.mapId);
+      const scene=state.currentScene(),key=(cell:{col:number;row:number})=>`${cell.col},${cell.row}`;
+      const queue=[scene.spawns[0]!],parents=new Map<string,{col:number;row:number}|null>([[key(queue[0]!),null]]);
+      for(let i=0;i<queue.length&&!parents.has(key(from.cell));i++)for(const address of surfaceNeighbors(scene.terrain!,{surfaceId:scene.surfaceId,cell:queue[i]!})){
+        if(!parents.has(key(address.cell))){parents.set(key(address.cell),queue[i]!);queue.push(address.cell);}
+      }
+      const path=[from.cell];while(parents.get(key(path[0]!)))path.unshift(parents.get(key(path[0]!))!);
+      expect(path.length).toBeGreaterThan(6);const approach=path.slice(-6),maria=state.characters.get('maria')!;maria.cell={...approach[0]!};
+      for(let i=1;i<approach.length;i++){const next=approach[i]!,dx=next.col-maria.cell.col,dy=next.row-maria.cell.row;
+        const horizontal=dx>0?'east':dx<0?'west':'',vertical=dy>0?'south':dy<0?'north':'';
+        const facing=(horizontal&&vertical?`${vertical}-${horizontal}`:horizontal||vertical) as Facing;
+        expect(state.startStep(maria,facing)).toBe(true);maria.step!.startedAt=Date.now()-STEP_DURATION_MS-1;state.tick();
+        if(i<5)expect(maria.sceneId).toBe(from.mapId);
+      }
+      expect(maria.sceneId).toBe(to.mapId);expect(maria.cell).toEqual(to.cell);
+      const restored=new GameState(oneShotBundle);expect(()=>restored.restoreDurable(state.captureDurable())).not.toThrow();
+      expect(restored.characters.get('maria')!.cell).toEqual(to.cell);
+    }
+  });
+
   it('mantiene el templo nativo, su eje de acceso y la decoración de fondo fuera del tablero', () => {
     const temple = D8NIGHT.maps.temple;
     expect(temple.MAP.enableVisualComposition).toBe(false);
     expect(temple.camera.alpha).toBeGreaterThan(0);
-    expect(temple.MAP.objects.filter((object: any) => object.asset === 'temple_floor')).toHaveLength(2);
+    expect(temple.MAP.objects.filter((object: any) => object.asset === 'temple_floor')).toHaveLength(3);
     for (const asset of ['bridge', 'stairs', 'temple_gate', 'long_table', 'statue', 'temple_sanctuary_details']) {
       expect(temple.MAP.objects.some((object: any) => object.asset === asset)).toBe(true);
     }
@@ -65,7 +90,7 @@ describe('independent private one-shot pack', () => {
   it('sirve los mapas de Babylon sin enviar CANON ni interacciones privadas al navegador', () => {
     const renderer = d8PublicRendererConfig();
     const serialized = JSON.stringify(renderer);
-    expect(renderer.version).toBe('V40');
+    expect(renderer.version).toBe(D8_VERSION);
     expect(Object.keys(renderer.maps).sort()).toEqual(['cafe', 'dinner', 'garden', 'market', 'mirror', 'temple']);
 
     const forbiddenKeys: string[] = [];
@@ -179,8 +204,10 @@ describe('independent private one-shot pack', () => {
           expect(frame.url).toContain(state.startsWith('moving-') ? 'walk_orientations_atlas.png' : 'run_orientations_atlas.png');
           expect(frame.x + frame.width).toBeLessThanOrEqual(state.startsWith('moving-') ? 1448 : 1122);
           expect(frame.y + frame.height).toBeLessThanOrEqual(state.startsWith('moving-') ? 1086 : 1402);
-          expect(frame.logicalWidth).toBe(92);
-          expect(frame.logicalHeight).toBe(92);
+          expect(frame.logicalWidth).toBeGreaterThan(0);
+          expect(frame.logicalHeight).toBeGreaterThan(0);
+          expect(frame.logicalWidth!/frame.logicalHeight!).toBeCloseTo(frame.width/frame.height,2);
+          expect(frame.alphaSeeds?.length).toBeGreaterThan(0);
         }
       }
     }
@@ -427,7 +454,7 @@ describe('independent private one-shot pack', () => {
     expect(restored.publicSnapshot().props.some(prop => prop.id === 'true-love-mirror')).toBe(true);
 
     const migrated = restored.captureDurable();
-    expect(migrated.d8GridVersion).toBe(2);
+    expect(migrated.d8GridVersion).toBe(3);
     const restoredAgain = new GameState(oneShotBundle); restoredAgain.restoreDurable(migrated);
     expect(restoredAgain.characters.get('maria')?.cell).toEqual(restored.characters.get('maria')?.cell);
     expect(restoredAgain.npcs.get('boris-market')?.cell).toEqual(restored.npcs.get('boris-market')?.cell);

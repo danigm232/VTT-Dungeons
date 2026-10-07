@@ -1,79 +1,71 @@
-# D8 Night — guía de dirección para mesa privada
+# D8 Night — guía de dirección privada
 
-Estado: preparación jugable DEV sobre el motor existente. El texto fuente y los mapas suministrados son material privado aportado por el usuario; esta guía es un resumen propio, no una reproducción del módulo. No distribuir el PDF, sus mapas ni esta adaptación como producto público.
+Actualizada 04/10/2026. Resumen propio de la fuente privada del usuario; no distribuir el módulo ni sus recursos. Candidata jugable, no certificación completa de D&D 2024 ni aceptación en hardware físico.
 
-## Alcance y decisión de grupo
+## Antes de sentarse
 
-La aventura fuente presenta una sesión romántica para una persona jugadora y un DM. El pack provisional carga a Mike, Mia y Maria para aprovechar la mesa ya existente. Eso no convierte automáticamente los desafíos ni los finales en una aventura equilibrada para tres: dirigirlos como grupo solidario que comparte la maldición, elegir una persona como foco emocional de cada prueba y no multiplicar los monstruos hasta hacer la sesión más larga.
+1. Abre INICIAR-ONE-SHOT.cmd: DM sin contraseña, campaña y guardados separados de Stormwreck. Si hay otra mesa, usa el cierre seguro del lanzador; no borres locks ni mates cualquier proceso por su puerto.
+2. Entran únicamente los PJ seleccionados: María Piesligeros nivel 1; opcionalmente Silverfarben Hotel (nombre de interfaz de Aoife Sorrel). El módulo original es para una persona jugadora y DM. Añadir Aoife es una adaptación explícita: no hay rebalanceo automático.
+3. Consulta las hojas completas. Son fichas legadas, no conversiones automáticas a especies/clases/trasfondos 2024. María no tiene Acción Astuta ni Manos Rápidas a nivel 1. El DM debe acordar los conjuros preparados de Aoife: la lista conocida del PDF no los elige.
+4. Pulsa Guardar ahora antes del primer día; exporta esa copia para conservarla fuera de la rotación de diez puntos. Acuerda límites de romance, violencia y duelo. Puede dirigirse como amistad/confianza sin imponer romance.
 
-La partida empieza en el **Templo de Sylvania**. Anteros explica que el grupo está atrapado en un día que se repite y que debe reunir cuatro componentes antes de una cena final. Cada componente completado devuelve al templo y habilita el siguiente destino. No es necesario tratar el orden como un puzle rígido.
+## Recorrido y resultados
 
-## Secuencia de mesa
+Rosa, vino y filete o vaca pueden obtenerse en cualquier orden. Vuelve al templo tras cada componente. El espejo va después. Exploración → Progreso D8 Night registra resultados y notas solo para DM; el inventario de misión se deriva de objetivos completos. Registrar otra vez un resultado no duplica puntos. Cambiar una decisión sustituye la anterior e invalida un final obsoleto.
 
-| Paso | Escena VTT | Meta dramática | Entrega/estado que anota el DM |
-|---|---|---|---|
-| Prólogo | `temple` | Conocer a Anteros, pacto y límite temporal | 0/4 componentes; decidir foco emocional |
-| 1 | `garden` | Flor o resolución de la amenaza de rosas | rosa / favor de Fritz |
-| 2 | `cafe` | Recuperar una botella sin convertir el local en combate | botella de vino |
-| 3 | `market` | Conseguir el filete o ayudar a Ben/Margaret con la vaca | filete o vaca; coste moral anotado |
-| 4 | `mirror` | Afrontar el reflejo de hielo, o resolverlo por vías no violentas | espejo de plata |
-| Epílogo | `dinner` | Cena y desenlace según tono de las decisiones | final 1, 2 o 3, decidido por el DM |
+| Escena | Objetivo | Punto final 1 | Punto final 2 | Punto final 3 |
+|---|---|---|---|---|
+| Templo | Pacto e instrucciones | — | — | Rechazo y supervivencia de tres rondas: excepción documentada |
+| Jardín | Rosa, después salir | Retoño pacífico de Fritz | Proteger a Fritz o vencer flores | Atacar sin escuchar y llevarse rosa |
+| Café | Botella, después salir | Pasar inadvertida | Molestar a un parroquiano | Pelear con varios |
+| Mercado | Filete o vaca viva | Diagnóstico del padre y poción | Compra | Robo de la vaca |
+| Espejo | Resolver reflejo y recoger espejo | Bajar arma / paz | Vencer en combate | Romper hielo o dañar espejo |
+| Cena | Resolver desenlace | Servicio y comunidad | Aceptación de la imperfección | Crueldad y soledad |
 
-## Puesta en escena y controles
+El final corresponde a la mayor puntuación. En empate, DM elige entre candidatos y deja motivo; una excepción o atajo exige motivo. El sistema registra lo que la mesa resolvió: no deduce decisiones morales de un clic o de matar una criatura. Hablar con Anteros, Brindar con Anteros y revelar monstruos no completan objetivos automáticamente.
 
-- Abre el VTT con `INICIAR-ONE-SHOT.cmd`. Sus guardados van a `d8-night-private`; no abre ni altera una partida de Stormwreck.
-- El DM cambia de escena desde el panel existente. Los PNJ visibles no bloquean movimiento ni tienen reglas de IA. Anteros sí ofrece una interacción contextual: al situarse en una de las cuatro casillas contiguas aparece **Hablar con Anteros** en el templo o **Brindar con Anteros** en la cena. El gesto del PJ y la reacción de Anteros se ven en jugador, DM y proyector; el diálogo, las tiradas y el desenlace siguen bajo dirección del DM.
-- La criatura `reflection` está configurada en el espejo, pero comienza oculta. Revelarla sólo cuando la ficción la active.
-- Las tiradas, iniciativa, daño y decisiones siguen siendo presenciales. El VTT ayuda a orientación, música, ambiente y colocación.
-- Los límites transitables iniciales son una primera pasada. Antes de la partida, abrir cada mapa y confirmar caminos y spawns en pantalla grande.
+## Encuentros y movimiento
 
-## Direcciones de escena
+- Jardín: tira el d6 físico e introduce el número de rosas, hasta seis, en Revelar encuentro. Pueden ocultarse, pero revelar no cura ni resucita derrotadas.
+- Café: tira el d10 físico si estalla pelea e introduce hasta diez parroquianos hostiles. Los tres PNJ de conversación permanecen neutrales salvo intervención explícita del DM.
+- Selecciona una ficha en mapa y usa WASD, también en exploración. No se capturan teclas al escribir. En combate se respeta turno, velocidad, casillas y condiciones. Sin joystick DM.
+- Paredes/puertas cerradas bloquean línea de efecto; terreno difícil consume dos casillas por paso. Mobiliario, agua y sombras no se tratan indiscriminadamente como paredes.
+- Jugador/DM tienen grid; proyector no. No hay IA táctica de PNJ ni vuelo con altura simulada: Anteros vuela bajo arbitraje DM.
 
-### Templo
+## Dados y acciones
 
-Empieza con calma extraña, no con amenaza inmediata. Anteros debe quedar como anfitrión ambiguo: puede orientar, pero no resolver las elecciones. Usa la mesa como objetivo visual y el reloj/luz como señal de urgencia. Tras cada regreso, modifica luz, platos o flores y registra qué componente llegó.
+El atacante elige acción y objetivo en mapa (o lista de iniciativa del jugador). El servidor comprueba legalidad y pide d20 natural, no una «CD». Con ventaja/desventaja se tiran dos dados físicos y se introduce el elegido. Añade el bonificador una vez y compara con CA privada; un fallo no pide daño. Un impacto pide solo la suma indicada de dados de daño, sin modificador, que añade el motor. Salvaciones/pruebas van al propietario correspondiente; DM introduce las de sus criaturas. No avanzar con una tirada pendiente sin resolver/cancelar legalmente.
 
-La interacción contextual hace que Anteros hable y avisa al jugador de que el DM guía la conversación. Puede repetirse para retomar el pacto; no marca objetivos ni fuerza una respuesta de personaje.
+Ataques, recursos y efectos estructurados se resuelven en servidor. Resolver con el DM significa arbitraje presencial y consecuencias registradas: conversación, áreas narrativas, rituales, reacciones situacionales y usos creativos no son simulaciones completas. Las zonas azules del Espejo sí aplican la consecuencia de movimiento indicada abajo. Consulta ENCOUNTER_MATRIX.md. Munición y daga arrojada se gastan cuando corresponde; su recuperación se registra en inventario, no vuelve sola al terminar combate.
 
-### Jardín de Fritz
+Anteros: 71 PG, CA16, velocidad9 m, vuelo18 m; inmune a envenenada y resistencia mágica. Espada/arco: dos ataques; seis flechas radiantes al mismo objetivo. Recarga solo con6 en d6, un intento por turno. Rosas: 22 PG, CA11, espinas con daño fijo1; tocar directamente causa1, no todo ataque con arma. Enredar: DEX CD11; escapar con acción, Atletismo/Acrobacias CD11; destruir la fuente termina sus ataduras.
 
-Propósito: elegir empatía, ingenio o violencia frente a unas rosas hostiles y una cuidadora afligida. La flor debe poder obtenerse con conversación, con una acción cuidadosa o tras vencer la amenaza. Para tres PJ, deja que una persona contenga/ayude y otra trate con Fritz: evita convertir la escena en un único ataque de área que termine de inmediato.
+## Reflejo e hielo
 
-### Café No-Me-Olvides
+Solo en espejo, revela y elige original si hay varios PJ. Usa su forma base antes del combate con efecto helado. Copia perfil/ataques/recursos iniciales una vez; PG máximos =75% del máximo original, redondeado hacia abajo. PG, estados y recursos posteriores son independientes. Revelar otra vez no cambia original ni cura reflejo. Enlace/perfil se guardan.
 
-Propósito: infiltración o distracción. La botella debe ser tangible y localizable; la gente del local es una presión social, no un ejército. Un fallo puede llamar atención, aumentar coste o iniciar una persecución breve, pero no bloquear la campaña. La pícara tiene una oportunidad natural aquí; no excluir las soluciones mágicas del mago ni el diálogo de la clériga.
+No ataca primero. Turno inmediatamente después del original; panel indica qué acción imitar. Si no hay equivalente legal, DM resuelve excepción mediante control guiado; no inventar ataque libre.
 
-### Mercado Nocturno
+Hielo blanco nevado: terreno difícil, movimiento doble. Hielo azul: las casillas coinciden con el contorno del lago y excluyen los témpanos sólidos. Pisar una casilla azul, tanto desde el jugador como desde el DM, aplica caída y muerte por congelación según la petición de esta mesa: PG 0, inconsciente, tres fallos de salvación contra muerte, fin de concentración y movimiento detenido. No es una regla general de D&D ni una tirada de DEX automática. La consecuencia se guarda y restaura; una criatura muerta no puede seguir caminando. Excepciones creativas, magia y el posible bucle narrativo se arbitran con el DM y una restauración confirmada, no con un reinicio silencioso.
 
-Propósito: decidir cómo se consigue comida y qué se hace ante la situación de Ben, Margaret, Boris y la vaca. Muestra los PNJ decorativos y usa la vaca sólo cuando el DM elija ese foco. Una solución compasiva debe ser viable sin exigir compra; si hay tensión, que sea consecuencia narrativa y no castigo automático.
+## Caminos, carteles y clima — V47
 
-### Espejo
+Templo, Café y Mercado conservan los puertos del motor. El jugador debe aproximarse físicamente por cinco pasos consecutivos hacia la salida; retroceder o desviarse reinicia la aproximación. Leer un cartel cercano sólo muestra su texto, nunca teletransporta. El progreso de aproximación se incluye en los guardados. La navegación manual del DM sigue disponible para arbitrar excepciones.
 
-Propósito: confrontar una versión helada del personaje. Revela el reflejo una vez que el grupo se acerque al altar. Si hay combate, el suelo puede ser difícil y el hielo inestable como riesgo de escena; no usar caída o daño automático para eliminar a un PJ. La criatura reflejada requiere balance manual antes de jugar con tres personajes.
+Panel DM → Ambiente → Cielo y tiempo: día, atardecer, noche y madrugada; despejado, lluvia o nieve; tres intensidades y viento. Se sincroniza con jugadores/proyector y se incluye en cada save. Las partículas son geometría del mundo, no una imagen superpuesta; se ocultan cuando el personaje enfocado está bajo un tejado. La lluvia reutiliza el ambiente existente con tres volúmenes, el viento su capa propia y la tormenta mantiene sus truenos. Las preferencias de cámara siguen fuera del estado de partida.
 
-### Cena
+## Guardado, cargar y bucle temporal
 
-Propósito: cierre íntimo, no combate. Elige el desenlace por el patrón de acciones y el tono que el grupo haya construido: uno esperanzador/compasivo, uno de aceptación imperfecta y otro agridulce. No asumas romance de ningún jugador: adapta el lenguaje a amistad, confianza o afecto elegido en mesa.
+Un solo sistema: copia automática al iniciar/terminar combate, cambiar escena, registrar resultados y autosave de seguridad; también Guardar ahora. Diez puntos recuperables únicos (actual+nueve históricos); copias técnicas atómicas no son slots extra. El más antiguo rota al crear otro. Exportaciones privadas no participan en esa rotación.
 
-Anteros aparece sentado. El botón contextual **Brindar con Anteros** activa su reacción visual y confirma el gesto al jugador; no selecciona final ni presupone romance.
+Guarda mundo: escena, posiciones/superficies/orientación, PG, estados con fuente/duración, recursos/inventario, objetos, progreso/notas/final, derrotados/restaurados, iniciativa/ronda/turno/movimiento, economía de acciones, recargas/secuencias/tiradas pendientes, perfil/vínculo del reflejo y audio. No acordeones, zoom ni distribución de ventanas.
 
-## Anteros en combate
+Autocarga busca último candidato válido y anteriores; checksum/esquema/campaña/referencias deben validarse antes de instalarlo. Corruptos se conservan para diagnóstico. Cargar partida muestra fecha/escena/modo/ronda; revisar/confirmar antes de sustituir mundo. Clientes conectados reciben snapshot completo y conservan personaje, sin recargar. Tras reinicio se revalida sesión/preferencia; credenciales no vienen del save. Deshacer: hasta20 acciones; se vacía al cargar/nueva partida.
 
-- Perfil auditado: 71 PG, CA 16, velocidad 9 m, iniciativa +4 y vuelo 18 m. El tablero registra el vuelo como movimiento bajo criterio del DM; no simula altura 3D.
-- Es inmune a la condición envenenada. Tiene resistencia mágica: la consola marca ventaja en sus salvaciones frente a acciones declaradas como mágicas.
-- Espada larga y arco largo son multiataques contra un mismo objetivo. Flechas radiantes disparan seis veces al mismo objetivo y solo se recargan con un 6 en d6.
-- La hoja completa se abre desde el nombre de Anteros en el panel de PNJ o durante combate. Los gestos manuales de hablar, sentarse, reaccionar y transformarse continúan disponibles para la puesta en escena.
+Si0 PG o abandonar el pueblo activa bucle, carga checkpoint inicial o su exportación. No hay reinicio destructivo automático. Nueva partida reinicia todo tras confirmación: no usarla para recuperar conexión. La excepción D8 no sustituye reglas universales de muerte.
 
-## Reglas de seguridad y tono
+## Comprobación de mesa pendiente
 
-La fuente se presenta como romántica, pero el grupo puede querer otro tono. Antes de empezar, preguntar por límites sobre romance, manipulación emocional, duelo, violencia floral y relaciones con PNJ. Aceptar una respuesta breve como "saltemos esto" y sustituirla por una prueba de amistad, recuerdo o protección sin penalización.
+Pruebas aisladas: seis escenas, tres finales, empate/excepciones, dados privados, restauración completa, diez puntos y reinicio. QA navegador escritorio/tamaños móviles emulados, no móvil/proyector físicos ni FPS sostenidos. Silverfarben dispone de sprite propio transparente y secuencias; los trece tipos de fichas cubren el catálogo general, con gestos propios y reutilizados identificados. Disponibilidad no equivale a aprobación artística. Consulta docs/evidence/D8_FINAL_AUDIT_20261005.md.
 
-## Pendiente para estar lista de verdad
-
-La mesa ya tiene el MVP de combate: revela el Reflejo, espera a que entre al menos un PJ, pulsa **Iniciar combate** y usa **Siguiente turno** después de resolver cada turno con los dados físicos. La vida de participantes se muestra sobre el mapa mientras el combate está activo. PNJ de escena se reposicionan desde el panel DM y conservan posición al guardar; no se añaden al orden de combate automáticamente.
-
-1. Confirmar si se juega como un personaje focal o con los tres PJ.
-2. Preparar estadísticas de encuentro ajustadas al grupo real, especialmente rosas y reflejo.
-3. Confirmar con una revisión visual los bloqueos/recorridos de los seis mapas.
-4. Sustituir el audio naval temporal por ambiente de templo, café, mercado e hielo con derechos claros.
-5. Crear un registro DM de cuatro objetivos y decisiones, sin enviar secretos a móviles.
+La distribución recomendada muestra primero el mapa y su consola de exploración/combate. Conexión/QR y giro/inclinación son plegables. Las pruebas visuales se recuperan desde Panel DM → Ventanas; no hace falta mostrarlas durante la partida. Las distribuciones personalizadas anteriores permanecen: pulsa Distribución recomendada si quieres adoptar la nueva.

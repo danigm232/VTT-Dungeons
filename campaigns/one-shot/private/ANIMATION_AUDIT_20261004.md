@@ -1,5 +1,7 @@
 # D8 · entrega de animaciones y auditoría visual (4 de octubre de 2026)
 
+Nota de continuidad 05/10: este documento es la evidencia histórica de la primera entrega. El catálogo se ha ampliado después con 24 atlas de cierre: los trece tipos de fichas cubren movimiento, acciones generales, exploración, caída/levantarse y carrera en ocho direcciones, con reutilizaciones explícitas. Silverfarben tiene sprite propio. Los recuentos y pendientes históricos de abajo no describen el estado actual; consultar docs/evidence/D8_FINAL_AUDIT_20261005.md.
+
 ## Los seis puntos
 
 1. Presencia: ventana y renderizador usan únicamente entidades públicas de la escena. Eliminada la reconstrucción de stageActors, que duplicaba PNJ o volvía a mostrar PNJ ocultos. Cambio de escena, ocultación o desaparición de blanco cancela la prueba.

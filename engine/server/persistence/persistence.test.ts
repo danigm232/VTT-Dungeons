@@ -4,6 +4,7 @@ import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { stormwreckBundle } from '../../../campaigns/stormwreck-isle/server';
+import { oneShotBundle } from '../../../campaigns/one-shot/server';
 import { wreckCellFromLocal } from '../../../campaigns/stormwreck-isle/public/wreck-runtime';
 import { GameState } from '../game';
 import { checksum, decode, seal } from './codec';
@@ -115,6 +116,37 @@ describe('Alpha 0.3 durable state', () => {
     expect(coordinator.status().mode).toBe('ready');
     await coordinator.close();
   });
+  it('opens D8 saves after a new authored object is added, while rejecting removed object IDs', async () => {
+    const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dungeons-d8-authored-object-migration-')); temporary.push(directory);
+    const source = new GameState(oneShotBundle), original = source.captureDurable(), payload = structuredClone(original);
+    const cafe = payload.scenes.find(scene => scene.sceneId === 'cafe')!;
+    expect(cafe.objects.length).toBeGreaterThan(0);
+    cafe.objects = [];
+    const oldSave = seal({ format: 'dungeons-save', schemaVersion: 1, campaignId: oneShotBundle.public.campaignId,
+      campaignVersion: oneShotBundle.public.version, campaignStateVersion: oneShotBundle.campaignStateVersion ?? 1,
+      saveId: crypto.randomUUID(), generation: 12, stateRevision: 7, savedAt: new Date().toISOString(), payload });
+    const initialStore = new SaveStore(path.join(directory, 'campaign'));
+    expect((await initialStore.open()).mode).toBe('new');
+    await initialStore.checkpoint(oldSave); await initialStore.close();
+
+    const store = new SaveStore(path.join(directory, 'campaign'));
+    let state = new GameState(oneShotBundle);
+    const coordinator = new PersistenceCoordinator(store, oneShotBundle, () => state, candidate => {
+      state = candidate; state.runtimeEpoch = crypto.randomUUID(); return state.runtimeEpoch;
+    }, () => state.runtimeEpoch, () => {});
+    await coordinator.open();
+    expect(coordinator.status().mode).toBe('ready');
+    expect(coordinator.status().errorCode).toBeNull();
+    expect(state.captureDurable().scenes).toEqual(original.scenes);
+    const migratedSave = decode(await fs.readFile(store.active));
+    expect(migratedSave.generation).toBe(oldSave.generation + 1);
+    expect(migratedSave.payload.scenes).toEqual(original.scenes);
+    await coordinator.close();
+
+    const renamed = structuredClone(original), removedObject = renamed.scenes.find(scene => scene.sceneId === 'cafe')!.objects[0]!;
+    removedObject.id = 'removed-authored-object';
+    expect(() => new GameState(oneShotBundle).restoreDurable(renamed)).toThrow('SAVE_OBJECT_IDS');
+  });
   it('rejects duplicate keys and corrupted checksums before hydration', () => {
     const save = saveOf(new GameState(stormwreckBundle));
     const raw = JSON.stringify(save);
@@ -199,6 +231,25 @@ describe('Alpha 0.3 durable state', () => {
     const restarted = new SaveStore(path.join(directory, 'campaign'));
     expect((await restarted.open()).save?.generation).toBe(1);
     await restarted.close();
+  });
+  it('keeps ten useful checkpoints while music runs on an unchanged table', async () => {
+    const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dungeons-idle-audio-history-')); temporary.push(directory);
+    const state = new GameState(stormwreckBundle), store = new SaveStore(path.join(directory, 'campaign'));
+    const coordinator = new PersistenceCoordinator(store, stormwreckBundle, () => state, () => state.runtimeEpoch, () => state.runtimeEpoch, () => {});
+    vi.useFakeTimers();
+    try {
+      await coordinator.open();
+      state.audio.music.playing = true; state.audio.music.startedAt = Date.now();
+      for (let index = 0; index < 10; index++) {
+        state.progress[`test.checkpoint-${index}`] = true; state.stateRevision++;
+        await coordinator.saveNow();
+      }
+      const before = await coordinator.history(), generation = coordinator.status().generation;
+      await vi.advanceTimersByTimeAsync(330_000);
+      expect(coordinator.status().generation).toBe(generation);
+      expect(await coordinator.history()).toEqual(before);
+      expect(before).toHaveLength(10);
+    } finally { await coordinator.close(); vi.useRealTimers(); }
   });
   it('archives legacy format 0 before migrating the committed slot to format 1', async () => {
     const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dungeons-alpha03-legacy-')); temporary.push(directory);

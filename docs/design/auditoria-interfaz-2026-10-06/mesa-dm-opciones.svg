@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1040" viewBox="0 0 2000 1040" role="img" aria-labelledby="title desc">
+  <title id="title">Opciones de diseño para la mesa del DM</title>
+  <desc id="desc">Comparación de una mesa con inspector contextual fijo y una mesa con el mapa como protagonista y controles en una bandeja inferior.</desc>
+  <defs>
+    <linearGradient id="bg" x2="0" y2="1"><stop stop-color="#14252a"/><stop offset="1" stop-color="#071013"/></linearGradient>
+    <linearGradient id="bar" x2="1"><stop stop-color="#233b3d"/><stop offset="1" stop-color="#101d21"/></linearGradient>
+    <pattern id="grid" width="34" height="34" patternUnits="userSpaceOnUse"><rect width="34" height="34" fill="#69755c"/><path d="M34 0H0V34" fill="none" stroke="#d4d4aa" stroke-opacity=".45" stroke-width="1"/><path d="M3 5h8v4H3zm17 13h6v8h-6z" fill="#87906e" opacity=".6"/></pattern>
+    <pattern id="water" width="34" height="34" patternUnits="userSpaceOnUse"><rect width="34" height="34" fill="#1d6973"/><path d="M3 10q6-4 12 0t12 0M-3 28q6-4 12 0t12 0" fill="none" stroke="#71c1bd" stroke-opacity=".55" stroke-width="2"/></pattern>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000" flood-opacity=".42"/></filter>
+    <style>
+      text{font-family:Segoe UI,Arial,sans-serif;fill:#e9e5d8}.title{font-size:34px;font-weight:700;letter-spacing:.03em}.sub{font-size:17px;fill:#aab9b6}.label{font-size:13px;fill:#9eb3af;letter-spacing:.12em;font-weight:700}.body{font-size:16px}.small{font-size:13px;fill:#afbfbb}.gold{fill:#f1d895}.mint{fill:#83d3aa}.cyan{fill:#92d5d9}.panel{fill:#101d20;stroke:#365258;stroke-width:1.5}.line{stroke:#345057;stroke-width:1}.btn{fill:#20373b;stroke:#536f70;stroke-width:1}.strong{fill:#bb9145;stroke:#e3c77a;stroke-width:1.5}.tokenBlue{fill:#276eaa;stroke:#8bd2ff;stroke-width:3}.tokenRed{fill:#8a353d;stroke:#ffb0a1;stroke-width:3}.tokenGreen{fill:#4b7a53;stroke:#b7ecab;stroke-width:3}
+    </style>
+  </defs>
+  <rect width="2000" height="1040" fill="#080f12"/>
+  <text x="60" y="58" class="title">MESA DEL DM</text><text x="60" y="88" class="sub">Dos formas de reducir paneles y mantener la escena táctica siempre a la vista</text>
+  <g transform="translate(45 120)">
+    <rect width="930" height="865" rx="18" fill="#0c171a" stroke="#476267" stroke-width="2"/>
+    <text x="24" y="35" class="label gold">OPCIÓN A · INSPECTOR CONTEXTUAL</text><text x="24" y="60" class="small">Mapa grande; las herramientas aparecen junto al elemento seleccionado.</text>
+    <g transform="translate(18 82)" filter="url(#shadow)">
+      <rect width="894" height="752" rx="12" fill="#0a1417" stroke="#405b60"/>
+      <rect width="894" height="53" rx="12" fill="url(#bar)"/><path d="M0 53H894" class="line"/>
+      <text x="20" y="23" class="label gold">D&amp;D · STORMWRECK ISLE</text><text x="20" y="42" class="small">Mesa del DM</text>
+      <rect x="532" y="12" width="105" height="29" rx="14" fill="#163a2f" stroke="#3e8b69"/><circle cx="548" cy="26" r="4" fill="#8de1ae"/><text x="560" y="31" class="small mint">3 conectados</text>
+      <rect x="650" y="12" width="124" height="29" rx="14" fill="#17353a" stroke="#41666c"/><circle cx="666" cy="26" r="4" fill="#8de1d4"/><text x="678" y="31" class="small cyan">Proyector listo</text>
+      <circle cx="840" cy="26" r="15" fill="#172a2d" stroke="#536d6d"/><text x="835" y="32" class="body">⋯</text>
+      <rect x="0" y="53" width="52" height="699" fill="#0d191c"/><path d="M52 53V752" class="line"/>
+      <g class="small" text-anchor="middle"><circle cx="26" cy="88" r="16" fill="#263e40" stroke="#a88a4c"/><text x="26" y="94" class="body gold">⌖</text><text x="26" y="122" font-size="10">Mapa</text><circle cx="26" cy="158" r="14" fill="#17292c"/><text x="26" y="164">♟</text><circle cx="26" cy="218" r="14" fill="#17292c"/><text x="26" y="224">▣</text><circle cx="26" cy="278" r="14" fill="#17292c"/><text x="26" y="284">☼</text><circle cx="26" cy="338" r="14" fill="#17292c"/><text x="26" y="344">♫</text></g>
+      <rect x="64" y="65" width="548" height="619" rx="8" fill="url(#grid)"/>
+      <path d="M64 65h205q-20 65 34 111t10 125q-42 28-10 86t-12 119q-30 70 11 178H64z" fill="url(#water)"/>
+      <path d="M252 65h360v619H286q22-91-13-149t12-109q35-44-6-96t9-105q-44-53-36-160z" fill="#8b7957" opacity=".32"/>
+      <g fill="#55665a" stroke="#283c39" stroke-width="4"><path d="M332 101l44-28 42 20-5 47-53 8z"/><path d="M513 140l41-26 39 17 3 49-50 18z"/><path d="M424 250l43-23 38 19-5 43-42 19z"/><path d="M333 450l44-22 40 25-9 44-42 14z"/><path d="M513 535l43-29 35 18 8 49-53 13z"/></g>
+      <g fill="#294b32" stroke="#1a3625" stroke-width="3"><circle cx="405" cy="103" r="20"/><circle cx="454" cy="116" r="17"/><circle cx="390" cy="151" r="17"/><circle cx="562" cy="434" r="21"/><circle cx="524" cy="463" r="16"/></g>
+      <g transform="translate(333 316) rotate(-14)"><path d="M0 17l118-13-8 30L9 42z" fill="#744d35" stroke="#d7b47a" stroke-width="3"/><path d="M19 18l8 25m21-28 7 24m24-27 5 23m23-26 1 22" stroke="#c29356" stroke-width="3"/><path d="M15 15l49-39 38 28" fill="none" stroke="#9b7548" stroke-width="5"/></g>
+      <g><circle cx="273" cy="281" r="15" class="tokenBlue"/><text x="268" y="286" font-size="10" font-weight="700">MI</text><circle cx="407" cy="383" r="15" class="tokenGreen"/><text x="402" y="388" font-size="10" font-weight="700">MA</text><circle cx="532" cy="270" r="15" class="tokenRed"/><text x="527" y="275" font-size="10" font-weight="700">PN</text></g>
+      <rect x="76" y="77" width="168" height="38" rx="7" fill="#071416dd" stroke="#91a69a"/><text x="90" y="94" class="label">CALA DEL NAUFRAGIO</text><text x="90" y="108" class="small">Cuadrícula · vista táctica</text>
+      <g transform="translate(76 625)"><rect width="320" height="43" rx="8" fill="#0a181bde" stroke="#4b6666"/><text x="15" y="18" class="label">SELECCIÓN</text><text x="15" y="35" class="small">Mike · 18/22 PG · casilla C4</text><rect x="248" y="8" width="60" height="27" rx="6" class="btn"/><text x="258" y="27" class="small">Ficha</text></g>
+      <rect x="624" y="65" width="252" height="619" rx="9" class="panel"/>
+      <text x="644" y="91" class="label">ESCENA</text><text x="644" y="116" class="body gold">Cala del naufragio</text><rect x="644" y="128" width="210" height="34" rx="7" class="btn"/><text x="657" y="150" class="small">Cambiar escena  ▾</text>
+      <path d="M644 178H856" class="line"/><text x="644" y="202" class="label">PERSONAJES</text>
+      <rect x="644" y="216" width="210" height="57" rx="8" fill="#18302d" stroke="#4d795d"/><circle cx="665" cy="244" r="13" class="tokenBlue"/><text x="688" y="240" class="body">Mike</text><text x="688" y="259" class="small">18 / 22 PG</text><rect x="644" y="281" width="210" height="52" rx="8" fill="#142326" stroke="#334e51"/><circle cx="665" cy="307" r="12" class="tokenGreen"/><text x="688" y="304" class="body">Maria</text><text x="688" y="321" class="small">22 / 22 PG</text>
+      <text x="644" y="365" class="label">HERRAMIENTAS</text><rect x="644" y="378" width="100" height="38" rx="7" class="strong"/><text x="661" y="402" class="small gold">Mover</text><rect x="754" y="378" width="100" height="38" rx="7" class="btn"/><text x="765" y="402" class="small">Ocultar</text>
+      <rect x="644" y="428" width="210" height="65" rx="8" fill="#132326" stroke="#334e51"/><text x="658" y="450" class="label">CLIMA</text><text x="658" y="477" class="body">Nublado · Viento suave</text>
+      <rect x="644" y="509" width="210" height="44" rx="8" class="btn"/><text x="660" y="536" class="small">Ver interacciones</text>
+      <rect x="644" y="567" width="210" height="40" rx="8" fill="#382f1d" stroke="#9a7b3f"/><text x="660" y="592" class="small gold">Deshacer última acción</text>
+      <rect x="64" y="696" width="812" height="42" rx="8" fill="#111f22" stroke="#334f54"/><text x="82" y="722" class="small">MAPA</text><text x="172" y="722" class="small">Jugadores  3</text><text x="330" y="722" class="small">Encuentro</text><text x="465" y="722" class="small">Objetos</text><text x="580" y="722" class="small">Cámara</text><text x="752" y="722" class="small gold">＋ Herramientas</text>
+    </g>
+    <text x="28" y="855" class="small">Ventaja: controles a la vista y ligados a la selección.</text><text x="28" y="875" class="small">Auditar: ancho del panel y altura disponible para el mapa.</text>
+  </g>
+  <g transform="translate(1025 120)">
+    <rect width="930" height="865" rx="18" fill="#0c171a" stroke="#476267" stroke-width="2"/>
+    <text x="24" y="35" class="label gold">OPCIÓN B · MAPA PROTAGONISTA</text><text x="24" y="60" class="small">Mapa casi completo; selección y herramientas viven en una bandeja plegable.</text>
+    <g transform="translate(18 82)" filter="url(#shadow)">
+      <rect width="894" height="752" rx="12" fill="#0a1417" stroke="#405b60"/>
+      <rect width="894" height="53" rx="12" fill="url(#bar)"/><path d="M0 53H894" class="line"/>
+      <text x="20" y="23" class="label gold">D&amp;D · STORMWRECK ISLE</text><text x="20" y="42" class="small">Cala del naufragio</text>
+      <rect x="535" y="12" width="105" height="29" rx="14" fill="#163a2f" stroke="#3e8b69"/><circle cx="551" cy="26" r="4" fill="#8de1ae"/><text x="563" y="31" class="small mint">3 conectados</text>
+      <rect x="651" y="12" width="122" height="29" rx="14" fill="#17353a" stroke="#41666c"/><circle cx="667" cy="26" r="4" fill="#8de1d4"/><text x="679" y="31" class="small cyan">Proyector ✓</text><circle cx="840" cy="26" r="15" fill="#172a2d" stroke="#536d6d"/><text x="835" y="32" class="body">⋯</text>
+      <rect x="14" y="66" width="866" height="575" rx="9" fill="url(#grid)"/>
+      <path d="M14 66h215q-18 65 34 111t10 125q-42 28-10 86t-12 119q-28 68 14 134H14z" fill="url(#water)"/>
+      <path d="M217 66h663v575H247q25-91-11-149t12-109q35-44-6-96t9-105q-41-53-34-150z" fill="#8b7957" opacity=".29"/>
+      <g fill="#55665a" stroke="#283c39" stroke-width="5"><path d="M331 102l44-28 42 20-5 47-53 8z"/><path d="M685 127l45-28 43 22-4 53-52 17z"/><path d="M519 242l43-23 38 19-5 43-42 19z"/><path d="M361 490l44-22 40 25-9 44-42 14z"/><path d="M690 535l43-29 35 18 8 49-53 13z"/></g>
+      <g fill="#294b32" stroke="#1a3625" stroke-width="4"><circle cx="405" cy="105" r="24"/><circle cx="454" cy="125" r="21"/><circle cx="390" cy="165" r="20"/><circle cx="790" cy="449" r="25"/><circle cx="744" cy="481" r="20"/></g>
+      <g transform="translate(438 337) rotate(-14)"><path d="M0 17l148-16-8 38L11 47z" fill="#744d35" stroke="#d7b47a" stroke-width="4"/><path d="M19 18l8 25m24-28 7 24m26-27 5 23m27-26 1 22" stroke="#c29356" stroke-width="4"/><path d="M15 15l59-43 49 33" fill="none" stroke="#9b7548" stroke-width="6"/></g>
+      <g><circle cx="297" cy="282" r="17" class="tokenBlue"/><text x="292" y="287" font-size="10" font-weight="700">MI</text><circle cx="506" cy="435" r="17" class="tokenGreen"/><text x="501" y="440" font-size="10" font-weight="700">MA</text><circle cx="728" cy="310" r="17" class="tokenRed"/><text x="723" y="315" font-size="10" font-weight="700">PN</text></g>
+      <rect x="28" y="80" width="202" height="42" rx="8" fill="#071416e8" stroke="#91a69a"/><text x="42" y="99" class="label">CALA DEL NAUFRAGIO</text><text x="42" y="114" class="small">Vista táctica · 1 casilla = 1,5 m</text>
+      <g transform="translate(770 78)"><rect width="92" height="238" rx="12" fill="#0a181bde" stroke="#4b6666"/><circle cx="46" cy="37" r="23" fill="#19363a" stroke="#718889"/><text x="40" y="44" class="body gold">☼</text><circle cx="46" cy="99" r="23" fill="#19363a" stroke="#718889"/><text x="40" y="106" class="body gold">♟</text><circle cx="46" cy="161" r="23" fill="#19363a" stroke="#718889"/><text x="40" y="168" class="body gold">▣</text><circle cx="46" cy="219" r="18" fill="#bb9145" stroke="#e3c77a"/><text x="40" y="225" class="body">↶</text></g>
+      <rect x="14" y="652" width="866" height="84" rx="10" fill="#0d1b1e" stroke="#49656a"/>
+      <text x="30" y="674" class="label">MESA · 3 EN ESCENA</text><circle cx="56" cy="708" r="17" class="tokenBlue"/><text x="51" y="713" font-size="10" font-weight="700">MI</text><text x="81" y="704" class="body">Mike</text><text x="81" y="723" class="small">18/22 PG</text><circle cx="220" cy="708" r="17" class="tokenGreen"/><text x="215" y="713" font-size="10" font-weight="700">MA</text><text x="245" y="704" class="body">Maria</text><text x="245" y="723" class="small">22/22 PG</text><rect x="584" y="669" width="126" height="52" rx="8" class="btn"/><text x="604" y="691" class="small">Escena</text><text x="604" y="710" class="body">Cala ▾</text><rect x="724" y="669" width="138" height="52" rx="8" class="strong"/><text x="745" y="701" class="body gold">Abrir panel  ☰</text>
+    </g>
+    <text x="28" y="855" class="small">Ventaja: máxima lectura del tablero y menos elementos permanentes.</text><text x="28" y="875" class="small">Auditar: localizar edición avanzada dentro del panel plegable.</text>
+  </g>
+</svg>

@@ -1,5 +1,30 @@
 # Resultados de aceptación — RC4 y avance Alpha 0.2
 
+## Rendimiento de D8 — Temple y Mirror — 04/10/2026
+
+Se redujo el coste de render sólo en los dos mapas señalados como lentos: SSAO baja de 8 a 4 muestras y se renderizan a una escala algo menor. La oclusión de fichas consulta un índice XZ para escenografía estática congelada, prueba aparte los objetos dinámicos y evita reconstruir la máscara gráfica en cada fotograma cuando nada cambia.
+
+| Comprobación | Resultado | Alcance |
+|---|---|---|
+| Build Vite de producción | PASS | 2.130 módulos transformados. |
+| Pruebas del cambio | PASS — 15/15 | 3 archivos; índice espacial, geometría estática/dinámica, oclusión parcial y cámara. |
+| Tipos de servidor | PASS | `tsconfig.server.json`. |
+| Suite completa | 331/332; 1 fallo | `engine/server/game.test.ts`, prueba de combate que espera PG/estado de una criatura y recibe `undefined`; también falla al ejecutarla aislada. No está en la ruta de render modificada. |
+| Tipos de cliente | PENDIENTE | Se mantiene el error `Camera.alpha` en `apps/web/world.ts:1285`, dentro del cálculo de orientación de cámara anterior a este ajuste. |
+| FPS y revisión física | PENDIENTE | No medidos en el portátil MSI, móvil ni proyector. Hace falta volver a probar Temple y Mirror en el equipo donde se observó la lentitud. |
+
+La candidata compila y las pruebas focalizadas pasan; no se declara todavía una mejora de FPS medida ni se cierra el fallo ajeno de combate/tipado.
+
+## Referencia del atlas M5 limitada a Stormwreck — 04/10/2026
+
+Se retiró la URL del atlas del CSS global. El jugador sólo la asigna a iconos del inventario de Stormwreck, campaña que sirve ese recurso; D8 no genera una petición al atlas. Build Vite: PASS, sin el aviso de resolución de `loot-atlas-m5.svg`. Suite completa: **326/326 pruebas PASS, 39 archivos**. El chequeo global de tipos sigue señalando TS7006 en el parámetro `cell` de `engine/client/world-area-effects.test.ts`, un archivo de prueba sin seguimiento ajeno a este arreglo.
+
+## D8 — cierre técnico del recorrido, 04/10/2026
+
+Servidor/persistencia/Babylon existentes, fuente visual V40. Suite vigente **274/274 PASS**; tipos cliente/servidor y build aislado; smoke con seis mapas/tokens/70 audios; integración real DM/dos PJ/proyector: dados privados, idempotencia, cuatro objetivos, final, restore de mundo completo manteniendo propietarios, diez saves y reinicio/autocarga PASS. La música sin cambios no rota guardados (prueba de 330 segundos simulados). El primer pase detectó un fallo del catálogo de audio de Stormwreck; durante el trabajo concurrente se cambió ese recurso por un nombre público neutro y la repetición global pasó. Ese cambio ajeno se preserva y no se atribuye al cierre D8.
+
+QA Chrome aislada: selector/retorno de María, seis mapas Babylon, arco que antes quedaba bajo el HUD, d20 y formulario de crítico2d6, daño15 una vez y conservación al terminar combate, Café/aldeana y Reflejo antes de combate, móvil vertical/horizontal emulado. No móvil/proyector físico, aceptación artística ni FPS sostenidos. Reglas situacionales/preparados/caída/bucle temporal guiados: consultar matriz privada. Evidencia reproducible y capturas: [D8_CLOSEOUT_20261004.md](evidence/D8_CLOSEOUT_20261004.md).
+
 ## Paridad de opciones de cámara entre Stormwreck y D8 Night — 2026-10-03
 
 Candidata de aplicación `0.3.2-dev.7`. La comparación confirma que las interfaces de DM, jugador y proyector, el panel móvil de audio, la cuadrícula, los modos fijo/semi-fijo/seguimiento, los ajustes del jugador y la colocación/tamaño de joystick y botón de acción ya usan las mismas vistas y preferencias en ambas campañas. La diferencia funcional era la cámara: D8 emplea `babylon-d8`, que estaba excluido de los controles y del evento de cámara compartida.

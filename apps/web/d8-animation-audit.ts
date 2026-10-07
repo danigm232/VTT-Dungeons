@@ -9,9 +9,12 @@ const coverageLabels = { own: 'Secuencia propia', reused: 'Reutilizada', missing
 let snapshot: WorldSnapshot | null = null, dm: DmState | null = null, campaign: PublicCampaignDefinition | null = null, renderer: WorldRenderer | null = null;
 let rosterKey = '', current: { actorId: string; action: VisualAction } | null = null;
 const reviews = new Map<string, string>();
+const reviewStorageKey = 'd8-animation-reviews-20261004';
+try { for (const [key, value] of JSON.parse(localStorage.getItem(reviewStorageKey) ?? '[]')) if (value === 'ok' || value === 'review') reviews.set(key, value); } catch {}
+let sequence: Array<{ actorId: string; action: VisualAction }> = [], sequenceIndex = 0, sequenceNextAt = 0, sequencePlayed = 0, sequenceSkipped = 0;
 const input = (id: string) => element<HTMLInputElement>(id);
 const select = (id: string) => element<HTMLSelectElement>(id);
-function stop() { renderer?.stopVisualPreview(); current = null; element('animationAuditStatus').textContent = 'Prueba local · no altera la partida'; input('animationAuditFrame').max = '0'; input('animationAuditFrame').value = '0'; element('animationAuditFrameLabel').textContent = '—'; element('animationAuditPause').textContent = 'Pausar'; }
+function stop() { sequence = []; sequenceIndex = 0; element('animationAuditSequence').textContent = 'Recorrer todas las acciones visibles'; renderer?.stopVisualPreview(); current = null; element('animationAuditStatus').textContent = 'Prueba local · no altera la partida'; input('animationAuditFrame').max = '0'; input('animationAuditFrame').value = '0'; element('animationAuditFrameLabel').textContent = '—'; element('animationAuditPause').textContent = 'Pausar'; }
 function play(actorId: string, action: VisualAction) {
   if (!snapshot || !campaign || !renderer || !visibleAuditActors(snapshot, campaign.campaignId).some(actor => actor.id === actorId)) return;
   const actor = snapshot.entities.find(entity => entity.id === actorId)!;
@@ -33,6 +36,7 @@ function play(actorId: string, action: VisualAction) {
 }
 export function renderD8AnimationAudit(next: WorldSnapshot | null, state: DmState | null, definition: PublicCampaignDefinition | null, world: WorldRenderer | null, force = false) {
   const sceneChanged = snapshot?.sceneEpoch !== next?.sceneEpoch || snapshot?.sceneId !== next?.sceneId;
+  if (sceneChanged && sequence.length) stop();
   snapshot = next; dm = state; campaign = definition; renderer = world;
   const panel = element('animationAuditCard'); panel.hidden = campaign?.campaignId !== 'd8-night-private';
   if (panel.hidden) { stop(); rosterKey = ''; return; }
@@ -68,7 +72,7 @@ export function renderD8AnimationAudit(next: WorldSnapshot | null, state: DmStat
         const button = document.createElement('button'); button.type = 'button'; button.textContent = `${action.label}${action.coverage === 'missing' ? ' · falta' : action.coverage === 'reused' ? ' · ≈' : ''}`;
         button.dataset.coverage = action.coverage; button.dataset.review = reviews.get(`${actor.id}:${action.id}`) ?? '';
         button.title = `${coverageLabels[action.coverage]} · ${action.state}${action.attackType ? ' · cuerpo + proyectil/ataque + impacto + sonido' : ''}`;
-        button.setAttribute('aria-label', `${actor.label}: ${action.label}. ${coverageLabels[action.coverage]}`); button.onclick = () => play(actor.id, action); buttons.append(button);
+        button.setAttribute('aria-label', `${actor.label}: ${action.label}. ${coverageLabels[action.coverage]}`); button.onclick = () => { if (sequence.length) stop(); play(actor.id, action); }; buttons.append(button);
       }
       group.append(heading, buttons); groups.append(group);
     }
@@ -87,9 +91,31 @@ input('animationAuditFrame').oninput = () => { renderer?.seekVisualPreview(Numbe
 for (const [id, step] of [['animationAuditPrevious', -1], ['animationAuditNext', 1]] as const) element(id).onclick = () => {
   const status = renderer?.getVisualPreviewStatus(); if (!status) return; renderer?.seekVisualPreview(Math.max(0, Math.min(status.frames - 1, status.frame + step))); element('animationAuditPause').textContent = 'Continuar';
 };
-for (const [id, value] of [['animationAuditGood', 'ok'], ['animationAuditBad', 'review']] as const) element(id).onclick = () => { if (!current) return; reviews.set(`${current.actorId}:${current.action.id}`, value); renderD8AnimationAudit(snapshot, dm, campaign, renderer, true); };
+for (const [id, value] of [['animationAuditGood', 'ok'], ['animationAuditBad', 'review']] as const) element(id).onclick = () => { if (!current) return; reviews.set(`${current.actorId}:${current.action.id}`, value); try { localStorage.setItem(reviewStorageKey, JSON.stringify([...reviews])); } catch {} renderD8AnimationAudit(snapshot, dm, campaign, renderer, true); };
+element('animationAuditSequence').onclick = () => {
+  if (sequence.length) { stop(); return; }
+  if (!snapshot || !campaign) return;
+  input('animationAuditLoop').checked = false;
+  sequence = visibleAuditActors(snapshot, campaign.campaignId).flatMap(actor => auditActions(actor, snapshot!, dm, campaign!).filter(action => action.coverage !== 'missing').map(action => ({ actorId: actor.id, action })));
+  sequenceIndex = 0; sequenceNextAt = 0; sequencePlayed = 0; sequenceSkipped = 0; element('animationAuditSequence').textContent = 'Detener recorrido';
+};
 element('animationAuditExport').onclick = () => {
   const report = { scene: snapshot?.sceneId, createdAt: new Date().toISOString(), actors: visibleAuditActors(snapshot, campaign?.campaignId ?? '').map(actor => ({ id: actor.id, label: actor.label, actions: auditActions(actor, snapshot!, dm, campaign!).map(action => ({ ...action, review: reviews.get(`${actor.id}:${action.id}`) ?? 'untested' })) })) };
   const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' })), anchor = document.createElement('a'); anchor.href = url; anchor.download = `d8-animaciones-${snapshot?.sceneId ?? 'mapa'}.json`; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1_000);
 };
-setInterval(() => { const status = renderer?.getVisualPreviewStatus(); if (current && !status) { stop(); return; } if (!status) return; input('animationAuditFrame').value = String(status.frame); element('animationAuditFrameLabel').textContent = `${status.frame + 1}/${status.frames}${status.finished ? ' · terminada' : status.paused ? ' · pausa' : ''}`; }, 150);
+setInterval(() => {
+  const status = renderer?.getVisualPreviewStatus();
+  if (sequence.length && (!status || status.finished) && performance.now() >= sequenceNextAt) {
+    if (sequenceIndex >= sequence.length) { const played = sequencePlayed, skipped = sequenceSkipped; stop(); element('animationAuditStatus').textContent = `Recorrido terminado · ${played} pruebas locales${skipped ? ` · ${skipped} omitidas (actor o blanco no disponible)` : ''}. Las marcas «correcta» requieren tu revisión visual.`; return; }
+    const next = sequence[sequenceIndex++]!, actors = snapshot?.entities ?? [];
+    if (!actors.some(actor => actor.id === next.actorId)) { sequenceSkipped++; sequenceNextAt = 0; return; }
+    const target = visibleAuditActors(snapshot, campaign?.campaignId ?? '').find(actor => actor.id !== next.actorId);
+    if (next.action.attackType && !next.action.effect && !target) { sequenceSkipped++; sequenceNextAt = 0; return; }
+    select('animationAuditTarget').value = target?.id ?? '';
+    play(next.actorId, next.action); if (renderer?.getVisualPreviewStatus()) sequencePlayed++; else sequenceSkipped++; sequenceNextAt = performance.now() + 300;
+    element('animationAuditStatus').textContent = `${sequenceIndex}/${sequence.length} · ${element('animationAuditStatus').textContent}`;
+  }
+  if (current && !renderer?.getVisualPreviewStatus()) { stop(); return; }
+  const active = renderer?.getVisualPreviewStatus(); if (!active) return;
+  input('animationAuditFrame').value = String(active.frame); element('animationAuditFrameLabel').textContent = `${active.frame + 1}/${active.frames}${active.finished ? ' · terminada' : active.paused ? ' · pausa' : ''}`;
+}, 150);

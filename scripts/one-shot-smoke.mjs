@@ -20,12 +20,13 @@ async function freePort() {
   return port;
 }
 const port = await freePort(), base = `http://127.0.0.1:${port}`;
-const protocol = await import(pathToFileURL(path.join(root, 'dist/server/engine/shared/protocol.js')).href);
+const serverBuild = path.resolve(root, process.env.DUNGEONS_SERVER_BUILD || 'dist/server');
+const protocol = await import(pathToFileURL(path.join(serverBuild, 'engine/shared/protocol.js')).href);
 async function launch() {
   const childEnvironment = { ...process.env, PORT: String(port), HOST: '127.0.0.1', DUNGEONS_DATA_DIR: temporary,
     DUNGEONS_CAMPAIGN: 'd8-night-private', DUNGEONS_TEST_CHILD: '1' };
   delete childEnvironment.DM_PASSWORD;
-  child = spawn(process.execPath, ['dist/server/apps/server/index.js'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+  child = spawn(process.execPath, [path.join(serverBuild, 'apps/server/index.js')], { cwd: root, stdio: ['ignore', 'pipe', 'pipe', 'ipc'], windowsHide: true,
     env: childEnvironment });
   let output = '', healthFailure = '';
   child.stdout.on('data', data => { output += data.toString(); }); child.stderr.on('data', data => { output += data.toString(); });
@@ -85,7 +86,8 @@ try {
   await launch();
   const campaign = await (await fetch(`${base}/api/campaign`)).json();
   assert.equal(campaign.campaignId, 'd8-night-private');
-  assert.equal(campaign.version, '0.3.0-dev.2');
+  const { oneShotCampaignDefinition } = await import(pathToFileURL(path.join(serverBuild, 'campaigns/one-shot/public/pack.js')).href);
+  assert.equal(campaign.version, oneShotCampaignDefinition.version);
   assert.equal(campaign.scenes.length, 6);
   assert.deepEqual(campaign.scenes.map(scene => scene.id), ['temple', 'garden', 'cafe', 'market', 'mirror', 'dinner']);
   assert.equal(campaign.roster.length, 2);
@@ -94,7 +96,8 @@ try {
   const rendererResponse = await fetch(`${base}/api/d8/renderer-config`);
   assert.equal(rendererResponse.status, 200);
   const renderer = await rendererResponse.json();
-  assert.equal(renderer.version, 'V35');
+  const { D8_VERSION } = await import(pathToFileURL(path.join(serverBuild, 'campaigns/one-shot/playground/d8night.config.js')).href);
+  assert.equal(renderer.version, D8_VERSION);
   assert.deepEqual(Object.keys(renderer.maps).sort(), ['cafe', 'dinner', 'garden', 'market', 'mirror', 'temple']);
   assert.ok(Object.values(renderer.maps).every(map => Array.isArray(map.MAP.objects) && map.MAP.objects.length > 0));
   const forbiddenKeys = [];
@@ -110,7 +113,8 @@ try {
   assert.equal(JSON.stringify(renderer).includes('CANON'), false);
   for (const scene of campaign.scenes) assert.equal((await fetch(`${base}${scene.background}`)).status, 200, scene.id);
   for (const token of Object.values(campaign.tokens)) assert.equal((await fetch(`${base}${token.url}`)).status, 200, token.url);
-  for (const animationSet of Object.values(campaign.tokenAnimations)) for (const animation of Object.values(animationSet)) for (const frame of animation.frames) assert.equal((await fetch(`${base}${frame}`)).status, 200, frame);
+  const animationUrls = new Set(Object.values(campaign.tokenAnimations).flatMap(set => Object.values(set).flatMap(animation => animation.frames.map(frame => typeof frame === 'string' ? frame : frame.url))));
+  for (const url of animationUrls) assert.equal((await fetch(`${base}${url}`)).status, 200, url);
   const audioUrls = new Set();
   const collectAudioUrls = value => {
     if (Array.isArray(value)) return value.forEach(collectAudioUrls);

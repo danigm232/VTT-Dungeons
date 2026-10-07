@@ -1,5 +1,78 @@
 # Ruta de Sol: D8 fiable, motor reutilizable para Stormwreck
 
+## Correcciones solicitadas de mapas y clima — V47 · 05/10/2026
+
+Evidencia vigente: [D8_MAP_CORRECTIONS_20261005.md](evidence/D8_MAP_CORRECTIONS_20261005.md). Amplía el alcance anterior: **entrar en hielo azul ya aplica la caída fatal**, no queda simplemente guiado. Magia, excepciones y el bucle narrativo siguen arbitrados.
+
+- [x] F1: alfa real, fichas verticales, profundidad/pies y movimiento sin desaparición durante preparación de textura.
+- [x] F2: suelos continuos, vaca sólo sprite, agua/luces/estatua, tejados de interiores, casa de Cena y PNJ sentados sin sillas duplicadas.
+- [x] F3: navegación autoritativa de seis mapas, carteles legibles, cinco pasos de aproximación, espejo único transformable y consecuencia del hielo azul persistente.
+- [x] F4: climatología compartida con cuatro fases del día, lluvia/nieve en tres intensidades, viento, audio existente, snapshots y saves.
+- [x] F5: 192 vistas de seis mapas más 32 de Cena tras el último cierre de hastiales, cero errores y posiciones conservadas; suite 371/371, builds, integraciones y controles DM/jugador PASS.
+- [ ] Aceptación artística, escucha del usuario y prueba de rendimiento en móvil/proyector físicos. No se afirma que no pueda existir ningún error ni automatización universal de reglas.
+
+## Revisión integral final — 05/10/2026
+
+Estado vigente y evidencias: [D8_FINAL_AUDIT_20261005.md](evidence/D8_FINAL_AUDIT_20261005.md). Se conserva el cierre técnico del MVP F0–F7 y se corrigen nuevos fallos de presentación, privacidad del último impacto, recuperación de mapas y acceso a hoja durante combate. No se certifica ausencia de cualquier fallo posible ni se convierte el backlog de reglas universales en funcionalidad implementada.
+
+- [x] Auditoría de combate/persistencia/sincronización, sprites/catálogo, navegación/oclusión/cámara, recursos ambientales y controles de las interfaces.
+- [x] Último impacto conservado al terminar automáticamente combate; caída/desvanecimiento breve de criaturas ya visibles, sin resucitarlas ni filtrar acciones privadas.
+- [x] Distribución recomendada con tablero primero y herramientas de pruebas cerradas pero recuperables. Conexión y orientación de cámara plegables, sin borrar distribuciones personalizadas.
+- [x] Aviso visible durante carga y reintento común para DM/jugador/proyector.
+- [x] Hoja y mochila accesibles por encima de iniciativa durante combate.
+- [x] Ayudas de estados con CD de origen y rasgos/PG reales; hoja legible y verificada a 390×844 / 844×390. Suite final 360/360, integraciones D8 y Stormwreck PASS.
+- [ ] Aceptación artística y escucha final del usuario, prueba móvil/proyector físicos y rendimiento sostenido.
+- [ ] Decidir preparados y cualquier conversión de fichas; Light/offhand/Nick/maestrías y otras resoluciones situacionales siguen guiadas, no automatizadas por esta pasada. Cena conserva camino decorativo sin transición nueva.
+
+## Continuidad de barrio y rutas — V46 · 05/10/2026
+
+- [x] Templo: césped continuo hasta la costa y límite físico visible sin extender el grid.
+- [x] Café y Mercado: mismo barrio de casas, calle, puestos, faroles y vegetación; caminos alineados con las casillas legales.
+- [x] Cena: patio de finca con jardín y calle exterior, manteniendo el desenlace jugable.
+- [x] Tres conexiones bidireccionales Templo/Café/Mercado mediante puertos del motor, sin crear un sistema paralelo.
+- [x] Prueba de viaje real de María en los tres caminos y regreso, foco DM, restauración de escena/posición y autoguardado al viajar.
+- [x] Auditoría de ocho giros y tres inclinaciones en Templo, Café, Mercado y Cena: 96 vistas sin errores.
+- [ ] Prueba en móvil/proyector físicos y aceptación artística del DM. El camino de Cena aún no cambia de mapa.
+
+## Fondo atmosférico 2.5D — V45 · 05/10/2026
+
+- [x] Conservar perfiles ambientales por bioma y añadir terreno, vegetación, edificios y roca como geometría 3D no interactiva.
+- [x] Sustituir el vacío oscuro por superficies mundiales texturizadas; no se usa fondo prerenderizado del tablero ni gradiente de pantalla dependiente de cámara. El color del cielo queda como respaldo del motor fuera del terreno visible.
+- [x] Corregir la causa visual: materiales exteriores demasiado oscuros en Babylon; Pixi no era la capa que ocultaba el fondo. Retirar la bóveda opaca que escondía el Espejo.
+- [x] Integrar costa/mar del Templo, nieve del Jardín, pavimento de Café/Mercado, finca de Cena y relieve/arena del Espejo; inspeccionar los seis mapas.
+- [x] Verificar Templo con giro e inclinaciones 35°/45°/50° y confirmar aislamiento al cambiar D8 → Stormwreck → D8.
+- [x] Regenerar `playground_v45.json`, comprobar tipos cliente y build de producción.
+- [ ] Validar rendimiento y aspecto en móvil/proyector físicos; no se sustituye esta prueba por capturas de navegador ni por la auditoría global que antes se bloqueó.
+
+El alcance de la revisión visual y las limitaciones constan en [PROJECT_STATE.md](../PROJECT_STATE.md).
+
+## Pasada espacial/audio — 04/10/2026, V41
+
+- [x] Auditar configuración contra geometría efectiva; conservar motor y escenario 2.5D.
+- [x] Corregir casillas de 1,5 m, paredes finas, mobiliario, accesos, apoyos y rutas conectadas en las seis escenas.
+- [x] Usar alturas reales para grid, pies y selección; preservar guardados mediante migración idempotente.
+- [x] Corregir máscara parcial de fichas respecto a cámara/pivote y probar geometría Babylon real sin GPU.
+- [x] Evitar reinicios de audio finito por cambios de mezclador o clientes tardíos; probar sincronización al elegir personaje.
+- [x] Suite completa 319/319 y tipos cliente/servidor.
+- [ ] Aprobación visual final de los seis escenarios, escucha de música/SFX y rendimiento en móvil/proyector físicos. La herramienta de navegador se interrumpió; no sustituir esa evidencia por compilación o pruebas matemáticas.
+
+Ver [evidencia y alcance](evidence/D8_SPATIAL_AUDIO_20261004.md). Esta pasada no declara automatizados todos los efectos situacionales del reglamento.
+
+## Actualización vigente — 04/10/2026
+
+El cierre **jugable técnico** de D8 añade progresión privada, cuatro resultados y tres finales derivados, encuentros de hasta seis rosas/diez parroquianos, Reflejo genérico e imitación, paredes/línea de efecto, hielo difícil, dados por propietario y carga sin recargar los clientes. Babylon V40 existente se conserva; no se ha tocado el arte de Cena ni sustituido escenarios por imágenes. Evidencia y límites: [D8_CLOSEOUT_20261004.md](evidence/D8_CLOSEOUT_20261004.md).
+
+| Fase | Estado acreditado ahora | Lo que no se declara cerrado |
+|---|---|---|
+| F0–F2 | ✅ Base existente conservada; restauración ampliada y probada por red | Aceptación del hardware de la mesa |
+| F3 | ✅ Alcance MVP: fichas/ataques/recursos importados y matriz automático/guiado | Conversión completa2024, preparados elegidos, offhand/maestrías y efectos situacionales universales |
+| F4 | ✅ Perfiles, grupos, recarga, copia y orden/imitación del Reflejo | IA táctica o rebalanceo automático |
+| F5 | ✅ Seis escenas/cuatro objetivos/tres finales, empate/excepciones, persistencia y paredes | Hielo frágil/caída/bucle son guiados con checkpoint, no reinicio automático |
+| F6 | ✅ UX bloqueante corregida: arco pulsable, selección alternativa, borradores, hoja y mapa móvil; Silverfarben con arte propio y catálogo ampliado | Aprobación artística de gestos propios/reutilizados, FPS/hardware físico |
+| F7 | ✅ Pruebas técnicas del recorrido D8 y motor común | No equivalen a aceptación física ni versión1; pruebas manuales contextuales siguen en guía |
+
+Estas marcas cierran el alcance MVP **con resolución DM explícita**, no todas las aspiraciones originales de cada fase. Los criterios históricos siguientes se conservan como backlog trazable: no deben presentarse como todos automatizados. La instrucción final de empezar por F0 queda histórica; continuar desde los pendientes concretos del informe, sin reconstruir lo ya probado.
+
 **Actualización de prioridad 03/10/2026:** por petición expresa del usuario, se integra primero en el VTT el render D8 Babylon V34/V35 existente, sin esperar al cierre de todas las fases F3–F7. El alcance es un piloto jugable de representación, no una reescritura de arquitectura ni una declaración de H1 completa. F0–F2 no se reinician; F3–F7 siguen abiertos y conservan sus puertas de salida. Tras la prueba del usuario, el siguiente ciclo pedido es mejorar arquitectura reutilizable y después escenarios, texturas, iluminación y VFX.
 
 Fecha: 2026-09-18. Ruta viva de implementación. Las fases se marcan únicamente después de superar su puerta de salida y conservar evidencia reproducible. Sustituye el orden inmediato de los encargos anteriores, no borra sus compromisos ni declara aceptada una versión.

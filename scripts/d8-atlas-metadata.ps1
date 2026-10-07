@@ -20,7 +20,7 @@ public static class D8AtlasBounds {
           if(visited[next]||bytes[ny*Math.Abs(stride)+nx*4+3]<32)continue;visited[next]=true;queue[tail++]=next;
         }
       }
-      if(count>500)result.Add(new int[]{left,top,right-left+1,bottom-top+1,count});
+      if(count>500)result.Add(new int[]{left,top,right-left+1,bottom-top+1,count,seed%width,seed/width});
     }
     return result.ToArray();
   }
@@ -52,4 +52,4 @@ $taskBitmap.UnlockBits($taskBits); $taskBitmap.Dispose()
 $taskBounds = [D8AtlasBounds]::Read($taskBytes, $taskWidth, $taskHeight, $taskStride, $Rows)
 $taskComponents = [D8AtlasBounds]::Components($taskBytes, $taskWidth, $taskHeight, $taskStride)
 $taskReference = ($taskBounds[0..3] | ForEach-Object { $_[3] } | Sort-Object)[2]
-[pscustomobject]@{width=$taskWidth;height=$taskHeight;rows=$Rows;cornerAlpha=$taskCorner;referenceHeight=$taskReference;components=@($taskComponents | ForEach-Object { [pscustomobject]@{x=$_[0];y=$_[1];width=$_[2];height=$_[3];opaquePixels=$_[4]} });frames=@($taskBounds | ForEach-Object { [pscustomobject]@{x=$_[0];y=$_[1];width=$_[2];height=$_[3];opaquePixels=$_[4];edgePixels=$_[5]} })} | ConvertTo-Json -Depth 5 -Compress
+[pscustomobject]@{width=$taskWidth;height=$taskHeight;rows=$Rows;cornerAlpha=$taskCorner;referenceHeight=$taskReference;components=@($taskComponents | ForEach-Object { [pscustomobject]@{x=$_[0];y=$_[1];width=$_[2];height=$_[3];opaquePixels=$_[4];seedX=$_[5];seedY=$_[6]} });frames=@($taskBounds | ForEach-Object { [pscustomobject]@{x=$_[0];y=$_[1];width=$_[2];height=$_[3];opaquePixels=$_[4];edgePixels=$_[5]} })} | ConvertTo-Json -Depth 5 -Compress

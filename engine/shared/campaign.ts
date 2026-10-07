@@ -11,12 +11,14 @@ export type Rotation = z.infer<typeof rotationSchema>;
 const gridSchema = z.object({
   cols: z.number().int().min(1).max(256), rows: z.number().int().min(1).max(256),
   tileSize: z.number().int().min(8).max(256), originX: z.number().int().min(-4096).max(4096), originY: z.number().int().min(-4096).max(4096),
-  width: z.number().int().positive().max(65536), height: z.number().int().positive().max(65536)
+  width: z.number().int().positive().max(65536), height: z.number().int().positive().max(65536),
+  worldOrigin: z.object({x:z.number().finite(),z:z.number().finite()}).strict().optional()
 }).strict();
 
 const commonProp = {
   id: idSchema, label: z.string().min(1).max(80), cell: cellSchema, assetId: idSchema,
   surfaceId: idSchema.optional(),
+  renderedByScene: z.boolean().optional(),
   sourceKind: z.enum(['official', 'adaptation', 'addition']).default('addition'), sourceRef: z.string().max(160).optional()
 };
 const footprintSchema = z.array(cellSchema).min(1).max(16);
@@ -47,6 +49,12 @@ export const publicSceneSchema = z.object({
   id: sceneIdSchema, title: z.string().min(1).max(100), surfaceId: idSchema, movementEnabled: z.boolean(), background: z.string().regex(/^\/art\/[\p{L}\p{N}._,/ &-]+$/u),
   grid: gridSchema, walkable: z.array(cellSchema).max(65_536), spawns: z.array(cellSchema).min(1).max(20), props: z.array(propDefinitionSchema).max(100), waves: z.boolean().default(false),
   pickups: z.array(pickupSchema).max(30).optional(),
+  readableSigns: z.array(z.object({ id: idSchema, label: z.string().max(80), cell: cellSchema, text: z.string().max(500) }).strict()).max(20).optional(),
+  seats: z.array(z.object({id:idSchema,label:z.string().min(1).max(80),cell:cellSchema,surfaceId:idSchema,position:z.object({x:z.number().finite(),z:z.number().finite(),height:z.number().finite().min(0).max(3)}).strict(),facing:z.enum(['north','east','south','west']),reservedActorId:idSchema.optional()}).strict()).max(80).optional(),
+  movementHazards: z.array(z.object({ id: idSchema, label: z.string().max(120), cells: z.array(cellSchema).max(65_536), consequence: z.literal('fatal-cold') }).strict()).max(20).optional(),
+  /** Physical obstructions are distinct from water, darkness and walkability. */
+  effectWalls: z.array(z.object({ minCol: z.number().finite(), maxCol: z.number().finite(), minRow: z.number().finite(), maxRow: z.number().finite() }).strict().refine(box => box.minCol <= box.maxCol && box.minRow <= box.maxRow)).max(200).optional(),
+  difficultCells: z.array(cellSchema).max(65_536).optional(),
   renderer: z.enum(['pixi', 'babylon-hd2d', 'babylon-d8']).optional(),
   access: z.enum(['public', 'authorized']).optional(),
   terrain: terrainSchema.optional(),
@@ -55,7 +63,7 @@ export const publicSceneSchema = z.object({
   visibility: z.object({ darkness: z.number().finite().min(0).max(1).default(0), manualReveal: z.boolean().default(false) }).strict().optional(),
   // Scenic characters are always public and never participate in collision or DM commands.
   stageActors: z.array(z.object({ id: idSchema, label: z.string().min(1).max(80), tokenId: idSchema,
-    cell: cellSchema, surfaceId: idSchema.optional() }).strict()).max(30).optional()
+    cell: cellSchema, surfaceId: idSchema.optional(), seatedAt: z.object({x:z.number().finite(),z:z.number().finite()}).strict().optional(), idleAnimation:idSchema.optional() }).strict()).max(30).optional()
 }).strict();
 export type PublicSceneDefinition = z.infer<typeof publicSceneSchema>;
 
@@ -77,8 +85,10 @@ const tokenAnimationSchema = z.object({
     width: z.number().int().positive(), height: z.number().int().positive(),
     logicalWidth: z.number().positive().max(2048).optional(), logicalHeight: z.number().positive().max(2048).optional(),
     anchorY: z.number().min(0).max(1).optional(),
-    anchorX: z.number().min(0).max(1).optional()
-  }).strict()])).min(1).max(32), fps: z.number().positive().max(30).default(6), flipX: z.boolean().optional()
+    anchorX: z.number().min(0).max(1).optional(),
+    alphaSeeds: z.array(z.tuple([z.number().int().min(0),z.number().int().min(0)])).min(1).max(12).optional()
+  }).strict()])).min(1).max(32), fps: z.number().positive().max(30).default(6), flipX: z.boolean().optional(),
+  motion: z.enum(['jump', 'dodge', 'disengage', 'swim', 'climb']).optional()
 }).strict();
 const audioUrl = z.string().regex(/^\/audio\/[a-zA-Z0-9._/-]+$/);
 const audioCategorySchema = z.enum(['movement', 'combat', 'magic', 'creature', 'object', 'scene']);
@@ -163,6 +173,10 @@ export const publicCampaignSchema = z.object({
       if (!inGrid(actor.cell)) context.addIssue({ code: 'custom', path: ['scenes', sceneIndex, 'stageActors', index, 'cell'], message: 'Actor fuera del mapa' });
       if (!campaign.tokens[actor.tokenId]) context.addIssue({ code: 'custom', path: ['scenes', sceneIndex, 'stageActors', index, 'tokenId'], message: 'Token desconocido' });
     });
+    unique((scene.readableSigns??[]).map(sign=>sign.id),['scenes',sceneIndex,'readableSigns'],'Letreros');
+    unique((scene.movementHazards??[]).map(hazard=>hazard.id),['scenes',sceneIndex,'movementHazards'],'Peligros');
+    for(const [index,sign] of (scene.readableSigns??[]).entries())if(!inGrid(sign.cell)||!scene.walkable.some(cell=>cell.col===sign.cell.col&&cell.row===sign.cell.row))context.addIssue({code:'custom',path:['scenes',sceneIndex,'readableSigns',index,'cell'],message:'Letrero sin acceso transitable'});
+    for(const [index,hazard] of (scene.movementHazards??[]).entries())for(const cell of hazard.cells)if(!inGrid(cell)||!scene.walkable.some(tile=>tile.col===cell.col&&tile.row===cell.row))context.addIssue({code:'custom',path:['scenes',sceneIndex,'movementHazards',index,'cells'],message:'Peligro fuera del suelo transitable'});
     for (const [propIndex, prop] of scene.props.entries()) {
       if (!inGrid(prop.cell)) context.addIssue({ code: 'custom', path: ['scenes', sceneIndex, 'props', propIndex, 'cell'], message: 'Objeto fuera del mapa' });
       if (prop.surfaceId && !scene.terrain?.surfaces.some(surface => surface.id === prop.surfaceId)) context.addIssue({ code: 'custom', path: ['scenes', sceneIndex, 'props', propIndex, 'surfaceId'], message: 'Superficie de objeto inexistente' });

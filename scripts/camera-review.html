@@ -1,0 +1,19 @@
+<!doctype html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Revisión cámara 2.5D</title><style>
+ *{box-sizing:border-box}body{margin:0;background:#111923;color:#eef0e6;font:14px system-ui}header{padding:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}button,select,input{font:inherit;background:#23313f;color:inherit;border:1px solid #607084;padding:6px;border-radius:5px}label{display:flex;gap:5px;align-items:center}#world{position:relative;height:calc(100vh - 125px);min-height:300px;overflow:hidden}#status{padding:6px;white-space:pre-wrap;font:12px monospace}#report{background:#1c2632;max-height:240px;overflow:auto;white-space:pre-wrap}#report:empty{display:none}canvas{position:absolute}a{color:#eacc88}
+</style></head><body><header>
+<label>Campaña <select id="campaign"><option value="d8">D8 Night</option><option value="storm">Stormwreck</option></select></label>
+<label>Mapa <select id="map"></select></label><label>Personaje <select id="actor"></select></label>
+<label>Cámara <select id="mode"><option value="fixed">Fija</option><option value="semiFixed">Semifija</option><option value="follow">Seguimiento suave</option></select></label>
+<button id="left">Girar izquierda</button><button id="right">Girar derecha</button><button id="reset">Vista inicial</button>
+<label>Inclinación <select id="tilt"><option selected>25</option><option>35</option><option>45</option><option>50</option></select></label>
+<button id="zoom-in">Acercar</button><button id="zoom-out">Alejar</button><button id="focus">Centrar personaje</button>
+<label><input id="grid" type="checkbox">Cuadrícula</label><label><input id="night" type="checkbox">Noche</label>
+<label>Estado <select id="condition"><option value="">Normal</option><option value="derribada">Derribada</option><option value="invisible">Invisible</option><option value="inconsciente">Inconsciente</option></select></label>
+<button id="move">Probar movimiento</button><button id="test-combat">Probar encuadre de combate</button><button id="focus-audit">Auditar foco y modos</button><button id="audit">Auditar ocho ángulos</button><button id="all">Auditar todos los mapas</button>
+<label>Prueba local <select id="test-position"><option value="spawn">Entrada original</option><option value="seat">Sofá / banco libre</option><option value="chair">Silla libre</option><option value="inside">Interior</option><option value="west-road">Final camino oeste</option><option value="east-road">Final camino este</option></select></label><button id="test-seat">Sentarte / levantarte (prueba)</button><label>Pose <select id="test-pose"></select></label><button id="test-animation">Probar pose</button><button id="capture">Guardar vista</button>
+<label>Hora <select id="weather-time"><option value="auto">Original</option><option value="day" selected>Día</option><option value="sunset">Atardecer</option><option value="night">Noche</option><option value="dawn">Madrugada</option></select></label>
+<label>Clima <select id="weather-kind"><option value="none">Despejado</option><option value="rain">Lluvia</option><option value="snow">Nieve</option></select></label>
+<label>Intensidad <select id="weather-level"><option value="1">Suave</option><option value="2" selected>Media</option><option value="3">Fuerte</option></select></label>
+<label>Viento <input id="weather-wind" type="range" min="0" max="1" step=".05" value=".2"></label>
+<button id="test-door">Abrir / cerrar puertas (prueba)</button><button id="test-mirror">Transformar espejo (prueba)</button>
+</header><div id="world"></div><div id="status" role="status">Cargando…</div><pre id="report"></pre><script type="module" src="/scripts/camera-review.ts"></script></body></html>

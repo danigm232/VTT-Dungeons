@@ -1,0 +1,1 @@
+{"extends":"../tsconfig.client.json","include":["camera-review.ts"]}

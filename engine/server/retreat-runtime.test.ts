@@ -103,6 +103,14 @@ describe('Retiro del Dragón · V5.2', () => {
     expect(visuals.stats.source).toBe('Retiro_Dragon_V5_2');
     expect(visuals.stats.mergedBatches).toBeGreaterThan(0);
     expect(visuals.stats.sourceMeshes).toBeLessThan(450);
+    expect(scene.getMaterialByName('rock_grey_basalt')).not.toBeNull();
+    expect(scene.getMaterialByName('aged_wood')).not.toBeNull();
+    for (const mesh of visuals.root.getChildMeshes()) {
+      const material = mesh.material;
+      if (!material) continue;
+      const paints = material.getClassName() === 'MultiMaterial' ? (material as any).subMaterials : [material];
+      for (const paint of paints) if (paint) expect(scene.materials, `${mesh.name}: ${paint.name}`).toContain(paint);
+    }
     const west = scene.getMeshByName('A1_VARNOTH_ENTRY_W')!;
     const east = scene.getMeshByName('A1_VARNOTH_ENTRY_E')!;
     const opening = east.position.x - 1.78 * east.scaling.x / 2 - (west.position.x + 1.78 * west.scaling.x / 2);

@@ -10,10 +10,10 @@ function sceneLoader() {
     options: {}, sceneId: null, installedSceneId: null,
     connectionGeneration: 0, requestGeneration: 1, d8ConfigRequest: null,
     background: { position: { set: vi.fn() } }, dynamic: { removeChildren: vi.fn() },
-    reachable: { clear: vi.fn() }, tokenViews: new Map(), propViews: new Map(), pickupViews: new Map(), standingActors: new Set(), mirrorGeneration: 0,
+    reachable: { clear: vi.fn() }, areaEffects: { clear: vi.fn() }, occlusionCache: new Map(), combatOcclusionCues: new Map(), combatOcclusionCache: new Map(), tokenViews: new Map(), propViews: new Map(), pickupViews: new Map(), standingActors: new Set(), mirrorGeneration: 0,
     readCameraOrientation: vi.fn(() => 0), readCameraZoom: vi.fn(() => null),
     clearEditor: vi.fn(), clearAttackRange: vi.fn(), drawGrid: vi.fn(), drawWaves: vi.fn(), updateCamera: vi.fn(),
-    installD8Renderer: vi.fn(async () => true)
+    installD8Renderer: vi.fn(async () => true), d8CameraMotion: { reset: vi.fn() }
   });
   vi.stubGlobal('window', { matchMedia: () => ({ matches: false }) });
   return renderer;
@@ -68,5 +68,23 @@ describe('scene loading recovery', () => {
     await expect(first).rejects.toThrow('offline');
     expect(await renderer.d8RendererConfig()).toEqual(config);
     expect(download).toHaveBeenCalledTimes(2);
+  });
+
+  it('disables the Playground avatar hierarchy so its direction arrow cannot cover a real token', async () => {
+    const renderer = sceneLoader(), avatar = { setEnabled: vi.fn() };
+    renderer.installD8Renderer = (WorldRenderer.prototype as any).installD8Renderer;
+    renderer.d8RendererConfig = vi.fn(async () => ({ version: 'test', maps: { garden: {} } }));
+    renderer.d8Scene = {
+      metadata: { d8Vtt: { loadMap: vi.fn(), config: {} } }, meshes: [],
+      getMeshByName: vi.fn((name: string) => name === 'player' ? avatar : null)
+    };
+    renderer.terrainCanvas = { hidden: true };
+    renderer.terrainEngine = { setHardwareScalingLevel: vi.fn(), resize: vi.fn() };
+    renderer.tokenOcclusionCache = new Map();
+    renderer.terrainProps = new Map(); renderer.carriedLights = new Map();
+    renderer.readCameraTilt = vi.fn(() => null);
+    expect(await renderer.installD8Renderer(renderer.campaign.scenes[0], 0, 1)).toBe(true);
+    expect(renderer.d8Scene.getMeshByName).toHaveBeenCalledWith('player');
+    expect(avatar.setEnabled).toHaveBeenCalledWith(false);
   });
 });

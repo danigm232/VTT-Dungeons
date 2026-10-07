@@ -7,10 +7,16 @@ import { supportsCameraOrientation } from '../../engine/shared/camera';
 import { commandId } from '../../engine/client/uuid';
 import { writeUiPreferences } from '../../engine/client/ui-preferences';
 import { WorldRenderer } from './world';
-import { shipLootIconIndex } from '../../engine/client/ship-loot-art';
+import { SceneLoadRecovery } from '../../engine/client/scene-load-recovery';
+import { conditionHelp } from '../../engine/client/condition-presentation';
+import { campaignShipLootIconIndex } from '../../engine/client/ship-loot-art';
+import { radialActionGlyph } from '../../engine/client/radial-action-icons';
 import { jumpSummary } from '../../engine/shared/jumping';
 import { keyboardMovementAxes } from '../../engine/client/movement-input';
-import { combatActionDescription, combatTurnIndicators } from '../../engine/client/combat-presentation';
+import { CAMERA_DEFAULT_TILT } from '../../engine/client/camera-profile';
+import { cameraTouchAxis, cameraTiltFromTouch, adjustCameraTiltForTouch, type CameraTouchAxis } from '../../engine/client/camera-touch';
+import { combatActionDescription, combatTurnIndicators, compactCombatPrompt } from '../../engine/client/combat-presentation';
+import { radialPagination, radialRadiusLimit } from '../../engine/client/radial-pagination';
 import { loadCampaign } from './campaign';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -26,6 +32,7 @@ type PlayerDisplaySettings = {
   showGrid: boolean;
   showMovementHints: boolean;
   showSceneNotice: boolean;
+  sceneNoticeSeconds: number;
   joystickOpacity: number;
   joystickX: number;
   joystickY: number;
@@ -38,7 +45,7 @@ type PlayerDisplaySettings = {
   sheetView: 'summary' | 'full';
 };
 const defaultPlayerDisplaySettings: PlayerDisplaySettings = {
-  showGrid: true, showMovementHints: true, showSceneNotice: true,
+  showGrid: true, showMovementHints: true, showSceneNotice: true, sceneNoticeSeconds: 8,
   joystickOpacity: 0.72, joystickX: 0.05, joystickY: 0, joystickSize: 2,
   actionX: 0.99, actionY: 0, actionSize: 2, identityMenuAlwaysOpen: false, identityMenuSeconds: 7, sheetView: 'summary'
 };
@@ -60,6 +67,7 @@ function readPlayerDisplaySettings(): PlayerDisplaySettings {
       showGrid: saved.showGrid !== false,
       showMovementHints: saved.showMovementHints !== false,
       showSceneNotice: saved.showSceneNotice !== false,
+      sceneNoticeSeconds: Number.isFinite(Number(saved.sceneNoticeSeconds)) ? Math.min(25, Math.max(3, Math.round(Number(saved.sceneNoticeSeconds)))) : 8,
       joystickOpacity: Number.isFinite(opacity) ? Math.min(1, Math.max(0.2, opacity)) : defaultPlayerDisplaySettings.joystickOpacity,
       joystickX: Number.isFinite(Number(saved.joystickX)) ? Math.min(1, Math.max(0, Number(saved.joystickX))) : defaultPlayerDisplaySettings.joystickX,
       joystickY: alignControlsAtBottom ? 0 : Number.isFinite(Number(saved.joystickY)) ? Math.min(1, Math.max(0, Number(saved.joystickY))) : defaultPlayerDisplaySettings.joystickY,
@@ -74,6 +82,16 @@ function readPlayerDisplaySettings(): PlayerDisplaySettings {
   } catch { return { ...defaultPlayerDisplaySettings }; }
 }
 let playerDisplaySettings = readPlayerDisplaySettings();
+let sceneNoticeTimer = 0;
+let sceneNoticeKey = '';
+function refreshSceneNotice(force = false) {
+  const key = `${lastSnapshot?.sceneEpoch ?? ''}:${privateState?.rowboat?.aboard ?? false}`;
+  if (!force && key === sceneNoticeKey) return;
+  sceneNoticeKey = key;
+  clearTimeout(sceneNoticeTimer);
+  $('sceneNotice').hidden = !playerDisplaySettings.showSceneNotice;
+  sceneNoticeTimer = window.setTimeout(() => { $('sceneNotice').hidden = true; }, playerDisplaySettings.sceneNoticeSeconds * 1000);
+}
 let identityMenuTimer = 0;
 let hudLayoutDraft: HudLayoutSettings | null = null;
 let savedSettingsVisibility: Map<HTMLElement, boolean> | null = null;
@@ -393,7 +411,7 @@ const keys = new Set<string>();
 let toastTimer = 0;
 let selectedTargetId: string | null = null, turnAnnouncementUntil = 0;
 let renderedTargetMenuKey = '';
-let resumedRuntimeEpoch: string | null = null, recoveringSession = false;
+let resumedRuntimeEpoch: string | null = null, recoveringSession = false, recoveryRequired = false;
 let sheetView: 'summary' | 'full' = playerDisplaySettings.sheetView;
 const pendingCombatNotices = new Map<string, string>();
 const pendingCombatCommands = new Set<string>();
@@ -425,6 +443,17 @@ const toast = (message: string) => {
 };
 
 function syncPlayerSettingsDialog() {
+  let noticeDuration = document.getElementById('settingSceneNoticeSeconds') as HTMLInputElement | null;
+  if (!noticeDuration) {
+    const label = document.createElement('label');
+    label.textContent = 'Duración del nombre del mapa ';
+    noticeDuration = document.createElement('input'); noticeDuration.type = 'range'; noticeDuration.id = 'settingSceneNoticeSeconds'; noticeDuration.min = '3'; noticeDuration.max = '25'; noticeDuration.step = '1';
+    const value = document.createElement('output'); value.id = 'settingSceneNoticeSecondsValue';
+    label.append(noticeDuration, value); $('settingSceneNotice').closest('label')?.after(label);
+    noticeDuration.oninput = event => { updatePlayerDisplaySetting('sceneNoticeSeconds', Number((event.currentTarget as HTMLInputElement).value)); refreshSceneNotice(true); };
+  }
+  noticeDuration.value = String(playerDisplaySettings.sceneNoticeSeconds);
+  $('settingSceneNoticeSecondsValue').textContent = `${playerDisplaySettings.sceneNoticeSeconds} segundos`;
   ($('settingGrid') as HTMLInputElement).checked = playerDisplaySettings.showGrid;
   ($('settingMovementHints') as HTMLInputElement).checked = playerDisplaySettings.showMovementHints;
   ($('settingSceneNotice') as HTMLInputElement).checked = playerDisplaySettings.showSceneNotice;
@@ -449,15 +478,18 @@ function applyPlayerDisplaySettings() {
 function updatePlayerDisplaySetting<K extends keyof PlayerDisplaySettings>(key: K, value: PlayerDisplaySettings[K]) {
   playerDisplaySettings = { ...playerDisplaySettings, [key]: value };
   applyPlayerDisplaySettings();
+  if (key === 'showSceneNotice') refreshSceneNotice(true);
 }
 applyPlayerDisplaySettings();
 addEventListener('resize', () => {
   applyHudControlLayout();
   syncHudLayoutPreview();
+  if (lastSnapshot?.combat.active) renderCombatControls();
   if (actionsMenuOpen) renderExplorationControls();
 });
 
 socket.on('connect', () => {
+  sceneLoadRecovery.reset();
   recoveringSession = false;
   $('connection').textContent = 'Conectado a la mesa';
   readyEpoch = -1;
@@ -465,18 +497,25 @@ socket.on('connect', () => {
   if (lastSnapshot) void prepareSnapshot(lastSnapshot);
 });
 socket.on('disconnect', reason => {
-  $('connection').textContent = recoveringSession ? 'Restableciendo sesión…' : reason === 'io server disconnect' && !privateState?.characterId
+  sceneLoadRecovery.reset();
+  $('connection').textContent = recoveryRequired ? 'La partida requiere recuperación. Avisa al DM y recarga cuando la restaure.' : recoveringSession ? 'Restableciendo sesión…' : reason === 'io server disconnect' && !privateState?.characterId
     ? 'Control finalizado en esta pestaña'
     : 'Reconectando…';
   stop();
   readyEpoch = -1;
 });
-socket.on('combat:animation', (event: { runtimeEpoch: string; attackerId: string; targetId: string; type: 'melee' | 'arrow' | 'thrownWeapon' | 'radiantArrow' | 'vine' | 'fireProjectile' | 'magicalProjectile'; hit: boolean; frozen: boolean; sneakAttack?: boolean }) => { if (event.runtimeEpoch === runtimeEpoch) world.playRangedAttack(event.attackerId, event.targetId, event.type, event.hit, event.frozen, event.sneakAttack); });
+socket.on('combat:animation', (event: { runtimeEpoch: string; sceneEpoch?: number; bodyState?: string; attackerId: string; targetId: string; type: 'melee' | 'arrow' | 'thrownWeapon' | 'radiantArrow' | 'vine' | 'fireProjectile' | 'magicalProjectile'; hit: boolean; frozen: boolean; sneakAttack?: boolean }) => { if (event.runtimeEpoch === runtimeEpoch && (event.sceneEpoch === undefined || event.sceneEpoch === lastSnapshot?.sceneEpoch)) world.playRangedAttack(event.attackerId, event.targetId, event.type, event.hit, event.frozen, event.sneakAttack, event.bodyState); });
 socket.on('scene:animation', (event: { runtimeEpoch: string; sceneEpoch: number; entityId: string; state: string; durationMs: number }) => { if (event.runtimeEpoch === runtimeEpoch && event.sceneEpoch === lastSnapshot?.sceneEpoch) world.playTokenAnimation(event.entityId, event.state, event.durationMs); });
 socket.on('scene:area-effect', (event: { runtimeEpoch: string; sceneEpoch: number; cell: { col: number; row: number }; type: 'fog'; radiusMeters: number; durationMs: number }) => { if (event.runtimeEpoch === runtimeEpoch && event.sceneEpoch === lastSnapshot?.sceneEpoch) world.playAreaEffect(event.cell, event.type, event.radiusMeters, event.durationMs); });
 socket.on('mirror:transformation', (event: { runtimeEpoch: string; sceneEpoch: number; propId: string; sourceId: string; reflectionId: string; frames: string[]; durationMs: number }) => { if (event.runtimeEpoch === runtimeEpoch && event.sceneEpoch === lastSnapshot?.sceneEpoch) world.playMirrorTransformation(event.propId, event.sourceId, event.reflectionId, event.frames, event.durationMs); });
 socket.on('auth:error', (error: { code?: string }) => {
   if (error.code === 'PROTOCOL_MISMATCH') { toast('La aplicación se ha actualizado. Recarga esta página.'); return; }
+  if (error.code === 'RECOVERY_REQUIRED') {
+    recoveryRequired = true;
+    $('connection').textContent = 'La partida requiere recuperación. Avisa al DM y recarga cuando la restaure.';
+    toast('La partida necesita que el DM la recupere.');
+    return;
+  }
   // A stale/localStorage token must never strand a player on a blank chooser.
   // Generate one clean token and reconnect automatically instead of asking a
   // non-technical player to clear browser storage or reload repeatedly.
@@ -489,7 +528,7 @@ socket.on('auth:error', (error: { code?: string }) => {
   window.setTimeout(() => socket.connect(), 75);
 });
 socket.on('runtime:reset', (event: { runtimeEpoch: string; reason?: string }) => {
-  if (runtimeEpoch && runtimeEpoch !== event.runtimeEpoch) { location.reload(); return; }
+  sceneLoadRecovery.reset();
   stop(); runtimeEpoch = event.runtimeEpoch; readyEpoch = -1; seq = 0; lastSnapshot = null; privateState = null;
   resumedRuntimeEpoch = null; selectedTargetId = null; renderedTargetMenuKey = ''; pendingCombatNotices.clear(); pendingCombatCommands.clear(); armedActionId = null; armedBasicAction = null; actionsMenuOpen = false; actionRadialPage = 0; combatWasActive = false; combatBarMode = null; armedExplorationActionId = null; armedExplorationAttackId = null; armedExplorationBasicActionId = null; openCombatCategory = null; openExplorationCategory = null;
   $('actionRadial').hidden = true; $('actionRadial').replaceChildren(); $('interact').hidden = true;
@@ -524,8 +563,10 @@ socket.on('characters:available', (packet: { runtimeEpoch: string; characters: C
 socket.on('world:snapshot', (snapshot: WorldSnapshot) => {
   if (snapshot.runtimeEpoch !== runtimeEpoch) return;
   const previousCombatantId = lastSnapshot?.combat.currentId;
+  const combatEndedNotice = combatWasActive && !snapshot.combat.active ? snapshot.combat.lastEvent?.text : undefined;
   if (lastSnapshot && snapshot.sceneEpoch !== lastSnapshot.sceneEpoch) {
     stop();
+    clearCameraTouchContacts();
     readyEpoch = -1;
   }
   lastSnapshot = snapshot;
@@ -535,6 +576,7 @@ socket.on('world:snapshot', (snapshot: WorldSnapshot) => {
     ? privateState.rowboat.pilot ? 'Barca · rema con WASD o el mando · pulsa Bajar para nadar'
       : 'Barca · otro personaje lleva los remos · pulsa Bajar para nadar'
     : scene ? `${scene.title} · 1 casilla = 1,5 m${scene.movementEnabled ? '' : ' · espera la señal del DM'}` : 'Escena no disponible';
+  refreshSceneNotice();
   document.body.classList.toggle('combat-active', snapshot.combat.active);
   if (snapshot.combat.active) { if (!combatWasActive) { actionsMenuOpen = false; combatBarMode = null; } armedExplorationActionId = null; armedExplorationAttackId = null; armedExplorationBasicActionId = null; }
   combatWasActive = snapshot.combat.active;
@@ -548,6 +590,7 @@ socket.on('world:snapshot', (snapshot: WorldSnapshot) => {
   }
   renderCombatControls();
   renderExplorationControls();
+  if (combatEndedNotice) toast(combatEndedNotice);
 });
 socket.on('camera:orientation', (event: { runtimeEpoch: string; sceneEpoch: number; sceneId: string; step: number | null }) => {
   if (event.runtimeEpoch !== runtimeEpoch || event.sceneEpoch < (lastSnapshot?.sceneEpoch ?? 0)) return;
@@ -587,6 +630,7 @@ socket.on('player:private', (next: PlayerPrivate) => {
     ? next.rowboat.pilot ? 'Barca · rema con WASD o el mando · pulsa Bajar para nadar'
       : 'Barca · otro personaje lleva los remos · pulsa Bajar para nadar'
     : lastSnapshot ? `${lastSnapshot.scene.title} · 1 casilla = 1,5 m` : 'Escena no disponible';
+  refreshSceneNotice();
   const canMove = next.sceneMovementEnabled && (!next.combat || next.combat.isTurn) && (!next.rowboat?.aboard || next.rowboat.pilot);
   $('joystick').classList.toggle('disabled', !canMove);
   if (!canMove) stop();
@@ -605,6 +649,7 @@ socket.on('command:result', (result: CommandResult) => {
       NOT_YOUR_ACTION: 'Solo puedes cancelar tu propia selección.', ACTION_ALREADY_RESOLVING: 'Ya se ha confirmado una tirada; termina la resolución. El DM puede deshacer un error.',
       TOO_FAR: 'Estás demasiado lejos.', OUT_OF_RANGE: 'El objetivo está fuera de alcance.', NOT_YOUR_TURN: 'No es tu turno.', MOVEMENT_SPENT: 'No te queda suficiente movimiento para hacerlo.',
       ROLL_PENDING: 'Termina la tirada pendiente antes de continuar.', PROMPT_STALE: 'Esta tirada ya no está vigente.',
+      LINE_OF_EFFECT_BLOCKED: 'Una pared o puerta cerrada bloquea el ataque.', INVENTORY_DEPLETED: 'No queda munición o una daga disponible para lanzar.', RECHARGE_REQUIRED: 'Esta acción todavía necesita recargarse.',
       PROMPT_STAGE_MISMATCH: 'Esta respuesta pertenece a otro paso de la acción.', WRONG_ACTOR: 'Esta tirada corresponde a otro personaje.',
       INVALID_DAMAGE_DICE: 'El resultado no es posible para esos dados.', INVALID_ROLL: 'El resultado introducido no es válido.', NO_LANDING: 'No hay una casilla libre junto a la barca para bajar.', JUMP_OUT_OF_RANGE: 'Ese destino supera tu salto largo máximo con carrera según tu FUE.',
       ACTION_USED: 'Ya has usado tu acción.', REACTION_USED: 'Ya has usado tu reacción.', RESOURCE_DEPLETED: 'No queda el recurso necesario.', SPELL_SLOT_USED_THIS_TURN: 'Ya has gastado un espacio de conjuro en este turno.', INVALID_TARGET: 'El objetivo ya no es válido.'
@@ -676,11 +721,14 @@ function enableLongPressInfo(button: HTMLButtonElement, tooltip: HTMLElement) {
 
 function renderActionToggle() {
   const button = $('actionToggle');
-  const explorationActive = Boolean(privateState && lastSnapshot && !lastSnapshot.combat.active);
-  const active = explorationActive;
+  const explorationActive = Boolean(privateState && (privateState.hp ?? 0) > 0 && !privateState.conditions.some(condition => condition === 'inconsciente' || condition === 'paralizada') && lastSnapshot && !lastSnapshot.combat.active);
+  const combat = privateState?.combat;
+  const combatActive = Boolean(combat && lastSnapshot?.combat.active);
+  const active = explorationActive || combatActive;
+  document.body.classList.toggle('combat-wheel-open', combatActive && actionsMenuOpen);
   button.setAttribute('aria-controls', 'actionRadial');
-  // In combat the persistent command bar below replaces this exploration wheel.
   button.hidden = !active;
+  (button as HTMLButtonElement).disabled = combatActive && (!combatActionsAvailable() || Boolean(combat?.initiative.pending || combat?.prompt || combat?.pendingAction || pendingCombatCommands.size) || Boolean(combat?.conditions.some(condition => condition === 'inconsciente' || condition === 'paralizada')));
   button.textContent = actionsMenuOpen ? '×' : '✋︎';
   button.style.transform = active && actionsMenuOpen ? 'translate(-50%, -18px)' : 'translateX(-50%)';
   if (!active) { button.classList.remove('has-context'); button.setAttribute('aria-expanded', 'false'); return; }
@@ -695,7 +743,7 @@ function renderActionToggle() {
 }
 
 function finishCombatTurn() {
-  if (!lastSnapshot || !privateState?.combat?.isTurn || pendingCombatCommands.size) return;
+  if (!lastSnapshot || !privateState?.combat?.isTurn || privateState.combat.prompt || privateState.combat.pendingAction || privateState.combat.initiative.pending || pendingCombatCommands.size) return;
   const id = commandId(); pendingCombatCommands.add(id);
   socket.emit('player:combat', { runtimeEpoch, type: 'combat:endTurn', commandId: id, sceneEpoch: lastSnapshot.sceneEpoch });
   renderCombatFrame();
@@ -716,25 +764,27 @@ function chooseCombatBarMode(mode: Exclude<CombatBarMode, null>) {
     openCombatCategory = mode === 'rules' ? 'rules' : mode;
   }
   document.body.classList.toggle('combat-move-mode', mode === 'move');
-  updateAttackRangePreview(); renderCombatFrame(); renderTargetMenu();
+  updateAttackRangePreview(); renderCombatControls();
 }
 
 function renderCombatFrame() {
   const active = Boolean(privateState?.combat && lastSnapshot?.combat.active && privateState);
   const initiative = $('combatInitiative'), legend = $('combatLegend'), hero = $('combatHero'), bar = $('combatCommandBar'), resources = $('combatResources');
-  initiative.hidden = !active; legend.hidden = !active; hero.hidden = !active; bar.hidden = !active; resources.hidden = !active;
+  initiative.hidden = !active; legend.hidden = !active || !(armedActionId || armedBasicAction || playerDisplaySettings.showMovementHints && document.body.classList.contains('combat-move-mode')); hero.hidden = true; bar.hidden = true; resources.hidden = !active;
+  document.body.classList.toggle('combat-resolving', Boolean(active && (privateState?.combat?.prompt || privateState?.combat?.initiative.pending)));
+  document.body.classList.toggle('combat-targeting', Boolean(active && (armedActionId || armedBasicAction || privateState?.combat?.pendingAction)));
   if (!active || !privateState || !lastSnapshot || !privateState.combat) {
     initiative.replaceChildren(); hero.replaceChildren(); bar.replaceChildren(); resources.replaceChildren(); delete bar.dataset.renderKey; return;
   }
   const combat = privateState.combat;
   // Los snapshots se repiten mientras se mantiene el dedo sobre un retrato.
   // Conservar los nodos impide que desaparezca la pulsación larga o el foco.
-  const renderKey = JSON.stringify([combat, privateState.hp, privateState.maxHp, privateState.label, privateState.concentration, lastSnapshot.combat, lastSnapshot.entities.map(entity => [entity.id, entity.tokenId, entity.cell]), combatBarMode, actionsMenuOpen, pendingCombatCommands.size, world.combatOverview]);
+  const renderKey = JSON.stringify([combat, privateState.hp, privateState.maxHp, privateState.label, privateState.concentration, lastSnapshot.combat, lastSnapshot.entities.map(entity => [entity.id, entity.tokenId, entity.cell]), combatBarMode, actionsMenuOpen, armedActionId, armedBasicAction, pendingCombatCommands.size, world.combatOverview, innerWidth, innerHeight, playerDisplaySettings.actionX, playerDisplaySettings.actionY, playerDisplaySettings.actionSize]);
   if (bar.dataset.renderKey === renderKey) return;
   bar.dataset.renderKey = renderKey;
   const currentId = lastSnapshot.combat.currentId;
   const heading = document.createElement('header'), title = document.createElement('strong'), round = document.createElement('span');
-  heading.className = 'combat-initiative-header'; title.textContent = combat.initiative.pending ? 'Iniciativa' : 'Orden de iniciativa'; round.textContent = combat.initiative.pending ? 'Esperando tiradas' : `Ronda ${lastSnapshot.combat.round}`; heading.append(title, round);
+  heading.className = 'combat-initiative-header'; title.textContent = combat.initiative.pending ? 'Iniciativa' : combat.isTurn ? 'Tu turno' : lastSnapshot.combat.participants.find(participant => participant.id === currentId)?.label ?? 'Combate'; title.setAttribute('aria-live', 'polite'); round.textContent = combat.initiative.pending ? 'Esperando tiradas' : `Ronda ${lastSnapshot.combat.round}`; heading.append(title, round);
   const roster = document.createElement('div'); roster.className = 'combat-initiative-roster';
   const confirmedOrder = lastSnapshot.combat.order?.map(entry => lastSnapshot!.combat.participants.find(participant => participant.id === entry.id)).filter((participant): participant is NonNullable<typeof participant> => Boolean(participant)) ?? [];
   const participants = confirmedOrder.length ? confirmedOrder : [...lastSnapshot.combat.participants].sort((left, right) => right.initiative - left.initiative || left.label.localeCompare(right.label, 'es'));
@@ -746,7 +796,7 @@ function renderCombatFrame() {
     const distance = selfEntity && entity && !isSelf ? Math.max(Math.abs(selfEntity.cell.col - entity.cell.col), Math.abs(selfEntity.cell.row - entity.cell.row)) * 1.5 : null;
     tooltip.className = 'initiative-tooltip'; tooltip.id = `initiative-info-${participant.id}`; tooltip.setAttribute('role', 'tooltip'); eyebrow.textContent = isSelf ? 'TU PERSONAJE' : participant.controller === 'player' ? 'ALIADO' : 'OPONENTE'; title.textContent = isSelf ? privateState!.label ?? participant.label : participant.label;
     const addFact = (text: string) => { const item = document.createElement('li'); item.textContent = text; facts.append(item); };
-    addFact(`CA ${participant.armorClass}`);
+    if (isSelf) addFact(`CA ${privateState!.sheet?.armorClass ?? participant.armorClass}`);
     if (isSelf) addFact(`PG ${privateState!.hp}/${privateState!.maxHp}`);
     if (distance !== null) addFact(`A ${distance.toFixed(1)} m de ti`);
     if (participant.conditions.length) addFact(`Condiciones: ${participant.conditions.join(', ')}`);
@@ -760,59 +810,53 @@ function renderCombatFrame() {
     row.setAttribute('aria-label', `Ver información conocida de ${participant.id === privateState.characterId ? 'tu personaje' : participant.label}`);
     position.textContent = combat.initiative.pending ? (participant.initiativeSubmitted ? '✓' : '…') : String(participants.indexOf(participant) + 1);
     portrait.className = 'initiative-portrait';
-    const entity = lastSnapshot.entities.find(item => item.id === participant.id), art = entity ? campaign.tokens[entity.tokenId]?.url : undefined;
+    const entity = lastSnapshot.entities.find(item => item.id === participant.id), token = entity ? campaign.tokens[entity.tokenId] : undefined, art = token?.portraitUrl ?? token?.url;
     if (art) { const image = document.createElement('img'); image.src = art; image.alt = ''; portrait.append(image); } else portrait.textContent = participant.label.slice(0, 1).toUpperCase();
     name.textContent = participant.id === privateState.characterId ? 'Tú' : participant.label;
     detail.textContent = combat.initiative.pending ? (participant.initiativeSubmitted ? 'lista' : 'por tirar') : participant.id === currentId ? 'en turno' : participant.controller === 'player' ? 'aliado' : 'oponente';
     copy.append(name, detail); const tooltip = initiativeTooltip(participant); row.append(position, portrait, copy, tooltip); enableLongPressInfo(row, tooltip); roster.append(row);
+    row.onclick = () => {
+      if (armedActionId || armedBasicAction) { selectCombatTarget(participant.id); return; }
+      const expanded = !tooltip.classList.contains('tap-visible');
+      initiative.querySelectorAll('.tap-visible').forEach(item => item.classList.remove('tap-visible'));
+      tooltip.classList.toggle('tap-visible', expanded); row.setAttribute('aria-expanded', String(expanded));
+    };
+    if (armedActionId || armedBasicAction) row.setAttribute('aria-label', `Elegir objetivo: ${participant.label}`);
   }
   initiative.replaceChildren(heading, roster);
 
-  const self = lastSnapshot.entities.find(entity => entity.id === privateState!.characterId);
   const selfParticipant = lastSnapshot.combat.participants.find(item => item.id === privateState!.characterId);
   const incapacitated = Boolean(selfParticipant?.conditions.some(condition => condition === 'paralizada' || condition === 'inconsciente'));
-  const portrait = document.createElement('div'), copy = document.createElement('div'), name = document.createElement('strong'), stats = document.createElement('span'), hp = document.createElement('div'), hpFill = document.createElement('i');
-  portrait.className = 'combat-hero-portrait';
-  const art = self?.tokenId ? campaign.tokens[self.tokenId]?.url : undefined;
-  if (art) { const image = document.createElement('img'); image.src = art; image.alt = ''; portrait.append(image); } else portrait.textContent = (privateState.label ?? 'A').slice(0, 1).toUpperCase();
-  copy.className = 'combat-hero-copy'; name.textContent = privateState.label ?? 'Aventurero';
-  stats.textContent = `CA ${selfParticipant?.armorClass ?? '—'} · Mov. ${incapacitated ? '0 m' : combat.movement ? `${(combat.movement.remainingSquares * 1.5).toFixed(1)} m` : '—'}`;
-  hp.className = 'combat-hero-hp'; hpFill.style.width = `${Math.max(0, Math.min(100, (privateState.hp ?? 0) / Math.max(1, privateState.maxHp ?? 1) * 100))}%`; hp.append(hpFill);
-  const hpLabel = document.createElement('b'); hpLabel.textContent = `${privateState.hp}/${privateState.maxHp} PG`; copy.append(name, stats, hp, hpLabel); hero.replaceChildren(portrait, copy); hero.onclick = () => $('combatHp').click();
-
-  const makeCommand = (mode: Exclude<CombatBarMode, null>, icon: string, label: string, available: boolean, used = false) => {
-    const button = document.createElement('button'), glyph = document.createElement('i'), text = document.createElement('span');
-    button.type = 'button'; button.className = 'combat-command'; button.classList.toggle('selected', combatBarMode === mode && (mode === 'move' || actionsMenuOpen)); button.classList.toggle('spent', used); button.disabled = !available;
-    glyph.textContent = icon; text.textContent = label; button.append(glyph, text); button.title = used ? `${label}: ya gastada este turno.` : label;
-    button.onclick = () => chooseCombatBarMode(mode); return button;
-  };
   const any = (predicate: (action: CombatAction) => boolean) => combat.attacks.some(predicate);
   const actionAvailable = combat.isTurn && !incapacitated && !combat.prompt && !combat.pendingAction && !Boolean(pendingCombatCommands.size);
-  const mainAvailable = actionAvailable || Boolean(combat.ready && !combat.reactionUsed && !incapacitated && !combat.prompt && !combat.pendingAction && !pendingCombatCommands.size);
-  const hasAction = any(action => action.actionCost !== 'bonus' && action.actionCost !== 'reaction' && !action.magical);
-  const hasMagic = any(action => Boolean(action.magical) && action.actionCost !== 'reaction');
   const hasBonus = any(action => action.actionCost === 'bonus');
-  const hasReaction = any(action => action.actionCost === 'reaction');
   const indicators = combatTurnIndicators({ pending: combat.initiative.pending, incapacitated, isTurn: combat.isTurn, remainingSquares: combat.movement?.remainingSquares, maximumSquares: combat.movement?.maximumSquares, actionUsed: combat.actionUsed, bonusActionUsed: combat.bonusActionUsed, reactionUsed: combat.reactionUsed, hasBonus });
   const resourceNodes = indicators.map(indicator => {
     const item = document.createElement('span'), label = document.createElement('small'), value = document.createElement('b');
-    item.className = `turn-resource${indicator.ready ? ' ready' : ''}`; label.textContent = indicator.label; value.textContent = indicator.value; item.append(label, value); return item;
+    const symbols: Record<string, string> = { Movimiento: '➟', Acción: '◆', Adicional: '✦', Reacción: '⛨' };
+    item.className = `turn-resource${indicator.ready ? ' ready' : ''}`; item.title = `${indicator.label}: ${indicator.value}`; item.setAttribute('aria-label', item.title); label.textContent = symbols[indicator.label] ?? indicator.label; value.textContent = indicator.label === 'Movimiento' ? combat.isTurn ? `${((combat.movement?.remainingSquares ?? 0) * 1.5).toFixed(1)} m` : '—' : indicator.value; item.append(label, value); return item;
   });
-  const overview = document.createElement('button'); overview.type = 'button'; overview.className = 'combat-overview'; overview.textContent = world.combatOverview ? '◎ Ver combate' : '▧ Mapa completo'; overview.setAttribute('aria-pressed', String(world.combatOverview)); overview.onclick = () => { world.setCombatOverview(!world.combatOverview); renderCombatFrame(); };
+  const overview = document.createElement('button'); overview.type = 'button'; overview.className = 'combat-overview'; overview.textContent = '⌖'; overview.title = world.combatOverview ? 'Ver combate' : 'Mapa completo'; overview.setAttribute('aria-label', overview.title); overview.setAttribute('aria-pressed', String(world.combatOverview)); overview.onclick = () => { world.setCombatOverview(!world.combatOverview); renderCombatFrame(); }; heading.append(overview);
   const effect = document.createElement('span'); effect.className = 'combat-active-effects'; effect.textContent = [privateState.concentration ? `Concentración: ${compactActionLabel(privateState.concentration.label)}` : '', combat.conditions.join(', ')].filter(Boolean).join(' · '); effect.hidden = !effect.textContent;
-  resources.replaceChildren(...resourceNodes, overview, effect);
-  const label = document.createElement('div'), labelTitle = document.createElement('strong'), economy = document.createElement('small');
-  label.className = 'combat-command-title'; labelTitle.textContent = combat.initiative.pending ? 'Preparando combate' : incapacitated ? 'Sin acciones: incapacitada' : combat.isTurn ? 'Tus acciones' : 'En espera'; economy.textContent = `Acción ${combat.actionUsed ? '0/1' : '1/1'} · Adicional ${hasBonus ? combat.bonusActionUsed ? '0/1' : '1/1' : '—'} · Reacción ${combat.reactionUsed ? '0/1' : '1/1'}`; label.append(labelTitle, economy);
-  const end = document.createElement('button'), endIcon = document.createElement('i'), endText = document.createElement('span');
-  end.type = 'button'; end.className = 'combat-command combat-end-turn'; end.disabled = !combat.isTurn || Boolean(combat.prompt || combat.pendingAction || pendingCombatCommands.size); endIcon.textContent = '⌛'; endText.textContent = 'Fin de turno'; end.append(endIcon, endText); end.onclick = finishCombatTurn;
-  const flee = document.createElement('button'); flee.type = 'button'; flee.className = 'combat-command'; flee.innerHTML = '<i aria-hidden="true">↪</i><span>Huir</span>'; flee.disabled = incapacitated || combat.initiative.pending || Boolean(pendingCombatCommands.size); flee.title = 'Retirarte con movimiento, Correr o Destrabarse; el DM confirma la salida.'; flee.onclick = showCombatFlee;
-  bar.replaceChildren(label,
-    makeCommand('move', '➟', 'Mover', actionAvailable && Boolean(combat.movement?.remainingSquares), false),
-    makeCommand('attack', '⚔', 'Acción', mainAvailable && hasAction, combat.actionUsed && !combat.ready),
-    makeCommand('magic', '✦', 'Conjuros', mainAvailable && hasMagic, combat.actionUsed && !combat.ready),
-    makeCommand('bonus', '➤', 'Adicional', actionAvailable && hasBonus, combat.bonusActionUsed),
-    makeCommand('reaction', '⛨', 'Reacción', hasReaction && !combat.initiative.pending && !incapacitated && !combat.reactionUsed && !Boolean(pendingCombatCommands.size), combat.reactionUsed),
-    makeCommand('rules', '⚗', 'Utilidad', actionAvailable && combat.basicActions.includes('use-object'), combat.actionUsed), flee, end);
+  resources.replaceChildren(...resourceNodes, effect, ...(privateState.concentration ? [endConcentrationButton()] : []));
+  const anchor = $('actionToggle').getBoundingClientRect();
+  resources.style.left = `${Math.max(94, Math.min(innerWidth - 94, anchor.left + anchor.width / 2))}px`;
+  resources.style.top = `${Math.max(112, anchor.top - 42)}px`; resources.style.bottom = 'auto';
+  const legendDetails = document.createElement('details'), legendTitle = document.createElement('summary');
+  const selectedAttack = combat.attacks.find(action => action.id === armedActionId);
+  const bands: Array<[string, string]> = !armedActionId && !armedBasicAction ? [['legend-move', 'Movimiento disponible']] : [['legend-normal', 'Alcance normal'], ...(selectedAttack?.range?.longMeters && selectedAttack.range.longMeters > selectedAttack.range.normalMeters ? [['legend-long', 'Alcance largo · desventaja'] as [string, string]] : [])];
+  // Only the currently displayed map overlays need a key.
+  legendTitle.textContent = '◈ Colores del mapa'; legendDetails.append(legendTitle);
+  for (const [className, text] of bands) { const row = document.createElement('span'), color = document.createElement('i'); color.className = className; row.append(color, text); legendDetails.append(row); }
+  legend.replaceChildren(legendDetails);
+  const continuingAction = combat.sequence?.remaining ? combat.attacks.find(action => action.id === combat.sequence!.actionId) : undefined;
+  if (continuingAction) {
+    const continuation = document.createElement('button'); continuation.type = 'button'; continuation.className = 'combat-overview';
+    continuation.textContent = `Continuar ${compactActionLabel(continuingAction.label)} · quedan ${combat.sequence!.remaining}`;
+    continuation.title = combatActionDescription(continuingAction, undefined, combat.sequence!.remaining);
+    continuation.disabled = !actionAvailable; continuation.onclick = () => selectCombatAction(continuingAction); resources.append(continuation);
+  }
+  bar.replaceChildren();
 }
 
 function cancelActionSelection() {
@@ -826,21 +870,27 @@ function renderSelectedAction() {
   const action = armedActionId ? combat?.attacks.find(item => item.id === armedActionId) : armedExplorationActionId ? privateState?.explorationActions.find(item => item.id === armedExplorationActionId) : armedExplorationAttackId ? privateState?.explorationAttacks.find(item => item.id === armedExplorationAttackId) : undefined;
   const label = action?.label ?? (armedBasicAction ? basicActionLabels[armedBasicAction] : armedExplorationBasicActionId ? explorationBasicActionCatalogue[armedExplorationBasicActionId].label : undefined);
   const pending = combat?.pendingAction;
-  tray.hidden = !label && !pending; tray.replaceChildren(); if (tray.hidden) return;
+  tray.hidden = Boolean(combat?.prompt) || !label && !pending; tray.replaceChildren(); if (tray.hidden) return;
   const text = document.createElement('span'), cancel = document.createElement('button'), heading = document.createElement('strong');
   heading.textContent = pending ? `${compactActionLabel(pending.label)} · ${pending.cancellable ? 'sin tirada confirmada' : 'resolución en curso'}` : `${compactActionLabel(label!)} · elige objetivo en el mapa`;
   text.append(heading);
   if (action && 'attackBonus' in action) {
     const detail = document.createElement('small'), target = lastSnapshot?.combat.participants.find(item => item.id === selectedTargetId);
-    detail.textContent = combatActionDescription(action, target?.armorClass); text.append(detail);
+    const disclosure = document.createElement('details'), summary = document.createElement('summary'); summary.textContent = 'Detalle';
+    detail.textContent = combatActionDescription(action, target?.armorClass); disclosure.append(summary, detail); text.append(disclosure);
   }
   cancel.type = 'button'; cancel.textContent = '× Cancelar'; cancel.disabled = Boolean(pendingCombatCommands.size) || Boolean(pending && !pending.cancellable);
-  cancel.onclick = () => {
-    if (pending && lastSnapshot) {
-      const id = commandId(); pendingCombatCommands.add(id); socket.emit('player:combat', { runtimeEpoch, type: 'combat:cancelAction', commandId: id, sceneEpoch: lastSnapshot.sceneEpoch, ...(pending.promptId ? { promptId: pending.promptId } : {}) });
-    } else cancelActionSelection();
-  };
+  cancel.onclick = cancelPendingCombatSelection;
   tray.append(text, cancel);
+}
+
+function cancelPendingCombatSelection() {
+  const pending = privateState?.combat?.pendingAction;
+  if (pending && lastSnapshot) {
+    if (!pending.cancellable || pendingCombatCommands.size) return;
+    const id = commandId(); pendingCombatCommands.add(id);
+    socket.emit('player:combat', { runtimeEpoch, type: 'combat:cancelAction', commandId: id, sceneEpoch: lastSnapshot.sceneEpoch, ...(pending.promptId ? { promptId: pending.promptId } : {}) });
+  } else cancelActionSelection();
 }
 
 function showCombatFlee() {
@@ -857,15 +907,17 @@ function showCombatFlee() {
 
 function renderCombatControls() {
   const combat = privateState?.combat, active = Boolean(combat && lastSnapshot?.combat.active && privateState);
-  $('endTurn').hidden = !Boolean(active && combat!.isTurn);
+  $('endTurn').hidden = !Boolean(active && combat!.isTurn && !combat!.initiative.pending);
+  ($('endTurn') as HTMLButtonElement).disabled = Boolean(combat?.prompt || combat?.pendingAction || pendingCombatCommands.size);
+  document.body.classList.toggle('combat-move-mode', Boolean(active && combat!.isTurn && !combat!.conditions.some(condition => condition === 'paralizada' || condition === 'inconsciente') && !combat!.initiative.pending && !combat!.prompt && !combat!.pendingAction && !actionsMenuOpen && !armedActionId && !armedBasicAction));
   renderActionToggle();
-  if (!active || !privateState) { $('targetMenu').hidden = true; selectedTargetId = null; armedActionId = null; armedBasicAction = null; combatBarMode = null; document.body.classList.remove('combat-move-mode'); openCombatCategory = null; renderedTargetMenuKey = ''; updateAttackRangePreview(); renderCombatFrame(); return; }
+  if (!active || !privateState) { if (privateState) $('combatHp').title = `Puntos de golpe ${privateState.hp}/${privateState.maxHp}`; $('targetMenu').hidden = true; selectedTargetId = null; armedActionId = null; armedBasicAction = null; combatBarMode = null; document.body.classList.remove('combat-move-mode'); openCombatCategory = null; renderedTargetMenuKey = ''; updateAttackRangePreview(); renderCombatFrame(); return; }
   const armedAction = armedActionId ? combat!.attacks.find(action => action.id === armedActionId) : undefined;
   if ((armedBasicAction && !combat!.isTurn) || (armedAction && !combat!.isTurn && !combat!.ready && armedAction.actionCost !== 'reaction')) { armedActionId = null; armedBasicAction = null; renderedTargetMenuKey = ''; }
   const movement = combat!.movement;
   const conditions = combat!.conditions.length ? ` · ◉ ${combat!.conditions.join(', ')}` : '';
   const concentration = privateState.concentration ? ` · Concentración: ${privateState.concentration.label}` : '';
-  const movementText = movement ? ` · Movimiento ${movement.remainingSquares}/${movement.maximumSquares} casillas (${(movement.remainingSquares * 1.5).toFixed(1)} m)` : '';
+  const movementText = combat!.conditions.some(condition => condition === 'inconsciente' || condition === 'paralizada') ? ' · Movimiento 0 m' : movement ? ` · Movimiento ${movement.remainingSquares}/${movement.maximumSquares} casillas (${(movement.remainingSquares * 1.5).toFixed(1)} m)` : '';
   $('hp').textContent = `PG ${privateState.hp}/${privateState.maxHp}`;
   $('combatHp').title = [`Puntos de golpe ${privateState.hp}/${privateState.maxHp}`, movementText.replace(/^ · /, ''), conditions.replace(/^ · /, ''), concentration.replace(/^ · /, '')].filter(Boolean).join(' · ');
   if (combat!.initiative.pending) $('combatNotice').textContent = combat!.initiative.submitted ? '● Iniciativa registrada' : '● Iniciativa: tira e introduce tu total';
@@ -876,13 +928,15 @@ function renderCombatControls() {
 }
 
 function renderInventory(items: string[]) {
+  const inventoryKey=JSON.stringify(items);if($('inventoryList').dataset.renderKey===inventoryKey)return;$('inventoryList').dataset.renderKey=inventoryKey;
   $('items').replaceChildren(...items.map(item => { const row = document.createElement('li'); row.textContent = item; return row; }));
   const list = $('inventoryList'); list.replaceChildren(...items.map((item, index) => {
     const row = document.createElement('article'), label = document.createElement('div'), name = document.createElement('span'), use = document.createElement('button');
     row.className = 'inventory-item'; label.className = 'inventory-item-label'; name.textContent = item;
-    const iconIndex = shipLootIconIndex(item);
+    const iconIndex = campaignShipLootIconIndex(campaign.campaignId, item);
     if (iconIndex !== null) {
       const icon = document.createElement('span'); icon.className = 'inventory-art-icon'; icon.setAttribute('aria-hidden', 'true');
+      icon.style.backgroundImage = "url('/art/ship/loot-atlas-m5.svg')";
       icon.style.backgroundPosition = `${iconIndex % 4 * 100 / 3}% ${Math.floor(iconIndex / 4) * 100 / 4}%`;
       label.append(icon);
     }
@@ -987,9 +1041,12 @@ function declareCombatPointAction(action: CombatAction, cell: { col: number; row
 
 function selectCombatAction(action: CombatAction) {
   combatBarMode = action.actionCost === 'reaction' ? 'reaction' : action.actionCost === 'bonus' ? 'bonus' : action.magical ? 'magic' : 'attack';
-  if (armedActionId === action.id) { armedActionId = null; renderedTargetMenuKey = ''; updateAttackRangePreview(); renderTargetMenu(); return; }
-  if (action.targeting === 'point') { armedActionId = action.id; armedBasicAction = null; renderedTargetMenuKey = ''; updateAttackRangePreview(); renderTargetMenu(); toast(`${action.label}: toca una casilla dentro del alcance.`); return; }
-  armedActionId = action.id; armedBasicAction = null; renderedTargetMenuKey = ''; updateAttackRangePreview(); renderTargetMenu();
+  const deselect = armedActionId === action.id;
+  // Also used by the direct "Continue" shortcut, not only an open wheel.
+  actionsMenuOpen = false; armedActionId = deselect ? null : action.id; armedBasicAction = null; renderedTargetMenuKey = '';
+  updateAttackRangePreview(); renderCombatFrame(); renderTargetMenu();
+  if (deselect) return;
+  if (action.targeting === 'point') { toast(`${action.label}: toca una casilla dentro del alcance.`); return; }
   const bands = action.range?.longMeters && action.range.longMeters > action.range.normalMeters ? ` Verde: alcance normal ${action.range.normalMeters} m; ámbar: alcance largo ${action.range.longMeters} m (desventaja).` : action.range ? ` Alcance marcado hasta ${action.range.normalMeters} m.` : '';
   toast(`${action.label}: toca una ficha objetivo para usarlo.${bands}`);
 }
@@ -1047,15 +1104,16 @@ function renderTargetMenu() {
   if (key === renderedTargetMenuKey) { renderCombatRadial(box); return; }
   renderedTargetMenuKey = key; box.replaceChildren();
   if (combat.initiative.pending) {
-    box.append(actionPanelHeader('COMBATE', 'Iniciativa', 'Antes de que haya turnos'));
+    box.append(actionPanelHeader('COMBATE', 'Iniciativa', 'Dados físicos'));
     const note = document.createElement('p'); note.className = 'combat-prompt-note';
     if (combat.initiative.submitted) {
       note.textContent = `Tu iniciativa (${combat.initiative.total}) está registrada. Esperando a los demás y la confirmación del DM.`;
       box.append(note); return;
     }
-    note.textContent = `Tira físicamente 1d20 ${combat.initiative.modifier >= 0 ? '+' : ''}${combat.initiative.modifier} e introduce el total. El programa no tira el dado.`;
+    note.textContent = `1d20 ${combat.initiative.modifier >= 0 ? '+' : ''}${combat.initiative.modifier} · introduce el total.`;
     const input = document.createElement('input'), submit = document.createElement('button'), controls = document.createElement('div');
     input.type = 'number'; input.min = '-20'; input.max = '40'; input.placeholder = 'Total de iniciativa'; submit.className = 'primary'; submit.textContent = 'Registrar iniciativa';
+    input.inputMode = 'numeric'; input.setAttribute('aria-label', 'Total de iniciativa');
     input.className = 'combat-prompt-input'; submit.classList.add('combat-prompt-submit'); controls.className = 'combat-prompt-controls'; controls.append(input, submit);
     const send = () => {
       if (!input.value.trim()) return toast('Introduce el resultado de los dados.'); const total = Number(input.value);
@@ -1067,7 +1125,15 @@ function renderTargetMenu() {
     box.append(note, controls); return;
   }
   if (prompt) {
-    box.append(actionPanelHeader('COMBATE', 'Acciones', 'Tirada pendiente'));
+    $('actionRadial').hidden = true;
+    const compact = compactCombatPrompt(prompt);
+    const header = actionPanelHeader('COMBATE', compact.label, 'Dados físicos');
+    header.querySelector('.action-panel-minimize')?.remove();
+    if (combat.pendingAction?.cancellable) {
+      const cancel = document.createElement('button'); cancel.type = 'button'; cancel.textContent = 'Cancelar ataque';
+      cancel.className = 'combat-prompt-submit'; cancel.disabled = Boolean(pendingCombatCommands.size); cancel.onclick = cancelPendingCombatSelection; header.append(cancel);
+    }
+    box.append(header);
     if (prompt.stage === 'reaction') {
       const title = document.createElement('b'), note = document.createElement('p'), buttons = document.createElement('div'), accept = document.createElement('button'), decline = document.createElement('button');
       title.textContent = prompt.title; note.textContent = prompt.instruction; buttons.className = 'combat-basic-actions'; accept.className = 'primary'; accept.textContent = 'Atacar · gastar reacción'; decline.textContent = 'Dejar pasar';
@@ -1075,7 +1141,7 @@ function renderTargetMenu() {
       accept.onclick = () => respond(true); decline.onclick = () => respond(false); buttons.append(accept, decline); box.append(title, note, buttons); return;
     }
     const title = document.createElement('b'), note = document.createElement('p'), input = document.createElement('input'), submit = document.createElement('button'), controls = document.createElement('div');
-    title.textContent = prompt.title; note.textContent = prompt.instruction; input.type = 'number'; input.min = String(prompt.minimum ?? 0); input.max = String(prompt.maximum ?? 200); input.placeholder = prompt.stage === 'attack' ? 'd20 natural (sin modificador)' : prompt.stage === 'death-save' ? 'd20 natural' : prompt.stage === 'damage' ? 'suma de dados (sin modificador)' : 'total'; submit.className = 'primary'; submit.textContent = prompt.stage === 'damage' ? 'Aplicar daño' : 'Confirmar dado';
+    title.textContent = compact.title; note.textContent = compact.instruction; input.type = 'number'; input.inputMode = 'numeric'; input.setAttribute('aria-label', compact.instruction); input.min = String(prompt.minimum ?? -30); input.max = String(prompt.maximum ?? 200); input.placeholder = compact.placeholder; submit.className = 'primary'; submit.textContent = 'Confirmar';
     title.className = 'combat-prompt-title'; note.className = 'combat-prompt-note'; input.className = 'combat-prompt-input'; submit.classList.add('combat-prompt-submit'); controls.className = 'combat-prompt-controls'; controls.append(input, submit);
     const send = () => {
       const raw = input.value.trim(); if (!raw) return toast('Introduce el resultado de los dados.');
@@ -1087,7 +1153,9 @@ function renderTargetMenu() {
       socket.emit('player:combat', { runtimeEpoch, type, commandId: commandId(), sceneEpoch: lastSnapshot!.sceneEpoch, promptId: prompt.id, ...data });
     };
     submit.onclick = send; input.onkeydown = event => { if (event.key === 'Enter') send(); };
-    box.append(title, note, controls); return;
+    const details = document.createElement('details'), detailsTitle = document.createElement('summary'), explanation = document.createElement('p');
+    details.className = 'combat-roll-details'; detailsTitle.textContent = 'Detalles'; explanation.textContent = `${prompt.title} · ${prompt.instruction}`; details.append(detailsTitle, explanation);
+    box.append(title, note, controls, details); return;
   }
   const targetParticipant = target ? lastSnapshot!.combat.participants.find(participant => participant.id === target.id && participant.active) : undefined;
   const meters = self && target ? Math.max(Math.abs(self.cell.col - target.cell.col), Math.abs(self.cell.row - target.cell.row)) * 1.5 : undefined;
@@ -1096,7 +1164,7 @@ function renderTargetMenu() {
     ? armedAction.targeting === 'point' ? `${armedAction.label} seleccionado · toca una casilla del mapa` : `${armedAction.label} seleccionado · toca una ficha objetivo`
     : armedBasicAction === 'help' ? 'Ayudar seleccionado · toca al enemigo que quieres distraer'
     : target && targetParticipant && meters !== undefined
-    ? `${target.label} · CA ${targetParticipant.armorClass} · ${meters.toFixed(1)} m`
+    ? `${target.label} · ${meters.toFixed(1)} m`
     : 'Elige una ficha enemiga';
   box.append(actionPanelHeader('COMBATE', 'Acciones', targetSummary));
 
@@ -1150,9 +1218,9 @@ function renderTargetMenu() {
     const needsRecharge = !continuing && Boolean(action.recharge && combat.recharge[action.id] === false);
     const button = document.createElement('button'), name = document.createElement('b'), row = document.createElement('div');
     button.className = `combat-action${armedActionId === action.id ? ' armed' : ''}`; button.setAttribute('aria-pressed', String(armedActionId === action.id)); name.textContent = compactActionLabel(action.label);
-    const tooltipText = `${combatActionDescription(action, targetParticipant?.armorClass)}${rangeBands}${resource ? ` ${resource.label}: ${resource.current}/${resource.max}.` : ''}`;
+    const tooltipText = `${combatActionDescription(action, targetParticipant?.armorClass, continuing ? combat.sequence?.remaining : undefined)}${rangeBands}${resource ? ` ${resource.label}: ${resource.current}/${resource.max}.` : ''}`;
     button.append(name);
-    button.disabled = used || !turnAllowsAction || unavailableResource || needsRecharge || Boolean(pendingCombatCommands.size);
+    button.disabled = used || !turnAllowsAction || unavailableResource || needsRecharge || combat.conditions.some(condition => condition === 'inconsciente' || condition === 'paralizada') || Boolean(pendingCombatCommands.size);
     button.title = used ? 'Ya has usado este tipo de acción.' : unavailableResource ? 'No queda el recurso necesario.' : needsRecharge ? 'Esta acción debe recargarse.' : pendingCombatCommands.size ? 'Esperando confirmación de la acción anterior.' : tooltipText;
     button.onclick = () => selectCombatAction(action);
     const category = categoryFor(action), group = actionGroup(category); group.count++; group.summary.textContent = `${categoryTitles[category]} · ${group.count}`;
@@ -1162,6 +1230,7 @@ function renderTargetMenu() {
   }
 
   const basics = document.createElement('details'), basicsTitle = document.createElement('summary'), basicsGrid = document.createElement('div'), rules = document.createElement('p');
+  const incapacitated = combat.conditions.some(condition => condition === 'inconsciente' || condition === 'paralizada');
   basics.className = 'action-category action-rules'; basics.open = openCombatCategory === 'rules'; basicsTitle.textContent = 'Otras acciones y reglas'; basicsGrid.className = 'combat-basic-actions'; rules.textContent = 'Hablar e interactuar con algo sencillo es gratis. Una segunda interacción u objeto complejo usa Utilizar.';
   const toggleRules = () => {
     openCombatCategory = openCombatCategory === 'rules' ? null : 'rules';
@@ -1179,10 +1248,10 @@ function renderTargetMenu() {
     const choice = document.createElement('div'), tooltip = actionTooltip(detail);
     choice.className = 'basic-action-choice'; button.title = detail; enableLongPressInfo(button, tooltip); choice.append(button, tooltip); basicsGrid.append(choice);
   };
-  if (combat.conditions.includes('restringida') || combat.conditions.includes('apresada')) { const escape = document.createElement('button'); escape.textContent = 'Liberarse'; escape.disabled = combat.actionUsed || Boolean(pendingCombatCommands.size); escape.onclick = declareCombatEscape; appendBasicAction(escape, 'Liberarse: usa una acción para intentar escapar de estar apresado o restringido.'); }
+  if (combat.conditions.includes('restringida') || combat.conditions.includes('apresada')) { const escape = document.createElement('button'); escape.textContent = 'Liberarse'; escape.disabled = !combat.isTurn || incapacitated || combat.actionUsed || Boolean(pendingCombatCommands.size); escape.onclick = declareCombatEscape; appendBasicAction(escape, 'Liberarse: usa una acción para intentar escapar de estar apresado o restringido.'); }
   if (combat.isTurn) {
     const posture = document.createElement('button'), prone = combat.conditions.includes('derribada');
-    posture.textContent = prone ? 'Levantarse' : 'Tirarse al suelo'; posture.disabled = Boolean(pendingCombatCommands.size) || Boolean(prone && (!combat.movement || combat.movement.remainingSquares <= 0));
+    posture.textContent = prone ? 'Levantarse' : 'Tirarse al suelo'; posture.disabled = incapacitated || Boolean(pendingCombatCommands.size) || Boolean(prone && (!combat.movement || combat.movement.remainingSquares <= 0));
     posture.onclick = () => { if (!lastSnapshot) return; const id = commandId(); pendingCombatCommands.add(id); socket.emit('player:combat', { runtimeEpoch, type: prone ? 'combat:stand' : 'combat:dropProne', commandId: id, sceneEpoch: lastSnapshot.sceneEpoch }); };
     appendBasicAction(posture, prone ? 'Levantarse: gasta movimiento equivalente a la mitad de tu velocidad.' : 'Tirarse al suelo: quedas derribado sin gastar una acción.');
   }
@@ -1200,41 +1269,18 @@ function renderTargetMenu() {
     influence: 'Influir: intenta modificar la actitud o conducta de una criatura.'
   };
   for (const action of combat.basicActions) {
-    const button = document.createElement('button'); button.textContent = basicActionLabels[action]; button.disabled = combat.actionUsed || Boolean(pendingCombatCommands.size);
+    const button = document.createElement('button'); button.textContent = basicActionLabels[action]; button.disabled = !combat.isTurn || combat.actionUsed || combat.conditions.some(condition => condition === 'inconsciente' || condition === 'paralizada') || Boolean(pendingCombatCommands.size);
     button.classList.toggle('primary', armedBasicAction === action); button.setAttribute('aria-pressed', String(armedBasicAction === action));
     button.onclick = () => selectBasicCombatAction(action);
     appendBasicAction(button, basicActionHelp[action]);
   }
   if (combat.spellAttackBonus !== undefined || combat.spellSaveDc !== undefined) rules.textContent += ` Magia: ataque ${combat.spellAttackBonus !== undefined ? `${combat.spellAttackBonus >= 0 ? '+' : ''}${combat.spellAttackBonus}` : '—'} · CD ${combat.spellSaveDc ?? '—'}.`;
   if (armedBasicAction) { openCombatCategory = 'rules'; basics.open = true; }
+  const flee = document.createElement('button'); flee.textContent = 'Huir'; flee.disabled = combat.conditions.some(condition => condition === 'inconsciente' || condition === 'paralizada'); flee.onclick = showCombatFlee; appendBasicAction(flee, 'Declarar una retirada al DM; no te saca automáticamente del combate.');
+  if (combat.isTurn) { const move = document.createElement('button'); move.textContent = 'Mover'; move.disabled = !combat.movement?.remainingSquares || combat.conditions.some(condition => condition === 'inconsciente' || condition === 'paralizada'); move.onclick = () => chooseCombatBarMode('move'); appendBasicAction(move, 'Usa el joystick o las teclas. El mapa resalta el movimiento disponible.'); }
   basics.append(basicsTitle, basicsGrid, rules); actionList.append(basics);
   box.append(actionList);
   renderCombatRadial(box);
-}
-
-function radialActionGlyph(key: string, label: string) {
-  const text = `${key} ${label}`.toLocaleLowerCase('es');
-  if (/talk|hablar/.test(text)) return '💬';
-  if (/influence|influir/.test(text)) return '✦';
-  if (/help|ayudar/.test(text)) return '🤝';
-  if (/hide|esconder|sigilo/.test(text)) return '◉̸';
-  if (/search|buscar/.test(text)) return '⌕';
-  if (/study|estudiar/.test(text)) return '✧';
-  if (/fire|fuego|llama|hoguer/.test(text)) return '🔥';
-  if (/potion|poción|curación/.test(text)) return '🧪';
-  if (/shield|escudo|reacción/.test(text)) return '🛡';
-  if (/lock|cerradura/.test(text)) return '⚿';
-  if (/trap|trampa/.test(text)) return '⚠';
-  if (/climb|trepar/.test(text)) return '↗';
-  if (/swim|nadar/.test(text)) return '≋';
-  if (/jump|saltar/.test(text)) return '⤴';
-  if (/bow|arco/.test(text)) return '🏹';
-  if (/dagger|daga|sword|espada|hacha|arma|golpe/.test(text)) return '🗡';
-  if (/use-object|utilizar|objeto|herramienta/.test(text)) return '⚒';
-  if (/dash|correr/.test(text)) return '➤';
-  if (/dodge|esquivar/.test(text)) return '↝';
-  if (/spell|conjuro|magic|magia|proyectil|misil|ritual|hechizo/.test(text)) return '✦';
-  return '✧';
 }
 
 function radialActionLabel(label: string) {
@@ -1285,9 +1331,13 @@ function renderActionRadial(sourceBox: HTMLElement) {
   });
   if (!actionsMenuOpen) { radial.hidden = true; radial.replaceChildren(); return; }
   radial.hidden = false;
-  const anchor = (inCombat ? $('combatCommandBar').querySelector('.combat-command.selected') ?? $('combatCommandBar') : $('actionToggle')).getBoundingClientRect();
+  const anchor = $('actionToggle').getBoundingClientRect();
+  const compact = matchMedia('(orientation: landscape) and (max-height: 550px)').matches;
   const origin = { x: anchor.left + anchor.width / 2, y: anchor.top + anchor.height / 2 };
   const width = Math.max(1, window.innerWidth), height = Math.max(1, window.innerHeight);
+  // Labels are wider than the round origin button. Reserve their half-width at
+  // both edges instead of forcing a perfectly spacious desktop wheel to page.
+  origin.x = Math.max(68, Math.min(width - 68, origin.x));
   const renderKey = JSON.stringify([inCombat, actionRadialCategory, actionRadialPage, origin, width, height, sources.map(source => [source.textContent, source.title, source.disabled, source.className])]);
   if (radial.dataset.renderKey === renderKey && radial.childElementCount) return;
   radial.dataset.renderKey = renderKey;
@@ -1298,8 +1348,9 @@ function renderActionRadial(sourceBox: HTMLElement) {
   const nodeSize = compactLandscape ? 40 : width <= 560 ? 42 : 46;
   const labelGap = 6;
   const marginX = 10, marginY = Math.max(12, safeAreaInsets().top + 8);
-  const paginationWidth = 104, paginationHeight = 40, paginationGap = 8;
-  const labelWidthFor = (label: string) => Math.min(Math.max(68, label.length * (compactLandscape ? 5.7 : 6.1) + 16), Math.min(116, width - marginX * 2));
+  // Clearance includes the origin's 10px hit-box buffer and the 5px collision gap.
+  const paginationWidth = 104, paginationHeight = 40, paginationGap = 16;
+  const labelWidthFor = (label: string) => Math.min(Math.max(90, label.length * (compactLandscape ? 5.7 : 6.1) + 16), Math.min(116, width - marginX * 2));
   const labelHeightFor = (label: string) => {
     const charsPerLine = Math.max(10, Math.floor((labelWidthFor(label) - 14) / (compactLandscape ? 5.7 : 6.1)));
     return label.length > charsPerLine ? (compactLandscape ? 29 : 31) : (compactLandscape ? 17 : 19);
@@ -1316,9 +1367,10 @@ function renderActionRadial(sourceBox: HTMLElement) {
   const overlap = (a: Box, b: Box, gap = 0) => a.left < b.right + gap && a.right + gap > b.left && a.top < b.bottom + gap && a.bottom + gap > b.top;
   const rectAt = (x: number, y: number, w: number, h: number): Box => ({ left: x - w / 2, right: x + w / 2, top: y - h / 2, bottom: y + h / 2 });
   const findLayout = (count: number, labels: string[], withPagination: boolean): RadialLayout | null => {
+    const backBox = actionRadialCategory ? rectAt(origin.x - 24, origin.y - 49, 94, 32) : null;
     const interval = Math.abs(arc.end - arc.start) * Math.PI / 180 / Math.max(1, count - 1);
     const minRadius = Math.max(nodeSize + 22, count >= 8 ? nodeSize + 128 : nodeSize + 22, count > 1 ? (nodeSize + 16) / (2 * Math.sin(interval / 2)) : nodeSize + 22);
-    const maxRadius = Math.min(300, Math.min(width, height) * .48);
+    const maxRadius = radialRadiusLimit(width, height);
     const pagePoint = withPagination ? paginationPosition() : null;
     const pageBox = pagePoint ? rectAt(pagePoint.x, pagePoint.y, paginationWidth, paginationHeight) : null;
     const safeBottom = height - Math.max(8, safeAreaInsets().bottom + 8);
@@ -1338,6 +1390,7 @@ function renderActionRadial(sourceBox: HTMLElement) {
         const overflow = Math.max(0, marginX - box.left) + Math.max(0, box.right - (width - marginX)) + Math.max(0, marginY - box.top) + Math.max(0, box.bottom - (height - Math.max(8, safeAreaInsets().bottom + 8)));
         if (overflow) { score += overflow * 1000; nodeFits = false; }
         if (overlap(box, anchorBox, 6)) { score += 10000; nodeFits = false; }
+        if (backBox && overlap(box, backBox, 6)) { score += 10000; nodeFits = false; }
         for (let other = 0; other < index; other++) if (overlap(box, nodeBoxes[other]!, 7)) { score += 10000; nodeFits = false; }
       }
       const labelBoxes: Box[] = [];
@@ -1349,7 +1402,7 @@ function renderActionRadial(sourceBox: HTMLElement) {
         const centerX = point.x, centerY = point.y + nodeSize / 2 + labelGap + labelHeight / 2;
         const box = rectAt(centerX, centerY, labelWidth, labelHeight);
         const overflow = Math.max(0, marginX - box.left) + Math.max(0, box.right - (width - marginX)) + Math.max(0, marginY - box.top) + Math.max(0, box.bottom - safeBottom);
-        const collidesWithNodes = nodeBoxes.some((nodeBox, nodeIndex) => nodeIndex !== index && overlap(box, nodeBox, 5)) || overlap(box, anchorBox, 4);
+        const collidesWithNodes = nodeBoxes.some((nodeBox, nodeIndex) => nodeIndex !== index && overlap(box, nodeBox, 5)) || overlap(box, anchorBox, 4) || Boolean(backBox && overlap(box, backBox, 5));
         const collidesWithLabels = labelBoxes.some(previous => overlap(box, previous, 6));
         const collidesWithPagination = Boolean(pageBox && overlap(box, pageBox, 6));
         const candidateScore = overflow * 1000 + (collidesWithNodes ? 1000 : 0) + (collidesWithLabels ? 1000 : 0) + (collidesWithPagination ? 1000 : 0);
@@ -1364,22 +1417,13 @@ function renderActionRadial(sourceBox: HTMLElement) {
     return best;
   };
 
-  let capacity = arc.kind === 'quarter' ? 4 : 8;
-  let pages = Math.max(1, Math.ceil(sources.length / capacity));
-  actionRadialPage = Math.min(actionRadialPage, pages - 1);
-  let visibleSources = sources.slice(actionRadialPage * capacity, (actionRadialPage + 1) * capacity);
-  let labels = visibleSources.map(source => radialActionLabel(actionRadialSourceLabel(source)));
-  let layout = findLayout(visibleSources.length, labels, pages > 1);
-  if (arc.kind === 'half' && visibleSources.length > 4 && !layout?.fits) {
-    const previousStart = actionRadialPage * capacity;
-    capacity = 4;
-    pages = Math.max(1, Math.ceil(sources.length / capacity));
-    actionRadialPage = Math.min(Math.floor(previousStart / capacity), pages - 1);
-    visibleSources = sources.slice(actionRadialPage * capacity, (actionRadialPage + 1) * capacity);
-    labels = visibleSources.map(source => radialActionLabel(actionRadialSourceLabel(source)));
-    layout = findLayout(visibleSources.length, labels, pages > 1);
-  }
-  if (!layout) layout = findLayout(visibleSources.length, labels, pages > 1);
+  const allLabels=sources.map(source=>radialActionLabel(actionRadialSourceLabel(source)));
+  const {capacity,pages,page}=radialPagination(sources.length,arc.kind==='quarter'?4:8,actionRadialPage,
+    (start,count,pages)=>Boolean(findLayout(count,allLabels.slice(start,start+count),pages>1)?.fits));
+  actionRadialPage=page;
+  const visibleSources=sources.slice(page*capacity,(page+1)*capacity);
+  const labels=allLabels.slice(page*capacity,(page+1)*capacity);
+  const layout=findLayout(visibleSources.length,labels,pages>1);
   const radius = layout?.radius ?? Math.max(nodeSize + 22, Math.min(180, Math.min(width, height) * .32));
   const visiblePoints = layout?.points ?? [];
 
@@ -1397,10 +1441,13 @@ function renderActionRadial(sourceBox: HTMLElement) {
   }
   radial.replaceChildren(svg);
   const navigation = document.createElement('div'); navigation.className = 'radial-navigation';
+  navigation.style.left = `${origin.x-nodeSize/2}px`;
+  navigation.style.top = `${origin.y-nodeSize/2}px`;
+  navigation.style.transform = 'none';
   const back = document.createElement('button'), heading = document.createElement('strong'), close = document.createElement('button');
-  back.type = 'button'; back.textContent = '‹ Categorías'; back.hidden = !actionRadialCategory; back.onclick = () => { actionRadialCategory = null; actionRadialPage = 0; refresh(); };
+  back.type = 'button'; back.textContent = '‹ Atrás'; back.className='radial-back';back.hidden = !actionRadialCategory; back.onclick = () => { actionRadialCategory = null; actionRadialPage = 0; refresh(); };
   heading.textContent = actionRadialCategory ?? (inCombat ? 'Tu turno' : '¿Qué quieres hacer?');
-  close.type = 'button'; close.textContent = '× Cerrar'; close.onclick = () => { actionsMenuOpen = false; radial.hidden = true; renderActionToggle(); renderCombatFrame(); };
+  close.type = 'button'; close.textContent = '×';close.className='radial-close';close.setAttribute('aria-label','Cerrar acciones'); close.onclick = () => { actionsMenuOpen = false; radial.hidden = true; renderActionToggle(); renderCombatControls(); };
   navigation.append(back, heading, close); radial.append(navigation);
   if (!sources.length) {
     const empty = document.createElement('p'); empty.className = 'action-radial-empty'; empty.textContent = 'No hay acciones disponibles ahora.'; empty.style.left = `${origin.x}px`; empty.style.top = `${origin.y - 76}px`; radial.append(empty); return;
@@ -1417,7 +1464,7 @@ function renderActionRadial(sourceBox: HTMLElement) {
     button.disabled = source.disabled; button.setAttribute('aria-label', `${label}. Mantén pulsado para ver detalles.`); button.title = description;
     glyph.className = 'radial-action-glyph'; glyph.setAttribute('aria-hidden', 'true'); glyph.textContent = icon;
     caption.className = 'radial-action-label'; caption.textContent = shortLabel; caption.title = label;
-    caption.hidden = !layout?.labelsVisible;
+    caption.hidden = false;
     caption.style.width = `${labelWidthFor(shortLabel)}px`;
     const tooltip = actionTooltip(description), tooltipHalfWidth = Math.min(140, width / 2 - 12);
     tooltip.style.position = 'fixed'; tooltip.style.left = `${Math.min(width - tooltipHalfWidth - 12, Math.max(tooltipHalfWidth + 12, point.x))}px`;
@@ -1428,7 +1475,7 @@ function renderActionRadial(sourceBox: HTMLElement) {
       event.stopPropagation();
       actionsMenuOpen = false; actionRadialPage = 0; radial.hidden = true; renderActionToggle();
       source.click();
-      if (inCombat) { renderCombatFrame(); renderSelectedAction(); }
+      if (inCombat) { renderCombatControls(); renderSelectedAction(); }
     };
     radial.append(button);
   }
@@ -1465,9 +1512,19 @@ function renderCombatRadial(box: HTMLElement) {
   renderActionRadial(box); box.hidden = true;
 }
 
+function endConcentrationButton() {
+  const button = document.createElement('button'); button.type = 'button'; button.textContent = 'Terminar concentración';
+  button.title = 'Termina el conjuro y su efecto visual, sin gastar una acción.';
+  button.onclick = () => {
+    if (!lastSnapshot) return;
+    const id = commandId(); pendingCombatCommands.add(id);
+    socket.emit('player:combat', { runtimeEpoch, type: 'combat:endConcentration', commandId: id, sceneEpoch: lastSnapshot.sceneEpoch });
+  };
+  return button;
+}
 function renderExplorationControls() {
   const box = $('explorationMenu');
-  const active = Boolean(privateState && lastSnapshot && !lastSnapshot.combat.active);
+  const active = Boolean(privateState && (privateState.hp ?? 0) > 0 && !privateState.conditions.some(condition => condition === 'inconsciente' || condition === 'paralizada') && lastSnapshot && !lastSnapshot.combat.active);
   box.hidden = true;
   const context = active ? contextualInteraction() : null;
   world.setContextInteractionTarget(context?.targetId ?? null, context?.pointId ?? null);
@@ -1483,7 +1540,8 @@ function renderExplorationControls() {
       : armedExplorationBasicActionId ? explorationBasicActionCatalogue[armedExplorationBasicActionId].label : undefined;
   const groups = document.createElement('div');
   groups.className = 'exploration-actions';
-  box.append(actionPanelHeader('EXPLORACIÓN', 'Acciones', selected ? `${compactActionLabel(selected)} seleccionado` : 'Elige una acción'));
+    box.append(actionPanelHeader('EXPLORACIÓN', 'Acciones', selected ? `${compactActionLabel(selected)} seleccionado` : 'Elige una acción'));
+    if (privateState.concentration) box.append(endConcentrationButton());
   if (context) {
     const item = document.createElement('button'), icon = document.createElement('span'), label = document.createElement('strong'), arrow = document.createElement('span');
     item.type = 'button'; item.className = 'contextual-action';
@@ -1709,6 +1767,21 @@ function useExplorationBasicAction(actionId: ExplorationBasicAction, targetId?: 
   return true;
 }
 
+function selectCombatTarget(targetId: string | null) {
+  if (!lastSnapshot || !privateState?.combat) return;
+  if (!(privateState.combat.isTurn || privateState.combat.ready || !privateState.combat.reactionUsed && privateState.combat.attacks.some(action => action.actionCost === 'reaction'))) return;
+  const target = lastSnapshot.combat.participants.find(item => item.id === targetId && item.active);
+  selectedTargetId = target?.id ?? null;
+  const action = armedActionId ? privateState.combat.attacks.find(candidate => candidate.id === armedActionId) : undefined;
+  if (action?.targeting === 'point') return toast('Esta acción requiere elegir una casilla en el mapa.');
+  if (action && target) { declareCombatAction(action, target.id); return; }
+  if (armedBasicAction === 'help' && target) {
+    if (target.controller !== 'player') { useBasicCombatAction('help', target.id); return; }
+    toast('Ayudar requiere elegir a un enemigo que esté junto a ti.'); return;
+  }
+  renderTargetMenu();
+}
+
 world.setMapClick(cell => {
   if (!lastSnapshot || !privateState) return;
   if (!privateState.combat) {
@@ -1733,14 +1806,7 @@ world.setMapClick(cell => {
   const action = armedActionId ? privateState.combat.attacks.find(candidate => candidate.id === armedActionId) : undefined;
   if (action?.targeting === 'point') { declareCombatPointAction(action, cell); return; }
   const snapshot = lastSnapshot, target = snapshot.entities.find(entity => entity.cell.col === cell.col && entity.cell.row === cell.row && snapshot.combat.participants.some(participant => participant.id === entity.id && participant.active));
-  selectedTargetId = target?.id ?? null;
-  if (action && target) { declareCombatAction(action, target.id); return; }
-  if (armedBasicAction === 'help' && target) {
-    const enemy = snapshot.combat.participants.find(participant => participant.id === target.id && participant.active && participant.controller !== 'player');
-    if (enemy) { useBasicCombatAction('help', enemy.id); return; }
-    toast('Ayudar requiere elegir a un enemigo que esté junto a ti.'); return;
-  }
-  renderTargetMenu();
+  selectCombatTarget(target?.id ?? null);
 });
 
 function changeOwnHp(sign: 1 | -1) {
@@ -1754,28 +1820,22 @@ $('takeDamage').onclick = () => changeOwnHp(-1);
 $('healDamage').onclick = () => changeOwnHp(1);
 $('endTurn').onclick = finishCombatTurn;
 
-let sceneLoadRetryTimer = 0;
-let sceneLoadRetryAttempt = 0;
+const sceneLoadRecovery = new SceneLoadRecovery();
 async function prepareSnapshot(snapshot: WorldSnapshot) {
   try {
     const installed = await world.applySnapshot(snapshot);
     if (!installed) return;
-    clearTimeout(sceneLoadRetryTimer); sceneLoadRetryTimer = 0; sceneLoadRetryAttempt = 0;
+    sceneLoadRecovery.reset();
     updatePlayerCameraControls(snapshot.sceneId);
     if (socket.connected && readyEpoch !== snapshot.sceneEpoch && lastSnapshot?.sceneEpoch === snapshot.sceneEpoch) {
       readyEpoch = snapshot.sceneEpoch;
       socket.emit('scene:ready', { runtimeEpoch, sceneEpoch: snapshot.sceneEpoch });
     }
   } catch (error) {
-    console.error('No se pudo cargar el mapa del jugador', error);
-    if (!socket.connected || sceneLoadRetryTimer || lastSnapshot?.runtimeEpoch !== runtimeEpoch) return;
-    if (!sceneLoadRetryAttempt) toast('No se pudo cargar el mapa. Reintentando…');
-    const delay = Math.min(1000 * 2 ** sceneLoadRetryAttempt, 10_000);
-    sceneLoadRetryAttempt = Math.min(sceneLoadRetryAttempt + 1, 4);
-    sceneLoadRetryTimer = window.setTimeout(() => {
-      sceneLoadRetryTimer = 0;
+    if (!socket.connected || lastSnapshot?.runtimeEpoch !== runtimeEpoch) return;
+    if (sceneLoadRecovery.failed(() => {
       if (socket.connected && lastSnapshot?.runtimeEpoch === runtimeEpoch) void prepareSnapshot(lastSnapshot);
-    }, delay);
+    })) { console.error('No se pudo cargar el mapa del jugador', error); toast('No se pudo cargar el mapa. Reintentando…'); }
   }
 }
 
@@ -1811,8 +1871,10 @@ let cameraTouchGestureStartX: number | null = null;
 let cameraTouchGestureStartY: number | null = null;
 let cameraTouchGestureStartDistance: number | null = null;
 let cameraTouchLastDistance: number | null = null;
-let cameraTouchGestureStartTilt = 30;
-let cameraTouchGestureAxis: 'orbit' | 'tilt' | 'zoom' | null = null;
+let cameraTouchTiltDegrees = CAMERA_DEFAULT_TILT;
+let cameraTouchLastCenterY: number | null = null;
+let cameraTouchGestureAxis: CameraTouchAxis | null = null;
+let cameraTouchFrame: number | null = null;
 const cameraTouchPair = () => [...cameraTouchPointers.values()].slice(0, 2);
 const cameraTouchCenter = () => {
   const pair = cameraTouchPair();
@@ -1823,12 +1885,35 @@ const cameraTouchDistance = () => {
   return first && second ? Math.hypot(second.x - first.x, second.y - first.y) : 0;
 };
 function resetCameraTouchGesture() {
+  if (cameraTouchFrame !== null) cancelAnimationFrame(cameraTouchFrame);
+  cameraTouchFrame = null;
   cameraTouchGestureActive = false;
   cameraTouchGestureStartX = null;
   cameraTouchGestureStartY = null;
   cameraTouchGestureStartDistance = null;
   cameraTouchLastDistance = null;
+  cameraTouchLastCenterY = null;
   cameraTouchGestureAxis = null;
+}
+function clearCameraTouchContacts() {
+  cameraTouchPointers.clear(); cameraTouchPairSeen = false; resetCameraTouchGesture();
+}
+function applyCameraTouchGesture() {
+  if (!cameraTouchGestureActive || cameraTouchPointers.size !== 2) return;
+  const center = cameraTouchCenter(), distance = cameraTouchDistance();
+  const dx = center.x - (cameraTouchGestureStartX ?? center.x), dy = center.y - (cameraTouchGestureStartY ?? center.y);
+  const pinchTravel = distance - (cameraTouchGestureStartDistance ?? distance);
+  const previousAxis = cameraTouchGestureAxis;
+  cameraTouchGestureAxis ??= cameraTouchAxis(dx, dy, pinchTravel, supportsCameraOrbit());
+  if (cameraTouchGestureAxis === 'tilt' && supportsCameraOrbit()) {
+    cameraTouchTiltDegrees = previousAxis === 'tilt'
+      ? adjustCameraTiltForTouch(cameraTouchTiltDegrees, center.y - (cameraTouchLastCenterY ?? center.y))
+      : cameraTiltFromTouch(cameraTouchTiltDegrees, dy);
+    world.setCameraTiltDegrees(cameraTouchTiltDegrees);
+  }
+  if (cameraTouchGestureAxis === 'zoom' && cameraTouchLastDistance && distance > 0) world.zoomCameraBy(distance / cameraTouchLastDistance);
+  cameraTouchLastDistance = distance;
+  cameraTouchLastCenterY = center.y;
 }
 const worldCanvasTarget = (target: EventTarget | null): target is HTMLCanvasElement => target instanceof HTMLCanvasElement && target.classList.contains('world');
 
@@ -1844,7 +1929,8 @@ addEventListener('pointerdown', event => {
     cameraTouchGestureStartY = center.y;
     cameraTouchGestureStartDistance = cameraTouchDistance();
     cameraTouchLastDistance = cameraTouchGestureStartDistance;
-    cameraTouchGestureStartTilt = world.getCameraTiltDegrees();
+    cameraTouchTiltDegrees = world.getCameraTiltDegrees();
+    cameraTouchLastCenterY = center.y;
     cameraTouchGestureAxis = null;
     event.preventDefault();
   }
@@ -1856,17 +1942,9 @@ addEventListener('pointermove', event => {
   point.x = event.clientX; point.y = event.clientY;
   if (cameraTouchGestureActive && cameraTouchPointers.size === 2) {
     if (event.cancelable) event.preventDefault();
-    const center = cameraTouchCenter(), distance = cameraTouchDistance();
-    const dx = center.x - (cameraTouchGestureStartX ?? center.x), dy = center.y - (cameraTouchGestureStartY ?? center.y);
-    const pinchTravel = distance - (cameraTouchGestureStartDistance ?? distance);
-    if (!cameraTouchGestureAxis && (Math.hypot(dx, dy) > 20 || Math.abs(pinchTravel) > 16)) {
-      cameraTouchGestureAxis = Math.abs(pinchTravel) > 16 && Math.abs(pinchTravel) > Math.hypot(dx, dy) * .7
-        ? 'zoom'
-        : Math.abs(dx) >= Math.abs(dy) ? (supportsCameraOrbit() ? 'orbit' : null) : (supportsCameraOrbit() ? 'tilt' : null);
-    }
-    if (cameraTouchGestureAxis === 'tilt' && supportsCameraOrbit()) world.setCameraTiltDegrees(cameraTouchGestureStartTilt - dy * .32);
-    if (cameraTouchGestureAxis === 'zoom' && cameraTouchLastDistance && distance > 0) world.zoomCameraBy(distance / cameraTouchLastDistance);
-    cameraTouchLastDistance = distance;
+    // Mobile browsers dispatch one event per finger. Read the pair together
+    // once per frame, so a parallel swipe is not mistaken for a pinch.
+    cameraTouchFrame ??= requestAnimationFrame(() => { cameraTouchFrame = null; applyCameraTouchGesture(); });
   }
 }, { capture: true, passive: false });
 
@@ -1874,6 +1952,7 @@ addEventListener('pointerup', event => {
   const point = cameraTouchPointers.get(event.pointerId);
   if (!point) return;
   point.x = event.clientX; point.y = event.clientY;
+  applyCameraTouchGesture();
   if (cameraTouchGestureActive && cameraTouchGestureAxis === 'orbit' && cameraTouchGestureStartX !== null) {
     const horizontalTravel = cameraTouchCenter().x - cameraTouchGestureStartX;
     if (Math.abs(horizontalTravel) >= 52) rotatePlayerCamera(horizontalTravel < 0 ? -1 : 1);
@@ -2103,9 +2182,9 @@ function stop() {
   send(true);
 }
 setInterval(() => { if (keyboardMoveTimer === null) send(); }, 80);
-addEventListener('blur', stop);
-addEventListener('pagehide', stop);
-document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); });
+addEventListener('blur', () => { stop(); clearCameraTouchContacts(); });
+addEventListener('pagehide', () => { stop(); clearCameraTouchContacts(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { stop(); clearCameraTouchContacts(); } });
 const actionToggle = $('actionToggle');
 for (const eventName of ['pointerdown', 'pointerup', 'click'] as const) actionToggle.addEventListener(eventName, event => event.stopPropagation());
 // The map listens directly on its canvas. Keep taps made in either action tray
@@ -2115,8 +2194,9 @@ for (const panelId of ['targetMenu', 'explorationMenu', 'actionRadial'] as const
   for (const eventName of ['pointerdown', 'pointerup', 'pointercancel', 'click', 'contextmenu'] as const) panel.addEventListener(eventName, event => event.stopPropagation());
 }
 actionToggle.onclick = () => {
+  if (lastSnapshot?.combat.active && !actionsMenuOpen) { actionRadialCategory = null; actionRadialPage = 0; }
   actionsMenuOpen = !actionsMenuOpen; renderedTargetMenuKey = '';
-  renderActionToggle(); renderTargetMenu(); renderExplorationControls();
+  renderActionToggle(); renderTargetMenu(); renderExplorationControls(); renderCombatControls();
 };
 $('interact').onclick = () => {
   activateAvailableProximityAction();
@@ -2196,18 +2276,19 @@ function saveSheet() {
 socket.connect();
 
 function renderSheet(next: PlayerPrivate) {
+  const sheetKey=JSON.stringify([next.characterId,next.label,next.hp,next.maxHp,next.conditions,next.conditionSources,next.resources,next.sheet,sheetView]);
+  if($('sheetStats').dataset.renderKey===sheetKey)return;$('sheetStats').dataset.renderKey=sheetKey;
   const sheet = next.sheet;
   $('sheetName').textContent = next.label ? `Hoja · ${next.label}` : 'Hoja de personaje';
   $('sheetSummary').textContent = sheet ? `${sheet.background} · nivel ${sheet.level}${sheetView === 'full' ? ' · vista completa' : ' · resumen de aventura'}` : 'La hoja aún no tiene datos de campaña.';
   $('summarySheet').classList.toggle('primary', sheetView === 'summary'); $('fullSheet').classList.toggle('primary', sheetView === 'full');
   const stats = $('sheetStats'); stats.replaceChildren();
-  const field = (label: string, value: string) => { const box = document.createElement('div'), title = document.createElement('b'), detail = document.createElement('span'); title.textContent = label; detail.textContent = value; box.append(title, detail); return box; };
+  const field = (label: string, value: string) => { const box = document.createElement('div'), title = document.createElement('b'), detail = document.createElement('span'); if (label === 'Salto') box.className = 'sheet-stat-wide'; title.textContent = label; detail.textContent = value; box.append(title, detail); return box; };
   stats.append(field('PG', `${next.hp ?? '—'} / ${next.maxHp ?? '—'}`));
   document.getElementById('activeStates')?.remove(); document.getElementById('stateLegend')?.remove();
   const states = next.conditions;
   const icons: Record<string, string> = { envenenada: '🟢', apresada: '🟣', agarrada: '🔵', derribada: '🟠', asustada: '🟡', hechizada: '💛', paralizada: '🧊', inconsciente: '⚫', oculta: '⚪', invisible: '✨', restringida: '🟣' };
-  const descriptions: Record<string, string> = { envenenada: 'Desventaja en ataques y pruebas de característica.', apresada: 'Velocidad: 0 · ataques con desventaja · ataques contra ti con ventaja. Liberarse: acción → Atletismo o Acrobacias CD 11.', agarrada: 'Velocidad: 0.', derribada: 'Levántate gastando movimiento; ataques propios con desventaja.', asustada: 'No puedes acercarte voluntariamente a la fuente; Valiente da ventaja en la salvación.', hechizada: 'No puedes atacar al origen del encanto; el DM guía el canto y su duración.', paralizada: 'No puedes moverte ni actuar; fallas automáticamente salvaciones de Fuerza y Destreza. Ataques contra ti con ventaja; impacto cercano crítico.', inconsciente: 'Velocidad: 0 · no puedes actuar. Realiza salvaciones contra muerte físicas.', oculta: 'Silueta discreta; la visibilidad depende del DM.', invisible: 'Los ataques contra ti tienen desventaja y el tuyo tiene ventaja. Atacar revela tu posición.', restringida: 'Velocidad: 0.' };
-  if (states.length) { const section = document.createElement('section'); section.id = 'activeStates'; const title = document.createElement('h3'); title.textContent = 'Estados activos'; section.append(title, ...states.map(state => { const item = document.createElement('p'), source = next.conditionSources.find(candidate => candidate.condition === state); const origin = source?.sourceLabel ?? source?.sourceAbility ?? source?.sourceId; const duration = source?.durationRounds !== undefined ? `\nDuración: ${source.durationRounds} rondas` : ''; item.textContent = `${icons[state] ?? '●'} ${state.toUpperCase()}${origin ? `\nOrigen: ${origin}` : ''}${duration}\n${descriptions[state] ?? ''}`; return item; })); stats.after(section); }
+  if (states.length) { const section = document.createElement('section'); section.id = 'activeStates'; const title = document.createElement('h3'); title.textContent = 'Estados activos'; section.append(title, ...states.map(state => { const item = document.createElement('p'), source = next.conditionSources.find(candidate => candidate.condition === state); const origin = source?.sourceLabel ?? source?.sourceAbility ?? source?.sourceId; const duration = source?.durationRounds !== undefined ? `\nDuración: ${source.durationRounds} rondas` : ''; item.textContent = `${icons[state] ?? '●'} ${state.toUpperCase()}${origin ? `\nOrigen: ${origin}` : ''}${duration}\n${conditionHelp(state, source, sheet?.features, next.hp)}`; return item; })); stats.after(section); }
   const legend = document.createElement('details'); legend.id = 'stateLegend'; const summary = document.createElement('summary'); summary.textContent = 'Leyenda de estados'; const legendText = document.createElement('p'); legendText.textContent = '🟢 Envenenada · 🟣 Apresada · 🔵 Agarrada · 🟠 Derribada · 🟡 Asustada · ⚫ Inconsciente · ⚪ Oculta · ✨ Invisible'; legend.append(summary, legendText); (document.getElementById('activeStates') ?? stats).after(legend);
   document.getElementById('sheetDetails')?.replaceChildren();
   if (sheet) {

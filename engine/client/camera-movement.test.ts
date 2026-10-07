@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cameraAlphaForOrientation, cameraBetaForTiltDegrees, cameraTiltDegreesForBeta, normalizeCameraOrientationStep, screenVectorToWorld, sceneOrientationForView } from './camera-movement.js';
+import { cameraAlphaForOrientation, cameraBetaForTiltDegrees, cameraTiltDegreesForBeta, normalizeCameraOrientationStep, screenVectorToWorld, screenVectorToWorldAtAlpha, worldVectorToCellDelta, sceneOrientationForView } from './camera-movement.js';
 
 describe('movimiento relativo a la cámara', () => {
   it('mantiene giros discretos y límites de inclinación sin depender del renderizador', () => {
@@ -10,8 +10,8 @@ describe('movimiento relativo a la cámara', () => {
     expect(cameraAlphaForOrientation(-Math.PI / 2, 8)).toBeCloseTo(-Math.PI / 2);
     expect(normalizeCameraOrientationStep(-1)).toBe(7);
     expect(cameraTiltDegreesForBeta(cameraBetaForTiltDegrees(48))).toBeCloseTo(48);
-    expect(cameraTiltDegreesForBeta(cameraBetaForTiltDegrees(5))).toBeCloseTo(20);
-    expect(cameraTiltDegreesForBeta(cameraBetaForTiltDegrees(80))).toBeCloseTo(65);
+    expect(cameraTiltDegreesForBeta(cameraBetaForTiltDegrees(5))).toBeCloseTo(25);
+    expect(cameraTiltDegreesForBeta(cameraBetaForTiltDegrees(80))).toBeCloseTo(50);
   });
 
   it('usa el mismo frente A1 para cámara y WASD sin cambiar las otras escenas', () => {
@@ -36,11 +36,26 @@ describe('movimiento relativo a la cámara', () => {
     }
   });
 
-  it('no cambia la dirección mientras la cámara anima entre ángulos', () => {
-    const northWestView = screenVectorToWorld(0, 1, 0, Math.PI / 3);
-    expect(northWestView.x).toBeCloseTo(-1, 8); expect(northWestView.z).toBeCloseTo(1, 8);
-    expect(screenVectorToWorld(0, 1, 0, Math.PI / 3)).toEqual(northWestView);
-    const nextView = screenVectorToWorld(0, 1, 1, Math.PI / 3);
-    expect(nextView.x).toBeCloseTo(-1, 8); expect(nextView.z).toBeCloseTo(0, 8);
+  it('proyecta WASD y joystick según el ángulo visible durante todo el giro', () => {
+    for (const tilt of [35, 45, 50]) for (let angle = -Math.PI; angle <= Math.PI; angle += Math.PI / 16) {
+      const beta = cameraBetaForTiltDegrees(tilt);
+      for (const [x, up] of [[0,1], [1,0], [1,1], [-.4,.7]]) {
+        const world = screenVectorToWorldAtAlpha(x!, up!, angle, beta);
+        const right = -Math.sin(angle) * world.x + Math.cos(angle) * world.z;
+        const screenUp = (-Math.cos(angle) * world.x - Math.sin(angle) * world.z) * Math.cos(beta);
+        expect(right * up! - screenUp * x!).toBeCloseTo(0, 8);
+        expect(right * x! + screenUp * up!).toBeGreaterThan(0);
+      }
+    }
+  });
+  it('da al DM los mismos pasos de cuadrícula que al jugador en todos los giros', () => {
+    for (let step = 0; step < 8; step++) {
+      const world = screenVectorToWorld(0, 1, step, Math.PI / 4), delta = worldVectorToCellDelta(world);
+      expect(delta.col).toBe(world.x > .25 ? 1 : world.x < -.25 ? -1 : 0);
+      expect(delta.row).toBe(world.z > .25 ? 1 : world.z < -.25 ? -1 : 0);
+      expect(Math.abs(delta.col) + Math.abs(delta.row)).toBeGreaterThan(0);
+    }
+    expect(worldVectorToCellDelta({ x: .1, z: -.9 })).toEqual({ col: 0, row: -1 });
+    expect(worldVectorToCellDelta({ x: .8, z: -.8 })).toEqual({ col: 1, row: -1 });
   });
 });

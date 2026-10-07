@@ -18,7 +18,7 @@ audio, voces, texto ni mapas extraídos de la aventura comercial.
 | Magia, curación, barrera, maldición, traslado y presagio | [Magic Spell SFX · JaggedStone](https://opengameart.org/content/magic-spell-sfx) | CC0 |
 | Escarcha | [Ice spells · bart](https://opengameart.org/content/ice-spells) | CC0 |
 | Bosque, santuario, lluvia, tormenta, olas, viento y música reutilizada | Fuentes CC0 registradas en [D8_NIGHT_ASSET_CREDITS.md](../../../one-shot/public/D8_NIGHT_ASSET_CREDITS.md) | CC0 |
-| `stormwreck-sfx-zombie-groan*`, `stormwreck-sfx-ghoul-cry`, `stormwreck-sfx-undead-defeat` | [Zombies Sound Pack · artisticdude](https://opengameart.org/content/zombies-sound-pack) | CC0 |
+| `stormwreck-sfx-zombie-groan*`, `stormwreck-sfx-undead-cry`, `stormwreck-sfx-undead-defeat` | [Zombies Sound Pack · artisticdude](https://opengameart.org/content/zombies-sound-pack) | CC0 |
 | Chispa, llama y humo para proyectiles y áreas | [Particle Pack · Kenney](https://opengameart.org/content/particle-pack-80-sprites) | CC0 |
 
 Los efectos se han renombrado por intención narrativa para que la consola del

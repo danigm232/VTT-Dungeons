@@ -1,0 +1,73 @@
+/* One inspector, not a separate dashboard for every participant. */
+#combat .combat-deck-header{padding:10px 12px;gap:8px;align-items:flex-start;background:#172d30}
+#combat .combat-deck-header h2{font-size:1.15rem}
+#combat .combat-turn{font-size:.76rem;font-weight:500;line-height:1.4}
+#combat .combat-deck-header details{font-size:.7rem;color:#b5c9c4;margin-top:5px}
+#combat .combat-deck-header .button-row{gap:5px}
+#combat .combat-deck-header button{min-height:36px;padding:5px 9px;font-size:.74rem}
+#combat .combat-management{position:relative;margin:0;font-size:1rem}
+#combat .combat-management>summary{display:grid;place-items:center;min-width:36px;min-height:36px;border:1px solid #405e62;border-radius:9px;cursor:pointer;list-style:none}
+#combat .combat-management[open]{position:absolute;right:12px;z-index:5;width:min(260px,calc(100% - 24px));padding:6px;border:1px solid #5c746c;border-radius:10px;background:#0b2024;box-shadow:0 8px 25px #0009}
+#combat .combat-management[open]>summary{margin-left:auto;width:36px}
+#combat .combat-management button{display:block;width:100%;margin-top:5px;text-align:left;white-space:normal}
+#combat .initiative-entry-list{display:grid;grid-template-columns:minmax(0,1fr);padding:10px 12px;gap:6px}
+#combat .initiative-card{grid-template-columns:minmax(0,1fr) 66px 36px;gap:7px;padding:8px;border-radius:9px;box-shadow:none}
+#combat .initiative-card .combat-card-init-name{grid-column:auto;grid-template-columns:36px minmax(0,1fr);gap:7px}
+#combat .initiative-card .combat-card-portrait{width:34px;height:40px;flex-basis:34px;border-radius:6px}
+#combat .initiative-card .combat-card-identity b{font-size:.78rem}
+#combat .initiative-card .combat-card-meta{font-size:.64rem;margin:0}
+#combat .initiative-card input{width:66px;min-width:0;min-height:36px;padding:4px 6px;font-size:16px;box-sizing:border-box}
+#combat .initiative-card>button{min-height:36px;padding:4px}
+#combat .initiative-confirm{position:sticky;bottom:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;padding:10px 12px;background:#10272a;border-top:1px solid #3b5659;font-size:.74rem}
+#combat .initiative-confirm button{min-height:40px;padding:7px 12px;font-size:.8rem;margin-left:auto}
+#combat .initiative-order{margin:0 12px;padding:10px;border-radius:9px}
+#combat .initiative-order h3{font-size:.95rem;margin:0 0 5px}
+#combat .initiative-order .note{font-size:.7rem;margin:0 0 8px}
+#combat .initiative-order-row{display:flex;gap:5px;align-items:center;padding:6px 0;border-top:1px solid #24464b;font-size:.8rem}
+#combat .initiative-order-row span{flex:1;min-width:0;overflow-wrap:anywhere}
+#combat .initiative-order-row button{min-width:32px;min-height:32px;padding:3px}
+#combat .combat-participant-strip{display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin;padding:10px 12px;grid-template-columns:none}
+#combat .combat-participant{display:grid;position:relative;grid-template-columns:36px minmax(50px,1fr);align-items:center;gap:3px 7px;flex:0 0 150px;min-width:0;max-width:180px;padding:7px;border:1px solid #3a585b;border-radius:9px;text-align:left;background:#102529;color:#d5e5de}
+#combat .combat-participant.current{border-color:#d4b269;background:#233b36}
+#combat .combat-participant[aria-pressed=true]{box-shadow:inset 0 -3px #80c9cb}
+#combat .combat-participant>small{position:absolute;top:3px;left:3px;padding:1px 4px;border-radius:4px;background:#071b1dcc;font-size:.6rem;z-index:1}
+#combat .combat-participant>.combat-card-portrait{grid-row:1/3;width:36px;height:42px;flex-basis:36px;border-radius:6px}
+#combat .combat-participant>span:not(.combat-card-portrait){font-size:.72rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#combat .combat-participant .combat-card-hp{height:4px}
+#combat .combat-panel{margin:0 12px 12px;padding:10px;border-radius:10px}
+#combat .combat-inspector-name{display:flex;gap:9px;align-items:center;width:100%;padding:0;border:0;background:transparent;text-align:left;min-height:44px;margin-bottom:10px}
+#combat .combat-inspector-name .combat-card-portrait{width:38px;height:44px;flex-basis:38px;border-radius:7px}
+#combat .combat-inspector-name>span{display:grid;gap:2px}
+#combat .combat-inspector-name strong{font-size:.95rem;color:#edd6a7;overflow-wrap:anywhere}
+#combat .combat-inspector-name small{font-size:.65rem;color:#a3beba}
+#combat .combat-panel-grid{grid-template-columns:minmax(0,1fr);gap:9px}
+#combat .combat-stat-row{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+#combat .combat-hp-editor{display:flex;align-items:center;gap:5px;font-size:.74rem;margin:0;color:#d9e4da}
+#combat .combat-hp-editor input{width:62px;min-width:0;min-height:36px;padding:4px 6px;font-size:16px;box-sizing:border-box}
+#combat .combat-stat-chip{padding:5px 7px;border:1px solid #314e51;border-radius:7px;font-size:.72rem;color:#adcbc5}
+#combat .dm-turn-resources{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+#combat .dm-turn-resources span{padding:4px 6px;font-size:.64rem;border-radius:6px;flex:0 1 auto}
+#combat .combat-event-disclosure{margin-top:7px;font-size:.7rem;color:#a8c2bb}
+#combat .combat-state-summary{min-height:32px;padding:4px 8px;margin-top:7px;font-size:.76rem;border-color:#7c7551;color:#ead8a8}
+#combat .combat-last-event{font-size:.7rem;line-height:1.4}
+#combat .dm-combat-tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(52px,1fr));padding:3px;gap:3px;margin:3px 0}
+#combat .dm-combat-tab{position:relative;display:grid;justify-items:center;justify-content:center;gap:3px;min-width:0;min-height:48px;padding:5px 2px;font-size:.6rem}
+#combat .dm-combat-tab i{font-size:1.1rem}
+#combat .dm-combat-tab small{position:absolute;right:3px;top:3px;font-size:.52rem}
+#combat .dm-combat-action-meta{font-size:.65rem;margin:3px 0}
+#combat .dm-combat-target{min-width:0;min-height:36px;padding:5px 8px;font-size:.76rem}
+#combat .combat-action-list{grid-template-columns:repeat(auto-fit,minmax(min(100%,135px),1fr));gap:6px}
+#combat .combat-action-list button{white-space:normal;text-overflow:clip;overflow-wrap:anywhere;line-height:1.35;min-height:42px;padding:7px;font-size:.76rem}
+#combat .dm-combat-dm-controls{grid-column:1/-1}
+#combat .dm-combat-conditions{gap:5px}
+#combat .dm-combat-conditions .condition-pill{width:36px;min-height:36px;padding:4px;text-align:center;font-size:1rem}
+#combat .dm-combat-conditions .condition-pill[aria-pressed=true]{background:#354630;border-color:#ccad62;color:#ffe2a2}
+#combat .combat-roll-card{position:relative;bottom:auto;margin:10px 12px;padding:10px;border-radius:10px;box-shadow:none}
+#combat .combat-roll-card>strong{font-size:.83rem;line-height:1.4;display:block;overflow-wrap:anywhere}
+#combat .combat-roll-card .note{font-size:.73rem;line-height:1.4;margin:6px 0}
+#combat .combat-roll-input{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+#combat .combat-roll-input input{width:80px;min-width:0;min-height:40px;padding:6px;font-size:16px;box-sizing:border-box}
+#combat .combat-roll-input button{min-height:40px;padding:6px 12px;font-size:.78rem}
+#combat .combat-roll-card details{margin-top:7px;font-size:.68rem;line-height:1.4;color:#bdc8ba}
+#combat .combat-roll-cancel{margin-top:6px;min-height:32px;padding:3px 8px;font-size:.68rem}
+@container (min-width:700px){#combat .combat-panel-grid{grid-template-columns:minmax(180px,.6fr) minmax(0,1fr)}}

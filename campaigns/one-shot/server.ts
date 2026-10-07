@@ -1,5 +1,6 @@
-import type { CampaignServerBundle, CombatProfile } from '../../engine/server/campaign.js';
+import type { CampaignServerBundle, CombatProfile, PortDefinition } from '../../engine/server/campaign.js';
 import { d8AdjacentWalkableCells, d8NearestWalkableCell, oneShotCampaignDefinition } from './public/pack.js';
+import { d8Adventure } from './story.js';
 
 const d8ActorCell = (sceneId: string, actorId: string) => oneShotCampaignDefinition.scenes.find(scene => scene.id === sceneId)?.stageActors?.find(actor => actor.id === actorId)?.cell;
 const mirrorCell = oneShotCampaignDefinition.scenes.find(scene => scene.id === 'mirror')?.props.find(prop => prop.id === 'true-love-mirror')?.cell
@@ -7,6 +8,21 @@ const mirrorCell = oneShotCampaignDefinition.scenes.find(scene => scene.id === '
 const mirrorNearbyCells = d8AdjacentWalkableCells('mirror', mirrorCell, 4);
 const templeAnterosCell = d8ActorCell('temple', 'anteros-temple') ?? d8NearestWalkableCell('temple', 0, 0);
 const dinnerAnterosCell = d8ActorCell('dinner', 'anteros-dinner') ?? d8NearestWalkableCell('dinner', 0, 0);
+
+// Same world, separate tactical boards. The endpoints are authored walkable
+// 1.5 m cells, aligned with the visible fork/road in each Babylon scene.
+export const d8VillageRoads: PortDefinition[] = [
+  { id: 'camino-templo-cafe', mode: 'road', return: 'explicit', autoDirection: 'both',
+    from: { mapId: 'temple', zoneId: 'sendero oeste', surfaceId: 'ruins', cell: d8NearestWalkableCell('temple',-4,40.5) },
+    to: { mapId: 'cafe', zoneId: 'patio del Café', surfaceId: 'cafe', cell: d8NearestWalkableCell('cafe',-12,19.5) } },
+  { id: 'camino-templo-mercado', mode: 'road', return: 'explicit', autoDirection: 'both',
+    from: { mapId: 'temple', zoneId: 'sendero este', surfaceId: 'ruins', cell: d8NearestWalkableCell('temple',4,40.5) },
+    to: { mapId: 'market', zoneId: 'plaza del Mercado', surfaceId: 'market', cell: d8NearestWalkableCell('market',10,17.5) } },
+  { id: 'calle-cafe-mercado', mode: 'road', return: 'explicit', autoDirection: 'both',
+    from: { mapId: 'cafe', zoneId: 'calle del Mercado', surfaceId: 'cafe', cell: d8NearestWalkableCell('cafe',12,19.5) },
+    to: { mapId: 'market', zoneId: 'calle del Café', surfaceId: 'market', cell: d8NearestWalkableCell('market',-10,17.5) } }
+];
+for(const road of d8VillageRoads)road.minimumApproachSteps=5;
 
 const villagerProfile = (identityId: string): CombatProfile => ({
   maxHp: 4, armorClass: 10, speedMeters: 9, initiativeBonus: 0, identityId, startsInCombat: false,
@@ -17,19 +33,27 @@ const villagerProfile = (identityId: string): CombatProfile => ({
   ]
 });
 
-// Story branches, mission items and combat balance are not encoded yet. This
-// is an independent private-table campaign, never a Stormwreck save migration.
+// Private adventure definitions reuse the authoritative engine and save system.
 export const oneShotBundle: CampaignServerBundle = {
   public: oneShotCampaignDefinition, campaignStateVersion: 1,
+  ports: d8VillageRoads,
+  adventure: d8Adventure,
+  encounterGroups: [
+    { id: 'roses', label: 'Rosas asesinas · resultado de 1d6', sceneId: 'garden', actorIds: Array.from({ length: 6 }, (_, i) => `rose-garden-${i + 1}`) },
+    { id: 'patrons', label: 'Parroquianos hostiles · resultado de 1d10', sceneId: 'cafe', actorIds: Array.from({ length: 10 }, (_, i) => `brawler-cafe-${i + 1}`) }
+  ],
   characters: {
-    maria: { maxHp: 9, inventory: ['Armadura de cuero', 'Arco corto', '20 flechas', '2 dagas', 'Herramientas de ladrón', 'Mochila', 'Bola con 1000 bolas de metal', '2 palanquetas', '2 frascos de aceite'], sheet: { level: 1, armorClass: 14, speedMeters: 7.5, strengthScore: 8, background: 'Criminal', features: ['Mediana piesligeros', 'Ataque furtivo 1d6', 'Afortunada', 'Valiente', 'Agilidad de Mediano', 'Sigiloso por naturaleza'], attacks: ['Daga · +5 · 1d4+3 perforante · alcance 1,5 m / 6 m', 'Arco corto · +5 · 1d6+3 perforante · alcance 24 m / 96 m'], spells: [], details: [
+    maria: { maxHp: 9, inventory: ['Armadura de cuero', 'Arco corto', '20 flechas', '2 dagas', 'Herramientas de ladrón', 'Mochila', 'Bola con 1000 bolas de metal', '2 palanquetas', '2 frascos de aceite', 'Cordel de 3 m', 'Campana', '5 velas', 'Martillo', '10 pitones', 'Linterna sorda', 'Raciones para 5 días', 'Yesquero', 'Cantimplora', 'Cuerda de cáñamo de 15 m', 'Ropa oscura con capucha', 'Bolsa', '15 po'], sheet: { level: 1, armorClass: 14, speedMeters: 7.5, strengthScore: 8, background: 'Criminal', features: ['Mediana piesligeros', 'Ataque furtivo 1d6', 'Afortunada', 'Valiente', 'Agilidad de Mediano', 'Sigiloso por naturaleza', 'Pericia: Sigilo y herramientas de ladrón', 'Jerga de ladrones'], attacks: ['Daga · +5 · 1d4+3 perforante · alcance 1,5 m / 6/18 m', 'Arco corto · +5 · 1d6+3 perforante · alcance 24 m / 96 m'], spells: [], details: [
       { title: 'Datos confirmados', entries: ['Pícara nivel 1 · mediana piesligeros · Criminal', 'FUE 8 (−1) · DES 16 (+3) · CON 12 (+1) · INT 13 (+1) · SAB 10 (+0) · CAR 16 (+3)', 'CA 14 · PG máximos 9 · velocidad 7,5 m · iniciativa +3', 'Ataque furtivo: +1d6 una vez por turno si se cumplen sus requisitos.'] },
       { title: 'Equipo y cantidades', entries: ['Arco corto y 20 flechas · 2 dagas · armadura de cuero', 'Herramientas de ladrón · mochila · bolsa con 1000 bolas de metal · 2 palanquetas · 2 frascos de aceite'] },
       { title: 'Trazabilidad', entries: ['Características transcritas de la ficha PDF de María facilitada por el usuario.'] }
+      ,{ title: 'Salvaciones y habilidades', entries: ['Competencia +2 · dado de golpe 1d8 · Percepción pasiva 12', 'Salvaciones: FUE −1 · DES +5 · CON +1 · INT +3 · SAB +0 · CAR +3', 'Acrobacias +5 · Atletismo −1 · Arcanos +1 · Engaño +5 · Historia +1 · Interpretación +3', 'Intimidación +3 · Investigación +3 · Juego de Manos +5 · Medicina +0 · Naturaleza +1 · Percepción +2', 'Perspicacia +0 · Persuasión +3 · Religión +1 · Sigilo +7 · Supervivencia +0 · Trato con animales +0', 'Pericia en Sigilo y herramientas de ladrón · armaduras ligeras y armas del perfil heredado', 'Idiomas: común, goblin, mediano y jerga de ladrones'] }
+      ,{ title: 'Trasfondo y compatibilidad', entries: ['Caótica buena. Criada entre ladrones del Cadalso Dorado, viajó a Nuncainvierno buscando fortuna.', 'Busca el tesoro que un antiguo contrabandista arrebató al gremio; la pista conduce al Retiro del Dragón.', 'La personalidad y el aspecto son elecciones del jugador, no datos inventados.', 'Ficha heredada de nivel 1: conserva Afortunada y demás rasgos aportados. No tiene Acción Astuta, Balconero ni Manos Rápidas.', 'Afortunada: si obtienes un 1 natural, repite el d20 físico antes de introducir el resultado definitivo. Recuperación de munición y equipo: acuerdo y registro con el DM.'] }
     ] }, explorationBasics: ['jump'], combat: { armorClass: 14, speedMeters: 7.5, initiativeBonus: 3, ruleTraits: { sneakAttackDice: '1d6', brave: true }, attacks: [
       { id: 'dagger', label: 'Daga · +5 · 1d4+3 perforante · 1,5 m', attackBonus: 5, damageDice: '1d4', damageBonus: 3, damageType: 'perforante', range: { kind: 'melee', normalMeters: 1.5 }, finesse: true, animationType: 'melee' },
-      { id: 'thrown-dagger', label: 'Lanzar daga · +5 · 1d4+3 perforante · 6 m', attackBonus: 5, damageDice: '1d4', damageBonus: 3, damageType: 'perforante', range: { kind: 'ranged', normalMeters: 6 }, finesse: true, animationType: 'thrownWeapon' },
-      { id: 'shortbow', label: 'Arco corto · +5 · 1d6+3 perforante · 24/96 m', attackBonus: 5, damageDice: '1d6', damageBonus: 3, damageType: 'perforante', range: { kind: 'ranged', normalMeters: 24, longMeters: 96 }, animationType: 'arrow' }
+      { id: 'thrown-dagger', label: 'Lanzar daga · +5 · 1d4+3 perforante · 6/18 m', attackBonus: 5, damageDice: '1d4', damageBonus: 3, damageType: 'perforante', range: { kind: 'ranged', normalMeters: 6, longMeters: 18 }, finesse: true, inventoryCost: 'dagger', animationType: 'thrownWeapon' },
+      { id: 'unarmed', label: 'Golpe sin armas · +1 · 0 contundente · 1,5 m', attackBonus: 1, damageDice: '1d1', damageBonus: -1, damageType: 'contundente', range: { kind: 'melee', normalMeters: 1.5 }, animationType: 'melee' },
+      { id: 'shortbow', label: 'Arco corto · +5 · 1d6+3 perforante · 24/96 m', attackBonus: 5, damageDice: '1d6', damageBonus: 3, damageType: 'perforante', range: { kind: 'ranged', normalMeters: 24, longMeters: 96 }, inventoryCost: 'arrow', animationType: 'arrow' }
     ] } },
     aoife: {
       maxHp: 8, initialHp: 7,
@@ -53,7 +77,7 @@ export const oneShotBundle: CampaignServerBundle = {
           { title: 'Características', entries: ['FUE 10 (+0) · DES 14 (+2) · CON 14 (+2)', 'INT 15 (+2) · SAB 14 (+2) · CAR 8 (−1)', 'Bonificador de competencia +2 · iniciativa +2 · dados de golpe 1d6', 'Salvaciones: FUE +0 · DES +2 · CON +2 · INT +4 · SAB +4 · CAR −1'] },
           { title: 'Habilidades y competencias', entries: ['Competente: Trato con animales +4 · Arcanos +4 · Investigación +4 · Supervivencia +4', 'Armaduras ligeras y medias; hacha de batalla, hacha de mano, martillo ligero, martillo de guerra, daga, dardo, honda, bastón y ballesta ligera', 'Herramientas: suministros de cervecero, utensilios de cocina y kit de herborista · Idiomas: común y enano'] },
           { title: 'Trasfondo', entries: ['Círculo del Corazón Salvaje: grupo secreto de magia natural que protege el equilibrio.', 'Vínculo: una criatura llegó herida; tras curarla, se quedó a su lado.', 'Ideal: Libertad. Defecto: la prudencia la irrita y puede actuar con temeridad por conocimiento o poder.', 'Enemigo: Mortis Grimwither, un lich de las Marismas Oscuras.'] },
-          { title: 'Uso en combate · 2024', entries: ['Golpe sin armas: +2 para impactar y 1 de daño contundente. El arco de entrenamiento no añade competencia: +2 para impactar.', 'Proyectil de fuego: acción mágica; ataque de conjuro +4, 1d10 de fuego y 36 m. Un objeto inflamable no llevado puede prenderse.', 'Misil mágico: acción mágica y un espacio de nivel 1; tres dardos impactan automáticamente y cada uno causa 1d4+1 de fuerza. La consola permite elegir el mismo objetivo o repartir los dardos.', 'Nube de niebla: acción mágica, concentración hasta 1 hora; esfera de 6 m de radio muy oscurecida a 36 m. El DM coloca y mantiene el área.', 'Caída de pluma: reacción cuando hasta cinco criaturas visibles caen a 18 m; ralentiza su caída durante 1 minuto.'] }
+          { title: 'Uso en combate · 2024', entries: ['Lista de conjuros conocidos, no selección de preparados: el jugador y el DM acuerdan los preparados antes de gastar espacios. Se conservan la especie, trasfondo y rasgos de la ficha heredada; no se convierten silenciosamente a la clase 2024.', 'Golpe sin armas: +2 para impactar y 1 de daño contundente. El arco de entrenamiento no añade competencia: +2 para impactar.', 'Proyectil de fuego: acción mágica; ataque de conjuro +4, 1d10 de fuego y 36 m. Un objeto inflamable no llevado puede prenderse.', 'Misil mágico: acción mágica y un espacio de nivel 1; tres dardos impactan automáticamente y cada uno causa 1d4+1 de fuerza. La consola permite elegir el mismo objetivo o repartir los dardos.', 'Nube de niebla: acción mágica, concentración hasta 1 hora; esfera de 6 m de radio muy oscurecida a 36 m. El DM coloca y mantiene el área.', 'Caída de pluma: reacción cuando hasta cinco criaturas visibles caen a 18 m; ralentiza su caída durante 1 minuto.'] }
         ]
       },
       explorationBasics: ['jump'],
@@ -72,7 +96,7 @@ export const oneShotBundle: CampaignServerBundle = {
   },
   encounter: { sceneId: 'mirror', mirrorPlayer: true, creature: { id: 'reflection', label: 'Reflejo de hielo', tokenId: 'reflection',
     color: '#7fc8e8', cell: mirrorNearbyCells[0] ?? mirrorCell, sheet: { maxHp: 7, armorClass: 14, speedMeters: 7.5, traits: ['Réplica helada: adopta las estadísticas y ataques de quien afronta el espejo, con el 75 % de sus PG.'], actions: ['Imita exactamente la acción de quien afronta el espejo; el DM resuelve los dados físicos.'], combat: { armorClass: 14, speedMeters: 7.5, initiativeBonus: 0, attacks: [] } } },
-    note: 'Este encuentro solo aparece aquí. El reflejo se forma como una réplica helada de María, actúa después de ella e imita sus acciones; sus PG son el 75 %.' },
+    note: 'El DM elige quién afronta el espejo. El reflejo copia su forma base, actúa inmediatamente después e imita su acción; PG máximos = 75 % de los máximos del original, redondeados hacia abajo. No comparte heridas ni estados posteriores.' },
   mirrorInteraction: { sceneId: 'mirror', targetId: 'true-love-mirror', cells: mirrorNearbyCells, nearbyLabel: 'Mirar en el espejo', notice: 'El espejo se empaña de escarcha y tu reflejo cobra vida.', effectFrames: ['/art/tokens/Espejo/espejo_amor_verdadero_activacion_01.png', '/art/tokens/Espejo/espejo_amor_verdadero_activacion_02.png', '/art/tokens/Espejo/espejo_transformacion_01.png', '/art/tokens/Espejo/espejo_transformacion_02.png', '/art/tokens/Espejo/espejo_transformacion_03.png', '/art/tokens/Espejo/espejo_fx_copia_final.png'], durationMs: 1_600 },
   stageActorInteractions: [
     { sceneId: 'temple', targetId: 'anteros-temple', cells: d8AdjacentWalkableCells('temple', templeAnterosCell), nearbyLabel: 'Hablar con Anteros', responseAnimation: 'talk', notice: 'Anteros te escucha y responde. El DM guía la conversación y las decisiones del pacto.', durationMs: 2_200 },
@@ -92,3 +116,21 @@ export const oneShotBundle: CampaignServerBundle = {
     'boris-market': villagerProfile('boris')
   }
 };
+
+// Four additional instances reuse the same verified profile and animation set.
+// They remain private and concealed until the DM enters the physical d6 result.
+const gardenScene = oneShotCampaignDefinition.scenes.find(scene => scene.id === 'garden')!;
+const occupiedGarden = new Set([...gardenScene.spawns, ...(gardenScene.stageActors ?? []).map(actor => actor.cell)].map(cell => `${cell.col},${cell.row}`));
+const roseCells = d8AdjacentWalkableCells('garden', d8ActorCell('garden', 'fritz-garden')!, 60).filter(cell => !occupiedGarden.has(`${cell.col},${cell.row}`));
+oneShotBundle.privateActors = Array.from({ length: 4 }, (_, index) => ({
+  id: `rose-garden-${index + 3}`, label: `Rosa asesina ${index + 3}`, tokenId: 'roses', color: '#b53556',
+  sceneId: 'garden', surfaceId: gardenScene.surfaceId, cell: roseCells[index]!, profile: structuredClone(oneShotBundle.combatProfiles!['rose-garden-1']!)
+}));
+const cafeScene = oneShotCampaignDefinition.scenes.find(scene => scene.id === 'cafe')!;
+const occupiedCafe = new Set([...cafeScene.spawns, ...(cafeScene.stageActors ?? []).map(actor => actor.cell)].map(cell => `${cell.col},${cell.row}`));
+const cafeCells = d8AdjacentWalkableCells('cafe', d8ActorCell('cafe', 'patron-cafe')!, 100).filter(cell => !occupiedCafe.has(`${cell.col},${cell.row}`));
+oneShotBundle.privateActors.push(...Array.from({ length: 10 }, (_, index) => ({
+  id: `brawler-cafe-${index + 1}`, label: `Parroquiano hostil ${index + 1}`, tokenId: index % 2 ? 'patron-woman' : 'patron', color: '#a77b61',
+  sceneId: 'cafe', surfaceId: cafeScene.surfaceId, cell: cafeCells[index]!,
+  profile: { ...villagerProfile(`brawler-cafe-${index + 1}`), startsVisible: false, startsInCombat: true }
+})));

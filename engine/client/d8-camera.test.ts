@@ -6,6 +6,7 @@ import { Scene } from '@babylonjs/core/scene.js';
 import { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera.js';
 import { Camera } from '@babylonjs/core/Cameras/camera.js';
 import { D8NIGHT } from '../../campaigns/one-shot/playground/d8night.config';
+import { d8SceneGrid, d8SpatialNavigation } from '../../campaigns/one-shot/public/pack';
 import { combatCameraFrame, combatSafeProjection } from './combat-camera';
 import { cameraBetaForTiltDegrees } from './camera-movement';
 import { D8CameraMotion, d8CameraBaseAlpha, d8CameraHalfHeight, d8CellWorldPoint, d8FocusHeight, d8PickCell, type D8CameraPose } from './d8-camera';
@@ -13,6 +14,20 @@ import { D8CameraMotion, d8CameraBaseAlpha, d8CameraHalfHeight, d8CellWorldPoint
 const start: D8CameraPose = { alpha: -Math.PI / 4, beta: Math.PI / 4, halfHeight: 20, target: { x: 0, y: 4, z: 0 } };
 
 describe('D8 2.5D camera', () => {
+  it('selects raised stair cells at their actual projected height in every camera direction', () => {
+    const terrain = d8SpatialNavigation('temple').terrain, grid = d8SceneGrid('temple'), size = D8NIGHT.maps.temple.MAP.size as [number,number];
+    const stairs = terrain.surfaces[0]!.tiles.filter(tile => tile.kind === 'stair');
+    expect(stairs.length).toBeGreaterThan(0);
+    for (const tile of stairs) for (let orientation = 0; orientation < 8; orientation++) {
+      const floor = d8CellWorldPoint(tile.cell, size, grid, terrain);
+      expect(floor.y).toBeGreaterThan(.23);
+      const center = new Vector3(floor.x, floor.y, floor.z), angle = orientation * Math.PI / 4;
+      const eye = center.add(new Vector3(Math.cos(angle), 1, Math.sin(angle)).scale(100));
+      const view = Matrix.LookAtLH(eye, center, Vector3.Up()), projection = Matrix.OrthoLH(24, 16, .1, 1000);
+      const viewport = { width: 1200, height: 800 }, screen = Vector3.Project(center, Matrix.Identity(), view.multiply(projection), new Viewport(0,0,1200,800));
+      expect(d8PickCell(screen, viewport, view, projection, size, grid, terrain)).toEqual(tile.cell);
+    }
+  });
   it('copies Babylon vector coordinates when initializing the camera', () => {
     const point = new Vector3(12, 4, -8), motion = new D8CameraMotion();
     const pose = motion.update({ ...start, target: point }, 0);
@@ -49,7 +64,7 @@ describe('D8 2.5D camera', () => {
   });
 
   it('fits every map throughout an orbit without changing scale or perspective depth', () => {
-    for (const map of Object.values(D8NIGHT.maps) as any[]) for (const aspect of [.46, 1, 1.78]) for (const tilt of [20, 45, 65]) {
+    for (const map of Object.values(D8NIGHT.maps) as any[]) for (const aspect of [.46, 1, 1.78]) for (const tilt of [25,35,45,50]) {
       const [width, depth] = map.MAP.size, beta = cameraBetaForTiltDegrees(tilt);
       const halfHeight = d8CameraHalfHeight({ width, depth, height: 8 }, beta, aspect);
       const projection = Matrix.OrthoLH(halfHeight * aspect * 2, halfHeight * 2, .1, 1000);
@@ -69,7 +84,7 @@ describe('D8 2.5D camera', () => {
   });
 
   it('picks the projected cell and centers an upright sprite at every tilt and screen shape', () => {
-    for (const viewport of [{ width: 390, height: 844 }, { width: 1600, height: 900 }]) for (const tactical of [false, true]) for (const tilt of [20, 45, 65]) for (let step = 0; step < 8; step++) {
+    for (const viewport of [{ width: 390, height: 844 }, { width: 1600, height: 900 }]) for (const tactical of [false, true]) for (const tilt of [25,35,45,50]) for (let step = 0; step < 8; step++) {
       const size: [number, number] = [52, 68], grid = { cols: 80, rows: 104 };
       const cell = { col: 55, row: 70 }, floor = d8CellWorldPoint(cell, size, grid), beta = cameraBetaForTiltDegrees(tilt), alpha = -Math.PI / 4 + step * Math.PI / 4;
       const center = new Vector3(floor.x, floor.y + d8FocusHeight(1.8, .9, beta), floor.z);
@@ -90,8 +105,8 @@ describe('D8 2.5D camera', () => {
   it('keeps Babylon and the motion controller within the same tilt limits after rendering', () => {
     const engine = new NullEngine(), scene = new Scene(engine), camera = new ArcRotateCamera('d8', 0, Math.PI / 4, 100, Vector3.Zero(), scene);
     camera.mode = Camera.ORTHOGRAPHIC_CAMERA;
-    camera.lowerBetaLimit = cameraBetaForTiltDegrees(65); camera.upperBetaLimit = cameraBetaForTiltDegrees(20);
-    for (const tilt of [20, 65]) {
+    camera.lowerBetaLimit = cameraBetaForTiltDegrees(50); camera.upperBetaLimit = cameraBetaForTiltDegrees(35);
+    for (const tilt of [35, 50]) {
       const rig = new D8CameraMotion(), target = { ...start, beta: cameraBetaForTiltDegrees(tilt) };
       for (let frame = 0; frame < 120; frame++) {
         const pose = rig.update(target, 1000 / 60); camera.alpha = pose.alpha; camera.beta = pose.beta;

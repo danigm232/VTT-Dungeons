@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shipLootIconIndex } from './ship-loot-art.js';
+import { campaignShipLootIconIndex, shipLootIconIndex } from './ship-loot-art.js';
 
 describe('M5 · arte de botín revelado', () => {
   it('cubre los seis resultados de C8 sin compartir el mismo icono', () => {
@@ -13,5 +13,11 @@ describe('M5 · arte de botín revelado', () => {
       'Pulsera de oro', 'Pendiente de oro', 'Gema ojo de tigre', 'Heliotropo'])
       expect(shipLootIconIndex(label)).not.toBeNull();
     expect(shipLootIconIndex('Espada corta')).toBeNull();
+  });
+
+  it('only assigns the M5 atlas to Stormwreck inventory', () => {
+    expect(campaignShipLootIconIndex('stormwreck-isle', 'Daga')).toBe(14);
+    expect(campaignShipLootIconIndex('d8-night-private', 'Daga')).toBeNull();
+    expect(campaignShipLootIconIndex('d8-night-private', 'Antorcha')).toBeNull();
   });
 });

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { cellSchema, idSchema, rotationSchema } from '../../shared/campaign.js';
 import { campRestStateSchema } from '../../shared/camp-rest.js';
+import { durableVisualEffectSchema } from '../../shared/world-visual-effects.js';
 
 const boundedInt = z.number().int().safe().nonnegative();
 const track = z.object({ playing: z.boolean(), volume: z.number().finite().min(0).max(1), offsetSeconds: z.number().finite().min(0).max(1e12), assetId: idSchema.optional(), loop: z.boolean().optional(), rate: z.number().finite().min(.5).max(1.5).optional(), repeats: z.number().int().min(1).max(12).optional() }).strict();
@@ -41,9 +42,10 @@ const combatAction = z.object({
   id: idSchema, label: z.string().min(1).max(200), attackBonus: z.number().int().safe().min(-100).max(100), damageDice: z.string().min(1).max(40), damageBonus: z.number().int().safe().min(-100).max(100),
   damageType: z.string().min(1).max(80).optional(), range: combatRange.optional(), save: combatSave.optional(), attackCount: boundedInt.min(1).max(12).optional(), recharge: z.object({ minimum: boundedInt.min(1).max(6), maximum: boundedInt.min(1).max(6) }).strict().optional(),
   finesse: z.boolean().optional(), automaticHit: z.boolean().optional(), lockSequenceTarget: z.boolean().optional(), resource: z.object({ id: idSchema, cost: boundedInt.min(1).max(99) }).strict().optional(), animationType: z.enum(['melee', 'arrow', 'thrownWeapon', 'radiantArrow', 'vine', 'fireProjectile', 'magicalProjectile']).optional(),
+  inventoryCost: z.enum(['arrow', 'dagger']).optional(),
   resolution: z.enum(['attack', 'automatic-damage', 'guided']).optional(), actionCost: z.enum(['action', 'bonus', 'reaction']).optional(), targeting: z.enum(['creature', 'point']).optional(), guidance: z.string().min(1).max(500).optional(), concentration: z.boolean().optional(), magical: z.boolean().optional(), soundId: idSchema.optional()
 }).strict();
-const pendingMovement = z.object({ entityId: idSchema, destination: cellSchema, reactorsChecked: z.array(idSchema).max(120) }).strict();
+const pendingMovement = z.object({ entityId: idSchema, destination: cellSchema, destinationSurfaceId: idSchema.optional(), reactorsChecked: z.array(idSchema).max(120) }).strict();
 const pendingCombat = z.object({
   id: z.string().uuid(), stage: z.enum(['attack', 'damage', 'save', 'escape', 'death-save', 'check', 'concentration', 'reaction']), attackerId: idSchema, targetId: idSchema, actionId: idSchema, advantage: z.enum(['normal', 'advantage', 'disadvantage']),
   critical: z.boolean().optional(), useSneakAttack: z.boolean().optional(), sneakAttackDice: z.string().regex(/^\d+d\d{1,3}$/).optional(), diceFormula: z.string().max(40).optional(), damageBonus: z.number().int().safe().min(-100).max(100).optional(), source: conditionSource.optional(),
@@ -56,6 +58,8 @@ const combat = z.object({
   actionUsed: z.record(idSchema, z.boolean()), conditions: z.record(idSchema, z.array(combatCondition).max(8)).optional(),
   dashSquares: z.record(idSchema, boundedInt.max(100)).optional(), bonusActionUsed: z.record(idSchema, z.boolean()).optional(), reactionUsed: z.record(idSchema, z.boolean()).optional(), sneakAttackUsed: z.record(idSchema, z.boolean()).optional(), sneakAttackUsedTurn: z.record(idSchema, z.string().regex(/^\d+:[a-z0-9._-]+$/)).optional(),
   spellSlotUsedTurn: z.record(idSchema, z.string().regex(/^\d+:[a-z0-9._-]+$/)).optional(),
+  rechargeAttemptTurn: z.record(z.string().max(100), z.string().regex(/^\d+:[a-z0-9._-]+$/)).optional(),
+  turnActions: z.record(idSchema, z.object({ actionId: idSchema, label: z.string().max(200), kind: z.enum(['attack', 'basic']) }).strict()).optional(),
   // "improvise" fue una etiqueta temporal en saves previos; se acepta para
   // poder recuperar la partida y el motor la descarta al restaurar.
   stances: z.record(idSchema, z.object({ action: z.enum(['dash', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'ready', 'search', 'study', 'use-object', 'improvise']), targetId: idSchema.optional() }).strict()).optional(),
@@ -77,13 +81,15 @@ export const durablePayloadSchema = z.object({
   }).strict().nullable(),
   scenes: z.array(z.object({ sceneId: idSchema, objects: z.array(object).max(100) }).strict()).min(1).max(100),
   camera: z.object({ mode: z.enum(['fixed', 'semiFixed', 'follow']), focusId: idSchema.nullable() }).strict(),
-  environment: z.object({ storm: z.boolean(), stormIntensity: z.number().finite().min(0).max(1).optional(), timeOfDay: z.enum(['auto', 'day', 'night']).optional() }).strict(),
+  environment: z.object({ storm: z.boolean(), stormIntensity: z.number().finite().min(0).max(1).optional(), timeOfDay: z.enum(['auto', 'day', 'night','sunset','dawn']).optional(), precipitation: z.enum(['none','rain','snow']).optional(), precipitationLevel: z.union([z.literal(1),z.literal(2),z.literal(3)]).optional(), windIntensity: z.number().finite().min(0).max(1).optional() }).strict(),
   audio: z.object({ music: track, layers: z.object({ ocean: track, wind: track, wood: track, storm: track }).strict(), sfxLoops: z.record(idSchema, track).optional() }).strict(),
   conditions: z.record(idSchema, z.array(combatCondition).max(8)).optional(),
   conditionSources: z.record(idSchema, z.array(conditionSource).max(16)).optional(),
   concentration: z.record(idSchema, z.object({ actionId: idSchema, label: z.string().min(1).max(200) }).strict()).optional(),
+  visualEffects: z.array(durableVisualEffectSchema).max(200).optional(),
   combat: combat.optional(),
   progress: z.record(idSchema, z.boolean()).optional(),
+  storyNotes: z.record(idSchema, z.string().max(500)).optional(),
   campRest: campRestStateSchema.optional()
 }).strict();
 export type DurablePayload = z.infer<typeof durablePayloadSchema>;

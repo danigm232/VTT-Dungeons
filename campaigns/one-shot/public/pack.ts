@@ -2,6 +2,9 @@ import { validatePublicCampaign, type Cell, type PublicCampaignDefinition } from
 import { D8NIGHT } from '../playground/d8night.config.js';
 import { d8MotionAtlases } from './generated-motion-atlases.js';
 import { d8DirectionAtlases } from './generated-direction-atlases.js';
+import { completeD8Animations } from './generated-completion-atlases.js';
+import { silverfarbenAtlasBounds } from './silverfarben-atlas-bounds.js';
+import { connectedSpatialCells, rasterSpatialNavigation, containsSpatialPoint } from '../../../engine/shared/spatial-navigation.js';
 
 export const D8_SCENE_IDS = ['temple', 'cafe', 'dinner', 'garden', 'market', 'mirror'] as const;
 export type D8SceneId = typeof D8_SCENE_IDS[number];
@@ -10,56 +13,53 @@ export const D8_GRID_METERS = 1.5;
 export function d8SceneGrid(sceneId: D8SceneId) {
   const size = D8NIGHT.maps[sceneId].MAP.size as [number, number];
   const cols = Math.max(1, Math.round(size[0] / D8_GRID_METERS));
-  const rows = Math.max(1, Math.round(size[1] / D8_GRID_METERS));
+  const rows = Math.max(1, Math.round(size[1] / D8_GRID_METERS))+(['temple','cafe','market'].includes(sceneId)?6:0);
   const tileSize = 48;
-  return { cols, rows, tileSize, originX: 0, originY: 0, width: cols * tileSize, height: rows * tileSize };
+  return { cols, rows, tileSize, originX: 0, originY: 0, width: cols * tileSize, height: rows * tileSize,worldOrigin:{x:-size[0]/2,z:-size[1]/2} };
 }
 
 export function d8CellToWorld(sceneId: D8SceneId, cell: Cell) {
   const size = D8NIGHT.maps[sceneId].MAP.size as [number, number];
   const grid = d8SceneGrid(sceneId);
-  return { x: -size[0] / 2 + (cell.col + 0.5) * size[0] / grid.cols, z: -size[1] / 2 + (cell.row + 0.5) * size[1] / grid.rows };
+  return { x: grid.worldOrigin.x + (cell.col + 0.5) * D8_GRID_METERS, z: grid.worldOrigin.z + (cell.row + 0.5) * D8_GRID_METERS };
 }
 
 export function d8CellFromWorld(sceneId: D8SceneId, x: number, z: number): Cell {
   const size = D8NIGHT.maps[sceneId].MAP.size as [number, number];
   const grid = d8SceneGrid(sceneId);
   return {
-    col: Math.max(0, Math.min(grid.cols - 1, Math.floor((x + size[0] / 2) * grid.cols / size[0]))),
-    row: Math.max(0, Math.min(grid.rows - 1, Math.floor((z + size[1] / 2) * grid.rows / size[1])))
+    col: Math.max(0, Math.min(grid.cols - 1, Math.floor((x-grid.worldOrigin.x)/D8_GRID_METERS))),
+    row: Math.max(0, Math.min(grid.rows - 1, Math.floor((z-grid.worldOrigin.z)/D8_GRID_METERS)))
   };
 }
 
-function d8Walkable(sceneId: D8SceneId): Cell[] {
-  const config = D8NIGHT.maps[sceneId], grid = d8SceneGrid(sceneId), size = config.MAP.size as [number, number];
-  const nav = config.MAP.navigation ?? {}, zones = nav.zones ?? [];
-  const passableTypes = new Set(['walkable', 'entry', 'stairs', 'bridge', 'difficult']);
-  const blockedTypes = new Set(['water', 'hazard', 'blocked']);
-  const contains = (shape: any, x: number, z: number) => Boolean(shape?.position && shape?.size
-    && x >= shape.position[0] - shape.size[0] / 2 && x <= shape.position[0] + shape.size[0] / 2
-    && z >= shape.position[1] - shape.size[1] / 2 && z <= shape.position[1] + shape.size[1] / 2);
-  const blockers = [...(nav.blockers ?? []), ...(config.MAP.objects ?? []).filter((object: any) => object.asset === 'collider_only')];
-  const bounds = nav.bounds as [number, number, number, number] | undefined;
-  const result: Cell[] = [];
-  for (let row = 0; row < grid.rows; row++) for (let col = 0; col < grid.cols; col++) {
-    const { x, z } = d8CellToWorld(sceneId, { col, row });
-    if (bounds && (x < bounds[0] || x > bounds[1] || z < bounds[2] || z > bounds[3])) continue;
-    const here = zones.filter((zone: any) => contains(zone, x, z));
-    const bridge = here.some((zone: any) => zone.type === 'bridge' || zone.type === 'stairs');
-    const allowed = here.some((zone: any) => passableTypes.has(zone.type) && !zone.blocking);
-    const denied = here.some((zone: any) => (blockedTypes.has(zone.type) || zone.blocking) && !bridge)
-      || blockers.some((blocker: any) => contains(blocker, x, z));
-    if (allowed && !denied) result.push({ col, row });
+const spatialMaps = new Map<D8SceneId, ReturnType<typeof rasterSpatialNavigation>>();
+export function d8SpatialNavigation(sceneId: D8SceneId) {
+  let compiled = spatialMaps.get(sceneId);
+  if (!compiled) {
+    const config = D8NIGHT.maps[sceneId], grid = d8SceneGrid(sceneId), nav = config.MAP.navigation;
+    const surfaceId = ({ temple: 'ruins', dinner: 'village', mirror: 'ice' } as Record<string, string>)[sceneId] ?? sceneId;
+    compiled = rasterSpatialNavigation({ ...grid,size:[grid.cols*D8_GRID_METERS,grid.rows*D8_GRID_METERS], surfaceId,
+      zones: nav.zones.map((zone: any) => sceneId === 'mirror' && zone.type === 'hazard' ? { ...zone, type: 'walkable' } : zone), obstacles: nav.obstacles, bounds: nav.bounds, supports: nav.supports });
+    if (sceneId === 'mirror') {
+      compiled.difficultCells = compiled.walkable.filter(cell => {
+        const { x, z } = d8CellToWorld(sceneId, cell); return !nav.zones.some((zone:any)=>zone.type==='hazard'&&containsSpatialPoint(zone,x,z))&&(Math.abs(x + 9.2) > 2 || Math.abs(z + 2.5) > 2);
+      });
+      const difficult = new Set(compiled.difficultCells.map(cell => `${cell.col},${cell.row}`));
+      for (const tile of compiled.terrain.surfaces[0]!.tiles) tile.movementCost = difficult.has(`${tile.cell.col},${tile.cell.row}`) ? 2 : 1;
+    }
+    spatialMaps.set(sceneId, compiled);
   }
-  return result;
+  return compiled;
 }
+function d8Walkable(sceneId: D8SceneId): Cell[] { return d8SpatialNavigation(sceneId).walkable; }
 
 export function d8NearestWalkableCell(sceneId: D8SceneId, x: number, z: number): Cell {
   return nearestWalkable(sceneId, d8CellFromWorld(sceneId, x, z), d8Walkable(sceneId));
 }
 
 export function d8AdjacentWalkableCells(sceneId: D8SceneId, center: Cell, count = 4): Cell[] {
-  const walkable = d8Walkable(sceneId), used = new Set<string>([`${center.col},${center.row}`]);
+  const walkable = connectedSpatialCells(d8SpatialNavigation(sceneId).terrain, center), used = new Set<string>([`${center.col},${center.row}`]);
   return [...walkable].sort((a, b) => Math.abs(a.col - center.col) + Math.abs(a.row - center.row)
     - Math.abs(b.col - center.col) - Math.abs(b.row - center.row) || a.row - b.row || a.col - b.col)
     .filter(cell => {
@@ -86,10 +86,13 @@ function nearestWalkable(sceneId: D8SceneId, cell: Cell, walkable: Cell[]): Cell
 
 function d8PartySpawns(sceneId: D8SceneId, walkable: Cell[]): Cell[] {
   const config = D8NIGHT.maps[sceneId], center = d8CellFromWorld(sceneId, config.spawn[0], config.spawn[2]);
-  const sorted = [...walkable].sort((a, b) => Math.abs(a.col - center.col) + Math.abs(a.row - center.row)
+  const legalCenter = nearestWalkable(sceneId, center, walkable);
+  const sorted = connectedSpatialCells(d8SpatialNavigation(sceneId).terrain, legalCenter).sort((a, b) => Math.abs(a.col - center.col) + Math.abs(a.row - center.row)
     - Math.abs(b.col - center.col) - Math.abs(b.row - center.row) || a.row - b.row || a.col - b.col);
   const result: Cell[] = [];
   for (const cell of sorted) {
+    // The new physical door may close: do not reserve its footprint as a spawn.
+    if(sceneId==='cafe'&&cell.row===d8CellFromWorld(sceneId,0,7.5).row&&cell.col>=8&&cell.col<=10)continue;
     if (result.some(other => Math.abs(other.col - cell.col) + Math.abs(other.row - cell.row) < 1)) continue;
     result.push(cell);
     if (result.length === 3) break;
@@ -166,25 +169,15 @@ const silverfarbenAtlases = {
   combat: { state: 'combat_actions_atlas', width: 1448, height: 1086, rows: 3 }
 } as const;
 const silverfarbenActionAtlasCycle = (row: number, fps: number, flipX = false) => {
-  const columns = 4, width = 1024, height = 1536, rows = 6;
-  const y = Math.floor(row * height / rows), bottom = Math.floor((row + 1) * height / rows);
   return {
-    frames: Array.from({ length: columns }, (_item, column) => {
-      const x = Math.floor(column * width / columns), right = Math.floor((column + 1) * width / columns);
-      return { url: silverfarbenFrame('exploration_actions_atlas'), x, y, width: right - x, height: bottom - y, logicalWidth: 92, logicalHeight: 92, anchorY: .84 };
-    }),
+    frames: silverfarbenAtlasBounds.exploration.slice(row*4,row*4+4).map(frame=>({...frame,alphaSeeds:frame.alphaSeeds.map(seed=>[seed[0],seed[1]] as [number,number])})),
     fps,
     ...(flipX ? { flipX: true } : {})
   };
 };
 const silverfarbenAtlasCycle = (atlasId: keyof typeof silverfarbenAtlases, row: number, fps: number, flipX = false) => {
-  const atlas = silverfarbenAtlases[atlasId], columns = 4;
-  const y = Math.floor(row * atlas.height / atlas.rows), bottom = Math.floor((row + 1) * atlas.height / atlas.rows);
   return {
-    frames: Array.from({ length: columns }, (_item, column) => {
-      const x = Math.floor(column * atlas.width / columns), right = Math.floor((column + 1) * atlas.width / columns);
-      return { url: silverfarbenFrame(atlas.state), x, y, width: right - x, height: bottom - y, logicalWidth: 92, logicalHeight: 92, anchorY: .84 };
-    }),
+    frames: silverfarbenAtlasBounds[atlasId].slice(row*4,row*4+4).map(frame=>({...frame,alphaSeeds:frame.alphaSeeds.map(seed=>[seed[0],seed[1]] as [number,number])})),
     fps,
     ...(flipX ? { flipX: true } : {})
   };
@@ -569,16 +562,64 @@ for (const scene of definition.scenes) {
   scene.renderer = 'babylon-d8';
   scene.grid = d8SceneGrid(sceneId);
   scene.walkable = walkable;
+  const spatial = d8SpatialNavigation(sceneId);
+  scene.terrain = spatial.terrain;
+  scene.effectWalls = spatial.effectWalls;
+  scene.difficultCells = spatial.difficultCells;
+  if(sceneId === 'mirror') scene.movementHazards = [{ id:'thin-blue-ice', label:'Hielo azul fino: caída al lago y muerte por congelación', consequence:'fatal-cold', cells: walkable.filter(cell=>{const p=d8CellToWorld(sceneId,cell);return D8NIGHT.maps.mirror.MAP.navigation.zones.some((zone:any)=>zone.type==='hazard'&&containsSpatialPoint(zone,p.x,p.z));}) }];
   scene.spawns = d8PartySpawns(sceneId, walkable);
   scene.stageActors = scene.stageActors?.map(actor => ({ ...actor, cell: nearestWalkable(sceneId,
     remapLegacyCell(sceneId, actor.cell, legacy.cols, legacy.rows), walkable) }));
+  const chair=sceneId==='dinner'?{x:0,z:1.4}:sceneId==='temple'?{x:4.35,z:.8}:sceneId==='cafe'?{x:-5.3,z:1.9}:null;
+  if(chair)for(const actor of scene.stageActors??[])if(['anteros-temple','anteros-dinner','woman-cafe'].includes(actor.id)){actor.cell=d8NearestWalkableCell(sceneId,chair.x,chair.z);actor.seatedAt=chair;actor.idleAnimation=actor.id==='woman-cafe'?'drink':'sit';}
+  if(['temple','cafe','market'].includes(sceneId)){
+    const signs=sceneId==='temple'?[{x:0,z:31.5,label:'Camino del pueblo',text:'Al oeste: Café No-Me-Olvides. Al este: Mercado Nocturno. Camina al menos cinco casillas por el camino para viajar.'}]:sceneId==='cafe'?[{x:0,z:11,label:'Calles del pueblo',text:'Al oeste: Templo. Al este: Mercado Nocturno. Sigue el camino al menos cinco casillas antes de abandonar la escena.'}]:[{x:0,z:9,label:'Plaza del mercado',text:'Café No-Me-Olvides al oeste; Templo al este. Avanza cinco casillas por la calle para viajar.'}];
+    scene.readableSigns=signs.map((sign,i)=>({id:`${sceneId}-road-sign-${i}`,label:sign.label,text:sign.text,cell:d8NearestWalkableCell(sceneId,sign.x,sign.z)}));
+  }
   scene.props = scene.props.map(prop => {
     const visual = D8NIGHT.maps[sceneId].MAP.objects.find((object: any) => object.asset === 'mirror_frame');
     return { ...prop, cell: sceneId === 'mirror' && prop.id === 'true-love-mirror' && visual
       ? d8NearestWalkableCell(sceneId, visual.position[0], visual.position[1])
       : remapLegacyCell(sceneId, prop.cell, legacy.cols, legacy.rows) };
   });
+  scene.seats=D8NIGHT.maps[sceneId].MAP.objects.filter((o:any)=>['chair','sofa_red','bench'].includes(o.asset)).map((o:any,i:number)=>{
+    const [x,z]=o.position,rotation=o.rotation??0;
+    const reserved=(scene.stageActors??[]).find(actor=>actor.seatedAt&&Math.hypot(actor.seatedAt.x-x,actor.seatedAt.z-z)<.2);
+    const facing=(['south','east','north','west'] as const)[((Math.round(rotation/(Math.PI/2))+(o.asset==='sofa_red'?2:0))%4+4)%4]!;
+    return {id:`${sceneId}-seat-${i}`,label:o.asset==='sofa_red'?'Sofá':o.asset==='bench'?'Banco':'Silla',cell:d8NearestWalkableCell(sceneId,x,z),surfaceId:scene.surfaceId,position:{x,z,height:o.asset==='sofa_red'?.63:o.asset==='bench'?.5:.435},facing,...(reserved?{reservedActorId:reserved.id}:{})};
+  });
+  if(sceneId==='market')for(const actor of scene.stageActors??[]){
+    const place:Record<string,[number,number]>={'cow-market':[4.5,1.5],'ben-market':[4.5,3],'margaret-market':[6,1.5],'boris-market':[6,-6.75]};
+    const point=place[actor.id];if(point)actor.cell=d8NearestWalkableCell(sceneId,...point);
+    if(actor.id==='ben-market')actor.idleAnimation='guide-cow';if(actor.id==='boris-market')actor.idleAnimation='negotiate';
+  }
+  if(sceneId==='garden'){
+    const fritz=scene.stageActors?.find(actor=>actor.id==='fritz-garden');
+    if(fritz)fritz.cell=d8NearestWalkableCell(sceneId,8.25,1.5);
+  }
+  for(const door of (D8NIGHT.maps[sceneId].MAP as any).doors??[])scene.props.push({id:door.id,kind:'door',label:door.label,assetId:'cafe-entry-door',cell:d8CellFromWorld(sceneId,door.x-(door.width>3?1.5:0),door.z),surfaceId:scene.surfaceId,rotation:0,initialState:'open',baseFootprint:door.width>3?[{col:0,row:0},{col:1,row:0},{col:2,row:0}]:[{col:0,row:0}],allowedRotations:[0],capabilities:{transform:false,detach:false,structure:true},renderedByScene:true,sourceKind:'addition'});
+  if(sceneId === 'mirror') {
+    // The authored 3D mirror is the sole visible object; retain its logical
+    // prop for interaction/save/undo, without drawing a second PNG on top.
+    const mirror = scene.props.find(prop=>prop.id==='true-love-mirror');
+    if(mirror){mirror.renderedByScene = true;mirror.capabilities.structure=true;
+      const variants=definition.props['true-love-mirror']!.variants;
+      variants['damaged:0']=variants['intact:0']!;variants['destroyed:0']=variants['intact:0']!;
+    }
+  }
+  // Visible villagers and entry doors must never share the party's arrival cells.
+  const reserved = new Set((scene.stageActors??[]).map(a=>`${a.cell.col},${a.cell.row}`));
+  for(const door of scene.props.filter(p=>p.kind==='door'))for(const offset of door.baseFootprint)reserved.add(`${door.cell.col+offset.col},${door.cell.row+offset.row}`);
+  scene.spawns = scene.spawns.map(spawn=>{
+    const free=[...walkable].sort((a,b)=>Math.abs(a.col-spawn.col)+Math.abs(a.row-spawn.row)-Math.abs(b.col-spawn.col)-Math.abs(b.row-spawn.row)).find(c=>!reserved.has(`${c.col},${c.row}`))??spawn;
+    reserved.add(`${free.col},${free.row}`);return free;
+  });
 }
+
+// Native geometry supplies the door; this catalogue entry is only its DM icon.
+definition.props['cafe-entry-door']={variants:Object.fromEntries(['default','intact:open','intact:closed','damaged:open','damaged:closed','destroyed'].map(key=>[key,{url:'/art/props/cafe-entry-door.svg',logicalWidth:64,logicalHeight:96,anchorX:.5,anchorY:1}]))};
+definition.tokenAnimations['silverfarben-hotel']!.sit={frames:[{url:tokenFrame('Silverfarben Hotel/silverfarben_seated_v48'),x:0,y:0,width:1280,height:1280,logicalWidth:75,logicalHeight:75,anchorX:.5,anchorY:1}],fps:1};
+definition.tokenAnimations.rogue!.sit={frames:[{url:tokenFrame('Maria Trinity D8/maria_seated_v48'),x:0,y:0,width:1280,height:1280,logicalWidth:76,logicalHeight:76,anchorX:.5,anchorY:1}],fps:1};
 
 // Real additional PNG poses; combat profiles and rule statistics are untouched.
 for (const [tokenId, frames] of Object.entries(d8MotionAtlases)) {
@@ -595,6 +636,7 @@ for (const [tokenId, frames] of Object.entries(d8MotionAtlases)) {
   for (const direction of ['n', 'ne', 'nw', 'e', 'w', 'se', 'sw', 's']) states[`running-${direction}`] = direction === 's' ? run : { ...states[`direction-${direction}`]!, fps: 12 };
 }
 // Visual estimates only: children and a cow do not share adult-human height.
+definition.tokenAnimations.anteros!.idle=definition.tokenAnimations.anteros!.sit!;
 for (const [tokenId, frames] of Object.entries(d8DirectionAtlases)) {
   for (const id of tokenId === 'anteros' ? ['anteros', 'anteros-dinner'] : [tokenId]) {
     const states = definition.tokenAnimations[id]!;
@@ -608,4 +650,5 @@ definition.tokens.margaret!.worldHeightMeters = 1.32;
 definition.tokens.cow!.worldHeightMeters = 1.35;
 definition.tokenAnimations.roses!.wake = { frames: tokenFrames('Rosas asesinas/rosa_asesina_base', 'Rosas asesinas/rosa_asesina_despertar', 'Rosas asesinas/rosa_asesina_idle_hostil'), fps: 3 };
 
+completeD8Animations(definition);
 export const oneShotCampaignDefinition = validatePublicCampaign(definition);

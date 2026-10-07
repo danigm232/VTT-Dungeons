@@ -23,3 +23,8 @@ export function shipLootIconIndex(label: string): number | null {
   if (/heliotropo/.test(text)) return 19;
   return null;
 }
+
+/** M5 loot art is authored and served only by the Stormwreck campaign. */
+export function campaignShipLootIconIndex(campaignId: string, label: string): number | null {
+  return campaignId === 'stormwreck-isle' ? shipLootIconIndex(label) : null;
+}

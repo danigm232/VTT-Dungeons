@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { cellSchema, idSchema, rotationSchema, sceneIdSchema, type Cell, type PublicCampaignDefinition, type PublicSceneDefinition, type Rotation } from './campaign.js';
 import type { CampRestState } from './camp-rest.js';
+import type { AdventureView } from './adventure.js';
 
 export type { Cell } from './campaign.js';
 
@@ -26,6 +27,7 @@ export interface PublicEntity {
   tokenId: string;
   /** Radius of an explicitly lit carried source; never inferred from an unlit pickup. */
   carriedLightRadiusMeters?: number;
+  seatId?: string;
   hp?: number;
   maxHp?: number;
   defeated?: boolean;
@@ -130,7 +132,7 @@ export type DmObject =
   | (PropCommon & { kind: 'crate'; rotation: Rotation; footprint: Cell[]; structure: 'intact' | 'damaged' | 'destroyed'; allowedRotations: Rotation[]; interaction?: Exclude<DmObjectInteraction, { kind: 'barred-door' }> });
 
 export interface CameraState { mode: CameraMode; focusId: string | null }
-export interface EnvironmentState { storm: boolean; lightning: boolean; stormIntensity: number; timeOfDay?: 'auto' | 'day' | 'night' }
+export interface EnvironmentState { storm: boolean; lightning: boolean; stormIntensity: number; timeOfDay?: 'auto' | 'day' | 'night' | 'sunset' | 'dawn'; precipitation?: 'none' | 'rain' | 'snow'; precipitationLevel?: 1 | 2 | 3; windIntensity?: number }
 export interface AudioTrackState {
   playing: boolean; volume: number; startedAt: number | null; offset: number; assetId?: string;
   /** `loop` means infinite repetition; otherwise `repeats` is the total number of plays. */
@@ -156,7 +158,9 @@ export interface WorldSnapshot {
   entities: PublicEntity[];
   /** Sólo los tokens de entidades visibles en esta escena; no adelanta enemigos ocultos. */
   tokenAssets: { tokens: PublicCampaignDefinition['tokens']; tokenAnimations: PublicCampaignDefinition['tokenAnimations'] };
-  props: PublicProp[];
+    props: PublicProp[];
+    /** Active, scene-authorized visual cues, including on reconnect. */
+    visualEffects?: import('./world-visual-effects.js').WorldVisualEffect[];
   collectedPickups?: string[];
   camera: CameraState;
   environment: EnvironmentState;
@@ -241,10 +245,13 @@ export interface DmState {
   objects: DmObject[];
   pickups?: Array<{ id: string; label: string; sceneId: string; surfaceId: string; cell: Cell; kind: 'unlit-torch' | 'treasure'; collected: boolean; available: boolean }>;
   progress: Record<string, boolean>;
+  adventure?: AdventureView;
+  encounterGroups?: Array<{ id: string; label: string; sceneId: string; maximum: number; visibleCount: number }>;
+  mimicInstruction?: { entityId: string; sourceId: string; actionId: string | null; label: string };
   lastExplorationAction: { id: string; sceneId: SceneId; characterId: string; characterLabel: string; action: ExplorationBasicAction; actionLabel: string; targetLabel: string; guidance: string; createdAt: number } | null;
   undo: { canUndo: boolean; label: string | null; entryId: string | null };
   gameUndo: { canUndo: boolean; label: string | null };
-  ports: Array<{ id: string; mode: 'rigging' | 'stairs' | 'door' | 'rope-ladder' | 'hatch' | 'hole' | 'swim'; return: 'explicit' | 'adjudicated'; conditionId?: string; from: { mapId: string; zoneId: string; surfaceId: string; cell: Cell }; to: { mapId: string; zoneId: string; surfaceId: string; cell: Cell } }>;
+  ports: Array<{ id: string; mode: 'rigging' | 'stairs' | 'road' | 'door' | 'rope-ladder' | 'hatch' | 'hole' | 'swim'; return: 'explicit' | 'adjudicated'; conditionId?: string; from: { mapId: string; zoneId: string; surfaceId: string; cell: Cell }; to: { mapId: string; zoneId: string; surfaceId: string; cell: Cell } }>;
 }
 
 const epochSchema = z.number().int().nonnegative();
@@ -274,6 +281,7 @@ export const playerCombatSchema = z.discriminatedUnion('type', [
   z.object({ runtimeEpoch: runtimeEpochSchema.optional(), type: z.literal('combat:flee'), commandId: commandIdSchema, sceneEpoch: epochSchema }).strict(),
   z.object({ runtimeEpoch: runtimeEpochSchema.optional(), type: z.literal('combat:initiative'), commandId: commandIdSchema, sceneEpoch: epochSchema, total: z.number().int().min(-20).max(40) }).strict(),
   z.object({ runtimeEpoch: runtimeEpochSchema.optional(), type: z.literal('combat:endTurn'), commandId: commandIdSchema, sceneEpoch: epochSchema }).strict(),
+  z.object({ runtimeEpoch: runtimeEpochSchema.optional(), type: z.literal('combat:endConcentration'), commandId: commandIdSchema, sceneEpoch: epochSchema }).strict(),
   z.object({ runtimeEpoch: runtimeEpochSchema.optional(), type: z.literal('combat:hp'), commandId: commandIdSchema, sceneEpoch: epochSchema, delta: z.number().int().min(-99).max(99).refine(delta => delta !== 0) }).strict(),
   z.object({ runtimeEpoch: runtimeEpochSchema.optional(), type: z.literal('combat:declare'), commandId: commandIdSchema, sceneEpoch: epochSchema, targetId: idSchema.optional(), targetCell: cellSchema.optional(), actionId: idSchema, useSneakAttack: z.boolean().optional() }).strict(),
   z.object({ runtimeEpoch: runtimeEpochSchema.optional(), type: z.literal('combat:basic'), commandId: commandIdSchema, sceneEpoch: epochSchema, action: z.enum(['dash', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'ready', 'search', 'study', 'use-object']), targetId: idSchema.optional() }).strict(),
@@ -325,12 +333,14 @@ export const dmCommandSchema = z.discriminatedUnion('type', [
   z.object({ ...runtimeField, type: z.literal('view:focus'), commandId: commandIdSchema, sceneEpoch: epochSchema, sceneId: sceneIdSchema }).strict(),
   z.object({ ...runtimeField, type: z.literal('entity:portal'), commandId: commandIdSchema, sceneEpoch: epochSchema, entityId: idSchema, portId: idSchema, direction: z.enum(['forward', 'return']), adjudicate: z.boolean().optional() }).strict(),
   z.object({ ...runtimeField, type: z.literal('scene:animation'), commandId: commandIdSchema, sceneEpoch: epochSchema, entityId: idSchema, state: idSchema, durationMs: z.number().int().min(250).max(10_000).optional() }).strict(),
-  z.object({ ...runtimeField, type: z.literal('creature'), commandId: commandIdSchema, sceneEpoch: epochSchema, visible: z.boolean() }).strict(),
+  z.object({ ...runtimeField, type: z.literal('creature'), commandId: commandIdSchema, sceneEpoch: epochSchema, visible: z.boolean(), sourceId: idSchema.optional() }).strict(),
   z.object({ ...runtimeField, type: z.literal('npc:visible'), commandId: commandIdSchema, sceneEpoch: epochSchema, entityId: idSchema, visible: z.boolean() }).strict(),
+  z.object({ ...runtimeField, type: z.literal('encounter:reveal'), commandId: commandIdSchema, sceneEpoch: epochSchema, groupId: idSchema, count: z.number().int().min(0).max(20) }).strict(),
   z.object({ ...runtimeField, type: z.literal('camera'), commandId: commandIdSchema, sceneEpoch: epochSchema, mode: z.enum(['fixed', 'semiFixed', 'follow']), focusId: z.string().max(40).nullable() }).strict(),
-  z.object({ ...runtimeField, type: z.literal('environment'), commandId: commandIdSchema, sceneEpoch: epochSchema, storm: z.boolean(), intensity: volumeSchema.optional(), trackId: idSchema.optional(), timeOfDay: z.enum(['auto', 'day', 'night']).optional() }).strict(),
+  z.object({ ...runtimeField, type: z.literal('environment'), commandId: commandIdSchema, sceneEpoch: epochSchema, storm: z.boolean(), intensity: volumeSchema.optional(), trackId: idSchema.optional(), timeOfDay: z.enum(['auto', 'day', 'night', 'sunset', 'dawn']).optional(), precipitation: z.enum(['none', 'rain', 'snow']).optional(), precipitationLevel: z.union([z.literal(1),z.literal(2),z.literal(3)]).optional(), windIntensity: volumeSchema.optional() }).strict(),
   campRestCommandSchema,
   z.object({ ...runtimeField, type: z.literal('entity:move'), commandId: commandIdSchema, sceneEpoch: epochSchema, entityId: z.string().max(40), cell: cellSchema }).strict(),
+  z.object({ ...runtimeField, type: z.literal('entity:seat'), commandId: commandIdSchema, sceneEpoch: epochSchema, entityId:idSchema,seatId:idSchema }).strict(),
   z.object({ ...runtimeField, type: z.literal('hp'), commandId: commandIdSchema, characterId: z.string().max(40), hp: z.number().int().min(0).max(999) }).strict(),
   z.object({ ...runtimeField, type: z.literal('resource'), commandId: commandIdSchema, characterId: idSchema, resourceId: idSchema, current: z.number().int().min(0).max(99) }).strict(),
   z.object({ ...runtimeField, type: z.literal('entity:hp'), commandId: commandIdSchema, entityId: z.string().max(40), hp: z.number().int().min(0).max(999) }).strict(),
@@ -345,6 +355,7 @@ export const dmCommandSchema = z.discriminatedUnion('type', [
   z.object({ ...runtimeField, type: z.literal('combat:cancel'), commandId: commandIdSchema, sceneEpoch: epochSchema }).strict(),
   z.object({ ...runtimeField, type: z.literal('combat:cancelAction'), commandId: commandIdSchema, sceneEpoch: epochSchema, attackerId: idSchema, promptId: commandIdSchema.optional() }).strict(),
   z.object({ ...runtimeField, type: z.literal('combat:withdraw'), commandId: commandIdSchema, sceneEpoch: epochSchema, entityId: idSchema }).strict(),
+  z.object({ ...runtimeField, type: z.literal('combat:endConcentration'), commandId: commandIdSchema, sceneEpoch: epochSchema, entityId: idSchema }).strict(),
   z.object({ ...runtimeField, type: z.literal('combat:declare'), commandId: commandIdSchema, sceneEpoch: epochSchema, attackerId: idSchema, targetId: idSchema.optional(), targetCell: cellSchema.optional(), actionId: idSchema, useSneakAttack: z.boolean().optional() }).strict(),
   z.object({ ...runtimeField, type: z.literal('combat:basic'), commandId: commandIdSchema, sceneEpoch: epochSchema, attackerId: idSchema, action: z.enum(['dash', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'ready', 'search', 'study', 'use-object']), targetId: idSchema.optional() }).strict(),
   z.object({ ...runtimeField, type: z.literal('combat:escape'), commandId: commandIdSchema, sceneEpoch: epochSchema, attackerId: idSchema }).strict(),
@@ -357,6 +368,8 @@ export const dmCommandSchema = z.discriminatedUnion('type', [
   z.object({ ...runtimeField, type: z.literal('combat:reaction'), commandId: commandIdSchema, sceneEpoch: epochSchema, promptId: commandIdSchema, accept: z.boolean() }).strict(),
   z.object({ ...runtimeField, type: z.literal('combat:recharge'), commandId: commandIdSchema, sceneEpoch: epochSchema, attackerId: idSchema, actionId: idSchema, d6: z.number().int().min(1).max(6) }).strict(),
   z.object({ ...runtimeField, type: z.literal('progress:toggle'), commandId: commandIdSchema, sceneEpoch: epochSchema, flag: idSchema, value: z.boolean() }).strict(),
+  z.object({ ...runtimeField, type: z.literal('story:choice'), commandId: commandIdSchema, sceneEpoch: epochSchema, objectiveId: idSchema, choiceId: idSchema.nullable(), note: z.string().max(500).default(''), override: z.boolean().default(false) }).strict(),
+  z.object({ ...runtimeField, type: z.literal('story:ending'), commandId: commandIdSchema, sceneEpoch: epochSchema, endingId: idSchema.nullable(), reason: z.string().max(500).default(''), override: z.boolean().default(false) }).strict(),
   z.object({ ...runtimeField, type: z.literal('wreck:level-up'), commandId: commandIdSchema, level: z.union([z.literal(2), z.literal(3)]) }).strict(),
   z.object({ ...runtimeField, type: z.literal('pickup:take'), commandId: commandIdSchema, sceneEpoch: epochSchema, pickupId: idSchema, characterId: idSchema }).strict(),
   z.object({ ...runtimeField, type: z.literal('game:undo'), commandId: commandIdSchema }).strict(),

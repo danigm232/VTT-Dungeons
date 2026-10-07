@@ -7,9 +7,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { io } from 'socket.io-client';
-import { OBJECT_MODEL_VERSION, PROTOCOL_VERSION } from '../dist/server/engine/shared/protocol.js';
+import { pathToFileURL } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const serverBuild=path.resolve(root,process.env.DUNGEONS_SERVER_BUILD||'dist/server');
+const {OBJECT_MODEL_VERSION,PROTOCOL_VERSION}=await import(pathToFileURL(path.join(serverBuild,'engine/shared/protocol.js')).href);
 const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'dungeons-alpha03-smoke-'));
 const password = crypto.randomUUID();
 let child;
@@ -24,7 +26,7 @@ async function freePort() {
 }
 const port = await freePort(), base = `http://127.0.0.1:${port}`;
 async function launch() {
-  child = spawn(process.execPath, ['dist/server/apps/server/index.js'], {
+  child = spawn(process.execPath, [path.join(serverBuild,'apps/server/index.js')], {
     cwd: root, stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
     env: { ...process.env, PORT: String(port), HOST: '127.0.0.1', DM_PASSWORD: password,
       DUNGEONS_DATA_DIR: temporary, DUNGEONS_TEST_CHILD: '1' }

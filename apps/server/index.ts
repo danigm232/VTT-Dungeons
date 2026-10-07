@@ -99,7 +99,7 @@ app.get('/api/info', async (_req, res) => {
   const addresses = lanAddresses(); const host = addresses[0] ?? '127.0.0.1'; const playerUrl = `http://${host}:${port}/player`;
   const dmMobileUrl = `http://${host}:${port}/dm-mobile`;
   const [qr, dmMobileQr] = await Promise.all([QRCode.toDataURL(playerUrl, { margin: 1, width: 240 }), QRCode.toDataURL(dmMobileUrl, { margin: 1, width: 240 })]);
-  res.json({ playerUrl, projectorUrl: `http://localhost:${port}/projector`, dmUrl: `http://localhost:${port}/dm`, dmMobileUrl, addresses, qr, dmMobileQr });
+  res.json({ playerUrl, projectorUrl: `http://${host}:${port}/projector`, dmUrl: `http://localhost:${port}/dm`, dmMobileUrl, addresses, qr, dmMobileQr });
 });
 app.get('/api/campaign', (req, res) => {
   if (dmAuthorized(req)) return res.json(campaignBundle.public);

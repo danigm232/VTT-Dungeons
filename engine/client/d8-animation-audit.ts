@@ -1,4 +1,5 @@
 import { basicCombatActionAnimationStates, explorationBasicActionCatalogue } from '../shared/protocol';
+import { combatActionVisualState } from '../shared/combat-animation';
 import type { AttackAnimationType, CombatAction, DmState, WorldSnapshot } from '../shared/protocol';
 import type { PublicCampaignDefinition } from '../shared/campaign';
 
@@ -46,7 +47,7 @@ export function auditActions(entity: { id: string; tokenId: string; kind: string
   const attacks: CombatAction[] = own?.attacks ?? dm?.npcs.find(npc => npc.id === entity.id)?.attacks ?? dm?.combat.participants.find(actor => actor.id === entity.id)?.attacks ?? [];
   for (const action of attacks) {
     const text = `${action.id} ${action.label}`.toLowerCase(), type = action.animationType ?? (action.magical ? 'magicalProjectile' : 'melee');
-    const state = type === 'arrow' || type === 'radiantArrow' ? 'attack-arrow' : type === 'thrownWeapon' ? 'attack-throw' : type === 'melee' ? 'attack' : 'spell';
+    const state = combatActionVisualState(action, type);
     add(`attack:${action.id}`, action.label, state, 'Ataques y conjuros de la ficha', { attackType: type, soundId: action.soundId, count: /magic-missile|proyectiles? m[aá]gicos?/.test(text) ? 3 : action.attackCount ?? 1, ...(/niebla|fog/.test(text) ? { effect: 'fog' as const } : /pluma|feather/.test(text) ? { effect: 'feather' as const } : {}) });
   }
   // Older running servers do not publish the DM-only catalogue yet.

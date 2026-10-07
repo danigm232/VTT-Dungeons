@@ -21,7 +21,8 @@ export function d8PublicRendererConfig() {
       environment: config.VTT_AMBIENCE.environment,
       lighting: config.VTT_AMBIENCE.lighting,
       vfx: config.VTT_AMBIENCE.vfx,
-      visual: config.VTT_AMBIENCE.visual
+      visual: config.VTT_AMBIENCE.visual,
+      horizon: config.VTT_AMBIENCE.horizon
     })
   }]));
   return { version: D8_VERSION, maps };

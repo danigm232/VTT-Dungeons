@@ -6,12 +6,15 @@ import {
   type ExplorationAction, type PublicEntity, type PublicProp, type SceneId, type StepState, type WorldSnapshot
 } from '../shared/protocol.js';
 import type { CampRestState } from '../shared/camp-rest.js';
+import { adventureView, choiceFlag, endingFlag } from '../shared/adventure.js';
 import type { PickupDefinition, PropDefinition, Rotation } from '../shared/campaign.js';
-import { cellKey, footprintFor, sameCell } from '../shared/geometry.js';
+import { cellKey, footprintFor, sameCell, segmentCrossesBox } from '../shared/geometry.js';
 import { supportsCameraOrientation } from '../shared/camera.js';
 import { surfaceNeighbors } from '../shared/terrain.js';
 import { carriedLightRadiusMeters } from '../shared/carried-light.js';
 import { jumpGuidance } from '../shared/jumping.js';
+import { actionVisualEffect, type DurableVisualEffect } from '../shared/world-visual-effects.js';
+import { combatActionVisualState } from '../shared/combat-animation.js';
 import { compileCampaignBundle, type CampaignServerBundle, type CompiledCampaign, type RuleTraits, type SceneDefinition } from './campaign.js';
 import { directionFromVector, isWalkable, resolveStep } from './navigation.js';
 import { durablePayloadSchema, type DurablePayload } from './persistence/schema.js';
@@ -44,8 +47,9 @@ type CombatState = {
   active: boolean; round: number; order: string[]; turnIndex: number; spentSquares: Record<string, number>; dashSquares: Record<string, number>;
   actionUsed: Record<string, boolean>; bonusActionUsed: Record<string, boolean>; reactionUsed: Record<string, boolean>; sneakAttackUsed: Record<string, boolean>; sneakAttackUsedTurn: Record<string, string>;
   spellSlotUsedTurn: Record<string, string>; stances: Record<string, { action: BasicCombatAction; targetId?: string }>;
+  turnActions: Record<string, { actionId: string; label: string; kind: 'attack' | 'basic' }>;
   initiative: Record<string, number>; initiativeSubmitted: Record<string, boolean>; initiativePending: boolean; participantIds: string[]; sequences: Record<string, { actionId: string; remaining: number; targetId?: string }>;
-  recharge: Record<string, Record<string, boolean>>; openingAction: { attackerId: string; targetId: string; actionId: string } | null;
+  recharge: Record<string, Record<string, boolean>>; rechargeAttemptTurn: Record<string, string>; openingAction: { attackerId: string; targetId: string; actionId: string } | null;
   pending: PendingCombatResolution | null; lastEvent: InternalCombatEvent | null;
 };
 type ObjectCommon = {
@@ -64,7 +68,7 @@ type RuntimeInteraction = DmState['interactions'][number] & { sceneId: SceneId; 
 const freshTrack = (volume: number) => ({ playing: false, volume, startedAt: null as number | null, offset: 0, loop: true, rate: 1, repeats: 1 });
 const cloneCell = (cell: Cell): Cell => ({ col: cell.col, row: cell.row });
 const combatActions = (actions: Array<Omit<CombatAction, 'damageBonus'> & { damageBonus?: number }>): CombatAction[] => actions.map(action => ({ ...action, damageBonus: action.damageBonus ?? 0 }));
-const emptyCombat = (): CombatState => ({ active: false, round: 0, order: [], turnIndex: 0, spentSquares: {}, dashSquares: {}, actionUsed: {}, bonusActionUsed: {}, reactionUsed: {}, sneakAttackUsed: {}, sneakAttackUsedTurn: {}, spellSlotUsedTurn: {}, stances: {}, initiative: {}, initiativeSubmitted: {}, initiativePending: false, participantIds: [], sequences: {}, recharge: {}, openingAction: null, pending: null, lastEvent: null });
+const emptyCombat = (): CombatState => ({ active: false, round: 0, order: [], turnIndex: 0, spentSquares: {}, dashSquares: {}, actionUsed: {}, bonusActionUsed: {}, reactionUsed: {}, sneakAttackUsed: {}, sneakAttackUsedTurn: {}, spellSlotUsedTurn: {}, stances: {}, initiative: {}, initiativeSubmitted: {}, initiativePending: false, participantIds: [], sequences: {}, turnActions: {}, recharge: {}, rechargeAttemptTurn: {}, openingAction: null, pending: null, lastEvent: null });
 const cloneObject = (object: ObjectRuntime): ObjectRuntime => structuredClone(object);
 const isDoor = (object: ObjectRuntime): object is DoorRuntime => object.kind === 'door';
 const isWheel = (object: ObjectRuntime): object is WheelRuntime => object.kind === 'wheel';
@@ -89,6 +93,7 @@ export class GameState {
   conditions: Record<string, CombatCondition[]> = {};
   conditionSources: Record<string, ConditionSource[]> = {};
   concentration: Record<string, { actionId: string; label: string }> = {};
+  visualEffects: DurableVisualEffect[] = [];
   combat: CombatState = emptyCombat();
   camera = { mode: 'fixed' as 'fixed' | 'semiFixed' | 'follow', focusId: null as string | null };
   environment: EnvironmentState = { storm: false, lightning: false, stormIntensity: 0.5, timeOfDay: 'auto' };
@@ -100,11 +105,64 @@ export class GameState {
   };
   projectorReady = false;
   interactions: RuntimeInteraction[] = [];
-  progress: Record<string, boolean> = { wine: false, rose: false, steak: false, mirror: false, ending1: false, ending2: false, ending3: false };
+  progress: Record<string, boolean> = {};
+  storyNotes: Record<string, string> = {};
+
+  resolveAdventureChoice(objectiveId: string, choiceId: string | null, note: string, override = false) {
+    const definition = this.campaign.adventure, objective = definition?.objectives.find(item => item.id === objectiveId);
+    if (!definition || !objective || choiceId && !objective.choices.some(choice => choice.id === choiceId)) return 'UNKNOWN_STORY_CHOICE';
+    if (this.combat.active) return 'COMBAT_ACTIVE';
+    if (choiceId && !objective.requires.every(id => this.progress[id]) && (!override || !note.trim())) return 'STORY_PREREQUISITES';
+    const selected = objective.choices.find(choice => this.progress[choiceFlag(objective.id, choice.id)])?.id ?? null;
+    if (selected === choiceId && Boolean(this.progress[objective.id]) === (choiceId !== null) && (this.storyNotes[objective.id] ?? '') === note.trim()) return 'APPLIED';
+    for (const choice of objective.choices) this.progress[choiceFlag(objective.id, choice.id)] = choice.id === choiceId;
+    this.progress[objective.id] = choiceId !== null; this.storyNotes[objective.id] = note.trim();
+    // A changed decision invalidates the former conclusion, not the other objectives.
+    for (const ending of definition.endings) { this.progress[ending.id] = false; this.progress[endingFlag(ending.id)] = false; delete this.storyNotes[`final.${ending.id}`]; }
+    if (choiceId && this.campaign.encounter?.sceneId === objective.sceneId && this.creature) this.creature.visible = false;
+    return 'APPLIED';
+  }
+
+  resolveAdventureEnding(endingId: string | null, reason: string, override = false) {
+    const definition = this.campaign.adventure; if (!definition || endingId && !definition.endings.some(ending => ending.id === endingId)) return 'UNKNOWN_STORY_ENDING';
+    if (this.combat.active) return 'COMBAT_ACTIVE';
+    const view = adventureView(definition, this.progress, this.storyNotes);
+    if (endingId && (!view.complete || !view.candidates.includes(endingId)) && (!override || !reason.trim())) return 'STORY_PREREQUISITES';
+    if (endingId && view.candidates.length > 1 && !reason.trim()) return 'STORY_TIE_REASON';
+    for (const ending of definition.endings) { this.progress[ending.id] = ending.id === endingId; this.progress[endingFlag(ending.id)] = ending.id === endingId; delete this.storyNotes[`final.${ending.id}`]; }
+    if (endingId) this.storyNotes[`final.${endingId}`] = reason.trim();
+    return 'APPLIED';
+  }
   lastExplorationAction: DmState['lastExplorationAction'] = null;
   private objectScenes = new Map<SceneId, SceneObjectState>();
 
   private rowboat() { return this.campaign.public.campaignId === 'stormwreck-isle' ? this.npcs.get('wreck-rowboat') ?? null : null; }
+
+  private seatFlag(characterId:string,seatId:string){return `seat.${characterId}.${seatId}`;}
+  clearSeat(characterId:string){for(const key of Object.keys(this.progress))if(key.startsWith(`seat.${characterId}.`))delete this.progress[key];}
+  seatFor(characterId:string){
+    const character=this.characters.get(characterId);
+    if(!character||character.step||this.combat.active||character.hp<=0)return null;
+    return this.sceneForCharacter(character).seats?.find(seat=>seat.surfaceId===character.surfaceId&&sameCell(seat.cell,character.cell)&&this.progress[this.seatFlag(characterId,seat.id)])??null;
+  }
+  interactSeat(characterId:string,seatId:string):{ok:boolean;code:string}|null{
+    const character=this.characters.get(characterId);if(!character)return {ok:false,code:'UNKNOWN_CHARACTER'};
+    const seat=this.sceneForCharacter(character).seats?.find(seat=>seat.id===seatId);if(!seat)return null;
+    if(this.combat.active||character.step||character.hp<=0||seat.surfaceId!==character.surfaceId||Math.max(Math.abs(seat.cell.col-character.cell.col),Math.abs(seat.cell.row-character.cell.row))>1)return {ok:false,code:'TOO_FAR'};
+    if(this.seatFor(characterId)?.id===seat.id){this.clearSeat(characterId);this.revision++;this.stateRevision++;return {ok:true,code:'SEAT_LEFT'};}
+    const reserved=seat.reservedActorId?this.npcs.get(seat.reservedActorId):null;
+    if(reserved?.visible&&sameCell(reserved.cell,seat.cell))return {ok:false,code:'SEAT_OCCUPIED'};
+    if(!sameCell(character.cell,seat.cell)){
+      const horizontal=seat.cell.col===character.cell.col?'':seat.cell.col>character.cell.col?'east':'west',vertical=seat.cell.row===character.cell.row?'':seat.cell.row>character.cell.row?'south':'north';
+      const facing=(vertical&&horizontal?`${vertical}-${horizontal}`:vertical||horizontal) as Facing,scene=this.sceneForCharacter(character);
+      const destination=scene.terrain?this.terrainStepDestination(scene,character.surfaceId,character.cell,seat.cell):resolveStep(scene,character.cell,facing,this.publicObjectProps(character.sceneId))?{cell:seat.cell,surfaceId:seat.surfaceId}:null;
+      if(!destination||destination.surfaceId!==seat.surfaceId||!sameCell(destination.cell,seat.cell))return {ok:false,code:'SEAT_BLOCKED'};
+    }
+    if([...this.characters.values()].some(other=>other.id!==characterId&&other.sessionToken&&other.sceneId===character.sceneId&&other.surfaceId===character.surfaceId&&(sameCell(other.cell,seat.cell)||other.step&&sameCell(other.step.from,seat.cell))))return {ok:false,code:'SEAT_OCCUPIED'};
+    if(this.publicObjectProps(character.sceneId).some(prop=>prop.surfaceId===seat.surfaceId&&prop.structure!=='destroyed'&&(prop.kind!=='door'||prop.state!=='open')&&footprintFor(prop.cell,prop.rotation,prop.footprint).some(cell=>sameCell(cell,seat.cell))))return {ok:false,code:'SEAT_BLOCKED'};
+    this.clearSeat(characterId);character.cell=cloneCell(seat.cell);character.facing=seat.facing;character.moving=false;character.input.held=null;
+    this.progress[this.seatFlag(characterId,seat.id)]=true;this.revision++;this.stateRevision++;return {ok:true,code:'SEAT_TAKEN'};
+  }
   private rowboatFlag(characterId: string) { return `wreck.rowboat.aboard.${characterId}`; }
   private rowboatPilotFlag(characterId: string) { return `wreck.rowboat.pilot.${characterId}`; }
   private rowboatPassengers() {
@@ -183,7 +241,7 @@ export class GameState {
     } : null;
     for (const definition of this.campaign.public.scenes) for (const actor of definition.stageActors ?? []) {
       const profile = this.campaign.combatProfiles?.[actor.id];
-      this.npcs.set(actor.id, { id: actor.id, identityId: profile?.identityId ?? actor.id, label: actor.label, tokenId: actor.tokenId, color: '#c69158', cell: cloneCell(actor.cell), surfaceId: actor.surfaceId ?? definition.surfaceId, sceneId: definition.id, facing: 'south', hp: profile?.maxHp ?? 10, maxHp: profile?.maxHp ?? 10, armorClass: profile?.armorClass ?? 10, speedMeters: profile?.speedMeters ?? 9, initiativeBonus: profile?.initiativeBonus ?? 0, attacks: combatActions(profile?.attacks ?? [{ id: 'basic-attack', label: 'Acción improvisada', attackBonus: 0, damageDice: '1d4', damageBonus: 0 }]), traits: structuredClone(profile?.traits ?? []), ruleTraits: structuredClone(profile?.ruleTraits ?? {}), damageResistances: [...(profile?.damageResistances ?? [])], damageImmunities: [...(profile?.damageImmunities ?? [])], conditionImmunities: [...(profile?.conditionImmunities ?? [])], combatEnabled: Boolean(profile) && (profile?.startsInCombat ?? true), visible: profile?.startsVisible ?? true, blocksMovement: false });
+      this.npcs.set(actor.id, { id: actor.id, identityId: profile?.identityId ?? actor.id, label: actor.label, tokenId: actor.tokenId, color: '#c69158', cell: cloneCell(actor.cell), surfaceId: actor.surfaceId ?? definition.surfaceId, sceneId: definition.id, facing: 'south', hp: profile?.maxHp ?? 10, maxHp: profile?.maxHp ?? 10, armorClass: profile?.armorClass ?? 10, speedMeters: profile?.speedMeters ?? 9, initiativeBonus: profile?.initiativeBonus ?? 0, attacks: combatActions(profile?.attacks ?? [{ id: 'basic-attack', label: 'Acción improvisada', attackBonus: 0, damageDice: '1d4', damageBonus: 0 }]), traits: structuredClone(profile?.traits ?? []), ruleTraits: structuredClone(profile?.ruleTraits ?? {}), damageResistances: [...(profile?.damageResistances ?? [])], damageImmunities: [...(profile?.damageImmunities ?? [])], conditionImmunities: [...(profile?.conditionImmunities ?? [])], combatEnabled: Boolean(profile) && (profile?.startsInCombat ?? true), visible: profile?.startsVisible ?? true, blocksMovement: this.campaign.public.campaignId === 'd8-night-private' });
     }
     for (const actor of this.campaign.privateActors ?? []) {
       const profile = actor.profile;
@@ -387,6 +445,7 @@ export class GameState {
   }
 
   applyWreckProgressToggle(flag: string, value: boolean) {
+    if (this.campaign.adventure && (flag.startsWith('story.') || this.campaign.adventure.objectives.some(item => item.id === flag) || this.campaign.adventure.endings.some(item => item.id === flag))) return 'USE_STORY_CONTROLS';
     if (this.campaign.public.campaignId !== 'stormwreck-isle') { this.progress[flag] = value; return 'APPLIED'; }
     const oneShot = flag.startsWith('wreck.c8-loot-') || [
       'wreck.boat-arrived', 'wreck.boarded', 'wreck.c3-wheel-fell', 'wreck.c4-second-force-failed',
@@ -628,14 +687,17 @@ export class GameState {
    * tactical cells. The version marker prevents scaling an already-upgraded
    * save a second time. */
   private migrateD8NightGrid(payload: DurablePayload) {
-    if (this.campaign.public.campaignId !== 'd8-night-private' || (payload.d8GridVersion ?? 1) >= 2) return false;
+    if (this.campaign.public.campaignId !== 'd8-night-private' || (payload.d8GridVersion ?? 1) >= 3) return false;
+    const previousVersion = payload.d8GridVersion ?? 1;
     const legacySize = (sceneId: string) => sceneId === 'garden' ? { cols: 29, rows: 21 } : { cols: 32, rows: 21 };
     const remap = (sceneId: string, cell: Cell): Cell => {
       const definition = this.campaign.public.scenes.find(scene => scene.id === sceneId);
       if (!definition) return cloneCell(cell);
-      const old = legacySize(sceneId), target = {
+      // Road extensions do not enlarge the historical authoring rectangle.
+      const baseRows=definition.grid.worldOrigin?Math.round(-2*definition.grid.worldOrigin.z/1.5):definition.grid.rows;
+      const old = legacySize(sceneId), target = previousVersion >= 2 ? cloneCell(cell) : {
         col: Math.max(0, Math.min(definition.grid.cols - 1, Math.floor((cell.col + .5) * definition.grid.cols / old.cols))),
-        row: Math.max(0, Math.min(definition.grid.rows - 1, Math.floor((cell.row + .5) * definition.grid.rows / old.rows)))
+        row: Math.max(0, Math.min(baseRows - 1, Math.floor((cell.row + .5) * baseRows / old.rows)))
       };
       const walkable = definition.walkable;
       const legal = new Set(walkable.map(item => cellKey(item)));
@@ -646,12 +708,12 @@ export class GameState {
     for (const saved of payload.scenes) {
       const definition = this.campaign.public.scenes.find(scene => scene.id === saved.sceneId);
       if (!definition) continue;
-      for (const object of saved.objects) object.cell = remap(saved.sceneId, object.cell);
+      for (const object of saved.objects){const authored=definition.props.find(prop=>prop.id===object.id);object.cell=authored&&!authored.capabilities.transform?cloneCell(authored.cell):remap(saved.sceneId,object.cell);}
     }
     for (const character of payload.characters) character.cell = remap(character.sceneId ?? payload.sceneId, character.cell);
     for (const npc of payload.npcs ?? []) npc.cell = remap(npc.sceneId, npc.cell);
     if (payload.creature) payload.creature.cell = remap(payload.creature.sceneId, payload.creature.cell);
-    payload.d8GridVersion = 2;
+    payload.d8GridVersion = 3;
     return true;
   }
   /** Collapse legacy deck-specific scene IDs into the one physical ship scene.
@@ -760,6 +822,31 @@ export class GameState {
     }
     return migrated;
   }
+  /** Add only campaign-authored objects that are absent from an otherwise
+   * valid older save. Unknown or duplicated saved IDs remain invalid so an
+   * object that was renamed or removed can never be silently discarded. */
+  private migrateAddedCampaignObjects(payload: DurablePayload) {
+    const expectedByScene = new Map([...this.objectScenes].map(([sceneId, state]) => [sceneId, new Set(state.objects.map(object => object.id))]));
+    const needsDefaults = payload.scenes.some(savedScene => {
+      const expected = expectedByScene.get(savedScene.sceneId);
+      if (!expected) return false;
+      const ids = savedScene.objects.map(object => object.id), saved = new Set(ids);
+      return ids.length < expected.size && saved.size === ids.length && ids.every(id => expected.has(id));
+    });
+    if (!needsDefaults) return false;
+    const defaultsByScene = new Map(new GameState(this.campaign).captureDurable().scenes.map(scene => [scene.sceneId, scene.objects]));
+    let migrated = false;
+    for (const savedScene of payload.scenes) {
+      const expected = expectedByScene.get(savedScene.sceneId), defaults = defaultsByScene.get(savedScene.sceneId);
+      if (!expected || !defaults) continue;
+      const ids = savedScene.objects.map(object => object.id), present = new Set(ids);
+      if (present.size !== ids.length || ids.some(id => !expected.has(id))) continue;
+      for (const object of defaults) if (!present.has(object.id)) {
+        savedScene.objects.push(structuredClone(object)); migrated = true;
+      }
+    }
+    return migrated;
+  }
   get objectRevision() { return this.currentObjectState().revision; }
   get wheelState() {
     return this.currentObjects().find(isWheel)?.state ?? 'upright';
@@ -816,6 +903,7 @@ export class GameState {
 
   startStep(character: CharacterState, facing: Facing, now = Date.now()) {
     if (character.step) return false;
+    if(character.hp<=0){character.moving=false;return false;}
     const scene = this.sceneForCharacter(character);
     if (!scene.movementEnabled) { character.moving = false; return false; }
     if (this.progress[this.rowboatFlag(character.id)] && this.rowboatPassengers().includes(character))
@@ -825,7 +913,7 @@ export class GameState {
     const horizontal = offset[0] > 0 ? 'east' : 'west', vertical = offset[1] > 0 ? 'south' : 'north';
     // With the ship's 45° camera, one WASD key requests a diagonal grid step.
     // Beside a wall, slide along a free cardinal neighbor instead of sticking.
-    const candidateFacings: Facing[] = scene.id === 'wreck-ship' && offset[0] && offset[1]
+    const candidateFacings: Facing[] = (scene.id === 'wreck-ship' || this.campaign.public.campaignId === 'd8-night-private') && offset[0] && offset[1]
       ? [facing, horizontal, vertical] : [facing];
     const candidates = candidateFacings.map(candidateFacing => {
       const candidateOffset = ({ north: [0, -1], 'north-east': [1, -1], east: [1, 0], 'south-east': [1, 1], south: [0, 1], 'south-west': [-1, 1], west: [-1, 0], 'north-west': [-1, -1] } as const)[candidateFacing];
@@ -838,7 +926,11 @@ export class GameState {
       const blocked = props.some(prop => prop.surfaceId === destination.surfaceId && prop.structure !== 'destroyed'
         && (prop.kind !== 'door' || prop.state !== 'open') && footprintFor(prop.cell, prop.rotation, prop.footprint).some(cell => sameCell(cell, destination.cell)));
       const occupied = [...this.characters.values()].some(item => item.id !== character.id && Boolean(item.sessionToken) && item.sceneId === character.sceneId
-        && item.surfaceId === destination.surfaceId && sameCell(item.cell, destination.cell));
+        && item.surfaceId === destination.surfaceId && (sameCell(item.cell, destination.cell) || Boolean(item.step && sameCell(item.step.from, destination.cell))))
+        || Boolean(this.creature?.visible && this.creature.hp > 0 && this.creature.sceneId === character.sceneId
+          && this.creature.surfaceId === destination.surfaceId && sameCell(this.creature.cell, destination.cell))
+        || [...this.npcs.values()].some(npc => npc.blocksMovement && npc.visible && npc.hp > 0 && npc.sceneId === character.sceneId
+          && npc.surfaceId === destination.surfaceId && (sameCell(npc.cell, destination.cell) || Boolean(npc.step && sameCell(npc.step.from, destination.cell))));
       return blocked || occupied ? null : { destination, facing: candidateFacing };
     });
     const chosen = candidates.find(candidate => candidate !== null);
@@ -860,10 +952,13 @@ export class GameState {
     if (this.combat.pending) { character.moving = false; return false; }
     if (this.queueOpportunityMovement(character.id, next, nextSurfaceId)) { character.input.held = null; character.moving = false; this.revision++; this.stateRevision++; return true; }
     this.cancelInteractionsForCharacter(character.id);
+    this.clearSeat(character.id);
     const from = cloneCell(character.cell);
+    this.recordRoadApproach(character,from,next);
     character.cell = cloneCell(next);
     character.step = { from, to: cloneCell(next), fromSurfaceId: character.surfaceId, toSurfaceId: nextSurfaceId, startedAt: now, durationMs: STEP_DURATION_MS };
     character.moving = true; this.spendMovement(character.id, movementCost); this.revision++; this.stateRevision++;
+    this.applyMovementHazard(character.id);
     return true;
   }
 
@@ -926,21 +1021,58 @@ export class GameState {
       return { ...entity, initiative: this.combat.initiative[id] ?? 0, initiativeSubmitted: Boolean(this.combat.initiativeSubmitted[id]), active: entity.kind === 'player' ? entity.deathSaves.failures < 3 : entity.hp > 0, conditions: [...this.conditionsFor(id)] };
     });
   }
+  private endCombatIfSideDefeated(finalEvent?: InternalCombatEvent, endingText?: string) {
+    if (!this.combat.active || this.combat.pending) return false;
+    const hasPlayers = this.combat.participantIds.some(id => {
+      const entity = this.combatEntity(id);
+      return entity?.controller === 'player' && (entity.hp > 0 || entity.deathSaves.failures < 3);
+    });
+    const hasOpponents = this.combat.participantIds.some(id => {
+      const entity = this.combatEntity(id);
+      return entity?.controller === 'dm' && entity.hp > 0;
+    });
+    if (hasPlayers && hasOpponents) return false;
+    const text = !hasOpponents && hasPlayers
+      ? 'No quedan combatientes enemigos en pie. El combate termina.'
+      : hasOpponents && !hasPlayers
+        ? 'El grupo ya no puede continuar. El combate termina.'
+        : 'El combate termina: no quedan combatientes capaces de continuar.';
+    this.endCombat(endingText ?? text, finalEvent);
+    return true;
+  }
   private animationFor(action: CombatAction): CombatEvent['animation'] {
-    if (action.id === 'entangle') return 'entangle';
-    const animationType = visualAnimationType(action);
-    if (action.magical || animationType === 'magicalProjectile' || animationType === 'fireProjectile') return 'spell';
-    if (animationType === 'arrow' || animationType === 'radiantArrow') return 'attack-arrow';
-    if (animationType === 'thrownWeapon') return 'attack-throw';
-    return 'attack';
+    return combatActionVisualState(action, visualAnimationType(action));
   }
   private setCombatEvent(text: string, kind: CombatEvent['kind'], publicText = text, visual: Pick<CombatEvent, 'actorId' | 'targetId' | 'animation'> = {}) {
     this.combat.lastEvent = { id: crypto.randomUUID(), text, publicText, kind, ...visual };
   }
   private startConcentration(entityId: string, actionId: string, label: string) {
+    this.endConcentration(entityId);
     this.concentration[entityId] = { actionId, label };
   }
-  private endConcentration(entityId: string) { delete this.concentration[entityId]; }
+  private endConcentration(entityId: string) {
+    delete this.concentration[entityId];
+    this.visualEffects = this.visualEffects.filter(effect => effect.ownerId !== entityId || !effect.concentration);
+  }
+  stopConcentration(entityId: string) {
+    if (!this.concentration[entityId]) return false;
+    this.endConcentration(entityId); return true;
+  }
+  private activeVisualEffects(now = Date.now()) {
+    return this.visualEffects.filter(effect => effect.visual.expiresAt > now &&
+      (!effect.concentration || this.concentration[effect.ownerId]?.actionId === effect.actionId));
+  }
+  private recordVisualEffect(ownerId: string, actionId: string, cell: Cell, concentration = false, entityId?: string) {
+    const cue = actionVisualEffect(actionId), owner = this.characters.get(ownerId) ?? this.npcs.get(ownerId) ?? (this.creature?.id === ownerId ? this.creature : null);
+    if (!cue || !owner) return;
+    const now = Date.now();
+    this.visualEffects = this.activeVisualEffects(now).slice(-199);
+    this.visualEffects.push({ ownerId, actionId, concentration, visual: {
+      id: crypto.randomUUID(), type: cue.type, sceneId: owner.sceneId, surfaceId: owner.surfaceId,
+      cell: cloneCell(cell), radiusMeters: cue.radiusMeters, startedAt: now, expiresAt: now + cue.durationMs,
+      ...(entityId ? { entityId } : {})
+    } });
+  }
   private isSlottedSpell(action: CombatAction) { return Boolean(action.magical && action.resource?.id.startsWith('spell-slot'));
   }
   private combatTurnKey() { return `${this.combat.round}:${this.currentCombatId() ?? '-'}`; }
@@ -948,7 +1080,8 @@ export class GameState {
     return !this.isSlottedSpell(action) || this.combat.spellSlotUsedTurn[entityId] !== this.combatTurnKey();
   }
   private movementCost(sceneId: SceneId, surfaceId: string, cell: Cell) {
-    return this.sceneById(sceneId).terrain?.surfaces.find(surface => surface.id === surfaceId)?.tiles.find(tile => sameCell(tile.cell, cell))?.movementCost ?? 1;
+    const scene = this.sceneById(sceneId);
+    return scene.terrain?.surfaces.find(surface => surface.id === surfaceId)?.tiles.find(tile => sameCell(tile.cell, cell))?.movementCost ?? (scene.difficultCells?.some(candidate => sameCell(candidate, cell)) ? 2 : 1);
   }
   private terrainStepDestination(scene: SceneDefinition, surfaceId: string, from: Cell, to: Cell) {
     if (!scene.terrain) return { surfaceId, cell: to };
@@ -971,7 +1104,7 @@ export class GameState {
     // WASD direction, after which startStep silently slid the actor sideways.
     const horizontalRoute = connected(from, horizontal) && connected(horizontal, to);
     const verticalRoute = connected(from, vertical) && connected(vertical, to);
-    if (horizontalRoute || verticalRoute) return { surfaceId, cell: to };
+    if (scene.renderer === 'babylon-d8' ? horizontalRoute && verticalRoute : horizontalRoute || verticalRoute) return { surfaceId, cell: to };
     return null;
   }
   private canSpendMovement(entityId: string, terrainCost = 1) {
@@ -988,6 +1121,7 @@ export class GameState {
     const npc = this.npcs.get(entityId)?.visible && (this.npcs.get(entityId)?.hp ?? 0) > 0 ? this.npcs.get(entityId)! : null;
     const entity = character ?? creature ?? npc;
     if (!entity) return 'UNKNOWN_ENTITY';
+    if(entity.hp<=0)return 'INCAPACITATED';
     if ((npc?.id === 'wreck-rowboat' && this.rowboatPassengers().length > 0)
       || (character && this.rowboatPassengers().includes(character)))
       return 'ENTITY_ABOARD_ROWBOAT';
@@ -1019,16 +1153,41 @@ export class GameState {
     const npc = this.npcs.get(entityId) ?? null;
     const entity = character ?? creature ?? npc;
     if (!entity) return false;
-    const facing: Facing = destination.col > entity.cell.col ? 'east' : destination.col < entity.cell.col ? 'west' : destination.row > entity.cell.row ? 'south' : 'north';
+    const facing = directionFromVector(destination.col - entity.cell.col, destination.row - entity.cell.row) ?? entity.facing ?? 'north';
     if (character) {
       if (character.step) return false;
-      this.cancelInteractionsForCharacter(character.id); character.facing = facing; character.input.held = null;
-      const from = cloneCell(character.cell); character.cell = cloneCell(destination); character.step = { from, to: cloneCell(destination), fromSurfaceId: character.surfaceId, toSurfaceId: destinationSurfaceId ?? character.surfaceId, startedAt: Date.now(), durationMs: STEP_DURATION_MS }; character.moving = true;
+      this.cancelInteractionsForCharacter(character.id); this.clearSeat(character.id); character.facing = facing; character.input.held = null;
+      const from = cloneCell(character.cell); this.recordRoadApproach(character,from,destination);character.cell = cloneCell(destination); character.step = { from, to: cloneCell(destination), fromSurfaceId: character.surfaceId, toSurfaceId: destinationSurfaceId ?? character.surfaceId, startedAt: Date.now(), durationMs: STEP_DURATION_MS }; character.moving = true;
     } else if (npc) { npc.cell = cloneCell(destination); npc.surfaceId = destinationSurfaceId ?? npc.surfaceId; npc.facing = facing; }
     else if (creature) { creature.cell = cloneCell(destination); creature.surfaceId = destinationSurfaceId ?? creature.surfaceId; }
     const sceneId = character?.sceneId ?? creature?.sceneId ?? npc!.sceneId;
     this.spendMovement(entityId, this.movementCost(sceneId, destinationSurfaceId ?? entity.surfaceId, destination)); this.revision++; this.stateRevision++;
+    this.applyMovementHazard(entityId);
     return true;
+  }
+
+  private applyMovementHazard(entityId: string) {
+    const entity = this.characters.get(entityId) ?? this.npcs.get(entityId) ?? (this.creature?.id === entityId ? this.creature : undefined);
+    if(!entity)return;
+    const hazard=this.sceneById(entity.sceneId).movementHazards?.find(h=>h.cells.some(cell=>sameCell(cell,entity.cell)));
+    if(!hazard)return;
+    this.applyHitPoints(entityId,-entity.hp);
+    const player=this.characters.get(entityId);
+    if(player){player.input.held=null;player.moving=false;player.deathSaves={successes:0,failures:3,stable:false};}
+    this.setCombatEvent(`${entity.label}: ${hazard.label}.`, 'defeat', `${entity.label} cae a través del hielo fino.`, {targetId:entityId,animation:'fall'});
+    this.endCombatIfSideDefeated(this.combat.lastEvent??undefined);
+  }
+
+  private recordRoadApproach(character:CharacterState,from:Cell,to:Cell){
+    for(const port of this.campaign.ports??[]){
+      if(!port.minimumApproachSteps)continue;
+      const origin=port.from.mapId===character.sceneId?port.from:port.to.mapId===character.sceneId?port.to:null;
+      if(!origin)continue;
+      const key=`road.${character.id}.${port.id}.`,distance=(c:Cell)=>Math.abs(c.col-origin.cell.col)+Math.abs(c.row-origin.cell.row);
+      const previous=Array.from({length:port.minimumApproachSteps},(_,i)=>this.progress[key+(i+1)]).filter(Boolean).length;
+      for(let i=1;i<=port.minimumApproachSteps;i++)delete this.progress[key+i];
+      if(distance(from)<=7&&distance(to)<distance(from))for(let i=1;i<=Math.min(port.minimumApproachSteps,previous+1);i++)this.progress[key+i]=true;
+    }
   }
 
   publicSnapshot(redactCombat = false, viewSceneId: SceneId = this.sceneId, viewSurfaceId?: string): WorldSnapshot {
@@ -1046,6 +1205,7 @@ export class GameState {
       id: character.id, kind: 'player', label: character.label, sceneId: character.sceneId, cell: cloneCell(character.cell), surfaceId: character.surfaceId,
       facing: character.facing, moving: character.moving, step: character.step ? structuredClone(character.step) : null, color: character.color, tokenId: character.tokenId, conditions: [...this.conditionsFor(character.id)],
       carriedLightRadiusMeters: carriedLightRadiusMeters(character.inventory),
+      ...(this.seatFor(character.id)?{seatId:this.seatFor(character.id)!.id}:{}),
       ...(!redactCombat && this.combat.active && this.combat.participantIds.includes(character.id) ? { hp: character.hp, maxHp: character.maxHp, defeated: character.hp <= 0 } : {})
     }));
     if (this.creature?.visible && this.creature.hp > 0 && this.creature.sceneId === viewSceneId && remainsInScene(this.creature.sceneId, this.creature.surfaceId) && visibleSurface(this.creature.surfaceId)) entities.push({
@@ -1078,14 +1238,25 @@ export class GameState {
     });
     const visibleCurrentId = !redactCombat || visibleIds.has(this.currentCombatId() ?? '') ? this.currentCombatId() : null;
     const movement = this.combatMovement();
-    const visibleEvent = this.combat.lastEvent && (!redactCombat || ((!this.combat.lastEvent.actorId || visibleIds.has(this.combat.lastEvent.actorId)) && (!this.combat.lastEvent.targetId || visibleIds.has(this.combat.lastEvent.targetId)))) ? this.combat.lastEvent : null;
+    const eventEntityVisible = (id: string | undefined) => {
+      if (!id || visibleIds.has(id)) return true;
+      // The defeated creature has already left the tactical map. Its final
+      // hit still belongs to this audience, provided it was revealed here.
+      const entity = this.creature?.id === id ? this.creature : this.npcs.get(id);
+      return this.combat.lastEvent?.kind === 'defeat' && entity?.visible === true && entity.hp === 0
+        && entity.sceneId === viewSceneId && remainsInScene(entity.sceneId, entity.surfaceId) && visibleSurface(entity.surfaceId);
+    };
+    const visibleEvent = this.combat.lastEvent && (!redactCombat || (eventEntityVisible(this.combat.lastEvent.actorId) && eventEntityVisible(this.combat.lastEvent.targetId))) ? this.combat.lastEvent : null;
     return {
       v: PROTOCOL_VERSION, objectModelVersion: OBJECT_MODEL_VERSION, revision: this.revision, serverTime: Date.now(), sceneId: viewSceneId, scene: authorizedScene, sceneEpoch: this.sceneEpoch, runtimeEpoch: this.runtimeEpoch,
       entities, tokenAssets, props, collectedPickups: (viewScene.pickups ?? []).filter(pickup => remainsInScene(viewSceneId, pickup.surfaceId) && (viewSurfaceId === undefined || pickup.surfaceId === viewSurfaceId) && this.pickupAvailable(viewSceneId, pickup) && this.progress[`pickup.${pickup.id}`]).map(pickup => pickup.id), camera: { mode: this.camera.mode, focusId: publicFocus }, environment: { ...this.environment },
       story: { wreckDisappeared },
+      visualEffects: this.activeVisualEffects().filter(effect => effect.visual.sceneId === viewSceneId &&
+        (viewSurfaceId === undefined || effect.visual.surfaceId === viewSurfaceId) &&
+        (!effect.visual.entityId || visibleIds.has(effect.visual.entityId))).map(effect => structuredClone(effect.visual)),
       campRest: this.campRest?.sceneId === viewSceneId ? structuredClone(this.campRest) : null,
       // La CA es el número público que el jugador necesita superar al atacar.
-      combat: { active: this.combat.active && (!redactCombat || visibleParticipants.length > 0), round: this.combat.round, currentId: visibleCurrentId, movement: movement && (!redactCombat || visibleIds.has(movement.actorId)) ? movement : null, participants: visibleParticipants.map(participant => redactCombat ? { ...participant, hp: 0, maxHp: 0, speedMeters: 0, attacks: [] } : participant), order: visibleOrder, lastEvent: visibleEvent ? { id: visibleEvent.id, kind: visibleEvent.kind, text: redactCombat ? visibleEvent.publicText : visibleEvent.text, actorId: visibleEvent.actorId, targetId: visibleEvent.targetId, animation: visibleEvent.animation } : null }
+      combat: { active: this.combat.active && (!redactCombat || visibleParticipants.length > 0), round: this.combat.round, currentId: visibleCurrentId, movement: movement && (!redactCombat || visibleIds.has(movement.actorId)) ? movement : null, participants: visibleParticipants.map(participant => redactCombat ? { ...participant, hp: 0, maxHp: 0, armorClass: participant.controller === 'player' ? participant.armorClass : 0, speedMeters: 0, attacks: [] } : participant), order: visibleOrder, lastEvent: visibleEvent ? { id: visibleEvent.id, kind: visibleEvent.kind, text: redactCombat ? visibleEvent.publicText : visibleEvent.text, actorId: visibleEvent.actorId, targetId: visibleEvent.targetId, animation: visibleEvent.animation } : null }
     };
   }
 
@@ -1198,10 +1369,10 @@ export class GameState {
   }
 
   private nearbyStageActorInteraction(character: CharacterState | null) {
-    if (this.combat.active || !character || character.step) return null;
+    if (this.combat.active || !character || character.hp <= 0 || character.step) return null;
     return this.campaign.stageActorInteractions?.find(interaction => {
       const npc = this.npcs.get(interaction.targetId);
-      return interaction.sceneId === this.sceneId && npc?.visible && npc.surfaceId === character.surfaceId
+      return interaction.sceneId === this.sceneId && npc?.visible && npc.hp > 0 && !this.conditionsFor(npc.id).includes('inconsciente') && npc.surfaceId === character.surfaceId
         && character.surfaceId === (interaction.surfaceId ?? this.currentScene().surfaceId)
         && interaction.cells.some(cell => sameCell(cell, character.cell));
     }) ?? null;
@@ -1229,6 +1400,7 @@ export class GameState {
   }
 
   private nearbyInteractions(character: CharacterState | null) {
+    if (!character || character.hp <= 0 || this.conditionsFor(character.id).some(condition => condition === 'inconsciente' || condition === 'paralizada')) return [];
     const rowboat = this.rowboatInteraction(character);
     const stage = this.nearbyStageActorInteraction(character);
     const mirror = this.nearbyMirrorInteraction(character);
@@ -1241,16 +1413,18 @@ export class GameState {
     const doors = character && !this.combat.active && !character.step ? this.objectsFor(character.sceneId)
       .filter((object): object is DoorRuntime => isDoor(object) && object.structure !== 'destroyed'
         && object.surfaceId === character.surfaceId
-        && Math.max(Math.abs(object.cell.col - character.cell.col), Math.abs(object.cell.row - character.cell.row)) <= 1)
+        && footprintFor(object.cell,object.rotation,object.baseFootprint).some(cell=>Math.max(Math.abs(cell.col-character.cell.col),Math.abs(cell.row-character.cell.row))<=1))
       .map(door => ({ targetId: door.id, label: door.interaction?.barrier === 'barred'
         ? `Retirar listón · ${door.label}` : door.state === 'open' ? `Cerrar · ${door.label}` : `Abrir · ${door.label}` })) : [];
     return [
       ...(rowboat ? [rowboat] : []),
       ...doors,
       ...pickups,
+      ...(character&&!character.step&&!this.combat.active?(this.sceneForCharacter(character).readableSigns??[]).filter(sign=>Math.max(Math.abs(sign.cell.col-character.cell.col),Math.abs(sign.cell.row-character.cell.row))<=1).map(sign=>({targetId:sign.id,label:`Leer · ${sign.label}`})):[]),
       ...(stage ? [{ targetId: stage.targetId, label: stage.nearbyLabel }] : []),
       ...(mirror ? [{ targetId: mirror.targetId, label: mirror.nearbyLabel }] : []),
-      ...(nearWheel ? [{ targetId: config!.targetId, label: config!.nearbyLabel }] : [])
+      ...(nearWheel ? [{ targetId: config!.targetId, label: config!.nearbyLabel }] : []),
+      ...(character&&!character.step&&!this.combat.active?(this.sceneForCharacter(character).seats??[]).filter(seat=>(!seat.reservedActorId||!this.npcs.get(seat.reservedActorId)?.visible||!sameCell(this.npcs.get(seat.reservedActorId)!.cell,seat.cell))&&seat.surfaceId===character.surfaceId&&Math.max(Math.abs(seat.cell.col-character.cell.col),Math.abs(seat.cell.row-character.cell.row))<=1).map(seat=>({targetId:seat.id,label:`${this.seatFor(character.id)?.id===seat.id?'Levantarte':'Sentarte'} · ${seat.label}`})):[]),
     ];
   }
 
@@ -1262,7 +1436,7 @@ export class GameState {
     const door = this.objectsFor(character.sceneId).find(object => object.id === objectId);
     if (!door || !isDoor(door)) return null;
     if (this.combat.active || character.step || character.surfaceId !== door.surfaceId
-      || Math.max(Math.abs(character.cell.col - door.cell.col), Math.abs(character.cell.row - door.cell.row)) > 1)
+      || !footprintFor(door.cell,door.rotation,door.baseFootprint).some(cell=>Math.max(Math.abs(character.cell.col-cell.col),Math.abs(character.cell.row-cell.row))<=1))
       return { ok: false, code: 'TOO_FAR' };
     if (door.structure === 'destroyed') return { ok: false, code: 'INVALID_TRANSITION' };
     if (door.interaction?.barrier === 'barred') {
@@ -1297,10 +1471,11 @@ export class GameState {
 
   playerPrivate(token: string, notice?: string): PlayerPrivate {
     const character = this.characterForSession(token);
+    const canAct = Boolean(character && character.hp > 0 && !this.conditionsFor(character.id).some(condition => condition === 'inconsciente' || condition === 'paralizada'));
     const interactions = this.nearbyInteractions(character);
     const nearbyInteraction = interactions[0] ?? null;
     const campScene = character ? this.sceneForCharacter(character) : null;
-    const campInteractions = character && !this.combat.active && !character.step && campScene?.camp ? campScene.camp.interactionPoints
+    const campInteractions = canAct && character && !this.combat.active && !character.step && campScene?.camp ? campScene.camp.interactionPoints
       .filter(point => (!point.ownerCharacterId || point.ownerCharacterId === character.id) && point.surfaceId === character.surfaceId
         && Math.max(Math.abs(character.cell.col - point.cell.col), Math.abs(character.cell.row - point.cell.row)) <= 1)
       .map(point => {
@@ -1338,9 +1513,9 @@ export class GameState {
       rowboat: character && this.rowboatPassengers().includes(character)
         ? { aboard: true, pilot: this.rowboatPilot()?.id === character.id } : null,
       campInteractions,
-      explorationActions: character ? structuredClone(character.explorationActions) : [],
-      explorationBasics: character ? [...character.explorationBasics] : [],
-      explorationAttacks: character && !this.combat.active ? structuredClone(character.combat.attacks.filter(action => action.resolution !== 'guided')) : [],
+      explorationActions: canAct && character ? structuredClone(character.explorationActions) : [],
+      explorationBasics: canAct && character ? [...character.explorationBasics] : [],
+      explorationAttacks: canAct && character && !this.combat.active ? structuredClone(character.combat.attacks.filter(action => action.resolution !== 'guided')) : [],
       sceneMovementEnabled: character ? this.sceneForCharacter(character).movementEnabled : this.currentScene().movementEnabled, combat: playerCombat, ...(notice ? { notice } : {})
     };
   }
@@ -1360,13 +1535,16 @@ export class GameState {
       })),
       creature: this.creature ? { id: this.creature.id, label: this.creature.label, visible: this.creature.visible, cell: cloneCell(this.creature.cell), surfaceId: this.creature.surfaceId, sceneId: this.creature.sceneId, hp: this.creature.hp, maxHp: this.creature.maxHp, armorClass: this.creature.armorClass, speedMeters: this.creature.speedMeters, traits: [...this.creature.traits], actions: [...this.creature.actions] } : null,
       npcs: [...this.npcs.values()].filter(npc => npc.sceneId === this.sceneId).map(npc => ({ id: npc.id, label: npc.label, tokenId: npc.tokenId, color: npc.color, cell: cloneCell(npc.cell), surfaceId: npc.surfaceId, hp: npc.hp, maxHp: npc.maxHp, armorClass: npc.armorClass, speedMeters: npc.speedMeters, traits: [...npc.traits], attacks: structuredClone(npc.attacks), combatEnabled: npc.combatEnabled, visible: npc.visible })),
-      combat: { sequences: structuredClone(this.combat.sequences), active: this.combat.active, round: this.combat.round, currentId: this.currentCombatId(), movement: this.combatMovement(), participants: this.combat.active ? this.combatParticipants() : [], lastEvent: this.combat.active ? this.combat.lastEvent : null, prompt: this.combatPromptFor('dm'), initiativePending: this.combat.initiativePending, initiativeSubmitted: { ...this.combat.initiativeSubmitted }, actionUsed: { ...this.combat.actionUsed }, bonusActionUsed: { ...this.combat.bonusActionUsed }, reactionUsed: { ...this.combat.reactionUsed }, concentration: structuredClone(this.concentration), recharge: structuredClone(this.combat.recharge), order: this.combat.order.map(id => {
+      combat: { sequences: structuredClone(this.combat.sequences), active: this.combat.active, round: this.combat.round, currentId: this.currentCombatId(), movement: this.combatMovement(), participants: this.combat.active ? this.combatParticipants() : [], lastEvent: this.combat.lastEvent, prompt: this.combatPromptFor('dm'), initiativePending: this.combat.initiativePending, initiativeSubmitted: { ...this.combat.initiativeSubmitted }, actionUsed: { ...this.combat.actionUsed }, bonusActionUsed: { ...this.combat.bonusActionUsed }, reactionUsed: { ...this.combat.reactionUsed }, concentration: structuredClone(this.concentration), recharge: structuredClone(this.combat.recharge), order: this.combat.order.map(id => {
         const entity = this.combatEntity(id); if (!entity) throw new Error('COMBAT_ENTITY_MISSING'); return { id, label: entity.label, kind: entity.kind };
       }) },
       privateNotes: { creature: this.campaign.encounter?.note ?? '', wheel: this.campaign.wheelInteraction?.note ?? '' },
       camera: { ...this.camera }, environment: { ...this.environment }, campRest: this.campRest ? structuredClone(this.campRest) : null, audio: structuredClone(this.audio), projectorReady: this.projectorReady,
       interactions: this.interactions.map(({ id, characterId, characterLabel, targetId, createdAt, status }) => ({ id, characterId, characterLabel, targetId, createdAt, status })), objects: this.dmObjects(),
       pickups: (this.currentScene().pickups ?? []).map(pickup => ({ id: pickup.id, label: pickup.label, sceneId: this.sceneId, surfaceId: pickup.surfaceId, cell: pickup.cell, kind: pickup.kind, collected: Boolean(this.progress[`pickup.${pickup.id}`]), available: this.pickupAvailable(this.sceneId, pickup) })), progress: { ...this.progress },
+      ...(this.campaign.adventure ? { adventure: adventureView(this.campaign.adventure, this.progress, this.storyNotes) } : {}),
+      encounterGroups: (this.campaign.encounterGroups ?? []).map(group => ({ id: group.id, label: group.label, sceneId: group.sceneId, maximum: group.actorIds.length, visibleCount: group.actorIds.filter(id => this.npcs.get(id)?.visible).length })),
+      ...(this.creature?.mimicOfPlayerId ? { mimicInstruction: { entityId: this.creature.id, sourceId: this.creature.mimicOfPlayerId, actionId: this.combat.turnActions[this.creature.mimicOfPlayerId]?.actionId ?? null, label: this.combat.turnActions[this.creature.mimicOfPlayerId]?.label ?? 'Espera a la acción del original. Sin acción posible: resolver excepción con el DM.' } } : {}),
       lastExplorationAction: this.lastExplorationAction && this.lastExplorationAction.sceneId === this.sceneId ? structuredClone(this.lastExplorationAction) : null,
       undo: { canUndo: objectState.undo.length > 0, label: objectState.undo.at(-1)?.label ?? null, entryId: objectState.undo.at(-1)?.entryId ?? null },
       gameUndo: { canUndo: false, label: null }, ports: structuredClone(this.campaign.ports ?? [])
@@ -1375,37 +1553,45 @@ export class GameState {
 
   tick(_dt = 0) {
     const now = Date.now(), changedCharacters = new Set<string>();
+    for (const effect of this.visualEffects) if (effect.concentration && effect.visual.expiresAt <= now && this.concentration[effect.ownerId]?.actionId === effect.actionId) {
+      this.endConcentration(effect.ownerId); this.revision++; this.stateRevision++; changedCharacters.add(effect.ownerId);
+    }
+    this.visualEffects = this.activeVisualEffects(now);
     const boat = this.rowboat();
     if (boat?.step && now >= boat.step.startedAt + boat.step.durationMs) boat.step = null;
     for (const request of this.interactions) if (request.status === 'pending' && now - request.createdAt >= 120_000) { request.status = 'resolved'; changedCharacters.add(request.characterId); }
     for (const character of this.characters.values()) {
       const scene = this.sceneForCharacter(character);
+      let nextStepAt=now;
       if (character.step && now >= character.step.startedAt + character.step.durationMs) {
         const completedStep = character.step;
+        nextStepAt=Math.max(now-100,completedStep.startedAt+completedStep.durationMs);
         const fromSceneId = character.sceneId, fromSurfaceId = character.surfaceId;
         character.surfaceId = completedStep.toSurfaceId ?? character.surfaceId;
         character.step = null; character.moving = false; this.revision++; changedCharacters.add(character.id);
         if (!this.progress[this.rowboatFlag(character.id)] && this.autoTraverseAfterStep(character, completedStep.to)) changedCharacters.add(character.id);
         this.observeWreckLocationChange(character, fromSceneId, fromSurfaceId);
       }
-      if (!character.step && character.socketId && scene.movementEnabled && character.input.held && now - character.input.updatedAt <= 220) {
-        if (this.startStep(character, character.input.held, now)) changedCharacters.add(character.id);
+      if (!character.step && character.socketId && scene.movementEnabled && character.input.held && now - character.input.updatedAt <= 650) {
+        if (this.startStep(character, character.input.held, nextStepAt)) changedCharacters.add(character.id);
       }
-      if (!character.socketId || now - character.input.updatedAt > 220 || !scene.movementEnabled) character.input.held = null;
+      if (!character.socketId || now - character.input.updatedAt > 650 || !scene.movementEnabled) character.input.held = null;
     }
     return changedCharacters;
   }
 
   private autoTraverseAfterStep(character: CharacterState, arrived: Cell) {
+    if (this.combat.active && this.campaign.public.campaignId === 'd8-night-private') return false;
     for (const port of this.campaign.ports ?? []) {
       // Hatches/holes with adjudication and doors are not auto-portals: doors
       // are traversed by ordinary collision-aware movement when actually open.
-      if (!['stairs', 'rope-ladder', 'rigging', 'swim'].includes(port.mode) || port.autoDirection === 'manual') continue;
+      if (!['stairs', 'road', 'rope-ladder', 'rigging', 'swim'].includes(port.mode) || port.autoDirection === 'manual') continue;
       let destination: typeof port.from | null = null;
       if (character.sceneId === port.from.mapId && character.surfaceId === port.from.surfaceId && sameCell(arrived, port.from.cell)) destination = port.to;
       else if (character.sceneId === port.to.mapId && character.surfaceId === port.to.surfaceId
         && port.autoDirection !== 'forward' && (sameCell(arrived, port.to.cell) || sameCell(arrived, port.from.cell))) destination = port.from;
       if (!destination || !this.walkableAt(destination.mapId, destination.surfaceId, destination.cell)) continue;
+      if(port.minimumApproachSteps&&!this.progress[`road.${character.id}.${port.id}.${port.minimumApproachSteps}`])continue;
       const occupied = [...this.characters.values()].some(item => item.id !== character.id && Boolean(item.sessionToken) && item.sceneId === destination!.mapId
         && item.surfaceId === destination!.surfaceId && (sameCell(item.cell, destination!.cell) || Boolean(item.step && sameCell(item.step.from, destination!.cell))))
         || Boolean(this.creature?.visible && this.creature.hp > 0 && this.creature.sceneId === destination.mapId
@@ -1413,11 +1599,18 @@ export class GameState {
         || [...this.npcs.values()].some(item => item.blocksMovement && item.visible && item.hp > 0 && item.sceneId === destination!.mapId
           && item.surfaceId === destination!.surfaceId && sameCell(item.cell, destination!.cell));
       if (occupied) return false;
-      character.sceneId = destination.mapId; character.surfaceId = destination.surfaceId; character.cell = cloneCell(destination.cell);
+      for(const key of Object.keys(this.progress))if(key.startsWith(`road.${character.id}.`))delete this.progress[key];
+      this.clearSeat(character.id);character.sceneId = destination.mapId; character.surfaceId = destination.surfaceId; character.cell = cloneCell(destination.cell);
       this.progress[this.rowboatFlag(character.id)] = false;
       this.progress[this.rowboatPilotFlag(character.id)] = false;
       character.step = null; character.moving = false; character.input = { held: null, seq: -1, updatedAt: 0 };
       this.cancelInteractionsForCharacter(character.id); this.revision++; this.stateRevision++;
+      if (this.campaign.public.campaignId === 'd8-night-private' && this.sceneId !== destination.mapId) {
+        // The DM/projector follows the one-shot traveller, while each other
+        // player's own scene and control remain independent.
+        this.focusScene(destination.mapId);
+        this.applySceneAudioProfile(destination.mapId);
+      }
       return true;
     }
     return false;
@@ -1433,8 +1626,9 @@ export class GameState {
     if (this.creature) this.creature.visible = false;
     const scene = this.currentScene();
     [...this.characters.values()].forEach((character, index) => {
+      for (const key of Object.keys(this.progress)) if (key.startsWith(`road.${character.id}.`)) delete this.progress[key];
       character.cell = cloneCell(scene.spawns[index] ?? scene.spawns[0]!); character.surfaceId = scene.surfaceId;
-      character.sceneId = scene.id;
+      this.clearSeat(character.id);character.sceneId = scene.id;
       character.step = null; character.moving = false; character.input = { held: null, seq: -1, updatedAt: 0 };
       this.progress[this.rowboatFlag(character.id)] = false;
       this.progress[this.rowboatPilotFlag(character.id)] = false;
@@ -1493,7 +1687,7 @@ export class GameState {
     }
     if (occupied(landingCell)) return 'OCCUPIED_CELL';
     const fromSceneId = character.sceneId, fromSurfaceId = character.surfaceId;
-    character.sceneId = destination.mapId; character.surfaceId = destination.surfaceId; character.cell = cloneCell(landingCell);
+    this.clearSeat(character.id);character.sceneId = destination.mapId; character.surfaceId = destination.surfaceId; character.cell = cloneCell(landingCell);
     this.progress[this.rowboatFlag(character.id)] = false;
     this.progress[this.rowboatPilotFlag(character.id)] = false;
     character.step = null; character.moving = false; character.input = { held: null, seq: -1, updatedAt: 0 };
@@ -1511,6 +1705,25 @@ export class GameState {
     };
     apply(this.audio.music, profile.music);
     for (const channel of ['ocean', 'wind', 'wood', 'storm'] as const) apply(this.audio.layers[channel], profile.layers[channel]);
+    this.applyWeatherAudio(now);
+  }
+
+  applyWeatherAudio(now=Date.now()) {
+    const weather=this.environment, library=this.campaign.public.audio.library?.ambience??[];
+    const kind=weather.precipitation??(weather.storm?'rain':'none'),level=weather.precipitationLevel??2;
+    const rain=library.find(t=>/rain-drizzle|rain-steady/.test(t.id))??library.find(t=>/rain|storm/.test(t.id));
+    const thunder=library.find(t=>/storm/.test(t.id));
+    const wind=library.find(t=>/icy-wind|wind/.test(t.id));
+    const apply=(track:AudioState['music'],assetId:string|undefined,volume:number)=>{
+      if(!assetId)return;
+      const changed=track.assetId!==assetId;if(changed){track.offset=0;track.assetId=assetId;}
+      track.playing=volume>0;track.volume=volume;track.startedAt=track.playing?(changed?now:track.startedAt??now):null;track.loop=true;
+    };
+    // An explicit thunderstorm keeps its thunder loop, including across maps.
+    // Plain rain uses the quiet rain loop with three audible intensities.
+    if(weather.storm)apply(this.audio.layers.storm,thunder?.id??rain?.id,weather.stormIntensity);
+    else if(weather.precipitation!==undefined)apply(this.audio.layers.storm,rain?.id,kind==='rain'?[0,.18,.42,.72][level]!:0);
+    if(weather.windIntensity!==undefined)apply(this.audio.layers.wind,wind?.id,weather.windIntensity*.65);
   }
 
   private currentObjectState() { return this.objectScenes.get(this.sceneId)!; }
@@ -1562,6 +1775,7 @@ export class GameState {
     // Las tiradas pertenecen a la mesa: el servidor sólo recibe el total que
     // cada participante ha tirado físicamente y nunca genera un d20 aquí.
     const initiative = Object.fromEntries(participantIds.map(id => [id, 0]));
+    for(const id of participantIds)this.clearSeat(id);
     this.combat = { ...emptyCombat(), active: true, round: 0, order: [...participantIds], turnIndex: 0, initiative, initiativeSubmitted: {}, initiativePending: true, participantIds, openingAction: openingAction ?? null,
       recharge: Object.fromEntries(participantIds.map(id => [id, Object.fromEntries((this.combatEntity(id)?.attacks ?? []).filter(action => action.recharge).map(action => [action.id, true]))])) };
     this.setCombatEvent('Combate iniciado. Cada participante tira iniciativa físicamente e introduce su total.', 'turn');
@@ -1593,6 +1807,7 @@ export class GameState {
     const character = this.characters.get(characterId);
     const action = character?.explorationActions.find(candidate => candidate.id === actionId);
     if (!character || !action) return { ok: false as const, code: 'INVALID_TARGET' };
+    if (character.hp <= 0 || this.conditionsFor(characterId).some(condition => condition === 'inconsciente' || condition === 'paralizada')) return { ok: false as const, code: 'INCAPACITATED' };
     let target: { kind: 'object' | 'living' | 'point' | 'self' | 'none'; cell: Cell; label: string };
     if (action.target === 'point') {
       if (targetId || !targetCell || !this.isCurrentSceneCell(targetCell)) return { ok: false as const, code: 'INVALID_TARGET' };
@@ -1613,6 +1828,7 @@ export class GameState {
     if (!action.ritual && action.resource && (!resource || resource.current < action.resource.cost)) return { ok: false as const, code: 'RESOURCE_DEPLETED' };
     if (!action.ritual && action.resource && resource) resource.current -= action.resource.cost;
     if (action.concentration) this.startConcentration(character.id, action.id, action.label);
+    this.recordVisualEffect(character.id, action.id, target.cell, Boolean(action.concentration), target.kind === 'living' ? targetId : undefined);
     return { ok: true as const, code: 'EXPLORATION_ACTION_DECLARED', action, target };
   }
 
@@ -1663,6 +1879,8 @@ export class GameState {
     if (this.attackNeedsThrownDagger(action) && !this.hasInventoryStack(characterId, /\bdagas?\b/i)
       || this.attackNeedsArrows(action) && !this.hasInventoryStack(characterId, /\bflechas?\b/i)) return { ok: false as const, code: 'RESOURCE_DEPLETED' };
     if (this.explorationDistanceMeters(character, target.cell) > (action.range?.longMeters ?? action.range?.normalMeters ?? Number.POSITIVE_INFINITY) + .001) return { ok: false as const, code: 'OUT_OF_RANGE' };
+    if (!this.clearLineOfEffect(characterId, target.cell)) return { ok: false as const, code: 'LINE_OF_EFFECT_BLOCKED' };
+    if (this.conditionsFor(characterId).some(condition => condition === 'inconsciente' || condition === 'paralizada')) return { ok: false as const, code: 'INCAPACITATED' };
     const npc = this.npcs.get(targetId);
     if (npc) npc.combatEnabled = true;
     if (!this.startCombat({ attackerId: characterId, targetId, actionId })) return { ok: false as const, code: 'COMBATANTS_REQUIRED' };
@@ -1671,6 +1889,7 @@ export class GameState {
   }
 
   private beginCombatTurn(currentId: string) {
+    delete this.combat.turnActions[currentId];
     this.combat.spentSquares[currentId] = 0; this.combat.dashSquares[currentId] = 0; this.combat.actionUsed[currentId] = false; this.combat.bonusActionUsed[currentId] = false; this.combat.reactionUsed[currentId] = false; this.combat.sneakAttackUsed[currentId] = false; delete this.combat.sequences[currentId]; delete this.combat.stances[currentId];
     for (const character of this.characters.values()) character.input.held = null;
     this.setCombatEvent(`Ronda ${this.combat.round} · turno de ${this.combatEntity(currentId)?.label ?? '—'}`, 'turn');
@@ -1710,8 +1929,28 @@ export class GameState {
     if (visible && (!this.walkableAt(npc.sceneId, npc.surfaceId, npc.cell) || this.actorReservations(npc.surfaceId).has(cellKey(npc.cell)))) return false;
     npc.visible = visible; return true;
   }
+  revealEncounterGroup(groupId: string, count: number) {
+    const group = this.campaign.encounterGroups?.find(group => group.id === groupId);
+    if (!group || group.sceneId !== this.sceneId || this.combat.active || !Number.isInteger(count) || count < 0 || count > group.actorIds.length) return false;
+    const selected = group.actorIds.slice(0, count).map(id => this.npcs.get(id));
+    const reservations = this.actorReservations(this.currentScene().surfaceId);
+    if (selected.some(npc => !npc || npc.hp <= 0 || !this.walkableAt(npc.sceneId, npc.surfaceId, npc.cell) || !npc.visible && reservations.has(cellKey(npc.cell)))) return false;
+    for (const [index, id] of group.actorIds.entries()) this.npcs.get(id)!.visible = index < count;
+    return true;
+  }
   prepareMirrorEncounter(sourceId?: string) {
     if (!this.campaign.encounter?.mirrorPlayer || !this.creature) return;
+    const mirror=this.objectScenes.get(this.creature.sceneId)?.objects.find(o=>o.id===this.campaign.mirrorInteraction?.targetId);
+    if(mirror)mirror.structure='destroyed';
+    if(!this.creature.visible){
+      if(mirror)this.creature.cell=cloneCell(mirror.cell);
+      const scene=this.sceneById(this.creature.sceneId), blocked=this.actorReservations(this.creature.surfaceId);
+      const props=this.publicObjectProps(scene.id);
+      const cells=[...scene.walkable].sort((a,b)=>Math.abs(a.col-this.creature!.cell.col)+Math.abs(a.row-this.creature!.cell.row)-Math.abs(b.col-this.creature!.cell.col)-Math.abs(b.row-this.creature!.cell.row));
+      const free=cells.find(cell=>!blocked.has(cellKey(cell))&&!scene.movementHazards?.some(h=>h.cells.some(c=>sameCell(c,cell)))&&isWalkable(scene,cell,props));
+      if(free)this.creature.cell=cloneCell(free);
+    }
+    if (this.creature.mimicOfPlayerId) return; // Reveal/restore must not heal or re-copy.
     const source = sourceId ? this.characters.get(sourceId) : [...this.characters.values()].find(character => Boolean(character.sessionToken)) ?? this.characters.values().next().value as CharacterState | undefined;
     if (!source) return;
     const maxHp = Math.max(1, Math.floor(source.maxHp * 0.75));
@@ -1719,14 +1958,20 @@ export class GameState {
     this.creature.maxHp = maxHp; this.creature.hp = maxHp;
     this.creature.armorClass = source.combat.armorClass; this.creature.speedMeters = source.combat.speedMeters;
     this.creature.initiativeBonus = source.combat.initiativeBonus; this.creature.attacks = structuredClone(source.combat.attacks); this.creature.tokenId = source.tokenId; this.creature.resources = structuredClone(source.combat.resources); this.creature.ruleTraits = structuredClone(source.combat.ruleTraits); this.creature.damageResistances = [...source.combat.damageResistances]; this.creature.damageImmunities = [...source.combat.damageImmunities]; this.creature.conditionImmunities = [...source.combat.conditionImmunities]; this.creature.mimicOfPlayerId = source.id;
+    if(mirror)mirror.structure='destroyed';
   }
   private allInitiativesSubmitted() { return this.combat.participantIds.every(id => this.combat.initiativeSubmitted[id]); }
   private proposedInitiativeOrder() {
-    return [...this.combat.participantIds].sort((left, right) =>
+    const order = [...this.combat.participantIds].sort((left, right) =>
       this.combat.initiative[right]! - this.combat.initiative[left]! ||
       (this.combatEntity(right)?.initiativeBonus ?? 0) - (this.combatEntity(left)?.initiativeBonus ?? 0) ||
       left.localeCompare(right)
     );
+    const reflection = this.creature, sourceId = reflection?.mimicOfPlayerId;
+    if (reflection && sourceId && order.includes(reflection.id) && order.includes(sourceId)) {
+      order.splice(order.indexOf(reflection.id), 1); order.splice(order.indexOf(sourceId) + 1, 0, reflection.id);
+    }
+    return order;
   }
   setInitiative(entries: Array<{ id: string; initiative: number }>) {
     if (!this.combat.active || !entries.length || new Set(entries.map(entry => entry.id)).size !== entries.length) return false;
@@ -1743,7 +1988,10 @@ export class GameState {
   }
   setInitiativeOrder(order: string[], confirm: boolean) {
     if (!this.combat.active || !this.combat.initiativePending || !this.allInitiativesSubmitted() || order.length !== this.combat.participantIds.length || new Set(order).size !== order.length || !order.every(id => this.combat.participantIds.includes(id))) return false;
-    for (let index = 1; index < order.length; index++) if (this.combat.initiative[order[index - 1]!]! < this.combat.initiative[order[index]!]!) return false;
+    const reflectionId = this.creature?.mimicOfPlayerId ? this.creature.id : null;
+    const ordinaryOrder = order.filter(id => id !== reflectionId);
+    for (let index = 1; index < ordinaryOrder.length; index++) if (this.combat.initiative[ordinaryOrder[index - 1]!]! < this.combat.initiative[ordinaryOrder[index]!]!) return false;
+    if (reflectionId && order.includes(reflectionId) && order.indexOf(reflectionId) !== order.indexOf(this.creature!.mimicOfPlayerId!) + 1) return false;
     this.combat.order = [...order]; this.combat.turnIndex = 0;
     if (!confirm) { this.setCombatEvent('Orden de iniciativa ajustado por el DM. Confírmalo para iniciar los turnos.', 'turn'); return true; }
     this.combat.initiativePending = false; this.combat.round = 1;
@@ -1790,6 +2038,14 @@ export class GameState {
     const source = this.entityCell(entityId); if (!source) return Number.POSITIVE_INFINITY;
     return Math.max(Math.abs(source.col - cell.col), Math.abs(source.row - cell.row)) * 1.5;
   }
+  private clearLineOfEffect(entityId: string, cell: Cell) {
+    const from = this.entityCell(entityId), sceneId = this.entitySceneId(entityId); if (!from || !sceneId) return false;
+    const scene = this.sceneById(sceneId);
+    if (scene.effectWalls?.some(wall => segmentCrossesBox(from, cell, wall))) return false;
+    return !this.publicObjectProps(sceneId).some(prop => prop.surfaceId === this.entitySurfaceId(entityId)
+      && prop.kind === 'door' && prop.structure !== 'destroyed' && prop.state !== 'open'
+      && footprintFor(prop.cell, prop.rotation, prop.footprint).some(occupied => segmentCrossesBox(from, cell, { minCol: occupied.col, maxCol: occupied.col + 1, minRow: occupied.row, maxRow: occupied.row + 1 })));
+  }
   private isCurrentSceneCell(cell: Cell) {
     const { cols, rows } = this.currentScene().grid;
     return Number.isInteger(cell.col) && Number.isInteger(cell.row) && cell.col >= 0 && cell.row >= 0 && cell.col < cols && cell.row < rows;
@@ -1816,7 +2072,7 @@ export class GameState {
     if (!dice || this.combat.sneakAttackUsedTurn[attackerId] === this.combatTurnKey() || !(action.finesse || action.range?.kind === 'ranged') || advantage === 'disadvantage') return false;
     if (advantage === 'advantage') return true;
     const targetCell = this.entityCell(targetId); if (!targetCell) return false;
-    return this.combat.participantIds.some(id => id !== attackerId && id !== targetId && this.combatEntity(id)?.controller === attacker.controller && (this.combatEntity(id)?.hp ?? 0) > 0 && Math.max(Math.abs((this.entityCell(id)?.col ?? 999) - targetCell.col), Math.abs((this.entityCell(id)?.row ?? 999) - targetCell.row)) <= 1);
+    return this.combat.participantIds.some(id => id !== attackerId && id !== targetId && this.combatEntity(id)?.controller === attacker.controller && (this.combatEntity(id)?.hp ?? 0) > 0 && !this.conditionsFor(id).some(condition => condition === 'inconsciente' || condition === 'paralizada') && this.distanceMeters(id, targetId) <= 1.5);
   }
   private actionCost(action: CombatAction) { return action.actionCost ?? 'action'; }
   private combatResourcesFor(entityId: string) {
@@ -1831,11 +2087,13 @@ export class GameState {
   }
   private consumeActionCost(entityId: string, action: CombatAction) {
     const cost = this.actionCost(action);
+    if (cost === 'action') this.combat.turnActions[entityId] = { actionId: action.id, label: action.label, kind: 'attack' };
     if (cost === 'reaction') this.combat.reactionUsed[entityId] = true;
     else if (cost === 'bonus') this.combat.bonusActionUsed[entityId] = true;
     else this.combat.actionUsed[entityId] = true;
   }
   private actionConsumed(attackerId: string, action: CombatAction, targetId?: string) {
+    this.combat.turnActions[attackerId] = { actionId: action.id, label: action.label, kind: 'attack' };
     const prepared = this.combat.stances[attackerId]?.action === 'ready', finish = () => {
       if (prepared) { this.combat.reactionUsed[attackerId] = true; delete this.combat.stances[attackerId]; }
       else this.consumeActionCost(attackerId, action);
@@ -1885,10 +2143,10 @@ export class GameState {
     const attacker = this.combatEntity(pending.attackerId)!, target = this.combatEntity(pending.targetId)!;
     const action = attacker.attacks.find(item => item.id === pending.actionId);
     if (pending.stage === 'death-save') return { id: pending.id, stage: 'death-save', actorId: pending.attackerId, targetId: pending.targetId, title: `${attacker.label} · salvación de muerte`, instruction: 'Tira 1d20 natural. 10 o más es un éxito; 1 cuenta como dos fallos y 20 recupera 1 PG.', advantage: 'normal', minimum: 1, maximum: 20 };
-    if (pending.stage === 'reaction') return { id: pending.id, stage: 'reaction', actorId: pending.attackerId, targetId: pending.targetId, title: `${attacker.label} · ataque de oportunidad`, instruction: `${target.label} va a salir de tu alcance. ¿Gastas tu reacción para hacer ${action?.label ?? 'un ataque cuerpo a cuerpo'} antes de que se mueva?`, advantage: 'normal' };
+    if (pending.stage === 'reaction') return { id: pending.id, stage: 'reaction', actorId: pending.attackerId, targetId: pending.targetId, title: `${attacker.label} · ataque de oportunidad`, instruction: `${target.label} va a salir de tu alcance. ¿Gastas tu reacción para hacer ${action?.label ?? 'un ataque cuerpo a cuerpo'} antes de que se mueva? Es un único ataque, no el multiataque completo.`, advantage: 'normal' };
     if (pending.stage === 'concentration') return { id: pending.id, stage: 'concentration', actorId: pending.attackerId, targetId: pending.targetId, title: `${attacker.label} · concentración`, instruction: `Tira salvación de Constitución CD ${pending.concentrationDc ?? 10} e introduce el total con modificador.`, advantage: 'normal', minimum: -30, maximum: 100 };
     if (pending.stage === 'check') return { id: pending.id, stage: 'check', actorId: pending.attackerId, targetId: pending.targetId, title: `${attacker.label} · esconderse`, instruction: 'Si estás fuera de la vista y tienes oscuridad intensa o cobertura de tres cuartos o total, tira Destreza (Sigilo) CD 15. Si tienes éxito, quedas Invisible; el resultado será la CD para detectarte.', advantage: 'normal', minimum: -30, maximum: 100 };
-    if (pending.stage === 'attack') return { id: pending.id, stage: 'attack', actorId: pending.attackerId, targetId: pending.targetId, title: `${attacker.label} · ${action?.label ?? 'Ataque'}`, instruction: `Tira el d20${pending.advantage === 'advantage' ? ' dos veces y anota el mayor' : pending.advantage === 'disadvantage' ? ' dos veces y anota el menor' : ''}. Introduce solo el resultado natural: el sistema añade ${action?.attackBonus ?? 0 >= 0 ? '+' : ''}${action?.attackBonus ?? 0}. Dificultad de impacto: CA ${target.armorClass}.`, advantage: pending.advantage, minimum: 1, maximum: 20 };
+    if (pending.stage === 'attack') return { id: pending.id, stage: 'attack', actorId: pending.attackerId, targetId: pending.targetId, title: `${attacker.label} · ${action?.label ?? 'Ataque'}`, instruction: `Tira el d20${pending.advantage === 'advantage' ? ' dos veces y anota el mayor' : pending.advantage === 'disadvantage' ? ' dos veces y anota el menor' : ''}. Introduce solo el resultado natural: el sistema añade ${(action?.attackBonus ?? 0) >= 0 ? '+' : ''}${action?.attackBonus ?? 0}. Dificultad de impacto: CA ${target.armorClass}.`, advantage: pending.advantage, minimum: 1, maximum: 20 };
     if (pending.stage === 'damage') {
       const range = this.damageDiceRange(pending.diceFormula ?? '1d1');
       return { id: pending.id, stage: 'damage', actorId: pending.attackerId, targetId: pending.targetId, title: `${attacker.label} impacta a ${target.label}`, instruction: `Introduce solo la suma de los dados de daño (${pending.diceFormula}); el modificador se añade automáticamente.`, advantage: 'normal', minimum: range.minimum, maximum: range.maximum };
@@ -1904,15 +2162,21 @@ export class GameState {
     // El DM puede resolver cualquier dado desde su consola; el jugador solo
     // recibe el suyo propio. Esto mantiene una mesa presencial bajo control.
     if (controller === 'player' && (actor?.controller !== 'player' || rollingId !== characterId)) return null;
-    return { ...this.promptFor(pending), selectionActorId: pending.attackerId, cancellable: this.canCancelCombatAction() };
+    const prompt = this.promptFor(pending);
+    if (controller === 'player' && pending.stage === 'attack') prompt.instruction = prompt.instruction.replace(/ Dificultad de impacto: CA \d+\./, ' El DM recibe el resultado de impacto.');
+    return { ...prompt, selectionActorId: pending.attackerId, cancellable: this.canCancelCombatAction() };
   }
 
   private continueOpportunityMovement(movement: PendingMovement) {
     const entity = this.combatEntity(movement.entityId), current = this.entityCell(movement.entityId);
-    if (!entity || entity.hp <= 0 || !current || Math.abs(movement.destination.col - current.col) + Math.abs(movement.destination.row - current.row) !== 1 || !this.canSpendMovement(movement.entityId)) return false;
+    if (!entity || entity.hp <= 0 || !current || Math.max(Math.abs(movement.destination.col - current.col), Math.abs(movement.destination.row - current.row)) !== 1) return false;
     const sceneId = this.entitySceneId(movement.entityId)!, scene = this.sceneById(sceneId), currentSurfaceId = this.entitySurfaceId(movement.entityId)!;
-    const destinationSurfaceId = movement.destinationSurfaceId ?? (scene.terrain
-      ? this.terrainStepDestination(scene, currentSurfaceId, current, movement.destination)?.surfaceId : currentSurfaceId);
+    const facing = directionFromVector(movement.destination.col - current.col, movement.destination.row - current.row)!;
+    const resolved = scene.terrain ? this.terrainStepDestination(scene, currentSurfaceId, current, movement.destination)
+      : resolveStep(scene, current, facing, this.publicObjectProps(sceneId)) ? { surfaceId: currentSurfaceId } : null;
+    if (!resolved || (movement.destinationSurfaceId && movement.destinationSurfaceId !== resolved.surfaceId)) return false;
+    const destinationSurfaceId = resolved.surfaceId;
+    if (!this.canSpendMovement(movement.entityId, this.movementCost(sceneId, destinationSurfaceId, movement.destination))) return false;
     if (!destinationSurfaceId || !this.walkableAt(sceneId, destinationSurfaceId, movement.destination)
       || this.publicObjectProps(sceneId).some(prop => prop.surfaceId === destinationSurfaceId && prop.structure !== 'destroyed' && (prop.kind !== 'door' || prop.state !== 'open') && footprintFor(prop.cell, prop.rotation, prop.footprint).some(cell => sameCell(cell, movement.destination)))) return false;
     const occupied = this.combat.participantIds.some(id => id !== movement.entityId && (this.combatEntity(id)?.hp ?? 0) > 0
@@ -1933,6 +2197,7 @@ export class GameState {
     if (!accept) {
       this.combat.pending = null;
       this.continueOpportunityMovement(movement);
+      this.endCombatIfSideDefeated();
       return { ok: true as const, code: 'REACTION_DECLINED' };
     }
     if (this.combat.reactionUsed[reactor.id] || reactor.hp <= 0 || this.conditionsFor(reactor.id).some(condition => condition === 'inconsciente' || condition === 'paralizada')) return { ok: false as const, code: 'REACTION_USED' };
@@ -1956,6 +2221,8 @@ export class GameState {
   declareCombatAction(attackerId: string, targetId: string | undefined, actionId: string, useSneakAttack = false, targetCell?: Cell) {
     if (!this.combat.active) return { ok: false as const, code: 'COMBAT_INACTIVE' };
     if (this.combat.pending) return { ok: false as const, code: 'ROLL_PENDING' };
+    const mimicSource = attackerId === this.creature?.id ? this.creature.mimicOfPlayerId : null;
+    if (mimicSource && this.combat.turnActions[mimicSource]?.actionId !== actionId) return { ok: false as const, code: 'MIMIC_ACTION_MISMATCH' };
     const attacker = this.combatEntity(attackerId), target = targetId ? this.combatEntity(targetId) : undefined;
     if (!attacker) return { ok: false as const, code: 'UNKNOWN_ACTOR' };
     const action = attacker.attacks.find(item => item.id === actionId); if (!action) return { ok: false as const, code: 'UNKNOWN_ACTION' };
@@ -1964,6 +2231,7 @@ export class GameState {
     if (!this.hasActionAvailable(attackerId, action)) return { ok: false as const, code: this.currentCombatId() === attackerId ? 'ACTION_USED' : 'NOT_YOUR_TURN' };
     if (action.targeting === 'point') {
       if (targetId || !targetCell || !this.isCurrentSceneCell(targetCell)) return { ok: false as const, code: 'INVALID_TARGET' };
+      if (!this.clearLineOfEffect(attackerId, targetCell)) return { ok: false as const, code: 'LINE_OF_EFFECT_BLOCKED' };
       const limit = action.range?.longMeters ?? action.range?.normalMeters;
       if (limit !== undefined && this.distanceToCellMeters(attackerId, targetCell) > limit + .001) return { ok: false as const, code: 'OUT_OF_RANGE' };
       if (this.conditionsFor(attackerId).some(condition => condition === 'inconsciente' || condition === 'paralizada')) return { ok: false as const, code: 'INCAPACITATED' };
@@ -1974,6 +2242,7 @@ export class GameState {
       this.consumeActionCost(attackerId, action); this.consumeActionResource(attackerId, action);
       if (action.concentration) this.startConcentration(attackerId, action.id, action.label);
       const location = `casilla ${targetCell.col + 1}, ${targetCell.row + 1}`;
+      this.recordVisualEffect(attackerId, action.id, targetCell, Boolean(action.concentration));
       this.setCombatEvent(`${attacker.label} declara ${action.label} sobre ${location}. Resolver con el DM: ${action.guidance ?? 'aplicar la consecuencia acordada y registrarla.'}`, 'turn', `${attacker.label} declara ${action.label} sobre ${location}. Resolver con el DM.`, { actorId: attacker.id, animation: this.animationFor(action) });
       return { ok: true as const, code: 'GUIDED_RESOLUTION' };
     }
@@ -1991,9 +2260,11 @@ export class GameState {
     if (action.recharge && this.combat.recharge[attackerId]?.[action.id] === false && sequence?.actionId !== action.id) return { ok: false as const, code: 'RECHARGE_REQUIRED' };
     const distance = this.distanceMeters(attackerId, combatTargetId), limit = action.range?.longMeters ?? action.range?.normalMeters;
     if (limit !== undefined && distance > limit + .001) return { ok: false as const, code: 'OUT_OF_RANGE' };
+    if (!this.clearLineOfEffect(attackerId, this.entityCell(combatTargetId)!)) return { ok: false as const, code: 'LINE_OF_EFFECT_BLOCKED' };
     if (action.resolution === 'guided') {
       this.consumeActionCost(attackerId, action); this.consumeActionResource(attackerId, action);
       if (action.concentration) this.startConcentration(attackerId, action.id, action.label);
+      this.recordVisualEffect(attackerId, action.id, this.entityCell(combatTargetId)!, Boolean(action.concentration), combatTargetId);
       this.setCombatEvent(`${attacker.label} declara ${action.label}. Resolver con el DM: ${action.guidance ?? 'aplicar la consecuencia acordada y registrarla.'}`, 'turn', `${attacker.label} declara ${action.label}. Resolver con el DM.`, { actorId: attacker.id, targetId: target.id, animation: this.animationFor(action) });
       return { ok: true as const, code: 'GUIDED_RESOLUTION' };
     }
@@ -2023,7 +2294,7 @@ export class GameState {
       return { minimum: range.minimum + count, maximum: range.maximum + count * sides };
     }, { minimum: 0, maximum: 0 });
   }
-  submitCombatRoll(controller: 'player' | 'dm', rollingCharacterId: string | null, expectedStage: PendingCombatResolution['stage'], promptId: string, value: number) {
+  submitCombatRoll(controller: 'player' | 'dm', rollingCharacterId: string | null, expectedStage: PendingCombatResolution['stage'], promptId: string, value: number): { ok: true; code: string } | { ok: false; code: string } {
     const pending = this.combat.pending; if (!pending || pending.id !== promptId) return { ok: false as const, code: 'PROMPT_STALE' };
     if (pending.stage !== expectedStage) return { ok: false as const, code: 'PROMPT_STAGE_MISMATCH' };
     const rollingId = pending.stage === 'save' ? pending.targetId : pending.attackerId;
@@ -2034,7 +2305,7 @@ export class GameState {
     const attacker = this.combatEntity(pending.attackerId)!, target = this.combatEntity(pending.targetId)!;
     if (pending.stage === 'death-save') {
       const character = this.characters.get(pending.attackerId); if (!character || character.hp > 0) return { ok: false as const, code: 'INVALID_DEATH_SAVE' };
-      if (value === 20) { this.applyHitPoints(character.id, 1); this.combat.pending = null; this.setCombatEvent(`${character.label} obtiene un 20 y recupera 1 PG.`, 'turn'); return { ok: true as const, code: 'DEATH_SAVE_REVIVED' }; }
+      if (value === 20) { this.applyHitPoints(character.id, 1); this.combat.pending = null; this.setCombatEvent(`${character.label} obtiene un 20 y recupera 1 PG.`, 'turn'); this.endCombatIfSideDefeated(); return { ok: true as const, code: 'DEATH_SAVE_REVIVED' }; }
       if (value === 1) character.deathSaves.failures = Math.min(3, character.deathSaves.failures + 2);
       else if (value >= 10) character.deathSaves.successes = Math.min(3, character.deathSaves.successes + 1);
       else character.deathSaves.failures = Math.min(3, character.deathSaves.failures + 1);
@@ -2042,6 +2313,7 @@ export class GameState {
       this.combat.pending = null;
       const dead = character.deathSaves.failures >= 3, stable = character.deathSaves.stable;
       this.setCombatEvent(dead ? `${character.label} acumula tres fallos de salvación de muerte.` : stable ? `${character.label} queda estable.` : `${character.label}: salvaciones de muerte ${character.deathSaves.successes} éxitos / ${character.deathSaves.failures} fallos.`, dead ? 'defeat' : 'turn');
+      this.endCombatIfSideDefeated();
       return { ok: true as const, code: dead ? 'DEATH_SAVE_FAILED_FINAL' : stable ? 'DEATH_SAVE_STABLE' : value >= 10 ? 'DEATH_SAVE_SUCCESS' : 'DEATH_SAVE_FAILED' };
     }
     if (pending.stage === 'concentration') {
@@ -2051,17 +2323,19 @@ export class GameState {
       this.combat.pending = null;
       this.setCombatEvent(success ? `${attacker.label} mantiene la concentración en ${spell?.label ?? 'su conjuro'}.` : `${attacker.label} pierde la concentración en ${spell?.label ?? 'su conjuro'}.`, success ? 'turn' : 'damage');
       this.queueConcentrationChecks(queue);
+      this.endCombatIfSideDefeated();
       return { ok: true as const, code: success ? 'CONCENTRATION_MAINTAINED' : 'CONCENTRATION_BROKEN' };
     }
     if (pending.stage === 'escape') {
       const success = value >= (pending.source?.escapeDc ?? 10); this.combat.actionUsed[attacker.id] = true; if (success) this.setCombatCondition(attacker.id, pending.source!.condition, false, pending.source);
-      this.combat.pending = null; this.setCombatEvent(success ? `${attacker.label} se libera.` : `${attacker.label} no logra liberarse.`, 'attack'); return { ok: true as const, code: success ? 'ESCAPE_SUCCESS' : 'ESCAPE_FAILED' };
+      this.combat.pending = null; this.setCombatEvent(success ? `${attacker.label} se libera.` : `${attacker.label} no logra liberarse.`, 'attack'); this.endCombatIfSideDefeated(); return { ok: true as const, code: success ? 'ESCAPE_SUCCESS' : 'ESCAPE_FAILED' };
     }
     if (pending.stage === 'check') {
       const success = value >= 15;
       if (success) this.setCombatCondition(attacker.id, 'invisible', true, { condition: 'invisible', sourceAbility: 'hide', sourceLabel: `Sigilo ${value}; CD para detectarle ${value}` });
       this.combat.pending = null;
       this.setCombatEvent(success ? `${attacker.label} se esconde y queda Invisible (CD ${value} para detectarle).` : `${attacker.label} falla Sigilo CD 15.`, 'turn');
+      this.endCombatIfSideDefeated();
       return { ok: true as const, code: success ? 'HIDE_SUCCESS' : 'HIDE_FAILED' };
     }
     const action = attacker.attacks.find(item => item.id === pending.actionId);
@@ -2077,6 +2351,7 @@ export class GameState {
       const success = !automaticallyFails && value >= (action.save?.dc ?? 10); if (!pending.opportunity) this.actionConsumed(attacker.id, action, target.id); if (action.recharge && !pending.opportunity) this.combat.recharge[attacker.id]![action.id] = false;
       if (!success && action.save?.failureCondition) this.setCombatCondition(target.id, action.save.failureCondition, true, pending.source);
       this.combat.pending = null; this.setCombatEvent(success ? `${target.label} supera ${action.label}.` : `${target.label} falla ${action.label} y queda ${action.save?.failureCondition ?? 'afectada'}.`, success ? 'attack' : 'damage', undefined, { actorId: attacker.id, targetId: target.id, animation: this.animationFor(action) });
+      this.endCombatIfSideDefeated();
       return { ok: true as const, code: success ? 'SAVE_SUCCESS' : 'SAVE_FAILED' };
     }
     if (pending.stage === 'attack') {
@@ -2092,15 +2367,20 @@ export class GameState {
         this.combat.pending = null;
         this.setCombatEvent(`${attacker.label} usa ${action.label}: falla.`, 'attack', `${attacker.label} ataca: falla.`, { actorId: attacker.id, targetId: target.id, animation: this.animationFor(action) });
         if (pending.opportunity && movement) this.continueOpportunityMovement(movement);
+        this.endCombatIfSideDefeated();
         return { ok: true as const, code: 'ATTACK_MISSED' };
       }
-      const doubled = (formula: string) => formula.replace(/^(\d+)d(\d+)$/, (_match, count, sides) => `${Number(count) * 2}d${sides}`);
+      const doubled = (formula: string) => formula.replace(/^(\d+)d(\d+)$/, (_match, count, sides) => Number(sides) === 1 ? `${count}d${sides}` : `${Number(count) * 2}d${sides}`);
       const sneak = pending.sneakAttackDice ? critical ? doubled(pending.sneakAttackDice) : pending.sneakAttackDice : '';
       const diceFormula = `${critical ? doubled(action.damageDice) : action.damageDice}${sneak ? `+${sneak}` : ''}`;
       this.combat.pending = { ...pending, id: crypto.randomUUID(), stage: 'damage', critical, diceFormula, damageBonus: action.damageBonus };
+      // Fixed damage (the unarmed 1d1 representation) has no physical damage
+      // die to request. Resolve it through the same authoritative damage path.
+      const fixed = this.damageDiceRange(diceFormula);
+      if (fixed.minimum > 0 && fixed.minimum === fixed.maximum) return this.submitCombatRoll(controller, rollingCharacterId, 'damage', this.combat.pending.id, fixed.minimum);
       return { ok: true as const, code: 'DAMAGE_REQUIRED' };
     }
-    const rawDamage = value + (pending.damageBonus ?? 0);
+    const rawDamage = Math.max(0, value + (pending.damageBonus ?? 0));
     const damage = action.damageType && target.damageImmunities.includes(action.damageType) ? 0 : action.damageType && target.damageResistances.includes(action.damageType) ? Math.floor(rawDamage / 2) : rawDamage;
     const targetWasAtZero = target.hp === 0;
     this.applyHitPoints(target.id, -damage);
@@ -2111,11 +2391,13 @@ export class GameState {
     if (pending.useSneakAttack) { this.combat.sneakAttackUsed[attacker.id] = true; this.combat.sneakAttackUsedTurn[attacker.id] = this.combatTurnKey(); } if (!pending.opportunity) this.actionConsumed(attacker.id, action, target.id); if (action.recharge && !pending.opportunity) this.combat.recharge[attacker.id]![action.id] = false;
     this.combat.pending = null;
     const targetAfter = this.combatEntity(target.id)!; const suffix = targetAfter.hp <= 0 ? ` ${targetAfter.label} queda fuera de combate.` : '';
-    this.setCombatEvent(`${attacker.label} usa ${action.label}: ${damage} PG${action.damageType ? ` ${action.damageType}` : ''}.${suffix}`, targetAfter.hp <= 0 ? 'defeat' : 'damage', undefined, { actorId: attacker.id, targetId: target.id, animation: this.animationFor(action) });
+    this.setCombatEvent(`${attacker.label} usa ${action.label}: ${damage} PG${action.damageType ? ` ${action.damageType}` : ''}.${suffix}`, targetAfter.hp <= 0 ? 'defeat' : 'damage', `${attacker.label} impacta a ${target.label}: ${damage} PG.${suffix}`, { actorId: attacker.id, targetId: target.id, animation: this.animationFor(action) });
+    const resolvedEvent = this.combat.lastEvent!;
     if (pending.opportunity && pending.movement) this.continueOpportunityMovement(pending.movement);
     const checks: Array<{ entityId: string; dc: number }> = [];
     if (damage > 0 && this.concentration[target.id] && targetAfter.hp > 0) checks.push({ entityId: target.id, dc: Math.max(10, Math.floor(damage / 2)) });
     if (!this.combat.pending) this.queueConcentrationChecks(checks);
+    this.endCombatIfSideDefeated(resolvedEvent);
     return { ok: true as const, code: 'ATTACK_RESOLVED' };
   }
   useBasicCombatAction(entityId: string, action: BasicCombatAction, targetId?: string) {
@@ -2124,11 +2406,14 @@ export class GameState {
     const actor = this.combatEntity(entityId); if (!actor) return { ok: false as const, code: 'UNKNOWN_ACTOR' };
     if (this.conditionsFor(entityId).some(condition => condition === 'inconsciente' || condition === 'paralizada')) return { ok: false as const, code: 'INCAPACITATED' };
     if (this.combat.actionUsed[entityId]) return { ok: false as const, code: 'ACTION_USED' };
+    const mimicSource = entityId === this.creature?.id ? this.creature.mimicOfPlayerId : null;
+    if (mimicSource && action !== 'magic' && this.combat.turnActions[mimicSource]?.actionId !== action) return { ok: false as const, code: 'MIMIC_ACTION_MISMATCH' };
     if (action === 'help') {
       const target = targetId ? this.combatEntity(targetId) : null;
       if (!target || target.controller === actor.controller || target.id === entityId || this.distanceMeters(entityId, target.id) > 1.5) return { ok: false as const, code: 'INVALID_TARGET' };
     }
     this.combat.actionUsed[entityId] = true;
+    this.combat.turnActions[entityId] = { actionId: action, label: action, kind: 'basic' };
     if (action === 'dash') this.combat.dashSquares[entityId] = this.speedSquares(entityId);
     // Hide is a Dexterity (Stealth) check. It grants Invisible only after
     // the player succeeds and the table confirms cover or heavy obscurity.
@@ -2169,7 +2454,11 @@ export class GameState {
   }
   rechargeCombatAction(attackerId: string, actionId: string, d6: number) {
     if (!this.combat.active || this.currentCombatId() !== attackerId || this.combat.pending) return false;
+    if (!Number.isInteger(d6) || d6 < 1 || d6 > 6) return false;
+    const key = `${attackerId}.${actionId}`;
+    if (this.combat.rechargeAttemptTurn[key] === this.combatTurnKey() || this.combat.actionUsed[attackerId]) return false;
     const action = this.combatEntity(attackerId)?.attacks.find(item => item.id === actionId); if (!action?.recharge || this.combat.recharge[attackerId]?.[actionId] !== false) return false;
+    this.combat.rechargeAttemptTurn[key] = this.combatTurnKey();
     const ready = d6 >= action.recharge.minimum && d6 <= action.recharge.maximum; this.combat.recharge[attackerId]![actionId] = ready;
     this.setCombatEvent(ready ? `${action.label}: recargada.` : `${action.label}: no se recarga.`, 'turn'); return true;
   }
@@ -2204,15 +2493,17 @@ export class GameState {
       }
       if (current.size) this.conditions[entityId] = [...current]; else delete this.conditions[entityId];
       if (character.hp <= 0) { this.clearConditionsFromDefeatedSource(entityId); this.endConcentration(entityId); }
+      this.endCombatIfSideDefeated();
       return true;
     }
-    if (this.creature?.id === entityId) { this.creature.hp = Math.max(0, Math.min(this.creature.maxHp, this.creature.hp + delta)); if (this.creature.hp <= 0) { this.clearConditionsFromDefeatedSource(entityId); this.endConcentration(entityId); } return true; }
+    if (this.creature?.id === entityId) { this.creature.hp = Math.max(0, Math.min(this.creature.maxHp, this.creature.hp + delta)); if (this.creature.hp <= 0) { this.clearConditionsFromDefeatedSource(entityId); this.endConcentration(entityId); } this.endCombatIfSideDefeated(); return true; }
     const npc = this.npcs.get(entityId); if (npc) {
       npc.hp = Math.max(0, Math.min(npc.maxHp, npc.hp + delta));
       // A stage actor can be the same person in several scenes.  The pose and
       // position remain scene-local, while health belongs to that one identity.
       for (const counterpart of this.npcs.values()) if (counterpart.id !== npc.id && counterpart.identityId === npc.identityId) counterpart.hp = Math.min(counterpart.maxHp, npc.hp);
       if (npc.hp <= 0) { this.clearConditionsFromDefeatedSource(entityId); this.endConcentration(entityId); }
+      this.endCombatIfSideDefeated();
       return true;
     }
     return false;
@@ -2239,6 +2530,7 @@ export class GameState {
       this.combat.pending = null;
     }
     this.setCombatEvent(`${this.combatEntity(attackerId)?.label ?? 'Combatiente'} cancela su selección antes de tirar; no consume recursos.`, 'turn');
+    this.endCombatIfSideDefeated();
     return { ok: true as const, code: 'ACTION_CANCELLED' };
   }
 
@@ -2260,6 +2552,7 @@ export class GameState {
     for (const [id, sequence] of Object.entries(this.combat.sequences)) if (sequence.targetId === entityId) delete this.combat.sequences[id];
     if (this.combat.openingAction?.attackerId === entityId || this.combat.openingAction?.targetId === entityId) this.combat.openingAction = null;
     // El DM ha adjudicado la salida; el actor sigue en el mapa y conserva PG y efectos.
+    if (this.endCombatIfSideDefeated(undefined, `${this.combatEntity(entityId)?.label ?? 'Combatiente'} sale del enfrentamiento por decisión del DM. El combate termina por retirada.`)) return { ok: true as const, code: 'COMBAT_ENDED' };
     if (this.combat.participantIds.length < 2) { this.endCombat(); return { ok: true as const, code: 'COMBAT_ENDED' }; }
     if (this.combat.initiativePending) this.combat.turnIndex = 0;
     else if (currentId === entityId) {
@@ -2275,10 +2568,14 @@ export class GameState {
     return this.endCombat();
   }
 
-  endCombat() {
+  endCombat(reason?: string, finalEvent?: InternalCombatEvent) {
     if (!this.combat.active || this.combat.pending) return false;
     for (const character of this.characters.values()) character.input.held = null;
-    this.combat = emptyCombat(); return true;
+    this.combat = emptyCombat();
+    if (reason) this.combat.lastEvent = finalEvent
+      ? { ...finalEvent, text: `${finalEvent.text} ${reason}`, publicText: `${finalEvent.publicText} ${reason}` }
+      : { id: crypto.randomUUID(), text: reason, publicText: reason, kind: 'defeat' };
+    return true;
   }
 
   private validateObject(object: ObjectRuntime, candidate: Partial<ObjectRuntime>, sceneId = this.sceneId) {
@@ -2526,7 +2823,7 @@ export class GameState {
     return durablePayloadSchema.parse({
       sceneId: this.sceneId,
       ...(this.campaign.public.campaignId === 'stormwreck-isle' ? { wreckGridVersion: 3 } : {}),
-      ...(this.campaign.public.campaignId === 'd8-night-private' ? { d8GridVersion: 2 } : {}),
+      ...(this.campaign.public.campaignId === 'd8-night-private' ? { d8GridVersion: 3 } : {}),
       ...(this.campRest ? { campRest: structuredClone(this.campRest) } : {}),
       characters: [...this.characters.values()].map(character => ({ id: character.id, hp: character.hp, maxHp: character.maxHp, inventory: [...character.inventory], sheet: character.sheet ? structuredClone(character.sheet) : null, resources: structuredClone(character.combat.resources), deathSaves: { ...character.deathSaves }, sceneId: character.sceneId, cell: cloneCell(character.cell), surfaceId: character.step?.toSurfaceId ?? character.surfaceId, facing: character.facing })).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
       npcs: [...this.npcs.values()].map(npc => ({ id: npc.id, sceneId: npc.sceneId, surfaceId: npc.surfaceId, cell: cloneCell(npc.cell), facing: npc.facing, hp: npc.hp, maxHp: npc.maxHp, combatEnabled: npc.combatEnabled, visible: npc.visible })).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
@@ -2538,13 +2835,14 @@ export class GameState {
         if (object.kind === 'wheel') return { ...common, kind: 'wheel' as const, attachment: object.attachment, state: object.state };
         return { ...common, kind: 'crate' as const, ...(object.interaction ? { interaction: structuredClone(object.interaction) } : {}) };
       }).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0) })).sort((a, b) => a.sceneId < b.sceneId ? -1 : a.sceneId > b.sceneId ? 1 : 0),
-      camera: { ...this.camera }, environment: { storm: this.environment.storm, stormIntensity: this.environment.stormIntensity, timeOfDay: this.environment.timeOfDay ?? 'auto' },
+      camera: { ...this.camera }, environment: { storm:this.environment.storm, stormIntensity:this.environment.stormIntensity, timeOfDay:this.environment.timeOfDay??'auto', precipitation:this.environment.precipitation, precipitationLevel:this.environment.precipitationLevel, windIntensity:this.environment.windIntensity },
       audio: { music: saveTrack(this.audio.music), layers: {
         ocean: saveTrack(this.audio.layers.ocean), wind: saveTrack(this.audio.layers.wind), wood: saveTrack(this.audio.layers.wood), storm: saveTrack(this.audio.layers.storm)
       }, sfxLoops: Object.fromEntries(Object.entries(this.audio.sfxLoops).map(([id, track]) => [id, saveTrack(track)])) },
       conditions: structuredClone(this.conditions), conditionSources: structuredClone(this.conditionSources), concentration: structuredClone(this.concentration),
-      combat: this.combat.active ? { active: true, round: this.combat.round, order: [...this.combat.order], turnIndex: this.combat.turnIndex, participantIds: [...this.combat.participantIds], initiative: { ...this.combat.initiative }, initiativeSubmitted: { ...this.combat.initiativeSubmitted }, initiativePending: this.combat.initiativePending, spentSquares: { ...this.combat.spentSquares }, dashSquares: { ...this.combat.dashSquares }, actionUsed: { ...this.combat.actionUsed }, bonusActionUsed: { ...this.combat.bonusActionUsed }, reactionUsed: { ...this.combat.reactionUsed }, sneakAttackUsed: { ...this.combat.sneakAttackUsed }, sneakAttackUsedTurn: { ...this.combat.sneakAttackUsedTurn }, spellSlotUsedTurn: { ...this.combat.spellSlotUsedTurn }, stances: structuredClone(this.combat.stances), sequences: structuredClone(this.combat.sequences), recharge: structuredClone(this.combat.recharge), openingAction: structuredClone(this.combat.openingAction), pending: structuredClone(this.combat.pending) } : null,
-      progress: { ...this.progress }
+      visualEffects: structuredClone(this.activeVisualEffects(now)),
+      combat: this.combat.active ? { active: true, round: this.combat.round, order: [...this.combat.order], turnIndex: this.combat.turnIndex, participantIds: [...this.combat.participantIds], initiative: { ...this.combat.initiative }, initiativeSubmitted: { ...this.combat.initiativeSubmitted }, initiativePending: this.combat.initiativePending, spentSquares: { ...this.combat.spentSquares }, dashSquares: { ...this.combat.dashSquares }, actionUsed: { ...this.combat.actionUsed }, bonusActionUsed: { ...this.combat.bonusActionUsed }, reactionUsed: { ...this.combat.reactionUsed }, sneakAttackUsed: { ...this.combat.sneakAttackUsed }, sneakAttackUsedTurn: { ...this.combat.sneakAttackUsedTurn }, spellSlotUsedTurn: { ...this.combat.spellSlotUsedTurn }, stances: structuredClone(this.combat.stances), sequences: structuredClone(this.combat.sequences), recharge: structuredClone(this.combat.recharge), rechargeAttemptTurn: { ...this.combat.rechargeAttemptTurn }, turnActions: structuredClone(this.combat.turnActions), openingAction: structuredClone(this.combat.openingAction), pending: structuredClone(this.combat.pending) } : null,
+      progress: { ...this.progress }, storyNotes: { ...this.storyNotes }
     });
   }
 
@@ -2560,6 +2858,7 @@ export class GameState {
     this.migrateCampRestLegacyRoomDoors(payload);
     this.migrateCombinedStormwreckCampScenes(payload);
     const migratedObjectInteractions = this.migrateMissingObjectInteractions(payload);
+    const migratedCampaignObjects = this.migrateAddedCampaignObjects(payload);
     let migratedCharacterSheets = false;
     const exactIds = (actual: string[], expected: string[]) => actual.length === expected.length && new Set(actual).size === actual.length && actual.every(id => expected.includes(id));
     if (!this.hasScene(payload.sceneId) || !exactIds(payload.characters.map(x => x.id), [...this.characters.keys()]) || !exactIds(payload.scenes.map(x => x.sceneId), [...this.objectScenes.keys()])) throw new Error('SAVE_REFERENCES');
@@ -2654,6 +2953,18 @@ export class GameState {
     const savedConditions = payload.conditions ?? payload.combat?.conditions ?? {};
     const savedConditionSources = payload.conditionSources ?? payload.combat?.conditionSources ?? {};
     const savedConcentration = payload.concentration ?? {};
+    const savedVisualEffects = payload.visualEffects ?? [];
+    const visualEffectIds = new Set<string>();
+    for (const effect of savedVisualEffects) {
+      const scene = this.campaign.scenes.get(effect.visual.sceneId);
+      const definition = actionVisualEffect(effect.actionId);
+      if (!validEntityIds.has(effect.ownerId) || effect.visual.entityId && !validEntityIds.has(effect.visual.entityId) ||
+          !scene || effect.visual.cell.col >= scene.grid.cols || effect.visual.cell.row >= scene.grid.rows ||
+          !definition || definition.type !== effect.visual.type || definition.radiusMeters !== effect.visual.radiusMeters ||
+          effect.visual.expiresAt - effect.visual.startedAt !== definition.durationMs || effect.concentration !== (definition.type === 'fog') ||
+          visualEffectIds.has(effect.visual.id) || (scene.terrain ? !scene.terrain.surfaces.some(surface => surface.id === effect.visual.surfaceId) : scene.surfaceId !== effect.visual.surfaceId)) throw new Error('SAVE_VISUAL_EFFECT');
+      visualEffectIds.add(effect.visual.id);
+    }
     for (const id of [...Object.keys(savedConditions), ...Object.keys(savedConditionSources), ...Object.keys(savedConcentration)]) if (!validEntityIds.has(id)) throw new Error('SAVE_CONDITION_ENTITY');
     for (const [id, sources] of Object.entries(savedConditionSources)) {
       const active = new Set(savedConditions[id] ?? []);
@@ -2661,7 +2972,21 @@ export class GameState {
     }
     if (payload.combat?.active) {
       if (!payload.combat.participantIds.length || !payload.combat.participantIds.every(id => validEntityIds.has(id)) || !exactIds(payload.combat.order, payload.combat.participantIds) || payload.combat.turnIndex >= payload.combat.order.length) throw new Error('SAVE_COMBAT');
+      const actionsFor = (id: string) => id === payload.creature?.id && payload.creature.runtimeProfile ? payload.creature.runtimeProfile.attacks : this.combatEntity(id)?.attacks ?? [];
+      const basics = new Set(['dash', 'disengage', 'dodge', 'help', 'hide', 'influence', 'magic', 'ready', 'search', 'study', 'use-object']);
+      for (const [id, used] of Object.entries(payload.combat.turnActions ?? {}))
+        if (!validEntityIds.has(id) || (used.kind === 'basic' ? !basics.has(used.actionId) : !actionsFor(id).some(action => action.id === used.actionId))) throw new Error('SAVE_TURN_ACTION');
+      const rechargeKeys = new Set([...validEntityIds].flatMap(id => actionsFor(id).filter(action => action.recharge).map(action => `${id}.${action.id}`)));
+      if (Object.keys(payload.combat.rechargeAttemptTurn ?? {}).some(key => !rechargeKeys.has(key))) throw new Error('SAVE_RECHARGE_ATTEMPT');
     }
+    if (this.campaign.adventure) {
+      for (const goal of this.campaign.adventure.objectives)
+        if (goal.choices.filter(choice => payload.progress?.[choiceFlag(goal.id, choice.id)]).length > 1) throw new Error('SAVE_STORY_CHOICES');
+      if (this.campaign.adventure.endings.filter(ending => payload.progress?.[endingFlag(ending.id)]).length > 1) throw new Error('SAVE_STORY_ENDINGS');
+    }
+    const savedSfxLoops = payload.audio.sfxLoops ?? {};
+    const loopableSfx = new Set((this.campaign.public.audio.library?.sfx ?? []).filter(effect => effect.loopable).map(effect => effect.id));
+    if (Object.entries(savedSfxLoops).some(([id, track]) => !loopableSfx.has(id) || track.assetId !== undefined && track.assetId !== id)) throw new Error('SAVE_AUDIO_LOOP');
     // Install only after every reference and occupation has been checked on this candidate state.
     this.sceneId = payload.sceneId; this.sceneEpoch = 1; this.revision = 0; this.stateRevision = 0;
     for (const saved of payload.characters) {
@@ -2696,16 +3021,14 @@ export class GameState {
         Object.assign(target, structuredClone(saved), { surfaceId: saved.surfaceId ?? target.surfaceId, version: 0 });
       }
     }
-    this.camera = { ...payload.camera }; this.environment = { storm: payload.environment.storm, lightning: payload.environment.storm, stormIntensity: payload.environment.stormIntensity ?? 0.5, timeOfDay: payload.environment.timeOfDay ?? 'auto' };
+    this.camera = { ...payload.camera }; this.environment = { ...payload.environment, storm: payload.environment.storm, lightning: payload.environment.storm && (payload.environment.stormIntensity ?? .5) >= .45, stormIntensity: payload.environment.stormIntensity ?? 0.5, timeOfDay: payload.environment.timeOfDay ?? 'auto' };
     this.campRest = payload.campRest ? structuredClone(payload.campRest) : null;
     const loadTrack = (saved: DurablePayload['audio']['music']) => ({ playing: saved.playing, volume: saved.volume, offset: saved.offsetSeconds, startedAt: saved.playing ? now : null, loop: saved.loop ?? true, rate: saved.rate ?? 1, repeats: saved.repeats ?? 1, ...(saved.assetId ? { assetId: saved.assetId } : {}) });
-    const savedSfxLoops = payload.audio.sfxLoops ?? {};
-    const loopableSfx = new Set((this.campaign.public.audio.library?.sfx ?? []).filter(effect => effect.loopable).map(effect => effect.id));
-    if (Object.entries(savedSfxLoops).some(([id, track]) => !loopableSfx.has(id) || track.assetId !== undefined && track.assetId !== id)) throw new Error('SAVE_AUDIO_LOOP');
     this.audio = { music: loadTrack(payload.audio.music), layers: {
       ocean: loadTrack(payload.audio.layers.ocean), wind: loadTrack(payload.audio.layers.wind), wood: loadTrack(payload.audio.layers.wood), storm: loadTrack(payload.audio.layers.storm)
     }, sfxLoops: Object.fromEntries(Object.entries(savedSfxLoops).map(([id, track]) => [id, { ...loadTrack(track), assetId: id }])) };
     this.progress = { ...this.progress, ...(payload.progress ?? {}) };
+    this.storyNotes = { ...(payload.storyNotes ?? {}) };
     if (this.campaign.public.campaignId === 'stormwreck-isle') {
       const boat = this.rowboat();
       for (const character of this.characters.values()) {
@@ -2734,11 +3057,13 @@ export class GameState {
       }
     }
     this.conditions = structuredClone(savedConditions); this.conditionSources = structuredClone(savedConditionSources); this.concentration = structuredClone(savedConcentration);
+    this.visualEffects = structuredClone(savedVisualEffects).filter(effect => effect.visual.expiresAt > now &&
+      (!effect.concentration || savedConcentration[effect.ownerId]?.actionId === effect.actionId));
     const restoredStances = Object.fromEntries(Object.entries(payload.combat?.stances ?? {}).flatMap(([id, stance]) => stance.action === 'improvise' ? [] : [[id, stance] as const])) as CombatState['stances'];
-    const restoredSequences = Object.fromEntries(Object.entries(payload.combat?.sequences ?? {}).map(([id, sequence]) => [id, { actionId: sequence.actionId, remaining: sequence.remaining }])) as CombatState['sequences'];
-    this.combat = payload.combat?.active ? { ...emptyCombat(), active: true, round: payload.combat.round, order: [...payload.combat.order], turnIndex: payload.combat.turnIndex, participantIds: [...payload.combat.participantIds], initiative: { ...payload.combat.initiative }, initiativeSubmitted: { ...(payload.combat.initiativeSubmitted ?? Object.fromEntries(payload.combat.participantIds.map(id => [id, true]))) }, initiativePending: payload.combat.initiativePending ?? false, spentSquares: { ...payload.combat.spentSquares }, dashSquares: { ...(payload.combat.dashSquares ?? {}) }, actionUsed: { ...payload.combat.actionUsed }, bonusActionUsed: { ...(payload.combat.bonusActionUsed ?? {}) }, reactionUsed: { ...(payload.combat.reactionUsed ?? {}) }, sneakAttackUsed: { ...(payload.combat.sneakAttackUsed ?? {}) }, sneakAttackUsedTurn: { ...(payload.combat.sneakAttackUsedTurn ?? {}) }, spellSlotUsedTurn: { ...(payload.combat.spellSlotUsedTurn ?? {}) }, stances: restoredStances, sequences: restoredSequences, recharge: structuredClone(payload.combat.recharge ?? {}), openingAction: structuredClone(payload.combat.openingAction ?? null), pending: structuredClone(payload.combat.pending ?? null), lastEvent: { id: crypto.randomUUID(), text: payload.combat.initiativePending ? 'Iniciativa pendiente de completar' : `Ronda ${payload.combat.round} restaurada`, publicText: payload.combat.initiativePending ? 'Iniciativa pendiente de completar' : `Ronda ${payload.combat.round} restaurada`, kind: 'turn' } } : emptyCombat();
+    const restoredSequences = Object.fromEntries(Object.entries(payload.combat?.sequences ?? {}).map(([id, sequence]) => [id, { actionId: sequence.actionId, remaining: sequence.remaining, ...(sequence.targetId ? { targetId: sequence.targetId } : {}) }])) as CombatState['sequences'];
+    this.combat = payload.combat?.active ? { ...emptyCombat(), active: true, round: payload.combat.round, order: [...payload.combat.order], turnIndex: payload.combat.turnIndex, participantIds: [...payload.combat.participantIds], initiative: { ...payload.combat.initiative }, initiativeSubmitted: { ...(payload.combat.initiativeSubmitted ?? Object.fromEntries(payload.combat.participantIds.map(id => [id, true]))) }, initiativePending: payload.combat.initiativePending ?? false, spentSquares: { ...payload.combat.spentSquares }, dashSquares: { ...(payload.combat.dashSquares ?? {}) }, actionUsed: { ...payload.combat.actionUsed }, bonusActionUsed: { ...(payload.combat.bonusActionUsed ?? {}) }, reactionUsed: { ...(payload.combat.reactionUsed ?? {}) }, sneakAttackUsed: { ...(payload.combat.sneakAttackUsed ?? {}) }, sneakAttackUsedTurn: { ...(payload.combat.sneakAttackUsedTurn ?? {}) }, spellSlotUsedTurn: { ...(payload.combat.spellSlotUsedTurn ?? {}) }, stances: restoredStances, sequences: restoredSequences, recharge: structuredClone(payload.combat.recharge ?? {}), rechargeAttemptTurn: { ...(payload.combat.rechargeAttemptTurn ?? {}) }, turnActions: structuredClone(payload.combat.turnActions ?? {}), openingAction: structuredClone(payload.combat.openingAction ?? null), pending: structuredClone(payload.combat.pending ?? null), lastEvent: { id: crypto.randomUUID(), text: payload.combat.initiativePending ? 'Iniciativa pendiente de completar' : `Ronda ${payload.combat.round} restaurada`, publicText: payload.combat.initiativePending ? 'Iniciativa pendiente de completar' : `Ronda ${payload.combat.round} restaurada`, kind: 'turn' } } : emptyCombat();
     this.interactions = []; this.projectorReady = false;
-    return migratedD8Grid || migratedObjectInteractions || migratedCharacterSheets;
+    return migratedD8Grid || migratedObjectInteractions || migratedCampaignObjects || migratedCharacterSheets;
   }
 }
 
@@ -2781,17 +3106,27 @@ export class GameServer {
   }
 
   installState(candidate: GameState) {
+    // Rebind only the currently connected owners from memory, never credentials
+    // from a save. This keeps each player on their restored scene immediately.
+    const owners = this.state.campaign.public.campaignId === candidate.campaign.public.campaignId
+      ? [...this.state.characters.values()].filter(character => character.socketId && character.sessionToken)
+        .map(character => ({ id: character.id, socketId: character.socketId!, token: character.sessionToken! })) : [];
     candidate.runtimeEpoch = crypto.randomUUID();
     const audioNow = Date.now();
     for (const track of [candidate.audio.music, ...Object.values(candidate.audio.layers), ...Object.values(candidate.audio.sfxLoops)]) if (track.playing) track.startedAt = audioNow;
     this.state = candidate; this.processedCommands.clear(); this.sessionSockets.clear(); this.gameplayUndo = []; this.sharedCameraOrientations.clear(); this.cameraSharingEnabled = false;
+    for (const owner of owners) {
+      const connected = this.io.sockets.sockets.get(owner.socketId);
+      if (connected?.data.role === 'player' && connected.data.sessionToken === owner.token && candidate.characters.has(owner.id) && candidate.claim(owner.token, owner.socketId, owner.id).ok)
+        this.sessionSockets.set(owner.token, owner.socketId);
+    }
     for (const connected of this.io.sockets.sockets.values()) connected.data.sceneReadyEpoch = -1;
-    this.io.emit('runtime:reset', { runtimeEpoch: candidate.runtimeEpoch, reason: 'La partida se ha reemplazado; vuelve a elegir personaje.' });
+    this.io.emit('runtime:reset', { runtimeEpoch: candidate.runtimeEpoch, reason: 'Partida restaurada. Sincronizando la mesa…' });
     this.io.to('dm').emit('world:snapshot', candidate.publicSnapshot());
-    const publicScene = candidate.campaign.public.scenes.find(scene => scene.access !== 'authorized')?.id ?? candidate.sceneId;
-    this.io.to('player').emit('world:snapshot', candidate.publicSnapshot(true, publicScene));
+    for (const connected of this.io.sockets.sockets.values()) if (connected.data.role === 'player') connected.emit('world:snapshot', this.snapshotForSocket(connected));
     this.io.to('projector').emit('world:snapshot', candidate.publicSnapshot(true));
     this.io.emit('audio:state', { ...candidate.audio, runtimeEpoch: candidate.runtimeEpoch });
+    this.broadcastPrivate();
     this.io.to('player').emit('characters:available', { runtimeEpoch: candidate.runtimeEpoch, characters: this.availableCharacters() });
     this.io.to('dm').emit('dm:state', this.dmState());
     return candidate.runtimeEpoch;
@@ -2810,8 +3145,10 @@ export class GameServer {
     this.simulationTimer = setInterval(() => {
       if (!this.worldOpen()) return;
       const before = this.state.stateRevision;
+      const beforeScene = this.state.sceneId;
       const changedCharacters = this.state.tick();
       if (this.state.stateRevision !== before) this.persistence?.markDirty();
+      if (this.state.sceneId !== beforeScene) void this.persistence?.saveNow().catch(() => {});
       if (!changedCharacters.size) return;
       // A held movement key creates a new step every few hundred milliseconds.
       // Emit only when a step begins (rather than when it finishes) so player
@@ -3012,7 +3349,10 @@ export class GameServer {
     this.emitResult(socket, { ok: true, code: 'CLAIMED' });
     socket.emit('player:private', this.state.playerPrivate(token, `Ahora controlas a ${result.character?.label}.`));
     const snapshot = this.snapshotForSocket(socket);
-    socket.emit('world:snapshot', snapshot);
+    // Joining changes the visible party. Send the authoritative world to DM,
+    // projector and the other players immediately, not only after movement.
+    this.state.revision++;
+    this.broadcastSnapshot();
     this.sendSharedCameraOrientation(socket, snapshot.sceneId, snapshot.sceneEpoch);
     this.io.to('player').emit('characters:available', { runtimeEpoch: this.state.runtimeEpoch, characters: this.availableCharacters() });
     this.io.to('dm').emit('dm:state', this.dmState());
@@ -3066,6 +3406,9 @@ export class GameServer {
       const result = this.state.cancelCombatAction(character.id, parsed.data.promptId); if (!result.ok) return finish({ commandId: parsed.data.commandId, ...result }); resultCode = result.code;
     } else if (parsed.data.type === 'combat:flee') {
       const result = this.state.requestCombatFlee(character.id); if (!result.ok) return finish({ commandId: parsed.data.commandId, ...result }); resultCode = result.code;
+    } else if (parsed.data.type === 'combat:endConcentration') {
+      if (!this.state.stopConcentration(character.id)) return finish({ commandId: parsed.data.commandId, ok: false, code: 'NO_CONCENTRATION' });
+      resultCode = 'CONCENTRATION_ENDED';
     } else if (parsed.data.type === 'combat:endTurn') {
       if (this.state.publicSnapshot().combat.currentId !== character.id) return finish({ commandId: parsed.data.commandId, ok: false, code: 'NOT_YOUR_TURN' });
       if (this.state.combat.pending) return finish({ commandId: parsed.data.commandId, ok: false, code: 'ROLL_PENDING' });
@@ -3091,8 +3434,8 @@ export class GameServer {
     }
     if (JSON.stringify(before) !== JSON.stringify(this.state.captureDurable())) this.rememberUndo(`${character.label}: ${parsed.data.type}`, before);
     this.state.revision++; this.state.stateRevision++; this.persistence?.markDirty();
-    if (pendingBefore && (parsed.data.type === 'combat:rollAttack' || parsed.data.type === 'combat:rollSave' || parsed.data.type === 'combat:rollDamage') && this.combatResolutionHasVisual(pendingBefore)) this.emitCombatAnimation(pendingBefore, resultCode !== 'ATTACK_MISSED' && resultCode !== 'SAVE_SUCCESS');
-    if (parsed.data.type === 'combat:declare' && parsed.data.targetCell) this.emitAreaEffect(parsed.data.actionId, parsed.data.targetCell);
+    if (pendingBefore && (parsed.data.type === 'combat:rollAttack' || parsed.data.type === 'combat:rollSave' || parsed.data.type === 'combat:rollDamage') && this.combatRollCompletesVisual(pendingBefore, resultCode)) this.emitCombatAnimation(pendingBefore, resultCode !== 'ATTACK_MISSED' && resultCode !== 'SAVE_SUCCESS');
+    if (parsed.data.type === 'combat:declare' && resultCode === 'GUIDED_RESOLUTION') this.emitGuidedCombatSound(character.id, parsed.data.actionId);
     finish({ commandId: parsed.data.commandId, ok: true, code: resultCode }); this.broadcastSnapshot(); this.broadcastPrivate(); this.io.to('dm').emit('dm:state', this.dmState());
   }
 
@@ -3142,6 +3485,18 @@ export class GameServer {
     const finish = (result: CommandResult) => this.emitResult(socket, this.rememberResult(scope, parsed.data, result));
     if (parsed.data.sceneEpoch !== this.state.sceneEpoch || socket.data.sceneReadyEpoch !== this.state.sceneEpoch) return finish({ commandId: parsed.data.commandId, ok: false, code: 'WRONG_SCENE' });
     const door = this.state.interactNearbyDoor(character.id, parsed.data.targetId);
+    const seat=this.state.interactSeat(character.id,parsed.data.targetId);
+    if(seat){
+      if(!seat.ok)return finish({commandId:parsed.data.commandId,ok:false,code:seat.code});
+      this.persistence?.markDirty();finish({commandId:parsed.data.commandId,ok:true,code:seat.code});
+      this.broadcastSnapshot();this.broadcastPrivate();this.io.to('dm').emit('dm:state',this.dmState());return;
+    }
+    const sign=this.state.sceneForCharacter(character).readableSigns?.find(sign=>sign.id===parsed.data.targetId);
+    if(sign){
+      if(character.step||this.state.combat.active||Math.max(Math.abs(sign.cell.col-character.cell.col),Math.abs(sign.cell.row-character.cell.row))>1)return finish({commandId:parsed.data.commandId,ok:false,code:'TOO_FAR'});
+      finish({commandId:parsed.data.commandId,ok:true,code:'SIGN_READ'});
+      this.io.to(socket.id).emit('player:private',this.state.playerPrivate(token,sign.text));return;
+    }
     if (door) {
       if (!door.ok) return finish({ commandId: parsed.data.commandId, ok: false, code: door.code });
       this.persistence?.markDirty();
@@ -3184,11 +3539,12 @@ export class GameServer {
     if (mirrorInteraction && this.state.creature) {
       this.state.prepareMirrorEncounter(character.id);
       this.state.creature.visible = true;
-      this.state.progress.mirror = true;
+      this.state.progress['mirror-revealed'] = true; // Reveal is not completion.
       this.state.revision++; this.state.stateRevision++; this.persistence?.markDirty();
       finish({ commandId: parsed.data.commandId, ok: true, code: 'INTERACTION_RESOLVED' });
       this.io.emit('scene:animation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, entityId: character.id, state: 'interact', durationMs: 650 });
       this.io.emit('mirror:transformation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, propId: mirrorInteraction.targetId, sourceId: character.id, reflectionId: this.state.creature.id, frames: mirrorInteraction.effectFrames, durationMs: mirrorInteraction.durationMs ?? 1_600 });
+      this.emitProjectorSfx('d8-night-sfx-mirror');
       this.broadcastSnapshot(); this.broadcastPrivate();
       this.io.to(socket.id).emit('player:private', this.state.playerPrivate(token, mirrorInteraction.notice));
       this.io.to('dm').emit('dm:state', this.dmState());
@@ -3269,15 +3625,16 @@ export class GameServer {
     this.state.revision++; this.state.stateRevision++; this.persistence?.markDirty();
     this.io.emit('scene:animation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, entityId: character.id, state: 'spell', durationMs: 1_000 });
     if (result.action.soundId) this.emitProjectorSfx(result.action.soundId);
-    this.emitAreaEffect(result.action.id, result.target.cell);
+    if (!result.action.soundId) this.emitAreaEffect(result.action.id, result.target.cell);
     finish({ commandId: parsed.data.commandId, ok: true, code: result.code });
     this.io.to(socket.id).emit('player:private', this.state.playerPrivate(token, `${result.action.label} sobre ${result.target.label}. ${result.action.guidance}`));
     this.io.to('dm').emit('dm:state', this.dmState());
   }
 
   applyDmCommand(command: DmCommand): CommandResult {
-    const staleTypes = new Set(['scene', 'view:focus', 'entity:portal', 'scene:animation', 'creature', 'npc:visible', 'camera', 'environment', 'camp:rest', 'entity:move', 'resolveInteraction', 'combat:start', 'combat:participant', 'combat:initiative', 'combat:initiativeOrder', 'combat:condition', 'combat:endTurn', 'combat:next', 'combat:end', 'combat:declare', 'combat:basic', 'combat:stand', 'combat:dropProne', 'combat:reaction', 'combat:rollAttack', 'combat:rollDamage', 'combat:rollSave', 'combat:rollDeathSave', 'combat:recharge', 'progress:toggle', 'pickup:take']);
-    if ((staleTypes.has(command.type) || command.type.startsWith('combat:')) && 'sceneEpoch' in command && command.sceneEpoch !== this.state.sceneEpoch) {
+    let resultCode = 'APPLIED';
+    const staleTypes = new Set(['encounter:reveal', 'story:choice', 'story:ending', 'scene', 'view:focus', 'entity:portal', 'scene:animation', 'creature', 'npc:visible', 'camera', 'environment', 'camp:rest', 'entity:move', 'resolveInteraction', 'combat:start', 'combat:participant', 'combat:initiative', 'combat:initiativeOrder', 'combat:condition', 'combat:endTurn', 'combat:next', 'combat:end', 'combat:declare', 'combat:basic', 'combat:stand', 'combat:dropProne', 'combat:reaction', 'combat:rollAttack', 'combat:rollDamage', 'combat:rollSave', 'combat:rollDeathSave', 'combat:recharge', 'progress:toggle', 'pickup:take']);
+    if ((staleTypes.has(command.type) || command.type==='entity:seat' || command.type.startsWith('combat:')) && 'sceneEpoch' in command && command.sceneEpoch !== this.state.sceneEpoch) {
       return { commandId: command.commandId, ok: false, code: 'STALE_SCENE' };
     }
     if (command.type === 'object:door' || command.type === 'object:interact' || command.type === 'object:transform' || command.type === 'object:detach' || command.type === 'object:structure' || command.type === 'object:undo') {
@@ -3295,13 +3652,26 @@ export class GameServer {
       const encounter = this.state.campaign.encounter;
       if (!this.state.creature || !encounter) return { commandId: command.commandId, ok: false, code: 'UNKNOWN_ENTITY' };
       if (command.visible && this.state.sceneId !== encounter.sceneId) return { commandId: command.commandId, ok: false, code: 'WRONG_SCENE' };
-      if (command.visible && !isWalkable(this.state.currentScene(), this.state.creature.cell, this.state.publicObjectProps())) return { commandId: command.commandId, ok: false, code: 'CREATURE_BLOCKED' };
-      if (command.visible) this.state.prepareMirrorEncounter();
+      if (command.visible && encounter.mirrorPlayer && !this.state.creature.mimicOfPlayerId) {
+        const candidates = [...this.state.characters.values()].filter(character => character.sessionToken && character.sceneId === this.state.sceneId);
+        if (!command.sourceId && candidates.length !== 1) return { commandId: command.commandId, ok: false, code: 'MIMIC_TARGET_REQUIRED' };
+        const source = candidates.find(character => character.id === (command.sourceId ?? candidates[0]?.id));
+        if (!source) return { commandId: command.commandId, ok: false, code: 'INVALID_TARGET' };
+      }
+      if(command.visible&&encounter.mirrorPlayer)this.state.prepareMirrorEncounter(command.sourceId);
+      if(command.visible&&encounter.mirrorPlayer)this.state.progress['mirror-revealed']=true;
+      if(command.visible&&!isWalkable(this.state.currentScene(),this.state.creature.cell,this.state.publicObjectProps()))return {commandId:command.commandId,ok:false,code:'CREATURE_BLOCKED'};
       this.state.creature.visible = command.visible;
       if (!command.visible) this.state.endCombat();
       if (!command.visible && this.state.camera.focusId === this.state.creature.id) this.state.camera.focusId = null;
+    } else if (command.type === 'entity:seat') {
+      const character=this.state.characters.get(command.entityId);
+      if(!character||character.sceneId!==this.state.sceneId)return {commandId:command.commandId,ok:false,code:'WRONG_SCENE'};
+      const result=this.state.interactSeat(command.entityId,command.seatId);if(!result?.ok)return {commandId:command.commandId,ok:false,code:result?.code??'UNKNOWN_SEAT'};
     } else if (command.type === 'npc:visible') {
       if (!this.state.setNpcVisible(command.entityId, command.visible)) return { commandId: command.commandId, ok: false, code: 'INVALID_COMBATANT' };
+    } else if (command.type === 'encounter:reveal') {
+      if (!this.state.revealEncounterGroup(command.groupId, command.count)) return { commandId: command.commandId, ok: false, code: 'ENCOUNTER_BLOCKED' };
     } else if (command.type === 'camera') {
       const validFocus = command.focusId === null || this.state.characters.has(command.focusId) || this.state.npcs.has(command.focusId) || Boolean(this.state.creature?.visible && command.focusId === this.state.creature.id);
       if (!validFocus) return { commandId: command.commandId, ok: false, code: 'INVALID_FOCUS' };
@@ -3310,6 +3680,9 @@ export class GameServer {
       const intensity = command.intensity ?? this.state.environment.stormIntensity;
       if (command.trackId && !this.state.campaign.public.audio.library?.ambience.some(track => track.id === command.trackId)) return { commandId: command.commandId, ok: false, code: 'UNKNOWN_AUDIO_TRACK' };
       if (command.timeOfDay !== undefined) this.state.environment.timeOfDay = command.timeOfDay;
+      if(command.precipitation!==undefined)this.state.environment.precipitation=command.precipitation;
+      if(command.precipitationLevel!==undefined)this.state.environment.precipitationLevel=command.precipitationLevel;
+      if(command.windIntensity!==undefined)this.state.environment.windIntensity=command.windIntensity;
       this.state.environment.storm = command.storm;
       // Llovizna solo moja el mapa; los relámpagos aparecen a partir de tormenta.
       this.state.environment.lightning = command.storm && intensity >= .45;
@@ -3321,6 +3694,7 @@ export class GameServer {
       stormAudio.playing = command.storm;
       stormAudio.startedAt = command.storm ? stormAudio.startedAt ?? now : null;
       stormAudio.volume = intensity;
+      this.state.applyWeatherAudio();
     } else if (command.type === 'camp:rest') {
       return this.state.applyCampRestCommand(command);
     } else if (command.type === 'entity:move') {
@@ -3359,10 +3733,13 @@ export class GameServer {
       if (!this.state.cancelCombat()) return { commandId: command.commandId, ok: false, code: 'COMBAT_ALREADY_STARTED' };
     } else if (command.type === 'combat:cancelAction') {
       const result = this.state.cancelCombatAction(command.attackerId, command.promptId); if (!result.ok) return { commandId: command.commandId, ...result };
+    } else if (command.type === 'combat:endConcentration') {
+      if (!this.state.stopConcentration(command.entityId)) return { commandId: command.commandId, ok: false, code: 'NO_CONCENTRATION' };
     } else if (command.type === 'combat:withdraw') {
       const result = this.state.withdrawCombatant(command.entityId); if (!result.ok) return { commandId: command.commandId, ...result };
     } else if (command.type === 'combat:declare') {
       const result = this.state.declareCombatAction(command.attackerId, command.targetId, command.actionId, command.useSneakAttack, command.targetCell); if (!result.ok) return { commandId: command.commandId, ...result };
+      resultCode = result.code;
     } else if (command.type === 'combat:basic') {
       const result = this.state.useBasicCombatAction(command.attackerId, command.action, command.targetId); if (!result.ok) return { commandId: command.commandId, ...result };
     } else if (command.type === 'combat:escape') {
@@ -3375,10 +3752,19 @@ export class GameServer {
       const value = command.type === 'combat:rollAttack' || command.type === 'combat:rollDeathSave' ? command.d20 : command.type === 'combat:rollDamage' ? command.diceTotal : command.total;
       const expectedStage = command.type === 'combat:rollAttack' ? 'attack' : command.type === 'combat:rollDamage' ? 'damage' : command.type === 'combat:rollDeathSave' ? 'death-save' : this.state.combat.pending?.stage === 'escape' ? 'escape' : this.state.combat.pending?.stage === 'check' ? 'check' : this.state.combat.pending?.stage === 'concentration' ? 'concentration' : 'save';
       const result = this.state.submitCombatRoll('dm', null, expectedStage, command.promptId, value); if (!result.ok) return { commandId: command.commandId, ...result };
+      // The completion code drives animation and audio after the final die.
+      // Flattening it to APPLIED silently suppresses every DM attack visual.
+      resultCode = result.code;
     } else if (command.type === 'combat:recharge') {
       if (!this.state.rechargeCombatAction(command.attackerId, command.actionId, command.d6)) return { commandId: command.commandId, ok: false, code: 'RECHARGE_INVALID' };
     } else if (command.type === 'progress:toggle') {
       const code = this.state.applyWreckProgressToggle(command.flag, command.value);
+      if (code !== 'APPLIED') return { commandId: command.commandId, ok: false, code };
+    } else if (command.type === 'story:choice') {
+      const code = this.state.resolveAdventureChoice(command.objectiveId, command.choiceId, command.note, command.override);
+      if (code !== 'APPLIED') return { commandId: command.commandId, ok: false, code };
+    } else if (command.type === 'story:ending') {
+      const code = this.state.resolveAdventureEnding(command.endingId, command.reason, command.override);
       if (code !== 'APPLIED') return { commandId: command.commandId, ok: false, code };
     } else if (command.type === 'wreck:level-up') {
       const code = this.state.applyWreckChapterLevelUp(command.level);
@@ -3473,7 +3859,7 @@ export class GameServer {
       return result;
     }
     this.state.revision++;
-    return { commandId: command.commandId, ok: true, code: 'APPLIED' };
+    return { commandId: command.commandId, ok: true, code: resultCode };
   }
 
   private handleDm(socket: Socket, raw: unknown) {
@@ -3512,20 +3898,25 @@ export class GameServer {
       this.persistence?.markDirty();
       if (command.type !== 'audio' && command.type !== 'game:undo' && command.type !== 'object:undo') this.rememberUndo(command.type, before);
     }
-    if (result.ok && (command.type === 'scene' || command.type === 'view:focus' || command.type === 'entity:portal' || command.type === 'combat:start' || command.type === 'combat:end')) void this.persistence?.saveNow().catch(() => {});
+    if (result.ok && (command.type === 'story:choice' || command.type === 'story:ending' || command.type === 'scene' || command.type === 'view:focus' || command.type === 'entity:portal' || command.type === 'combat:start' || command.type === 'combat:end')) void this.persistence?.saveNow().catch(() => {});
     this.emitResult(socket, this.rememberResult(scope, command, result));
     if (!result.ok) {
       if (objectCommand && (result.code === 'STALE_OBJECTS' || result.code === 'REQUEST_STALE')) socket.emit('dm:state', this.dmState());
       return;
     }
-    if (pendingBefore && result.ok && (command.type === 'combat:rollAttack' || command.type === 'combat:rollSave' || command.type === 'combat:rollDamage') && this.combatResolutionHasVisual(pendingBefore)) this.emitCombatAnimation(pendingBefore, result.code !== 'ATTACK_MISSED' && result.code !== 'SAVE_SUCCESS');
+    if (pendingBefore && result.ok && (command.type === 'combat:rollAttack' || command.type === 'combat:rollSave' || command.type === 'combat:rollDamage') && this.combatRollCompletesVisual(pendingBefore, result.code)) this.emitCombatAnimation(pendingBefore, result.code !== 'ATTACK_MISSED' && result.code !== 'SAVE_SUCCESS');
     if (command.type === 'combat:basic') this.emitBasicActionAnimation(command.attackerId, command.action);
-    if (command.type === 'combat:declare' && command.targetCell) this.emitAreaEffect(command.actionId, command.targetCell);
+    if (command.type === 'combat:declare' && result.code === 'GUIDED_RESOLUTION') this.emitGuidedCombatSound(command.attackerId, command.actionId);
     if (command.type === 'scene') {
       for (const connected of this.io.sockets.sockets.values()) connected.data.sceneReadyEpoch = -1;
     }
     if (command.type === 'audio' || command.type === 'audio:select' || command.type === 'audio:mix' || command.type === 'sfx:loop' || command.type === 'environment' || command.type === 'scene' || command.type === 'view:focus') this.io.emit('audio:state', { ...this.state.audio, runtimeEpoch: this.state.runtimeEpoch });
     if (command.type === 'sfx') this.emitProjectorSfx(command.sfxId, command.commandId);
+    if(command.type==='creature'&&command.visible&&this.state.creature?.mimicOfPlayerId&&this.state.campaign.mirrorInteraction){
+      const mirror=this.state.campaign.mirrorInteraction;
+      this.io.emit('mirror:transformation',{runtimeEpoch:this.state.runtimeEpoch,sceneEpoch:this.state.sceneEpoch,propId:mirror.targetId,sourceId:this.state.creature.mimicOfPlayerId,reflectionId:this.state.creature.id,frames:mirror.effectFrames,durationMs:mirror.durationMs??1600});
+      this.emitProjectorSfx('d8-night-sfx-mirror',command.commandId);
+    }
     if (command.type === 'scene:animation') {
       this.io.emit('scene:animation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, entityId: command.entityId, state: command.state, durationMs: command.durationMs ?? 1_400 });
       this.emitSceneAnimationSfx(command.state);
@@ -3556,14 +3947,16 @@ export class GameServer {
     const action = this.state.combatEntity(pending.attackerId)?.attacks.find(item => item.id === pending.actionId);
     const animationType = visualAnimationType(action);
     this.io.emit('combat:animation', {
-      runtimeEpoch: this.state.runtimeEpoch, attackerId: pending.attackerId, targetId: pending.targetId,
+      runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, attackerId: pending.attackerId, targetId: pending.targetId,
+      bodyState: action ? combatActionVisualState(action, animationType) : undefined,
       type: animationType, hit,
       sneakAttack: Boolean(pending.sneakAttackDice),
       frozen: pending.attackerId === this.state.creature?.id && this.state.campaign.encounter?.mirrorPlayer === true
     });
-    if (!action?.soundId && animationType === 'arrow') {
+    if (!action?.soundId && (animationType === 'arrow' || animationType === 'radiantArrow')) {
       const runtimeEpoch = this.state.runtimeEpoch, sceneEpoch = this.state.sceneEpoch;
       this.emitProjectorSfx('d8-night-sfx-bow-release');
+      if (animationType === 'radiantArrow') this.emitProjectorSfx('d8-night-sfx-magic-spark');
       setTimeout(() => {
         if (this.state.runtimeEpoch !== runtimeEpoch || this.state.sceneEpoch !== sceneEpoch) return;
         this.emitProjectorSfx('d8-night-sfx-arrow-swish');
@@ -3580,10 +3973,13 @@ export class GameServer {
     this.emitProjectorSfx(sfxId);
   }
 
-  private combatResolutionHasVisual(pending: PendingCombatResolution) {
-    if (pending.stage === 'attack' || pending.stage === 'save') return true;
-    if (pending.stage !== 'damage') return false;
-    return Boolean(this.state.combatEntity(pending.attackerId)?.attacks.find(item => item.id === pending.actionId)?.automaticHit);
+  private combatRollCompletesVisual(pending: PendingCombatResolution, resultCode: string) {
+    // A hit still needs its damage roll. Play the attack only once that result
+    // is in; a miss has no follow-up roll, so its d20 completes the action.
+    if (pending.stage === 'attack') return resultCode === 'ATTACK_MISSED' || resultCode === 'ATTACK_RESOLVED';
+    if (pending.stage === 'save') return resultCode === 'SAVE_SUCCESS' || resultCode === 'SAVE_FAILED';
+    if (pending.stage === 'damage') return resultCode === 'ATTACK_RESOLVED';
+    return false;
   }
 
   private emitBasicActionAnimation(entityId: string, action: BasicCombatAction) {
@@ -3596,8 +3992,15 @@ export class GameServer {
 
   private emitAreaEffect(actionId: string, cell: Cell) {
     if (actionId !== 'fog-cloud' && actionId !== 'fog-cloud-exploration') return;
-    this.io.emit('scene:area-effect', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, cell, type: 'fog', radiusMeters: 6, durationMs: 5_000 });
+    // The authoritative snapshot now carries the effect and its actual lifetime.
+    // Keeping only the sound here avoids duplicate clouds and lost reconnects.
     this.emitProjectorSfx('d8-night-sfx-spell-arcane');
+  }
+
+  private emitGuidedCombatSound(entityId: string, actionId: string) {
+    const action = this.state.combatEntity(entityId)?.attacks.find(candidate => candidate.id === actionId);
+    if (action?.soundId) this.emitProjectorSfx(action.soundId);
+    else if (action?.magical) this.emitProjectorSfx('d8-night-sfx-spell-arcane');
   }
 
   private emitProjectorSfx(sfxId: string, eventId: string = crypto.randomUUID()) {

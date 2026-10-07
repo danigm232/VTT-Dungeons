@@ -8,6 +8,7 @@ const PAUSE_AFTER_FADE_MS = 210;
 const MOVEMENT_FADE_MS = 55;
 const MOVEMENT_STOP_GRACE_MS = 80;
 type MovementSound = { assetId: string; sound: Howl; active: boolean; fadeTimer?: ReturnType<typeof setTimeout>; stopTimer?: ReturnType<typeof setTimeout> };
+type AudioSequence = { key: string; remaining: number; finished: boolean; onFinished?: () => void };
 export class AudioDirector {
   private channels = new Map<Channel, Howl>();
   private sfx = new Map<string, Howl>();
@@ -22,19 +23,41 @@ export class AudioDirector {
   private generations = new Map<Channel, number>();
   private pauseTimers = new Map<Channel, ReturnType<typeof setTimeout>>();
   private sources = new Map<Channel, string>();
+  private sequences = new WeakMap<Howl, AudioSequence>();
 
-  private configureRepeats(sound: Howl, data: AudioState['music'], shouldContinue: () => boolean, onFinished?: () => void) {
-    sound.loop(data.loop); sound.rate(data.rate); sound.off('end');
-    // A non-looping ambience can still be repeated a few deliberate times.
-    // `repeats` includes the play that is already under way.
-    if (!data.loop && data.repeats > 1) {
-      let remaining = data.repeats - 1;
+  private configureRepeats(sound: Howl, data: AudioState['music'], shouldContinue: () => boolean, onFinished?: () => void, restart = false) {
+    sound.loop(data.loop); sound.rate(data.rate);
+    const key = `${data.startedAt}:${data.loop}:${data.repeats}`;
+    const previous = this.sequences.get(sound);
+    if (previous?.key === key && !restart) return previous;
+    sound.off('end');
+    const sequence: AudioSequence = { key, remaining: Math.max(0, data.repeats - 1), finished: false, onFinished };
+    this.sequences.set(sound, sequence);
+    // End listeners survive unrelated mixer updates. A completed run stays
+    // completed until the DM starts a new run, even before the server ACK.
+    if (!data.loop) {
       sound.on('end', () => {
-        if (!shouldContinue()) return;
-        if (remaining-- > 0) sound.play();
-        else onFinished?.();
+        if (this.sequences.get(sound) !== sequence || sequence.finished || !shouldContinue()) return;
+        if (sequence.remaining-- > 0) sound.play();
+        else { sequence.finished = true; onFinished?.(); }
       });
     }
+    return sequence;
+  }
+
+  private seekSequence(sound: Howl, data: AudioState['music'], sequence: AudioSequence) {
+    const duration = sound.duration();
+    if (duration <= 0) return true;
+    const offset = Math.max(0, data.offset + (data.startedAt ? (Date.now() - data.startedAt) / 1000 * data.rate : 0));
+    if (!data.loop) {
+      const completed = Math.floor(offset / duration);
+      sequence.remaining = Math.max(0, data.repeats - completed - 1);
+      if (completed >= data.repeats) {
+        sequence.finished = true; sound.stop(); sequence.onFinished?.(); return false;
+      }
+    }
+    sound.seek(offset % duration);
+    return true;
   }
 
   constructor(
@@ -43,6 +66,7 @@ export class AudioDirector {
   ) {}
 
   reset() {
+    this.sequences = new WeakMap();
     for (const timer of this.pauseTimers.values()) clearTimeout(timer);
     this.pauseTimers.clear(); this.desired.clear(); this.applied.clear(); this.sfxLoopDesired.clear(); this.sfxLoopApplied.clear();
     for (const channel of this.channels.keys()) this.generations.set(channel, (this.generations.get(channel) ?? 0) + 1);
@@ -90,10 +114,11 @@ export class AudioDirector {
         sound = new Howl({ src: [files[channel]], loop: data.loop, rate: data.rate, volume: 0, html5: false, preload: true });
         this.channels.set(channel, sound); this.sources.set(channel, files[channel]);
       }
-      this.configureRepeats(sound, data, () => this.desired.get(channel) === true);
       const wasActive = this.applied.get(channel) ?? false;
+      const previousSequence = this.sequences.get(sound);
+      const sequence = this.configureRepeats(sound, data, () => this.desired.get(channel) === true, undefined, data.playing && !wasActive);
       this.desired.set(channel, data.playing);
-      if (data.playing && !wasActive) {
+      if (data.playing && (!wasActive || sequence !== previousSequence)) {
         const pendingPause = this.pauseTimers.get(channel);
         if (pendingPause !== undefined) {
           clearTimeout(pendingPause);
@@ -102,15 +127,11 @@ export class AudioDirector {
         const generation = (this.generations.get(channel) ?? 0) + 1;
         this.generations.set(channel, generation);
         const activeSound = sound;
-        const offset = data.offset + (data.startedAt ? (Date.now() - data.startedAt) / 1000 * data.rate : 0);
         const seek = () => {
-          if (this.generations.get(channel) !== generation || !this.desired.get(channel)) return;
-          const duration = activeSound.duration();
-          if (duration > 0) activeSound.seek(((offset % duration) + duration) % duration);
+          if (this.generations.get(channel) !== generation || !this.desired.get(channel) || this.sequences.get(activeSound) !== sequence) return;
+          if (this.seekSequence(activeSound, data, sequence)) { activeSound.play(); activeSound.fade(0, data.volume, 900); }
         };
-        activeSound.play();
         if (activeSound.state() === 'loaded') seek(); else activeSound.once('load', seek);
-        activeSound.fade(0, data.volume, 900);
       } else if (!data.playing && wasActive) {
         this.generations.set(channel, (this.generations.get(channel) ?? 0) + 1);
         const activeSound = sound;
@@ -122,13 +143,13 @@ export class AudioDirector {
           this.pauseTimers.delete(channel);
         }, PAUSE_AFTER_FADE_MS);
         this.pauseTimers.set(channel, timer);
-      } else if (data.playing) {
+      } else if (data.playing && !sequence.finished) {
         const pendingPause = this.pauseTimers.get(channel);
         if (pendingPause !== undefined) {
           clearTimeout(pendingPause);
           this.pauseTimers.delete(channel);
         }
-        if (!sound.playing()) sound.play();
+        if (sound.state() === 'loaded' && !sound.playing()) sound.play();
         sound.fade(sound.volume(), data.volume, 350);
       }
       this.applied.set(channel, data.playing);
@@ -156,26 +177,24 @@ export class AudioDirector {
       const wasActive = this.sfxLoopApplied.get(id) ?? false;
       this.sfxLoopDesired.set(id, data.playing);
       const startedAt = data.startedAt;
-      this.configureRepeats(sound, data, () => this.sfxLoopDesired.get(id) === true, () => {
-        this.sfxLoopDesired.set(id, false); this.sfxLoopApplied.set(id, false);
+      const previousSequence = this.sequences.get(sound);
+      const sequence = this.configureRepeats(sound, data, () => this.sfxLoopDesired.get(id) === true, () => {
+        this.sfxLoopDesired.set(id, false);
         // Solo notificamos secuencias con un estado vivo. El sello evita que un
         // final tardío pause una nueva reproducción del mismo efecto.
         if (startedAt) this.onSfxLoopFinished?.(id, startedAt);
-      });
-      if (data.playing && !wasActive) {
-        const offset = data.offset + (data.startedAt ? (Date.now() - data.startedAt) / 1000 * data.rate : 0);
-        sound.play();
+      }, data.playing && !wasActive);
+      if (data.playing && (!wasActive || sequence !== previousSequence)) {
         const seek = () => {
-          const duration = sound!.duration();
-          if (this.sfxLoopDesired.get(id) && duration > 0) sound!.seek(((offset % duration) + duration) % duration);
+          if (this.sfxLoops.get(id) !== sound || this.sequences.get(sound!) !== sequence || !this.sfxLoopDesired.get(id)) return;
+          if (this.seekSequence(sound!, data, sequence)) { sound!.play(); sound!.fade(0, data.volume, 120); }
         };
         if (sound.state() === 'loaded') seek(); else sound.once('load', seek);
-        sound.fade(0, data.volume, 120);
       } else if (!data.playing && wasActive) {
         sound.fade(sound.volume(), 0, PAUSE_FADE_MS);
         globalThis.setTimeout(() => { if (!this.sfxLoopDesired.get(id)) sound!.pause(); }, PAUSE_AFTER_FADE_MS);
-      } else if (data.playing) {
-        if (!sound.playing()) sound.play();
+      } else if (data.playing && !sequence.finished) {
+        if (sound.state() === 'loaded' && !sound.playing()) sound.play();
         sound.fade(sound.volume(), data.volume, 120);
       }
       this.sfxLoopApplied.set(id, data.playing);

@@ -1,0 +1,250 @@
+{
+  "mode": "built-in imagegen",
+  "createdAt": "2026-10-04",
+  "pngCount": 24,
+  "poseCount": 736,
+  "assets": [
+    {
+      "id": "anteros",
+      "kind": "actions",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/anteros-actions.png",
+      "prompt": "Use case: identity-preserve. Asset type: transparent PNG sprite atlas for D8 Night tabletop character animations.\nImage 1 is the identity/style reference for anteros. Preserve exact face, hair, body proportions, clothing, colours and illustration linework. Change only poses; no costume redesign.\nCreate a strict 4-column by 10-row contact sheet of 40 separate FULL BODY character cutouts on genuinely transparent background. Each equal cell contains ONE entire character, centered with 20% transparent margin; never touch adjacent cells. No text, borders, shadows, backdrop, grids, scenery or floating disconnected props. Same apparent body size in ALL cells, all facing south/front three-quarter. For the seated reference remove the chair and stand in the same outfit.\nWithin each row the FOUR columns are successive animation frames, chronological left to right:\nrow 1 jump: crouch preparation, rising push-off, airborne knees tucked, landing crouch.\nrow 2 climb: reaching up, pulling with opposite arm, lifting leg, next handhold.\nrow 3 swim: alternating swimming arm strokes, body slightly forward but full body with legs visible, no water.\nrow 4 dodge: alert, duck left, lean right, recover.\nrow 5 stealth: crouched slow sneak four alternating foot steps.\nrow 6 search/study: glance left, bend examine, hand shade eyes, thoughtful recovery, no book or extra props.\nrow 7 ready: raise hands defensively, poised stance, tense anticipation, poised recovery.\nrow 8 interact/help/talk/use-object: reach one hand, gesture inviting, both hands assisting, lower hands.\nrow 9 fall: stagger, knees buckling, tipping, lying prone full body.\nrow 10 stand up: lying on side, pushing torso upright, one knee, standing neutral.\nAll poses anatomically plausible. Keep original adult/child identity and ages, modest original clothing; NO violence/gore. Clean painted fantasy RPG sprites, consistent lighting, crisp readable small-scale silhouettes. EXACTLY 40 separated cutouts in 4 x 10 order.",
+      "cornerAlpha": 0,
+      "rows": 10
+    },
+    {
+      "id": "anteros",
+      "kind": "run",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/anteros-run.png",
+      "prompt": "Use case: identity-preserve. Asset type: D8 Night transparent eight-direction RUNNING sprite atlas. Image 1 is identity/style reference for anteros. Keep exact original face, age, hair, body shape, clothing and colors. For seated reference remove chair, same outfit standing.\nCreate EXACTLY 32 full-body cutouts, strict four columns by eight rows on genuinely transparent background. Each equal cell contains one complete character with generous transparent margin, no contacts, cropping, text, borders, grids, scenery, shadows or props. Consistent body height and fantasy illustration linework.\nEach row is FOUR consecutive RUNNING frames alternating opposite feet, distinct from walking: leaning forward, pronounced arm pumping, legs extended, flight phase, cloak trailing naturally. Fixed facing per row:\n1 NORTH directly away from viewer, show BACK of head and outfit, no face;\n2 NORTHEAST back three-quarter looking towards upper-right;\n3 EAST right profile;\n4 SOUTHEAST front three-quarter towards lower-right;\n5 SOUTH directly towards viewer;\n6 SOUTHWEST front three-quarter towards lower-left;\n7 WEST left profile;\n8 NORTHWEST back three-quarter towards upper-left.\nAnatomically plausible, no redesign, no adultification of children, preserve asymmetrical outfit details, no weapons, no magic. Exactly 4x8 sprites, same scale throughout, consistent overhead tabletop three-quarter camera.",
+      "cornerAlpha": 0,
+      "rows": 8
+    },
+    {
+      "id": "fritz",
+      "kind": "actions",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/fritz-actions.png",
+      "prompt": "Use case: identity-preserve. Asset type: transparent PNG sprite atlas for D8 Night tabletop character animations.\nImage 1 is the identity/style reference for fritz. Preserve exact face, hair, body proportions, clothing, colours and illustration linework. Change only poses; no costume redesign.\nCreate a strict 4-column by 10-row contact sheet of 40 separate FULL BODY character cutouts on genuinely transparent background. Each equal cell contains ONE entire character, centered with 20% transparent margin; never touch adjacent cells. No text, borders, shadows, backdrop, grids, scenery or floating disconnected props. Same apparent body size in ALL cells, all facing south/front three-quarter. For the seated reference remove the chair and stand in the same outfit.\nWithin each row the FOUR columns are successive animation frames, chronological left to right:\nrow 1 jump: crouch preparation, rising push-off, airborne knees tucked, landing crouch.\nrow 2 climb: reaching up, pulling with opposite arm, lifting leg, next handhold.\nrow 3 swim: alternating swimming arm strokes, body slightly forward but full body with legs visible, no water.\nrow 4 dodge: alert, duck left, lean right, recover.\nrow 5 stealth: crouched slow sneak four alternating foot steps.\nrow 6 search/study: glance left, bend examine, hand shade eyes, thoughtful recovery, no book or extra props.\nrow 7 ready: raise hands defensively, poised stance, tense anticipation, poised recovery.\nrow 8 interact/help/talk/use-object: reach one hand, gesture inviting, both hands assisting, lower hands.\nrow 9 fall: stagger, knees buckling, tipping, lying prone full body.\nrow 10 stand up: lying on side, pushing torso upright, one knee, standing neutral.\nAll poses anatomically plausible. Keep original adult/child identity and ages, modest original clothing; NO violence/gore. Clean painted fantasy RPG sprites, consistent lighting, crisp readable small-scale silhouettes. EXACTLY 40 separated cutouts in 4 x 10 order.",
+      "cornerAlpha": 0,
+      "rows": 10
+    },
+    {
+      "id": "fritz",
+      "kind": "run",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/fritz-run.png",
+      "prompt": "Use case: identity-preserve. Asset type: D8 Night transparent eight-direction RUNNING sprite atlas. Image 1 is identity/style reference for fritz. Keep exact original face, age, hair, body shape, clothing and colors. For seated reference remove chair, same outfit standing.\nCreate EXACTLY 32 full-body cutouts, strict four columns by eight rows on genuinely transparent background. Each equal cell contains one complete character with generous transparent margin, no contacts, cropping, text, borders, grids, scenery, shadows or props. Consistent body height and fantasy illustration linework.\nEach row is FOUR consecutive RUNNING frames alternating opposite feet, distinct from walking: leaning forward, pronounced arm pumping, legs extended, flight phase, cloak trailing naturally. Fixed facing per row:\n1 NORTH directly away from viewer, show BACK of head and outfit, no face;\n2 NORTHEAST back three-quarter looking towards upper-right;\n3 EAST right profile;\n4 SOUTHEAST front three-quarter towards lower-right;\n5 SOUTH directly towards viewer;\n6 SOUTHWEST front three-quarter towards lower-left;\n7 WEST left profile;\n8 NORTHWEST back three-quarter towards upper-left.\nAnatomically plausible, no redesign, no adultification of children, preserve asymmetrical outfit details, no weapons, no magic. Exactly 4x8 sprites, same scale throughout, consistent overhead tabletop three-quarter camera.",
+      "cornerAlpha": 0,
+      "rows": 8
+    },
+    {
+      "id": "ben",
+      "kind": "actions",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/ben-actions.png",
+      "prompt": "Use case: identity-preserve. Asset type: transparent PNG sprite atlas for D8 Night tabletop character animations.\nImage 1 is the identity/style reference for ben. Preserve exact face, hair, body proportions, clothing, colours and illustration linework. Change only poses; no costume redesign.\nCreate a strict 4-column by 10-row contact sheet of 40 separate FULL BODY character cutouts on genuinely transparent background. Each equal cell contains ONE entire character, centered with 20% transparent margin; never touch adjacent cells. No text, borders, shadows, backdrop, grids, scenery or floating disconnected props. Same apparent body size in ALL cells, all facing south/front three-quarter. For the seated reference remove the chair and stand in the same outfit.\nWithin each row the FOUR columns are successive animation frames, chronological left to right:\nrow 1 jump: crouch preparation, rising push-off, airborne knees tucked, landing crouch.\nrow 2 climb: reaching up, pulling with opposite arm, lifting leg, next handhold.\nrow 3 swim: alternating swimming arm strokes, body slightly forward but full body with legs visible, no water.\nrow 4 dodge: alert, duck left, lean right, recover.\nrow 5 stealth: crouched slow sneak four alternating foot steps.\nrow 6 search/study: glance left, bend examine, hand shade eyes, thoughtful recovery, no book or extra props.\nrow 7 ready: raise hands defensively, poised stance, tense anticipation, poised recovery.\nrow 8 interact/help/talk/use-object: reach one hand, gesture inviting, both hands assisting, lower hands.\nrow 9 fall: stagger, knees buckling, tipping, lying prone full body.\nrow 10 stand up: lying on side, pushing torso upright, one knee, standing neutral.\nAll poses anatomically plausible. Keep original adult/child identity and ages, modest original clothing; NO violence/gore. Clean painted fantasy RPG sprites, consistent lighting, crisp readable small-scale silhouettes. EXACTLY 40 separated cutouts in 4 x 10 order.",
+      "cornerAlpha": 0,
+      "rows": 10
+    },
+    {
+      "id": "ben",
+      "kind": "run",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/ben-run.png",
+      "prompt": "Use case: identity-preserve. Asset type: D8 Night transparent eight-direction RUNNING sprite atlas. Image 1 is identity/style reference for ben. Keep exact original face, age, hair, body shape, clothing and colors. For seated reference remove chair, same outfit standing.\nCreate EXACTLY 32 full-body cutouts, strict four columns by eight rows on genuinely transparent background. Each equal cell contains one complete character with generous transparent margin, no contacts, cropping, text, borders, grids, scenery, shadows or props. Consistent body height and fantasy illustration linework.\nEach row is FOUR consecutive RUNNING frames alternating opposite feet, distinct from walking: leaning forward, pronounced arm pumping, legs extended, flight phase, cloak trailing naturally. Fixed facing per row:\n1 NORTH directly away from viewer, show BACK of head and outfit, no face;\n2 NORTHEAST back three-quarter looking towards upper-right;\n3 EAST right profile;\n4 SOUTHEAST front three-quarter towards lower-right;\n5 SOUTH directly towards viewer;\n6 SOUTHWEST front three-quarter towards lower-left;\n7 WEST left profile;\n8 NORTHWEST back three-quarter towards upper-left.\nAnatomically plausible, no redesign, no adultification of children, preserve asymmetrical outfit details, no weapons, no magic. Exactly 4x8 sprites, same scale throughout, consistent overhead tabletop three-quarter camera.",
+      "cornerAlpha": 0,
+      "rows": 8
+    },
+    {
+      "id": "margaret",
+      "kind": "actions",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/margaret-actions.png",
+      "prompt": "Use case: identity-preserve. Asset type: transparent PNG sprite atlas for D8 Night tabletop character animations.\nImage 1 is the identity/style reference for margaret. Preserve exact face, hair, body proportions, clothing, colours and illustration linework. Change only poses; no costume redesign.\nCreate a strict 4-column by 10-row contact sheet of 40 separate FULL BODY character cutouts on genuinely transparent background. Each equal cell contains ONE entire character, centered with 20% transparent margin; never touch adjacent cells. No text, borders, shadows, backdrop, grids, scenery or floating disconnected props. Same apparent body size in ALL cells, all facing south/front three-quarter. For the seated reference remove the chair and stand in the same outfit.\nWithin each row the FOUR columns are successive animation frames, chronological left to right:\nrow 1 jump: crouch preparation, rising push-off, airborne knees tucked, landing crouch.\nrow 2 climb: reaching up, pulling with opposite arm, lifting leg, next handhold.\nrow 3 swim: alternating swimming arm strokes, body slightly forward but full body with legs visible, no water.\nrow 4 dodge: alert, duck left, lean right, recover.\nrow 5 stealth: crouched slow sneak four alternating foot steps.\nrow 6 search/study: glance left, bend examine, hand shade eyes, thoughtful recovery, no book or extra props.\nrow 7 ready: raise hands defensively, poised stance, tense anticipation, poised recovery.\nrow 8 interact/help/talk/use-object: reach one hand, gesture inviting, both hands assisting, lower hands.\nrow 9 fall: stagger, knees buckling, tipping, lying prone full body.\nrow 10 stand up: lying on side, pushing torso upright, one knee, standing neutral.\nAll poses anatomically plausible. Keep original adult/child identity and ages, modest original clothing; NO violence/gore. Clean painted fantasy RPG sprites, consistent lighting, crisp readable small-scale silhouettes. EXACTLY 40 separated cutouts in 4 x 10 order.",
+      "cornerAlpha": 0,
+      "rows": 10
+    },
+    {
+      "id": "margaret",
+      "kind": "run",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/margaret-run.png",
+      "prompt": "Use case: identity-preserve. Asset type: D8 Night transparent eight-direction RUNNING sprite atlas. Image 1 is identity/style reference for margaret. Keep exact original face, age, hair, body shape, clothing and colors. For seated reference remove chair, same outfit standing.\nCreate EXACTLY 32 full-body cutouts, strict four columns by eight rows on genuinely transparent background. Each equal cell contains one complete character with generous transparent margin, no contacts, cropping, text, borders, grids, scenery, shadows or props. Consistent body height and fantasy illustration linework.\nEach row is FOUR consecutive RUNNING frames alternating opposite feet, distinct from walking: leaning forward, pronounced arm pumping, legs extended, flight phase, cloak trailing naturally. Fixed facing per row:\n1 NORTH directly away from viewer, show BACK of head and outfit, no face;\n2 NORTHEAST back three-quarter looking towards upper-right;\n3 EAST right profile;\n4 SOUTHEAST front three-quarter towards lower-right;\n5 SOUTH directly towards viewer;\n6 SOUTHWEST front three-quarter towards lower-left;\n7 WEST left profile;\n8 NORTHWEST back three-quarter towards upper-left.\nAnatomically plausible, no redesign, no adultification of children, preserve asymmetrical outfit details, no weapons, no magic. Exactly 4x8 sprites, same scale throughout, consistent overhead tabletop three-quarter camera.",
+      "cornerAlpha": 0,
+      "rows": 8
+    },
+    {
+      "id": "boris",
+      "kind": "actions",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/boris-actions.png",
+      "prompt": "Use case: identity-preserve. Asset type: transparent PNG sprite atlas for D8 Night tabletop character animations.\nImage 1 is the identity/style reference for boris. Preserve exact face, hair, body proportions, clothing, colours and illustration linework. Change only poses; no costume redesign.\nCreate a strict 4-column by 10-row contact sheet of 40 separate FULL BODY character cutouts on genuinely transparent background. Each equal cell contains ONE entire character, centered with 20% transparent margin; never touch adjacent cells. No text, borders, shadows, backdrop, grids, scenery or floating disconnected props. Same apparent body size in ALL cells, all facing south/front three-quarter. For the seated reference remove the chair and stand in the same outfit.\nWithin each row the FOUR columns are successive animation frames, chronological left to right:\nrow 1 jump: crouch preparation, rising push-off, airborne knees tucked, landing crouch.\nrow 2 climb: reaching up, pulling with opposite arm, lifting leg, next handhold.\nrow 3 swim: alternating swimming arm strokes, body slightly forward but full body with legs visible, no water.\nrow 4 dodge: alert, duck left, lean right, recover.\nrow 5 stealth: crouched slow sneak four alternating foot steps.\nrow 6 search/study: glance left, bend examine, hand shade eyes, thoughtful recovery, no book or extra props.\nrow 7 ready: raise hands defensively, poised stance, tense anticipation, poised recovery.\nrow 8 interact/help/talk/use-object: reach one hand, gesture inviting, both hands assisting, lower hands.\nrow 9 fall: stagger, knees buckling, tipping, lying prone full body.\nrow 10 stand up: lying on side, pushing torso upright, one knee, standing neutral.\nAll poses anatomically plausible. Keep original adult/child identity and ages, modest original clothing; NO violence/gore. Clean painted fantasy RPG sprites, consistent lighting, crisp readable small-scale silhouettes. EXACTLY 40 separated cutouts in 4 x 10 order.",
+      "cornerAlpha": 0,
+      "rows": 10
+    },
+    {
+      "id": "boris",
+      "kind": "run",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/boris-run.png",
+      "prompt": "Use case: identity-preserve. Asset type: D8 Night transparent eight-direction RUNNING sprite atlas. Image 1 is identity/style reference for boris. Keep exact original face, age, hair, body shape, clothing and colors. For seated reference remove chair, same outfit standing.\nCreate EXACTLY 32 full-body cutouts, strict four columns by eight rows on genuinely transparent background. Each equal cell contains one complete character with generous transparent margin, no contacts, cropping, text, borders, grids, scenery, shadows or props. Consistent body height and fantasy illustration linework.\nEach row is FOUR consecutive RUNNING frames alternating opposite feet, distinct from walking: leaning forward, pronounced arm pumping, legs extended, flight phase, cloak trailing naturally. Fixed facing per row:\n1 NORTH directly away from viewer, show BACK of head and outfit, no face;\n2 NORTHEAST back three-quarter looking towards upper-right;\n3 EAST right profile;\n4 SOUTHEAST front three-quarter towards lower-right;\n5 SOUTH directly towards viewer;\n6 SOUTHWEST front three-quarter towards lower-left;\n7 WEST left profile;\n8 NORTHWEST back three-quarter towards upper-left.\nAnatomically plausible, no redesign, no adultification of children, preserve asymmetrical outfit details, no weapons, no magic. Exactly 4x8 sprites, same scale throughout, consistent overhead tabletop three-quarter camera.",
+      "cornerAlpha": 0,
+      "rows": 8
+    },
+    {
+      "id": "bartender",
+      "kind": "actions",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/bartender-actions.png",
+      "prompt": "Use case: identity-preserve. Asset type: transparent PNG sprite atlas for D8 Night tabletop character animations.\nImage 1 is the identity/style reference for bartender. Preserve exact face, hair, body proportions, clothing, colours and illustration linework. Change only poses; no costume redesign.\nCreate a strict 4-column by 10-row contact sheet of 40 separate FULL BODY character cutouts on genuinely transparent background. Each equal cell contains ONE entire character, centered with 20% transparent margin; never touch adjacent cells. No text, borders, shadows, backdrop, grids, scenery or floating disconnected props. Same apparent body size in ALL cells, all facing south/front three-quarter. For the seated reference remove the chair and stand in the same outfit.\nWithin each row the FOUR columns are successive animation frames, chronological left to right:\nrow 1 jump: crouch preparation, rising push-off, airborne knees tucked, landing crouch.\nrow 2 climb: reaching up, pulling with opposite arm, lifting leg, next handhold.\nrow 3 swim: alternating swimming arm strokes, body slightly forward but full body with legs visible, no water.\nrow 4 dodge: alert, duck left, lean right, recover.\nrow 5 stealth: crouched slow sneak four alternating foot steps.\nrow 6 search/study: glance left, bend examine, hand shade eyes, thoughtful recovery, no book or extra props.\nrow 7 ready: raise hands defensively, poised stance, tense anticipation, poised recovery.\nrow 8 interact/help/talk/use-object: reach one hand, gesture inviting, both hands assisting, lower hands.\nrow 9 fall: stagger, knees buckling, tipping, lying prone full body.\nrow 10 stand up: lying on side, pushing torso upright, one knee, standing neutral.\nAll poses anatomically plausible. Keep original adult/child identity and ages, modest original clothing; NO violence/gore. Clean painted fantasy RPG sprites, consistent lighting, crisp readable small-scale silhouettes. EXACTLY 40 separated cutouts in 4 x 10 order.",
+      "cornerAlpha": 0,
+      "rows": 10
+    },
+    {
+      "id": "bartender",
+      "kind": "run",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/bartender-run.png",
+      "prompt": "Use case: identity-preserve. Asset type: D8 Night transparent eight-direction RUNNING sprite atlas. Image 1 is identity/style reference for bartender. Keep exact original face, age, hair, body shape, clothing and colors. For seated reference remove chair, same outfit standing.\nCreate EXACTLY 32 full-body cutouts, strict four columns by eight rows on genuinely transparent background. Each equal cell contains one complete character with generous transparent margin, no contacts, cropping, text, borders, grids, scenery, shadows or props. Consistent body height and fantasy illustration linework.\nEach row is FOUR consecutive RUNNING frames alternating opposite feet, distinct from walking: leaning forward, pronounced arm pumping, legs extended, flight phase, cloak trailing naturally. Fixed facing per row:\n1 NORTH directly away from viewer, show BACK of head and outfit, no face;\n2 NORTHEAST back three-quarter looking towards upper-right;\n3 EAST right profile;\n4 SOUTHEAST front three-quarter towards lower-right;\n5 SOUTH directly towards viewer;\n6 SOUTHWEST front three-quarter towards lower-left;\n7 WEST left profile;\n8 NORTHWEST back three-quarter towards upper-left.\nAnatomically plausible, no redesign, no adultification of children, preserve asymmetrical outfit details, no weapons, no magic. Exactly 4x8 sprites, same scale throughout, consistent overhead tabletop three-quarter camera.",
+      "cornerAlpha": 0,
+      "rows": 8
+    },
+    {
+      "id": "patron",
+      "kind": "actions",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/patron-actions.png",
+      "prompt": "Use case: identity-preserve. Asset type: transparent PNG sprite atlas for D8 Night tabletop character animations.\nImage 1 is the identity/style reference for patron. Preserve exact face, hair, body proportions, clothing, colours and illustration linework. Change only poses; no costume redesign.\nCreate a strict 4-column by 10-row contact sheet of 40 separate FULL BODY character cutouts on genuinely transparent background. Each equal cell contains ONE entire character, centered with 20% transparent margin; never touch adjacent cells. No text, borders, shadows, backdrop, grids, scenery or floating disconnected props. Same apparent body size in ALL cells, all facing south/front three-quarter. For the seated reference remove the chair and stand in the same outfit.\nWithin each row the FOUR columns are successive animation frames, chronological left to right:\nrow 1 jump: crouch preparation, rising push-off, airborne knees tucked, landing crouch.\nrow 2 climb: reaching up, pulling with opposite arm, lifting leg, next handhold.\nrow 3 swim: alternating swimming arm strokes, body slightly forward but full body with legs visible, no water.\nrow 4 dodge: alert, duck left, lean right, recover.\nrow 5 stealth: crouched slow sneak four alternating foot steps.\nrow 6 search/study: glance left, bend examine, hand shade eyes, thoughtful recovery, no book or extra props.\nrow 7 ready: raise hands defensively, poised stance, tense anticipation, poised recovery.\nrow 8 interact/help/talk/use-object: reach one hand, gesture inviting, both hands assisting, lower hands.\nrow 9 fall: stagger, knees buckling, tipping, lying prone full body.\nrow 10 stand up: lying on side, pushing torso upright, one knee, standing neutral.\nAll poses anatomically plausible. Keep original adult/child identity and ages, modest original clothing; NO violence/gore. Clean painted fantasy RPG sprites, consistent lighting, crisp readable small-scale silhouettes. EXACTLY 40 separated cutouts in 4 x 10 order.",
+      "cornerAlpha": 0,
+      "rows": 10
+    },
+    {
+      "id": "patron",
+      "kind": "run",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/patron-run.png",
+      "prompt": "Use case: identity-preserve. Asset type: D8 Night transparent eight-direction RUNNING sprite atlas. Image 1 is identity/style reference for patron. Keep exact original face, age, hair, body shape, clothing and colors. For seated reference remove chair, same outfit standing.\nCreate EXACTLY 32 full-body cutouts, strict four columns by eight rows on genuinely transparent background. Each equal cell contains one complete character with generous transparent margin, no contacts, cropping, text, borders, grids, scenery, shadows or props. Consistent body height and fantasy illustration linework.\nEach row is FOUR consecutive RUNNING frames alternating opposite feet, distinct from walking: leaning forward, pronounced arm pumping, legs extended, flight phase, cloak trailing naturally. Fixed facing per row:\n1 NORTH directly away from viewer, show BACK of head and outfit, no face;\n2 NORTHEAST back three-quarter looking towards upper-right;\n3 EAST right profile;\n4 SOUTHEAST front three-quarter towards lower-right;\n5 SOUTH directly towards viewer;\n6 SOUTHWEST front three-quarter towards lower-left;\n7 WEST left profile;\n8 NORTHWEST back three-quarter towards upper-left.\nAnatomically plausible, no redesign, no adultification of children, preserve asymmetrical outfit details, no weapons, no magic. Exactly 4x8 sprites, same scale throughout, consistent overhead tabletop three-quarter camera.",
+      "cornerAlpha": 0,
+      "rows": 8
+    },
+    {
+      "id": "patron-woman",
+      "kind": "actions",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/patron-woman-actions.png",
+      "prompt": "Use case: identity-preserve. Asset type: transparent PNG sprite atlas for D8 Night tabletop character animations.\nImage 1 is the identity/style reference for patron-woman. Preserve exact face, hair, body proportions, clothing, colours and illustration linework. Change only poses; no costume redesign.\nCreate a strict 4-column by 10-row contact sheet of 40 separate FULL BODY character cutouts on genuinely transparent background. Each equal cell contains ONE entire character, centered with 20% transparent margin; never touch adjacent cells. No text, borders, shadows, backdrop, grids, scenery or floating disconnected props. Same apparent body size in ALL cells, all facing south/front three-quarter. For the seated reference remove the chair and stand in the same outfit.\nWithin each row the FOUR columns are successive animation frames, chronological left to right:\nrow 1 jump: crouch preparation, rising push-off, airborne knees tucked, landing crouch.\nrow 2 climb: reaching up, pulling with opposite arm, lifting leg, next handhold.\nrow 3 swim: alternating swimming arm strokes, body slightly forward but full body with legs visible, no water.\nrow 4 dodge: alert, duck left, lean right, recover.\nrow 5 stealth: crouched slow sneak four alternating foot steps.\nrow 6 search/study: glance left, bend examine, hand shade eyes, thoughtful recovery, no book or extra props.\nrow 7 ready: raise hands defensively, poised stance, tense anticipation, poised recovery.\nrow 8 interact/help/talk/use-object: reach one hand, gesture inviting, both hands assisting, lower hands.\nrow 9 fall: stagger, knees buckling, tipping, lying prone full body.\nrow 10 stand up: lying on side, pushing torso upright, one knee, standing neutral.\nAll poses anatomically plausible. Keep original adult/child identity and ages, modest original clothing; NO violence/gore. Clean painted fantasy RPG sprites, consistent lighting, crisp readable small-scale silhouettes. EXACTLY 40 separated cutouts in 4 x 10 order.",
+      "cornerAlpha": 0,
+      "rows": 10
+    },
+    {
+      "id": "patron-woman",
+      "kind": "run",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/patron-woman-run.png",
+      "prompt": "Use case: identity-preserve. Asset type: D8 Night transparent eight-direction RUNNING sprite atlas. Image 1 is identity/style reference for patron-woman. Keep exact original face, age, hair, body shape, clothing and colors. For seated reference remove chair, same outfit standing.\nCreate EXACTLY 32 full-body cutouts, strict four columns by eight rows on genuinely transparent background. Each equal cell contains one complete character with generous transparent margin, no contacts, cropping, text, borders, grids, scenery, shadows or props. Consistent body height and fantasy illustration linework.\nEach row is FOUR consecutive RUNNING frames alternating opposite feet, distinct from walking: leaning forward, pronounced arm pumping, legs extended, flight phase, cloak trailing naturally. Fixed facing per row:\n1 NORTH directly away from viewer, show BACK of head and outfit, no face;\n2 NORTHEAST back three-quarter looking towards upper-right;\n3 EAST right profile;\n4 SOUTHEAST front three-quarter towards lower-right;\n5 SOUTH directly towards viewer;\n6 SOUTHWEST front three-quarter towards lower-left;\n7 WEST left profile;\n8 NORTHWEST back three-quarter towards upper-left.\nAnatomically plausible, no redesign, no adultification of children, preserve asymmetrical outfit details, no weapons, no magic. Exactly 4x8 sprites, same scale throughout, consistent overhead tabletop three-quarter camera.",
+      "cornerAlpha": 0,
+      "rows": 8
+    },
+    {
+      "id": "cow",
+      "kind": "actions",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/cow-actions.png",
+      "prompt": "Use case: identity-preserve. Image 1 is identity and style reference. Asset: transparent PNG animated sprite sheet for D8 Night. Same original brown-and-white horned cow, quadruped anatomy, no people. Rows: 1 jumping (crouch, push, airborne, land), 2 scrambling up a slope (four hoof placements, no slope drawn), 3 swimming (four paddling hoof phases, no water), 4 dodging (lower head, lean left, lean right, recover), 5 sneaking (four lowered-body hoof steps), 6 searching/sniffing (four head movements), 7 ready defensive (four lowered-horn alert poses), 8 interacting/nudging with muzzle (four gentle head gestures).\nSTRICTLY 4 COLUMNS by 8 ROWS, 32 complete separate FULL BODY sprites with LARGE TRANSPARENT GAPS. Each row has FOUR chronological animation frames left to right. Use equal rectangular cells; same physical character size all cells, centered feet. Entire silhouettes fit inside their cell. Absolutely no adjacent sprites touching or overlapping, no cut-off boots, horns or petals. Genuinely transparent background with alpha0, no brown background/checkerboard/ground/shadows/text/watermarks. Preserve original fantasy illustration style and character identity, no gore.",
+      "cornerAlpha": 0,
+      "rows": 8
+    },
+    {
+      "id": "cow",
+      "kind": "run",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/cow-run.png",
+      "prompt": "Use case: identity-preserve. Image 1 is identity and style reference. Asset: transparent PNG animated sprite sheet for D8 Night. Same original brown-and-white horned cow, quadruped anatomy, no people. Four genuine galloping frames per direction. Rows facing NORTH/back, NORTHEAST/back-right, EAST/right-profile, SOUTHEAST/front-right, SOUTH/front, SOUTHWEST/front-left, WEST/left-profile, NORTHWEST/back-left. Anatomically plausible hoof cycles, no walk cycles.\nSTRICTLY 4 COLUMNS by 8 ROWS, 32 complete separate FULL BODY sprites with LARGE TRANSPARENT GAPS. Each row has FOUR chronological animation frames left to right. Use equal rectangular cells; same physical character size all cells, centered feet. Entire silhouettes fit inside their cell. Absolutely no adjacent sprites touching or overlapping, no cut-off boots, horns or petals. Genuinely transparent background with alpha0, no brown background/checkerboard/ground/shadows/text/watermarks. Preserve original fantasy illustration style and character identity, no gore.",
+      "cornerAlpha": 0,
+      "rows": 8
+    },
+    {
+      "id": "roses",
+      "kind": "actions",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/roses-actions.png",
+      "prompt": "Use case: identity-preserve. Image 1 is identity and style reference. Asset: transparent PNG animated sprite sheet for D8 Night. Same original animated red rose-bush monster with glowing flower eyes and thorny tangled vine limbs, NO HUMAN/body/face/arms/legs added. Rows: 1 jump (root crouch/push/airborne/land), 2 climb (four vines reaching and gripping), 3 swim (four root paddling gestures, no water), 4 dodge (compress/lean left/right/recover), 5 stealth (four low bundled vine steps), 6 search (four flowers turning and exploring with vines), 7 ready (four defensive coiled-vine poses), 8 interact/help (four reaching vine gestures), 9 collapse (stagger/sag/tip/prone), 10 stand up (prone/rising roots/half upright/upright).\nSTRICTLY 4 COLUMNS by 10 ROWS, 40 complete separate FULL BODY sprites with LARGE TRANSPARENT GAPS. Each row has FOUR chronological animation frames left to right. Use equal rectangular cells; same physical character size all cells, centered feet. Entire silhouettes fit inside their cell. Absolutely no adjacent sprites touching or overlapping, no cut-off boots, horns or petals. Genuinely transparent background with alpha0, no brown background/checkerboard/ground/shadows/text/watermarks. Preserve original fantasy illustration style and character identity, no gore.",
+      "cornerAlpha": 0,
+      "rows": 10
+    },
+    {
+      "id": "roses",
+      "kind": "run",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/roses-run.png",
+      "prompt": "Use case: identity-preserve. Image 1 is identity and style reference. Asset: transparent PNG animated sprite sheet for D8 Night. Same original animated red rose-bush monster, NO HUMAN or extra limbs. Four fast scuttling RUN frames per direction with alternating rooted vine-foot placement. Rows NORTH/back, NORTHEAST/back-right, EAST/right-profile, SOUTHEAST/front-right, SOUTH/front, SOUTHWEST/front-left, WEST/left-profile, NORTHWEST/back-left. Preserve flower eye glow and arrangement, show plant back when facing away.\nSTRICTLY 4 COLUMNS by 8 ROWS, 32 complete separate FULL BODY sprites with LARGE TRANSPARENT GAPS. Each row has FOUR chronological animation frames left to right. Use equal rectangular cells; same physical character size all cells, centered feet. Entire silhouettes fit inside their cell. Absolutely no adjacent sprites touching or overlapping, no cut-off boots, horns or petals. Genuinely transparent background with alpha0, no brown background/checkerboard/ground/shadows/text/watermarks. Preserve original fantasy illustration style and character identity, no gore.",
+      "cornerAlpha": 0,
+      "rows": 8
+    },
+    {
+      "id": "silverfarben-hotel",
+      "kind": "rise",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/silverfarben-hotel-rise.png",
+      "prompt": "Use case: identity-preserve. Image 1 is identity and style reference. Asset: transparent PNG animated sprite sheet for D8 Night. Same original grayscale pencil-drawn young adult long-dreadlock scholar with leaf shoulder and leather travel outfit. Preserve MONOCHROME PENCIL STYLE, no colours or redraw identity. Row1 four collapse frames stagger/kneel/tip/lying prone. Row2 four stand-up frames prone/push up/one knee/fully upright. No book needed.\nSTRICTLY 4 COLUMNS by 2 ROWS, 8 complete separate FULL BODY sprites with LARGE TRANSPARENT GAPS. Each row has FOUR chronological animation frames left to right. Use equal rectangular cells; same physical character size all cells, centered feet. Entire silhouettes fit inside their cell. Absolutely no adjacent sprites touching or overlapping, no cut-off boots, horns or petals. Genuinely transparent background with alpha0, no brown background/checkerboard/ground/shadows/text/watermarks. Preserve original fantasy illustration style and character identity, no gore.",
+      "cornerAlpha": 0,
+      "rows": 2
+    },
+    {
+      "id": "rogue",
+      "kind": "rise",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/rogue-rise.png",
+      "prompt": "Use case: identity-preserve. Image 1 is identity and style reference. Asset: transparent PNG animated sprite sheet for D8 Night. Same original curly dark-haired freckled halfling woman rogue with cream fur collar, white diamond tunic, brown leather gloves, boots, belt and satchel. Preserve face and outfit exactly. Row1 four collapse frames stagger/kneel/tip/lying prone. Row2 four stand-up frames prone/push up/one knee/fully upright.\nSTRICTLY 4 COLUMNS by 2 ROWS, 8 complete separate FULL BODY sprites with LARGE TRANSPARENT GAPS. Each row has FOUR chronological animation frames left to right. Use equal rectangular cells; same physical character size all cells, centered feet. Entire silhouettes fit inside their cell. Absolutely no adjacent sprites touching or overlapping, no cut-off boots, horns or petals. Genuinely transparent background with alpha0, no brown background/checkerboard/ground/shadows/text/watermarks. Preserve original fantasy illustration style and character identity, no gore.",
+      "cornerAlpha": 0,
+      "rows": 2
+    },
+    {
+      "id": "rogue",
+      "kind": "unarmed",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/rogue-unarmed.png",
+      "prompt": "Use case: identity-preserve. Asset type: transparent PNG four-frame UNARMED attack sprite atlas for D8 Night. Image 1 is identity and outfit reference for rogue. Preserve EXACT original face, anatomy, age, hair, costume, colours and linework; change pose only. Create precisely FOUR complete full-body cutouts in ONE horizontal row, left to right: defensive guard with empty hands, pulling fist back, controlled forward punch, returning to guard. The four poses are chronological frames of one animation, all facing front three-quarter right. Same physical body height and feet baseline in all cells, generous empty transparent margin between figures, no cropped limbs, no overlapping figures. Both hands genuinely EMPTY: no dagger, weapon, magic, floating book, scenery, enemy, blood, text, border, ground shadow, backdrop or grid. No violence/gore. Crisp fantasy character cutout sprites consistent with original pencil/painted style, actually transparent alpha background. EXACTLY 4 poses.",
+      "cornerAlpha": 0,
+      "rows": 1
+    },
+    {
+      "id": "silverfarben-hotel",
+      "kind": "unarmed",
+      "path": "campaigns/one-shot/public/art/tokens/generated-20261004/silverfarben-hotel-unarmed.png",
+      "prompt": "Use case: identity-preserve. Asset type: transparent PNG four-frame UNARMED attack sprite atlas for D8 Night. Image 1 is identity and outfit reference for silverfarben-hotel. Preserve EXACT original face, anatomy, age, hair, costume, colours and linework; change pose only. Create precisely FOUR complete full-body cutouts in ONE horizontal row, left to right: defensive guard with empty hands, pulling fist back, controlled forward punch, returning to guard. The four poses are chronological frames of one animation, all facing front three-quarter right. Same physical body height and feet baseline in all cells, generous empty transparent margin between figures, no cropped limbs, no overlapping figures. Both hands genuinely EMPTY: no dagger, weapon, magic, floating book, scenery, enemy, blood, text, border, ground shadow, backdrop or grid. No violence/gore. Crisp fantasy character cutout sprites consistent with original pencil/painted style, actually transparent alpha background. EXACTLY 4 poses.",
+      "cornerAlpha": 0,
+      "rows": 1
+    }
+  ],
+  "manualCropSplits": [
+    {
+      "id": "anteros:run",
+      "x": 781,
+      "y": 541,
+      "splitY": 729
+    },
+    {
+      "id": "ben:actions",
+      "x": 80,
+      "y": 26,
+      "splitY": 172
+    },
+    {
+      "id": "ben:actions",
+      "x": 833,
+      "y": 754,
+      "splitY": 926
+    },
+    {
+      "id": "boris:actions",
+      "x": 94,
+      "y": 36,
+      "splitY": 170
+    },
+    {
+      "id": "boris:actions",
+      "x": 791,
+      "y": 49,
+      "splitY": 170
+    },
+    {
+      "id": "boris:actions",
+      "x": 64,
+      "y": 632,
+      "splitY": 760
+    },
+    {
+      "id": "boris:actions",
+      "x": 827,
+      "y": 756,
+      "splitY": 927
+    },
+    {
+      "id": "bartender:run",
+      "x": 560,
+      "y": 1184,
+      "splitY": 1365
+    }
+  ]
+}

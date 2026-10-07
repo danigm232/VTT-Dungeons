@@ -6,11 +6,16 @@ export type D8SceneRendererOptions = {
   integrated?: boolean;
   mapId?: string;
 };
+/** Surface deposition is cumulative; a short shower must not instantly paint everything. */
+export function advanceD8WeatherSurface(wet:number,snow:number,kind:string,intensity:number,seconds:number){
+  const level=Math.max(0,Math.min(1,intensity)),dt=Math.max(0,Math.min(1,seconds));
+  return {wet:Math.max(0,Math.min(1,wet+dt*(kind==='rain'?level/20:-1/120))),snow:Math.max(0,Math.min(1,snow+dt*(kind==='snow'?level/60:kind==='rain'?-1/90:-1/240)))};
+}
 
 export function createD8Scene(engine: any, canvas: any, options: D8SceneRendererOptions) {
   const BABYLON: any = options.babylon ?? (globalThis as any).BABYLON;
   const D8NIGHT = options.config;
-  const D8_VERSION = options.version ?? "V40";
+  const D8_VERSION = options.version ?? "V49";
   const integrated = options.integrated === true;
   if (!BABYLON || !D8NIGHT?.maps) throw new Error("D8 Babylon renderer is missing its public map config or Babylon runtime");
   const scene = new BABYLON.Scene(engine);
@@ -21,30 +26,31 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
 
   const hemi=new BABYLON.HemisphericLight("global",new BABYLON.Vector3(0,1,0),scene);
   hemi.intensity=0.28;
-  const glow=new BABYLON.GlowLayer("glow",scene); glow.intensity=0.72;
+  const glow=new BABYLON.GlowLayer("glow",scene,integrated?{mainTextureRatio:.25,blurKernelSize:16}:{}); glow.intensity=0.72;
+  if(integrated)glow.setExcludedByDefault(true);
 
   // V18 GRAPHICS PIPELINE — shared visual foundation for every D8 Night scene.
   // CANON remains untouched; this only affects VTT_AMBIENCE rendering.
-  const pipeline=new BABYLON.DefaultRenderingPipeline("d8_v18_pipeline",true,scene,[camera]);
+  const pipeline=new BABYLON.DefaultRenderingPipeline("d8_v18_pipeline",!integrated,scene,[camera]);
   // FXAA handles the post-processed image; stacking 4x MSAA on the HDR targets
   // was unnecessarily expensive on integrated GPUs and mobile clients.
   pipeline.samples=1;
   pipeline.fxaaEnabled=true;
-  pipeline.bloomEnabled=true;
+  pipeline.bloomEnabled=!integrated;
   pipeline.bloomThreshold=0.82;
   pipeline.bloomWeight=0.18;
   pipeline.bloomKernel=48;
   pipeline.bloomScale=0.50;
-  pipeline.sharpenEnabled=true;
+  pipeline.sharpenEnabled=!integrated;
   pipeline.sharpen.edgeAmount=0.12;
   pipeline.sharpen.colorAmount=1.0;
-  pipeline.imageProcessingEnabled=true;
+  pipeline.imageProcessingEnabled=!integrated;
 
   // SSAO2 gives grounded contact depth to props/walls without changing gameplay geometry.
   // Half-resolution ratio keeps the Playground/WebGL2 cost controlled.
   let ssao:any=null;
   try{
-    if(BABYLON.SSAO2RenderingPipeline){
+    if(!integrated&&BABYLON.SSAO2RenderingPipeline){
       ssao=new BABYLON.SSAO2RenderingPipeline("d8_v18_ssao",scene,{ssaoRatio:0.45,blurRatio:0.45});
       ssao.samples=8;
       ssao.radius=1.25;
@@ -74,6 +80,9 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
     }
     // Keep AO subtle on bright/exterior scenes and stronger in enclosed scenes.
     if(ssao){
+      // The Temple and Mirror maps have the densest solid scenery and lights;
+      // use half the AO taps there to keep their real-time view responsive.
+      ssao.samples=rt.id==="temple"||rt.id==="mirror"?4:8;
       ssao.radius=v.aoRadius??(mode==="exterior"?0.95:1.25);
       ssao.totalStrength=v.aoStrength??(mode==="exterior"?0.52:0.72);
       ssao.base=v.aoBase??0.08;
@@ -888,7 +897,7 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
     }
     else if(o.asset==="temple_floor"){
       const w=o.size[0],d=o.size[1],tile=o.tileSize??1.35;
-      const q=box("templeFloorMain",x,0.14,z,w,0.28,d,M.stone2,"BASE");
+      const q=box("templeFloorMain",x,o.y??0.14,z,w,0.28,d,M.stone2,"BASE");
       q.receiveShadows=true;q.isPickable=false;
       if(o.joints!==false){
         const lines:any[]=[];
@@ -916,7 +925,7 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
     else if(o.asset==="bar"){box("bar",x,0.56,z,10.8,1.12,1.05,M.wood);box("barTop",x,1.17,z,11.2,0.15,1.25,M.woodLight);box("barBack",x,0.85,z-1.55,10.6,1.7,0.38,M.woodDark);collider(x,z,10.8,1.05);for(let i=0;i<16;i++)cyl("bottle",x-4.8+i*0.63,1.24,z-1.15,0.14,0.45,i%3===0?M.green:(i%3===1?M.yellow:M.red));}
     else if(o.asset==="barrel_large"){cyl("barrel",x,1.05,z,1.65,2.1,M.wood);for(let i=0;i<4;i++)cyl("ring",x,0.2+i*0.58,z,1.72,0.05,M.stoneDark);collider(x,z,1.3,1.3);}
     else if(o.asset==="table_round"){cyl("table",x,0.68,z,2.1*s,0.18,M.woodLight);cyl("leg",x,0.34,z,0.48*s,0.68,M.woodDark);collider(x,z,1.35*s,1.35*s);}
-    else if(o.asset==="chair"){const r=new BABYLON.TransformNode("chair",scene);r.parent=rt.root;r.position.set(x,0,z);r.rotation.y=o.rotation??0;const a=BABYLON.MeshBuilder.CreateBox("seat",{width:0.55,height:0.15,depth:0.55},scene);a.position.y=0.36;a.material=M.wood;a.parent=r;const b=BABYLON.MeshBuilder.CreateBox("back",{width:0.55,height:0.7,depth:0.1},scene);b.position.set(0,0.68,0.23);b.material=M.woodDark;b.parent=r;}
+    else if(o.asset==="chair"){const r=new BABYLON.TransformNode("chair",scene);r.parent=rt.root;r.position.set(x,0,z);r.rotation.y=o.rotation??0;const a=BABYLON.MeshBuilder.CreateBox("seat",{width:0.55,height:0.15,depth:0.55},scene);a.position.y=0.36;a.material=M.wood;a.parent=r;const b=BABYLON.MeshBuilder.CreateBox("back",{width:0.55,height:0.7,depth:0.1},scene);b.position.set(0,0.68,-0.23);b.material=M.woodDark;b.parent=r;}
     else if(o.asset==="stool"){
       cyl("stoolSeat",x,0.48,z,0.72*s,0.15,M.woodLight);
       cyl("stoolLeg",x,0.23,z,0.18*s,0.46,M.woodDark);
@@ -1100,13 +1109,20 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
     }
     else if(o.asset==="round_room"){
       const radius=o.radius??3.0,segments=o.segments??18,opening=o.opening??2;
-      const segLen=2*Math.PI*radius/segments*0.95;
+      const segLen=2*Math.PI*radius/segments*1.06;
       for(let i=0;i<segments;i++){
         if(i<opening)continue;
-        const a=i/segments*Math.PI*2,px=x+Math.cos(a)*radius,pz=z+Math.sin(a)*radius;
+        const a=i/segments*Math.PI*2+(o.openingAngle??0),px=x+Math.cos(a)*radius,pz=z+Math.sin(a)*radius;
         const w=segLen,d=0.42,h=o.height??1.25;
-        const q=box("roundRoomWall",px,h/2,pz,w,h,d,i%3===0?M.stone2:M.stoneDark);
+        const q=box("roundRoomWall",px,h/2,pz,w,h,d,o.material?M[o.material]:i%3===0?M.stone2:M.stoneDark);
         q.rotation.y=-a-Math.PI/2;
+        if(o.material&&[7,15].includes(i)){
+          q.scaling.y=.5;q.position.y=h*.25;
+          const frame=new BABYLON.TransformNode('cabinWindowFrame',scene);frame.parent=parentFor('PROPS');frame.position.set(px,0,pz);frame.rotation.y=q.rotation.y;
+          const part=(name:string,lx:number,ly:number,pw:number,ph:number,mat:any)=>{const m=box(name,0,0,0,pw,ph,d,mat);m.parent=frame;m.position.set(lx,ly,0);m.metadata={d8Animated:true,buildingEnvelope:true};return m;};
+          part('roundRoomWall',0,h-.15,w,.3,M.wood);for(const side of [-1,1])part('roundRoomWall',side*(w+.65)/4,h*.70,(w-.65)/2,h*.4-.3,M.wood);
+          const glass=part('houseWindowGlass',0,h*.7,.65,h*.4-.3,windowGlass());glass.scaling.z=.08;part('houseWindowCross',0,h*.7,.045,h*.4-.3,M.woodDark);
+        }
         const cap=box("roundRoomCap",px,h+0.045,pz,w*1.04,0.09,d*1.12,i%2===0?M.stoneLight:M.stone2);
         cap.rotation.y=-a-Math.PI/2;
         const aw=Math.abs(Math.sin(a))*w+Math.abs(Math.cos(a))*d;
@@ -1220,29 +1236,15 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
       box("troughSideB",x,0.48,z+d*0.44,w,0.48,0.12,M.wood);
       box("troughEndA",x-w*0.47,0.48,z,0.12,0.48,d,M.wood);
       box("troughEndB",x+w*0.47,0.48,z,0.12,0.48,d,M.wood);
-      box("troughWater",x,0.43,z,w*0.86,0.04,d*0.70,M.water);
-      collider(x,z,w,d);
-    }
-    else if(o.asset==="cow_proxy"){
-      const body=sph("cowBody",x,1.0,z,1.55*s,M.ceramic);body.scaling.set(1.35,0.75,0.82);
-      const hx=x+(o.facing??1)*0.95*s;
-      const head=sph("cowHead",hx,1.02,z,0.72*s,M.ceramic);head.scaling.set(0.95,0.82,0.75);
-      for(const lx of [-0.45,0.45])for(const lz of [-0.38,0.38])cyl("cowLeg",x+lx*s,0.40,z+lz*s,0.14*s,0.80*s,M.woodDark);
-      cyl("cowHornA",hx+(o.facing??1)*0.20,1.36,z-0.22*s,0.10*s,0.38*s,M.wax);
-      cyl("cowHornB",hx+(o.facing??1)*0.20,1.36,z+0.22*s,0.10*s,0.38*s,M.wax);
-      if(rt.id==="market"){
-        for(const side of [-1,1]){
-          const patch=sph("artCowPatch",x-.12*s,1.08,z+side*.58*s,.70*s,M.iron);patch.scaling.set(1.25,.74,.35);
-          const ear=sph("artCowEar",hx,1.22,z+side*.32*s,.30*s,M.ceramic);ear.scaling.set(1,.30,.65);ear.rotation.x=side*.35;
-          sph("artCowEye",hx+(o.facing??1)*.20*s,1.12,z+side*.25*s,.07*s,M.iron);
-          cyl("artCowHoof",x+side*.45*s,.08,z-.38*s,.18*s,.16*s,M.iron);
-          cyl("artCowHoof",x+side*.45*s,.08,z+.38*s,.18*s,.16*s,M.iron);
-        }
-        const muzzle=sph("artCowMuzzle",hx+(o.facing??1)*.27*s,.86,z,.43*s,M.clothRed);muzzle.scaling.set(.55,.55,1.1);
-        const tail=cyl("artCowTail",x-(o.facing??1)*1.03*s,.85,z,.05*s,.75*s,M.ceramic);tail.rotation.z=(o.facing??1)*.22;
-        sph("artCowTailTuft",tail.position.x,.48,z,.17*s,M.iron);
+      const water=box("troughWater",x,0.43,z,w*0.86,0.04,d*0.70,M.water);
+      gentleWater('troughFlow',x,z,w*.86,d*.70,.462);
+      rt.updaters.push((t:number)=>{water.position.y=.43+Math.sin(t*1.8+x)*.009;});
+      for(let i=0;i<3;i++){
+        const ripple=BABYLON.MeshBuilder.CreateTorus("troughRipple",{diameter:.22,thickness:.008,tessellation:20},scene);
+        ripple.position.set(x+(i-1)*w*.22,.461,z);ripple.material=M.waterGlow;ripple.parent=parentFor("VFX");ripple.isPickable=false;
+        rt.updaters.push((t:number)=>{const p=(t*.27+i*.33)%1;ripple.scaling.set(.6+p*.9,1,.6+p*.9);ripple.visibility=(1-p)*.55;});
       }
-      collider(x,z,1.9*s,1.2*s);
+      collider(x,z,w,d);
     }
     else if(o.asset==="lantern_post"){
       const h=(o.height??2.6)*s;
@@ -1259,30 +1261,43 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
     }
     else if(o.asset==="house"){
       const w=(o.size?.[0]??8)*s,d=(o.size?.[1]??5)*s,h=(o.height??2.7)*s;
+      const frontSign=rt.id==='dinner'||rt.id==='garden'?1:-1,frontZ=z+frontSign*d*.5,doorX=o.doorX??x-w*.28,doorW=o.playable?1.8:w*.18,wallMaterial=o.material?M[o.material]:M.plaster;
+      const windowOffsets=[.05,.30];
       if(o.cutaway){
         const wall=0.22*s;
-        box("houseBackWall",x,h/2,z+d/2-wall/2,w,h,wall,M.plaster);
-        box("houseFrontWall",x,h/2,z-d/2+wall/2,w,h,wall,M.plaster);
-        box("houseLeftWall",x-w/2+wall/2,h/2,z,wall,h,d-wall*2,M.plaster);
-        box("houseRightWall",x+w/2-wall/2,h/2,z,wall,h,d-wall*2,M.plaster);
+        box("houseBackWall",x,h/2,z-frontSign*(d/2-wall/2),w,h,wall,wallMaterial);
+        facade('houseFrontWall',x,frontZ,w,h,wall,wallMaterial,[{x:doorX,w:doorW+.16,b:0,t:o.playable?Math.min(2.5,h-.1):h*.8},...windowOffsets.map(wx=>({x:x+w*wx,w:w*.16,b:h*.44,t:h*.72}))]);
+        box("houseLeftWall",x-w/2+wall/2,h/2,z,wall,h,d-wall*2,wallMaterial);
+        box("houseRightWall",x+w/2-wall/2,h/2,z,wall,h,d-wall*2,wallMaterial);
         box("houseInteriorFloor",x,0.08,z,w-wall*2,0.12,d-wall*2,M.woodLight);
       }else{
         box("houseBody",x,h/2,z,w,h,d,M.plaster);
       }
       box("houseBeamTop",x,h*0.88,z-d*0.51,w*1.02,0.16,0.14,M.woodDark);
       for(const bx of [-0.35,0.35])box("houseBeam",x+w*bx,h*0.50,z-d*0.51,0.16,h*0.90,0.14,M.woodDark);
-      const roofDepth=o.cutaway?d*0.32:d*1.18,roofZ=o.cutaway?z+d*0.34:z,roofMat=o.cutaway?M.roofLight:M.roof;
+      const roofDepth=d*1.18,roofZ=z,roofMat=M.roof;
       const pitch=0.30,rise=Math.tan(pitch)*w*0.5,slopeWidth=w*0.54/Math.cos(pitch);
       const roofA=box("roofA",x-w*0.25,h+rise*0.50,roofZ,slopeWidth,0.18,roofDepth,roofMat);roofA.rotation.z=pitch;
       const roofB=box("roofB",x+w*0.25,h+rise*0.50,roofZ,slopeWidth,0.18,roofDepth,roofMat);roofB.rotation.z=-pitch;
-      const frontZ=z-d*0.515,doorX=x-w*0.28,doorW=w*0.18;
+      for(const roof of [roofA,roofB])roof.metadata={...roof.metadata,interiorRoof:{x,z,w,d},tokenOccluder:true};
+      // Close BOTH gable ends. Full rectangular walls still left an open
+      // triangle beneath the pitched roof, making the house look unfinished.
+      for(const end of [-1,1]){
+        const centerZ=z+end*(d/2-.11*s),a=centerZ-.11*s,b=centerZ+.11*s;
+        const gable=new BABYLON.Mesh("houseGable",scene),data=new BABYLON.VertexData();
+        const positions=[x-w/2,h,a,x+w/2,h,a,x,h+rise,a,x-w/2,h,b,x+w/2,h,b,x,h+rise,b];
+        const indices=[0,2,1,3,4,5,0,1,4,0,4,3,1,2,5,1,5,4,2,0,3,2,3,5],normals:number[]=[];
+        BABYLON.VertexData.ComputeNormals(positions,indices,normals);
+        data.positions=positions;data.indices=indices;data.normals=normals;data.uvs=[0,0,1,0,.5,1,0,0,1,0,.5,1];data.applyToMesh(gable);
+        gable.material=wallMaterial;gable.parent=parentFor("PROPS");gable.isPickable=false;gable.receiveShadows=true;
+      }
       box("houseRoofRidge",x,h+rise+0.09,roofZ,0.22,0.20,roofDepth*1.04,M.woodDark);
       for(const side of [-1,1]){
         box("houseRoofEave",x+side*w*0.52,h+0.04,roofZ,0.18,0.20,roofDepth*1.06,M.woodDark);
         const fascia=box("houseRoofFascia",x+side*w*0.25,h+rise*0.50,roofZ-roofDepth*0.50,slopeWidth,0.16,0.13,M.woodLight);fascia.rotation.z=-side*pitch;
       }
       // Furnished rear corner stays within the existing, non-walkable house footprint.
-      if(o.cutaway){
+      if(o.cutaway&&!o.material){
         box("houseCabinet",x-w*0.32,0.45,z+d*0.26,w*0.19,0.90,0.72,M.woodDark);
         box("houseCabinetTop",x-w*0.32,0.93,z+d*0.26,w*0.20,0.10,0.80,M.woodLight);
         for(let plate=0;plate<3;plate++)cyl("houseCabinetPlate",x-w*0.32+plate*0.30-0.30,1.00,z+d*0.26,0.22,0.05,M.ceramic);
@@ -1296,28 +1311,30 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
         for(const side of [-1,1])box("houseKitchenLeg",x+side*0.74,0.38,z,0.14,0.70,0.82,M.woodDark);
         cyl("houseKitchenJug",x+0.53,0.97,z,0.23,0.32,M.ceramic);
       }
-      box("houseDoor",doorX,h*0.38,frontZ,doorW,h*0.76,0.10,M.woodDark);
-      box("houseDoorJambL",doorX-doorW*0.58,h*0.39,frontZ-0.055,0.13,h*0.80,0.16,M.woodLight);
-      box("houseDoorJambR",doorX+doorW*0.58,h*0.39,frontZ-0.055,0.13,h*0.80,0.16,M.woodLight);
-      box("houseDoorLintel",doorX,h*0.79,frontZ-0.055,doorW+0.28,0.15,0.16,M.woodLight);
-      sph("houseDoorKnob",doorX+doorW*0.30,h*0.39,frontZ-0.12,0.11,M.gold);
-      for(const wx of [0.05,0.30]){
-        const px=x+w*wx,pz=z-d*0.52;
-        const win=box("windowGlow",px,h*0.58,pz,w*0.16,h*0.28,0.08,M.lanternGlass);
+      if(!o.playable){
+        box("houseDoor",doorX,h*0.38,frontZ,doorW,h*0.76,0.10,M.woodDark);
+        box("houseDoorJambL",doorX-doorW*0.58,h*0.39,frontZ+frontSign*0.055,0.13,h*0.80,0.16,M.woodLight);
+        box("houseDoorJambR",doorX+doorW*0.58,h*0.39,frontZ+frontSign*0.055,0.13,h*0.80,0.16,M.woodLight);
+        box("houseDoorLintel",doorX,h*0.79,frontZ+frontSign*0.055,doorW+0.28,0.15,0.16,M.woodLight);
+        sph("houseDoorKnob",doorX+doorW*0.30,h*0.39,frontZ+frontSign*0.12,0.11,M.gold);
+      }
+      for(const wx of windowOffsets){
+        const px=x+w*wx,pz=z+frontSign*d*0.52;
+        const win=box("windowGlow",px,h*0.58,frontZ,w*0.16,h*0.28,0.025,o.cutaway?windowGlass():M.lanternGlass);
         win.scaling.y=1;
         const frameW=w*0.19,frameH=h*0.34;
-        box("houseWindowFrameTop",px,h*0.58+frameH*0.55,pz-0.06,frameW,0.10,0.13,M.woodLight);
-        box("houseWindowFrameBottom",px,h*0.58-frameH*0.55,pz-0.06,frameW,0.10,0.13,M.woodLight);
-        for(const side of [-1,1])box("houseWindowFrameSide",px+side*frameW*0.48,h*0.58,pz-0.06,0.10,frameH,0.13,M.woodLight);
-        box("houseWindowSill",px,h*0.58-frameH*0.66,pz-0.15,frameW+0.22,0.12,0.32,M.woodDark);
-        const wl=track(new BABYLON.PointLight("windowLight",new BABYLON.Vector3(px,h*0.72,pz-d*0.18),scene));
+        box("houseWindowFrameTop",px,h*0.58+frameH*0.55,pz+frontSign*0.06,frameW,0.10,0.13,M.woodLight);
+        box("houseWindowFrameBottom",px,h*0.58-frameH*0.55,pz+frontSign*0.06,frameW,0.10,0.13,M.woodLight);
+        for(const side of [-1,1])box("houseWindowFrameSide",px+side*frameW*0.48,h*0.58,pz+frontSign*0.06,0.10,frameH,0.13,M.woodLight);
+        box("houseWindowSill",px,h*0.58-frameH*0.66,pz+frontSign*0.15,frameW+0.22,0.12,0.32,M.woodDark);
+        const wl=track(new BABYLON.PointLight("windowLight",new BABYLON.Vector3(px,h*0.72,pz+frontSign*d*0.18),scene));
         wl.parent=rt.root;
         wl.diffuse=new BABYLON.Color3(1,0.43,0.12);
         wl.intensity=o.windowLightIntensity??0.55;
         wl.range=o.windowLightRange??4.8;
       }
-      for(let step=0;step<3;step++)box("houseEntryStone",doorX,h*0.045+step*0.015,frontZ-0.34-step*0.48,doorW+0.55-step*0.18,0.12,0.40,M.stoneLight);
-      collider(x,z,w,d);
+      for(let step=0;step<3;step++)box("houseEntryStone",doorX,h*0.045+step*0.015,frontZ+frontSign*(0.34+step*0.48),doorW+0.55-step*0.18,0.12,0.40,M.stoneLight);
+      if(!o.playable)collider(x,z,w,d);
     }
     else if(o.asset==="long_table"){
       const w=(o.size?.[0]??5.2)*s,d=(o.size?.[1]??1.35)*s;
@@ -1623,6 +1640,9 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
       cyl("column",x,h/2+0.20,z,d,h,M.stoneLight);
       cyl("columnCap",x,h+0.30,z,d*1.35,0.22,M.stone2);
       }
+      const light=track(new BABYLON.PointLight("templeCandleLight",new BABYLON.Vector3(x,h+.20,z),scene));
+      light.parent=rt.root;light.diffuse=new BABYLON.Color3(1,.56,.22);light.range=4.6;light.intensity=.65;
+      rt.updaters.push((t:number)=>{light.intensity=.65+Math.sin(t*8.3+x)*.06;});
       collider(x,z,d,d);
     }
     else if(o.asset==="archway"){
@@ -1660,7 +1680,8 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
       frame.parent=root;frame.position.y=1.65*s;frame.rotation.x=Math.PI/2;frame.material=M.gold;
       const glass=BABYLON.MeshBuilder.CreateDisc("mirrorGlass",{radius:0.96*s,tessellation:40},scene);
       glass.parent=root;glass.position.y=1.65*s;glass.rotation.y=Math.PI;glass.material=M.frost;
-      box("mirrorSupport",x,0.85,z,0.28*s,1.70*s,0.32*s,M.gold);
+        const support=box("mirrorSupport",x,0.35,z,0.28*s,.70*s,0.32*s,M.gold);support.parent=root;support.position.set(0,.35,-.18*s);
+      root.metadata={authoredPropId:'true-love-mirror'};
       rt.markers.magic.push({x,z,mesh:glass,seed:x-z});
       collider(x,z,1.4*s,1.0*s);
     }
@@ -1686,6 +1707,9 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
     else if(o.asset==="statue"){
       if(rt.id==="temple"){
         const stone=sanctuaryMaterial("carving");
+        stone.diffuseTexture=PROCEDURAL_SURFACES.stone?.texture??stone.diffuseTexture;
+        stone.bumpTexture=PROCEDURAL_SURFACES.stone?.normal??stone.bumpTexture;
+        if(stone.bumpTexture)stone.bumpTexture.level=.24;
         box("sanctuaryStatuePlinth",x,.53,z,1.8,.50,1.5,stone);
         cyl("sanctuaryStatueFoot",x,.9,z,1.12,.25,stone);
         const robe=BABYLON.MeshBuilder.CreateCylinder("sanctuaryStatueRobe",{height:1.65,diameterTop:.38,diameterBottom:1.05,tessellation:12},scene);
@@ -1707,10 +1731,10 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
     else if(o.asset==="stairs"){
       const steps=o.steps??5,sw=o.size?.[0]??2.6,depth=o.size?.[1]??2.8,totalH=o.height??0.75;
       for(let i=0;i<steps;i++){
-        const h=totalH*(i+1)/steps;
+        const h=totalH*(o.ascending==="north"?steps-i:i+1)/steps;
         const d=depth/steps;
         const zz=z-depth/2+d*(i+0.5);
-        const q=box("stair",x,h/2,zz,sw,h,d+0.02,M[o.material]??M.stone);
+        const q=box("stair",x,(o.baseHeight??0)+h/2,zz,sw,h,d+0.02,M[o.material]??M.stone);
         if(glow.addExcludedMesh)glow.addExcludedMesh(q);
       }
     }
@@ -1856,7 +1880,7 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
       const under=BABYLON.MeshBuilder.CreateCylinder("iceFloeUnder",{diameter:d*1.05,height:h*1.3,tessellation:o.tessellation??7},scene);
       under.position.set(x,h*0.45,z);under.scaling.z=o.depthScale??0.72;under.rotation.y=o.rotation??0;under.material=M.ice;under.parent=rt.root;
       const top=BABYLON.MeshBuilder.CreateCylinder("iceFloeTop",{diameter:d,height:h,tessellation:o.tessellation??7},scene);
-      top.position.set(x,h*1.1,z);top.scaling.z=o.depthScale??0.72;top.rotation.y=(o.rotation??0)+0.08;top.material=M.frost;top.parent=rt.root;
+      top.position.set(x,h*1.1,z);top.scaling.z=o.depthScale??0.72;top.rotation.y=o.rotation??0;top.material=M.frost;top.parent=rt.root;
     }
     else if(o.asset==="patio_ring"){
       const d=(o.diameter??5.0)*s,th=(o.thickness??0.28)*s;
@@ -1997,7 +2021,8 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
         for(let i=0;i<segments;i++){
           const a=i/segments*Math.PI*2,variation=0.92+seeded(i*8.7+13)*0.16;
           const nx=Math.cos(a)*scale*variation,nz=Math.sin(a)*scale*variation;
-          positions.push(nx*o.size[0]*0.5,0,nz*o.size[1]*0.5);uvs.push(0.5+nx*0.5,0.5+nz*0.5);
+          const outline=o.outline?.[i];
+          positions.push(outline?outline[0]*scale:nx*o.size[0]*0.5,0,outline?outline[1]*scale:nz*o.size[1]*0.5);uvs.push(0.5+nx*0.5,0.5+nz*0.5);
         }
         for(let i=0;i<segments;i++)indices.push(0,(i+1)%segments+1,i+1);
         const normals:number[]=[];for(let i=0;i<positions.length/3;i++)normals.push(0,1,0);
@@ -2006,6 +2031,15 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
         mesh.position.set(x,y,z);mesh.material=material;mesh.parent=parentFor(name==="waterArea"?"BASE":"VFX");mesh.isPickable=false;return mesh;
       };
       const water=rt.id==="mirror"?createFrozenPool("waterArea",0.055,1.0,waterMat):box("waterArea",x,0.055,z,o.size[0],0.10,o.size[1],waterMat,"BASE");
+      if(rt.id==='temple'){
+        gentleWater('templeFlow',x,z,o.size[0]*.985,o.size[1]*.96,.135);
+        const texture=track(new BABYLON.DynamicTexture('templeWaterFlow',{width:256,height:256},scene,false)),ctx:any=texture.getContext();
+        ctx.fillStyle='#24627c';ctx.fillRect(0,0,256,256);
+        for(let i=0;i<28;i++){ctx.strokeStyle=`rgba(175,226,224,${.06+(i%4)*.025})`;ctx.lineWidth=1;ctx.beginPath();for(let px=0;px<=256;px+=4){const py=i*10+Math.sin(px*.05+i)*3;px?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.stroke();}texture.update(false);texture.wrapU=texture.wrapV=BABYLON.Texture.WRAP_ADDRESSMODE;
+        const paint=track(cloneSurfaceMaterial(waterMat,'templeMovingWater'));paint.diffuseTexture=texture;paint.specularColor=new BABYLON.Color3(.34,.48,.55);paint.specularPower=96;
+        paint.bumpTexture=PROCEDURAL_SURFACES.ice?.normal??null;water.material=paint;
+        rt.updaters.push((t:number)=>{texture.uOffset=t*.009;texture.vOffset=Math.sin(t*.18)*.025;});
+      }
       water.receiveShadows=true;
       water.isPickable=false;
       const shimmer=rt.id==="mirror"?createFrozenPool("waterShimmer",0.112,0.92,shimmerMat):box("waterShimmer",x,0.112,z,o.size[0]*0.985,0.014,o.size[1]*0.92,shimmerMat,"VFX");
@@ -2210,7 +2244,7 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
     const roses=[...(rt.markers.roses??[])];
     if(!roses.length)return;
     rt.updaters.push((t:number)=>{
-      for(const r of roses){r.mesh.position.y=r.baseY+Math.sin(t*1.4+r.seed)*0.018;r.mesh.rotation.z=Math.sin(t*1.1+r.seed)*0.08;}
+      for(const r of roses){r.mesh.position.y=r.baseY+Math.sin(t*1.4+r.seed)*0.018;r.mesh.rotation.z=Math.sin(t*1.1+r.seed)*(.02+(rt.windIntensity??.2)*.10);}
     });
   }
 
@@ -2283,7 +2317,7 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
     light.diffuse=new BABYLON.Color3(color[0],color[1],color[2]);
     light.specular=new BABYLON.Color3(color[0]*0.22,color[1]*0.22,color[2]*0.22);
 
-    const mapSize=sh.mapSize??(lighting.mode==="exterior"?2048:1024);
+    const mapSize=integrated?512:sh.mapSize??(lighting.mode==="exterior"?2048:1024);
     const gen=track(new BABYLON.ShadowGenerator(mapSize,light));
     gen.useBlurExponentialShadowMap=true;
     gen.blurKernel=sh.blurKernel??(lighting.mode==="exterior"?20:14);
@@ -2297,13 +2331,13 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
       // too broad for exponential shadows and was erasing column silhouettes.
       light.autoCalcShadowZBounds=true;light.shadowMinZ=.1;light.shadowMaxZ=95;
       gen.usePercentageCloserFiltering=true;
-      gen.filteringQuality=BABYLON.ShadowGenerator.QUALITY_MEDIUM;
+      gen.filteringQuality=integrated?BABYLON.ShadowGenerator.QUALITY_LOW:BABYLON.ShadowGenerator.QUALITY_MEDIUM;
       gen.bias=.00035;gen.normalBias=.025;
       gen.getShadowMap().refreshRate=0;
     }
     else if(["cafe","garden","market","mirror"].includes(rt.id)){
       light.autoCalcShadowZBounds=true;light.shadowMinZ=.1;light.shadowMaxZ=65;
-      gen.usePercentageCloserFiltering=true;gen.filteringQuality=BABYLON.ShadowGenerator.QUALITY_MEDIUM;
+      gen.usePercentageCloserFiltering=true;gen.filteringQuality=integrated?BABYLON.ShadowGenerator.QUALITY_LOW:BABYLON.ShadowGenerator.QUALITY_MEDIUM;
       gen.bias=.0004;gen.normalBias=.025;
     }
 
@@ -2331,6 +2365,7 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
     eligible.sort((a:any,b:any)=>b.score-a.score);
     eligible.slice(0,112).forEach((q:any)=>gen.addShadowCaster(q.mesh));
     rt.shadowCasterCount=Math.min(112,eligible.length);
+    rt.dayLightBases?.set(light,{intensity:light.intensity,color:light.diffuse.clone()});
   }
 
   const player=BABYLON.MeshBuilder.CreateCylinder("player",{diameter:0.62,height:0.84,tessellation:24},scene);player.material=M.player;player.isVisible=!integrated;
@@ -2511,9 +2546,11 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
     b("floorEdgeFrontR",7.2,0.07,7.82,9.4,0.14,0.22,woodDark);
 
     const yardMat=new BABYLON.StandardMaterial("tavernYardMatV34",scene);
-    yardMat.diffuseColor=new BABYLON.Color3(0.28,0.20,0.13);
-    yardMat.ambientColor=new BABYLON.Color3(0.55,0.45,0.34);
-    yardMat.emissiveColor=new BABYLON.Color3(0.035,0.025,0.018);
+    // The forecourt shares the village's cool stone rather than forming a
+    // separate brown rectangular mat underneath the road.
+    yardMat.diffuseColor=new BABYLON.Color3(0.22,0.22,0.21);
+    yardMat.ambientColor=new BABYLON.Color3(0.38,0.38,0.36);
+    yardMat.emissiveColor=new BABYLON.Color3(0.026,0.026,0.024);
     yardMat.specularColor=new BABYLON.Color3(0.01,0.01,0.01);
     rt.disposables.push(yardMat);
     const yard=box("tavernExteriorYard",0,-0.055,9.85,28,0.10,4.9,yardMat,"BASE");
@@ -2547,12 +2584,25 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
     };
 
     // Room shell.
-    b("wallBack",0,0.90,-7.65,24,1.8,0.65,stoneDark);collider(0,-7.65,24,0.65);
-    b("wallLeft",-11.65,0.90,-2.35,0.65,1.8,10.6,stoneDark);collider(-11.65,-2.35,0.65,10.6);
-    b("wallRight",11.65,0.90,-2.00,0.65,1.8,11.2,stoneDark);collider(11.65,-2.00,0.65,11.2);
-    b("wallCopingBack",0,1.86,-7.65,24.1,0.15,0.77,stoneLight);
-    b("wallCopingLeft",-11.65,1.86,-2.35,0.77,0.15,10.65,stoneLight);
-    b("wallCopingRight",11.65,1.86,-2.00,0.77,0.15,11.25,stoneLight);
+    facade('cafe12_wallBack',0,-7.65,24,3.2,.65,stoneDark,[-6.4,1,8.7].map(x=>({x,w:1.39,b:1.52,t:2.82})));collider(0,-7.65,24,.65);
+    b("wallLeft",-11.65,1.6,0,0.65,3.2,15.3,stoneDark);collider(-11.65,0,.65,15.3);
+    b("wallRight",11.65,1.6,0,0.65,3.2,15.3,stoneDark);collider(11.65,0,.65,15.3);
+    facade('cafe12_wallFront',0,7.55,24,3.2,.52,wood,[{x:.75,w:2.1,b:0,t:2.5},...[-8,-4,4,8].map(x=>({x,w:1.55,b:1.4,t:2.6}))]);
+    collider(-6.15,7.55,11.7,.52);collider(6.975,7.55,10.05,.52);
+    for(const x of [-10,-4.8,-2,3,6,10])b('wallTimberPost',x,1.6,-7.29,.16,3.2,.16,woodDark);
+    for(const y of [.45,1.2,2.6])b('wallTimberRail',0,y,-7.29,23.3,.14,.12,woodLight);
+    b('wallTimberWainscot',0,.48,-7.28,23.25,.96,.11,wood);
+    for(const side of [-1,1])b('wallTimberWainscotSide',side*11.28,.48,0,.11,.96,14.6,wood);
+    b("wallCopingBack",0,3.26,-7.65,24.1,0.15,0.77,stoneLight);
+    b("wallCopingLeft",-11.65,3.26,0,0.77,0.15,15.3,stoneLight);
+    b("wallCopingRight",11.65,3.26,0,0.77,0.15,15.3,stoneLight);
+    // A real centred entrance. Hinges open inward, clear of the courtyard and trough.
+    b('entryLintel',.75,2.65,7.55,2.25,.24,.7,woodLight);
+    for(const x of [-8,-4,4,8]){
+      const glass=b('frontWindowGlass',x,2,7.55,1.55,1.2,.025,windowGlass());
+      b('frontWindowFrame',x,2,7.9,.08,1.24,.1,woodDark);b('frontWindowCross',x,2,7.9,1.58,.08,.1,woodDark);
+      const light=track(new BABYLON.PointLight('cafeWindowLight',new BABYLON.Vector3(x,2,7.3),scene));light.parent=rt.root;light.diffuse=new BABYLON.Color3(1,.62,.28);light.intensity=.65;light.range=5;
+    }
     // Short eave strips imply a roof/ceiling, but leave the playable room open.
     b("cutawayEaveBack",0,2.06,-7.62,24.25,0.18,0.42,woodDark);
     for(const px of [-10.4,-6.2,-2,2.2,6.4,10.6])b("ceilingJoistStub",px,2.02,-7.0,0.17,0.18,1.35,wood);
@@ -2589,10 +2639,10 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
 
     const table=(x:number,z:number)=>{
       contactShadow("table"+x+z,x,z,2.2,1.0,0.82);cy("tableTop",x,0.68,z,2.10,0.18,woodLight);cy("tableLeg",x,0.34,z,0.48,0.68,woodDark);collider(x,z,1.35,1.35);
-      for(const [dx,dz,r] of [[0,-1.45,0],[0,1.45,Math.PI],[-1.45,0,-Math.PI/2],[1.45,0,Math.PI/2]] as any[]){
+      for(const [dx,dz,r] of [[0,-1.45,0],[0,1.45,Math.PI],[-1.45,0,Math.PI/2],[1.45,0,-Math.PI/2]] as any[]){
         const root=new BABYLON.TransformNode("cafe12_chair",scene);root.parent=rt.root;root.position.set(x+dx,0,z+dz);root.rotation.y=r;
         const seat=BABYLON.MeshBuilder.CreateBox("cafe12_chairSeat",{width:0.55,height:0.15,depth:0.55},scene);seat.position.y=0.36;seat.material=wood;seat.parent=root;
-        const back=BABYLON.MeshBuilder.CreateBox("cafe12_chairBack",{width:0.55,height:0.68,depth:0.10},scene);back.position.set(0,0.68,0.23);back.material=woodDark;back.parent=root;
+        const back=BABYLON.MeshBuilder.CreateBox("cafe12_chairBack",{width:0.55,height:0.68,depth:0.10},scene);back.position.set(0,0.68,-0.23);back.material=woodDark;back.parent=root;
         if(glow.addExcludedMesh){glow.addExcludedMesh(seat);glow.addExcludedMesh(back);}
       }
       for(let i=0;i<4;i++){const a=i*Math.PI/2;cy("plate",x+Math.cos(a)*0.58,0.80,z+Math.sin(a)*0.58,0.34,0.035,ceramic);}
@@ -2711,12 +2761,16 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
       const x=p[0],z=p[1],y=1.75;
       const flame=sph("cafe12_torchFlame",x,y+0.30,z,0.22,M.fireInner,"VFX");flame.scaling.y=1.45;
       const by=flame.position.y;rt.updaters.push((t:number)=>{const f=Math.sin(t*10.2+i);flame.position.y=by+f*0.025;flame.scaling.y=1.45+f*0.10;});
+      const light=warmLight('cafeTorchLight',x,y+.20,z,.95,4.5,[1,.48,.16]);
+      rt.updaters.push((t:number)=>light.intensity=.95+Math.sin(t*9+i)*.065);
     });
 
-    // Candles remain visible/emissive, but do not each allocate a WebGL light UBO.
+    // Bounded per-mesh membership below selects the nearby candle lights.
     for(const [x,z] of [[-5.3,0.45],[1.55,2.25],[5.05,-0.45]] as any[]){
       cy("candle",x,0.87,z,0.095,0.30,wax);
       const flame=sph("cafe12_candleFlame",x,1.10,z,0.10,M.fireInner,"VFX");flame.scaling.y=1.28;
+      const light=warmLight('cafeCandleLight',x,1.12,z,.50,2.8,[1,.60,.25]);
+      rt.updaters.push((t:number)=>light.intensity=.50+Math.sin(t*7+x)*.035);
     }
 
     // V34 hanging tavern lanterns.
@@ -2764,7 +2818,9 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
     const pts=(scene.lights??[]).filter((l:any)=>l&&l.getClassName&&l.getClassName()==="PointLight"&&l.parent===rt.root&&!l.isDisposed?.());
     if(pts.length<=maxCount)return;
     pts.sort((a:any,b:any)=>((b.intensity??0)*(b.range??1))-((a.intensity??0)*(a.range??1)));
-    pts.forEach((l:any,i:number)=>{if(i>=maxCount)l.setEnabled(false);});
+    // Keep local sources alive. Their affected meshes are budgeted below,
+    // rather than silently switching off candles that remain visibly lit.
+    pts.forEach((l:any)=>l.setEnabled(true));
   }
 
   // The art pass is opt-in and map-local. In particular Dinner and the approved
@@ -2906,9 +2962,8 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
       hemi.diffuse=new BABYLON.Color3(.78,.84,.94);hemi.intensity=.42;
       scene.clearColor=new BABYLON.Color4(.027,.033,.045,1);
       for(const x of [-6.4,1.0,8.7]){
-        detail(x,2.15,-7.30,1.7,1.65,.11,"darkwood");
-        const glass=track(new BABYLON.StandardMaterial("tavernLeadedGlass"+x,scene));glass.metadata={d8Authored:true};glass.diffuseColor=new BABYLON.Color3(.26,.42,.52);glass.emissiveColor=new BABYLON.Color3(.045,.09,.13);
-        box("artWindow",x,2.17,-7.22,1.39,1.30,.055,glass);
+        for(const side of [-1,1]){detail(x+side*.76,2.17,-7.30,.13,1.56,.11,"darkwood");detail(x,2.17+side*.72,-7.30,1.65,.13,.11,"darkwood");}
+        box("artWindow",x,2.17,-7.65,1.39,1.30,.025,windowGlass());
         for(const dx of [-.45,0,.45])detail(x+dx,2.17,-7.17,.038,1.31,.035,"gold");
         for(const y of [1.8,2.3])detail(x,y,-7.17,1.39,.035,.035,"gold");
         detail(x,1.32,-7.13,1.95,.16,.42,"stone");
@@ -2951,12 +3006,22 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
       cyl("artDetail",8.72,.65,-2.40,1.12,.11,mat("wood"));cyl("artDetail",8.72,.33,-2.4,.15,.60,mat("darkwood"));
       detail(8.72,.72,-2.4,.38,.02,.28,"snow");cyl("artDetail",8.96,.85,-2.4,.15,.23,mat("gold"));
       detail(5.57,.48,-3.9,.65,.86,1.35,"darkwood");detail(5.57,.94,-3.9,.74,.09,1.44,"wood");books(5.55,1,-4.14);
-      wovenBasket(8.30,.12,-4.96,.60);lantern(6.2,1.15,-1.1);lantern(8.72,.96,-2.6);
-      for(let i=0;i<20;i++){
+      wovenBasket(8.30,.12,-4.96,.60);lantern(5.57,1.22,-3.35);lantern(8.72,.96,-2.6);
+      // The old circular refuge had snow caps at wall height. They cannot remain
+      // suspended inside the new timber cabin when its roof is cut away.
+      for(let i=0;c.MAP.objects.some(o=>o.asset==='round_room')&&i<20;i++){
         const a=i/20*Math.PI*2;if(i<3)continue;
         const x=7.2+Math.cos(a)*3.3,z=-3+Math.sin(a)*3.3;
         const q=orb(x,1.34,z,.76,"snow",1.18,.18,.58);q.rotation.y=-a;
         for(let k=0;k<2;k++)detail(x,.34+k*.44,z,.075,.022,.08,"recess");
+      }
+      const cabin=c.MAP.objects.find(o=>o.asset==='house'&&o.playable);
+      if(cabin){const [cx,cz]=cabin.position,[w,d]=cabin.size;
+        for(const side of [-1,1])for(let i=0;i<7;i++){
+          const x=cx+(i/6-.5)*w,z=cz+side*(d/2+.22);
+          if(side===1&&Math.abs(x-cabin.doorX)<1.15)continue;
+          const drift=orb(x,.08,z,.55,'snow',1.3,.24,.65);drift.name='fritzCabinSnowDrift';
+        }
       }
       // Raised snow banks break the board-like outline, within the existing beds.
       for(const bed of c.MAP.objects.filter(o=>o.asset==="rose_patch")){
@@ -3071,6 +3136,7 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
         for(let i=0;i<4;i++){const a=i*2.1+rot;beam([x,.18,z],[x+Math.cos(a)*d*.35,.18,z+Math.sin(a)*d*.28],.018,"frost");}
       }
       const x=-9.2,z=-2.5;
+      const beforeRelic=new Set(rt.root.getChildMeshes());
       // An ornate silver/gold relic becomes the focal point, not a green hoop.
       for(const m of meshes.filter(m=>/mirrorFrame|magicRing/i.test(m.name)))m.material=mat("gold");
       const mirror=meshes.find(m=>m.name==="mirrorGlass");
@@ -3094,15 +3160,16 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
         beam([x+side*.86,.65,z],[x+side*1.04,1.45,z],.085,"gold");
         orb(x+side*1.02,1.56,z,.23,"ice");
       }
-      for(let i=0;i<8;i++){const a=i/8*Math.PI*2;cyl("artDetail",x+Math.cos(a)*.89,.24,z+Math.sin(a)*.89,.12,.36,mat("gold"));}
+        for(let i=0;i<8;i++){const a=i/8*Math.PI*2;cyl("artDetail",x+Math.cos(a)*.89,.24,z+Math.sin(a)*.89,.12,.36,mat("gold"));}
       localLight("mirrorRelicLight",x,1.8,z,[.34,.82,1],1.1,7);
+      for(const mesh of rt.root.getChildMeshes())if(!beforeRelic.has(mesh))mesh.metadata={...mesh.metadata,authoredPropId:'true-love-mirror',d8Animated:true};
       localLight("mirrorVioletRim",9,2,-6,[.39,.43,1],.8,10);
     }
     for(const mesh of rt.root.getChildMeshes())if(/^art/.test(mesh.name)){mesh.isPickable=false;mesh.receiveShadows=true;if(mesh.parent!==rt.layers.VFX)glow.addExcludedMesh?.(mesh);}
   }
 
   function balanceSanctuaryLights(){
-    if(rt.id!=="temple"&&!["cafe","garden","market","mirror"].includes(rt.id))return;
+    if(rt.id!=="temple"&&!["cafe","garden","market","mirror","dinner"].includes(rt.id))return;
     // Babylon's range limits attenuation, not shader-light allocation. Without
     // per-mesh membership, the first four torches consume the budget even for
     // the altar on the other side of the room. Reuse the actual local lights.
@@ -3170,6 +3237,462 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
     });
   }
 
+  // The village is one place seen from different local boards. These landmarks
+  // deliberately repeat: Café lies west of the square, the Temple road climbs
+  // to the coast, and the estate sits beyond the same settlement.
+  function authoredDistrictV2(p:any,makeMaterial:any,makeTerrainMaterial:any,continuousFloor:any){
+    if(!["coast","village","nightMarket","estate"].includes(p.style))return;
+    const district=p.style!=="coast";
+    const verge=makeTerrainMaterial("districtVerge",p.style==="coast"?"#61735e":"#4b5c50","village",3);
+    const stone=makeMaterial("districtStone",p.style==="coast"?"#a9ada1":"#777984",.6);
+    const trim=makeMaterial("districtTrim","#433a3b",.12);
+    const oak=makeMaterial("districtOak","#896d54",.82);
+    const iron=makeMaterial("districtIron","#34383a",.50);
+    const plaster=["#c3ae90","#ac9a82","#b4a28d","#bca38d"].map((hex,i)=>makeMaterial("districtPlaster"+i,hex,.8));
+    const roofs=["#805c52","#646b6e","#70645b","#5e6864"].map((hex,i)=>makeMaterial("districtRoof"+i,hex,.82));
+    const gold=makeMaterial("districtWindow","#ffca77",1);
+    const leaf=makeMaterial("districtHedge",p.style==="coast"?"#476444":"#425e48",.04);
+    const treeLeaf=makeMaterial("districtTreeLeaf","#476a55",.65);
+    const awning=[makeMaterial("districtCanvasWine","#795055",.55),makeMaterial("districtCanvasCream","#b9a785",.55),makeMaterial("districtCanvasBlue","#657580",.55)];
+    const textured=(material:any,kind:string)=>{
+      material.disableLighting=false;material.emissiveColor=material.diffuseColor.scale(.025);
+      material.diffuseTexture=PROCEDURAL_SURFACES[kind]?.texture??null;
+      material.bumpTexture=PROCEDURAL_SURFACES[kind]?.normal??null;material.maxSimultaneousLights=4;
+    };
+    textured(stone,'stone');textured(oak,'wood');textured(trim,'wood');
+    for(const material of plaster)textured(material,'stucco');
+    for(const material of roofs)textured(material,'roof');
+    for(const material of awning)textured(material,'cloth');
+    leaf.disableLighting=false;leaf.emissiveColor=leaf.diffuseColor.scale(.025);
+    const prop=(name:string,shape:any,position:[number,number,number],material:any,parent:any=parentFor("PROPS"))=>{
+      const mesh=BABYLON.MeshBuilder.CreateBox("d8-horizon-"+name,shape,scene);
+      mesh.position.set(...position);mesh.material=material;mesh.parent=parent;mesh.isPickable=false;mesh.receiveShadows=true;
+      return mesh;
+    };
+    const floorPatch=(name:string,x:number,z:number,w:number,d:number,material:any,y=-.002)=>{
+      const mesh=BABYLON.MeshBuilder.CreateGround("d8-horizon-"+name,{width:w,height:d},scene);
+      mesh.position.set(x,y,z);mesh.material=material;mesh.parent=parentFor("BASE");mesh.isPickable=false;mesh.receiveShadows=false;
+      return mesh;
+    };
+    // The surrounding floor remains visible between individual setts. A flat
+    // rectangular overlay used to hide its texture and looked like a sticker.
+    const road=(name:string,points:Array<[number,number]>,width:number)=>{
+      const tones=(p.style==="coast"?["#9a9880","#aca88d","#8d8b78"]
+        :p.style==="nightMarket"?["#899a9e","#9a9f9a","#829297"]
+        :["#8d928e","#a09b91","#858b88"]).map((hex,i)=>makeMaterial("districtSetts"+i,hex,p.style==="village"?.42:.68));
+      for(const material of tones)textured(material,'stone');
+      const batches=tones.map(()=>({positions:[] as number[],normals:[] as number[],indices:[] as number[],uvs:[] as number[]}));
+      const jitter=(n:number)=>seeded(n*17.13+rt.id.length*23.7);
+      let stoneNo=0;
+      for(let i=1;i<points.length;i++){
+        const [x0,z0]=points[i-1],[x1,z1]=points[i],length=Math.hypot(x1-x0,z1-z0);
+        const tx=(x1-x0)/length,tz=(z1-z0)/length,nx=tz,nz=-tx;
+        const rows=Math.ceil(length/.66),columns=Math.max(3,Math.round(width/.57));
+        for(let row=0;row<=rows;row++)for(let col=0;col<columns;col++){
+          const n=stoneNo++;
+          // Uneven edges and missing setts taper the lane into the same soil
+          // or paving beneath it, instead of tracing a hard rectangular line.
+          const edge=Math.abs((col+.5)/columns-.5)*2;
+          if(jitter(n+301)<(edge>.72?.29:.055))continue;
+          const distance=Math.min(length,(row+(col%2)*.37)*length/rows);
+          const offset=((col+.5)/columns-.5)*width+(.5-jitter(n+3))*.17;
+          const cx=x0+tx*distance+nx*offset,cz=z0+tz*distance+nz*offset;
+          if(rt.id==="cafe"&&Math.abs(cx-5.6)<2.75&&Math.abs(cz-10)<1.15)continue;
+          const halfW=(width/columns)*(.43+.05*jitter(n+8));
+          const halfL=.28+.045*jitter(n+12);
+          const b=batches[n%tones.length],base=b.positions.length/3,y=.006+.002*jitter(n+20);
+          b.positions.push(cx,y,cz);b.normals.push(0,1,0);b.uvs.push(cx*.25,cz*.25);
+          for(let k=0;k<6;k++){
+            const a=k*Math.PI/3,r=.84+.16*jitter(n*9+k+41);
+            b.positions.push(cx+nx*Math.cos(a)*halfW*r+tx*Math.sin(a)*halfL*r,y,cz+nz*Math.cos(a)*halfW*r+tz*Math.sin(a)*halfL*r);
+            b.normals.push(0,1,0);b.uvs.push(b.positions[b.positions.length-3]*.25,b.positions[b.positions.length-1]*.25);
+          }
+          for(let k=0;k<6;k++)b.indices.push(base,base+1+k,base+1+(k+1)%6);
+        }
+      }
+      batches.forEach((b,i)=>{
+        if(!b.positions.length)return;
+        const mesh=new BABYLON.Mesh("d8-horizon-embedded-setts-"+name+"-"+i,scene);
+        const data=new BABYLON.VertexData();data.positions=b.positions;data.normals=b.normals;data.indices=b.indices;data.uvs=b.uvs;
+        data.applyToMesh(mesh);mesh.material=tones[i];mesh.parent=parentFor("BASE");mesh.isPickable=false;mesh.receiveShadows=true;
+      });
+    };
+    const lamp=(x:number,z:number)=>{
+      prop("lamp-foot",{width:.52,height:.28,depth:.52},[x,.13,z],stone);
+      prop("lantern-oak-post",{width:.19,height:2.5,depth:.19},[x,1.36,z],oak);
+      prop("lantern-iron-arm",{width:.78,height:.10,depth:.13},[x+.35,2.63,z],iron);
+      prop("lantern-amber-glass",{width:.36,height:.48,depth:.36},[x+.64,2.29,z],gold);
+      for(const side of [-1,1])for(const depth of [-1,1])
+        prop("lantern-cage-bar",{width:.055,height:.57,depth:.055},[x+.64+side*.20,2.31,z+depth*.20],iron);
+      prop("lantern-iron-cap",{width:.54,height:.12,depth:.54},[x+.64,2.61,z],iron);
+      prop("lantern-iron-base",{width:.48,height:.09,depth:.48},[x+.64,2.01,z],iron);
+    };
+    const hedge=(x:number,z:number,w:number,d:number)=>{
+      prop("hedge-plinth",{width:w+.1,height:.25,depth:d+.1},[x,.12,z],stone);
+      prop("hedge-heart",{width:w,height:.35,depth:d},[x,.43,z],leaf);
+      const alongX=w>d,count=Math.max(2,Math.ceil(Math.max(w,d)/.82));
+      for(let i=0;i<count;i++){
+        const offset=(i/(count-1)-.5)*(alongX?w:d);
+        const crown=BABYLON.MeshBuilder.CreateSphere("d8-horizon-hedge-crown",{diameter:.92,segments:5},scene);
+        crown.position.set(x+(alongX?offset:0),.72+(i%3)*.055,z+(alongX?0:offset));
+        crown.scaling.set(alongX?1.10:.82,.63,alongX?.82:1.10);
+        crown.material=leaf;crown.parent=parentFor("PROPS");crown.isPickable=false;
+      }
+    };
+    const house=(x:number,z:number,w:number,d:number,h:number,variant:number,rot=0)=>{
+      const node=new BABYLON.TransformNode("d8-horizon-house-root",scene);
+      node.position.set(x,0,z);node.rotation.y=rot;node.parent=parentFor("PROPS");
+      prop("house-foundation",{width:w+.25,height:.42,depth:d+.25},[0,.1,0],stone,node);
+      prop("house-plaster",{width:w,height:h,depth:d},[0,h/2+.25,0],plaster[variant%plaster.length],node);
+      // Exposed timber frame gives the same architectural language to both
+      // village scenes and to the houses visible from the Temple causeway.
+      for(const level of [.35,h*.52,h-.18])
+        prop("house-oak-crossbeam",{width:w+.09,height:.15,depth:.15},[0,level,-d/2-.10],oak,node);
+      for(const level of [.35,h*.52,h-.18])
+        prop("house-oak-rear-crossbeam",{width:w+.09,height:.15,depth:.15},[0,level,d/2+.10],oak,node);
+      for(const side of [-1,1]){
+        prop("house-oak-post",{width:.22,height:h,depth:.24},[side*(w/2-.11),h/2+.25,-d/2-.10],oak,node);
+        prop("house-oak-rear-post",{width:.22,height:h,depth:.24},[side*(w/2-.11),h/2+.25,d/2+.10],oak,node);
+        for(const level of [.35,h*.52,h-.18])
+          prop("house-oak-side-beam",{width:.16,height:.15,depth:d+.12},[side*(w/2+.10),level,0],oak,node);
+        const sideBrace=prop("house-oak-side-brace",{width:.16,height:h*.34,depth:.17},[side*(w/2+.18),h*.78,-d*.28],oak,node);
+        sideBrace.rotation.x=side*.58;
+        const brace=prop("house-oak-brace",{width:.15,height:h*.32,depth:.16},[side*(w*.39),h*.77,-d/2-.20],oak,node);
+        brace.rotation.z=side*.57;
+        const panel=prop("roof-slope",{width:w*.58,height:.22,depth:d+.7},[side*w*.25,h+.95,0],roofs[variant%roofs.length],node);
+        panel.rotation.z=side*-.48;
+        prop("window-frame",{width:.94,height:1.33,depth:.12},[side*w*.26,h*.55,-d/2-.08],trim,node);
+        prop("window-glow",{width:.69,height:1.09,depth:.14},[side*w*.26,h*.55,-d/2-.15],gold,node);
+        prop("shutter",{width:.22,height:1.31,depth:.17},[side*w*.26+.56,h*.55,-d/2-.16],roofs[variant%roofs.length],node);
+      }
+      prop("roof-ridge",{width:.20,height:.20,depth:d+.84},[0,h+1.50,0],trim,node);
+      if(rt.id==='cafe'||rt.id==='market'){
+        const front=d/2+.35,light=track(new BABYLON.PointLight('villageWindowLight',new BABYLON.Vector3(x+Math.sin(rot)*-front,h*.55,z+Math.cos(rot)*-front),scene));
+        light.parent=rt.root;light.diffuse=new BABYLON.Color3(1,.62,.28);light.range=5.5;light.intensity=.65;
+      }
+      prop("house-door",{width:1.1,height:2.05,depth:.13},[0,1.25,-d/2-.11],oak,node);
+      prop("door-iron-bands",{width:1.1,height:.075,depth:.15},[0,1.65,-d/2-.20],iron,node);
+      prop("door-lantern",{width:.40,height:.46,depth:.35},[w*.28,2.50,-d/2-.22],gold,node);
+      for(const side of [-1,1]){
+        const frame=prop("side-window-frame",{width:.13,height:1.22,depth:.90},[side*(w/2+.08),h*.56,0],trim,node);
+        const glass=prop("side-window-glow",{width:.15,height:.95,depth:.68},[side*(w/2+.16),h*.56,0],gold,node);
+        frame.isPickable=glass.isPickable=false;
+        prop("flower-box",{width:.35,height:.22,depth:1.2},[side*(w/2+.24),h*.56-.76,0],roofs[variant%roofs.length],node);
+        for(let flower=0;flower<4;flower++){
+          const blossom=BABYLON.MeshBuilder.CreateSphere("d8-horizon-flower",{diameter:.21,segments:5},scene);
+          blossom.position.set(side*(w/2+.25),h*.56-.51,-.42+flower*.28);
+          blossom.material=flower%2?awning[0]:leaf;blossom.parent=node;blossom.isPickable=false;
+        }
+      }
+      prop("chimney",{width:.62,height:1.45,depth:.62},[w*.25,h+1.58,d*.20],stone,node);
+      prop("chimney-cap",{width:.82,height:.18,depth:.82},[w*.25,h+2.34,d*.20],trim,node);
+    };
+    const stall=(x:number,z:number,variant:number)=>{
+      prop("stall-counter",{width:3.8,height:.72,depth:1.5},[x,.36,z],oak);
+      for(const sx of [-1.65,1.65])prop("stall-post",{width:.13,height:2.4,depth:.13},[x+sx,1.25,z],oak);
+      for(let band=0;band<4;band++)prop("stall-striped-canopy",{width:.96,height:.13,depth:2.3},[x-1.4+band*.94,2.53,z],awning[(variant+band)%awning.length]);
+      prop("stall-lantern",{width:.3,height:.39,depth:.3},[x,2.06,z-.95],gold);
+    };
+    const streetTree=(x:number,z:number)=>{
+      prop("tree-planter",{width:1.7,height:.42,depth:1.7},[x,.2,z],stone);
+      prop("tree-trunk",{width:.43,height:3.4,depth:.43},[x,1.9,z],oak);
+      for(let i=0;i<7;i++){
+        const angle=i*2.399,r=i%2?.75:.35;
+        const crown=BABYLON.MeshBuilder.CreateSphere("d8-horizon-street-tree",{diameter:2.25,segments:7},scene);
+        crown.position.set(x+Math.cos(angle)*r,4.15+(i%3)*.36,z+Math.sin(angle)*r);
+        crown.scaling.y=.76;crown.material=treeLeaf;crown.parent=parentFor("PROPS");crown.isPickable=false;
+      }
+    };
+    const cart=(x:number,z:number)=>{
+      prop("cart-bed",{width:2.8,height:.46,depth:1.6},[x,.91,z],oak);
+      for(const side of [-1,1]){
+        const wheel=BABYLON.MeshBuilder.CreateCylinder("d8-horizon-cart-wheel",{height:.2,diameter:.85,tessellation:10},scene);
+        wheel.rotation.z=Math.PI/2;wheel.position.set(x+side*1.35,.53,z+side*.15);
+        wheel.material=oak;wheel.parent=parentFor("PROPS");wheel.isPickable=false;
+      }
+      for(const dx of [-.7,0,.7])prop("cart-crate",{width:.58,height:.62,depth:.58},[x+dx,1.49,z],plaster[1]);
+    };
+    const sign=(x:number,z:number,text:string)=>{
+      if(integrated)return; // Replaced by readable campaign signposts on playable roads.
+      const tex=track(new BABYLON.DynamicTexture("d8-horizon-sign-text-"+rt.id+"-"+text,{width:512,height:128},scene,false));
+      const ctx=tex.getContext();ctx.fillStyle="#463b37";ctx.fillRect(0,0,512,128);
+      ctx.strokeStyle="#b88d5d";ctx.lineWidth=7;ctx.strokeRect(9,9,494,110);
+      ctx.fillStyle="#ffe3ac";ctx.font="bold 39px Georgia";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(text,256,65);tex.update();
+      const material=track(new BABYLON.StandardMaterial("d8-horizon-sign-material-"+rt.id+"-"+text,scene));
+      material.diffuseTexture=tex;material.emissiveTexture=tex;material.emissiveColor=new BABYLON.Color3(.7,.7,.7);material.backFaceCulling=false;material.metadata={d8Authored:true,d8Backdrop:true};
+      prop("sign-oak-post",{width:.20,height:3.0,depth:.20},[x-2.15,1.50,z],oak);
+      prop("sign-oak-arm",{width:4.45,height:.16,depth:.19},[x,3.01,z],oak);
+      for(const side of [-1,1])prop("sign-iron-chain",{width:.07,height:.36,depth:.08},[x+side*1.65,2.80,z],iron);
+      const board=prop("sign-board",{width:4.1,height:.88,depth:.12},[x,2.30,z],material);
+      board.isPickable=false;
+    };
+    if(p.style==="coast"){
+      // The road continues through the front gate onto a causeway toward town.
+      // Continue the island material and UVs into an irregular grassy spit.
+      // A separate rectangular ground plane left an obvious seam in the sea.
+      const mapSize=rt.config.MAP.size;
+      const spit=new BABYLON.Mesh("d8-horizon-temple-grassy-spit",scene);
+      const spitData=new BABYLON.VertexData();
+      const spitPositions:number[]=[],spitNormals:number[]=[],spitUvs:number[]=[],spitIndices:number[]=[];
+      for(let i=0;i<=34;i++){
+        const t=i/34,z=31+55*t,half=8.2+.65*Math.sin(t*7.4);
+        for(const side of [-1,1]){
+          const x=side*(half+.65*Math.sin(i*1.69+side*2.1)+.29*Math.sin(i*3.8+side));
+          spitPositions.push(x,-.018,z);spitNormals.push(0,1,0);
+          spitUvs.push(.5+x/mapSize[0],.5+z/mapSize[1]);
+        }
+        if(i<34){const a=i*2;spitIndices.push(a,a+2,a+1,a+1,a+2,a+3);}
+      }
+      spitData.positions=spitPositions;spitData.normals=spitNormals;spitData.uvs=spitUvs;spitData.indices=spitIndices;
+      spitData.applyToMesh(spit);spit.material=rt.root.getChildMeshes().find((mesh:any)=>mesh.name==="d8-horizon-island")?.material??verge;
+      spit.parent=parentFor("BASE");spit.isPickable=false;spit.receiveShadows=false;
+      road("temple-to-cafe",[[-1.5,31.5],[-4,39],[-6,52],[-7,79]],2.45);
+      road("temple-to-market",[[1.5,31.5],[4,39],[6,52],[7,79]],2.45);
+      // Low masonry and clipped hedges mark the exact edge of the tactical area.
+      for(const x of [-26.3,26.3])for(let z=-30.5;z<33;z+=6.0)hedge(x,z,1.1,6.1);
+      for(const z of [-34,33.7])for(let x=-22.5;x<24;x+=6.1){if(z>0&&Math.abs(x)<6)continue;hedge(x,z,6.2,1.05);}
+      for(const x of [-4.5,4.5]){prop("temple-gate-pier",{width:.78,height:1.65,depth:.78},[x,.82,33.7],stone);lamp(x,37.5);}
+      for(const x of [-10,10])hedge(x,42,4.2,1.1);
+      // A recognizable village roof-line occupies the end of the causeway.
+      for(const [i,x] of [-16,-7,8,17].entries())house(x,81+(i%2)*5,6.5,5.1,4.6,i);
+      sign(-7,51,"CAFÉ");sign(7,51,"MERCADO");
+      return;
+    }
+    if(p.style==="village"){
+      road("cafe-to-market",[[9,10.5],[12,19.5],[21,23],[38,23]],3.6);
+      road("cafe-to-temple",[[-9,10.5],[-12,19.5],[-31,23],[-42,35]],3.6);
+      for(const [i,x,z] of [[0,-19,2],[1,-22,16],[2,19,-2],[3,23,8],[4,-19,-17],[5,19,-17],[6,30,25]].map(v=>v as number[]))house(x,z,6+(i%3),5.3,4.5+(i%2),i,i%2?.22:-.13);
+      for(const x of [17,23,29])stall(x,19,x%3);
+      sign(18,16,"MERCADO");
+      sign(-20,19,"TEMPLO");
+      sign(-16,12,"NO-ME-OLVIDES");
+      for(const x of [-16,-5,6,16]){hedge(x,22,3.8,.8);lamp(x,23);}
+      floorPatch("village-green",-22,7,6,9,verge,-.006);
+      for(const x of [-17,17]){
+        floorPatch("cafe-side-verge",x,0,4.2,15,verge,-.006);
+        for(const z of [-5,0,5])hedge(x,z,2.9,.9);
+      }
+      for(const [x,z] of [[-20,11],[19,9],[-16,-14],[19,-13]])streetTree(x,z);
+      cart(20,13);
+    }else if(p.style==="nightMarket"){
+      road("market-to-cafe",[[-2,9],[-9,16],[-24,20],[-41,25]],4.3);
+      road("market-to-temple",[[2,9],[10,16],[24,25],[41,39]],4.3);
+      for(const [i,x,z] of [[0,-21,-2],[1,-25,14],[2,21,-5],[3,25,10],[4,-18,-19],[5,18,-19],[6,35,27]].map(v=>v as number[]))house(x,z,6.5+(i%3),5.5,4.7+(i%2),i,i%2?.18:-.15);
+      // This warm inn frontage and sign match what is glimpsed from the Café.
+      house(-25,20,10,7,6.0,0,.24);sign(-25,14,"NO-ME-OLVIDES");
+      sign(23,23,"TEMPLO");
+      for(const [x,z,v] of [[-18,24,0],[-11,25,1],[13,24,2],[21,25,0]])stall(x,z,v);
+      for(const x of [-21,-9,9,21])lamp(x,19);
+      for(const x of [-26,25])hedge(x,25,5.3,.9);
+      for(const x of [-22,22])floorPatch("market-verge",x,3,5.0,8.5,verge,-.006);
+      for(const [x,z] of [[-21,10],[21,10],[-18,-15],[18,-15]])streetTree(x,z);
+      cart(-19,16);
+    }else{
+      // Dinner is the village's walled manor court, not a slab in empty grass.
+      road("dinner-to-village",[[0,7],[0,17],[-8,29],[-24,39]],4.0);
+      for(const x of [-18.1,18.1])for(let z=-13;z<11;z+=5.4)hedge(x,z,1.0,4.5);
+      for(let x=-17;x<18;x+=5.7)hedge(x,-13,4.9,1.0);
+      for(const x of [-14,-7,7,14]){hedge(x,13,3.7,.9);lamp(x,16);}
+      house(-22,0,10,7,6.2,1,-Math.PI/2);house(22,-3,8,7,5.5,2,Math.PI/2);
+      for(const [i,x,z] of [[0,-30,28],[1,-21,34],[2,18,31],[3,30,27]].map(v=>v as number[]))house(x,z,6.8,5.4,4.8,i);
+      sign(-11,30,"AL PUEBLO");
+      for(const x of [-21,21])floorPatch("estate-garden",x,12,7,12,verge,-.006);
+      for(const [x,z] of [[-23,13],[23,13],[-22,-14],[22,-14]])streetTree(x,z);
+      cart(20,18);
+    }
+    rt.districtSummary={style:p.style,connectedLandmarks:true,physicalBoundary:p.style==="estate"};
+  }
+
+  // Map-specific sky palettes sit behind a world-space 3D horizon. The distant
+  // terrain/trees/buildings are real meshes, not a prerendered map backdrop.
+  function authoredHorizonV1(c:any){
+    const p=c.VTT_AMBIENCE?.horizon;if(!p)return;
+    const [mapW,mapD]=c.MAP.size,span=Math.max(mapW,mapD),mapRadius=Math.hypot(mapW,mapD)*.5;
+    const skyDiameter=Math.max(320,span*8),seedBase=rt.id.length*83;
+    const color=(hex:string)=>BABYLON.Color3.FromHexString(hex);
+    const zenith=color(p.zenith);
+    scene.clearColor=new BABYLON.Color4(zenith.r,zenith.g,zenith.b,1);
+    const makeMaterial=(name:string,hex:string,emission=0)=>{
+      const m=track(new BABYLON.StandardMaterial(name+"_"+rt.id,scene));
+      const c=color(hex);m.diffuseColor=c;m.emissiveColor=c.scale(emission);m.specularColor=new BABYLON.Color3(0,0,0);m.disableLighting=true;m.backFaceCulling=false;m.metadata={d8Authored:true,d8Backdrop:true};
+      // The map's exponential fog intentionally fades gameplay depth; applying
+      // it to distant scenery would fade the entire backdrop back to clearColor.
+      m.fogEnabled=false;return m;
+    };
+    const makeTerrainMaterial=(name:string,hex:string,kind:string,tiles=3)=>{
+      // This is a repeatable *material*, not a screenshot of the map. The
+      // surface remains in Babylon world space as the camera turns or tilts.
+      const texture=track(new BABYLON.DynamicTexture(name+"Texture_"+rt.id,{width:512,height:512},scene,false));
+      const ctx=texture.getContext();
+      ctx.fillStyle=hex;ctx.fillRect(0,0,512,512);
+      const rand=(n:number)=>seeded(seedBase+n*17.371+(kind==="water"?991:113));
+      for(let i=0;i<390;i++){
+        const x=rand(i*3)*512,y=rand(i*3+1)*512,r=1+rand(i*3+2)*(kind==="water"?16:7);
+        ctx.beginPath();ctx.ellipse(x,y,r,r*(.24+rand(i+73)*.54),rand(i+291)*Math.PI,0,Math.PI*2);
+        ctx.fillStyle=i%3===0?"rgba(5,18,24,.055)":"rgba(255,255,255,.035)";ctx.fill();
+      }
+      if(kind==="water"){
+        for(let i=0;i<390;i++){
+          const x=rand(i*5+1500)*512,y=rand(i*5+1501)*512,w=8+rand(i*5+1502)*35;
+          ctx.beginPath();ctx.moveTo(x,y);ctx.quadraticCurveTo(x+w*.53,y-1.5-rand(i+1900)*3,x+w,y+.8);
+          ctx.strokeStyle=i%4===0?"rgba(5,25,39,.22)":"rgba(184,230,225,.17)";
+          ctx.lineWidth=i%6===0?1.5:.8;ctx.stroke();
+        }
+      }else if(kind==="snowForest"){
+        for(let i=0;i<260;i++){
+          const x=rand(i*4+3300)*512,y=rand(i*4+3301)*512;
+          ctx.beginPath();ctx.arc(x,y,.4+rand(i+3302)*2.5,0,Math.PI*2);
+          ctx.fillStyle=i%5===0?"rgba(38,71,83,.23)":"rgba(255,255,255,.36)";ctx.fill();
+        }
+      }else{
+        for(let i=0;i<300;i++){
+          const x=rand(i*4+3500)*512,y=rand(i*4+3501)*512;
+          ctx.fillStyle=i%3===0?"rgba(6,16,22,.14)":"rgba(224,199,160,.10)";
+          ctx.fillRect(x,y,1+rand(i+3502)*4,1+rand(i+3503)*3);
+        }
+        if(kind==="village"||kind==="nightMarket"){
+          ctx.lineWidth=.8;ctx.strokeStyle="rgba(12,13,20,.24)";
+          for(let row=0,y=0;y<512;row++,y+=12){
+            const offset=row%2?10:0;
+            for(let x=-20+offset;x<512;x+=20){
+              ctx.strokeRect(x+1+rand(row*43+x)*2,y+1,18,10);
+            }
+          }
+        }
+      }
+      texture.update();texture.wrapU=BABYLON.Texture.WRAP_ADDRESSMODE;texture.wrapV=BABYLON.Texture.WRAP_ADDRESSMODE;
+      texture.uScale=tiles;texture.vScale=tiles;
+      const material=makeMaterial(name,hex,1.05);
+      material.diffuseTexture=texture;
+      return material;
+    };
+    // A full-strength unlit surface is essential here: a low emissive factor
+    // turns the exterior into a near-black slab under the map's night grading.
+    const groundMat=makeTerrainMaterial("horizonGround",p.style==="snowForest"?(p.snow??p.ground):p.ground,p.style,skyDiameter/115);
+    const authoredFloor=rt.root.getChildMeshes().find((mesh:any)=>mesh.name===(rt.id==='cafe'?'cafe33_floor':'floor'))?.material;
+    const floorLift=0;
+    const districtFloor=authoredFloor&&floorLift?track(cloneSurfaceMaterial(authoredFloor,"districtFloor_"+rt.id)):authoredFloor;
+    if(districtFloor&&districtFloor!==authoredFloor){
+      const e=authoredFloor.emissiveColor??new BABYLON.Color3(0,0,0);
+      districtFloor.emissiveColor=new BABYLON.Color3(e.r+floorLift,e.g+floorLift,e.b+floorLift);
+      districtFloor.metadata={d8Authored:true,d8Backdrop:true};
+    }
+    const neighborhoodFloor=districtFloor??groundMat;
+    // Continue the authored floor in world space. A second, differently lit
+    // rectangle was what made all four maps read as floating model platforms.
+    const continuousFloor=(name:string,width:number,depth:number,x=0,z=0,y=-.012)=>{
+      const mesh=BABYLON.MeshBuilder.CreateGround(name,{width,height:depth},scene);
+      mesh.position.set(x,y,z);mesh.parent=parentFor("BASE");mesh.material=neighborhoodFloor??groundMat;
+      mesh.isPickable=false;mesh.receiveShadows=true;
+      const uv=mesh.getVerticesData("uv");
+      if(uv&&neighborhoodFloor===districtFloor){for(let i=0;i<uv.length;i+=2){uv[i]=(uv[i]-.5)*width/mapW+x/mapW+.5;uv[i+1]=(uv[i+1]-.5)*depth/mapD+z/mapD+.5;}mesh.setVerticesData("uv",uv);}
+      return mesh;
+    };
+    if(p.style==="coast"){
+      const sea=BABYLON.MeshBuilder.CreateGround("d8-horizon-water",{width:skyDiameter*.72,height:skyDiameter*.72},scene);
+      sea.position.y=-.48;sea.material=makeTerrainMaterial("horizonSea",p.water??p.ground,"water",skyDiameter/100);sea.parent=parentFor("BASE");sea.isPickable=false;sea.receiveShadows=false;
+      const shore=new BABYLON.Mesh("d8-horizon-island",scene);
+      const vertex=new BABYLON.VertexData(),positions=[0,0,0],normals=[0,1,0],uvs=[.5,.5],indices=[];
+      const sides=96,radius=mapRadius+12;
+      for(let i=0;i<=sides;i++){
+        const a=i/sides*Math.PI*2;
+        const wave=1+.045*Math.sin(a*7+seedBase)+.035*Math.sin(a*13-seedBase)+.028*Math.sin(a*23);
+        const x=Math.cos(a)*radius*wave,z=Math.sin(a)*radius*wave;
+        positions.push(x,0,z);normals.push(0,1,0);uvs.push(.5+x/mapW,.5+z/mapD);
+        if(i<sides)indices.push(0,i+2,i+1);
+      }
+      vertex.positions=positions;vertex.normals=normals;vertex.uvs=uvs;vertex.indices=indices;vertex.applyToMesh(shore);
+      shore.position.y=-.012;shore.material=authoredFloor??groundMat;shore.parent=parentFor("BASE");shore.isPickable=false;
+      const surf=shore.clone("d8-horizon-shallows");
+      surf.scaling.x=1.045;surf.scaling.z=1.045;surf.position.y=-.47;
+      surf.material=makeMaterial("horizonShallows","#587e83",.56);surf.isPickable=false;
+    }else{
+      const ground=BABYLON.MeshBuilder.CreateGround("d8-horizon-ground",{width:skyDiameter*.72,height:skyDiameter*.72},scene);
+      ground.position.y=-.46;ground.material=groundMat;ground.parent=parentFor("BASE");ground.isPickable=false;ground.receiveShadows=false;
+      // The full portrait overview reaches past a 104×94 apron. Continue the
+      // same world-space surface all the way across the outer terrain, rather
+      // than exposing a second-colour rectangle when the camera tilts/rotates.
+      continuousFloor("d8-horizon-continuous-floor",skyDiameter*.72,skyDiameter*.72);
+      if(p.style==="cavern"){
+        const apron=BABYLON.MeshBuilder.CreateDisc("d8-horizon-cave-apron",{radius:mapRadius+7,tessellation:64},scene);
+        apron.rotation.x=Math.PI/2;apron.position.y=-.445;
+        apron.material=authoredFloor??groundMat;
+        apron.parent=parentFor("BASE");apron.isPickable=false;apron.receiveShadows=false;
+      }
+    }
+
+    const hills=[p.far,p.near].map((hex:string,i:number)=>makeMaterial("horizonRidge"+i,hex,0.88));
+    const ridgeCount=p.style==="cavern"?32:0;
+    for(let i=0;i<ridgeCount;i++){
+      const a=(i+.23*Math.sin(i*4.7+seedBase))/ridgeCount*Math.PI*2;
+      const r=mapRadius+(p.style==="cavern"?8:18)+seeded(seedBase+i*7.1)*(p.style==="cavern"?6:12);
+      const width=p.style==="cavern"?4+seeded(i*5.3)*4:3+seeded(i*5.3)*4;
+      const height=p.style==="cavern"?3+seeded(i*2.3)*6:1+seeded(i*2.3)*2;
+      const mound=p.style==="cavern"
+        ? BABYLON.MeshBuilder.CreateCylinder("d8-horizon-ridge",{height,diameterTop:width*.35,diameterBottom:width,tessellation:7},scene)
+        : BABYLON.MeshBuilder.CreateSphere("d8-horizon-ridge",{diameter:1,segments:8},scene);
+      mound.position.set(Math.cos(a)*r,-.46+height*(p.style==="cavern"?.5:.24),Math.sin(a)*r);
+      if(p.style!=="cavern")mound.scaling.set(width,height*.68,width*(.7+seeded(i*11.7)*.5));
+      mound.rotation.y=a;mound.material=hills[i%hills.length];mound.parent=parentFor("PROPS");mound.isPickable=false;mound.receiveShadows=false;
+    }
+
+    let horizonFoliage:any=null;
+    const makeTree=(a:number,r:number,i:number,snow:boolean)=>{
+      const x=Math.cos(a)*r,z=Math.sin(a)*r,scale=.66+seeded(seedBase+i*2.1)*.60;
+      const trunk=BABYLON.MeshBuilder.CreateCylinder("d8-horizon-trunk",{height:4.5*scale,diameterTop:.32*scale,diameterBottom:.72*scale,tessellation:6},scene);
+      trunk.position.set(x,1.75*scale-.55,z);trunk.material=makeTree.trunk;trunk.parent=parentFor("PROPS");trunk.isPickable=false;
+      if(snow){
+        for(let tier=0;tier<3;tier++){
+          const crown=BABYLON.MeshBuilder.CreateCylinder("d8-horizon-canopy",{height:(3.5-tier*.42)*scale,diameterTop:0,diameterBottom:(4.3-tier*.82)*scale,tessellation:7},scene);
+          crown.position.set(x,(3.3+tier*1.72)*scale-.55,z);
+          crown.material=tier===0?makeTree.snow:makeTree.leaves[(i+tier)%makeTree.leaves.length];crown.parent=parentFor("PROPS");crown.isPickable=false;
+        }
+      }else{
+        // Share the same leaf-cluster material as the authored Temple trees.
+        // From an oblique/top-down view, isolated spheres read as green dots.
+        if(!horizonFoliage){
+          horizonFoliage=track(cloneSurfaceMaterial(sanctuaryMaterial("foliage"),"horizonFoliage_"+rt.id));
+          horizonFoliage.disableLighting=true;
+          horizonFoliage.emissiveColor=new BABYLON.Color3(.43,.58,.44);
+          horizonFoliage.metadata={d8Authored:true,d8Backdrop:true};
+        }
+        const foliage=horizonFoliage,spread=3.5*scale;
+        for(let leafIndex=0;leafIndex<16;leafIndex++){
+          const a=leafIndex*2.4+i,r=Math.sqrt(seeded(i*61+leafIndex*7.3))*spread*.55;
+          const leaf=BABYLON.MeshBuilder.CreatePlane("sanctuaryCanopy",{size:spread*.9,sideOrientation:BABYLON.Mesh.DOUBLESIDE},scene);
+          leaf.position.set(x+Math.cos(a)*r,(3.8+seeded(i*43+leafIndex)*1.25)*scale-.55,z+Math.sin(a)*r);
+          leaf.rotation.set(leafIndex%2?.45:-.35,a,leafIndex*.17);
+          leaf.material=foliage;leaf.parent=parentFor("PROPS");leaf.isPickable=false;
+        }
+      }
+    };
+    makeTree.trunk=makeMaterial("horizonTreeBark","#44392f",.7);
+    makeTree.leaves=[makeMaterial("horizonPineA",p.style==="snowForest"?"#486d72":"#355f4b",.84),makeMaterial("horizonPineB",p.style==="snowForest"?"#6b9095":"#5c7d5d",.84)];
+    makeTree.snow=makeMaterial("horizonSnow","#c3d8df",.94);
+    if(["coast","snowForest","estate"].includes(p.style)){
+      const count=p.style==="coast"?24:p.style==="snowForest"?46:26;
+      for(let i=0;i<count;i++){
+        const a=(i+.32*Math.sin(i*3.7+seedBase))/count*Math.PI*2;
+        const r=p.style==="coast"?mapRadius+3+seeded(seedBase+i*4.2)*5:p.style==="snowForest"?mapRadius+3+seeded(seedBase+i*4.2)*10:mapRadius+8+seeded(seedBase+i*4.2)*15;
+        makeTree(a,r,i,p.style==="snowForest");
+      }
+    }
+
+    authoredDistrictV2(p,makeMaterial,makeTerrainMaterial,continuousFloor);
+    if(p.style==="cavern"){
+      // An opaque dome here used to sit across the camera sightline and hide
+      // the actual mirror arena. The surrounding rock wall supplies enclosure
+      // without placing a ceiling between the DM and the board.
+      const crystal=makeMaterial("horizonCaveCrystal",p.crystal??"#176276",.95);
+      for(let i=0;i<9;i++){
+        const a=i/9*Math.PI*2,r=mapRadius+7+seeded(i*9.2)*8,h=2+seeded(i*8.3)*5;
+        const shard=BABYLON.MeshBuilder.CreateCylinder("d8-horizon-crystal",{height:h,diameterTop:0,diameterBottom:.85+seeded(i*7.1)*.8,tessellation:5},scene);
+        shard.position.set(Math.cos(a)*r,h/2-.5,Math.sin(a)*r);shard.rotation.z=(seeded(i*8)-.5)*.45;shard.material=crystal;shard.parent=parentFor("PROPS");shard.isPickable=false;
+      }
+    }
+    rt.horizonSummary={style:p.style,skyDiameter,atmosphere:"scene-color-and-worldspace-horizon",sceneColor:scene.clearColor.toHexString(),backgroundMeshes:rt.root.getChildMeshes().filter((m:any)=>m.name.startsWith("d8-horizon")||m.name.startsWith("d8-environment")).length};
+  }
+
   function applyScenePolishV13(id:string,c:any){
     const v=c.VTT_AMBIENCE?.visual??{};
     if(v.glow!==undefined)glow.intensity=v.glow;
@@ -3218,7 +3741,7 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
     const meshes=rt.root?.getChildMeshes?.()??[];
     for(const m of meshes){
       if(!mergeNames.has(m.name))continue;
-      if(!m.material||m.parent===rt.layers?.VFX||m.isDisposed?.())continue;
+      if(!m.material||m.parent===rt.layers?.VFX||m.metadata?.d8Animated||m.isDisposed?.())continue;
       if(m.skeleton||m.morphTargetManager)continue;
       const matId=m.material.uniqueId??m.material.name??"mat";
       // Spatial batches retain local light selection; one map-wide batch would
@@ -3257,7 +3780,7 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
     const activeLights=mapLights.filter((l:any)=>l.isEnabled?.()!==false);
     const frozen=meshes.filter((m:any)=>m.isWorldMatrixFrozen).length;
     const vfxMeshes=rt.layers?.VFX?.getChildMeshes?.().length??0;
-    console.log("[D8 "+D8_VERSION+" audit]",rt.id,{meshes:meshes.length,frozen,vfxMeshes,lights:mapLights.length,activeLights:activeLights.length,shadowCasters:rt.shadowCasterCount??0,updaters:rt.updaters.length,colliders:rt.colliders.length,interactables:rt.interactables.length,mergedGroups:rt.optimization?.mergedGroups??0,mergedSources:rt.optimization?.mergedSources??0});
+    console.log("[D8 "+D8_VERSION+" audit]",rt.id,{meshes:meshes.length,frozen,vfxMeshes,lights:mapLights.length,activeLights:activeLights.length,shadowCasters:rt.shadowCasterCount??0,updaters:rt.updaters.length,colliders:rt.colliders.length,interactables:rt.interactables.length,mergedGroups:rt.optimization?.mergedGroups??0,mergedSources:rt.optimization?.mergedSources??0,horizon:rt.horizonSummary??null});
   }
 
   function optimizeStaticMeshesV24(){
@@ -3283,6 +3806,8 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
     rt.geometryInteractables=[...(nav.interactions??[])];
 
     (nav.blockers??[]).forEach((q:any)=>collider(q.position[0],q.position[1],q.size[0],q.size[1]));
+    // Use the same physical authoring as authoritative grid movement.
+    if(nav.obstacles){rt.colliders=[];nav.obstacles.forEach((q:any)=>collider(q.position[0],q.position[1],q.size[0],q.size[1]));}
     rt.navZones.forEach((q:any)=>{if(q.blocking)collider(q.position[0],q.position[1],q.size[0],q.size[1]);});
 
     const zoneColors:any={
@@ -3353,7 +3878,6 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
       market_goods:["Examinar mercancías","Cajas y productos se acumulan alrededor del puesto."],
       well:["Examinar pozo","El pozo ocupa una parte del espacio exterior."],
       trough:["Examinar pilón","El pilón es un elemento fijo que condiciona el paso."],
-      cow_proxy:["Examinar animal","El animal permanece junto al pilón."],
       round_room:["Examinar estancia","La pequeña estancia circular forma un espacio diferenciado."],
       bed:["Examinar cama","La cama ocupa parte del interior del refugio."],
       rose_patch:["Examinar rosales","Los rosales forman una masa densa dentro del jardín."],
@@ -3487,9 +4011,258 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
     }
   }
 
+  // Presentation derives from the authoritative snapshot, never a second set
+  // of encounter flags. Roofs are removed only while the viewed actor is inside.
+  function gentleWater(name:string,x:number,z:number,w:number,d:number,y:number){
+    const surface=BABYLON.MeshBuilder.CreateGround(name,{width:w,height:d,subdivisions:12,updatable:true},scene);surface.position.set(x,y,z);surface.parent=parentFor('VFX');surface.isPickable=false;surface.metadata={d8Animated:true,tokenOccluder:false};
+    const paint=track(cloneSurfaceMaterial(M.water,name+'Material'));paint.alpha=.72;paint.specularPower=120;paint.specularColor=new BABYLON.Color3(.55,.66,.7);paint.bumpTexture=PROCEDURAL_SURFACES.ice?.normal??null;surface.material=paint;
+    const positions=surface.getVerticesData('position'),base=positions.slice();let last=-1;
+    rt.updaters.push((t:number)=>{const tick=Math.floor(t*24);if(tick===last)return;last=tick;for(let i=0;i<positions.length;i+=3)positions[i+1]=Math.sin(base[i]*4.2+t*1.4)*.009+Math.sin(base[i+2]*6.1-t*.8)*.005;surface.updateVerticesData('position',positions,false,false);});
+    for(let i=0;i<4;i++){
+      const paths=[0,1].map(side=>Array.from({length:15},(_,j)=>new BABYLON.Vector3(x+(j/14-.5)*w,y+.023,z+(i/4-.375)*d+Math.sin(j*.7+i)*d*.05+side*.035)));
+      const streak=BABYLON.MeshBuilder.CreateRibbon(name+'Caustic',{pathArray:paths,sideOrientation:BABYLON.Mesh.DOUBLESIDE},scene);streak.parent=parentFor('VFX');streak.isPickable=false;streak.metadata={d8Animated:true,tokenOccluder:false};streak.material=M.waterGlow;
+      rt.updaters.push((t:number)=>{streak.visibility=.07+.05*Math.sin(t*.7+i);streak.position.z=Math.sin(t*.2+i)*d*.035;});
+    }
+  }
+
+  function batchIntegratedScenery(){
+    if(!integrated)return;
+    const groups=new Map<string,any[]>();
+    for(const mesh of rt.root.getChildMeshes()){
+      const mat=mesh.material;
+      const envelope=Boolean(mesh.metadata?.buildingEnvelope&&/^temple(Window.*(Voussoir|Jamb|Frame)|WallPilaster)/.test(mesh.name));
+      if((!envelope&&(!mesh.isWorldMatrixFrozen||mesh.metadata?.d8Animated))||!mat||mat.alpha<1||mesh.parent===rt.layers.VFX||mesh.skeleton||mesh.morphTargetManager||mesh.subMeshes?.length>1||mesh.isVisible===false)continue;
+      if(/floor|ground|water|grid|shadow|pool|sign|glass|lamp|glow|crystal/i.test(mesh.name)||(!envelope&&/window/i.test(mesh.name)))continue;
+      const p=mesh.getBoundingInfo().boundingBox.centerWorld;
+      const sector=envelope?4:8;
+      const key=[mat.uniqueId,Math.floor(p.x/sector),Math.floor(p.z/sector),mesh.receiveShadows,mesh.metadata?.tokenOccluder!==false,envelope].join('|');
+      const list=groups.get(key)??[];list.push(mesh);groups.set(key,list);
+    }
+    let count=0;
+    for(const list of groups.values())if(list.length>=3){
+      const merged=BABYLON.Mesh.MergeMeshes(list,true,true,undefined,false,false);
+      if(!merged)continue;
+      merged.name='d8-static-sector-'+count++;merged.parent=parentFor('PROPS');merged.isPickable=false;merged.receiveShadows=list[0].receiveShadows;merged.metadata={tokenOccluder:list[0].metadata?.tokenOccluder!==false,buildingEnvelope:Boolean(list[0].metadata?.buildingEnvelope)};merged.freezeWorldMatrix();glow.addExcludedMesh(merged);
+    }
+    rt.presentationNodes.envelopes=rt.root.getChildMeshes().filter((m:any)=>m.metadata?.buildingEnvelope);
+  }
+  function windowGlass(){
+    if(rt.windowPane)return rt.windowPane;
+    const mat=track(new BABYLON.StandardMaterial('transparentWindowPane',scene));mat.diffuseColor=new BABYLON.Color3(.72,.85,.86);mat.alpha=.22;mat.specularColor=new BABYLON.Color3(.6,.7,.75);mat.specularPower=96;mat.backFaceCulling=false;mat.disableDepthWrite=true;
+    return rt.windowPane=mat;
+  }
+  function facade(name:string,x:number,z:number,w:number,h:number,depth:number,mat:any,holes:any[]){
+    let left=x-w/2;
+    const piece=(a:number,b:number,bottom:number,top:number)=>{if(b-a<.01||top-bottom<.01)return;const m=box(name,(a+b)/2,(bottom+top)/2,z,b-a,top-bottom,depth,mat);m.metadata={...m.metadata,d8Animated:true,buildingEnvelope:true};};
+    for(const hole of [...holes].sort((a,b)=>a.x-b.x)){const a=hole.x-hole.w/2,b=hole.x+hole.w/2;piece(left,a,0,h);piece(a,b,0,hole.b);piece(a,b,hole.t,h);left=b;}
+    piece(left,x+w/2,0,h);
+  }
+  function nativeDoor(door:any){
+    const root=new BABYLON.TransformNode(door.id+'-frame',scene);root.parent=parentFor('PROPS');root.position.set(door.x,0,door.z);root.rotation.y=door.rotation;
+    const hinge=new BABYLON.TransformNode(door.id+'-hinge',scene);hinge.parent=root;hinge.position.x=-door.width/2;hinge.rotation.y=Math.PI/2;
+    const leaf=box('houseDoor',0,0,0,door.width,door.height,.14,M.woodDark);leaf.parent=hinge;leaf.position.set(door.width/2,door.height/2,0);leaf.metadata={d8Animated:true,tokenOccluder:true};
+    for(const y of [.3,door.height-.3]){const strap=box('doorIronStrap',0,0,0,door.width*.94,.075,.16,M.iron);strap.parent=hinge;strap.position.set(door.width/2,y,-.025);strap.metadata={d8Animated:true};}
+    const handle=box('doorHandle',0,0,0,.10,.2,.2,M.gold);handle.parent=hinge;handle.position.set(door.width-.2,door.height*.5,-.11);handle.metadata={d8Animated:true};
+    for(const side of [-1,1]){const jamb=box('houseDoorJamb',0,0,0,.13,door.height+.12,.22,M.woodLight);jamb.parent=root;jamb.position.set(side*(door.width/2+.1),door.height/2,0);jamb.metadata={d8Animated:true,buildingEnvelope:true};}
+    const lintel=box('houseDoorLintel',0,0,0,door.width+.32,.18,.24,M.woodLight);lintel.parent=root;lintel.position.set(0,door.height+.08,0);lintel.metadata={d8Animated:true,buildingEnvelope:true};
+    (rt.nativeDoors??=[]).push({id:door.id,hinge,leaf,root,angle:Math.PI/2});
+  }
+  function finalPresentationPass(c:any){
+    rt.nativeDoors=[];
+    for(const door of c.MAP.doors??[])nativeDoor(door);
+    const meshes=rt.root.getChildMeshes();
+    const source=meshes.find((m:any)=>m.name===(rt.id==='cafe'?'cafe33_floor':'floor'));
+    const yard=meshes.find((m:any)=>/exterioryard/i.test(m.name));
+    const surface=rt.id==='cafe'?(yard??source):source;
+    if(rt.id==='mirror'&&source){
+      source.material.diffuseTexture=PROCEDURAL_SURFACES.snow?.texture??source.material.diffuseTexture;
+      source.material.bumpTexture=PROCEDURAL_SURFACES.snow?.normal??null;
+      source.material.diffuseColor=new BABYLON.Color3(.78,.89,.95);
+    }
+    if(surface){
+      surface.receiveShadows=true;
+      for(const m of meshes.filter((q:any)=>/^d8-horizon-(continuous-floor|island|cave-apron)$/.test(q.name))){
+        m.material=surface.material;m.receiveShadows=true;
+      }
+      const foundation=meshes.find((m:any)=>m.name==='terrainFoundation');
+      if(foundation)foundation.setEnabled(false);
+      if(rt.id!=='temple'&&rt.id!=='cafe'){
+        const [w,d]=c.MAP.size,nx=Math.ceil(w/4),nz=Math.ceil(d/4),tw=w/nx,td=d/nz,margin=3;
+        for(let ix=-margin;ix<nx+margin;ix++)for(let iz=-margin;iz<nz+margin;iz++){
+          if(ix>=0&&ix<nx&&iz>=0&&iz<nz)continue;
+          const tile=BABYLON.MeshBuilder.CreateGround('d8-continuous-ground-patch',{width:tw,height:td},scene);
+          const uv=tile.getVerticesData('uv');for(let i=0;i<uv.length;i+=2){uv[i]=(ix+uv[i])/nx;uv[i+1]=(iz+uv[i+1])/nz;}tile.setVerticesData('uv',uv);
+          tile.position.set(-w/2+(ix+.5)*tw,0,-d/2+(iz+.5)*td);tile.material=surface.material;tile.parent=parentFor('BASE');tile.receiveShadows=true;tile.isPickable=false;tile.metadata={tokenOccluder:false};
+        }
+      }
+    }
+    const roof=(name:string,x:number,z:number,w:number,d:number,h:number)=>{
+      const pitch=.32,rise=Math.tan(pitch)*w*.5;
+      for(const side of [-1,1]){
+        const m=box(name,x+side*w*.25,h+rise*.5,z,w*.55/Math.cos(pitch),.16,d*1.07,M.roof);
+        m.rotation.z=-side*pitch;m.metadata={...m.metadata,d8Animated:true,interiorRoof:{x,z,w,d},tokenOccluder:true};
+      }
+      for(const end of [-1,1]){
+        const mesh=new BABYLON.Mesh(name+'Gable',scene),data=new BABYLON.VertexData(),zz=z+end*d/2;
+        data.positions=[x-w/2,h,zz,x+w/2,h,zz,x,h+rise,zz];data.indices=end<0?[0,2,1]:[0,1,2];const normals:number[]=[];BABYLON.VertexData.ComputeNormals(data.positions,data.indices,normals);data.normals=normals;data.uvs=[0,0,1,0,.5,1];data.applyToMesh(mesh);mesh.material=M.wood;mesh.parent=parentFor('PROPS');mesh.material.backFaceCulling=false;mesh.metadata={d8Animated:true,interiorRoof:{x,z,w,d},tokenOccluder:true};
+      }
+    };
+    if(rt.id==='cafe')roof('cafeInteriorRoof',0,0,24,15.8,3.2);
+    if(rt.id==='temple')roof('templeInteriorRoof',0,-.45,28.2,17.3,5.6);
+    if(rt.id==='garden'){
+      const room=c.MAP.objects.find((o:any)=>o.asset==='round_room');
+      if(room){const [x,z]=room.position,r=room.radius??3.3;
+        const m=BABYLON.MeshBuilder.CreateCylinder('fritzInteriorRoof',{diameterTop:0,diameterBottom:r*2.2,height:1.7,tessellation:12},scene);
+        m.position.set(x,3.4,z);m.material=M.roof;m.parent=parentFor('PROPS');m.isPickable=false;
+        m.metadata={d8Animated:true,interiorRoof:{x,z,w:r*2,d:r*2,radius:r},tokenOccluder:true};
+      }
+    }
+    const signs=rt.id==='temple'?[{x:0,z:31.5,label:'CAMINO DEL PUEBLO'}]:rt.id==='cafe'?[{x:0,z:11,label:'CALLES DEL PUEBLO'}]:rt.id==='market'?[{x:0,z:9,label:'PLAZA DEL MERCADO'}]:[];
+    for(const sign of signs){
+      const x=sign.x+.55,z=sign.z+.45;
+      box('readableSignPost',x,.70,z,.10,1.4,.10,M.woodDark);
+      const board=box('readableSignBoard',x,1.35,z,.95,.45,.09,M.woodLight);
+      board.metadata={tokenOccluder:false};
+      const texture=track(new BABYLON.DynamicTexture('readableSignText',{width:512,height:256},scene,false)),ctx:any=texture.getContext();
+      ctx.fillStyle='#654427';ctx.fillRect(0,0,512,256);ctx.fillStyle='#f5dfb0';ctx.textAlign='center';ctx.font='bold 32px serif';ctx.fillText(sign.label,256,110);ctx.font='28px serif';ctx.fillText('LEER · 5 CASILLAS',256,165);texture.update(false);
+      const paint=track(new BABYLON.StandardMaterial('readableSignPaint',scene));paint.diffuseTexture=texture;paint.emissiveColor=new BABYLON.Color3(.12,.09,.05);paint.backFaceCulling=true;
+      const face=BABYLON.MeshBuilder.CreatePlane('readableSignFace',{width:.93,height:.44},scene);face.parent=parentFor('PROPS');face.position.set(x,1.35,z-.05);face.material=paint;face.isPickable=false;face.metadata={tokenOccluder:false};
+      const back=face.clone('readableSignBack');back.position.z=z+.05;back.rotation.y=Math.PI;
+    }
+    for(const m of rt.root.getChildMeshes())if(m.metadata?.interiorRoof)m.metadata.d8Animated=true;
+    for(const m of rt.root.getChildMeshes()){
+      if(/^(templeWall|templeWindow|lowWall|house(BackWall|FrontWall|LeftWall|RightWall|Body|Beam|Door|Window|Roof|Gable)|roof[AB]|windowGlow|roundRoom(Wall|Cap)|cafe12_(wall|frontWall|entryPier|cutawayEave|ceilingJoist|entryLintel|frontWindow))/.test(m.name))m.metadata={...m.metadata,d8Animated:true,buildingEnvelope:true};
+      if(/^(cafe12_)?(chair|table|barTop|sofa|bench)|^(stallCanopy|stallValance|artStallScallop)/.test(m.name)||/^chair$/.test(m.parent?.name??''))m.metadata={...m.metadata,d8Animated:true,furnitureCutaway:true};
+    }
+    const seat=rt.id==='cafe'?{x:-5.3,z:1.9,id:'woman-cafe'}:rt.id==='dinner'?{x:0,z:1.4,id:'anteros-dinner'}:rt.id==='temple'?{x:4.35,z:.8,id:'anteros-temple'}:null;
+    if(seat)for(const node of rt.root.getChildTransformNodes())if(/^(chair|cafe12_chair)$/.test(node.name)&&Math.hypot(node.position.x-seat.x,node.position.z-seat.z)<.15){
+      node.metadata={seatedActor:seat.id};for(const child of node.getChildMeshes())child.metadata={...child.metadata,d8Animated:true};
+    }
+    // Light pools keep tiny candle flames legible even on a large ground mesh;
+    // real point lights still illuminate local walls and furniture.
+    for(const light of scene.lights.filter((l:any)=>l.parent===rt.root&&/candel|candle|torch|lantern|window/i.test(l.name))){
+      const p=light.position;
+      makeOverlayV13('lampPool',p.x,p.z,Math.min(4,light.range*.7),Math.min(4,light.range*.7),[1,.52,.20],.15,'light');
+    }
+    rt.dayLightBases=new Map(scene.lights.filter((l:any)=>/Hemispheric|Directional/.test(l.getClassName())).map((l:any)=>[l,{intensity:l.intensity,color:l.diffuse.clone()}]));
+    // Cache authored visibility nodes once; do not traverse the whole scenery
+    // several times on every frame, especially on a mobile player.
+    rt.presentationNodes={chairs:rt.root.getChildTransformNodes().filter((n:any)=>n.metadata?.seatedActor),mirrorNodes:rt.root.getChildTransformNodes().filter((n:any)=>n.metadata?.authoredPropId==='true-love-mirror'),mirrorMeshes:rt.root.getChildMeshes().filter((m:any)=>m.metadata?.authoredPropId==='true-love-mirror'),roofs:rt.root.getChildMeshes().filter((m:any)=>m.metadata?.interiorRoof),envelopes:rt.root.getChildMeshes().filter((m:any)=>m.metadata?.buildingEnvelope),furniture:rt.root.getChildMeshes().filter((m:any)=>m.metadata?.furnitureCutaway),snow:rt.root.getChildMeshes().filter((m:any)=>/snowflake/i.test(m.name)),mirrorLight:scene.lights.find((l:any)=>l.name==='mirrorRelicLight')};
+    rt.presentationPhase=null;
+  }
+
+  function prepareClimatePresentation(){
+    const meshes=rt.root.getChildMeshes(),rooms=(rt.presentationNodes?.roofs??[]).map((m:any)=>m.metadata.interiorRoof);
+    const inside=(p:any)=>rooms.some((room:any)=>room.radius?Math.hypot(p.x-room.x,p.z-room.z)<room.radius:Math.abs(p.x-room.x)<room.w/2&&Math.abs(p.z-room.z)<room.d/2);
+    const surfaces=new Map(),glasses=new Map();rt.weatherMaterials=[];rt.lampMaterials=[];rt.localLightBases=[];rt.outdoorFlames=[];rt.lightPools=[];
+    for(const m of meshes){
+      m.computeWorldMatrix(true);const p=m.getBoundingInfo().boundingBox.centerWorld,mat=m.material;
+      if(!mat?.diffuseColor||mat.disableLighting||m.metadata?.d8Billboard||/water|flame|fire|smoke|spark|snow|sky|fog|pool|grid|torch|lantern|windowglow|glass/i.test(m.name))continue;
+      const exterior=!inside(p)||/roof|gable|exteriorYard|d8-horizon-(continuous-floor|island|cave-apron)/i.test(m.name);
+      if(!exterior||rt.id==='mirror')continue;
+      const snowExposure=/roof|ground|floor|yard|patio|leaf|foliage|cap|snow|d8-horizon-(island|cave-apron)/i.test(m.name)?1:.22,key=`${mat.uniqueId}:${snowExposure}`;
+      let entry=surfaces.get(key);if(!entry){const clone=track(cloneSurfaceMaterial(mat,`${mat.name}:outdoorClimate`));entry={material:clone,color:mat.diffuseColor.clone(),specular:mat.specularColor?.clone(),power:mat.specularPower??64,snowExposure};surfaces.set(key,entry);rt.weatherMaterials.push(entry);}
+      m.material=entry.material;
+    }
+    for(const m of meshes){
+      const p=m.getBoundingInfo().boundingBox.centerWorld;
+      if(/lampPool/i.test(m.name))rt.lightPools.push({mesh:m,indoor:inside(p)});
+      if(!inside(p)&&/flame|fireOuter|fireInner/i.test(m.name))rt.outdoorFlames.push(m);
+      if(!inside(p)&&/window[-_]?glow|lanternGlass|lantern-amber-glass|frontWindowGlass|LanternGlow|stoneLanternGlow|art(Town)?Window|FestoonGlow|door-lantern/i.test(m.name)&&m.material?.emissiveColor){
+        const mat=m.material;let entry=glasses.get(mat.uniqueId);if(!entry){const clone=track(cloneSurfaceMaterial(mat,`${mat.name}:daylight`));const emission=mat.emissiveColor.clone();if(/lantern/i.test(m.name)){emission.set(1,.65,.22);clone.alpha=1;}entry={material:clone,emissive:emission,color:mat.diffuseColor.clone()};glasses.set(mat.uniqueId,entry);rt.lampMaterials.push(entry);}m.material=entry.material;
+      }
+    }
+    for(const light of scene.lights){if(!/Hemispheric|Directional/.test(light.getClassName())&&light.position&&light.parent===rt.root&&light.name!=='mirrorRelicLight')rt.localLightBases.push({light,intensity:light.intensity,indoor:inside(light.position)});}
+    rt.weatherAmount=0;rt.wetAmount=0;rt.snowAmount=0;rt.weatherTarget=0;rt.weatherKind='none';rt.outdoorLampFactor=1;
+    rt.climateSkyBase=scene.clearColor.clone();rt.climateFogBase=scene.fogColor.clone();
+    if(rt.id==='market'){
+      const rope=BABYLON.MeshBuilder.CreateLines('marketCowLead',{points:[BABYLON.Vector3.Zero(),BABYLON.Vector3.One(),new BABYLON.Vector3(2,0,0)],updatable:true},scene);rope.parent=rt.root;rope.color=new BABYLON.Color3(.67,.49,.26);rope.isPickable=false;rt.cowLead=rope;
+    }else rt.cowLead=null;
+  }
+  function updateClimateMaterials(dt:number){
+    if(!rt.weatherMaterials)return;
+    const amounts=advanceD8WeatherSurface(rt.wetAmount,rt.snowAmount,rt.weatherKind,rt.weatherTarget,dt);rt.wetAmount=amounts.wet;rt.snowAmount=amounts.snow;
+    if(Math.abs(rt.wetAmount-(rt.wetApplied??-1))>.003||Math.abs(rt.snowAmount-(rt.snowApplied??-1))>.003){for(const base of rt.weatherMaterials){
+      const snow=rt.snowAmount,wet=rt.wetAmount;
+      base.material.diffuseColor=BABYLON.Color3.Lerp(base.color.scale(1-wet*.30),new BABYLON.Color3(.91,.96,1),snow*.78*base.snowExposure);
+      if(base.specular)base.material.specularColor=BABYLON.Color3.Lerp(base.specular,new BABYLON.Color3(.38,.43,.49),wet*.8);
+      base.material.specularPower=base.power+wet*96;
+    }
+    rt.wetApplied=rt.wetAmount;rt.snowApplied=rt.snowAmount;}
+    for(const door of rt.nativeDoors??[]){const target=door.closed?0:Math.PI/2;door.angle+=(target-door.angle)*(1-Math.exp(-dt*12));door.hinge.rotation.y=door.angle;}
+    for(const base of rt.localLightBases??[])base.light.intensity=base.intensity;
+  }
+  function applyClimateLights(){
+    for(const base of rt.localLightBases??[])base.light.intensity*=base.indoor?1:rt.outdoorLampFactor;
+    for(const m of rt.outdoorFlames??[])m.visibility=rt.outdoorLampFactor;
+    for(const item of rt.lightPools??[])item.mesh.visibility=item.indoor?1:rt.outdoorLampFactor;
+  }
+
+  function setViewContext(view:any){
+    if(!rt.root||!view.focus)return false;
+    let indoor=rt.id==='mirror';
+    rt.windIntensity=view.environment?.windIntensity??.2;
+    rt.weatherKind=view.environment?.precipitation??(view.environment?.storm?'rain':'none');
+    rt.weatherTarget=rt.weatherKind==='none'?0:(view.environment?.precipitationLevel??2)/3;
+    const nodes=rt.presentationNodes;
+    if(!nodes)return indoor;
+    const activeRoom=nodes.roofs.map((m:any)=>m.metadata.interiorRoof).find((room:any)=>room.radius?Math.hypot(view.focus.x-room.x,view.focus.z-room.z)<room.radius-.1:Math.abs(view.focus.x-room.x)<room.w/2-.2&&Math.abs(view.focus.z-room.z)<room.d/2-.2);
+    indoor ||= Boolean(activeRoom);
+    // Architecture may obstruct the focused character even when they are
+    // outside it at a low camera angle. Fade that envelope, never furniture
+    // or its movement collider; the same real depth buffer remains in use.
+    let sight:any=null;
+    if(view.cameraPosition){const aim=new BABYLON.Vector3(view.focus.x,view.focus.y+.9,view.focus.z),direction=aim.subtract(view.cameraPosition),length=direction.length();sight=new BABYLON.Ray(view.cameraPosition,direction.normalize(),length);}
+    const obstructs=(m:any)=>Boolean(sight&&sight.intersectsMesh(m,true).hit);
+    for(const m of nodes.envelopes){
+      const center=m.getBoundingInfo().boundingBox.centerWorld,room=activeRoom,camera=view.cameraPosition;
+      const foreground=room&&camera&&(center.x-room.x)*(camera.x-view.focus.x)+(center.z-room.z)*(camera.z-view.focus.z)>0;
+      m.visibility=foreground?.06:room&&obstructs(m)?.12:1;
+    }
+    if(view.cameraPosition){
+      const rays=[.25,.75,1.3].map(h=>{const aim=new BABYLON.Vector3(view.focus.x,view.focus.y+h,view.focus.z),d=aim.subtract(view.cameraPosition),length=d.length();return new BABYLON.Ray(view.cameraPosition,d.normalize(),length);});
+      for(const m of nodes.furniture){const p=m.getBoundingInfo().boundingBox.centerWorld,near=Math.hypot(p.x-view.focus.x,p.z-view.focus.z)<2.6;m.visibility=near&&rays.some(r=>r.intersectsMesh(m,true).hit)?.35:1;}
+    }
+    for(const native of rt.nativeDoors??[]){const door=(view.props??[]).find((p:any)=>p.id===native.id);native.closed=door?.state==='closed';native.root.setEnabled(door?.structure!=='destroyed');}
+    if(rt.cowLead){const ben=view.actorPositions?.['ben-market'],cow=view.actorPositions?.['cow-market'];const near=ben&&cow&&Math.hypot(ben.x-cow.x,ben.z-cow.z)<3.5;rt.cowLead.setEnabled(Boolean(near));if(near){const a=new BABYLON.Vector3(ben.x+.25,ben.y+.68,ben.z),b=new BABYLON.Vector3(cow.x-.45,cow.y+.77,cow.z);BABYLON.MeshBuilder.CreateLines('marketCowLead',{points:[a,BABYLON.Vector3.Lerp(a,b,.5).add(new BABYLON.Vector3(0,-.14,0)),b],instance:rt.cowLead},scene);}}
+    for(const node of nodes.chairs){
+      const id=node.metadata.seatedActor,seat=(view.seats??[]).find((s:any)=>s.id===id),actor=(view.entities??[]).find((e:any)=>e.id===id);
+      node.setEnabled(Boolean(view.combat||!actor||actor.moving||!seat||actor.cell.col!==seat.cell.col||actor.cell.row!==seat.cell.row));
+    }
+    if(view.environment?.precipitation!==undefined)for(const m of nodes.snow)m.setEnabled(false);
+    for(const m of nodes.roofs){
+      const room=m.metadata?.interiorRoof;
+      if(room){const inside=room.radius?Math.hypot(view.focus.x-room.x,view.focus.z-room.z)<room.radius
+        :Math.abs(view.focus.x-room.x)<room.w/2&&Math.abs(view.focus.z-room.z)<room.d/2;
+        m.setEnabled(!inside);m.visibility=1;indoor ||= inside;
+      }
+    }
+    const mirror=(view.props??[]).find((p:any)=>p.id==='true-love-mirror');
+    if(mirror){
+      for(const node of nodes.mirrorNodes)node.setEnabled(mirror.structure!=='destroyed');
+      for(const m of nodes.mirrorMeshes)m.setEnabled(mirror.structure!=='destroyed');
+      if(nodes.mirrorLight)nodes.mirrorLight.setEnabled(mirror.structure!=='destroyed');
+    }
+    const requested=view.environment?.timeOfDay??'auto',phase=requested==='auto'?(rt.id==='cafe'?'sunset':'authored'):requested;
+    if(rt.presentationPhase===phase)return indoor;
+    rt.presentationPhase=phase;
+    const factor=phase==='night' ? .28 : phase==='sunset' ? .90 : phase==='dawn' ? .57 : phase==='day' ? 1.6 : 1;
+    const tint=phase==='sunset'?new BABYLON.Color3(1,.70,.40):phase==='dawn'?new BABYLON.Color3(.72,.79,1):phase==='night'?new BABYLON.Color3(.48,.62,1):new BABYLON.Color3(1,1,.93);
+    for(const [light,base] of rt.dayLightBases??[]){light.intensity=base.intensity*factor;light.diffuse=base.color.multiply(tint);}
+    rt.outdoorLampFactor=phase==='day'?0:phase==='dawn'?.55:1;
+    for(const base of rt.lampMaterials??[]){base.material.emissiveColor=base.emissive.scale(rt.outdoorLampFactor);base.material.diffuseColor=BABYLON.Color3.Lerp(new BABYLON.Color3(.34,.40,.43),base.color,rt.outdoorLampFactor);}
+    if(rt.climateSkyBase){const sky=phase==='day'?new BABYLON.Color4(.50,.69,.80,1):phase==='sunset'?new BABYLON.Color4(.48,.30,.20,1):phase==='dawn'?new BABYLON.Color4(.22,.29,.43,1):phase==='night'?new BABYLON.Color4(.035,.055,.09,1):rt.climateSkyBase;scene.clearColor=sky;scene.fogColor=new BABYLON.Color3(sky.r,sky.g,sky.b);}
+    return indoor;
+  }
+  function weatherCovered(x:number,z:number){
+    if(rt.id==='mirror')return true;
+    return (rt.presentationNodes?.roofs??[]).some((mesh:any)=>{const room=mesh.metadata.interiorRoof;return room.radius?Math.hypot(x-room.x,z-room.z)<room.radius:Math.abs(x-room.x)<room.w/2&&Math.abs(z-room.z)<room.d/2;});
+  }
+
   function loadMap(id:string){
     const c=D8NIGHT.maps[id];if(!c)return;
     reset(id,c);
+    rt.windowPane=null;
     applyProceduralMaterialSurfaces();
     if(id==="cafe"&&c.MAP.renderMode==="tavern_v34"){
       buildTavernV34(c);
@@ -3497,9 +4270,10 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
       lightingV19(c);
       grid(c);
       authoredLandscape(c);
+      authoredHorizonV1(c);
       applyScenePolishV13(id,c);
+      finalPresentationPass(c);
       mergeStaticDetailMeshesV24();
-      shadows(c);
     }else{
       env(c);
       graphicsV18(c);
@@ -3513,14 +4287,23 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
       lightingV19(c);
       vfx(c);
       authoredLandscape(c);
+      authoredHorizonV1(c);
       applyScenePolishV13(id,c);
       templeVisibilityPassV34();
+      finalPresentationPass(c);
       mergeStaticDetailMeshesV24();
-      shadows(c);
     }
     balanceSanctuaryLights();
     setupGameplayGeometryV17(c);
     optimizeStaticMeshesV24();
+    prepareClimatePresentation();
+    batchIntegratedScenery();
+    shadows(c);
+    // In-game glow draws only actual light sources, not every weakly emissive
+    // stone/wood surface. Avoid a second full diorama pass per frame.
+    if(integrated)for(const mesh of rt.root.getChildMeshes()){
+      if(/flame|fireinner|fireouter|lanternglow|festoonGlow|crystal|magicmote|ember|waterGlow/i.test(mesh.name))glow.addIncludedOnlyMesh(mesh);
+    }
     const autoInspectables=buildAmbientInspectablesV17(c);
     rt.interactables=integrated?[]:[...(c.CANON?.interactables??[]),...(c.VTT_AMBIENCE.interactables??[]),...(rt.geometryInteractables??[]),...autoInspectables];
     reportRuntimeV24();
@@ -3586,9 +4369,14 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
   }
   function interaction(){nearest=null;ip.isVisible=false;ring.isVisible=false;const zone=navigationZoneAtV17(player.position.x,player.position.z);player.metadata={...(player.metadata??{}),vttZone:zone?.label??zone?.type??null};let best=Infinity;rt.interactables.forEach((q:any)=>{const dx=player.position.x-q.position[0],dz=player.position.z-q.position[1],d=Math.sqrt(dx*dx+dz*dz);if(d<=q.radius&&d<best){best=d;nearest=q;}});if(nearest){ip.isVisible=true;it.text="[ E ]   "+nearest.label;ring.position.set(nearest.position[0],0.09,nearest.position[1]);ring.isVisible=true;}}
 
-  scene.onBeforeRenderObservable.add(()=>{if(!rt.config)return;const dt=Math.min(engine.getDeltaTime()/1000,0.05);elapsed+=dt;if(integrated){rt.updaters.forEach((u:any)=>u(elapsed));return;}let dx=0,dz=0;if(keys.w)dz--;if(keys.s)dz++;if(keys.a)dx++;if(keys.d)dx--;if(dx||dz){const l=Math.sqrt(dx*dx+dz*dz);dx/=l;dz/=l;const d=4*dt,nx=player.position.x+dx*d,nz=player.position.z+dz*d;if(!blocked(nx,player.position.z))player.position.x=nx;if(!blocked(player.position.x,nz))player.position.z=nz;player.rotation.y=Math.atan2(dx,dz);}const camOff=rt.config?.camera?.targetOffset??[0,0,0];const target=new BABYLON.Vector3(player.position.x+(camOff[0]??0),camOff[1]??0,player.position.z+(camOff[2]??0));camera.target=BABYLON.Vector3.Lerp(camera.target,target,overview?0.035:0.085);interaction();updateTerrainHudV17();rt.updaters.forEach((u:any)=>u(elapsed));});
+    scene.onBeforeRenderObservable.add(()=>{if(!rt.config)return;const frameSeconds=Math.min(engine.getDeltaTime()/1000,1),dt=Math.min(frameSeconds,.05);elapsed+=dt;updateClimateMaterials(frameSeconds);if(integrated){rt.updaters.forEach((u:any)=>u(elapsed));applyClimateLights();return;}let dx=0,dz=0;if(keys.w)dz--;if(keys.s)dz++;if(keys.a)dx++;if(keys.d)dx--;if(dx||dz){const l=Math.sqrt(dx*dx+dz*dz);dx/=l;dz/=l;const d=4*dt,nx=player.position.x+dx*d,nz=player.position.z+dz*d;if(!blocked(nx,player.position.z))player.position.x=nx;if(!blocked(player.position.x,nz))player.position.z=nz;player.rotation.y=Math.atan2(dx,dz);}const camOff=rt.config?.camera?.targetOffset??[0,0,0];const target=new BABYLON.Vector3(player.position.x+(camOff[0]??0),camOff[1]??0,player.position.z+(camOff[2]??0));camera.target=BABYLON.Vector3.Lerp(camera.target,target,overview?0.035:0.085);interaction();updateTerrainHudV17();rt.updaters.forEach((u:any)=>u(elapsed));applyClimateLights();});
 
   loadMap(options.mapId ?? "cafe");
-  scene.metadata={...(scene.metadata??{}),d8Vtt:{camera,get config(){return rt.config;},loadMap:(id:string)=>loadMap(id),version:D8_VERSION}};
+    scene.metadata={...(scene.metadata??{}),d8Vtt:{camera,setViewContext,weatherCovered,get presentationDiagnostic(){return {wet:rt.wetAmount,snow:rt.snowAmount,lampFactor:rt.outdoorLampFactor,time:rt.presentationPhase,doors:(rt.nativeDoors??[]).map((d:any)=>({id:d.id,angle:d.angle,closed:d.closed}))};},mirrorTransformation:()=>{if(rt.id==='mirror'){
+      const pedestal=rt.config.MAP.objects.find((o:any)=>o.asset==='magic_pedestal'),[x,z]=pedestal?.position??[-9.2,-2.5];
+      pulseV17([x,z],[.28,.82,1],5);rippleV17([x,z],[.32,.90,1],1.8);
+      const sparks=Array.from({length:28},(_,i)=>{const q=sph('mirrorTransformationSpark',x,.6,z,.045+i%3*.016,M.magicWhite,'VFX');q.metadata={d8Animated:true,tokenOccluder:false};if(integrated)glow.addIncludedOnlyMesh(q);return q;});
+      let start:number|null=null;const animate=(t:number)=>{start??=t;const p=Math.min(1,(t-start)/1.6);for(const [i,q] of sparks.entries()){const angle=i*Math.PI*2/28+p*5,r=Math.sin(p*Math.PI)*(1.1+(i%4)*.12);q.position.set(x+Math.cos(angle)*r,.5+p*1.9+Math.sin(angle*2)*.2,z+Math.sin(angle)*r);q.visibility=Math.sin(p*Math.PI);}if(p>=1){for(const q of sparks)q.dispose();rt.updaters=rt.updaters.filter((u:any)=>u!==animate);}};rt.updaters.push(animate);
+    }},get config(){return rt.config;},get horizon(){return rt.horizonSummary??null;},loadMap:(id:string)=>loadMap(id),version:D8_VERSION}};
   return scene;
 }

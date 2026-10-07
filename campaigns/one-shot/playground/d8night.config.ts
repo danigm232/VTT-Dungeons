@@ -8,7 +8,7 @@
 // Garden -> El jardin de la srta fritz IA.png
 // Market -> El Mercado Nocturno IA.png
 // Mirror -> El Espejo de plata del amor verdadero IA.png
-export const D8_VERSION = "V40";
+export const D8_VERSION = "V49";
 
 export const D8NIGHT: any = {
   maps: {
@@ -108,7 +108,7 @@ export const D8NIGHT: any = {
           zones: [
             { type: "walkable", label: "sala principal de la taberna", position: [0, -0.2], size: [22.8, 14.0] },
             { type: "entry", label: "entrada de la taberna", position: [0, 7.0], size: [3.8, 1.2] },
-            { type: "walkable", label: "patio exterior", position: [0, 9.7], size: [26.0, 4.8] },
+            { type: "walkable", label: "patio exterior", position: [0, 9.7], size: [23.4, 4.8] },
             { type: "water", label: "abrevadero", position: [5.6, 10.0], size: [4.8, 1.55] },
             { type: "difficult", label: "zona de mobiliario", position: [-5.1, 0.6], size: [4.3, 4.0] }
           ],
@@ -124,6 +124,7 @@ export const D8NIGHT: any = {
         triggers: []
       },
       VTT_AMBIENCE: {
+        horizon: { style: "village", zenith: "#24253a", horizon: "#9c7a7d", ground: "#58473e", far: "#454252", near: "#5c5058", warmWindows: true },
         environment: { clearColor: [0.10, 0.072, 0.045], fog: false, fogDensity: 0, exposure: 1.00, contrast: 1.03, toneMapping: false, vignette: false, glowIntensity: 0.12, sharpen: 0.62, sharpenColor: 1.04 },
         lighting: {
           mode: "interior",
@@ -201,6 +202,8 @@ export const D8NIGHT: any = {
           // --- NAVE / SANCTUARY ---
           { asset: "temple_floor", position: [0, -0.45], size: [27.3, 17.0], material: "stone", tileSize: 2.35, border: false, joints: false },
           { asset: "temple_wall", position: [0, -9.0], size: [28.2, 0.92], height: 5.60, pilasters: true },
+          { asset: "temple_wall", position: [-8.55,8.1], size: [10.25,.92], height: 5.6, pilasters: true },
+          { asset: "temple_wall", position: [8.55,8.1], size: [10.25,.92], height: 5.6, pilasters: true },
 
           // Segmented side walls leave true window openings.
           { asset: "temple_wall", position: [-14.0, -7.30], size: [0.92, 3.05], height: 4.85, pilasters: true },
@@ -240,7 +243,9 @@ export const D8NIGHT: any = {
           { asset: "runner", position: [0, 0.8], size: [9.3, 4.8], material: "templeBurgundy", border: "gold" },
 
           // Bridge ends at the stairs. There is no loose dirt gap anymore.
-          { asset: "stairs", position: [0, 19.85], size: [6.2, 3.4], steps: 9, height: 1.18, material: "stone" },
+          { asset: "stairs", position: [0, 19.85], size: [6.2, 3.4], steps: 9, baseHeight: 0.23, height: 0.95, ascending: "north", material: "stone" },
+          { asset: "temple_floor", position: [0, 17.9], size: [6.2, 0.5], y: 1.04, joints: false },
+          { asset: "stairs", position: [0, 16.65], size: [6.2, 2.0], steps: 6, baseHeight: 0.28, height: 0.9, ascending: "south", material: "stone" },
           { asset: "water_area", position: [0, 23.45], size: [40.0, 5.8], rippleCount: 12, shimmer: 0.18, flow: 0.24 },
           { asset: "bridge", position: [0, 23.45], size: [3.5, 5.9], planks: 18 },
           { asset: "collider_only", position: [-10.9, 23.45], size: [18.3, 5.8] },
@@ -413,6 +418,7 @@ export const D8NIGHT: any = {
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
+        horizon: { style: "coast", zenith: "#273247", horizon: "#b59ba0", ground: "#4e655b", far: "#596976", near: "#77717a", water: "#376b78", warmWindows: false },
         environment: { clearColor: [0.024, 0.035, 0.062], fog: false, fogDensity: 0, exposure: 1.18, contrast: 1.10, toneMapping: true, vignette: true, vignetteWeight: 0.16, vignetteStretch: 0.08 },
         lighting: {
           mode: "exterior",
@@ -543,6 +549,7 @@ export const D8NIGHT: any = {
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
+        horizon: { style: "estate", zenith: "#252437", horizon: "#a17b7c", ground: "#505d54", far: "#4d5552", near: "#66595c", warmWindows: true },
         environment: { clearColor: [0.014, 0.024, 0.052], fog: true, fogDensity: 0.0015, exposure: 1.11, contrast: 1.07, toneMapping: true, vignette: true, vignetteWeight: 0.24 },
         lighting: {
           mode: "exterior",
@@ -596,7 +603,10 @@ export const D8NIGHT: any = {
         objects: [
           { asset: "path", position: [-1.0, 4.8], size: [23.0, 2.2] },
           { asset: "path", position: [5.8, 0.2], size: [2.2, 11.0] },
-          { asset: "round_room", position: [7.2, -3.0], radius: 3.3, segments: 20, opening: 3, height: 1.25 },
+          { asset: "house", position: [7.2, -3.0], size: [6.6,6.6], height: 2.6, cutaway: true, playable: true, material: 'wood', doorX: 6 },
+          { asset: "plant_cluster", position: [3.2, -3.9], spread: 1.3, count: 12 },
+          { asset: "plant_cluster", position: [11.3, -2.0], spread: 1.4, count: 14 },
+          { asset: "grass_tufts", position: [8.8, -7.55], spread: 2.1, count: 18 },
           { asset: "stone_lantern", position: [4.0, 4.8], height: 1.4, intensity: 0.42, range: 5 },
           { asset: "stone_lantern", position: [8.0, 1.0], height: 1.4, intensity: 0.38, range: 4.8 },
           { asset: "bed", position: [7.2, -3.6], size: [1.3, 2.25] },
@@ -620,8 +630,8 @@ export const D8NIGHT: any = {
           { asset: "thorn_wall", position: [-7.2, -8.25], length: 9.2, count: 15, rotation: 0 },
           { asset: "thorn_wall", position: [-12.1, -3.4], length: 8.0, count: 14, rotation: Math.PI / 2 },
           { asset: "thorn_wall", position: [-7.4, 7.5], length: 9.0, count: 14, rotation: 0 },
-          { asset: "plant_cluster", position: [3.7, -5.7], spread: 1.3, count: 8 },
-          { asset: "plant_cluster", position: [10.5, -6.3], spread: 1.0, count: 7 },
+          { asset: "plant_cluster", position: [3.0, -5.7], spread: 1.3, count: 8 },
+          { asset: "plant_cluster", position: [11.2, -6.8], spread: 1.0, count: 7 },
           { asset: "rock_cluster", position: [-2.5, 4.2], spread: 1.4, count: 8 },
           { asset: "floor_scatter", position: [7.2, -3.0], size: [6.0, 6.0], count: 12, material: "stoneDark" },
 
@@ -635,7 +645,8 @@ export const D8NIGHT: any = {
           // V16 GARDEN — reference match 2.5D
           { asset: "thorn_wall", position: [2.1, -8.5], length: 5.4, count: 10, rotation: 0 },
           { asset: "thorn_wall", position: [12.0, -1.2], length: 6.2, count: 11, rotation: Math.PI / 2 },
-          { asset: "low_wall", position: [7.2, 0.2], size: [5.6, 0.34], height: 0.48, material: "stone2" },
+          { asset: "low_wall", position: [4.45, 0.2], size: [1.1, 0.34], height: .48, material: "wood" },
+          { asset: "low_wall", position: [8.75, 0.2], size: [3.5, 0.34], height: .48, material: "wood" },
           { asset: "plant_cluster", position: [-10.2, 5.8], spread: 1.2, count: 8, material: "rosePink" }
         ],
         navigation: {
@@ -644,19 +655,20 @@ export const D8NIGHT: any = {
           zones: [
             { type: "walkable", label: "sendero", position: [-1.0, 4.8], size: [23.0, 2.2] },
             { type: "walkable", label: "sendero", position: [5.8, 0.2], size: [2.2, 11.0] },
-            { type: "walkable", label: "refugio circular", position: [7.2, -3.0], size: [6.2, 6.2] },
+            { type: "walkable", label: "cabaña de madera", position: [7.2, -3.0], size: [6.2, 6.2] },
             { type: "difficult", label: "rosales", position: [-7.8, -2.0], size: [4.6, 8.2] },
             { type: "difficult", label: "rosales", position: [-2.7, -3.2], size: [3.8, 5.8] },
             { type: "hazard", label: "espinos densos", position: [-7.2, -8.25], size: [9.4, 1.0] }
           ],
           interactions: [
-            { id: "garden_room_geom", position: [7.2, -0.8], radius: 1.5, label: "Examinar refugio", message: "El refugio circular forma una zona interior dentro del jardín." },
+            { id: "garden_room_geom", position: [7.2, -0.8], radius: 1.5, label: "Examinar refugio", message: "La cabaña de madera ofrece una estancia cerrada dentro del jardín." },
             { id: "garden_roses_geom", position: [-6.4, -2.0], radius: 1.7, label: "Apartar los rosales", message: "Los rosales forman una masa densa junto al sendero.", action: { type: "nudge", radius: 3.0, meshMatch: ["roseHead", "thornRose"] } }
           ]
         }
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
+        horizon: { style: "snowForest", zenith: "#304659", horizon: "#d0d5d8", ground: "#a8b8be", far: "#718894", near: "#788992", snow: "#d6e1e5", warmWindows: false },
         environment: { clearColor: [0.026, 0.060, 0.086], fog: true, fogDensity: 0.00115, exposure: 1.12, contrast: 1.07, toneMapping: true, vignette: true, vignetteWeight: 0.24 },
         lighting: {
           mode: "exterior",
@@ -669,7 +681,7 @@ export const D8NIGHT: any = {
         vfx: { snowfall: true, snowCount: 56, snowSpeed: 0.32, roseSway: true, fireflies: true, fireflyCount: 12 },
         interactables: [
           { id: "garden_roses_ambience", position: [-6.0, -1.5], radius: 2.2, label: "Rozar rosales", message: "Los rosales destacan con fuerza sobre la nieve.", action: { type: "nudge", radius: 3.0, meshMatch: ["roseHead", "thornRose"] } },
-          { id: "garden_room_ambience", position: [4.5, -3.0], radius: 2.2, label: "Examinar estancia", message: "Una pequeña estancia circular se abre entre los muros del jardín.", action: { type: "pulse", color: [1.00, 0.62, 0.24], range: 3.2 } }
+          { id: "garden_room_ambience", position: [4.5, -3.0], radius: 2.2, label: "Examinar estancia", message: "Una pequeña cabaña de madera se cobija entre los rosales del jardín.", action: { type: "pulse", color: [1.00, 0.62, 0.24], range: 3.2 } }
         ],
         visual: {
           profile: "garden_moonlit_snow",
@@ -718,7 +730,6 @@ export const D8NIGHT: any = {
           { asset: "market_stall", position: [-7.2, 5.0], size: [3.6, 2.0], color: "green" },
           { asset: "market_stall", position: [7.6, 5.0], size: [3.6, 2.0], color: "yellow" },
           { asset: "trough", position: [2.4, 2.4], size: [3.0, 1.05] },
-          { asset: "cow_proxy", position: [5.1, 2.4], facing: -1, scale: 1.0 },
           { asset: "lantern_post", position: [-12.2, 6.3], intensity: 0.62, range: 5.5 },
           { asset: "lantern_post", position: [12.2, 6.3], intensity: 0.62, range: 5.5 },
           { asset: "lantern_post", position: [-2.7, 0.1], intensity: 0.58, range: 5.0 },
@@ -773,6 +784,7 @@ export const D8NIGHT: any = {
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
+        horizon: { style: "nightMarket", zenith: "#2b2440", horizon: "#b1758b", ground: "#71677a", far: "#49435d", near: "#6b5868", warmWindows: true },
         environment: { clearColor: [0.025, 0.040, 0.075], fog: true, fogDensity: 0.00105, exposure: 1.13, contrast: 1.08, toneMapping: true, vignette: true, vignetteWeight: 0.22 },
         lighting: {
           mode: "exterior",
@@ -884,6 +896,7 @@ export const D8NIGHT: any = {
       },
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
+        horizon: { style: "cavern", zenith: "#101c27", horizon: "#3e7e88", ground: "#284c54", far: "#254750", near: "#37616a", crystal: "#49a0ad", warmWindows: false },
         environment: { clearColor: [0.010, 0.038, 0.058], fog: true, fogDensity: 0.0009, exposure: 1.05, contrast: 1.08, toneMapping: false, vignette: false },
         lighting: {
           mode: "interior",
@@ -928,3 +941,130 @@ export const D8NIGHT: any = {
     }
   }
 };
+
+// Physical authoring shared by the VTT and the Playground. Roofs, tree crowns
+// and awnings are deliberately NOT inferred as floor obstacles.
+function physicalBoxes(objects: any[]) {
+  const boxes: any[] = [];
+  for (const [index, o] of objects.entries()) {
+    const [x, z] = o.position, s = o.scale ?? 1, a = o.rotation ?? 0;
+    const add = (px: number, pz: number, w: number, d: number, effects = false) => boxes.push({
+      id: `solid-${index}-${boxes.length}`, position: [px, pz], size: [w, d], effects
+    });
+    const rotated = (w: number, d: number, effects = false) => add(x, z,
+      Math.abs(Math.cos(a)) * w + Math.abs(Math.sin(a)) * d,
+      Math.abs(Math.sin(a)) * w + Math.abs(Math.cos(a)) * d, effects);
+    if (['wall', 'temple_wall', 'stone_partition', 'collider_only', 'cabinet'].includes(o.asset)) add(x, z, o.size[0], o.size[1], o.asset !== 'cabinet' && o.asset !== 'collider_only');
+    else if (o.asset === 'low_wall') rotated((o.size?.[0] ?? 4) * s, (o.size?.[1] ?? .42) * s);
+    else if (o.asset === 'temple_gate') for (const side of [-1, 1]) add(x + side * (o.width ?? 6.4) * s / 2, z, .92 * s, (o.depth ?? .9) * s, true);
+    else if (['archway', 'arch_ruin'].includes(o.asset)) for (const side of [-1, 1]) add(x + side * (o.size?.[0] ?? 3.4) * s * .42, z, .46 * s, .60 * s, true);
+    else if (o.asset === 'round_room') {
+      const radius = (o.radius ?? 3) * s, segments = o.segments ?? 20, opening = o.opening ?? 3;
+      for (let i = opening; i < segments; i++) {
+        const angle = i / segments * Math.PI * 2 + (o.openingAngle ?? 0), w = Math.PI * 2 * radius / segments * 1.06, d = .42;
+        add(x + Math.cos(angle) * radius, z + Math.sin(angle) * radius,
+          Math.abs(Math.sin(angle)) * w + Math.abs(Math.cos(angle)) * d,
+          Math.abs(Math.cos(angle)) * w + Math.abs(Math.sin(angle)) * d, true);
+      }
+    }
+    else if (o.asset === 'column') add(x, z, (o.diameter ?? .75) * s, (o.diameter ?? .75) * s, true);
+    else if (o.asset === 'tree') add(x, z, .8, .8);
+    else if (o.asset === 'snow_tree') add(x, z, .78 * s, .78 * s);
+    else if (o.asset === 'temple_tree') add(x, z, .75 * s, .75 * s);
+    else if (o.asset === 'temple_pew') rotated((o.length ?? 3.4) * s, .75);
+    else if (o.asset === 'stall') add(x, z, 4, 1.4);
+    else if (o.asset === 'table_round') add(x, z, 1.35 * s, 1.35 * s);
+    else if (o.asset === 'crate') add(x, z, .8 * s, .8 * s);
+    else if (o.asset === 'barrel_large') add(x, z, 1.3, 1.3);
+    else if (o.asset === 'small_barrel') add(x, z, .615 * s, .615 * s);
+    else if (o.asset === 'barrel_cluster') for (let i = 0; i < (o.count ?? 4); i++) add(x + (i - ((o.count ?? 4) - 1) / 2) * (o.spacing ?? 1.25) * s, z, 1.05 * s, 1.05 * s);
+    else if (['sofa_red', 'sideboard', 'trough'].includes(o.asset) && o.size) add(x, z, o.size[0] * s, o.size[1] * s);
+    else if (o.asset === 'bed') add(x,z,(o.size?.[0]??1.25)*s,(o.size?.[1]??2.25)*s);
+    else if (o.asset === 'long_table') add(x,z,(o.size?.[0]??5.2)*s*.88,(o.size?.[1]??1.35)*s*.88);
+    else if (o.asset === 'temple_altar') add(x,z,(o.size?.[0]??5.2)*s*1.05,(o.size?.[1]??2)*s*1.10);
+    else if (o.asset === 'temple_offering_table') add(x,z,(o.size?.[0]??2.4)*s*.92,(o.size?.[1]??.9)*s*.92);
+    else if (o.asset === 'temple_lectern') add(x,z,1,.8);
+    else if (o.asset === 'temple_pedestal') add(x,z,.95,.95);
+    else if (o.asset === 'temple_font') add(x,z,.75,.75);
+    else if (o.asset === 'brazier') add(x,z,.95*s,.95*s);
+    else if (o.asset === 'temple_brazier') add(x,z,.72*s,.72*s);
+    else if (o.asset === 'stone_lantern') add(x,z,.65*s,.65*s);
+    else if (o.asset === 'lantern_post') add(x,z,.32*s,.32*s);
+    else if (o.asset === 'market_stall') add(x,z,(o.size?.[0]??4.4)*s*.92,(o.size?.[1]??2)*s*.72);
+    else if (o.asset === 'house') {
+      const w=(o.size?.[0]??8)*s,d=(o.size?.[1]??5)*s;
+      if(o.playable){
+        add(x,z-d/2,w,.3,true);add(x-w/2,z,.3,d,true);add(x+w/2,z,.3,d,true);
+        const doorX=o.doorX??x-w*.28,edge=.98;
+        add((x-w/2+doorX-edge)/2,z+d/2,doorX-edge-(x-w/2),.3,true);
+        add((doorX+edge+x+w/2)/2,z+d/2,x+w/2-doorX-edge,.3,true);
+        if(!o.material){add(x,z,2.2,1.15);add(x-w*.32,z+d*.26,w*.2,.8);add(x+w*.32,z+d*.24,1.6,.85);}
+      }else add(x,z,w,d,true);
+    }
+    else if (o.asset === 'statue') add(x, z, 2, 1.4);
+    else if (o.asset === 'well') add(x, z, (o.diameter ?? 2) * s, (o.diameter ?? 2) * s);
+    else if (o.asset === 'thorn_wall') add(x,z,Math.abs(Math.cos(a))*(o.length??5)*s+.45,Math.abs(Math.sin(a))*(o.length??5)*s+.45);
+    else if (o.asset === 'fence' && o.blocking !== false) rotated((o.length ?? 5) * s, .18);
+  }
+  return boxes;
+}
+
+// Exception documented in WORKFLOW.md: this matches buildTavernV34, not the
+// obsolete design partitions still present in MAP.objects.
+const tavernPhysical = [
+  [0,-7.65,24,.65,1],[-11.65,0,.65,15.3,1],[11.65,0,.65,15.3,1],
+  [-6.15,7.55,11.7,.52,1],[6.975,7.55,10.05,.52,1],
+  [-3.15,-5,10.8,1.05,0],[-9.65,-1.3,2.7,1.75,1],
+  [-8.5,-4.15,2.25,1,0],[-8.85,4.2,2.25,1,0],
+  [-5.3,.45,1.35,1.35,0],[1.55,2.25,1.35,1.35,0],[5.05,-.45,1.35,1.35,0],
+  [8.35,1.4,.48,8.2,1],[10.1,-2.7,3.8,.48,1],[-8.4,5.75,4.2,.84,0],
+  [6.9,5.9,3.2,.68,0],[9.8,5.9,.78,.78,0],
+  [5.25,-5.25,1.2,1.2,0],[7.05,-5.25,1.2,1.2,0],
+  [5.6,10,4.8,1.55,0]
+].map(([x,z,w,d,e], i) => ({ id: `tavern-${i}`, position: [x,z], size: [w,d], effects: Boolean(e) }));
+
+for (const [id, c] of Object.entries<any>(D8NIGHT.maps)) {
+  // Preserve grid counts/save coordinates, while making every square 1.5m.
+  c.MAP.size = c.MAP.size.map((n: number) => Math.round(n / 1.5) * 1.5);
+  const nav = c.MAP.navigation;
+  c.MAP.doors = id==='cafe' ? [{id:'cafe-entry-door',label:'Puerta del Café No-Me-Olvides',x:.75,z:7.55,width:1.8,height:2.5,rotation:0}]
+    : id==='garden' ? [{id:'fritz-entry-door',label:'Puerta de la cabaña de Fritz',x:6,z:.2,width:1.8,height:2.5,rotation:0}]
+    : id==='dinner' ? [{id:'dinner-entry-door',label:'Puerta de la casa de Anteros',x:-3.36,z:-2.2,width:1.8,height:2.3,rotation:0}]
+    : id==='temple' ? [{id:'temple-entry-door',label:'Puerta del templo',x:0,z:18.15,width:5.6,height:3.8,rotation:0},{id:'temple-nave-door',label:'Puerta de la nave del templo',x:0,z:8.1,width:5.6,height:4.3,rotation:0}] : [];
+  if(id==='dinner')for(const house of c.MAP.objects.filter((o:any)=>o.asset==='house'&&Math.abs(o.position[0])<1))house.playable=true;
+  if(id==='cafe')for(const chair of c.MAP.objects.filter((o:any)=>o.asset==='chair'))if(Math.abs(chair.rotation??0)===Math.PI/2)chair.rotation=-chair.rotation;
+  if(['temple','cafe','market'].includes(id)){
+    nav.bounds[3]+=9;
+    const paths: [number,number,number,number][]=id==='temple'?[[-1.5,31.5,-4,40.5],[1.5,31.5,4,40.5]]:id==='cafe'?[[-9,10.5,-12,19.5],[9,10.5,12,19.5]]:[[-2,8.5,-10,17.5],[2,8.5,10,17.5]];
+    for(const [i,[ax,az,bx,bz]] of paths.entries()){
+      const dx=bx-ax,dz=bz-az,len=Math.hypot(dx,dz),nx=-dz/len*1.8,nz=dx/len*1.8;
+      nav.zones.push({type:'walkable',label:`camino transitable ${i+1}`,position:[0,0],size:[100,100],outline:[[ax+nx,az+nz],[bx+nx,bz+nz],[bx-nx,bz-nz],[ax-nx,az-nz]]});
+    }
+  }
+  if(id==='dinner')nav.zones.push({type:'walkable',label:'patio y calles de la finca',position:[0,0],size:[27,17]});
+  nav.obstacles = id === 'cafe' ? tavernPhysical : physicalBoxes(c.MAP.objects);
+  nav.obstacles.push(...(nav.blockers ?? []));
+  nav.supports = c.MAP.objects.flatMap((o: any) => o.asset === 'temple_floor'
+    ? [{ position: o.position, size: o.size, height: (o.y ?? .14) + .14, kind: 'floor' }]
+    : o.asset === 'room_floor' ? [{ position: o.position, size: o.size, height: .12, kind: 'floor' }]
+    : o.asset === 'house' && o.playable ? [{ position: o.position, size: o.size.map((n:number)=>n-.44), height: .14, kind: 'floor' }]
+    : o.asset === 'patio_round' ? [
+      { position: o.position, size: [(o.diameter ?? 6) * (o.scale ?? 1), (o.diameter ?? 6) * (o.scale ?? 1)], radius: (o.diameter ?? 6) * (o.scale ?? 1) * .5, height: (o.height ?? .10) * (o.scale ?? 1) * 1.025, kind: 'floor' },
+      { position: o.position, size: [(o.diameter ?? 6) * (o.scale ?? 1), (o.diameter ?? 6) * (o.scale ?? 1)], radius: (o.diameter ?? 6) * (o.scale ?? 1) * .46, height: (o.height ?? .10) * (o.scale ?? 1) * 1.62, kind: 'floor' }
+    ]
+    : o.asset === 'bridge' ? [{ position: o.position, size: o.size, height: .23, kind: 'bridge' }]
+    : o.asset === 'stairs' ? [{ ...o, kind: 'stair', ascending: o.ascending ?? 'south' }] : []);
+  if (id === 'garden' || id === 'mirror') nav.zones.unshift({ type: 'walkable', label: id === 'garden' ? 'suelo nevado firme' : 'perímetro de hielo firme', position: [0,0], size: c.MAP.size });
+  if (id === 'market') nav.zones.push({ type: 'walkable', label: 'todo el mercado y sus pasillos', position: [0,0], size: [29,20] });
+  if(id==='mirror'){
+    const pool=c.MAP.objects.find((o:any)=>o.asset==='water_area');
+    const seeded=(n:number)=>{const x=Math.sin(n*12.9898+78.233)*43758.5453;return x-Math.floor(x);};
+    pool.outline=Array.from({length:40},(_,i)=>{const a=i/40*Math.PI*2,r=.92+seeded(i*8.7+13)*.16;return[Math.cos(a)*pool.size[0]*.5*r,Math.sin(a)*pool.size[1]*.5*r];});
+    const hazard=nav.zones.find((z:any)=>z.type==='hazard');hazard.outline=pool.outline;
+    for(const floe of c.MAP.objects.filter((o:any)=>o.asset==='ice_floe')){
+      const d=floe.diameter,rot=floe.rotation??0,ds=floe.depthScale??.72;
+      const outline=Array.from({length:floe.tessellation??7},(_,i)=>{const a=i/(floe.tessellation??7)*Math.PI*2,x=Math.cos(a)*d*.5,z=Math.sin(a)*d*.5*ds;return[x*Math.cos(rot)+z*Math.sin(rot),-x*Math.sin(rot)+z*Math.cos(rot)];});
+      nav.zones.push({type:'hazard',label:'placa de hielo azul fino',position:floe.position,size:[d,d],outline});
+    }
+  }
+}
