@@ -5,6 +5,7 @@ import { AudioDirector } from './audio';
 import { WorldRenderer } from './world';
 import { loadCampaign } from './campaign';
 import { SceneLoadRecovery } from '../../engine/client/scene-load-recovery';
+import { shipAmbienceGains,shipPerspectiveAudio } from '../../engine/client/ship-acoustics';
 
 const campaign = await loadCampaign();
 // El proyector es la vista inmersiva de la mesa: muestra escenario, fichas y
@@ -20,6 +21,9 @@ let readyEpoch = -1;
 let latestSceneEpoch = -1;
 let runtimeEpoch: string | null = null;
 let latestSnapshot: WorldSnapshot | null = null;
+let acousticKey='';
+const listener=()=>latestSnapshot?.entities.find(e=>e.id===latestSnapshot?.camera.focusId)??null;
+const applyAudio=()=>{if(ready&&pending)audio.apply(shipPerspectiveAudio(pending,listener()));};
 const sceneLoadRecovery = new SceneLoadRecovery();
 const playedEvents = new Set<string>();
 socket.on('runtime:reset', (event: { runtimeEpoch: string }) => {
@@ -32,6 +36,8 @@ socket.on('world:snapshot', (snapshot: WorldSnapshot) => {
   if (snapshot.runtimeEpoch !== runtimeEpoch) return;
   latestSceneEpoch = snapshot.sceneEpoch;
   latestSnapshot = snapshot;
+  const nextAcousticKey=JSON.stringify(shipAmbienceGains(listener()));
+  if(nextAcousticKey!==acousticKey){acousticKey=nextAcousticKey;applyAudio();}
   const hud = document.getElementById('combatHud')!;
   hud.hidden = !snapshot.combat.active;
   if (snapshot.combat.active) {
@@ -61,7 +67,7 @@ socket.on('camera:orientation', (event: { runtimeEpoch: string; sceneEpoch: numb
 socket.on('audio:state', (state: AudioState & { runtimeEpoch: string }) => {
   if (state.runtimeEpoch !== runtimeEpoch) return;
   pending = state;
-  if (ready) audio.apply(state);
+  applyAudio();
 });
 socket.on('sfx:play', (event: { eventId: string; sfxId: string; runtimeEpoch: string }) => {
   if (event.runtimeEpoch !== runtimeEpoch) return;
@@ -101,13 +107,13 @@ document.getElementById('start')!.onclick = async () => {
   // be shown immediately while the independent sound permission resolves.
   document.getElementById('audioNotice')!.hidden = false;
   const unlocked = await audio.unlock();
-  if (unlocked && pending) audio.apply(pending);
+  if (unlocked) applyAudio();
   document.getElementById('audioNotice')!.hidden = unlocked;
 };
 document.getElementById('retryAudio')!.onclick = async () => {
   const unlocked = await audio.unlock();
   if (unlocked) {
-    if (pending) audio.apply(pending);
+    applyAudio();
     document.getElementById('audioNotice')!.hidden = true;
   } else {
     document.getElementById('audioMessage')!.textContent = 'El navegador aún bloquea el sonido. La escena sigue disponible; vuelve a intentarlo después.';

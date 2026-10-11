@@ -502,3 +502,6 @@ html[data-dm-text-size="large"] body { font-size: clamp(17px,1vw,19px); }
   .release-notes-list article > span { width: 32px; height: 32px; }
   .release-notes-footer button { width: 100%; }
 }
+#campPointActions { list-style: none; padding: 0; display: grid; gap: .6rem; }
+#campPointActions button { width: 100%; text-align: left; }
+#campPointActor { width: 100%; }

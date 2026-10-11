@@ -1,8 +1,11 @@
 import { io, type Socket } from 'socket.io-client';
+import { ConditionPanel, conditionStrip } from './ui/conditions';
+import { conditionPresentation } from '../../engine/shared/conditions';
 import { OBJECT_MODEL_VERSION, PROTOCOL_VERSION } from '../../engine/shared/protocol';
 import type { AudioState, BasicCombatAction, Cell, CommandResult, CombatAction, CombatParticipant, DmObject, DmState, WorldSnapshot } from '../../engine/shared/protocol';
 import type { PublicCampaignDefinition } from '../../engine/shared/campaign';
 import { supportsCameraOrientation } from '../../engine/shared/camera';
+import { activitiesForCampPoint, campActivities, campPointInReach } from '../../engine/shared/camp-activities';
 import { footprintFor } from '../../engine/shared/geometry';
 import { commandId } from '../../engine/client/uuid';
 import { worldVectorToCellDelta } from '../../engine/client/camera-movement';
@@ -11,23 +14,35 @@ import { loadCampaign } from './campaign';
 import { WorldRenderer } from './world';
 import { renderD8AnimationAudit } from './d8-animation-audit';
 import { combatActionDescription, combatTurnIndicators, compactCombatPrompt } from '../../engine/client/combat-presentation';
-import { createDmWorkspacePreset, recommendedDmWorkspace, type DmWorkspacePresetId, type WorkspaceState, type WorkspaceMode, type WindowLayout } from '../../engine/client/dm-workspace';
+import { packDmWorkspace, createDmWorkspacePreset, recommendedDmWorkspace, type DmWorkspacePresetId, type WorkspaceState, type WorkspaceMode, type WindowLayout } from '../../engine/client/dm-workspace';
 import { SceneLoadRecovery } from '../../engine/client/scene-load-recovery';
-import { chip, chips, disclosure, emptyState, localButton, preserveDisclosures, relativeTime, savePresentation, sceneBlock, sceneActions } from './ui/dm/presentation';
+import { DmObjectRosette } from './ui/dm/object-rosette';
+import { DmMapTargets } from './ui/dm/map-targets';
+import { chip, chips, disclosure, emptyState, localButton, preserveDisclosures, relativeTime, savePresentation, sceneBlock, sectionDeck } from './ui/dm/presentation';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 let socket: Socket | null = null, state: DmState | null = null, world: WorldRenderer | null = null, campaign: PublicCampaignDefinition | null = null;
 const sceneLoadRecovery = new SceneLoadRecovery();
 let selectedId: string | null = null, draft: DmObject | null = null, latestSnapshot: WorldSnapshot | null = null, readyEpoch = -1, toastTimer = 0;
 let inspectedPickupId: string | null = null;
+let conditionSheetEntityId: string | null = null;
+const dmConditionPanel = new ConditionPanel(change => {
+  if (conditionSheetEntityId) command({ type: 'combat:condition', entityId: conditionSheetEntityId, ...change });
+});
+setInterval(() => { if (($('combatSheetDialog') as HTMLDialogElement).open) dmConditionPanel.updateTimers(); }, 1000);
 let mapToolPanel: 'camera' | 'objects' | null = null;
+let objectRosette: DmObjectRosette | null = null, mapTargets: DmMapTargets | null = null;
+let rosetteSource = 'objects';
+let campRosetteSelection: { sceneId: string; pointId: string } | null = null;
 function setMapToolPanel(panel: typeof mapToolPanel) {
   mapToolPanel = panel;
   $('mapCameraPanel').hidden = panel !== 'camera';
-  $('mapObjectsPanel').hidden = panel !== 'objects';
+  $('mapObjectsPanel').hidden = !draft;
   $('mapCameraToggle').setAttribute('aria-expanded', String(panel === 'camera'));
-  $('mapObjectsToggle').setAttribute('aria-expanded', String(panel === 'objects'));
+  $('mapObjectsToggle').setAttribute('aria-pressed', String(panel === 'objects'));
   $('mapBoardToggle').setAttribute('aria-pressed', String(panel === null));
+  if (panel !== 'objects') objectRosette?.close();
+  if (state) updateMapTargets(state);
   requestAnimationFrame(() => world?.refreshLayout());
 }
 type CampPoint = NonNullable<PublicCampaignDefinition['scenes'][number]['camp']>['interactionPoints'][number];
@@ -74,10 +89,10 @@ function updateDmUiPreferences<K extends keyof DmUiPreferences>(key: K, value: D
 type SaveStatus = { mode: string; stateRevision: number; savedStateRevision: number | null; generation: number | null; savedAt: string | null; dirty: boolean; errorCode: string | null; runtimeEpoch: string };
 let saveStatus: SaveStatus | null = null;
 let draftAction: { type: 'transform' | 'detach' | 'structure'; outcome?: 'caught' | 'fallen'; structure?: 'damaged' | 'destroyed'; requestId?: string; objectRevision: number; sceneEpoch: number; connectionGeneration: number } | null = null;
-const epochCommands = new Set(['scene', 'view:focus', 'entity:portal', 'scene:animation', 'creature', 'npc:visible', 'camera', 'environment', 'entity:move', 'entity:seat', 'combat:start', 'combat:participant', 'combat:initiative', 'combat:initiativeOrder', 'combat:condition', 'combat:endTurn', 'combat:next', 'combat:end', 'combat:declare', 'combat:basic', 'combat:escape', 'combat:rollAttack', 'combat:rollDamage', 'combat:rollSave', 'combat:rollDeathSave', 'combat:recharge', 'resolveInteraction', 'object:door', 'object:interact', 'object:transform', 'object:detach', 'object:structure', 'object:undo', 'pickup:take', 'camp:rest']);
+const epochCommands = new Set(['scene', 'view:focus', 'entity:portal', 'scene:animation', 'creature', 'npc:visible', 'camera', 'environment', 'entity:move', 'entity:seat', 'combat:start', 'combat:participant', 'combat:initiative', 'combat:initiativeOrder', 'combat:condition', 'combat:endTurn', 'combat:next', 'combat:end', 'combat:declare', 'combat:basic', 'combat:escape', 'combat:rollAttack', 'combat:rollDamage', 'combat:rollSave', 'combat:rollDeathSave', 'combat:recharge', 'resolveInteraction', 'object:door', 'object:interact', 'object:transform', 'object:detach', 'object:structure', 'object:undo', 'pickup:take', 'camp:rest', 'camp:interact']);
 
 type WorkspaceLayouts = Partial<Record<WorkspaceMode, WorkspaceState>>;
-const workspaceStorageKey = 'dnd-dm-workspace-v10', legacyWorkspaceStorageKey = 'dnd-dm-workspace-v9', workspaceColumns = 12, minimumWindowHeight = 132;
+const workspaceStorageKey = 'dnd-dm-workspace-v11', legacyWorkspaceStorageKey = 'dnd-dm-workspace-v9', workspaceColumns = 12, minimumWindowHeight = 132;
 let workspaceGap = 16;
 const workspaceWindows = new Map<string, HTMLElement>();
 let workspaceLayouts: WorkspaceLayouts = {};
@@ -115,9 +130,13 @@ function normalizeWorkspace(value: unknown): WorkspaceState | null {
 }
 function readWorkspaceLayouts(): WorkspaceLayouts {
   try {
-    const saved = JSON.parse(localStorage.getItem(workspaceStorageKey) ?? 'null') as Partial<WorkspaceLayouts> | null;
+    const current = localStorage.getItem(workspaceStorageKey);
+    const saved = JSON.parse(current ?? localStorage.getItem('dnd-dm-workspace-v10') ?? 'null') as Partial<WorkspaceLayouts> | null;
     if (saved && typeof saved === 'object' && ('exploration' in saved || 'combat' in saved)) {
       const exploration = normalizeWorkspace(saved.exploration), combat = normalizeWorkspace(saved.combat);
+      // Old resizing copied one height to every neighbour, including empty panels.
+      // Preserve order, widths and closed panels; migrate only these stale heights.
+      if (!current) for (const layout of [exploration, combat]) if (layout) for (const [id, bounds] of Object.entries(layout.windows)) if (id !== 'mapWindow') delete bounds.height;
       return { ...(exploration ? { exploration } : {}), ...(combat ? { combat } : {}) };
     }
   } catch { /* Si el almacenamiento local no está disponible, se usan las disposiciones recomendadas. */ }
@@ -131,6 +150,7 @@ function readWorkspaceLayouts(): WorkspaceLayouts {
       closed: [...layout.closed], minimized: [...layout.minimized], maximized: [...layout.maximized], order: [...layout.order],
       windows: Object.fromEntries(Object.entries(layout.windows).map(([id, bounds]) => [id, { ...bounds }]))
     });
+    if (legacy) for (const [id, bounds] of Object.entries(legacy.windows)) if (id !== 'mapWindow') delete bounds.height;
     return legacy ? { exploration: copy(legacy), combat: copy(legacy) } : {};
   } catch { return {}; }
 }
@@ -148,7 +168,7 @@ function minimumWindowSpan(card: HTMLElement) {
   const desk = workspace(); if (!desk || desk.clientWidth <= 0) return card.id === 'mapWindow' ? 6 : 3;
   const track = (desk.clientWidth - (workspaceColumns - 1) * workspaceGap) / workspaceColumns;
   const minimumWidth = card.id === 'mapWindow' ? 620 : card.id === 'combatCard' ? 280 : 240;
-  return Math.max(card.id === 'mapWindow' ? 6 : 3, Math.ceil((minimumWidth + workspaceGap) / (track + workspaceGap)));
+  return Math.min(workspaceColumns, Math.max(card.id === 'mapWindow' ? 6 : 3, Math.ceil((minimumWidth + workspaceGap) / (track + workspaceGap))));
 }
 function setWindowSpan(card: HTMLElement, requested: number) {
   const desk = workspace();
@@ -186,19 +206,19 @@ function snapWindowToGrid(card: HTMLElement, measuredWidth = card.getBoundingCli
 }
 function visibleWorkspaceWindows() { return [...workspaceWindows.values()].filter(card => !card.hidden && !card.classList.contains('window-closed') && !card.classList.contains('window-minimized') && !card.classList.contains('window-maximized')); }
 function syncRowHeight(card: HTMLElement, height: number) {
-  const top = card.getBoundingClientRect().top;
-  for (const peer of visibleWorkspaceWindows()) if (Math.abs(peer.getBoundingClientRect().top - top) < 2) peer.style.setProperty('--window-height', `${Math.round(height)}px`);
+  card.style.setProperty('--window-height', `${Math.round(height)}px`);
 }
 function syncWorkspaceRowHeights() {
-  // Only the primary map/context pair needs equal heights. Secondary windows
-  // stay content-sized; explicit user heights are still respected/persisted.
-  const visible = visibleWorkspaceWindows(), map = visible.find(card => card.id === 'mapWindow');
-  const context = visible.find(card => card.id === (activeWorkspaceMode === 'combat' ? 'combatCard' : 'explorationCard'));
-  if (!map || !context || Math.abs(map.getBoundingClientRect().top - context.getBoundingClientRect().top) >= 2) return;
-  if (!map.style.getPropertyValue('--window-height') && !context.style.getPropertyValue('--window-height')) return;
-  const height = Math.max(map.getBoundingClientRect().height, context.getBoundingClientRect().height);
-  map.style.setProperty('--window-height', `${Math.round(height)}px`);
-  context.style.setProperty('--window-height', `${Math.round(height)}px`);
+  const desk = workspace(); if (!desk || !desk.clientWidth) return;
+  const cards = Array.from(desk.children).filter((card): card is HTMLElement => card instanceof HTMLElement && !card.hidden && !card.classList.contains('window-closed'));
+  const singleColumn = matchMedia('(max-width: 900px)').matches;
+  const placements = packDmWorkspace(cards.map(card => ({ id: card.id, span: singleColumn ? 1 : card.classList.contains('window-maximized') ? 12 : Math.max(minimumWindowSpan(card), Number(card.dataset.windowSpan) || 4) })), singleColumn ? 1 : 12);
+  for (const placement of placements) {
+    const card = workspaceWindows.get(placement.id)!;
+    card.style.gridColumn = `${placement.column} / span ${placement.span}`;
+    card.style.setProperty('--packed-column', `${placement.column} / span ${placement.span}`);
+    card.style.gridRow = String(placement.row);
+  }
 }
 function updateMinimizeControl(card: HTMLElement) {
   const button = card.querySelector<HTMLButtonElement>('[data-window-action="minimize"]');
@@ -253,6 +273,7 @@ function openWorkspaceWindow(id: string) {
   const card = workspaceWindows.get(id);
   if (!card || card.hidden) { toast('Esta herramienta no está disponible en la escena actual.'); return; }
   card.classList.remove('window-closed', 'window-minimized'); updateMinimizeControl(card); renderClosedWindows();
+  syncWorkspaceRowHeights(); writeWorkspace();
   card.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   card.querySelector<HTMLButtonElement>('.window-control')?.focus({ preventScroll: true });
   requestAnimationFrame(() => { writeWorkspace(); world?.refreshLayout(); });
@@ -290,8 +311,9 @@ function setupWorkspace() {
       if (matchMedia('(max-width: 760px)').matches || card.classList.contains('window-minimized') || card.classList.contains('window-maximized')) return;
       event.preventDefault(); event.stopPropagation(); const start = card.getBoundingClientRect(), startX = event.clientX, startY = event.clientY, pointerId = event.pointerId; card.classList.add('resizing'); resizeHandle.setPointerCapture(pointerId);
       let resizeFrame = 0;
-      const move = (next: PointerEvent) => { if (next.pointerId !== pointerId) return; const width = Math.max(240, start.width + next.clientX - startX), height = Math.max(minimumWindowHeight, start.height + next.clientY - startY); cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(() => { snapWindowToGrid(card, width); card.style.setProperty('--window-height', `${Math.round(height)}px`); syncRowHeight(card, height); world?.refreshLayout(); }); };
-      const finish = (next: PointerEvent) => { if (next.pointerId !== pointerId) return; cancelAnimationFrame(resizeFrame); card.classList.remove('resizing'); resizeHandle.removeEventListener('pointermove', move); resizeHandle.removeEventListener('pointerup', finish); resizeHandle.removeEventListener('pointercancel', finish); if (resizeHandle.hasPointerCapture(pointerId)) resizeHandle.releasePointerCapture(pointerId); requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); }); };
+      const applyResize = (next: PointerEvent) => { snapWindowToGrid(card, Math.max(240, start.width + next.clientX - startX)); syncRowHeight(card, Math.max(minimumWindowHeight, start.height + next.clientY - startY)); syncWorkspaceRowHeights(); world?.refreshLayout(); };
+      const move = (next: PointerEvent) => { if (next.pointerId !== pointerId) return; cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(() => applyResize(next)); };
+      const finish = (next: PointerEvent) => { if (next.pointerId !== pointerId) return; cancelAnimationFrame(resizeFrame); if (next.type !== 'pointercancel') applyResize(next); card.classList.remove('resizing'); resizeHandle.removeEventListener('pointermove', move); resizeHandle.removeEventListener('pointerup', finish); resizeHandle.removeEventListener('pointercancel', finish); if (resizeHandle.hasPointerCapture(pointerId)) resizeHandle.releasePointerCapture(pointerId); syncWorkspaceRowHeights(); writeWorkspace(); requestAnimationFrame(() => world?.refreshLayout()); };
       resizeHandle.addEventListener('pointermove', move); resizeHandle.addEventListener('pointerup', finish, { once: true }); resizeHandle.addEventListener('pointercancel', finish, { once: true });
     });
     bar.addEventListener('dragstart', event => {
@@ -302,13 +324,13 @@ function setupWorkspace() {
     card.addEventListener('dragover', event => { if (!draggedWindow || draggedWindow === card) return; event.preventDefault(); event.dataTransfer!.dropEffect = 'move'; clearDropTargets(); card.classList.add('drop-target'); });
     card.addEventListener('dragleave', event => { if (!card.contains(event.relatedTarget as Node | null)) card.classList.remove('drop-target'); });
     card.addEventListener('drop', event => {
-      if (!draggedWindow || draggedWindow === card) return; event.preventDefault(); const bounds = card.getBoundingClientRect(), nearMiddle = Math.abs(event.clientY - (bounds.top + bounds.height / 2)) < bounds.height * .3, insertAfter = nearMiddle ? event.clientX > bounds.left + bounds.width / 2 : event.clientY > bounds.top + bounds.height / 2; desk.insertBefore(draggedWindow, insertAfter ? card.nextElementSibling : card); clearDropTargets(); requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); });
+      if (!draggedWindow || draggedWindow === card) return; event.preventDefault(); const bounds = card.getBoundingClientRect(), nearMiddle = Math.abs(event.clientY - (bounds.top + bounds.height / 2)) < bounds.height * .3, insertAfter = nearMiddle ? event.clientX > bounds.left + bounds.width / 2 : event.clientY > bounds.top + bounds.height / 2; desk.insertBefore(draggedWindow, insertAfter ? card.nextElementSibling : card); clearDropTargets(); syncWorkspaceRowHeights(); writeWorkspace(); requestAnimationFrame(() => world?.refreshLayout());
     });
     if (id === 'mapWindow') new ResizeObserver(() => { if (workspaceReady) requestAnimationFrame(() => world?.refreshLayout()); }).observe(card);
     const bounds = saved?.windows[id]; setWindowSpan(card, bounds?.span ?? defaultWindowSpan(card)); if (bounds?.height) card.style.setProperty('--window-height', `${Math.max(minimumWindowHeight, bounds.height)}px`); if (saved?.closed.includes(id)) card.classList.add('window-closed'); if (saved?.minimized.includes(id)) card.classList.add('window-minimized'); if (saved?.maximized.includes(id)) card.classList.add('window-maximized'); updateMinimizeControl(card);
   }
   const ordered = (saved?.order ?? []).map(id => workspaceWindows.get(id)).filter((card): card is HTMLElement => Boolean(card)); const remaining = [...workspaceWindows.values()].filter(card => !ordered.includes(card)); desk.append(...ordered, ...remaining);
-  $('arrangeWorkspace').onclick = arrangeWorkspace; $('resetWorkspace').onclick = () => { localStorage.removeItem(workspaceStorageKey); localStorage.removeItem(legacyWorkspaceStorageKey); location.reload(); };
+  $('arrangeWorkspace').onclick = arrangeWorkspace; $('resetWorkspace').onclick = () => { localStorage.removeItem(workspaceStorageKey); localStorage.removeItem('dnd-dm-workspace-v10'); localStorage.removeItem(legacyWorkspaceStorageKey); location.reload(); };
   document.querySelectorAll<HTMLButtonElement>('[data-drawer-tab]').forEach(button => button.onclick = () => { const tab = button.dataset.drawerTab; if (tab === 'windows' || tab === 'ambience' || tab === 'audio' || tab === 'settings') setDrawerTab(tab); });
   document.querySelectorAll<HTMLButtonElement>('[data-workspace-preset]').forEach(button => button.onclick = () => {
     const preset = button.dataset.workspacePreset;
@@ -331,7 +353,21 @@ function setupWorkspace() {
     requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); });
   };
   setDrawerTab(dmUiPreferences.drawerTab, false); renderClosedWindows();
+  let reflowFrame = 0;
+  new ResizeObserver(() => { cancelAnimationFrame(reflowFrame); reflowFrame = requestAnimationFrame(() => { syncWorkspaceRowHeights(); world?.refreshLayout(); }); }).observe(desk);
+  desk.addEventListener('dragover', event => {
+    if (!draggedWindow) return;
+    event.preventDefault();
+    const bounds = desk.getBoundingClientRect();
+    if (event.clientY < bounds.top + 60) desk.scrollTop -= 18;
+    else if (event.clientY > bounds.bottom - 60) desk.scrollTop += 18;
+  });
   document.querySelectorAll<HTMLButtonElement>('[data-open-window]').forEach(button => button.onclick = () => openWorkspaceWindow(button.dataset.openWindow!));
+  document.querySelectorAll<HTMLButtonElement>('[data-encounter-tab]').forEach(button => button.onclick = () => {
+    const active = button.getAttribute('aria-expanded') !== 'true';
+    document.querySelectorAll<HTMLButtonElement>('[data-encounter-tab]').forEach(tab => tab.setAttribute('aria-expanded', String(tab === button && active)));
+    document.querySelectorAll<HTMLElement>('[data-encounter-panel]').forEach(panel => panel.hidden = !active || panel.id !== button.dataset.encounterTab);
+  });
 }
 function activateWorkspace() {
   workspaceReady = true;
@@ -484,9 +520,9 @@ function rotateCamera(delta: number) {
 }
 
 function showLogin(message = '') { $('login').hidden = false; $('app').hidden = true; $('loginError').textContent = message; }
-const campUpdatesStorageKey = 'dnd-camp-rests-updates-v1.4.3-seen';
+const campUpdatesStorageKey = 'dnd-camp-rests-updates-v1.4.6-seen';
 function hasCampRestModule() {
-  return campaign?.campaignId === 'stormwreck-isle' && campaign.scenes.some(scene => scene.id === 'camp-a1-rooms');
+  return campaign?.scenes.some(scene => scene.id === 'camp-a1-rooms');
 }
 function showCampUpdatesIfNeeded() {
   const button = $('openCampUpdates') as HTMLButtonElement, dialog = $('campUpdatesDialog') as HTMLDialogElement;
@@ -505,6 +541,8 @@ async function beginDm(password?: string) {
   csrfToken = (await response.json()).csrfToken;
   try {
     campaign = await loadCampaign(); syncAnimationAuditAvailability(); populateCampaign(); ($('showGrid') as HTMLInputElement).checked = dmUiPreferences.showGrid; ($('shareCameraOrientation') as HTMLInputElement).checked = dmUiPreferences.shareCameraOrientation; world = new WorldRenderer($('dmMap'), campaign, { persistCameraPreferences: true, showGrid: dmUiPreferences.showGrid }); world.setMapClick(onMapClick); await loadInfo();
+    mapTargets = new DmMapTargets($('dmMap'));
+    objectRosette = new DmObjectRosette($('dmMap'), () => Array.from($(rosetteSource).querySelectorAll<HTMLButtonElement>('button')));
   } catch (error) { console.error('Error al preparar la vista DM', error); showLogin('No se pudo cargar la campaña. Recarga la página.'); return; }
   $('login').hidden = true; $('app').hidden = false; setSideControlsOpen(dmUiPreferences.sideControlsOpen, false, false); showCampUpdatesIfNeeded(); requestAnimationFrame(activateWorkspace); connect(); void renderSaveHistory();
 }
@@ -536,7 +574,6 @@ function render(current: DmState) {
   $('storm').setAttribute('aria-pressed', String(current.environment.storm));
   const phaseNames={auto:'Ambiente de escena',day:'Mediodía',sunset:'Atardecer',night:'Noche',dawn:'Madrugada'};
   const precipitation=current.environment.precipitation??(current.environment.storm?'rain':'none');
-  $('mapWeatherStatus').textContent=`${phaseNames[current.environment.timeOfDay??'auto']} · ${precipitation==='none'?'Despejado':`${precipitation==='rain'?'Lluvia':'Nieve'} ${['suave','media','intensa'][(current.environment.precipitationLevel??2)-1]}`}`;
   for(const [id,value] of Object.entries({weatherTime:current.environment.timeOfDay??'auto',weatherKind:current.environment.precipitation??(current.environment.storm?'rain':'none'),weatherLevel:String(current.environment.precipitationLevel??2),weatherWind:String(current.environment.windIntensity??0)})){
     const input=$(id) as HTMLInputElement;if(!input.matches(':focus'))input.value=value;
   }
@@ -566,6 +603,13 @@ function render(current: DmState) {
   $('projectorBadge').className = `badge dm-${current.projectorReady ? 'positive' : 'pending'}`;
   const gameUndo = $('gameUndo') as HTMLButtonElement; gameUndo.disabled = !current.gameUndo.canUndo; gameUndo.textContent = current.gameUndo.label ? `Deshacer: ${current.gameUndo.label}` : 'Deshacer última acción';
   renderMonsterSheet(current); renderPlayers(current); renderNpcs(current); renderCombat(current); renderExploration(current); renderObjects(current); renderAudio(current); renderSfx(current); renderRequests(current); renderCampRest(current);
+  refreshSheetConditions(current);
+  requestAnimationFrame(() => syncWorkspaceRowHeights());
+  if (rosetteSource === 'campPointActions' && objectRosette?.isOpen) {
+    const point = campRosetteSelection?.sceneId === current.sceneId ? currentScene()?.camp?.interactionPoints.find(candidate => candidate.id === campRosetteSelection?.pointId) : null;
+    if (point) { configureCampRosette(point, current.sceneId); objectRosette.refresh(); }
+    else objectRosette.close();
+  }
   // Availability follows the current render, not the previous scene/mode.
   document.querySelectorAll<HTMLElement>('[data-open-window]').forEach(button => {
     const id = button.dataset.openWindow!; button.classList.toggle('has-attention', id === 'interacciones' && pendingCount > 0);
@@ -576,14 +620,10 @@ function render(current: DmState) {
 
 const restPhaseLabels: Record<string, string> = { arrival: 'Llegada', dusk: 'Anochecer', night: 'Noche', dawn: 'Amanecer', finalization: 'Finalización' };
 const campPointKindLabels: Record<CampPoint['kind'], string> = { bed: 'Cama', tent: 'Tienda', fire: 'Hoguera', seat: 'Asiento', guard: 'Puesto de guardia', chest: 'Baúl', personal: 'Objeto personal' };
-const campPointPlayerActions: Record<CampPoint['kind'], string[]> = {
-  bed: ['Usar la cama'], tent: ['Entrar o salir de la tienda'], fire: ['Acercarse a la hoguera'],
-  seat: ['Sentarse'], guard: ['Ocupar el puesto de guardia'], chest: ['Abrir o cerrar el baúl'], personal: ['Usar el objeto del personaje']
-};
 
 function syncCampInteractionMode(isCamp: boolean) {
   const button = $('campInteractionToggle') as HTMLButtonElement;
-  button.hidden = !isCamp;
+  button.hidden = true;
   if (!isCamp) campInteractionMode = false;
   button.setAttribute('aria-pressed', String(campInteractionMode));
   button.textContent = campInteractionMode ? '◎ Ocultar marcas interactuables' : '◎ Resaltar objetos interactuables';
@@ -595,7 +635,7 @@ function syncCampInteractionMode(isCamp: boolean) {
   }
 }
 
-function showCampPoint(point: CampPoint, sceneId: string) {
+function showCampPoint(point: CampPoint, sceneId: string, showDialog = true) {
   const dialog = $('campPointDialog') as HTMLDialogElement;
   const actions = $('campPointActions'), history = $('campPointHistory');
   campPointSceneId = sceneId;
@@ -606,17 +646,32 @@ function showCampPoint(point: CampPoint, sceneId: string) {
   const character = point.ownerCharacterId ? state?.characters.find(item => item.id === point.ownerCharacterId) : null;
   owner.hidden = !point.ownerCharacterId;
   owner.textContent = character ? `Uso reservado para ${character.label}.` : point.ownerCharacterId ? 'Uso reservado para su personaje.' : '';
-  actions.replaceChildren(...campPointPlayerActions[point.kind].map(label => { const item = document.createElement('li'); item.textContent = label; return item; }));
-  const rest = state?.campRest?.sceneId === sceneId ? state.campRest : null;
+  const reachable = latestSnapshot?.entities.filter(entity => entity.kind === 'player' && entity.surfaceId === point.surfaceId && !entity.step && !entity.moving
+    && entity.hp !== 0 && !entity.defeated && !entity.conditions?.some(condition => ['inconsciente', 'paralizada'].includes(condition))
+    && (!point.ownerCharacterId || point.ownerCharacterId === entity.id)
+    && campPointInReach(entity, point)) ?? [];
+  const actorSelect = $('campPointActor') as HTMLSelectElement;
+  actorSelect.replaceChildren(...reachable.map(entity => new Option(entity.label, entity.id)));
+  if (reachable.some(entity => entity.id === selectedMapEntityId)) actorSelect.value = selectedMapEntityId!;
+  $('campPointActorHint').textContent = reachable.length ? 'Ejecutar con un personaje presente y próximo al objeto:' : 'No hay un personaje cercano que pueda actuar. Acércalo para probar este objeto.';
+  actorSelect.hidden = reachable.length === 0;
+  actions.replaceChildren(...activitiesForCampPoint(point).map(activity => {
+    const item = document.createElement('li'), button = document.createElement('button'); button.type = 'button';
+    button.textContent = activity.label; button.dataset.campActivity = activity.id; button.disabled = !reachable.length || Boolean(latestSnapshot?.combat.active);
+    button.title = `${activity.guidance}${latestSnapshot?.combat.active ? ' No disponible durante el combate.' : !reachable.length ? ' Acerca un personaje al objeto para realizar esta acción.' : ''}`;
+    button.onclick = () => { command({ type: 'camp:interact', characterId: actorSelect.value, pointId: point.id, activityId: activity.id }); dialog.close(); };
+    item.append(button); return item;
+  }));
+  const rest = state?.campActivity?.sceneId === sceneId ? state.campActivity : state?.campRest?.sceneId === sceneId ? state.campRest : null;
   const entries = (rest?.interactions ?? []).filter(item => item.pointId === point.id).slice(-5).reverse();
   history.replaceChildren(...entries.map(entry => {
     const item = document.createElement('li');
     const verb = entry.action === 'opened' ? 'abrió' : entry.action === 'closed' ? 'cerró' : 'usó';
-    item.textContent = `${entry.characterLabel} ${verb} · ${new Date(entry.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    item.textContent = `${entry.characterLabel} · ${entry.activityId ? campActivities[entry.activityId].label : verb} · ${new Date(entry.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
     return item;
   }));
   $('campPointHistorySection').hidden = entries.length === 0;
-  if (!dialog.open) dialog.showModal();
+  if (showDialog && !dialog.open) dialog.showModal();
 }
 
 function renderCampRest(current: DmState) {
@@ -633,9 +688,10 @@ function renderCampRest(current: DmState) {
   safety.textContent = `${camp.canonStatus === 'canon' ? 'Escenario canónico.' : 'Añadido VTT_AMBIENCE; su existencia no implica que sea seguro descansar.'} ${camp.safetyNotice}`;
   const rest = current.campRest?.sceneId === scene.id ? current.campRest : null;
   const restElsewhere = current.campRest && current.campRest.sceneId !== scene.id && current.campRest.phase !== null && current.campRest.phase !== 'finalization';
-  status.textContent = restElsewhere ? `Descanso activo en ${campaign?.scenes.find(item => item.id === current.campRest!.sceneId)?.title ?? 'otro escenario'}; termínalo antes de preparar otro.`
+  status.textContent = restElsewhere ? `Descanso pendiente en «${campaign?.scenes.find(item => item.id === current.campRest!.sceneId)?.title ?? current.campRest!.sceneId}». Cambiar de mapa no lo finaliza. Puedes usar los objetos de este campamento; para iniciar otro descanso, termina primero el anterior.`
     : !rest || rest.phase === null ? 'No hay descanso preparado.' : `${restPhaseLabels[rest.phase] ?? rest.phase}${rest.paused ? ' · Interrumpido; la fase está en pausa.' : ''}${rest.outcome ? ` · El DM decidió: ${rest.outcome === 'completed' ? 'completado' : 'no completado'}.` : ''}`;
   actions.replaceChildren();
+  if (restElsewhere) actions.append(localButton('↩ Volver al descanso pendiente', () => command({ type: 'scene', sceneId: current.campRest!.sceneId })));
   const addAction = (label: string, action: string, disabled = false, extra: Record<string, unknown> = {}, style = '') => {
     const button = document.createElement('button'); button.type = 'button'; button.textContent = label; button.disabled = disabled; if (style) button.className = style;
     button.onclick = () => command({ type: 'camp:rest', action, sceneId: scene.id, ...extra }); actions.append(button); return button;
@@ -663,8 +719,8 @@ function renderCampRest(current: DmState) {
   const playerNote = document.createElement('p'); playerNote.className = 'muted'; playerNote.textContent = 'Activa «Resaltar objetos interactuables» sobre el mapa y pulsa una marca para consultar sus acciones. Los jugadores las realizan desde su propia vista.'; pointsBox.append(playerNote);
   log.replaceChildren();
   const entries: Array<{ at: number; text: string }> = [];
+  for (const item of (current.campActivity?.interactions ?? rest?.interactions ?? [])) entries.push({ at: item.at, text: `${item.characterLabel} · ${item.action === 'opened' ? 'abrió' : item.action === 'closed' ? 'cerró' : 'usó'} · ${item.pointLabel}` });
   if (rest) {
-    for (const item of rest.interactions) entries.push({ at: item.at, text: `${item.characterLabel} · ${item.action === 'opened' ? 'abrió' : item.action === 'closed' ? 'cerró' : 'usó'} · ${item.pointLabel}` });
     for (const item of rest.interruptions) entries.push({ at: item.at, text: `Interrupción · ${item.note}` });
   }
   entries.sort((a, b) => a.at - b.at);
@@ -725,6 +781,7 @@ function wreckChapterEnding(current: DmState) {
 function renderExploration(current: DmState) {
   const card = $('explorationCard'), box = $('exploration'); card.hidden = current.combat.active;
   preserveDisclosures(box, `exploration:${current.sceneId}`);
+  queueMicrotask(() => sectionDeck(box, `scene-${current.sceneId}`));
   if (current.adventure) {
     const key = JSON.stringify([current.runtimeEpoch, current.sceneEpoch, current.sceneId, current.combat.active, current.adventure, current.encounterGroups, current.lastExplorationAction, current.objects.map(object => [object.id, object.label]), current.characters.map(character => [character.id, character.claimed, character.sceneId]), current.npcs.map(npc => [npc.id, npc.visible]), current.creature && [current.creature.id, current.creature.visible, current.creature.sceneId]]);
     if (box.dataset.renderKey === key) return;
@@ -776,7 +833,7 @@ function renderExploration(current: DmState) {
 
     const present = sceneBlock('PRESENTES', current.characters.filter(character => character.claimed && character.sceneId === current.sceneId).map(character => character.label));
     const objective = document.createElement('p'); objective.className = 'dm-scene-objective'; objective.textContent = 'Explorar el pecio y resolver su maldición.';
-    const objects = sceneActions('INTERACTUABLES', current.objects.map(object => ({ label: object.label, select: () => { selectObject(object.id); openWorkspaceWindow('mapWindow'); } })));
+    const objects = sceneObjectAccess(current);
     box.append(title, objective, present, objects, arrivalDetails, eventDetails, lootDetails, endingDetails); return;
   }
   if (current.sceneId === 'dragon-rest') {
@@ -809,7 +866,7 @@ function renderExploration(current: DmState) {
   const presentNames = [...current.characters.filter(character => character.claimed && character.sceneId === current.sceneId).map(character => character.label), ...current.npcs.filter(npc => npc.visible).map(npc => npc.label), ...(current.creature?.visible && current.creature.sceneId === current.sceneId ? [current.creature.label] : [])];
   const present = sceneBlock('PRESENTES', presentNames);
   const seatCount=campaign?.scenes.find(scene=>scene.id===current.sceneId)?.seats?.length??0;
-  const interactables = sceneActions('INTERACTUABLES', current.objects.map(object => ({ label: object.label, select: () => { selectObject(object.id); openWorkspaceWindow('mapWindow'); } })), seatCount ? [`${seatCount} asientos`] : []);
+  const interactables = sceneObjectAccess(current, seatCount ? [`${seatCount} asientos`] : []);
   const progress = document.createElement('details'), summary = document.createElement('summary'); summary.textContent = 'Progreso D8 Night'; progress.append(summary);
   for (const group of current.encounterGroups?.filter(group => group.sceneId === current.sceneId) ?? []) {
     const row = document.createElement('div'), select = document.createElement('select'), reveal = document.createElement('button');
@@ -871,10 +928,25 @@ function renderFocus(current: DmState) {
   const select = $('focus') as HTMLSelectElement; const previous = current.camera.focusId ?? ''; const options: Array<[string, string]> = [['', 'Centro del mapa'], ...current.characters.map(character => [character.id, character.label] as [string, string])];
   if (current.creature?.visible) options.push([current.creature.id, current.creature.label]);
   select.replaceChildren(...options.map(([value, label]) => { const option = document.createElement('option'); option.value = value; option.textContent = label; return option; })); select.value = previous;
+  $('cameraFocusChoices').replaceChildren(...options.map(([value, label]) => {
+    const button = document.createElement('button'); button.type = 'button'; button.setAttribute('aria-pressed', String(value === previous));
+    const actor = current.characters.find(character => character.id === value), token = campaign?.tokens[actor?.tokenId ?? value];
+    if (token?.portraitUrl || token?.url) { const image = document.createElement('img'); image.src = token.portraitUrl ?? token.url; image.alt = ''; image.draggable = false; button.append(image); }
+    else { const icon = document.createElement('span'); icon.textContent = value ? '◎' : '⌖'; icon.setAttribute('aria-hidden', 'true'); button.append(icon); }
+    button.append(label); button.onclick = () => { select.value = value; select.dispatchEvent(new Event('change')); }; return button;
+  }));
+  document.querySelectorAll<HTMLButtonElement>('[data-camera-mode]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.cameraMode === current.camera.mode)));
 }
 
 function currentScene() { return campaign?.scenes.find(scene => scene.id === state?.sceneId) ?? null; }
 function objectCells(object: DmObject) { return footprintFor(object.cell, object.rotation, object.footprint); }
+function projectDmObject(id: string) {
+  const object = state?.objects.find(candidate => candidate.id === id);
+  if (!object) return null;
+  const cells = objectCells(object);
+  const cell = object.kind === 'wheel' ? object.cell : { col: (Math.min(...cells.map(item => item.col)) + Math.max(...cells.map(item => item.col))) / 2, row: (Math.min(...cells.map(item => item.row)) + Math.max(...cells.map(item => item.row))) / 2 };
+  return world?.mapCellScreenPoint(cell, object.surfaceId) ?? null;
+}
 function sameCell(a: Cell, b: Cell) { return a.col === b.col && a.row === b.row; }
 function draftValid(object: DmObject) {
   const scene = currentScene(); if (!scene || !state) return false; const cells = objectCells(object), walkable = new Set(scene.walkable.map(cell => `${cell.col},${cell.row}`));
@@ -887,14 +959,14 @@ function draftValid(object: DmObject) {
   return true;
 }
 
-function selectObject(id: string | null) {
+function selectObject(id: string | null, edit = false) {
   inspectedPickupId = null;
-  if (id) setMapToolPanel('objects');
   selectedMapEntityId = null; world?.setSelectedEntity(null);
   selectedId = id; const object = state?.objects.find(item => item.id === id) ?? null;
-  draft = object && object.structure !== 'destroyed' && (object.kind === 'crate' || (object.kind === 'wheel' && object.attachment === 'detached')) ? structuredClone(object) : null;
+  draft = edit && object && object.structure !== 'destroyed' && (object.kind === 'crate' || (object.kind === 'wheel' && object.attachment === 'detached')) ? structuredClone(object) : null;
   draftAction = draft && state ? { type: 'transform', objectRevision: state.objectRevision, sceneEpoch: state.sceneEpoch, connectionGeneration } : null;
   renderObjects(state!);
+  if (edit) objectRosette?.close();
 }
 function startWheelDraft(object: Extract<DmObject, { kind: 'wheel' }>, outcome: 'caught' | 'fallen', requestId?: string) {
   inspectedPickupId = null; setMapToolPanel('objects');
@@ -918,18 +990,17 @@ function onMapClick(cell: Cell, entityId?: string) {
     command({ type: 'combat:declare', attackerId: actorId, ...(action.targeting === 'point' ? { targetCell: cell } : { targetId: target!.id }), actionId: action.id, useSneakAttack: true });
     armedDmCombatPoint = null; world?.clearAttackRange(); renderCombat(state); return;
   }
-  if (campInteractionMode) {
+  if (draft) { draft.cell = { ...cell }; renderDraft(); return; }
+  if (mapToolPanel === 'objects' && currentScene()?.camp) {
     const scene = currentScene(), camp = scene?.camp;
     if (scene && camp) {
       const point = camp.interactionPoints.find(candidate => sameCell(candidate.cell, cell) || candidate.objectCell && sameCell(candidate.objectCell, cell));
-      if (point) showCampPoint(point, scene.id);
-      else toast('Pulsa una marca resaltada para consultar ese objeto.');
+      if (point) { openCampRosette(point, scene.id, world?.mapCellScreenPoint(cell, point.surfaceId) ?? { x: 150, y: 150 }); return; }
     }
-    return;
   }
-  if (draft) { draft.cell = { ...cell }; renderDraft(); return; }
   const entity = [...(latestSnapshot?.entities ?? [])].reverse().find(candidate => entityId ? candidate.id === entityId : sameCell(candidate.cell, cell));
   if (entity) {
+    objectRosette?.close();
     inspectedPickupId = null;
     selectedMapEntityId = entity.id; selectedId = null; draft = null; draftAction = null;
     world?.setSelectedEntity(entity.id);
@@ -940,6 +1011,8 @@ function onMapClick(cell: Cell, entityId?: string) {
   selectedMapEntityId = null; world?.setSelectedEntity(null);
   const hit = [...state.objects].reverse().find(object => objectCells(object).some(occupied => sameCell(occupied, cell))); selectObject(hit?.id ?? null);
   world?.setCameraFocusCell(cell, hit?.surfaceId ?? currentScene()?.surfaceId);
+  if (hit) { rosetteSource = 'objects'; const project = () => projectDmObject(hit.id); const anchor = project(); if (anchor) objectRosette?.show(hit.label, anchor, project); }
+  else objectRosette?.close();
 }
 
 function renderDraft() {
@@ -947,16 +1020,16 @@ function renderDraft() {
   if (selectedMapEntityId && !selectedEntity) selectedMapEntityId = null;
   world?.setSelectedEntity(selectedMapEntityId); world?.showSelection(state?.objects.find(object => object.id === selectedId) ?? null); world?.showPreview(draft, valid);
   $('draftActions').hidden = !draft; ($('applyObject') as HTMLButtonElement).disabled = !valid;
+  $('mapObjectsPanel').hidden = !draft;
+  if (draft) objectRosette?.close();
   $('objectStatus').textContent = draft ? valid ? 'Destino válido. Pulsa Aplicar para confirmar.' : 'Ese destino está bloqueado.' : selectedEntity ? `${selectedEntity.label} seleccionado · WASD: una casilla por pulsación.` : state?.objects.length ? 'Haz clic en una ficha para moverla con WASD, o selecciona un objeto.' : 'Haz clic en una ficha para moverla con WASD.';
 }
 
 function renderObjects(current: DmState) {
   if (selectedId && !current.objects.some(object => object.id === selectedId)) { selectedId = null; draft = null; draftAction = null; }
   if (inspectedPickupId && !current.pickups?.some(pickup => pickup.id === inspectedPickupId)) inspectedPickupId = null;
-  const picker = $('mapObjectPicker') as HTMLSelectElement;
-  const options: Array<[string, string]> = [['', 'Selecciona un objeto…'], ...current.objects.map(object => [`object:${object.id}`, object.label] as [string, string]), ...(current.pickups ?? []).map(pickup => [`pickup:${pickup.id}`, pickup.label] as [string, string])];
-  picker.replaceChildren(...options.map(([value, label]) => { const option = document.createElement('option'); option.value = value; option.textContent = label; return option; }));
-  picker.value = selectedId ? `object:${selectedId}` : inspectedPickupId ? `pickup:${inspectedPickupId}` : '';
+  const campPoints = currentScene()?.camp?.interactionPoints ?? [];
+  const options: Array<[string, string]> = [['', 'Selecciona un objeto…'], ...current.objects.map(object => [`object:${object.id}`, object.label] as [string, string]), ...(current.pickups ?? []).map(pickup => [`pickup:${pickup.id}`, pickup.label] as [string, string]), ...campPoints.map(point => [`camp:${point.id}`, `Campamento · ${point.label}`] as [string, string])];
   $('mapObjectCount').textContent = String(options.length - 1);
   const box = $('objects'); box.replaceChildren();
   for (const pickup of (current.pickups ?? []).filter(pickup => pickup.id === inspectedPickupId)) {
@@ -979,7 +1052,7 @@ function renderObjects(current: DmState) {
     const interaction = object.kind === 'door' || object.kind === 'crate' ? object.interaction : undefined;
     const interactionStatus = !interaction ? '' : interaction.kind === 'barred-door' ? ` · listón ${interaction.barrier === 'barred' ? 'puesto' : 'retirado'}` : interaction.kind === 'trap-stash' ? ` · ${interaction.revealed ? interaction.open ? 'abierto' : 'descubierto' : 'oculto'} · trampa ${interaction.trap === 'armed' ? 'armada' : 'gastada'}` : interaction.kind === 'container' ? ` · ${interaction.open ? 'abierto' : 'cerrado'}${isC8LootObject ? interaction.lootId.startsWith('wreck-c8-result-') ? ` · ${interaction.lootLabel}` : ' · botín sin asignar' : isC8Barrel ? ' · sin tirada de la tabla d6' : ''}` : ` · ${interaction.location === 'submerged' ? 'sumergido' : 'fuera del agua'} · ${interaction.open ? 'abierto' : 'cerrado'} · ${current.progress['wreck.curse-aboard'] ? 'talismán destruido' : current.progress['wreck.items-given-to-runara'] ? 'entregado a Runara' : `paquete ${interaction.package}`}`;
     const label = document.createElement('b'); label.textContent = object.label; const status = document.createElement('span'); status.textContent = (object.kind === 'door' ? `${({ open: 'abierta', closed: 'cerrada', locked: 'bloqueada' } as const)[object.state]} · ${structureLabel}` : object.kind === 'wheel' ? `${object.attachment === 'attached' ? 'montado' : object.state === 'caught' ? 'sujeto' : 'caído'} · ${structureLabel} · ${object.rotation}°` : `${structureLabel} · ${object.rotation}°`) + interactionStatus;
-    const choose = document.createElement('button'); choose.textContent = object.structure === 'destroyed' || object.kind === 'wheel' && object.attachment === 'attached' || interaction?.kind === 'trap-stash' ? 'Seleccionar' : 'Mover'; choose.disabled = interaction?.kind === 'trap-stash'; choose.onclick = () => selectObject(object.id);
+    const choose = document.createElement('button'); choose.textContent = 'Mover'; choose.disabled = object.structure === 'destroyed' || object.kind === 'door' || object.kind === 'wheel' && object.attachment === 'attached' || interaction?.kind === 'trap-stash'; choose.onclick = () => selectObject(object.id, true);
     const states = chips(status.textContent.split(' · ').map(text => [text, /roto|gastada/.test(text) ? 'error' : /bloqueada|dañado|armada/.test(text) ? 'pending' : /abierta|intacto/.test(text) ? 'positive' : 'info']));
     states.append(chip(({ door: 'Puerta', crate: 'Contenedor', wheel: 'Timón' } as const)[object.kind])); row.append(label, states, choose);
     if (object.kind === 'door') for (const [text, next] of [['Abrir', 'open'], ['Cerrar', 'closed'], ['Bloquear', 'locked']] as const) { const button = document.createElement('button'); button.textContent = text; button.disabled = object.structure === 'destroyed'; button.onclick = () => command({ type: 'object:door', objectId: object.id, state: next }); row.append(button); }
@@ -995,16 +1068,12 @@ function renderObjects(current: DmState) {
     if (interaction && interaction.kind !== 'barred-door' && interaction.open) {
       if (interaction.lootOwnerId) interact('Devolver botín', 'return-loot');
       else if (isC8LootObject && interaction.kind === 'container' && !interaction.lootId.startsWith('wreck-c8-result-')) {
-        const select = document.createElement('select'); select.setAttribute('aria-label', 'Resultado del d6 de botín C8');
-        const empty = document.createElement('option'); empty.value = ''; empty.textContent = 'Resultado del d6…'; select.append(empty);
         wreckC8Loot.forEach((lootLabel, index) => {
           const resultId = index + 1;
           if (current.progress[`wreck.c8-loot-${resultId}`]) return;
-          const option = document.createElement('option'); option.value = String(resultId); option.textContent = `${resultId} · ${lootLabel}`; select.append(option);
+          const button = document.createElement('button'); button.textContent = `Botín d6 · ${resultId}`; button.title = lootLabel;
+          button.onclick = () => command({ type: 'object:interact', objectId: object.id, action: 'assign-result', resultId }); row.append(button);
         });
-        const assign = document.createElement('button'); assign.textContent = 'Asignar resultado'; assign.disabled = select.options.length < 2;
-        assign.onclick = () => { const resultId = Number(select.value); if (Number.isInteger(resultId) && resultId >= 1 && resultId <= 6) interact('Asignar', 'assign-result', undefined, resultId); };
-        row.append(select, assign);
       } else if (!isC8Barrel) for (const character of current.characters) interact(`Botín → ${character.label}`, 'take-loot', character.id);
     }
     if (interaction?.kind === 'chest') {
@@ -1015,10 +1084,17 @@ function renderObjects(current: DmState) {
     if (object.kind === 'wheel' && object.attachment === 'attached') for (const [text, outcome] of [['Separar · sujeto', 'caught'], ['Separar · caído', 'fallen']] as const) { const button = document.createElement('button'); button.textContent = text; button.onclick = () => startWheelDraft(object, outcome); row.append(button); }
     if (object.capabilities.structure && object.structure === 'intact') { const damage = document.createElement('button'); damage.textContent = 'Dañar'; damage.onclick = () => startStructureDraft(object, 'damaged'); row.append(damage); }
     if (object.capabilities.structure && object.structure !== 'destroyed') { const destroy = document.createElement('button'); destroy.className = 'danger'; destroy.textContent = 'Romper'; destroy.disabled = object.kind === 'wheel' && object.attachment === 'attached'; destroy.title = destroy.disabled ? 'Separa el timón antes de romperlo.' : ''; destroy.onclick = () => startStructureDraft(object, 'destroyed'); row.append(destroy); }
+    const inspect = localButton('Estado del objeto', () => {
+      objectRosette?.close();
+      $('objectInfoName').textContent = object.label;
+      $('objectInfoStates').replaceChildren(states.cloneNode(true));
+      const dialog = $('objectInfoDialog') as HTMLDialogElement; if (!dialog.open) dialog.showModal();
+    }); row.append(inspect);
     box.append(row);
   }
-  if (!box.childElementCount) box.append(emptyState(options.length === 1 ? 'Sin objetos editables en esta escena' : 'Selecciona un objeto', options.length === 1 ? 'El mapa y sus fichas siguen disponibles.' : 'Elige en la lista o pulsa un objeto en el mapa.'));
+  if (!box.childElementCount) box.append(emptyState(options.length === 1 ? 'Sin objetos editables en esta escena' : 'Selecciona un objeto', options.length === 1 ? 'El mapa y sus fichas siguen disponibles.' : 'Activa Resaltar objetos y pulsa una marca del mapa.'));
   const undo = $('undoObject') as HTMLButtonElement; undo.disabled = !current.undo.canUndo; undo.textContent = '↶ Deshacer'; undo.title = current.undo.label ? `Deshacer: ${current.undo.label}` : 'Deshacer última acción'; undo.setAttribute('aria-label', undo.title); renderDraft();
+  updateMapTargets(current); objectRosette?.refresh();
 }
 
 function renderPlayers(current: DmState) {
@@ -1028,7 +1104,8 @@ function renderPlayers(current: DmState) {
   for (const character of present) {
     const article = document.createElement('article'); article.className = 'player-card'; const info = document.createElement('div'), heading = document.createElement('h3'), dot = document.createElement('span'), small = document.createElement('small');
     info.className = 'player-info';
-    dot.className = `dot ${character.connected ? 'on' : ''}`; heading.append(dot, document.createTextNode(` ${character.label}`)); small.textContent = `${character.archetype} · ${character.claimed ? 'asignado' : 'libre'}`; info.append(heading, small);
+    const sheetButton = document.createElement('button'); sheetButton.className = 'link-button'; sheetButton.type = 'button'; sheetButton.textContent = character.label; sheetButton.title = `Abrir ficha y estados de ${character.label}`; sheetButton.onclick = () => openEntitySheet(current, character.id);
+    dot.className = `dot ${character.connected ? 'on' : ''}`; heading.append(dot, sheetButton); small.textContent = `${character.archetype} · ${character.claimed ? 'asignado' : 'libre'}`; info.append(heading, small);
     const hpLabel = document.createElement('label'), hp = document.createElement('input'); hpLabel.className = 'player-health'; hpLabel.append('PG', hp); hp.type = 'number'; hp.min = '0'; hp.max = String(character.maxHp); hp.value = String(character.hp); hp.onchange = () => command({ type: 'hp', characterId: character.id, hp: Number(hp.value) });
     const position = document.createElement('div'); position.className = 'player-position'; const col = coordinate('Col', character.cell.col), row = coordinate('Fila', character.cell.row), move = document.createElement('button'); move.textContent = 'Paso'; move.onclick = () => command({ type: 'entity:move', entityId: character.id, cell: { col: Number(col.input.value), row: Number(row.input.value) } }); position.append(col.label, row.label, move);
     const location = document.createElement('small'); location.className = 'player-location'; location.textContent = `${character.sceneId} · ${character.surfaceId} · ${character.cell.col},${character.cell.row}`;
@@ -1058,19 +1135,21 @@ function renderPlayers(current: DmState) {
     for (const [resourceId, resource] of Object.entries(character.resources)) { const label = document.createElement('label'), input = document.createElement('input'); label.append(resource.label, input); input.type = 'number'; input.min = '0'; input.max = String(resource.max); input.value = String(resource.current); input.onchange = () => command({ type: 'resource', characterId: character.id, resourceId, current: Number(input.value) }); resources.append(label); }
     article.className = 'dm-entity-card'; actions.className = 'dm-entity-actions'; release.className = 'dm-ghost';
     actions.prepend(localButton('Mover en mapa', () => focusEntityOnMap(character.id, character.cell, character.surfaceId)));
+    actions.prepend(localButton('Ficha y estados', () => openEntitySheet(current, character.id)));
     const fields = document.createElement('div'); fields.className = 'dm-editor-fields'; fields.append(hpLabel, position, resources, location);
     const summary = chips([`PG ${character.hp}/${character.maxHp}`, ...Object.values(character.resources).map(resource => `${resource.label}: ${resource.current}/${resource.max}`), `Casilla ${character.cell.col},${character.cell.row}`, [character.connected ? 'Conectado' : 'Desconectado', character.connected ? 'positive' : 'pending'], character.claimed ? 'Asignada' : 'Libre']);
-    article.append(info, summary, actions, disclosure(`player:${character.id}`, 'Editar ficha y posición', fields)); box.append(article);
+    article.append(info, summary, conditionStrip(character, condition => command({ type: 'combat:condition', entityId: character.id, condition, active: false })), actions, disclosure(`player:${character.id}`, 'Editar ficha y posición', fields)); box.append(article);
   }
 }
 function renderMonsterSheet(current: DmState) {
   const box = $('monsterSheet'); box.replaceChildren(); const creature = current.creature;
   if (!creature) return;
   const details = document.createElement('details'), summary = document.createElement('summary'); summary.textContent = `Hoja · ${creature.label}`;
+  details.open = true;
   const stats = document.createElement('p'); stats.textContent = `PG ${creature.hp}/${creature.maxHp} · CA ${creature.armorClass} · velocidad ${creature.speedMeters} m`;
   const hp = document.createElement('input'); hp.type = 'number'; hp.min = '0'; hp.max = String(creature.maxHp); hp.value = String(creature.hp); hp.setAttribute('aria-label', `PG de ${creature.label}`); hp.onchange = () => command({ type: 'entity:hp', entityId: creature.id, hp: Number(hp.value) });
   const list = (title: string, values: string[]) => { const heading = document.createElement('b'), items = document.createElement('ul'); heading.textContent = title; items.replaceChildren(...values.map(value => { const item = document.createElement('li'); item.textContent = value; return item; })); return [heading, items] as const; };
-  details.append(summary, stats, hp, ...list('Rasgos', creature.traits), ...list('Acciones', creature.actions)); box.append(details);
+  details.append(summary, stats, hp, conditionStrip(creature, condition => command({ type: 'combat:condition', entityId: creature.id, condition, active: false })), localButton('Ficha y estados', () => openEntitySheet(current, creature.id)), ...list('Rasgos', creature.traits), ...list('Acciones', creature.actions)); box.append(details);
 }
 function renderNpcs(current: DmState) {
   const box = $('npcs'); if (box.contains(document.activeElement) && document.activeElement instanceof HTMLInputElement) return; box.replaceChildren();
@@ -1078,6 +1157,7 @@ function renderNpcs(current: DmState) {
   if (!npcs.length) { box.append(emptyState('Sin PNJ en esta escena', 'Los personajes de escena aparecerán aquí.')); return; }
   for (const npc of npcs) {
     const row = document.createElement('div'); row.className = 'object-row'; const name = document.createElement('button'); name.className = 'link-button'; name.textContent = npc.label; name.title = `Abrir hoja de ${npc.label}`; name.onclick = () => openNpcSheet(npc);
+    row.append(conditionStrip(npc, condition => command({ type: 'combat:condition', entityId: npc.id, condition, active: false })));
     const reveal = document.createElement('button'); reveal.textContent = npc.visible ? 'Ocultar' : `Invocar ${npc.label}`; reveal.disabled = current.combat.active; reveal.onclick = () => command({ type: 'npc:visible', entityId: npc.id, visible: !npc.visible });
     const col = coordinate('Col', npc.cell.col), line = coordinate('Fila', npc.cell.row), move = document.createElement('button'); move.textContent = 'Paso'; move.disabled = !npc.visible; move.onclick = () => command({ type: 'entity:move', entityId: npc.id, cell: { col: Number(col.input.value), row: Number(line.input.value) } });
     const combat = document.createElement('button'); combat.textContent = npc.combatEnabled ? 'Quitar de combate' : 'Añadir al combate'; combat.disabled = current.combat.active; combat.onclick = () => command({ type: 'combat:participant', entityId: npc.id, active: !npc.combatEnabled });
@@ -1252,6 +1332,10 @@ function friendlyErrorCode(code: string) {
     SHEET_NOT_FOUND: 'falta la hoja de algún personaje',
     WRONG_CAMPAIGN: 'esta acción solo está disponible en Stormwreck'
   };
+  if (code === 'REST_ACTIVE_ELSEWHERE') {
+    const title = campaign?.scenes.find(scene => scene.id === state?.campRest?.sceneId)?.title ?? 'el campamento anterior';
+    return `hay un descanso pendiente en «${title}». Cambiar de mapa no lo termina; vuelve a él desde el panel de descanso antes de preparar otro`;
+  }
   return chapterMessages[code] ?? humanCode(code);
 }
 
@@ -1371,6 +1455,8 @@ $('scene').onchange = () => {
 $('cameraTurnLeft').onclick = () => rotateCamera(-1);
 $('cameraTurnRight').onclick = () => rotateCamera(1);
 $('cameraReset').onclick = () => { const sceneId = state?.sceneId ?? latestSnapshot?.sceneId; if (!supportsCameraOrbit(sceneId)) return; world?.resetCameraOrientation(); updateCameraOrbitControls(sceneId); publishCameraOrientation(); };
+$('cameraDetail').onclick = () => { if (!world?.frameActorDetail(selectedMapEntityId ?? latestSnapshot?.entities.find(entity => entity.kind === 'player')?.id)) toast('Selecciona un personaje visible para acercar la vista.'); };
+$('cameraOverview').onclick = () => world?.frameSceneOverview();
 ($('cameraTilt') as HTMLInputElement).oninput = event => {
   const input = event.currentTarget as HTMLInputElement;
   world?.setCameraTiltDegrees(Number(input.value));
@@ -1383,16 +1469,13 @@ $('cameraReset').onclick = () => { const sceneId = state?.sceneId ?? latestSnaps
   else stopSharingCameraOrientation();
 };
 $('camera').onchange = $('focus').onchange = () => command({ type: 'camera', mode: ($('camera') as HTMLSelectElement).value, focusId: ($('focus') as HTMLSelectElement).value || null });
+document.querySelectorAll<HTMLButtonElement>('[data-camera-mode]').forEach(button => button.onclick = () => {
+  const select = $('camera') as HTMLSelectElement; select.value = button.dataset.cameraMode!; select.dispatchEvent(new Event('change'));
+});
 $('storm').onclick = () => command({ type: 'environment', storm: !state?.environment.storm, precipitation:state?.environment.storm?'none':'rain',intensity: Number(($('stormIntensity') as HTMLInputElement).value) });
-$('openWeather').onclick=()=>{setDrawerTab('ambience');setSideControlsOpen(true);};
 $('mapBoardToggle').onclick = () => setMapToolPanel(null);
 $('mapCameraToggle').onclick = () => setMapToolPanel(mapToolPanel === 'camera' ? null : 'camera');
 $('mapObjectsToggle').onclick = () => setMapToolPanel(mapToolPanel === 'objects' ? null : 'objects');
-$('mapObjectPicker').onchange = () => {
-  const value = ($('mapObjectPicker') as HTMLSelectElement).value;
-  if (value.startsWith('object:')) selectObject(value.slice(7));
-  else { selectObject(null); inspectedPickupId = value.startsWith('pickup:') ? value.slice(7) : null; if (state) renderObjects(state); }
-};
 for (const [attribute, id] of [['weather-time', 'weatherTime'], ['weather-kind', 'weatherKind']] as const) {
   document.querySelectorAll<HTMLButtonElement>(`[data-${attribute}]`).forEach(button => button.onclick = () => {
     const control = $(id) as HTMLSelectElement;
@@ -1451,6 +1534,7 @@ function listSection(title: string, values: string[]) {
 }
 
 function openCombatSheet(current: DmState, participant: DmState['combat']['participants'][number]) {
+  conditionSheetEntityId = participant.id;
   const dialog = $('combatSheetDialog') as HTMLDialogElement, player = current.characters.find(character => character.id === participant.id), creature = current.creature?.id === participant.id ? current.creature : null, npc = current.npcs.find(candidate => candidate.id === participant.id);
   $('combatSheetKicker').textContent = participant.kind === 'player' ? 'HOJA DE PERSONAJE' : participant.kind === 'npc' ? 'HOJA DE PNJ' : 'HOJA DE CRIATURA';
   $('combatSheetName').textContent = participant.label;
@@ -1459,6 +1543,7 @@ function openCombatSheet(current: DmState, participant: DmState['combat']['parti
     ['PG', `${participant.hp}/${participant.maxHp}`], ['Clase de armadura', String(participant.armorClass)], ['Velocidad', `${participant.speedMeters} m`], ['Iniciativa', `${participant.initiative >= 0 ? '+' : ''}${participant.initiative}`]
   ].map(([label, value]) => { const item = document.createElement('div'), title = document.createElement('b'), text = document.createElement('span'); title.textContent = label ?? ''; text.textContent = value ?? ''; item.append(title, text); return item; }));
   const body = $('combatSheetBody'); body.replaceChildren();
+  body.before(dmConditionPanel.root); refreshSheetConditions(current);
   if (player?.sheet) {
     body.append(listSection('Rasgos', player.sheet.features), listSection('Ataques', player.sheet.attacks));
     if (player.sheet.spells.length) body.append(listSection('Conjuros', player.sheet.spells));
@@ -1471,6 +1556,7 @@ function openCombatSheet(current: DmState, participant: DmState['combat']['parti
 }
 
 function openNpcSheet(npc: DmState['npcs'][number]) {
+  conditionSheetEntityId = npc.id;
   const dialog = $('combatSheetDialog') as HTMLDialogElement;
   $('combatSheetKicker').textContent = 'HOJA DE PNJ';
   $('combatSheetName').textContent = npc.label;
@@ -1479,9 +1565,26 @@ function openNpcSheet(npc: DmState['npcs'][number]) {
     ['PG', `${npc.hp}/${npc.maxHp}`], ['Clase de armadura', String(npc.armorClass)], ['Velocidad', `${npc.speedMeters} m`], ['Estado', npc.combatEnabled ? 'Disponible para combate' : 'Escénico']
   ].map(([label = '', value = '']) => { const item = document.createElement('div'), title = document.createElement('b'), text = document.createElement('span'); title.textContent = label; text.textContent = value; item.append(title, text); return item; }));
   const body = $('combatSheetBody'); body.replaceChildren();
+  body.before(dmConditionPanel.root); if (state) refreshSheetConditions(state);
   if (npc.traits.length) body.append(listSection('Rasgos', npc.traits));
   body.append(listSection('Acciones', npc.attacks.map(action => action.label)));
   if (!dialog.open) dialog.showModal();
+}
+
+function openEntitySheet(current: DmState, id: string) {
+  const participant = current.combat.participants.find(entity => entity.id === id);
+  if (participant) { openCombatSheet(current, participant); return; }
+  const player = current.characters.find(entity => entity.id === id), npc = current.npcs.find(entity => entity.id === id), creature = current.creature?.id === id ? current.creature : null;
+  if (npc) { openNpcSheet(npc); return; }
+  const entity = player ?? creature; if (!entity) return;
+  openCombatSheet(current, { id, label: entity.label, kind: player ? 'player' : 'creature', controller: player ? 'player' : 'dm', active: false, hp: entity.hp, maxHp: entity.maxHp, armorClass: player ? player.sheet?.armorClass ?? 10 : creature!.armorClass, speedMeters: player ? player.sheet?.speedMeters ?? 7.5 : creature!.speedMeters, initiative: 0, initiativeSubmitted: false, attacks: [], conditions: entity.conditions ?? [] });
+}
+function refreshSheetConditions(current: DmState) {
+  if (!conditionSheetEntityId) return;
+  const entity = current.characters.find(candidate => candidate.id === conditionSheetEntityId) ?? current.npcs.find(candidate => candidate.id === conditionSheetEntityId) ?? (current.creature?.id === conditionSheetEntityId ? current.creature : null);
+  if (!entity) { ($('combatSheetDialog') as HTMLDialogElement).close(); conditionSheetEntityId = null; return; }
+  dmConditionPanel.update(entity, 'sheet' in entity ? entity.sheet?.features : []);
+  const hpValue = $('combatSheetStats').firstElementChild?.querySelector('span'); if (hpValue) hpValue.textContent = `${entity.hp}/${entity.maxHp}`;
 }
 
 function combatantPortrait(current: DmState, participant: CombatParticipant) {
@@ -1515,10 +1618,46 @@ function showCombatWithdrawal(entityId: string, label: string) {
   if (!dialog.open) dialog.showModal();
 }
 
+function configureCampRosette(point: CampPoint, sceneId: string) {
+  showCampPoint(point, sceneId, false);
+  const actions = $('campPointActions');
+  actions.append(localButton('Ficha del objeto', () => { objectRosette?.close(); showCampPoint(point, sceneId); }));
+  if (($('campPointActor') as HTMLSelectElement).options.length > 1) {
+    for (const button of actions.querySelectorAll<HTMLButtonElement>('li button')) button.onclick = () => { objectRosette?.close(); showCampPoint(point, sceneId); };
+  }
+}
+function openCampRosette(point: CampPoint, sceneId: string, anchor: { x: number; y: number }) {
+  campRosetteSelection = { sceneId, pointId: point.id };
+  configureCampRosette(point, sceneId);
+  rosetteSource = 'campPointActions'; objectRosette?.show(point.label, anchor, () => world?.mapCellScreenPoint(point.objectCell ?? point.cell, point.surfaceId) ?? null);
+}
+
+function updateMapTargets(current: DmState) {
+  if (!mapTargets) return;
+  const targets = current.objects.map(object => ({ id: object.id, label: object.label,
+    project: () => projectDmObject(object.id),
+    select: (anchor: { x: number; y: number }) => { clearDraft(); selectObject(object.id); rosetteSource = 'objects'; objectRosette?.show(object.label, anchor, () => projectDmObject(object.id)); } }));
+  for (const pickup of current.pickups ?? []) if (!pickup.collected && pickup.available) targets.push({ id: pickup.id, label: pickup.label,
+    project: () => world?.mapCellScreenPoint(pickup.cell, pickup.surfaceId) ?? null,
+    select: anchor => { clearDraft(); selectedId = null; inspectedPickupId = pickup.id; renderObjects(state!); rosetteSource = 'objects'; objectRosette?.show(pickup.label, anchor, () => world?.mapCellScreenPoint(pickup.cell, pickup.surfaceId) ?? null); } });
+  const scene = currentScene();
+  for (const point of scene?.camp?.interactionPoints ?? []) targets.push({ id: point.id, label: point.label,
+    project: () => world?.mapCellScreenPoint(point.objectCell ?? point.cell, point.surfaceId) ?? null,
+    select: anchor => { clearDraft(); openCampRosette(point, scene!.id, anchor); } });
+  mapTargets.update(targets, mapToolPanel === 'objects' && !draft && !armedDmCombatPoint);
+}
+
+function sceneObjectAccess(current: DmState, extra: string[] = []) {
+  const count = current.objects.length + (current.pickups?.filter(pickup => !pickup.collected).length ?? 0) + (currentScene()?.camp?.interactionPoints.length ?? 0);
+  const block = sceneBlock('INTERACTUABLES', [`${count} objetos`, ...extra]);
+  if (count) block.append(localButton('◇ Resaltar en el mapa', () => { openWorkspaceWindow('mapWindow'); setMapToolPanel('objects'); }));
+  return block;
+}
+
 const initiativeDrafts = new Map<string, string>();
 let initiativeDraftEpoch = '';
 let inspectedTurnId: string | null = null;
-const combatConditionIcons: Record<string, string> = { envenenada: '☠', apresada: '⛓', agarrada: '✊', derribada: '↧', asustada: '!', hechizada: '♡', paralizada: '❄', inconsciente: '☾', oculta: '◌', invisible: '◈', restringida: '⊠' };
+const combatConditionIcons: Record<string, string> = Object.fromEntries(Object.entries(conditionPresentation).map(([condition, presentation]) => [condition, presentation.glyph]));
 function renderCombat(current: DmState) {
   const box = $('combat'), combat = current.combat;
   preserveDisclosures(box, `combat:${current.runtimeEpoch}:${current.sceneEpoch}`);

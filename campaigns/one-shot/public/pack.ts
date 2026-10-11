@@ -597,7 +597,7 @@ for (const scene of definition.scenes) {
     const fritz=scene.stageActors?.find(actor=>actor.id==='fritz-garden');
     if(fritz)fritz.cell=d8NearestWalkableCell(sceneId,8.25,1.5);
   }
-  for(const door of (D8NIGHT.maps[sceneId].MAP as any).doors??[])scene.props.push({id:door.id,kind:'door',label:door.label,assetId:'cafe-entry-door',cell:d8CellFromWorld(sceneId,door.x-(door.width>3?1.5:0),door.z),surfaceId:scene.surfaceId,rotation:0,initialState:'open',baseFootprint:door.width>3?[{col:0,row:0},{col:1,row:0},{col:2,row:0}]:[{col:0,row:0}],allowedRotations:[0],capabilities:{transform:false,detach:false,structure:true},renderedByScene:true,sourceKind:'addition'});
+  for(const door of (D8NIGHT.maps[sceneId].MAP as any).doors??[])scene.props.push({id:door.id,kind:'door',label:door.label,assetId:'cafe-entry-door',cell:d8CellFromWorld(sceneId,door.x-(door.width>3?1.5:0),door.z),surfaceId:scene.surfaceId,rotation:0,initialState:'closed',baseFootprint:door.width>3?[{col:0,row:0},{col:1,row:0},{col:2,row:0}]:[{col:0,row:0}],allowedRotations:[0],capabilities:{transform:false,detach:false,structure:true},renderedByScene:true,sourceKind:'addition'});
   if(sceneId === 'mirror') {
     // The authored 3D mirror is the sole visible object; retain its logical
     // prop for interaction/save/undo, without drawing a second PNG on top.

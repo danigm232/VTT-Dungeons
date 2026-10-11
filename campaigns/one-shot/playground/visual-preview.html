@@ -69,11 +69,27 @@
     document.querySelectorAll('[data-map]').forEach(button => button.addEventListener('click', () => showMap(button.dataset.map)));
     document.querySelector('[data-map="temple"]').classList.add('active');
     overview('temple');
+    window.__d8Scene = scene;
+    window.__d8Overview = overview;
+    window.__setDistance = (dist) => {
+      if (dist === 'far') {
+        overview(currentMap);
+      } else if (dist === 'mid') {
+        const targets = { cafe: [-3, .8, -1], garden: [2, .6, -2], market: [0, .5, -1], mirror: [-3, .6, -1], temple: [0, 1, -1], dinner: [0, 1, -1] };
+        scene.activeCamera.setTarget(new d8BabylonRuntime.Vector3(...targets[currentMap]));
+        scene.activeCamera.radius = currentMap === 'temple' ? 36 : 25;
+        scene.activeCamera.beta = currentMap === 'temple' ? .91 : .85;
+      } else if (dist === 'close') {
+        const targets = { cafe: [-5.3, .8, .45], garden: [-2, .6, 1], market: [0, .5, -1], mirror: [-9.2, .6, -2.5], temple: [0, 1.1, -2.5], dinner: [0, 1, .8] };
+        scene.activeCamera.setTarget(new d8BabylonRuntime.Vector3(...targets[currentMap]));
+        scene.activeCamera.radius = currentMap === 'temple' ? 18 : 14;
+        scene.activeCamera.beta = currentMap === 'temple' ? .92 : .82;
+      }
+    };
     document.querySelector('#interior').addEventListener('click',()=>{
       interior=!interior;
       if(!interior){overview(currentMap);return;}
-      const targets={cafe:[-3,.8,-1],garden:[2,.6,-2],market:[0,.5,-1],mirror:[-3,.6,-1],temple:[0,1,-1],dinner:[0,1,-1]};
-      scene.activeCamera.setTarget(new d8BabylonRuntime.Vector3(...targets[currentMap]));scene.activeCamera.radius=currentMap==='temple'?38:25;scene.activeCamera.beta=currentMap==='temple'?.91:.85;
+      window.__setDistance('mid');
     });
     let renderMs=0;
     engine.runRenderLoop(() => {

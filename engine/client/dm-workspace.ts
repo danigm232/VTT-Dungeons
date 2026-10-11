@@ -1,4 +1,22 @@
 export type WindowLayout = { span?: number; height?: number };
+/** Pack in DOM order and distribute unused columns. Never change saved widths. */
+export function packDmWorkspace(items: Array<{ id: string; span: number }>, columns = 12) {
+  const rows: Array<Array<{ id: string; span: number }>> = [];
+  for (const item of items) {
+    const entry = { ...item, span: Math.max(1, Math.min(columns, Math.round(item.span))) };
+    const last = rows.at(-1);
+    if (!last || last.reduce((sum, peer) => sum + peer.span, 0) + entry.span > columns) rows.push([entry]);
+    else last.push(entry);
+  }
+  return rows.flatMap((row, index) => {
+    let spare = columns - row.reduce((sum, item) => sum + item.span, 0), column = 1;
+    return row.map((item, itemIndex) => {
+      const extra = Math.ceil(spare / (row.length - itemIndex)); spare -= extra;
+      const span = item.span + extra, placement = { id: item.id, row: index + 1, column, span };
+      column += span; return placement;
+    });
+  });
+}
 export type WorkspaceState = { closed: string[]; minimized: string[]; maximized: string[]; windows: Record<string, WindowLayout>; order: string[] };
 export type WorkspaceMode = 'exploration' | 'combat';
 export type DmWorkspacePresetId = 'map-scene' | 'two-columns' | 'tactical' | 'overview';

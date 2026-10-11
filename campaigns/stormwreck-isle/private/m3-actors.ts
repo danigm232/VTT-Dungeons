@@ -37,7 +37,7 @@ const harpy: CombatProfile = {
 
 const actor = (id: string, label: string, tokenId: string, sceneId: string, surfaceId: string,
   x: number, z: number, profile: CombatProfile, color: string): PrivateActorDefinition =>
-  ({ id, label, tokenId, sceneId, surfaceId, cell: wreckCellAtMeters(x, z), profile, color });
+  ({ id, label, tokenId, sceneId, surfaceId, cell: wreckCellAtMeters(x+(id.startsWith('c4-')?-9:0), z), profile, color });
 
 export const wreckM3Actors: PrivateActorDefinition[] = [
   actor('c4-zombie-1', 'Marinero ahogado · C4 I', 'zombie', 'wreck-ship', 'main', -12, -3, zombie, '#718f7d'),

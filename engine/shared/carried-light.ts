@@ -1,7 +1,10 @@
 /** Only explicitly burning/enchanted items emit light. An unlit torch in a
  * pack must never illuminate the wreck merely because it was picked up. */
+import { parseInventoryItem } from './inventory.js';
+
 export function carriedLightRadiusMeters(inventory: readonly string[]): number {
-  if (inventory.some(item => /\b(farol|linterna|l[aá]mpara)\b.*\b(encendid[ao]|iluminad[ao]|prendid[ao])\b/i.test(item))) return 9;
-  if (inventory.some(item => /\bantorcha\b.*\b(encendid[ao]|prendid[ao])\b|\bluz m[aá]gica\b/i.test(item))) return 6;
+  const sources = inventory.map(item => parseInventoryItem(item)).filter(item => item.quantity > 0);
+  if (sources.some(item => /\b(farol(?:es)?|linternas?|l[aá]mparas?)\b/i.test(item.label) && item.lit)) return 9;
+  if (sources.some(item => /\bantorchas?\b/i.test(item.label) && item.lit || /\bluz m[aá]gica\b/i.test(item.label))) return 6;
   return 0;
 }

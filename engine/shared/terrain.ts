@@ -11,6 +11,9 @@ const edge = z.enum(['north', 'east', 'south', 'west']);
 const sameCell = (a: Cell, b: Cell) => a.col === b.col && a.row === b.row;
 const tile = z.object({ cell: cellSchema, kind: z.enum(['floor', 'ramp', 'stair', 'bridge']),
   corners: z.tuple([height, height, height, height]), materialId: idSchema,
+  /** Convex floor boundary within a cell. Cell centres remain the movement
+   * anchors; rendering, picking and the grid share these fractional vertices. */
+  polygon: z.array(z.tuple([z.number().finite().min(0).max(1), z.number().finite().min(0).max(1)])).min(3).max(12).optional(),
   /** Coste mínimo de recorrido. Dos representa terreno difícil. */
   movementCost: z.union([z.literal(1), z.literal(2)]).default(1),
   /** El medio es información física; nunca se usa como barrera de privacidad. */

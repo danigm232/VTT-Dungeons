@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { idSchema } from './campaign.js';
+import { campActivityIdSchema } from './camp-activities.js';
 
 export const campRestPhaseSchema = z.enum(['arrival', 'dusk', 'night', 'dawn', 'finalization']);
 export const campRestStateSchema = z.object({
@@ -12,7 +13,8 @@ export const campRestStateSchema = z.object({
   interactions: z.array(z.object({
     pointId: idSchema, pointLabel: z.string().min(1).max(80), characterId: idSchema,
     characterLabel: z.string().min(1).max(80), at: z.number().int().nonnegative(),
-    action: z.enum(['opened', 'closed', 'used']).optional()
+    action: z.enum(['opened', 'closed', 'used']).optional(),
+    activityId: campActivityIdSchema.optional()
   }).strict()).max(30)
 }).strict();
 

@@ -12,6 +12,29 @@ const common = { label: 'Prueba', assetId: 'ship-prop-m5', surfaceId: 'main', ce
   capabilities: { transform: false, detach: false, structure: true } };
 
 describe('independent ship artwork', () => {
+  it('keeps worn bedding upward-facing and above the mattress without a flat overlay box',()=>{
+    const scene=sceneFor(),prop={...common,id:'c6-bunk-01',kind:'crate'} as PublicProp;
+    const meshes=buildShipPropVisual(scene,prop,3,1.5).getChildMeshes();
+    const sheets=meshes.filter(m=>m.name.includes('creased'));
+    expect(sheets).toHaveLength(2);
+    for(const sheet of sheets){
+      const normals=sheet.getVerticesData('normal')!;
+      expect(normals.filter((_,i)=>i%3===1).every(y=>y>.5)).toBe(true);
+    }
+    expect(meshes.some(m=>/upper-blanket|salt-stained-blanket/.test(m.name))).toBe(false);
+    expect(Math.min(...sheets.find(m=>m.name.includes('upper'))!.getVerticesData('position')!.filter((_,i)=>i%3===1))).toBeGreaterThan(1.715);
+  });
+  it('floats selected C8 cargo within its existing footprint and cleans up its observer',()=>{
+    const scene=sceneFor(),prop={...common,id:'c8-container-01',surfaceId:'lower-deck',kind:'crate'} as PublicProp;
+    const before=scene.onBeforeRenderObservable.observers.length,visual=buildShipPropVisual(scene,prop,3,1.5);
+    visual.position.set(20,-3.42,14);visual.metadata={floorHeight:-3.42};
+    scene.onBeforeRenderObservable.notifyObservers(scene);
+    expect(visual.position.x).toBe(20);expect(visual.position.z).toBe(14);
+    expect(visual.position.y).toBeGreaterThan(-3.22);expect(visual.position.y).toBeLessThan(-3.18);
+    expect(prop.cell).toEqual(common.cell);
+    expect(scene.onBeforeRenderObservable.observers.length).toBe(before+1);
+    visual.dispose();expect(scene.onBeforeRenderObservable.hasObservers()).toBe(before>0);
+  });
   it('builds recognizable non-pickable meshes without changing movement geometry', () => {
     const scene = sceneFor();
     const prop = { ...common, id: 'c2-ballista-blockout', kind: 'crate' } as PublicProp;

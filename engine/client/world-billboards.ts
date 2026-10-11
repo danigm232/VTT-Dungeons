@@ -10,7 +10,10 @@ import { RawTexture } from '@babylonjs/core/Materials/Textures/rawTexture.js';
 import { Color3 } from '@babylonjs/core/Maths/math.color.js';
 import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import { Ray } from '@babylonjs/core/Culling/ray.js';
+import '@babylonjs/core/Culling/ray.js';
+import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData.js';
 import type { Scene } from '@babylonjs/core/scene.js';
+import { interactionActorVertex, type InteractionActorPose } from './interaction-actor-pose.js';
 
 export type BillboardFrame = {
   url: string; sourceWidth: number; sourceHeight: number;
@@ -19,8 +22,11 @@ export type BillboardFrame = {
   x: number; y: number; width: number; height: number;
   worldWidth: number; worldHeight: number; anchorX: number; anchorY: number;
   offsetX: number; offsetY: number; flipX: boolean; alpha: number; tint: number;
+  lean?: number;
+  interactionPose?: InteractionActorPose;
+  worldOffset?: { x: number; y: number; z: number };
 };
-type Layer = { mesh: Mesh; material: StandardMaterial; key: string };
+type Layer = { mesh: Mesh; material: StandardMaterial; key: string; grid?: boolean; frame?: BillboardFrame };
 type Actor = { body: Layer; ghost: Layer; shadow: Mesh; ring: Mesh };
 
 /** UVs use the atlas' actual pixel dimensions and stay inside its frame.
@@ -33,7 +39,7 @@ export function billboardUVs(frame: BillboardFrame) {
 }
 
 export function billboardCenter(ground: Vector3, right: Vector3, up: Vector3, frame: BillboardFrame) {
-  return ground.add(right.scale(frame.offsetX + (.5 - frame.anchorX) * frame.worldWidth))
+  return ground.add(frame.worldOffset ? new Vector3(frame.worldOffset.x, frame.worldOffset.y, frame.worldOffset.z) : Vector3.Zero()).add(right.scale(frame.offsetX + (.5 - frame.anchorX) * frame.worldWidth))
     .add(up.scale(frame.offsetY + (frame.anchorY - .5) * frame.worldHeight));
 }
 
@@ -44,9 +50,11 @@ function paintedTexture(url: string, scene: Scene, frame?: BillboardFrame): Text
     const context = canvas.getContext('2d')!;
     context.drawImage(frame.sourceCanvas, 0, 0, frame.sourceWidth, frame.sourceHeight);
     const pixels = context.getImageData(0, 0, frame.sourceWidth, frame.sourceHeight).data;
-    return RawTexture.CreateRGBATexture(pixels, frame.sourceWidth, frame.sourceHeight, scene, false, true, Texture.NEAREST_SAMPLINGMODE);
+    return RawTexture.CreateRGBATexture(pixels, frame.sourceWidth, frame.sourceHeight, scene, true, true, Texture.TRILINEAR_SAMPLINGMODE);
   }
-  if (url !== contactShadow) return new Texture(url, scene, true, true, Texture.NEAREST_SAMPLINGMODE);
+  // Painted illustrations need filtered mipmaps when minified. Nearest-only
+  // sampling made their clothes and faces sparkle at normal map zoom.
+  if (url !== contactShadow) return new Texture(url, scene, false, true, Texture.TRILINEAR_SAMPLINGMODE);
   const texture = new DynamicTexture(contactShadow, { width: 64, height: 64 }, scene, false, Texture.BILINEAR_SAMPLINGMODE);
   const context = texture.getContext(), gradient = context.createRadialGradient(32, 32, 0, 32, 32, 31);
   gradient.addColorStop(0, 'rgba(0,0,0,.55)'); gradient.addColorStop(.55, 'rgba(0,0,0,.22)'); gradient.addColorStop(1, 'rgba(0,0,0,0)');
@@ -66,6 +74,7 @@ export class WorldBillboards {
     if (!texture) {
       texture = this.textureFactory(url, frame); texture.hasAlpha = true;
       texture.wrapU = texture.wrapV = Texture.CLAMP_ADDRESSMODE;
+      texture.anisotropicFilteringLevel = 4;
       this.textures.set(url, texture);
     }
     return texture;
@@ -103,6 +112,15 @@ export class WorldBillboards {
   private updateLayer(layer: Layer, frame: BillboardFrame | null, ground: Vector3, camera: Camera, visible: boolean) {
     layer.mesh.setEnabled(Boolean(frame && visible && frame.alpha > .001));
     if (!frame) return;
+    if (frame.interactionPose && !layer.grid) {
+      const data = new VertexData(), indices: number[] = [], normals: number[] = [];
+      for (let y=0;y<=12;y++) for(let x=0;x<=8;x++) {
+        normals.push(0,0,-1);
+        if(x<8&&y<12){const k=y*9+x;indices.push(k,k+9,k+1,k+1,k+9,k+10);}
+      }
+      data.positions=new Float32Array(117*3);data.normals=normals;data.indices=indices;data.uvs=new Float32Array(117*2);
+      data.applyToMesh(layer.mesh,true);layer.grid=true;layer.key='';
+    }
     const key = [frame.url, frame.x, frame.y, frame.width, frame.height, frame.flipX].join(':');
     if (layer.key !== key) {
       const texture = this.texture(frame.url, frame);
@@ -116,8 +134,19 @@ export class WorldBillboards {
         layer.material.emissiveTexture = texture;
         layer.material.diffuseColor=Color3.Black();
         layer.material.opacityTexture = null;
-        layer.mesh.updateVerticesData(VertexBuffer.UVKind, billboardUVs(frame)); layer.key = key;
+        layer.frame=frame;
+        if(!layer.grid) layer.mesh.updateVerticesData(VertexBuffer.UVKind, billboardUVs(frame));
+        layer.key = key;
       }
+    }
+    if(layer.grid){
+      const positions:number[]=[],uvs:number[]=[],uv=billboardUVs(layer.frame??frame);
+      for(let y=0;y<=12;y++)for(let x=0;x<=8;x++){
+        const u=x/8,v=y/12,p=interactionActorVertex(u,v,frame.interactionPose);
+        positions.push(p.x,p.y,0);uvs.push(uv[0]!+(uv[2]!-uv[0]!)*u,uv[5]!+(uv[1]!-uv[5]!)*v);
+      }
+      layer.mesh.updateVerticesData(VertexBuffer.PositionKind,positions,true);
+      layer.mesh.updateVerticesData(VertexBuffer.UVKind,uvs);
     }
     layer.material.alpha = frame.alpha;
     layer.material.emissiveColor.copyFrom(Color3.FromInts(frame.tint >> 16 & 255, frame.tint >> 8 & 255, frame.tint & 255));
@@ -126,9 +155,12 @@ export class WorldBillboards {
     // Upright cylindrical billboards: a camera-facing card used to lean its
     // head backwards into tables, roofs and walls when the camera tilted.
     const right = camera.getDirection(Vector3.Right()); right.y = 0; right.normalize();
-    const up = Vector3.Up(), forward = Vector3.Cross(right, up);
-    layer.mesh.rotationQuaternion.copyFrom(Quaternion.RotationQuaternionFromAxis(right, up, forward));
-    layer.mesh.position.copyFrom(billboardCenter(ground, right, up, frame));
+    const upright = Vector3.Up(), lean = frame.lean ?? 0;
+    const up = upright.scale(Math.cos(lean)).subtract(right.scale(Math.sin(lean)));
+    const tiltedRight = right.scale(Math.cos(lean)).add(upright.scale(Math.sin(lean)));
+    const forward = Vector3.Cross(tiltedRight, up);
+    layer.mesh.rotationQuaternion.copyFrom(Quaternion.RotationQuaternionFromAxis(tiltedRight, up, forward));
+    layer.mesh.position.copyFrom(billboardCenter(ground, tiltedRight, up, frame));
   }
   sync(id: string, ground: Vector3, camera: Camera, body: BillboardFrame | null, ghost: BillboardFrame | null, visible: boolean, selected: boolean) {
     const actor = this.actors.get(id) ?? this.create(id);
@@ -136,7 +168,7 @@ export class WorldBillboards {
     // A tiny shift toward the camera keeps blend poses coplanar without z-fighting.
     const blendPoint = ground.subtract(camera.getForwardRay().direction.scale(.002));
     this.updateLayer(actor.ghost, ghost, blendPoint, camera, visible);
-    actor.shadow.position.copyFrom(ground); actor.shadow.position.y += .008;
+    actor.shadow.position.copyFrom(ground); if(body?.worldOffset)actor.shadow.position.addInPlace(new Vector3(body.worldOffset.x,0,body.worldOffset.z));actor.shadow.position.y += .008;
     actor.shadow.scaling.set(Math.max(.5, Math.min(1.2, body?.worldWidth ?? .8)), 1, .65);
     actor.shadow.setEnabled(visible && Boolean(body));
     actor.ring.position.copyFrom(ground); actor.ring.position.y += .018; actor.ring.setEnabled(visible && selected);

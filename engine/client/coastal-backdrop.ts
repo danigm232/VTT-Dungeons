@@ -19,7 +19,8 @@ export function createCoastalBackdrop(scene: Scene, root: TransformNode, url: st
   material.maxSimultaneousLights = 3;
 
   // Babylon ground for deep animated ocean swells lifting and plunging
-  const sea = MeshBuilder.CreateGround('a1:bay-background', { width: 640, height: 640, subdivisions: 96, updatable: true }, scene);
+  const compact = typeof matchMedia === 'function' && matchMedia('(pointer: coarse), (max-width: 850px)').matches;
+  const sea = MeshBuilder.CreateGround('a1:bay-background', { width: 360, height: 360, subdivisions: compact ? 36 : 56, updatable: true }, scene);
   sea.position = new Vector3(28.5, -9.15, 22);
   sea.parent = root;
   sea.material = material;
@@ -28,7 +29,9 @@ export function createCoastalBackdrop(scene: Scene, root: TransformNode, url: st
   sea.receiveShadows = false;
   sea.metadata = { content: 'VTT_AMBIENCE', decorativeOnly: true, heightBelowTerraceMeters: 9.15, effect: 'babylon-vertex-waves' };
   const texture = material.diffuseTexture;
-  if (texture instanceof Texture) { texture.uScale = 24; texture.vScale = 24; texture.anisotropicFilteringLevel = 8; }
+  // Keep the painted swell readable at distant, grazing camera angles. The
+  // previous 24 repeats compressed its fine strokes into a visible moiré grid.
+  if (texture instanceof Texture) { texture.uScale = 12; texture.vScale = 12; texture.anisotropicFilteringLevel = 16; }
 
   const basePositions = sea.getVerticesData('position')!.slice();
   const wavePositions = new Float32Array(basePositions.length);
@@ -45,7 +48,7 @@ export function createCoastalBackdrop(scene: Scene, root: TransformNode, url: st
     const swell2 = Math.sin(x * .088 - z * .055 + time * 1.85) * .28;
     const swell3 = Math.sin(x * .14 + z * .042 - time * 2.3) * .14;
     // Shoaling effect: waves grow in height and steepness as they reach the cliffs (z > 22)
-    const shoal = 1 + Math.max(0, (z - 18) / 10) * .85;
+    const shoal = 1 + clamp01((z - 18) / 10) * .85;
     return (swellPeak1 + swell2 + swell3) * shoal;
   };
 

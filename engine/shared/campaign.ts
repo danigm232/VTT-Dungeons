@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { terrainSchema } from './terrain.js';
+import { campActivityIdSchema } from './camp-activities.js';
 
 export const idSchema = z.string().regex(/^[a-z0-9][a-z0-9._-]{0,39}$/);
 export const sceneIdSchema = idSchema;
@@ -36,8 +37,13 @@ export type PickupDefinition = z.infer<typeof pickupSchema>;
 const campPointSchema = z.object({
   id: idSchema, label: z.string().min(1).max(80), kind: z.enum(['bed', 'tent', 'fire', 'seat', 'guard', 'chest', 'personal']),
   cell: cellSchema, objectCell: cellSchema.optional(), surfaceId: idSchema, description: z.string().min(1).max(240),
-  ownerCharacterId: idSchema.optional()
-}).strict();
+  ownerCharacterId: idSchema.optional(),
+  /** Optional authoring override: future maps need no character-ID switch. */
+  activities: z.array(campActivityIdSchema).min(1).max(13).optional()
+}).strict().superRefine((point,ctx)=>{
+  if(point.activities?.some(id=>id==='sit'&&point.kind!=='seat'||id==='chest-toggle'&&point.kind!=='chest'||point.kind==='seat'&&id!=='sit'))
+    ctx.addIssue({code:'custom',path:['activities'],message:'Seat/chest mutations require their matching point kind.'});
+});
 const campSceneSchema = z.object({
   visualProfile: z.enum(['rooms', 'forest', 'wreck-beach', 'cliff-observatory', 'coastal-refuge']),
   canonStatus: z.enum(['canon', 'vtt-ambience']),

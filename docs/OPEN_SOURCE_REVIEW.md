@@ -1,5 +1,28 @@
 # Revisión open source y reutilización — actualizado 2026-09-22
 
+## Reconstrucción del Pecio — 09/10/2026
+
+ADAPT: Babylon.js 9.26.0 instalado, VertexData/MeshBuilder/agrupado, ShaderMaterial,
+RawTexture/DynamicTexture, luces y sombras PCF. El mismo perfil geométrico se
+comparte con la navegación autoritativa existente; se reutilizan las texturas
+del pack y sprites originales. Relieve de madera/tejido y agua se construyen
+localmente, sin nueva dependencia ni descarga. Se retiran las placas y el fondo
+oceánico en pantalla del runtime reconstruido. REJECT: incorporar otro motor,
+otro sistema de colisiones o generar una ilustración completa que reemplace
+la geometría jugable. Canon PDF y referencias artísticas siguen separados.
+Resultados y límites: [Evidencia del pecio](evidence/PECIO_EXTERIOR_REBUILD_20261008.md).
+
+## Campamentos — 07/10/2026
+
+Se reutiliza Babylon.js 9.26.0 instalado, sin añadir motores ni dependencias:
+ParticleSystem, geometría deformable, luces con listas de mallas, sombras
+almacenadas y glow. Se conserva Howler y el modelo autoritativo de terreno/red.
+Se reutilizan las texturas y el atlas botánico del módulo y los GLB Quaternius CC0
+aportados por el usuario. Las tres poses sentadas son variantes ImageGen de los
+personajes existentes; los dos loops de goteos/truenos son síntesis original.
+Procedencia y prompts están junto a los recursos. No se incorporaron catálogos
+externos ni código de otros VTT.
+
 ## Auditoría final D8 — 05/10/2026
 
 ADAPT: controles HTML nativos (`details`), gestor de ventanas existente, reintento del cargador existente, Pixi/Babylon y conciliación de snapshots autoritativos. Se extrae únicamente la programación de reintentos para compartirla entre los tres clientes; no otro estado del mundo ni otro sistema de guardado. REJECT para esta corrección: framework nuevo de paneles o caché/red, porque duplicaría mecanismos ya integrados. Assets existentes: comprobados sin descargar ni regenerar ilustraciones correctas. Sin dependencia externa nueva.

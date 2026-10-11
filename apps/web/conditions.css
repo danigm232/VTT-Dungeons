@@ -1,0 +1,18 @@
+.condition-panel { margin-block: 1rem; padding: 1rem; border: 1px solid #d3b67940; border-radius: 12px; background: #101b1ee6; color: #e8e4d8; }
+.condition-panel h3 { margin: 0 0 .8rem; color: #dfc48f; }
+.condition-row { padding: .7rem 0; border-bottom: 1px solid #a6ada31e; }
+.condition-row:last-child { border-bottom: 0; }
+.condition-row-title { display: flex; align-items: center; gap: .6rem; }
+.condition-glyph { display: inline-grid; place-items: center; width: 1.6rem; height: 1.6rem; flex: 0 0 auto; border: 1px solid var(--condition-color); color: var(--condition-color); background: #152026; border-radius: 50%; font: 600 1rem/1 Georgia, serif; }
+.condition-origin { font-size: .8rem; color: #d5c29e; margin: .4rem 0; }
+.condition-note { font-size: .8rem; line-height: 1.5; color: #b5c2c0; margin: .45rem 0; }
+.condition-strip { display: flex; flex-wrap: wrap; gap: .35rem; }
+.condition-chip { display: inline-flex; align-items: center; gap: .4rem; padding: .3rem .5rem; min-height: 34px; border-radius: 8px; border: 1px solid #9caeab55; background: #122026; color: #deddd3; font-size: .8rem; }
+.condition-chip .condition-glyph { width: 1.2rem; height: 1.2rem; font-size: .8rem; }
+.condition-panel .condition-remove { margin-left: auto; min-height: 34px; padding: .3rem .65rem; font-size: .8rem; color: #e4c99a; }
+.condition-editor { display: flex; flex-wrap: wrap; align-items: end; gap: .65rem; margin-top: .9rem; }
+.condition-editor label { display: grid; gap: .3rem; flex: 1 1 130px; font-size: .75rem; color: #c9cfc6; }
+.condition-editor input, .condition-editor select { width: 100%; min-height: 38px; padding: .4rem .5rem; margin: 0; }
+.condition-editor button { flex: 0 1 auto; min-height: 38px; padding: .4rem .8rem; }
+.condition-editor [hidden] { display: none; }
+@media (max-width: 550px) { .condition-panel { padding: .75rem; } .condition-editor button { width: 100%; } }

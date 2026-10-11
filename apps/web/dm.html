@@ -14,7 +14,7 @@
   </form></section>
   <main id="app" hidden>
     <header class="dm-header"><div class="dm-header-identity"><p class="eyebrow">MESA DE DIRECCIÓN · PRIVADA</p><h1 id="campaignTitle">Mesa de campaña</h1><p id="headerScene" class="dm-header-scene">Preparando escena…</p></div>
-      <div class="status"><button id="headerRequests" class="dm-chip dm-info" type="button" data-open-window="interacciones">Sin solicitudes</button><button id="headerCombat" class="dm-chip dm-info" type="button" data-open-window="combatCard">Exploración</button><span id="projectorBadge" class="badge dm-pending"><i id="projectorDot" class="dot"></i><span id="projectorStatus">Proyector pendiente</span></span><span id="serverBadge" class="badge dm-pending"><i id="socketDot" class="dot"></i><span id="serverStatus">Conectando</span></span><button id="headerSave" class="dm-chip dm-pending" type="button" data-open-window="partida-y-copias">Comprobando guardado</button><button id="openCampUpdates" class="release-notes-button" type="button" aria-haspopup="dialog" hidden>✦ Novedades <span>V1.4.3</span></button></div>
+      <div class="status"><button id="headerRequests" class="dm-chip dm-info" type="button" data-open-window="interacciones">Sin solicitudes</button><button id="headerCombat" class="dm-chip dm-info" type="button" data-open-window="combatCard">Exploración</button><span id="projectorBadge" class="badge dm-pending"><i id="projectorDot" class="dot"></i><span id="projectorStatus">Proyector pendiente</span></span><span id="serverBadge" class="badge dm-pending"><i id="socketDot" class="dot"></i><span id="serverStatus">Conectando</span></span><button id="headerSave" class="dm-chip dm-pending" type="button" data-open-window="partida-y-copias">Comprobando guardado</button><button id="openCampUpdates" class="release-notes-button" type="button" aria-haspopup="dialog" hidden>✦ Novedades <span>V1.4.6</span></button></div>
     </header>
     <nav class="side-rail" aria-label="Navegación de la consola DM">
       <button id="sideControlToggle" class="side-control-toggle" type="button" aria-controls="sideControls" aria-expanded="false"><span aria-hidden="true">☰</span><span>Panel DM</span></button>
@@ -80,38 +80,38 @@
         <label class="animation-audit-search">Filtrar personaje o acción<input id="animationAuditSearch" type="search" autocomplete="off" placeholder="Ej.: Anteros, correr, ataque"></label>
         <div id="animationAuditList" class="animation-audit-list" aria-live="polite"><p class="note">Esperando el mapa actual…</p></div>
       </section>
-      <section id="encounterCard" class="card"><h2>Encuentro</h2><div id="creatureSummary" class="dm-chips"></div><details class="dm-disclosure"><summary>Información del encuentro</summary><p id="creatureNote" class="note"></p></details>
+      <section id="encounterCard" class="card"><h2>Encuentro</h2><div id="creatureSummary" class="dm-chips"></div>
         <button id="creature">Revelar criatura</button>
-        <details class="dm-disclosure"><summary>Editar posición · un paso</summary>
+        <div class="dm-section-tabs" aria-label="Herramientas del encuentro"><button type="button" data-encounter-tab="creatureInfo" aria-expanded="false" aria-controls="creatureInfo">ⓘ Información</button><button type="button" data-encounter-tab="creaturePosition" aria-expanded="false" aria-controls="creaturePosition">✥ Posición</button><button type="button" data-encounter-tab="monsterSheet" aria-expanded="false" aria-controls="monsterSheet">▣ Ficha</button></div>
+        <section id="creatureInfo" data-encounter-panel hidden><p id="creatureNote" class="note"></p></section>
+        <section id="creaturePosition" data-encounter-panel hidden>
         <div class="row"><label>Columna<input id="harpyCol" type="number" step="1" min="0"></label><label>Fila<input id="harpyRow" type="number" step="1" min="0"></label></div>
         <button id="moveHarpy">Mover criatura 1 casilla</button>
-        </details>
-        <div id="monsterSheet"></div>
+        </section>
+        <div id="monsterSheet" data-encounter-panel hidden></div>
         <div id="wheelCard"><h3>Timón</h3><p class="note">Acércate con un personaje para solicitarlo, o selecciónalo en el mapa para separarlo directamente.</p></div>
       </section>
-      <section id="mapWindow" class="card span object-editor"><h2>Escena, cámara y mapa</h2><div class="map-console-controls"><div class="dm-scene-heading"><label>Escena actual<select id="scene"></select></label><span id="mapWeatherStatus" class="dm-chip dm-info">Ambiente de escena</span></div><nav class="map-toolbar" aria-label="Herramientas del mapa">
+      <section id="mapWindow" class="card span object-editor"><h2>Escena, cámara y mapa</h2><div class="map-console-controls"><div class="dm-scene-heading"><label>Escena actual<select id="scene"></select></label></div><nav class="map-toolbar" aria-label="Herramientas del mapa">
           <button id="mapBoardToggle" type="button" aria-pressed="true">⌖ Mapa</button>
-          <button id="mapObjectsToggle" type="button" aria-controls="mapObjectsPanel" aria-expanded="false">▣ Objetos <small id="mapObjectCount">0</small></button>
+          <button id="mapObjectsToggle" type="button" aria-pressed="false" title="Resaltar los objetos del mapa y abrir sus acciones">◇ Resaltar objetos <small id="mapObjectCount">0</small></button>
           <button id="mapCameraToggle" type="button" aria-controls="mapCameraPanel" aria-expanded="false">◉ Cámara</button>
-          <button id="openWeather" type="button" aria-controls="sideControls" class="map-weather-button">☀ Ambiente</button>
           <button id="undoObject" type="button" title="Deshacer última acción" disabled>↶ Deshacer</button>
         </nav><div id="mapCameraPanel" class="map-scene-controls map-tool-panel" hidden aria-label="Controles de cámara">
-          <label>Cámara<select id="camera"><option value="fixed">Fija oblicua</option><option value="semiFixed">Semi-fija</option><option value="follow">Seguimiento suave</option></select></label>
-          <label>Foco<select id="focus"><option value="">Centro del mapa</option></select></label>
-          <label class="grid-visibility"><input id="showGrid" type="checkbox" checked> Cuadrícula</label>
-          <details id="cameraOrbitControls" class="camera-orbit-controls" hidden aria-label="Orientación de cámara 3D"><summary>Giro e inclinación de cámara · Q / E</summary><div class="camera-orbit-content">
-            <button id="cameraTurnLeft" type="button" title="Girar 45° a la izquierda (Q)">↶ 45° <kbd>Q</kbd></button>
-            <span id="cameraOrientationLabel" aria-live="polite">Vista inicial</span>
-            <button id="cameraReset" type="button" title="Restablecer la vista inicial">Vista inicial</button>
-            <button id="cameraTurnRight" type="button" title="Girar 45° a la derecha (E)">↷ 45° <kbd>E</kbd></button>
+          <select id="camera" hidden aria-label="Modo de cámara"><option value="fixed">Fija oblicua</option><option value="semiFixed">Semi-fija</option><option value="follow">Seguimiento suave</option></select>
+          <select id="focus" hidden aria-label="Foco de cámara"><option value="">Centro del mapa</option></select>
+          <div class="dm-camera-main"><div class="dm-camera-group"><span class="dm-camera-caption">Movimiento</span><div class="dm-camera-choices" role="group" aria-label="Movimiento de cámara"><button type="button" data-camera-mode="fixed" title="La cámara permanece fija">▧ Fija</button><button type="button" data-camera-mode="semiFixed" title="La cámara se recoloca cuando la ficha cambia de zona">▣ Por zonas</button><button type="button" data-camera-mode="follow" title="Seguir suavemente a la ficha elegida">◎ Seguir</button></div></div><label class="grid-visibility"><input id="showGrid" type="checkbox" checked> Cuadrícula</label></div>
+          <div class="dm-camera-group dm-camera-focus"><span class="dm-camera-caption">Mirar a</span><div id="cameraFocusChoices" class="dm-camera-choices" role="group" aria-label="Foco de cámara"></div></div>
+          <section id="cameraOrbitControls" class="camera-orbit-controls" hidden aria-label="Orientación de cámara 3D"><div class="camera-orbit-content">
+            <div class="dm-camera-group"><span class="dm-camera-caption">Encuadre</span><div class="dm-camera-choices"><button id="cameraOverview" type="button" title="Encuadrar toda la escena">▧ Todo el mapa</button><button id="cameraDetail" type="button" title="Acercar la vista a la ficha seleccionada">◎ Ficha</button><button id="cameraReset" type="button" title="Restablecer la vista inicial">↺ Restablecer</button></div></div>
+            <div class="dm-camera-group"><span class="dm-camera-caption">Giro · Q / E</span><div class="dm-camera-choices dm-camera-orbit"><button id="cameraTurnLeft" type="button" aria-label="Girar 45 grados a la izquierda" title="Girar 45° a la izquierda (Q)">↶</button><span id="cameraOrientationLabel" aria-live="polite">Vista inicial</span><button id="cameraTurnRight" type="button" aria-label="Girar 45 grados a la derecha" title="Girar 45° a la derecha (E)">↷</button></div></div>
             <div class="camera-tilt-control">
               <label for="cameraTilt">Ángulo vertical <output id="cameraTiltValue" for="cameraTilt">45°</output></label>
               <input id="cameraTilt" type="range" min="25" max="50" step="1" value="25" aria-label="Ángulo vertical de cámara, de 25 a 50 grados">
               <small>Vista 2.5D · 25°–50°</small>
             </div>
             <label class="camera-share"><input id="shareCameraOrientation" type="checkbox" checked> Compartir giro con la mesa</label>
-          </div></details>
-      </div><div id="mapObjectsPanel" class="map-editor-tools map-tool-panel" hidden><div class="map-object-picker"><label>Objeto de escena<select id="mapObjectPicker"><option value="">Selecciona un objeto…</option></select></label><button id="campInteractionToggle" class="camp-interaction-toggle" type="button" aria-pressed="false" hidden>◎ Resaltar interactuables</button></div><p id="objectStatus" class="note">Haz clic en una ficha para moverla con WASD, o selecciona un objeto.</p><div id="objects"></div><div id="draftActions" class="button-row" hidden><button id="rotateObject">Girar</button><button id="applyObject" class="primary">Aplicar</button><button id="cancelObject">Cancelar</button></div></div></div><div id="dmMap" aria-label="Mapa privado de trabajo"></div></section>
+          </div></section>
+      </div><div id="mapObjectsPanel" class="map-editor-tools map-tool-panel" hidden><button id="campInteractionToggle" class="camp-interaction-toggle" type="button" aria-pressed="false" hidden>◎ Resaltar interactuables</button><p id="objectStatus" class="note">Pulsa un objeto en el mapa para ver sus acciones.</p><div id="objects" hidden></div><div id="draftActions" class="button-row" hidden><button id="rotateObject">Girar</button><button id="applyObject" class="primary">Aplicar</button><button id="cancelObject">Cancelar</button></div></div></div><div id="dmMap" aria-label="Mapa privado de trabajo"></div></section>
       <section id="campRestCard" class="card span camp-rest-card" hidden><h2>Descanso de campamento</h2><p id="campSafety" class="note"></p><div id="campRestStatus" class="camp-rest-status" aria-live="polite"></div><div id="campRestActions" class="button-row"></div><label id="campInterruptLabel" class="camp-interrupt" hidden>Nota de interrupción<input id="campInterruptNote" maxlength="240" placeholder="Describe brevemente qué interrumpe el descanso"></label><div id="campPoints" class="camp-points"></div><div id="campRestLog" class="camp-rest-log"></div></section>
       <section id="jugadores" class="card span"><h2>Jugadores</h2><div id="players"></div></section>
       <section id="pnj-de-escena" class="card"><h2>PNJ de escena</h2><div id="npcs"></div></section>
@@ -121,22 +121,24 @@
     <nav class="dm-dock" aria-label="Accesos a las ventanas de la mesa"><button type="button" data-open-window="mapWindow">⌖ Mapa</button><button type="button" data-open-window="explorationCard">◎ Escena</button><button type="button" data-open-window="combatCard">⚔ Combate</button><button type="button" data-open-window="interacciones">◇ Solicitudes <small id="dockRequests">0</small></button><button type="button" data-open-window="jugadores">♙ Jugadores</button><button type="button" data-open-window="pnj-de-escena">♟ PNJ</button><button type="button" data-open-window="partida-y-copias">▣ Guardado</button></nav>
   </main>
   <dialog id="campUpdatesDialog" class="release-notes-dialog" aria-labelledby="campUpdatesTitle">
-    <header class="release-notes-heading"><div><p class="eyebrow">MÓDULO DE CAMPAMENTOS</p><h2 id="campUpdatesTitle">Novedades</h2></div><span class="release-notes-version">V1.4.3</span></header>
-    <p class="release-notes-intro">Los cinco escenarios de descanso ya están disponibles desde la mesa del DM.</p>
+    <header class="release-notes-heading"><div><p class="eyebrow">MÓDULO DE CAMPAMENTOS</p><h2 id="campUpdatesTitle">Novedades</h2></div><span class="release-notes-version">V1.4.6</span></header>
+    <p class="release-notes-intro">Fuego, clima y sombras más coherentes en los cinco lugares de descanso.</p>
     <div class="release-notes-list">
-      <article><span aria-hidden="true">⌂</span><div><h3>A1 canónica del Retiro del Dragón</h3><p>Seis celdas de planta desigual, plaza alargada, estatua de Astalagan, jardines y hoguera, sin cargar el resto del monasterio.</p></div></article>
-      <article><span aria-hidden="true">✦</span><div><h3>Cinco lugares para explorar</h3><p>Bosque, playa del pecio, acantilados y refugio costero, además de A1, con movimiento y límites propios.</p></div></article>
+      <article><span aria-hidden="true">⌂</span><div><h3>Luces y sombras</h3><p>Antorchas, velas y hogueras apagadas de día. Sombras del sol, la luna y la fuente cálida más próxima sobre muebles y terreno, también en móvil.</p></div></article>
+      <article><span aria-hidden="true">✦</span><div><h3>Bosque sin obstáculos visuales</h3><p>Los árboles se retiran completos al ocultar personajes. El arroyo pasa entre la arboleda, lejos de las tiendas, con corriente animada y extremos fuera del encuadre.</p></div></article>
       <article><span aria-hidden="true">◎</span><div><h3>Interacciones más claras</h3><p>Los jugadores usan los objetos desde su vista. El DM puede activar las marcas del mapa y pulsar una para consultar sus acciones.</p></div></article>
-      <article><span aria-hidden="true">☾</span><div><h3>Descanso dirigido por el DM</h3><p>Avanza por sus fases, registra interrupciones y decide si se completa. El VTT no tira dados ni aplica beneficios automáticamente.</p></div></article>
-      <article><span aria-hidden="true">⌂</span><div><h3>Celdas excavadas y ocultas</h3><p>La montaña cubre el interior de las seis celdas. Al entrar desaparecen únicamente el techo rocoso y la fachada de la habitación ocupada.</p></div></article>
-      <article><span aria-hidden="true">≈</span><div><h3>Nuevo acabado visual de A1</h3><p>Losas grandes, piedra partida y adoquines variados; estatua del dragón, vegetación, hoguera equipada, luces, humo, viento y oleaje que rompe contra el acantilado.</p></div></article>
+      <article><span aria-hidden="true">☾</span><div><h3>Fuego sensible a la lluvia</h3><p>Brasas y humo en todas las hogueras. La lluvia débil aumenta el humo; la media exige avivar con leña y la fuerte apaga los fuegos expuestos. El jugador conserva la acción Avivar fuego.</p></div></article>
+      <article><span aria-hidden="true">⌂</span><div><h3>Tiendas cómodas y legibles</h3><p>Entradas orientadas hacia el fuego. Al entrar también desaparecen los postes y el travesaño, dejando visibles muebles y personajes.</p></div></article>
+      <article><span aria-hidden="true">≈</span><div><h3>Nieve que se queda en el suelo</h3><p>La nieve se acumula en terreno, vegetación, rocas y tejados. Los interiores quedan protegidos. La lluvia oscurece las superficies expuestas y derrite la nieve gradualmente.</p></div></article>
+      <article><span aria-hidden="true">⌂</span><div><h3>Equipo para habitar las tiendas</h3><p>Costuras, remiendos, mantas, cestas, cuerdas, frascos y baúles con herrajes. Los útiles de Mike, Mia y Trinity conservan sus acciones y animaciones.</p></div></article>
     </div>
     <p class="release-notes-scope">Estos campamentos son escenas independientes. El mapa principal del Retiro no forma parte de esta actualización.</p>
     <form method="dialog" class="release-notes-footer"><button class="primary" type="submit">Entrar en la mesa</button></form>
   </dialog>
+  <dialog id="objectInfoDialog" class="combat-sheet-dialog" aria-labelledby="objectInfoName"><form method="dialog"><button class="close">Volver al mapa</button></form><p class="eyebrow">OBJETO DE ESCENA</p><h2 id="objectInfoName"></h2><div id="objectInfoStates"></div></dialog>
   <dialog id="combatExitDialog" class="combat-sheet-dialog"><form method="dialog"><button class="close">Volver</button></form><p class="eyebrow">DECISIÓN DEL DM</p><h2 id="combatExitTitle">Finalizar combate</h2><p id="combatExitNote"></p><button id="confirmCombatExit" class="primary" type="button">Confirmar</button></dialog>
   <dialog id="combatSheetDialog" class="combat-sheet-dialog"><button id="closeCombatSheet" class="close">Cerrar</button><p id="combatSheetKicker" class="eyebrow">HOJA DE COMBATE</p><h2 id="combatSheetName">—</h2><p id="combatSheetSummary" class="muted"></p><div id="combatSheetStats" class="sheet-stats"></div><section id="combatSheetBody"></section></dialog>
-  <dialog id="campPointDialog" class="combat-sheet-dialog camp-point-dialog"><form method="dialog"><button class="close" aria-label="Cerrar detalle">×</button></form><p id="campPointKind" class="eyebrow">PUNTO INTERACTIVO</p><h2 id="campPointTitle">—</h2><p id="campPointDescription" class="muted"></p><p id="campPointOwner" class="camp-point-owner" hidden></p><section><h3>Acciones disponibles para jugadores</h3><ul id="campPointActions"></ul></section><section id="campPointHistorySection" hidden><h3>Actividad reciente</h3><ul id="campPointHistory"></ul></section></dialog>
+  <dialog id="campPointDialog" aria-labelledby="campPointTitle" aria-describedby="campPointDescription" class="combat-sheet-dialog camp-point-dialog"><form method="dialog"><button class="close" aria-label="Cerrar detalle">×</button></form><p id="campPointKind" class="eyebrow">PUNTO INTERACTIVO</p><h2 id="campPointTitle">—</h2><p id="campPointDescription" class="muted"></p><p id="campPointOwner" class="camp-point-owner" hidden></p><section><h3>Acciones disponibles para jugadores</h3><p id="campPointActorHint" class="muted"></p><select id="campPointActor" aria-label="Personaje que usa el objeto"></select><ul id="campPointActions"></ul></section><section id="campPointHistorySection" hidden><h3>Actividad reciente</h3><ul id="campPointHistory"></ul></section></dialog>
   <div id="toast" class="toast"></div><script type="module" src="/apps/web/dm.ts"></script>
 </body>
 </html>

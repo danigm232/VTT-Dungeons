@@ -206,7 +206,7 @@ body:not(.combat-active) #actionToggle[aria-expanded="true"]{display:grid!import
 .radial-navigation{position:fixed;z-index:18;left:50%;top:max(118px,16vh);display:flex;align-items:center;gap:.7rem;max-width:calc(100vw - 24px);padding:.5rem .7rem;border:1px solid #ac8c50;border-radius:7px;background:#101d24f5;box-shadow:0 8px 26px #000a;transform:translateX(-50%);pointer-events:auto}
 .radial-navigation strong{color:#f3dfb2;font-family:Georgia,serif;font-size:.9rem}.radial-navigation button{min-height:36px;padding:.3rem .55rem;font-size:.75rem;border-color:#796342;background:#192c32}
 #actionToggle[aria-expanded="true"]{display:grid;visibility:hidden;pointer-events:none}
-.radial-action-label{display:block;overflow:visible!important;white-space:normal;word-break:normal;overflow-wrap:normal;max-height:none!important;min-width:90px;line-height:1.3;-webkit-line-clamp:unset}
+.radial-action-label{white-space:normal;word-break:normal;overflow-wrap:break-word;min-width:0}
 #sceneNotice{left:auto;right:12px;top:max(12px,env(safe-area-inset-top));bottom:auto;transform:none;max-width:min(420px,calc(100vw - 24px));pointer-events:none}
 .radial-navigation{display:block;width:46px;height:46px;padding:0;border:0;background:none;box-shadow:none}
 .radial-navigation strong{display:none}
@@ -239,3 +239,10 @@ body:not(.combat-active) #actionToggle[aria-expanded="true"]{display:grid!import
 }
 @media(max-width:720px){.combat-resources{bottom:68px;gap:3px;padding:3px}.turn-resource{min-width:0;padding:3px 5px}.turn-resource small{font-size:.58rem}.turn-resource b{font-size:.67rem}.combat-overview{min-height:34px;padding:.3rem;font-size:.6rem}.selected-action{bottom:136px;max-height:135px}.selected-action strong{font-size:.73rem}.selected-action small{font-size:.67rem}}
 @media(max-width:370px){.combat-resources{width:calc(100vw - 16px);justify-content:space-between}.turn-resource{padding:2px 4px}.combat-overview{flex-basis:100%;min-height:28px}}
+.camp-action-dialog { max-width: 32rem; }
+#campActionChoices { display: grid; gap: .6rem; margin-block: 1rem; }
+#campActionChoices button { text-align: left; padding: .9rem 1rem; }
+.player-camera-controls { flex-wrap: wrap; }
+.identity-camera-actions{grid-column:1/-1;display:flex;gap:.32rem;padding-top:.32rem;border-top:1px solid #4b6466}
+.identity-camera-actions[hidden]{display:none}
+.identity-camera-actions button{flex:1;min-width:0;min-height:34px;padding:.3rem .2rem;font-size:.72rem}

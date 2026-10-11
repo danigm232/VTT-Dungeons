@@ -32,6 +32,62 @@ const moveAcross = (state: GameState, characterId: string, from: { surfaceId: st
 };
 
 describe('Rosa de los Vientos · mapa único explorable', () => {
+  it('actualiza solo el timón montado de un guardado anterior y mantiene sus estados narrativos',()=>{
+    const state=new GameState(stormwreckBundle),old=state.captureDurable();old.wreckGridVersion=4;
+    const saved=old.scenes.find(s=>s.sceneId==='wreck-ship')!.objects.find(o=>o.id==='wheel')!;
+    saved.cell=shipCell(4,7);saved.rotation=0;old.progress['wreck.c9-chest-found']=true;
+    const loaded=new GameState(stormwreckBundle);loaded.restoreDurable(old);
+    expect(loaded.publicSnapshot(false,'wreck-ship').props.find(p=>p.id==='wheel')).toMatchObject({cell:shipCell(7,7),rotation:90,attachment:'attached'});
+    expect(loaded.progress['wreck.c9-chest-found']).toBe(true);
+    const detached=state.captureDurable();detached.wreckGridVersion=4;
+    const wheel=detached.scenes.find(s=>s.sceneId==='wreck-ship')!.objects.find(o=>o.id==='wheel')!;
+    if(wheel.kind!=='wheel')throw Error('wheel');wheel.attachment='detached';wheel.state='fallen';wheel.cell=shipCell(5,7);wheel.rotation=0;
+    const restored=new GameState(stormwreckBundle);restored.restoreDurable(detached);
+    expect(restored.publicSnapshot(false,'wreck-ship').props.find(p=>p.id==='wheel')).toMatchObject({cell:wheel.cell,state:'fallen',attachment:'detached'});
+  });
+  it('migra los camarotes de versión 3 una sola vez y conserva inventario, puertas y botín',()=>{
+    const source=new GameState(stormwreckBundle).captureDurable();source.wreckGridVersion=3;
+    const mike=source.characters.find(c=>c.id==='mike')!,mia=source.characters.find(c=>c.id==='mia')!;
+    Object.assign(mike,{sceneId:'wreck-ship',surfaceId:'main',cell:{col:23,row:11},inventory:['Cuerda de cáñamo','Paquete encerado']});
+    const miaBefore=structuredClone(mia);
+    for(const actor of source.npcs??[])if(actor.sceneId==='wreck-ship'&&actor.id.startsWith('wreck-c4-'))actor.cell.col+=6;
+    const objects=source.scenes.find(s=>s.sceneId==='wreck-ship')!.objects;
+    for(const object of objects){
+      if(object.kind==='door')object.cell.col=/^c[45]-/.test(object.id)?24:32;
+      else if(/^c[45]-/.test(object.id))object.cell.col+=6;
+      else if(/^c[67]-/.test(object.id))object.cell.col-=5;
+      else if(object.id==='c9-iron-chest')object.cell={col:21,row:10};
+    }
+    const door=objects.find(o=>o.id==='c5-door')!;if(door.kind==='door')door.state='open';
+    const chest=objects.find(o=>o.id==='c9-iron-chest')!;
+    if(chest.kind==='crate'&&chest.interaction?.kind==='chest'){
+      chest.interaction.open=true;chest.interaction.package='taken';chest.interaction.packageOwnerId='mike';
+    }
+    const restored=new GameState(stormwreckBundle);expect(()=>restored.restoreDurable(source)).not.toThrow();
+    expect(restored.characters.get('mike')).toMatchObject({surfaceId:'main',cell:{col:17,row:11},inventory:['Cuerda de cáñamo','Paquete encerado']});
+    expect(restored.characters.get('mia')!.cell).toEqual(miaBefore.cell);
+    const upgraded=restored.captureDurable(),upgradedObjects=upgraded.scenes.find(s=>s.sceneId==='wreck-ship')!.objects;
+    expect(upgraded.wreckGridVersion).toBe(5);
+    expect(upgradedObjects.find(o=>o.id==='c5-door')).toMatchObject({state:'open',cell:shipCell(12,10)});
+    expect(upgradedObjects.find(o=>o.id==='c9-iron-chest')).toMatchObject({interaction:{open:true,package:'taken',packageOwnerId:'mike'}});
+    const again=new GameState(stormwreckBundle);again.restoreDurable(upgraded);
+    expect(again.captureDurable().characters).toEqual(upgraded.characters);
+    expect(again.captureDurable().scenes.find(s=>s.sceneId==='wreck-ship')!.objects).toEqual(upgradedObjects);
+  });
+  it('recupera un guardado sobre una antigua litera estrecha sin perder la planta ni desplazar al resto',()=>{
+    const state=new GameState(stormwreckBundle),saved=state.captureDurable();
+    const mike=saved.characters.find(c=>c.id==='mike')!,mia=saved.characters.find(c=>c.id==='mia')!;
+    const bunk=wreckRuntimeScenes[0]!.props.find(p=>p.id==='c6-bunk-01')!;
+    const stranded={col:bunk.cell.col+1,row:bunk.cell.row};
+    mike.sceneId='wreck-ship';mike.surfaceId='main';mike.cell=stranded;
+    const miaBefore=structuredClone(mia);
+    const restored=new GameState(stormwreckBundle);restored.restoreDurable(saved);
+    const actor=restored.characters.get('mike')!;
+    expect(actor.sceneId).toBe('wreck-ship');expect(actor.surfaceId).toBe('main');
+    expect(actor.cell).not.toEqual(stranded);
+    expect(Math.abs(actor.cell.col-stranded.col)+Math.abs(actor.cell.row-stranded.row)).toBeLessThanOrEqual(2);
+    expect(restored.characters.get('mia')!.cell).toEqual(miaBefore.cell);
+  });
   it('publica un solo mapa del barco con todas las cubiertas como superficies del mismo terreno', () => {
     expect(wreckRuntimeScenes.map(scene => scene.id)).toEqual(['wreck-ship']);
     const ship = wreckRuntimeScenes[0]!, terrain = ship.terrain!;
@@ -233,6 +289,22 @@ describe('Rosa de los Vientos · mapa único explorable', () => {
     expect(mia).toMatchObject(miaAddress);
   });
 
+  it('reserva ambos extremos de una transición mientras el personaje cambia de cubierta', () => {
+    const state = new GameState(stormwreckBundle), terrain = wreckRuntimeScenes[0]!.terrain!;
+    state.claim('a'.repeat(32), 'socket-mike', 'mike');
+    state.claim('b'.repeat(32), 'socket-mia', 'mia');
+    state.focusScene('wreck-ship');
+    const link = terrain.transitions.find(item => item.from.surfaceId === 'main' && item.to.surfaceId === 'lower-deck')!;
+    const destinationNeighbor = surfaceNeighbors(terrain, link.to).find(item => item.surfaceId === link.to.surfaceId && cellKey(item.cell) !== cellKey(link.from.cell))!;
+    expect(destinationNeighbor).toBeDefined();
+    const mike = state.characters.get('mike')!, mia = state.characters.get('mia')!;
+    Object.assign(mike, { sceneId: 'wreck-ship', surfaceId: link.from.surfaceId, cell: { ...link.from.cell } });
+    Object.assign(mia, { sceneId: 'wreck-ship', surfaceId: link.to.surfaceId, cell: { ...destinationNeighbor.cell } });
+    expect(state.moveEntityOneSquare('mike', link.to.cell)).toBe('MOVED');
+    expect(mike.step).toMatchObject({ fromSurfaceId: link.from.surfaceId, toSurfaceId: link.to.surfaceId });
+    expect(state.moveEntityOneSquare('mia', link.to.cell)).toBe('OCCUPIED_CELL');
+  });
+
   it('llega caminando desde C1 hasta C8 por todos los peldaños físicos', () => {
     const state = new GameState(stormwreckBundle), mike = state.characters.get('mike')!;
     Object.assign(mike, { sceneId: 'wreck-ship', surfaceId: 'main', cell: shipCell(24, 6) });
@@ -312,12 +384,18 @@ describe('Rosa de los Vientos · mapa único explorable', () => {
     Object.assign(mike, { sceneId: 'wreck-ship', surfaceId: 'main', cell: approach.cell });
     expect(state.moveEntityOneSquare('mike', ladder.from.cell)).toBe('MOVED');
     finishStep(state);
+    expect(mike.surfaceId).toBe('main');
+    expect(mike.step).toMatchObject({fromSurfaceId:'main',toSurfaceId:'crow',movementKind:'climb',durationMs:10000});
+    expect(state.moveEntityOneSquare('mike', ladder.from.cell)).not.toBe('MOVED');
+    finishStep(state);
     expect(mike).toMatchObject({ sceneId: 'wreck-ship', surfaceId: 'crow', cell: ladder.to.cell });
 
     const crowNeighbors = surfaceNeighbors(terrain, ladder.to).filter(address => address.surfaceId === 'crow');
     const crowLanding = crowNeighbors[0]!;
     Object.assign(mike, { cell: crowLanding.cell });
     expect(state.moveEntityOneSquare('mike', ladder.to.cell)).toBe('MOVED');
+    finishStep(state);
+    expect(mike.step).toMatchObject({fromSurfaceId:'crow',toSurfaceId:'main',movementKind:'climb'});
     finishStep(state);
     expect(mike).toMatchObject({ sceneId: 'wreck-ship', surfaceId: 'main', cell: ladder.from.cell });
     const boarding = wreckPorts.find(port => port.id === 'P01')!;
@@ -331,22 +409,20 @@ describe('Rosa de los Vientos · mapa único explorable', () => {
     ]);
     expect(terrainView.lights.find(light => light.metadata.lightId === 'c9-depth-glimmer')?.range).toBe(1.8);
     expect(scene.meshes.some(mesh => mesh.metadata?.kind === 'mast-ladder')).toBe(true);
-    expect(scene.meshes.some(mesh => mesh.name.startsWith('ship-hull-sides'))).toBe(true);
+    expect(scene.meshes.some(mesh => mesh.metadata?.kind === 'ship-hull')).toBe(true);
     expect(scene.meshes.some(mesh => mesh.name.startsWith('ship-deck-grate-slat:'))).toBe(true);
     expect(scene.meshes.some(mesh => mesh.name.startsWith('ship-deck-rope-coil:'))).toBe(true);
-    expect(scene.meshes.filter(mesh => mesh.name.startsWith('c1-mast-iron-collar:'))).toHaveLength(3);
-    expect(scene.meshes.filter(mesh => mesh.name.startsWith('c1-mast-frayed-rope:'))).toHaveLength(2);
-    expect(scene.meshes.filter(mesh => mesh.name.startsWith('c1-mast-barnacle:'))).toHaveLength(8);
-    expect(scene.meshes.filter(mesh => mesh.metadata?.kind === 'c1-mast-barnacle' || mesh.metadata?.kind === 'c1-mast-frayed-rope')
-      .every(mesh => !mesh.isPickable && mesh.metadata.deckSurfaceId === 'main')).toBe(true);
+    expect(scene.meshes.filter(mesh => mesh.metadata?.kind === 'main-mast')).toHaveLength(1);
+    expect(scene.meshes.some(mesh => mesh.metadata?.kind === 'cofa-bracket')).toBe(true);
+    expect(scene.meshes.some(mesh => mesh.metadata?.kind === 'fractured-rib')).toBe(true);
     expect(scene.meshes.filter(mesh => mesh.metadata?.kind === 'ship-deck-grate' || mesh.metadata?.kind === 'ship-deck-rope-coil')
       .every(mesh => !mesh.isPickable)).toBe(true);
     expect(scene.meshes.filter(mesh => mesh.name.startsWith('terrain-grid:')).length).toBeGreaterThan(1);
-    const backdrop = scene.meshes.filter(mesh => ['seabed-blockout', 'distant-wreck-silhouette', 'dragon-bone-silhouette', 'reef-rock-silhouette'].includes(String(mesh.metadata?.kind)));
-    expect(backdrop.some(mesh => mesh.metadata?.kind === 'distant-wreck-silhouette')).toBe(true);
-    expect(backdrop.some(mesh => mesh.metadata?.kind === 'dragon-bone-silhouette')).toBe(true);
+    const backdrop = scene.meshes.filter(mesh => ['continuous-ocean', 'distant-reef', 'dragon-bone-obstacle', 'reef-rock-obstacle'].includes(String(mesh.metadata?.kind)));
+    expect(backdrop.filter(mesh => mesh.metadata?.kind === 'continuous-ocean')).toHaveLength(1);
+    expect(backdrop.some(mesh => mesh.metadata?.kind === 'dragon-bone-obstacle')).toBe(true);
     expect(backdrop.every(mesh => !mesh.isPickable)).toBe(true);
-    expect(scene.meshes.find(mesh => mesh.name === 'wreck-silhouette:hull:west')?.isPickable).toBe(false);
+    expect(scene.meshes.some(mesh => mesh.name === 'ship-water')).toBe(false);
     scene.dispose(); engine.dispose();
   });
 
@@ -377,7 +453,7 @@ describe('Rosa de los Vientos · mapa único explorable', () => {
     const ship = wreckRuntimeScenes[0]!, table = ship.props.find(prop => prop.id === 'c7-table-blockout')!;
     expect(ship.props.filter(prop => prop.label.includes('blockout'))).toHaveLength(0);
     expect(table.surfaceId).toBe('main');
-    expect(table.baseFootprint).toHaveLength(2);
+    expect(table.baseFootprint).toEqual([{col:0,row:0},{col:1,row:0},{col:2,row:0},{col:3,row:0}]);
     const terrain = ship.terrain!, approach = surfaceNeighbors(terrain, { surfaceId: 'main', cell: table.cell })
       .find(address => address.surfaceId === 'main' && address.cell.col < table.cell.col)!;
     const state = new GameState(stormwreckBundle), mike = state.characters.get('mike')!;
@@ -389,7 +465,7 @@ describe('Rosa de los Vientos · mapa único explorable', () => {
     const ship = wreckRuntimeScenes[0]!, terrain = ship.terrain!;
     const breach = terrain.hullOpenings?.find(opening => opening.id === 'c9-stern-breach')!;
     const entry = wreckPorts.find(port => port.id === 'P16')!;
-    expect(breach).toMatchObject({ surfaceId: 'c1-hull', edge: 'west', bottom: -5.4, top: -3.2 });
+    expect(breach).toMatchObject({ surfaceId: 'c1-hull', edge: 'west', bottom: -5.4, top: -2.78 });
     expect(entry.to).toMatchObject({ surfaceId: 'hold-air', cell: breach.cell });
     expect(entry.from.cell).toEqual({ col: breach.cell.col - 1, row: breach.cell.row });
     expect(terrainTile(terrain, { surfaceId: 'hold-air', cell: breach.cell })).toBeTruthy();
@@ -502,7 +578,7 @@ describe('Rosa de los Vientos · mapa único explorable', () => {
     restored.restoreDurable(source);
     expect(restored.characters.get('mike')?.cell).toEqual(shipCell(20, 9));
     expect(restored.characters.get('mia')?.cell).toEqual(shipCell(21, 9));
-    expect(restored.captureDurable().wreckGridVersion).toBe(3);
+    expect(restored.captureDurable().wreckGridVersion).toBe(5);
   });
 });
 
@@ -625,6 +701,9 @@ describe('M4 · secuencia del Pecio', () => {
     expect(mike.cell).toEqual(rowboat.cell);
     expect(state.startStep(mike, 'west')).toBe(true);
     finishStep(state);
+    expect(mike.step).toMatchObject({movementKind:'climb',fromSurfaceId:'sea',toSurfaceId:'main'});
+    expect(mike.step!.durationMs).toBeGreaterThan(2000);
+    finishStep(state);
     expect(mike).toMatchObject({ sceneId: 'wreck-ship', surfaceId: 'main', cell: boarding.to.cell });
     expect(state.progress['wreck.boarded']).toBe(true);
     expect(state.publicSnapshot(true, 'wreck-ship', 'sea').entities.map(entity => entity.id)).toContain('wreck-rowboat');
@@ -632,6 +711,8 @@ describe('M4 · secuencia del Pecio', () => {
     expect(state.publicSnapshot(true, 'wreck-ship', 'lower-deck').entities.map(entity => entity.id)).not.toContain('wreck-rowboat');
 
     expect(state.traversePort('mike', 'P01', 'return')).toBe('MOVED');
+    expect(mike.step).toMatchObject({movementKind:'climb',fromSurfaceId:'main',toSurfaceId:'sea'});
+    finishStep(state);
     expect(state.startStep(mike, 'east')).toBe(true);
     finishStep(state);
     expect(mike.cell).toEqual(rowboat.cell);
@@ -639,6 +720,7 @@ describe('M4 · secuencia del Pecio', () => {
     expect(mike.sceneId).toBe('dragon-rest');
 
     const swimmer = new GameState(stormwreckBundle), swimmerActor = swimmer.characters.get('mike')!;
+    swimmerActor.sessionToken='swimmer-test-session';
     const arrival = (stormwreckBundle.ports ?? []).find(port => port.id === 'travel-pecio-boat')!;
     Object.assign(swimmerActor, { sceneId: arrival.from.mapId, surfaceId: arrival.from.surfaceId, cell: { ...arrival.from.cell } });
     expect(swimmer.traversePort('mike', arrival.id, 'forward', true)).toBe('MOVED');
@@ -658,9 +740,17 @@ describe('M4 · secuencia del Pecio', () => {
     }
     expect(swimmer.startStep(swimmerActor, 'east')).toBe(true);
     finishStep(swimmer);
+    expect(swimmerActor.step).toMatchObject({movementKind:'dive',fromSurfaceId:'sea',toSurfaceId:'hold-air'});
+    expect(swimmerActor.surfaceId).toBe('sea');
+    expect(swimmerActor.step!.durationMs).toBeGreaterThanOrEqual(1800);
+    expect(swimmer.publicSnapshot(false,'wreck-ship').entities.find(e=>e.id==='mike')?.waterMovement).toBe('dive');
+    expect(swimmer.startStep(swimmerActor,'east')).toBe(false);
+    finishStep(swimmer);
     expect(swimmerActor.surfaceId).toBe('hold-air');
     expect(swimmer.progress['wreck.boarded']).toBe(true);
     expect(swimmer.startStep(swimmerActor, 'west')).toBe(true);
+    expect(swimmerActor.step).toMatchObject({movementKind:'dive',fromSurfaceId:'hold-air',toSurfaceId:'sea'});
+    finishStep(swimmer);
     expect(swimmerActor).toMatchObject({ sceneId: 'wreck-ship', surfaceId: 'sea', cell: breachEntry.cell });
   });
 
@@ -724,11 +814,11 @@ describe('M4 · secuencia del Pecio', () => {
   it('registra que encontraron el cofre de C9 al acercarse, sin exigir que lo abran', () => {
     const state = new GameState(stormwreckBundle), mike = state.characters.get('mike')!;
     state.focusScene('wreck-ship');
-    Object.assign(mike, { sceneId: 'wreck-ship', surfaceId: 'hold-air', cell: shipCell(13, 4) });
+    Object.assign(mike, { sceneId: 'wreck-ship', surfaceId: 'hold-air', cell: shipCell(7, 4) });
     expect(state.progress['wreck.c9-chest-found']).toBeUndefined();
-    expect(state.moveEntityOneSquare('mike', shipCell(14, 4))).toBe('MOVED');
+    expect(state.moveEntityOneSquare('mike', shipCell(8, 4))).toBe('MOVED');
     finishStep(state);
-    expect(mike).toMatchObject({ surfaceId: 'hold-air', cell: shipCell(14, 4) });
+    expect(mike).toMatchObject({ surfaceId: 'hold-air', cell: shipCell(8, 4) });
     expect(state.progress['wreck.c9-chest-found']).toBe(true);
     expect(state.progress['wreck.harpy-return-pending']).toBeUndefined();
   });

@@ -49,6 +49,19 @@ describe('painted characters inside the 3D scenery', () => {
     ready=true;billboards.sync('player',new Vector3(3,0,2),camera,{...frame,url:'/next.png'},null,true,false);
     expect(material.diffuseTexture).toBe(images.get('/next.png'));billboards.dispose();scene.dispose();engine.dispose();
   });
+  it('pivots camp gestures around the feet rather than sliding through the floor', () => {
+    const engine = new NullEngine(), scene = new Scene(engine), ground = new Vector3(3, .2, 4);
+    const camera = new ArcRotateCamera('camera', .8, .9, 40, ground, scene);
+    camera.getViewMatrix(true);
+    const billboards = new WorldBillboards(scene, () => new Texture(null, scene));
+    for (const lean of [-.11, .065, .11]) {
+      billboards.sync('player', ground, camera, { ...frame, lean }, null, true, false);
+      const body = scene.getMeshByName('actor:player:body')!;
+      const feet = Vector3.TransformCoordinates(new Vector3(frame.anchorX - .5, .5 - frame.anchorY, 0), body.computeWorldMatrix(true));
+      expect(Vector3.Distance(feet, ground)).toBeLessThan(1e-5);
+    }
+    billboards.dispose(); scene.dispose(); engine.dispose();
+  });
   it('uses shared textures, selects the actual projected actor and releases scene resources', () => {
     const engine = new NullEngine(), scene = new Scene(engine), ground = new Vector3(2, 0, -3);
     const camera = new ArcRotateCamera('camera', -.8, .8, 80, ground, scene);

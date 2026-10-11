@@ -6,6 +6,7 @@ const d8ActorCell = (sceneId: string, actorId: string) => oneShotCampaignDefinit
 const mirrorCell = oneShotCampaignDefinition.scenes.find(scene => scene.id === 'mirror')?.props.find(prop => prop.id === 'true-love-mirror')?.cell
   ?? d8NearestWalkableCell('mirror', -9.2, -2.5);
 const mirrorNearbyCells = d8AdjacentWalkableCells('mirror', mirrorCell, 4);
+const mirrorPlatformCell = d8NearestWalkableCell('mirror', -9.2, -2.5);
 const templeAnterosCell = d8ActorCell('temple', 'anteros-temple') ?? d8NearestWalkableCell('temple', 0, 0);
 const dinnerAnterosCell = d8ActorCell('dinner', 'anteros-dinner') ?? d8NearestWalkableCell('dinner', 0, 0);
 
@@ -95,7 +96,7 @@ export const oneShotBundle: CampaignServerBundle = {
     }
   },
   encounter: { sceneId: 'mirror', mirrorPlayer: true, creature: { id: 'reflection', label: 'Reflejo de hielo', tokenId: 'reflection',
-    color: '#7fc8e8', cell: mirrorNearbyCells[0] ?? mirrorCell, sheet: { maxHp: 7, armorClass: 14, speedMeters: 7.5, traits: ['Réplica helada: adopta las estadísticas y ataques de quien afronta el espejo, con el 75 % de sus PG.'], actions: ['Imita exactamente la acción de quien afronta el espejo; el DM resuelve los dados físicos.'], combat: { armorClass: 14, speedMeters: 7.5, initiativeBonus: 0, attacks: [] } } },
+    color: '#7fc8e8', cell: mirrorPlatformCell, sheet: { maxHp: 7, armorClass: 14, speedMeters: 7.5, traits: ['Réplica helada: adopta las estadísticas y ataques de quien afronta el espejo, con el 75 % de sus PG.'], actions: ['Imita exactamente la acción de quien afronta el espejo; el DM resuelve los dados físicos.'], combat: { armorClass: 14, speedMeters: 7.5, initiativeBonus: 0, attacks: [] } } },
     note: 'El DM elige quién afronta el espejo. El reflejo copia su forma base, actúa inmediatamente después e imita su acción; PG máximos = 75 % de los máximos del original, redondeados hacia abajo. No comparte heridas ni estados posteriores.' },
   mirrorInteraction: { sceneId: 'mirror', targetId: 'true-love-mirror', cells: mirrorNearbyCells, nearbyLabel: 'Mirar en el espejo', notice: 'El espejo se empaña de escarcha y tu reflejo cobra vida.', effectFrames: ['/art/tokens/Espejo/espejo_amor_verdadero_activacion_01.png', '/art/tokens/Espejo/espejo_amor_verdadero_activacion_02.png', '/art/tokens/Espejo/espejo_transformacion_01.png', '/art/tokens/Espejo/espejo_transformacion_02.png', '/art/tokens/Espejo/espejo_transformacion_03.png', '/art/tokens/Espejo/espejo_fx_copia_final.png'], durationMs: 1_600 },
   stageActorInteractions: [

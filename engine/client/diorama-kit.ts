@@ -9,6 +9,39 @@ import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight.js';
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight.js';
 import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture.js';
 import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData.js';
+import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder.js';
+
+/** Rounded, weathered crags with local variation and meter-based texture scale. */
+export function organicStone(scene: Scene, name: string, width: number, height: number, depth: number, seed: number) {
+  const mesh = MeshBuilder.CreateIcoSphere(name, { radius: 1, subdivisions: 3, flat: false }, scene);
+  const positions = mesh.getVerticesData('position')!, indices = mesh.getIndices()!;
+  for (let i = 0; i < positions.length; i += 3) {
+    const x=positions[i]!, y=positions[i+1]!, z=positions[i+2]!;
+    const swell=1+.085*Math.sin(x*5+y*3+seed)+.06*Math.cos(z*7-x*4+seed*.71);
+    positions[i]=x*width*.5*swell+y*width*.035;
+    positions[i+1]=y*height*.5*swell+.035*height*Math.sin(z*6+seed);
+    positions[i+2]=z*depth*.5*swell+y*depth*.025;
+  }
+  mesh.setVerticesData('position',positions);
+  const normals:number[]=[];VertexData.ComputeNormals(positions,indices,normals);
+  // Icospheres duplicate vertices at UV seams. Recomputing their normals after
+  // deformation otherwise makes every triangle look like a separate flat face.
+  const shared=new Map<string,Vector3>();
+  const vertexKey=(i:number)=>[positions[i]!,positions[i+1]!,positions[i+2]!].map(v=>Math.round(v*100000)).join(',');
+  for(let i=0;i<positions.length;i+=3){const key=vertexKey(i),sum=shared.get(key)??Vector3.Zero();sum.addInPlace(Vector3.FromArray(normals,i));shared.set(key,sum);}
+  for(let i=0;i<positions.length;i+=3){const n=shared.get(vertexKey(i))!.normalizeToNew();normals[i]=n.x;normals[i+1]=n.y;normals[i+2]=n.z;}
+  mesh.setVerticesData('normal',normals);
+  // Choose one projection for each triangle, avoiding stretched UVs when a
+  // curved face's vertex normals cross different dominant axes.
+  const uvs=new Array<number>(positions.length/3*2).fill(0);
+  for(let i=0;i<indices.length;i+=3){
+    const a=Vector3.FromArray(positions,indices[i]!*3),b=Vector3.FromArray(positions,indices[i+1]!*3),c=Vector3.FromArray(positions,indices[i+2]!*3),n=Vector3.Cross(b.subtract(a),c.subtract(a));
+    const horizontal=Math.abs(n.y)>Math.abs(n.x)&&Math.abs(n.y)>Math.abs(n.z),side=Math.abs(n.x)>Math.abs(n.z);
+    for(const index of [indices[i]!,indices[i+1]!,indices[i+2]!]){const p=Vector3.FromArray(positions,index*3);uvs[index*2]=(horizontal?p.x:side?p.z:p.x)/2.8;uvs[index*2+1]=(horizontal?p.z:p.y)/2.8;}
+  }
+  mesh.setVerticesData('uv',uvs);
+  return mesh;
+}
 
 /** Fractured, bevelled strata with face-local UVs: no axis switching inside a triangle. */
 export function fracturedStone(scene:Scene,name:string,width:number,height:number,depth:number,seed:number) {
@@ -84,8 +117,10 @@ export function worldSurfaceUV(mesh: Mesh, meters: number) {
 
 export function createRestLighting(scene:Scene,id:string) {
   const ambient=new HemisphericLight(`camp-ambient:${id}`,new Vector3(.15,1,.2),scene);
+  ambient.renderPriority=100;
   ambient.groundColor=Color3.FromHexString('#363b40');
   const sun=new DirectionalLight(`camp-key:${id}`,new Vector3(-.45,-1,-.25),scene);
+  sun.renderPriority=90;
   sun.position.set(44,35,22);
   // Frame the playable A1 terrace rather than the much wider coastal background.
   sun.shadowFrustumSize=66;

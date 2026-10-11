@@ -4,12 +4,14 @@ import { OBJECT_MODEL_VERSION, PROTOCOL_VERSION, explorationBasicActionCatalogue
 import type { BasicCombatAction, CharacterPublic, CombatAction, CommandResult, ExplorationAction, ExplorationBasicAction, Facing, PlayerPrivate, WorldSnapshot } from '../../engine/shared/protocol';
 import type { Cell } from '../../engine/shared/campaign';
 import { supportsCameraOrientation } from '../../engine/shared/camera';
+import { activitiesForCampPoint, type CampActivityId } from '../../engine/shared/camp-activities';
 import { commandId } from '../../engine/client/uuid';
 import { writeUiPreferences } from '../../engine/client/ui-preferences';
 import { WorldRenderer } from './world';
 import { SceneLoadRecovery } from '../../engine/client/scene-load-recovery';
 import { conditionHelp } from '../../engine/client/condition-presentation';
-import { campaignShipLootIconIndex } from '../../engine/client/ship-loot-art';
+import { ConditionPanel } from './ui/conditions';
+import { InventoryPanel } from './ui/inventory';
 import { radialActionGlyph } from '../../engine/client/radial-action-icons';
 import { jumpSummary } from '../../engine/shared/jumping';
 import { keyboardMovementAxes } from '../../engine/client/movement-input';
@@ -123,7 +125,12 @@ function setupCompactIdentity() {
   const menu = document.createElement('nav');
   menu.id = 'identityMenu'; menu.className = 'identity-menu'; menu.hidden = true;
   menu.setAttribute('aria-label', 'Accesos del personaje');
-  menu.append(sheet, inventory, settings);
+  const cameraActions = document.createElement('div');
+  cameraActions.id = 'identityCameraActions'; cameraActions.className = 'identity-camera-actions';
+  // The compact HUD intentionally hides the old orbit toolbar. Keep useful
+  // framing commands in its visible character menu, not in that hidden bar.
+  cameraActions.append($('playerCameraDetail'), $('playerCameraOverview'));
+  menu.append(sheet, inventory, settings, cameraActions);
   identity.replaceChildren(nameButton, hpButton, menu);
   $('combatHud').remove();
 }
@@ -402,9 +409,20 @@ const socketAuth = () => ({ role: 'player', sessionToken, protocolVersion: PROTO
 const socket = io({ autoConnect: false, auth: socketAuth() });
 const world = new WorldRenderer($('world'), campaign, { showStairMarker: false, showGrid: playerDisplaySettings.showGrid, showReachable: playerDisplaySettings.showMovementHints, persistCameraPreferences: true, cameraPreferenceNamespace: 'player', followSharedCameraOrientation: true });
 let privateState: PlayerPrivate | null = null;
+const playerConditionsPanel = new ConditionPanel();
+setInterval(() => { if (($('characterSheet') as HTMLDialogElement).open) playerConditionsPanel.updateTimers(); }, 1000);
 let lastSnapshot: WorldSnapshot | null = null;
 let readyEpoch = -1;
 let runtimeEpoch: string | null = null;
+const backpack = new InventoryPanel($('inventory') as HTMLDialogElement, campaign.campaignId, (request, retryId) => {
+  if (!socket.connected || !runtimeEpoch || !privateState?.characterId) return null;
+  const id = retryId ?? commandId();
+  socket.emit('items' in request ? 'player:inventory' : 'player:inventory-use', { runtimeEpoch, commandId: id, ...request });
+  return id;
+}, () => {
+  actionsMenuOpen = true; renderedTargetMenuKey = '';
+  renderActionToggle(); renderCombatControls(); renderTargetMenu();
+});
 let seq = 0;
 let stick = { x: 0, up: 0 };
 const keys = new Set<string>();
@@ -529,7 +547,7 @@ socket.on('auth:error', (error: { code?: string }) => {
 });
 socket.on('runtime:reset', (event: { runtimeEpoch: string; reason?: string }) => {
   sceneLoadRecovery.reset();
-  stop(); runtimeEpoch = event.runtimeEpoch; readyEpoch = -1; seq = 0; lastSnapshot = null; privateState = null;
+  stop(); runtimeEpoch = event.runtimeEpoch; readyEpoch = -1; seq = 0; lastSnapshot = null; privateState = null; backpack.reset();
   resumedRuntimeEpoch = null; selectedTargetId = null; renderedTargetMenuKey = ''; pendingCombatNotices.clear(); pendingCombatCommands.clear(); armedActionId = null; armedBasicAction = null; actionsMenuOpen = false; actionRadialPage = 0; combatWasActive = false; combatBarMode = null; armedExplorationActionId = null; armedExplorationAttackId = null; armedExplorationBasicActionId = null; openCombatCategory = null; openExplorationCategory = null;
   $('actionRadial').hidden = true; $('actionRadial').replaceChildren(); $('interact').hidden = true;
   world.resetConnection(); world.setLocalPlayer(null); $('hud').hidden = true; $('join').hidden = false;
@@ -605,6 +623,7 @@ socket.on('player:private', (next: PlayerPrivate) => {
   privateState = next;
   if (!next.characterId) {
     stop();
+    backpack.reset();
     world.setLocalPlayer(null);
     world.setContextInteractionTarget(null);
     $('hud').hidden = true;
@@ -620,7 +639,7 @@ socket.on('player:private', (next: PlayerPrivate) => {
   world.setLocalPlayer(next.characterId);
   $('name').textContent = next.label ?? 'Aventurero';
   $('hp').textContent = `PG ${next.hp}/${next.maxHp}`;
-  renderInventory(next.inventory);
+  backpack.update(next);
   renderSheet(next);
   renderCombatControls();
   renderProximityButton();
@@ -638,6 +657,7 @@ socket.on('player:private', (next: PlayerPrivate) => {
 });
 socket.on('command:result', (result: CommandResult) => {
   if (result.runtimeEpoch !== runtimeEpoch) return;
+  if (backpack.complete(result)) return;
   const confirmation = result.commandId ? pendingCombatNotices.get(result.commandId) : undefined;
   if (result.commandId) { pendingCombatNotices.delete(result.commandId); pendingCombatCommands.delete(result.commandId); }
   if (result.ok) { renderCombatControls(); if (confirmation) toast(confirmation);
@@ -648,6 +668,8 @@ socket.on('command:result', (result: CommandResult) => {
     const message: Record<string, string> = {
       NOT_YOUR_ACTION: 'Solo puedes cancelar tu propia selección.', ACTION_ALREADY_RESOLVING: 'Ya se ha confirmado una tirada; termina la resolución. El DM puede deshacer un error.',
       TOO_FAR: 'Estás demasiado lejos.', OUT_OF_RANGE: 'El objetivo está fuera de alcance.', NOT_YOUR_TURN: 'No es tu turno.', MOVEMENT_SPENT: 'No te queda suficiente movimiento para hacerlo.',
+      CAMP_INTERACTION_OUT_OF_REACH: 'Acércate al objeto y detente antes de utilizarlo.', CAMP_INTERACTION_NOT_YOURS: 'Este equipo pertenece a otro personaje.',
+      CAMP_ACTIVITY_UNAVAILABLE: 'Esa actividad no está disponible para este objeto.', CANNOT_ACT: 'Tu personaje no puede actuar en su estado actual.',
       ROLL_PENDING: 'Termina la tirada pendiente antes de continuar.', PROMPT_STALE: 'Esta tirada ya no está vigente.',
       LINE_OF_EFFECT_BLOCKED: 'Una pared o puerta cerrada bloquea el ataque.', INVENTORY_DEPLETED: 'No queda munición o una daga disponible para lanzar.', RECHARGE_REQUIRED: 'Esta acción todavía necesita recargarse.',
       PROMPT_STAGE_MISMATCH: 'Esta respuesta pertenece a otro paso de la acción.', WRONG_ACTOR: 'Esta tirada corresponde a otro personaje.',
@@ -925,61 +947,6 @@ function renderCombatControls() {
   updateAttackRangePreview();
   renderCombatFrame();
   renderTargetMenu();
-}
-
-function renderInventory(items: string[]) {
-  const inventoryKey=JSON.stringify(items);if($('inventoryList').dataset.renderKey===inventoryKey)return;$('inventoryList').dataset.renderKey=inventoryKey;
-  $('items').replaceChildren(...items.map(item => { const row = document.createElement('li'); row.textContent = item; return row; }));
-  const list = $('inventoryList'); list.replaceChildren(...items.map((item, index) => {
-    const row = document.createElement('article'), label = document.createElement('div'), name = document.createElement('span'), use = document.createElement('button');
-    row.className = 'inventory-item'; label.className = 'inventory-item-label'; name.textContent = item;
-    const iconIndex = campaignShipLootIconIndex(campaign.campaignId, item);
-    if (iconIndex !== null) {
-      const icon = document.createElement('span'); icon.className = 'inventory-art-icon'; icon.setAttribute('aria-hidden', 'true');
-      icon.style.backgroundImage = "url('/art/ship/loot-atlas-m5.svg')";
-      icon.style.backgroundPosition = `${iconIndex % 4 * 100 / 3}% ${Math.floor(iconIndex / 4) * 100 / 4}%`;
-      label.append(icon);
-    }
-    label.append(name); row.append(label);
-    if (/\bantorcha\s+encendida\b/i.test(item)) {
-      use.textContent = 'Apagar'; use.title = 'Apagar la luz que llevas';
-      use.onclick = () => setInventoryTorchLit(index, false); row.append(use);
-    } else if (/\bantorchas?\b/i.test(item)) {
-      use.textContent = 'Encender'; use.title = 'Marcar una antorcha como encendida cuando tengas cómo hacerlo';
-      use.onclick = () => setInventoryTorchLit(index, true); row.append(use);
-    } else if (/\b(aceite|poción|pocion|ración|racion)\b/i.test(item)) {
-      use.textContent = 'Usar'; use.title = 'Consumir una unidad y actualizar la mochila';
-      use.onclick = () => consumeInventoryItem(index); row.append(use);
-    }
-    return row;
-  }));
-  const dialog = $('inventory') as HTMLDialogElement;
-  if (!dialog.open) ($('inventoryEditor') as HTMLTextAreaElement).value = items.join('\n');
-}
-
-function setInventoryTorchLit(index: number, lit: boolean) {
-  if (!privateState) return;
-  const next = [...privateState.inventory], item = next[index]; if (!item) return;
-  if (lit) {
-    const suffix = /^(.*?)\s*(?:×|x)\s*(\d+)\s*$/i.exec(item), prefix = /^(\d+)\s+(.+)$/.exec(item);
-    const quantity = suffix ? Number(suffix[2]) : prefix ? Number(prefix[1]) : 1;
-    if (quantity <= 1) next.splice(index, 1);
-    else next[index] = `${(suffix?.[1] ?? prefix?.[2] ?? item).trim()} ×${quantity - 1}`;
-    next.push('Antorcha encendida');
-  } else next[index] = 'Antorcha';
-  socket.emit('player:inventory', { runtimeEpoch, commandId: commandId(), items: next });
-  toast(lit ? 'Antorcha encendida; el DM controla su duración.' : 'Antorcha apagada.');
-}
-
-function consumeInventoryItem(index: number) {
-  if (!privateState) return;
-  const next = [...privateState.inventory], item = next[index]; if (!item) return;
-  const suffix = /^(.*?)\s*(?:×|x)\s*(\d+)\s*$/i.exec(item), prefix = /^(\d+)\s+(.+)$/.exec(item);
-  const quantity = suffix ? Number(suffix[2]) : prefix ? Number(prefix[1]) : 1;
-  if (quantity <= 1) next.splice(index, 1);
-  else next[index] = `${(suffix?.[1] ?? prefix?.[2] ?? item).trim()} ×${quantity - 1}`;
-  socket.emit('player:inventory', { runtimeEpoch, commandId: commandId(), items: next });
-  toast(`Usado: ${item}`);
 }
 
 function actionCanTarget(action: CombatAction, targetId: string | null) {
@@ -1464,7 +1431,9 @@ function renderActionRadial(sourceBox: HTMLElement) {
     button.disabled = source.disabled; button.setAttribute('aria-label', `${label}. Mantén pulsado para ver detalles.`); button.title = description;
     glyph.className = 'radial-action-glyph'; glyph.setAttribute('aria-hidden', 'true'); glyph.textContent = icon;
     caption.className = 'radial-action-label'; caption.textContent = shortLabel; caption.title = label;
-    caption.hidden = false;
+    // Never render a caption outside the safe viewport; the full text stays
+    // available through the button's accessible name and detail tooltip.
+    caption.hidden = !layout?.labelsVisible;
     caption.style.width = `${labelWidthFor(shortLabel)}px`;
     const tooltip = actionTooltip(description), tooltipHalfWidth = Math.min(140, width / 2 - 12);
     tooltip.style.position = 'fixed'; tooltip.style.left = `${Math.min(width - tooltipHalfWidth - 12, Math.max(tooltipHalfWidth + 12, point.x))}px`;
@@ -1702,7 +1671,7 @@ function contextualInteraction(): ContextualInteraction | null {
     if (!point) continue;
     const label = interaction.kind === 'fire' ? 'Interactuar con la hoguera' : interaction.actionLabel;
     const icon = ({ fire: '🔥', chest: '🧰', bed: '🛏️', tent: '⛺', seat: '🪑', guard: '🛡️', personal: '🎒' } as const)[interaction.kind];
-    makeCandidate(interaction.pointId, label, icon, point.cell, point.surfaceId, order, interaction.description, interaction.pointId);
+    makeCandidate(interaction.pointId, label, icon, point.kind === 'fire' ? point.objectCell ?? point.cell : point.cell, point.surfaceId, order, interaction.description, interaction.pointId);
   }
   for (const [index, interaction] of (state.availableInteractions ?? []).entries()) {
     const prop = snapshot.props.find(item => item.id === interaction.targetId);
@@ -1724,11 +1693,29 @@ function useContextualInteraction(context: ContextualInteraction) {
   let used = false;
   if (context.pointId) {
     if (!privateState.campInteractions.some(item => item.pointId === context.pointId)) return;
-    world.playTokenAnimation(privateState.characterId, 'interact');
-    socket.emit('player:camp-interact', { runtimeEpoch, commandId: commandId(), sceneEpoch: lastSnapshot.sceneEpoch, pointId: context.pointId });
+    const point = lastSnapshot.scene.camp?.interactionPoints.find(point => point.id === context.pointId);
+    if (!point) return;
+    const available = activitiesForCampPoint(point);
+    if (available.length === 1) sendCampActivity(point.id, available[0]!.id);
+    else {
+      closeActionPanel();
+      const dialog = $('campActionDialog') as HTMLDialogElement;
+      $('campActionTitle').textContent = point.label;
+      $('campActionDescription').textContent = point.description;
+      $('campActionChoices').replaceChildren(...available.map(activity => {
+        const button = document.createElement('button'); button.type = 'button'; button.textContent = activity.label; button.title = activity.guidance;
+        button.onclick = () => { sendCampActivity(point.id, activity.id); dialog.close(); };
+        return button;
+      }));
+      if (!dialog.open) dialog.showModal();
+    }
     used = true;
   } else used = interactWith(context.targetId);
   if (used) closeActionPanel();
+}
+function sendCampActivity(pointId: string, activityId: CampActivityId) {
+  if (!lastSnapshot || !privateState?.characterId || lastSnapshot.combat.active || !privateState.campInteractions.some(item => item.pointId === pointId)) return;
+  socket.emit('player:camp-interact', { runtimeEpoch, commandId: commandId(), sceneEpoch: lastSnapshot.sceneEpoch, pointId, activityId });
 }
 
 function targetAtCell(cell: { col: number; row: number }) {
@@ -1849,6 +1836,7 @@ function supportsCameraZoom(sceneId = lastSnapshot?.sceneId) {
 }
 function updatePlayerCameraControls(sceneId = lastSnapshot?.sceneId) {
   $('playerCameraControls').hidden = !supportsCameraOrbit(sceneId);
+  $('identityCameraActions').hidden = !supportsCameraOrbit(sceneId);
   $('cameraSettings').hidden = !supportsCameraOrbit(sceneId);
   const step = world.getCameraOrientationStep();
   $('playerCameraLabel').textContent = cameraOrientationLabels[step] ?? cameraOrientationLabels[0]!;
@@ -2083,6 +2071,8 @@ addEventListener('keydown', event => {
 $('playerCameraLeft').onclick = () => rotatePlayerCamera(-1);
 $('playerCameraRight').onclick = () => rotatePlayerCamera(1);
 $('playerCameraReset').onclick = resetPlayerCamera;
+$('playerCameraDetail').onclick = () => { closeIdentityMenu(); world.frameActorDetail(); };
+$('playerCameraOverview').onclick = () => { closeIdentityMenu(); world.frameSceneOverview(); };
 const openPlayerSettings = () => { stop(); syncPlayerSettingsDialog(); ($('playerSettings') as HTMLDialogElement).showModal(); };
 $('openHudLayoutEditor').onclick = startHudLayoutEdit;
 $('cancelHudLayout').onclick = () => finishHudLayoutEdit(false);
@@ -2206,20 +2196,7 @@ $('campInteractions').addEventListener('pointerdown', event => event.stopPropaga
 $('inventoryButton').onclick = () => {
   closeIdentityMenu();
   stop();
-  if (privateState) ($('inventoryEditor') as HTMLTextAreaElement).value = privateState.inventory.join('\n');
-  setInventoryEditing(false);
-  ($('inventory') as HTMLDialogElement).showModal();
-};
-$('closeInventory').onclick = () => ($('inventory') as HTMLDialogElement).close();
-$('editInventory').onclick = () => setInventoryEditing(true);
-$('cancelInventory').onclick = () => setInventoryEditing(false);
-$('inventoryEditor').oninput = () => { $('inventorySummary').textContent = 'Estás editando. Guarda para aplicar los cambios a la partida.'; };
-$('saveInventory').onclick = () => {
-  if (!privateState?.characterId) return;
-  const items = ($('inventoryEditor') as HTMLTextAreaElement).value.split(/\r?\n/).map(item => item.trim()).filter(Boolean);
-  if (items.some(item => item.length > 180) || items.length > 80) return toast('La mochila admite hasta 80 objetos de 180 caracteres.');
-  socket.emit('player:inventory', { runtimeEpoch, commandId: commandId(), items });
-  setInventoryEditing(false); toast('Guardando mochila…');
+  backpack.open();
 };
 $('sheetButton').onclick = () => { closeIdentityMenu(); stop(); setSheetEditing(false); ($('characterSheet') as HTMLDialogElement).showModal(); };
 $('closeSheet').onclick = () => ($('characterSheet') as HTMLDialogElement).close();
@@ -2229,13 +2206,6 @@ $('editSheet').onclick = () => setSheetEditing(true);
 $('cancelSheetEdit').onclick = () => setSheetEditing(false);
 $('saveSheet').onclick = () => saveSheet();
 
-function setInventoryEditing(editing: boolean) {
-  const editor = $('inventoryEditor') as HTMLTextAreaElement;
-  editor.hidden = !editing; $('inventoryList').hidden = editing;
-  $('editInventory').hidden = editing; $('saveInventory').hidden = !editing; $('cancelInventory').hidden = !editing;
-  $('inventorySummary').textContent = editing ? 'Una línea por objeto. Guardar es la única forma de modificar la mochila.' : 'Consulta el equipo o consume un objeto. La edición solo se abre al pulsar Editar.';
-  if (editing && privateState) editor.value = privateState.inventory.join('\n');
-}
 function sheetLines(id: string) { return ($(id) as HTMLTextAreaElement).value.split(/\r?\n/).map(value => value.trim()).filter(Boolean); }
 function detailsToText(details: NonNullable<PlayerPrivate['sheet']>['details']) { return (details ?? []).flatMap(section => [`# ${section.title}`, ...section.entries, '']).join('\n').trim(); }
 function textToDetails(value: string) {
@@ -2286,10 +2256,7 @@ function renderSheet(next: PlayerPrivate) {
   const field = (label: string, value: string) => { const box = document.createElement('div'), title = document.createElement('b'), detail = document.createElement('span'); if (label === 'Salto') box.className = 'sheet-stat-wide'; title.textContent = label; detail.textContent = value; box.append(title, detail); return box; };
   stats.append(field('PG', `${next.hp ?? '—'} / ${next.maxHp ?? '—'}`));
   document.getElementById('activeStates')?.remove(); document.getElementById('stateLegend')?.remove();
-  const states = next.conditions;
-  const icons: Record<string, string> = { envenenada: '🟢', apresada: '🟣', agarrada: '🔵', derribada: '🟠', asustada: '🟡', hechizada: '💛', paralizada: '🧊', inconsciente: '⚫', oculta: '⚪', invisible: '✨', restringida: '🟣' };
-  if (states.length) { const section = document.createElement('section'); section.id = 'activeStates'; const title = document.createElement('h3'); title.textContent = 'Estados activos'; section.append(title, ...states.map(state => { const item = document.createElement('p'), source = next.conditionSources.find(candidate => candidate.condition === state); const origin = source?.sourceLabel ?? source?.sourceAbility ?? source?.sourceId; const duration = source?.durationRounds !== undefined ? `\nDuración: ${source.durationRounds} rondas` : ''; item.textContent = `${icons[state] ?? '●'} ${state.toUpperCase()}${origin ? `\nOrigen: ${origin}` : ''}${duration}\n${conditionHelp(state, source, sheet?.features, next.hp)}`; return item; })); stats.after(section); }
-  const legend = document.createElement('details'); legend.id = 'stateLegend'; const summary = document.createElement('summary'); summary.textContent = 'Leyenda de estados'; const legendText = document.createElement('p'); legendText.textContent = '🟢 Envenenada · 🟣 Apresada · 🔵 Agarrada · 🟠 Derribada · 🟡 Asustada · ⚫ Inconsciente · ⚪ Oculta · ✨ Invisible'; legend.append(summary, legendText); (document.getElementById('activeStates') ?? stats).after(legend);
+  playerConditionsPanel.update(next, sheet?.features); playerConditionsPanel.root.hidden = !next.conditions.length; stats.after(playerConditionsPanel.root);
   document.getElementById('sheetDetails')?.replaceChildren();
   if (sheet) {
     stats.append(field('CA', String(sheet.armorClass)), field('Velocidad', `${sheet.speedMeters} m`));

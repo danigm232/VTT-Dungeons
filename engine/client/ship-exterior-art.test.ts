@@ -5,6 +5,7 @@ import { RawTexture } from '@babylonjs/core/Materials/Textures/rawTexture.js';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
 import { wreckRuntimeScenes } from '../../campaigns/stormwreck-isle/public/wreck-runtime.js';
 import { buildTerrain3D } from './terrain3d.js';
+import { WRECK_CABINS } from '../shared/wreck-structure.js';
 
 it('dresses C1–C3 while preserving playable surfaces, cabin materials and independent cutaways', () => {
   const engine = new NullEngine(), scene = new Scene(engine);
@@ -17,21 +18,25 @@ it('dresses C1–C3 while preserving playable surfaces, cabin materials and inde
     expect(JSON.stringify(terrain)).toBe(original);
     expect(view.camera.radius).toBeGreaterThan(Math.hypot(terrain.cols, terrain.rows) * terrain.tileMeters / 2);
     for (const surface of terrain.surfaces) for (const tile of surface.tiles) {
+      if(['sea','lower-water','hold-water'].includes(surface.id)||tile.kind==='stair'){
+        expect(view.tiles.has(`${surface.id}:${tile.cell.col},${tile.cell.row}`)).toBe(false);
+        continue; // Continuous sea and physical stairs replace raster planes.
+      }
       const mesh = view.tiles.get(`${surface.id}:${tile.cell.col},${tile.cell.row}`)!;
       expect(mesh.isPickable).toBe(!surface.visualOnly);
       expect(mesh.metadata.address).toEqual({ surfaceId: surface.id, cell: tile.cell });
     }
-    expect(view.tiles.get('main:26,15')!.material!.name).toBe('terrain-material:exterior-deck');
-    expect(view.tiles.get('main:19,10')!.material!.name).toBe('terrain-material:wood');
+    expect(view.tiles.get('main:26,15')!.material!.name).toBe('wreck-finish:terrain-material:exterior-deck:main');
+    expect(view.tiles.get('main:13,10')!.material!.name).toBe('wreck-finish:terrain-material:wood:main');
     const upper = terrain.surfaces.find(s => s.id === 'c2')!.tiles[0]!;
     const deck = view.tiles.get(`c2:${upper.cell.col},${upper.cell.row}`)!;
     expect((deck.material as StandardMaterial).diffuseTexture).toBe(texture);
     const uv = deck.getVerticesData('uv')!, vertices = deck.getVerticesData('position')!;
     for (let i = 0; i < vertices.length / 3; i++) {
-      expect(uv[i * 2]).toBeCloseTo((deck.position.x + vertices[i * 3]!) / 4.5);
-      expect(uv[i * 2 + 1]).toBeCloseTo((deck.position.z + vertices[i * 3 + 2]!) / 4.5);
+      expect(uv[i * 2]).toBeCloseTo((deck.position.x + vertices[i * 3]!) / 9);
+      expect(uv[i * 2 + 1]).toBeCloseTo((deck.position.z + vertices[i * 3 + 2]!) / 6);
     }
-    const dressing = view.deckDetails.filter(m => m.metadata?.kind === 'ship-exterior-art');
+    const dressing = view.structures.filter(m => m.name.startsWith('wreck-batch:'));
     for (const hull of view.deckDetails.filter(m => m.name.startsWith('ship-hull-sides'))) {
       const hullUv = hull.getVerticesData('uv')!;
       for (let face = 0; face < hullUv.length; face += 8)
@@ -42,25 +47,34 @@ it('dresses C1–C3 while preserving playable surfaces, cabin materials and inde
         expect(n[face]! * dz - n[face + 2]! * dx).toBeGreaterThan(0);
       }
     }
-    expect(new Set(dressing.map(m => m.metadata.deckSurfaceId))).toEqual(new Set(['main', 'c1-hull', 'c2', 'c3']));
+    expect(new Set(dressing.map(m => m.metadata.deckSurfaceId))).toEqual(new Set(['main', 'c1-hull', 'c2', 'c3','crow']));
     expect(dressing.every(m => !m.isPickable && !m.checkCollisions)).toBe(true);
-    expect(dressing.length).toBeLessThan(24);
-    const boarding = view.deckDetails.find(m => m.metadata?.kind === 'ship-exterior-debris');
+    expect(dressing.length).toBeLessThan(100);
+    expect(dressing.some(m=>m.metadata.kind==='ship-hull')).toBe(true);
+    expect(dressing.some(m=>m.metadata.kind==='fractured-rib')).toBe(true);
+    expect(dressing.some(m=>m.metadata.kind==='cofa-bracket')).toBe(true);
+    expect(view.structures.filter(m=>m.metadata?.kind==='stair-tread').length).toBeGreaterThan(40);
+    expect(scene.getMeshByName('ship-water')).toBeNull();
+    expect(scene.getMeshByName('wreck-ocean')).not.toBeNull();
+    const boarding = view.structures.find(m => m.metadata?.kind === 'canonical-deck-debris');
     expect(boarding?.metadata.deckSurfaceId).toBe('main');
     expect(boarding?.isPickable).toBe(false);
     expect(boarding?.checkCollisions).toBe(false);
-    const sails = view.deckDetails.filter(m => m.metadata?.kind === 'ship-exterior-sail');
+    const sails = view.structures.filter(m => m.metadata?.kind === 'torn-sail');
+    expect(sails).toHaveLength(2);
     expect(sails.every(m => !m.isPickable && !m.checkCollisions && ['main', 'c2'].includes(m.metadata.deckSurfaceId))).toBe(true);
     expect(view.deckDetails.filter(m => m.metadata?.kind === 'cabin-ceiling').map(m => m.metadata.cabinId).sort())
       .toEqual(['c4', 'c5', 'c6', 'c7']);
     expect(view.deckDetails.find(m => m.metadata?.kind === 'cabin-ceiling' && m.metadata?.cabinId === 'c4')!.position.x)
-      .toBeCloseTo((18 + 23 + 1) * terrain.tileMeters / 2);
+      .toBeCloseTo((WRECK_CABINS.c4.minCol + WRECK_CABINS.c4.maxCol + 1) * terrain.tileMeters / 2);
     expect(view.deckDetails.find(m => m.metadata?.kind === 'cabin-ceiling' && m.metadata?.cabinId === 'c4')!.getBoundingInfo().boundingBox.extendSizeWorld.x * 2)
       .toBeGreaterThan(7 * terrain.tileMeters);
-    expect(view.deckDetails.filter(m => m.metadata?.kind === 'cabin-ceiling').every(m => m.material?.name === 'terrain-material:exterior-deck'))
+    expect(view.deckDetails.filter(m => m.metadata?.kind === 'cabin-ceiling').every(m => m.material?.name === 'wreck-finish:terrain-material:exterior-deck:main'))
       .toBe(true);
     expect(view.deckDetails.filter(m => m.metadata?.kind === 'cabin-darkness')).toHaveLength(4);
     expect(view.deckDetails.filter(m => m.metadata?.kind === 'cabin-roof-edge')).toHaveLength(16);
+    expect(view.deckDetails.filter(m => m.metadata?.kind === 'cabin-roof-planking').map(m=>m.metadata.cabinId).sort()).toEqual(['c4','c5','c6','c7']);
+    expect(view.grids.get('sea')!.getTotalVertices()).toBeGreaterThan(4);
     expect(view.occluders.filter(m => m.metadata?.decorativeBulkhead).every(m => !m.isPickable && !m.checkCollisions)).toBe(true);
     expect(view.deckDetails.some(m => m.metadata?.kind === 'harmless-crab')).toBe(true);
     expect(view.deckDetails.some(m => m.metadata?.kind === 'c7:shard:0')).toBe(true);

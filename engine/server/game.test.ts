@@ -745,7 +745,7 @@ describe('transacciones de objetos', () => {
     expect(state.setCombatCondition('alpha', 'envenenada', true, { condition: 'envenenada', sourceId: 'test-beast', sourceLabel: 'Mordisco tóxico', durationRounds: 3 })).toBe(true);
     expect(state.endCombat()).toBe(true); expect(state.changeScene('workshop')).toBe(true);
     expect(state.conditionsFor('alpha')).toEqual(['envenenada']);
-    expect(state.conditionSourcesFor('alpha')).toEqual([{ condition: 'envenenada', sourceId: 'test-beast', sourceLabel: 'Mordisco tóxico', durationRounds: 3, appliedAtRound: 1 }]);
+    expect(state.conditionSourcesFor('alpha')).toMatchObject([{ condition: 'envenenada', sourceId: 'test-beast', sourceLabel: 'Mordisco tóxico', durationRounds: 3, appliedAtRound: 1, remainingMs: 18000, expiresAt: expect.any(Number) }]);
     expect(state.publicSnapshot().entities.find(entity => entity.id === 'alpha')?.conditions).toEqual(['envenenada']);
     expect(state.playerPrivate('a'.repeat(32))).toMatchObject({ conditions: ['envenenada'], conditionSources: [{ sourceLabel: 'Mordisco tóxico' }] });
   });

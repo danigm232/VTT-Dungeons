@@ -1,7 +1,27 @@
 import { describe, expect, it } from 'vitest';
-import { cameraAlphaForOrientation, cameraBetaForTiltDegrees, cameraTiltDegreesForBeta, normalizeCameraOrientationStep, screenVectorToWorld, screenVectorToWorldAtAlpha, worldVectorToCellDelta, sceneOrientationForView } from './camera-movement.js';
+import { cameraAlphaForOrientation, cameraBetaForTiltDegrees, cameraTiltDegreesForBeta, normalizeCameraOrientationStep, screenVectorToWorld, screenVectorToWorldAtAlpha, worldVectorToCellDelta, sceneOrientationForView, terrainCameraBaseAlpha } from './camera-movement.js';
+import { exteriorArrivalOrientation } from './camera-space.js';
 
 describe('movimiento relativo a la cámara', () => {
+  it('starts an exterior arrival from the open side without imposing an orbit lock',()=>{
+    const center={x:42,z:20.25},half={x:31.5,z:10.55},alpha=-Math.PI/4;
+    expect(exteriorArrivalOrientation({x:9.75,z:20.25},center,half,alpha)).toBe(5);
+    expect(exteriorArrivalOrientation({x:76,z:20.25},center,half,alpha)).toBe(1);
+    expect(exteriorArrivalOrientation({x:42,z:6},center,half,alpha)).toBe(7);
+    expect(exteriorArrivalOrientation({x:42,z:33},center,half,alpha)).toBe(3);
+    expect(exteriorArrivalOrientation(center,center,half,alpha)).toBeUndefined();
+    expect(exteriorArrivalOrientation({x:9.75,z:20.25},center,half,Math.PI/4)).toBe(3);
+  });
+  it('frames Stormwreck arrivals from the open side and uses that visible basis for controls', () => {
+    for (const id of ['dragon-rest', 'camp-wreck-beach', 'camp-cliffs-observatory', 'camp-coastal-refuge']) {
+      const alpha = cameraAlphaForOrientation(terrainCameraBaseAlpha(id), sceneOrientationForView(id, 0));
+      expect(alpha).toBeCloseTo(Math.PI / 4);
+      const up = screenVectorToWorldAtAlpha(0, 1, alpha, Math.PI / 4);
+      expect(up.x).toBeLessThan(0); expect(up.z).toBeLessThan(0);
+    }
+    expect(cameraAlphaForOrientation(terrainCameraBaseAlpha('camp-a1-rooms'), sceneOrientationForView('camp-a1-rooms', 0))).toBeCloseTo(Math.PI / 2);
+    expect(terrainCameraBaseAlpha('camp-forest-pleamar')).toBeCloseTo(-Math.PI / 4);
+  });
   it('mantiene giros discretos y límites de inclinación sin depender del renderizador', () => {
     expect(cameraAlphaForOrientation(-Math.PI / 2, 1)).toBeCloseTo(-Math.PI / 4);
     const left = cameraAlphaForOrientation(-Math.PI / 2, -1);

@@ -69,6 +69,7 @@ export function buildShipRowboat(scene: Scene, woodTexture?: BaseTexture): Trans
   const trimMat = mat('worn-gunwale', '#d0b98e', true);
   const oarMat = mat('oar-wood', '#b99b6e');
   const ironMat = mat('rowlock-iron', '#343c3a');
+  const foamMat=mat('waterline-foam','#98b8b6');foamMat.alpha=.24;foamMat.disableLighting=true;
   const add = (mesh: Mesh, material: StandardMaterial) => {
     mesh.parent = root; mesh.material = material; mesh.isPickable = false;
     mesh.metadata = { visualOnly: true, kind: 'ship-rowboat-detail' };
@@ -140,5 +141,8 @@ export function buildShipRowboat(scene: Scene, woodTexture?: BaseTexture): Trans
   tube('stern-stem', [new Vector3(-2.1, -.14, 0), new Vector3(-2.48, .57, 0)], .09, trimMat);
   for (const side of [-1, 1]) tube('stern-transom', [new Vector3(-2.36, .5, 0),
     new Vector3(-2.18, .35, side * .44)], .055, trimMat);
+  for(const side of [-1,1])tube('waterline-wash',Array.from({length:15},(_,i)=>{
+    const t=-.82+i/14*1.64;return new Vector3(t*2.48,-.30,side*halfBeam(t)*.94);
+  }),.022,foamMat);
   return root;
 }

@@ -40,6 +40,34 @@ export function sceneBlock(label: string, values: string[]) {
   block.className = 'dm-scene-block'; heading.className = 'eyebrow'; heading.textContent = label;
   block.append(heading, values.length ? chips(values) : chip('Ninguno')); return block;
 }
+
+const sectionSelections = new Map<string, string>();
+/** One visible section, not a column of nested disclosure headings. */
+export function sectionDeck(root: HTMLElement, scope: string) {
+  const sections = Array.from(root.children).filter((child): child is HTMLDetailsElement => child instanceof HTMLDetailsElement);
+  if (sections.length < 2) return;
+  const deck = document.createElement('section'), tabs = document.createElement('div'), body = document.createElement('div');
+  deck.className = 'dm-section-deck'; tabs.className = 'dm-section-tabs'; tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', 'Información de escena'); body.className = 'dm-section-body';
+  const entries = sections.map((details, index) => {
+    const title = details.querySelector('summary')?.textContent ?? 'Información';
+    const button = localButton(title.replace(/ · solo DM$/, ''), () => select(title)); button.setAttribute('role', 'tab'); button.id = `${scope}-tab-${index}`;
+    const panel = document.createElement('div'); panel.setAttribute('role', 'tabpanel'); panel.id = `${scope}-panel-${index}`; panel.setAttribute('aria-labelledby', button.id); button.setAttribute('aria-controls', panel.id);
+    panel.append(...Array.from(details.childNodes).filter(node => !(node instanceof HTMLElement && node.tagName === 'SUMMARY')));
+    tabs.append(button); body.append(panel); details.remove(); return { title, button, panel };
+  });
+  function select(title: string) {
+    sectionSelections.set(scope, title);
+    entries.forEach(entry => { const active = entry.title === title; entry.button.setAttribute('aria-selected', String(active)); entry.button.tabIndex = active ? 0 : -1; entry.panel.hidden = !active; });
+  }
+  tabs.onkeydown = event => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault(); const index = entries.findIndex(entry => entry.button === document.activeElement);
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? entries.length - 1 : (index + (event.key === 'ArrowLeft' ? -1 : 1) + entries.length) % entries.length;
+    select(entries[next]!.title); entries[next]!.button.focus();
+  };
+  select(entries.some(entry => entry.title === sectionSelections.get(scope)) ? sectionSelections.get(scope)! : entries[0]!.title);
+  deck.append(tabs, body); root.append(deck);
+}
 /** Large scenes show a count first, not dozens of permanent object labels. */
 export function sceneActions(label: string, actions: Array<{ label: string; select: () => void }>, extra: string[] = []) {
   const compact = actions.length > 6;

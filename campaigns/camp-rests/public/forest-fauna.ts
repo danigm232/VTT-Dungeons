@@ -146,8 +146,8 @@ export async function createForestFauna(
     pivot.parent = root;
     pivot.scaling.setAll(spec.scale);
     pivot.setEnabled(false);
-    container.rootNodes.forEach(node => { node.parent = pivot; });
     container.addAllToScene();
+    container.rootNodes.forEach(node => { node.parent = pivot; });
 
     container.meshes.forEach(mesh => {
       mesh.isPickable = false;
@@ -164,6 +164,7 @@ export async function createForestFauna(
     const animations = new Map<string, AnimationGroup>();
     for (const group of container.animationGroups) {
       const key = group.name.trim().toLowerCase();
+      group.stop();
       if (ANIMATIONS_TO_KEEP.has(key)) {
         group.enableBlending = true;
         group.blendingSpeed = .035;
@@ -181,7 +182,11 @@ export async function createForestFauna(
       // These GLB clips animate the same skeleton. Stop the previous state so
       // a stationary animal cannot retain the Walk leg cycle.
       animations.forEach(group => group.stop());
+      // The first visible frame must already use the locomotion pose. Blending
+      // from the bind pose on arrival produces a visibly sliding animal.
+      requested.enableBlending = !['walk', 'gallop'].includes(name.toLowerCase());
       requested.start(loop, speed);
+      requested.goToFrame(requested.from);
     };
     animals.push({
       spec, pivot, meshes: container.meshes, animations, startClip, walkSpeedRatio, gallopSpeedRatio,

@@ -24,6 +24,10 @@ export function cameraTiltDegreesForBeta(beta: number) {
 export function sceneOrientationForView(sceneId: string | null, step: number) {
   return (normalizeCameraOrientationStep(step) + (sceneId === 'camp-a1-rooms' ? 3 : 0)) % ORIENTATION_COUNT;
 }
+/** Open toward the arriving party, not from behind cliffs or the north tent. */
+export function terrainCameraBaseAlpha(sceneId: string | null) {
+  return ['dragon-rest', 'camp-wreck-beach', 'camp-cliffs-observatory', 'camp-coastal-refuge'].includes(sceneId ?? '') ? Math.PI / 4 : INITIAL_ALPHA;
+}
 
 /** Converts screen-relative controls at a discrete resting orientation. */
 export function screenVectorToWorld(x: number, up: number, orientationStep: number, beta: number) {

@@ -3,6 +3,8 @@ import { oneShotCampaignDefinition,d8NearestWalkableCell } from '../campaigns/on
 import { publicCampaignDefinition } from '../campaigns/stormwreck-isle/public/pack';
 import { PROTOCOL_VERSION, OBJECT_MODEL_VERSION, type WorldSnapshot, type PublicEntity, type PublicProp, type CameraMode } from '../engine/shared/protocol';
 import { footprintFor } from '../engine/shared/geometry';
+import { activitiesForCampPoint, campActivities } from '../engine/shared/camp-activities';
+import { directionFromVector } from '../engine/server/navigation';
 const $=<T extends HTMLElement>(id:string)=>document.getElementById(id) as T;
 const campaignKey=new URLSearchParams(location.search).get('campaign')==='storm'?'storm':'d8';
 const campaign=structuredClone(campaignKey==='d8'?oneShotCampaignDefinition:publicCampaignDefinition);
@@ -10,6 +12,7 @@ const map=$<HTMLSelectElement>('map'),actor=$<HTMLSelectElement>('actor'),mode=$
 $<HTMLSelectElement>('campaign').value=campaignKey;
 $('campaign').addEventListener('change',()=>location.search=`?campaign=${$<HTMLSelectElement>('campaign').value}`);
 for(const scene of campaign.scenes)if(scene.renderer==='babylon-hd2d'||scene.renderer==='babylon-d8')map.add(new Option(scene.title,scene.id));
+const requestedMap=new URLSearchParams(location.search).get('map');if(requestedMap&&Array.from(map.options).some(option=>option.value===requestedMap))map.value=requestedMap;
 let snapshot:WorldSnapshot,revision=0,loading=false,selected:string|null=null,movementGeneration=0;
 const renderer=new WorldRenderer($('world'),campaign,{showGrid:false,persistCameraPreferences:false,showStairMarker:false});
 const errors:string[]=[];window.addEventListener('error',e=>errors.push(e.message));window.addEventListener('unhandledrejection',e=>errors.push(String(e.reason)));
@@ -17,9 +20,22 @@ renderer.setMapClick((cell,id)=>{selected=id??null;renderer.setSelectedEntity(se
 function poseDistance(a:ReturnType<typeof renderer.getCameraAudit>['pose'],b:ReturnType<typeof renderer.getCameraAudit>['pose']){
   if(!a||!b)return Infinity;return Math.max(Math.abs(a.alpha-b.alpha),Math.abs(a.beta-b.beta),Math.abs(a.halfHeight-b.halfHeight),...(['x','y','z'] as const).map(k=>Math.abs(a.target[k]-b.target[k])));
 }
-const frame=()=>new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
-async function settle(){let stable=0,previous=renderer.getCameraAudit().pose;const deadline=performance.now()+90000;
-  while(stable<12){await frame();const current=renderer.getCameraAudit();stable=current.ready&&poseDistance(previous,current.pose)<1e-6?stable+1:0;previous=current.pose;if(performance.now()>deadline)throw new Error('La cámara no se estabilizó');}
+const frame=()=>new Promise<void>(resolve=>{
+  // Chrome also throttles RAF in an occluded window whose document remains
+  // "visible". Use a bounded fallback only in this isolated review harness.
+  let raf=0;
+  const fallback=setTimeout(()=>{cancelAnimationFrame(raf);renderer.renderCaptureFrame(32);resolve();},32);
+  raf=requestAnimationFrame(()=>{clearTimeout(fallback);resolve();});
+});
+async function settle(){let stable=0,steps=0,previous=renderer.getCameraAudit().pose;const deadline=performance.now()+90000;
+  // Synchronize actors before testing readiness. Camera-only steps cannot
+  // create their billboards, and lazy camp scenery must also finish loading.
+  renderer.renderCaptureFrame(32);
+  // Advance the same camera damping in bounded review steps. Do not interpret
+  // background-tab RAF throttling as game performance or make every camera
+  // convergence sample wait for Chrome's one-second background timer.
+  while(stable<12){renderer.renderCaptureFrame(32,true);if(++steps%12===0)renderer.renderCaptureFrame();const current=renderer.getCameraAudit();stable=current.ready&&poseDistance(previous,current.pose)<1e-6?stable+1:0;previous=current.pose;if(!current.ready)await frame();if(performance.now()>deadline)throw new Error('La cámara no se estabilizó');}
+  renderer.renderCaptureFrame();
 }
 async function update(){snapshot.revision=++revision;snapshot.serverTime=Date.now();await renderer.applySnapshot(snapshot);}
 async function capture(name:string){
@@ -32,6 +48,7 @@ async function capture(name:string){
 }
 async function load(){loading=true;movementGeneration++;status.textContent='Cargando mapa…';
   document.querySelectorAll<HTMLButtonElement|HTMLSelectElement>('header button,header select').forEach(control=>{control.disabled=true;});
+  await renderer.ready;
   // Let the selection event finish before building thousands of Babylon meshes.
   // Otherwise a browser automation deadline can interrupt the synchronous build.
   await frame();
@@ -42,6 +59,8 @@ async function load(){loading=true;movementGeneration++;status.textContent='Carg
     ...(p.kind==='wheel'?{mount:p.mount}:{})})) as PublicProp[];
   snapshot={v:PROTOCOL_VERSION,objectModelVersion:OBJECT_MODEL_VERSION,revision:++revision,serverTime:Date.now(),sceneId:scene.id,scene,sceneEpoch:revision,runtimeEpoch:'isolated-camera-review',entities,tokenAssets:{tokens:campaign.tokens,tokenAnimations:campaign.tokenAnimations},props,camera:{mode:mode.value as CameraMode,focusId:entities[0]!.id},environment:{storm:false,lightning:false,stormIntensity:0,timeOfDay:$<HTMLSelectElement>('weather-time').value as 'day',precipitation:$<HTMLSelectElement>('weather-kind').value as 'none',precipitationLevel:Number($<HTMLSelectElement>('weather-level').value) as 1,windIntensity:Number($<HTMLInputElement>('weather-wind').value)},combat:{active:false,round:0,currentId:null,movement:null,participants:[],lastEvent:null}};
   actor.replaceChildren(...entities.map(a=>new Option(a.label,a.id)));selected=null;renderer.setSelectedEntity(null);renderer.setLocalPlayer(null);renderer.setCameraFocusCell(null);
+  $('camp-point').replaceChildren(...(scene.camp?.interactionPoints ?? []).map(point => new Option(point.label, point.id)));
+  updateCampActions();
   await renderer.applySnapshot(snapshot);renderer.setCameraTiltDegrees(Number($<HTMLSelectElement>('tilt').value));await settle();loading=false;updatePoseList();
   document.querySelectorAll<HTMLButtonElement|HTMLSelectElement>('header button,header select').forEach(control=>{control.disabled=false;});
 }
@@ -55,6 +74,22 @@ $('grid').addEventListener('change',()=>renderer.setGridVisible($<HTMLInputEleme
 $('focus').addEventListener('click',()=>{selected=actor.value;renderer.setSelectedEntity(selected);const a=snapshot.entities.find(a=>a.id===selected)!;renderer.setCameraFocusCell(a.cell,a.surfaceId);});
 function updatePoseList(){const a=snapshot.entities.find(a=>a.id===actor.value)!;$<HTMLSelectElement>('test-pose').replaceChildren(...Object.keys(campaign.tokenAnimations[a.tokenId]??{}).map(name=>new Option(name,name)));}
 actor.addEventListener('change',()=>{$('focus').click();updatePoseList();});
+$('detail').addEventListener('click',()=>renderer.frameActorDetail(actor.value));
+$('overview').addEventListener('click',()=>renderer.frameSceneOverview());
+function updateCampActions(){const point=campaign.scenes.find(s=>s.id===map.value)?.camp?.interactionPoints.find(p=>p.id===$<HTMLSelectElement>('camp-point').value);$('camp-action').replaceChildren(...(point?activitiesForCampPoint(point):[]).map(a=>new Option(a.label,a.id)));}
+$('camp-point').addEventListener('change',updateCampActions);
+$('camp-approach').addEventListener('click',async()=>{const point=snapshot.scene.camp?.interactionPoints.find(p=>p.id===$<HTMLSelectElement>('camp-point').value),a=snapshot.entities.find(a=>a.id===actor.value);if(!point||!a)return;a.cell={...point.cell};a.surfaceId=point.surfaceId;delete a.seatId;a.moving=false;a.step=null;await update();renderer.frameActorDetail(a.id);});
+$('camp-use').addEventListener('click',async()=>{
+  const point=snapshot.scene.camp?.interactionPoints.find(p=>p.id===$<HTMLSelectElement>('camp-point').value),a=snapshot.entities.find(a=>a.id===actor.value),activity=campActivities[$<HTMLSelectElement>('camp-action').value as keyof typeof campActivities];if(!point||!a||!activity)return;
+  const object=point.objectCell??point.cell;a.facing=directionFromVector(object.col-a.cell.col,object.row-a.cell.row)??a.facing;
+  const entries=snapshot.campRest?.interactions??[];
+  const action=activity.id==='chest-toggle'?(entries.filter(e=>e.pointId===point.id&&(e.action==='opened'||e.action==='closed')).at(-1)?.action==='opened'?'closed':'opened'):'used';
+  if(activity.id==='sit'){if(a.seatId===point.id)delete a.seatId;else a.seatId=point.id;}
+  snapshot.campRest={sceneId:snapshot.sceneId,phase:null,paused:false,outcome:null,interruptions:[],interactions:[...entries,{pointId:point.id,pointLabel:point.label,characterId:a.id,characterLabel:a.label,at:Date.now(),action,activityId:activity.id}].slice(-30)};
+  await update();renderer.playTokenAnimation(a.id,activity.animation,activity.durationMs);await settle();
+  const until=performance.now()+700;while(performance.now()<until)await frame();
+  await capture(`${campaignKey}-${map.value}-${a.id}-${activity.id}.png`);
+});
 $('test-position').addEventListener('change',async()=>{
   const a=snapshot.entities.find(a=>a.id===actor.value)!,scene=snapshot.scene,value=$<HTMLSelectElement>('test-position').value;
   const seat=scene.seats?.find(s=>!s.reservedActorId&&(value!=='chair'||s.label==='Silla'));delete a.seatId;
@@ -87,20 +122,38 @@ $('test-combat').addEventListener('click',async()=>{
   renderer.setLocalPlayer(actor.value); await update(); await settle();
   await capture(`${campaignKey}-${map.value}-combat-frame.png`);
 });
-async function audit(all:boolean){const rows:unknown[]=[];const savedMap=map.value;const maps=all?Array.from(map.options).map(o=>o.value):[savedMap];
+async function audit(all:boolean,captureViews=true){const rows:unknown[]=[];const savedMap=map.value;const maps=all?Array.from(map.options).map(o=>o.value):[savedMap];
   renderer.zoomCameraBy(1/renderer.getCameraAudit().zoom);
   for(const id of maps){map.value=id;await load();const positions=JSON.stringify(snapshot.entities.map(a=>[a.id,a.cell,a.surfaceId]));
     for(const tilt of [25,35,45,50]){renderer.setCameraTiltDegrees(tilt);for(let step=0;step<8;step++){renderer.setCameraOrientation(step);await settle();const first=renderer.getCameraAudit();let jitter=0;
-      for(let n=0;n<30;n++){await frame();jitter=Math.max(jitter,poseDistance(first.pose,renderer.getCameraAudit().pose));}
+      for(let n=0;n<30;n++){renderer.renderCaptureFrame(32);jitter=Math.max(jitter,poseDistance(first.pose,renderer.getCameraAudit().pose));}
       rows.push({...first,jitter,positionsUnchanged:positions===JSON.stringify(snapshot.entities.map(a=>[a.id,a.cell,a.surfaceId]))});
-      if(tilt===25||tilt===45)await capture(`${campaignKey}-${id}-tilt-${tilt}-angle-${step}.png`);
+      if(captureViews&&(tilt===25||tilt===45))await capture(`${campaignKey}-${id}-tilt-${tilt}-angle-${step}.png`);
       $('report').textContent=`Revisando ${id}, inclinación ${tilt}°, orientación ${step+1}/8 · ${rows.length} vistas`;
+      // Yield even without PNG export so the browser can paint progress and
+      // process input between views instead of blocking for an entire map.
+      await frame();
     }}
   }
   const report={campaign:campaignKey,views:rows.length,errors,rows};$('report').textContent=JSON.stringify(report,null,2);await fetch('/__camera_report',{method:'POST',body:JSON.stringify(report)});
   map.value=savedMap;await load();renderer.resetCameraOrientation();renderer.setCameraTiltDegrees(Number($<HTMLSelectElement>('tilt').value));
 }
 $('audit').addEventListener('click',()=>void audit(false).catch(fail));$('all').addEventListener('click',()=>void audit(true).catch(fail));
+$('metrics-audit').addEventListener('click',()=>void audit(true,false).catch(fail));
+async function auditInitialViews(){
+  const rows:unknown[]=[],savedMap=map.value;
+  for(const id of Array.from(map.options).map(option=>option.value)){
+    map.value=id;await load();renderer.setCameraTiltDegrees(25);renderer.setCameraOrientation(0);await settle();
+    const first=renderer.getCameraAudit(),positions=JSON.stringify(snapshot.entities.map(a=>[a.id,a.cell,a.surfaceId]));let jitter=0;
+    for(let n=0;n<30;n++){renderer.renderCaptureFrame(32);jitter=Math.max(jitter,poseDistance(first.pose,renderer.getCameraAudit().pose));}
+    await settle();rows.push({...renderer.getCameraAudit(),jitter,positionsUnchanged:positions===JSON.stringify(snapshot.entities.map(a=>[a.id,a.cell,a.surfaceId]))});
+    await capture(`${campaignKey}-${id}-tilt-25-angle-0.png`);
+    $('report').textContent=`Verificando carga completa de ${id} · ${rows.length} vistas iniciales`;
+  }
+  const report={kind:'startup',campaign:campaignKey,views:rows.length,errors,rows};$('report').textContent=JSON.stringify(report,null,2);
+  await fetch('/__camera_report',{method:'POST',body:JSON.stringify(report)});map.value=savedMap;await load();
+}
+$('startup-audit').addEventListener('click',()=>void auditInitialViews().catch(fail));
 $('capture').addEventListener('click',()=>void capture(`${campaignKey}-${map.value}-weather-${$<HTMLSelectElement>('weather-time').value}-${$<HTMLSelectElement>('weather-kind').value}-${$<HTMLSelectElement>('weather-level').value}.png`).catch(fail));
 async function auditFocusModes(){
   await load(); const entity=snapshot.entities[0]!, origin={...entity.cell}, rows:unknown[]=[];
@@ -144,5 +197,6 @@ function show(){
   const a=renderer.getCameraAudit();
   status.textContent=`${loading?'Cargando · ':''}${a.scene} · ${a.nativeActors} fichas 3D · ${a.tilt}° · giro ${a.orientation+1}/8 · zoom ${a.zoom.toFixed(2)} · ${a.ready?'Listo':'Cargando texturas'} · selección ${selected??'ninguna'}\nHORIZONTE: ${JSON.stringify(a.horizon)}\n${JSON.stringify(a.pose)}\nRENDIMIENTO: ${JSON.stringify(a.performance)}\nMALLAS: ${JSON.stringify(a.meshGroups)}\nAMBIENTE: ${JSON.stringify(a.presentation)}\nFICHAS: ${JSON.stringify(a.actors)}\nARQUITECTURA: ${JSON.stringify(a.architecture)}\nPendientes: ${a.pendingTextures.join(', ')} / ${a.pendingMeshes.join(', ')}${errors.length?'\nERRORES: '+errors.join(' | '):''}`;
 }show();
-await load().catch(fail);
-updatePoseList();
+// Do not await at module scope: Pixi's lazy WebGL renderer may import this
+// entry chunk after bundling, creating an entry/renderer initialization cycle.
+void load().then(updatePoseList).catch(fail);

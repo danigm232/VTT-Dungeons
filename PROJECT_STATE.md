@@ -1,5 +1,191 @@
 # Estado del proyecto
 
+## Cinco campamentos — correcciones V1.4.6, 2026-10-11
+
+Brasas en las cinco hogueras; luces apagadas de día, nieve acumulada,
+humedad, lluvia que reduce/apaga el fuego y leña animada con la acción del
+jugador. Recorte de árboles completos y estructuras de tiendas, entradas
+orientadas hacia la hoguera, arroyo fuera de las tiendas, prolongado entre
+la arboleda y con corriente. Sombras del sol/luna y de una fuente cálida
+cercana, con caché y perfil compacto.
+
+Comprobación conectada: 681 pasos y 120 interacciones, tres jugadores y
+proyector; descanso, interrupciones, guardado y reconexión correctos.
+Registro: [CAMPS_WEATHER_20261011](docs/evidence/CAMPS_WEATHER_20261011.md).
+Evidencia nueva en `output/camps-weather-20261011`. La acumulación y calor
+son ambientación local; el siguiente ensayo es con dispositivos físicos.
+
+## Cinco campamentos — detalle V1.4.5, 2026-10-11
+
+Pasada sobre A1, bosque, playa, observatorio y refugio: roca con relieve y
+estratos, montaña A1 cerrada, recorte de sus particiones al ocupar una celda,
+estanterías y muebles diferenciados, tejidos, herrajes y utensilios. Más
+variedad vegetal y fondo arbolado, sendero/arroyo orgánicos, bote detallado,
+espuma transparente, fuego de partículas, aurora plegada y pozas húmedas.
+Cuadrícula con transparencia efectiva en campamentos. Luces limitadas a cada
+interior; piezas de interacción y navegación autoritativa conservadas.
+
+110 capturas antes, 120 después y 19 de perfiles de dispositivo; 90 muestras
+exteriores listas. Bosque con unos 120.000 vértices frente a 199.000 anteriores.
+Recorrido aislado: 705 pasos y 120 interacciones, DM, tres jugadores y proyector,
+descanso e interrupciones, guardar/reconectar, sin beneficios automáticos.
+Novedades V1.4.5 comprobadas al iniciar la interfaz compilada. La versión entra
+con el inicio habitual; la mesa del puerto 3000 conserva su partida.
+
+60/60 pruebas dirigidas únicas en nueve archivos, tipos y compilaciones PASS.
+La ejecución conectada final comprueba también la descarga completa de 19
+recursos. Interfaz real: zoom, WASD, actividad de hoguera y descanso en cinco
+acciones del DM conservando PG. Queda la revisión física de móvil, proyector
+y mezcla de audio. La prueba de puerta D8 V48 presenta una discrepancia
+de estado inicial, documentada aparte del módulo. Evidencia y límites:
+[Campamentos · detalle](docs/evidence/CAMPS_DETAIL_20261011.md).
+
+## Rosa de los Vientos — detalle, natación y buceo, 2026-10-11
+
+Corregidas las capturas: cuenco orgánico del nido, timón y soportes en C3,
+cráneo/mandíbulas/costillas de dragón, triangulación de la brecha y revelado
+interior, entrada P16 con descenso temporizado, cierre de márgenes C8/C9 y
+fondos de escaleras. Muebles conservan contenido canónico y reciben acabado
+de madera/telas. Llegada al mar desde el lado abierto, sin restringir giros
+ni alterar cámara compartida. Guardados v5 reanclan solo el timón montado.
+Mástil y jarcias se atenúan únicamente cuando ocultan la ficha, recuperando
+su opacidad desde el lado libre; comprobado en la cofa sin cambiar colisiones.
+
+Tabla de acabado aplicada al pecio: contacto/AO analítico y mapas estáticos
+UV2, multiescala, manchas, color y filtrado. No son GI/SSAO ni luces nuevas.
+**535/535 pruebas, 72 archivos**, tipos y compilaciones PASS; **239 pasos**,
+dos jugadores, proyector, P16, cofa, puertas y guardar/restaurar PASS.
+Navegador: **69 capturas estáticas, 61 diagnósticos sin errores ni recursos
+pendientes** y recorrido real reproducido con 14 capturas de movimiento.
+
+Mesa real intacta; inicio habitual recompila. Sigue abierta la aceptación
+artística de M5 y el ensayo físico móvil/proyector/audio M7. No se afirma
+perfección ni equivalencia con la ilustración de referencia. Evidencia:
+[Detalle y buceo del pecio](docs/evidence/PECIO_DETAIL_20261010.md).
+
+## Rosa de los Vientos — contraste canónico y ajuste integrado, 2026-10-10
+
+PDF capítulo 3 y mapa 4 auditados antes de cambiar arquitectura. C4/C5 quedan
+bajo C3 y C6/C7 bajo C2, con paredes dentro del casco y cubierta superior
+oculta solo al entrar en su estancia. Perfil reducido a 63 × 21,1 m y escora
+de 0,86° compartidos por geometría/navegación, sin cambiar el grid de 1,5 m.
+Escaleras y eje C4/C8/C9 ajustados; guardados migran a versión 4 conservando
+inventario, estados, secretos y botín. Cofa con nido completo; velas realmente
+desgarradas, cabos caídos, deterioro localizado y apoyos de hueso/arrecife.
+Agua C8 visible a 15–45 cm, C9 sumergida con burbujas/peces/cáusticas y sin
+luz solar residual; antorchas apagadas, retrato C6 mirando al interior y
+mezcla sonora local por planta sin alterar controles de audio del DM.
+
+**528/528 pruebas, 71 archivos**, tipos y builds cliente/servidor PASS.
+Prueba aislada de **224 pasos con dos jugadores y proyector**: C1–C9, puertas,
+foco, privacidad, cofa y guardar/reiniciar. Navegador: 26 capturas estáticas,
+19 diagnósticos sin errores y reproducción completa del recorrido observada.
+Mesa real no reiniciada ni modificada. El inicio habitual compila al arrancar.
+
+M5 sigue como candidata con aceptación artística abierta. La escala ampliada
+y cofa centrada no son una reproducción literal del mapa/PDF; falta ensayo
+prolongado móvil/proyector y escucha física del audio. Evidencia y límites:
+[Contraste canónico del pecio](docs/evidence/PECIO_CANON_20261010.md).
+
+## Pecio completo — reconstrucción visual 3D, 2026-10-09
+
+C1–C9, cofa y entorno tienen una reconstrucción integrada por capas, dentro
+del mismo barco lógico. Perfil naval compartido entre geometría y navegación,
+casco curvo, niveles/escaleras físicos, daños asimétricos y arrecife de apoyo;
+océano continuo animado, madera húmeda, techos cerrados por habitación,
+mobiliario canónico a escala, interiores inundados y luz portada. P01/P10
+escalan con trayectoria temporizada; no se duplican ni teletransportan fichas.
+
+Cámara y recorte interiores retiran techo, pared/hoja delantera y aparejos
+que obstruyen; el mobiliario delante del ocupante se atenúa sin cambiar
+colisiones. Antorchas apagadas/recogibles y barca abierta opaca en el agua.
+Guardados válidos se conservan; se recolocan solo las celdas ahora inválidas.
+
+Prueba aislada: 202 pasos, dos jugadores y proyector, C1–C9, cuatro puertas,
+visibilidad individual, cofa, foco y guardar/reiniciar. Navegador: 26 capturas,
+19 diagnósticos sin errores. Suite general **521/521, 69 archivos** y tipos/build
+superados. Evidencia y límites:
+[Reconstrucción del pecio](docs/evidence/PECIO_EXTERIOR_REBUILD_20261008.md).
+La aceptación artística y el rendimiento sostenido móvil/proyector siguen
+abiertos; no se declara perfección ni paridad con la ilustración de referencia.
+La mesa real no se ha reiniciado. `INICIAR.cmd` actualiza al próximo arranque.
+
+## Biblioteca reutilizable de interacciones — 2026-10-08
+
+Implementado registro por funciones de piezas reales, reloj común y articulación
+procedural 2,5D. Conectados todos los puntos de los cinco campamentos: páginas y
+libro, símbolo, ganzúas, mantas/almohadas/hamacas, solapas/ataduras, cuchara/olla,
+leños/llamas, farol/cuerda, tela del asiento y tapa persistente del baúl. Sin
+duplicar accesorios cuando hay piezas conectadas. Libro, símbolo y una ganzúa
+se recogen y regresan; interrupción restaura el objeto y no repite la acción.
+
+Puntos de uso junto al mobiliario: A1 deja de usar la entrada como contacto de
+cama; exteriores separan lecho y puerta de tienda. Datos opcionales `activities`
+permiten reutilizar con futuros personajes sin depender de sus IDs. No cambian
+grid, colisiones, recursos ni beneficios de descanso. La mesa real sigue intacta.
+
+Guía de conexión y límites: [Biblioteca](docs/REUSABLE_INTERACTION_ANIMATIONS.md).
+Queda la aceptación artística de las manos/poses PNG y crear vistas dibujadas
+que no existan en los originales; no se presenta esto como un rig 3D terminado.
+
+## Requisito de cierre: animaciones emparejadas — 2026-10-08
+
+El usuario exige que todas las acciones creadas animen tanto a cada personaje
+participante como al objeto real con el que interactúa. Un botón funcional,
+un VFX aislado o una inclinación de una pose estática no cierran ese trabajo.
+Ambas animaciones deben compartir inicio, contacto, respuesta y finalización,
+orientación respecto a la cámara, escala, oclusión y cancelación coherente.
+
+Auditoría inicial (anterior a la biblioteca descrita arriba): existen gestos, poses reutilizadas y accesorios
+procedurales, pero falta completar la respuesta de varios objetos reales.
+En A1 el controlador visual todavía ignora el historial de interacciones.
+El baúl exterior ya anima su tapa; esto no acredita todas las demás acciones.
+Los efectos actuales de manta/libro/herramientas no sustituyen la animación
+del mobiliario/equipo existente ni una secuencia de manos adecuada.
+Cobertura y criterios pendientes:
+[Informe](docs/evidence/ACTORS_CAMPS_AUDIT_20261007.md#requisito-de-animacion-emparejada--seguimiento-2026-10-08).
+
+## Personajes y actividades de campamento — 2026-10-07
+
+Stormwreck: escala física calibrada, pies según alfa visible, asientos en el
+banco real, retratos PNJ reducidos y cámara inicial desde el lado abierto.
+D8 y Stormwreck: filtrado de PNG, lienzo sin submuestreo y «Detalle/Conjunto».
+Once actividades de ambiente con poses, gestos y accesorios animados,
+proximidad/propiedad autoritativas, cancelación al moverse o combatir y
+baúles persistentes aunque el historial se llene. Sin beneficios de descanso
+ni consumos automáticos. Se preserva el trabajo paralelo de campamentos.
+
+Verificación: **484/484 pruebas**, tipos y build; integración aislada de cinco
+campamentos con DM, proyector y tres jugadores: **643 pasos, 116 interacciones**,
+guardado y reconexión. La mesa del puerto 3000 no se ha reiniciado.
+Stormwreck: 224 encuadres finales con todas las fichas y recursos listos.
+Trece vistas iniciales completas verificadas entre ambas campañas. Pendiente:
+repetir las métricas completas de D8 tras corregir la espera del visor de pruebas;
+su repetición anterior quedó bloqueada. No afecta a las actividades verificadas.
+Detalle y límites de los originales PNG/SVG:
+[Informe](docs/evidence/ACTORS_CAMPS_AUDIT_20261007.md).
+
+## Campamentos — acabado y jugabilidad V1.4.4, 2026-10-07
+
+Las cinco escenas tienen ambientación propia, texturas, roca orgánica, vegetación,
+tiendas cerradas con corte al entrar, equipo personal, baúles y asientos con pose.
+A1 conserva sus seis celdas canónicas y sus luces limitadas a cada interior;
+el bosque conserva los animales fuera del grid y anima la locomoción al aparecer.
+Las novedades V1.4.4 se muestran al primer acceso del DM.
+
+La última pasada añade desgaste de suelo, pozas orgánicas, estratos y grupos
+vegetales variados, y permite al suelo táctico recibir las sombras del decorado.
+Galería de 80 vistas exteriores y 18 interiores; interfaz de jugador comprobada
+a 390 × 844 y 844 × 390. Capturas, métricas y límites detallados en el informe.
+
+Verificación: **469/469 pruebas generales**, **15/15 específicas**, tipos y build
+correctos. Integración aislada con DM, proyector y tres jugadores: **554 pasos,
+38 interacciones**, colisiones, descanso, guardado y reconexión. La partida del
+puerto 3000 y el mapa principal del Retiro se conservan. Visor y galería en 4482;
+VTT de revisión en 4485. Informe: [Campamentos](docs/evidence/CAMPS_FINAL_20261007.md).
+La medición en teléfono/proyector físicos y la aceptación artística/auditiva final
+del usuario siguen siendo verificaciones propias de esos dispositivos.
+
 ## D8 — correcciones V49, 2026-10-06
 
 Aplicadas las 22 correcciones: cabaña Fritz cerrada con vegetación exterior y puerta en el sendero; Café medieval completo, ventanas con huecos y cristal; cubierta del templo y casa de Cena accesible. Puertas jugables articuladas e interactivas, ocupación de PNJ y llegadas separadas. Cámara interior suave a 38° y regreso al encuadre exterior, paredes/muebles atenuados sin alterar colisiones. Agua ondulante, lluvia/nieve progresivas por intensidad y tiempo, farolas y luz solar por hora, niños junto a vaca con cuerda y reflejo centrado con aparición mágica.

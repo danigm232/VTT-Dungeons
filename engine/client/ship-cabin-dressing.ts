@@ -8,6 +8,7 @@ import type { BaseTexture } from '@babylonjs/core/Materials/Textures/baseTexture
 import type { Scene } from '@babylonjs/core/scene.js';
 import type { WreckCabinId } from './wreck-cabins.js';
 import { WRECK_SEA_MARGIN_CELLS } from '../../campaigns/stormwreck-isle/public/wreck-runtime.js';
+import { wreckCabinContentCell, wreckListHeight } from '../shared/wreck-structure.js';
 
 /** Canonical, non-interactive set dressing. Secrets and treasures remain in
  * their independent authoritative prop/pickup state. */
@@ -38,10 +39,11 @@ export function buildShipCabinDressing(scene: Scene, tileMeters: number, portrai
   // C5: the old headless skeleton is a separate prop. These harmless little
   // crabs explain why it seems to move; they are never combatants.
   for (let i = 0; i < 3; i++) {
-    const x = (16.45 + WRECK_SEA_MARGIN_CELLS + i * .22) * tileMeters;
+    const x = (15.3 + WRECK_SEA_MARGIN_CELLS + i * .17) * tileMeters;
     const z = (10.36 + WRECK_SEA_MARGIN_CELLS + (i % 2) * .25) * tileMeters;
     const body = record(MeshBuilder.CreateSphere(`c5:crab:${i}`, { diameter: .16, segments: 8 }, scene), 'c5', 'harmless-crab', crabShell);
     body.position.set(x, .1, z); body.scaling.set(1, .35, .7);
+    scene.onBeforeRenderObservable.add(()=>{if(body.isVisible)body.rotation.y=Math.sin(performance.now()*.00045+i)*.18;});
     for (const side of [-1, 1]) {
       const leg = record(MeshBuilder.CreateTube(`c5:crab-leg:${i}:${side}`, {
         path: [new Vector3(x, .11, z), new Vector3(x + side * .16, .05, z + .1)], radius: .017, tessellation: 5
@@ -63,6 +65,7 @@ export function buildShipCabinDressing(scene: Scene, tileMeters: number, portrai
       'c6', 'canonical-portrait', artMat);
     portrait.position.set((30.5 + WRECK_SEA_MARGIN_CELLS) * tileMeters, 1.57,
       3.99 + WRECK_SEA_MARGIN_CELLS * tileMeters);
+    portrait.rotation.y=Math.PI; // Face the room/light, not the north bulkhead.
     for (const [name, x, y, w, h] of [
       ['top', 0, 2.17, 1.29, .1], ['bottom', 0, .97, 1.29, .1],
       ['left', -.61, 1.57, .1, 1.28], ['right', .61, 1.57, .1, 1.28]
@@ -71,13 +74,17 @@ export function buildShipCabinDressing(scene: Scene, tileMeters: number, portrai
         'c6', 'portrait-frame', oldWood);
       frame.position.set(portrait.position.x + x, y, portrait.position.z + .02);
     }
-    const label = new DynamicTexture('c6:portrait-inscription', { width: 1024, height: 128 }, scene, false);
-    label.hasAlpha = true;
-    label.drawText('Aleitha y Brastos: juntos para siempre', 26, 82, '43px Georgia', '#d3bd8d', '#392f25', true);
-    const labelMat = material('portrait-label', '#ffffff'); labelMat.diffuseTexture = label;
+    const labelMat = material('portrait-label', '#ffffff');
+    if(typeof document!=='undefined'){
+      const label = new DynamicTexture('c6:portrait-inscription', { width: 1024, height: 128 }, scene, false);
+      label.hasAlpha = true;
+      label.drawText('Aleitha y Brastos: juntos para siempre', 26, 82, '43px Georgia', '#d3bd8d', '#392f25', true);
+      labelMat.diffuseTexture = label;
+    }
     const plaque = record(MeshBuilder.CreatePlane('c6:portrait-inscription-plaque', { width: 2.1, height: .26 }, scene),
       'c6', 'canonical-inscription', labelMat);
     plaque.position.set(portrait.position.x, .77, portrait.position.z + .02);
+    plaque.rotation.y=Math.PI;
   }
   // C7: broken crockery and glass on the floor around the long dining table.
   for (let i = 0; i < 9; i++) {
@@ -85,5 +92,10 @@ export function buildShipCabinDressing(scene: Scene, tileMeters: number, portrai
       (i % 3 - 1) * .25, .028, (i % 2 ? .29 : -.28), .11 + i % 3 * .035, .018, .07, i % 3 ? dish : brokenGlass);
     shard.rotation.y = i * 1.27;
   }
+  // Rebase complete assemblies (including portrait frame and crab legs) in
+  // one pass, then seat them on the same listed floor as the character/grid.
+  for(const mesh of result){const col=wreckCabinContentCell(`${mesh.metadata.cabinId}-dressing`,{col:0,row:0}).col;
+    mesh.position.x+=col*tileMeters;
+    mesh.computeWorldMatrix(true);mesh.position.y+=wreckListHeight(mesh.getBoundingInfo().boundingBox.centerWorld.z);}
   return result;
 }

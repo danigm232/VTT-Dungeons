@@ -1,5 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { createDmWorkspacePreset, recommendedDmWorkspace } from './dm-workspace';
+import { packDmWorkspace, createDmWorkspacePreset, recommendedDmWorkspace } from './dm-workspace';
+
+describe('automatic DM row packing', () => {
+  it('assigns a distinct row to every narrow-screen panel', () => {
+    const packed = packDmWorkspace([{ id: 'map', span: 1 }, { id: 'players', span: 1 }, { id: 'requests', span: 1 }], 1);
+    expect(packed.map(item => item.row)).toEqual([1, 2, 3]);
+    expect(packed.every(item => item.column === 1 && item.span === 1)).toBe(true);
+  });
+  it('fills each row without changing requested spans or order', () => {
+    const items = [{ id: 'players', span: 4 }, { id: 'map', span: 8 }, { id: 'requests', span: 4 }, { id: 'save', span: 4 }];
+    const packed = packDmWorkspace(items);
+    expect(packed.map(item => item.id)).toEqual(items.map(item => item.id));
+    expect(packed.filter(item => item.row === 1).map(item => item.span)).toEqual([4, 8]);
+    expect(packed.filter(item => item.row === 2).map(item => item.span)).toEqual([6, 6]);
+    expect(items[2]!.span).toBe(4);
+  });
+  it('reflows after closing a panel and never leaves empty columns', () => {
+    const packed = packDmWorkspace([{ id: 'map', span: 8 }, { id: 'save', span: 4 }, { id: 'players', span: 4 }]);
+    for (const row of new Set(packed.map(item => item.row))) expect(packed.filter(item => item.row === row).reduce((sum, item) => sum + item.span, 0)).toBe(12);
+    expect(packed.at(-1)).toEqual({ id: 'players', row: 2, column: 1, span: 12 });
+  });
+});
 
 describe('recommended DM workspace', () => {
   it.each(['exploration', 'combat'] as const)('keeps the board first in %s', mode => {

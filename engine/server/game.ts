@@ -1,18 +1,22 @@
 import crypto from 'node:crypto';
 import type { Server, Socket } from 'socket.io';
 import {
-  OBJECT_MODEL_VERSION, PROTOCOL_VERSION, STEP_DURATION_MS, basicCombatActionAnimationStates, campPlayerInteractSchema, characterSheetUpdateSchema, claimSchema, dmCommandSchema, explorationActionSchema, interactSchema, inventoryUpdateSchema, moveInputSchema, playerCombatSchema, sceneReadySchema, sfxLoopEndedSchema,
-  explorationBasicActionCatalogue, type AudioState, type BasicCombatAction, type Cell, type CombatAction, type CombatCondition, type CombatEvent, type CombatParticipant, type CombatPrompt, type CommandResult, type DmCommand, type DmObject, type DmObjectInteraction, type DmState, type EnvironmentState, type ExplorationBasicAction, type Facing, type PlayerPrivate,
+  OBJECT_MODEL_VERSION, PROTOCOL_VERSION, STEP_DURATION_MS, basicCombatActionAnimationStates, campPlayerInteractSchema, characterSheetUpdateSchema, claimSchema, dmCommandSchema, explorationActionSchema, interactSchema, inventoryUpdateSchema, inventoryUseSchema, moveInputSchema, playerCombatSchema, sceneReadySchema, sfxLoopEndedSchema,
+  explorationBasicActionCatalogue, type AudioState, type BasicCombatAction, type Cell, type CombatAction, type CombatCondition, type ConditionSource, type CombatEvent, type CombatParticipant, type CombatPrompt, type CommandResult, type DmCommand, type DmObject, type DmObjectInteraction, type DmState, type EnvironmentState, type ExplorationBasicAction, type Facing, type PlayerPrivate,
   type ExplorationAction, type PublicEntity, type PublicProp, type SceneId, type StepState, type WorldSnapshot
 } from '../shared/protocol.js';
 import type { CampRestState } from '../shared/camp-rest.js';
+import { activitiesForCampPoint, campPointInReach } from '../shared/camp-activities.js';
 import { adventureView, choiceFlag, endingFlag } from '../shared/adventure.js';
 import type { PickupDefinition, PropDefinition, Rotation } from '../shared/campaign.js';
 import { cellKey, footprintFor, sameCell, segmentCrossesBox } from '../shared/geometry.js';
 import { supportsCameraOrientation } from '../shared/camera.js';
-import { surfaceNeighbors } from '../shared/terrain.js';
+import { surfaceNeighbors, surfaceHeight } from '../shared/terrain.js';
 import { carriedLightRadiusMeters } from '../shared/carried-light.js';
+import { inventoryEquals, inventoryStackIndex, removeInventoryUnit, useInventoryItem, type InventoryUse } from '../shared/inventory.js';
+import { wreckCabinContentCell } from '../shared/wreck-structure.js';
 import { jumpGuidance } from '../shared/jumping.js';
+import { conditionRemainingMs, ROUND_DURATION_MS } from '../shared/conditions.js';
 import { actionVisualEffect, type DurableVisualEffect } from '../shared/world-visual-effects.js';
 import { combatActionVisualState } from '../shared/combat-animation.js';
 import { compileCampaignBundle, type CampaignServerBundle, type CompiledCampaign, type RuleTraits, type SceneDefinition } from './campaign.js';
@@ -33,7 +37,6 @@ export type CharacterState = {
 };
 type NpcState = { id: string; identityId: string; label: string; tokenId: string; color: string; cell: Cell; surfaceId: string; sceneId: SceneId; facing: Facing; step?: StepState | null; hp: number; maxHp: number; armorClass: number; speedMeters: number; initiativeBonus: number; attacks: CombatAction[]; traits: string[]; ruleTraits: RuleTraits; damageResistances: string[]; damageImmunities: string[]; conditionImmunities: CombatCondition[]; combatEnabled: boolean; visible: boolean; blocksMovement: boolean };
 type CreatureState = NonNullable<CompiledCampaign['encounter']>['creature'] & { sceneId: SceneId; surfaceId: string; facing: Facing; visible: boolean; hp: number; maxHp: number; armorClass: number; speedMeters: number; initiativeBonus: number; attacks: CombatAction[]; traits: string[]; actions: string[]; resources: Record<string, { label: string; current: number; max: number }>; ruleTraits: RuleTraits; damageResistances: string[]; damageImmunities: string[]; conditionImmunities: CombatCondition[]; mimicOfPlayerId: string | null };
-type ConditionSource = { condition: CombatCondition; sourceId?: string; sourceAbility?: string; sourceLabel?: string; escapeDc?: number; durationRounds?: number; appliedAtRound?: number; endsWhenSourceDefeated?: boolean };
 type PendingMovement = { entityId: string; destination: Cell; destinationSurfaceId?: string; reactorsChecked: string[] };
 type PendingCombatResolution = {
   id: string; stage: 'attack' | 'damage' | 'save' | 'escape' | 'death-save' | 'check' | 'concentration' | 'reaction';
@@ -98,6 +101,7 @@ export class GameState {
   camera = { mode: 'fixed' as 'fixed' | 'semiFixed' | 'follow', focusId: null as string | null };
   environment: EnvironmentState = { storm: false, lightning: false, stormIntensity: 0.5, timeOfDay: 'auto' };
   campRest: CampRestState | null = null;
+  private campActivities = new Map<string, CampRestState['interactions']>();
   audio: AudioState = {
     music: freshTrack(0.3),
     layers: { ocean: freshTrack(0.5), wind: freshTrack(0.25), wood: freshTrack(0.2), storm: freshTrack(0.25) },
@@ -158,7 +162,7 @@ export class GameState {
       const destination=scene.terrain?this.terrainStepDestination(scene,character.surfaceId,character.cell,seat.cell):resolveStep(scene,character.cell,facing,this.publicObjectProps(character.sceneId))?{cell:seat.cell,surfaceId:seat.surfaceId}:null;
       if(!destination||destination.surfaceId!==seat.surfaceId||!sameCell(destination.cell,seat.cell))return {ok:false,code:'SEAT_BLOCKED'};
     }
-    if([...this.characters.values()].some(other=>other.id!==characterId&&other.sessionToken&&other.sceneId===character.sceneId&&other.surfaceId===character.surfaceId&&(sameCell(other.cell,seat.cell)||other.step&&sameCell(other.step.from,seat.cell))))return {ok:false,code:'SEAT_OCCUPIED'};
+    if(this.occupiedByActor(character.sceneId,seat.surfaceId,seat.cell,characterId))return {ok:false,code:'SEAT_OCCUPIED'};
     if(this.publicObjectProps(character.sceneId).some(prop=>prop.surfaceId===seat.surfaceId&&prop.structure!=='destroyed'&&(prop.kind!=='door'||prop.state!=='open')&&footprintFor(prop.cell,prop.rotation,prop.footprint).some(cell=>sameCell(cell,seat.cell))))return {ok:false,code:'SEAT_BLOCKED'};
     this.clearSeat(characterId);character.cell=cloneCell(seat.cell);character.facing=seat.facing;character.moving=false;character.input.held=null;
     this.progress[this.seatFlag(characterId,seat.id)]=true;this.revision++;this.stateRevision++;return {ok:true,code:'SEAT_TAKEN'};
@@ -405,9 +409,9 @@ export class GameState {
     // Without an alarm they wander at their authored C4 cells. A fallen
     // wheel or a second Strength check puts them just behind the door.
     const nearDoor: Record<string, { col: number; row: number }> = alerted ? {
-      'c4-zombie-1': this.expandedWreckCell(17, 4),
-      'c4-zombie-2': this.expandedWreckCell(16, 4),
-      'c4-zombie-3': this.expandedWreckCell(17, 5)
+      'c4-zombie-1': this.expandedWreckCell(11, 4),
+      'c4-zombie-2': this.expandedWreckCell(10, 4),
+      'c4-zombie-3': this.expandedWreckCell(11, 5)
     } : {};
     return this.revealWreckNpcs(['c4-zombie-1', 'c4-zombie-2', 'c4-zombie-3'].slice(0, count), 'main', nearDoor);
   }
@@ -609,8 +613,54 @@ export class GameState {
   }
   /** Repair actors stranded by geometry changes while keeping each character's
    * map, deck, and relative position whenever that address still exists. */
+  private migrateStormwreckCabins(payload:DurablePayload){
+    if(this.campaign.public.campaignId!=='stormwreck-isle'||(payload.wreckGridVersion??1)>=4)return;
+    const roomAt=(cell:Cell)=>cell.col>=17&&cell.col<=24&&cell.row>=8&&cell.row<=19?'c4':cell.col>=32&&cell.col<=39&&cell.row>=8&&cell.row<=19?'c6':null;
+    for(const saved of [...payload.characters,...(payload.npcs??[]),...(payload.creature?[payload.creature]:[])]){
+      if((saved.sceneId??payload.sceneId)!=='wreck-ship')continue;
+      const room=saved.surfaceId==='main'?roomAt(saved.cell):null;
+      if(room)saved.cell=wreckCabinContentCell(`${room}-occupant`,saved.cell);
+      else if(['lower-deck','hold-air'].includes(saved.surfaceId)&&saved.cell.col>=19&&saved.cell.col<=20&&saved.cell.row===10)saved.cell={...saved.cell,col:saved.cell.col-6};
+    }
+    for(const saved of payload.scenes.find(s=>s.sceneId==='wreck-ship')?.objects??[]){
+      const definition=this.objectScenes.get('wreck-ship')?.objects.find(o=>o.id===saved.id);if(!definition)continue;
+      if(saved.kind==='door'){saved.cell=cloneCell(definition.cell);continue;}
+      if(sameCell(saved.cell,definition.cell))continue;
+      if(/^c[4-7]-/.test(saved.id)&&(!saved.surfaceId||saved.surfaceId==='main')&&roomAt(saved.cell))saved.cell=wreckCabinContentCell(saved.id,saved.cell);
+      if(saved.id==='c9-iron-chest'&&saved.surfaceId==='hold-air'&&saved.cell.col===21&&saved.cell.row===10)saved.cell=cloneCell(definition.cell);
+    }
+    // Cropped edges and legacy remaps can invalidate a *part* of a movable
+    // object's footprint. Repair the whole footprint without resetting loot,
+    // door, trap, attachment or damage states, then repair actors around it.
+    const scene=this.sceneById('wreck-ship'),occupied=new Set<string>();
+    const savedObjects=payload.scenes.find(s=>s.sceneId==='wreck-ship')?.objects??[];
+    for(const saved of [...savedObjects].sort((a,b)=>Number(b.kind==='door')-Number(a.kind==='door'))){
+      const definition=this.objectScenes.get('wreck-ship')?.objects.find(o=>o.id===saved.id);if(!definition)continue;
+      const surfaceId=saved.surfaceId??definition.surfaceId;
+      const legal=(cell:Cell)=>footprintFor(cell,saved.rotation,definition.baseFootprint).every(p=>this.walkableAt('wreck-ship',surfaceId,p)
+        &&!occupied.has(`${surfaceId}:${cellKey(p)}`)&&!(surfaceId===scene.surfaceId&&scene.spawns.some(s=>sameCell(s,p))));
+      if(!legal(saved.cell)){
+        const candidates=scene.terrain?.surfaces.find(s=>s.id===surfaceId)?.tiles.map(t=>t.cell).sort((a,b)=>
+          Math.abs(a.col-saved.cell.col)+Math.abs(a.row-saved.cell.row)-Math.abs(b.col-saved.cell.col)-Math.abs(b.row-saved.cell.row))??[];
+        const next=candidates.find(legal);if(next)saved.cell=cloneCell(next);
+      }
+      for(const p of footprintFor(saved.cell,saved.rotation,definition.baseFootprint))occupied.add(`${surfaceId}:${cellKey(p)}`);
+    }
+    payload.wreckGridVersion=4;
+  }
+  private migrateStormwreckHelm(payload:DurablePayload){
+    if(this.campaign.public.campaignId!=='stormwreck-isle'||(payload.wreckGridVersion??1)>=5)return;
+    const saved=payload.scenes.find(s=>s.sceneId==='wreck-ship')?.objects.find(o=>o.id==='wheel');
+    const wheel=this.objectScenes.get('wreck-ship')?.objects.find(o=>o.id==='wheel');
+    // Preserve a detached wheel and all adventure states. Only its attached
+    // mount moves to the canonical forward-looking station on the poop deck.
+    if(saved?.kind==='wheel'&&saved.attachment==='attached'&&wheel?.kind==='wheel'){
+      saved.cell=cloneCell(wheel.mount.cell);saved.rotation=wheel.rotation;
+    }
+    payload.wreckGridVersion=5;
+  }
   private migrateStormwreckActorCells(payload: DurablePayload) {
-    if (this.campaign.public.campaignId !== 'stormwreck-isle') return;
+    if (this.campaign.public.campaignId !== 'stormwreck-isle' && !this.campaign.public.scenes.some(scene=>scene.camp)) return;
     const actors = [
       ...payload.characters.map(saved => ({ saved, sceneId: saved.sceneId ?? payload.sceneId })),
       ...(payload.npcs ?? []).map(saved => ({ saved, sceneId: saved.sceneId })),
@@ -925,12 +975,7 @@ export class GameState {
       if (!destination) return null;
       const blocked = props.some(prop => prop.surfaceId === destination.surfaceId && prop.structure !== 'destroyed'
         && (prop.kind !== 'door' || prop.state !== 'open') && footprintFor(prop.cell, prop.rotation, prop.footprint).some(cell => sameCell(cell, destination.cell)));
-      const occupied = [...this.characters.values()].some(item => item.id !== character.id && Boolean(item.sessionToken) && item.sceneId === character.sceneId
-        && item.surfaceId === destination.surfaceId && (sameCell(item.cell, destination.cell) || Boolean(item.step && sameCell(item.step.from, destination.cell))))
-        || Boolean(this.creature?.visible && this.creature.hp > 0 && this.creature.sceneId === character.sceneId
-          && this.creature.surfaceId === destination.surfaceId && sameCell(this.creature.cell, destination.cell))
-        || [...this.npcs.values()].some(npc => npc.blocksMovement && npc.visible && npc.hp > 0 && npc.sceneId === character.sceneId
-          && npc.surfaceId === destination.surfaceId && (sameCell(npc.cell, destination.cell) || Boolean(npc.step && sameCell(npc.step.from, destination.cell))));
+      const occupied = this.occupiedByActor(character.sceneId, destination.surfaceId, destination.cell, character.id);
       return blocked || occupied ? null : { destination, facing: candidateFacing };
     });
     const chosen = candidates.find(candidate => candidate !== null);
@@ -1137,9 +1182,7 @@ export class GameState {
     if (scene.terrain ? !this.walkableAt(entitySceneId, destinationSurfaceId, destination)
       || this.publicObjectProps(entitySceneId).some(prop => prop.surfaceId === destinationSurfaceId && prop.structure !== 'destroyed' && (prop.kind !== 'door' || prop.state !== 'open') && footprintFor(prop.cell, prop.rotation, prop.footprint).some(cell => sameCell(cell, destination)))
       : !isWalkable(scene, destination, this.publicObjectProps(entitySceneId))) return 'BLOCKED_CELL';
-    const occupied = [...this.characters.values()].filter(item => item.id !== entityId && Boolean(item.sessionToken)).some(item => item.sceneId === entitySceneId && item.surfaceId === destinationSurfaceId && sameCell(item.cell, destination))
-      || Boolean(this.creature?.visible && this.creature.hp > 0 && this.creature.id !== entityId && this.creature.sceneId === entitySceneId && this.creature.surfaceId === destinationSurfaceId && sameCell(this.creature.cell, destination))
-      || [...this.npcs.values()].some(item => item.blocksMovement && item.visible && item.hp > 0 && item.id !== entityId && item.sceneId === entitySceneId && item.surfaceId === destinationSurfaceId && sameCell(item.cell, destination));
+    const occupied = this.occupiedByActor(entitySceneId, destinationSurfaceId, destination, entityId);
     if (occupied) return 'OCCUPIED_CELL';
     if (this.combat.pending) return 'ROLL_PENDING';
     if (this.queueOpportunityMovement(entityId, destination, destinationSurfaceId)) return 'REACTION_PENDING';
@@ -1205,6 +1248,8 @@ export class GameState {
       id: character.id, kind: 'player', label: character.label, sceneId: character.sceneId, cell: cloneCell(character.cell), surfaceId: character.surfaceId,
       facing: character.facing, moving: character.moving, step: character.step ? structuredClone(character.step) : null, color: character.color, tokenId: character.tokenId, conditions: [...this.conditionsFor(character.id)],
       carriedLightRadiusMeters: carriedLightRadiusMeters(character.inventory),
+      ...(character.sceneId==='wreck-ship' && (character.surfaceId==='sea'||character.surfaceId==='hold-air'||character.step?.movementKind==='dive')
+        ? {waterMovement:this.progress[this.rowboatFlag(character.id)]?'rowboat' as const:character.surfaceId==='hold-air'||character.step?.movementKind==='dive'?'dive' as const:'swim' as const}:{}),
       ...(this.seatFor(character.id)?{seatId:this.seatFor(character.id)!.id}:{}),
       ...(!redactCombat && this.combat.active && this.combat.participantIds.includes(character.id) ? { hp: character.hp, maxHp: character.maxHp, defeated: character.hp <= 0 } : {})
     }));
@@ -1254,10 +1299,16 @@ export class GameState {
       visualEffects: this.activeVisualEffects().filter(effect => effect.visual.sceneId === viewSceneId &&
         (viewSurfaceId === undefined || effect.visual.surfaceId === viewSurfaceId) &&
         (!effect.visual.entityId || visibleIds.has(effect.visual.entityId))).map(effect => structuredClone(effect.visual)),
-      campRest: this.campRest?.sceneId === viewSceneId ? structuredClone(this.campRest) : null,
+      campRest: this.campStateFor(viewSceneId),
       // La CA es el número público que el jugador necesita superar al atacar.
       combat: { active: this.combat.active && (!redactCombat || visibleParticipants.length > 0), round: this.combat.round, currentId: visibleCurrentId, movement: movement && (!redactCombat || visibleIds.has(movement.actorId)) ? movement : null, participants: visibleParticipants.map(participant => redactCombat ? { ...participant, hp: 0, maxHp: 0, armorClass: participant.controller === 'player' ? participant.armorClass : 0, speedMeters: 0, attacks: [] } : participant), order: visibleOrder, lastEvent: visibleEvent ? { id: visibleEvent.id, kind: visibleEvent.kind, text: redactCombat ? visibleEvent.publicText : visibleEvent.text, actorId: visibleEvent.actorId, targetId: visibleEvent.targetId, animation: visibleEvent.animation } : null }
     };
+  }
+
+  private campStateFor(sceneId: string): CampRestState | null {
+    if (this.campRest?.sceneId === sceneId) return structuredClone(this.campRest);
+    const interactions = this.campActivities.get(sceneId);
+    return interactions ? { sceneId, phase: null, paused: false, outcome: null, interruptions: [], interactions: structuredClone(interactions) } : null;
   }
 
   applyCampRestCommand(command: Extract<DmCommand, { type: 'camp:rest' }>): CommandResult {
@@ -1269,18 +1320,20 @@ export class GameState {
     if (activeElsewhere) return { commandId: command.commandId, ok: false, code: 'REST_ACTIVE_ELSEWHERE' };
 
     if (command.action === 'set-night') {
+      if (prior) this.campActivities.set(prior.sceneId, structuredClone(prior.interactions));
       const sameSceneRest = prior?.sceneId === scene.id ? prior : null;
       this.campRest = {
         sceneId: scene.id, phase: 'night', paused: Boolean(sameSceneRest && sameSceneRest.phase !== null && sameSceneRest.phase !== 'finalization' && sameSceneRest.paused), outcome: null,
         interruptions: sameSceneRest && sameSceneRest.phase !== null && sameSceneRest.phase !== 'finalization' ? structuredClone(sameSceneRest.interruptions) : [],
-        interactions: sameSceneRest ? structuredClone(sameSceneRest.interactions) : []
+        interactions: this.campStateFor(scene.id)?.interactions ?? []
       };
       return { commandId: command.commandId, ok: true, code: 'APPLIED' };
     }
 
     if (command.action === 'prepare') {
       if (prior?.sceneId === scene.id && prior.phase !== null && prior.phase !== 'finalization') return { commandId: command.commandId, ok: false, code: 'REST_ALREADY_ACTIVE' };
-      const interactions = prior?.sceneId === scene.id ? structuredClone(prior.interactions) : [];
+      if (prior) this.campActivities.set(prior.sceneId, structuredClone(prior.interactions));
+      const interactions = this.campStateFor(scene.id)?.interactions ?? [];
       this.campRest = { sceneId: scene.id, phase: 'arrival', paused: false, outcome: null, interruptions: [], interactions };
       return { commandId: command.commandId, ok: true, code: 'APPLIED' };
     }
@@ -1312,29 +1365,50 @@ export class GameState {
     return { commandId: command.commandId, ok: false, code: 'INVALID_CAMP_ACTION' };
   }
 
-  applyCampPlayerInteraction(characterId: string, pointId: string) {
+  applyCampPlayerInteraction(characterId: string, pointId: string, activityId?: string) {
     const scene = this.currentScene(), camp = scene.camp, character = this.characters.get(characterId);
     if (!camp || !character || character.sceneId !== scene.id) return { ok: false as const, code: 'CAMP_FEATURE_UNAVAILABLE' };
     const point = camp.interactionPoints.find(candidate => candidate.id === pointId);
-    if (!point || character.surfaceId !== point.surfaceId || character.step
-      || Math.max(Math.abs(character.cell.col - point.cell.col), Math.abs(character.cell.row - point.cell.row)) > 1)
+    if (!point || character.step || character.moving || !campPointInReach(character, point))
       return { ok: false as const, code: 'CAMP_INTERACTION_OUT_OF_REACH' };
     if (this.combat.active) return { ok: false as const, code: 'IN_COMBAT' };
+    if (character.hp <= 0 || this.conditionsFor(character.id).some(condition => ['inconsciente', 'paralizada'].includes(condition)))
+      return { ok: false as const, code: 'CANNOT_ACT' };
     if (point.ownerCharacterId && point.ownerCharacterId !== character.id) return { ok: false as const, code: 'CAMP_INTERACTION_NOT_YOURS' };
+    const available = activitiesForCampPoint(point), activity = activityId ? available.find(item => item.id === activityId) : available[0];
+    if (!activity) return { ok: false as const, code: 'CAMP_ACTIVITY_UNAVAILABLE' };
     const prior = this.campRest;
-    if (prior && prior.sceneId !== scene.id && prior.phase !== null && prior.phase !== 'finalization') return { ok: false as const, code: 'REST_ACTIVE_ELSEWHERE' };
-    const state = prior?.sceneId === scene.id ? prior : { sceneId: scene.id, phase: null, paused: false, outcome: null, interruptions: [], interactions: [] };
-    const previous = [...state.interactions].reverse().find(item => item.pointId === point.id)?.action;
-    const action = point.kind === 'chest' ? previous === 'opened' ? 'closed' as const : 'opened' as const : 'used' as const;
-    state.interactions.push({ pointId: point.id, pointLabel: point.label, characterId: character.id, characterLabel: character.label, at: Date.now(), action });
-    state.interactions = state.interactions.slice(-30);
-    this.campRest = state;
+    let seatLeft = false;
+    if (point.kind === 'seat') {
+      const result = this.interactSeat(characterId, point.id);
+      if (!result?.ok) return { ok: false as const, code: result?.code ?? 'SEAT_UNAVAILABLE' };
+      seatLeft = result.code === 'SEAT_LEFT';
+    }
+    const state = prior?.sceneId === scene.id ? prior : this.campStateFor(scene.id) ?? { sceneId: scene.id, phase: null, paused: false, outcome: null, interruptions: [], interactions: [] };
+    const previous = [...state.interactions].reverse().find(item => item.pointId === point.id && (item.action === 'opened' || item.action === 'closed'))?.action;
+    const action = activity.id === 'chest-toggle' ? previous === 'opened' ? 'closed' as const : 'opened' as const : 'used' as const;
+    if (point.kind !== 'seat') {
+      const object = point.objectCell ?? point.cell, dc = object.col - character.cell.col, dr = object.row - character.cell.row;
+      if (dc || dr) character.facing = directionFromVector(dc, dr) ?? character.facing;
+    }
+    state.interactions.push({ pointId: point.id, pointLabel: point.label, characterId: character.id, characterLabel: character.label, at: Date.now(), action, activityId: activity.id });
+    // The bounded activity feed is also the existing chest-state source.
+    // Keep each chest's latest open/close record when other actions fill it.
+    const chestStates = new Map<string, (typeof state.interactions)[number]>();
+    for (const entry of state.interactions) if (entry.action === 'opened' || entry.action === 'closed') chestStates.set(entry.pointId, entry);
+    const protectedEntries = new Set([...chestStates.values()].slice(-30));
+    const recentBudget = 30 - protectedEntries.size;
+    const recentEntries = new Set(recentBudget ? state.interactions.filter(entry => !protectedEntries.has(entry)).slice(-recentBudget) : []);
+    state.interactions = state.interactions.filter(entry => protectedEntries.has(entry) || recentEntries.has(entry));
+    this.campActivities.set(scene.id, structuredClone(state.interactions));
+    // Using a different camp must neither cancel nor overwrite an active rest.
+    if (!prior || prior.sceneId === scene.id) this.campRest = state;
     this.revision++; this.stateRevision++;
     const detail = action === 'opened' ? 'abres' : action === 'closed' ? 'cierras' : 'usas';
-    const notice = point.kind === 'chest'
+    const notice = activity.id === 'chest-toggle'
       ? `${detail} ${point.label}. ${point.description} El baúl no modifica automáticamente tu mochila.`
-      : `${detail} ${point.label}. ${point.description}`;
-    return { ok: true as const, code: 'CAMP_INTERACTED', point, action, notice };
+      : point.kind === 'seat' ? `${seatLeft ? 'Te levantas de' : 'Te sientas en'} ${point.label}.` : `${activity.label} · ${point.label}. ${activity.guidance}`;
+    return { ok: true as const, code: 'CAMP_INTERACTED', point, action, activity, notice };
   }
 
   public publicObjectProps(sceneId: SceneId = this.sceneId): PublicProp[] {
@@ -1424,7 +1498,7 @@ export class GameState {
       ...(stage ? [{ targetId: stage.targetId, label: stage.nearbyLabel }] : []),
       ...(mirror ? [{ targetId: mirror.targetId, label: mirror.nearbyLabel }] : []),
       ...(nearWheel ? [{ targetId: config!.targetId, label: config!.nearbyLabel }] : []),
-      ...(character&&!character.step&&!this.combat.active?(this.sceneForCharacter(character).seats??[]).filter(seat=>(!seat.reservedActorId||!this.npcs.get(seat.reservedActorId)?.visible||!sameCell(this.npcs.get(seat.reservedActorId)!.cell,seat.cell))&&seat.surfaceId===character.surfaceId&&Math.max(Math.abs(seat.cell.col-character.cell.col),Math.abs(seat.cell.row-character.cell.row))<=1).map(seat=>({targetId:seat.id,label:`${this.seatFor(character.id)?.id===seat.id?'Levantarte':'Sentarte'} · ${seat.label}`})):[]),
+      ...(character&&!character.step&&!this.combat.active?(this.sceneForCharacter(character).seats??[]).filter(seat=>!this.sceneForCharacter(character).camp?.interactionPoints.some(point=>point.id===seat.id)&&(!seat.reservedActorId||!this.npcs.get(seat.reservedActorId)?.visible||!sameCell(this.npcs.get(seat.reservedActorId)!.cell,seat.cell))&&seat.surfaceId===character.surfaceId&&Math.max(Math.abs(seat.cell.col-character.cell.col),Math.abs(seat.cell.row-character.cell.row))<=1).map(seat=>({targetId:seat.id,label:`${this.seatFor(character.id)?.id===seat.id?'Levantarte':'Sentarte'} · ${seat.label}`})):[]),
     ];
   }
 
@@ -1475,17 +1549,15 @@ export class GameState {
     const interactions = this.nearbyInteractions(character);
     const nearbyInteraction = interactions[0] ?? null;
     const campScene = character ? this.sceneForCharacter(character) : null;
-    const campInteractions = canAct && character && !this.combat.active && !character.step && campScene?.camp ? campScene.camp.interactionPoints
-      .filter(point => (!point.ownerCharacterId || point.ownerCharacterId === character.id) && point.surfaceId === character.surfaceId
-        && Math.max(Math.abs(character.cell.col - point.cell.col), Math.abs(character.cell.row - point.cell.row)) <= 1)
+    const campInteractions = canAct && character && !this.combat.active && !character.step && !character.moving && campScene?.camp ? campScene.camp.interactionPoints
+      .filter(point => (!point.ownerCharacterId || point.ownerCharacterId === character.id) && campPointInReach(character, point))
       .map(point => {
-        const open = point.kind === 'chest' && this.campRest?.sceneId === campScene.id
-          && [...this.campRest.interactions].reverse().find(item => item.pointId === point.id)?.action === 'opened';
+        const open = point.kind === 'chest' && [...(this.campStateFor(campScene.id)?.interactions ?? [])].reverse().find(item => item.pointId === point.id && (item.action === 'opened' || item.action === 'closed'))?.action === 'opened';
         const actionLabel = point.kind === 'chest' ? open ? `Cerrar ${point.label}` : `Abrir ${point.label}`
           : point.kind === 'tent' ? `Entrar · ${point.label}`
             : point.kind === 'bed' ? `Usar · ${point.label}`
               : point.kind === 'fire' ? 'Acercarte a la hoguera'
-                : point.kind === 'seat' ? 'Sentarte'
+                : point.kind === 'seat' ? this.seatFor(character!.id)?.id === point.id ? 'Levantarte' : 'Sentarte'
                   : point.kind === 'guard' ? 'Tomar el puesto de guardia' : `Usar · ${point.label}`;
         return { pointId: point.id, label: point.label, kind: point.kind, description: point.description, actionLabel, ...(point.kind === 'chest' ? { open } : {}) };
       }) : [];
@@ -1529,17 +1601,17 @@ export class GameState {
         .filter(character => character.sceneId === this.sceneId && Boolean(character.sessionToken))
         .map(character => ({ id: character.id, attacks: structuredClone(character.combat.attacks), explorationActions: structuredClone(character.explorationActions ?? []), explorationBasics: [...(character.explorationBasics ?? [])] })) } : {}),
       characters: [...this.characters.values()].map(character => ({
-        id: character.id, label: character.label, archetype: character.archetype, color: character.color, tokenId: character.tokenId,
+        id: character.id, label: character.label, archetype: character.archetype, color: character.color, tokenId: character.tokenId, conditions: [...this.conditionsFor(character.id)], conditionSources: structuredClone(this.conditionSourcesFor(character.id)),
         claimed: Boolean(character.sessionToken), connected: Boolean(character.socketId), hp: character.hp, maxHp: character.maxHp,
         session: Boolean(character.sessionToken), sceneId: character.sceneId, cell: cloneCell(character.cell), surfaceId: character.surfaceId, step: character.step ? structuredClone(character.step) : null, inventory: [...character.inventory], sheet: character.sheet ? structuredClone(character.sheet) : null, resources: structuredClone(character.combat.resources), concentration: structuredClone(this.concentration[character.id] ?? null), deathSaves: { ...character.deathSaves }
       })),
-      creature: this.creature ? { id: this.creature.id, label: this.creature.label, visible: this.creature.visible, cell: cloneCell(this.creature.cell), surfaceId: this.creature.surfaceId, sceneId: this.creature.sceneId, hp: this.creature.hp, maxHp: this.creature.maxHp, armorClass: this.creature.armorClass, speedMeters: this.creature.speedMeters, traits: [...this.creature.traits], actions: [...this.creature.actions] } : null,
-      npcs: [...this.npcs.values()].filter(npc => npc.sceneId === this.sceneId).map(npc => ({ id: npc.id, label: npc.label, tokenId: npc.tokenId, color: npc.color, cell: cloneCell(npc.cell), surfaceId: npc.surfaceId, hp: npc.hp, maxHp: npc.maxHp, armorClass: npc.armorClass, speedMeters: npc.speedMeters, traits: [...npc.traits], attacks: structuredClone(npc.attacks), combatEnabled: npc.combatEnabled, visible: npc.visible })),
+      creature: this.creature ? { id: this.creature.id, label: this.creature.label, visible: this.creature.visible, cell: cloneCell(this.creature.cell), surfaceId: this.creature.surfaceId, sceneId: this.creature.sceneId, hp: this.creature.hp, maxHp: this.creature.maxHp, armorClass: this.creature.armorClass, speedMeters: this.creature.speedMeters, traits: [...this.creature.traits], actions: [...this.creature.actions], conditions: [...this.conditionsFor(this.creature.id)], conditionSources: structuredClone(this.conditionSourcesFor(this.creature.id)) } : null,
+      npcs: [...this.npcs.values()].filter(npc => npc.sceneId === this.sceneId).map(npc => ({ id: npc.id, label: npc.label, tokenId: npc.tokenId, color: npc.color, cell: cloneCell(npc.cell), surfaceId: npc.surfaceId, hp: npc.hp, maxHp: npc.maxHp, armorClass: npc.armorClass, speedMeters: npc.speedMeters, traits: [...npc.traits], attacks: structuredClone(npc.attacks), combatEnabled: npc.combatEnabled, visible: npc.visible, conditions: [...this.conditionsFor(npc.id)], conditionSources: structuredClone(this.conditionSourcesFor(npc.id)) })),
       combat: { sequences: structuredClone(this.combat.sequences), active: this.combat.active, round: this.combat.round, currentId: this.currentCombatId(), movement: this.combatMovement(), participants: this.combat.active ? this.combatParticipants() : [], lastEvent: this.combat.lastEvent, prompt: this.combatPromptFor('dm'), initiativePending: this.combat.initiativePending, initiativeSubmitted: { ...this.combat.initiativeSubmitted }, actionUsed: { ...this.combat.actionUsed }, bonusActionUsed: { ...this.combat.bonusActionUsed }, reactionUsed: { ...this.combat.reactionUsed }, concentration: structuredClone(this.concentration), recharge: structuredClone(this.combat.recharge), order: this.combat.order.map(id => {
         const entity = this.combatEntity(id); if (!entity) throw new Error('COMBAT_ENTITY_MISSING'); return { id, label: entity.label, kind: entity.kind };
       }) },
       privateNotes: { creature: this.campaign.encounter?.note ?? '', wheel: this.campaign.wheelInteraction?.note ?? '' },
-      camera: { ...this.camera }, environment: { ...this.environment }, campRest: this.campRest ? structuredClone(this.campRest) : null, audio: structuredClone(this.audio), projectorReady: this.projectorReady,
+      camera: { ...this.camera }, environment: { ...this.environment }, campRest: this.campRest ? structuredClone(this.campRest) : null, campActivity: this.campStateFor(this.sceneId), audio: structuredClone(this.audio), projectorReady: this.projectorReady,
       interactions: this.interactions.map(({ id, characterId, characterLabel, targetId, createdAt, status }) => ({ id, characterId, characterLabel, targetId, createdAt, status })), objects: this.dmObjects(),
       pickups: (this.currentScene().pickups ?? []).map(pickup => ({ id: pickup.id, label: pickup.label, sceneId: this.sceneId, surfaceId: pickup.surfaceId, cell: pickup.cell, kind: pickup.kind, collected: Boolean(this.progress[`pickup.${pickup.id}`]), available: this.pickupAvailable(this.sceneId, pickup) })), progress: { ...this.progress },
       ...(this.campaign.adventure ? { adventure: adventureView(this.campaign.adventure, this.progress, this.storyNotes) } : {}),
@@ -1553,6 +1625,12 @@ export class GameState {
 
   tick(_dt = 0) {
     const now = Date.now(), changedCharacters = new Set<string>();
+    for (const [entityId, sources] of Object.entries(this.conditionSources)) for (const source of [...sources]) {
+      if (source.expiresAt !== undefined && now >= source.expiresAt) {
+        this.setCombatCondition(entityId, source.condition, false, source);
+        this.revision++; this.stateRevision++; changedCharacters.add(entityId);
+      }
+    }
     for (const effect of this.visualEffects) if (effect.concentration && effect.visual.expiresAt <= now && this.concentration[effect.ownerId]?.actionId === effect.actionId) {
       this.endConcentration(effect.ownerId); this.revision++; this.stateRevision++; changedCharacters.add(effect.ownerId);
     }
@@ -1569,7 +1647,7 @@ export class GameState {
         const fromSceneId = character.sceneId, fromSurfaceId = character.surfaceId;
         character.surfaceId = completedStep.toSurfaceId ?? character.surfaceId;
         character.step = null; character.moving = false; this.revision++; changedCharacters.add(character.id);
-        if (!this.progress[this.rowboatFlag(character.id)] && this.autoTraverseAfterStep(character, completedStep.to)) changedCharacters.add(character.id);
+        if (!completedStep.movementKind && !this.progress[this.rowboatFlag(character.id)] && this.autoTraverseAfterStep(character, completedStep.to)) changedCharacters.add(character.id);
         this.observeWreckLocationChange(character, fromSceneId, fromSurfaceId);
       }
       if (!character.step && character.socketId && scene.movementEnabled && character.input.held && now - character.input.updatedAt <= 650) {
@@ -1592,13 +1670,12 @@ export class GameState {
         && port.autoDirection !== 'forward' && (sameCell(arrived, port.to.cell) || sameCell(arrived, port.from.cell))) destination = port.from;
       if (!destination || !this.walkableAt(destination.mapId, destination.surfaceId, destination.cell)) continue;
       if(port.minimumApproachSteps&&!this.progress[`road.${character.id}.${port.id}.${port.minimumApproachSteps}`])continue;
-      const occupied = [...this.characters.values()].some(item => item.id !== character.id && Boolean(item.sessionToken) && item.sceneId === destination!.mapId
-        && item.surfaceId === destination!.surfaceId && (sameCell(item.cell, destination!.cell) || Boolean(item.step && sameCell(item.step.from, destination!.cell))))
-        || Boolean(this.creature?.visible && this.creature.hp > 0 && this.creature.sceneId === destination.mapId
-          && this.creature.surfaceId === destination.surfaceId && sameCell(this.creature.cell, destination.cell))
-        || [...this.npcs.values()].some(item => item.blocksMovement && item.visible && item.hp > 0 && item.sceneId === destination!.mapId
-          && item.surfaceId === destination!.surfaceId && sameCell(item.cell, destination!.cell));
+      const occupied = this.occupiedByActor(destination.mapId, destination.surfaceId, destination.cell, character.id);
       if (occupied) return false;
+      if (['rope-ladder','rigging','swim'].includes(port.mode) && character.sceneId === destination.mapId) {
+        this.startClimb(character,destination.surfaceId,destination.cell,port.mode==='swim'?'dive':'climb');
+        return true;
+      }
       for(const key of Object.keys(this.progress))if(key.startsWith(`road.${character.id}.`))delete this.progress[key];
       this.clearSeat(character.id);character.sceneId = destination.mapId; character.surfaceId = destination.surfaceId; character.cell = cloneCell(destination.cell);
       this.progress[this.rowboatFlag(character.id)] = false;
@@ -1663,9 +1740,7 @@ export class GameState {
     const destination = direction === 'forward' ? port.to : port.from;
     if (character.sceneId !== origin.mapId || character.surfaceId !== origin.surfaceId || !sameCell(character.cell, origin.cell)) return 'PORT_ORIGIN_MISMATCH';
     if (!this.walkableAt(destination.mapId, destination.surfaceId, destination.cell)) return 'BLOCKED_CELL';
-    const occupied = (cell: Cell) => [...this.characters.values()].some(item => item.id !== entityId && Boolean(item.sessionToken) && item.sceneId === destination.mapId && item.surfaceId === destination.surfaceId && (sameCell(item.cell, cell) || Boolean(item.step && sameCell(item.step.from, cell))))
-      || Boolean(this.creature?.visible && this.creature.hp > 0 && this.creature.sceneId === destination.mapId && this.creature.surfaceId === destination.surfaceId && sameCell(this.creature.cell, cell))
-      || [...this.npcs.values()].some(item => item.blocksMovement && item.visible && item.hp > 0 && item.sceneId === destination.mapId && item.surfaceId === destination.surfaceId && sameCell(item.cell, cell));
+    const occupied = (cell: Cell) => this.occupiedByActor(destination.mapId, destination.surfaceId, cell, entityId);
     let landingCell = destination.cell;
     // Several adventurers may return by the same boat while the first still
     // stands at its beach landing. Stage later arrivals on the nearest free
@@ -1686,6 +1761,10 @@ export class GameState {
       }
     }
     if (occupied(landingCell)) return 'OCCUPIED_CELL';
+    if (['rope-ladder','rigging','swim'].includes(port.mode) && character.sceneId === destination.mapId) {
+      this.startClimb(character,destination.surfaceId,landingCell,port.mode==='swim'?'dive':'climb');
+      return 'MOVED';
+    }
     const fromSceneId = character.sceneId, fromSurfaceId = character.surfaceId;
     this.clearSeat(character.id);character.sceneId = destination.mapId; character.surfaceId = destination.surfaceId; character.cell = cloneCell(landingCell);
     this.progress[this.rowboatFlag(character.id)] = false;
@@ -1696,6 +1775,19 @@ export class GameState {
     this.cancelInteractionsForCharacter(character.id); this.revision++; this.stateRevision++;
     this.observeWreckLocationChange(character, fromSceneId, fromSurfaceId);
     return 'MOVED';
+  }
+
+  private startClimb(character: CharacterState, surfaceId: string, cell: Cell,kind:'climb'|'dive'='climb') {
+    const terrain = this.sceneForCharacter(character).terrain!;
+    const from = cloneCell(character.cell), fromSurfaceId = character.surfaceId;
+    const rise = Math.abs(surfaceHeight(terrain,{surfaceId,cell}) - surfaceHeight(terrain,{surfaceId:fromSurfaceId,cell:from}));
+    this.clearSeat(character.id);
+    this.progress[this.rowboatFlag(character.id)]=false;
+    this.progress[this.rowboatPilotFlag(character.id)]=false;
+    character.cell = cloneCell(cell);
+    character.step = {from,to:cloneCell(cell),fromSurfaceId,toSurfaceId:surfaceId,startedAt:Date.now(),durationMs:Math.max(kind==='dive'?1800:STEP_DURATION_MS,Math.round(rise/1.5*1000)),movementKind:kind};
+    character.moving=true;character.input={held:null,seq:-1,updatedAt:0};
+    this.cancelInteractionsForCharacter(character.id);this.revision++;this.stateRevision++;
   }
 
   private applySceneAudioProfile(sceneId: SceneId, now = Date.now()) {
@@ -1749,15 +1841,36 @@ export class GameState {
     if (next.kind === 'crate' && next.interaction?.kind === 'trap-stash') return [];
     return isDoor(next) && next.state === 'open' ? [] : this.locationCells(object, candidate);
   }
+  private occupiesAddress(actor: { cell: Cell; surfaceId: string; step?: StepState | null }, surfaceId: string, cell: Cell) {
+    const step = actor.step;
+    if (!step) return actor.surfaceId === surfaceId && sameCell(actor.cell, cell);
+    return (step.fromSurfaceId ?? actor.surfaceId) === surfaceId && sameCell(step.from, cell)
+      || (step.toSurfaceId ?? actor.surfaceId) === surfaceId && sameCell(step.to, cell);
+  }
+  private occupiedByActor(sceneId: string, surfaceId: string, cell: Cell, exceptId?: string) {
+    return [...this.characters.values()].some(character => character.id !== exceptId && Boolean(character.sessionToken)
+      && character.sceneId === sceneId && this.occupiesAddress(character, surfaceId, cell))
+      || Boolean(this.creature && this.creature.id !== exceptId && this.creature.visible && this.creature.hp > 0
+        && this.creature.sceneId === sceneId && this.occupiesAddress(this.creature, surfaceId, cell))
+      || [...this.npcs.values()].some(npc => npc.id !== exceptId && npc.blocksMovement && npc.visible && npc.hp > 0
+        && npc.sceneId === sceneId && this.occupiesAddress(npc, surfaceId, cell));
+  }
   private actorReservations(surfaceId: string, sceneId = this.sceneId) {
     const occupied = new Set<string>();
     for (const character of this.characters.values()) {
-      if (character.sceneId !== sceneId || character.surfaceId !== surfaceId) continue;
-      occupied.add(cellKey(character.cell));
-      if (character.step) occupied.add(cellKey(character.step.from));
+      if (character.sceneId !== sceneId) continue;
+      if (character.step) {
+        if ((character.step.fromSurfaceId ?? character.surfaceId) === surfaceId) occupied.add(cellKey(character.step.from));
+        if ((character.step.toSurfaceId ?? character.surfaceId) === surfaceId) occupied.add(cellKey(character.step.to));
+      } else if (character.surfaceId === surfaceId) occupied.add(cellKey(character.cell));
     }
     if (this.creature?.visible && this.creature.hp > 0 && this.creature.sceneId === sceneId && this.creature.surfaceId === surfaceId) occupied.add(cellKey(this.creature.cell));
-    for (const npc of this.npcs.values()) if (npc.visible && npc.hp > 0 && npc.sceneId === sceneId && npc.surfaceId === surfaceId) occupied.add(cellKey(npc.cell));
+    for (const npc of this.npcs.values()) if (npc.visible && npc.hp > 0 && npc.sceneId === sceneId) {
+      if (npc.step) {
+        if ((npc.step.fromSurfaceId ?? npc.surfaceId) === surfaceId) occupied.add(cellKey(npc.step.from));
+        if ((npc.step.toSurfaceId ?? npc.surfaceId) === surfaceId) occupied.add(cellKey(npc.step.to));
+      } else if (npc.surfaceId === surfaceId) occupied.add(cellKey(npc.cell));
+    }
     return occupied;
   }
 
@@ -1778,6 +1891,7 @@ export class GameState {
     for(const id of participantIds)this.clearSeat(id);
     this.combat = { ...emptyCombat(), active: true, round: 0, order: [...participantIds], turnIndex: 0, initiative, initiativeSubmitted: {}, initiativePending: true, participantIds, openingAction: openingAction ?? null,
       recharge: Object.fromEntries(participantIds.map(id => [id, Object.fromEntries((this.combatEntity(id)?.attacks ?? []).filter(action => action.recharge).map(action => [action.id, true]))])) };
+    this.syncConditionClocks();
     this.setCombatEvent('Combate iniciado. Cada participante tira iniciativa físicamente e introduce su total.', 'turn');
     return true;
   }
@@ -1889,6 +2003,8 @@ export class GameState {
   }
 
   private beginCombatTurn(currentId: string) {
+    for (const [entityId, sources] of Object.entries(this.conditionSources)) for (const source of [...sources]) if (source.roundAnchorId === currentId) this.advanceConditionSource(entityId, source);
+    this.advanceConditionTurns(currentId, 'start');
     delete this.combat.turnActions[currentId];
     this.combat.spentSquares[currentId] = 0; this.combat.dashSquares[currentId] = 0; this.combat.actionUsed[currentId] = false; this.combat.bonusActionUsed[currentId] = false; this.combat.reactionUsed[currentId] = false; this.combat.sneakAttackUsed[currentId] = false; delete this.combat.sequences[currentId]; delete this.combat.stances[currentId];
     for (const character of this.characters.values()) character.input.held = null;
@@ -1898,13 +2014,18 @@ export class GameState {
     else this.activateOpeningAction();
   }
 
-  nextCombatTurn() {
+  nextCombatTurn(skipCurrentEnd = false) {
     if (!this.combat.active || this.combat.initiativePending || !this.combat.order.length || this.combat.pending) return false;
+    if (!skipCurrentEnd) this.advanceConditionTurns(this.currentCombatId()!, 'end');
     let checked = 0;
     do {
       this.combat.turnIndex++;
       if (this.combat.turnIndex >= this.combat.order.length) { this.combat.turnIndex = 0; this.combat.round++; this.expireRoundConditions(); }
       checked++;
+      if (this.combatantCannotTakeTurn(this.currentCombatId()!)) {
+        for (const [entityId, sources] of Object.entries(this.conditionSources)) for (const source of [...sources]) if (source.roundAnchorId === this.currentCombatId()) this.advanceConditionSource(entityId, source);
+        this.advanceConditionTurns(this.currentCombatId()!, 'start'); this.advanceConditionTurns(this.currentCombatId()!, 'end');
+      }
     } while (checked < this.combat.order.length && this.combatantCannotTakeTurn(this.currentCombatId()!));
     if (this.combatantCannotTakeTurn(this.currentCombatId()!)) return false;
     const currentId = this.currentCombatId()!;
@@ -1943,7 +2064,9 @@ export class GameState {
     const mirror=this.objectScenes.get(this.creature.sceneId)?.objects.find(o=>o.id===this.campaign.mirrorInteraction?.targetId);
     if(mirror)mirror.structure='destroyed';
     if(!this.creature.visible){
-      if(mirror)this.creature.cell=cloneCell(mirror.cell);
+      // Spawn at the authored platform, not at the mirror frame. Preserve a
+      // previously selected spot while the encounter is being restored.
+      this.creature.cell=cloneCell(this.campaign.encounter.creature.cell);
       const scene=this.sceneById(this.creature.sceneId), blocked=this.actorReservations(this.creature.surfaceId);
       const props=this.publicObjectProps(scene.id);
       const cells=[...scene.walkable].sort((a,b)=>Math.abs(a.col-this.creature!.cell.col)+Math.abs(a.row-this.creature!.cell.row)-Math.abs(b.col-this.creature!.cell.col)-Math.abs(b.row-this.creature!.cell.row));
@@ -2007,7 +2130,16 @@ export class GameState {
     let nextSources: ConditionSource[];
     if (active) {
       current.add(condition);
-      const next = source ? { ...source, ...(source.durationRounds !== undefined && source.appliedAtRound === undefined ? { appliedAtRound: this.combat.round } : {}) } : { condition };
+      const next: ConditionSource = source ? { ...source, condition, ...(source.durationRounds !== undefined && source.appliedAtRound === undefined ? { appliedAtRound: this.combat.round } : {}) } : { condition };
+      const remaining = conditionRemainingMs(next, Date.now(), this.combat.round);
+      if (remaining !== undefined) {
+        next.remainingMs = remaining;
+        if (this.conditionUsesTurns(entityId)) {
+          delete next.expiresAt;
+          if (!next.expiryTurn && !this.combat.initiativePending) next.roundAnchorId = this.currentCombatId() ?? undefined;
+          if (next.expiryTurn === 'end' && this.currentCombatId() === entityId && !this.combat.initiativePending) next.skipNextTurnEnd = true;
+        } else next.expiresAt = Date.now() + remaining;
+      }
       nextSources = [...sources.filter(item => !sameSource(item, next)), next];
     } else if (source) {
       nextSources = sources.filter(item => !sameSource(item, source));
@@ -2023,8 +2155,49 @@ export class GameState {
   }
   private expireRoundConditions() {
     for (const [entityId, sources] of Object.entries(this.conditionSources)) for (const source of [...sources]) {
-      if (source.durationRounds !== undefined && source.appliedAtRound !== undefined && this.combat.round >= source.appliedAtRound + source.durationRounds) this.setCombatCondition(entityId, source.condition, false, source);
+      if (this.conditionUsesTurns(entityId) && !source.expiryTurn && !source.roundAnchorId) this.advanceConditionSource(entityId, source);
     }
+  }
+  private conditionUsesTurns(entityId: string) { return this.combat.active && this.combat.participantIds.includes(entityId); }
+  private advanceConditionSource(entityId: string, source: ConditionSource) {
+    const remaining = conditionRemainingMs(source, Date.now(), this.combat.round - 1);
+    if (remaining === undefined) return;
+    source.remainingMs = Math.max(0, remaining - ROUND_DURATION_MS);
+    if (!source.remainingMs) this.setCombatCondition(entityId, source.condition, false, source);
+  }
+  private advanceConditionTurns(entityId: string, boundary: 'start' | 'end') {
+    for (const source of [...this.conditionSourcesFor(entityId)]) if (source.expiryTurn === boundary) {
+      if (boundary === 'end' && source.skipNextTurnEnd) { delete source.skipNextTurnEnd; continue; }
+      this.advanceConditionSource(entityId, source);
+    }
+  }
+  /** Only participants use initiative time; other scenes continue in exploration time. */
+  private syncConditionClocks(now = Date.now()) {
+    for (const [entityId, sources] of Object.entries(this.conditionSources)) for (const source of [...sources]) {
+      const remaining = conditionRemainingMs(source, now, this.combat.round);
+      if (remaining === undefined) continue;
+      if (remaining <= 0) { this.setCombatCondition(entityId, source.condition, false, source); continue; }
+      source.remainingMs = remaining;
+      if (this.conditionUsesTurns(entityId)) {
+        delete source.expiresAt;
+        if (source.roundAnchorId && !this.combat.participantIds.includes(source.roundAnchorId)) delete source.roundAnchorId;
+      } else { if (source.expiresAt === undefined) source.expiresAt = now + remaining; delete source.skipNextTurnEnd; delete source.roundAnchorId; }
+    }
+  }
+  /** DM replacement preserves an effect's escape/source metadata but replaces its timer. */
+  setDmCondition(entityId: string, condition: CombatCondition, active: boolean, durationSeconds?: number, expiryTurn?: 'start' | 'end') {
+    if (!active) return this.setCombatCondition(entityId, condition, false);
+    if (!this.combatEntity(entityId) || this.combatEntity(entityId)!.conditionImmunities.includes(condition)) return false;
+    const existing = this.conditionSourcesFor(entityId).filter(source => source.condition === condition);
+    const sources: ConditionSource[] = existing.length ? existing : [{ condition, sourceLabel: 'Decisión del DM' }];
+    for (const source of sources) {
+      const next = { ...source };
+      delete next.durationRounds; delete next.appliedAtRound; delete next.durationSeconds;
+      delete next.remainingMs; delete next.expiresAt; delete next.expiryTurn; delete next.skipNextTurnEnd; delete next.roundAnchorId;
+      if (durationSeconds !== undefined && !(source.sourceAbility === 'zero-hp' && this.combatEntity(entityId)!.hp <= 0)) { next.durationSeconds = durationSeconds; if (expiryTurn) next.expiryTurn = expiryTurn; }
+      this.setCombatCondition(entityId, condition, true, next);
+    }
+    return true;
   }
   private entityCell(id: string) { return this.characters.get(id)?.cell ?? (this.creature?.id === id ? this.creature.cell : this.npcs.get(id)?.cell) ?? null; }
   private entitySceneId(id: string) { return this.characters.get(id)?.sceneId ?? (this.creature?.id === id ? this.creature.sceneId : this.npcs.get(id)?.sceneId) ?? null; }
@@ -2118,26 +2291,39 @@ export class GameState {
     // A thrown dagger leaves the character's pack whether it hits or misses.
     if (this.attackNeedsThrownDagger(action)) this.consumeInventoryStack(attackerId, /\bdagas?\b/i);
     if (this.attackNeedsArrows(action)) this.consumeInventoryStack(attackerId, /\bflechas?\b/i);
-    if (/light-torch|encender-antorcha/i.test(action.id) || /encender antorcha/i.test(action.label)) this.consumeInventoryStack(attackerId, /\bantorchas?\b/i);
+    if (/light-torch|encender-antorcha/i.test(action.id) || /encender antorcha/i.test(action.label)) {
+      const character = this.characters.get(attackerId);
+      if (character) {
+        const index = inventoryStackIndex(character.inventory, /\bantorchas?\b/i);
+        if (index >= 0) {
+          const result = useInventoryItem(character.inventory, index, character.inventory[index]!, 'light');
+          if (result.ok) character.inventory = result.items;
+        }
+      }
+    }
   }
   private attackNeedsThrownDagger(action: CombatAction) { return action.inventoryCost === 'dagger' || /thrown-dagger|lanzar-daga/i.test(action.id) || /lanzar daga|daga arrojadiza/i.test(action.label); }
   private attackNeedsArrows(action: CombatAction) { return action.inventoryCost === 'arrow'; }
   private hasInventoryStack(characterId: string, itemPattern: RegExp) {
-    return this.characters.get(characterId)?.inventory.some(item => itemPattern.test(item)) ?? false;
+    return inventoryStackIndex(this.characters.get(characterId)?.inventory ?? [], itemPattern) >= 0;
   }
   private consumeInventoryStack(characterId: string, itemPattern: RegExp) {
     const character = this.characters.get(characterId); if (!character) return false;
-    const index = character.inventory.findIndex(item => itemPattern.test(item));
-    if (index < 0) return false;
-    const item = character.inventory[index]!;
-    const suffix = /^(.*?)\s*(?:×|x)\s*(\d+)\s*$/i.exec(item), prefix = /^(\d+)\s+(.+)$/.exec(item);
-    const quantity = suffix ? Number(suffix[2]) : prefix ? Number(prefix[1]) : 1;
-    if (quantity <= 1) character.inventory.splice(index, 1);
-    else {
-      const label = (suffix?.[1] ?? prefix?.[2] ?? item).trim();
-      character.inventory[index] = `${label} ×${quantity - 1}`;
-    }
+    const index = inventoryStackIndex(character.inventory, itemPattern);
+    const next = removeInventoryUnit(character.inventory, index); if (!next) return false;
+    character.inventory = next;
     return true;
+  }
+  useBackpackItem(characterId: string, index: number, expectedItem: string, action: InventoryUse) {
+    const character = this.characters.get(characterId);
+    if (!character) return { ok: false as const, code: 'INVALID_INVENTORY' };
+    // Reading/editing a sheet does not confer a free combat action. Combat uses
+    // remain in the existing turn-aware action workflow, supervised by the DM.
+    if (this.combat.active) return { ok: false as const, code: 'INVENTORY_COMBAT_ACTION_REQUIRED' };
+    if (character.hp <= 0 || this.conditionsFor(characterId).some(condition => condition === 'inconsciente' || condition === 'paralizada')) return { ok: false as const, code: 'INCAPACITATED' };
+    const result = useInventoryItem(character.inventory, index, expectedItem, action);
+    if (result.ok) character.inventory = result.items;
+    return result;
   }
   private promptFor(pending: PendingCombatResolution): CombatPrompt {
     const attacker = this.combatEntity(pending.attackerId)!, target = this.combatEntity(pending.targetId)!;
@@ -2179,8 +2365,10 @@ export class GameState {
     if (!this.canSpendMovement(movement.entityId, this.movementCost(sceneId, destinationSurfaceId, movement.destination))) return false;
     if (!destinationSurfaceId || !this.walkableAt(sceneId, destinationSurfaceId, movement.destination)
       || this.publicObjectProps(sceneId).some(prop => prop.surfaceId === destinationSurfaceId && prop.structure !== 'destroyed' && (prop.kind !== 'door' || prop.state !== 'open') && footprintFor(prop.cell, prop.rotation, prop.footprint).some(cell => sameCell(cell, movement.destination)))) return false;
-    const occupied = this.combat.participantIds.some(id => id !== movement.entityId && (this.combatEntity(id)?.hp ?? 0) > 0
-      && this.entitySceneId(id) === sceneId && this.entitySurfaceId(id) === destinationSurfaceId && sameCell(this.entityCell(id) ?? { col: -999, row: -999 }, movement.destination));
+    const occupied = this.occupiedByActor(sceneId, destinationSurfaceId, movement.destination, movement.entityId)
+      || this.combat.participantIds.some(id => id !== movement.entityId && (this.combatEntity(id)?.hp ?? 0) > 0
+        && this.entitySceneId(id) === sceneId && this.entitySurfaceId(id) === destinationSurfaceId
+        && sameCell(this.entityCell(id) ?? { col: -999, row: -999 }, movement.destination));
     if (occupied) return false;
     if (this.queueOpportunityMovement(movement.entityId, movement.destination, destinationSurfaceId, movement.reactorsChecked)) return true;
     return this.commitGridMove(movement.entityId, movement.destination, destinationSurfaceId);
@@ -2226,6 +2414,12 @@ export class GameState {
     const attacker = this.combatEntity(attackerId), target = targetId ? this.combatEntity(targetId) : undefined;
     if (!attacker) return { ok: false as const, code: 'UNKNOWN_ACTOR' };
     const action = attacker.attacks.find(item => item.id === actionId); if (!action) return { ok: false as const, code: 'UNKNOWN_ACTION' };
+    if (this.characters.has(attackerId) && (/light-torch|encender-antorcha/i.test(action.id) || /encender antorcha/i.test(action.label))) {
+      const inventory = this.characters.get(attackerId)!.inventory, index = inventoryStackIndex(inventory, /\bantorchas?\b/i);
+      if (index < 0) return { ok: false as const, code: 'RESOURCE_DEPLETED' };
+      const lighting = useInventoryItem(inventory, index, inventory[index]!, 'light');
+      if (!lighting.ok) return { ok: false as const, code: lighting.code };
+    }
     if (this.characters.has(attackerId) && (this.attackNeedsThrownDagger(action) && !this.hasInventoryStack(attackerId, /\bdagas?\b/i)
       || this.attackNeedsArrows(action) && !this.hasInventoryStack(attackerId, /\bflechas?\b/i))) return { ok: false as const, code: 'RESOURCE_DEPLETED' };
     if (!this.hasActionAvailable(attackerId, action)) return { ok: false as const, code: this.currentCombatId() === attackerId ? 'ACTION_USED' : 'NOT_YOUR_TURN' };
@@ -2275,7 +2469,7 @@ export class GameState {
       const targetDodging = this.combat.stances[combatTargetId]?.action === 'dodge' && !targetConditions.has('apresada') && !targetConditions.has('restringida') && !targetConditions.has('inconsciente');
       const saveHasAdvantage = action.save.failureCondition === 'asustada' && targetTraits.brave || action.damageType === 'veneno' && targetTraits.poisonResilience || action.magical && targetTraits.magicResistance || action.save.ability === 'dex' && targetDodging;
       const saveAdvantage: CombatPrompt['advantage'] = saveHasAdvantage && saveHasDisadvantage ? 'normal' : saveHasAdvantage ? 'advantage' : saveHasDisadvantage ? 'disadvantage' : 'normal';
-      this.combat.pending = { id: crypto.randomUUID(), stage: 'save', attackerId, targetId: combatTargetId, actionId, advantage: saveAdvantage, source: { condition: action.save.failureCondition ?? 'restringida', sourceId: attackerId, sourceAbility: action.id, escapeDc: action.save.escapeDc, endsWhenSourceDefeated: action.save.endsWhenSourceDefeated } };
+      this.combat.pending = { id: crypto.randomUUID(), stage: 'save', attackerId, targetId: combatTargetId, actionId, advantage: saveAdvantage, source: { condition: action.save.failureCondition ?? 'restringida', sourceId: attackerId, sourceAbility: action.id, escapeDc: action.save.escapeDc, endsWhenSourceDefeated: action.save.endsWhenSourceDefeated, durationRounds: action.save.durationRounds, durationSeconds: action.save.durationSeconds, expiryTurn: action.save.expiryTurn } };
     }
     else if (action.automaticHit) {
       this.combat.pending = { id: crypto.randomUUID(), stage: 'damage', attackerId, targetId: combatTargetId, actionId, advantage: 'normal', diceFormula: action.damageDice, damageBonus: action.damageBonus };
@@ -2483,15 +2677,19 @@ export class GameState {
     if (character) {
       const previousHp = character.hp, incomingDamage = Math.max(0, -delta);
       character.hp = Math.max(0, Math.min(character.maxHp, character.hp + delta));
-      const current = new Set(this.conditionsFor(entityId));
       if (character.hp <= 0) {
-        current.add('inconsciente');
+        this.setCombatCondition(entityId, 'inconsciente', true, { condition: 'inconsciente', sourceAbility: 'zero-hp', sourceLabel: 'A 0 PG' });
+        this.setCombatCondition(entityId, 'derribada', true);
         if (previousHp === 0 && incomingDamage > 0) { character.deathSaves.failures = Math.min(3, character.deathSaves.failures + 1); character.deathSaves.stable = false; }
         if (incomingDamage - previousHp >= character.maxHp) character.deathSaves.failures = 3;
       } else {
-        current.delete('inconsciente'); character.deathSaves = { successes: 0, failures: 0, stable: false };
+        if (previousHp === 0) {
+          const sources = this.conditionSourcesFor(entityId).filter(source => source.condition === 'inconsciente');
+          if (!sources.length) this.setCombatCondition(entityId, 'inconsciente', false);
+          else this.setCombatCondition(entityId, 'inconsciente', false, { condition: 'inconsciente', sourceAbility: 'zero-hp' });
+        }
+        character.deathSaves = { successes: 0, failures: 0, stable: false };
       }
-      if (current.size) this.conditions[entityId] = [...current]; else delete this.conditions[entityId];
       if (character.hp <= 0) { this.clearConditionsFromDefeatedSource(entityId); this.endConcentration(entityId); }
       this.endCombatIfSideDefeated();
       return true;
@@ -2546,6 +2744,7 @@ export class GameState {
     if (this.combat.pending) return { ok: false as const, code: 'ROLL_PENDING' };
     const currentId = this.currentCombatId(), previousIndex = this.combat.order.indexOf(entityId);
     this.combat.participantIds = this.combat.participantIds.filter(id => id !== entityId);
+    this.syncConditionClocks();
     this.combat.order = this.combat.order.filter(id => id !== entityId);
     for (const record of [this.combat.initiative, this.combat.initiativeSubmitted, this.combat.spentSquares, this.combat.dashSquares, this.combat.actionUsed, this.combat.bonusActionUsed, this.combat.reactionUsed, this.combat.sneakAttackUsed, this.combat.sneakAttackUsedTurn, this.combat.spellSlotUsedTurn, this.combat.stances, this.combat.sequences, this.combat.recharge]) delete record[entityId];
     for (const [id, stance] of Object.entries(this.combat.stances)) if (stance.targetId === entityId) delete this.combat.stances[id];
@@ -2557,7 +2756,7 @@ export class GameState {
     if (this.combat.initiativePending) this.combat.turnIndex = 0;
     else if (currentId === entityId) {
       this.combat.turnIndex = Math.min(previousIndex, this.combat.order.length) - 1;
-      this.nextCombatTurn();
+      this.nextCombatTurn(true);
     } else this.combat.turnIndex = Math.max(0, this.combat.order.indexOf(currentId!));
     this.setCombatEvent(`${this.combatEntity(entityId)?.label ?? 'Combatiente'} sale del combate por decisión del DM.`, 'turn');
     return { ok: true as const, code: 'COMBATANT_WITHDRAWN' };
@@ -2572,6 +2771,7 @@ export class GameState {
     if (!this.combat.active || this.combat.pending) return false;
     for (const character of this.characters.values()) character.input.held = null;
     this.combat = emptyCombat();
+    this.syncConditionClocks();
     if (reason) this.combat.lastEvent = finalEvent
       ? { ...finalEvent, text: `${finalEvent.text} ${reason}`, publicText: `${finalEvent.publicText} ${reason}` }
       : { id: crypto.randomUUID(), text: reason, publicText: reason, kind: 'defeat' };
@@ -2822,9 +3022,10 @@ export class GameState {
     });
     return durablePayloadSchema.parse({
       sceneId: this.sceneId,
-      ...(this.campaign.public.campaignId === 'stormwreck-isle' ? { wreckGridVersion: 3 } : {}),
+      ...(this.campaign.public.campaignId === 'stormwreck-isle' ? { wreckGridVersion: 5 } : {}),
       ...(this.campaign.public.campaignId === 'd8-night-private' ? { d8GridVersion: 3 } : {}),
       ...(this.campRest ? { campRest: structuredClone(this.campRest) } : {}),
+      ...(this.campActivities.size ? { campActivities: [...this.campActivities].map(([sceneId, interactions]) => ({ sceneId, interactions: structuredClone(interactions) })) } : {}),
       characters: [...this.characters.values()].map(character => ({ id: character.id, hp: character.hp, maxHp: character.maxHp, inventory: [...character.inventory], sheet: character.sheet ? structuredClone(character.sheet) : null, resources: structuredClone(character.combat.resources), deathSaves: { ...character.deathSaves }, sceneId: character.sceneId, cell: cloneCell(character.cell), surfaceId: character.step?.toSurfaceId ?? character.surfaceId, facing: character.facing })).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
       npcs: [...this.npcs.values()].map(npc => ({ id: npc.id, sceneId: npc.sceneId, surfaceId: npc.surfaceId, cell: cloneCell(npc.cell), facing: npc.facing, hp: npc.hp, maxHp: npc.maxHp, combatEnabled: npc.combatEnabled, visible: npc.visible })).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
       creature: this.creature ? { id: this.creature.id, sceneId: this.creature.sceneId, surfaceId: this.creature.surfaceId, cell: cloneCell(this.creature.cell), facing: this.creature.facing, visible: this.creature.visible, hp: this.creature.hp,
@@ -2839,7 +3040,7 @@ export class GameState {
       audio: { music: saveTrack(this.audio.music), layers: {
         ocean: saveTrack(this.audio.layers.ocean), wind: saveTrack(this.audio.layers.wind), wood: saveTrack(this.audio.layers.wood), storm: saveTrack(this.audio.layers.storm)
       }, sfxLoops: Object.fromEntries(Object.entries(this.audio.sfxLoops).map(([id, track]) => [id, saveTrack(track)])) },
-      conditions: structuredClone(this.conditions), conditionSources: structuredClone(this.conditionSources), concentration: structuredClone(this.concentration),
+      conditions: structuredClone(this.conditions), conditionSources: Object.fromEntries(Object.entries(this.conditionSources).map(([id, sources]) => [id, sources.map(source => ({ ...source, ...(source.expiresAt !== undefined ? { remainingMs: conditionRemainingMs(source, now) } : {}) }))])), concentration: structuredClone(this.concentration),
       visualEffects: structuredClone(this.activeVisualEffects(now)),
       combat: this.combat.active ? { active: true, round: this.combat.round, order: [...this.combat.order], turnIndex: this.combat.turnIndex, participantIds: [...this.combat.participantIds], initiative: { ...this.combat.initiative }, initiativeSubmitted: { ...this.combat.initiativeSubmitted }, initiativePending: this.combat.initiativePending, spentSquares: { ...this.combat.spentSquares }, dashSquares: { ...this.combat.dashSquares }, actionUsed: { ...this.combat.actionUsed }, bonusActionUsed: { ...this.combat.bonusActionUsed }, reactionUsed: { ...this.combat.reactionUsed }, sneakAttackUsed: { ...this.combat.sneakAttackUsed }, sneakAttackUsedTurn: { ...this.combat.sneakAttackUsedTurn }, spellSlotUsedTurn: { ...this.combat.spellSlotUsedTurn }, stances: structuredClone(this.combat.stances), sequences: structuredClone(this.combat.sequences), recharge: structuredClone(this.combat.recharge), rechargeAttemptTurn: { ...this.combat.rechargeAttemptTurn }, turnActions: structuredClone(this.combat.turnActions), openingAction: structuredClone(this.combat.openingAction), pending: structuredClone(this.combat.pending) } : null,
       progress: { ...this.progress }, storyNotes: { ...this.storyNotes }
@@ -2852,6 +3053,8 @@ export class GameState {
     this.migrateD8NightLegacyRoster(payload);
     this.migrateStormwreckScenes(payload);
     this.migrateStormwreckGrid(payload);
+    this.migrateStormwreckCabins(payload);
+    this.migrateStormwreckHelm(payload);
     this.migrateStormwreckM3Actors(payload);
     this.migrateSavedNpcCells(payload);
     this.migrateStormwreckActorCells(payload);
@@ -2862,6 +3065,12 @@ export class GameState {
     let migratedCharacterSheets = false;
     const exactIds = (actual: string[], expected: string[]) => actual.length === expected.length && new Set(actual).size === actual.length && actual.every(id => expected.includes(id));
     if (!this.hasScene(payload.sceneId) || !exactIds(payload.characters.map(x => x.id), [...this.characters.keys()]) || !exactIds(payload.scenes.map(x => x.sceneId), [...this.objectScenes.keys()])) throw new Error('SAVE_REFERENCES');
+    const activityScenes = new Set<string>();
+    for (const activity of payload.campActivities ?? []) {
+      if (activityScenes.has(activity.sceneId) || !this.campaign.public.scenes.some(scene => scene.id === activity.sceneId && scene.camp)
+        || activity.interactions.some(item => !this.characters.has(item.characterId))) throw new Error('SAVE_CAMP_ACTIVITY');
+      activityScenes.add(activity.sceneId);
+    }
     if (payload.campRest) {
       const campScene = this.campaign.public.scenes.find(scene => scene.id === payload.campRest!.sceneId);
       // Interaction entries are historical log records. A newer camp layout
@@ -2968,7 +3177,7 @@ export class GameState {
     for (const id of [...Object.keys(savedConditions), ...Object.keys(savedConditionSources), ...Object.keys(savedConcentration)]) if (!validEntityIds.has(id)) throw new Error('SAVE_CONDITION_ENTITY');
     for (const [id, sources] of Object.entries(savedConditionSources)) {
       const active = new Set(savedConditions[id] ?? []);
-      if (sources.some(source => !active.has(source.condition) || source.sourceId && !validEntityIds.has(source.sourceId))) throw new Error('SAVE_CONDITION_SOURCE');
+      if (sources.some(source => !active.has(source.condition) || source.sourceId && !validEntityIds.has(source.sourceId) || source.roundAnchorId && !validEntityIds.has(source.roundAnchorId))) throw new Error('SAVE_CONDITION_SOURCE');
     }
     if (payload.combat?.active) {
       if (!payload.combat.participantIds.length || !payload.combat.participantIds.every(id => validEntityIds.has(id)) || !exactIds(payload.combat.order, payload.combat.participantIds) || payload.combat.turnIndex >= payload.combat.order.length) throw new Error('SAVE_COMBAT');
@@ -3023,6 +3232,8 @@ export class GameState {
     }
     this.camera = { ...payload.camera }; this.environment = { ...payload.environment, storm: payload.environment.storm, lightning: payload.environment.storm && (payload.environment.stormIntensity ?? .5) >= .45, stormIntensity: payload.environment.stormIntensity ?? 0.5, timeOfDay: payload.environment.timeOfDay ?? 'auto' };
     this.campRest = payload.campRest ? structuredClone(payload.campRest) : null;
+    this.campActivities = new Map((payload.campActivities ?? []).map(activity => [activity.sceneId, structuredClone(activity.interactions)]));
+    if (this.campRest) this.campActivities.set(this.campRest.sceneId, structuredClone(this.campRest.interactions));
     const loadTrack = (saved: DurablePayload['audio']['music']) => ({ playing: saved.playing, volume: saved.volume, offset: saved.offsetSeconds, startedAt: saved.playing ? now : null, loop: saved.loop ?? true, rate: saved.rate ?? 1, repeats: saved.repeats ?? 1, ...(saved.assetId ? { assetId: saved.assetId } : {}) });
     this.audio = { music: loadTrack(payload.audio.music), layers: {
       ocean: loadTrack(payload.audio.layers.ocean), wind: loadTrack(payload.audio.layers.wind), wood: loadTrack(payload.audio.layers.wood), storm: loadTrack(payload.audio.layers.storm)
@@ -3062,6 +3273,8 @@ export class GameState {
     const restoredStances = Object.fromEntries(Object.entries(payload.combat?.stances ?? {}).flatMap(([id, stance]) => stance.action === 'improvise' ? [] : [[id, stance] as const])) as CombatState['stances'];
     const restoredSequences = Object.fromEntries(Object.entries(payload.combat?.sequences ?? {}).map(([id, sequence]) => [id, { actionId: sequence.actionId, remaining: sequence.remaining, ...(sequence.targetId ? { targetId: sequence.targetId } : {}) }])) as CombatState['sequences'];
     this.combat = payload.combat?.active ? { ...emptyCombat(), active: true, round: payload.combat.round, order: [...payload.combat.order], turnIndex: payload.combat.turnIndex, participantIds: [...payload.combat.participantIds], initiative: { ...payload.combat.initiative }, initiativeSubmitted: { ...(payload.combat.initiativeSubmitted ?? Object.fromEntries(payload.combat.participantIds.map(id => [id, true]))) }, initiativePending: payload.combat.initiativePending ?? false, spentSquares: { ...payload.combat.spentSquares }, dashSquares: { ...(payload.combat.dashSquares ?? {}) }, actionUsed: { ...payload.combat.actionUsed }, bonusActionUsed: { ...(payload.combat.bonusActionUsed ?? {}) }, reactionUsed: { ...(payload.combat.reactionUsed ?? {}) }, sneakAttackUsed: { ...(payload.combat.sneakAttackUsed ?? {}) }, sneakAttackUsedTurn: { ...(payload.combat.sneakAttackUsedTurn ?? {}) }, spellSlotUsedTurn: { ...(payload.combat.spellSlotUsedTurn ?? {}) }, stances: restoredStances, sequences: restoredSequences, recharge: structuredClone(payload.combat.recharge ?? {}), rechargeAttemptTurn: { ...(payload.combat.rechargeAttemptTurn ?? {}) }, turnActions: structuredClone(payload.combat.turnActions ?? {}), openingAction: structuredClone(payload.combat.openingAction ?? null), pending: structuredClone(payload.combat.pending ?? null), lastEvent: { id: crypto.randomUUID(), text: payload.combat.initiativePending ? 'Iniciativa pendiente de completar' : `Ronda ${payload.combat.round} restaurada`, publicText: payload.combat.initiativePending ? 'Iniciativa pendiente de completar' : `Ronda ${payload.combat.round} restaurada`, kind: 'turn' } } : emptyCombat();
+    for (const sources of Object.values(this.conditionSources)) for (const source of sources) if (source.expiresAt !== undefined && source.remainingMs !== undefined) source.expiresAt = now + source.remainingMs;
+    this.syncConditionClocks(now);
     this.interactions = []; this.projectorReady = false;
     return migratedD8Grid || migratedObjectInteractions || migratedCampaignObjects || migratedCharacterSheets;
   }
@@ -3299,6 +3512,7 @@ export class GameServer {
       socket.on('player:exploration', raw => this.handleExplorationAction(socket, sessionToken, raw));
       socket.on('player:combat', raw => this.handlePlayerCombat(socket, sessionToken, raw));
       socket.on('player:inventory', raw => this.handleInventory(socket, sessionToken, raw));
+      socket.on('player:inventory-use', raw => this.handleInventoryUse(socket, sessionToken, raw));
       socket.on('player:sheet', raw => this.handleCharacterSheet(socket, sessionToken, raw));
     }
 
@@ -3440,18 +3654,43 @@ export class GameServer {
   }
 
   private handleInventory(socket: Socket, token: string, raw: unknown) {
-    if (!this.worldOpen()) return this.emitResult(socket, { ok: false, code: 'SAVE_UNAVAILABLE' });
-    if (!this.mutatorAllowed(raw)) return this.emitResult(socket, { ok: false, code: 'STALE_RUNTIME' });
     const parsed = inventoryUpdateSchema.safeParse(raw), character = this.state.characterForSession(token);
-    if (!parsed.success || !character || character.socketId !== socket.id) return this.emitResult(socket, { ok: false, code: 'INVALID_INVENTORY' });
+    if (!parsed.success) return this.emitResult(socket, { ok: false, code: 'INVALID_INVENTORY' });
+    if (!this.worldOpen()) return this.emitResult(socket, { commandId: parsed.data.commandId, ok: false, code: 'SAVE_UNAVAILABLE' });
+    if (!this.mutatorAllowed(raw)) return this.emitResult(socket, { commandId: parsed.data.commandId, ok: false, code: 'STALE_RUNTIME' });
+    if (!character || character.socketId !== socket.id) return this.emitResult(socket, { commandId: parsed.data.commandId, ok: false, code: 'INVALID_INVENTORY' });
     const scope = `player:${token}`, previous = this.previousCommand(scope, parsed.data);
     if (previous.kind === 'same') return this.emitResult(socket, previous.result);
     if (previous.kind === 'reused') return this.emitResult(socket, { commandId: parsed.data.commandId, ok: false, code: 'COMMAND_ID_REUSED' });
+    if (parsed.data.expectedItems && !inventoryEquals(character.inventory, parsed.data.expectedItems)) {
+      const result = this.rememberResult(scope, parsed.data, { commandId: parsed.data.commandId, ok: false, code: 'INVENTORY_CHANGED' });
+      this.emitResult(socket, result); this.broadcastPrivateFor(character.id); return;
+    }
     const before = this.state.captureDurable();
     character.inventory = [...parsed.data.items]; this.state.revision++; this.state.stateRevision++;
     this.rememberUndo(`${character.label}: mochila`, before); this.persistence?.markDirty();
     const result = this.rememberResult(scope, parsed.data, { commandId: parsed.data.commandId, ok: true, code: 'INVENTORY_SAVED' });
-    this.emitResult(socket, result); this.broadcastPrivateFor(character.id); this.io.to('dm').emit('dm:state', this.dmState());
+    this.emitResult(socket, result); this.broadcastSnapshot(); this.broadcastPrivateFor(character.id); this.io.to('dm').emit('dm:state', this.dmState());
+  }
+
+  private handleInventoryUse(socket: Socket, token: string, raw: unknown) {
+    const parsed = inventoryUseSchema.safeParse(raw), character = this.state.characterForSession(token);
+    if (!parsed.success) return this.emitResult(socket, { ok: false, code: 'INVALID_INVENTORY' });
+    if (!this.worldOpen()) return this.emitResult(socket, { commandId: parsed.data.commandId, ok: false, code: 'SAVE_UNAVAILABLE' });
+    if (!this.mutatorAllowed(raw)) return this.emitResult(socket, { commandId: parsed.data.commandId, ok: false, code: 'STALE_RUNTIME' });
+    if (!character || character.socketId !== socket.id) return this.emitResult(socket, { commandId: parsed.data.commandId, ok: false, code: 'INVALID_INVENTORY' });
+    const scope = `player:${token}`, previous = this.previousCommand(scope, parsed.data);
+    if (previous.kind === 'same') return this.emitResult(socket, previous.result);
+    if (previous.kind === 'reused') return this.emitResult(socket, { commandId: parsed.data.commandId, ok: false, code: 'COMMAND_ID_REUSED' });
+    const before = this.state.captureDurable();
+    const change = this.state.useBackpackItem(character.id, parsed.data.index, parsed.data.expectedItem, parsed.data.action);
+    const result = this.rememberResult(scope, parsed.data, { commandId: parsed.data.commandId, ok: change.ok, code: change.code });
+    this.emitResult(socket, result);
+    if (!change.ok) { this.broadcastPrivateFor(character.id); return; }
+    this.state.revision++; this.state.stateRevision++; this.persistence?.markDirty();
+    this.rememberUndo(`${character.label}: ${parsed.data.action} · mochila`, before);
+    this.emitBasicActionAnimation(character.id, 'use-object');
+    this.broadcastSnapshot(); this.broadcastPrivateFor(character.id); this.io.to('dm').emit('dm:state', this.dmState());
   }
 
   private handleCharacterSheet(socket: Socket, token: string, raw: unknown) {
@@ -3582,11 +3821,12 @@ export class GameServer {
     const finish = (result: CommandResult) => this.emitResult(socket, this.rememberResult(scope, parsed.data, result));
     if (parsed.data.sceneEpoch !== this.state.sceneEpoch || socket.data.sceneReadyEpoch !== this.state.sceneEpoch)
       return finish({ commandId: parsed.data.commandId, ok: false, code: 'WRONG_SCENE' });
-    const result = this.state.applyCampPlayerInteraction(character.id, parsed.data.pointId);
+    const result = this.state.applyCampPlayerInteraction(character.id, parsed.data.pointId, parsed.data.activityId);
     if (!result.ok) return finish({ commandId: parsed.data.commandId, ok: false, code: result.code });
     this.persistence?.markDirty();
     finish({ commandId: parsed.data.commandId, ok: true, code: result.code });
-    this.io.emit('scene:animation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, entityId: character.id, state: 'interact', durationMs: 650 });
+    if (result.point.kind !== 'seat') this.io.emit('scene:animation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, entityId: character.id, state: result.activity.animation, durationMs: result.activity.durationMs });
+    if (result.activity.id === 'chest-toggle') this.emitProjectorSfx('creak');
     this.broadcastSnapshot();
     this.broadcastPrivate();
     this.io.to(socket.id).emit('player:private', this.state.playerPrivate(token, result.notice));
@@ -3634,7 +3874,7 @@ export class GameServer {
   applyDmCommand(command: DmCommand): CommandResult {
     let resultCode = 'APPLIED';
     const staleTypes = new Set(['encounter:reveal', 'story:choice', 'story:ending', 'scene', 'view:focus', 'entity:portal', 'scene:animation', 'creature', 'npc:visible', 'camera', 'environment', 'camp:rest', 'entity:move', 'resolveInteraction', 'combat:start', 'combat:participant', 'combat:initiative', 'combat:initiativeOrder', 'combat:condition', 'combat:endTurn', 'combat:next', 'combat:end', 'combat:declare', 'combat:basic', 'combat:stand', 'combat:dropProne', 'combat:reaction', 'combat:rollAttack', 'combat:rollDamage', 'combat:rollSave', 'combat:rollDeathSave', 'combat:recharge', 'progress:toggle', 'pickup:take']);
-    if ((staleTypes.has(command.type) || command.type==='entity:seat' || command.type.startsWith('combat:')) && 'sceneEpoch' in command && command.sceneEpoch !== this.state.sceneEpoch) {
+    if ((staleTypes.has(command.type) || command.type.startsWith('camp:') || command.type==='entity:seat' || command.type.startsWith('combat:')) && 'sceneEpoch' in command && command.sceneEpoch !== this.state.sceneEpoch) {
       return { commandId: command.commandId, ok: false, code: 'STALE_SCENE' };
     }
     if (command.type === 'object:door' || command.type === 'object:interact' || command.type === 'object:transform' || command.type === 'object:detach' || command.type === 'object:structure' || command.type === 'object:undo') {
@@ -3697,6 +3937,11 @@ export class GameServer {
       this.state.applyWeatherAudio();
     } else if (command.type === 'camp:rest') {
       return this.state.applyCampRestCommand(command);
+    } else if (command.type === 'camp:interact') {
+      const result = this.state.applyCampPlayerInteraction(command.characterId, command.pointId, command.activityId);
+      if (!result.ok) return { commandId: command.commandId, ok: false, code: result.code };
+      if (result.activity.durationMs) this.io.emit('scene:animation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, entityId: command.characterId, state: result.activity.animation, durationMs: result.activity.durationMs });
+      if (result.activity.id === 'chest-toggle') this.emitProjectorSfx('creak');
     } else if (command.type === 'entity:move') {
       const result = this.state.moveEntityOneSquare(command.entityId, command.cell);
       if (result !== 'MOVED' && result !== 'REACTION_PENDING') return { commandId: command.commandId, ok: false, code: result };
@@ -3722,7 +3967,7 @@ export class GameServer {
     } else if (command.type === 'combat:initiativeOrder') {
       if (!this.state.setInitiativeOrder(command.order, command.confirm)) return { commandId: command.commandId, ok: false, code: 'INVALID_INITIATIVE_ORDER' };
     } else if (command.type === 'combat:condition') {
-      if (!this.state.setCombatCondition(command.entityId, command.condition, command.active)) return { commandId: command.commandId, ok: false, code: 'INVALID_COMBATANT' };
+      if (!this.state.setDmCondition(command.entityId, command.condition, command.active, command.durationSeconds, command.expiryTurn)) return { commandId: command.commandId, ok: false, code: 'INVALID_COMBATANT' };
     } else if (command.type === 'combat:endTurn' || command.type === 'combat:next') {
       if (this.state.combat.pending) return { commandId: command.commandId, ok: false, code: 'ROLL_PENDING' };
       if (!this.state.nextCombatTurn()) return { commandId: command.commandId, ok: false, code: 'COMBAT_INACTIVE' };

@@ -45,6 +45,7 @@ it('opens and closes every playable D8 door from an adjacent cell, with the cabi
     state.changeScene(scene.id);
     for(const definition of scene.props.filter(p=>p.kind==='door')){
       const door=state.interactionObject(definition.id)!,occupied=footprintFor(door.cell,door.rotation,door.baseFootprint);
+      if(definition.renderedByScene)expect(door.state,`${scene.id}/${door.id} should start closed`).toBe('closed');
       const cell=scene.walkable.find(c=>!occupied.some(x=>sameCell(x,c))&&occupied.some(x=>Math.abs(x.col-c.col)+Math.abs(x.row-c.row)===1))!;
       expect(cell).toBeDefined();state.characters.get('maria')!.cell={...cell};
       const result=state.interactNearbyDoor('maria',door.id);expect(result?.ok,`${scene.id}/${door.id}: ${result?.code}`).toBe(true);

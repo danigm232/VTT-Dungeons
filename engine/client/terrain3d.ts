@@ -20,8 +20,17 @@ import type { TerrainDefinition, SurfaceAddress } from '../shared/terrain.js';
 import { surfaceHeight } from '../shared/terrain.js';
 import { buildShipExteriorArt, isWreckExteriorCell } from './ship-exterior-art.js';
 import { worldSurfaceUV } from './diorama-kit.js';
-import { wreckCabins } from './wreck-cabins.js';
+import { wreckCabins, wreckCabinAt } from './wreck-cabins.js';
 import { buildShipCabinDressing } from './ship-cabin-dressing.js';
+import { isRebuiltWreck, buildWreckExterior } from './wreck-exterior.js';
+import { buildWreckOcean } from './wreck-ocean.js';
+import { buildWreckInterior } from './wreck-interior.js';
+import { buildSternBreach } from './wreck-breach.js';
+import { finishWreck } from './wreck-finish.js';
+import { wornTimberRelief } from './wreck-materials.js';
+import { WRECK_STRUCTURE, wreckListHeight, wreckBeamAt } from '../shared/wreck-structure.js';
+import { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator.js';
+import '@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent.js';
 
 export type Terrain3DView = { tiles: Map<string, Mesh>; grid: LinesMesh; grids: Map<string, LinesMesh>; deckDetails: Mesh[]; occluders: Mesh[]; structures: Mesh[]; lights: PointLight[]; camera: ArcRotateCamera };
 const addressKey = (surfaceId: string, col: number, row: number) => `${surfaceId}:${col},${row}`;
@@ -280,7 +289,7 @@ function addNavigableSeaObstacles(scene: Scene, terrain: TerrainDefinition, tile
 }
 
 /** Build geometry from the *same corner heights* used for movement and selection. */
-export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options: { ambientIntensity?: number; shipDeck?: boolean; deckTexture?: BaseTexture; exteriorDeckTexture?: BaseTexture; sailTexture?: BaseTexture; boardingDebrisTexture?: BaseTexture; cabinPortraitTexture?: BaseTexture; hullTexture?: BaseTexture; reefTexture?: BaseTexture; waterTexture?: Texture; floodedDeckTexture?: Texture; waterBackdropTexture?: Texture; scenicWaterTexture?: Texture; foamTexture?: Texture; wreckageTexture?: Texture; contextSurfaceIds?: string[]; renderTiles?: boolean; batchTiles?: boolean } = {}): Terrain3DView {
+export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options: { ambientIntensity?: number; shipDeck?: boolean; deckTexture?: BaseTexture; exteriorDeckTexture?: BaseTexture; sailTexture?: BaseTexture; boardingDebrisTexture?: BaseTexture; cabinPortraitTexture?: BaseTexture; hullTexture?: BaseTexture; reefTexture?: BaseTexture; waterTexture?: Texture; floodedDeckTexture?: Texture; waterBackdropTexture?: Texture; scenicWaterTexture?: Texture; foamTexture?: Texture; wreckageTexture?: Texture; contextSurfaceIds?: string[]; renderTiles?: boolean; batchTiles?: boolean; gridStyle?: { color: string; alpha: number } } = {}): Terrain3DView {
   const tiles = new Map<string, Mesh>();
   const gridSegments = new Map<string, Vector3[][]>();
   const tileBatches = new Map<string, { materialId: string; surfaceId: string; positions: number[]; indices: number[]; uvs: number[]; colors: number[] }>();
@@ -289,6 +298,7 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
   const contextSurfaces = new Set([...(options.contextSurfaceIds ?? []), ...terrain.surfaces.filter(surface => surface.visualOnly).map(surface => surface.id)]);
   const palette: Record<string, string> = { stone: '#77776f', sand: '#a99b7d', moss: '#365342', basalt: '#373c45', 'cave-rock': '#39494b', wood: '#815c39', 'wet-wood': '#789ba0', 'hold-wood': '#526d7a', 'wall-wood': '#4a392c', 'stair-wood': '#a57947', 'stair-down': '#3b3027', 'stair-edge': '#d5ad63', 'stair-rail': '#282622', hatch: '#17252a', earth: '#6c644b', grass: '#567852', water: '#305d7a' };
   const tileMeters = terrain.tileMeters;
+  const rebuilt = Boolean(options.shipDeck && isRebuiltWreck(terrain));
   const materialFor = (id: string) => {
     let material = materials.get(id);
     if (!material) {
@@ -333,6 +343,7 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
       // The greybox floor must remain visible from the fixed 3/4 camera even
       // if a tile's winding differs from a later imported art mesh.
       material.backFaceCulling = false;
+      if(rebuilt&&['exterior-deck','wood','wet-wood','hold-wood','wall-wood','ship-hull'].includes(id))wornTimberRelief(scene,material);
       materials.set(id, material);
     }
     return material;
@@ -342,18 +353,33 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
   for (const surface of terrain.surfaces) {
     gridSegments.set(surface.id, []);
     for (const tile of surface.tiles) {
+    // Navigation retains the sea cells, but one continuous ocean renders them.
+    if (rebuilt && ['sea','lower-water','hold-water'].includes(surface.id)) {
+      if(surface.id==='sea'&&!contextSurfaces.has(surface.id)) {
+        const address={surfaceId:surface.id,cell:tile.cell},p=[[0,0],[1,0],[1,1],[0,1]].map(([u,v])=>corner(address,u!,v!,.12));
+        for(let i=0;i<4;i++)gridSegments.get(surface.id)!.push([p[i]!,p[(i+1)%4]!]);
+      }
+      continue;
+    }
     const address = { surfaceId: surface.id, cell: tile.cell };
     const exterior = Boolean(options.shipDeck && options.exteriorDeckTexture && tile.materialId === 'wood'
-      && isWreckExteriorCell(surface.id, tile.cell.col, tile.cell.row));
+      && (rebuilt ? ['c1-hull','c2','c3','crow'].includes(surface.id)
+        || surface.id==='main'&&!wreckCabinAt(tile.cell,'main') : isWreckExteriorCell(surface.id, tile.cell.col, tile.cell.row)));
     // The new exterior illustration has horizontal boards: U follows the keel.
-    const deckUv = exterior ? (x: number, z: number) => [x / 4.5, z / 4.5] : shipDeckUv;
+    const deckUv = exterior ? (x: number, z: number) => [x / 9, z / 6] : shipDeckUv;
     const renderMaterialId = exterior ? 'exterior-deck' : options.shipDeck && tile.materialId === 'wood' && tile.medium === 'water'
       ? surface.id === 'hold-air' ? 'hold-wood' : 'wet-wood'
       : tile.materialId;
-    const corners = [corner(address, 0, 0), corner(address, 1, 0), corner(address, 1, 1), corner(address, 0, 1)];
+    const polygon = tile.polygon ?? [[0,0],[1,0],[1,1],[0,1]];
+    const corners = polygon.map(([u,v]) => corner(address,u!,v!));
+    const renderTile = options.renderTiles !== false && !(rebuilt && tile.kind === 'stair');
+    const faceIndices: number[] = [];
+    for(let i=1;i<corners.length-1;i++)faceIndices.push(0,i,i+1);
     let mesh: Mesh | null = null;
-    if (options.batchTiles && options.renderTiles !== false) {
-      const batchKey = `${surface.id}:${renderMaterialId}`;
+    if (options.batchTiles && renderTile) {
+      const coveredRoom=rebuilt&&['c2','c3'].includes(surface.id)
+        ?Object.entries(wreckCabins).find(([,b])=>tile.cell.col>=b.minCol-1&&tile.cell.col<=b.maxCol+1&&tile.cell.row>=b.minRow-1&&tile.cell.row<=b.maxRow+1)?.[0]:undefined;
+      const batchKey = `${surface.id}:${renderMaterialId}${coveredRoom?':'+coveredRoom:''}`;
       let batch = tileBatches.get(batchKey);
       if (!batch) { batch = { materialId: renderMaterialId, surfaceId: surface.id, positions: [], indices: [], uvs: [], colors: [] }; tileBatches.set(batchKey, batch); }
       const offset = batch.positions.length / 3;
@@ -367,8 +393,14 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
         batch.uvs.push(...corners.flatMap(position => [position.z / 6, position.x / 6]));
       if (surface.id === 'sea' && options.scenicWaterTexture && options.waterBackdropTexture)
         batch.colors.push(...corners.flatMap(position => [1, 1, 1, shipSeaEdgeAlpha(position.x, position.z, terrain)]));
-      batch.indices.push(offset, offset + 1, offset + 2, offset, offset + 2, offset + 3);
-    } else if (options.renderTiles !== false && new Set(tile.corners).size === 1) {
+      else if(rebuilt && tile.materialId==='wood') {
+        const damp=surface.id==='main'||surface.id==='c1-hull'?.91:1;
+        batch.colors.push(...corners.flatMap(p=>{const salt=.5+.5*Math.sin(p.x*.29+Math.sin(p.z*.48)*2.7),stain=.5+.5*Math.sin(p.z*.19+p.x*.07);
+          const tint=.71+.21*salt+.09*stain;
+          return [tint,tint*(.97+.04*stain)*damp,tint*(.83+.08*salt)*damp,1];}));
+      }
+      batch.indices.push(...faceIndices.map(i=>offset+i));
+    } else if (renderTile && !tile.polygon && new Set(tile.corners).size === 1) {
       // Babylon's box builder has reliable front-face winding on both WebGL
       // backends; a thin slab also gives the deck a real visible thickness.
       mesh = MeshBuilder.CreateBox(`tile:${addressKey(surface.id, tile.cell.col, tile.cell.row)}`,
@@ -392,12 +424,12 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
           mesh.setVerticesData('color', colors); mesh.hasVertexAlpha = true;
         }
       }
-    } else if (options.renderTiles !== false) {
+    } else if (renderTile) {
       const data = new VertexData();
       data.positions = corners.flatMap(position => [position.x, position.y, position.z]);
       // Babylon computes normals from winding. The opposite order points the
       // broad C8 ramp downwards, leaving the whole lower deck nearly black.
-      data.indices = [0, 1, 2, 0, 2, 3];
+      data.indices = faceIndices;
       if (tile.materialId === 'wood' && options.shipDeck && options.deckTexture)
         data.uvs = corners.flatMap(position => deckUv(position.x, position.z));
       else if (tile.materialId === 'water' && options.shipDeck && options.waterTexture)
@@ -422,8 +454,8 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
     }
     // All four borders follow the geometry. Multiple surfaces in one cell have
     // independent borders, so the underpass is never confused with the bridge.
-    if (!contextSurfaces.has(surface.id)) for (const [a, b] of [[0, 1], [1, 2], [2, 3], [3, 0]] as [number, number][])
-      gridSegments.get(surface.id)!.push([corners[a]!.add(new Vector3(0, 0.012, 0)), corners[b]!.add(new Vector3(0, 0.012, 0))]);
+    if (!contextSurfaces.has(surface.id)) for (let a=0;a<corners.length;a++)
+      gridSegments.get(surface.id)!.push([corners[a]!.add(new Vector3(0, 0.012, 0)), corners[(a+1)%corners.length]!.add(new Vector3(0, 0.012, 0))]);
     }
   }
   for (const [batchKey, batch] of tileBatches) {
@@ -434,10 +466,13 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
     VertexData.ComputeNormals(batch.positions, batch.indices, normals); data.normals = normals; data.applyToMesh(mesh);
     if (batch.colors.length) mesh.hasVertexAlpha = true;
     mesh.material = materialFor(batch.materialId); mesh.isPickable = !contextSurfaces.has(batch.surfaceId);
-    mesh.metadata = { visualOnly: false, kind: 'terrain-batch', surfaceId: batch.surfaceId, tileCount: batch.indices.length / 6 };
+    mesh.receiveShadows = rebuilt;
+    const cabinId=batchKey.split(':')[2];
+    mesh.metadata = { visualOnly: false, kind: cabinId?'cabin-upper-deck':'terrain-batch', surfaceId: batch.surfaceId, ...(cabinId?{cabinId}:{}), tileCount: batch.indices.length / 6 };
     deckDetails.push(mesh);
   }
   if (options.shipDeck) {
+    if (!rebuilt) {
     if (options.scenicWaterTexture) {
       // Screen-space ocean is scenery only, behind every world mesh. The
       // playable sea remains the separate height-aware terrain surface.
@@ -529,7 +564,8 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
         });
       }
     }
-    if (options.floodedDeckTexture) {
+    }
+    if (options.floodedDeckTexture && !rebuilt) {
       for (const surface of terrain.surfaces.filter(item => item.id === 'lower-deck' || item.id === 'hold-air')) {
         const positions: number[] = [], indices: number[] = [], uvs: number[] = [];
         for (const tile of surface.tiles.filter(item => item.medium === 'water')) {
@@ -567,11 +603,15 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
     // Painted ocean already supplies underwater color and depth. The old
     // radial meshes appear as flat polygons where they extend past the
     // navigable tiles, so keep them only for art-free fallback scenes.
-    if (!options.scenicWaterTexture) addWreckSeaDepth(scene, terrain, tileMeters);
-    addWreckBackdrop(scene, terrain, tileMeters, options.deckTexture, options.hullTexture, options.reefTexture,
-      !!options.scenicWaterTexture);
-    addNavigableSeaObstacles(scene, terrain, tileMeters, options.deckTexture, options.reefTexture);
-    const deckSurfaces = terrain.surfaces.filter(surface => surface.tiles.some(tile => tile.materialId === 'wood'));
+    if (!rebuilt) {
+      if (!options.scenicWaterTexture) addWreckSeaDepth(scene, terrain, tileMeters);
+      addWreckBackdrop(scene, terrain, tileMeters, options.deckTexture, options.hullTexture, options.reefTexture, !!options.scenicWaterTexture);
+      addNavigableSeaObstacles(scene, terrain, tileMeters, options.deckTexture, options.reefTexture);
+    } else {
+      scene.fogMode = Scene.FOGMODE_EXP2; scene.fogColor = Color3.FromHexString('#233b43'); scene.fogDensity = .0018;
+      deckDetails.push(...buildWreckOcean(scene,terrain,options.reefTexture));
+    }
+    const deckSurfaces = rebuilt ? [] : terrain.surfaces.filter(surface => surface.tiles.some(tile => tile.materialId === 'wood'));
     for (const base of deckSurfaces) {
     const suffix = base.id === terrain.baseSurfaceId ? '' : `:${base.id}`;
     const raisedDeck = base.id === 'c2' || base.id === 'c3' || base.id === 'bridge';
@@ -802,12 +842,12 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
       lines,
       // LinesMesh only enables blending when vertex alpha is opted into at
       // creation time; assigning `alpha` alone leaves the grid fully opaque.
-      useVertexAlpha: Boolean(options.shipDeck)
+      useVertexAlpha: Boolean(options.shipDeck || options.gridStyle)
     }, scene);
-    // Keep the ship's tactical grid legible while integrating it into the
-    // painted deck. Other scenes retain their current color and opacity.
-    surfaceGrid.color = Color3.FromHexString(options.shipDeck ? '#88968b' : '#dbe6d3');
-    surfaceGrid.alpha = options.shipDeck ? surfaceId === 'sea' ? 0.18 : 0.38 : 1;
+    // An explicit style enables actual alpha blending for illustrated camps;
+    // callers without one retain the existing grid, including ship surfaces.
+    surfaceGrid.color = Color3.FromHexString(options.gridStyle?.color ?? (options.shipDeck ? '#88968b' : '#dbe6d3'));
+    surfaceGrid.alpha = options.gridStyle?.alpha ?? (options.shipDeck ? surfaceId === 'sea' ? 0.18 : 0.38 : 1);
     if (options.exteriorDeckTexture && ['main', 'c2', 'c3'].includes(surfaceId)) surfaceGrid.alpha = .2;
     surfaceGrid.isPickable = false;
     surfaceGrid.metadata = { surfaceId };
@@ -825,7 +865,15 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
   }
   const structures: Mesh[] = [];
   const bulkheadDetails: Mesh[] = [];
-  const occluders = terrain.occluders.map(item => {
+  const fitCabinTimber=(mesh:Mesh)=>{
+    if(!rebuilt)return;const vertices=mesh.getVerticesData('position');if(!vertices)return;
+    for(let i=0;i<vertices.length;i+=3){const x=vertices[i]!+mesh.position.x,z=vertices[i+2]!+mesh.position.z;
+      const relative=z-WRECK_STRUCTURE.origin.z,beam=wreckBeamAt(x-WRECK_STRUCTURE.origin.x)-.07;
+      const fitted=WRECK_STRUCTURE.origin.z+Math.max(-beam,Math.min(beam,relative));
+      vertices[i+2]=fitted-mesh.position.z;vertices[i+1]!+=wreckListHeight(fitted);}
+    mesh.setVerticesData('position',vertices);const normals:number[]=[];VertexData.ComputeNormals(vertices,mesh.getIndices()!,normals);mesh.setVerticesData('normal',normals);
+  };
+  const occluders = terrain.occluders.filter(item => !rebuilt || !(item.id.startsWith('c2-mast')||['c1-mast','c3-mast','crow-mast'].includes(item.id))).map(item => {
     const height = item.top - item.bottom;
     const wall = item.kind === 'wall';
     const isMast = item.id.includes('mast');
@@ -841,6 +889,7 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
     mesh.position.set((item.cell.col + 0.5) * tileMeters, (item.top + item.bottom) / 2, (item.cell.row + 0.5) * tileMeters);
     if (brokenMast) mesh.rotation.z = item.id === 'c2-mast' ? -0.72 : 0.22;
     mesh.material = materialFor(options.exteriorDeckTexture && ['c1-mast', 'c2-mast', 'c3-mast'].includes(item.id) ? 'exterior-deck' : item.materialId);
+    if(rebuilt && wall){fitCabinTimber(mesh);worldSurfaceUV(mesh,4.5);}
     mesh.isPickable = false;
     mesh.metadata = { occluderId: item.id, kind: item.kind, cell: item.cell, bottom: item.bottom, top: item.top, ...(item.axis ? { axis: item.axis } : {}) };
     if (wall && options.shipDeck && item.id.startsWith('cabin-room-')) {
@@ -852,6 +901,7 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
         }, scene);
         batten.position.set(mesh.position.x, item.bottom + level, mesh.position.z);
         batten.material = materialFor('stair-wood');
+        if(rebuilt){fitCabinTimber(batten);worldSurfaceUV(batten,4.5);}
         batten.isPickable = false;
         batten.metadata = { ...mesh.metadata, decorativeBulkhead: true };
         bulkheadDetails.push(batten);
@@ -936,6 +986,7 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
     return mesh;
   });
   for (const feature of terrain.structures ?? []) {
+    if (rebuilt && (feature.kind === 'stair' || feature.kind === 'hatch')) continue;
     if (feature.kind === 'hatch') {
       const mesh = MeshBuilder.CreateBox(`structure:${feature.id}`, { width: tileMeters * .82, depth: tileMeters * .82, height: .035 }, scene);
       mesh.position.set((feature.cell.col + .5) * tileMeters, feature.height + .03, (feature.cell.row + .5) * tileMeters);
@@ -1014,8 +1065,27 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
       }
     }
   }
-  if (options.shipDeck && options.exteriorDeckTexture) deckDetails.push(...buildShipExteriorArt(scene, terrain, options.exteriorDeckTexture, options.sailTexture, options.boardingDebrisTexture));
+  if (rebuilt) structures.push(...buildWreckExterior(scene,terrain,{deck:options.exteriorDeckTexture??options.deckTexture,hull:options.hullTexture,sail:options.sailTexture,debris:options.boardingDebrisTexture}));
+  if (rebuilt) structures.push(...buildWreckInterior(scene,options.hullTexture,terrain));
+  if (rebuilt) deckDetails.push(...buildSternBreach(scene,options.hullTexture));
+  else if (options.shipDeck && options.exteriorDeckTexture) deckDetails.push(...buildShipExteriorArt(scene, terrain, options.exteriorDeckTexture, options.sailTexture, options.boardingDebrisTexture));
   occluders.push(...bulkheadDetails);
+  if(rebuilt) {
+    const groups=new Map<string,Mesh[]>();
+    for(const mesh of [...occluders]) {
+      const id=String(mesh.metadata?.occluderId??''),cell=mesh.metadata?.cell;
+      if(!id.startsWith('cabin-room-') || !cell)continue;
+      const rooms=Object.entries(wreckCabins).filter(([,b])=>cell.col>=b.minCol-1&&cell.col<=b.maxCol+1&&cell.row>=b.minRow-1&&cell.row<=b.maxRow+1).map(([id])=>id);
+      const axis=mesh.metadata.axis,plane=axis==='z'?mesh.position.x:mesh.position.z;
+      const key=`${rooms.join('+')}:${axis}:${plane}:${mesh.material?.name}`;const group=groups.get(key)??[];group.push(mesh);groups.set(key,group);
+      occluders.splice(occluders.indexOf(mesh),1);
+    }
+    for(const [key,group] of groups){
+      const axis=group[0]!.metadata.axis,plane=axis==='z'?group[0]!.position.x:group[0]!.position.z;
+      const m=Mesh.MergeMeshes(group,true,true,undefined,false,false);if(!m)continue;
+      m.name=`wreck:cabin-bulkheads:${key}`;m.metadata={kind:'wall',cabinIds:key.split(':')[0]!.split('+'),axis,plane,bottom:0,top:2.4};m.isPickable=false;m.receiveShadows=true;occluders.push(m);
+    }
+  }
   if (options.shipDeck) {
     // A real ceiling prevents a player outside from reading a cabin through
     // the cutaway. It is visual only and opens for the focused occupant.
@@ -1029,6 +1099,7 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
       const roof = MeshBuilder.CreateBox(`cabin-ceiling:${roomId}`, { width, depth, height: .14 }, scene);
       roof.position.set((bounds.minCol + bounds.maxCol + 1) * tileMeters / 2, 2.49,
         (bounds.minRow + bounds.maxRow + 1) * tileMeters / 2);
+      fitCabinTimber(roof);
       // The hidden room is covered by the ship's weathered deck, not a flat
       // stone-looking slab or a duplicate baked image of the interior.
       roof.material = materialFor(options.exteriorDeckTexture ? 'exterior-deck' : 'wall-wood');
@@ -1036,6 +1107,24 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
       roof.isPickable = false;
       roof.metadata = { visualOnly: true, kind: 'cabin-ceiling', cabinId: roomId, deckSurfaceId: 'main' };
       deckDetails.push(roof);
+      if (rebuilt) {
+        // Thick, uneven weatherboards over a closed ceiling. Their tiny gaps
+        // reveal the backing timber, never the room or a false hole to the sea.
+        const boards: Mesh[] = [];
+        const courses = Math.ceil(depth / .38), courseDepth = depth / courses;
+        for (let row=0;row<courses;row++) {
+          const join = width * (.35 + .18 * Math.sin(row * 2.1));
+          for (const [side, span, x] of [[0,join,-width/2+join/2],[1,width-join,join/2]] as const) {
+            const board=MeshBuilder.CreateBox(`wreck:roof-board:${roomId}:${row}:${side}`,
+              {width:span-.025,depth:courseDepth-.025,height:.06},scene);
+            board.position.set(roof.position.x+x,2.589+(row%5)*.003,roof.position.z-depth/2+(row+.5)*courseDepth);
+            fitCabinTimber(board);
+            board.material=roof.material;worldSurfaceUV(board,4.5);boards.push(board);
+          }
+        }
+        const planking=Mesh.MergeMeshes(boards,true,true,undefined,false,false);
+        if(planking){planking.name=`wreck:roof-planking:${roomId}`;planking.metadata={...roof.metadata,kind:'cabin-roof-planking'};planking.isPickable=false;planking.receiveShadows=true;deckDetails.push(planking);}
+      }
       // A framed roof reads as a closed timber cabin from outside. Each
       // section follows the same cutaway rule as its roof, so no frame hangs
       // in the air when the focused character enters the room.
@@ -1044,6 +1133,7 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
         const longEdge = MeshBuilder.CreateBox(`cabin-roof-edge:${roomId}:long:${side}`,
           { width, depth: .18, height: .22 }, scene);
         longEdge.position.set(roof.position.x, 2.52, roof.position.z + side * (depth / 2 - .09));
+        fitCabinTimber(longEdge);
         longEdge.material = roofFrameMaterial;
         longEdge.isPickable = false;
         longEdge.metadata = { visualOnly: true, kind: 'cabin-roof-edge', cabinId: roomId, deckSurfaceId: 'main' };
@@ -1051,6 +1141,7 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
         const shortEdge = MeshBuilder.CreateBox(`cabin-roof-edge:${roomId}:short:${side}`,
           { width: .18, depth, height: .22 }, scene);
         shortEdge.position.set(roof.position.x + side * (width / 2 - .09), 2.52, roof.position.z);
+        fitCabinTimber(shortEdge);
         shortEdge.material = roofFrameMaterial;
         shortEdge.isPickable = false;
         shortEdge.metadata = { visualOnly: true, kind: 'cabin-roof-edge', cabinId: roomId, deckSurfaceId: 'main' };
@@ -1062,7 +1153,10 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
       darknessMaterial.alpha = .93;
       darknessMaterial.disableLighting = true;
       const darkness = MeshBuilder.CreateBox(`cabin-darkness:${roomId}`, { width, depth, height: .012 }, scene);
-      darkness.position.set(roof.position.x, 2.39, roof.position.z);
+      // Darkness is on the floor, not an opaque replacement roof that hides
+      // the occupant after entering without a light.
+      darkness.position.set(roof.position.x, .017, roof.position.z);
+      fitCabinTimber(darkness);
       darkness.material = darknessMaterial;
       darkness.isPickable = false;
       darkness.metadata = { visualOnly: true, kind: 'cabin-darkness', cabinId: roomId, deckSurfaceId: 'main' };
@@ -1078,16 +1172,23 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
     ambientLight.groundColor = Color3.FromHexString('#40545c');
     const keyLight = new DirectionalLight('ship-key-light', new Vector3(-0.42, -1, 0.35), scene);
     keyLight.diffuse = Color3.FromHexString('#eee3cb');
-    keyLight.intensity = 0.58;
+    keyLight.intensity = rebuilt ? .92 : 0.58;
+    if (rebuilt) {
+      keyLight.position.set(30,60,-15);
+      const shadows = new ShadowGenerator(1024,keyLight);
+      shadows.usePercentageCloserFiltering = true; shadows.bias=.0004; shadows.normalBias=.025;
+      for(const mesh of [...structures,...occluders,...deckDetails])
+        if(mesh.metadata?.deckSurfaceId!=='sea' && !mesh.name.includes('darkness') && !mesh.name.includes('shimmer'))shadows.addShadowCaster(mesh);
+    }
     keyLight.metadata = { baseIntensity: keyLight.intensity };
   }
   const lights = terrain.lights.map(item => {
     const light = new PointLight(`light:${item.id}`, new Vector3((item.cell.col + 0.5) * tileMeters,
       item.height, (item.cell.row + 0.5) * tileMeters), scene);
     light.diffuse = Color3.FromHexString(item.color);
-    light.intensity = item.intensity;
+    light.intensity = rebuilt ? 0 : item.intensity;
     light.range = item.radiusMeters;
-    light.metadata = { kind: 'ship-ambient-light', lightId: item.id, baseIntensity: item.intensity };
+    light.metadata = { kind: 'ship-ambient-light', lightId: item.id, baseIntensity: rebuilt ? 0 : item.intensity };
     return light;
   });
   // Orthographic framing is independent of radius. Keep the eye outside the
@@ -1102,5 +1203,6 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
   camera.orthoLeft = -camera.orthoTop * aspect;
   camera.orthoRight = camera.orthoTop * aspect;
   scene.activeCamera = camera;
+  if(rebuilt)deckDetails.push(...finishWreck(scene,terrain));
   return { tiles, grid, grids, deckDetails, occluders, structures, lights, camera };
 }

@@ -36,7 +36,7 @@ export const stormwreckBundle: CampaignServerBundle = {
   encounter: { sceneId: 'wreck-ship', creature: { ...privateEncounterSeed.creature, cell: wreckCellFromLocal(25, 7) }, note: privateEncounterSeed.notes.creature },
   doorStates: { 'wreck-objects': { 'practice-door': 'locked' }, 'dragon-rest': { 'a4-library-door': 'closed' } },
   wheelInteraction: {
-    sceneId: 'wreck-ship', targetId: 'wheel', cells: [wreckCellFromLocal(3, 7), wreckCellFromLocal(4, 6), wreckCellFromLocal(5, 7), wreckCellFromLocal(4, 8)],
+    sceneId: 'wreck-ship', targetId: 'wheel', cells: [wreckCellFromLocal(6, 7), wreckCellFromLocal(7, 6), wreckCellFromLocal(8, 7), wreckCellFromLocal(7, 8)],
     nearbyLabel: 'Timón del pecio', note: privateEncounterSeed.notes.wheel
   }
 };

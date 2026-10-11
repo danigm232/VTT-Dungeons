@@ -1,6 +1,7 @@
 import type { Cell, PropDefinition, PublicSceneDefinition } from '../../../engine/shared/campaign.js';
 import type { PortDefinition } from '../../../engine/server/campaign.js';
 import type { TerrainDefinition } from '../../../engine/shared/terrain.js';
+import { WRECK_STRUCTURE, WRECK_CABINS, wreckListHeight, wreckCabinContentCell, wreckHullContains, wreckCellPolygon, circleCellPolygon, wreckUpperDeckPlan,planContains } from '../../../engine/shared/wreck-structure.js';
 
 const CELL = 1.5, LENGTH = 66, HALF_BEAM = 11.25, HULL_COLS = 44, HULL_ROWS = 20;
 // Leave 9 m of real, walkable water around the whole wreck. The authored
@@ -28,29 +29,22 @@ export const wreckCellFromLocal = (col: number, row: number): Cell => shiftCell(
 export const wreckCellAtMeters = (x: number, z: number): Cell => shiftCell(cellAtMetersLocal(x, z));
 export const wreckRowboatCell = wreckCellAtMeters(3.75, 12);
 const metersAtCell = (cell: Cell) => ({ x: -LENGTH / 2 + (cell.col + .5) * CELL, z: -HALF_BEAM + (cell.row + .5) * CELL });
-const outline = [[-33, 7], [-31, 9.1], [-27, 10.8], [-18, 11.2], [18, 11.2], [25, 10.7], [29, 8.6], [31, 6.6], [33, .5]] as const;
-function beamAt(x: number) {
-  if (x <= outline[0]![0]) return outline[0]![1];
-  for (let index = 0; index < outline.length - 1; index++) {
-    const a = outline[index]!, b = outline[index + 1]!;
-    if (x <= b[0]) {
-      let t = Math.max(0, Math.min(1, (x - a[0]) / (b[0] - a[0]))); t = t * t * (3 - 2 * t);
-      return a[1] + (b[1] - a[1]) * t;
-    }
-  }
-  return outline[outline.length - 1]![1];
-}
-const insideHull = (x: number, z: number, inset = 0) => x >= -33 && x <= 33 && Math.abs(z) <= beamAt(x) - inset;
+const insideHull = wreckHullContains;
 const hullCells = rectangle(0, HULL_COLS - 1, 0, 14).filter(cell => {
   const point = metersAtCell(cell);
   return insideHull(point.x, point.z) && !(point.x < -31.5 && Math.abs(point.z) < 2.25);
 });
-const shaftCells = hullCells.filter(cell => { const p = metersAtCell(cell); return Math.abs(p.x + 10.5) < 1.5 && Math.abs(p.z + 4.5) < 1.5; });
+const hullEnvelopeCells = rectangle(0, HULL_COLS - 1, 0, 14).filter(cell => {
+  const point = metersAtCell(cell);
+  return wreckCellPolygon(shiftCell(cell)).length >= 3 && !(point.x < -31.5 && Math.abs(point.z) < 2.25);
+});
+const shaftCells = hullCells.filter(cell => { const p = metersAtCell(cell); return Math.abs(p.x + 19.5) < 1.5 && Math.abs(p.z + 4.5) < 1.5; });
 const crowRing = rectangle(0, HULL_COLS - 1, 0, 14).filter(cell => {
   const p = metersAtCell(cell), radius = Math.hypot(p.x, p.z);
   return radius >= 1.2 && radius <= 2.8;
 });
-const c2Cells = hullCells.filter(cell => cell.col >= 34), c3Cells = hullCells.filter(cell => cell.col <= 9);
+const c2Cells = hullCells.filter(cell => cell.col >= 31 && planContains(wreckUpperDeckPlan('c2',false),metersAtCell(cell))),
+  c3Cells = hullCells.filter(cell => cell.col <= 12 && planContains(wreckUpperDeckPlan('c3',false),metersAtCell(cell)));
 const lower = hullCells.filter(cell => { const p = metersAtCell(cell); return p.x >= -31.5 && p.x <= 29 && insideHull(p.x, p.z, 1.65); });
 const hold = hullCells.filter(cell => { const p = metersAtCell(cell); return p.x >= -32.5 && p.x <= 29 && insideHull(p.x, p.z, 2.1); });
 // The new margin surrounds the full hull; the reef cells below carve readable
@@ -60,6 +54,10 @@ const seaBounds = rectangle(-WRECK_SEA_MARGIN_CELLS, HULL_COLS + WRECK_SEA_MARGI
   -WRECK_SEA_MARGIN_CELLS, HULL_ROWS + WRECK_SEA_MARGIN_CELLS - 1)
   .filter(cell => !hullCellKeys.has(`${cell.col},${cell.row}`));
 const reefObstacleGroups = [
+  // Preserve the southern swimming/rowing channel to P16. The grounding
+  // outcrop hugs the damaged quarter, rather than closing that entire route.
+  { id: 'impact-reef-stern', cells: rectangle(2, 7, 12, 14) },
+  { id: 'foremast-reef', cells: rectangle(43, 45, 2, 5) },
   { id: 'reef-north-west', cells: rectangle(7, 9, -5, -4) },
   { id: 'reef-north-east', cells: rectangle(35, 37, -5, -5) },
   { id: 'reef-west-upper', cells: rectangle(-5, -4, 2, 4) },
@@ -85,7 +83,10 @@ function makeSurface(id: string, cells: Cell[], height: number, materialId: stri
   medium: 'solid' | 'water' = 'solid', visualOnly = false): TerrainDefinition['surfaces'][number] {
   return { id, ...(visualOnly ? { visualOnly: true } : {}), tiles: unique(cells).map(cell => ({
     cell, kind: 'floor' as const, corners: [height, height, height, height] as [number, number, number, number],
-    materialId, movementCost: movementCost as 1 | 2, medium
+    materialId, movementCost: movementCost as 1 | 2, medium,
+    ...(medium === 'solid' || id === 'lower-deck' || id === 'hold-air'
+      ? { polygon: id === 'crow' ? circleCellPolygon(shiftCell(cell), WRECK_STRUCTURE.origin, WRECK_STRUCTURE.crowRadius)
+        : wreckCellPolygon(shiftCell(cell),id==='c2'||id==='c3'?wreckUpperDeckPlan(id):undefined) } : {})
   })) };
 }
 function makeTerrain(baseSurfaceId: string, surfaces: TerrainDefinition['surfaces'], options: Pick<TerrainDefinition, 'occluders' | 'lights' | 'ambience' | 'structures'>
@@ -122,11 +123,11 @@ function applyStairs(deck: TerrainDefinition['surfaces'][number], stairs: Stair[
 const stair = (id: string, cell: Cell, direction: 'east' | 'west', riseMeters: number, runCells: number, baseHeight = 0): Stair =>
   ({ id, kind: 'stair', cell, direction, riseMeters, runCells, baseHeight, steps: runCells * 4, materialId: 'stair-wood' });
 
-const northRow = cellAtMetersLocal(0, -9.75).row, southRow = cellAtMetersLocal(0, 9.75).row;
-const c3North = stair('stairs-c3-north', cellAtMetersLocal(-16.5, -9.75), 'west', UPPER_DECK_HEIGHT, 2);
-const c3South = stair('stairs-c3-south', cellAtMetersLocal(-16.5, 9.75), 'west', UPPER_DECK_HEIGHT, 2);
-const c2North = stair('stairs-c2-north', cellAtMetersLocal(15, -9.75), 'east', UPPER_DECK_HEIGHT, 2);
-const c2South = stair('stairs-c2-south', cellAtMetersLocal(15, 9.75), 'east', UPPER_DECK_HEIGHT, 2);
+const northRow = cellAtMetersLocal(0, -9.75).row, southRow = cellAtMetersLocal(0, 8.25).row;
+const c3North = stair('stairs-c3-north', cellAtMetersLocal(-10.5, -9.75), 'west', UPPER_DECK_HEIGHT, 3);
+const c3South = stair('stairs-c3-south', cellAtMetersLocal(-10.5, 8.25), 'west', UPPER_DECK_HEIGHT, 3);
+const c2North = stair('stairs-c2-north', cellAtMetersLocal(9, -9.75), 'east', UPPER_DECK_HEIGHT, 3);
+const c2South = stair('stairs-c2-south', cellAtMetersLocal(9, 8.25), 'east', UPPER_DECK_HEIGHT, 3);
 const c8Down = stair('stairs-c8', cellAtMetersLocal(-1.5, 5.25), 'east', -3.2, 4);
 const c9StairCell = cellAtMetersLocal(12.75, 2.25);
 const c9StairTop = -3.5 + (c9StairCell.row + .5) / southRow * .3;
@@ -136,35 +137,38 @@ const c1MastCell = cellAtMetersLocal(0, 0), c2MastCell = cellAtMetersLocal(29.5,
 
 const sameCell = (a: Cell, b: Cell) => a.col === b.col && a.row === b.row;
 const cabinDoorCells = {
-  c4: { col: 18, row: 4 }, c5: { col: 18, row: 10 },
-  c6: { col: 26, row: 4 }, c7: { col: 26, row: 10 }
+  c4: { col: 12, row: 4 }, c5: { col: 12, row: 10 },
+  c6: { col: 31, row: 4 }, c7: { col: 31, row: 10 }
 };
 const cabinVerticalWalls = [
-  ...range(3, 6).flatMap(row => [{ col: 11, row }, ...(row === cabinDoorCells.c4.row ? [] : [{ col: 18, row }])]),
-  ...range(8, 12).flatMap(row => [{ col: 11, row }, ...(row === cabinDoorCells.c5.row ? [] : [{ col: 18, row }])]),
-  ...range(3, 6).flatMap(row => [...(row === cabinDoorCells.c6.row ? [] : [{ col: 26, row }]), { col: 33, row }]),
-  ...range(8, 12).flatMap(row => [...(row === cabinDoorCells.c7.row ? [] : [{ col: 26, row }]), { col: 33, row }])
+  ...range(3, 6).flatMap(row => [{ col: 5, row }, ...(row === cabinDoorCells.c4.row ? [] : [{ col: 12, row }])]),
+  ...range(8, 12).flatMap(row => [{ col: 5, row }, ...(row === cabinDoorCells.c5.row ? [] : [{ col: 12, row }])]),
+  ...range(3, 6).flatMap(row => [...(row === cabinDoorCells.c6.row ? [] : [{ col: 31, row }]), { col: 38, row }]),
+  ...range(8, 12).flatMap(row => [...(row === cabinDoorCells.c7.row ? [] : [{ col: 31, row }]), { col: 38, row }])
 ];
 const cabinHorizontalWalls = unique([
-  ...[2, 7].flatMap(row => range(11, 18).map(col => ({ col, row }))),
-  ...[7, 13].flatMap(row => range(11, 18).map(col => ({ col, row }))),
-  ...[2, 7].flatMap(row => range(26, 33).map(col => ({ col, row }))),
-  ...[7, 13].flatMap(row => range(26, 33).map(col => ({ col, row })))
+  ...[2, 7].flatMap(row => range(5, 12).map(col => ({ col, row }))),
+  ...[7, 13].flatMap(row => range(5, 12).map(col => ({ col, row }))),
+  ...[2, 7].flatMap(row => range(31, 38).map(col => ({ col, row }))),
+  ...[7, 13].flatMap(row => range(31, 38).map(col => ({ col, row })))
 ]);
 const cabinWallCells = unique([...cabinVerticalWalls, ...cabinHorizontalWalls]);
 // The strip immediately behind C3 is not part of the playable C1 passage;
 // only its two stair landings remain walkable there.
-const mainCells = hullCells.filter(cell => cell.col >= 11 && cell.col <= 33 && !sameCell(cell, c1MastCell)
+const mainCells = hullCells.filter(cell => (cell.col >= 13 && cell.col <= 30
+  || Object.values(WRECK_CABINS).some(b => cell.col >= b.minCol-6 && cell.col <= b.maxCol-6 && cell.row >= b.minRow-6 && cell.row <= b.maxRow-6)
+  || Object.values(cabinDoorCells).some(d => sameCell(d,cell))) && !sameCell(cell, c1MastCell)
   && !cabinWallCells.some(wall => sameCell(wall, cell)) && !shaftCells.some(hole => sameCell(hole, cell)));
 const mainSurface = makeSurface('main', unique([...mainCells, ...c1Stairs.flatMap(rampCells)]), 0, 'wood');
-const c2Surface = makeSurface('c2', c2Cells.filter(cell => !sameCell(cell, c2MastCell)), UPPER_DECK_HEIGHT, 'wood');
+const c2Surface = makeSurface('c2', c2Cells.filter(cell => cell.col<42&&!sameCell(cell, c2MastCell)), UPPER_DECK_HEIGHT, 'wood');
 const c3Surface = makeSurface('c3', c3Cells.filter(cell => !sameCell(cell, c3MastCell)), UPPER_DECK_HEIGHT, 'wood');
 const c8RampCells = rampCells(c8Down);
 // The thin hull context is only a silhouette below C1. It must leave the
 // descending ramp open, otherwise it visually caps the physical C8 stairs.
-const mainHullContext = makeSurface('c1-hull', hullCells.filter(cell => !c8RampCells.some(ramp => sameCell(cell, ramp))), -.12, 'wood', 1, 'solid', true);
+const mainHullContext = makeSurface('c1-hull', hullEnvelopeCells.filter(cell => !c8RampCells.some(ramp => sameCell(cell, ramp))
+  && !shaftCells.some(hole => sameCell(cell, hole))), -.12, 'wood', 1, 'solid', true);
 applyStairs(mainSurface, c1Stairs);
-const sea = makeSurface('sea', outerSea, -2.9, 'water', 2, 'water');
+const sea = makeSurface('sea', outerSea, WRECK_STRUCTURE.seaHeight, 'water', 2, 'water');
 const c9RampCells = rampCells(c9Down);
 const lowerCells = lower.filter(cell => !shaftCells.some(hole => sameCell(hole, cell))
   && !c8RampCells.some(rampCell => sameCell(rampCell, cell)));
@@ -186,6 +190,11 @@ const holdDeckCells = hold.filter(cell => !c9RampCells.some(rampCell => sameCell
 const holdDeck = makeSurface('hold-air', holdDeckCells, -6.4, 'wood', 2, 'water');
 const holdWater = makeSurface('hold-water', lower.filter(cell => !holdDeckCells.some(deck => sameCell(deck, cell))), -6.1, 'water', 2, 'water', true);
 const crowSurface = makeSurface('crow', crowRing, 15, 'wood');
+// Every solid top surface and its grid share the small physical list. C8's
+// independently authored gradient already expresses the canonical water depth.
+for(const surface of [mainSurface,mainHullContext,c2Surface,c3Surface,crowSurface])
+  for(const tile of surface.tiles){const z=(tile.cell.row+6)*CELL;
+    tile.corners=tile.corners.map((y,i)=>y+wreckListHeight(z+(i>=2?CELL:0))) as [number,number,number,number];if(tile.kind==='floor')tile.kind='ramp';}
 
 const surfaceLink = (fromSurfaceId: string, fromCell: Cell, toSurfaceId: string, toCell: Cell): TerrainDefinition['transitions'][number] => ({
   from: { surfaceId: fromSurfaceId, cell: fromCell }, to: { surfaceId: toSurfaceId, cell: toCell }, mode: 'stair'
@@ -196,7 +205,7 @@ const c8Low = { col: c8Down.cell.col + c8Down.runCells - 1, row: c8Down.cell.row
 const c9Low = { col: c9Down.cell.col + c9Down.runCells - 1, row: c9Down.cell.row };
 const ladderCell = cellAtMetersLocal(1.5, 0);
 const sternBreachCell = cellAtMetersLocal(-30.75, 0);
-const boardingCell = { col: 23, row: southRow };
+const boardingCell = { col: 23, row: cellAtMetersLocal(0,9.75).row };
 const rowboatLocalCell = cellAtMetersLocal(3.75, 12);
 const terrainTransitions: TerrainDefinition['transitions'] = [
   surfaceLink('main', { col: c2North.cell.col + c2North.runCells - 1, row: northRow }, 'c2', c2TopNorth),
@@ -212,10 +221,15 @@ const cabinOccluders = [
   ...cabinHorizontalWalls.map((cell, index) => ({ id: `cabin-room-horizontal-${index}`, cell, bottom: 0, top: 2.4, kind: 'wall' as const, materialId: 'wall-wood', axis: 'x' as const }))
 ];
 const mainOccluders = [
-  { id: 'c1-mast', cell: c1MastCell, bottom: 0, top: 18, kind: 'pillar' as const, materialId: 'wood' },
+  { id: 'c1-mast', cell: c1MastCell, bottom: 0, top: 23, kind: 'pillar' as const, materialId: 'wood' },
   ...cabinOccluders,
-  { id: 'c2-mast', cell: c2MastCell, bottom: UPPER_DECK_HEIGHT, top: 6.2, kind: 'pillar' as const, materialId: 'wood' },
-  { id: 'c3-mast', cell: c3MastCell, bottom: UPPER_DECK_HEIGHT, top: 4.8, kind: 'pillar' as const, materialId: 'wood' }
+  { id: 'c2-mast', cell: c2MastCell, bottom: UPPER_DECK_HEIGHT, top: 3.9, kind: 'pillar' as const, materialId: 'wood' },
+  // The fallen spar crosses these two forecastle cells before reaching the
+  // reef. Keep its visible low obstruction in the authoritative navigation.
+  ...[{col:c2MastCell.col,row:c2MastCell.row-1},{col:c2MastCell.col+1,row:c2MastCell.row-1}]
+    .filter(cell=>c2Cells.some(c=>c.col===cell.col&&c.row===cell.row))
+    .map((cell,i)=>({id:`c2-mast-fallen-${i}`,cell,bottom:UPPER_DECK_HEIGHT,top:3.85,kind:'pillar' as const,materialId:'wood'})),
+  { id: 'c3-mast', cell: c3MastCell, bottom: UPPER_DECK_HEIGHT, top: 5.05, kind: 'pillar' as const, materialId: 'wood' }
 ];
 const mainStructures = [...c1Stairs,
   { id: 'c1-hatch', kind: 'hatch' as const, cell: cellAtMetersLocal(-4.5, -6.75), height: 0, materialId: 'hatch' },
@@ -229,7 +243,7 @@ const mainTerrain = makeTerrain('main', [mainSurface, mainHullContext, c2Surface
     { id: 'lower-ribs', cell: cellAtMetersLocal(0, 0), bottom: -3.2, top: -.2, kind: 'arch' as const, materialId: 'wood' },
     { id: 'hold-ribs', cell: cellAtMetersLocal(0, 0), bottom: -6.4, top: -3.2, kind: 'arch' as const, materialId: 'wood' }],
   structures: mainStructures, transitions: terrainTransitions,
-  hullOpenings: [{ id: 'c9-stern-breach', surfaceId: 'c1-hull', cell: sternBreachCell, edge: 'west', bottom: -5.4, top: -3.2 }],
+  hullOpenings: [{ id: 'c9-stern-breach', surfaceId: 'c1-hull', cell: sternBreachCell, edge: 'west', bottom: -5.4, top: WRECK_STRUCTURE.sternBreachTop }],
   railGaps: [
     { surfaceId: 'c1-hull', cell: boardingCell, edge: 'south' },
     { surfaceId: 'c2', cell: c2TopNorth, edge: 'west' }, { surfaceId: 'c2', cell: c2TopSouth, edge: 'west' },
@@ -281,7 +295,7 @@ const shiftTerrain = (terrain: TerrainDefinition): TerrainDefinition => ({
 });
 const shiftProp = (prop: PropDefinition): PropDefinition => {
   const mount = 'mount' in prop ? prop.mount : undefined;
-  return { ...prop, cell: shiftCell(prop.cell), ...(mount ? { mount: { ...mount, cell: shiftCell(mount.cell) } } : {}) };
+  return { ...prop, cell: shiftCell(prop.kind==='door'?prop.cell:wreckCabinContentCell(prop.id,prop.cell)), ...(mount ? { mount: { ...mount, cell: shiftCell(mount.cell) } } : {}) };
 };
 const scene = (id: string, title: string, surfaceId: string, background: string, terrainDefinition: TerrainDefinition,
   spawns: Cell[], props: PropDefinition[] = [], darkness = 0, manualReveal = false): PublicSceneDefinition => {
@@ -307,20 +321,20 @@ const scene = (id: string, title: string, surfaceId: string, background: string,
     walkable: unique(publicTerrain.surfaces.filter(item => !item.visualOnly).flatMap(item => item.tiles.map(tile => tile.cell))),
     spawns: spawns.map(shiftCell), props: publicProps, waves: id === 'wreck-ship', renderer: 'babylon-hd2d', access: 'authorized', terrain: publicTerrain,
     stageActors: id === 'wreck-ship' ? [{ id: 'wreck-rowboat', label: 'Barca de la expedición', tokenId: 'wreck-rowboat', cell: wreckRowboatCell, surfaceId: 'sea' }] : undefined,
-    pickups: pickups.map(pickup => ({ ...pickup, cell: shiftCell(pickup.cell) })),
+    pickups: pickups.map(pickup => ({ ...pickup, cell: shiftCell(wreckCabinContentCell(pickup.id,pickup.cell)) })),
     visibility: { darkness, manualReveal }
   };
 };
 
 const mainSpawns = [cellAtMetersLocal(3, -1.5), cellAtMetersLocal(3, 1.5), cellAtMetersLocal(-1.5, 0)];
 const allShipProps: PropDefinition[] = [
-  { id: 'wheel', kind: 'wheel', label: 'Timón del pecio', assetId: 'wheel-v3', cell: cellAtMetersLocal(-27, 0), surfaceId: 'c3', rotation: 0,
+  { id: 'wheel', kind: 'wheel', label: 'Timón del pecio', assetId: 'wheel-v3', cell: cellAtMetersLocal(-22.5, 0), surfaceId: 'c3', rotation: 90,
     baseFootprint: [{ col: 0, row: 0 }], allowedRotations: [0, 90, 180, 270], initialState: 'upright',
-    capabilities: { transform: true, detach: true, structure: true }, mount: { cell: cellAtMetersLocal(-27, 0), footprint: [{ col: 0, row: 0 }], assetId: 'wheel-mount-v3' },
+    capabilities: { transform: true, detach: true, structure: true }, mount: { cell: cellAtMetersLocal(-22.5, 0), footprint: [{ col: 0, row: 0 }], assetId: 'wheel-mount-v3' },
     sourceKind: 'adaptation', sourceRef: 'Stormwreck Isle, cubierta C3' },
-  { ...crate('c2-flotsam', 'Restos del palo de C2', cellAtMetersLocal(25.5, 6), 'Stormwreck Isle, C2'), surfaceId: 'c2' },
+  { ...crate('c2-flotsam', 'Restos del palo de C2', cellAtMetersLocal(25.5, 4.5), 'Stormwreck Isle, C2'), surfaceId: 'c2' },
   fixture('c2-ballista-blockout', 'Balista oxidada de C2', cellAtMetersLocal(21, -3), 'c2', 3, 2, 'Stormwreck Isle, C2'),
-  fixture('c2-bowsprit-blockout', 'Bauprés roto de C2', cellAtMetersLocal(30.75, 0), 'c2', 1, 1, 'Stormwreck Isle, C2'),
+  fixture('c2-bowsprit-blockout', 'Bauprés roto de C2', cellAtMetersLocal(28.5, 1.5), 'c2', 1, 1, 'Stormwreck Isle, C2'),
   door('c4-barred-door', 'Puerta atrancada de C4', cabinDoorCells.c4, 'Stormwreck Isle, C4'),
   door('c5-door', 'Puerta de C5', cabinDoorCells.c5, 'Stormwreck Isle, C5'),
   door('c6-door', 'Puerta de C6', cabinDoorCells.c6, 'Stormwreck Isle, C6'),
@@ -329,12 +343,12 @@ const allShipProps: PropDefinition[] = [
   fixture('c4-desk-blockout', 'Escritorio y brújula de C4', cellAtMetersLocal(-15, -4.5), 'main', 2, 1, 'Stormwreck Isle, C4'),
   fixture('c4-bed-blockout', 'Cama de C4', cellAtMetersLocal(-9, -1.5), 'main', 2, 1, 'Stormwreck Isle, C4'),
   fixture('c5-counter-blockout', 'Encimera de cocina de C5', cellAtMetersLocal(-15, 3), 'main', 3, 1, 'Stormwreck Isle, C5'),
-  fixture('c5-skeleton-blockout', 'Esqueleto sin cabeza de C5', cellAtMetersLocal(-7.5, 3), 'main', 1, 1, 'Stormwreck Isle, C5'),
+  fixture('c5-skeleton-blockout', 'Esqueleto sin cabeza de C5', cellAtMetersLocal(-10.5, 3), 'main', 1, 1, 'Stormwreck Isle, C5'),
   ...[
     ['c6-bunk-01', 27, 3], ['c6-bunk-02', 29, 3], ['c6-bunk-03', 31, 3],
     ['c6-bunk-04', 27, 6], ['c6-bunk-05', 29, 6], ['c6-bunk-06', 31, 6]
-  ].map(([id, col, row], index) => fixture(String(id), `Litera ${index + 1} de C6`, { col: Number(col), row: Number(row) }, 'main', 1, 1, 'Stormwreck Isle, C6')),
-  fixture('c7-table-blockout', 'Mesa del comedor de C7', cellAtMetersLocal(10.5, 4.5), 'main', 2, 1, 'Stormwreck Isle, C7'),
+  ].map(([id, col, row], index) => fixture(String(id), `Litera ${index + 1} de C6`, { col: Number(col), row: Number(row) }, 'main', 2, 1, 'Stormwreck Isle, C6')),
+  fixture('c7-table-blockout', 'Mesa del comedor de C7', {col:28,row:10}, 'main', 4, 1, 'Stormwreck Isle, C7'),
   ...[
     ['c7-chair-01', 28, 9], ['c7-chair-02', 32, 9], ['c7-chair-03', 28, 11], ['c7-chair-04', 32, 11]
   ].map(([id, col, row], index) => fixture(String(id), `Silla ${index + 1} de C7`, { col: Number(col), row: Number(row) }, 'main', 1, 1, 'Stormwreck Isle, C7')),
@@ -345,9 +359,9 @@ const allShipProps: PropDefinition[] = [
     ['c8-container-03', 'Contenedor de C8 · 3', 21, 4]
   ].map(([id, label, x, z]) => ({ ...crate(String(id), String(label), cellAtMetersLocal(Number(x), Number(z)), 'Stormwreck Isle, C8'), surfaceId: 'lower-deck' })),
   ...[
-    ['c8-barrel-01', -26, -7.5], ['c8-barrel-02', -23, 7.5], ['c8-barrel-03', 0, -7.5], ['c8-barrel-04', 25.5, -4.5]
+    ['c8-barrel-01', -26, -6], ['c8-barrel-02', -23, 7.5], ['c8-barrel-03', 0, -7.5], ['c8-barrel-04', 25.5, -4.5]
   ].map(([id, x, z], index) => fixture(String(id), `Barril podrido ${index + 1} de C8`, cellAtMetersLocal(Number(x), Number(z)), 'lower-deck', 1, 1, 'Stormwreck Isle, C8')),
-  { ...crate('c9-iron-chest', 'Cofre de hierro de C9 · bajo la brecha de C4/C8', cellAtMetersLocal(-10.5, -4.5), 'Stormwreck Isle, C9'), surfaceId: 'hold-air' },
+  { ...crate('c9-iron-chest', 'Cofre de hierro de C9 · bajo la brecha de C4/C8', cellAtMetersLocal(-19.5, -4.5), 'Stormwreck Isle, C9'), surfaceId: 'hold-air' },
   fixture('c9-debris-01', 'Escombros de carga de C9', cellAtMetersLocal(-24, -4.5), 'hold-air', 1, 1, 'Stormwreck Isle, C9'),
   fixture('c9-debris-02', 'Carga rota de C9', cellAtMetersLocal(22.5, 3), 'hold-air', 1, 1, 'Stormwreck Isle, C9')
 ];
@@ -356,14 +370,15 @@ export const wreckRuntimeScenes: PublicSceneDefinition[] = [
 ];
 
 const address = (mapId: string, zoneId: string, surfaceId: string, cell: Cell) => ({ mapId, zoneId, surfaceId, cell });
-const shaftApproach = cellAtMetersLocal(-13.5, -4.5);
+const shaftApproach = cellAtMetersLocal(-22.5, -4.5);
+const shaftMainApproach = cellAtMetersLocal(-18, -4.5);
 const localWreckPorts: PortDefinition[] = [
   // Board at the outer rail, not at the mast-ladder cell: both connections
   // share a scene now, so overlapping portal landings would chain by mistake.
   { id: 'P01', from: address('wreck-ship', 'exterior', 'sea', { col: rowboatLocalCell.col - 1, row: rowboatLocalCell.row }), to: address('wreck-ship', 'c1', 'main', { col: rowboatLocalCell.col - 1, row: rowboatLocalCell.row - 1 }), mode: 'rigging', return: 'explicit', autoDirection: 'forward' },
   { id: 'P10', from: address('wreck-ship', 'c1', 'main', ladderCell), to: address('wreck-ship', 'c1-crow', 'crow', ladderCell), mode: 'rope-ladder', return: 'explicit' },
   { id: 'P12', from: address('wreck-ship', 'c1', 'main', cellAtMetersLocal(-4.5, -6.75)), to: address('wreck-ship', 'c8', 'lower-deck', cellAtMetersLocal(-4.5, -6.75)), mode: 'hatch', return: 'adjudicated' },
-  { id: 'P13', from: address('wreck-ship', 'c4', 'main', shaftApproach), to: address('wreck-ship', 'c8', 'lower-deck', shaftApproach), mode: 'hole', return: 'adjudicated' },
+  { id: 'P13', from: address('wreck-ship', 'c4', 'main', shaftMainApproach), to: address('wreck-ship', 'c8', 'lower-deck', shaftMainApproach), mode: 'hole', return: 'adjudicated' },
   { id: 'P14', from: address('wreck-ship', 'c8', 'lower-deck', shaftApproach), to: address('wreck-ship', 'c9', 'hold-air', shaftApproach), mode: 'hole', return: 'adjudicated' },
   { id: 'P16', from: address('wreck-ship', 'exterior', 'sea', { col: sternBreachCell.col - 1, row: sternBreachCell.row }), to: address('wreck-ship', 'c9', 'hold-air', sternBreachCell), mode: 'swim', return: 'explicit', autoDirection: 'forward' }
 ];

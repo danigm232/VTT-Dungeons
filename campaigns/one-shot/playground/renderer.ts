@@ -7,10 +7,10 @@ export type D8SceneRendererOptions = {
   mapId?: string;
 };
 /** Surface deposition is cumulative; a short shower must not instantly paint everything. */
-export function advanceD8WeatherSurface(wet:number,snow:number,kind:string,intensity:number,seconds:number){
-  const level=Math.max(0,Math.min(1,intensity)),dt=Math.max(0,Math.min(1,seconds));
-  return {wet:Math.max(0,Math.min(1,wet+dt*(kind==='rain'?level/20:-1/120))),snow:Math.max(0,Math.min(1,snow+dt*(kind==='snow'?level/60:kind==='rain'?-1/90:-1/240)))};
-}
+import { advanceWeatherSurface as advanceD8WeatherSurface } from '../../../engine/client/weather-surface.js';
+export { advanceD8WeatherSurface };
+// Retain deposition while the player travels between maps in the same session.
+const d8WeatherDeposition = new Map<string,{wet:number;snow:number}>();
 
 export function createD8Scene(engine: any, canvas: any, options: D8SceneRendererOptions) {
   const BABYLON: any = options.babylon ?? (globalThis as any).BABYLON;
@@ -4059,13 +4059,13 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
   }
   function nativeDoor(door:any){
     const root=new BABYLON.TransformNode(door.id+'-frame',scene);root.parent=parentFor('PROPS');root.position.set(door.x,0,door.z);root.rotation.y=door.rotation;
-    const hinge=new BABYLON.TransformNode(door.id+'-hinge',scene);hinge.parent=root;hinge.position.x=-door.width/2;hinge.rotation.y=Math.PI/2;
+    const hinge=new BABYLON.TransformNode(door.id+'-hinge',scene);hinge.parent=root;hinge.position.x=-door.width/2;hinge.rotation.y=0;
     const leaf=box('houseDoor',0,0,0,door.width,door.height,.14,M.woodDark);leaf.parent=hinge;leaf.position.set(door.width/2,door.height/2,0);leaf.metadata={d8Animated:true,tokenOccluder:true};
     for(const y of [.3,door.height-.3]){const strap=box('doorIronStrap',0,0,0,door.width*.94,.075,.16,M.iron);strap.parent=hinge;strap.position.set(door.width/2,y,-.025);strap.metadata={d8Animated:true};}
     const handle=box('doorHandle',0,0,0,.10,.2,.2,M.gold);handle.parent=hinge;handle.position.set(door.width-.2,door.height*.5,-.11);handle.metadata={d8Animated:true};
     for(const side of [-1,1]){const jamb=box('houseDoorJamb',0,0,0,.13,door.height+.12,.22,M.woodLight);jamb.parent=root;jamb.position.set(side*(door.width/2+.1),door.height/2,0);jamb.metadata={d8Animated:true,buildingEnvelope:true};}
     const lintel=box('houseDoorLintel',0,0,0,door.width+.32,.18,.24,M.woodLight);lintel.parent=root;lintel.position.set(0,door.height+.08,0);lintel.metadata={d8Animated:true,buildingEnvelope:true};
-    (rt.nativeDoors??=[]).push({id:door.id,hinge,leaf,root,angle:Math.PI/2});
+    (rt.nativeDoors??=[]).push({id:door.id,hinge,leaf,root,angle:0,closed:true});
   }
   function finalPresentationPass(c:any){
     rt.nativeDoors=[];
@@ -4173,7 +4173,8 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
       }
     }
     for(const light of scene.lights){if(!/Hemispheric|Directional/.test(light.getClassName())&&light.position&&light.parent===rt.root&&light.name!=='mirrorRelicLight')rt.localLightBases.push({light,intensity:light.intensity,indoor:inside(light.position)});}
-    rt.weatherAmount=0;rt.wetAmount=0;rt.snowAmount=0;rt.weatherTarget=0;rt.weatherKind='none';rt.outdoorLampFactor=1;
+    const deposition=d8WeatherDeposition.get(rt.id);
+    rt.weatherAmount=0;rt.wetAmount=deposition?.wet??0;rt.snowAmount=deposition?.snow??0;rt.wetApplied=-1;rt.snowApplied=-1;rt.weatherTarget=0;rt.weatherKind='none';rt.outdoorLampFactor=1;
     rt.climateSkyBase=scene.clearColor.clone();rt.climateFogBase=scene.fogColor.clone();
     if(rt.id==='market'){
       const rope=BABYLON.MeshBuilder.CreateLines('marketCowLead',{points:[BABYLON.Vector3.Zero(),BABYLON.Vector3.One(),new BABYLON.Vector3(2,0,0)],updatable:true},scene);rope.parent=rt.root;rope.color=new BABYLON.Color3(.67,.49,.26);rope.isPickable=false;rt.cowLead=rope;
@@ -4182,6 +4183,7 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
   function updateClimateMaterials(dt:number){
     if(!rt.weatherMaterials)return;
     const amounts=advanceD8WeatherSurface(rt.wetAmount,rt.snowAmount,rt.weatherKind,rt.weatherTarget,dt);rt.wetAmount=amounts.wet;rt.snowAmount=amounts.snow;
+    d8WeatherDeposition.set(rt.id,{wet:rt.wetAmount,snow:rt.snowAmount});
     if(Math.abs(rt.wetAmount-(rt.wetApplied??-1))>.003||Math.abs(rt.snowAmount-(rt.snowApplied??-1))>.003){for(const base of rt.weatherMaterials){
       const snow=rt.snowAmount,wet=rt.wetAmount;
       base.material.diffuseColor=BABYLON.Color3.Lerp(base.color.scale(1-wet*.30),new BABYLON.Color3(.91,.96,1),snow*.78*base.snowExposure);
@@ -4206,22 +4208,35 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
     rt.weatherTarget=rt.weatherKind==='none'?0:(view.environment?.precipitationLevel??2)/3;
     const nodes=rt.presentationNodes;
     if(!nodes)return indoor;
-    const activeRoom=nodes.roofs.map((m:any)=>m.metadata.interiorRoof).find((room:any)=>room.radius?Math.hypot(view.focus.x-room.x,view.focus.z-room.z)<room.radius-.1:Math.abs(view.focus.x-room.x)<room.w/2-.2&&Math.abs(view.focus.z-room.z)<room.d/2-.2);
+    const roomContains=(room:any,x:number,z:number)=>room.radius?Math.hypot(x-room.x,z-room.z)<room.radius:Math.abs(x-room.x)<room.w/2&&Math.abs(z-room.z)<room.d/2;
+    const activeRoom=nodes.roofs.map((m:any)=>m.metadata.interiorRoof).find((room:any)=>roomContains(room,view.focus.x,view.focus.z));
     indoor ||= Boolean(activeRoom);
     // Architecture may obstruct the focused character even when they are
     // outside it at a low camera angle. Fade that envelope, never furniture
     // or its movement collider; the same real depth buffer remains in use.
-    let sight:any=null;
-    if(view.cameraPosition){const aim=new BABYLON.Vector3(view.focus.x,view.focus.y+.9,view.focus.z),direction=aim.subtract(view.cameraPosition),length=direction.length();sight=new BABYLON.Ray(view.cameraPosition,direction.normalize(),length);}
-    const obstructs=(m:any)=>Boolean(sight&&sight.intersectsMesh(m,true).hit);
-    for(const m of nodes.envelopes){
-      const center=m.getBoundingInfo().boundingBox.centerWorld,room=activeRoom,camera=view.cameraPosition;
-      const foreground=room&&camera&&(center.x-room.x)*(camera.x-view.focus.x)+(center.z-room.z)*(camera.z-view.focus.z)>0;
-      m.visibility=foreground?.06:room&&obstructs(m)?.12:1;
+    const camera=view.cameraPosition,previous=rt.occlusionSample,now=performance.now();
+    const resample=!previous||previous.room!==activeRoom||now-previous.at>100
+      ||Math.hypot(view.focus.x-previous.fx,view.focus.z-previous.fz)>.25
+      ||Boolean(camera&&(!previous.camera||BABYLON.Vector3.DistanceSquared(camera,previous.camera)>.12))
+      ||Boolean(!camera&&previous.camera);
+    if(resample){
+      const targets=new Map();
+      let sight:any=null;
+      if(camera&&activeRoom){const aim=new BABYLON.Vector3(view.focus.x,view.focus.y+.9,view.focus.z),direction=aim.subtract(camera),length=direction.length();sight=new BABYLON.Ray(camera,direction.normalize(),length);}
+      for(const m of nodes.envelopes){
+        const center=m.getBoundingInfo().boundingBox.centerWorld,room=activeRoom;
+        const foreground=room&&camera&&(center.x-room.x)*(camera.x-view.focus.x)+(center.z-room.z)*(camera.z-view.focus.z)>0;
+        targets.set(m.uniqueId,foreground ? .06 : room && sight && sight.intersectsMesh(m,true).hit ? .12 : 1);
+      }
+      const rays=camera?[.25,.75,1.3].map(h=>{const aim=new BABYLON.Vector3(view.focus.x,view.focus.y+h,view.focus.z),d=aim.subtract(camera),length=d.length();return new BABYLON.Ray(camera,d.normalize(),length);}):[];
+      for(const m of nodes.furniture){const p=m.getBoundingInfo().boundingBox.centerWorld,near=Math.hypot(p.x-view.focus.x,p.z-view.focus.z)<2.6;targets.set(m.uniqueId,near&&rays.some(r=>r.intersectsMesh(m,true).hit)?.35:1);}
+      rt.occlusionTargets=targets;
+      rt.occlusionSample={room:activeRoom,at:now,fx:view.focus.x,fz:view.focus.z,camera:camera?.clone()};
     }
-    if(view.cameraPosition){
-      const rays=[.25,.75,1.3].map(h=>{const aim=new BABYLON.Vector3(view.focus.x,view.focus.y+h,view.focus.z),d=aim.subtract(view.cameraPosition),length=d.length();return new BABYLON.Ray(view.cameraPosition,d.normalize(),length);});
-      for(const m of nodes.furniture){const p=m.getBoundingInfo().boundingBox.centerWorld,near=Math.hypot(p.x-view.focus.x,p.z-view.focus.z)<2.6;m.visibility=near&&rays.some(r=>r.intersectsMesh(m,true).hit)?.35:1;}
+    for(const m of [...nodes.envelopes,...nodes.furniture]){
+      const target=rt.occlusionTargets?.get(m.uniqueId)??1;
+      m.visibility+=(target-m.visibility)*.35;
+      if(Math.abs(target-m.visibility)<.005)m.visibility=target;
     }
     for(const native of rt.nativeDoors??[]){const door=(view.props??[]).find((p:any)=>p.id===native.id);native.closed=door?.state==='closed';native.root.setEnabled(door?.structure!=='destroyed');}
     if(rt.cowLead){const ben=view.actorPositions?.['ben-market'],cow=view.actorPositions?.['cow-market'];const near=ben&&cow&&Math.hypot(ben.x-cow.x,ben.z-cow.z)<3.5;rt.cowLead.setEnabled(Boolean(near));if(near){const a=new BABYLON.Vector3(ben.x+.25,ben.y+.68,ben.z),b=new BABYLON.Vector3(cow.x-.45,cow.y+.77,cow.z);BABYLON.MeshBuilder.CreateLines('marketCowLead',{points:[a,BABYLON.Vector3.Lerp(a,b,.5).add(new BABYLON.Vector3(0,-.14,0)),b],instance:rt.cowLead},scene);}}
@@ -4232,8 +4247,7 @@ export function createD8Scene(engine: any, canvas: any, options: D8SceneRenderer
     if(view.environment?.precipitation!==undefined)for(const m of nodes.snow)m.setEnabled(false);
     for(const m of nodes.roofs){
       const room=m.metadata?.interiorRoof;
-      if(room){const inside=room.radius?Math.hypot(view.focus.x-room.x,view.focus.z-room.z)<room.radius
-        :Math.abs(view.focus.x-room.x)<room.w/2&&Math.abs(view.focus.z-room.z)<room.d/2;
+      if(room){const inside=roomContains(room,view.focus.x,view.focus.z);
         m.setEnabled(!inside);m.visibility=1;indoor ||= inside;
       }
     }

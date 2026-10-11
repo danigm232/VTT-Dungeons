@@ -71,6 +71,19 @@ describe('camera-facing token occlusion', () => {
       expect(f.renderer.applyTokenOcclusion(f.view, 400)).toBe(false); expect(f.view.body.mask).toBeNull();
     } finally { f.dispose(); }
   });
+  it('hides condition badges behind scenery in exploration without enabling combat silhouettes', () => {
+    const f = fixture();
+    try {
+      f.renderer.combatOcclusionCache = new Map();
+      f.renderer.snapshot = { combat: { active: false, participants: [] } };
+      const pick = vi.spyOn(f.scene, 'pickWithRay').mockReturnValue({ hit: true } as any);
+      expect(f.renderer.nativeCombatActorOccluded(f.view.entity, 100, false)).toBe(true);
+      expect(pick).toHaveBeenCalledTimes(1);
+      expect(f.renderer.nativeCombatActorOccluded(f.view.entity, 100)).toBe(false);
+      expect(f.renderer.nativeCombatActorOccluded(f.view.entity, 120, false)).toBe(true);
+      expect(pick).toHaveBeenCalledTimes(1);
+    } finally { f.dispose(); }
+  });
   it('samples exactly the rendered sprite across feet pivots, orbit and tilt', () => {
     for (const anchor of [.84, .9, 1]) for (const beta of [.35, .8, 1.2]) for (let orientation = 0; orientation < 8; orientation++) {
       const f = fixture(orientation * Math.PI / 4, beta, anchor);

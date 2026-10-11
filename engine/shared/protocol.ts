@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { cellSchema, idSchema, rotationSchema, sceneIdSchema, type Cell, type PublicCampaignDefinition, type PublicSceneDefinition, type Rotation } from './campaign.js';
 import type { CampRestState } from './camp-rest.js';
 import type { AdventureView } from './adventure.js';
+import { INVENTORY_MAX_ITEMS, INVENTORY_MAX_LABEL_LENGTH } from './inventory.js';
 
 export type { Cell } from './campaign.js';
 
@@ -11,7 +12,7 @@ export const STEP_DURATION_MS = 220;
 export type SceneId = string;
 export type CameraMode = 'fixed' | 'semiFixed' | 'follow';
 export type Facing = 'north' | 'north-east' | 'east' | 'south-east' | 'south' | 'south-west' | 'west' | 'north-west';
-export interface StepState { from: Cell; to: Cell; fromSurfaceId?: string; toSurfaceId?: string; startedAt: number; durationMs: number }
+export interface StepState { from: Cell; to: Cell; fromSurfaceId?: string; toSurfaceId?: string; startedAt: number; durationMs: number; movementKind?: 'climb' | 'dive' }
 
 export interface PublicEntity {
   id: string;
@@ -27,6 +28,8 @@ export interface PublicEntity {
   tokenId: string;
   /** Radius of an explicitly lit carried source; never inferred from an unlit pickup. */
   carriedLightRadiusMeters?: number;
+  /** Shared by player, DM and projector so rowing never looks like swimming. */
+  waterMovement?: 'rowboat' | 'swim' | 'dive';
   seatId?: string;
   hp?: number;
   maxHp?: number;
@@ -36,7 +39,7 @@ export interface PublicEntity {
 export type AttackAnimationType = 'melee' | 'arrow' | 'thrownWeapon' | 'radiantArrow' | 'vine' | 'fireProjectile' | 'magicalProjectile';
 export type AbilityId = 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha';
 export type CombatRange = { kind: 'melee' | 'ranged'; normalMeters: number; longMeters?: number };
-export type CombatSave = { ability: AbilityId; dc: number; failureCondition?: CombatCondition; escapeDc?: number; endsWhenSourceDefeated?: boolean };
+export type CombatSave = { ability: AbilityId; dc: number; failureCondition?: CombatCondition; escapeDc?: number; endsWhenSourceDefeated?: boolean; durationRounds?: number; durationSeconds?: number; expiryTurn?: 'start' | 'end' };
 export type CombatActionCost = 'action' | 'bonus' | 'reaction';
 export type CombatResolution = 'attack' | 'automatic-damage' | 'guided';
 /** Las acciones de punto se declaran sobre una casilla, no sobre una ficha. */
@@ -96,6 +99,14 @@ export interface ConditionSource {
   escapeDc?: number;
   durationRounds?: number;
   appliedAtRound?: number;
+  durationSeconds?: number;
+  remainingMs?: number;
+  expiresAt?: number;
+  /** Absent: count completed rounds. Present: count this actor's turn boundaries. */
+  expiryTurn?: 'start' | 'end';
+  skipNextTurnEnd?: boolean;
+  /** Full rounds are measured from the initiative position where the effect began. */
+  roundAnchorId?: string;
   endsWhenSourceDefeated?: boolean;
 }
 export interface CombatParticipant { id: string; label: string; kind: 'player' | 'creature' | 'npc'; controller: 'player' | 'dm'; initiative: number; initiativeSubmitted: boolean; active: boolean; hp: number; maxHp: number; armorClass: number; speedMeters: number; attacks: CombatAction[]; conditions: CombatCondition[]; deathSaves?: { successes: number; failures: number; stable: boolean } }
@@ -167,6 +178,8 @@ export interface WorldSnapshot {
   /** Sucesos públicos de escena; no contiene hallazgos ni datos privados. */
   story?: { wreckDisappeared: boolean };
   campRest?: CampRestState | null;
+  /** Scene-local camp activity, optional for renderers consuming older snapshots. */
+  campActivity?: CampRestState | null;
   combat: { active: boolean; round: number; currentId: string | null; movement: { actorId: string; maximumSquares: number; spentSquares: number; remainingSquares: number } | null; participants: CombatParticipant[]; /** Orden confirmado por el DM; respeta los desempates de la mesa. */ order?: Array<{ id: string; label: string; kind: 'player' | 'creature' | 'npc' }>; lastEvent: CombatEvent | null };
 }
 
@@ -223,6 +236,7 @@ export interface InteractionRequest {
   status: 'pending' | 'resolved';
 }
 
+export interface ConditionStateView { conditions?: CombatCondition[]; conditionSources?: ConditionSource[] }
 export interface DmState {
   /** D8-only, DM-only action catalogue for local visual QA; never authorizes gameplay. */
   animationAudit?: Array<{ id: string; attacks: CombatAction[]; explorationActions: ExplorationAction[]; explorationBasics: ExplorationBasicAction[] }>;
@@ -231,14 +245,16 @@ export interface DmState {
   sceneId: SceneId;
   sceneEpoch: number;
   objectRevision: number;
-  characters: Array<CharacterPublic & { hp: number; maxHp: number; session: boolean; sceneId: SceneId; cell: Cell; surfaceId: string; step: StepState | null; inventory: string[]; sheet: CharacterSheetView | null; resources: Record<string, { label: string; current: number; max: number }>; concentration: { actionId: string; label: string } | null; deathSaves: { successes: number; failures: number; stable: boolean } }>;
-  creature: { id: string; label: string; visible: boolean; cell: Cell; surfaceId: string; sceneId: SceneId; hp: number; maxHp: number; armorClass: number; speedMeters: number; traits: string[]; actions: string[] } | null;
-  npcs: Array<{ id: string; label: string; tokenId: string; color: string; cell: Cell; surfaceId: string; hp: number; maxHp: number; armorClass: number; speedMeters: number; traits: string[]; attacks: CombatAction[]; combatEnabled: boolean; visible: boolean }>;
+  characters: Array<CharacterPublic & ConditionStateView & { hp: number; maxHp: number; session: boolean; sceneId: SceneId; cell: Cell; surfaceId: string; step: StepState | null; inventory: string[]; sheet: CharacterSheetView | null; resources: Record<string, { label: string; current: number; max: number }>; concentration: { actionId: string; label: string } | null; deathSaves: { successes: number; failures: number; stable: boolean } }>;
+  creature: (ConditionStateView & { id: string; label: string; visible: boolean; cell: Cell; surfaceId: string; sceneId: SceneId; hp: number; maxHp: number; armorClass: number; speedMeters: number; traits: string[]; actions: string[] }) | null;
+  npcs: Array<ConditionStateView & { id: string; label: string; tokenId: string; color: string; cell: Cell; surfaceId: string; hp: number; maxHp: number; armorClass: number; speedMeters: number; traits: string[]; attacks: CombatAction[]; combatEnabled: boolean; visible: boolean }>;
   combat: { sequences: Record<string, { actionId: string; remaining: number; targetId?: string }>; active: boolean; round: number; currentId: string | null; movement: { actorId: string; maximumSquares: number; spentSquares: number; remainingSquares: number } | null; participants: CombatParticipant[]; lastEvent: CombatEvent | null; prompt: CombatPrompt | null; initiativePending: boolean; initiativeSubmitted: Record<string, boolean>; actionUsed: Record<string, boolean>; bonusActionUsed: Record<string, boolean>; reactionUsed: Record<string, boolean>; concentration: Record<string, { actionId: string; label: string }>; recharge: Record<string, Record<string, boolean>>; order: Array<{ id: string; label: string; kind: 'player' | 'creature' | 'npc' }> };
   privateNotes: { creature: string; wheel: string };
   camera: CameraState;
   environment: EnvironmentState;
   campRest?: CampRestState | null;
+  /** Activity history at the visible camp; campRest may belong to another scene. */
+  campActivity?: CampRestState | null;
   audio: AudioState;
   projectorReady: boolean;
   interactions: InteractionRequest[];
@@ -269,13 +285,22 @@ export const moveInputSchema = z.object({
 export const sceneReadySchema = z.object({ runtimeEpoch: runtimeEpochSchema.optional(), sceneEpoch: epochSchema }).strict();
 export const claimSchema = z.object({ runtimeEpoch: runtimeEpochSchema.optional(), characterId: idSchema }).strict();
 export const interactSchema = z.object({ runtimeEpoch: runtimeEpochSchema.optional(), commandId: commandIdSchema, sceneEpoch: epochSchema, targetId: idSchema }).strict();
-export const campPlayerInteractSchema = z.object({ runtimeEpoch: runtimeEpochSchema.optional(), commandId: commandIdSchema, sceneEpoch: epochSchema, pointId: idSchema }).strict();
+export const campPlayerInteractSchema = z.object({ runtimeEpoch: runtimeEpochSchema.optional(), commandId: commandIdSchema, sceneEpoch: epochSchema, pointId: idSchema, activityId: idSchema.optional() }).strict();
 export const explorationActionSchema = z.discriminatedUnion('type', [
   z.object({ runtimeEpoch: runtimeEpochSchema.optional(), type: z.literal('exploration:action'), commandId: commandIdSchema, sceneEpoch: epochSchema, targetId: idSchema.optional(), targetCell: cellSchema.optional(), actionId: idSchema }).strict(),
   z.object({ runtimeEpoch: runtimeEpochSchema.optional(), type: z.literal('exploration:attack'), commandId: commandIdSchema, sceneEpoch: epochSchema, targetId: idSchema, actionId: idSchema }).strict(),
   z.object({ runtimeEpoch: runtimeEpochSchema.optional(), type: z.literal('exploration:basic'), commandId: commandIdSchema, sceneEpoch: epochSchema, action: z.enum(Object.keys(explorationBasicActionCatalogue) as [ExplorationBasicAction, ...ExplorationBasicAction[]]), targetId: idSchema.optional(), targetCell: cellSchema.optional() }).strict()
 ]);
-export const inventoryUpdateSchema = z.object({ runtimeEpoch: runtimeEpochSchema.optional(), commandId: commandIdSchema, items: z.array(z.string().trim().min(1).max(180)).max(80) }).strict();
+const inventoryItemsSchema = z.array(z.string().trim().min(1).max(INVENTORY_MAX_LABEL_LENGTH)).max(INVENTORY_MAX_ITEMS);
+export const inventoryUpdateSchema = z.object({
+  runtimeEpoch: runtimeEpochSchema.optional(), commandId: commandIdSchema, items: inventoryItemsSchema,
+  expectedItems: z.array(z.string().min(1).max(INVENTORY_MAX_LABEL_LENGTH)).max(INVENTORY_MAX_ITEMS).optional()
+}).strict();
+export const inventoryUseSchema = z.object({
+  runtimeEpoch: runtimeEpochSchema.optional(), commandId: commandIdSchema,
+  index: z.number().int().min(0).max(INVENTORY_MAX_ITEMS - 1), expectedItem: z.string().min(1).max(INVENTORY_MAX_LABEL_LENGTH),
+  action: z.enum(['consume', 'light', 'extinguish'])
+}).strict();
 export const playerCombatSchema = z.discriminatedUnion('type', [
   z.object({ runtimeEpoch: runtimeEpochSchema.optional(), type: z.literal('combat:cancelAction'), commandId: commandIdSchema, sceneEpoch: epochSchema, promptId: commandIdSchema.optional() }).strict(),
   z.object({ runtimeEpoch: runtimeEpochSchema.optional(), type: z.literal('combat:flee'), commandId: commandIdSchema, sceneEpoch: epochSchema }).strict(),
@@ -329,6 +354,7 @@ export const characterSheetUpdateSchema = z.object({
 }).strict();
 
 export const dmCommandSchema = z.discriminatedUnion('type', [
+  z.object({ ...runtimeField, type: z.literal('camp:interact'), commandId: commandIdSchema, sceneEpoch: epochSchema, characterId: idSchema, pointId: idSchema, activityId: idSchema }).strict(),
   z.object({ ...runtimeField, type: z.literal('scene'), commandId: commandIdSchema, sceneEpoch: epochSchema, sceneId: sceneIdSchema }).strict(),
   z.object({ ...runtimeField, type: z.literal('view:focus'), commandId: commandIdSchema, sceneEpoch: epochSchema, sceneId: sceneIdSchema }).strict(),
   z.object({ ...runtimeField, type: z.literal('entity:portal'), commandId: commandIdSchema, sceneEpoch: epochSchema, entityId: idSchema, portId: idSchema, direction: z.enum(['forward', 'return']), adjudicate: z.boolean().optional() }).strict(),
@@ -348,7 +374,7 @@ export const dmCommandSchema = z.discriminatedUnion('type', [
   z.object({ ...runtimeField, type: z.literal('combat:participant'), commandId: commandIdSchema, sceneEpoch: epochSchema, entityId: idSchema, active: z.boolean() }).strict(),
   z.object({ ...runtimeField, type: z.literal('combat:initiative'), commandId: commandIdSchema, sceneEpoch: epochSchema, entries: z.array(z.object({ id: idSchema, initiative: z.number().int().min(-20).max(40) }).strict()).min(1).max(30) }).strict(),
   z.object({ ...runtimeField, type: z.literal('combat:initiativeOrder'), commandId: commandIdSchema, sceneEpoch: epochSchema, order: z.array(idSchema).min(2).max(30), confirm: z.boolean() }).strict(),
-  z.object({ ...runtimeField, type: z.literal('combat:condition'), commandId: commandIdSchema, sceneEpoch: epochSchema, entityId: idSchema, condition: z.enum(['envenenada', 'apresada', 'agarrada', 'derribada', 'asustada', 'inconsciente', 'oculta', 'invisible', 'restringida', 'hechizada', 'paralizada']), active: z.boolean() }).strict(),
+  z.object({ ...runtimeField, type: z.literal('combat:condition'), commandId: commandIdSchema, sceneEpoch: epochSchema, entityId: idSchema, condition: z.enum(['envenenada', 'apresada', 'agarrada', 'derribada', 'asustada', 'inconsciente', 'oculta', 'invisible', 'restringida', 'hechizada', 'paralizada']), active: z.boolean(), durationSeconds: z.number().int().min(1).max(86400).optional(), expiryTurn: z.enum(['start', 'end']).optional() }).strict(),
   z.object({ ...runtimeField, type: z.literal('combat:endTurn'), commandId: commandIdSchema, sceneEpoch: epochSchema }).strict(),
   z.object({ ...runtimeField, type: z.literal('combat:next'), commandId: commandIdSchema, sceneEpoch: epochSchema }).strict(),
   z.object({ ...runtimeField, type: z.literal('combat:end'), commandId: commandIdSchema, sceneEpoch: epochSchema }).strict(),

@@ -15,10 +15,26 @@ function fixture(hits: boolean[]) {
 }
 
 describe('partial token occlusion', () => {
-  it('places D8 opaque boots above the 3D floor instead of using the flat-map sorting anchor', () => {
+  it('cancels a camp gesture on incapacity even without an authored condition pose', () => {
+    for (const condition of ['inconsciente', 'paralizada']) {
+      const { renderer, view } = fixture([]);
+      renderer.d8Scene = null;
+      renderer.snapshot.combat.active = false;
+      renderer.campaign.tokenAnimations = { test: {} };
+      renderer.campaign.scenes = [];
+      view.animationState = 'camp-cook'; view.animationUntil = 5000;
+      view.entity.conditions = [condition];
+      expect(renderer.activeTokenState(view, 100)).toBe('idle');
+      expect(view.animationState).toBeNull();
+      view.entity.conditions = [];
+      expect(renderer.activeTokenState(view, 200)).toBe('idle');
+    }
+  });
+  it('grounds opaque boots in both native renderers, not at the flat-map sorting anchor', () => {
     const renderer: any = Object.create(WorldRenderer.prototype);
     renderer.campaign = { tokens: { maria: { logicalHeight: 92, worldHeightMeters: 1.6 } } };
     renderer.billboardSourceUrls = new Map([[7, '/maria.png']]);
+    renderer.actorGrounding = new Map();
     const view: any = { entity: { tokenId: 'maria' }, body: { x: 0, y: 0 }, sprite: { height: 92 } };
     const sprite: any = { visible: true, texture: { source: { uid: 7, width: 1024, height: 1024 }, frame: { x: 0, y: 0, width: 1024, height: 1024 } },
       width: 92, height: 92, anchor: { x: .5, y: .84 }, x: 0, y: 0, scale: { x: 1 }, alpha: 1, tint: 0xffffff };
@@ -26,7 +42,7 @@ describe('partial token occlusion', () => {
     renderer.d8Scene = {};
     expect(renderer.nativeTokenFrame(view, sprite).anchorY).toBe(1);
     renderer.d8Scene = null;
-    expect(renderer.nativeTokenFrame(view, sprite).anchorY).toBe(.84);
+    expect(renderer.nativeTokenFrame(view, sprite).anchorY).toBe(1);
   });
   it('masks only covered body regions, keeping the visible portion and ground ring', () => {
     const { renderer, view, mask, pick } = fixture([...Array(9).fill(true), ...Array(9).fill(false)]);

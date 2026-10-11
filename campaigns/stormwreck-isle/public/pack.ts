@@ -97,17 +97,20 @@ const definition: PublicCampaignDefinition = {
     { id: 'maria', label: 'Trinity', archetype: 'Pícara mediana', color: '#b66dc4', tokenId: 'rogue' }
   ],
   tokens: {
-    wizard: { url: '/art/tokens/wizard.png', logicalWidth: 92, logicalHeight: 92, anchorX: 0.5, anchorY: 0.84 },
-    cleric: { url: '/art/tokens/cleric.png', logicalWidth: 92, logicalHeight: 92, anchorX: 0.5, anchorY: 0.84 },
-    rogue: { url: '/art/m3/trinity/maria_base.png', logicalWidth: 92, logicalHeight: 92, anchorX: 0.5, anchorY: 0.84 },
-    harpy: { url: '/art/m3/harpy/harpia_base.png', logicalWidth: 112, logicalHeight: 112, anchorX: 0.5, anchorY: 0.9 },
-    zombie: { url: '/art/m3/zombie/zombie1_base.png', logicalWidth: 96, logicalHeight: 96, anchorX: 0.5, anchorY: 0.9 },
-    ghoul: { url: '/art/m3/ghoul/ghoul_base.png', logicalWidth: 100, logicalHeight: 100, anchorX: 0.5, anchorY: 0.92 },
-    'npc-runara': { url: '/art/stormwreck/retreat/runara.svg', logicalWidth: 88, logicalHeight: 100, anchorX: 0.5, anchorY: 0.92 },
-    'npc-tarak': { url: '/art/stormwreck/retreat/tarak.svg', logicalWidth: 88, logicalHeight: 100, anchorX: 0.5, anchorY: 0.92 },
-    'npc-varnoth': { url: '/art/stormwreck/retreat/varnoth.svg', logicalWidth: 88, logicalHeight: 100, anchorX: 0.5, anchorY: 0.92 },
-    'retreat-kobold': { url: '/art/stormwreck/retreat/kobold.svg', logicalWidth: 88, logicalHeight: 100, anchorX: 0.5, anchorY: 0.92 },
-    'retreat-marker': { url: '/art/stormwreck/retreat/marker.svg', logicalWidth: 72, logicalHeight: 84, anchorX: 0.5, anchorY: 0.92 },
+    // Visual stature estimates; these do not change size categories/reach/rules.
+    wizard: { url: '/art/tokens/wizard.png', logicalWidth: 92, logicalHeight: 92, worldHeightMeters: 1.8, anchorX: 0.5, anchorY: 0.84 },
+    cleric: { url: '/art/tokens/cleric.png', logicalWidth: 92, logicalHeight: 92, worldHeightMeters: 1.3, anchorX: 0.5, anchorY: 0.84 },
+    rogue: { url: '/art/m3/trinity/maria_base.png', logicalWidth: 92, logicalHeight: 92, worldHeightMeters: 1.05, anchorX: 0.5, anchorY: 0.84 },
+    harpy: { url: '/art/m3/harpy/harpia_base.png', logicalWidth: 112, logicalHeight: 112, worldHeightMeters: 1.7, anchorX: 0.5, anchorY: 0.9 },
+    zombie: { url: '/art/m3/zombie/zombie1_base.png', logicalWidth: 96, logicalHeight: 96, worldHeightMeters: 1.8, anchorX: 0.5, anchorY: 0.9 },
+    ghoul: { url: '/art/m3/ghoul/ghoul_base.png', logicalWidth: 100, logicalHeight: 100, worldHeightMeters: 1.7, anchorX: 0.5, anchorY: 0.92 },
+    // These are portrait markers, not full-body art: do not turn a face into
+    // a human-height disk. Their display height is not a character statistic.
+    'npc-runara': { url: '/art/stormwreck/retreat/runara.svg', logicalWidth: 88, logicalHeight: 100, worldHeightMeters: .85, anchorX: 0.5, anchorY: 0.92 },
+    'npc-tarak': { url: '/art/stormwreck/retreat/tarak.svg', logicalWidth: 88, logicalHeight: 100, worldHeightMeters: .85, anchorX: 0.5, anchorY: 0.92 },
+    'npc-varnoth': { url: '/art/stormwreck/retreat/varnoth.svg', logicalWidth: 88, logicalHeight: 100, worldHeightMeters: .85, anchorX: 0.5, anchorY: 0.92 },
+    'retreat-kobold': { url: '/art/stormwreck/retreat/kobold.svg', logicalWidth: 88, logicalHeight: 100, worldHeightMeters: .6, anchorX: 0.5, anchorY: 0.92 },
+    'retreat-marker': { url: '/art/stormwreck/retreat/marker.svg', logicalWidth: 72, logicalHeight: 84, worldHeightMeters: .9, anchorX: 0.5, anchorY: 0.92 },
     'wreck-rowboat': { url: '/art/stormwreck/rowboat.svg', logicalWidth: 150, logicalHeight: 84, anchorX: 0.5, anchorY: 0.72 }
   },
   tokenAnimations: {
@@ -288,6 +291,12 @@ const mergeById = <T extends { id: string }>(primary: readonly T[] | undefined, 
 const primaryAudio = definition.audio.library, campAudio = campRestsPublicCampaign.audio.library;
 const campAnimations = campRestsPublicCampaign.tokenAnimations;
 const primaryAnimations = definition.tokenAnimations;
+const directionalCampAnimations = Object.fromEntries(Object.entries(campAnimations.rogue ?? {})
+  .filter(([state]) => state.startsWith('camp-') && state !== 'camp-rest')
+  .flatMap(([state, action]) => Object.entries(mariaWalkDirections).map(([direction, walk]) => [
+    `${state}-${direction.slice('direction-'.length)}`,
+    direction === 'direction-s' ? action : { frames: [walk.frames[0]!], fps: 1, ...('flipX' in walk ? { flipX: walk.flipX } : {}) }
+  ])));
 
 /** Camp scenes are part of the Stormwreck campaign, not a separate save slot.
  * Keep the standalone source pack available for its focused tests, while the
@@ -299,7 +308,7 @@ export const publicCampaignDefinition = validatePublicCampaign({
   scenes: [...definition.scenes, ...campRestsPublicCampaign.scenes],
   tokens: { ...campRestsPublicCampaign.tokens, ...definition.tokens },
   tokenAnimations: Object.fromEntries([...new Set([...Object.keys(campAnimations), ...Object.keys(primaryAnimations)])].map(tokenId => [
-    tokenId, { ...(campAnimations[tokenId] ?? {}), ...(primaryAnimations[tokenId] ?? {}) }
+    tokenId, { ...(campAnimations[tokenId] ?? {}), ...(primaryAnimations[tokenId] ?? {}), ...(tokenId === 'rogue' ? directionalCampAnimations : {}) }
   ])),
   props: { ...campRestsPublicCampaign.props, ...definition.props },
   audio: {

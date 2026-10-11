@@ -45,7 +45,8 @@ describe('módulo autónomo de campamentos', () => {
       for(let roomId=1;roomId<=6;roomId++){
         const torch=scene.getLightByName(`a1:room-${roomId}:torch-light`)!;
         expect(torch.includedOnlyMeshes.length).toBeGreaterThan(0);
-        expect(torch.includedOnlyMeshes.every(mesh=>mesh.name.includes(`a1:room-${roomId}:lit-floor`)||new RegExp(`a1:room-${roomId}:face-[012]`).test(mesh.name))).toBe(true);
+        const point=definition.camp!.interactionPoints.find(p=>p.id.startsWith(`a1-room-${roomId}-`))!;
+        expect(torch.includedOnlyMeshes.every(mesh=>mesh.name.includes(`a1:room-${roomId}:lit-floor`)||mesh.name===`a1:room-${roomId}:furniture`||mesh.metadata?.interactionPointId===point.id||new RegExp(`a1:room-${roomId}:face-[012]`).test(mesh.name))).toBe(true);
         expect(torch.includedOnlyMeshes.some(mesh=>mesh.name.includes('face-3')||mesh.name.startsWith('a1:static'))).toBe(false);
       }
       const front=scene.meshes.filter(m=>m.name.includes('a1:room-3:face-3'));
@@ -56,10 +57,19 @@ describe('módulo autónomo de campamentos', () => {
       visuals.update(1,'arrival');visuals.update(2,'arrival');
       expect(front.every(m=>m.scaling.y>.9)).toBe(true);expect(back.every(m=>m.scaling.y>.9)).toBe(true);expect(roof.every(m=>m.visibility>.9)).toBe(true);
       expect(scene.getLightByName('a1:room-3:torch-light')!.intensity).toBe(0);
+      expect(scene.getMeshByName('a1:room-3:furniture')!.isVisible).toBe(false);
       expect(scene.meshes.filter(m=>m.name.includes('a1:room-3:torch-flame')).every(m=>m.visibility===0)).toBe(true);
       visuals.update(3,'arrival',[],{col:18,row:9});visuals.update(4,'arrival',[],{col:18,row:9});
       expect(front.every(m=>m.scaling.y<.1)).toBe(true);expect(roof.every(m=>m.visibility<.1)).toBe(true);
+      expect(scene.meshes.filter(m=>/a1:room-3:face-[12]:/.test(m.name)).every(m=>m.scaling.y<.1)).toBe(true);
+      expect(scene.getMeshByName('a1:bedrock-partition:2')!.scaling.y).toBeLessThan(.1);
+      expect(scene.getMeshByName('a1:bedrock-partition:3')!.scaling.y).toBeLessThan(.1);
+      expect(scene.getMeshByName('a1:bedrock-partition:5')!.scaling.y).toBeGreaterThan(.9);
+      expect(scene.getLightByName('a1:room-3:torch-light')!.intensity).toBe(0);
+      visuals.update(4.5,'night',[],{col:18,row:9});
       expect(scene.getLightByName('a1:room-3:torch-light')!.intensity).toBeGreaterThan(0);
+      expect(scene.getMeshByName('a1:room-3:furniture')!.isVisible).toBe(true);
+      expect(scene.getMeshByName('a1:room-4:furniture')!.isVisible).toBe(false);
       expect(scene.getLightByName('a1:room-4:torch-light')!.intensity).toBe(0);
       expect(scene.meshes.filter(m=>m.name.includes('a1:room-3:torch-flame')).every(m=>m.visibility===1)).toBe(true);
       const neighboringFacade=scene.meshes.filter(m=>m.name.includes('a1:room-4:face-3'));
@@ -67,15 +77,19 @@ describe('módulo autónomo de campamentos', () => {
       expect(neighboringFacade.every(m=>m.scaling.y>.9)).toBe(true);expect(neighboringRoof.every(m=>m.visibility>.9)).toBe(true);
       view.camera.setPosition(new Vector3(36,20,-20));view.camera.getViewMatrix(true);
       visuals.update(5,'night');visuals.update(6,'night');
-      expect(front.every(m=>m.scaling.y>.9)).toBe(true);expect(back.every(m=>m.scaling.y<.1)).toBe(true);
+      expect(front.every(m=>m.scaling.y>.9)).toBe(true);expect(back.every(m=>m.scaling.y>.9)).toBe(true);
+      expect(scene.meshes.filter(m=>m.name.startsWith('a1:ridge')).every(m=>m.visibility>.9)).toBe(true);
+      visuals.update(6.2,'night',[],{col:18,row:9});visuals.update(6.4,'night',[],{col:18,row:9});
       expect(scene.meshes.filter(m=>m.name.startsWith('a1:ridge')).every(m=>m.visibility<.1)).toBe(true);
-      // Lateral walls retract from both side views so tokens remain visible.
+      // Outside, every cell stays closed even from behind and side views.
       for(const x of [-25,95]){
         view.camera.setPosition(new Vector3(x,25,12));view.camera.getViewMatrix(true);
         visuals.update(7,'arrival');visuals.update(8,'arrival');
         const partitions=scene.meshes.filter(m=>/a1:room-\d:face-[12]:/.test(m.name));
-        expect(partitions.every(m=>m.scaling.y<.1)).toBe(true);
-        for(const mesh of partitions){mesh.computeWorldMatrix(true);expect(mesh.getBoundingInfo().boundingBox.maximumWorld.y).toBeLessThan(.15);}
+        expect(partitions.every(m=>m.scaling.y>.9)).toBe(true);
+        visuals.update(9,'arrival',[],{col:18,row:9});visuals.update(10,'arrival',[],{col:18,row:9});
+        expect(partitions.filter(m=>m.name.includes('a1:room-3:')).every(m=>m.scaling.y<.1)).toBe(true);
+        expect(partitions.filter(m=>!m.name.includes('a1:room-3:')).every(m=>m.scaling.y>.9)).toBe(true);
       }
       expect(new Set(scene.meshes.filter(m=>m.name.startsWith('a1:static:a1:plaza')).map(m=>m.material?.name)).size).toBeGreaterThan(2);
       expect(scene.meshes.length).toBeLessThan(150);
@@ -99,10 +113,10 @@ describe('módulo autónomo de campamentos', () => {
     expect(rooms.camp?.canonStatus).toBe('canon');
     expect(rooms.props).toHaveLength(0);
     expect(rooms.camp?.interactionPoints.filter(point => point.kind === 'bed')).toHaveLength(6);
-    expect(rooms.camp?.interactionPoints).toHaveLength(8);
+    expect(rooms.camp?.interactionPoints).toHaveLength(10);
     expect(rooms.camp?.interactionPoints.filter(point => point.kind === 'bed').map(point => point.cell)).toEqual([
-      { col: 5, row: 10 }, { col: 11, row: 9 }, { col: 18, row: 9 },
-      { col: 26, row: 9 }, { col: 33, row: 9 }, { col: 39, row: 9 }
+      { col: 5, row: 8 }, { col: 11, row: 5 }, { col: 18, row: 7 },
+      { col: 26, row: 6 }, { col: 33, row: 5 }, { col: 39, row: 5 }
     ]);
     expect(campaign.scenes.some(scene => /dragon-rest|wreck-ship|monastery/i.test(scene.id))).toBe(false);
   });
@@ -185,6 +199,45 @@ describe('módulo autónomo de campamentos', () => {
     }
   });
 
+  it('permite sentarse, levantarse y conservar el asiento al guardar', () => {
+    for (const definition of campRestsBundle.public.scenes.filter(s => s.seats?.length)) {
+      const state=new GameState(campRestsBundle);state.changeScene(definition.id);
+      const seat=definition.seats![0]!,actor=state.characters.get('mike')!;
+      const token='f'.repeat(32);state.claim(token,'seat-test',actor.id);
+      actor.cell={...seat.cell};actor.surfaceId=seat.surfaceId;
+      expect(state.applyCampPlayerInteraction(actor.id,seat.id).ok).toBe(true);
+      expect(state.seatFor(actor.id)?.id).toBe(seat.id);
+      expect(state.playerPrivate(token).campInteractions.find(p=>p.pointId===seat.id)?.actionLabel).toBe('Levantarte');
+      const restored=new GameState(campRestsBundle);restored.restoreDurable(durablePayloadSchema.parse(state.captureDurable()));
+      expect(restored.seatFor(actor.id)?.id).toBe(seat.id);
+      expect(state.applyCampPlayerInteraction(actor.id,seat.id).ok).toBe(true);
+      expect(state.seatFor(actor.id)).toBeNull();
+    }
+    for(const id of ['wizard','cleric','rogue']) expect(campRestsBundle.public.tokenAnimations[id]?.sit).toBeDefined();
+  });
+
+  it('limita las luces a cada tienda y revela sólo el interior ocupado', () => {
+    const engine=new NullEngine();
+    try {for(const definition of campRestsBundle.public.scenes.filter(s=>s.camp?.visualProfile!=='rooms')){
+      const scene=new Scene(engine);buildTerrain3D(scene,definition.terrain!,{batchTiles:true});const visuals=createCampVisuals(scene,definition)!;
+      const tents=definition.camp!.interactionPoints.filter(p=>p.kind==='tent');
+      const shell=(id:string)=>scene.meshes.filter(m=>m.name.startsWith(id+':shell'));
+      visuals.update(2,'night');visuals.update(3,'night');
+      expect(tents.every(t=>shell(t.id).length>0&&shell(t.id).every(m=>m.visibility>.9))).toBe(true);
+      const target=tents[0]!.objectCell!;
+      for(let n=0;n<15;n++)visuals.update(4+n*.1,'night',[],target);
+      expect(shell(tents[0]!.id).every(m=>m.visibility<.1)).toBe(true);
+      expect(tents.slice(1).every(t=>shell(t.id).every(m=>m.visibility>.9))).toBe(true);
+      const lamps=scene.lights.filter(l=>l.name.includes('tent-')&&l.name.endsWith(':lantern-light'));
+      expect(lamps).toHaveLength(3);
+      for(const light of lamps){
+        expect(light.includedOnlyMeshes.length).toBeGreaterThan(0);
+        expect(light.includedOnlyMeshes.every(m=>!m.name.startsWith('terrain-')&&!m.name.startsWith('camp:static'))).toBe(true);
+      }
+      scene.dispose();
+    }}finally{engine.dispose();}
+  });
+
   it('asigna audio ambiental propio a cada campamento exterior y mantiene A1 serena', () => {
     const profiles = campRestsBundle.public.audio.sceneProfiles!;
     expect(campRestsBundle.public.version).toBe('1.4.0');
@@ -253,7 +306,7 @@ describe('módulo autónomo de campamentos', () => {
           expect(roomLamp.intensity).toBeGreaterThan(lampArrival);
         } else {
           visuals.update(1, 'arrival');
-          const daylightAmbient = ambient.intensity, daylightKey = keyLight.intensity;
+          const daylightAmbient = ambient.intensity, daylightKey = keyLight.intensity, daylightFog = scene.fogDensity;
           const fire = scene.lights.find(light => light.name.includes('fire-point:light'))!;
           const daylightFire = fire.intensity;
           visuals.update(20, 'night');
@@ -261,23 +314,47 @@ describe('módulo autónomo de campamentos', () => {
           expect(keyLight.intensity, `${definition.id}: baja la luz direccional por la noche`).toBeLessThan(daylightKey);
           expect(fire.intensity, `${definition.id}: la hoguera gana presencia por la noche`).toBeGreaterThan(daylightFire);
           if (definition.camp!.visualProfile === 'forest') {
-            expect(scene.fogDensity).toBeGreaterThan(.017);
-            expect(Math.abs(scene.getTransformNodeByName('forest:canopy-sway:0')!.rotation.z)).toBeGreaterThan(0);
+            expect(scene.fogDensity).toBeGreaterThan(daylightFog);
+            expect(scene.fogDensity).toBeLessThan(.012);
+            expect(Math.abs(scene.getTransformNodeByName('forest:tree-sway:0')!.rotation.z)).toBeGreaterThan(0);
           }
           if (definition.camp!.visualProfile === 'cliff-observatory') {
             expect(scene.getMaterialByName('camp:camp-cliffs-observatory:aurora-0')!.alpha).toBeGreaterThan(.11);
+          }
+          if (definition.camp!.visualProfile !== 'forest') {
+            const patches = scene.meshes.filter(mesh => mesh.material?.name.includes(':ground-'));
+            expect(patches).toHaveLength(3);
+            for (const mesh of patches) {
+              expect(mesh.checkCollisions).toBe(false);
+              expect(mesh.hasVertexAlpha).toBe(true);
+              const normals = mesh.getVerticesData('normal')!;
+              expect(normals.filter((_, index) => index % 3 === 1).every(y => y > .99), 'las manchas reciben luz desde arriba').toBe(true);
+            }
+          }
+          if (definition.camp!.visualProfile === 'coastal-refuge') {
+            const pools = scene.meshes.find(mesh => mesh.name.startsWith('camp:static:') && mesh.material?.name === 'terrain-material:water')!;
+            expect(pools).toBeDefined();
+            const uv = pools.getVerticesData('uv')!;
+            expect(new Set(uv.filter((_, index) => index % 2 === 1)).size, 'el agua conserva textura en las dos direcciones').toBeGreaterThan(12);
           }
         }
         const chest = definition.camp!.interactionPoints.find(point => point.kind === 'chest');
         if (chest) {
           const interaction = { pointId: chest.id, pointLabel: chest.label, characterId: chest.ownerCharacterId!, characterLabel: 'Mike', at: 0 };
-          visuals.update(8, 'night', [{ ...interaction, action: 'opened' }]);
+          visuals.update(20 + 1 / 60, 'night', [{ ...interaction, action: 'opened' }]);
+          const opening = scene.getMeshByName(`${chest.id}:lid`)!.rotation.x;
+          expect(opening).toBeLessThan(0); expect(opening).toBeGreaterThan(-.92);
+          for (let n = 1; n <= 90; n++) visuals.update(22 + n / 60, 'night', [{ ...interaction, action: 'opened' }]);
           expect(scene.getMeshByName(`${chest.id}:lid`)?.rotation.x).toBeCloseTo(-.92);
-          visuals.update(9, 'night', [{ ...interaction, action: 'closed' }]);
-          expect(scene.getMeshByName(`${chest.id}:lid`)?.rotation.x).toBe(0);
+          visuals.update(24, 'night', [{ ...interaction, action: 'opened' }, { ...interaction, action: 'used', activityId: 'inspect' }]);
+          expect(scene.getMeshByName(`${chest.id}:lid`)?.rotation.x).toBeCloseTo(-.92);
+          for (let n = 1; n <= 90; n++) visuals.update(24 + n / 60, 'night', [{ ...interaction, action: 'closed' }]);
+          expect(scene.getMeshByName(`${chest.id}:lid`)?.rotation.x).toBeCloseTo(0);
         }
-        visuals.update(12, 'night'); visuals.update(19, 'dawn');
-        const meshBudget = definition.id === 'camp-a1-rooms' ? 128 : 160;
+        visuals.update(26, 'night'); visuals.update(33, 'dawn');
+        // Dynamic parts cannot be merged into the static furniture batch.
+        // Budget includes the independently animated pages, cloth and utensils.
+        const meshBudget = definition.id === 'camp-a1-rooms' ? 144 : 208;
         expect(scene.meshes.length, `${definition.id} no debe exceder el presupuesto estático de meshes`).toBeLessThan(meshBudget);
         scene.dispose();
       }

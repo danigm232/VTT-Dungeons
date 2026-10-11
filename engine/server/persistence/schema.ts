@@ -26,6 +26,12 @@ const conditionSource = z.object({
   escapeDc: boundedInt.min(1).max(30).optional(),
   durationRounds: boundedInt.max(999).optional(),
   appliedAtRound: boundedInt.max(9999).optional(),
+  durationSeconds: boundedInt.min(1).max(86400).optional(),
+  remainingMs: boundedInt.max(86400000).optional(),
+  expiresAt: boundedInt.optional(),
+  expiryTurn: z.enum(['start', 'end']).optional(),
+  skipNextTurnEnd: z.boolean().optional(),
+  roundAnchorId: idSchema.optional(),
   endsWhenSourceDefeated: z.boolean().optional()
 }).strict();
 const resource = z.object({ label: z.string().min(1).max(80), current: boundedInt.max(99), max: boundedInt.max(99) }).strict().refine(value => value.current <= value.max, 'RESOURCE_CURRENT');
@@ -36,7 +42,7 @@ const characterSheet = z.object({
   details: z.array(z.object({ title: z.string().min(1).max(120), entries: z.array(z.string().min(1).max(500)).max(30) }).strict()).max(20).optional()
 }).strict();
 const combatRange = z.object({ kind: z.enum(['melee', 'ranged']), normalMeters: z.number().finite().nonnegative().max(1000), longMeters: z.number().finite().nonnegative().max(2000).optional() }).strict();
-const combatSave = z.object({ ability: z.enum(['str', 'dex', 'con', 'int', 'wis', 'cha']), dc: boundedInt.min(1).max(30), failureCondition: combatCondition.optional(), escapeDc: boundedInt.min(1).max(30).optional(), endsWhenSourceDefeated: z.boolean().optional() }).strict();
+const combatSave = z.object({ ability: z.enum(['str', 'dex', 'con', 'int', 'wis', 'cha']), dc: boundedInt.min(1).max(30), failureCondition: combatCondition.optional(), escapeDc: boundedInt.min(1).max(30).optional(), endsWhenSourceDefeated: z.boolean().optional(), durationRounds: boundedInt.min(1).max(999).optional(), durationSeconds: boundedInt.min(1).max(86400).optional(), expiryTurn: z.enum(['start', 'end']).optional() }).strict();
 const ruleTraits = z.object({ sneakAttackDice: z.string().regex(/^\d+d\d{1,3}$/).optional(), brave: z.boolean().optional(), poisonResilience: z.boolean().optional(), darkvisionMeters: z.number().finite().positive().max(1000).optional(), magicResistance: z.boolean().optional(), flightMeters: z.number().finite().positive().max(1000).optional() }).strict();
 const combatAction = z.object({
   id: idSchema, label: z.string().min(1).max(200), attackBonus: z.number().int().safe().min(-100).max(100), damageDice: z.string().min(1).max(40), damageBonus: z.number().int().safe().min(-100).max(100),
@@ -90,7 +96,9 @@ export const durablePayloadSchema = z.object({
   combat: combat.optional(),
   progress: z.record(idSchema, z.boolean()).optional(),
   storyNotes: z.record(idSchema, z.string().max(500)).optional(),
-  campRest: campRestStateSchema.optional()
+  campRest: campRestStateSchema.optional(),
+  // Optional for existing saves; activity/chest history is independent of a rest.
+  campActivities: z.array(campRestStateSchema.pick({ sceneId: true, interactions: true })).max(100).optional()
 }).strict();
 export type DurablePayload = z.infer<typeof durablePayloadSchema>;
 
