@@ -24,7 +24,9 @@ const dmPassword = process.env.DM_PASSWORD?.trim() || null;
 const dmSessionToken = crypto.randomBytes(24).toString('hex');
 const shutdownToken = crypto.randomBytes(32).toString('hex');
 const isProduction = process.env.NODE_ENV === 'production' || process.argv[1]?.includes(`${path.sep}dist${path.sep}`);
-const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), isProduction ? '../../../..' : '../..');
+const configuredAppRoot=process.env.DUNGEONS_APP_ROOT?.trim();
+if(configuredAppRoot&&!path.isAbsolute(configuredAppRoot))throw new Error('DUNGEONS_APP_ROOT debe ser absoluto');
+const appRoot = configuredAppRoot ? path.resolve(configuredAppRoot) : path.resolve(path.dirname(fileURLToPath(import.meta.url)), isProduction ? '../../../..' : '../..');
 const configuredWebDir = process.env.DUNGEONS_WEB_DIR?.trim();
 if (configuredWebDir && !path.isAbsolute(configuredWebDir)) throw new Error('DUNGEONS_WEB_DIR debe ser absoluto');
 const webDir = configuredWebDir ? path.resolve(configuredWebDir) : path.join(appRoot, 'dist/web');
@@ -91,17 +93,24 @@ app.use('/api/dm/save', privateGuard);
 app.use(express.json({ limit: '16kb' }));
 app.use('/assets', express.static(path.join(webDir, 'assets'), { fallthrough: false, maxAge: '1d' }));
 for (const folder of assetFolders) {
-  app.use('/audio', express.static(path.join(appRoot, 'campaigns', folder, 'public/audio'), { fallthrough: true, maxAge: '1d' }));
-  app.use('/art', express.static(path.join(appRoot, 'campaigns', folder, 'public/art'), { fallthrough: true, maxAge: '1d', immutable: true }));
+  // Authored art/audio keep readable names across upgrades, unlike hashed JS.
+  // Revalidate them on the next page load so an old texture cannot mask a fix.
+  const mutableAssets = { fallthrough: true, maxAge: 0, setHeaders: (res: http.ServerResponse) => {
+    res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+  } };
+  app.use('/audio', express.static(path.join(appRoot, 'campaigns', folder, 'public/audio'), mutableAssets));
+  app.use('/art', express.static(path.join(appRoot, 'campaigns', folder, 'public/art'), mutableAssets));
 }
 
 app.get('/api/info', async (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   const addresses = lanAddresses(); const host = addresses[0] ?? '127.0.0.1'; const playerUrl = `http://${host}:${port}/player`;
   const dmMobileUrl = `http://${host}:${port}/dm-mobile`;
   const [qr, dmMobileQr] = await Promise.all([QRCode.toDataURL(playerUrl, { margin: 1, width: 240 }), QRCode.toDataURL(dmMobileUrl, { margin: 1, width: 240 })]);
   res.json({ playerUrl, projectorUrl: `http://${host}:${port}/projector`, dmUrl: `http://localhost:${port}/dm`, dmMobileUrl, addresses, qr, dmMobileQr });
 });
 app.get('/api/campaign', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   if (dmAuthorized(req)) return res.json(campaignBundle.public);
   // Las vistas sin sesión reciben sólo el catálogo no restringido. La escena
   // autorizada concreta viaja después dentro de su snapshot de socket.
@@ -114,15 +123,25 @@ app.get('/api/d8/renderer-config', async (_req, res) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   return res.json(d8PublicRendererConfig());
 });
-app.post('/__local/shutdown', (req, res) => {
+function localShutdownAllowed(req: express.Request) {
   const remote = req.socket.remoteAddress ?? '';
   const localRequest = remote === '127.0.0.1' || remote === '::1' || remote.startsWith('::ffff:127.');
   const supplied = Buffer.from(req.get('x-dungeons-shutdown-token') ?? '');
   const expected = Buffer.from(shutdownToken);
-  if (!localRequest || !trustedHost(req.get('host')) || supplied.length !== expected.length || !crypto.timingSafeEqual(supplied, expected)) {
-    return res.status(403).json({ ok: false });
+  return localRequest && trustedHost(req.get('host')) && supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected);
+}
+app.get('/__local/shutdown', (req, res) => {
+  if (!localShutdownAllowed(req)) return res.status(403).json({ ok: false });
+  return res.json({ saveBeforeShutdown: true });
+});
+app.post('/__local/shutdown', async (req, res) => {
+  if (!localShutdownAllowed(req)) return res.status(403).json({ ok: false });
+  try { await coordinator.close(); }
+  catch (error) {
+    console.error('Actualización cancelada: no se pudo confirmar el guardado:', error);
+    return res.status(503).json({ ok: false, code: 'SAVE_BEFORE_UPDATE_FAILED' });
   }
-  res.status(202).json({ ok: true });
+  res.status(202).json({ ok: true, safeToRestart: true });
   setImmediate(() => void shutdown());
 });
 app.post('/api/dm/login', (req, res) => {
@@ -153,14 +172,6 @@ app.post('/api/dm/save/retry', privateGuard, async (req, res) => {
   if (req.body?.runtimeEpoch !== game.state.runtimeEpoch) return res.status(409).json({ code: 'STALE_RUNTIME' });
   try { return res.json(await coordinator.retry()); } catch (error) { return privateError(res, error); }
 });
-app.get('/api/dm/save/export', privateGuard, (_req, res) => {
-  try { res.setHeader('Content-Disposition', 'attachment; filename="dungeons-save.json"'); return res.type('application/json').send(JSON.stringify(coordinator.exportMemory())); }
-  catch (error) { return privateError(res, error); }
-});
-app.post('/api/dm/save/backup/preview', privateGuard, async (req, res) => {
-  if (req.body?.runtimeEpoch !== game.state.runtimeEpoch) return res.status(409).json({ code: 'STALE_RUNTIME' });
-  try { return res.json(await coordinator.previewBackup()); } catch (error) { return privateError(res, error); }
-});
 app.get('/api/dm/save/history', privateGuard, async (_req, res) => { try { res.json(await coordinator.history()); } catch (error) { privateError(res, error); } });
 app.post('/api/dm/save/history/:id/preview', privateGuard, async (req, res) => {
   if (req.body.runtimeEpoch !== game.state.runtimeEpoch) return privateError(res, new Error('STALE_RUNTIME'));
@@ -176,7 +187,10 @@ app.post('/api/dm/save/restore', privateGuard, async (req, res) => {
   try { return res.json(await coordinator.restore(token, runtimeEpoch, expectedStateRevision, requestId)); } catch (error) { return privateError(res, error); }
 });
 
-for (const route of ['dm', 'dm-mobile', 'player', 'projector'] as const) app.get(`/${route}`, (_req, res) => res.sendFile(path.join(webDir, 'apps', 'web', `${route}.html`)));
+for (const route of ['dm', 'dm-mobile', 'player', 'projector'] as const) app.get(`/${route}`, (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.sendFile(path.join(webDir, 'apps', 'web', `${route}.html`));
+});
 app.get('/', (_req, res) => res.redirect('/player'));
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const code = error && typeof error === 'object' && 'type' in error && error.type === 'entity.too.large' ? 'SAVE_TOO_LARGE' : 'INVALID_JSON';
@@ -189,7 +203,10 @@ const io = new Server(server, { serveClient: true, maxHttpBufferSize: 16_384, al
 } });
 const game = new GameServer(io, dmSessionToken, campaignBundle);
 const saveStore = new SaveStore(path.join(dataRoot, campaignBundle.public.campaignId));
-coordinator = new PersistenceCoordinator(saveStore, campaignBundle, () => game.state, candidate => game.installState(candidate), () => game.state.runtimeEpoch, status => io.to('dm').emit('save:status', status));
+coordinator = new PersistenceCoordinator(saveStore, campaignBundle, () => game.state, candidate => game.installState(candidate), () => game.state.runtimeEpoch, status => {
+  io.to('dm').emit('save:status', status);
+  io.to('projector').emit('save:activity', { runtimeEpoch: status.runtimeEpoch, active: status.mode === 'saving', campaignId: campaignBundle.public.campaignId });
+});
 game.persistence = coordinator;
 
 async function boot() {
@@ -235,11 +252,19 @@ server.on('error', error => {
 
 let stopping = false;
 async function shutdown() {
-  if (stopping) return; stopping = true; game.stop();
-  try { await Promise.race([coordinator.close(), new Promise((_, reject) => setTimeout(() => reject(new Error('SAVE_SHUTDOWN_TIMEOUT')), 10_000))]); }
-  catch (error) { console.error('No se pudo confirmar el último guardado:', error); process.exitCode = 1; }
+  if (stopping) return; stopping = true;
+  try { await coordinator.close(); }
+  catch (error) {
+    stopping = false;
+    console.error('La mesa sigue abierta porque no se pudo confirmar el último guardado. Reintenta el guardado desde la consola DM:', error);
+    return;
+  }
+  game.stop();
   await removeShutdownToken();
   io.close();
+  // Browsers can leave large art/audio downloads open. Once the final save is
+  // confirmed, those HTTP streams must not prevent the table from restarting.
+  server.closeAllConnections();
   const finished = () => {
     if (process.exitCode === undefined) process.exitCode = 0;
     if (process.env.DUNGEONS_TEST_CHILD === '1' && process.send) { process.send({ type: 'stopped', exitCode: process.exitCode }); process.disconnect(); }

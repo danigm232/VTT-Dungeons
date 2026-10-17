@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Server } from 'socket.io';
-import { STEP_DURATION_MS, type DmCommand } from '../shared/protocol';
+import { OBJECT_MODEL_VERSION, PROTOCOL_VERSION, STEP_DURATION_MS, type DmCommand } from '../shared/protocol';
 import type { CampaignServerBundle } from './campaign';
 import { compileCampaignBundle } from './campaign';
 import { GameServer, GameState } from './game';
@@ -167,6 +167,105 @@ describe('combat lifecycle and cancellation', () => {
   });
 });
 
+describe('reloj global de campaña', () => {
+  it('fijar una hora anterior conserva el clima y permite acumularlo inmediatamente',()=>{
+    vi.useFakeTimers();vi.setSystemTime(new Date('2026-10-12T08:00:00Z'));
+    const state=new GameState(syntheticBundle());state.environment.precipitation='snow';state.environment.precipitationLevel=3;state.environment.temperatureC=-4;
+    state.applyClockControl('advance',600);state.materializeClimates();const before=state.publicSnapshot().climate;
+    state.applyClockControl('set-time',6*3600);const reset=state.publicSnapshot().climate;expect(reset.snowDepthCm).toBe(before.snowDepthCm);
+    state.applyClockControl('advance',600);expect(state.publicSnapshot().climate.snowDepthCm).toBeGreaterThan(before.snowDepthCm);
+  });
+  it('guarda el oleaje separado de inundación y aplica viento a armas exteriores sólo si el DM lo activa',()=>{
+    const state=new GameState(stormwreckBundle);state.changeScene('camp-a1-rooms');
+    const actor=[...state.characters.values()][0]!;actor.sceneId=state.sceneId;actor.cell={col:18,row:15};
+    const query=state as unknown as {attackAdvantage(a:string,t:string,action:{range:{kind:'ranged';normalMeters:number};magical?:boolean}):string};
+    state.environment.windIntensity=1;state.environment.weatherRules=true;state.environment.seaIntensity=.8;
+    expect(query.attackAdvantage(actor.id,actor.id,{range:{kind:'ranged',normalMeters:50}})).toBe('disadvantage');
+    expect(query.attackAdvantage(actor.id,actor.id,{range:{kind:'ranged',normalMeters:50},magical:true})).toBe('normal');
+    actor.cell={col:5,row:10};expect(query.attackAdvantage(actor.id,actor.id,{range:{kind:'ranged',normalMeters:50}})).toBe('normal');
+    actor.cell={col:18,row:15};state.environment.weatherRules=false;expect(query.attackAdvantage(actor.id,actor.id,{range:{kind:'ranged',normalMeters:50}})).toBe('normal');
+    const restored=new GameState(stormwreckBundle);restored.restoreDurable(state.captureDurable());expect(restored.environment.seaIntensity).toBe(.8);expect(restored.environment.floodTarget??0).toBe(0);
+    state.environment.precipitation='rain';state.environment.precipitationLevel=3;state.applyWeatherAudio();expect(state.audio.layers.storm.assetId).toContain('rain');
+    state.environment.storm=true;state.applyWeatherAudio();expect(state.audio.layers.storm.assetId).toContain('tempest');
+    state.environment.precipitation='snow';state.environment.precipitationLevel=3;state.environment.temperatureC=-5;state.environment.snowDifficultTerrain=true;state.applyClockControl('advance',3*3600);
+    const terrain=state as unknown as {movementCost(sceneId:string,surfaceId:string,cell:{col:number;row:number}):number};
+    expect(terrain.movementCost(state.sceneId,state.currentScene().surfaceId,{col:18,row:15})).toBe(2);
+    expect(terrain.movementCost(state.sceneId,state.currentScene().surfaceId,{col:5,row:10})).toBe(1);
+
+  });
+
+  it('avanza en exploración, se pausa por decisión y admite descansos y ajuste de hora', () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-12T08:00:00Z'));
+    const state = new GameState(syntheticBundle()), initial = state.gameClockSnapshot().seconds;
+    vi.advanceTimersByTime(1_500);
+    expect(state.gameClockSnapshot().seconds).toBe(initial + 1.5);
+    state.setClockDecisionPause('dm:decision', true);
+    const paused = state.gameClockSnapshot().seconds;
+    vi.advanceTimersByTime(60_000);
+    expect(state.gameClockSnapshot().seconds).toBe(paused);
+    state.setClockDecisionPause('dm:decision', false);
+    state.applyClockControl('short-rest');
+    expect(state.gameClockSnapshot().seconds).toBe(paused + 3_600);
+    state.applyClockControl('long-rest');
+    expect(state.gameClockSnapshot().seconds).toBe(paused + 3_600 + 28_800);
+    state.applyClockControl('set-time', 9 * 3_600 + 2 * 60 + 5);
+    expect(state.publicSnapshot().gameClock.seconds).toBe(9 * 3_600 + 2 * 60 + 5);
+  });
+
+  it('añade seis segundos al cerrar el asalto completo y no durante los turnos', () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-12T08:00:00Z'));
+    const state = twoPlayerCombat(), start = state.gameClockSnapshot().seconds;
+    vi.advanceTimersByTime(300_000);
+    expect(state.gameClockSnapshot().seconds).toBe(start);
+    for (let turn = 0; turn < state.combat.order.length; turn++) expect(state.nextCombatTurn()).toBe(true);
+    expect(state.combat.round).toBe(2);
+    expect(state.gameClockSnapshot().seconds).toBe(start + 6);
+  });
+
+  it('conserva reloj y clima en la partida guardada sin contar el tiempo desconectado', () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-12T08:00:00Z'));
+    const state = new GameState(syntheticBundle());
+    state.environment.precipitation = 'snow'; state.environment.precipitationLevel = 3; state.environment.temperatureC = -4;
+    state.applyClockControl('advance', 20 * 60);
+    const saved = state.captureDurable();
+    const restored = new GameState(syntheticBundle());
+    restored.restoreDurable(saved, Date.now() + 8 * 60 * 60 * 1_000);
+    expect(restored.gameClockSnapshot(Date.now() + 8 * 60 * 60 * 1_000).seconds).toBe(saved.gameClock!.seconds);
+    expect(restored.publicSnapshot().climate.snowCoverage).toBe(1);
+    expect(restored.publicSnapshot().climate.snowDepthCm).toBeGreaterThan(0);
+  });
+
+  it('usa el tiempo de viaje definido por la aventura y rechaza rutas sin duración', () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-12T08:00:00Z'));
+    const state = new GameState(stormwreckBundle), start = state.gameClockSnapshot().seconds;
+    expect(state.applyClockControl('travel', 'travel-pecio-boat')).toBe(true);
+    expect(state.gameClockSnapshot().seconds).toBe(start + 6_000);
+    expect(state.applyClockControl('travel', 'route-without-authored-duration')).toBe(false);
+  });
+
+  it('mantiene las rutas y controles del reloj dentro del canal DM', () => {
+    const state = new GameState(stormwreckBundle), route = state.dmState().ports.find(port => port.id === 'travel-pecio-boat');
+    expect(route?.travelSeconds).toBe(6_000);
+    const snapshot = state.publicSnapshot();
+    expect(snapshot).not.toHaveProperty('ports');
+    expect(snapshot).not.toHaveProperty('privateNotes');
+
+    const server = new GameServer(new Server(), 'dm-test', stormwreckBundle);
+    const connect = (server as unknown as { connect(socket: never): void }).connect.bind(server);
+    for (const role of ['player', 'projector'] as const) {
+      const handlers = new Map<string, (...args: unknown[]) => void>();
+      const socket = {
+        id: `test-${role}`, handshake: { auth: { role, protocolVersion: PROTOCOL_VERSION, objectModelVersion: OBJECT_MODEL_VERSION, sessionToken: 'a'.repeat(32) }, headers: { cookie: '' } },
+        data: {}, emit: vi.fn(), join: vi.fn(), on: vi.fn((event: string, handler: (...args: unknown[]) => void) => handlers.set(event, handler)), disconnect: vi.fn()
+      };
+      connect(socket as never);
+      expect(handlers.has('dm:command')).toBe(false);
+      const worldSnapshot = socket.emit.mock.calls.find(([event]) => event === 'world:snapshot')?.[1] as Record<string, unknown>;
+      expect(worldSnapshot).not.toHaveProperty('privateNotes');
+    }
+  });
+});
+
 describe('inyección y privacidad', () => {
   it('emite las señales del epílogo solo tras confirmación del DM y mantiene privado el suspiro a bordo', () => {
     const io = new Server(), server = new GameServer(io, 'dm-test', stormwreckBundle), emit = vi.fn();
@@ -247,20 +346,21 @@ describe('inyección y privacidad', () => {
     // cerrar un servidor HTTP inexistente y produce un rechazo asíncrono.
   });
 
-  it('persiste el horario de escena sin modificar el estado del descanso', () => {
+  it('persiste la hora real de la escena sin modificar el estado del descanso', () => {
     const server = new GameServer(new Server(), 'dm-test', stormwreckBundle);
     const result = server.applyDmCommand({
       type: 'environment', commandId: crypto.randomUUID(), runtimeEpoch: server.state.runtimeEpoch,
       sceneEpoch: server.state.sceneEpoch, storm: false, timeOfDay: 'night'
     } as DmCommand);
     expect(result).toMatchObject({ ok: true, code: 'APPLIED' });
-    expect(server.state.environment.timeOfDay).toBe('night');
+    expect(server.state.environment.timeOfDay).toBe('auto');
+    expect(Math.floor(server.state.gameClockSnapshot().seconds / 3600) % 24).toBe(22);
     expect(server.state.campRest).toBeNull();
 
     const saved = server.state.captureDurable();
-    expect(saved.environment.timeOfDay).toBe('night');
+    expect(saved.environment.timeOfDay).toBe('auto');
     server.state.restoreDurable(saved);
-    expect(server.state.environment.timeOfDay).toBe('night');
+    expect(server.state.environment.timeOfDay).toBe('auto');
   });
 
   it('arranca una campaña sintética sin encuentro ni interacción especial', () => {
@@ -370,7 +470,7 @@ describe('inyección y privacidad', () => {
     expect(state.creature?.hp).toBe(0);
     expect(combat.active).toBe(false);
     expect(combat.participants).toEqual([]);
-    expect(state.publicSnapshot().entities.some(entity => entity.id === 'test-beast')).toBe(false);
+    expect(state.publicSnapshot().entities.find(entity => entity.id === 'test-beast')).toMatchObject({ defeated: true, defeatStyle: 'blood' });
     expect(combat.lastEvent).toMatchObject({ kind: 'defeat', actorId: 'alpha', targetId: 'test-beast', animation: expect.anything() });
     expect(combat.lastEvent?.text).toContain('queda fuera de combate');
     expect(combat.lastEvent?.text).toContain('El combate termina');

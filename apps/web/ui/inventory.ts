@@ -3,7 +3,7 @@ import {
   INVENTORY_MAX_ITEMS, INVENTORY_MAX_LABEL_LENGTH, inventoryCategories, inventoryEquals, inventoryItemName,
   inventoryMatches, inventoryStackLabel, inventoryWallet, parseInventoryItem, type InventoryCategory, type InventoryEntry, type InventoryUse
 } from '../../../engine/shared/inventory';
-import { inventoryGlyph } from '../../../engine/client/inventory-icons';
+import { inventoryGlyph,inventoryItemGlyph } from '../../../engine/client/inventory-icons';
 import { campaignShipLootIconIndex } from '../../../engine/client/ship-loot-art';
 
 type InventoryRequest = { items: string[]; expectedItems: string[] } | { index: number; expectedItem: string; action: InventoryUse };
@@ -110,7 +110,7 @@ export class InventoryPanel {
     if (atlasIndex !== null) {
       icon.classList.add('has-atlas'); icon.style.backgroundImage = "url('/art/ship/loot-atlas-m5.svg')";
       icon.style.backgroundPosition = `${atlasIndex % 4 * 100 / 3}% ${Math.floor(atlasIndex / 4) * 100 / 4}%`;
-    } else icon.innerHTML = inventoryGlyph(item.category);
+    } else icon.innerHTML = inventoryItemGlyph(item.label,item.category);
     icon.setAttribute('aria-hidden', 'true'); return icon;
   }
   private renderItems() {
@@ -122,7 +122,7 @@ export class InventoryPanel {
     this.lastViewKey = key;
     const entries = this.state.inventory.map((raw, index) => parseInventoryItem(raw, index));
     const categories = this.get('inventoryCategories');
-    categories.replaceChildren(...(['all', ...Object.keys(inventoryCategories)] as Array<InventoryCategory | 'all'>).map(category => {
+    categories.replaceChildren(...(['all', ...Object.keys(inventoryCategories)] as Array<InventoryCategory | 'all'>).filter(category=>category==='all'||category===this.category||entries.some(item=>item.category===category)).map(category => {
       const count = entries.filter(item => category === 'all' || item.category === category).length;
       const button = el('button', 'inventory-category', category === 'all' ? 'Todo' : inventoryCategories[category]);
       button.type = 'button'; button.setAttribute('aria-pressed', String(this.category === category));
@@ -140,7 +140,7 @@ export class InventoryPanel {
       button.type = 'button'; button.setAttribute('aria-pressed', String(item.index === this.selected));
       button.setAttribute('aria-label', `${inventoryItemName(item)}, ${item.quantity} unidades${item.lit ? ', encendida' : ''}`);
       button.title = item.raw;
-      button.append(this.icon(item), el('span', 'inventory-slot-name', inventoryItemName(item)), el('span', 'inventory-quantity', `×${item.quantity}`));
+      button.append(this.icon(item), el('span', 'inventory-slot-name', inventoryItemName(item)));if(item.quantity!==1)button.append(el('span','inventory-quantity',`×${item.quantity}`));
       if (item.lit) button.append(el('span', 'inventory-lit-mark', 'Luz'));
       button.onclick = () => { this.selected = item.index; this.renderItems(); this.renderDetail(); };
       return button;

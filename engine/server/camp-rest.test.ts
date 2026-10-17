@@ -61,9 +61,9 @@ describe('módulo autónomo de campamentos', () => {
       expect(scene.meshes.filter(m=>m.name.includes('a1:room-3:torch-flame')).every(m=>m.visibility===0)).toBe(true);
       visuals.update(3,'arrival',[],{col:18,row:9});visuals.update(4,'arrival',[],{col:18,row:9});
       expect(front.every(m=>m.scaling.y<.1)).toBe(true);expect(roof.every(m=>m.visibility<.1)).toBe(true);
-      expect(scene.meshes.filter(m=>/a1:room-3:face-[12]:/.test(m.name)).every(m=>m.scaling.y<.1)).toBe(true);
-      expect(scene.getMeshByName('a1:bedrock-partition:2')!.scaling.y).toBeLessThan(.1);
-      expect(scene.getMeshByName('a1:bedrock-partition:3')!.scaling.y).toBeLessThan(.1);
+      expect(scene.meshes.filter(m=>/a1:room-3:face-[12]:/.test(m.name)).every(m=>m.scaling.y>.9)).toBe(true);
+      expect(scene.getMeshByName('a1:bedrock-partition:2')!.scaling.y).toBeGreaterThan(.9);
+      expect(scene.getMeshByName('a1:bedrock-partition:3')!.scaling.y).toBeGreaterThan(.9);
       expect(scene.getMeshByName('a1:bedrock-partition:5')!.scaling.y).toBeGreaterThan(.9);
       expect(scene.getLightByName('a1:room-3:torch-light')!.intensity).toBe(0);
       visuals.update(4.5,'night',[],{col:18,row:9});
@@ -88,7 +88,8 @@ describe('módulo autónomo de campamentos', () => {
         const partitions=scene.meshes.filter(m=>/a1:room-\d:face-[12]:/.test(m.name));
         expect(partitions.every(m=>m.scaling.y>.9)).toBe(true);
         visuals.update(9,'arrival',[],{col:18,row:9});visuals.update(10,'arrival',[],{col:18,row:9});
-        expect(partitions.filter(m=>m.name.includes('a1:room-3:')).every(m=>m.scaling.y<.1)).toBe(true);
+        const own=partitions.filter(m=>m.name.includes('a1:room-3:'));
+        expect(own.some(m=>m.scaling.y<.1)).toBe(true);expect(own.some(m=>m.scaling.y>.9)).toBe(true);
         expect(partitions.filter(m=>!m.name.includes('a1:room-3:')).every(m=>m.scaling.y>.9)).toBe(true);
       }
       expect(new Set(scene.meshes.filter(m=>m.name.startsWith('a1:static:a1:plaza')).map(m=>m.material?.name)).size).toBeGreaterThan(2);

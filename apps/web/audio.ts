@@ -1,5 +1,5 @@
 import { Howl, Howler } from 'howler';
-import type { AudioState } from '../../engine/shared/protocol';
+import type { AudioState,WorldSnapshot } from '../../engine/shared/protocol';
 import type { PublicCampaignDefinition } from '../../engine/shared/campaign';
 
 type Channel = 'music' | 'ocean' | 'wind' | 'wood' | 'storm';
@@ -9,6 +9,7 @@ const MOVEMENT_FADE_MS = 55;
 const MOVEMENT_STOP_GRACE_MS = 80;
 type MovementSound = { assetId: string; sound: Howl; active: boolean; fadeTimer?: ReturnType<typeof setTimeout>; stopTimer?: ReturnType<typeof setTimeout> };
 type AudioSequence = { key: string; remaining: number; finished: boolean; onFinished?: () => void };
+type AmbientScene=Pick<WorldSnapshot,'sceneId'|'sceneEpoch'|'runtimeEpoch'|'scene'|'entities'|'combat'|'story'>;
 export class AudioDirector {
   private channels = new Map<Channel, Howl>();
   private sfx = new Map<string, Howl>();
@@ -24,6 +25,39 @@ export class AudioDirector {
   private pauseTimers = new Map<Channel, ReturnType<typeof setTimeout>>();
   private sources = new Map<Channel, string>();
   private sequences = new WeakMap<Howl, AudioSequence>();
+  private ambientScene:AmbientScene|null=null;
+  private ambientSceneKey='';
+  private ambientTimer:ReturnType<typeof setTimeout>|undefined;
+  private ambientMixerOn=false;
+  private unlocked=false;
+  private sceneSilence=false;
+  private lastMixerState:AudioState|null=null;
+
+  setSceneAmbience(scene:AmbientScene|null){
+    this.ambientScene=scene;
+    const silent=Boolean(scene&&['temple','dinner'].includes(scene.sceneId)&&scene.story?.d8EndingVisual==='darkness');
+    if(silent!==this.sceneSilence){this.sceneSilence=silent;if(this.lastMixerState)this.apply(this.lastMixerState);}
+    this.refreshAmbientCues();
+  }
+  private refreshAmbientCues(){
+    const scene=this.ambientScene,key=scene?`${scene.runtimeEpoch}:${scene.sceneEpoch}:${scene.sceneId}`:'';
+    const profile=scene?this.catalog.sceneProfiles?.[scene.sceneId]?.ambientCues:undefined;
+    const occupied=!profile?.actorIds?.length||profile.actorIds.some(id=>{
+      const actor=scene?.entities.find(entity=>entity.id===id),seat=scene?.scene.stageActors?.find(actor=>actor.id===id);
+      return actor&&seat&&(actor.hp===undefined||actor.hp>0)&&actor.cell.col===seat.cell.col&&actor.cell.row===seat.cell.row&&!actor.moving;
+    });
+    const active=Boolean(scene&&profile&&this.unlocked&&this.ambientMixerOn&&!this.sceneSilence&&!scene.combat.active&&occupied);
+    if(key!==this.ambientSceneKey||!active){if(this.ambientTimer!==undefined)clearTimeout(this.ambientTimer);this.ambientTimer=undefined;this.ambientSceneKey=key;}
+    if(!active||!profile||this.ambientTimer!==undefined)return;
+    const [min,max]=profile.intervalSeconds;
+    this.ambientTimer=globalThis.setTimeout(()=>{
+      this.ambientTimer=undefined;
+      if(this.ambientSceneKey!==key)return;
+      let choice=Math.random()*profile.effects.reduce((sum,effect)=>sum+(effect.weight??1),0);
+      const effect=profile.effects.find(item=>(choice-=item.weight??1)<0)??profile.effects[profile.effects.length-1]!;
+      this.playSfx(effect.id,effect.volume);this.refreshAmbientCues();
+    },(min+Math.random()*(max-min))*1000);
+  }
 
   private configureRepeats(sound: Howl, data: AudioState['music'], shouldContinue: () => boolean, onFinished?: () => void, restart = false) {
     sound.loop(data.loop); sound.rate(data.rate);
@@ -66,6 +100,9 @@ export class AudioDirector {
   ) {}
 
   reset() {
+    this.sceneSilence=false;this.lastMixerState=null;
+    if(this.ambientTimer!==undefined)clearTimeout(this.ambientTimer);
+    this.ambientTimer=undefined;this.ambientScene=null;this.ambientSceneKey='';this.ambientMixerOn=false;
     this.sequences = new WeakMap();
     for (const timer of this.pauseTimers.values()) clearTimeout(timer);
     this.pauseTimers.clear(); this.desired.clear(); this.applied.clear(); this.sfxLoopDesired.clear(); this.sfxLoopApplied.clear();
@@ -86,13 +123,17 @@ export class AudioDirector {
     try {
       if (Howler.ctx?.state === 'suspended') await Howler.ctx.resume();
       Howler.volume(0.85);
-      return !Howler.ctx || Howler.ctx.state === 'running';
+      this.unlocked=!Howler.ctx || Howler.ctx.state === 'running';this.refreshAmbientCues();return this.unlocked;
     } catch {
       return false;
     }
   }
 
   apply(state: AudioState) {
+    this.lastMixerState=state;
+    // The confirmed dark ending changes presentation, not the DM's saved mix
+    // or track transport. Leaving it restores the original channel levels.
+    if(this.sceneSilence){state=structuredClone(state);state.music.volume=0;for(const track of [...Object.values(state.layers),...Object.values(state.sfxLoops??{})])track.volume=0;}
     const sourceFor = (channel: Channel) => {
       const track = channel === 'music' ? state.music : state.layers[channel];
       const library = channel === 'music' ? this.catalog.library?.music : this.catalog.library?.ambience;
@@ -155,6 +196,8 @@ export class AudioDirector {
       this.applied.set(channel, data.playing);
     }
     this.applySfxLoops(state);
+    this.ambientMixerOn=state.music.playing&&state.music.volume>0||Object.values(state.layers).some(layer=>layer.playing&&layer.volume>0);
+    this.refreshAmbientCues();
   }
 
   /** Los pasos se reproducen aparte de los golpes: así pueden repetirse sin
@@ -201,7 +244,7 @@ export class AudioDirector {
     }
   }
 
-  playSfx(id: string) {
+  playSfx(id: string,volume?:number) {
     let sound = this.sfx.get(id);
     if (!sound) {
       const source = this.catalog.library?.sfx.find(effect => effect.id === id)?.url ?? this.catalog.sfx[id as keyof PublicCampaignDefinition['audio']['sfx']];
@@ -209,7 +252,7 @@ export class AudioDirector {
       sound = new Howl({ src: [source], volume: id.includes('thunder') ? 0.55 : 0.5, preload: true });
       this.sfx.set(id, sound);
     }
-    sound.play();
+    const playback=sound.play();sound.volume(volume??(id.includes('thunder')?.55:.5),playback);
   }
 
   /**

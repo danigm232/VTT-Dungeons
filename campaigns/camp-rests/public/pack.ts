@@ -18,7 +18,10 @@ type Scenario = {
 const key = (cell: Cell) => `${cell.col},${cell.row}`;
 const point = (id: string, label: string, kind: PointKind, cell: Cell, objectCell: Cell, description: string, ownerCharacterId?: string): Point => ({ id, label, kind, cell, objectCell, description, ...(ownerCharacterId ? { ownerCharacterId } : {}) });
 const rect = (cell: Cell, c0: number, c1: number, r0: number, r1: number) => cell.col >= c0 && cell.col <= c1 && cell.row >= r0 && cell.row <= r1;
-const tentFacing = (prefix: string, center: Cell) => Math.sign((({ forest: 11, beach: 10, cliff: 10, cove: 12 } as Record<string, number>)[prefix] ?? center.row + 1) - center.row) || 1;
+// Keep each tent entrance toward its scene's default camera side. The orbit is
+// intentionally limited to ±30°, so rotating individual tents toward the fire
+// left half of their doors facing away from every normal player view.
+const tentFacing = (prefix: string) => prefix === 'forest' ? -1 : 1;
 const characterTents = (prefix: string, centers: Cell[]) => {
   const owners = [
     { id: 'mike', name: 'Mike', chest: 'Ropa, componentes y pergaminos de estudio.', item: 'Atril plegable y libro de conjuros; equipo personal de estudio, sin alterar conjuros ni espacios.' },
@@ -28,7 +31,7 @@ const characterTents = (prefix: string, centers: Cell[]) => {
   return {
     blocked: centers.flatMap((center, index) => {
       const owner = owners[index]!;
-      const facing = tentFacing(prefix, center);
+      const facing = tentFacing(prefix);
       const walls = [] as Array<{ cell: Cell; id: string }>;
       for (let row = -2; row <= 2; row++) for (let col = -2; col <= 2; col++) {
         if (Math.abs(row) !== 2 && Math.abs(col) !== 2 || row === 2 * facing && col === 0) continue;
@@ -40,7 +43,7 @@ const characterTents = (prefix: string, centers: Cell[]) => {
     }),
     points: centers.flatMap((center, index): Point[] => {
       const owner = owners[index]!;
-      const facing = tentFacing(prefix, center);
+      const facing = tentFacing(prefix);
       return [
         point(`${prefix}-tent-${owner.id}`, `Tienda amplia · ${owner.name}`, 'tent', { col: center.col, row: center.row + 2 * facing }, center,
           'Interior transitable de 4,5 × 4,5 m, con sitio para el grupo y su equipo.', owner.id),

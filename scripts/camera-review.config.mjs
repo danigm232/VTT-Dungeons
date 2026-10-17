@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
-const evidenceRoot=resolve('output/d8-v49-review-20261006');
+const evidenceRoot=resolve(process.env.WEATHER_REVIEW_OUTPUT??'output/d8-v49-review-20261006');
 export default defineConfig({cacheDir:'node_modules/.vite-camera-review',server:{host:'127.0.0.1',port:4587,strictPort:true,hmr:false,watch:{ignored:['**/output/**','**/dist/**']}},plugins:[{
   name:'isolated-camera-review', configureServer(server){
     server.middlewares.use(async(req,res,next)=>{
@@ -14,7 +14,7 @@ export default defineConfig({cacheDir:'node_modules/.vite-camera-review',server:
         const chunks=[];for await(const chunk of req)chunks.push(chunk);
         const data=JSON.parse(Buffer.concat(chunks).toString());
         await mkdir(evidenceRoot,{recursive:true});
-        const kind=data.kind==='focus'?'focus-audit':'audit';
+        const kind=data.kind==='polish'&&/^(temple|garden|market|cafe|mirror|dinner)$/.test(data.scene)&&/^(before|after)$/.test(data.stage)?`${data.scene}-polish-${data.stage}`:data.kind==='interior'?'interior-audit':data.kind==='policy'?'policy-audit':data.kind==='focus'?'focus-audit':'audit';
         await writeFile(resolve(evidenceRoot,`${data.campaign==='d8'?'d8':'storm'}-${kind}.json`),JSON.stringify(data,null,2));
         res.end('saved');return;
       }

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Revisión de posición de iniciativa</title>
+<link rel="stylesheet" href="/apps/web/common.css"><link rel="stylesheet" href="/apps/web/player.css"><link rel="stylesheet" href="/apps/web/player-combat.css">
+<style>body{margin:0;background:radial-gradient(ellipse at 45% 40%,#294e55,#101e25 75%)}.review-controls{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:6px 12px;background:#091518;color:#e7e0d0;border-radius:8px;font:12px system-ui}.review-controls small{display:none}@media(min-width:700px){.review-controls small{display:inline}}</style>
+</head><body class="combat-active" data-initiative-position="right">
+<aside id="combatInitiative" class="combat-initiative" data-position="right" aria-label="Orden de iniciativa">
+<header class="combat-initiative-header"><strong>Tu turno</strong><span>Ronda 1</span><button aria-label="Mapa completo">⌖</button></header>
+<div class="combat-initiative-roster" aria-label="Actual, tres siguientes y previsión"></div>
+</aside>
+<label class="review-controls"><small>Prueba de distribución · sin partida</small>Posición <select aria-label="Posición de la barra de iniciativa"><option value="right">Derecha · vertical</option><option value="top">Arriba · centrada</option><option value="left">Izquierda · vertical</option></select></label>
+<script type="module">
+const art='/campaigns/one-shot/public/art/tokens/';
+const portraits=['Silverfarben Hotel/silverfarben_hotel_portrait_normal.png','Anteros/anteros_portrait_normal.png','Maria Trinity D8/maria_base.png'];
+const names=['Silverfarben','Anteros','Trinity'];
+const roster=document.querySelector('.combat-initiative-roster');
+for(let i=0;i<7;i++){
+ const row=document.createElement('button');row.type='button';row.className=`initiative-row timeline-${i===0?'current':i<4?'next':'later'}${i===0?' current':''}`;row.setAttribute('aria-label',names[i%3]);
+ const index=document.createElement('span');index.textContent=i===0?'▶':`+${i}`;
+ const portrait=document.createElement('span');portrait.className='initiative-portrait';const image=document.createElement('img');image.alt='';image.src=art+portraits[i%3];if(i%3===2)image.className='full-token-portrait';portrait.append(image);
+ const copy=document.createElement('span'),label=document.createElement('small');label.textContent=i===0?'Ahora':i<3?'R1':i<6?'R2':'R3';copy.append(label);row.append(index,portrait,copy);roster.append(row);
+}
+document.querySelector('select').addEventListener('change',event=>{const position=event.target.value;document.querySelector('#combatInitiative').dataset.position=position;document.body.dataset.initiativePosition=position;});
+</script></body></html>

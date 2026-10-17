@@ -76,3 +76,18 @@ posiciones, baúles y descanso siguen usando la persistencia existente.
 El siguiente ensayo recomendado es sobre los dispositivos reales de la mesa,
 con lluvia/nieve intensas y varios jugadores. La decisión sobre descanso,
 tiradas y beneficios permanece en el DM.
+
+## Cierre de comprobaciones
+
+- Compilación del cliente, servidor y comprobaciones de tipos terminadas correctamente.
+- 60/60 pruebas dirigidas aprobadas. Dos esperas agotadas durante una ejecución paralela con la compilación activa se resolvieron al repetir la suite en serie; no hubo fallos de aserción.
+- Recorrido conectado final: 681 pasos, 120 interacciones, tres jugadores y proyector; guardado, reinicio y reconexión correctos.
+- Auditoría Babylon: 80 vistas listas (día/noche y ocho ángulos en cada campamento), más los interiores. 117 capturas reales en esta entrega.
+- Comprobación visual adicional: acumulación de nieve en suelo/cubiertas, interior protegido sin postes, velas nocturnas y recuperación visible del fuego tras añadir leña bajo lluvia media. Sin errores ni avisos en la consola de la revisión final.
+- La emulación solicitada de 740 × 430 no se aplicó: el navegador informó 1280 × 720 y perfil compacto desactivado. No se presenta esa captura como validación móvil. El ensayo en móviles y proyector físicos sigue pendiente.
+
+Vista de prueba compilada: http://127.0.0.1:4487/dm.
+Galería: http://127.0.0.1:4486/evidence/gallery.html.
+La instancia principal de la mesa en el puerto 3000 no se reinició durante esta entrega.
+Los registros completos están en `output/camps-weather-20261011/summary.json`,
+`tests-final.json`, `playability.json`, `visual-report.json` y `capture-integrity.json`.

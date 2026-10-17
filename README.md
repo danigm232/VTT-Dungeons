@@ -12,7 +12,9 @@ Los encargos iniciales para sus sesiones separadas de Codex son [Dani / D0](docs
 
 ## Ejecutar en Windows
 
-La persistencia está implementada y probada automáticamente; no sustituye la aceptación de [puerta, móvil y servidor de mesa](docs/ALPHA_0_3_ACCEPTANCE_PLAN.md). Los mapas del Pecio se presentan con inclinación visual suave y arte raster; el servidor incluye el pecio continuo y los cinco campamentos. `INICIAR.cmd` comprueba el puerto antes de compilar, para no reemplazar archivos que usa una mesa abierta. Para actualizar mientras juegas, vuelve a abrir `INICIAR.cmd`, elige la misma campaña y pulsa **A** cuando ofrezca actualizar: el servidor guardará y cerrará ordenadamente, compilará el código reciente y reiniciará la mesa. No cierres las pestañas; al reconectar se recargarán para usar la versión nueva. El proyector puede pedir que prepares el audio otra vez. Si Windows recicló el PID de un bloqueo antiguo, el lanzador archiva solo ese bloqueo en `recovery`; no termina un proceso ajeno que simplemente ocupa el puerto. No borres ni sustituyas el guardado.
+La persistencia está implementada y probada automáticamente; no sustituye la aceptación de [puerta, móvil y servidor de mesa](docs/ALPHA_0_3_ACCEPTANCE_PLAN.md). Para actualizar mientras juegas, vuelve a abrir `INICIAR.cmd`, elige la misma campaña y pulsa **A**. Primero comprueba y compila una candidata en una carpeta separada mientras la mesa anterior sigue abierta. Sólo después solicita guardar y cerrar: si falla el guardado, cancela la actualización y conserva la mesa. Instala la candidata al confirmar el cierre; si falla el intercambio de carpetas, intenta restaurar la compilación anterior, que queda conservada en `runtime`. No cierres las pestañas; jugador y proyector recargan la aplicación al reconectar con el servidor nuevo. El proyector puede pedir que prepares el audio otra vez. Los assets con nombres fijos se revalidan para recoger cambios de texturas y sonido. Si Windows recicló el PID de un bloqueo antiguo, el lanzador archiva sólo ese bloqueo en `recovery`; no termina un proceso ajeno que ocupa el puerto.
+
+**Primera actualización desde un servidor anterior al cierre confirmado:** pulsa «Guardar ahora» en DM, espera la confirmación, exporta una copia privada y cierra esa mesa manualmente. Después abre `INICIAR.cmd`. El nuevo lanzador rechaza el cierre automático de servidores antiguos porque no pueden confirmar que el último guardado terminó correctamente. `INSTALAR.cmd` también exige cerrar las mesas antes de sustituir dependencias.
 
 Estos pasos ejecutan la versión DEV de la carpeta actual. Antes de actualizar una instalación anterior, exporta y guarda una copia privada fuera del programa.
 
@@ -25,11 +27,20 @@ Si Windows pregunta por el firewall, permite redes privadas para Node.js. Todos 
 
 Para desarrollo, los comandos equivalentes son:
 
+Cierra las mesas antes de instalar dependencias o compilar directamente con
+estos comandos; para actualizar una mesa abierta usa **A** en `INICIAR.cmd`.
+
 ```powershell
 corepack pnpm install --frozen-lockfile
 corepack pnpm build
 node dist/server/apps/server/index.js
 ```
+
+## Reloj y clima de campaña
+
+La consola DM muestra el reloj compartido con jugadores y proyector. En exploración avanza 1:1; se pausa durante decisiones modales y combate, y el DM puede pausar, adelantar o fijar la hora. Al cerrar cada asalto avanza seis segundos. Los botones de descanso solo adelantan el tiempo: el DM mantiene las decisiones de reglas, dados y recursos. El descanso guiado del campamento ya añade ocho horas al completarse.
+
+Los controles del tiempo atmosférico regulan precipitación, temperatura, niebla e inundación. La nieve se acumula según su intensidad y el terreno solo pasa a ser difícil cuando alcanza 15 cm y el DM activa esa regla. El reloj y el clima se guardan con la campaña, sin contar el tiempo que el servidor permanece apagado. Detalles y límites de aceptación: [Reloj y clima](docs/GAME_CLOCK_AND_CLIMATE.md).
 
 Las pruebas automatizadas se ejecutan con `corepack pnpm test`, `node scripts/audit-baseline.mjs`, `node scripts/audit-alpha02.mjs`, `node scripts/run-integration.mjs`, `node scripts/run-object-integration.mjs`, `node scripts/alpha03-smoke.mjs` y `node scripts/audit-alpha021.mjs`. Las integraciones crean servidores temporales en loopback y puertos libres; nunca usan la mesa abierta en 3000.
 
@@ -39,9 +50,11 @@ El selector inicial de `INICIAR.cmd` abre una de las campañas disponibles. `INI
 
 ## Guardar, exportar y recuperar en DEV1
 
-En DM, «Guardar ahora» confirma una generación de disco; el guardado automático reúne cambios cercanos y el audio activo recibe checkpoint periódico. «Exportar copia privada» descarga el estado actual aunque aún esté pendiente de disco: guarda ese JSON fuera del programa y no lo compartas con jugadores. «Restaurar copia» primero valida y muestra campaña, escena y fecha; Cancelar no cambia nada. Confirmar archiva el mundo anterior, escribe la nueva copia y obliga a volver a elegir personajes. El historial Deshacer y los controles en curso se limpian deliberadamente.
+En DM, «Guardar ahora» confirma una generación de disco; el guardado automático reúne cambios cercanos. El reloj en marcha recibe una copia cada 30 segundos sin llenar el historial con puntos sin avance de juego; al cerrar se guardan también los últimos segundos, el clima y el audio. «Exportar copia privada» descarga el estado actual aunque aún esté pendiente de disco: guarda ese JSON fuera del programa y no lo compartas con jugadores. «Restaurar copia» primero valida y muestra campaña, escena, fecha y avisos de adaptación; Cancelar no cambia nada. Confirmar archiva el mundo anterior y escribe el estado adaptado a la versión actual. Se conservan los personajes de los navegadores conectados que siguen existiendo; tras un reinicio cada navegador intenta recuperar su personaje recordado si está libre. No se guardan credenciales ni conexiones en el archivo. El historial Deshacer y los controles en curso se limpian deliberadamente.
 
 Los checkpoints locales están en `data/saves/stormwreck-isle/` por defecto, fuera de las rutas web y excluidos de Git. `DUNGEONS_DATA_DIR` admite una ruta **absoluta** alternativa; no apuntes a `dist`, `art` ni a una carpeta compartida pública. No edites ni borres `active.json`, `active.bak.json` o los temporales para «arreglar» una partida: el DM puede inspeccionar evidencias privadas y previsualizar el backup cuando el servidor indica recuperación. Exporta una copia antes de actualizar; la versión 0.2.1 no entiende este save y un rollback de código no convierte automáticamente los datos.
+
+Las mejoras de imagen y presentación suelen conservar compatibilidad. Los cambios de formato, identificadores, geometría o reglas persistidas requieren una migración y pruebas: no basta con compilar. Las adaptaciones existentes conservan una copia del original; si se recupera automáticamente un respaldo, el DM ve un aviso para revisar el avance. Un guardado de formato, estado de campaña o geometría posterior al VTT instalado bloquea la carga automática y mantiene sus archivos. [Auditoría de guardado y actualización](docs/evidence/SAVE_UPDATE_AUDIT_20261013.md).
 
 Si aparece un bloqueo `writer.lock` después de un cierre forzado, comprueba que no hay otro servidor usando esa misma carpeta. El comando local `node scripts/recover-writer-lock.mjs "RUTA_ABSOLUTA_DEL_SLOT"` sólo informa; con `--confirm` archiva únicamente un bloqueo cuyo PID ya no existe, nunca borra la partida. No lo ejecutes contra una instancia viva. En DEV1 todo este recorrido fue probado en carpetas temporales; la aceptación física sigue pendiente.
 

@@ -10,6 +10,7 @@ import { SpotLight } from '@babylonjs/core/Lights/spotLight.js';
 import { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator.js';
 import { GlowLayer } from '@babylonjs/core/Layers/glowLayer.js';
 import { Mesh } from '@babylonjs/core/Meshes/mesh.js';
+import '@babylonjs/core/Meshes/thinInstanceMesh.js';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder.js';
 import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData.js';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';

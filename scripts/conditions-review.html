@@ -1,2 +1,32 @@
 <!doctype html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Estados · revisión aislada</title><link rel="stylesheet" href="/apps/web/common.css"><style>body{padding:24px;background:#091217;overflow:auto}main{max-width:980px;margin:auto}h1{color:#dfc48f;font:30px Georgia,serif}.review-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.review-grid>section{min-width:0}canvas{max-width:100%}#map{margin-top:20px;border:1px solid #b6bfb02e;border-radius:12px;overflow:hidden}@media(max-width:680px){.review-grid{grid-template-columns:1fr}body{padding:12px}}</style></head><body><main><p class="eyebrow">D&D · REVISIÓN VISUAL</p><h1>Estados y efectos</h1><p class="muted">Prueba aislada; no afecta a ninguna partida. El panel del jugador es de consulta y el del DM permite retirar y programar efectos.</p><div class="review-grid"><section><h2>DM · María / Trinity</h2><div id="dm"></div></section><section><h2>Jugador</h2><div id="player"></div></section></div><h2>Indicadores del mapa</h2><div id="map"></div></main><script type="module" src="/scripts/conditions-review.ts"></script></body></html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Estados · sprites y efectos</title><link rel="stylesheet" href="/apps/web/common.css">
+  <style>
+    body{padding:24px;background:#091217;overflow:auto}main{max-width:1120px;margin:auto}
+    h1{color:#dfc48f;font:30px Georgia,serif;margin:.4rem 0}.review-toolbar{display:flex;gap:18px;flex-wrap:wrap;align-items:end;margin:22px 0}
+    .review-toolbar label{display:grid;gap:6px;font-size:.8rem;color:#bdc9c1}.review-toolbar select{min-width:200px}
+    .review-gallery{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.review-card{border:1px solid #a8baad2a;border-radius:12px;background:linear-gradient(160deg,#18282c,#0d191d);overflow:hidden}
+    .review-card header{padding:14px 14px 0}.review-card header>strong{display:block;font:600 1rem Georgia,serif;color:#e5d1aa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .review-card canvas{display:block;width:100%;aspect-ratio:1.12;object-fit:contain}.review-card footer{padding:0 14px 14px;color:#9eafaa;font-size:.72rem;min-height:36px}
+    .review-card .condition-name-icons{min-height:28px;margin:.4rem 0 0}.review-card .condition-chip{background:#102024;font-size:.7rem}
+    .review-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}details.review-panels{margin-top:24px}details.review-panels>summary{cursor:pointer;color:#dfc48f;padding:12px 0}
+    .preview-identity{display:inline-grid;padding:.65rem 1rem;border:1px solid #a8baad2a;border-radius:10px;background:#142227}
+    @media(max-width:800px){.review-gallery{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:600px){body{padding:12px}.review-gallery,.review-grid{grid-template-columns:1fr 1fr}.review-toolbar select{min-width:160px}.review-card header{padding:10px 10px 0}.review-card header>strong{font-size:.85rem}.review-card footer{padding:0 10px 10px}.review-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body><main>
+  <p class="eyebrow">D&D · REVISIÓN VISUAL</p><h1>El estado se ve en el personaje</h1>
+  <p class="muted">Silverfarben y Trinity: pose del estado + efecto suave. PNJ: overlays sobre su animación habitual. Los iconos van debajo del nombre en la interfaz.</p>
+  <p><a href="/scripts/facing-review.html">Probar caminar, detenerse y conservar la orientación</a></p>
+  <div class="review-toolbar">
+    <label>Personaje<select id="actor"></select></label>
+    <label>Prueba<select id="previewAction"><option value="idle">Quieto · pose del estado</option><option value="moving">Caminar</option><option value="attack">Atacar</option></select></label>
+    <label><span>Movimiento de los efectos</span><span><input id="reducedMotion" type="checkbox"> Reducir movimiento</span></label>
+  </div>
+  <div id="previewIdentity" class="preview-identity"><strong id="previewName"></strong></div>
+  <p id="reviewStatus" class="muted" role="status">Preparando los PNG…</p>
+  <div id="gallery" class="review-gallery"></div>
+  <details class="review-panels"><summary>Ver controles del DM y ficha del jugador</summary><div class="review-grid"><section><h2>DM</h2><div id="dm"></div></section><section><h2>Jugador</h2><div id="player"></div></section></div></details>
+</main><script type="module" src="/scripts/conditions-review.ts"></script></body></html>

@@ -7,7 +7,7 @@ import path from 'node:path';
 const folder=path.resolve(process.env.CAMPS_REVIEW_OUTPUT??'output/camps-final');
 const crcTable=Array.from({length:256},(_,i)=>{let c=i;for(let n=0;n<8;n++)c=c&1?0xedb88320^(c>>>1):c>>>1;return c>>>0;});
 const crc32=bytes=>{let c=0xffffffff;for(const b of bytes)c=crcTable[(c^b)&255]^(c>>>8);return (c^0xffffffff)>>>0;};
-const files=(await readdir(folder)).filter(f=>/^(before|after)-.+\.png$/.test(f)),report=[];
+const files=(await readdir(folder)).filter(f=>/^(before|after|weather|polish|climate)-.+\.png$/.test(f)),report=[];
 for(const file of files){
  const data=await readFile(path.join(folder,file));assert.equal(data.subarray(0,8).toString('hex'),'89504e470d0a1a0a',file);
  const idat=[];let width,height,channels,ended=false;

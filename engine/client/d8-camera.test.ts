@@ -9,11 +9,29 @@ import { D8NIGHT } from '../../campaigns/one-shot/playground/d8night.config';
 import { d8SceneGrid, d8SpatialNavigation } from '../../campaigns/one-shot/public/pack';
 import { combatCameraFrame, combatSafeProjection } from './combat-camera';
 import { cameraBetaForTiltDegrees } from './camera-movement';
-import { D8CameraMotion, d8CameraBaseAlpha, d8CameraHalfHeight, d8CellWorldPoint, d8FocusHeight, d8PickCell, type D8CameraPose } from './d8-camera';
+import { CAMERA_MIN_TILT, CAMERA_MAX_TILT } from './camera-profile';
+import { D8CameraMotion, D8InteriorCameraTilt, d8CameraBaseAlpha, d8CameraHalfHeight, d8CellWorldPoint, d8FocusHeight, d8PickCell, type D8CameraPose } from './d8-camera';
 
 const start: D8CameraPose = { alpha: -Math.PI / 4, beta: Math.PI / 4, halfHeight: 20, target: { x: 0, y: 4, z: 0 } };
 
 describe('D8 2.5D camera', () => {
+  it('centers every D8 orbit in front of the entrance facades, including Dinner', () => {
+    for (const [id, map] of Object.entries(D8NIGHT.maps) as Array<[string, any]>) {
+      const alpha = d8CameraBaseAlpha(map.camera.alpha, id);
+      expect(alpha).toBeCloseTo(Math.PI / 2);
+      expect(Math.cos(alpha)).toBeCloseTo(0);
+      expect(Math.sin(alpha)).toBeCloseTo(1);
+      for (const offset of [-30, 0, 30]) expect(Math.sin(alpha + offset * Math.PI / 180)).toBeGreaterThan(.85);
+    }
+  });
+  it('enters at 15 degrees, allows manual interior tilt and uses 25 outside', () => {
+    const tilt = new D8InteriorCameraTilt();
+    expect(tilt.update(false, 25)).toBe(25);
+    expect(tilt.update(true, 35)).toBe(15);
+    expect(tilt.update(true, 35)).toBe(35);
+    expect(tilt.update(false, 35)).toBe(25);
+    expect(tilt.update(true, 25)).toBe(15);
+  });
   it('selects raised stair cells at their actual projected height in every camera direction', () => {
     const terrain = d8SpatialNavigation('temple').terrain, grid = d8SceneGrid('temple'), size = D8NIGHT.maps.temple.MAP.size as [number,number];
     const stairs = terrain.surfaces[0]!.tiles.filter(tile => tile.kind === 'stair');
@@ -64,7 +82,7 @@ describe('D8 2.5D camera', () => {
   });
 
   it('fits every map throughout an orbit without changing scale or perspective depth', () => {
-    for (const map of Object.values(D8NIGHT.maps) as any[]) for (const aspect of [.46, 1, 1.78]) for (const tilt of [25,35,45,50]) {
+    for (const map of Object.values(D8NIGHT.maps) as any[]) for (const aspect of [.46, 1, 1.78]) for (const tilt of [15,25,35]) {
       const [width, depth] = map.MAP.size, beta = cameraBetaForTiltDegrees(tilt);
       const halfHeight = d8CameraHalfHeight({ width, depth, height: 8 }, beta, aspect);
       const projection = Matrix.OrthoLH(halfHeight * aspect * 2, halfHeight * 2, .1, 1000);
@@ -84,7 +102,7 @@ describe('D8 2.5D camera', () => {
   });
 
   it('picks the projected cell and centers an upright sprite at every tilt and screen shape', () => {
-    for (const viewport of [{ width: 390, height: 844 }, { width: 1600, height: 900 }]) for (const tactical of [false, true]) for (const tilt of [25,35,45,50]) for (let step = 0; step < 8; step++) {
+    for (const viewport of [{ width: 390, height: 844 }, { width: 1600, height: 900 }]) for (const tactical of [false, true]) for (const tilt of [15,25,35]) for (let step = 0; step < 8; step++) {
       const size: [number, number] = [52, 68], grid = { cols: 80, rows: 104 };
       const cell = { col: 55, row: 70 }, floor = d8CellWorldPoint(cell, size, grid), beta = cameraBetaForTiltDegrees(tilt), alpha = -Math.PI / 4 + step * Math.PI / 4;
       const center = new Vector3(floor.x, floor.y + d8FocusHeight(1.8, .9, beta), floor.z);
@@ -105,8 +123,8 @@ describe('D8 2.5D camera', () => {
   it('keeps Babylon and the motion controller within the same tilt limits after rendering', () => {
     const engine = new NullEngine(), scene = new Scene(engine), camera = new ArcRotateCamera('d8', 0, Math.PI / 4, 100, Vector3.Zero(), scene);
     camera.mode = Camera.ORTHOGRAPHIC_CAMERA;
-    camera.lowerBetaLimit = cameraBetaForTiltDegrees(50); camera.upperBetaLimit = cameraBetaForTiltDegrees(35);
-    for (const tilt of [35, 50]) {
+    camera.lowerBetaLimit = cameraBetaForTiltDegrees(CAMERA_MAX_TILT); camera.upperBetaLimit = cameraBetaForTiltDegrees(CAMERA_MIN_TILT);
+    for (const tilt of [15, 35]) {
       const rig = new D8CameraMotion(), target = { ...start, beta: cameraBetaForTiltDegrees(tilt) };
       for (let frame = 0; frame < 120; frame++) {
         const pose = rig.update(target, 1000 / 60); camera.alpha = pose.alpha; camera.beta = pose.beta;

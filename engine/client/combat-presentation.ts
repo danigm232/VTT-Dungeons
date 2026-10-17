@@ -1,5 +1,12 @@
 import type { CombatAction, CombatPrompt } from '../shared/protocol';
 
+/** Exactly one owner for selection/queued action/physical dice controls. */
+export function combatInteractionSurface(input:{initiativePending:boolean;hasPrompt:boolean;hasSelection:boolean;hasPendingAction:boolean}){
+  if(input.initiativePending)return 'initiative' as const;
+  if(input.hasPrompt)return 'dice' as const;
+  return input.hasSelection||input.hasPendingAction?'selection' as const:'none' as const;
+}
+
 /** The required roll stays explicit; rules and arithmetic belong in Details. */
 export function compactCombatPrompt(prompt: CombatPrompt) {
   const instruction = prompt.stage === 'attack' || prompt.stage === 'death-save'

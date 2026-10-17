@@ -6,7 +6,7 @@ import { WRECK_STRUCTURE as S,WRECK_CABINS,wreckListHeight,wreckBeamAt,wreckHull
 import { wreckRuntimeScenes } from '../../campaigns/stormwreck-isle/public/wreck-runtime.js';
 import { terrainTile,surfaceHeight } from '../shared/terrain.js';
 import type { PublicProp } from '../shared/protocol.js';
-import { buildHarpyNest } from './wreck-nest.js';
+import { buildHarpyNest,nestWalkDistance } from './wreck-nest.js';
 import { buildDragonRemains } from './wreck-dragon-bones.js';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
 
@@ -19,8 +19,9 @@ describe('reconstrucción estructural del pecio',()=>{
     const scene=makeScene(),meshes=buildHarpyNest(scene);
     expect(meshes.length).toBe(7);expect(meshes.every(m=>m.metadata.bowl&&!m.isPickable)).toBe(true);
     let min=Infinity,max=-Infinity;
-    for(const m of meshes){const p=m.getVerticesData('position')!;for(let i=0;i<p.length;i+=3){expect(Math.hypot(p[i]!-S.origin.x,p[i+2]!-S.origin.z)).toBeLessThanOrEqual(1.171);min=Math.min(min,p[i+1]!);max=Math.max(max,p[i+1]!);}}
-    expect(max-min).toBeGreaterThan(.28);expect(max-min).toBeLessThan(.65);
+    for(const m of meshes){const p=m.getVerticesData('position')!;for(let i=0;i<p.length;i+=3){expect(Math.hypot(p[i]!-S.origin.x,p[i+2]!-S.origin.z)).toBeLessThanOrEqual(S.nestRadius+.001);min=Math.min(min,p[i+1]!);max=Math.max(max,p[i+1]!);}}
+    expect(max-min).toBeGreaterThan(.70);expect(max-min).toBeLessThan(1.5);
+    for(const m of meshes){const p=m.getVerticesData('position')!;for(let i=0;i<p.length;i+=3)if(nestWalkDistance(p[i]!-S.origin.x,p[i+2]!-S.origin.z)<.295)expect(p[i+1]!-S.crowHeight-wreckListHeight(p[i+2]!)).toBeLessThanOrEqual(.141);}
   });
   it('tiene cráneo, cavidades y costillas volumétricas dentro de las rocas bloqueadas',()=>{
     const scene=makeScene(),meshes=buildDragonRemains(scene,terrain),cells=terrain.obstacles!.filter(o=>['reef-south-west','dragon-bone-stern'].includes(o.obstacleId)).map(o=>o.cell);
@@ -41,7 +42,7 @@ describe('reconstrucción estructural del pecio',()=>{
     expect(scene.lights.filter(l=>l.name.startsWith('light:')).every(l=>l.intensity===0)).toBe(true);
   });
   it('reduce proporciones sin cambiar la casilla y integra los camarotes bajo C2 y C3',()=>{
-    expect(S.length).toBe(63);expect(S.tileMeters).toBe(1.5);
+    expect(S.length).toBe(61.5);expect(S.tileMeters).toBe(1.5);
     expect(Math.atan(S.listSlope)*180/Math.PI).toBeLessThan(1);
     for(const [id,b] of Object.entries(WRECK_CABINS)){
       const surface=terrain.surfaces.find(s=>s.id===(id==='c4'||id==='c5'?'c3':'c2'))!;
@@ -57,7 +58,7 @@ describe('reconstrucción estructural del pecio',()=>{
     }
   });
   it('comparte una silueta naval convexa y recorta suelos sin perder los centros transitables',()=>{
-    expect(wreckBeamAt(31)).toBeLessThan(2);expect(wreckBeamAt(-30.5)).toBeGreaterThan(5);expect(wreckBeamAt(0)).toBeGreaterThan(10);
+    expect(wreckBeamAt(31)).toBeLessThan(2);expect(wreckBeamAt(-29.5)).toBeGreaterThan(5);expect(wreckBeamAt(0)).toBeGreaterThan(10);
     expect(planArea(wreckHullPlan())).toBeLessThan(S.length*22);
     for(const s of terrain.surfaces.filter(s=>!s.visualOnly&&s.id!=='sea'))for(const tile of s.tiles){
       const p=tile.polygon;if(!p)continue;

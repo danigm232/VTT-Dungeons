@@ -23,6 +23,7 @@ type Animal = {
   meshes: Array<{ visibility: number }>;
   animations: Map<string, AnimationGroup>;
   startClip: (name: string, speed?: number, loop?: boolean) => void;
+  pose: (seconds:number) => void;
   walkSpeedRatio: number;
   gallopSpeedRatio: number;
   arrival: Path;
@@ -30,6 +31,12 @@ type Animal = {
 };
 
 const ANIMATIONS_TO_KEEP = new Set(['idle', 'idle_2', 'idle_headlow', 'eating', 'walk', 'gallop']);
+/** Sample Babylon's real rig tracks with the same clock that advances the path.
+ * A throttled render clock must never separate gait from translation. */
+export function sampleFaunaClip(group:AnimationGroup,seconds:number,speed=1){
+  const fps=group.targetedAnimations[0]?.animation.framePerSecond??30,span=Math.max(1,group.to-group.from);
+  group.goToFrame(group.from+((Math.max(0,seconds)*fps*speed)%span));
+}
 const WALK_SPEED_METERS_PER_SECOND = 1.05;
 // Approximate full-stride distance in the source rig's units, tuned to its Walk loop.
 const SOURCE_WALK_STRIDE = 3.1;
@@ -115,7 +122,8 @@ function pointOnPath(path: Path, travelled: number): PathSample {
 export async function createForestFauna(
   scene: Scene,
   campRoot: TransformNode,
-  gridSize = { width: 36, depth: 33 }
+  gridSize = { width: 36, depth: 33 },
+  load = (file:string)=>LoadAssetContainerAsync(`/art/forest-fauna-v1/${file}`,scene)
 ): Promise<ForestFaunaController> {
   let disposed = false;
   const root = new TransformNode('forest:occasional-fauna', scene);
@@ -135,7 +143,7 @@ export async function createForestFauna(
   for (const spec of ANIMAL_SPECS) {
     let container: Awaited<ReturnType<typeof LoadAssetContainerAsync>>;
     try {
-      container = await LoadAssetContainerAsync(`/art/forest-fauna-v1/${spec.file}`, scene);
+      container = await load(spec.file);
     } catch (error) {
       console.warn(`No se pudo cargar la fauna del bosque (${spec.id})`, error);
       continue;
@@ -151,7 +159,7 @@ export async function createForestFauna(
 
     container.meshes.forEach(mesh => {
       mesh.isPickable = false;
-      mesh.receiveShadows = false;
+      mesh.receiveShadows = true;
       mesh.visibility = 0;
     });
     for (const material of container.materials) if (material instanceof PBRMaterial) {
@@ -162,7 +170,9 @@ export async function createForestFauna(
     }
 
     const animations = new Map<string, AnimationGroup>();
-    for (const group of container.animationGroups) {
+    // dispose() removes its group from this live array. Iterating the original
+    // skipped the following clip, sometimes including Walk on arrival.
+    for (const group of [...container.animationGroups]) {
       const key = group.name.trim().toLowerCase();
       group.stop();
       if (ANIMATIONS_TO_KEEP.has(key)) {
@@ -175,6 +185,7 @@ export async function createForestFauna(
     const gallopCycleSeconds = animations.get('gallop')?.getLength() || .5333;
     const walkSpeedRatio = WALK_SPEED_METERS_PER_SECOND * walkCycleSeconds / (spec.scale * SOURCE_WALK_STRIDE);
     const gallopSpeedRatio = GALLOP_SPEED_METERS_PER_SECOND * gallopCycleSeconds / (spec.scale * SOURCE_GALLOP_STRIDE);
+    let activeClip:AnimationGroup|undefined,clipSpeed=1;
     const startClip = (name: string, speed = 1, loop = true) => {
       const requested = animations.get(name.toLowerCase())
         ?? (name.toLowerCase().includes('low') ? animations.get('idle') : undefined);
@@ -184,12 +195,14 @@ export async function createForestFauna(
       animations.forEach(group => group.stop());
       // The first visible frame must already use the locomotion pose. Blending
       // from the bind pose on arrival produces a visibly sliding animal.
-      requested.enableBlending = !['walk', 'gallop'].includes(name.toLowerCase());
+      requested.enableBlending = false;
       requested.start(loop, speed);
+      requested.pause();
       requested.goToFrame(requested.from);
+      activeClip=requested;clipSpeed=speed;
     };
     animals.push({
-      spec, pivot, meshes: container.meshes, animations, startClip, walkSpeedRatio, gallopSpeedRatio,
+      spec, pivot, meshes: container.meshes, animations, startClip, pose:seconds=>{if(activeClip)sampleFaunaClip(activeClip,seconds,clipSpeed);}, walkSpeedRatio, gallopSpeedRatio,
       arrival: makePath(spec.arrival), departure: makePath(spec.departure)
     });
     const animal = animals.at(-1)!;
@@ -339,6 +352,7 @@ export async function createForestFauna(
         setVisibility(current, Math.min(1, elapsed / 2.4));
         if (elapsed >= 5.4) finish(elapsedSeconds);
       }
+      current?.pose(elapsedSeconds-phaseStarted);
     },
     dispose: stopAndDispose
   };

@@ -1,8 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { bridgeFixture } from './terrain-fixture';
-import { surfaceHeight, surfaceNeighbors, terrainSchema, terrainTile } from './terrain';
+import { surfaceHeight, surfaceNeighbors, terrainSchema, terrainTile, surfacePoint,surfaceStepPath,surfaceStepPoint } from './terrain';
 
 describe('Alpha 0.3.1 terrain foundation', () => {
+  it('keeps 1.5m cells while following an authored clear route through a narrow aisle',()=>{
+    const input=structuredClone(bridgeFixture),from={surfaceId:'ground',cell:{col:0,row:0}},to={surfaceId:'ground',cell:{col:1,row:0}};
+    input.surfaces[0]!.tiles[0]!.anchor=[.4,.3];input.surfaces[0]!.tiles[1]!.anchor=[.6,.3];
+    input.edgePaths=[{from,to,points:[[.6,0,.45],[1.5,0,.45],[2.4,0,.45]]}];
+    const terrain=terrainSchema.parse(input);expect(terrain.tileMeters).toBe(1.5);expect(surfacePoint(terrain,from)[0]).toBeCloseTo(.6);expect(surfacePoint(terrain,from)[2]).toBeCloseTo(.45);
+    expect(surfaceStepPath(terrain,to,from)).toEqual([[2.4,0,.45],[1.5,0,.45],[.6,0,.45]]);expect(surfaceStepPoint(terrain,from,to,.5)).toEqual([1.5,0,.45]);
+    expect(surfacePoint(bridgeFixture,{surfaceId:'ground',cell:{col:1,row:0}})).toEqual([2.25,0,.75]);
+    const invalid=structuredClone(input);invalid.edgePaths![0]!.to.cell={col:3,row:0};expect(terrainSchema.safeParse(invalid).success).toBe(false);
+  });
   it('distinguishes bridge and ground at the same logical D&D cell', () => {
     const cell = { col: 3, row: 1 };
     expect(surfaceHeight(bridgeFixture, { surfaceId: 'ground', cell })).toBe(0);

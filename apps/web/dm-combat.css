@@ -1,4 +1,14 @@
 /* One inspector, not a separate dashboard for every participant. */
+.dm-turn-preview{position:relative;display:flex;align-items:center;gap:9px;padding:8px 10px;background:none;max-width:100%;box-sizing:border-box}
+.dm-turn-preview::before{content:"";position:absolute;top:37px;left:24px;right:24px;height:1px;background:linear-gradient(90deg,#8ee5ff,#d7c8a8,#738d8d);pointer-events:none}
+.dm-turn-preview button{position:relative}
+.dm-turn-preview button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:3px;min-width:32px;min-height:55px;border:0;background:none}
+.dm-turn-preview .combat-card-portrait{width:36px;height:36px;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);border-radius:0}
+.dm-turn-preview small{font-size:.55rem;white-space:nowrap;color:#d7c8a8}
+.dm-turn-preview .turn-preview-current .combat-card-portrait{width:46px;height:46px;background:#28627b}
+.dm-turn-preview .turn-preview-later{opacity:.65}
+.dm-turn-preview .turn-preview-later .combat-card-portrait{width:26px;height:26px}
+.dm-turn-preview .turn-preview-next+.turn-preview-later{margin-left:6px;border-left:1px solid #8b9b8e;padding-left:8px}
 #combat .combat-deck-header{padding:10px 12px;gap:8px;align-items:flex-start;background:#172d30}
 #combat .combat-deck-header h2{font-size:1.15rem}
 #combat .combat-turn{font-size:.76rem;font-weight:500;line-height:1.4}

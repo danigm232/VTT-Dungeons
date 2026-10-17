@@ -1,7 +1,7 @@
 import type { Cell, PropDefinition, PublicSceneDefinition } from '../../../engine/shared/campaign.js';
 import type { PortDefinition } from '../../../engine/server/campaign.js';
 import type { TerrainDefinition } from '../../../engine/shared/terrain.js';
-import { WRECK_STRUCTURE, WRECK_CABINS, wreckListHeight, wreckCabinContentCell, wreckHullContains, wreckCellPolygon, circleCellPolygon, wreckUpperDeckPlan,planContains } from '../../../engine/shared/wreck-structure.js';
+import { WRECK_STRUCTURE, WRECK_CABINS, wreckListHeight, wreckCabinContentCell, wreckHullContains, wreckCellPolygon, circleCellPolygon, wreckUpperDeckPlan,planContains,wreckBeamAt } from '../../../engine/shared/wreck-structure.js';
 
 const CELL = 1.5, LENGTH = 66, HALF_BEAM = 11.25, HULL_COLS = 44, HULL_ROWS = 20;
 // Leave 9 m of real, walkable water around the whole wreck. The authored
@@ -205,7 +205,8 @@ const c8Low = { col: c8Down.cell.col + c8Down.runCells - 1, row: c8Down.cell.row
 const c9Low = { col: c9Down.cell.col + c9Down.runCells - 1, row: c9Down.cell.row };
 const ladderCell = cellAtMetersLocal(1.5, 0);
 const sternBreachCell = cellAtMetersLocal(-30.75, 0);
-const boardingCell = { col: 23, row: cellAtMetersLocal(0,9.75).row };
+const boardingCell = { col: 23, row: cellAtMetersLocal(0,wreckBeamAt(2.25)-CELL*.5).row };
+const boardingRailCell = { col: 23, row: cellAtMetersLocal(0,wreckBeamAt(2.25)-.005).row };
 const rowboatLocalCell = cellAtMetersLocal(3.75, 12);
 const terrainTransitions: TerrainDefinition['transitions'] = [
   surfaceLink('main', { col: c2North.cell.col + c2North.runCells - 1, row: northRow }, 'c2', c2TopNorth),
@@ -245,7 +246,7 @@ const mainTerrain = makeTerrain('main', [mainSurface, mainHullContext, c2Surface
   structures: mainStructures, transitions: terrainTransitions,
   hullOpenings: [{ id: 'c9-stern-breach', surfaceId: 'c1-hull', cell: sternBreachCell, edge: 'west', bottom: -5.4, top: WRECK_STRUCTURE.sternBreachTop }],
   railGaps: [
-    { surfaceId: 'c1-hull', cell: boardingCell, edge: 'south' },
+    { surfaceId: 'c1-hull', cell: boardingRailCell, edge: 'south' },
     { surfaceId: 'c2', cell: c2TopNorth, edge: 'west' }, { surfaceId: 'c2', cell: c2TopSouth, edge: 'west' },
     { surfaceId: 'c3', cell: c3TopNorth, edge: 'east' }, { surfaceId: 'c3', cell: c3TopSouth, edge: 'east' }
   ],
@@ -332,7 +333,7 @@ const allShipProps: PropDefinition[] = [
     baseFootprint: [{ col: 0, row: 0 }], allowedRotations: [0, 90, 180, 270], initialState: 'upright',
     capabilities: { transform: true, detach: true, structure: true }, mount: { cell: cellAtMetersLocal(-22.5, 0), footprint: [{ col: 0, row: 0 }], assetId: 'wheel-mount-v3' },
     sourceKind: 'adaptation', sourceRef: 'Stormwreck Isle, cubierta C3' },
-  { ...crate('c2-flotsam', 'Restos del palo de C2', cellAtMetersLocal(25.5, 4.5), 'Stormwreck Isle, C2'), surfaceId: 'c2' },
+  { ...crate('c2-flotsam', 'Restos del palo de C2', cellAtMetersLocal(24, 4.5), 'Stormwreck Isle, C2'), surfaceId: 'c2' },
   fixture('c2-ballista-blockout', 'Balista oxidada de C2', cellAtMetersLocal(21, -3), 'c2', 3, 2, 'Stormwreck Isle, C2'),
   fixture('c2-bowsprit-blockout', 'Bauprés roto de C2', cellAtMetersLocal(28.5, 1.5), 'c2', 1, 1, 'Stormwreck Isle, C2'),
   door('c4-barred-door', 'Puerta atrancada de C4', cabinDoorCells.c4, 'Stormwreck Isle, C4'),
@@ -359,7 +360,7 @@ const allShipProps: PropDefinition[] = [
     ['c8-container-03', 'Contenedor de C8 · 3', 21, 4]
   ].map(([id, label, x, z]) => ({ ...crate(String(id), String(label), cellAtMetersLocal(Number(x), Number(z)), 'Stormwreck Isle, C8'), surfaceId: 'lower-deck' })),
   ...[
-    ['c8-barrel-01', -26, -6], ['c8-barrel-02', -23, 7.5], ['c8-barrel-03', 0, -7.5], ['c8-barrel-04', 25.5, -4.5]
+    ['c8-barrel-01', -26, -6], ['c8-barrel-02', -23, 7.5], ['c8-barrel-03', 0, -7.5], ['c8-barrel-04', 24, -4.5]
   ].map(([id, x, z], index) => fixture(String(id), `Barril podrido ${index + 1} de C8`, cellAtMetersLocal(Number(x), Number(z)), 'lower-deck', 1, 1, 'Stormwreck Isle, C8')),
   { ...crate('c9-iron-chest', 'Cofre de hierro de C9 · bajo la brecha de C4/C8', cellAtMetersLocal(-19.5, -4.5), 'Stormwreck Isle, C9'), surfaceId: 'hold-air' },
   fixture('c9-debris-01', 'Escombros de carga de C9', cellAtMetersLocal(-24, -4.5), 'hold-air', 1, 1, 'Stormwreck Isle, C9'),
@@ -375,8 +376,8 @@ const shaftMainApproach = cellAtMetersLocal(-18, -4.5);
 const localWreckPorts: PortDefinition[] = [
   // Board at the outer rail, not at the mast-ladder cell: both connections
   // share a scene now, so overlapping portal landings would chain by mistake.
-  { id: 'P01', from: address('wreck-ship', 'exterior', 'sea', { col: rowboatLocalCell.col - 1, row: rowboatLocalCell.row }), to: address('wreck-ship', 'c1', 'main', { col: rowboatLocalCell.col - 1, row: rowboatLocalCell.row - 1 }), mode: 'rigging', return: 'explicit', autoDirection: 'forward' },
-  { id: 'P10', from: address('wreck-ship', 'c1', 'main', ladderCell), to: address('wreck-ship', 'c1-crow', 'crow', ladderCell), mode: 'rope-ladder', return: 'explicit' },
+  { id: 'P01', from: address('wreck-ship', 'exterior', 'sea', { col: rowboatLocalCell.col - 1, row: rowboatLocalCell.row }), to: address('wreck-ship', 'c1', 'main', boardingCell), mode: 'rigging', return: 'explicit', autoDirection: 'forward' },
+  { id: 'P10', from: address('wreck-ship', 'c1', 'main', ladderCell), to: address('wreck-ship', 'c1-crow', 'crow', ladderCell), mode: 'rope-ladder', return: 'explicit', autoDirection: 'forward' },
   { id: 'P12', from: address('wreck-ship', 'c1', 'main', cellAtMetersLocal(-4.5, -6.75)), to: address('wreck-ship', 'c8', 'lower-deck', cellAtMetersLocal(-4.5, -6.75)), mode: 'hatch', return: 'adjudicated' },
   { id: 'P13', from: address('wreck-ship', 'c4', 'main', shaftMainApproach), to: address('wreck-ship', 'c8', 'lower-deck', shaftMainApproach), mode: 'hole', return: 'adjudicated' },
   { id: 'P14', from: address('wreck-ship', 'c8', 'lower-deck', shaftApproach), to: address('wreck-ship', 'c9', 'hold-air', shaftApproach), mode: 'hole', return: 'adjudicated' },

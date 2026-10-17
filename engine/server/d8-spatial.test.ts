@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { D8NIGHT } from '../../campaigns/one-shot/playground/d8night.config';
-import { d8CellFromWorld, d8CellToWorld, d8SpatialNavigation, oneShotCampaignDefinition } from '../../campaigns/one-shot/public/pack';
+import { d8CellFromWorld, d8CellToWorld, d8SceneGrid, d8SpatialNavigation, oneShotCampaignDefinition } from '../../campaigns/one-shot/public/pack';
 import { oneShotBundle } from '../../campaigns/one-shot/server';
 import { cellKey, segmentCrossesBox } from '../shared/geometry';
 import { connectedSpatialCells } from '../shared/spatial-navigation';
@@ -28,6 +28,16 @@ describe('D8 physical grid regression', () => {
     const ice=d8CellFromWorld('mirror',2,.6);
     expect(d8SpatialNavigation('mirror').walkable).toContainEqual(ice);
     expect(oneShotCampaignDefinition.scenes.find(s=>s.id==='mirror')!.movementHazards![0]!.cells).toContainEqual(ice);
+  });
+  it('extends the dinner court floor and walkable grid north without shifting existing cells', () => {
+    const map=D8NIGHT.maps.dinner,scene=oneShotCampaignDefinition.scenes.find(entry=>entry.id==='dinner')!;
+    expect(d8SceneGrid('dinner').rows).toBe(18);
+    expect(d8CellToWorld('dinner',{col:9,row:10}).z).toBeCloseTo(6.75);
+    const extended=d8CellFromWorld('dinner',0,10);
+    expect(d8CellToWorld('dinner',extended).z).toBeCloseTo(9.75);
+    expect(scene.walkable).toContainEqual(extended);
+    expect(map.MAP.visualFloorExtension.positiveZ).toBe(9);
+    expect(map.MAP.navigation.bounds[3]).toBeGreaterThan(17);
   });
   it('movement from player controls also respects live hostile NPC occupancy', () => {
     const state = new GameState(oneShotBundle); state.claim('a'.repeat(32), 'maria-socket', 'maria'); state.changeScene('cafe');

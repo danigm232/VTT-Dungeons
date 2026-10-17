@@ -3,23 +3,31 @@ import nipplejs from 'nipplejs';
 import { OBJECT_MODEL_VERSION, PROTOCOL_VERSION, explorationBasicActionCatalogue } from '../../engine/shared/protocol';
 import type { BasicCombatAction, CharacterPublic, CombatAction, CommandResult, ExplorationAction, ExplorationBasicAction, Facing, PlayerPrivate, WorldSnapshot } from '../../engine/shared/protocol';
 import type { Cell } from '../../engine/shared/campaign';
-import { supportsCameraOrientation } from '../../engine/shared/camera';
+import { supportsCameraOrientation, cameraOrbitLabel, validCameraOrbitStep, CAMERA_ORBIT_PROFILE, type SharedCameraOrientationEvent } from '../../engine/shared/camera';
+import { validCameraTiltForScene } from '../../engine/shared/camera-profile';
 import { activitiesForCampPoint, type CampActivityId } from '../../engine/shared/camp-activities';
 import { commandId } from '../../engine/client/uuid';
 import { writeUiPreferences } from '../../engine/client/ui-preferences';
+import { DEFAULT_GRID_STYLE, normalizeGridStyle, type GridStyle } from '../../engine/client/grid-style.js';
 import { WorldRenderer } from './world';
 import { SceneLoadRecovery } from '../../engine/client/scene-load-recovery';
+import { shouldReloadAfterServerReconnect, type RuntimeReset } from '../../engine/client/runtime-reload';
 import { conditionHelp } from '../../engine/client/condition-presentation';
-import { ConditionPanel } from './ui/conditions';
+import { ConditionNameIndicators, ConditionPanel, conditionStrip } from './ui/conditions';
 import { InventoryPanel } from './ui/inventory';
 import { radialActionGlyph } from '../../engine/client/radial-action-icons';
 import { jumpSummary } from '../../engine/shared/jumping';
 import { keyboardMovementAxes } from '../../engine/client/movement-input';
 import { CAMERA_DEFAULT_TILT } from '../../engine/client/camera-profile';
 import { cameraTouchAxis, cameraTiltFromTouch, adjustCameraTiltForTouch, type CameraTouchAxis } from '../../engine/client/camera-touch';
-import { combatActionDescription, combatTurnIndicators, compactCombatPrompt } from '../../engine/client/combat-presentation';
+import {cameraProfileForScene} from '../../engine/client/camera-profile';
+import { combatActionDescription, combatTurnIndicators, compactCombatPrompt, combatInteractionSurface } from '../../engine/client/combat-presentation';
+import { combatTimeline, combatWheelTurnKey } from '../../engine/client/combat-timeline';
+import {normalizeInitiativePosition,type InitiativePosition} from '../../engine/client/initiative-layout';
 import { radialPagination, radialRadiusLimit } from '../../engine/client/radial-pagination';
+import { radialIconLayout, radialArc } from '../../engine/client/radial-layout';
 import { loadCampaign } from './campaign';
+import { GameClockOverlay } from '../../engine/client/game-clock-overlay.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const newSessionToken = () => [...crypto.getRandomValues(new Uint8Array(24))].map(value => value.toString(16).padStart(2, '0')).join('');
@@ -32,6 +40,7 @@ const campaign = await loadCampaign();
 const characterStorageKey = `dnd-character:${campaign.campaignId}`;
 type PlayerDisplaySettings = {
   showGrid: boolean;
+  gridStyle: GridStyle;
   showMovementHints: boolean;
   showSceneNotice: boolean;
   sceneNoticeSeconds: number;
@@ -42,14 +51,15 @@ type PlayerDisplaySettings = {
   actionX: number;
   actionY: number;
   actionSize: number;
+  initiativePosition: InitiativePosition;
   identityMenuAlwaysOpen: boolean;
   identityMenuSeconds: number;
   sheetView: 'summary' | 'full';
 };
 const defaultPlayerDisplaySettings: PlayerDisplaySettings = {
-  showGrid: true, showMovementHints: true, showSceneNotice: true, sceneNoticeSeconds: 8,
+  showGrid: true, gridStyle: { ...DEFAULT_GRID_STYLE }, showMovementHints: true, showSceneNotice: true, sceneNoticeSeconds: 8,
   joystickOpacity: 0.72, joystickX: 0.05, joystickY: 0, joystickSize: 2,
-  actionX: 0.99, actionY: 0, actionSize: 2, identityMenuAlwaysOpen: false, identityMenuSeconds: 7, sheetView: 'summary'
+  actionX: 0.99, actionY: 0, actionSize: 2, initiativePosition:'right', identityMenuAlwaysOpen: false, identityMenuSeconds: 7, sheetView: 'summary'
 };
 type HudLayoutSettings = Pick<PlayerDisplaySettings, 'joystickX' | 'joystickY' | 'joystickSize' | 'actionX' | 'actionY' | 'actionSize'>;
 const hudSizeScales = [0.75, 0.875, 1, 1.25, 1.5] as const;
@@ -67,6 +77,7 @@ function readPlayerDisplaySettings(): PlayerDisplaySettings {
     if (alignControlsAtBottom) localStorage.setItem(hudBottomAlignmentKey, '1');
     return {
       showGrid: saved.showGrid !== false,
+      gridStyle: normalizeGridStyle(saved.gridStyle),
       showMovementHints: saved.showMovementHints !== false,
       showSceneNotice: saved.showSceneNotice !== false,
       sceneNoticeSeconds: Number.isFinite(Number(saved.sceneNoticeSeconds)) ? Math.min(25, Math.max(3, Math.round(Number(saved.sceneNoticeSeconds)))) : 8,
@@ -78,6 +89,7 @@ function readPlayerDisplaySettings(): PlayerDisplaySettings {
       actionY: alignControlsAtBottom ? 0 : Number.isFinite(Number(saved.actionY)) ? Math.min(1, Math.max(0, Number(saved.actionY))) : defaultPlayerDisplaySettings.actionY,
       actionSize: Number.isFinite(Number(saved.actionSize)) ? Math.min(4, Math.max(0, Math.round(Number(saved.actionSize)))) : defaultPlayerDisplaySettings.actionSize,
       identityMenuAlwaysOpen: saved.identityMenuAlwaysOpen === true,
+      initiativePosition: normalizeInitiativePosition(saved.initiativePosition),
       identityMenuSeconds: Number.isFinite(seconds) ? Math.min(30, Math.max(3, Math.round(seconds))) : defaultPlayerDisplaySettings.identityMenuSeconds,
       sheetView: saved.sheetView === 'full' ? 'full' : 'summary'
     };
@@ -162,6 +174,7 @@ function addCompactHudSettings() {
   controls.innerHTML = '<h3>Controles en pantalla</h3>' +
     '<label class="player-setting"><span><b>Transparencia del joystick</b><small>Ajusta cuánto se ve sobre el mapa: <span id="settingJoystickOpacityValue">72%</span>.</small></span><input id="settingJoystickOpacity" type="range" min="20" max="100" step="5"></label>' +
     '<button id="openHudLayoutEditor" class="hud-layout-launch" type="button">Cambiar configuración HUD</button>' +
+    '<label class="player-setting"><span><b>Barra de iniciativa</b><small>Margen de 1,5 cm respecto al borde elegido. Se guarda en este dispositivo.</small></span><select id="settingInitiativePosition" aria-label="Posición de la barra de iniciativa"><option value="right">Derecha · vertical</option><option value="top">Arriba · centrada</option><option value="left">Izquierda · vertical</option></select></label>' +
     '<label class="player-setting"><span><b>Menú siempre abierto</b><small>Deja visibles los accesos junto al nombre.</small></span><input id="settingIdentityMenuAlwaysOpen" type="checkbox"></label>' +
     '<label class="player-setting"><span><b>Tiempo del menú</b><small id="settingIdentityMenuSecondsValue">7 segundos</small></span><input id="settingIdentityMenuSeconds" type="range" min="3" max="30" step="1"></label>';
   $('cameraSettings').before(controls);
@@ -407,9 +420,14 @@ const socketAuth = () => ({ role: 'player', sessionToken, protocolVersion: PROTO
 // Register every listener before connecting. On slow phones this prevents the
 // initial chooser packet from arriving before its renderer is ready.
 const socket = io({ autoConnect: false, auth: socketAuth() });
-const world = new WorldRenderer($('world'), campaign, { showStairMarker: false, showGrid: playerDisplaySettings.showGrid, showReachable: playerDisplaySettings.showMovementHints, persistCameraPreferences: true, cameraPreferenceNamespace: 'player', followSharedCameraOrientation: true });
+const world = new WorldRenderer($('world'), campaign, { cameraRole: 'player', showStairMarker: false, showGrid: playerDisplaySettings.showGrid, showReachable: playerDisplaySettings.showMovementHints, persistCameraPreferences: true, cameraPreferenceNamespace: 'player', followSharedCameraOrientation: true });
+const gameClockOverlay = new GameClockOverlay($('world'), 'right');
 let privateState: PlayerPrivate | null = null;
 const playerConditionsPanel = new ConditionPanel();
+const playerNameIndicators = new ConditionNameIndicators(), sheetNameIndicators = new ConditionNameIndicators();
+const playerIdentity = document.createElement('div'); playerIdentity.className = 'condition-identity';
+$('name').before(playerIdentity); playerIdentity.append($('name'), playerNameIndicators.root);
+$('sheetName').after(sheetNameIndicators.root);
 setInterval(() => { if (($('characterSheet') as HTMLDialogElement).open) playerConditionsPanel.updateTimers(); }, 1000);
 let lastSnapshot: WorldSnapshot | null = null;
 let readyEpoch = -1;
@@ -436,6 +454,8 @@ const pendingCombatCommands = new Set<string>();
 let armedActionId: string | null = null;
 let armedBasicAction: BasicCombatAction | null = null;
 let actionsMenuOpen = false, combatWasActive = false;
+let autoOpenedCombatTurn: string | null = null;
+let lastCombatOwnTurn = false;
 let actionRadialPage = 0;
 let actionRadialCategory: string | null = null;
 let armedExplorationActionId: string | null = null;
@@ -473,18 +493,30 @@ function syncPlayerSettingsDialog() {
   noticeDuration.value = String(playerDisplaySettings.sceneNoticeSeconds);
   $('settingSceneNoticeSecondsValue').textContent = `${playerDisplaySettings.sceneNoticeSeconds} segundos`;
   ($('settingGrid') as HTMLInputElement).checked = playerDisplaySettings.showGrid;
+  ($('settingGridMode') as HTMLSelectElement).value = playerDisplaySettings.gridStyle.mode;
+  ($('settingGridColor') as HTMLInputElement).value = playerDisplaySettings.gridStyle.color;
+  ($('settingGridColor') as HTMLInputElement).disabled = playerDisplaySettings.gridStyle.mode === 'contrast';
+  ($('settingGridOpacity') as HTMLInputElement).value = String(Math.round(playerDisplaySettings.gridStyle.opacity * 100));
+  $('settingGridOpacityValue').textContent = `${Math.round(playerDisplaySettings.gridStyle.opacity * 100)}%`;
+  ($('settingGridThickness') as HTMLInputElement).value = String(playerDisplaySettings.gridStyle.thickness);
+  $('settingGridThicknessValue').textContent = playerDisplaySettings.gridStyle.thickness === 1 ? 'Fina' : playerDisplaySettings.gridStyle.thickness === 2 ? 'Media' : 'Gruesa';
   ($('settingMovementHints') as HTMLInputElement).checked = playerDisplaySettings.showMovementHints;
   ($('settingSceneNotice') as HTMLInputElement).checked = playerDisplaySettings.showSceneNotice;
   ($('settingJoystickOpacity') as HTMLInputElement).value = String(Math.round(playerDisplaySettings.joystickOpacity * 100));
   $('settingJoystickOpacityValue').textContent = `${Math.round(playerDisplaySettings.joystickOpacity * 100)}%`;
   ($('settingIdentityMenuAlwaysOpen') as HTMLInputElement).checked = playerDisplaySettings.identityMenuAlwaysOpen;
+  ($('settingInitiativePosition') as HTMLSelectElement).value=playerDisplaySettings.initiativePosition;
   ($('settingIdentityMenuSeconds') as HTMLInputElement).value = String(playerDisplaySettings.identityMenuSeconds);
   ($('settingIdentityMenuSeconds') as HTMLInputElement).disabled = playerDisplaySettings.identityMenuAlwaysOpen;
   $('settingIdentityMenuSecondsValue').textContent = `${playerDisplaySettings.identityMenuSeconds} ${playerDisplaySettings.identityMenuSeconds === 1 ? 'segundo' : 'segundos'}`;
   $('cameraSettings').hidden = !supportsCameraOrbit();
 }
 function applyPlayerDisplaySettings() {
+  $('combatInitiative').dataset.position=playerDisplaySettings.initiativePosition;
+  document.body.dataset.initiativePosition=playerDisplaySettings.initiativePosition;
+  world.setCombatInitiativePosition(playerDisplaySettings.initiativePosition);
   world.setGridVisible(playerDisplaySettings.showGrid);
+  world.setGridStyle(playerDisplaySettings.gridStyle);
   world.setReachableVisible(playerDisplaySettings.showMovementHints);
   document.body.classList.toggle('player-hide-scene-notice', !playerDisplaySettings.showSceneNotice);
   applyHudControlLayout();
@@ -515,6 +547,7 @@ socket.on('connect', () => {
   if (lastSnapshot) void prepareSnapshot(lastSnapshot);
 });
 socket.on('disconnect', reason => {
+  document.getElementById('sceneCheckPanel')?.remove();
   sceneLoadRecovery.reset();
   $('connection').textContent = recoveryRequired ? 'La partida requiere recuperación. Avisa al DM y recarga cuando la restaure.' : recoveringSession ? 'Restableciendo sesión…' : reason === 'io server disconnect' && !privateState?.characterId
     ? 'Control finalizado en esta pestaña'
@@ -524,10 +557,11 @@ socket.on('disconnect', reason => {
 });
 socket.on('combat:animation', (event: { runtimeEpoch: string; sceneEpoch?: number; bodyState?: string; attackerId: string; targetId: string; type: 'melee' | 'arrow' | 'thrownWeapon' | 'radiantArrow' | 'vine' | 'fireProjectile' | 'magicalProjectile'; hit: boolean; frozen: boolean; sneakAttack?: boolean }) => { if (event.runtimeEpoch === runtimeEpoch && (event.sceneEpoch === undefined || event.sceneEpoch === lastSnapshot?.sceneEpoch)) world.playRangedAttack(event.attackerId, event.targetId, event.type, event.hit, event.frozen, event.sneakAttack, event.bodyState); });
 socket.on('scene:animation', (event: { runtimeEpoch: string; sceneEpoch: number; entityId: string; state: string; durationMs: number }) => { if (event.runtimeEpoch === runtimeEpoch && event.sceneEpoch === lastSnapshot?.sceneEpoch) world.playTokenAnimation(event.entityId, event.state, event.durationMs); });
+socket.on('scene:reward',(event:{runtimeEpoch:string;sceneEpoch:number;entityId:string;effect:string})=>{if(event.runtimeEpoch===runtimeEpoch&&event.sceneEpoch===lastSnapshot?.sceneEpoch&&event.effect==='inspiration')world.playRewardEffect(event.entityId);});
 socket.on('scene:area-effect', (event: { runtimeEpoch: string; sceneEpoch: number; cell: { col: number; row: number }; type: 'fog'; radiusMeters: number; durationMs: number }) => { if (event.runtimeEpoch === runtimeEpoch && event.sceneEpoch === lastSnapshot?.sceneEpoch) world.playAreaEffect(event.cell, event.type, event.radiusMeters, event.durationMs); });
 socket.on('mirror:transformation', (event: { runtimeEpoch: string; sceneEpoch: number; propId: string; sourceId: string; reflectionId: string; frames: string[]; durationMs: number }) => { if (event.runtimeEpoch === runtimeEpoch && event.sceneEpoch === lastSnapshot?.sceneEpoch) world.playMirrorTransformation(event.propId, event.sourceId, event.reflectionId, event.frames, event.durationMs); });
 socket.on('auth:error', (error: { code?: string }) => {
-  if (error.code === 'PROTOCOL_MISMATCH') { toast('La aplicación se ha actualizado. Recarga esta página.'); return; }
+  if (error.code === 'PROTOCOL_MISMATCH') { location.reload(); return; }
   if (error.code === 'RECOVERY_REQUIRED') {
     recoveryRequired = true;
     $('connection').textContent = 'La partida requiere recuperación. Avisa al DM y recarga cuando la restaure.';
@@ -545,7 +579,10 @@ socket.on('auth:error', (error: { code?: string }) => {
   toast('Sesión restablecida. Reconectando…');
   window.setTimeout(() => socket.connect(), 75);
 });
-socket.on('runtime:reset', (event: { runtimeEpoch: string; reason?: string }) => {
+socket.on('runtime:reset', (event: RuntimeReset) => {
+  if (shouldReloadAfterServerReconnect(runtimeEpoch, event)) { location.reload(); return; }
+  document.getElementById('sceneCheckPanel')?.remove();
+  gameClockOverlay.reset();
   sceneLoadRecovery.reset();
   stop(); runtimeEpoch = event.runtimeEpoch; readyEpoch = -1; seq = 0; lastSnapshot = null; privateState = null; backpack.reset();
   resumedRuntimeEpoch = null; selectedTargetId = null; renderedTargetMenuKey = ''; pendingCombatNotices.clear(); pendingCombatCommands.clear(); armedActionId = null; armedBasicAction = null; actionsMenuOpen = false; actionRadialPage = 0; combatWasActive = false; combatBarMode = null; armedExplorationActionId = null; armedExplorationAttackId = null; armedExplorationBasicActionId = null; openCombatCategory = null; openExplorationCategory = null;
@@ -588,6 +625,7 @@ socket.on('world:snapshot', (snapshot: WorldSnapshot) => {
     readyEpoch = -1;
   }
   lastSnapshot = snapshot;
+  gameClockOverlay.update(snapshot);
   void prepareSnapshot(snapshot);
   const scene = campaign.scenes.find(scene => scene.id === snapshot.sceneId);
   $('sceneNotice').textContent = privateState?.rowboat?.aboard
@@ -596,7 +634,7 @@ socket.on('world:snapshot', (snapshot: WorldSnapshot) => {
     : scene ? `${scene.title} · 1 casilla = 1,5 m${scene.movementEnabled ? '' : ' · espera la señal del DM'}` : 'Escena no disponible';
   refreshSceneNotice();
   document.body.classList.toggle('combat-active', snapshot.combat.active);
-  if (snapshot.combat.active) { if (!combatWasActive) { actionsMenuOpen = false; combatBarMode = null; } armedExplorationActionId = null; armedExplorationAttackId = null; armedExplorationBasicActionId = null; }
+  if (snapshot.combat.active) { if (!combatWasActive) { autoOpenedCombatTurn = null; actionsMenuOpen = false; combatBarMode = null; } armedExplorationActionId = null; armedExplorationAttackId = null; armedExplorationBasicActionId = null; }
   combatWasActive = snapshot.combat.active;
   const combat = $('combatNotice');
   combat.hidden = !snapshot.combat.active;
@@ -610,11 +648,12 @@ socket.on('world:snapshot', (snapshot: WorldSnapshot) => {
   renderExplorationControls();
   if (combatEndedNotice) toast(combatEndedNotice);
 });
-socket.on('camera:orientation', (event: { runtimeEpoch: string; sceneEpoch: number; sceneId: string; step: number | null }) => {
+socket.on('camera:orientation', (event: SharedCameraOrientationEvent) => {
   if (event.runtimeEpoch !== runtimeEpoch || event.sceneEpoch < (lastSnapshot?.sceneEpoch ?? 0)) return;
   if (event.step === null) { world.clearSharedCameraOrientations(); return; }
-  if (!Number.isInteger(event.step) || event.step < 0 || event.step > 7) return;
-  world.setSharedCameraOrientation(event.sceneId, event.step);
+  if (event.profile !== CAMERA_ORBIT_PROFILE || !validCameraOrbitStep(event.step)) return;
+  if (event.tilt !== undefined && !validCameraTiltForScene(event.sceneId,event.tilt)) return;
+  world.setSharedCameraOrientation(event.sceneId, event.step, event.tilt);
   updatePlayerCameraControls(event.sceneId);
 });
 socket.on('player:private', (next: PlayerPrivate) => {
@@ -638,8 +677,10 @@ socket.on('player:private', (next: PlayerPrivate) => {
   initializeJoystick();
   world.setLocalPlayer(next.characterId);
   $('name').textContent = next.label ?? 'Aventurero';
+  playerNameIndicators.update(next);
   $('hp').textContent = `PG ${next.hp}/${next.maxHp}`;
   backpack.update(next);
+  renderSceneCheck(next);
   renderSheet(next);
   renderCombatControls();
   renderProximityButton();
@@ -663,6 +704,9 @@ socket.on('command:result', (result: CommandResult) => {
   if (result.ok) { renderCombatControls(); if (confirmation) toast(confirmation);
     if (result.code === 'ROWBOAT_BOARDED') toast('A bordo. Quien lleva los remos puede navegar con WASD o el mando.');
     if (result.code === 'ROWBOAT_LEFT') toast('Has bajado de la barca y puedes nadar.');
+    if(result.code==='CHECK_SUBMITTED')toast('Tirada enviada al DM para confirmar.');
+    if(result.code==='ANIMAL_FLED')toast('El caballo huye; no pelea.');
+    if(result.code==='INSPIRATION_SPENT')toast('Tira dos d20 físicos y usa el mayor: has gastado tu Inspiración.');
     return; }
   if (!result.ok) {
     const message: Record<string, string> = {
@@ -671,6 +715,8 @@ socket.on('command:result', (result: CommandResult) => {
       CAMP_INTERACTION_OUT_OF_REACH: 'Acércate al objeto y detente antes de utilizarlo.', CAMP_INTERACTION_NOT_YOURS: 'Este equipo pertenece a otro personaje.',
       CAMP_ACTIVITY_UNAVAILABLE: 'Esa actividad no está disponible para este objeto.', CANNOT_ACT: 'Tu personaje no puede actuar en su estado actual.',
       ROLL_PENDING: 'Termina la tirada pendiente antes de continuar.', PROMPT_STALE: 'Esta tirada ya no está vigente.',
+      JUMP_NEEDS_RUN_UP:'Ese destino requiere carrerilla automática; vuelve a elegir la casilla.',JUMP_RUN_UP_BLOCKED:'No hay 3 m seguros detrás ni en diagonal trasera para preparar la carrerilla.',JUMP_IN_PROGRESS:'Ya estás preparando un salto. Muévete con el mando o teclado para cancelar.',JUMP_BLOCKED:'El salto está bloqueado o no hay aterrizaje libre.',STRENGTH_REQUIRED:'Registra tu FUE en la ficha para calcular el salto.',WINDOW_CLOSED:'Primero abre o rompe la ventana.',WINDOW_TOO_HIGH:'El alféizar está demasiado alto para esta maniobra.',BLESSING_ACTIVE:'Ya tienes Inspiración activa de esta oración.',
+      JUMP_TOO_HIGH:'Ese destino está por encima de tu altura de salto.',FALL_ADJUDICATION_REQUIRED:'Ese salto termina en una caída: debe resolverla el DM.',
       LINE_OF_EFFECT_BLOCKED: 'Una pared o puerta cerrada bloquea el ataque.', INVENTORY_DEPLETED: 'No queda munición o una daga disponible para lanzar.', RECHARGE_REQUIRED: 'Esta acción todavía necesita recargarse.',
       PROMPT_STAGE_MISMATCH: 'Esta respuesta pertenece a otro paso de la acción.', WRONG_ACTOR: 'Esta tirada corresponde a otro personaje.',
       INVALID_DAMAGE_DICE: 'El resultado no es posible para esos dados.', INVALID_ROLL: 'El resultado introducido no es válido.', NO_LANDING: 'No hay una casilla libre junto a la barca para bajar.', JUMP_OUT_OF_RANGE: 'Ese destino supera tu salto largo máximo con carrera según tu FUE.',
@@ -755,9 +801,11 @@ function renderActionToggle() {
   button.style.transform = active && actionsMenuOpen ? 'translate(-50%, -18px)' : 'translateX(-50%)';
   if (!active) { button.classList.remove('has-context'); button.setAttribute('aria-expanded', 'false'); return; }
   const selected = armedExplorationActionId ? privateState?.explorationActions.find(action => action.id === armedExplorationActionId)?.label : armedExplorationAttackId ? privateState?.explorationAttacks.find(action => action.id === armedExplorationAttackId)?.label : armedExplorationBasicActionId ? explorationBasicActionCatalogue[armedExplorationBasicActionId].label : undefined;
-  const context = explorationActive ? contextualInteraction() : null;
-  button.classList.toggle('has-context', Boolean(context));
-  const actionLabel = [selected ? `seleccionada: ${compactActionLabel(selected)}` : '', context ? `interacción cercana: ${context.label}` : ''].filter(Boolean).join('; ');
+  const contexts = explorationActive ? contextualInteractions() : [];
+  const context = contexts[0];
+  button.classList.toggle('has-context', contexts.length > 0);
+  const contextLabel = contexts.length > 1 ? `${contexts.length} interacciones cercanas; próxima: ${context?.label}` : context ? `interacción cercana: ${context.label}` : '';
+  const actionLabel = [selected ? `seleccionada: ${compactActionLabel(selected)}` : '', contextLabel].filter(Boolean).join('; ');
   const accessibleLabel = actionLabel ? `¿Qué puedo hacer? ${actionLabel}` : '¿Qué puedo hacer?';
   button.setAttribute('aria-label', actionsMenuOpen ? `Cerrar ${accessibleLabel.toLowerCase()}` : accessibleLabel);
   button.title = actionsMenuOpen ? 'Cerrar rueda de acciones' : accessibleLabel;
@@ -811,12 +859,12 @@ function renderCombatFrame() {
   const confirmedOrder = lastSnapshot.combat.order?.map(entry => lastSnapshot!.combat.participants.find(participant => participant.id === entry.id)).filter((participant): participant is NonNullable<typeof participant> => Boolean(participant)) ?? [];
   const participants = confirmedOrder.length ? confirmedOrder : [...lastSnapshot.combat.participants].sort((left, right) => right.initiative - left.initiative || left.label.localeCompare(right.label, 'es'));
   const selfEntity = lastSnapshot.entities.find(entity => entity.id === privateState!.characterId);
-  const initiativeTooltip = (participant: typeof participants[number]) => {
+  const initiativeTooltip = (participant: typeof participants[number], index: number) => {
     const tooltip = document.createElement('aside'), eyebrow = document.createElement('small'), title = document.createElement('strong'), facts = document.createElement('ul'), note = document.createElement('p');
     const entity = lastSnapshot!.entities.find(item => item.id === participant.id);
     const isSelf = participant.id === privateState!.characterId;
     const distance = selfEntity && entity && !isSelf ? Math.max(Math.abs(selfEntity.cell.col - entity.cell.col), Math.abs(selfEntity.cell.row - entity.cell.row)) * 1.5 : null;
-    tooltip.className = 'initiative-tooltip'; tooltip.id = `initiative-info-${participant.id}`; tooltip.setAttribute('role', 'tooltip'); eyebrow.textContent = isSelf ? 'TU PERSONAJE' : participant.controller === 'player' ? 'ALIADO' : 'OPONENTE'; title.textContent = isSelf ? privateState!.label ?? participant.label : participant.label;
+    tooltip.className = 'initiative-tooltip'; tooltip.id = `initiative-info-${participant.id}-${index}`; tooltip.setAttribute('role', 'tooltip'); eyebrow.textContent = isSelf ? 'TU PERSONAJE' : participant.controller === 'player' ? 'ALIADO' : 'OPONENTE'; title.textContent = isSelf ? privateState!.label ?? participant.label : participant.label;
     const addFact = (text: string) => { const item = document.createElement('li'); item.textContent = text; facts.append(item); };
     if (isSelf) addFact(`CA ${privateState!.sheet?.armorClass ?? participant.armorClass}`);
     if (isSelf) addFact(`PG ${privateState!.hp}/${privateState!.maxHp}`);
@@ -825,18 +873,23 @@ function renderCombatFrame() {
     note.textContent = isSelf ? 'Datos de tu ficha.' : 'Sólo muestra información conocida en combate; no revela PG, velocidad, ataques ni rasgos ocultos.';
     tooltip.append(eyebrow, title, facts, note); return tooltip;
   };
-  for (const participant of participants) {
+  const predicted = combat.initiative.pending ? participants.slice(0, 7).map((participant, index) => ({ participant, index, round: 0, horizon: 'pending' }))
+    : combatTimeline(lastSnapshot.combat.order ?? participants, participants, currentId, lastSnapshot.combat.round);
+  roster.setAttribute('aria-label', combat.initiative.pending ? 'Participantes: esperando iniciativas' : 'Ahora, tres siguientes y previsión posterior; puede cambiar');
+  for (const turn of predicted) {
+    const { participant } = turn;
     const row = document.createElement('button'), position = document.createElement('span'), portrait = document.createElement('span'), copy = document.createElement('span'), name = document.createElement('b'), detail = document.createElement('small');
     row.type = 'button';
-    row.className = 'initiative-row'; row.classList.toggle('current', participant.id === currentId); row.classList.toggle('self', participant.id === privateState.characterId);
+    row.className = `initiative-row timeline-${turn.horizon}`; row.classList.toggle('current', turn.horizon === 'current'); row.classList.toggle('self', participant.id === privateState.characterId);
     row.setAttribute('aria-label', `Ver información conocida de ${participant.id === privateState.characterId ? 'tu personaje' : participant.label}`);
-    position.textContent = combat.initiative.pending ? (participant.initiativeSubmitted ? '✓' : '…') : String(participants.indexOf(participant) + 1);
+    position.textContent = combat.initiative.pending ? (participant.initiativeSubmitted ? '✓' : '…') : turn.index === 0 ? '▶' : `+${turn.index}`;
     portrait.className = 'initiative-portrait';
     const entity = lastSnapshot.entities.find(item => item.id === participant.id), token = entity ? campaign.tokens[entity.tokenId] : undefined, art = token?.portraitUrl ?? token?.url;
-    if (art) { const image = document.createElement('img'); image.src = art; image.alt = ''; portrait.append(image); } else portrait.textContent = participant.label.slice(0, 1).toUpperCase();
-    name.textContent = participant.id === privateState.characterId ? 'Tú' : participant.label;
-    detail.textContent = combat.initiative.pending ? (participant.initiativeSubmitted ? 'lista' : 'por tirar') : participant.id === currentId ? 'en turno' : participant.controller === 'player' ? 'aliado' : 'oponente';
-    copy.append(name, detail); const tooltip = initiativeTooltip(participant); row.append(position, portrait, copy, tooltip); enableLongPressInfo(row, tooltip); roster.append(row);
+    if (art) { const image = document.createElement('img'); image.src = art; image.alt = ''; if(!token?.portraitUrl)image.className='full-token-portrait'; portrait.append(image); } else portrait.textContent = participant.label.slice(0, 1).toUpperCase();
+    name.textContent = participant.id === privateState.characterId ? privateState.label ?? participant.label : participant.label;
+    detail.textContent = combat.initiative.pending ? (participant.initiativeSubmitted ? 'lista' : 'por tirar') : turn.index === 0 ? 'Ahora' : `R${turn.round}`;
+    const states = conditionStrip(participant); states.classList.add('initiative-state-strip');
+    copy.append(name, states, detail); const tooltip = initiativeTooltip(participant, turn.index); row.append(position, portrait, copy, tooltip); enableLongPressInfo(row, tooltip); roster.append(row);
     row.onclick = () => {
       if (armedActionId || armedBasicAction) { selectCombatTarget(participant.id); return; }
       const expanded = !tooltip.classList.contains('tap-visible');
@@ -892,7 +945,8 @@ function renderSelectedAction() {
   const action = armedActionId ? combat?.attacks.find(item => item.id === armedActionId) : armedExplorationActionId ? privateState?.explorationActions.find(item => item.id === armedExplorationActionId) : armedExplorationAttackId ? privateState?.explorationAttacks.find(item => item.id === armedExplorationAttackId) : undefined;
   const label = action?.label ?? (armedBasicAction ? basicActionLabels[armedBasicAction] : armedExplorationBasicActionId ? explorationBasicActionCatalogue[armedExplorationBasicActionId].label : undefined);
   const pending = combat?.pendingAction;
-  tray.hidden = Boolean(combat?.prompt) || !label && !pending; tray.replaceChildren(); if (tray.hidden) return;
+  tray.hidden = combatInteractionSurface({initiativePending:Boolean(combat?.initiative.pending),hasPrompt:Boolean(combat?.prompt),hasSelection:Boolean(label),hasPendingAction:Boolean(pending)}) !== 'selection';
+  tray.replaceChildren(); if (tray.hidden) return;
   const text = document.createElement('span'), cancel = document.createElement('button'), heading = document.createElement('strong');
   heading.textContent = pending ? `${compactActionLabel(pending.label)} · ${pending.cancellable ? 'sin tirada confirmada' : 'resolución en curso'}` : `${compactActionLabel(label!)} · elige objetivo en el mapa`;
   text.append(heading);
@@ -915,6 +969,15 @@ function cancelPendingCombatSelection() {
   } else cancelActionSelection();
 }
 
+function combatPromptCancelButton(){
+  const pending=privateState?.combat?.pendingAction;
+  if(!pending?.cancellable)return null;
+  const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Cancelar';
+  cancel.className='combat-prompt-cancel';cancel.disabled=Boolean(pendingCombatCommands.size);
+  cancel.setAttribute('aria-label','Cancelar acción');cancel.title='Cancela la acción pendiente, no el combate ni la iniciativa registrada.';
+  cancel.onclick=cancelPendingCombatSelection;return cancel;
+}
+
 function showCombatFlee() {
   const dialog = $('combatFleeDialog') as HTMLDialogElement, combat = privateState?.combat;
   if (!combat || !lastSnapshot) return;
@@ -929,6 +992,16 @@ function showCombatFlee() {
 
 function renderCombatControls() {
   const combat = privateState?.combat, active = Boolean(combat && lastSnapshot?.combat.active && privateState);
+  const myTurn = Boolean(active && combat?.isTurn && lastSnapshot?.combat.currentId === privateState?.characterId);
+  if (lastCombatOwnTurn && !myTurn) { actionsMenuOpen = false; actionRadialCategory = null; renderedTargetMenuKey = ''; }
+  lastCombatOwnTurn = myTurn;
+  const turnKey = combatWheelTurnKey({ active, pending: Boolean(combat?.initiative.pending || !lastSnapshot?.combat.round), isTurn: myTurn,
+    blocked: Boolean(combat?.prompt || combat?.pendingAction || pendingCombatCommands.size || combat?.conditions.some(condition => condition === 'inconsciente' || condition === 'paralizada')),
+    runtimeEpoch: runtimeEpoch ?? '', sceneEpoch: lastSnapshot?.sceneEpoch ?? 0, round: lastSnapshot?.combat.round ?? 0, actorId: privateState?.characterId ?? null });
+  if (turnKey && turnKey !== autoOpenedCombatTurn) {
+    autoOpenedCombatTurn = turnKey; actionsMenuOpen = true; actionRadialPage = 0; actionRadialCategory = 'Acciones disponibles'; renderedTargetMenuKey = '';
+  }
+  if (!active) autoOpenedCombatTurn = null;
   $('endTurn').hidden = !Boolean(active && combat!.isTurn && !combat!.initiative.pending);
   ($('endTurn') as HTMLButtonElement).disabled = Boolean(combat?.prompt || combat?.pendingAction || pendingCombatCommands.size);
   document.body.classList.toggle('combat-move-mode', Boolean(active && combat!.isTurn && !combat!.conditions.some(condition => condition === 'paralizada' || condition === 'inconsciente') && !combat!.initiative.pending && !combat!.prompt && !combat!.pendingAction && !actionsMenuOpen && !armedActionId && !armedBasicAction));
@@ -1064,24 +1137,28 @@ function renderTargetMenu() {
   const prompt = combat.prompt;
   const self = lastSnapshot?.entities.find(entity => entity.id === privateState!.characterId);
   const key = combat.initiative.pending
-    ? `initiative:${combat.initiative.submitted}:${combat.initiative.total}:${combat.initiative.modifier}:${pendingCombatCommands.size}`
+    ? `initiative:${combat.initiative.submitted}:${combat.initiative.total}:${combat.initiative.modifier}:${JSON.stringify(combat.pendingAction)}:${pendingCombatCommands.size}`
     : prompt
-    ? `prompt:${prompt.id}:${prompt.stage}:${prompt.minimum}:${prompt.maximum}`
+    ? `prompt:${prompt.id}:${prompt.stage}:${prompt.minimum}:${prompt.maximum}:${combat.pendingAction?.cancellable}:${pendingCombatCommands.size}`
     : `target:${target?.id ?? '-'}:${target?.cell.col ?? '-'}:${target?.cell.row ?? '-'}:${self?.cell.col ?? '-'}:${self?.cell.row ?? '-'}:${combat.actionUsed}:${combat.bonusActionUsed}:${combat.reactionUsed}:${combat.ready}:${armedActionId ?? '-'}:${armedBasicAction ?? '-'}:${pendingCombatCommands.size}:${JSON.stringify(combat.resources)}:${JSON.stringify(combat.sequence)}:${JSON.stringify(combat.recharge)}`;
   if (key === renderedTargetMenuKey) { renderCombatRadial(box); return; }
   renderedTargetMenuKey = key; box.replaceChildren();
   if (combat.initiative.pending) {
-    box.append(actionPanelHeader('COMBATE', 'Iniciativa', 'Dados físicos'));
+    $('actionRadial').hidden=true;
+    const header=actionPanelHeader('COMBATE','Iniciativa','Dados físicos');
+    header.querySelector('.action-panel-minimize')?.remove();box.append(header);
+    const cancel=combatPromptCancelButton();
     const note = document.createElement('p'); note.className = 'combat-prompt-note';
     if (combat.initiative.submitted) {
       note.textContent = `Tu iniciativa (${combat.initiative.total}) está registrada. Esperando a los demás y la confirmación del DM.`;
-      box.append(note); return;
+      box.append(note);if(cancel)box.append(cancel);return;
     }
     note.textContent = `1d20 ${combat.initiative.modifier >= 0 ? '+' : ''}${combat.initiative.modifier} · introduce el total.`;
     const input = document.createElement('input'), submit = document.createElement('button'), controls = document.createElement('div');
     input.type = 'number'; input.min = '-20'; input.max = '40'; input.placeholder = 'Total de iniciativa'; submit.className = 'primary'; submit.textContent = 'Registrar iniciativa';
     input.inputMode = 'numeric'; input.setAttribute('aria-label', 'Total de iniciativa');
     input.className = 'combat-prompt-input'; submit.classList.add('combat-prompt-submit'); controls.className = 'combat-prompt-controls'; controls.append(input, submit);
+    if(cancel)controls.append(cancel);
     const send = () => {
       if (!input.value.trim()) return toast('Introduce el resultado de los dados.'); const total = Number(input.value);
       if (!Number.isInteger(total) || total < -20 || total > 40) return toast('Introduce un total entero entre -20 y 40.');
@@ -1096,10 +1173,6 @@ function renderTargetMenu() {
     const compact = compactCombatPrompt(prompt);
     const header = actionPanelHeader('COMBATE', compact.label, 'Dados físicos');
     header.querySelector('.action-panel-minimize')?.remove();
-    if (combat.pendingAction?.cancellable) {
-      const cancel = document.createElement('button'); cancel.type = 'button'; cancel.textContent = 'Cancelar ataque';
-      cancel.className = 'combat-prompt-submit'; cancel.disabled = Boolean(pendingCombatCommands.size); cancel.onclick = cancelPendingCombatSelection; header.append(cancel);
-    }
     box.append(header);
     if (prompt.stage === 'reaction') {
       const title = document.createElement('b'), note = document.createElement('p'), buttons = document.createElement('div'), accept = document.createElement('button'), decline = document.createElement('button');
@@ -1110,6 +1183,7 @@ function renderTargetMenu() {
     const title = document.createElement('b'), note = document.createElement('p'), input = document.createElement('input'), submit = document.createElement('button'), controls = document.createElement('div');
     title.textContent = compact.title; note.textContent = compact.instruction; input.type = 'number'; input.inputMode = 'numeric'; input.setAttribute('aria-label', compact.instruction); input.min = String(prompt.minimum ?? -30); input.max = String(prompt.maximum ?? 200); input.placeholder = compact.placeholder; submit.className = 'primary'; submit.textContent = 'Confirmar';
     title.className = 'combat-prompt-title'; note.className = 'combat-prompt-note'; input.className = 'combat-prompt-input'; submit.classList.add('combat-prompt-submit'); controls.className = 'combat-prompt-controls'; controls.append(input, submit);
+    const cancel=combatPromptCancelButton();if(cancel)controls.append(cancel);
     const send = () => {
       const raw = input.value.trim(); if (!raw) return toast('Introduce el resultado de los dados.');
       const value = Number(raw), minimum = prompt.minimum ?? Number.MIN_SAFE_INTEGER, maximum = prompt.maximum ?? Number.MAX_SAFE_INTEGER;
@@ -1260,22 +1334,6 @@ function radialActionLabel(label: string) {
   return compact ? compact.charAt(0).toLocaleUpperCase('es') + compact.slice(1) : 'Acción';
 }
 
-function radialArc(anchorX: number, anchorY: number, width: number, height: number) {
-  const left = anchorX < width * 0.28, right = anchorX > width * 0.72;
-  const top = anchorY < height * 0.28, bottom = anchorY > height * 0.72;
-  if (left && top) return { kind: 'quarter' as const, start: 0, end: 90 };
-  if (right && top) return { kind: 'quarter' as const, start: 90, end: 180 };
-  if (left && bottom) return { kind: 'quarter' as const, start: 270, end: 360 };
-  if (right && bottom) return { kind: 'quarter' as const, start: 180, end: 270 };
-  if (left) return { kind: 'half' as const, start: -90, end: 90 };
-  if (right) return { kind: 'half' as const, start: 90, end: 270 };
-  if (bottom) return { kind: 'half' as const, start: 180, end: 360 };
-  if (top) return { kind: 'half' as const, start: 0, end: 180 };
-  return anchorY > height / 2
-    ? { kind: 'half' as const, start: 180, end: 360 }
-    : { kind: 'half' as const, start: 0, end: 180 };
-}
-
 function actionRadialSourceLabel(source: HTMLButtonElement) {
   return source.querySelector('.contextual-action-label, strong, b')?.textContent?.trim()
     || source.textContent?.trim().replace(/^[^\p{L}\p{N}]+/u, '').replace(/[›+]+$/u, '').trim()
@@ -1289,8 +1347,9 @@ function renderActionRadial(sourceBox: HTMLElement) {
   const categoryFor = (button: HTMLButtonElement) => button.closest('.action-category')?.querySelector('summary')?.textContent?.split(' · ')[0] ?? 'Cerca de ti';
   const refresh = () => inCombat ? renderCombatRadial(sourceBox) : renderExplorationControls();
   const categories = [...new Set(leafSources.map(categoryFor))];
-  if (actionRadialCategory && !categories.includes(actionRadialCategory)) actionRadialCategory = null;
-  const sources = actionRadialCategory ? leafSources.filter(source => categoryFor(source) === actionRadialCategory) : categories.map(category => {
+  const available = inCombat && actionRadialCategory === 'Acciones disponibles';
+  if (actionRadialCategory && !available && !categories.includes(actionRadialCategory)) actionRadialCategory = null;
+  const sources = available ? leafSources.filter(source => !source.disabled) : actionRadialCategory ? leafSources.filter(source => categoryFor(source) === actionRadialCategory) : categories.map(category => {
     const button = document.createElement('button'), count = leafSources.filter(source => categoryFor(source) === category);
     button.textContent = category; button.title = `${category}: ${count.length} opciones. Pulsa para abrir.`; button.disabled = count.every(source => source.disabled);
     button.onclick = () => { actionsMenuOpen = true; actionRadialCategory = category; actionRadialPage = 0; refresh(); };
@@ -1326,7 +1385,9 @@ function renderActionRadial(sourceBox: HTMLElement) {
     const safeBottom = height - Math.max(8, safeAreaInsets().bottom + 8);
     return {
       x: Math.min(width - marginX - paginationWidth / 2, Math.max(marginX + paginationWidth / 2, origin.x)),
-      y: Math.min(safeBottom - paginationHeight / 2, origin.y + anchor.height / 2 + paginationGap + paginationHeight / 2)
+      y: origin.y + anchor.height / 2 + paginationGap + paginationHeight <= safeBottom
+        ? origin.y + anchor.height / 2 + paginationGap + paginationHeight / 2
+        : Math.max(marginY + paginationHeight/2,origin.y-100)
     };
   };
   type Box = { left: number; top: number; right: number; bottom: number };
@@ -1381,12 +1442,15 @@ function renderActionRadial(sourceBox: HTMLElement) {
       if (layout.fits) return layout;
       if (score < bestScore) { best = layout; bestScore = score; }
     }
-    return best;
+    if (best?.fits) return best;
+    const iconLayout = radialIconLayout(origin, arc, count, nodeSize,
+      {left:marginX,right:width-marginX,top:marginY,bottom:safeBottom},
+      [rectAt(origin.x,origin.y,anchor.width+10,anchor.height+10), ...(backBox?[backBox]:[]), ...(pageBox?[pageBox]:[])]);
+    return iconLayout ? {...iconLayout,labelsVisible:false,fits:true} : best;
   };
 
   const allLabels=sources.map(source=>radialActionLabel(actionRadialSourceLabel(source)));
-  const {capacity,pages,page}=radialPagination(sources.length,arc.kind==='quarter'?4:8,actionRadialPage,
-    (start,count,pages)=>Boolean(findLayout(count,allLabels.slice(start,start+count),pages>1)?.fits));
+  const {capacity,pages,page}=radialPagination(sources.length,arc.kind==='quarter'?4:8,actionRadialPage);
   actionRadialPage=page;
   const visibleSources=sources.slice(page*capacity,(page+1)*capacity);
   const labels=allLabels.slice(page*capacity,(page+1)*capacity);
@@ -1495,8 +1559,9 @@ function renderExplorationControls() {
   const box = $('explorationMenu');
   const active = Boolean(privateState && (privateState.hp ?? 0) > 0 && !privateState.conditions.some(condition => condition === 'inconsciente' || condition === 'paralizada') && lastSnapshot && !lastSnapshot.combat.active);
   box.hidden = true;
-  const context = active ? contextualInteraction() : null;
-  world.setContextInteractionTarget(context?.targetId ?? null, context?.pointId ?? null);
+  const contexts = active ? contextualInteractions() : [];
+  const nearestContext = contexts[0];
+  world.setContextInteractionTarget(nearestContext?.targetId ?? null, nearestContext?.pointId ?? null);
   renderActionToggle();
   updateAttackRangePreview();
   renderProximityButton();
@@ -1511,7 +1576,7 @@ function renderExplorationControls() {
   groups.className = 'exploration-actions';
     box.append(actionPanelHeader('EXPLORACIÓN', 'Acciones', selected ? `${compactActionLabel(selected)} seleccionado` : 'Elige una acción'));
     if (privateState.concentration) box.append(endConcentrationButton());
-  if (context) {
+  for (const context of contexts) {
     const item = document.createElement('button'), icon = document.createElement('span'), label = document.createElement('strong'), arrow = document.createElement('span');
     item.type = 'button'; item.className = 'contextual-action';
     item.setAttribute('aria-label', `${context.icon} ${context.label}`);
@@ -1577,10 +1642,25 @@ function renderExplorationControls() {
       climb: 'toca la casilla de destino propuesta', swim: 'toca la casilla de destino propuesta', jump: 'toca la casilla de destino propuesta'
     };
     for (const id of privateState.explorationBasics) {
+      if (id === 'jump') {
+        const row = document.createElement('div'), item = document.createElement('button'), name = document.createElement('b');
+        const selected = armedExplorationBasicActionId === 'jump';
+        const help = 'Elige el destino; el juego calcula el salto y prepara automáticamente una carrerilla recta o diagonal si hace falta.';
+        item.type = 'button'; item.className = `exploration-action${selected ? ' armed' : ''}`;
+        item.setAttribute('aria-pressed',String(selected)); name.textContent = explorationBasicActionCatalogue.jump.label; item.append(name); item.title = help;
+        item.onclick = () => {
+          armedExplorationBasicActionId = selected ? null : 'jump';
+          armedExplorationActionId = null; armedExplorationAttackId = null; renderExplorationControls();
+          toast(selected ? 'Salto cancelado.' : 'Elige la casilla de destino.');
+        };
+        const tooltip = actionTooltip(help); enableLongPressInfo(item,tooltip);
+        row.className = 'action-choice'; row.append(item,tooltip); list.append(row);
+        continue;
+      }
       const action = explorationBasicActionCatalogue[id], row = document.createElement('div'), item = document.createElement('button'), name = document.createElement('b');
       const isArmed = armedExplorationBasicActionId === id;
-      const jumpHelp = id === 'jump' ? jumpSummary(privateState.sheet?.strengthScore) : action.guidance;
-      item.className = `exploration-action${isArmed ? ' armed' : ''}`; item.setAttribute('aria-pressed', String(isArmed)); name.textContent = action.label; item.append(name); item.title = `${jumpHelp} Después, ${targetPrompt[id]}.`;
+      const jumpHelp = action.guidance;
+      item.className = `exploration-action${isArmed || id==='hide'&&privateState.stealth ? ' armed' : ''}`; item.setAttribute('aria-pressed', String(id==='hide'?privateState.stealth:isArmed)); name.textContent = id==='hide'?(privateState.stealth?'Salir de Sigilo':'Entrar en Sigilo'):action.label; item.append(name); item.title = `${jumpHelp} Después, ${targetPrompt[id]}.`;
       item.onclick = () => {
         if (action.target === 'self') { armedExplorationBasicActionId = id; armedExplorationActionId = null; armedExplorationAttackId = null; useExplorationBasicAction(id); renderExplorationControls(); return; }
         armedExplorationBasicActionId = isArmed ? null : id; armedExplorationActionId = null; armedExplorationAttackId = null; renderExplorationControls();
@@ -1588,7 +1668,6 @@ function renderExplorationControls() {
       };
       const tooltip = actionTooltip(`${jumpHelp} ${targetPrompt[id]}.`); enableLongPressInfo(item, tooltip);
       row.className = 'action-choice'; row.append(item, tooltip);
-      if (id === 'jump') { const summary = document.createElement('small'); summary.className = 'muted'; summary.textContent = jumpHelp; row.append(summary); }
       list.append(row);
     }
   }
@@ -1652,11 +1731,11 @@ const contextualFacingVectors: Record<Facing, { col: number; row: number }> = {
   west: { col: -1, row: 0 }, 'north-west': { col: -1, row: -1 }
 };
 
-function contextualInteraction(): ContextualInteraction | null {
+function contextualInteractions(): ContextualInteraction[] {
   const state = privateState, snapshot = lastSnapshot;
-  if (!state?.characterId || !snapshot || snapshot.combat.active) return null;
+  if (!state?.characterId || !snapshot || snapshot.combat.active) return [];
   const self = snapshot.entities.find(entity => entity.id === state.characterId);
-  if (!self) return null;
+  if (!self) return [];
   const facing = contextualFacingVectors[self.facing];
   const candidates: ContextualInteraction[] = [];
   const makeCandidate = (targetId: string, label: string, icon: string, cell: Cell, surfaceId: string, order: number, description?: string, pointId?: string) => {
@@ -1678,15 +1757,30 @@ function contextualInteraction(): ContextualInteraction | null {
     const entity = snapshot.entities.find(item => item.id === interaction.targetId);
     const actor = snapshot.scene.stageActors?.find(item => item.id === interaction.targetId);
     const pickup = snapshot.scene.pickups?.find(item => item.id === interaction.targetId);
-    const cell = entity?.cell ?? prop?.cell ?? actor?.cell ?? pickup?.cell;
-    const surfaceId = entity?.surfaceId ?? prop?.surfaceId ?? actor?.surfaceId ?? pickup?.surfaceId ?? snapshot.scene.surfaceId;
+    const seat=snapshot.scene.seats?.find(item=>item.id===interaction.targetId),sign=snapshot.scene.readableSigns?.find(item=>item.id===interaction.targetId);
+    const cell = entity?.cell ?? prop?.cell ?? actor?.cell ?? pickup?.cell ?? seat?.cell ?? sign?.cell ?? interaction.cell;
+    const surfaceId = entity?.surfaceId ?? prop?.surfaceId ?? actor?.surfaceId ?? pickup?.surfaceId ?? interaction.surfaceId ?? snapshot.scene.surfaceId;
     if (!cell) continue;
-    const icon = entity || actor ? '🗣️' : interaction.targetId.includes('rowboat') ? '🚣' : pickup ? '✨' : prop?.kind === 'door' ? '🚪' : prop?.kind === 'wheel' ? '⚙️' : prop ? '✦' : '✦';
+    const icon = interaction.targetId==='P10'?'🪢':entity || actor ? '🗣️' : interaction.targetId.includes('rowboat') ? '🚣' : pickup ? '✨' : prop?.kind === 'door' ? '🚪' : prop?.kind === 'wheel' ? '⚙️' : prop ? '✦' : '✦';
     makeCandidate(interaction.targetId, interaction.label, icon, cell, surfaceId, (state.campInteractions?.length ?? 0) + index);
   }
   candidates.sort((a, b) => a.distance - b.distance || b.facing - a.facing || a.order - b.order);
-  return candidates[0] ?? null;
+  return candidates;
 }
+
+function renderSceneCheck(state:PlayerPrivate){
+  let panel=document.getElementById('sceneCheckPanel');const check=state.sceneCheck;
+  if(!check){panel?.remove();return;}
+  if(panel?.dataset.requestId===check.id){const status=panel.querySelector('small');if(status)status.textContent=check.playerTotal!==undefined?`Total ${check.playerTotal} enviado · esperando al DM`:'Introduce el total de tus dados físicos, con tus modificadores.';return;}
+  panel?.remove();panel=document.createElement('aside');panel.id='sceneCheckPanel';panel.dataset.requestId=check.id;panel.setAttribute('aria-live','polite');
+  const title=document.createElement('strong');title.textContent=`${check.skill} · CD ${check.dc} · ${check.targetLabel}`;
+  const input=document.createElement('input');input.type='number';input.min='-30';input.max='100';input.placeholder='Total del dado físico';input.setAttribute('aria-label','Total de Sigilo con modificadores');
+  const submit=document.createElement('button');submit.textContent='Enviar tirada';submit.disabled=true;input.oninput=()=>{submit.disabled=input.value===''||!Number.isInteger(Number(input.value))||Number(input.value)< -30||Number(input.value)>100;};
+  submit.onclick=()=>{if(runtimeEpoch&&lastSnapshot&&input.value!=='')socket.emit('player:exploration',{runtimeEpoch,commandId:commandId(),sceneEpoch:lastSnapshot.sceneEpoch,type:'exploration:check',requestId:check.id,total:Number(input.value)});};
+  const hint=document.createElement('small');hint.textContent='Introduce el total de tus dados físicos, con tus modificadores.';panel.append(title,input,submit,hint);document.body.append(panel);
+}
+
+socket.on('scene:sign-read',(event:{runtimeEpoch:string;sceneEpoch:number;signId:string;text:string})=>{if(event.runtimeEpoch===runtimeEpoch&&event.sceneEpoch===lastSnapshot?.sceneEpoch)world.showSignBubble(event.signId,event.text);});
 
 function useContextualInteraction(context: ContextualInteraction) {
   if (!lastSnapshot || !privateState?.characterId) return;
@@ -1749,7 +1843,7 @@ function useExplorationAction(targetId?: string, targetCell?: { col: number; row
 function useExplorationBasicAction(actionId: ExplorationBasicAction, targetId?: string, targetCell?: { col: number; row: number }) {
   if (!lastSnapshot || !privateState) return false;
   armedExplorationBasicActionId = null; updateAttackRangePreview();
-  socket.emit('player:exploration', { runtimeEpoch, type: 'exploration:basic', commandId: commandId(), sceneEpoch: lastSnapshot.sceneEpoch, action: actionId, ...(targetId ? { targetId } : {}), ...(targetCell ? { targetCell } : {}) });
+  socket.emit('player:exploration', { runtimeEpoch, type: 'exploration:basic', commandId: commandId(), sceneEpoch: lastSnapshot.sceneEpoch, action: actionId, ...(actionId === 'jump' ? {jumpMode:'auto' as const} : {}), ...(targetId ? { targetId } : {}), ...(targetCell ? { targetCell } : {}) });
   renderExplorationControls();
   return true;
 }
@@ -1826,7 +1920,6 @@ async function prepareSnapshot(snapshot: WorldSnapshot) {
   }
 }
 
-const cameraOrientationLabels = ['Vista inicial', '45° a la derecha', '90° a la derecha', '135° a la derecha', '180° · lado opuesto', '135° a la izquierda', '90° a la izquierda', '45° a la izquierda'];
 function supportsCameraOrbit(sceneId = lastSnapshot?.sceneId) {
   const scene = campaign.scenes.find(candidate => candidate.id === sceneId);
   return supportsCameraOrientation(scene);
@@ -1839,7 +1932,7 @@ function updatePlayerCameraControls(sceneId = lastSnapshot?.sceneId) {
   $('identityCameraActions').hidden = !supportsCameraOrbit(sceneId);
   $('cameraSettings').hidden = !supportsCameraOrbit(sceneId);
   const step = world.getCameraOrientationStep();
-  $('playerCameraLabel').textContent = cameraOrientationLabels[step] ?? cameraOrientationLabels[0]!;
+  $('playerCameraLabel').textContent = cameraOrbitLabel(step);
 }
 function rotatePlayerCamera(delta: number) {
   if (!supportsCameraOrbit()) return;
@@ -1861,6 +1954,7 @@ let cameraTouchGestureStartDistance: number | null = null;
 let cameraTouchLastDistance: number | null = null;
 let cameraTouchTiltDegrees = CAMERA_DEFAULT_TILT;
 let cameraTouchLastCenterY: number | null = null;
+let cameraTouchLastCenterX: number | null = null;
 let cameraTouchGestureAxis: CameraTouchAxis | null = null;
 let cameraTouchFrame: number | null = null;
 const cameraTouchPair = () => [...cameraTouchPointers.values()].slice(0, 2);
@@ -1880,7 +1974,7 @@ function resetCameraTouchGesture() {
   cameraTouchGestureStartY = null;
   cameraTouchGestureStartDistance = null;
   cameraTouchLastDistance = null;
-  cameraTouchLastCenterY = null;
+  cameraTouchLastCenterY = null; cameraTouchLastCenterX = null;
   cameraTouchGestureAxis = null;
 }
 function clearCameraTouchContacts() {
@@ -1895,13 +1989,17 @@ function applyCameraTouchGesture() {
   cameraTouchGestureAxis ??= cameraTouchAxis(dx, dy, pinchTravel, supportsCameraOrbit());
   if (cameraTouchGestureAxis === 'tilt' && supportsCameraOrbit()) {
     cameraTouchTiltDegrees = previousAxis === 'tilt'
-      ? adjustCameraTiltForTouch(cameraTouchTiltDegrees, center.y - (cameraTouchLastCenterY ?? center.y))
-      : cameraTiltFromTouch(cameraTouchTiltDegrees, dy);
+      ? adjustCameraTiltForTouch(cameraTouchTiltDegrees, center.y - (cameraTouchLastCenterY ?? center.y),cameraProfileForScene(lastSnapshot?.sceneId??null))
+      : cameraTiltFromTouch(cameraTouchTiltDegrees, dy,cameraProfileForScene(lastSnapshot?.sceneId??null));
     world.setCameraTiltDegrees(cameraTouchTiltDegrees);
+  }
+  if (cameraTouchGestureAxis === 'orbit') {
+    const travel = previousAxis === 'orbit' ? center.x - (cameraTouchLastCenterX ?? center.x) : Math.sign(dx) * Math.max(0, Math.abs(dx) - 20);
+    world.rotateCameraByDegrees(travel * .15);
   }
   if (cameraTouchGestureAxis === 'zoom' && cameraTouchLastDistance && distance > 0) world.zoomCameraBy(distance / cameraTouchLastDistance);
   cameraTouchLastDistance = distance;
-  cameraTouchLastCenterY = center.y;
+  cameraTouchLastCenterY = center.y; cameraTouchLastCenterX = center.x;
 }
 const worldCanvasTarget = (target: EventTarget | null): target is HTMLCanvasElement => target instanceof HTMLCanvasElement && target.classList.contains('world');
 
@@ -1918,7 +2016,7 @@ addEventListener('pointerdown', event => {
     cameraTouchGestureStartDistance = cameraTouchDistance();
     cameraTouchLastDistance = cameraTouchGestureStartDistance;
     cameraTouchTiltDegrees = world.getCameraTiltDegrees();
-    cameraTouchLastCenterY = center.y;
+    cameraTouchLastCenterY = center.y; cameraTouchLastCenterX = center.x;
     cameraTouchGestureAxis = null;
     event.preventDefault();
   }
@@ -1941,10 +2039,6 @@ addEventListener('pointerup', event => {
   if (!point) return;
   point.x = event.clientX; point.y = event.clientY;
   applyCameraTouchGesture();
-  if (cameraTouchGestureActive && cameraTouchGestureAxis === 'orbit' && cameraTouchGestureStartX !== null) {
-    const horizontalTravel = cameraTouchCenter().x - cameraTouchGestureStartX;
-    if (Math.abs(horizontalTravel) >= 52) rotatePlayerCamera(horizontalTravel < 0 ? -1 : 1);
-  }
   cameraTouchPointers.delete(event.pointerId);
   resetCameraTouchGesture();
   if (!cameraTouchPointers.size) cameraTouchPairSeen = false;
@@ -2051,14 +2145,15 @@ function queueKeyboardMove() {
 
 addEventListener('keydown', event => {
   if (event.key === 'Escape' && !(event.target instanceof Element && event.target.closest('dialog'))) { event.preventDefault(); cancelActionSelection(); return; }
-  if (event.target instanceof Element && event.target.matches('input,textarea,select')) return;
+  if (event.target instanceof Element && event.target.closest('input,textarea,select,[contenteditable="true"]')) return;
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
   if (($('inventory') as HTMLDialogElement).open || ($('playerSettings') as HTMLDialogElement).open) return;
   const key = event.key.toLowerCase();
   if (!event.repeat && (key === 'q' || key === 'e') && supportsCameraOrbit()) {
     event.preventDefault(); rotatePlayerCamera(key === 'q' ? -1 : 1); return;
   }
   if (!event.repeat && (key === 'r' || key === 'f') && supportsCameraOrbit()) {
-    event.preventDefault(); world.setCameraTiltDegrees(world.getCameraTiltDegrees() + (key === 'r' ? 5 : -5)); return;
+    event.preventDefault(); world.setCameraTiltDegrees(world.getCameraTiltDegrees() + (key === 'r' ? 10 : -10)); return;
   }
   if (movementKeys.has(key)) {
     event.preventDefault();
@@ -2124,10 +2219,15 @@ for (const dialogId of ['playerSettings', 'characterSheet', 'inventory'] as cons
   $(dialogId).addEventListener('close', () => { if (playerDisplaySettings.identityMenuAlwaysOpen) openIdentityMenu(); });
 }
 ($('settingGrid') as HTMLInputElement).onchange = event => updatePlayerDisplaySetting('showGrid', (event.currentTarget as HTMLInputElement).checked);
+($('settingGridMode') as HTMLSelectElement).onchange = event => updatePlayerDisplaySetting('gridStyle', normalizeGridStyle({ ...playerDisplaySettings.gridStyle, mode: (event.currentTarget as HTMLSelectElement).value as GridStyle['mode'] }));
+($('settingGridColor') as HTMLInputElement).oninput = event => updatePlayerDisplaySetting('gridStyle', normalizeGridStyle({ ...playerDisplaySettings.gridStyle, color: (event.currentTarget as HTMLInputElement).value }));
+($('settingGridOpacity') as HTMLInputElement).oninput = event => updatePlayerDisplaySetting('gridStyle', normalizeGridStyle({ ...playerDisplaySettings.gridStyle, opacity: Number((event.currentTarget as HTMLInputElement).value) / 100 }));
+($('settingGridThickness') as HTMLInputElement).oninput = event => updatePlayerDisplaySetting('gridStyle', normalizeGridStyle({ ...playerDisplaySettings.gridStyle, thickness: Number((event.currentTarget as HTMLInputElement).value) as GridStyle['thickness'] }));
 ($('settingMovementHints') as HTMLInputElement).onchange = event => updatePlayerDisplaySetting('showMovementHints', (event.currentTarget as HTMLInputElement).checked);
 ($('settingSceneNotice') as HTMLInputElement).onchange = event => updatePlayerDisplaySetting('showSceneNotice', (event.currentTarget as HTMLInputElement).checked);
 $('settingJoystickOpacity').oninput = event => updatePlayerDisplaySetting('joystickOpacity', Number((event.currentTarget as HTMLInputElement).value) / 100);
 $('settingIdentityMenuAlwaysOpen').onchange = event => updatePlayerDisplaySetting('identityMenuAlwaysOpen', (event.currentTarget as HTMLInputElement).checked);
+$('settingInitiativePosition').onchange = event => updatePlayerDisplaySetting('initiativePosition', normalizeInitiativePosition((event.currentTarget as HTMLSelectElement).value));
 $('settingIdentityMenuSeconds').oninput = event => updatePlayerDisplaySetting('identityMenuSeconds', Number((event.currentTarget as HTMLInputElement).value));
 $('resetDisplaySettings').onclick = () => { playerDisplaySettings = { ...defaultPlayerDisplaySettings }; applyPlayerDisplaySettings(); toast('Opciones restablecidas.'); };
 $('resetPlayerCamera').onclick = resetPlayerCamera;
@@ -2250,6 +2350,7 @@ function renderSheet(next: PlayerPrivate) {
   if($('sheetStats').dataset.renderKey===sheetKey)return;$('sheetStats').dataset.renderKey=sheetKey;
   const sheet = next.sheet;
   $('sheetName').textContent = next.label ? `Hoja · ${next.label}` : 'Hoja de personaje';
+  sheetNameIndicators.update(next);
   $('sheetSummary').textContent = sheet ? `${sheet.background} · nivel ${sheet.level}${sheetView === 'full' ? ' · vista completa' : ' · resumen de aventura'}` : 'La hoja aún no tiene datos de campaña.';
   $('summarySheet').classList.toggle('primary', sheetView === 'summary'); $('fullSheet').classList.toggle('primary', sheetView === 'full');
   const stats = $('sheetStats'); stats.replaceChildren();

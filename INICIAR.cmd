@@ -18,17 +18,16 @@ if not exist "node_modules\vite\bin\vite.js" (echo ERROR: Faltan dependencias. E
 if not exist "node_modules\typescript\bin\tsc" (echo ERROR: Faltan dependencias. Ejecuta INSTALAR.cmd y vuelve a iniciar. & pause & exit /b 1)
 if /I "%DUNGEONS_CAMPAIGN%"=="camp-rests" set "DUNGEONS_CAMPAIGN=stormwreck-isle"
 if not defined DUNGEONS_CAMPAIGN call :choose_campaign
+set "DUNGEONS_OPEN_DM=1"
 :prepare
 "%DND_NODE%" scripts\check-port-free.mjs %DND_PORT%
 if errorlevel 3 (echo ERROR: No se pudo comprobar el puerto %DND_PORT%. & pause & exit /b 1)
 if errorlevel 2 goto :startup_failed
-echo Actualizando la aplicacion para incluir los mapas y cambios mas recientes...
-"%DND_NODE%" node_modules\vite\bin\vite.js build --configLoader runner
-if errorlevel 1 (echo ERROR: No se pudo compilar la interfaz. Revisa el mensaje anterior. & pause & exit /b 1)
-"%DND_NODE%" node_modules\typescript\bin\tsc -p tsconfig.server.json
-if errorlevel 1 (echo ERROR: No se pudo compilar el servidor. Revisa el mensaje anterior. & pause & exit /b 1)
+call :prepare_build
+if errorlevel 1 (pause & exit /b 1)
+call :activate_build
+if errorlevel 1 (pause & exit /b 1)
 if not exist "dist\server\apps\server\index.js" (echo ERROR: La Alpha no esta compilada. Ejecuta INSTALAR.cmd primero. & pause & exit /b 1)
-set "DUNGEONS_OPEN_DM=1"
 :launch
 echo Iniciando D^&D Immersive Engine...
 if /I "%DUNGEONS_CAMPAIGN%"=="d8-night-private" echo Campana: D8 Night ^(one-shot privado^)
@@ -43,18 +42,35 @@ echo El servidor no ha podido iniciarse. Puede que haya otra mesa D^&D abierta o
 choice /C AS /N /M "[A] Actualizar esta mesa (guardar y reiniciar)  [S] Salir"
 if errorlevel 2 exit /b 1
 echo.
+echo Preparando la mejora mientras la mesa anterior sigue abierta...
+call :prepare_build
+if errorlevel 1 (echo La actualizacion se ha cancelado; la mesa anterior sigue abierta. & pause & exit /b 1)
 echo Guardando y cerrando solo la mesa D^&D de la campana elegida...
 "%DND_NODE%" scripts\close-table-on-port.mjs "%DND_SAVE_ROOT%" %DND_PORT% "%DUNGEONS_CAMPAIGN%"
 if errorlevel 1 (
   echo.
-  echo No se ha cerrado nada automaticamente. Comprueba que elegiste la misma campana que esta abierta.
+  echo Actualizacion cancelada. Revisa el motivo anterior; guarda o exporta desde DM antes de cerrar manualmente.
   pause
   exit /b 1
 )
 echo.
-echo La partida se ha guardado. Preparando la version actualizada...
-goto :prepare
+echo La mesa se ha cerrado de forma confirmada. Instalando la candidata...
+"%DND_NODE%" scripts\check-port-free.mjs %DND_PORT%
+if errorlevel 1 (pause & exit /b 1)
+call :activate_build
+if errorlevel 1 (pause & exit /b 1)
+goto :launch
 exit /b
+
+:prepare_build
+set "DND_BUILD_STAGE=%CD%\runtime\prepared-%RANDOM%-%RANDOM%-%RANDOM%"
+echo Compilando una candidata aislada con los mapas y cambios mas recientes...
+"%DND_NODE%" scripts\prepared-build.mjs prepare "%DND_BUILD_STAGE%"
+exit /b %errorlevel%
+
+:activate_build
+"%DND_NODE%" scripts\prepared-build.mjs activate "%DND_BUILD_STAGE%" "%DND_SAVE_ROOT%"
+exit /b %errorlevel%
 
 :choose_campaign
 :campaign_choice

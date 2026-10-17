@@ -47,4 +47,43 @@ describe('D8 animation coverage and atlas integrity', () => {
     }
     expect(pngs.size).toBe(24);
   });
+  it('has eight distinct four-frame drinking directions and transparent bounded cafe crops',()=>{
+    const horse=campaign.tokenAnimations['cafe-horse']!,seen=new Set<string>();
+    for(const direction of ['n','ne','e','se','s','sw','w','nw']){
+      const cycle=horse[`drink-${direction}`]!;expect(cycle.frames).toHaveLength(4);
+      seen.add(JSON.stringify(cycle.frames));
+    }
+    expect(seen.size).toBe(8);
+    const cycles=[...Object.entries(horse).filter(([name])=>name.startsWith('drink-')).map(([,cycle])=>cycle!),campaign.tokenAnimations.patron!.drink!,campaign.tokenAnimations.bartender!.drink!];
+    for(const cycle of cycles)for(const frame of cycle.frames){
+      if(typeof frame==='string')throw new Error('Cafe sprites must use bounded atlas crops');
+      const bytes=readFileSync(path.join(process.cwd(),'campaigns/one-shot/public',frame.url));
+      expect(bytes[24]).toBe(8);expect(bytes[25]).toBe(6);
+      expect(frame.x).toBeGreaterThanOrEqual(0);expect(frame.y).toBeGreaterThanOrEqual(0);
+      expect(frame.x+frame.width).toBeLessThanOrEqual(bytes.readUInt32BE(16));
+      expect(frame.y+frame.height).toBeLessThanOrEqual(bytes.readUInt32BE(20));
+      const chunks:Buffer[]=[];
+      for(let offset=8;offset<bytes.length;){const length=bytes.readUInt32BE(offset);if(bytes.subarray(offset+4,offset+8).toString()==='IDAT')chunks.push(bytes.subarray(offset+8,offset+8+length));offset+=length+12;}
+      expect(inflateSync(Buffer.concat(chunks))[4]).toBe(0);
+    }
+  });
+  it('keeps V52 directional patrons, prayer and cow-leading clips within actual PNG bounds',()=>{
+    const pngs=new Map<string,Buffer>();
+    for(const id of ['patron','bartender','patron-woman','margaret','rogue','silverfarben-hotel']){
+      const clips=Object.entries(campaign.tokenAnimations[id]!).filter(([name])=>name.startsWith('drink-')||name.startsWith('guide-cow-')||name==='pray');
+      expect(clips.length).toBeGreaterThan(0);
+      for(const [,clip] of clips)for(const frame of clip!.frames){
+        if(typeof frame==='string')throw new Error('V52 clips require bounded atlas crops');
+        let bytes=pngs.get(frame.url);
+        if(!bytes){
+          bytes=readFileSync(path.join(process.cwd(),'campaigns/one-shot/public',frame.url));pngs.set(frame.url,bytes);
+          const chunks:Buffer[]=[];
+          for(let offset=8;offset<bytes.length;){const length=bytes.readUInt32BE(offset);if(bytes.subarray(offset+4,offset+8).toString()==='IDAT')chunks.push(bytes.subarray(offset+8,offset+8+length));offset+=length+12;}
+          expect(inflateSync(Buffer.concat(chunks))[4],`${frame.url}: genuine transparent corner`).toBe(0);
+        }
+        expect(bytes[25]).toBe(6);expect(frame.x+frame.width).toBeLessThanOrEqual(bytes.readUInt32BE(16));expect(frame.y+frame.height).toBeLessThanOrEqual(bytes.readUInt32BE(20));
+      }
+    }
+    expect(pngs.size).toBe(6);
+  });
 });

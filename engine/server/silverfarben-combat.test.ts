@@ -72,7 +72,7 @@ describe('Silverfarben versus Anteros: repeated complete fights', () => {
         resolve(state, enemyId, 'aoife', 'longsword', false);
         expect(state.nextCombatTurn()).toBe(true);
       }
-      expect(usedRequested).toBe(true); expect(enemy.hp).toBe(0); expect(actor.hp).toBe(7);
+      expect(usedRequested).toBe(true); expect(enemy.hp).toBe(action === 'aoife-unarmed' ? 1 : 0); expect(actor.hp).toBe(7);
       expect(state.combat.active).toBe(false); expect(state.combat.pending).toBeNull();
       expect(state.combat.lastEvent).toMatchObject({ kind: 'defeat', actorId: 'aoife', targetId: enemyId });
       expect(state.combat.lastEvent?.text).toContain('El combate termina');
@@ -172,6 +172,47 @@ describe('DM dice dispatch and audiovisual completion', () => {
 });
 
 describe('Silverfarben action economy and spell lifecycle', () => {
+  for (const actionId of ['aoife-unarmed', 'aoife-dagger', 'fire-bolt', 'magic-missile']) it(`keeps the body and correct finishing state for ${actionId}`, () => {
+    const { state, actor, enemy, enemyId } = prepare(new GameState(oneShotBundle), 'dinner');
+    state.applyHitPoints(enemyId, 1 - enemy.hp); resolve(state, actor.id, enemyId, actionId);
+    const nonlethal = actionId === 'aoife-unarmed';
+    expect(enemy.hp).toBe(nonlethal ? 1 : 0); expect(state.combat.active).toBe(false);
+    const body = state.publicSnapshot(true).entities.find(entity => entity.id === enemyId);
+    expect(body).toMatchObject({ defeated: true, defeatStyle: nonlethal ? 'unconscious' : 'blood' }); expect(body?.hp).toBeUndefined();
+    const restored = new GameState(oneShotBundle); restored.restoreDurable(state.captureDurable());
+    expect(restored.publicSnapshot(true).entities.find(entity => entity.id === enemyId)).toMatchObject({ defeated: true, defeatStyle: nonlethal ? 'unconscious' : 'blood' });
+    expect(state.startCombat()).toBe(false);
+    if (nonlethal) {
+      expect(state.conditionsFor(enemyId)).toContain('inconsciente'); state.applyHitPoints(enemyId, 1);
+      expect(state.conditionsFor(enemyId)).not.toContain('inconsciente');
+      expect(state.publicSnapshot(true).entities.find(entity => entity.id === enemyId)?.defeated).toBe(false);
+    }
+  });
+  it('knocks a player out at 1 HP without death saves and does not permit exploration movement', () => {
+    const { state, actor, enemy } = prepare(new GameState(oneShotBundle), 'dinner', 'anteros-dinner');
+    const attack = enemy.attacks.find(action => action.id === 'longsword')!; attack.damageType = 'contundente'; attack.magical = false;
+    resolve(state, enemy.id, actor.id, attack.id, true, 8);
+    expect(actor.hp).toBe(1); expect(actor.deathSaves.failures).toBe(0); expect(state.combat.active).toBe(false);
+    expect(state.startStep(actor, 'west')).toBe(false); expect(state.playerPrivate('a'.repeat(32)).explorationAttacks).toEqual([]);
+    expect(state.publicSnapshot(true).entities.find(entity => entity.id === actor.id)).toMatchObject({ defeated: true, defeatStyle: 'unconscious' });
+    const restored = new GameState(oneShotBundle); restored.restoreDurable(state.captureDurable());
+    expect(restored.publicSnapshot(true).entities.find(entity => entity.id === actor.id)).toMatchObject({ defeated: true, defeatStyle: 'unconscious' });
+  });
+  it('does not turn a magical bludgeoning spell into a nonlethal weapon finish', () => {
+    const { state, actor, enemyId, enemy } = prepare(new GameState(oneShotBundle), 'dinner');
+    state.applyHitPoints(enemyId, 1 - enemy.hp);
+    const spell = actor.combat.attacks.find(action => action.id === 'fire-bolt')!; spell.damageType = 'contundente';
+    resolve(state, actor.id, enemyId, spell.id);
+    expect(enemy.hp).toBe(0); expect(state.publicSnapshot(true).entities.find(entity => entity.id === enemyId)?.defeatStyle).toBe('blood');
+  });
+  it('allows movement past a defeated body without deleting it or losing it in the save', () => {
+    const { state, actor, enemyId, enemy } = prepare(new GameState(oneShotBundle), 'dinner');
+    actor.cell = { col: 8, row: 6 }; state.applyHitPoints(enemyId, 1 - enemy.hp);
+    resolve(state, actor.id, enemyId, 'aoife-unarmed');
+    expect(state.startStep(actor, 'east')).toBe(true); expect(actor.cell).toEqual(enemy.cell);
+    const restored = new GameState(oneShotBundle); restored.restoreDurable(state.captureDurable());
+    expect(restored.publicSnapshot(true).entities.find(entity => entity.id === enemyId)).toMatchObject({ defeated: true, defeatStyle: 'unconscious' });
+  });
   for (const leavingPlayer of [false, true]) it(`ends by withdrawal, not defeat, when ${leavingPlayer ? 'Silverfarben' : 'Anteros'} leaves`, () => {
     const { state, actor, enemy, enemyId } = prepare(new GameState(oneShotBundle), 'dinner');
     expect(state.withdrawCombatant(leavingPlayer ? 'aoife' : enemyId).code).toBe('COMBAT_ENDED');
@@ -242,6 +283,19 @@ describe('Silverfarben action economy and spell lifecycle', () => {
     if (state.combat.pending) expect(state.submitCombatRoll('player', 'aoife', 'check', state.combat.pending.id, 15).ok).toBe(true);
     expect(state.useBasicCombatAction('aoife', basic, enemyId).ok).toBe(false);
     expect(state.combat.pending).toBeNull();
+  });
+  it('cancels an opening attack inside initiative without cancelling combat or erasing a submitted total',()=>{
+    const {state,actor,enemyId}=prepare(new GameState(oneShotBundle));
+    state.endCombat();
+    expect(state.startCombatFromAttack('aoife',enemyId,'aoife-dagger').ok).toBe(true);
+    expect(state.setInitiative([{id:'aoife',initiative:17}])).toBe(true);
+    const before=structuredClone(actor.combat.resources);
+    expect(state.playerPrivate('a'.repeat(32)).combat).toMatchObject({initiative:{pending:true,submitted:true,total:17},pendingAction:{cancellable:true}});
+    expect(state.cancelCombatAction('aoife')).toMatchObject({ok:true,code:'ACTION_CANCELLED'});
+    expect(state.combat.active).toBe(true);expect(state.combat.openingAction).toBeNull();
+    expect(state.playerPrivate('a'.repeat(32)).combat).toMatchObject({initiative:{pending:true,submitted:true,total:17}});
+    expect(state.playerPrivate('a'.repeat(32)).combat?.pendingAction).toBeUndefined();
+    expect(actor.combat.resources).toEqual(before);
   });
   it('cancels a spell before the dice without spending a slot; rejects cancellation after attack', () => {
     const { state, actor, enemyId } = prepare(new GameState(oneShotBundle));

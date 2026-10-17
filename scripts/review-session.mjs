@@ -18,7 +18,7 @@ const port = probe.address().port;
 await new Promise(resolve => probe.close(resolve));
 const env = { ...process.env, HOST: '127.0.0.1', PORT: String(port),
   DUNGEONS_CAMPAIGN: process.env.DUNGEONS_CAMPAIGN || 'd8-night-private',
-  DUNGEONS_DATA_DIR: data, DUNGEONS_WEB_DIR: web, DUNGEONS_TEST_CHILD: '1' };
+  DUNGEONS_DATA_DIR: data, DUNGEONS_WEB_DIR: web, DUNGEONS_APP_ROOT: root, DUNGEONS_TEST_CHILD: '1' };
 delete env.DM_PASSWORD;
 const child = spawn(process.execPath, [path.join(build, 'apps/server/index.js')],
   { cwd: root, env, stdio: ['ignore', 'inherit', 'inherit', 'ipc'], windowsHide: true });

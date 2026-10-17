@@ -12,6 +12,34 @@ import { WorldBillboards, billboardUVs, billboardCenter, type BillboardFrame } f
 const frame: BillboardFrame = { url: '/atlas.png', sourceWidth: 1024, sourceHeight: 512, x: 256, y: 128, width: 128, height: 256,
   worldWidth: .8, worldHeight: 1.6, anchorX: .45, anchorY: .95, offsetX: 0, offsetY: 0, flipX: false, alpha: 1, tint: 0xffffff };
 describe('painted characters inside the 3D scenery', () => {
+  it('keeps lying bodies readable with low volume, anchors their lower edge and removes the pool on recovery', () => {
+    const engine = new NullEngine(), scene = new Scene(engine), ground = new Vector3(2, .8, 3);
+    const camera = new ArcRotateCamera('camera', -.8, .8, 80, ground, scene); camera.getViewMatrix(true);
+    const billboards = new WorldBillboards(scene, url => new Texture(url, scene));
+    for (const style of ['blood', 'unconscious'] as const) {
+      billboards.sync('body', ground, camera, { ...frame, grounded: true, defeatStyle: style }, null, true, false);
+      const body = scene.getMeshByName('actor:body:body')!, pool = scene.getMeshByName('actor:body:contact')!;
+      const matrix = body.computeWorldMatrix(true);
+      expect(Vector3.TransformCoordinates(new Vector3(-.5,-.5,0),matrix).y).toBeCloseTo(.835);
+      const top=Vector3.TransformCoordinates(new Vector3(.5,.5,0),matrix).y;
+      expect(top).toBeGreaterThan(ground.y+.4);expect(top).toBeLessThan(ground.y+frame.worldHeight);
+      expect(pool.position.y).toBeLessThan(body.position.y); expect(body.isEnabled()).toBe(true);
+      expect((pool.material as any).diffuseTexture.name).toContain(style === 'blood' ? 'blood-pool' : 'unconscious-ground');
+    }
+    billboards.sync('body', ground, camera, frame, null, true, false);
+    expect((scene.getMeshByName('actor:body:contact')!.material as any).diffuseTexture.name).toContain('contact-shadow');
+    billboards.dispose(); expect(billboards.count).toBe(0); scene.dispose(); engine.dispose();
+  });
+  it('shares the uploaded contact mask with the dynamic shadow without cloning a texture',()=>{
+    const engine=new NullEngine(),scene=new Scene(engine),camera=new ArcRotateCamera('camera',0,.8,40,Vector3.Zero(),scene);
+    const billboards=new WorldBillboards(scene,()=>new Texture(null,scene),true);
+    billboards.sync('player',Vector3.Zero(),camera,frame,null,true,false);
+    const contact=scene.getMeshByName('actor:player:contact')!.material!;
+    const projected=scene.getMeshByName('actor:player:projected-shadow')!.material!;
+    expect(projected.getActiveTextures()).toEqual(contact.getActiveTextures());
+    expect(scene.textures).toHaveLength(2);
+    billboards.dispose();scene.dispose();engine.dispose();
+  });
   it('crops the correct atlas cell without touching adjacent poses and mirrors its UVs', () => {
     const uv = billboardUVs(frame), flipped = billboardUVs({ ...frame, flipX: true });
     expect(uv[0]).toBeGreaterThan(.25); expect(uv[2]).toBeLessThan(.375);

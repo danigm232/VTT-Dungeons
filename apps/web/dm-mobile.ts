@@ -1,3 +1,7 @@
+import { mountMobileClock, lightPhaseLabel, renderWeatherRules } from '../../engine/client/weather-console.js';
+import { mountClimateIconControls } from '../../engine/client/climate-icon-controls.js';
+import { advanceClimate, gameClockAt, clockTimeSelection } from '../../engine/shared/game-time.js';
+import { seaState, seaStateLabel, weatherMode, weatherModeLabels, weatherDescription } from '../../engine/shared/weather.js';
 import { io, type Socket } from 'socket.io-client';
 import { OBJECT_MODEL_VERSION, PROTOCOL_VERSION } from '../../engine/shared/protocol';
 import type { AudioState, DmState } from '../../engine/shared/protocol';
@@ -6,6 +10,7 @@ import { commandId } from '../../engine/client/uuid';
 import { readUiPreferences, writeUiPreferences } from '../../engine/client/ui-preferences';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+const climateIcons = mountClimateIconControls(document);
 type Channel = 'music' | 'ocean' | 'wind' | 'wood' | 'storm';
 type AmbienceChannel = Exclude<Channel, 'music'>;
 
@@ -69,9 +74,7 @@ function weatherPreset(intensity: number) {
   const stormwreck = hasAmbienceTrack('stormwreck-loop-rain');
   if (intensity <= .35) return { label: 'Llovizna', assetId: stormwreck ? 'stormwreck-loop-rain' : 'd8-night-loop-rain-drizzle' };
   if (intensity <= .7) return { label: 'Tormenta', assetId: stormwreck ? 'stormwreck-loop-storm' : 'd8-night-loop-storm' };
-  // D8 ya tiene una grabación compuesta para el estado más intenso. Stormwreck
-  // conserva su pista propia hasta separar también allí lluvia, viento y trueno.
-  return { label: 'Temporal', assetId: stormwreck ? 'stormwreck-loop-storm' : 'd8-night-loop-tempest' };
+  return { label: 'Temporal', assetId: stormwreck ? 'stormwreck-loop-tempest' : 'd8-night-loop-tempest' };
 }
 
 function toast(message: string) { const element = $('toast'); element.textContent = message; element.classList.add('show'); clearTimeout(toastTimer); toastTimer = window.setTimeout(() => element.classList.remove('show'), 2600); }
@@ -175,10 +178,10 @@ function render(current: DmState, forceAudio = false) {
 function renderTimeOfDay(current: DmState) {
   const toggle = $('timeOfDayToggle') as HTMLButtonElement;
   toggle.hidden = !campSceneIds.has(current.sceneId);
-  const isNight = (current.environment.timeOfDay ?? 'auto') === 'night' || (current.environment.timeOfDay ?? 'auto') === 'auto' && current.campRest?.sceneId === current.sceneId && current.campRest.phase === 'night';
+  const isNight = lightPhaseLabel(current.environment,current.gameClock.seconds)==='Noche';
   $('timeOfDayIcon').textContent = isNight ? '☀' : '☾'; $('timeOfDayLabel').textContent = isNight ? 'Pasar a día' : 'Pasar a noche';
   toggle.setAttribute('aria-pressed', String(isNight)); toggle.title = isNight ? 'Cambiar la escena a día' : 'Cambiar la escena a noche';
-  toggle.onclick = () => command({ type: 'environment', storm: current.environment.storm, intensity: current.environment.stormIntensity, timeOfDay: isNight ? 'day' : 'night' });
+  toggle.onclick = () => command({ type: 'environment', timeOfDay: isNight ? 'day' : 'night' });
 }
 
 function renderAmbiencePresets() {
@@ -196,7 +199,7 @@ function applyAmbiencePreset(preset: typeof ambiencePresets[number]) {
   // no se oigan fuentes anteriores mientras se intercambian las capas.
   // El clima es independiente del lugar: si llueve, el preset no puede cortar
   // su audio mientras el proyector mantiene la lluvia visible.
-  const layers = { ...preset.layers, storm: state.environment.storm
+  const layers = { ...preset.layers, storm: weatherMode(state.environment) !== 'clear'
     ? { trackId: state.audio.layers.storm.assetId ?? weatherPreset(state.environment.stormIntensity).assetId, playing: true, volume: state.audio.layers.storm.volume }
     : preset.layers.storm };
   command({ type: 'audio:mix', music: { playing: false, volume: state.audio.music.volume }, layers });
@@ -267,21 +270,43 @@ function renderEffects(force = false) {
   }
 }
 
+const mobileClock=mountMobileClock($('mobileClockCard'),command);
 function renderWeather(current: DmState) {
+  mobileClock.update(current);
   const { storm, stormIntensity } = current.environment, toggle = $('weatherToggle') as HTMLButtonElement, intensity = $('weatherIntensity') as HTMLInputElement;
   const preset = weatherPreset(stormIntensity); $('weatherTitle').textContent = `${preset.label} · lluvia`;
   const precipitation=current.environment.precipitation??(storm?'rain':'none');
-  const phase={auto:'Ambiente de escena',day:'Mediodía',sunset:'Atardecer',night:'Noche',dawn:'Madrugada'}[current.environment.timeOfDay??'auto'];
-  $('weatherSummary').textContent=`${phase} · ${storm?preset.label:precipitation==='none'?'Despejado':`${precipitation==='rain'?'Lluvia':'Nieve'} ${['suave','media','intensa'][(current.environment.precipitationLevel??2)-1]}`}`;
-  $('linkedSound').textContent=precipitation==='rain'||storm?`Lluvia sincronizada al ${Math.round(current.audio.layers.storm.volume*100)}%.`:precipitation==='snow'?'Viento nevado sincronizado con la mesa.':'El sonido acompaña al clima seleccionado.';
-  for(const [id,value] of Object.entries({climateTime:current.environment.timeOfDay??'auto',climateKind:precipitation,climateLevel:String(current.environment.precipitationLevel??2),climateWind:String(current.environment.windIntensity??0)})){
+  const seconds=gameClockAt(current.gameClock),phase=lightPhaseLabel(current.environment,seconds);
+  const hero = $('visualPage').querySelector<HTMLElement>('.hero-mark');
+  if (hero) hero.textContent = weatherMode(current.environment) === 'tempest' ? '〰' : current.environment.storm ? 'ϟ' : precipitation === 'snow' ? '❄' : precipitation === 'rain' ? '☂' : phase === 'Noche' ? '☾' : phase === 'Atardecer' ? '◒' : phase === 'Madrugada' ? '☼' : '☀';
+  const climate=advanceClimate(current.climate,current.environment,seconds);
+  renderWeatherRules($('climateRules'),current.environment,climate,current.sceneId.startsWith('camp-')&&current.sceneId!=='camp-forest-pleamar');
+  ($('climateRulesEnabled') as HTMLInputElement).checked=Boolean(current.environment.weatherRules);
+  ($('climateSnowTerrain') as HTMLInputElement).checked=Boolean(current.environment.snowDifficultTerrain);
+  $('climateSeaCard').hidden=current.sceneId==='camp-forest-pleamar'||!current.sceneId.startsWith('camp-');
+  $('weatherSummary').textContent=`${phase} · ${weatherModeLabels[weatherMode(current.environment)]}${weatherMode(current.environment)==='clear'?'':` ${['suave','media','intensa'][(current.environment.precipitationLevel??2)-1]}`}`;
+  const climateSound = campaignAudio?.library?.ambience.find(track => track.id === current.audio.layers.storm.assetId)?.label ?? 'Ambiente climático';
+  $('linkedSound').textContent=weatherMode(current.environment)==='clear'?'Ambiente de la escena.':`${climateSound} · ${Math.round(current.audio.layers.storm.volume*100)}%`;
+  for(const [id,value] of Object.entries({climateTime:current.environment.timeOfDay??'auto',climateKind:precipitation,climateLevel:String(current.environment.precipitationLevel??2),climateWind:String(current.environment.windIntensity??0),climateTemperature:String(current.environment.temperatureC??10),climateFog:String(current.environment.fogTarget??0),climateFlood:String(current.environment.floodTarget??0),climateSea:String(seaState(current.environment,current.sceneId==='camp-wreck-beach'?.8:current.sceneId==='camp-coastal-refuge'?.22:.35))})){
     const input=$(id) as HTMLInputElement;if(!input.matches(':focus'))input.value=value;
   }
-  toggle.textContent = storm ? '❚❚' : '▶'; toggle.setAttribute('aria-label', storm ? 'Detener tormenta' : 'Activar tormenta'); toggle.setAttribute('aria-pressed', String(storm));
+  $('climateTemperatureValue').textContent=`${current.environment.temperatureC??10} °C`;
+  $('climateLevelValue').textContent = ['Suave', 'Media', 'Intensa'][(current.environment.precipitationLevel ?? 2) - 1]!;
+  $('climateWindValue').textContent = `${Math.round((current.environment.windIntensity ?? 0) * 100)}%`;
+  $('climateFogValue').textContent=`${Math.round((current.environment.fogTarget??0)*100)}%`;
+  $('climateFloodValue').textContent=`${Math.round((current.environment.floodTarget??0)*100)}%`;
+  $('climateSeaValue').textContent=seaStateLabel(Number(($('climateSea') as HTMLInputElement).value));
+  $('climateSeaAuto').setAttribute('aria-pressed',String(current.environment.seaIntensity===undefined));
+  ($('climateTime') as HTMLSelectElement).value = clockTimeSelection(current.environment, seconds);
+  ($('climateKind') as HTMLSelectElement).value = weatherMode(current.environment);
+  $('climateModeHint').textContent = weatherDescription(current.environment) + (weatherMode(current.environment) === 'snow' ? ` Cobertura ${Math.round(climate.snowCoverage * 100)}% · ${climate.snowDepthCm.toFixed(1)} cm.` : '');
+  $('climateLevel').closest<HTMLElement>('.climate-icon-section')!.hidden = weatherMode(current.environment) === 'clear';
+  toggle.textContent = 'ϟ'; toggle.setAttribute('aria-label', storm ? 'Detener tormenta' : 'Activar tormenta'); toggle.title = storm ? 'Detener tormenta' : 'Activar tormenta'; toggle.setAttribute('aria-pressed', String(storm));
   if (!intensity.matches(':focus')) intensity.value = String(stormIntensity); $('weatherLevel').textContent = `${Math.round(stormIntensity * 100)}%`;
   intensity.oninput = () => { $('weatherLevel').textContent = `${Math.round(Number(intensity.value) * 100)}%`; };
   intensity.onchange = () => { const next = Number(intensity.value), source = weatherPreset(next); command({ type: 'environment', storm, intensity: next, trackId: source.assetId }); };
   toggle.onclick = () => { const next = Number(intensity.value), source = weatherPreset(next); command({ type: 'environment', storm: !storm, intensity: next, trackId: source.assetId }); };
+  climateIcons.update();
 }
 
 function showVisualPage(open: boolean, focus = false) {
@@ -289,7 +314,7 @@ function showVisualPage(open: boolean, focus = false) {
   dmMobileUiPreferences = { ...dmMobileUiPreferences, visualPageOpen: open }; persistDmMobileUiPreferences();
   const track = $('pageTrack'); track.classList.remove('dragging'); track.style.transform = open ? 'translate3d(0,0,0)' : 'translate3d(-50%,0,0)';
   document.querySelectorAll<HTMLButtonElement>('[data-page]').forEach(button => button.setAttribute('aria-selected', String(button.dataset.page === (open ? 'visual' : 'sound'))));
-  if (focus && open) window.setTimeout(() => $('climateTime').focus(), 220);
+  if (focus && open) window.setTimeout(() => $('visualPage').querySelector<HTMLButtonElement>('[data-climate-icons="time"] button[aria-pressed="true"]')?.focus(), 220);
 }
 function showSoundSection(section: SoundSection, focus = false) {
   soundSection = section;
@@ -421,10 +446,12 @@ document.querySelectorAll<HTMLButtonElement>('[data-weather-intensity]').forEach
   command({ type: 'environment', storm: true, intensity, trackId: preset.assetId });
 });
 for(const id of ['climateTime','climateKind','climateLevel','climateWind'])$(id).onchange=()=>{
-  const field={climateTime:'timeOfDay',climateKind:'precipitation',climateLevel:'precipitationLevel',climateWind:'windIntensity'}[id]!;
+  const field={climateTime:'timeOfDay',climateKind:'weatherMode',climateLevel:'precipitationLevel',climateWind:'windIntensity'}[id]!;
   const value=($(id) as HTMLInputElement).value;
-  command({type:'environment',storm:id==='climateKind'?false:Boolean(state?.environment.storm),[field]:id==='climateLevel'||id==='climateWind'?Number(value):value});
+  command({type:'environment',[field]:id==='climateLevel'||id==='climateWind'?Number(value):value});
 };
+$('climateLevel').oninput = () => { $('climateLevelValue').textContent = ['Suave', 'Media', 'Intensa'][Number(($('climateLevel') as HTMLSelectElement).value) - 1]!; };
+$('climateWind').oninput = () => { $('climateWindValue').textContent = `${Math.round(Number(($('climateWind') as HTMLInputElement).value) * 100)}%`; };
 const swipeSurface = $('swipeSurface'), pageTrack = $('pageTrack');
 swipeSurface.addEventListener('pointerdown', event => {
   if (!event.isPrimary || event.pointerType === 'mouse') return;
@@ -458,3 +485,11 @@ swipeSurface.addEventListener('pointerup', event => {
 swipeSurface.addEventListener('pointercancel', event => { if (swipe?.pointerId === event.pointerId) { showVisualPage(visualPageOpen); swipe = null; } });
 addEventListener('keydown', event => { if (event.key === 'Escape' && visualPageOpen) showVisualPage(false); });
 void beginDm();
+
+for(const [id,field] of [['climateTemperature','temperatureC'],['climateFog','fogTarget'],['climateFlood','floodTarget'],['climateSea','seaIntensity']] as const){
+ $(id).oninput=()=>{const value=Number(($(id) as HTMLInputElement).value);$(`${id}Value`).textContent=field==='temperatureC'?`${value} °C`:field==='seaIntensity'?seaStateLabel(value):`${Math.round(value*100)}%`;};
+ $(id).onchange=()=>command({type:'environment',[field]:Number(($(id) as HTMLInputElement).value)});
+}
+$('climateSeaAuto').onclick=()=>command({type:'environment',seaIntensity:null});
+$('climateRulesEnabled').onchange=()=>command({type:'environment',weatherRules:($('climateRulesEnabled') as HTMLInputElement).checked});
+$('climateSnowTerrain').onchange=()=>command({type:'environment',snowDifficultTerrain:($('climateSnowTerrain') as HTMLInputElement).checked});

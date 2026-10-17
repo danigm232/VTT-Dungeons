@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { inventoryCategories } from '../shared/inventory';
-import { inventoryGlyph } from './inventory-icons';
+import { inventoryGlyph,inventoryItemGlyph } from './inventory-icons';
 
 describe('RPG inventory UI integration contract', () => {
   it('provides each control referenced by the widget exactly once', () => {
@@ -29,5 +29,12 @@ describe('RPG inventory UI integration contract', () => {
     expect(source).not.toContain('function consumeInventoryItem(');
     expect(source).not.toContain('function setInventoryTorchLit(');
     expect(source).toContain('backpack.reset();');
+  });
+  it('gives common gear distinct safe item illustrations instead of category-only icons',()=>{
+    const labels=['Arco corto','Daga','Bolsa de componentes','Libro de conjuros','Mochila','Tinta','Pluma','Hojas de pergamino','Bolsa de arena','Antorcha','Monedas de oro','Vino del Café','Cuerda','Campana','Cantimplora','Yesquero'];
+    const glyphs=labels.map(label=>inventoryItemGlyph(label,'other'));
+    expect(new Set(glyphs).size).toBeGreaterThanOrEqual(15);
+    for(const glyph of glyphs)expect(glyph).not.toMatch(/undefined|https?:|<script/);
+    expect(inventoryItemGlyph('<script>alert(1)</script>','other')).toBe(inventoryGlyph('other'));
   });
 });

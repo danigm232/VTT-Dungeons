@@ -22,7 +22,9 @@ export function d8PublicRendererConfig() {
       lighting: config.VTT_AMBIENCE.lighting,
       vfx: config.VTT_AMBIENCE.vfx,
       visual: config.VTT_AMBIENCE.visual,
-      horizon: config.VTT_AMBIENCE.horizon
+      horizon: config.VTT_AMBIENCE.horizon,
+      ...(config.VTT_AMBIENCE.templeEnvironment ? { templeEnvironment: config.VTT_AMBIENCE.templeEnvironment } : {}),
+      ...(config.VTT_AMBIENCE.sylvaniaEnvironment ? { sylvaniaEnvironment: config.VTT_AMBIENCE.sylvaniaEnvironment } : {})
     })
   }]));
   return { version: D8_VERSION, maps };

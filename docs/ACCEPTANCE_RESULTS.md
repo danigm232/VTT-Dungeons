@@ -1,5 +1,64 @@
 # Resultados de aceptación — RC4 y avance Alpha 0.2
 
+## Auditoría de guardado y actualización — 2026-10-13
+
+48 pruebas dirigidas y seis del lanzador superadas. La integración Stormwreck
+confirma que un fallo al guardar cancela el cierre sin perder memoria y que un
+reinicio confirmado recupera el avance. Migraciones importadas se escriben ya
+adaptadas; originales archivados, reloj/clima al cierre, historial útil y aviso
+de fallback. Versiones futuras de campaña/geometría bloqueadas sin reemplazar
+archivos. La compilación aislada evita sobrescribir una mesa y rechaza un cliente
+incompleto antes del cierre. D8 también supera guardado/cierre/reinicio con los
+seis mapas y 71 assets de audio; se corrigieron descargas HTTP que retrasaban el
+cierre. Compilación aislada completa superada. Recarga de jugador/proyector y
+revalidación de assets implementadas; validación física de actualización en
+móvil/proyector pendiente.
+[Registro con resultados finales](evidence/SAVE_UPDATE_AUDIT_20261013.md).
+
+
+## Cuadrícula táctica configurable — 2026-10-13
+
+DM y Jugador pueden elegir opacidad, grosor y color fijo o contraste por
+casilla. El valor inicial reduce el brillo de la cuadrícula. El contraste usa
+los materiales de terreno en 3D y una muestra de la imagen base en mapas 2D;
+cada interfaz conserva sus ajustes en su propio almacenamiento local.
+
+| Comprobación | Resultado | Alcance |
+|---|---|---|
+| Pruebas dirigidas | PASS — 21/21 | Normalización, contraste de materiales, grosor 3D, transparencia y geometría sin cambios. |
+| Typecheck de cliente | PASS | `tsconfig.client.json`. |
+| Build de producción | PASS | 2.213 módulos en `output/grid-settings-candidate-20261013/web`. |
+| Rutas de candidata | PASS | Servidor aislado en el puerto 3002; `/dm`, `/player` y `/projector` responden HTTP 200. Guardados de prueba separados. |
+| Pixel 9a, MSI y proyector 1080p | PENDIENTE | Revisar contraste, grosor, preferencias tras cerrar/reabrir y comodidad al jugar. |
+
+No se interrumpió la mesa del puerto 3000. Evidencia: [GRID_SETTINGS_20261013](evidence/GRID_SETTINGS_20261013.md).
+
+## Reloj global, iluminación y climatología — candidata técnica, 2026-10-12
+
+Se añadió el reloj autoritativo de 24 horas con actualización en exploración,
+pausas de DM/decisión, incrementos de combate por asalto, descansos, viaje
+autorizado por ruta y edición manual de hora. La iluminación y el clima se
+calculan desde el mismo tiempo: acumulación persistente de nieve y agua,
+deshielo, niebla e inundación. La cobertura de nieve y el espesor son estados
+distintos; la dificultad mecánica requiere umbral y activación del DM.
+
+| Comprobación | Resultado | Alcance |
+|---|---|---|
+| Pruebas específicas | PASS — 83/83 | Reloj/clima 7, protocolo 8 y GameServer 68; permisos DM, privacidad de duración de ruta, pausa, combate, descanso y persistencia. |
+| Iluminación y clima de campamentos | PASS — 3/3 en aislamiento | Luz de tiendas/interiores, velas por fase solar y lámparas/sombras; cada prueba se repitió sola con un worker. |
+| Typecheck cliente/servidor | PASS | Ambos proyectos TypeScript. |
+| Build de producción aislado | PASS | 2.193 módulos web; compilación TypeScript del servidor. Artefactos en `output/clock-climate-candidate-20261012/`; no se reemplazó el `dist` activo. |
+| Test de puertas D8 | PASS — 7/7 aislado | Se corrigió la expectativa del test V48 para partir de la puerta cerrada declarada por la campaña; el primer uso abre y el segundo cierra. También pasó en la suite global. |
+| Suite global | 615/622 PASS | Siete fallos en seis archivos: cinco pruebas de render sobrepasaron el timeout de 30 s, y dos aserciones de arte de barco recibieron geometría/cantidad distinta. Los cinco renderes pasan aislados con un worker; Vitest notificó cinco timeouts de actualización del worker al correr todo en paralelo. |
+| Servidor de candidata | PASS | Puerto 3001; `/dm`, `/player` y `/projector` responden HTTP 200, y `/api/info` anuncia la IP LAN `192.168.9.39`. Guardados de prueba separados. |
+| Integración HTTP/socket de candidata | PARCIAL | Arranque loopback, roles, privacidad de campaña/assets, entrada al pecio, movimiento y foco de escena pasan. Falla la vuelta de C2 con timeout al moverse de `main 30,19` a `main 29,19`; no se considera aceptación completa de ese recorrido. |
+| Pixel 9a, MSI y proyector 1080p | PENDIENTE | Comprobar lectura de luz, posición de la cuadrícula y coste sostenido en dispositivos físicos. |
+
+No se añadieron dependencias ni assets externos. Esta candidata no certifica aún
+el recorrido físico, los renderes que exceden el límite en la suite concurrente,
+las dos aserciones de arte ni el timeout de integración descritos arriba.
+Evidencia detallada: [GAME_CLOCK_CLIMATE_20261012](evidence/GAME_CLOCK_CLIMATE_20261012.md).
+
 ## Rendimiento de D8 — Temple y Mirror — 04/10/2026
 
 Se redujo el coste de render sólo en los dos mapas señalados como lentos: SSAO baja de 8 a 4 muestras y se renderizan a una escala algo menor. La oclusión de fichas consulta un índice XZ para escenografía estática congelada, prueba aparte los objetos dinámicos y evita reconstruir la máscara gráfica en cada fotograma cuando nada cambia.

@@ -1,4 +1,4 @@
-import { clampCameraTilt } from './camera-profile';
+import { clampCameraTilt,DEFAULT_CAMERA_PROFILE } from './camera-profile';
 
 export type CameraTouchAxis = 'orbit' | 'tilt' | 'zoom';
 export const CAMERA_TOUCH_PAN_THRESHOLD = 20;
@@ -13,11 +13,11 @@ export function cameraTouchAxis(dx: number, dy: number, pinchTravel: number, can
 
 /** Up raises the view; down lowers it. Ignore the recognition dead zone so
  * crossing the threshold cannot jump straight to a vertical angle limit. */
-export function cameraTiltFromTouch(startDegrees: number, verticalTravel: number) {
+export function cameraTiltFromTouch(startDegrees: number, verticalTravel: number,profile=DEFAULT_CAMERA_PROFILE) {
   const travel = Math.sign(verticalTravel) * Math.max(0, Math.abs(verticalTravel) - CAMERA_TOUCH_PAN_THRESHOLD);
-  return adjustCameraTiltForTouch(startDegrees, travel);
+  return adjustCameraTiltForTouch(startDegrees, travel,profile);
 }
 
-export function adjustCameraTiltForTouch(currentDegrees: number, deltaY: number) {
-  return clampCameraTilt(currentDegrees - deltaY * .1);
+export function adjustCameraTiltForTouch(currentDegrees: number, deltaY: number,profile=DEFAULT_CAMERA_PROFILE) {
+  return clampCameraTilt(currentDegrees - deltaY * .1,profile);
 }

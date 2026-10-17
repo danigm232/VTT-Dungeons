@@ -1,6 +1,8 @@
 import { Color3 } from '@babylonjs/core/Maths/math.color.js';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
+import { ShaderMaterial } from '@babylonjs/core/Materials/shaderMaterial.js';
+import type { Material } from '@babylonjs/core/Materials/material.js';
 import type { BaseTexture } from '@babylonjs/core/Materials/Textures/baseTexture.js';
 import { Mesh } from '@babylonjs/core/Meshes/mesh.js';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder.js';
@@ -70,7 +72,7 @@ export function buildShipRowboat(scene: Scene, woodTexture?: BaseTexture): Trans
   const oarMat = mat('oar-wood', '#b99b6e');
   const ironMat = mat('rowlock-iron', '#343c3a');
   const foamMat=mat('waterline-foam','#98b8b6');foamMat.alpha=.24;foamMat.disableLighting=true;
-  const add = (mesh: Mesh, material: StandardMaterial) => {
+  const add = (mesh: Mesh, material: Material) => {
     mesh.parent = root; mesh.material = material; mesh.isPickable = false;
     mesh.metadata = { visualOnly: true, kind: 'ship-rowboat-detail' };
     return mesh;
@@ -144,5 +146,30 @@ export function buildShipRowboat(scene: Scene, woodTexture?: BaseTexture): Trans
   for(const side of [-1,1])tube('waterline-wash',Array.from({length:15},(_,i)=>{
     const t=-.82+i/14*1.64;return new Vector3(t*2.48,-.30,side*halfBeam(t)*.94);
   }),.022,foamMat);
+  const wash=new ShaderMaterial('rowboat:wave-contact-vfx',scene,{vertexSource:`precision highp float;attribute vec3 position;attribute vec2 uv;uniform mat4 worldViewProjection;varying vec2 v;
+    void main(){v=uv;gl_Position=worldViewProjection*vec4(position,1.);}`,fragmentSource:`precision highp float;varying vec2 v;uniform float time;uniform float lightLevel;
+    void main(){float front=fract(v.y-time*.23);float ribbon=pow(max(0.,sin(front*3.14159)),5.);float broken=smoothstep(-.15,.65,sin(v.x*17.-time*1.6)+sin(v.x*39.+time));
+      gl_FragColor=vec4(vec3(.64,.77,.76)*lightLevel,ribbon*broken*.42);}`},{attributes:['position','uv'],uniforms:['worldViewProjection','time','lightLevel'],needAlphaBlending:true});
+  wash.setFloat('lightLevel',1);
+  wash.backFaceCulling=false;
+  const vertices:number[]=[],uv:number[]=[],washIndices:number[]=[],washNormals:number[]=[];
+  for(let i=0;i<=48;i++){
+    const a=i/48*Math.PI*2,x=Math.cos(a)*2.55,z=Math.sin(a)*halfBeam(Math.cos(a))*.96;
+    for(const r of [0,.42]){vertices.push(x+Math.cos(a)*r,-.32,z+Math.sin(a)*r);uv.push(i/48,r/.42);}
+    if(i){const n=(i-1)*2;washIndices.push(n,n+1,n+2,n+1,n+3,n+2);}
+  }
+  const waves=new Mesh('rowboat:travelling-wave-wash',scene),v=new VertexData();Object.assign(v,{positions:vertices,indices:washIndices,uvs:uv});VertexData.ComputeNormals(vertices,washIndices,washNormals);v.normals=washNormals;v.applyToMesh(waves);add(waves,wash);
+  waves.metadata={visualOnly:true,kind:'rowboat-contact-vfx',tokenOccluder:false};
+  // Eight low-cost droplets: rise where waves strike the gunwale and vanish
+  // before falling into the cockpit. The boat cell/collision never changes.
+  const spray=Array.from({length:8},(_,i)=>{
+    const m=MeshBuilder.CreateIcoSphere(`rowboat:spray:${i}`,{radius:.024,subdivisions:1},scene);add(m,foamMat);m.metadata={visualOnly:true,kind:'rowboat-spray',tokenOccluder:false};return m;
+  });
+  const observer=scene.onBeforeRenderObservable.add(()=>{
+    if(!root.isEnabled())return;const time=performance.now()/1000;wash.setFloat('time',time);
+    for(let i=0;i<spray.length;i++){const phase=(time*.42+i*.137)%1,x=-1.9+(i%4)*1.22,side=i<4?-1:1;
+      const m=spray[i]!;m.position.set(x,-.29+Math.sin(phase*Math.PI)*.25,side*(halfBeam(x/2.48)+phase*.2));m.setEnabled(phase<.66);m.scaling.setAll(.4+Math.sin(phase*Math.PI)*.6);
+    }
+  });root.onDisposeObservable.add(()=>scene.onBeforeRenderObservable.remove(observer));
   return root;
 }

@@ -8,6 +8,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { io } from 'socket.io-client';
 import { pathToFileURL } from 'node:url';
+import { requestSafeTableShutdown } from './safe-table-shutdown.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const serverBuild=path.resolve(root,process.env.DUNGEONS_SERVER_BUILD||'dist/server');
@@ -86,6 +87,10 @@ async function socketResult(socket, event, body) {
 }
 try {
   await launch();
+  for (const route of ['/dm', '/player', '/projector', '/api/campaign']) {
+    const page = await fetch(`${base}${route}`);
+    assert.equal(page.status, 200); assert.equal(page.headers.get('cache-control'), 'no-store');
+  }
   let session = await login(), status = await privateCall('/api/dm/save/status', session);
   assert.equal(status.mode, 'ready');
   assert.equal((await fetch(`${base}/api/dm/save/status`)).status, 401);
@@ -120,7 +125,7 @@ try {
   dmSocket.disconnect(); playerSocket.disconnect(); dmSocket = undefined; playerSocket = undefined;
   await stop();
   await launch(); session = await login(); status = await privateCall('/api/dm/save/status', session);
-  assert.equal(status.mode, 'ready'); assert.equal(status.generation, restored.generation);
+  assert.equal(status.mode, 'ready'); assert.ok(status.generation >= restored.generation);
   assert.notEqual(status.runtimeEpoch, restored.runtimeEpoch);
   assert.equal(status.savedStateRevision, restored.stateRevision);
   await stop();
@@ -130,8 +135,33 @@ try {
   const recoveryFiles = await fs.readdir(path.join(temporary, 'stormwreck-isle', 'recovery'));
   assert.ok(recoveryFiles.some(name => name.endsWith('-active.json')));
   assert.equal(JSON.parse(await fs.readFile(path.join(temporary, 'stormwreck-isle', 'active.json'), 'utf8')).generation, status.generation);
+  assert.ok(status.recoveryNotice);
+  const slot = path.join(temporary, 'stormwreck-isle');
+  const token = (await fs.readFile(path.join(slot, 'shutdown.token'), 'utf8')).trim();
+  assert.equal((await fetch(`${base}/__local/shutdown`)).status, 403);
+  dmSocket = await connectRole('dm', session);
+  assert.equal((await socketResult(dmSocket, 'dm:command', { type: 'hp', commandId: crypto.randomUUID(), runtimeEpoch: status.runtimeEpoch, characterId: 'mike', hp: 4 })).ok, true);
+  const lockPath = path.join(slot, 'writer.lock'), formerLock = await fs.readFile(lockPath, 'utf8');
+  try {
+    await fs.writeFile(lockPath, JSON.stringify({ ...JSON.parse(formerLock), owner: crypto.randomUUID() }));
+    await assert.rejects(requestSafeTableShutdown({ port, token }), /no confirmó el guardado/);
+    assert.equal((await fetch(`${base}/api/info`)).status, 200);
+    assert.equal((await privateCall('/api/dm/save/status', session)).mode, 'error');
+    const memory = await privateCall('/api/dm/save/export', session);
+    assert.equal(memory.payload.characters.find(character => character.id === 'mike').hp, 4);
+  } finally { await fs.writeFile(lockPath, formerLock); }
+  const running = child;
+  const exited = new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('La mesa no terminó tras confirmar el guardado.')), 12000);
+    running.once('exit', code => { clearTimeout(timer); resolve(code); });
+  });
+  await requestSafeTableShutdown({ port, token });
+  assert.equal(await exited, 0); child = undefined; dmSocket.disconnect(); dmSocket = undefined;
+  await launch(); session = await login();
+  const reloaded = await privateCall('/api/dm/save/export', session);
+  assert.equal(reloaded.payload.characters.find(character => character.id === 'mike').hp, 4);
   await stop();
-  console.log('Alpha 0.3 smoke PASS: private access, save idempotence, preview, restore, old socket commands rejected, graceful restart and automatic fallback from corrupt active.');
+  console.log('Alpha 0.3 smoke PASS: permissions, save/load, migration, corruption fallback, final-save failure keeps the table alive, safe update acknowledgement and progress after restart.');
 } finally {
   dmSocket?.disconnect(); playerSocket?.disconnect();
   if (child && child.exitCode === null) { child.kill('SIGTERM'); await delay(500); }

@@ -5,13 +5,9 @@ export function radialRadiusLimit(width: number, height: number) {
   return Math.min(360, Math.max(width, height) * .48);
 }
 
-export function radialPagination(total:number,maximum:number,requestedPage:number,fits:(start:number,count:number,pages:number)=>boolean){
-  let capacity=Math.max(1,maximum),pages=1;
-  while(true){
-    pages=Math.max(1,Math.ceil(total/capacity));
-    const allFit=Array.from({length:pages},(_,page)=>fits(page*capacity,Math.min(capacity,total-page*capacity),pages)).every(Boolean);
-    if(allFit||capacity===1)break;
-    capacity=capacity>4?4:capacity-1;
-  }
+export function radialPagination(total:number,maximum:number,requestedPage:number){
+  // Captions and navigation must never turn a four/eight-icon wheel into
+  // twenty one-icon pages. Layout adapts; page size belongs to the chosen arc.
+  const capacity=Math.max(1,Math.floor(maximum)),pages=Math.max(1,Math.ceil(total/capacity));
   return {capacity,pages,page:Math.max(0,Math.min(requestedPage,pages-1))};
 }

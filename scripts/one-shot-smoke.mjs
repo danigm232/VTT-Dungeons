@@ -11,6 +11,7 @@ import { io } from 'socket.io-client';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'dungeons-one-shot-smoke-'));
 let child;
+let serverOutput = '';
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function freePort() {
   const server = net.createServer();
@@ -28,8 +29,9 @@ async function launch() {
   delete childEnvironment.DM_PASSWORD;
   child = spawn(process.execPath, [path.join(serverBuild, 'apps/server/index.js')], { cwd: root, stdio: ['ignore', 'pipe', 'pipe', 'ipc'], windowsHide: true,
     env: childEnvironment });
-  let output = '', healthFailure = '';
-  child.stdout.on('data', data => { output += data.toString(); }); child.stderr.on('data', data => { output += data.toString(); });
+  let output = '', healthFailure = ''; serverOutput = '';
+  const capture = data => { const text = data.toString(); output += text; serverOutput = (serverOutput + text).slice(-6000); };
+  child.stdout.on('data', capture); child.stderr.on('data', capture);
   for (let attempt = 0; attempt < 100; attempt++) {
     if (child.exitCode !== null) throw new Error(`One-shot server exited: ${output.slice(0, 1500)}`);
     try {
@@ -45,7 +47,7 @@ async function stop() {
   if (!child) return;
   const current = child;
   const finished = new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('One-shot shutdown timed out')), 12_000);
+    const timer = setTimeout(() => reject(new Error(`One-shot shutdown timed out: ${serverOutput}`)), 12_000);
     current.once('exit', code => { clearTimeout(timer); code === 0 ? resolve() : reject(new Error(`One-shot shutdown ${code}`)); });
   });
   current.send('shutdown'); await finished; child = undefined;
@@ -74,10 +76,20 @@ async function verifySharedD8Camera(cookie) {
     assert.equal(projectedWorld.sceneId, dmWorld.sceneId);
     const receivedOrientation = waitFor(projector, 'camera:orientation');
     dm.emit('camera:orientation', { runtimeEpoch: dmWorld.runtimeEpoch, sceneEpoch: dmWorld.sceneEpoch,
-      sceneId: dmWorld.sceneId, step: 3 });
+      sceneId: dmWorld.sceneId, step: -1.5, profile: 'limited-hd2d-v2' });
     const orientation = await receivedOrientation;
     assert.equal(orientation.sceneId, dmWorld.sceneId);
-    assert.equal(orientation.step, 3);
+    assert.equal(orientation.step, -1.5);
+  } finally { returning.disconnect(); }
+    const updates=[]; projector.on('camera:orientation', event=>updates.push(event));
+    dm.emit('camera:orientation',{runtimeEpoch:dmWorld.runtimeEpoch,sceneEpoch:dmWorld.sceneEpoch,sceneId:dmWorld.sceneId,step:0,tilt:45,profile:'limited-hd2d-v2'});
+    const valid=waitFor(projector,'camera:orientation');
+    dm.emit('camera:orientation',{runtimeEpoch:dmWorld.runtimeEpoch,sceneEpoch:dmWorld.sceneEpoch,sceneId:dmWorld.sceneId,step:0,tilt:15,profile:'limited-hd2d-v2'});
+    assert.equal((await valid).tilt,15);
+    assert.ok(updates.every(event=>event.tilt!==45));
+    const stopped=waitFor(projector,'camera:orientation');
+    dm.emit('camera:orientation',{runtimeEpoch:dmWorld.runtimeEpoch,sceneEpoch:dmWorld.sceneEpoch,sceneId:dmWorld.sceneId,step:null});
+    assert.equal((await stopped).step,null);
   } finally {
     dm.disconnect(); projector.disconnect();
   }
@@ -111,7 +123,11 @@ try {
   inspect(renderer);
   assert.deepEqual(forbiddenKeys, []);
   assert.equal(JSON.stringify(renderer).includes('CANON'), false);
-  for (const scene of campaign.scenes) assert.equal((await fetch(`${base}${scene.background}`)).status, 200, scene.id);
+  for (const scene of campaign.scenes) {
+    const image = await fetch(`${base}${scene.background}`);
+    assert.equal(image.status, 200, scene.id);
+    assert.equal(image.headers.get('cache-control'), 'public, max-age=0, must-revalidate');
+  }
   for (const token of Object.values(campaign.tokens)) assert.equal((await fetch(`${base}${token.url}`)).status, 200, token.url);
   const animationUrls = new Set(Object.values(campaign.tokenAnimations).flatMap(set => Object.values(set).flatMap(animation => animation.frames.map(frame => typeof frame === 'string' ? frame : frame.url))));
   for (const url of animationUrls) assert.equal((await fetch(`${base}${url}`)).status, 200, url);
@@ -126,20 +142,37 @@ try {
   };
   collectAudioUrls(campaign.audio);
   assert.ok(audioUrls.size > 0);
-  for (const url of audioUrls) assert.equal((await fetch(`${base}${url}`)).status, 200, url);
+  for (const url of audioUrls) {
+    const sound = await fetch(`${base}${url}`);
+    assert.equal(sound.status, 200, url);
+    assert.equal(sound.headers.get('cache-control'), 'public, max-age=0, must-revalidate');
+  }
   const login = await fetch(`${base}/api/dm/login`, { method: 'POST', headers: { 'content-type': 'application/json', origin: base }, body: JSON.stringify({}) });
   assert.equal(login.status, 200);
   const cookie = login.headers.get('set-cookie')?.split(';')[0]; const { csrfToken } = await login.json();
   await verifySharedD8Camera(cookie);
   const status = await fetch(`${base}/api/dm/save/status`, { headers: { cookie } });
   assert.equal(status.status, 200);
+  const initialStatus = await status.json();
   const saved = await fetch(`${base}/api/dm/save`, { method: 'POST', headers: { cookie, origin: base, 'content-type': 'application/json',
-    'x-dungeons-csrf': csrfToken, 'x-dungeons-runtime-epoch': (await status.json()).runtimeEpoch },
+    'x-dungeons-csrf': csrfToken, 'x-dungeons-runtime-epoch': initialStatus.runtimeEpoch },
   body: JSON.stringify({ runtimeEpoch: (await (await fetch(`${base}/api/dm/save/status`, { headers: { cookie } })).json()).runtimeEpoch, requestId: crypto.randomUUID() }) });
   assert.equal(saved.status, 200);
+  const committed = await saved.json();
+  const exported = await (await fetch(`${base}/api/dm/save/export`, { headers: { cookie } })).json();
+  await stop(); await launch();
+  const reopenedLogin = await fetch(`${base}/api/dm/login`, { method: 'POST', headers: { 'content-type': 'application/json', origin: base }, body: '{}' });
+  const reopenedCookie = reopenedLogin.headers.get('set-cookie')?.split(';')[0];
+  const reopenedStatus = await (await fetch(`${base}/api/dm/save/status`, { headers: { cookie: reopenedCookie } })).json();
+  const reopened = await (await fetch(`${base}/api/dm/save/export`, { headers: { cookie: reopenedCookie } })).json();
+  assert.equal(reopenedStatus.mode, 'ready'); assert.ok(reopenedStatus.generation >= committed.generation);
+  assert.deepEqual(reopened.payload.characters, exported.payload.characters);
+  assert.deepEqual(reopened.payload.scenes, exported.payload.scenes);
+  assert.equal(reopened.payload.sceneId, exported.payload.sceneId);
+  assert.notEqual(reopenedStatus.runtimeEpoch, initialStatus.runtimeEpoch);
   await stop();
   assert.ok(await fs.stat(path.join(temporary, 'd8-night-private', 'active.json')));
-  console.log(`One-shot smoke PASS: six D8 maps, sanitized Babylon config, all tokens, ${audioUrls.size} audio assets, shared camera orientation, private save and isolated data folder.`);
+  console.log(`One-shot smoke PASS: six D8 maps, sanitized Babylon config, all tokens, ${audioUrls.size} audio assets, cache revalidation, shared camera orientation, private save, reload after restart and isolated data folder.`);
 } finally {
   if (child?.exitCode === null) child.kill('SIGTERM');
   const temporaryRoot = path.resolve(temporary), tempRoot = path.resolve(os.tmpdir());

@@ -37,7 +37,7 @@ export function buildWreckInterior(scene: Scene, hullTexture?: BaseTexture, terr
     m.material=material;worldSurfaceUV(m,4.5);return add(m,surface,kind);
   };
   for(const [surface,floor,top,inset] of [['lower-deck',-3.5,-.65,.87],['hold-air',-6.4,-4.12,1.25]] as const) {
-    for(const side of [-1,1])for(let x=-31.5;x<S.bowX;x+=1.5){
+    for(const side of [-1,1])for(let x=S.sternX;x<S.bowX;x+=1.5){
       // Close both sides all the way to the stern. The entry is in the end
       // transom; omitting both sides here left the whole room open to the sea.
       const nx=Math.min(S.bowX,x+1.5),width=Math.max(.06,wreckBeamAt(x)-inset),next=Math.max(.06,wreckBeamAt(nx)-inset);

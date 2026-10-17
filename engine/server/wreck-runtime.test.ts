@@ -67,7 +67,7 @@ describe('Rosa de los Vientos · mapa único explorable', () => {
     expect(restored.characters.get('mike')).toMatchObject({surfaceId:'main',cell:{col:17,row:11},inventory:['Cuerda de cáñamo','Paquete encerado']});
     expect(restored.characters.get('mia')!.cell).toEqual(miaBefore.cell);
     const upgraded=restored.captureDurable(),upgradedObjects=upgraded.scenes.find(s=>s.sceneId==='wreck-ship')!.objects;
-    expect(upgraded.wreckGridVersion).toBe(5);
+    expect(upgraded.wreckGridVersion).toBe(6);
     expect(upgradedObjects.find(o=>o.id==='c5-door')).toMatchObject({state:'open',cell:shipCell(12,10)});
     expect(upgradedObjects.find(o=>o.id==='c9-iron-chest')).toMatchObject({interaction:{open:true,package:'taken',packageOwnerId:'mike'}});
     const again=new GameState(stormwreckBundle);again.restoreDurable(upgraded);
@@ -220,8 +220,14 @@ describe('Rosa de los Vientos · mapa único explorable', () => {
     const token = 'c'.repeat(32);
     expect(restored.claim(token, 'socket-trinity', 'maria').ok).toBe(true);
     expect(restored.playerPrivate(token).sheet?.strengthScore).toBe(8);
-    expect(restored.declareExplorationBasicAction('maria', 'jump', undefined, restored.characters.get('maria')!.cell))
-      .toMatchObject({ ok: true, guidance: expect.stringContaining('FUE 8') });
+    const character=restored.characters.get('maria')!,scene=restored.currentScene();
+    Reflect.get(restored,'walkingRunUp').set('maria',{feet:10,facing:character.facing,at:Date.now()});
+    let result:ReturnType<GameState['declareExplorationBasicAction']>|undefined;
+    for(const neighbor of surfaceNeighbors(scene.terrain!,{surfaceId:character.surfaceId,cell:character.cell})){
+      if(neighbor.surfaceId!==character.surfaceId)continue;
+      result=restored.declareExplorationBasicAction('maria','jump',undefined,neighbor.cell);if(result.ok)break;
+    }
+    expect(result).toMatchObject({ ok: true, guidance: expect.stringContaining('FUE 8') });
   });
 
   it('tiene una animación registrada y PNG existente para cada acción básica y de combate de Trinity', () => {
@@ -376,7 +382,7 @@ describe('Rosa de los Vientos · mapa único explorable', () => {
     expect(state.publicSnapshot(false, 'wreck-ship').entities.map(entity => entity.id)).toContain('mia');
   });
 
-  it('sube por la escala visible hasta la cofa y puede volver caminando al mismo barco', () => {
+  it('sube por la escala visible, explora la cofa y vuelve por descenso explícito al mismo barco', () => {
     const state = new GameState(stormwreckBundle), mike = state.characters.get('mike')!;
     const terrain = wreckRuntimeScenes[0]!.terrain!, ladder = wreckPorts.find(port => port.id === 'P10')!;
     const mainNeighbors = surfaceNeighbors(terrain, ladder.from).filter(address => address.surfaceId === 'main' && address.cell.row !== 14);
@@ -385,6 +391,11 @@ describe('Rosa de los Vientos · mapa único explorable', () => {
     expect(state.moveEntityOneSquare('mike', ladder.from.cell)).toBe('MOVED');
     finishStep(state);
     expect(mike.surfaceId).toBe('main');
+    expect(mike.step).toBeNull();
+    expect(state.traversePort('mike','P10','forward',false)).toBe('COFA_CHECK_REQUIRED');
+    expect(state.traversePort('mike','P10','forward',false,9)).toBe('COFA_CHECK_FAILED');
+    expect(mike.step).toBeNull();
+    expect(state.traversePort('mike','P10','forward',false,10)).toBe('MOVED');
     expect(mike.step).toMatchObject({fromSurfaceId:'main',toSurfaceId:'crow',movementKind:'climb',durationMs:10000});
     expect(state.moveEntityOneSquare('mike', ladder.from.cell)).not.toBe('MOVED');
     finishStep(state);
@@ -395,6 +406,8 @@ describe('Rosa de los Vientos · mapa único explorable', () => {
     Object.assign(mike, { cell: crowLanding.cell });
     expect(state.moveEntityOneSquare('mike', ladder.to.cell)).toBe('MOVED');
     finishStep(state);
+    expect(mike.step).toBeNull();expect(mike.surfaceId).toBe('crow');
+    expect(state.traversePort('mike','P10','return')).toBe('MOVED');
     expect(mike.step).toMatchObject({fromSurfaceId:'crow',toSurfaceId:'main',movementKind:'climb'});
     finishStep(state);
     expect(mike).toMatchObject({ sceneId: 'wreck-ship', surfaceId: 'main', cell: ladder.from.cell });
@@ -412,7 +425,7 @@ describe('Rosa de los Vientos · mapa único explorable', () => {
     expect(scene.meshes.some(mesh => mesh.metadata?.kind === 'ship-hull')).toBe(true);
     expect(scene.meshes.some(mesh => mesh.name.startsWith('ship-deck-grate-slat:'))).toBe(true);
     expect(scene.meshes.some(mesh => mesh.name.startsWith('ship-deck-rope-coil:'))).toBe(true);
-    expect(scene.meshes.filter(mesh => mesh.metadata?.kind === 'main-mast')).toHaveLength(1);
+    expect(scene.meshes.filter(mesh => mesh.metadata?.kind === 'main-mast')).toHaveLength(4);
     expect(scene.meshes.some(mesh => mesh.metadata?.kind === 'cofa-bracket')).toBe(true);
     expect(scene.meshes.some(mesh => mesh.metadata?.kind === 'fractured-rib')).toBe(true);
     expect(scene.meshes.filter(mesh => mesh.metadata?.kind === 'ship-deck-grate' || mesh.metadata?.kind === 'ship-deck-rope-coil')
@@ -543,6 +556,25 @@ describe('Rosa de los Vientos · mapa único explorable', () => {
     expect(JSON.stringify(state.publicSnapshot(true, 'wreck-ship', 'main'))).not.toContain('Botín C4:');
   });
 
+  it('adapta los bordes de guardados V5 al casco compacto sin perder objetos ni tesoro',()=>{
+    const state=new GameState(stormwreckBundle);state.focusScene('wreck-ship');
+    const bracelet=wreckRuntimeScenes[0]!.pickups!.find(p=>p.id==='crow-bracelet')!,mike=state.characters.get('mike')!;
+    Object.assign(mike,{sceneId:'wreck-ship',surfaceId:'crow',cell:{...bracelet.cell}});expect(state.takePickup('mike',bracelet.id)).toBe('PICKUP_TAKEN');
+    const source=state.captureDurable();source.wreckGridVersion=5;
+    const savedMike=source.characters.find(c=>c.id==='mike')!;Object.assign(savedMike,{surfaceId:'main',cell:shipCell(23,14)});
+    const inventory=[...savedMike.inventory],objects=source.scenes.find(s=>s.sceneId==='wreck-ship')!.objects;
+    const debris=objects.find(o=>o.id==='c2-flotsam')!,barrel=objects.find(o=>o.id==='c8-barrel-04')!;
+    debris.cell=shipCell(39,10);debris.structure='destroyed';barrel.cell=shipCell(39,4);
+    const unchanged=structuredClone(objects.find(o=>o.id==='c4-desk-blockout'));
+    const restored=new GameState(stormwreckBundle);expect(()=>restored.restoreDurable(source)).not.toThrow();
+    expect(restored.characters.get('mike')!.inventory).toEqual(inventory);
+    expect(terrainTile(wreckRuntimeScenes[0]!.terrain!,{surfaceId:'main',cell:restored.characters.get('mike')!.cell})).toBeTruthy();
+    const upgraded=restored.captureDurable(),updated=upgraded.scenes.find(s=>s.sceneId==='wreck-ship')!.objects;
+    expect(upgraded.wreckGridVersion).toBe(6);expect(updated.find(o=>o.id===debris.id)!.structure).toBe('destroyed');
+    expect(updated.find(o=>o.id==='c4-desk-blockout')).toEqual(unchanged);
+    expect(restored.publicSnapshot(true,'wreck-ship','crow').collectedPickups).toContain('crow-bracelet');
+    const again=new GameState(stormwreckBundle);expect(()=>again.restoreDurable(upgraded)).not.toThrow();expect(again.captureDurable().scenes).toEqual(upgraded.scenes);
+  });
   it('migra guardados de mapas antiguos conservando las posiciones y superficies dentro del mapa único', () => {
     const source = new GameState(stormwreckBundle).captureDurable();
     delete source.wreckGridVersion;
@@ -578,7 +610,7 @@ describe('Rosa de los Vientos · mapa único explorable', () => {
     restored.restoreDurable(source);
     expect(restored.characters.get('mike')?.cell).toEqual(shipCell(20, 9));
     expect(restored.characters.get('mia')?.cell).toEqual(shipCell(21, 9));
-    expect(restored.captureDurable().wreckGridVersion).toBe(5);
+    expect(restored.captureDurable().wreckGridVersion).toBe(6);
   });
 });
 

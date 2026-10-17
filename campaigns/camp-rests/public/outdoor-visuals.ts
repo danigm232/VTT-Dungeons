@@ -1,3 +1,4 @@
+import { strongWind, precipitationKind, weatherLight } from '../../../engine/shared/weather.js';
 import { Color3 } from '@babylonjs/core/Maths/math.color.js';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import { Mesh } from '@babylonjs/core/Meshes/mesh.js';
@@ -21,9 +22,11 @@ import type { CampVisuals } from './visuals.js';
 import { registerInteractionPart, interactionParts, type InteractionPartRole } from '../../../engine/client/interaction-animation.js';
 import { campMaterialRelief, campClothSurface, createCampDetailKit, weatherRock, wornCampTrail } from './camp-detail-kit.js';
 import type { EnvironmentState } from '../../../engine/shared/protocol.js';
+import type { ClimateState, NaturalLightProfile } from '../../../engine/shared/game-time.js';
 import { CampFire } from './camp-fire.js';
-import { CampShadows, createCampCoals, createCampSurfaceEffects } from './camp-surface-effects.js';
+import { CampShadows, createCampCoals, createCampSurfaceEffects, includeCampActors } from './camp-surface-effects.js';
 import { forestStreamX, forestStreamColumn } from './forest-stream.js';
+import { createCampLife } from './camp-life.js';
 
 const DARK: Record<CampRestPhase, number> = { arrival: .12, dusk: .63, night: .94, dawn: .36, finalization: .12 };
 const C = 1.5, cellAt = (cell: Cell) => new Vector3((cell.col + .5) * C, 0, (cell.row + .5) * C);
@@ -46,7 +49,7 @@ export function createOutdoorVisuals(scene: Scene, definition: PublicSceneDefini
   const asset = '/art/a1-hd2d-v1/', allMaterials: StandardMaterial[] = [];
   const paint = (name: string, tint: string, filename?: string, repeat = 1) => {
     const material = illustratedMaterial(scene, 'camp:' + definition.id + ':' + name, tint, filename ? filename.startsWith('/')?filename:asset+filename : undefined, repeat);
-    material.maxSimultaneousLights = 4; allMaterials.push(material); return material;
+    material.maxSimultaneousLights = 6; allMaterials.push(material); return material;
   };
   const M = {
     rock: paint('rock', profile === 'cliff-observatory' ? '#a3b0ba' : '#d5d7c3', '/art/camp-detail-v1/coastal-rock.png'),
@@ -63,7 +66,7 @@ export function createOutdoorVisuals(scene: Scene, definition: PublicSceneDefini
     cloth: paint('blanket', '#758491', 'wool-v4.webp', 2),
     paper: paint('paper', '#e8d8b2'), metal: paint('iron', '#4a5558'), brass: paint('brass', '#bf9554'),
     pottery: paint('pottery', '#997456'), ember: paint('ember', '#ffe1a1'), flame: paint('flame', '#ff9e40'),
-    halo: paint('interaction', '#ffe1a4'), crystal: paint('crystal', '#72b6c4')
+    halo: paint('interaction', '#ffe1a4'), crystal: paint('crystal', '#7997ad', 'limestone-v3.webp',1.4)
   };
   const plateauMaterial=paint('plateau-ground','#798594','limestone-v3.webp');
   campMaterialRelief(scene,plateauMaterial,'rock');
@@ -73,8 +76,9 @@ export function createOutdoorVisuals(scene: Scene, definition: PublicSceneDefini
   [M.canvas,M.canvas2,M.canvas3,M.cloth].forEach(m=>campMaterialRelief(scene,m,'cloth'));
   M.cloth.backFaceCulling=false;M.cloth.twoSidedLighting=true;
   M.ember.emissiveColor = Color3.FromHexString('#ffb947'); M.flame.emissiveColor = Color3.FromHexString('#ff782d');
-  M.halo.emissiveColor = Color3.FromHexString('#dcb774'); M.crystal.emissiveColor = Color3.FromHexString('#287a98');
-  const shade = softPoolMaterial(scene, 'camp:contact-shadow', '#142025', .29), warmPool = softPoolMaterial(scene, 'camp:fire-bounce', '#ffaa52', .22);
+  M.halo.emissiveColor = Color3.FromHexString('#dcb774'); M.crystal.emissiveColor=Color3.FromHexString('#397ea8').scale(.13);campMaterialRelief(scene,M.crystal,'rock');M.crystal.specularColor=Color3.FromHexString('#6d93aa');M.crystal.specularPower=48;
+  const shade = softPoolMaterial(scene, 'camp:contact-shadow', '#142025', .43);
+  shade.zOffset=-2;
   const groundPaint = profile==='forest'?[]:[paint('ground-gravel', '#a7a38b', 'earth.webp'), paint('ground-worn-stone', '#aaa99e', 'flagstone.webp'), paint('ground-damp', '#677568', 'earth.webp')];
   groundPaint.forEach(m => { m.transparencyMode = Material.MATERIAL_ALPHABLEND; m.backFaceCulling = false; m.alpha = .72; });
   const trailBlend = profile === 'forest' ? softPoolMaterial(scene, 'forest:trail-blend', '#c0a17b', .6) : undefined;
@@ -218,7 +222,7 @@ export function createOutdoorVisuals(scene: Scene, definition: PublicSceneDefini
     ['water','#79adba','/art/forest-hd2d-v1/stream.jpg']
   ]){
     const material=scene.getMaterialByName('terrain-material:'+id) as StandardMaterial|null;
-    if(material){material.diffuseColor=Color3.FromHexString(tint!);material.maxSimultaneousLights=4;material.specularColor=Color3.FromHexString(id==='water'?'#426b7b':'#111615');allMaterials.push(material);if(typeof document!=='undefined')material.diffuseTexture=new Texture(url!,scene);if(id==='moss'){M.moss.diffuseTexture=material.diffuseTexture;M.moss.diffuseColor.copyFrom(material.diffuseColor);}if(id==='water')campMaterialRelief(scene,material,'water');else if(id==='basalt')campMaterialRelief(scene,material,'rock');}
+    if(material){material.diffuseColor=Color3.FromHexString(tint!);material.maxSimultaneousLights=6;material.specularColor=Color3.FromHexString(id==='water'?'#426b7b':'#111615');allMaterials.push(material);if(typeof document!=='undefined')material.diffuseTexture=new Texture(url!,scene);if(id==='moss'){M.moss.diffuseTexture=material.diffuseTexture;M.moss.diffuseColor.copyFrom(material.diffuseColor);}if(id==='water')campMaterialRelief(scene,material,'water');else if(id==='basalt')campMaterialRelief(scene,material,'rock');}
   }
   if(profile!=='forest')for(const mesh of scene.meshes)if(mesh.name.startsWith('terrain-batch:')&&mesh.material?.name!=='terrain-material:water')weatherFloor(mesh as Mesh);
   const obstacles=terrain.obstacles??[];
@@ -229,7 +233,7 @@ export function createOutdoorVisuals(scene: Scene, definition: PublicSceneDefini
     else if(id.includes('arcane-crystal')){
       contact(at,1,.8);rock('cliff:crystal-base',at.add(new Vector3(0,.21,0)),1.3,.5,1.3,i);
       for(let j=0;j<3;j++){const h=1.2+rand(i+j)*1.2,m=cylinder('cliff:crystal:'+i+':'+j,.38,h,at.add(new Vector3((j-1)*.38,h*.5+.2,0)),M.crystal,6,.02);m.rotation.z=(j-1)*.22;}
-      const light=new PointLight('cliff:crystal-light:'+i,at.add(new Vector3(0,1.4,0)),scene);light.diffuse=Color3.FromHexString('#60b9d2');light.range=5;light.renderPriority=20;lights.push({light,intensity:.22,kind:'crystal'});
+      const light=new PointLight('cliff:crystal-light:'+i,at.add(new Vector3(0,1.4,0)),scene);light.diffuse=Color3.FromHexString('#60b9d2');light.range=3.8;light.renderPriority=70;lights.push({light,intensity:.16,kind:'crystal'});
     }else if(id.includes('rock-')){contact(at,.9,.8);rock('camp:collision-rock:'+i,at.add(new Vector3(0,.54,0)),1.45,1.2,1.42,i);shrub(at.add(new Vector3(.45,0,.35)),i,.6,1);}
   }
   // Low dressing stays under the feet; tall elements sit on existing blocked cells.
@@ -330,11 +334,21 @@ export function createOutdoorVisuals(scene: Scene, definition: PublicSceneDefini
       shells.push({meshes,normal:new Vector3(side===0?-1:side===1?1:0,0,side===2?-1:side===3?1:0)});
     }
   }
+  const skirtMaterial=paint('tent-earth-blend',profile==='forest'?'#617454':profile==='cliff-observatory'?'#87909a':'#b4ad91',profile==='forest'?'earth.webp':'earth.webp');
+  if(profile==='forest')skirtMaterial.diffuseTexture=M.moss.diffuseTexture;
+  skirtMaterial.transparencyMode=Material.MATERIAL_ALPHABLEND;skirtMaterial.backFaceCulling=false;
+  function tentCollar(at:Vector3){
+    const positions:number[]=[],uvs:number[]=[],colors:number[]=[],indices:number[]=[],normals:number[]=[],n=32;
+    for(let ring=0;ring<2;ring++)for(let i=0;i<n;i++){const a=i/n*Math.PI*2,c=Math.cos(a),d=Math.sin(a),r=(ring?3.95:3.02)/(Math.max(Math.abs(c),Math.abs(d))+.03),x=at.x+c*r,z=at.z+d*r;
+      positions.push(x,.016,z);uvs.push(x/2.4,z/2.4);colors.push(1,1,1,ring?0:.75);if(ring===0){const j=(i+1)%n;indices.push(i,n+i,j,j,n+i,n+j);}}
+    VertexData.ComputeNormals(positions,indices,normals);const m=new Mesh('camp:tent-ground-collar',scene),v=new VertexData();Object.assign(v,{positions,indices,normals,uvs,colors});v.applyToMesh(m);m.hasVertexAlpha=true;add(m,Vector3.Zero(),skirtMaterial);
+  }
   function tent(point: NonNullable<PublicSceneDefinition['camp']>['interactionPoints'][number]) {
     const at=cellAt(point.objectCell!),mat=point.ownerCharacterId==='mia'?M.canvas2:point.ownerCharacterId==='maria'?M.canvas3:M.canvas;
     const bedPoint=definition.camp!.interactionPoints.find(p=>p.kind==='bed'&&p.ownerCharacterId===point.ownerCharacterId)??point;
     const previous=bucket;bucket=[];
-    contact(at,3.55,3.45);box(point.id+':groundsheet',6.8,.04,6.8,at.add(new Vector3(0,.04,0)),M.bark);
+    bucket=previous;contact(at,3.65,3.58);tentCollar(at);bucket=[];
+    box(point.id+':groundsheet',5.95,.025,5.9,at.add(new Vector3(0,.032,0)),M.cloth);
     box(point.id+':woven-carpet',4.5,.02,4.6,at.add(new Vector3(0,.075,0)),mat);
     for(let stripe=0;stripe<7;stripe++)box(point.id+':rug-woven-stripe',4.35,.006,.025,at.add(new Vector3(0,.088,-1.95+stripe*.65)),M.cloth);
     detail.basket(at.add(new Vector3(1.65,.09,-2.2)),.48);
@@ -347,7 +361,6 @@ export function createOutdoorVisuals(scene: Scene, definition: PublicSceneDefini
     keep(bedPoint.id,'blanket',add(campClothSurface(scene,point.id+':bedroll',1.1,2.1,.075),at.add(new Vector3(0,.21,-1.3)),M.cloth));
     const rolled=cylinder(point.id+':rolled-blanket',.4,1.03,at.add(new Vector3(0,.29,-2.16)),mat,12);rolled.rotation.z=Math.PI/2;keep(bedPoint.id,'case-lid',rolled);
     const pillow=add(MeshBuilder.CreateSphere(point.id+':pillow',{diameter:1,segments:8},scene),at.add(new Vector3(0,.3,-.48)),M.canvas);pillow.scaling.set(.75,.18,.45);keep(bedPoint.id,'pillow',pillow);
-    const lampPool=add(MeshBuilder.CreateDisc(point.id+':lantern-bounce',{radius:2.15,tessellation:20},scene),at.add(new Vector3(.6,.092,-1.75)),warmPool);lampPool.rotation.x=Math.PI/2;
     const interior=[...assembly(bucket,point.id+':interior'),...(interactive.get(bedPoint.id)??[])];bucket=[];
     for(const side of [-1,1]){
       const positions:number[]=[],uvs:number[]=[],indices:number[]=[],normals:number[]=[],colors:number[]=[],segments=7;
@@ -440,7 +453,6 @@ export function createOutdoorVisuals(scene: Scene, definition: PublicSceneDefini
     for(let i=0;i<15;i++){const a=i/15*Math.PI*2;rock(id+':ring',at.add(new Vector3(Math.cos(a)*1.04,.14,Math.sin(a)*1.04)),.36,.3,.35,i,i%3?M.rock:M.stone);}
     for(let i=0;i<5;i++)keep(id,'log',box(id+':firewood',1.1,.17,.18,at.add(new Vector3(0,.2+i*.025,0)),M.bark,i*.66),{side:i%2?-1:1});
     for(let i=0;i<5;i++){const h=.54+rand(i)*.72,f=cylinder(id+':flame-'+i,.23,h,at.add(new Vector3((rand(i+1)-.5)*.45,h/2+.3,(rand(i+2)-.5)*.45)),i%2?M.ember:M.flame,8,.015);flames.push(f);keep(id,'flame',f);}
-    const glow=add(MeshBuilder.CreateDisc(id+':ground-glow',{radius:4.6,tessellation:24},scene),at.add(new Vector3(0,.032,0)),warmPool);glow.rotation.x=Math.PI/2;
     const pot=cylinder(id+':cooking-pot',.48,.33,at.add(new Vector3(.38,.44,.12)),M.metal,12,.54);
     // Recessed contents and a real spoon, registered at this pot's offset.
     keep(id,'pot',pot,{contact:at.add(new Vector3(.38,.61,.12))});
@@ -469,7 +481,7 @@ export function createOutdoorVisuals(scene: Scene, definition: PublicSceneDefini
       if(ownerTent){ownerTent.interior.push(...pieces);ownerTent.light.includedOnlyMeshes.push(...pieces);}
     }else if(point.kind==='fire')fire(point);
     else if(point.kind==='seat'){contact(at,1.1,.5);if(profile==='cliff-observatory'||profile==='coastal-refuge')rock(point.id+':seat',at.add(new Vector3(0,.31,0)),1.42,.58,.66,17,M.stone);else{box(point.id+':seat',1.75,.18,.56,at.add(new Vector3(0,.48,0)));for(const side of [-1,1])box(point.id+':foot',.18,.43,.38,at.add(new Vector3(side*.62,.23,0)),M.bark);}keep(point.id,'seat-cloth',box(point.id+':folded-cloak',.58,.065,.39,at.add(new Vector3(-.32,.59,0)),M.cloth,.16));cylinder(point.id+':water-flask',.17,.28,at.add(new Vector3(.48,.7,0)),M.pottery,10);}
-    else if(point.kind==='guard'&&!point.id.includes('boat')){cylinder(point.id+':post',.18,1.95,at.add(new Vector3(.5,.98,0)),M.bark);const torch=cylinder(point.id+':torch',.18,.42,at.add(new Vector3(.5,2.08,0)),M.flame,7,.01);torch.metadata={fireSource:'torch'};flames.push(torch);keep(point.id,'flame',torch);keep(point.id,'lantern',cylinder(point.id+':watch-lamp',.16,.23,at.add(new Vector3(.35,.2,.3)),M.brass,8));}
+    else if(point.kind==='guard'&&!point.id.includes('boat')){cylinder(point.id+':post',.18,1.95,at.add(new Vector3(.5,.98,0)),M.bark);const torch=cylinder(point.id+':torch',.18,.42,at.add(new Vector3(.5,2.08,0)),M.flame,7,.01);const light=new PointLight(point.id+':torch-light',at.add(new Vector3(.5,2.15,0)),scene);light.diffuse=Color3.FromHexString('#ffc078');light.range=5.5;light.renderPriority=80;lights.push({light,intensity:.72,kind:'torch'});torch.metadata={fireSource:'torch'};flames.push(torch);keep(point.id,'flame',torch);keep(point.id,'lantern',cylinder(point.id+':watch-lamp',.16,.23,at.add(new Vector3(.35,.2,.3)),M.brass,8));}
     else if(point.kind==='guard'){const rope=box(point.id+':mooring-rope',.55,.035,.035,at.add(new Vector3(1.7,.59,0)),M.canvas);keep(point.id,'rope',rope);}
     const ring=MeshBuilder.CreateTorus(point.id+':dm-interaction-halo',{diameter:1.08,thickness:.042,tessellation:20},scene);ring.parent=root;ring.position.copyFrom(at);ring.position.y=.065;ring.material=M.halo;ring.visibility=0;ring.isPickable=false;rings.push(ring);
   }
@@ -539,29 +551,31 @@ export function createOutdoorVisuals(scene: Scene, definition: PublicSceneDefini
   merged.filter(mesh=>groundPaint.includes(mesh.material as StandardMaterial)||(mesh.material as StandardMaterial).transparencyMode===Material.MATERIAL_ALPHABLEND).forEach(mesh=>mesh.hasVertexAlpha=true);
   // Interior lanterns cannot select scenery belonging to another tent.
   for(const t of tents){const own=definition.camp!.interactionPoints.filter(p=>p.objectCell&&Math.abs(p.objectCell.col-t.cell.col)<=1&&Math.abs(p.objectCell.row-t.cell.row)<=1);for(const p of own){const lid=lids.get(p.id);if(lid)t.light.includedOnlyMeshes.push(lid);}}
-  const shadow=new CampShadows(scene,sun,compact), climate=createCampSurfaceEffects(scene,definition);
+  const shadow=new CampShadows(scene,sun,compact), climate=createCampSurfaceEffects(scene,definition),life=createCampLife(scene,root,profile,width,depth);
   if(typeof window!=='undefined'&&!compact){
     const glow=new GlowLayer('camp:fire-glow',scene,{mainTextureRatio:.25,blurKernelSize:16});glow.intensity=.27;flames.forEach(m=>glow.addIncludedOnlyMesh(m));
   }
   let highlights:boolean|string|null=false,last=0;
-  const update=(time:number,phase?:CampRestPhase|null,interactions:CampRestState['interactions']=[],focusCell?:Cell|null,environment?:EnvironmentState,serverNow=Date.now())=>{
-    const dark=DARK[phase??'arrival'],day=1-dark,elapsed=Math.min(1,Math.max(0,time-last)),dt=Math.min(.12,elapsed);last=time;
+  const update=(time:number,phase?:CampRestPhase|null,interactions:CampRestState['interactions']=[],focusCell?:Cell|null,environment?:EnvironmentState,serverNow=Date.now(),climateState?:ClimateState,light?:NaturalLightProfile)=>{
+    const dark=light?1-light.ambient:DARK[phase??'arrival'],day=1-dark,elapsed=Math.min(1,Math.max(0,time-last)),dt=Math.min(.12,elapsed);last=time;
     const fireLevels=new Map(hearths.map(h=>[h.id,h.fire.update(elapsed,dark,environment,interactions,serverNow)]));
-    climate.update(elapsed,environment);
+    climate.update(elapsed,environment,climateState);
+    const exposedExtinguished=Boolean(environment&&(strongWind(environment)||precipitationKind(environment)==='rain'&&(environment.precipitationLevel??2)===3));
     ambient.intensity=.48+day*.25;ambient.diffuse=Color3.Lerp(Color3.FromHexString('#92aec9'),Color3.FromHexString('#e2e3cd'),day);
     sun.intensity=.3+day*.64;sun.diffuse=Color3.Lerp(Color3.FromHexString('#86a9d5'),Color3.FromHexString('#ffe0b7'),day);
+    const weatherGlow=weatherLight(environment,serverNow/1000,reduced);ambient.intensity*=.75+weatherGlow.cloud*.25;sun.intensity=sun.intensity*weatherGlow.cloud+weatherGlow.flash;sun.diffuse=Color3.Lerp(sun.diffuse,Color3.FromHexString('#bbd6ef'),Math.min(1,weatherGlow.flash));
     const cameraDirection=scene.activeCamera?.globalPosition.subtract(center).normalize()??new Vector3(0,0,1);
     cameraDirection.y=0;cameraDirection.normalize();
     for(const mat of allMaterials)if(!mat.disableLighting&&![M.flame,M.ember,M.halo,M.crystal].includes(mat))mat.emissiveColor=mat.diffuseColor.scale(.045+day*.045);
     for(const mat of plants)mat.emissiveColor=mat.diffuseColor.scale(.08+day*.13);
-    lights.forEach(({light,intensity,kind},i)=>{const strength=kind==='fire'?fireLevels.get(light.name.replace(/:light$/,''))?.flame??0:1;light.intensity=intensity*strength*(kind==='fire'?.45+dark*.85:.45+dark*.75)*(reduced?1:.97+Math.sin(time*8.2+i)*.035);});
-    flames.forEach((f,i)=>{const lamp=f.metadata?.fireSource==='lamp',strength=f.metadata?.fireSource?(dark>.2?1:0):[...fireLevels].find(([id])=>f.name.startsWith(id+':'))?.[1].flame??0;f.isVisible=lamp||strength>.005;f.visibility=lamp||strength>.005?1:0;if(lamp)f.material=strength?M.ember:M.brass;f.scaling.y=(reduced?1:.86+Math.sin(time*8.6+i)*.14)*(lamp?1:Math.max(.02,strength));f.rotation.z=reduced?0:Math.sin(time*4+i)*.05;});
+    lights.forEach(({light,intensity,kind},i)=>{const strength=kind==='fire'?fireLevels.get(light.name.replace(/:light$/,''))?.flame??0:kind==='torch'?(dark>.2&&!exposedExtinguished?1:0):1;light.intensity=intensity*strength*(kind==='fire'?.45+dark*.85:.45+dark*.75)*(reduced?1:.97+Math.sin(time*8.2+i)*.035);});
+    flames.forEach((f,i)=>{const lamp=f.metadata?.fireSource==='lamp',strength=f.metadata?.fireSource?(dark>.2&&(lamp||!exposedExtinguished||climate.covered(f.getAbsolutePosition().x,f.getAbsolutePosition().z))?1:0):[...fireLevels].find(([id])=>f.name.startsWith(id+':'))?.[1].flame??0;f.isVisible=lamp||strength>.005;f.visibility=lamp||strength>.005?1:0;if(lamp)f.material=strength?M.ember:M.brass;f.scaling.y=(reduced?1:.86+Math.sin(time*8.6+i)*.14)*(lamp?1:Math.max(.02,strength));f.rotation.z=reduced?0:Math.sin(time*4+i)*.05;});
     hearths.forEach(h=>h.coals.update(time,fireLevels.get(h.id)!.embers));
-    warmPool.alpha=dark>.2?Math.max(...[...fireLevels.values()].map(f=>f.flame))*.22:0;
     tents.forEach(t=>{
       const inside=Boolean(focusCell&&((Math.abs(focusCell.col-t.cell.col)<=1&&Math.abs(focusCell.row-t.cell.row)<=1)||(focusCell.col===t.entry.col&&focusCell.row===t.entry.row)));
       for(const mesh of t.shell){if(mesh.isVisible===inside)shadow.invalidate();mesh.isVisible=!inside;mesh.visibility=inside?0:1;}
       for(const mesh of t.interior)mesh.isVisible=Boolean(inside);
+      includeCampActors(t.light,m=>{const p=m.getAbsolutePosition();return Math.abs(p.x-cellAt(t.cell).x)<3.35&&Math.abs(p.z-cellAt(t.cell).z)<3.35;},scene);
       t.light.intensity=inside&&dark>.2?.38+dark*1.75:0;
     });
     for(const [id,lid] of lids){const action=[...interactions].reverse().find(a=>a.pointId===id&&(a.action==='opened'||a.action==='closed'))?.action;const target=action==='opened'?-.92:0;lid.rotation.x+=(target-lid.rotation.x)*Math.min(1,dt*10);}
@@ -584,12 +598,12 @@ export function createOutdoorVisuals(scene: Scene, definition: PublicSceneDefini
     }
     auroras.forEach(({mesh,base},i)=>{const pos=mesh.getVerticesData('position')!;for(let n=0;n<pos.length;n+=3){pos[n+1]=base[n+1]!+(reduced?0:Math.sin(time*.38+base[n]!*.15+i)*.42);pos[n+2]=base[n+2]!+(reduced?0:Math.sin(time*.24+base[n]!*.2+i)*.48);}mesh.updateVerticesData('position',pos,false,false);(mesh.material as StandardMaterial).alpha=.05+dark*.36;});
     clouds.forEach((m,i)=>{m.position.x=((time*(reduced?.3:2.1+i*.18)+i*17)%(width+50))-25;});
-    if(profile==='cliff-observatory'&&!reduced){const flash=Math.max(0,Math.sin(time*.32)-.998)*110;sun.intensity+=flash*.55;}
-    scene.fogMode=2;scene.fogDensity=profile==='forest'?.002+dark*.004:profile==='coastal-refuge'?.0018+dark*.002:.0014;
+    if(profile==='cliff-observatory'&&!reduced&&environment?.lightning){const flash=weatherLight(environment,serverNow/1000).flash;sun.intensity+=flash*.55;}
+    scene.fogMode=2;scene.fogDensity=(profile==='forest'?.002+dark*.004:profile==='coastal-refuge'?.0018+dark*.002:.0014)+(climateState?.fogDensity??0)*.018;
     scene.fogColor=Color3.Lerp(Color3.FromHexString(profile==='forest'?'#233e3d':'#203b55'),Color3.FromHexString(profile==='forest'?'#6d8270':'#8faaa9'),day);
     const sky=Color3.Lerp(Color3.FromHexString('#102b42'),Color3.FromHexString(profile==='forest'?'#4b6551':'#668795'),day);scene.clearColor.set(sky.r,sky.g,sky.b,1);
-    fx.update(time,dark,fireLevels);fauna?.update(time);
-    shadow.update(time,[...hearths.map(h=>h.light),...tents.map(t=>t.light)],focusCell?cellAt(focusCell):center,interactions.some(i=>serverNow-i.at>=0&&serverNow-i.at<8500));
+    fx.update(time,dark,fireLevels,environment);fauna?.update(time);life.update(time,dark);
+    shadow.update(time,[...lights.map(l=>l.light),...tents.map(t=>t.light)],focusCell?cellAt(focusCell):center,interactions.some(i=>serverNow-i.at>=0&&serverNow-i.at<8500));
   };
   update(0,'arrival');
   return {root,update,weatherCovered:climate.covered,setInteractionHighlights:target=>{highlights=target;}};

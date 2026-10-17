@@ -1,20 +1,23 @@
 import { z } from 'zod';
 import { cellSchema, idSchema, rotationSchema, sceneIdSchema, type Cell, type PublicCampaignDefinition, type PublicSceneDefinition, type Rotation } from './campaign.js';
 import type { CampRestState } from './camp-rest.js';
+import { weatherModes } from './weather.js';
 import type { AdventureView } from './adventure.js';
+import type { ClimateState, GameClockSnapshot } from './game-time.js';
 import { INVENTORY_MAX_ITEMS, INVENTORY_MAX_LABEL_LENGTH } from './inventory.js';
 
 export type { Cell } from './campaign.js';
 
-export const PROTOCOL_VERSION = 22 as const;
+export const PROTOCOL_VERSION = 23 as const;
 export const OBJECT_MODEL_VERSION = 1 as const;
 export const STEP_DURATION_MS = 220;
 export type SceneId = string;
 export type CameraMode = 'fixed' | 'semiFixed' | 'follow';
 export type Facing = 'north' | 'north-east' | 'east' | 'south-east' | 'south' | 'south-west' | 'west' | 'north-west';
-export interface StepState { from: Cell; to: Cell; fromSurfaceId?: string; toSurfaceId?: string; startedAt: number; durationMs: number; movementKind?: 'climb' | 'dive' }
+export interface StepState { from: Cell; to: Cell; fromSurfaceId?: string; toSurfaceId?: string; startedAt: number; durationMs: number; movementKind?: 'climb' | 'dive' | 'jump' | 'run-up' }
 
 export interface PublicEntity {
+  stealth?:boolean;
   id: string;
   kind: 'player' | 'creature' | 'npc';
   label: string;
@@ -34,6 +37,8 @@ export interface PublicEntity {
   hp?: number;
   maxHp?: number;
   defeated?: boolean;
+  /** Visible ground state only; it does not disclose private hit points. */
+  defeatStyle?: 'blood' | 'unconscious';
   conditions?: CombatCondition[];
 }
 export type AttackAnimationType = 'melee' | 'arrow' | 'thrownWeapon' | 'radiantArrow' | 'vine' | 'fireProjectile' | 'magicalProjectile';
@@ -56,9 +61,9 @@ export type ExplorationAction = {
  * tirada/resultado. No consumen economía de turno fuera del combate. */
 export const explorationBasicActionCatalogue = {
   talk: { label: 'Hablar', target: 'living', animation: 'talk', guidance: 'Inicia una conversación. El DM narra la respuesta; si intentas convencer, usa Influir.' },
-  influence: { label: 'Influir', target: 'living', animation: 'interact', guidance: 'El DM elige Persuasión, Engaño o Intimidación y fija la CD según la criatura y la situación.' },
-  help: { label: 'Ayudar', target: 'living', animation: 'interact', guidance: 'Describe cómo ayudas. El DM decide si es posible y qué prueba puede beneficiarse.' },
-  hide: { label: 'Esconderse', target: 'self', animation: 'stealth', guidance: 'El DM confirma cobertura u ocultación y pide Destreza (Sigilo) si corresponde.' },
+  influence: { label: 'Influir', target: 'living', animation: 'influence', guidance: 'El DM elige Persuasión, Engaño o Intimidación y fija la CD según la criatura y la situación.' },
+  help: { label: 'Ayudar', target: 'living', animation: 'help', guidance: 'Describe cómo ayudas. El DM decide si es posible y qué prueba puede beneficiarse.' },
+  hide: { label: 'Sigilo', target: 'self', animation: 'stealth', guidance: 'Activa o desactiva la intención de moverte con sigilo. El DM confirma cobertura u ocultación y la prueba; no concede invisibilidad automáticamente.' },
   search: { label: 'Buscar', target: 'any', animation: 'search', guidance: 'El DM determina si corresponde Percepción o Investigación y establece la CD contextual.' },
   study: { label: 'Estudiar', target: 'any', animation: 'study', guidance: 'El DM elige la habilidad pertinente (p. ej. Investigación, Historia o Arcana) y la CD.' },
   'use-object': { label: 'Utilizar objeto', target: 'any', animation: 'interact', guidance: 'El DM verifica que tienes el objeto y resuelve su uso; registra el gasto si consumes un objeto.' },
@@ -75,8 +80,8 @@ export type ExplorationBasicTarget = typeof explorationBasicActionCatalogue[Expl
 export type BasicCombatAction = 'dash' | 'disengage' | 'dodge' | 'help' | 'hide' | 'influence' | 'magic' | 'ready' | 'search' | 'study' | 'use-object';
 /** Visual cue selected whenever a universal combat action is declared. */
 export const basicCombatActionAnimationStates: Record<BasicCombatAction, string> = {
-  dash: 'running', disengage: 'disengage', dodge: 'dodge', help: 'interact', hide: 'stealth',
-  influence: 'interact', magic: 'spell', ready: 'ready', search: 'search', study: 'study', 'use-object': 'interact'
+  dash: 'running', disengage: 'disengage', dodge: 'dodge', help: 'help', hide: 'stealth',
+  influence: 'influence', magic: 'spell', ready: 'ready', search: 'search', study: 'study', 'use-object': 'interact'
 };
 /** Definición declarativa de una acción. Los dados se introducen después en el
  * flujo de combate; nunca se aceptan daño o impacto ya resueltos desde el cliente. */
@@ -112,7 +117,7 @@ export interface ConditionSource {
 export interface CombatParticipant { id: string; label: string; kind: 'player' | 'creature' | 'npc'; controller: 'player' | 'dm'; initiative: number; initiativeSubmitted: boolean; active: boolean; hp: number; maxHp: number; armorClass: number; speedMeters: number; attacks: CombatAction[]; conditions: CombatCondition[]; deathSaves?: { successes: number; failures: number; stable: boolean } }
 export interface CombatEvent {
   id: string; text: string; kind: 'attack' | 'damage' | 'defeat' | 'turn';
-  actorId?: string; targetId?: string; animation?: string;
+  actorId?: string; targetId?: string; animation?: string; reactionAnimation?: string;
 }
 export interface CombatPrompt {
   id: string; stage: 'attack' | 'damage' | 'save' | 'escape' | 'check' | 'death-save' | 'concentration' | 'reaction'; actorId: string; targetId: string;
@@ -143,7 +148,13 @@ export type DmObject =
   | (PropCommon & { kind: 'crate'; rotation: Rotation; footprint: Cell[]; structure: 'intact' | 'damaged' | 'destroyed'; allowedRotations: Rotation[]; interaction?: Exclude<DmObjectInteraction, { kind: 'barred-door' }> });
 
 export interface CameraState { mode: CameraMode; focusId: string | null }
-export interface EnvironmentState { storm: boolean; lightning: boolean; stormIntensity: number; timeOfDay?: 'auto' | 'day' | 'night' | 'sunset' | 'dawn'; precipitation?: 'none' | 'rain' | 'snow'; precipitationLevel?: 1 | 2 | 3; windIntensity?: number }
+export interface EnvironmentState {
+  storm: boolean; lightning: boolean; stormIntensity: number;
+  timeOfDay?: 'auto' | 'day' | 'night' | 'sunset' | 'dawn';
+  precipitation?: 'none' | 'rain' | 'snow'; precipitationLevel?: 1 | 2 | 3; windIntensity?: number;
+  temperatureC?: number; fogTarget?: number; floodTarget?: number; snowDifficultTerrain?: boolean;
+  seaIntensity?: number; weatherRules?: boolean;
+}
 export interface AudioTrackState {
   playing: boolean; volume: number; startedAt: number | null; offset: number; assetId?: string;
   /** `loop` means infinite repetition; otherwise `repeats` is the total number of plays. */
@@ -161,6 +172,7 @@ export interface WorldSnapshot {
   objectModelVersion: typeof OBJECT_MODEL_VERSION;
   revision: number;
   serverTime: number;
+  gameClock: GameClockSnapshot;
   sceneId: SceneId;
   /** Definición única ya autorizada para esta vista; evita publicar el atlas completo. */
   scene: PublicSceneDefinition;
@@ -175,8 +187,9 @@ export interface WorldSnapshot {
   collectedPickups?: string[];
   camera: CameraState;
   environment: EnvironmentState;
+  climate: ClimateState;
   /** Sucesos públicos de escena; no contiene hallazgos ni datos privados. */
-  story?: { wreckDisappeared: boolean };
+    story?: { wreckDisappeared: boolean; d8TimeLoopBroken?: boolean; d8EndingVisual?: 'celebration' | 'solitude' | 'darkness' };
   campRest?: CampRestState | null;
   /** Scene-local camp activity, optional for renderers consuming older snapshots. */
   campActivity?: CampRestState | null;
@@ -201,6 +214,9 @@ export interface CharacterSheetView {
 }
 
 export interface PlayerPrivate {
+  sceneCheck?: Pick<InteractionRequest,'id'|'skill'|'dc'|'targetLabel'|'playerTotal'>;
+  stealth?: boolean;
+  blessing?: {label:string;expiresGameSeconds:number;advice:string};
   runtimeEpoch: string;
   characterId: string | null;
   label: string | null;
@@ -216,7 +232,7 @@ export interface PlayerPrivate {
   canInteract: boolean;
   nearbyInteraction: string | null;
   interactionTargetId: string | null;
-  availableInteractions: Array<{ targetId: string; label: string }>;
+  availableInteractions: Array<{ targetId: string; label: string; cell?:Cell; surfaceId?:string }>;
   rowboat: { aboard: boolean; pilot: boolean } | null;
   campInteractions: Array<{ pointId: string; label: string; kind: 'bed' | 'tent' | 'fire' | 'seat' | 'guard' | 'chest' | 'personal'; description: string; actionLabel: string; open?: boolean }>;
   explorationActions: ExplorationAction[];
@@ -234,6 +250,11 @@ export interface InteractionRequest {
   targetId: string;
   createdAt: number;
   status: 'pending' | 'resolved';
+  kind?: 'proximity-check' | 'prayer';
+  playerTotal?: number;
+  skill?: string;
+  dc?: number;
+  targetLabel?: string;
 }
 
 export interface ConditionStateView { conditions?: CombatCondition[]; conditionSources?: ConditionSource[] }
@@ -252,6 +273,8 @@ export interface DmState {
   privateNotes: { creature: string; wheel: string };
   camera: CameraState;
   environment: EnvironmentState;
+  gameClock: GameClockSnapshot;
+  climate: ClimateState;
   campRest?: CampRestState | null;
   /** Activity history at the visible camp; campRest may belong to another scene. */
   campActivity?: CampRestState | null;
@@ -267,7 +290,7 @@ export interface DmState {
   lastExplorationAction: { id: string; sceneId: SceneId; characterId: string; characterLabel: string; action: ExplorationBasicAction; actionLabel: string; targetLabel: string; guidance: string; createdAt: number } | null;
   undo: { canUndo: boolean; label: string | null; entryId: string | null };
   gameUndo: { canUndo: boolean; label: string | null };
-  ports: Array<{ id: string; mode: 'rigging' | 'stairs' | 'road' | 'door' | 'rope-ladder' | 'hatch' | 'hole' | 'swim'; return: 'explicit' | 'adjudicated'; conditionId?: string; from: { mapId: string; zoneId: string; surfaceId: string; cell: Cell }; to: { mapId: string; zoneId: string; surfaceId: string; cell: Cell } }>;
+  ports: Array<{ id: string; mode: 'rigging' | 'stairs' | 'road' | 'door' | 'rope-ladder' | 'hatch' | 'hole' | 'swim'; return: 'explicit' | 'adjudicated'; conditionId?: string; travelSeconds?: number; from: { mapId: string; zoneId: string; surfaceId: string; cell: Cell }; to: { mapId: string; zoneId: string; surfaceId: string; cell: Cell } }>;
 }
 
 const epochSchema = z.number().int().nonnegative();
@@ -284,12 +307,16 @@ export const moveInputSchema = z.object({
 }).strict();
 export const sceneReadySchema = z.object({ runtimeEpoch: runtimeEpochSchema.optional(), sceneEpoch: epochSchema }).strict();
 export const claimSchema = z.object({ runtimeEpoch: runtimeEpochSchema.optional(), characterId: idSchema }).strict();
-export const interactSchema = z.object({ runtimeEpoch: runtimeEpochSchema.optional(), commandId: commandIdSchema, sceneEpoch: epochSchema, targetId: idSchema }).strict();
+// Chapter-map portal labels are uppercase (P01–P16); keep ordinary object
+// identifiers strict and admit only the one authored player climb action.
+const portReferenceSchema=z.union([idSchema,z.string().regex(/^P[0-9]{2}$/)]);
+export const interactSchema = z.object({ runtimeEpoch: runtimeEpochSchema.optional(), commandId: commandIdSchema, sceneEpoch: epochSchema, targetId: z.union([idSchema,z.literal('P10')]) }).strict();
 export const campPlayerInteractSchema = z.object({ runtimeEpoch: runtimeEpochSchema.optional(), commandId: commandIdSchema, sceneEpoch: epochSchema, pointId: idSchema, activityId: idSchema.optional() }).strict();
 export const explorationActionSchema = z.discriminatedUnion('type', [
+  z.object({runtimeEpoch:runtimeEpochSchema.optional(),type:z.literal('exploration:check'),commandId:commandIdSchema,sceneEpoch:epochSchema,requestId:commandIdSchema,total:z.number().int().min(-30).max(100)}).strict(),
   z.object({ runtimeEpoch: runtimeEpochSchema.optional(), type: z.literal('exploration:action'), commandId: commandIdSchema, sceneEpoch: epochSchema, targetId: idSchema.optional(), targetCell: cellSchema.optional(), actionId: idSchema }).strict(),
   z.object({ runtimeEpoch: runtimeEpochSchema.optional(), type: z.literal('exploration:attack'), commandId: commandIdSchema, sceneEpoch: epochSchema, targetId: idSchema, actionId: idSchema }).strict(),
-  z.object({ runtimeEpoch: runtimeEpochSchema.optional(), type: z.literal('exploration:basic'), commandId: commandIdSchema, sceneEpoch: epochSchema, action: z.enum(Object.keys(explorationBasicActionCatalogue) as [ExplorationBasicAction, ...ExplorationBasicAction[]]), targetId: idSchema.optional(), targetCell: cellSchema.optional() }).strict()
+  z.object({ runtimeEpoch: runtimeEpochSchema.optional(), type: z.literal('exploration:basic'), commandId: commandIdSchema, sceneEpoch: epochSchema, action: z.enum(Object.keys(explorationBasicActionCatalogue) as [ExplorationBasicAction, ...ExplorationBasicAction[]]), targetId: idSchema.optional(), targetCell: cellSchema.optional(), jumpMode: z.enum(['auto','standing','running']).optional() }).strict().refine(value => value.jumpMode === undefined || value.action === 'jump', { message: 'jumpMode sólo corresponde al salto' })
 ]);
 const inventoryItemsSchema = z.array(z.string().trim().min(1).max(INVENTORY_MAX_LABEL_LENGTH)).max(INVENTORY_MAX_ITEMS);
 export const inventoryUpdateSchema = z.object({
@@ -357,13 +384,23 @@ export const dmCommandSchema = z.discriminatedUnion('type', [
   z.object({ ...runtimeField, type: z.literal('camp:interact'), commandId: commandIdSchema, sceneEpoch: epochSchema, characterId: idSchema, pointId: idSchema, activityId: idSchema }).strict(),
   z.object({ ...runtimeField, type: z.literal('scene'), commandId: commandIdSchema, sceneEpoch: epochSchema, sceneId: sceneIdSchema }).strict(),
   z.object({ ...runtimeField, type: z.literal('view:focus'), commandId: commandIdSchema, sceneEpoch: epochSchema, sceneId: sceneIdSchema }).strict(),
-  z.object({ ...runtimeField, type: z.literal('entity:portal'), commandId: commandIdSchema, sceneEpoch: epochSchema, entityId: idSchema, portId: idSchema, direction: z.enum(['forward', 'return']), adjudicate: z.boolean().optional() }).strict(),
+  z.object({ ...runtimeField, type: z.literal('entity:portal'), commandId: commandIdSchema, sceneEpoch: epochSchema, entityId: idSchema, portId: portReferenceSchema, direction: z.enum(['forward', 'return']), adjudicate: z.boolean().optional(), checkTotal:z.number().int().min(-30).max(100).optional() }).strict(),
   z.object({ ...runtimeField, type: z.literal('scene:animation'), commandId: commandIdSchema, sceneEpoch: epochSchema, entityId: idSchema, state: idSchema, durationMs: z.number().int().min(250).max(10_000).optional() }).strict(),
   z.object({ ...runtimeField, type: z.literal('creature'), commandId: commandIdSchema, sceneEpoch: epochSchema, visible: z.boolean(), sourceId: idSchema.optional() }).strict(),
   z.object({ ...runtimeField, type: z.literal('npc:visible'), commandId: commandIdSchema, sceneEpoch: epochSchema, entityId: idSchema, visible: z.boolean() }).strict(),
+  z.object({ ...runtimeField, type: z.literal('scene:resolveCheck'), commandId: commandIdSchema, sceneEpoch: epochSchema, requestId: commandIdSchema, total: z.number().int().min(-30).max(100).nullable() }).strict(),
   z.object({ ...runtimeField, type: z.literal('encounter:reveal'), commandId: commandIdSchema, sceneEpoch: epochSchema, groupId: idSchema, count: z.number().int().min(0).max(20) }).strict(),
   z.object({ ...runtimeField, type: z.literal('camera'), commandId: commandIdSchema, sceneEpoch: epochSchema, mode: z.enum(['fixed', 'semiFixed', 'follow']), focusId: z.string().max(40).nullable() }).strict(),
-  z.object({ ...runtimeField, type: z.literal('environment'), commandId: commandIdSchema, sceneEpoch: epochSchema, storm: z.boolean(), intensity: volumeSchema.optional(), trackId: idSchema.optional(), timeOfDay: z.enum(['auto', 'day', 'night', 'sunset', 'dawn']).optional(), precipitation: z.enum(['none', 'rain', 'snow']).optional(), precipitationLevel: z.union([z.literal(1),z.literal(2),z.literal(3)]).optional(), windIntensity: volumeSchema.optional() }).strict(),
+  z.object({ ...runtimeField, type: z.literal('environment'), commandId: commandIdSchema, sceneEpoch: epochSchema, storm: z.boolean().optional(), weatherMode: z.enum(weatherModes).optional(), intensity: volumeSchema.optional(), trackId: idSchema.optional(), timeOfDay: z.enum(['auto', 'day', 'night', 'sunset', 'dawn']).optional(), precipitation: z.enum(['none', 'rain', 'snow']).optional(), precipitationLevel: z.union([z.literal(1),z.literal(2),z.literal(3)]).optional(), windIntensity: volumeSchema.optional(), temperatureC: z.number().finite().min(-60).max(60).optional(), fogTarget: volumeSchema.optional(), floodTarget: volumeSchema.optional(), snowDifficultTerrain: z.boolean().optional(), seaIntensity: volumeSchema.nullable().optional(), weatherRules: z.boolean().optional() }).strict(),
+  z.object({ ...runtimeField, type: z.literal('clock:control'), commandId: commandIdSchema, action: z.enum(['pause', 'resume', 'advance', 'set-time', 'short-rest', 'long-rest', 'travel']), seconds: z.number().int().min(1).max(31_536_000).optional(), secondsOfDay: z.number().int().min(0).max(86_399).optional(), portId: idSchema.optional() }).strict().superRefine((command, context) => {
+    if (command.action === 'advance' && command.seconds === undefined) context.addIssue({ code: 'custom', path: ['seconds'], message: 'El avance necesita una duración' });
+    if (command.action !== 'advance' && command.seconds !== undefined) context.addIssue({ code: 'custom', path: ['seconds'], message: 'Duración no aplicable a esta acción' });
+    if (command.action === 'set-time' && command.secondsOfDay === undefined) context.addIssue({ code: 'custom', path: ['secondsOfDay'], message: 'Indica la hora del día' });
+    if (command.action !== 'set-time' && command.secondsOfDay !== undefined) context.addIssue({ code: 'custom', path: ['secondsOfDay'], message: 'Hora no aplicable a esta acción' });
+    if (command.action === 'travel' && command.portId === undefined) context.addIssue({ code: 'custom', path: ['portId'], message: 'El viaje necesita una ruta preparada' });
+    if (command.action !== 'travel' && command.portId !== undefined) context.addIssue({ code: 'custom', path: ['portId'], message: 'Ruta no aplicable a esta acción' });
+  }),
+  z.object({ ...runtimeField, type: z.literal('clock:decision'), commandId: commandIdSchema, action: z.enum(['open', 'close']), dialogId: idSchema }).strict(),
   campRestCommandSchema,
   z.object({ ...runtimeField, type: z.literal('entity:move'), commandId: commandIdSchema, sceneEpoch: epochSchema, entityId: z.string().max(40), cell: cellSchema }).strict(),
   z.object({ ...runtimeField, type: z.literal('entity:seat'), commandId: commandIdSchema, sceneEpoch: epochSchema, entityId:idSchema,seatId:idSchema }).strict(),

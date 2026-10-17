@@ -128,6 +128,8 @@ body.combat-active.combat-move-mode #joystick{opacity:1;pointer-events:auto;bord
 @media(max-width:720px){.camp-player-interactions{right:.55rem;bottom:calc(max(1rem,env(safe-area-inset-bottom)) + 162px);left:.55rem;width:auto;max-height:30vh;padding:.42rem}.camp-player-interactions header{font-size:.82rem}.camp-player-action{min-height:40px;padding:.36rem .48rem}.camp-player-action small{font-size:.63rem}}
 @media(orientation:landscape) and (max-height:550px){.camp-player-interactions{right:1rem;bottom:4.5rem;width:min(370px,43vw);max-height:55vh}}
 .inventory-art-icon{background-size:400% 500%}
+#sceneCheckPanel{position:fixed;left:50%;bottom:7rem;transform:translateX(-50%);z-index:85;width:min(380px,88vw);box-sizing:border-box;display:grid;grid-template-columns:1fr auto;gap:8px;padding:14px;border:1px solid #b99a61;border-radius:12px;background:#152725f5;box-shadow:0 8px 26px #0008}
+#sceneCheckPanel strong,#sceneCheckPanel small{grid-column:1/-1}#sceneCheckPanel input{min-width:0;padding:10px;border:1px solid #667c6d;border-radius:6px;background:#0f1d1d;color:#f4e9d0}#sceneCheckPanel small{font-size:12px;color:#c5c5b4}
 #settingsButton{flex:0 0 44px;width:44px;min-width:44px;padding:.35rem;font-size:1.2rem}
 #combatSettingsButton{min-width:44px;padding:.35rem;font-size:1.2rem}
 .player-hide-scene-notice #sceneNotice{display:none!important}
@@ -140,6 +142,7 @@ body.combat-active.combat-move-mode #joystick{opacity:1;pointer-events:auto;bord
 .player-camera-settings{margin:1rem 0;padding:.8rem;border:1px solid #405b5c;border-radius:10px;background:#102124}
 .player-camera-settings h3{margin:0 0 .35rem;color:#f0d99d;font-family:Georgia,serif}.player-camera-settings p{margin:.2rem 0 .7rem;color:#bfccc5;font-size:.76rem;line-height:1.45}
 .player-settings-dialog .button-row{margin-top:1rem}.player-settings-dialog .close{min-height:36px}
+.player-grid-style{margin:.45rem 0 .7rem;padding:.58rem .75rem;border:1px solid #405b5c;border-radius:10px;background:#0e1d20}.player-grid-style>summary{color:#e5d6ae;font-size:.82rem;font-weight:700;cursor:pointer}.player-grid-options{display:grid;grid-template-columns:1fr 1fr;gap:.55rem;margin-top:.7rem}.player-grid-options label{display:grid;align-content:start;gap:.25rem;color:#cdd8d2;font-size:.72rem}.player-grid-options select{width:100%;min-height:36px;padding:.35rem .5rem;border:1px solid #526c6e;border-radius:7px;background:#142629;color:#f0e6cf}.player-grid-options input[type=color]{width:100%;height:36px;padding:2px;border:1px solid #526c6e;border-radius:7px;background:#142629}.player-grid-options input[type=range]{width:100%;height:26px;margin:0;accent-color:#d6b460}.player-grid-options output{color:#f0d99d}.player-grid-options>small{grid-column:1/-1;color:#aebfbb;font-size:.68rem;line-height:1.4}
 @media(max-width:380px){.identity{gap:.38rem;padding:.42rem}.identity button{min-height:40px;padding:.35rem .5rem;font-size:.76rem}#settingsButton{flex-basis:40px;width:40px;min-width:40px;font-size:1.1rem}}
 
 /* HUD compacto para móvil: identidad arriba y accesos en un desplegable breve. */
@@ -186,7 +189,7 @@ body:not(.combat-active) #actionToggle[aria-expanded="true"]{display:grid!import
 .radial-action:hover,.radial-action:focus-visible,.radial-action.selected{border-color:#fff0b1;background:radial-gradient(circle at 40% 35%,#52634b,#1b2f2d 76%);box-shadow:0 0 0 3px #d4b55b45,0 0 22px #d8ba6c88,0 6px 18px #000b;outline:none}
 .radial-action.selected{color:#fff0b1}
 .radial-action-glyph{display:grid;place-items:center;width:100%;height:100%;font-family:system-ui,sans-serif;font-size:1.28rem;line-height:1}
-.radial-action-label{position:absolute;top:calc(100% + 6px);left:50%;display:-webkit-box;box-sizing:border-box;max-width:min(116px,calc(100vw - 20px));max-height:2.28em;padding:.16rem .38rem;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;border:1px solid #b9a06475;border-radius:6px;background:#0d1919f2;color:#f1e5c6;font-family:Georgia,serif;font-size:.72rem;font-weight:700;line-height:1.12;text-align:center;white-space:normal;overflow-wrap:anywhere;box-shadow:0 3px 10px #0008;transform:translateX(-50%);pointer-events:none}
+.radial-action-label{position:absolute;top:calc(100% + 6px);left:50%;display:-webkit-box;box-sizing:border-box;max-width:min(116px,calc(100vw - 20px));max-height:2.28em;padding:.16rem .38rem;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;border:1px solid #b9a06475;border-radius:6px;background:#0d1919f2;color:#f1e5c6;font-family:Georgia,serif;font-size:.64rem;font-weight:700;line-height:1.12;text-align:center;white-space:normal;overflow-wrap:anywhere;box-shadow:0 3px 10px #0008;transform:translateX(-50%);pointer-events:none}
 .radial-action-label[hidden]{display:none!important}
 .radial-action .action-tooltip{right:auto;bottom:auto;width:min(280px,calc(100vw - 2rem));transform:translate(-50%,-100%) translateY(4px)}
 .radial-action[data-tooltip-placement="below"] .action-tooltip{transform:translate(-50%,0) translateY(-4px)}
@@ -198,8 +201,8 @@ body:not(.combat-active) #actionToggle[aria-expanded="true"]{display:grid!import
 .radial-page-control:disabled{opacity:.36;cursor:default}
 .radial-page-number{display:grid;place-items:center;min-width:24px;color:#dbc78f;font:700 .58rem/1 system-ui,sans-serif;font-variant-numeric:tabular-nums}
 .action-radial-empty{position:fixed;z-index:10;max-width:min(210px,55vw);margin:0;padding:.4rem .55rem;border:1px solid #677c77;border-radius:8px;background:#0b1919ed;color:#d6ddd2;font-size:.72rem;text-align:center;transform:translate(-50%,-100%);pointer-events:none}
-@media(max-width:560px){.radial-action{width:42px;min-width:42px;height:42px;min-height:42px}.radial-action-glyph{font-size:1.15rem}.radial-action-label{font-size:.68rem}.radial-action .action-tooltip{width:min(260px,calc(100vw - 1.5rem))}}
-@media(orientation:landscape) and (max-height:550px){.radial-action{width:40px;min-width:40px;height:40px;min-height:40px}.radial-action-label{font-size:.65rem}}
+@media(max-width:560px){.radial-action{width:42px;min-width:42px;height:42px;min-height:42px}.radial-action-glyph{font-size:1.15rem}.radial-action-label{font-size:.60rem}.radial-action .action-tooltip{width:min(260px,calc(100vw - 1.5rem))}}
+@media(orientation:landscape) and (max-height:550px){.radial-action{width:40px;min-width:40px;height:40px;min-height:40px}.radial-action-label{font-size:.58rem}}
 @media(prefers-reduced-motion:reduce){#actionToggle.has-context::after{animation:none}}
 
 /* Shared tactical controls: legible categories and an explicit escape route. */

@@ -1,6 +1,17 @@
 /** Reusable framing policy for layered worlds. The existing camera damper
  * interpolates these targets; this policy never moves an actor or snaps a pose. */
+import { cameraBetaForTiltDegrees } from './camera-movement';
+import { clampCameraTilt,DEFAULT_CAMERA_PROFILE } from './camera-profile';
 export type CameraSpace = { id: string; surfaceIds: readonly string[]; bounds?: {minX:number;maxX:number;minZ:number;maxZ:number}; size: {width:number;depth:number;height:number} };
+/** Zone presets are applied once by the camera controller; manual tilt remains
+ * authoritative afterwards. Roof visibility is resolved separately. */
+export function cameraSpaceTiltDegrees(exteriorTilt:number,inside:boolean,profile=DEFAULT_CAMERA_PROFILE){
+  return clampCameraTilt(exteriorTilt,profile);
+}
+/** Interiors use the same vertical range as every other playable space. */
+export function cameraSpaceBeta(exteriorTilt:number,inside:boolean,profile=DEFAULT_CAMERA_PROFILE){
+  return cameraBetaForTiltDegrees(cameraSpaceTiltDegrees(exteriorTilt,inside,profile),profile);
+}
 export function cameraSpaceAt(spaces: readonly CameraSpace[], surfaceId: string, position: {x:number;z:number}) {
   return spaces.find(space=>space.surfaceIds.includes(surfaceId) && (!space.bounds || position.x>=space.bounds.minX && position.x<=space.bounds.maxX
     && position.z>=space.bounds.minZ && position.z<=space.bounds.maxZ));

@@ -22,18 +22,18 @@ export function buildSternBreach(scene:Scene,texture?:BaseTexture){
   const add=(m:Mesh,material=wood)=>{m.material=material;worldSurfaceUV(m,4.5);const g=groups.get(material)??[];g.push(m);groups.set(material,g);return m;};
   const beam=(id:string,a:Vector3,b:Vector3,w:number)=>{const d=b.subtract(a),m=MeshBuilder.CreateBox(`wreck-breach:${id}`,{width:w,depth:w,height:d.length()},scene);m.position.copyFrom(a.add(b).scale(.5));m.rotationQuaternion=Quaternion.FromUnitVectorsToRef(Vector3.Up(),d.normalize(),new Quaternion());return add(m,end);};
   const floor=MeshBuilder.CreateGround('wreck-breach:hold-floor',{width:5.1,height:4.9},scene);
-  floor.position.copyFrom(at(-29,-6.415,0));add(floor);
+  floor.position.copyFrom(at(S.sternX+2.5,-6.415,0));add(floor);
   for(const side of [-1,1]){
     const wall=MeshBuilder.CreateBox(`wreck-breach:lining:${side}`,{width:4.7,height:2.75,depth:.13},scene);
-    wall.position.copyFrom(at(-29.1,-5.015,side*2.40));add(wall);
-    for(let i=0;i<4;i++)beam(`exposed-frame:${side}:${i}`,at(-31.3+i*1.2,-6.32,side*2.32),at(-31.3+i*1.2,-3.76,side*2.32),.16);
+    wall.position.copyFrom(at(S.sternX+2.4,-5.015,side*2.40));add(wall);
+    for(let i=0;i<4;i++)beam(`exposed-frame:${side}:${i}`,at(S.sternX+.2+i*1.2,-6.32,side*2.32),at(S.sternX+.2+i*1.2,-3.76,side*2.32),.16);
     for(let i=0;i<8;i++){
       const y=-6.15+i*.34,z=side*(1.08+.15*Math.sin(i*2.7));
       beam(`torn-edge:${side}:${i}`,at(S.sternX,y,z+side*.65),at(S.sternX-.20-(i%3)*.10,y+.04,z),.075);
     }
   }
   // The lower broken sill sits below the swimming opening, never across it.
-  for(let i=0;i<7;i++)beam(`broken-sill:${i}`,at(-31.52,-6.34,(i-3)*.32),at(-31.72,-6.13+(i%3)*.035,(i-3)*.32+.06),.055);
+  for(let i=0;i<7;i++)beam(`broken-sill:${i}`,at(S.sternX-.02,-6.34,(i-3)*.32),at(S.sternX-.22,-6.13+(i%3)*.035,(i-3)*.32+.06),.055);
   return [...groups].flatMap(([material,parts])=>{const m=Mesh.MergeMeshes(parts,true,true,undefined,false,false);if(!m)return [];
     m.name=`wreck-breach:batch:${material.name}`;m.isPickable=false;m.receiveShadows=true;
     m.metadata={visualOnly:true,deckSurfaceId:'sea',kind:'stern-breach-reveal'};return [m];});

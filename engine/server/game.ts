@@ -1,3 +1,5 @@
+import { strongWind, seaState, precipitationKind, weatherMode, resolveWeatherChange, type WeatherChange } from '../shared/weather.js';
+import { A1_ROOM_CELL_KEYS } from '../../campaigns/camp-rests/public/a1-layout.js';
 import crypto from 'node:crypto';
 import type { Server, Socket } from 'socket.io';
 import {
@@ -10,19 +12,23 @@ import { activitiesForCampPoint, campPointInReach } from '../shared/camp-activit
 import { adventureView, choiceFlag, endingFlag } from '../shared/adventure.js';
 import type { PickupDefinition, PropDefinition, Rotation } from '../shared/campaign.js';
 import { cellKey, footprintFor, sameCell, segmentCrossesBox } from '../shared/geometry.js';
-import { supportsCameraOrientation } from '../shared/camera.js';
+import { supportsCameraOrientation, validCameraOrbitStep, validSharedCameraFrame, CAMERA_ORBIT_PROFILE, type SharedCameraFrame } from '../shared/camera.js';
+import { validCameraTiltForScene } from '../shared/camera-profile.js';
 import { surfaceNeighbors, surfaceHeight } from '../shared/terrain.js';
 import { carriedLightRadiusMeters } from '../shared/carried-light.js';
 import { inventoryEquals, inventoryStackIndex, removeInventoryUnit, useInventoryItem, type InventoryUse } from '../shared/inventory.js';
 import { wreckCabinContentCell } from '../shared/wreck-structure.js';
-import { jumpGuidance } from '../shared/jumping.js';
+import { jumpGuidance,jumpDistances } from '../shared/jumping.js';
+import { planJumpRunUp, type JumpMode, type RunUpStep } from '../shared/jump-run-up.js';
 import { conditionRemainingMs, ROUND_DURATION_MS } from '../shared/conditions.js';
 import { actionVisualEffect, type DurableVisualEffect } from '../shared/world-visual-effects.js';
-import { combatActionVisualState } from '../shared/combat-animation.js';
+import { combatActionVisualState, combatTargetReactionState } from '../shared/combat-animation.js';
 import { compileCampaignBundle, type CampaignServerBundle, type CompiledCampaign, type RuleTraits, type SceneDefinition } from './campaign.js';
 import { directionFromVector, isWalkable, resolveStep } from './navigation.js';
 import { durablePayloadSchema, type DurablePayload } from './persistence/schema.js';
+import {migrateRetreatAssembly} from './retreat-migration.js';
 import type { PersistenceCoordinator } from './persistence/coordinator.js';
+import { advanceClimate, emptyClimateState, initialGameTimeSeconds, nextTimeOfDaySeconds, LONG_REST_SECONDS, SHORT_REST_SECONDS, SECONDS_PER_DAY, type ClimateState, type GameClockSnapshot } from '../shared/game-time.js';
 
 export type CharacterState = {
   id: string; label: string; archetype: string; hp: number; maxHp: number; color: string; tokenId: string; inventory: string[];
@@ -83,6 +89,9 @@ const visualAnimationType = (action?: CombatAction): NonNullable<CombatAction['a
   return 'melee';
 };
 
+const WRECK_SAVE_GRID_VERSION = 6;
+const D8_SAVE_GRID_VERSION = 3;
+
 export class GameState {
   readonly campaign: CompiledCampaign;
   sceneId: SceneId;
@@ -99,7 +108,12 @@ export class GameState {
   visualEffects: DurableVisualEffect[] = [];
   combat: CombatState = emptyCombat();
   camera = { mode: 'fixed' as 'fixed' | 'semiFixed' | 'follow', focusId: null as string | null };
-  environment: EnvironmentState = { storm: false, lightning: false, stormIntensity: 0.5, timeOfDay: 'auto' };
+  environment: EnvironmentState = { storm: false, lightning: false, stormIntensity: 0.5, timeOfDay: 'auto', temperatureC: 0, fogTarget: 0, floodTarget: 0, snowDifficultTerrain: false };
+  private gameClockSeconds = 0;
+  private gameClockAnchorMs = Date.now();
+  private gameClockManuallyPaused = false;
+  private gameClockDecisionPauses = new Set<string>();
+  private climateStates = new Map<SceneId, ClimateState>();
   campRest: CampRestState | null = null;
   private campActivities = new Map<string, CampRestState['interactions']>();
   audio: AudioState = {
@@ -109,6 +123,143 @@ export class GameState {
   };
   projectorReady = false;
   interactions: RuntimeInteraction[] = [];
+  private sceneNpcRoutes = new Map<string, Cell[]>();
+  private walkingRunUp=new Map<string,{feet:number;facing:Facing;at:number;sceneId:string;surfaceId:string;cell:Cell}>();
+  private plannedJumps = new Map<string, { sceneId: string; surfaceId: string; origin: Cell; expected: Cell;
+    landing: Cell; steps: RunUpStep[]; socketId: string | null }>();
+  blessingFor(characterId:string){
+    const expiry=Number(this.storyNotes[`prayer.${characterId}.expiry`]);
+    if(!this.progress[`prayer.${characterId}.inspiration`]||!Number.isFinite(expiry)||this.gameClockSnapshot().seconds>=expiry)return undefined;
+    return {label:'Inspiración de Sylvania · 24 h',expiresGameSeconds:expiry,advice:'Gasta una vez para tener ventaja en un d20 físico. Recompensa del DM; no añade rasgos de clase o especie.'};
+  }
+  prayAtShrine(characterId:string){
+    const character=this.characters.get(characterId),shrine=this.campaign.prayerShrine;
+    if(this.conditionsFor(characterId).some(condition=>condition==='inconsciente'||condition==='paralizada'))return 'INCAPACITATED';
+    if(!character||!shrine||character.sceneId!==shrine.sceneId||character.hp<=0||character.step||this.combat.active||Math.max(Math.abs(character.cell.col-shrine.cell.col),Math.abs(character.cell.row-shrine.cell.row))>2)return 'TOO_FAR';
+    if(this.blessingFor(characterId))return 'BLESSING_ACTIVE';
+    if(this.interactions.some(request=>request.characterId===characterId&&request.kind==='prayer'&&request.status==='pending'))return 'PRAYER_PENDING';
+    this.interactions.push({id:crypto.randomUUID(),characterId,characterLabel:character.label,targetId:'temple-prayer',targetLabel:shrine.label,kind:'prayer',createdAt:Date.now(),status:'pending',sceneId:character.sceneId,sceneEpoch:this.sceneEpoch,objectVersion:0,sessionToken:character.sessionToken??''});this.revision++;return 'PRAYER_REQUESTED';
+  }
+  fleeSceneAnimal(){
+    const id=this.campaign.proximityEncounter?.distraction?.actorId,animal=id?this.npcs.get(id):null;
+    if(!animal||animal.hp<=0||!this.campaign.animalFleeDestination)return false;
+    animal.combatEnabled=false;this.progress['cafe.horse-fleeing']=true;this.sceneNpcRoutes.delete(animal.id);this.revision++;this.stateRevision++;return true;
+  }
+  breakSceneWindow(characterId:string,windowId:string){
+    if(this.conditionsFor(characterId).some(condition=>condition==='inconsciente'||condition==='paralizada'))return 'INCAPACITATED';
+    const character=this.characters.get(characterId),window=this.campaign.sceneWindows?.find(window=>window.id===windowId),prop=window?this.objectsFor(window.sceneId).find(prop=>prop.id===window.id):null;
+    if(!character||!window||!prop||character.hp<=0||character.step||this.combat.active||character.sceneId!==window.sceneId||Math.max(Math.abs(character.cell.col-window.cell.col),Math.abs(character.cell.row-window.cell.row))>2)return 'TOO_FAR';
+    if(prop.structure==='destroyed')return 'ALREADY_BROKEN';
+    this.commitObject(prop,{structure:prop.structure},{structure:'destroyed'},'Ventana rota por jugador',window.sceneId);
+    const rule=this.campaign.proximityEncounter!;
+    if(!this.storyNotes['cafe.window-homes'])this.storyNotes['cafe.window-homes']=JSON.stringify(Object.fromEntries(rule.actorIds.map(id=>{const npc=this.npcs.get(id)!;return[id,{cell:npc.cell,facing:npc.facing}];})));
+    this.storyNotes['cafe.window-focus']=window.id;this.storyNotes['cafe.window-phase']='walking';delete this.storyNotes['cafe.window-until'];this.progress[`distraction.${rule.id}`]=true;
+    for(const pending of this.interactions)if(pending.kind==='proximity-check')pending.status='resolved';
+    for(const id of rule.actorIds)this.sceneNpcRoutes.delete(id);return 'WINDOW_BROKEN';
+  }
+  private cafeWindowHomes(){
+    const rule=this.campaign.proximityEncounter,homes:Record<string,{cell:Cell;facing:Facing}>={};
+    if(!rule)return homes;
+    let saved:Record<string,unknown>={};
+    try{const value:unknown=JSON.parse(this.storyNotes['cafe.window-homes']??'{}');if(value&&typeof value==='object'&&!Array.isArray(value))saved=value as Record<string,unknown>;}catch{/* Legacy notes use authored seats. */}
+    const facings:Facing[]=['north','north-east','east','south-east','south','south-west','west','north-west'];
+    const scene=this.sceneById(rule.sceneId);
+    for(const id of rule.actorIds){
+      const actor=scene.stageActors?.find(actor=>actor.id===id);if(!actor)continue;
+      const value=saved[id],point=value&&typeof value==='object'?value as {cell?:Cell;facing?:Facing}:null;
+      const cell=point?.cell&&Number.isSafeInteger(point.cell.col)&&Number.isSafeInteger(point.cell.row)&&this.walkableAt(rule.sceneId,scene.surfaceId,point.cell)?point.cell:actor.cell;
+      homes[id]={cell:cloneCell(cell),facing:point?.facing&&facings.includes(point.facing)?point.facing:actor.facing??'north'};
+    }
+    return homes;
+  }
+  jumpThroughSceneWindow(characterId:string,windowId:string){
+    if(this.conditionsFor(characterId).some(condition=>condition==='inconsciente'||condition==='paralizada'))return 'INCAPACITATED';
+    const character=this.characters.get(characterId),window=this.campaign.sceneWindows?.find(window=>window.id===windowId),prop=window?this.objectsFor(window.sceneId).find(prop=>prop.id===window.id):null;
+    if(!character||!window||!prop||character.sceneId!==window.sceneId||character.step||character.hp<=0||this.combat.active)return 'TOO_FAR';
+    if(prop.structure!=='destroyed'&&(!isDoor(prop)||prop.state!=='open'))return 'WINDOW_CLOSED';
+    const near=(cell:Cell)=>Math.max(Math.abs(character.cell.col-cell.col),Math.abs(character.cell.row-cell.row))<=1;
+    const target=near(window.inside)?window.outside:near(window.outside)?window.inside:null;
+    if(!target)return 'TOO_FAR';
+    const strength=character.sheet?.strengthScore;if(strength===undefined)return 'STRENGTH_REQUIRED';
+    // The sill can be climbed with arms: allow a controlled vault, not an
+    // unrestricted long jump through solid walls. DM resolves difficult vaults.
+    if(jumpDistances(strength).highJumpFeet*.3048+1.1<window.sillMeters)return 'WINDOW_TOO_HIGH';
+    if(this.occupiedByActor(character.sceneId,character.surfaceId,target,characterId))return 'OCCUPIED_CELL';
+    if(!this.walkableAt(character.sceneId,character.surfaceId,target)||this.publicObjectProps(character.sceneId).some(prop=>prop.structure!=='destroyed'&&(prop.kind!=='door'||prop.state!=='open')&&footprintFor(prop.cell,prop.rotation,prop.footprint).some(cell=>sameCell(cell,target))))return 'BLOCKED_CELL';
+    this.clearSeat(characterId);const from=cloneCell(character.cell);character.cell=cloneCell(target);character.step={from,to:cloneCell(target),startedAt:Date.now(),durationMs:1000,movementKind:'jump'};character.moving=true;character.input.held=null;this.revision++;this.stateRevision++;return 'JUMP_COMPLETED';
+  }
+
+  checkSceneProximity(characterId: string, from?: Cell) {
+    const rule=this.campaign.proximityEncounter,character=this.characters.get(characterId);
+    if(!rule||!character||character.sceneId!==rule.sceneId||character.hp<=0||this.combat.active||this.progress[`distraction.${rule.id}`])return;
+    const scene=this.sceneForCharacter(character),grid=scene.grid,meters=scene.terrain?.tileMeters??1.5;
+    const origin=grid.worldOrigin??{x:0,z:0};
+    const point=(cell:Cell)=>({x:origin.x+(cell.col+.5)*meters,z:origin.z+(cell.row+.5)*meters});
+    const a=point(from??character.cell),b=point(character.cell),dx=b.x-a.x,dz=b.z-a.z;
+    for(const id of rule.actorIds){
+      const npc=this.npcs.get(id);if(!npc?.visible||npc.hp<=0||npc.surfaceId!==character.surfaceId)continue;
+      const authored=scene.stageActors?.find(actor=>actor.id===id&&sameCell(actor.cell,npc.cell));
+      const p=authored?.seatedAt??point(npc.cell),flag=`proximity.${rule.id}.${characterId}.${id}`;
+      const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.z-a.z)*dz)/(dx*dx+dz*dz||1)));
+      const distance=Math.hypot(p.x-a.x-dx*t,p.z-a.z-dz*t);
+      if(distance>=rule.radiusMeters){delete this.progress[flag];continue;}
+      if(this.progress[flag]||this.interactions.some(request=>request.status==='pending'&&request.kind==='proximity-check'&&request.characterId===characterId&&request.targetId===id))continue;
+      if(this.interactions.filter(request=>request.status==='pending').length>=200)break;
+      this.interactions.push({id:crypto.randomUUID(),characterId,characterLabel:character.label,targetId:id,targetLabel:npc.label,kind:'proximity-check',skill:rule.skill,dc:this.progress[`stealth.${characterId}`]?(rule.quietDc??rule.dc):rule.dc,createdAt:Date.now(),status:'pending',sceneId:character.sceneId,sceneEpoch:this.sceneEpoch,objectVersion:0,sessionToken:character.sessionToken??''});
+      character.input.held=null;this.revision++;
+    }
+  }
+
+  resolveSceneCheck(requestId:string,total:number|null) {
+    const prayer=this.interactions.find(item=>item.id===requestId&&item.status==='pending'&&item.kind==='prayer');
+    if(prayer){if(prayer.sceneEpoch!==this.sceneEpoch||prayer.sceneId!==this.sceneId)return 'REQUEST_STALE';prayer.status='resolved';if(total!==null&&total>0){this.storyNotes[`prayer.${prayer.characterId}.expiry`]=String(this.gameClockSnapshot().seconds+86400);this.progress[`prayer.${prayer.characterId}.inspiration`]=true;}this.revision++;this.stateRevision++;return total!==null&&total>0?'BLESSING_GRANTED':'CHECK_CANCELLED';}
+    const request=this.interactions.find(item=>item.id===requestId&&item.status==='pending'&&item.kind==='proximity-check'),rule=this.campaign.proximityEncounter;
+    if(!request||!rule||request.sceneEpoch!==this.sceneEpoch||request.sceneId!==this.sceneId)return 'REQUEST_STALE';
+    const character=this.characters.get(request.characterId),npc=this.npcs.get(request.targetId);
+    if(!character||character.sceneId!==rule.sceneId||!npc?.visible||npc.hp<=0)return 'REQUEST_STALE';
+    request.status='resolved';this.revision++;this.stateRevision++;
+    if(total===null)return 'CHECK_CANCELLED';
+    this.progress[`proximity.${rule.id}.${character.id}.${npc.id}`]=true;
+    if(total>=(request.dc??rule.dc))return 'CHECK_PASSED';
+    this.progress[`disturbed.${rule.id}.${npc.id}`]=true;
+    const disturbed=rule.actorIds.filter(id=>this.progress[`disturbed.${rule.id}.${id}`]);
+    if(disturbed.length>=rule.failuresBeforeCombat){
+      for(const id of rule.actorIds){const actor=this.npcs.get(id);if(actor?.visible&&actor.hp>0)actor.combatEnabled=true;}
+      for(const pending of this.interactions)if(pending.kind==='proximity-check')pending.status='resolved';
+      this.startCombat();return 'ENCOUNTER_ALERTED';
+    }
+    return 'CLIENT_DISTURBED';
+  }
+
+  private sceneNpcRoute(id:string,goal:Cell) {
+    const npc=this.npcs.get(id);if(!npc)return [];
+    const scene=this.sceneById(npc.sceneId);if(!scene.terrain)return [];
+    const queue=[npc.cell],parent=new Map<string,Cell|null>([[cellKey(npc.cell),null]]),props=this.publicObjectProps(npc.sceneId);
+    for(let i=0;i<queue.length;i++){
+      const current=queue[i]!;if(sameCell(current,goal))break;
+      for(const neighbor of surfaceNeighbors(scene.terrain,{surfaceId:npc.surfaceId,cell:current})){
+        if(neighbor.surfaceId!==npc.surfaceId||parent.has(cellKey(neighbor.cell))||this.occupiedByActor(npc.sceneId,npc.surfaceId,neighbor.cell,id)||props.some(prop=>prop.structure!=='destroyed'&&(prop.kind!=='door'||prop.state!=='open')&&footprintFor(prop.cell,prop.rotation,prop.footprint).some(cell=>sameCell(cell,neighbor.cell))))continue;
+        parent.set(cellKey(neighbor.cell),current);queue.push(neighbor.cell);
+      }
+    }
+    if(!parent.has(cellKey(goal)))return [];
+    const result:Cell[]=[];let cursor:Cell|null=goal;
+    while(cursor&&!sameCell(cursor,npc.cell)){result.unshift(cursor);cursor=parent.get(cellKey(cursor))??null;}
+    return result;
+  }
+
+  scareSceneAnimal(characterId:string) {
+    const rule=this.campaign.proximityEncounter,character=this.characters.get(characterId),distraction=rule?.distraction;
+    if(!rule||!distraction||!character||character.sceneId!==rule.sceneId||character.hp<=0||character.step||this.combat.active)return 'TOO_FAR';
+    const animal=this.npcs.get(distraction.actorId);if(!animal?.visible||animal.surfaceId!==character.surfaceId||Math.max(Math.abs(animal.cell.col-character.cell.col),Math.abs(animal.cell.row-character.cell.row))>1)return 'TOO_FAR';
+    if(this.progress[`distraction.${rule.id}`])return 'ALREADY_ALERTED';
+    const door=this.objectsFor(rule.sceneId).find(prop=>prop.id===distraction.entranceDoorId);
+    if(door&&isDoor(door)&&door.structure!=='destroyed'&&door.state!=='open')this.commitObject(door,{state:door.state},{state:'open'},'Los clientes salen a comprobar el ruido',rule.sceneId);
+    this.progress[`distraction.${rule.id}`]=true;
+    for(const pending of this.interactions)if(pending.kind==='proximity-check')pending.status='resolved';
+    for(const [i,id] of rule.actorIds.entries())this.sceneNpcRoutes.set(id,this.sceneNpcRoute(id,distraction.destinations[i]!));
+    this.revision++;this.stateRevision++;return 'ANIMAL_STARTLED';
+  }
   progress: Record<string, boolean> = {};
   storyNotes: Record<string, string> = {};
 
@@ -222,6 +373,9 @@ export class GameState {
   constructor(bundle: CampaignServerBundle) {
     this.campaign = compileCampaignBundle(bundle);
     this.sceneId = this.campaign.public.initialSceneId;
+    this.gameClockSeconds = initialGameTimeSeconds(this.campaign.public.campaignId);
+    this.gameClockAnchorMs = Date.now();
+    for (const scene of this.campaign.public.scenes) this.climateStates.set(scene.id, emptyClimateState(this.gameClockSeconds));
     this.audio.music.assetId = this.campaign.public.audio.library?.music[0]?.id;
     this.applySceneAudioProfile(this.sceneId);
     const scene = this.currentScene();
@@ -247,6 +401,8 @@ export class GameState {
       const profile = this.campaign.combatProfiles?.[actor.id];
       this.npcs.set(actor.id, { id: actor.id, identityId: profile?.identityId ?? actor.id, label: actor.label, tokenId: actor.tokenId, color: '#c69158', cell: cloneCell(actor.cell), surfaceId: actor.surfaceId ?? definition.surfaceId, sceneId: definition.id, facing: 'south', hp: profile?.maxHp ?? 10, maxHp: profile?.maxHp ?? 10, armorClass: profile?.armorClass ?? 10, speedMeters: profile?.speedMeters ?? 9, initiativeBonus: profile?.initiativeBonus ?? 0, attacks: combatActions(profile?.attacks ?? [{ id: 'basic-attack', label: 'Acción improvisada', attackBonus: 0, damageDice: '1d4', damageBonus: 0 }]), traits: structuredClone(profile?.traits ?? []), ruleTraits: structuredClone(profile?.ruleTraits ?? {}), damageResistances: [...(profile?.damageResistances ?? [])], damageImmunities: [...(profile?.damageImmunities ?? [])], conditionImmunities: [...(profile?.conditionImmunities ?? [])], combatEnabled: Boolean(profile) && (profile?.startsInCombat ?? true), visible: profile?.startsVisible ?? true, blocksMovement: this.campaign.public.campaignId === 'd8-night-private' });
     }
+    for(const definition of this.campaign.public.scenes)for(const actor of definition.stageActors??[])if(actor.facing)this.npcs.get(actor.id)!.facing=actor.facing;
+    for(const scene of this.campaign.public.scenes)for(const actor of scene.stageActors??[]){const npc=this.npcs.get(actor.id);if(npc&&actor.facing)npc.facing=actor.facing;}
     for (const actor of this.campaign.privateActors ?? []) {
       const profile = actor.profile;
       this.npcs.set(actor.id, { id: actor.id, identityId: profile.identityId ?? actor.id, label: actor.label, tokenId: actor.tokenId, color: actor.color,
@@ -276,6 +432,75 @@ export class GameState {
       });
       this.objectScenes.set(sceneDefinition.id, { objects, undo: [], revision: 0 });
     }
+  }
+
+  private gameClockRuns() { return !this.combat.active && !this.gameClockManuallyPaused && this.gameClockDecisionPauses.size === 0; }
+  private gameClockSecondsAt(now = Date.now()) {
+    return this.gameClockSeconds + (this.gameClockRuns() ? Math.max(0, now - this.gameClockAnchorMs) / 1_000 : 0);
+  }
+  private settleGameClock(now = Date.now()) {
+    this.gameClockSeconds = this.gameClockSecondsAt(now);
+    this.gameClockAnchorMs = now;
+    return this.gameClockSeconds;
+  }
+  gameClockSnapshot(now = Date.now()): GameClockSnapshot {
+    const pausedBy = this.gameClockManuallyPaused ? 'dm' as const : this.gameClockDecisionPauses.size ? 'decision' as const : null;
+    const running = this.gameClockRuns();
+    return { seconds: this.gameClockSecondsAt(now), serverTime: now, running,
+      mode: this.combat.active ? 'combat' : running ? 'exploration' : 'paused', pauseReason: pausedBy };
+  }
+  private climateAt(sceneId: SceneId, gameSeconds = this.gameClockSecondsAt()) {
+    return advanceClimate(this.climateStates.get(sceneId) ?? emptyClimateState(gameSeconds), this.environment, gameSeconds);
+  }
+  materializeClimates(gameSeconds = this.gameClockSecondsAt()) {
+    for (const scene of this.campaign.public.scenes) this.climateStates.set(scene.id, this.climateAt(scene.id, gameSeconds));
+  }
+  applyEnvironmentChange(patch: WeatherChange) {
+    const now = Date.now();
+    this.settleGameClock(now); this.materializeClimates(this.gameClockSeconds);
+    this.environment = resolveWeatherChange(this.environment, patch);
+    if (patch.timeOfDay !== undefined) {
+      if (patch.timeOfDay !== 'auto') this.gameClockSeconds = nextTimeOfDaySeconds(this.gameClockSeconds, patch.timeOfDay);
+      this.environment.timeOfDay = 'auto'; this.gameClockAnchorMs = now;
+    }
+    this.applyWeatherAudio(now);
+  }
+  setClockDecisionPause(key: string, open: boolean, now = Date.now()) {
+    this.settleGameClock(now);
+    if (open) this.gameClockDecisionPauses.add(key); else this.gameClockDecisionPauses.delete(key);
+    this.gameClockAnchorMs = now;
+  }
+  clearClockDecisionPauses(socketId: string, now = Date.now()) {
+    const prefix = `${socketId}:`;
+    if (![...this.gameClockDecisionPauses].some(key => key.startsWith(prefix))) return false;
+    this.settleGameClock(now);
+    for (const key of this.gameClockDecisionPauses) if (key.startsWith(prefix)) this.gameClockDecisionPauses.delete(key);
+    this.gameClockAnchorMs = now;
+    return true;
+  }
+  applyClockControl(action: 'pause' | 'resume' | 'advance' | 'set-time' | 'short-rest' | 'long-rest' | 'travel', value?: number | string) {
+    const now = Date.now();
+    this.settleGameClock(now);
+    if (action === 'pause') this.gameClockManuallyPaused = true;
+    else if (action === 'resume') this.gameClockManuallyPaused = false;
+    else if (action === 'advance') this.gameClockSeconds += Number(value);
+    else if (action === 'set-time') {
+      // Preserve accumulated surfaces when setting an earlier hour. Otherwise
+      // climate stays anchored in the future and freezes until that hour returns.
+      this.materializeClimates(this.gameClockSeconds);
+      this.gameClockSeconds = Math.floor(this.gameClockSeconds / SECONDS_PER_DAY) * SECONDS_PER_DAY + Number(value);
+      this.environment.timeOfDay = 'auto';
+      for (const [id, climate] of this.climateStates) this.climateStates.set(id, { ...climate, updatedAtGameSeconds: this.gameClockSeconds });
+    }
+    else if (action === 'short-rest') this.gameClockSeconds += SHORT_REST_SECONDS;
+    else if (action === 'long-rest') this.gameClockSeconds += LONG_REST_SECONDS;
+    else if (action === 'travel') {
+      const port = this.campaign.ports?.find(candidate => candidate.id === value);
+      if (!port?.travelSeconds) return false;
+      this.gameClockSeconds += port.travelSeconds;
+    }
+    this.gameClockAnchorMs = now;
+    return true;
   }
 
   currentScene(): SceneDefinition { return this.sceneById(this.sceneId); }
@@ -697,6 +922,24 @@ export class GameState {
       occupied.add(`${sceneId}:${saved.surfaceId}:${cellKey(saved.cell)}`);
     }
   }
+  /** The compact hull can trim a formerly valid edge cell. Repair only
+   * footprints that no longer exist, keeping every object state and legal
+   * custom placement intact. Actors are repaired by the existing migration. */
+  private migrateStormwreckCompactHull(payload:DurablePayload){
+    if(this.campaign.public.campaignId!=='stormwreck-isle'||(payload.wreckGridVersion??1)>=6)return;
+    const scene=this.sceneById('wreck-ship'),objects=payload.scenes.find(s=>s.sceneId==='wreck-ship')?.objects??[];
+    const definitions=this.objectScenes.get('wreck-ship')?.objects??[];
+    for(const saved of objects){
+      const definition=definitions.find(o=>o.id===saved.id);if(!definition)continue;
+      const surface=saved.surfaceId??definition.surfaceId;
+      if(footprintFor(saved.cell,saved.rotation,definition.baseFootprint).every(c=>this.walkableAt('wreck-ship',surface,c)))continue;
+      const occupied=new Set(objects.filter(o=>o.id!==saved.id).flatMap(o=>{const d=definitions.find(d=>d.id===o.id);return d&&(o.surfaceId??d.surfaceId)===surface?footprintFor(o.cell,o.rotation,d.baseFootprint).map(cellKey):[];}));
+      const candidates=scene.terrain?.surfaces.find(s=>s.id===surface)?.tiles.map(t=>t.cell).sort((a,b)=>Math.abs(a.col-saved.cell.col)+Math.abs(a.row-saved.cell.row)-Math.abs(b.col-saved.cell.col)-Math.abs(b.row-saved.cell.row)||a.row-b.row||a.col-b.col)??[];
+      const next=candidates.find(c=>footprintFor(c,saved.rotation,definition.baseFootprint).every(p=>this.walkableAt('wreck-ship',surface,p)&&!occupied.has(cellKey(p))&&!(surface===scene.surfaceId&&scene.spawns.some(s=>sameCell(s,p)))));
+      if(next)saved.cell=cloneCell(next);
+    }
+    payload.wreckGridVersion=6;
+  }
   /** D8 Night originally shared a temporary roster with the Stormwreck demo.
    * Its private saves are now a one-character table (María).  Keep the real
    * D8 state while removing only those obsolete demo records; no other
@@ -851,6 +1094,18 @@ export class GameState {
         facing: npc.facing, hp: npc.hp, maxHp: npc.maxHp, combatEnabled: npc.combatEnabled, visible: false });
     }
   }
+  private migrateAuthoredActorLayout(payload:DurablePayload){
+    const layout=this.campaign.actorLayout;if(!layout||(payload.actorLayoutVersion??0)>=layout.version)return;
+    payload.npcs??=[];const present=new Set(payload.npcs.map(npc=>npc.id));
+    for(const npc of this.npcs.values())if(!present.has(npc.id))payload.npcs.push({id:npc.id,sceneId:npc.sceneId,surfaceId:npc.surfaceId,cell:cloneCell(npc.cell),facing:npc.facing,hp:npc.hp,maxHp:npc.maxHp,combatEnabled:npc.combatEnabled,visible:npc.visible});
+    for(const correction of layout.corrections){
+      const npc=payload.npcs.find(npc=>npc.id===correction.id&&npc.sceneId===correction.sceneId),authored=this.npcs.get(correction.id);
+      if(!npc||!authored||npc.hp===0||!correction.previousCells.some(cell=>sameCell(cell,npc.cell)))continue;
+      const occupied=payload.characters.some(character=>(character.sceneId??payload.sceneId)===npc.sceneId&&character.surfaceId===npc.surfaceId&&sameCell(character.cell,authored.cell));
+      if(!occupied)npc.cell=cloneCell(authored.cell);
+    }
+    payload.actorLayoutVersion=layout.version;
+  }
   /** Older saves can predate interaction metadata added to authored doors and
    * containers. Restore only absent metadata from the matching authored object;
    * explicit saved state (open/closed, loot, ownership, etc.) remains intact. */
@@ -953,7 +1208,8 @@ export class GameState {
 
   startStep(character: CharacterState, facing: Facing, now = Date.now()) {
     if (character.step) return false;
-    if(character.hp<=0){character.moving=false;return false;}
+    if(character.hp<=0 || this.conditionsFor(character.id).includes('inconsciente') || this.conditionsFor(character.id).includes('paralizada')){character.moving=false;return false;}
+    if(this.interactions.some(request=>request.characterId===character.id&&request.status==='pending'&&request.kind==='proximity-check')){character.input.held=null;character.moving=false;return false;}
     const scene = this.sceneForCharacter(character);
     if (!scene.movementEnabled) { character.moving = false; return false; }
     if (this.progress[this.rowboatFlag(character.id)] && this.rowboatPassengers().includes(character))
@@ -1001,9 +1257,10 @@ export class GameState {
     const from = cloneCell(character.cell);
     this.recordRoadApproach(character,from,next);
     character.cell = cloneCell(next);
-    character.step = { from, to: cloneCell(next), fromSurfaceId: character.surfaceId, toSurfaceId: nextSurfaceId, startedAt: now, durationMs: STEP_DURATION_MS };
+    character.step = { from, to: cloneCell(next), fromSurfaceId: character.surfaceId, toSurfaceId: nextSurfaceId, startedAt: now, durationMs: this.progress[`stealth.${character.id}`]?STEP_DURATION_MS*1.5:STEP_DURATION_MS };
     character.moving = true; this.spendMovement(character.id, movementCost); this.revision++; this.stateRevision++;
     this.applyMovementHazard(character.id);
+    this.checkSceneProximity(character.id,from);
     return true;
   }
 
@@ -1063,18 +1320,18 @@ export class GameState {
   private combatParticipants(): CombatParticipant[] {
     return this.combat.participantIds.map(id => {
       const entity = this.combatEntity(id); if (!entity) throw new Error('COMBAT_ENTITY_MISSING');
-      return { ...entity, initiative: this.combat.initiative[id] ?? 0, initiativeSubmitted: Boolean(this.combat.initiativeSubmitted[id]), active: entity.kind === 'player' ? entity.deathSaves.failures < 3 : entity.hp > 0, conditions: [...this.conditionsFor(id)] };
+      return { ...entity, initiative: this.combat.initiative[id] ?? 0, initiativeSubmitted: Boolean(this.combat.initiativeSubmitted[id]), active: !this.combatantCannotTakeTurn(id), conditions: [...this.conditionsFor(id)] };
     });
   }
   private endCombatIfSideDefeated(finalEvent?: InternalCombatEvent, endingText?: string) {
     if (!this.combat.active || this.combat.pending) return false;
     const hasPlayers = this.combat.participantIds.some(id => {
       const entity = this.combatEntity(id);
-      return entity?.controller === 'player' && (entity.hp > 0 || entity.deathSaves.failures < 3);
+      return entity?.controller === 'player' && (entity.hp > 0 ? !this.conditionsFor(id).includes('inconsciente') : entity.deathSaves.failures < 3);
     });
     const hasOpponents = this.combat.participantIds.some(id => {
       const entity = this.combatEntity(id);
-      return entity?.controller === 'dm' && entity.hp > 0;
+      return entity?.controller === 'dm' && entity.hp > 0 && !this.conditionsFor(id).includes('inconsciente');
     });
     if (hasPlayers && hasOpponents) return false;
     const text = !hasOpponents && hasPlayers
@@ -1088,7 +1345,7 @@ export class GameState {
   private animationFor(action: CombatAction): CombatEvent['animation'] {
     return combatActionVisualState(action, visualAnimationType(action));
   }
-  private setCombatEvent(text: string, kind: CombatEvent['kind'], publicText = text, visual: Pick<CombatEvent, 'actorId' | 'targetId' | 'animation'> = {}) {
+  private setCombatEvent(text: string, kind: CombatEvent['kind'], publicText = text, visual: Pick<CombatEvent, 'actorId' | 'targetId' | 'animation' | 'reactionAnimation'> = {}) {
     this.combat.lastEvent = { id: crypto.randomUUID(), text, publicText, kind, ...visual };
   }
   private startConcentration(entityId: string, actionId: string, label: string) {
@@ -1126,9 +1383,12 @@ export class GameState {
   }
   private movementCost(sceneId: SceneId, surfaceId: string, cell: Cell) {
     const scene = this.sceneById(sceneId);
-    return scene.terrain?.surfaces.find(surface => surface.id === surfaceId)?.tiles.find(tile => sameCell(tile.cell, cell))?.movementCost ?? (scene.difficultCells?.some(candidate => sameCell(candidate, cell)) ? 2 : 1);
+    const base = scene.terrain?.surfaces.find(surface => surface.id === surfaceId)?.tiles.find(tile => sameCell(tile.cell, cell))?.movementCost ?? (scene.difficultCells?.some(candidate => sameCell(candidate, cell)) ? 2 : 1);
+    const covered=Boolean(scene.camp&&(scene.id==='camp-a1-rooms'?A1_ROOM_CELL_KEYS.has(`${cell.col},${cell.row}`):scene.camp.interactionPoints.some(p=>p.kind==='tent'&&p.objectCell&&Math.abs(cell.col-p.objectCell.col)<=2&&Math.abs(cell.row-p.objectCell.row)<=2)));
+    return base===1&&!covered&&this.environment.snowDifficultTerrain&&this.climateAt(sceneId).snowDepthCm>=15?2:base;
   }
   private terrainStepDestination(scene: SceneDefinition, surfaceId: string, from: Cell, to: Cell) {
+    if(surfaceId===scene.surfaceId&&(this.campaign.movementDoorEdges??[]).some(barrier=>barrier.sceneId===scene.id&&barrier.edges.some(edge=>sameCell(edge.from,from)&&sameCell(edge.to,to)||sameCell(edge.from,to)&&sameCell(edge.to,from))&&this.objectsFor(scene.id).some(prop=>prop.id===barrier.propId&&isDoor(prop)&&prop.structure!=='destroyed'&&prop.state!=='open')))return null;
     if (!scene.terrain) return { surfaceId, cell: to };
     const neighbors = surfaceNeighbors(scene.terrain, { surfaceId, cell: from });
     const dx = to.col - from.col, dy = to.row - from.row;
@@ -1142,6 +1402,9 @@ export class GameState {
     const connected = (a: Cell, b: Cell) => surfaceNeighbors(scene.terrain!, { surfaceId, cell: a })
       .some(neighbor => neighbor.surfaceId === surfaceId && sameCell(neighbor.cell, b));
     if (Math.abs(dx) !== 1 || Math.abs(dy) !== 1) return null;
+    // Authored narrow passages carry physical cardinal paths. A diagonal input
+    // uses the existing cardinal fallback, avoiding a shortcut through furniture.
+    if(scene.terrain.edgePaths?.length)return null;
     const horizontal = { col: to.col, row: from.row }, vertical = { col: from.col, row: to.row };
     // A diagonal may pass a single blocked/missing corner when its other
     // orthogonal route is clear. Requiring both routes made small curved
@@ -1166,7 +1429,7 @@ export class GameState {
     const npc = this.npcs.get(entityId)?.visible && (this.npcs.get(entityId)?.hp ?? 0) > 0 ? this.npcs.get(entityId)! : null;
     const entity = character ?? creature ?? npc;
     if (!entity) return 'UNKNOWN_ENTITY';
-    if(entity.hp<=0)return 'INCAPACITATED';
+    const rescue = entity.hp <= 0;
     if ((npc?.id === 'wreck-rowboat' && this.rowboatPassengers().length > 0)
       || (character && this.rowboatPassengers().includes(character)))
       return 'ENTITY_ABOARD_ROWBOAT';
@@ -1178,14 +1441,14 @@ export class GameState {
     if (!resolved) return 'BLOCKED_CELL';
     const destinationSurfaceId = resolved.surfaceId;
     const terrainCost = this.movementCost(entitySceneId, destinationSurfaceId, destination);
-    if (!this.canSpendMovement(entityId, terrainCost)) return 'MOVEMENT_SPENT';
+    if (!rescue && !this.canSpendMovement(entityId, terrainCost)) return 'MOVEMENT_SPENT';
     if (scene.terrain ? !this.walkableAt(entitySceneId, destinationSurfaceId, destination)
       || this.publicObjectProps(entitySceneId).some(prop => prop.surfaceId === destinationSurfaceId && prop.structure !== 'destroyed' && (prop.kind !== 'door' || prop.state !== 'open') && footprintFor(prop.cell, prop.rotation, prop.footprint).some(cell => sameCell(cell, destination)))
       : !isWalkable(scene, destination, this.publicObjectProps(entitySceneId))) return 'BLOCKED_CELL';
     const occupied = this.occupiedByActor(entitySceneId, destinationSurfaceId, destination, entityId);
     if (occupied) return 'OCCUPIED_CELL';
-    if (this.combat.pending) return 'ROLL_PENDING';
-    if (this.queueOpportunityMovement(entityId, destination, destinationSurfaceId)) return 'REACTION_PENDING';
+    if (!rescue && this.combat.pending) return 'ROLL_PENDING';
+    if (!rescue && this.queueOpportunityMovement(entityId, destination, destinationSurfaceId)) return 'REACTION_PENDING';
     this.commitGridMove(entityId, destination, destinationSurfaceId);
     return 'MOVED';
   }
@@ -1196,6 +1459,7 @@ export class GameState {
     const npc = this.npcs.get(entityId) ?? null;
     const entity = character ?? creature ?? npc;
     if (!entity) return false;
+    const previousCell=cloneCell(entity.cell);
     const facing = directionFromVector(destination.col - entity.cell.col, destination.row - entity.cell.row) ?? entity.facing ?? 'north';
     if (character) {
       if (character.step) return false;
@@ -1204,14 +1468,15 @@ export class GameState {
     } else if (npc) { npc.cell = cloneCell(destination); npc.surfaceId = destinationSurfaceId ?? npc.surfaceId; npc.facing = facing; }
     else if (creature) { creature.cell = cloneCell(destination); creature.surfaceId = destinationSurfaceId ?? creature.surfaceId; }
     const sceneId = character?.sceneId ?? creature?.sceneId ?? npc!.sceneId;
-    this.spendMovement(entityId, this.movementCost(sceneId, destinationSurfaceId ?? entity.surfaceId, destination)); this.revision++; this.stateRevision++;
+    if(entity.hp>0)this.spendMovement(entityId, this.movementCost(sceneId, destinationSurfaceId ?? entity.surfaceId, destination)); this.revision++; this.stateRevision++;
     this.applyMovementHazard(entityId);
+    if(character)this.checkSceneProximity(entityId,previousCell);
     return true;
   }
 
   private applyMovementHazard(entityId: string) {
     const entity = this.characters.get(entityId) ?? this.npcs.get(entityId) ?? (this.creature?.id === entityId ? this.creature : undefined);
-    if(!entity)return;
+    if(!entity||entity.hp<=0)return;
     const hazard=this.sceneById(entity.sceneId).movementHazards?.find(h=>h.cells.some(cell=>sameCell(cell,entity.cell)));
     if(!hazard)return;
     this.applyHitPoints(entityId,-entity.hp);
@@ -1233,7 +1498,13 @@ export class GameState {
     }
   }
 
+  private publicDefeatState(id: string, hp: number) {
+    const style = hp <= 0 ? 'blood' as const : this.conditionsFor(id).includes('inconsciente') ? 'unconscious' as const : undefined;
+    return { defeated: Boolean(style), ...(style ? { defeatStyle: style } : {}) };
+  }
+
   publicSnapshot(redactCombat = false, viewSceneId: SceneId = this.sceneId, viewSurfaceId?: string): WorldSnapshot {
+    const now = Date.now(), gameClock = this.gameClockSnapshot(now);
     const viewScene = this.sceneById(viewSceneId);
     const wreckDisappeared = this.campaign.public.campaignId === 'stormwreck-isle' && Boolean(this.progress['wreck.curse-day-after']);
     const remainsInScene = (sceneId: SceneId, surfaceId: string) => !wreckDisappeared || sceneId !== 'wreck-ship' || surfaceId === 'sea';
@@ -1244,28 +1515,29 @@ export class GameState {
     const authorizedScene = { ...structuredClone(viewScene), props: viewScene.props.filter(prop => visiblePropIds.has(prop.id)).map(prop => structuredClone(prop)),
       ...(wreckDisappeared && viewSceneId === 'wreck-ship' ? { stageActors: [] } : {}),
       pickups: (viewScene.pickups ?? []).filter(pickup => remainsInScene(viewSceneId, pickup.surfaceId) && (viewSurfaceId === undefined || pickup.surfaceId === viewSurfaceId) && (!redactCombat || this.pickupAvailable(viewSceneId, pickup))) };
-    const entities: PublicEntity[] = [...this.characters.values()].filter(character => Boolean(character.sessionToken) && character.sceneId === viewSceneId && remainsInScene(character.sceneId, character.surfaceId) && visibleSurface(character.surfaceId, character.step)).map(character => ({
+    const entities: PublicEntity[] = [...this.characters.values()].filter(character => (Boolean(character.sessionToken) || character.hp <= 0 || this.conditionsFor(character.id).includes('inconsciente')) && character.sceneId === viewSceneId && remainsInScene(character.sceneId, character.surfaceId) && visibleSurface(character.surfaceId, character.step)).map(character => ({
       id: character.id, kind: 'player', label: character.label, sceneId: character.sceneId, cell: cloneCell(character.cell), surfaceId: character.surfaceId,
       facing: character.facing, moving: character.moving, step: character.step ? structuredClone(character.step) : null, color: character.color, tokenId: character.tokenId, conditions: [...this.conditionsFor(character.id)],
       carriedLightRadiusMeters: carriedLightRadiusMeters(character.inventory),
+      stealth:Boolean(this.progress[`stealth.${character.id}`]),
       ...(character.sceneId==='wreck-ship' && (character.surfaceId==='sea'||character.surfaceId==='hold-air'||character.step?.movementKind==='dive')
         ? {waterMovement:this.progress[this.rowboatFlag(character.id)]?'rowboat' as const:character.surfaceId==='hold-air'||character.step?.movementKind==='dive'?'dive' as const:'swim' as const}:{}),
       ...(this.seatFor(character.id)?{seatId:this.seatFor(character.id)!.id}:{}),
-      ...(!redactCombat && this.combat.active && this.combat.participantIds.includes(character.id) ? { hp: character.hp, maxHp: character.maxHp, defeated: character.hp <= 0 } : {})
+      ...(!redactCombat && this.combat.active && this.combat.participantIds.includes(character.id) ? { hp: character.hp, maxHp: character.maxHp } : {}), ...this.publicDefeatState(character.id, character.hp)
     }));
-    if (this.creature?.visible && this.creature.hp > 0 && this.creature.sceneId === viewSceneId && remainsInScene(this.creature.sceneId, this.creature.surfaceId) && visibleSurface(this.creature.surfaceId)) entities.push({
+    if (this.creature?.visible && this.creature.sceneId === viewSceneId && remainsInScene(this.creature.sceneId, this.creature.surfaceId) && visibleSurface(this.creature.surfaceId)) entities.push({
       id: this.creature.id, kind: 'creature', label: this.creature.label, sceneId: this.creature.sceneId, cell: cloneCell(this.creature.cell), surfaceId: this.creature.surfaceId,
       facing: this.creature.facing, moving: false, step: null, color: this.creature.color, tokenId: this.creature.tokenId, conditions: [...this.conditionsFor(this.creature.id)],
-      ...(!redactCombat && this.combat.active && this.combat.participantIds.includes(this.creature.id) ? { hp: this.creature.hp, maxHp: this.creature.maxHp, defeated: this.creature.hp <= 0 } : {})
+      ...(!redactCombat && this.combat.active && this.combat.participantIds.includes(this.creature.id) ? { hp: this.creature.hp, maxHp: this.creature.maxHp } : {}), ...this.publicDefeatState(this.creature.id, this.creature.hp)
     });
     // The rowboat floats beside C1: it must remain visible from the open-air
     // decks even though its authoritative movement surface is `sea`.
     const visibleNpcSurface = (npc: NpcState) => visibleSurface(npc.surfaceId, npc.step)
       || (npc.id === 'wreck-rowboat' && viewSceneId === 'wreck-ship'
         && ['main', 'c1-hull', 'c2', 'c3', 'crow'].includes(viewSurfaceId ?? ''));
-    for (const npc of this.npcs.values()) if (npc.visible && npc.hp > 0 && npc.sceneId === viewSceneId && remainsInScene(npc.sceneId, npc.surfaceId) && visibleNpcSurface(npc)) entities.push({
+    for (const npc of this.npcs.values()) if (npc.visible && npc.sceneId === viewSceneId && remainsInScene(npc.sceneId, npc.surfaceId) && visibleNpcSurface(npc)) entities.push({
       id: npc.id, kind: 'npc', label: npc.label, sceneId: npc.sceneId, cell: cloneCell(npc.cell), surfaceId: npc.surfaceId, facing: npc.facing, moving: Boolean(npc.step), step: npc.step ? structuredClone(npc.step) : null, color: npc.color, tokenId: npc.tokenId, conditions: [...this.conditionsFor(npc.id)],
-      ...(!redactCombat && this.combat.active && this.combat.participantIds.includes(npc.id) ? { hp: npc.hp, maxHp: npc.maxHp, defeated: npc.hp <= 0 } : {})
+      ...(!redactCombat && this.combat.active && this.combat.participantIds.includes(npc.id) ? { hp: npc.hp, maxHp: npc.maxHp } : {}), ...this.publicDefeatState(npc.id, npc.hp)
     });
     const visibleTokenIds = new Set(entities.map(entity => entity.tokenId));
     const tokenAssets = {
@@ -1293,15 +1565,15 @@ export class GameState {
     };
     const visibleEvent = this.combat.lastEvent && (!redactCombat || (eventEntityVisible(this.combat.lastEvent.actorId) && eventEntityVisible(this.combat.lastEvent.targetId))) ? this.combat.lastEvent : null;
     return {
-      v: PROTOCOL_VERSION, objectModelVersion: OBJECT_MODEL_VERSION, revision: this.revision, serverTime: Date.now(), sceneId: viewSceneId, scene: authorizedScene, sceneEpoch: this.sceneEpoch, runtimeEpoch: this.runtimeEpoch,
-      entities, tokenAssets, props, collectedPickups: (viewScene.pickups ?? []).filter(pickup => remainsInScene(viewSceneId, pickup.surfaceId) && (viewSurfaceId === undefined || pickup.surfaceId === viewSurfaceId) && this.pickupAvailable(viewSceneId, pickup) && this.progress[`pickup.${pickup.id}`]).map(pickup => pickup.id), camera: { mode: this.camera.mode, focusId: publicFocus }, environment: { ...this.environment },
-      story: { wreckDisappeared },
+      v: PROTOCOL_VERSION, objectModelVersion: OBJECT_MODEL_VERSION, revision: this.revision, serverTime: now, gameClock, sceneId: viewSceneId, scene: authorizedScene, sceneEpoch: this.sceneEpoch, runtimeEpoch: this.runtimeEpoch,
+      entities, tokenAssets, props, collectedPickups: (viewScene.pickups ?? []).filter(pickup => remainsInScene(viewSceneId, pickup.surfaceId) && (viewSurfaceId === undefined || pickup.surfaceId === viewSurfaceId) && this.pickupAvailable(viewSceneId, pickup) && this.progress[`pickup.${pickup.id}`]).map(pickup => pickup.id), camera: { mode: this.camera.mode, focusId: publicFocus }, environment: { ...this.environment }, climate: this.climateAt(viewSceneId, gameClock.seconds),
+      story: { wreckDisappeared, ...(this.campaign.public.campaignId === 'd8-night-private' && ['temple','cafe','market','garden','dinner'].includes(viewSceneId) && this.campaign.adventure?.endings.some(ending => this.progress[endingFlag(ending.id)]) ? { d8TimeLoopBroken: true, ...(['temple','dinner'].includes(viewSceneId) ? { d8EndingVisual: this.progress[endingFlag('ending3')] ? 'darkness' as const : this.progress[endingFlag('ending2')] ? 'solitude' as const : 'celebration' as const } : {}) } : {}) },
       visualEffects: this.activeVisualEffects().filter(effect => effect.visual.sceneId === viewSceneId &&
         (viewSurfaceId === undefined || effect.visual.surfaceId === viewSurfaceId) &&
         (!effect.visual.entityId || visibleIds.has(effect.visual.entityId))).map(effect => structuredClone(effect.visual)),
       campRest: this.campStateFor(viewSceneId),
       // La CA es el número público que el jugador necesita superar al atacar.
-      combat: { active: this.combat.active && (!redactCombat || visibleParticipants.length > 0), round: this.combat.round, currentId: visibleCurrentId, movement: movement && (!redactCombat || visibleIds.has(movement.actorId)) ? movement : null, participants: visibleParticipants.map(participant => redactCombat ? { ...participant, hp: 0, maxHp: 0, armorClass: participant.controller === 'player' ? participant.armorClass : 0, speedMeters: 0, attacks: [] } : participant), order: visibleOrder, lastEvent: visibleEvent ? { id: visibleEvent.id, kind: visibleEvent.kind, text: redactCombat ? visibleEvent.publicText : visibleEvent.text, actorId: visibleEvent.actorId, targetId: visibleEvent.targetId, animation: visibleEvent.animation } : null }
+      combat: { active: this.combat.active && (!redactCombat || visibleParticipants.length > 0), round: this.combat.round, currentId: visibleCurrentId, movement: movement && (!redactCombat || visibleIds.has(movement.actorId)) ? movement : null, participants: visibleParticipants.map(participant => redactCombat ? { ...participant, hp: 0, maxHp: 0, armorClass: participant.controller === 'player' ? participant.armorClass : 0, speedMeters: 0, attacks: [] } : participant), order: visibleOrder, lastEvent: visibleEvent ? { id: visibleEvent.id, kind: visibleEvent.kind, text: redactCombat ? visibleEvent.publicText : visibleEvent.text, actorId: visibleEvent.actorId, targetId: visibleEvent.targetId, animation: visibleEvent.animation, reactionAnimation: visibleEvent.reactionAnimation } : null }
     };
   }
 
@@ -1360,6 +1632,8 @@ export class GameState {
       if (prior.paused) return { commandId: command.commandId, ok: false, code: 'REST_INTERRUPTED' };
       if (prior.phase !== 'dawn') return { commandId: command.commandId, ok: false, code: 'REST_NOT_AT_DAWN' };
       prior.phase = 'finalization'; prior.outcome = command.completed ? 'completed' : 'incomplete';
+      // The DM confirms the completed rest; benefits remain a table decision.
+      if (command.completed) this.applyClockControl('long-rest');
       return { commandId: command.commandId, ok: true, code: 'APPLIED' };
     }
     return { commandId: command.commandId, ok: false, code: 'INVALID_CAMP_ACTION' };
@@ -1491,7 +1765,15 @@ export class GameState {
       .map(door => ({ targetId: door.id, label: door.interaction?.barrier === 'barred'
         ? `Retirar listón · ${door.label}` : door.state === 'open' ? `Cerrar · ${door.label}` : `Abrir · ${door.label}` })) : [];
     return [
+      ...(this.campaign.proximityEncounter?.distraction&&character&&!character.step&&!this.combat.active&&!this.progress[`distraction.${this.campaign.proximityEncounter.id}`]&&this.campaign.proximityEncounter.sceneId===character.sceneId&&(()=>{const animal=this.npcs.get(this.campaign.proximityEncounter!.distraction!.actorId);return animal?.visible&&animal.surfaceId===character.surfaceId&&Math.max(Math.abs(animal.cell.col-character.cell.col),Math.abs(animal.cell.row-character.cell.row))<=1;})()?[{targetId:'scene-animal-distraction',label:'Espantar al caballo'}]:[]),
       ...(rowboat ? [rowboat] : []),
+      ...(character&&!character.step&&!this.combat.active?[
+        ...(this.campaign.sceneWindows??[]).filter(window=>window.sceneId===character.sceneId&&Math.max(Math.abs(character.cell.col-window.cell.col),Math.abs(character.cell.row-window.cell.row))<=2).flatMap(window=>[{targetId:window.id+'.break',label:'Romper ventana',cell:window.cell,surfaceId:character.surfaceId},{targetId:window.id+'.vault',label:'Saltar por la ventana',cell:window.cell,surfaceId:character.surfaceId}]),
+        ...(this.campaign.prayerShrine?.sceneId===character.sceneId&&Math.max(Math.abs(character.cell.col-this.campaign.prayerShrine.cell.col),Math.abs(character.cell.row-this.campaign.prayerShrine.cell.row))<=2?[{targetId:'temple-prayer',label:'Rezar a Sylvania',cell:this.campaign.prayerShrine.cell,surfaceId:character.surfaceId}]:[]),
+        ...(this.blessingFor(character.id)?[{targetId:'temple-inspiration-spend',label:'Usar Inspiración · ventaja en un d20',cell:character.cell,surfaceId:character.surfaceId}]:[])
+      ]:[]),
+      ...(this.cofaClimbAvailable(character.id)?[{targetId:'P10',label:'Subir a la cofa · Atletismo CD 10 (DM)',cell:cloneCell(character.cell),surfaceId:character.surfaceId}]:[]),
+      ...(this.cofaDescentAvailable(character.id)?[{targetId:'P10',label:'Bajar de la cofa · escalera de cuerda',cell:cloneCell(character.cell),surfaceId:character.surfaceId}]:[]),
       ...doors,
       ...pickups,
       ...(character&&!character.step&&!this.combat.active?(this.sceneForCharacter(character).readableSigns??[]).filter(sign=>Math.max(Math.abs(sign.cell.col-character.cell.col),Math.abs(sign.cell.row-character.cell.row))<=1).map(sign=>({targetId:sign.id,label:`Leer · ${sign.label}`})):[]),
@@ -1545,6 +1827,8 @@ export class GameState {
 
   playerPrivate(token: string, notice?: string): PlayerPrivate {
     const character = this.characterForSession(token);
+    const sceneCheck=character&&this.interactions.find(request=>request.status==='pending'&&request.characterId===character.id&&request.kind==='proximity-check');
+    notice??=sceneCheck?`${sceneCheck.skill} CD ${sceneCheck.dc}: pasas junto a ${sceneCheck.targetLabel}. Tira el dado físico e introduce el total en el panel; el DM lo confirma.`:undefined;
     const canAct = Boolean(character && character.hp > 0 && !this.conditionsFor(character.id).some(condition => condition === 'inconsciente' || condition === 'paralizada'));
     const interactions = this.nearbyInteractions(character);
     const nearbyInteraction = interactions[0] ?? null;
@@ -1582,6 +1866,8 @@ export class GameState {
       canInteract: Boolean(nearbyInteraction), nearbyInteraction: nearbyInteraction?.label ?? null,
       interactionTargetId: nearbyInteraction?.targetId ?? null,
       availableInteractions: interactions,
+      ...(sceneCheck?{sceneCheck:{id:sceneCheck.id,skill:sceneCheck.skill,dc:sceneCheck.dc,targetLabel:sceneCheck.targetLabel,playerTotal:sceneCheck.playerTotal}}:{}),
+      ...(character?{stealth:Boolean(this.progress[`stealth.${character.id}`]),blessing:this.blessingFor(character.id)}:{}),
       rowboat: character && this.rowboatPassengers().includes(character)
         ? { aboard: true, pilot: this.rowboatPilot()?.id === character.id } : null,
       campInteractions,
@@ -1593,6 +1879,7 @@ export class GameState {
   }
 
   dmState(): DmState {
+    const gameClock = this.gameClockSnapshot();
     const objectState = this.currentObjectState();
     return {
       runtimeEpoch: this.runtimeEpoch,
@@ -1611,8 +1898,8 @@ export class GameState {
         const entity = this.combatEntity(id); if (!entity) throw new Error('COMBAT_ENTITY_MISSING'); return { id, label: entity.label, kind: entity.kind };
       }) },
       privateNotes: { creature: this.campaign.encounter?.note ?? '', wheel: this.campaign.wheelInteraction?.note ?? '' },
-      camera: { ...this.camera }, environment: { ...this.environment }, campRest: this.campRest ? structuredClone(this.campRest) : null, campActivity: this.campStateFor(this.sceneId), audio: structuredClone(this.audio), projectorReady: this.projectorReady,
-      interactions: this.interactions.map(({ id, characterId, characterLabel, targetId, createdAt, status }) => ({ id, characterId, characterLabel, targetId, createdAt, status })), objects: this.dmObjects(),
+      camera: { ...this.camera }, environment: { ...this.environment }, gameClock, climate: this.climateAt(this.sceneId, gameClock.seconds), campRest: this.campRest ? structuredClone(this.campRest) : null, campActivity: this.campStateFor(this.sceneId), audio: structuredClone(this.audio), projectorReady: this.projectorReady,
+      interactions: this.interactions.map(({ id, characterId, characterLabel, targetId, createdAt, status, kind,skill,dc,targetLabel,playerTotal }) => ({ id, characterId, characterLabel, targetId, createdAt, status,...(kind?{kind,skill,dc,targetLabel,playerTotal}:{}) })), objects: this.dmObjects(),
       pickups: (this.currentScene().pickups ?? []).map(pickup => ({ id: pickup.id, label: pickup.label, sceneId: this.sceneId, surfaceId: pickup.surfaceId, cell: pickup.cell, kind: pickup.kind, collected: Boolean(this.progress[`pickup.${pickup.id}`]), available: this.pickupAvailable(this.sceneId, pickup) })), progress: { ...this.progress },
       ...(this.campaign.adventure ? { adventure: adventureView(this.campaign.adventure, this.progress, this.storyNotes) } : {}),
       encounterGroups: (this.campaign.encounterGroups ?? []).map(group => ({ id: group.id, label: group.label, sceneId: group.sceneId, maximum: group.actorIds.length, visibleCount: group.actorIds.filter(id => this.npcs.get(id)?.visible).length })),
@@ -1637,19 +1924,51 @@ export class GameState {
     this.visualEffects = this.activeVisualEffects(now);
     const boat = this.rowboat();
     if (boat?.step && now >= boat.step.startedAt + boat.step.durationMs) boat.step = null;
+    const encounter=this.campaign.proximityEncounter,distraction=encounter?.distraction;
+    if(encounter&&distraction&&this.sceneId===encounter.sceneId){
+      const window=this.campaign.sceneWindows?.find(window=>window.id===this.storyNotes['cafe.window-focus']);
+      if(window&&!this.combat.active&&this.storyNotes['cafe.window-phase']==='watching'&&now>=Number(this.storyNotes['cafe.window-until'])){this.storyNotes['cafe.window-phase']='returning';for(const id of encounter.actorIds)this.sceneNpcRoutes.delete(id);this.stateRevision++;this.revision++;}
+      const returning=Boolean(window&&this.storyNotes['cafe.window-phase']==='returning'),homes=window?this.cafeWindowHomes():{};
+      const goals=!this.combat.active&&this.progress[`distraction.${encounter.id}`]?encounter.actorIds.map((id,i)=>({id,cell:returning?homes[id]?.cell:(window?.destinations??distraction.destinations)[i]!})):[];
+      if(this.progress['cafe.horse-fleeing']&&this.campaign.animalFleeDestination)goals.push({id:distraction.actorId,cell:this.campaign.animalFleeDestination});
+      for(const {id,cell:goal} of goals){
+        const npc=this.npcs.get(id);if(!npc?.visible||npc.hp<=0||!goal)continue;
+        if(npc.step){if(now<npc.step.startedAt+npc.step.durationMs)continue;npc.step=null;this.revision++;changedCharacters.add(id);}
+        if(sameCell(npc.cell,goal)){if(window){const facing=returning?homes[id]?.facing:directionFromVector(window.cell.col-npc.cell.col,window.cell.row-npc.cell.row);if(facing&&npc.facing!==facing){npc.facing=facing;this.revision++;this.stateRevision++;changedCharacters.add(id);}}continue;}
+        if(!this.sceneNpcRoutes.get(id)?.length)this.sceneNpcRoutes.set(id,this.sceneNpcRoute(id,goal));
+        const route=this.sceneNpcRoutes.get(id),next=route?.[0];if(!next)continue;if(this.occupiedByActor(npc.sceneId,npc.surfaceId,next,id)){this.sceneNpcRoutes.delete(id);continue;}
+        const resolved=this.terrainStepDestination(this.sceneById(npc.sceneId),npc.surfaceId,npc.cell,next);
+        if(!resolved){this.sceneNpcRoutes.delete(id);continue;}
+        const from=cloneCell(npc.cell);this.commitGridMove(id,next,resolved.surfaceId);
+        npc.step={from,to:cloneCell(next),fromSurfaceId:npc.surfaceId,toSurfaceId:resolved.surfaceId,startedAt:now,durationMs:360};route!.shift();changedCharacters.add(id);
+      }
+      if(window&&!this.combat.active&&this.progress[`distraction.${encounter.id}`]&&(returning||this.storyNotes['cafe.window-phase']!=='watching')&&encounter.actorIds.every((id,i)=>{const npc=this.npcs.get(id),goal=returning?homes[id]?.cell:window.destinations[i];return npc&&goal&&!npc.step&&sameCell(npc.cell,goal);})){
+        if(returning){this.progress[`distraction.${encounter.id}`]=false;for(const key of ['cafe.window-focus','cafe.window-phase','cafe.window-until','cafe.window-homes'])delete this.storyNotes[key];}
+        else if(this.storyNotes['cafe.window-phase']!=='watching'){this.storyNotes['cafe.window-phase']='watching';this.storyNotes['cafe.window-until']=String(now+10_000);}
+        this.stateRevision++;this.revision++;for(const id of encounter.actorIds)changedCharacters.add(id);
+      }
+    }
     for (const request of this.interactions) if (request.status === 'pending' && now - request.createdAt >= 120_000) { request.status = 'resolved'; changedCharacters.add(request.characterId); }
     for (const character of this.characters.values()) {
       const scene = this.sceneForCharacter(character);
       let nextStepAt=now;
       if (character.step && now >= character.step.startedAt + character.step.durationMs) {
         const completedStep = character.step;
+        if (!completedStep.movementKind && character.hp > 0) {
+          const previous = this.walkingRunUp.get(character.id), feet = Math.max(Math.abs(completedStep.to.col-completedStep.from.col),Math.abs(completedStep.to.row-completedStep.from.row))*5;
+          const connected = previous?.facing === character.facing && now-previous.at < 2500 && previous.sceneId === character.sceneId
+            && previous.surfaceId === character.surfaceId && sameCell(previous.cell,completedStep.from);
+          this.walkingRunUp.set(character.id,{feet:connected ? previous!.feet+feet : feet,facing:character.facing,at:now,
+            sceneId:character.sceneId,surfaceId:completedStep.toSurfaceId ?? character.surfaceId,cell:cloneCell(completedStep.to)});
+        }
         nextStepAt=Math.max(now-100,completedStep.startedAt+completedStep.durationMs);
         const fromSceneId = character.sceneId, fromSurfaceId = character.surfaceId;
         character.surfaceId = completedStep.toSurfaceId ?? character.surfaceId;
         character.step = null; character.moving = false; this.revision++; changedCharacters.add(character.id);
-        if (!completedStep.movementKind && !this.progress[this.rowboatFlag(character.id)] && this.autoTraverseAfterStep(character, completedStep.to)) changedCharacters.add(character.id);
+        if (!this.plannedJumps.has(character.id) && !completedStep.movementKind && !this.progress[this.rowboatFlag(character.id)] && this.autoTraverseAfterStep(character, completedStep.to)) changedCharacters.add(character.id);
         this.observeWreckLocationChange(character, fromSceneId, fromSurfaceId);
       }
+      if (!character.step && this.advancePlannedJump(character,nextStepAt)) changedCharacters.add(character.id);
       if (!character.step && character.socketId && scene.movementEnabled && character.input.held && now - character.input.updatedAt <= 650) {
         if (this.startStep(character, character.input.held, nextStepAt)) changedCharacters.add(character.id);
       }
@@ -1673,6 +1992,7 @@ export class GameState {
       const occupied = this.occupiedByActor(destination.mapId, destination.surfaceId, destination.cell, character.id);
       if (occupied) return false;
       if (['rope-ladder','rigging','swim'].includes(port.mode) && character.sceneId === destination.mapId) {
+        if(port.id==='P10'&&destination.surfaceId==='crow'&&this.progress['wreck.cofa-free-climb']!==true)continue;
         this.startClimb(character,destination.surfaceId,destination.cell,port.mode==='swim'?'dive':'climb');
         return true;
       }
@@ -1696,6 +2016,7 @@ export class GameState {
   changeScene(sceneId: SceneId) {
     if (!this.hasScene(sceneId)) return false;
     if (sceneId === 'wreck-ship' && this.campaign.public.campaignId === 'stormwreck-isle' && this.progress['wreck.curse-day-after']) return false;
+    this.plannedJumps.clear(); this.walkingRunUp.clear();
     this.sceneId = sceneId; this.sceneEpoch++; this.interactions = []; this.camera.focusId = null; this.combat = emptyCombat();
     this.applySceneAudioProfile(sceneId);
     // Un paso repetido no debe seguir sonando al saltar a otro mapa.
@@ -1723,7 +2044,7 @@ export class GameState {
     return true;
   }
 
-  traversePort(entityId: string, portId: string, direction: 'forward' | 'return', adjudicate = false) {
+  traversePort(entityId: string, portId: string, direction: 'forward' | 'return', adjudicate = false, checkTotal?:number) {
     const port = this.campaign.ports?.find(candidate => candidate.id === portId);
     const character = this.characters.get(entityId);
     if (!port) return 'UNKNOWN_PORT';
@@ -1739,6 +2060,10 @@ export class GameState {
     const origin = direction === 'forward' ? port.from : port.to;
     const destination = direction === 'forward' ? port.to : port.from;
     if (character.sceneId !== origin.mapId || character.surfaceId !== origin.surfaceId || !sameCell(character.cell, origin.cell)) return 'PORT_ORIGIN_MISMATCH';
+    if(port.id==='P10'&&direction==='forward'&&this.progress['wreck.cofa-free-climb']!==true){
+      if(checkTotal===undefined)return 'COFA_CHECK_REQUIRED';
+      if(checkTotal<10)return 'COFA_CHECK_FAILED';
+    }
     if (!this.walkableAt(destination.mapId, destination.surfaceId, destination.cell)) return 'BLOCKED_CELL';
     const occupied = (cell: Cell) => this.occupiedByActor(destination.mapId, destination.surfaceId, cell, entityId);
     let landingCell = destination.cell;
@@ -1777,6 +2102,25 @@ export class GameState {
     return 'MOVED';
   }
 
+  cofaClimbAvailable(characterId:string){
+    const c=this.characters.get(characterId),port=this.campaign.ports?.find(p=>p.id==='P10');
+    return Boolean(c&&port&&c.sceneId===port.from.mapId&&c.surfaceId===port.from.surfaceId&&sameCell(c.cell,port.from.cell)&&!c.step&&!this.combat.active&&c.hp>0&&!this.conditionsFor(c.id).some(s=>s==='inconsciente'||s==='paralizada'));
+  }
+  requestCofaClimb(characterId:string){
+    const c=this.characters.get(characterId);
+    if(c?.sessionToken&&c.socketId&&this.cofaDescentAvailable(characterId))return this.traversePort(characterId,'P10','return');
+    if(!c?.sessionToken||!c.socketId||!this.cofaClimbAvailable(characterId))return 'TOO_FAR';
+    if(this.interactions.some(r=>r.characterId===characterId&&r.targetId==='P10'&&r.status==='pending'))return 'REQUESTED';
+    if(this.interactions.filter(r=>r.status==='pending').length>=200)return 'INTERACTION_LIMIT';
+    this.interactions.push({id:crypto.randomUUID(),characterId,characterLabel:c.label,targetId:'P10',createdAt:Date.now(),status:'pending',sceneId:c.sceneId,sceneEpoch:this.sceneEpoch,objectVersion:0,sessionToken:c.sessionToken});
+    this.revision++;return 'REQUESTED';
+  }
+
+  private cofaDescentAvailable(characterId:string){
+    const c=this.characters.get(characterId),port=this.campaign.ports?.find(p=>p.id==='P10');
+    return Boolean(c&&port&&c.sceneId===port.to.mapId&&c.surfaceId===port.to.surfaceId&&sameCell(c.cell,port.to.cell)&&!c.step&&!this.combat.active&&c.hp>0&&!this.conditionsFor(c.id).some(s=>s==='inconsciente'||s==='paralizada'));
+  }
+
   private startClimb(character: CharacterState, surfaceId: string, cell: Cell,kind:'climb'|'dive'='climb') {
     const terrain = this.sceneForCharacter(character).terrain!;
     const from = cloneCell(character.cell), fromSurfaceId = character.surfaceId;
@@ -1802,10 +2146,12 @@ export class GameState {
 
   applyWeatherAudio(now=Date.now()) {
     const weather=this.environment, library=this.campaign.public.audio.library?.ambience??[];
-    const kind=weather.precipitation??(weather.storm?'rain':'none'),level=weather.precipitationLevel??2;
-    const rain=library.find(t=>/rain-drizzle|rain-steady/.test(t.id))??library.find(t=>/rain|storm/.test(t.id));
-    const thunder=library.find(t=>/storm/.test(t.id));
-    const wind=library.find(t=>/icy-wind|wind/.test(t.id));
+    const kind=precipitationKind(weather),mode=weatherMode(weather),level=weather.precipitationLevel??2;
+    const rain=library.find(t=>/(?:^|-)rain(?:-|$)/.test(t.id))??library.find(t=>/(?:^|-)storm$/.test(t.id));
+    const thunder=library.find(t=>/loop-thunder/.test(t.id))??library.find(t=>/(?:^|-)storm$/.test(t.id));
+    const tempest=library.find(t=>/(?:^|-)tempest$/.test(t.id));
+    const coldWind=library.find(t=>/icy-wind|cliff-wind/.test(t.id));
+    const wind=library.find(t=>/(?:^|-)wind$/.test(t.id))??coldWind;
     const apply=(track:AudioState['music'],assetId:string|undefined,volume:number)=>{
       if(!assetId)return;
       const changed=track.assetId!==assetId;if(changed){track.offset=0;track.assetId=assetId;}
@@ -1813,9 +2159,20 @@ export class GameState {
     };
     // An explicit thunderstorm keeps its thunder loop, including across maps.
     // Plain rain uses the quiet rain loop with three audible intensities.
-    if(weather.storm)apply(this.audio.layers.storm,thunder?.id??rain?.id,weather.stormIntensity);
+    if(mode==='storm')apply(this.audio.layers.storm,thunder?.id??rain?.id,[0,.25,.48,.68][level]!);
+    else if(mode==='tempest')apply(this.audio.layers.storm,tempest?.id??thunder?.id??rain?.id,[0,.55,.75,.95][level]!);
+    else if(kind==='snow')apply(this.audio.layers.storm,coldWind?.id??wind?.id,[0,.10,.18,.28][level]!);
     else if(weather.precipitation!==undefined)apply(this.audio.layers.storm,rain?.id,kind==='rain'?[0,.18,.42,.72][level]!:0);
-    if(weather.windIntensity!==undefined)apply(this.audio.layers.wind,wind?.id,weather.windIntensity*.65);
+    if(weather.windIntensity!==undefined) {
+      const authored=this.campaign.public.audio.sceneProfiles?.[this.sceneId]?.layers.wind;
+      if(weather.windIntensity===0&&authored?.playing&&authored.id!==wind?.id)apply(this.audio.layers.wind,authored.id,authored.volume);
+      else apply(this.audio.layers.wind,wind?.id,weather.windIntensity*.65);
+    }
+    if(this.currentScene().camp&&this.currentScene().camp?.visualProfile!=='forest') {
+      const profile=this.currentScene().camp!.visualProfile,strength=seaState(weather,profile==='wreck-beach'?.8:profile==='coastal-refuge'?.22:.35);
+      const ocean=library.find(t=>/camp-wave-surge/.test(t.id))??library.find(t=>/ocean|surf|sea/.test(t.id));
+      if(weather.seaIntensity!==undefined||weather.storm||weather.windIntensity!==undefined)apply(this.audio.layers.ocean,ocean?.id,.08+strength*(profile==='coastal-refuge'?.30:.65));
+    }
   }
 
   private currentObjectState() { return this.objectScenes.get(this.sceneId)!; }
@@ -1823,6 +2180,7 @@ export class GameState {
   public interactionObject(id: string) { return this.currentObjects().find(object => object.id === id) ?? null; }
   public interactionRequestValid(request: RuntimeInteraction) {
     const character = this.characters.get(request.characterId), object = this.interactionObject(request.targetId);
+    if(request.targetId==='P10')return Boolean(request.status==='pending'&&request.sceneId===this.sceneId&&request.sceneEpoch===this.sceneEpoch&&character?.sessionToken===request.sessionToken&&character?.socketId&&this.cofaClimbAvailable(request.characterId));
     return Boolean(
       request.status === 'pending' && request.sceneId === this.sceneId && request.sceneEpoch === this.sceneEpoch &&
       character && character.sessionToken === request.sessionToken && character.socketId && !character.step &&
@@ -1849,10 +2207,11 @@ export class GameState {
   }
   private occupiedByActor(sceneId: string, surfaceId: string, cell: Cell, exceptId?: string) {
     return [...this.characters.values()].some(character => character.id !== exceptId && Boolean(character.sessionToken)
+      && character.hp > 0 && !this.conditionsFor(character.id).includes('inconsciente')
       && character.sceneId === sceneId && this.occupiesAddress(character, surfaceId, cell))
-      || Boolean(this.creature && this.creature.id !== exceptId && this.creature.visible && this.creature.hp > 0
+      || Boolean(this.creature && this.creature.id !== exceptId && this.creature.visible && this.creature.hp > 0 && !this.conditionsFor(this.creature.id).includes('inconsciente')
         && this.creature.sceneId === sceneId && this.occupiesAddress(this.creature, surfaceId, cell))
-      || [...this.npcs.values()].some(npc => npc.id !== exceptId && npc.blocksMovement && npc.visible && npc.hp > 0
+      || [...this.npcs.values()].some(npc => npc.id !== exceptId && npc.blocksMovement && npc.visible && npc.hp > 0 && !this.conditionsFor(npc.id).includes('inconsciente')
         && npc.sceneId === sceneId && this.occupiesAddress(npc, surfaceId, cell));
   }
   private actorReservations(surfaceId: string, sceneId = this.sceneId) {
@@ -1880,11 +2239,9 @@ export class GameState {
     const creature = this.creature?.visible && this.creature.hp > 0 && this.creature.sceneId === this.sceneId ? [this.creature.id] : [];
     const npcs = [...this.npcs.values()].filter(npc => npc.sceneId === this.sceneId && npc.visible && npc.combatEnabled).map(npc => npc.id);
     // Los PJ a 0 PG siguen participando para sus salvaciones de muerte.
-    const participantIds = [...players, ...creature, ...npcs].filter(id => {
-      const entity = this.combatEntity(id);
-      return entity && (entity.kind === 'player' ? entity.deathSaves.failures < 3 : entity.hp > 0);
-    });
-    if (!players.length || participantIds.length < 2) return false;
+    const participantIds = [...players, ...creature, ...npcs].filter(id => !this.combatantCannotTakeTurn(id));
+    if (!participantIds.some(id => this.characters.has(id)) || participantIds.length < 2) return false;
+    this.settleGameClock();
     // Las tiradas pertenecen a la mesa: el servidor sólo recibe el total que
     // cada participante ha tirado físicamente y nunca genera un d20 aquí.
     const initiative = Object.fromEntries(participantIds.map(id => [id, 0]));
@@ -1946,7 +2303,86 @@ export class GameState {
     return { ok: true as const, code: 'EXPLORATION_ACTION_DECLARED', action, target };
   }
 
-  declareExplorationBasicAction(characterId: string, actionId: ExplorationBasicAction, targetId?: string, targetCell?: Cell) {
+  cancelPlannedJump(characterId: string) {
+    if (this.plannedJumps.delete(characterId)) this.walkingRunUp.delete(characterId);
+  }
+
+  private jumpPreparationStepAllowed(character: CharacterState, from: Cell, to: Cell) {
+    const scene = this.sceneForCharacter(character), surfaceId = character.surfaceId;
+    if (!scene.movementEnabled || this.progress[this.rowboatFlag(character.id)]) return false;
+    const props = this.publicObjectProps(character.sceneId);
+    const safeCell = (cell: Cell) => this.walkableAt(scene.id,surfaceId,cell)
+      && !this.occupiedByActor(scene.id,surfaceId,cell,character.id)
+      && !props.some(prop => prop.surfaceId === surfaceId && prop.structure !== 'destroyed'
+        && (prop.kind !== 'door' || prop.state !== 'open') && footprintFor(prop.cell,prop.rotation,prop.footprint).some(p => sameCell(p,cell)))
+      && !scene.movementHazards?.some(hazard => hazard.cells.some(p => sameCell(p,cell)))
+      && !scene.terrain?.surfaces.find(surface => surface.id === surfaceId)?.tiles.some(tile => sameCell(tile.cell,cell) && tile.medium === 'water')
+      && !this.campaign.ports?.some(port => port.from.mapId === scene.id && port.from.surfaceId === surfaceId && sameCell(port.from.cell,cell)
+        || port.to.mapId === scene.id && port.to.surfaceId === surfaceId && sameCell(port.to.cell,cell));
+    const dx = to.col - from.col, dy = to.row - from.row;
+    if (Math.max(Math.abs(dx),Math.abs(dy)) !== 1 || !safeCell(from) || !safeCell(to)) return false;
+    if (dx && dy && (!safeCell({col:from.col,row:to.row}) || !safeCell({col:to.col,row:from.row}))) return false;
+    if (scene.effectWalls?.some(wall => segmentCrossesBox(from,to,wall))) return false;
+    if (!scene.terrain) return Boolean(resolveStep(scene,from,directionFromVector(dx,dy)!,props));
+    const destination = this.terrainStepDestination(scene,surfaceId,from,to);
+    return destination?.surfaceId === surfaceId && sameCell(destination.cell,to)
+      && Math.abs(surfaceHeight(scene.terrain,{surfaceId,cell:to})-surfaceHeight(scene.terrain,{surfaceId,cell:from})) <= .6;
+  }
+
+  private jumpLandingProblem(character: CharacterState, origin: Cell, target: Cell, running: boolean) {
+    const strength = character.sheet?.strengthScore;
+    if (strength === undefined) return 'STRENGTH_REQUIRED';
+    const distances = jumpDistances(strength), feet = Math.max(Math.abs(target.col-origin.col),Math.abs(target.row-origin.row))*5;
+    if (feet > (running ? distances.longJumpFeet : distances.standingLongJumpFeet)) return feet <= distances.longJumpFeet ? 'JUMP_NEEDS_RUN_UP' : 'JUMP_OUT_OF_RANGE';
+    const scene = this.sceneForCharacter(character), terrain = scene.terrain;
+    if (terrain) {
+      const rise = surfaceHeight(terrain,{surfaceId:character.surfaceId,cell:target})-surfaceHeight(terrain,{surfaceId:character.surfaceId,cell:origin});
+      if (rise > (running ? distances.highJumpFeet : distances.standingHighJumpFeet)*.3048+.01) return 'JUMP_TOO_HIGH';
+      if (rise < -1.8) return 'FALL_ADJUDICATION_REQUIRED';
+    }
+    if (!feet || !scene.movementEnabled || !this.walkableAt(scene.id,character.surfaceId,target)
+      || this.occupiedByActor(scene.id,character.surfaceId,target,character.id) || !this.clearLineOfEffect(character.id,target,origin)
+      || this.publicObjectProps(scene.id).some(prop => prop.surfaceId === character.surfaceId && prop.structure !== 'destroyed'
+        && (prop.kind !== 'door' || prop.state !== 'open') && footprintFor(prop.cell,prop.rotation,prop.footprint).some(cell => sameCell(cell,target)))) return 'JUMP_BLOCKED';
+    return null;
+  }
+
+  private launchCharacterJump(character: CharacterState, target: Cell, now: number) {
+    this.cancelPlannedJump(character.id); this.walkingRunUp.delete(character.id);
+    this.cancelInteractionsForCharacter(character.id); this.clearSeat(character.id);
+    const from = cloneCell(character.cell);
+    character.facing = directionFromVector(target.col-from.col,target.row-from.row) ?? character.facing;
+    character.cell = cloneCell(target);
+    character.step = {from,to:cloneCell(target),fromSurfaceId:character.surfaceId,toSurfaceId:character.surfaceId,startedAt:now,durationMs:900,movementKind:'jump'};
+    character.moving = true; character.input.held = null;
+    this.applyMovementHazard(character.id); this.checkSceneProximity(character.id,from);
+    this.revision++; this.stateRevision++;
+  }
+
+  private advancePlannedJump(character: CharacterState, now: number) {
+    const plan = this.plannedJumps.get(character.id); if (!plan || character.step) return false;
+    if (this.combat.active || character.hp <= 0 || character.sceneId !== plan.sceneId || character.surfaceId !== plan.surfaceId
+      || character.socketId !== plan.socketId || !sameCell(character.cell,plan.expected) || character.input.held
+      || this.conditionsFor(character.id).some(condition => ['inconsciente','paralizada','apresada','agarrada','restringida','derribada'].includes(condition))
+      || this.interactions.some(request => request.characterId === character.id && request.status === 'pending')
+      || this.jumpLandingProblem(character,plan.origin,plan.landing,true)) {
+      this.cancelPlannedJump(character.id); character.moving = false; return false;
+    }
+    const next = plan.steps[0];
+    if (!next) { this.launchCharacterJump(character,plan.landing,now); return true; }
+    if (!this.jumpPreparationStepAllowed(character,character.cell,next.cell)) { this.cancelPlannedJump(character.id); character.moving = false; return false; }
+    const from = cloneCell(character.cell); plan.steps.shift(); plan.expected = cloneCell(next.cell);
+    this.clearSeat(character.id);
+    character.facing = directionFromVector(next.cell.col-from.col,next.cell.row-from.row)!;
+    character.cell = cloneCell(next.cell);
+    character.step = {from,to:cloneCell(next.cell),fromSurfaceId:character.surfaceId,toSurfaceId:character.surfaceId,
+      startedAt:now,durationMs:next.running ? 180 : STEP_DURATION_MS,...(next.running ? {movementKind:'run-up' as const} : {})};
+    character.moving = true; character.input.held = null;
+    this.applyMovementHazard(character.id); this.checkSceneProximity(character.id,from);
+    this.revision++; this.stateRevision++; return true;
+  }
+
+  declareExplorationBasicAction(characterId: string, actionId: ExplorationBasicAction, targetId?: string, targetCell?: Cell, jumpMode: JumpMode = 'auto') {
     if (this.combat.active) return { ok: false as const, code: 'COMBAT_ACTIVE' };
     const character = this.characters.get(characterId), action = explorationBasicActionCatalogue[actionId];
     if (!character || !character.explorationBasics.includes(actionId)) return { ok: false as const, code: 'UNKNOWN_ACTION' };
@@ -1957,7 +2393,8 @@ export class GameState {
       if (targetId || targetCell) return { ok: false as const, code: 'INVALID_TARGET' };
       targetLabel = character.label;
     } else if (action.target === 'point') {
-      if (targetId || !targetCell || !this.isCurrentSceneCell(targetCell)) return { ok: false as const, code: 'INVALID_TARGET' };
+      const grid = this.sceneForCharacter(character).grid;
+      if (targetId || !targetCell || !Number.isInteger(targetCell.col) || !Number.isInteger(targetCell.row) || targetCell.col < 0 || targetCell.row < 0 || targetCell.col >= grid.cols || targetCell.row >= grid.rows) return { ok: false as const, code: 'INVALID_TARGET' };
       targetLabel = `casilla ${targetCell.col + 1}, ${targetCell.row + 1}`;
     } else if (action.target === 'living') {
       const selected = targetId ? this.explorationTarget(targetId) : null;
@@ -1972,10 +2409,27 @@ export class GameState {
       targetLabel = `casilla ${targetCell.col + 1}, ${targetCell.row + 1}`;
     } else if (actionId === 'use-object') targetLabel = 'el equipo que declares';
 
-    const guidance = actionId === 'jump' ? jumpGuidance(character.sheet?.strengthScore) : action.guidance;
-    if (actionId === 'jump' && targetCell && character.sheet?.strengthScore !== undefined) {
-      const distanceFeet = Math.max(Math.abs(targetCell.col - character.cell.col), Math.abs(targetCell.row - character.cell.row)) * 5;
-      if (distanceFeet > character.sheet.strengthScore) return { ok: false as const, code: 'JUMP_OUT_OF_RANGE' };
+    let guidance = actionId === 'jump' ? jumpGuidance(character.sheet?.strengthScore) : action.guidance;
+    if(actionId==='hide'){this.progress[`stealth.${characterId}`]=!this.progress[`stealth.${characterId}`];this.revision++;this.stateRevision++;}
+    if (actionId === 'jump' && targetCell) {
+      if (this.plannedJumps.has(characterId)) return {ok:false as const,code:'JUMP_IN_PROGRESS'};
+      if (character.hp <= 0 || character.step || this.conditionsFor(characterId).some(condition => ['apresada','agarrada','restringida','derribada'].includes(condition))) return {ok:false as const,code:'INCAPACITATED'};
+      const now = Date.now(), run = this.walkingRunUp.get(characterId);
+      const facing = directionFromVector(targetCell.col-character.cell.col,targetCell.row-character.cell.row);
+      const recentRun = Boolean(run && now-run.at <= 2500 && run.feet >= 10 && run.facing === facing
+        && run.sceneId === character.sceneId && run.surfaceId === character.surfaceId && sameCell(run.cell,character.cell));
+      const standingProblem = this.jumpLandingProblem(character,character.cell,targetCell,false);
+      const running = jumpMode !== 'standing' && (jumpMode === 'running' || recentRun || standingProblem === 'JUMP_NEEDS_RUN_UP' || standingProblem === 'JUMP_TOO_HIGH');
+      const problem = this.jumpLandingProblem(character,character.cell,targetCell,running);
+      if (problem) return {ok:false as const,code:problem};
+      if (running && !recentRun) {
+        const steps = planJumpRunUp(character.cell,targetCell,(from,to) => this.jumpPreparationStepAllowed(character,from,to));
+        if (!steps) return {ok:false as const,code:'JUMP_RUN_UP_BLOCKED'};
+        this.cancelInteractionsForCharacter(characterId); character.input.held = null;
+        this.plannedJumps.set(characterId,{sceneId:character.sceneId,surfaceId:character.surfaceId,origin:cloneCell(character.cell),expected:cloneCell(character.cell),landing:cloneCell(targetCell),steps,socketId:character.socketId});
+        this.advancePlannedJump(character,now);
+        guidance = `Carrerilla automática: retrocede 3 m, avanza 3 m y salta al destino. ${guidance}`;
+      } else this.launchCharacterJump(character,targetCell,now);
     }
 
     this.lastExplorationAction = {
@@ -1996,6 +2450,7 @@ export class GameState {
     if (!this.clearLineOfEffect(characterId, target.cell)) return { ok: false as const, code: 'LINE_OF_EFFECT_BLOCKED' };
     if (this.conditionsFor(characterId).some(condition => condition === 'inconsciente' || condition === 'paralizada')) return { ok: false as const, code: 'INCAPACITATED' };
     const npc = this.npcs.get(targetId);
+    if(npc?.id===this.campaign.proximityEncounter?.distraction?.actorId){this.fleeSceneAnimal();return {ok:true as const,code:'ANIMAL_FLED'};}
     if (npc) npc.combatEnabled = true;
     if (!this.startCombat({ attackerId: characterId, targetId, actionId })) return { ok: false as const, code: 'COMBATANTS_REQUIRED' };
     this.setCombatEvent(`${character.label} inicia una acción hostil contra ${target.label}; se resolverá al llegar su iniciativa.`, 'turn', undefined, { actorId: characterId, targetId, animation: this.animationFor(action) });
@@ -2016,6 +2471,8 @@ export class GameState {
 
   nextCombatTurn(skipCurrentEnd = false) {
     if (!this.combat.active || this.combat.initiativePending || !this.combat.order.length || this.combat.pending) return false;
+    const priorRound = this.combat.round, now = Date.now();
+    this.settleGameClock(now);
     if (!skipCurrentEnd) this.advanceConditionTurns(this.currentCombatId()!, 'end');
     let checked = 0;
     do {
@@ -2027,6 +2484,10 @@ export class GameState {
         this.advanceConditionTurns(this.currentCombatId()!, 'start'); this.advanceConditionTurns(this.currentCombatId()!, 'end');
       }
     } while (checked < this.combat.order.length && this.combatantCannotTakeTurn(this.currentCombatId()!));
+    if (this.combat.round > priorRound) {
+      this.gameClockSeconds += (this.combat.round - priorRound) * 6;
+      this.gameClockAnchorMs = now;
+    }
     if (this.combatantCannotTakeTurn(this.currentCombatId()!)) return false;
     const currentId = this.currentCombatId()!;
     this.beginCombatTurn(currentId);
@@ -2034,6 +2495,7 @@ export class GameState {
   }
   private combatantCannotTakeTurn(entityId: string) {
     const entity = this.combatEntity(entityId); if (!entity) return true;
+    if (entity.hp > 0 && this.conditionsFor(entityId).includes('inconsciente')) return true;
     if (entity.kind !== 'player') return entity.hp <= 0;
     return entity.deathSaves.failures >= 3 || entity.deathSaves.stable;
   }
@@ -2211,8 +2673,8 @@ export class GameState {
     const source = this.entityCell(entityId); if (!source) return Number.POSITIVE_INFINITY;
     return Math.max(Math.abs(source.col - cell.col), Math.abs(source.row - cell.row)) * 1.5;
   }
-  private clearLineOfEffect(entityId: string, cell: Cell) {
-    const from = this.entityCell(entityId), sceneId = this.entitySceneId(entityId); if (!from || !sceneId) return false;
+  private clearLineOfEffect(entityId: string, cell: Cell, fromOverride?: Cell) {
+    const from = fromOverride ?? this.entityCell(entityId), sceneId = this.entitySceneId(entityId); if (!from || !sceneId) return false;
     const scene = this.sceneById(sceneId);
     if (scene.effectWalls?.some(wall => segmentCrossesBox(from, cell, wall))) return false;
     return !this.publicObjectProps(sceneId).some(prop => prop.surfaceId === this.entitySurfaceId(entityId)
@@ -2223,6 +2685,14 @@ export class GameState {
     const { cols, rows } = this.currentScene().grid;
     return Number.isInteger(cell.col) && Number.isInteger(cell.row) && cell.col >= 0 && cell.row >= 0 && cell.col < cols && cell.row < rows;
   }
+  private campWeatherExposed(actorId: string) {
+    const cell=this.entityCell(actorId),sceneId=this.entitySceneId(actorId); if (!cell || !sceneId) return false;
+    const scene=this.sceneById(sceneId);if(!scene.camp)return false;
+    if (scene.id === 'camp-a1-rooms') return !A1_ROOM_CELL_KEYS.has(`${cell.col},${cell.row}`);
+    if (scene.camp.visualProfile === 'coastal-refuge') return false;
+    return !scene.camp.interactionPoints.some(p=>p.kind==='tent'&&p.objectCell&&Math.abs(cell.col-p.objectCell.col)<=1&&Math.abs(cell.row-p.objectCell.row)<=1);
+  }
+
   private attackAdvantage(attackerId: string, targetId: string, action: CombatAction): CombatPrompt['advantage'] {
     const own = new Set(this.conditionsFor(attackerId)), target = new Set(this.conditionsFor(targetId));
     const distance = this.distanceMeters(attackerId, targetId), ranged = action.range?.kind === 'ranged';
@@ -2232,7 +2702,8 @@ export class GameState {
       return id !== attackerId && (entity?.hp ?? 0) > 0 && entity?.controller !== attackerController && this.distanceMeters(attackerId, id) <= 1.5 && !conditions.includes('inconsciente') && !conditions.includes('invisible');
     });
     const targetDodging = this.combat.stances[targetId]?.action === 'dodge' && !target.has('apresada') && !target.has('restringida') && !target.has('inconsciente');
-    const hasDisadvantage = own.has('envenenada') || own.has('restringida') || own.has('apresada') || own.has('asustada') || own.has('inconsciente') || own.has('paralizada') || own.has('derribada') || target.has('invisible') || targetDodging || Boolean(ranged && (nearbyHostile || action.range?.longMeters && distance > action.range.normalMeters || target.has('derribada') && distance > 1.5));
+    const windPenalty = Boolean(this.environment.weatherRules && ranged && !action.magical && strongWind(this.environment) && this.campWeatherExposed(attackerId));
+    const hasDisadvantage = windPenalty || own.has('envenenada') || own.has('restringida') || own.has('apresada') || own.has('asustada') || own.has('inconsciente') || own.has('paralizada') || own.has('derribada') || target.has('invisible') || targetDodging || Boolean(ranged && (nearbyHostile || action.range?.longMeters && distance > action.range.normalMeters || target.has('derribada') && distance > 1.5));
     // La proximidad se valida al ejecutar Ayudar. Después la distracción sigue
     // valiendo hasta el siguiente ataque aliado o el comienzo del turno de quien ayuda.
     const helped = this.combat.participantIds.some(id => id !== attackerId && this.combatEntity(id)?.controller === attackerController && this.combat.stances[id]?.action === 'help' && this.combat.stances[id]?.targetId === targetId);
@@ -2577,15 +3048,29 @@ export class GameState {
     const rawDamage = Math.max(0, value + (pending.damageBonus ?? 0));
     const damage = action.damageType && target.damageImmunities.includes(action.damageType) ? 0 : action.damageType && target.damageResistances.includes(action.damageType) ? Math.floor(rawDamage / 2) : rawDamage;
     const targetWasAtZero = target.hp === 0;
-    this.applyHitPoints(target.id, -damage);
+    // House rule requested for both campaigns: a mundane bludgeoning finish
+    // knocks out at 1 HP. Spells and other damage still use the 0-HP path.
+    const knockout = target.hp > 0 && damage >= target.hp && damage > 0 && (action.damageType === 'contundente' || this.animationFor(action) === 'attack-unarmed') && !action.magical && !target.conditionImmunities.includes('inconsciente');
+    if (knockout) {
+      this.applyHitPoints(target.id, 1 - target.hp);
+      const identity = this.npcs.get(target.id)?.identityId;
+      const ids = identity ? [...this.npcs.values()].filter(npc => npc.identityId === identity).map(npc => npc.id) : [target.id];
+      for (const id of ids) {
+        this.setCombatCondition(id, 'inconsciente', true, { condition: 'inconsciente', sourceAbility: 'nonlethal-finish', sourceLabel: 'Golpe contundente · inconsciente a 1 PG' });
+        this.setCombatCondition(id, 'derribada', true);
+        this.clearConditionsFromDefeatedSource(id); this.endConcentration(id);
+      }
+      const character = this.characters.get(target.id);
+      if (character) { character.input.held = null; character.step = null; character.moving = false; }
+    } else this.applyHitPoints(target.id, -damage);
     if (targetWasAtZero && damage > 0 && pending.critical) {
       const downed = this.characters.get(target.id);
       if (downed && downed.deathSaves.failures < 3) downed.deathSaves.failures = Math.min(3, downed.deathSaves.failures + 1);
     }
     if (pending.useSneakAttack) { this.combat.sneakAttackUsed[attacker.id] = true; this.combat.sneakAttackUsedTurn[attacker.id] = this.combatTurnKey(); } if (!pending.opportunity) this.actionConsumed(attacker.id, action, target.id); if (action.recharge && !pending.opportunity) this.combat.recharge[attacker.id]![action.id] = false;
     this.combat.pending = null;
-    const targetAfter = this.combatEntity(target.id)!; const suffix = targetAfter.hp <= 0 ? ` ${targetAfter.label} queda fuera de combate.` : '';
-    this.setCombatEvent(`${attacker.label} usa ${action.label}: ${damage} PG${action.damageType ? ` ${action.damageType}` : ''}.${suffix}`, targetAfter.hp <= 0 ? 'defeat' : 'damage', `${attacker.label} impacta a ${target.label}: ${damage} PG.${suffix}`, { actorId: attacker.id, targetId: target.id, animation: this.animationFor(action) });
+    const targetAfter = this.combatEntity(target.id)!; const suffix = knockout ? ` ${targetAfter.label} queda inconsciente a 1 PG.` : targetAfter.hp <= 0 ? ` ${targetAfter.label} queda fuera de combate.` : '';
+    this.setCombatEvent(`${attacker.label} usa ${action.label}: ${damage} PG${action.damageType ? ` ${action.damageType}` : ''}.${suffix}`, knockout || targetAfter.hp <= 0 ? 'defeat' : 'damage', `${attacker.label} impacta a ${target.label}: ${damage} PG.${suffix}`, { actorId: attacker.id, targetId: target.id, animation: this.animationFor(action), reactionAnimation: damage>0 ? combatTargetReactionState(action) : undefined });
     const resolvedEvent = this.combat.lastEvent!;
     if (pending.opportunity && pending.movement) this.continueOpportunityMovement(pending.movement);
     const checks: Array<{ entityId: string; dc: number }> = [];
@@ -2673,6 +3158,7 @@ export class GameState {
     }
   }
   applyHitPoints(entityId: string, delta: number) {
+    if (delta > 0 && this.conditionSourcesFor(entityId).some(source => source.sourceAbility === 'nonlethal-finish')) this.setCombatCondition(entityId, 'inconsciente', false, { condition: 'inconsciente', sourceAbility: 'nonlethal-finish' });
     const character = this.characters.get(entityId);
     if (character) {
       const previousHp = character.hp, incomingDamage = Math.max(0, -delta);
@@ -2699,7 +3185,10 @@ export class GameState {
       npc.hp = Math.max(0, Math.min(npc.maxHp, npc.hp + delta));
       // A stage actor can be the same person in several scenes.  The pose and
       // position remain scene-local, while health belongs to that one identity.
-      for (const counterpart of this.npcs.values()) if (counterpart.id !== npc.id && counterpart.identityId === npc.identityId) counterpart.hp = Math.min(counterpart.maxHp, npc.hp);
+      for (const counterpart of this.npcs.values()) if (counterpart.id !== npc.id && counterpart.identityId === npc.identityId) {
+        counterpart.hp = Math.min(counterpart.maxHp, npc.hp);
+        if (delta > 0) this.setCombatCondition(counterpart.id, 'inconsciente', false, { condition: 'inconsciente', sourceAbility: 'nonlethal-finish' });
+      }
       if (npc.hp <= 0) { this.clearConditionsFromDefeatedSource(entityId); this.endConcentration(entityId); }
       this.endCombatIfSideDefeated();
       return true;
@@ -2769,8 +3258,10 @@ export class GameState {
 
   endCombat(reason?: string, finalEvent?: InternalCombatEvent) {
     if (!this.combat.active || this.combat.pending) return false;
+    this.settleGameClock();
     for (const character of this.characters.values()) character.input.held = null;
     this.combat = emptyCombat();
+    this.gameClockAnchorMs = Date.now();
     this.syncConditionClocks();
     if (reason) this.combat.lastEvent = finalEvent
       ? { ...finalEvent, text: `${finalEvent.text} ${reason}`, publicText: `${finalEvent.publicText} ${reason}` }
@@ -3014,6 +3505,7 @@ export class GameState {
   }
 
   captureDurable(now = Date.now()): DurablePayload {
+    const clockSeconds = Math.floor(this.gameClockSecondsAt(now));
     const saveTrack = (track: AudioState['music']) => ({
       playing: track.playing, volume: track.volume,
       offsetSeconds: track.offset + (track.playing && track.startedAt !== null ? Math.max(0, now - track.startedAt) / 1000 * track.rate : 0),
@@ -3022,8 +3514,11 @@ export class GameState {
     });
     return durablePayloadSchema.parse({
       sceneId: this.sceneId,
-      ...(this.campaign.public.campaignId === 'stormwreck-isle' ? { wreckGridVersion: 5 } : {}),
-      ...(this.campaign.public.campaignId === 'd8-night-private' ? { d8GridVersion: 3 } : {}),
+      gameClock: { seconds: Math.floor(clockSeconds), manuallyPaused: this.gameClockManuallyPaused },
+      climates: this.campaign.public.scenes.map(scene => ({ sceneId: scene.id, state: this.climateAt(scene.id, clockSeconds) })),
+      ...(this.campaign.public.campaignId === 'stormwreck-isle' ? { wreckGridVersion: WRECK_SAVE_GRID_VERSION,retreatGridVersion:2 } : {}),
+      ...(this.campaign.public.campaignId === 'd8-night-private' ? { d8GridVersion: D8_SAVE_GRID_VERSION } : {}),
+      ...(this.campaign.actorLayout?{actorLayoutVersion:this.campaign.actorLayout.version}:{}),
       ...(this.campRest ? { campRest: structuredClone(this.campRest) } : {}),
       ...(this.campActivities.size ? { campActivities: [...this.campActivities].map(([sceneId, interactions]) => ({ sceneId, interactions: structuredClone(interactions) })) } : {}),
       characters: [...this.characters.values()].map(character => ({ id: character.id, hp: character.hp, maxHp: character.maxHp, inventory: [...character.inventory], sheet: character.sheet ? structuredClone(character.sheet) : null, resources: structuredClone(character.combat.resources), deathSaves: { ...character.deathSaves }, sceneId: character.sceneId, cell: cloneCell(character.cell), surfaceId: character.step?.toSurfaceId ?? character.surfaceId, facing: character.facing })).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
@@ -3036,7 +3531,7 @@ export class GameState {
         if (object.kind === 'wheel') return { ...common, kind: 'wheel' as const, attachment: object.attachment, state: object.state };
         return { ...common, kind: 'crate' as const, ...(object.interaction ? { interaction: structuredClone(object.interaction) } : {}) };
       }).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0) })).sort((a, b) => a.sceneId < b.sceneId ? -1 : a.sceneId > b.sceneId ? 1 : 0),
-      camera: { ...this.camera }, environment: { storm:this.environment.storm, stormIntensity:this.environment.stormIntensity, timeOfDay:this.environment.timeOfDay??'auto', precipitation:this.environment.precipitation, precipitationLevel:this.environment.precipitationLevel, windIntensity:this.environment.windIntensity },
+      camera: { ...this.camera }, environment: { storm:this.environment.storm, stormIntensity:this.environment.stormIntensity, timeOfDay:this.environment.timeOfDay??'auto', precipitation:this.environment.precipitation, precipitationLevel:this.environment.precipitationLevel, windIntensity:this.environment.windIntensity, temperatureC:this.environment.temperatureC??0, fogTarget:this.environment.fogTarget??0, floodTarget:this.environment.floodTarget??0, snowDifficultTerrain:this.environment.snowDifficultTerrain??false, seaIntensity:this.environment.seaIntensity, weatherRules:this.environment.weatherRules??false },
       audio: { music: saveTrack(this.audio.music), layers: {
         ocean: saveTrack(this.audio.layers.ocean), wind: saveTrack(this.audio.layers.wind), wood: saveTrack(this.audio.layers.wood), storm: saveTrack(this.audio.layers.storm)
       }, sfxLoops: Object.fromEntries(Object.entries(this.audio.sfxLoops).map(([id, track]) => [id, saveTrack(track)])) },
@@ -3049,12 +3544,26 @@ export class GameState {
 
   restoreDurable(raw: DurablePayload, now = Date.now()) {
     const payload = durablePayloadSchema.parse(structuredClone(raw));
+    if ((this.campaign.public.campaignId === 'stormwreck-isle' && (payload.wreckGridVersion ?? 1) > WRECK_SAVE_GRID_VERSION)
+      || (this.campaign.public.campaignId === 'stormwreck-isle' && (payload.retreatGridVersion??1)>2)
+      || (this.campaign.public.campaignId === 'd8-night-private' && (payload.d8GridVersion ?? 1) > D8_SAVE_GRID_VERSION)
+      || (this.campaign.actorLayout && (payload.actorLayoutVersion ?? 1) > this.campaign.actorLayout.version)) {
+      throw new Error('SAVE_GEOMETRY_INCOMPATIBLE');
+    }
+    const beforeMigrations = JSON.stringify(payload);
+    if (payload.climates) {
+      const ids = payload.climates.map(item => item.sceneId);
+      if (new Set(ids).size !== ids.length || ids.some(id => !this.hasScene(id))) throw new Error('SAVE_CLIMATE_SCENES');
+    }
     const migratedD8Grid = this.migrateD8NightGrid(payload);
     this.migrateD8NightLegacyRoster(payload);
+    this.migrateAuthoredActorLayout(payload);
+    migrateRetreatAssembly(payload,this.campaign);
     this.migrateStormwreckScenes(payload);
     this.migrateStormwreckGrid(payload);
     this.migrateStormwreckCabins(payload);
     this.migrateStormwreckHelm(payload);
+    this.migrateStormwreckCompactHull(payload);
     this.migrateStormwreckM3Actors(payload);
     this.migrateSavedNpcCells(payload);
     this.migrateStormwreckActorCells(payload);
@@ -3062,6 +3571,7 @@ export class GameState {
     this.migrateCombinedStormwreckCampScenes(payload);
     const migratedObjectInteractions = this.migrateMissingObjectInteractions(payload);
     const migratedCampaignObjects = this.migrateAddedCampaignObjects(payload);
+    const migratedPayload = beforeMigrations !== JSON.stringify(payload);
     let migratedCharacterSheets = false;
     const exactIds = (actual: string[], expected: string[]) => actual.length === expected.length && new Set(actual).size === actual.length && actual.every(id => expected.includes(id));
     if (!this.hasScene(payload.sceneId) || !exactIds(payload.characters.map(x => x.id), [...this.characters.keys()]) || !exactIds(payload.scenes.map(x => x.sceneId), [...this.objectScenes.keys()])) throw new Error('SAVE_REFERENCES');
@@ -3230,7 +3740,13 @@ export class GameState {
         Object.assign(target, structuredClone(saved), { surfaceId: saved.surfaceId ?? target.surfaceId, version: 0 });
       }
     }
-    this.camera = { ...payload.camera }; this.environment = { ...payload.environment, storm: payload.environment.storm, lightning: payload.environment.storm && (payload.environment.stormIntensity ?? .5) >= .45, stormIntensity: payload.environment.stormIntensity ?? 0.5, timeOfDay: payload.environment.timeOfDay ?? 'auto' };
+    this.camera = { ...payload.camera }; this.environment = { ...payload.environment, storm: payload.environment.storm, lightning: payload.environment.storm && (payload.environment.stormIntensity ?? .5) >= .45, stormIntensity: payload.environment.stormIntensity ?? 0.5, timeOfDay: payload.environment.timeOfDay ?? 'auto', temperatureC: payload.environment.temperatureC ?? 0, fogTarget: payload.environment.fogTarget ?? 0, floodTarget: payload.environment.floodTarget ?? 0, snowDifficultTerrain: payload.environment.snowDifficultTerrain ?? false, seaIntensity: payload.environment.seaIntensity, weatherRules: payload.environment.weatherRules ?? false };
+    if (this.environment.precipitation === 'snow') this.environment.storm = false;
+    this.environment.lightning = weatherMode(this.environment) === 'storm';
+    this.gameClockSeconds = payload.gameClock?.seconds ?? initialGameTimeSeconds(this.campaign.public.campaignId);
+    this.gameClockAnchorMs = now; this.gameClockManuallyPaused = payload.gameClock?.manuallyPaused ?? false; this.gameClockDecisionPauses.clear();
+    this.climateStates = new Map(this.campaign.public.scenes.map(scene => [scene.id, emptyClimateState(this.gameClockSeconds)]));
+    for (const item of payload.climates ?? []) this.climateStates.set(item.sceneId, { ...item.state });
     this.campRest = payload.campRest ? structuredClone(payload.campRest) : null;
     this.campActivities = new Map((payload.campActivities ?? []).map(activity => [activity.sceneId, structuredClone(activity.interactions)]));
     if (this.campRest) this.campActivities.set(this.campRest.sceneId, structuredClone(this.campRest.interactions));
@@ -3275,8 +3791,10 @@ export class GameState {
     this.combat = payload.combat?.active ? { ...emptyCombat(), active: true, round: payload.combat.round, order: [...payload.combat.order], turnIndex: payload.combat.turnIndex, participantIds: [...payload.combat.participantIds], initiative: { ...payload.combat.initiative }, initiativeSubmitted: { ...(payload.combat.initiativeSubmitted ?? Object.fromEntries(payload.combat.participantIds.map(id => [id, true]))) }, initiativePending: payload.combat.initiativePending ?? false, spentSquares: { ...payload.combat.spentSquares }, dashSquares: { ...(payload.combat.dashSquares ?? {}) }, actionUsed: { ...payload.combat.actionUsed }, bonusActionUsed: { ...(payload.combat.bonusActionUsed ?? {}) }, reactionUsed: { ...(payload.combat.reactionUsed ?? {}) }, sneakAttackUsed: { ...(payload.combat.sneakAttackUsed ?? {}) }, sneakAttackUsedTurn: { ...(payload.combat.sneakAttackUsedTurn ?? {}) }, spellSlotUsedTurn: { ...(payload.combat.spellSlotUsedTurn ?? {}) }, stances: restoredStances, sequences: restoredSequences, recharge: structuredClone(payload.combat.recharge ?? {}), rechargeAttemptTurn: { ...(payload.combat.rechargeAttemptTurn ?? {}) }, turnActions: structuredClone(payload.combat.turnActions ?? {}), openingAction: structuredClone(payload.combat.openingAction ?? null), pending: structuredClone(payload.combat.pending ?? null), lastEvent: { id: crypto.randomUUID(), text: payload.combat.initiativePending ? 'Iniciativa pendiente de completar' : `Ronda ${payload.combat.round} restaurada`, publicText: payload.combat.initiativePending ? 'Iniciativa pendiente de completar' : `Ronda ${payload.combat.round} restaurada`, kind: 'turn' } } : emptyCombat();
     for (const sources of Object.values(this.conditionSources)) for (const source of sources) if (source.expiresAt !== undefined && source.remainingMs !== undefined) source.expiresAt = now + source.remainingMs;
     this.syncConditionClocks(now);
+    this.plannedJumps.clear(); this.walkingRunUp.clear();
     this.interactions = []; this.projectorReady = false;
-    return migratedD8Grid || migratedObjectInteractions || migratedCampaignObjects || migratedCharacterSheets;
+    return migratedPayload || migratedD8Grid || migratedObjectInteractions || migratedCampaignObjects || migratedCharacterSheets
+      || raw.gameClock === undefined || raw.climates === undefined;
   }
 }
 
@@ -3300,7 +3818,7 @@ export class GameServer {
   private sessionSockets = new Map<string, string>();
   private processedCommands = new Map<string, { at: number; fingerprint: string; result: CommandResult }>();
   private gameplayUndo: Array<{ label: string; payload: DurablePayload }> = [];
-  private sharedCameraOrientations = new Map<SceneId, number>();
+  private sharedCameraOrientations = new Map<SceneId, { step:number; tilt?:number; frame?:SharedCameraFrame }>();
   private cameraSharingEnabled = false;
 
   constructor(private io: Server, private dmSessionToken: string, bundle: CampaignServerBundle) {
@@ -3315,7 +3833,7 @@ export class GameServer {
 
   private rememberUndo(label: string, payload: DurablePayload) {
     this.gameplayUndo.push({ label, payload });
-    while (this.gameplayUndo.length > 20) this.gameplayUndo.shift();
+    while (this.gameplayUndo.length > 10) this.gameplayUndo.shift();
   }
 
   installState(candidate: GameState) {
@@ -3334,7 +3852,7 @@ export class GameServer {
         this.sessionSockets.set(owner.token, owner.socketId);
     }
     for (const connected of this.io.sockets.sockets.values()) connected.data.sceneReadyEpoch = -1;
-    this.io.emit('runtime:reset', { runtimeEpoch: candidate.runtimeEpoch, reason: 'Partida restaurada. Sincronizando la mesa…' });
+    this.io.emit('runtime:reset', { runtimeEpoch: candidate.runtimeEpoch, cause: 'restore', reason: 'Partida restaurada. Sincronizando la mesa…' });
     this.io.to('dm').emit('world:snapshot', candidate.publicSnapshot());
     for (const connected of this.io.sockets.sockets.values()) if (connected.data.role === 'player') connected.emit('world:snapshot', this.snapshotForSocket(connected));
     this.io.to('projector').emit('world:snapshot', candidate.publicSnapshot(true));
@@ -3348,20 +3866,25 @@ export class GameServer {
   private mutatorAllowed(raw: unknown) {
     return Boolean(raw && typeof raw === 'object' && (raw as Record<string, unknown>).runtimeEpoch === this.state.runtimeEpoch);
   }
-  private worldOpen() { return !this.persistence || ['ready', 'saving', 'error'].includes(this.persistence.status().mode); }
+  private worldOpen() { return !this.persistence || !this.persistence.isClosing && ['ready', 'saving', 'error'].includes(this.persistence.status().mode); }
   private emitResult(socket: Socket, result: CommandResult) {
     return socket.emit('command:result', { ...result, runtimeEpoch: this.state.runtimeEpoch });
   }
 
   start() {
     this.io.on('connection', socket => this.connect(socket));
+    let lastClockCheckpointAt = Date.now();
     this.simulationTimer = setInterval(() => {
       if (!this.worldOpen()) return;
       const before = this.state.stateRevision;
       const beforeScene = this.state.sceneId;
       const changedCharacters = this.state.tick();
       if (this.state.stateRevision !== before) this.persistence?.markDirty();
-      if (this.state.sceneId !== beforeScene) void this.persistence?.saveNow().catch(() => {});
+      if (this.state.sceneId !== beforeScene) void this.persistence?.saveAutomaticNow().catch(() => {});
+      const clockNow = Date.now();
+      if (this.persistence && clockNow - lastClockCheckpointAt >= 300_000 && this.state.gameClockSnapshot(clockNow).running) {
+        lastClockCheckpointAt = clockNow; void this.persistence.saveTime().catch(() => {});
+      }
       if (!changedCharacters.size) return;
       // A held movement key creates a new step every few hundred milliseconds.
       // Emit only when a step begins (rather than when it finishes) so player
@@ -3417,9 +3940,9 @@ export class GameServer {
 
   private sendSharedCameraOrientation(socket: Socket, sceneId: SceneId, sceneEpoch: number) {
     if (!this.cameraSharingEnabled) return;
-    const step = this.sharedCameraOrientations.get(sceneId);
-    if (step === undefined) return;
-    socket.emit('camera:orientation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch, sceneId, step });
+    const orientation = this.sharedCameraOrientations.get(sceneId);
+    if (orientation === undefined) return;
+    socket.emit('camera:orientation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch, sceneId, ...orientation, profile: CAMERA_ORBIT_PROFILE });
   }
 
   private handleCameraOrientation(socket: Socket, raw: unknown) {
@@ -3427,7 +3950,9 @@ export class GameServer {
     const event = raw as Record<string, unknown>;
     if (event.runtimeEpoch !== this.state.runtimeEpoch || event.sceneEpoch !== this.state.sceneEpoch
       || event.sceneId !== this.state.sceneId
-      || (event.step !== null && (!Number.isInteger(event.step) || Number(event.step) < 0 || Number(event.step) > 7))) return;
+      || (event.step !== null && (event.profile !== CAMERA_ORBIT_PROFILE || !validCameraOrbitStep(event.step)
+        || (event.tilt !== undefined && !validCameraTiltForScene(String(event.sceneId),event.tilt))
+        || (event.frame !== undefined && !validSharedCameraFrame(event.frame))))) return;
     const scene = this.state.campaign.public.scenes.find(candidate => candidate.id === event.sceneId);
     if (!supportsCameraOrientation(scene)) return;
     if (event.step === null) {
@@ -3437,9 +3962,11 @@ export class GameServer {
       return;
     }
     const step = Number(event.step), sceneId = event.sceneId as SceneId;
+    const orientation = { step, ...(typeof event.tilt === 'number' ? { tilt:event.tilt } : {}),
+      ...(validSharedCameraFrame(event.frame) ? { frame:event.frame } : {}) };
     this.cameraSharingEnabled = true;
-    this.sharedCameraOrientations.set(sceneId, step);
-    this.io.emit('camera:orientation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, sceneId, step });
+    this.sharedCameraOrientations.set(sceneId, orientation);
+    this.io.emit('camera:orientation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, sceneId, ...orientation, profile: CAMERA_ORBIT_PROFILE });
   }
 
   private connect(socket: Socket) {
@@ -3462,11 +3989,12 @@ export class GameServer {
     socket.data.sessionToken = sessionToken;
     socket.data.sceneReadyEpoch = -1;
     socket.join(socket.data.role);
-    socket.emit('runtime:reset', { runtimeEpoch: this.state.runtimeEpoch, reason: 'Conexión establecida.' });
+    socket.emit('runtime:reset', { runtimeEpoch: this.state.runtimeEpoch, cause: 'connection', reason: 'Conexión establecida.' });
     const initialSnapshot = this.snapshotForSocket(socket);
     socket.emit('world:snapshot', initialSnapshot);
     if (socket.data.role !== 'dm') this.sendSharedCameraOrientation(socket, initialSnapshot.sceneId, initialSnapshot.sceneEpoch);
     socket.emit('audio:state', { ...this.state.audio, runtimeEpoch: this.state.runtimeEpoch });
+    if (isProjector) socket.emit('save:activity', { runtimeEpoch: this.state.runtimeEpoch, active: this.persistence?.status().mode === 'saving', campaignId: this.state.campaign.public.campaignId });
     socket.on('scene:ready', raw => this.handleSceneReady(socket, sessionToken, raw));
 
     if (isDm) {
@@ -3517,6 +4045,7 @@ export class GameServer {
     }
 
     socket.on('disconnect', () => {
+      if (socket.data.role === 'dm') this.state.clearClockDecisionPauses(socket.id);
       if (socket.data.role === 'player') {
         const character = this.state.characterForSession(sessionToken);
         if (character?.socketId === socket.id) {
@@ -3583,6 +4112,7 @@ export class GameServer {
     character.input.updatedAt = Date.now();
     if (parsed.data.end) { character.input.held = null; return; }
     const facing = directionFromVector(parsed.data.x, parsed.data.z);
+    if (facing) this.state.cancelPlannedJump(character.id);
     character.input.held = facing;
     const before = facing && !character.step ? this.state.captureDurable() : null;
     if (facing && !character.step && this.state.startStep(character, facing)) {
@@ -3724,6 +4254,19 @@ export class GameServer {
     const finish = (result: CommandResult) => this.emitResult(socket, this.rememberResult(scope, parsed.data, result));
     if (parsed.data.sceneEpoch !== this.state.sceneEpoch || socket.data.sceneReadyEpoch !== this.state.sceneEpoch) return finish({ commandId: parsed.data.commandId, ok: false, code: 'WRONG_SCENE' });
     const door = this.state.interactNearbyDoor(character.id, parsed.data.targetId);
+    if(parsed.data.targetId==='temple-prayer'||parsed.data.targetId==='temple-inspiration-spend'){
+      const spend=parsed.data.targetId==='temple-inspiration-spend';
+      const code=spend?(this.state.blessingFor(character.id)?'INSPIRATION_SPENT':'BLESSING_EXPIRED'):this.state.prayAtShrine(character.id);
+      if(code==='INSPIRATION_SPENT'){this.state.progress[`prayer.${character.id}.inspiration`]=false;this.state.revision++;this.state.stateRevision++;}
+      finish({commandId:parsed.data.commandId,ok:['INSPIRATION_SPENT','PRAYER_REQUESTED'].includes(code),code});
+      if(code==='PRAYER_REQUESTED')this.io.emit('scene:animation',{runtimeEpoch:this.state.runtimeEpoch,sceneEpoch:this.state.sceneEpoch,entityId:character.id,state:'pray',durationMs:6000});
+      this.persistence?.markDirty();this.broadcastSnapshot();this.broadcastPrivate();this.io.to('dm').emit('dm:state',this.dmState());return;
+    }
+    const window=this.state.campaign.sceneWindows?.find(window=>parsed.data.targetId===window.id+'.break'||parsed.data.targetId===window.id+'.vault');
+    if(window){const breaking=parsed.data.targetId.endsWith('.break'),code=breaking?this.state.breakSceneWindow(character.id,window.id):this.state.jumpThroughSceneWindow(character.id,window.id);finish({commandId:parsed.data.commandId,ok:['WINDOW_BROKEN','JUMP_COMPLETED'].includes(code),code});
+      if(code==='WINDOW_BROKEN')this.emitProjectorSfx('d8-night-sfx-cafe-glass');
+      if(code==='JUMP_COMPLETED')this.io.emit('scene:animation',{runtimeEpoch:this.state.runtimeEpoch,sceneEpoch:this.state.sceneEpoch,entityId:character.id,state:'jump',durationMs:1000});
+      this.persistence?.markDirty();this.broadcastSnapshot();this.broadcastPrivate();this.io.to('dm').emit('dm:state',this.dmState());return;}
     const seat=this.state.interactSeat(character.id,parsed.data.targetId);
     if(seat){
       if(!seat.ok)return finish({commandId:parsed.data.commandId,ok:false,code:seat.code});
@@ -3734,6 +4277,7 @@ export class GameServer {
     if(sign){
       if(character.step||this.state.combat.active||Math.max(Math.abs(sign.cell.col-character.cell.col),Math.abs(sign.cell.row-character.cell.row))>1)return finish({commandId:parsed.data.commandId,ok:false,code:'TOO_FAR'});
       finish({commandId:parsed.data.commandId,ok:true,code:'SIGN_READ'});
+      this.io.emit('scene:sign-read',{runtimeEpoch:this.state.runtimeEpoch,sceneEpoch:this.state.sceneEpoch,signId:sign.id,text:sign.text});
       this.io.to(socket.id).emit('player:private',this.state.playerPrivate(token,sign.text));return;
     }
     if (door) {
@@ -3744,6 +4288,14 @@ export class GameServer {
       this.broadcastSnapshot(); this.broadcastPrivate(); this.io.to('dm').emit('dm:state', this.dmState());
       return;
     }
+    if(parsed.data.targetId==='scene-animal-distraction'){
+      const code=this.state.scareSceneAnimal(character.id);finish({commandId:parsed.data.commandId,ok:code==='ANIMAL_STARTLED',code});
+      if(code==='ANIMAL_STARTLED'){
+        this.persistence?.markDirty();this.broadcastSnapshot();this.broadcastPrivate();this.io.to('dm').emit('dm:state',this.dmState());
+        this.io.emit('scene:animation',{runtimeEpoch:this.state.runtimeEpoch,sceneEpoch:this.state.sceneEpoch,entityId:this.state.campaign.proximityEncounter!.distraction!.actorId,state:'react',durationMs:1800});
+      }
+      return;
+    }
     if (parsed.data.targetId === 'wreck-rowboat') {
       const code = this.state.interactRowboat(character.id);
       if (code !== 'ROWBOAT_BOARDED' && code !== 'ROWBOAT_LEFT') return finish({ commandId: parsed.data.commandId, ok: false, code });
@@ -3751,6 +4303,12 @@ export class GameServer {
       finish({ commandId: parsed.data.commandId, ok: true, code });
       this.broadcastSnapshot(); this.broadcastPrivate(); this.io.to('dm').emit('dm:state', this.dmState());
       return;
+    }
+    if(parsed.data.targetId==='P10'){
+      const code=this.state.requestCofaClimb(character.id);finish({commandId:parsed.data.commandId,ok:code==='REQUESTED'||code==='MOVED',code});
+      if(code==='MOVED'){this.persistence?.markDirty();this.broadcastSnapshot();this.broadcastPrivate();}
+      if(code==='REQUESTED')this.io.to(socket.id).emit('player:private',this.state.playerPrivate(token,'El mástil se inclina y balancea. Tira Fuerza (Atletismo) CD 10 e indica el total al DM; no hay caída ni daño automáticos.'));
+      this.io.to('dm').emit('dm:state',this.dmState());return;
     }
     if (this.state.sceneForCharacter(character).pickups?.some(pickup => pickup.id === parsed.data.targetId)) {
       const code = this.state.takePickup(character.id, parsed.data.targetId);
@@ -3849,21 +4407,31 @@ export class GameServer {
       finish({ commandId: parsed.data.commandId, ok: true, code: result.code }); this.broadcastSnapshot(); this.broadcastPrivate(); this.io.to('dm').emit('dm:state', this.dmState());
       return;
     }
+    if(parsed.data.type==='exploration:check'){
+      const data=parsed.data,request=this.state.interactions.find(request=>request.id===data.requestId&&request.characterId===character.id&&request.kind==='proximity-check'&&request.status==='pending'&&request.sceneEpoch===this.state.sceneEpoch);
+      if(!request)return finish({commandId:parsed.data.commandId,ok:false,code:'REQUEST_STALE'});
+      request.playerTotal=parsed.data.total;finish({commandId:parsed.data.commandId,ok:true,code:'CHECK_SUBMITTED'});this.broadcastPrivate();this.io.to('dm').emit('dm:state',this.dmState());return;
+    }
     if (parsed.data.type === 'exploration:basic') {
-      const result = this.state.declareExplorationBasicAction(character.id, parsed.data.action, parsed.data.targetId, parsed.data.targetCell);
+      const result = this.state.declareExplorationBasicAction(character.id, parsed.data.action, parsed.data.targetId, parsed.data.targetCell, parsed.data.jumpMode);
       if (!result.ok) return finish({ commandId: parsed.data.commandId, ...result });
       this.state.revision++; this.state.stateRevision++; this.persistence?.markDirty();
-      this.io.emit('scene:animation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, entityId: character.id, state: result.action.animation, durationMs: 900 });
+      // Jump/run-up poses follow authoritative movement steps. Emitting jump
+      // here would make the actor leap during the backward preparation.
+      if (parsed.data.action !== 'jump') this.io.emit('scene:animation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, entityId: character.id, state: result.action.animation, durationMs: 900 });
       if (result.action.animation === 'interact') this.emitProjectorSfx('d8-night-sfx-world-book-open');
       finish({ commandId: parsed.data.commandId, ok: true, code: result.code });
-      this.io.to(socket.id).emit('player:private', this.state.playerPrivate(token, `${result.action.label} · ${result.targetLabel}. ${result.guidance}`));
+       const playerNotice = parsed.data.action === 'jump' ? `Salto hacia ${result.targetLabel}.`
+         : `${result.action.label} · ${result.targetLabel}. ${result.guidance}`;
+       this.io.to(socket.id).emit('player:private', this.state.playerPrivate(token, playerNotice));
       this.io.to('dm').emit('dm:state', this.dmState());
+      this.broadcastSnapshot();this.broadcastPrivate();
       return;
     }
     const result = this.state.declareExplorationAction(character.id, parsed.data.targetId, parsed.data.actionId, parsed.data.targetCell);
     if (!result.ok) return finish({ commandId: parsed.data.commandId, ...result });
     this.state.revision++; this.state.stateRevision++; this.persistence?.markDirty();
-    this.io.emit('scene:animation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, entityId: character.id, state: 'spell', durationMs: 1_000 });
+    this.io.emit('scene:animation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, entityId: character.id, state: combatActionVisualState({id:result.action.id.replace(/-exploration$/,''),magical:true}), durationMs: 1_000 });
     if (result.action.soundId) this.emitProjectorSfx(result.action.soundId);
     if (!result.action.soundId) this.emitAreaEffect(result.action.id, result.target.cell);
     finish({ commandId: parsed.data.commandId, ok: true, code: result.code });
@@ -3871,10 +4439,10 @@ export class GameServer {
     this.io.to('dm').emit('dm:state', this.dmState());
   }
 
-  applyDmCommand(command: DmCommand): CommandResult {
+  applyDmCommand(command: DmCommand, decisionSocketId = 'dm'): CommandResult {
     let resultCode = 'APPLIED';
     const staleTypes = new Set(['encounter:reveal', 'story:choice', 'story:ending', 'scene', 'view:focus', 'entity:portal', 'scene:animation', 'creature', 'npc:visible', 'camera', 'environment', 'camp:rest', 'entity:move', 'resolveInteraction', 'combat:start', 'combat:participant', 'combat:initiative', 'combat:initiativeOrder', 'combat:condition', 'combat:endTurn', 'combat:next', 'combat:end', 'combat:declare', 'combat:basic', 'combat:stand', 'combat:dropProne', 'combat:reaction', 'combat:rollAttack', 'combat:rollDamage', 'combat:rollSave', 'combat:rollDeathSave', 'combat:recharge', 'progress:toggle', 'pickup:take']);
-    if ((staleTypes.has(command.type) || command.type.startsWith('camp:') || command.type==='entity:seat' || command.type.startsWith('combat:')) && 'sceneEpoch' in command && command.sceneEpoch !== this.state.sceneEpoch) {
+    if ((staleTypes.has(command.type) || command.type==='scene:resolveCheck' || command.type.startsWith('camp:') || command.type==='entity:seat' || command.type.startsWith('combat:')) && 'sceneEpoch' in command && command.sceneEpoch !== this.state.sceneEpoch) {
       return { commandId: command.commandId, ok: false, code: 'STALE_SCENE' };
     }
     if (command.type === 'object:door' || command.type === 'object:interact' || command.type === 'object:transform' || command.type === 'object:detach' || command.type === 'object:structure' || command.type === 'object:undo') {
@@ -3886,7 +4454,7 @@ export class GameServer {
     } else if (command.type === 'view:focus') {
       if (!this.state.focusScene(command.sceneId)) return { commandId: command.commandId, ok: false, code: 'UNKNOWN_SCENE' };
     } else if (command.type === 'entity:portal') {
-      const result = this.state.traversePort(command.entityId, command.portId, command.direction, command.adjudicate);
+      const result = this.state.traversePort(command.entityId, command.portId, command.direction, command.adjudicate,command.checkTotal);
       if (result !== 'MOVED') return { commandId: command.commandId, ok: false, code: result };
     } else if (command.type === 'creature') {
       const encounter = this.state.campaign.encounter;
@@ -3917,24 +4485,15 @@ export class GameServer {
       if (!validFocus) return { commandId: command.commandId, ok: false, code: 'INVALID_FOCUS' };
       this.state.camera = { mode: command.mode, focusId: command.focusId };
     } else if (command.type === 'environment') {
-      const intensity = command.intensity ?? this.state.environment.stormIntensity;
       if (command.trackId && !this.state.campaign.public.audio.library?.ambience.some(track => track.id === command.trackId)) return { commandId: command.commandId, ok: false, code: 'UNKNOWN_AUDIO_TRACK' };
-      if (command.timeOfDay !== undefined) this.state.environment.timeOfDay = command.timeOfDay;
-      if(command.precipitation!==undefined)this.state.environment.precipitation=command.precipitation;
-      if(command.precipitationLevel!==undefined)this.state.environment.precipitationLevel=command.precipitationLevel;
-      if(command.windIntensity!==undefined)this.state.environment.windIntensity=command.windIntensity;
-      this.state.environment.storm = command.storm;
-      // Llovizna solo moja el mapa; los relámpagos aparecen a partir de tormenta.
-      this.state.environment.lightning = command.storm && intensity >= .45;
-      this.state.environment.stormIntensity = intensity;
-      const stormAudio = this.state.audio.layers.storm, now = Date.now();
-      if (command.trackId && stormAudio.assetId !== command.trackId) { stormAudio.assetId = command.trackId; stormAudio.offset = 0; stormAudio.startedAt = command.storm ? now : null; }
-      if (command.storm && !stormAudio.playing) stormAudio.startedAt = now;
-      if (!command.storm && stormAudio.playing && stormAudio.startedAt) stormAudio.offset += (now - stormAudio.startedAt) / 1000 * stormAudio.rate;
-      stormAudio.playing = command.storm;
-      stormAudio.startedAt = command.storm ? stormAudio.startedAt ?? now : null;
-      stormAudio.volume = intensity;
-      this.state.applyWeatherAudio();
+      this.state.applyEnvironmentChange(command);
+    } else if (command.type === 'clock:control') {
+      const guidedRest = this.state.campRest;
+      if ((command.action === 'short-rest' || command.action === 'long-rest') && (this.state.combat.active || Boolean(guidedRest?.phase && !guidedRest.outcome))) return { commandId: command.commandId, ok: false, code: 'REST_ALREADY_IN_PROGRESS' };
+      const value = command.action === 'advance' ? command.seconds : command.action === 'set-time' ? command.secondsOfDay : command.action === 'travel' ? command.portId : undefined;
+      if (!this.state.applyClockControl(command.action, value)) return { commandId: command.commandId, ok: false, code: 'TRAVEL_TIME_UNAVAILABLE' };
+    } else if (command.type === 'clock:decision') {
+      this.state.setClockDecisionPause(`${decisionSocketId}:${command.dialogId}`, command.action === 'open');
     } else if (command.type === 'camp:rest') {
       return this.state.applyCampRestCommand(command);
     } else if (command.type === 'camp:interact') {
@@ -3958,6 +4517,10 @@ export class GameServer {
       const entity = this.state.combatEntity(command.entityId);
       if (!entity) return { commandId: command.commandId, ok: false, code: 'UNKNOWN_ENTITY' };
       this.state.applyHitPoints(entity.id, command.hp - entity.hp);
+    } else if (command.type === 'scene:resolveCheck') {
+      resultCode=this.state.resolveSceneCheck(command.requestId,command.total);
+      if(resultCode==='REQUEST_STALE')return {commandId:command.commandId,ok:false,code:resultCode};
+      if(resultCode==='BLESSING_GRANTED'){const request=this.state.interactions.find(request=>request.id===command.requestId)!;this.io.emit('scene:reward',{runtimeEpoch:this.state.runtimeEpoch,sceneEpoch:this.state.sceneEpoch,entityId:request.characterId,effect:'inspiration'});}
     } else if (command.type === 'combat:start') {
       if (!this.state.startCombat()) return { commandId: command.commandId, ok: false, code: 'COMBATANTS_REQUIRED' };
     } else if (command.type === 'combat:participant') {
@@ -4137,13 +4700,14 @@ export class GameServer {
         for (const session of sessions) { const character = this.state.characters.get(session.id); if (character) { character.sessionToken = session.sessionToken; character.socketId = session.socketId; } }
         this.state.sceneEpoch = previousSceneEpoch + 1; this.state.revision = Math.max(this.state.revision, priorRevision) + 1; this.state.stateRevision = priorRevision + 1; this.persistence?.markDirty(); result = { commandId: command.commandId, ok: true, code: 'APPLIED' };
       }
-    } else result = this.applyDmCommand(command);
-    if (result.ok && command.type !== 'sfx' && command.type !== 'release' && JSON.stringify(before) !== JSON.stringify(this.state.captureDurable(captureAt))) {
+    } else result = this.applyDmCommand(command, socket.id);
+    const durableChanged = result.ok && command.type !== 'sfx' && command.type !== 'release' && command.type !== 'clock:decision' && JSON.stringify(before) !== JSON.stringify(this.state.captureDurable(captureAt));
+    if (durableChanged) {
       if (this.state.stateRevision === priorRevision) this.state.stateRevision++;
       this.persistence?.markDirty();
-      if (command.type !== 'audio' && command.type !== 'game:undo' && command.type !== 'object:undo') this.rememberUndo(command.type, before);
+      if (command.type !== 'audio' && command.type !== 'game:undo') this.rememberUndo(command.type, before);
     }
-    if (result.ok && (command.type === 'story:choice' || command.type === 'story:ending' || command.type === 'scene' || command.type === 'view:focus' || command.type === 'entity:portal' || command.type === 'combat:start' || command.type === 'combat:end')) void this.persistence?.saveNow().catch(() => {});
+    if (durableChanged && (before.sceneId !== this.state.sceneId || command.type === 'story:choice' || command.type === 'story:ending' || command.type === 'combat:start' || command.type === 'combat:end')) void this.persistence?.saveAutomaticNow().catch(() => {});
     this.emitResult(socket, this.rememberResult(scope, command, result));
     if (!result.ok) {
       if (objectCommand && (result.code === 'STALE_OBJECTS' || result.code === 'REQUEST_STALE')) socket.emit('dm:state', this.dmState());

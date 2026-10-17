@@ -2,6 +2,9 @@ import { validatePublicCampaign, type Cell, type PublicCampaignDefinition } from
 import { campRestsPublicCampaign } from '../../camp-rests/public/pack.js';
 import { wreckRuntimeScenes } from './wreck-runtime.js';
 import { dragonRestScene } from './retreat-runtime.js';
+import { stormwreckFacingSprites } from './facing-sprites.js';
+import { installPlayerLocomotion } from '../../../engine/client/player-locomotion.js';
+import { installCombatVisualFallbacks } from '../../../engine/shared/combat-animation.js';
 
 const cells = (ranges: Array<[row: number, first: number, last: number]>): Cell[] => {
   const result: Cell[] = [];
@@ -111,9 +114,11 @@ const definition: PublicCampaignDefinition = {
     'npc-varnoth': { url: '/art/stormwreck/retreat/varnoth.svg', logicalWidth: 88, logicalHeight: 100, worldHeightMeters: .85, anchorX: 0.5, anchorY: 0.92 },
     'retreat-kobold': { url: '/art/stormwreck/retreat/kobold.svg', logicalWidth: 88, logicalHeight: 100, worldHeightMeters: .6, anchorX: 0.5, anchorY: 0.92 },
     'retreat-marker': { url: '/art/stormwreck/retreat/marker.svg', logicalWidth: 72, logicalHeight: 84, worldHeightMeters: .9, anchorX: 0.5, anchorY: 0.92 },
+    'retreat-site-point': {url:'/art/stormwreck/retreat/site-point.svg',logicalWidth:48,logicalHeight:48,worldHeightMeters:.32,anchorX:.5,anchorY:.8},
     'wreck-rowboat': { url: '/art/stormwreck/rowboat.svg', logicalWidth: 150, logicalHeight: 84, anchorX: 0.5, anchorY: 0.72 }
   },
   tokenAnimations: {
+    'retreat-site-point':{idle:{frames:['/art/stormwreck/retreat/site-point.svg'],fps:1},talk:{frames:['/art/stormwreck/retreat/site-point.svg'],fps:1}},
     rogue: {
       idle: artCycle('trinity', 'maria_idle', 4, 4), moving: artCycle('trinity', 'maria_caminar', 4, 8),
       'combat-idle': artCycle('trinity', 'maria_combate_idle', 3, 4),
@@ -223,6 +228,8 @@ const definition: PublicCampaignDefinition = {
         { id: 'stormwreck-loop-boat-waves', label: 'Olas contra el casco', description: 'Agua golpeando un barco varado.', url: '/audio/stormwreck/ambience/stormwreck-loop-boat-waves.mp3', category: 'scene', loopable: true },
         { id: 'stormwreck-loop-cliff-wind', label: 'Viento del observatorio', description: 'Aire frío para ruinas elevadas.', url: '/audio/stormwreck/ambience/stormwreck-loop-cliff-wind.ogg', category: 'scene', loopable: true },
         { id: 'stormwreck-loop-rain', label: 'Lluvia costera', description: 'Lluvia fina sin convertir cada escena en una tormenta.', url: '/audio/stormwreck/ambience/stormwreck-loop-rain.mp3', category: 'scene', loopable: true },
+        { id: 'stormwreck-loop-thunder', label: 'Tormenta · lluvia y truenos', description: 'Lluvia y truenos para la tormenta eléctrica.', url: '/audio/stormwreck/ambience/stormwreck-loop-thunder.ogg', category: 'scene', loopable: true },
+        { id: 'stormwreck-loop-tempest', label: 'Temporal · lluvia y viento', description: 'Lluvia con ráfagas intensas; temporal sin relámpagos.', url: '/audio/stormwreck/ambience/stormwreck-loop-tempest.mp3', category: 'scene', loopable: true },
         { id: 'stormwreck-loop-forest', label: 'Bosque de la isla', description: 'Vegetación y aves lejanas para las sendas de la isla.', url: '/audio/stormwreck/ambience/stormwreck-loop-forest-night.mp3', category: 'scene', loopable: true },
         { id: 'stormwreck-loop-forest-fire', label: 'Hoguera del bosque', description: 'Fuego bajo y constante para el claro del campamento.', url: '/audio/stormwreck/ambience/stormwreck-loop-forest-fire.mp3', category: 'scene', loopable: true },
         { id: 'stormwreck-loop-forest-river-01', label: 'Arroyo de Pleamar · I', description: 'Agua corriente para el bosque y los caminos de Pleamar.', url: '/audio/stormwreck/ambience/stormwreck-loop-forest-river-01.mp3', category: 'scene', loopable: true },
@@ -308,7 +315,7 @@ export const publicCampaignDefinition = validatePublicCampaign({
   scenes: [...definition.scenes, ...campRestsPublicCampaign.scenes],
   tokens: { ...campRestsPublicCampaign.tokens, ...definition.tokens },
   tokenAnimations: Object.fromEntries([...new Set([...Object.keys(campAnimations), ...Object.keys(primaryAnimations)])].map(tokenId => [
-    tokenId, { ...(campAnimations[tokenId] ?? {}), ...(primaryAnimations[tokenId] ?? {}), ...(tokenId === 'rogue' ? directionalCampAnimations : {}) }
+    tokenId, { ...(campAnimations[tokenId] ?? {}), ...(primaryAnimations[tokenId] ?? {}), ...stormwreckFacingSprites(tokenId, primaryAnimations[tokenId]), ...(tokenId === 'rogue' ? directionalCampAnimations : {}) }
   ])),
   props: { ...campRestsPublicCampaign.props, ...definition.props },
   audio: {
@@ -321,3 +328,5 @@ export const publicCampaignDefinition = validatePublicCampaign({
     sceneProfiles: { ...(campRestsPublicCampaign.audio.sceneProfiles ?? {}), ...(definition.audio.sceneProfiles ?? {}) }
   }
 } satisfies PublicCampaignDefinition);
+installPlayerLocomotion(publicCampaignDefinition);
+installCombatVisualFallbacks(publicCampaignDefinition);

@@ -1,28 +1,38 @@
+import { climateSummary, lightPhaseLabel, renderWeatherRules } from '../../engine/client/weather-console.js';
+import { mountClimateIconControls } from '../../engine/client/climate-icon-controls.js';
+import { seaState, seaStateLabel, weatherMode, weatherModeLabels, weatherDescription } from '../../engine/shared/weather.js';
 import { io, type Socket } from 'socket.io-client';
 import { ConditionPanel, conditionStrip } from './ui/conditions';
 import { conditionPresentation } from '../../engine/shared/conditions';
 import { OBJECT_MODEL_VERSION, PROTOCOL_VERSION } from '../../engine/shared/protocol';
 import type { AudioState, BasicCombatAction, Cell, CommandResult, CombatAction, CombatParticipant, DmObject, DmState, WorldSnapshot } from '../../engine/shared/protocol';
 import type { PublicCampaignDefinition } from '../../engine/shared/campaign';
-import { supportsCameraOrientation } from '../../engine/shared/camera';
+import { supportsCameraOrientation, cameraOrbitLabel, CAMERA_ORBIT_PROFILE } from '../../engine/shared/camera';
+import {cameraProfileForScene} from '../../engine/client/camera-profile';
 import { activitiesForCampPoint, campActivities, campPointInReach } from '../../engine/shared/camp-activities';
 import { footprintFor } from '../../engine/shared/geometry';
 import { commandId } from '../../engine/client/uuid';
 import { worldVectorToCellDelta } from '../../engine/client/camera-movement';
 import { readUiPreferences, writeUiPreferences } from '../../engine/client/ui-preferences';
+import { DEFAULT_GRID_STYLE, normalizeGridStyle, type GridStyle } from '../../engine/client/grid-style.js';
 import { loadCampaign } from './campaign';
 import { WorldRenderer } from './world';
 import { renderD8AnimationAudit } from './d8-animation-audit';
 import { combatActionDescription, combatTurnIndicators, compactCombatPrompt } from '../../engine/client/combat-presentation';
+import { combatTimeline } from '../../engine/client/combat-timeline';
 import { packDmWorkspace, createDmWorkspacePreset, recommendedDmWorkspace, type DmWorkspacePresetId, type WorkspaceState, type WorkspaceMode, type WindowLayout } from '../../engine/client/dm-workspace';
 import { SceneLoadRecovery } from '../../engine/client/scene-load-recovery';
+import { advanceClimate, formatGameClock, gameClockAt, clockTimeSelection } from '../../engine/shared/game-time.js';
+import { SnapshotClock } from '../../engine/client/snapshot-clock.js';
 import { DmObjectRosette } from './ui/dm/object-rosette';
 import { DmMapTargets } from './ui/dm/map-targets';
 import { chip, chips, disclosure, emptyState, localButton, preserveDisclosures, relativeTime, savePresentation, sceneBlock, sectionDeck } from './ui/dm/presentation';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+const climateIcons = mountClimateIconControls(document);
 let socket: Socket | null = null, state: DmState | null = null, world: WorldRenderer | null = null, campaign: PublicCampaignDefinition | null = null;
 const sceneLoadRecovery = new SceneLoadRecovery();
+const dmServerClock = new SnapshotClock();
 let selectedId: string | null = null, draft: DmObject | null = null, latestSnapshot: WorldSnapshot | null = null, readyEpoch = -1, toastTimer = 0;
 let inspectedPickupId: string | null = null;
 let conditionSheetEntityId: string | null = null;
@@ -30,20 +40,30 @@ const dmConditionPanel = new ConditionPanel(change => {
   if (conditionSheetEntityId) command({ type: 'combat:condition', entityId: conditionSheetEntityId, ...change });
 });
 setInterval(() => { if (($('combatSheetDialog') as HTMLDialogElement).open) dmConditionPanel.updateTimers(); }, 1000);
-let mapToolPanel: 'camera' | 'objects' | null = null;
+let mapToolPanel: 'scene' | 'camera' | 'objects' | null = null;
+let mapObjectsHighlighted = false;
 let objectRosette: DmObjectRosette | null = null, mapTargets: DmMapTargets | null = null;
 let rosetteSource = 'objects';
 let campRosetteSelection: { sceneId: string; pointId: string } | null = null;
 function setMapToolPanel(panel: typeof mapToolPanel) {
   mapToolPanel = panel;
+  $('mapToolsPanel').hidden = panel === null;
+  $('mapScenePanel').hidden = panel !== 'scene';
   $('mapCameraPanel').hidden = panel !== 'camera';
+  $('mapHighlightPanel').hidden = panel !== 'objects';
   $('mapObjectsPanel').hidden = !draft;
+  $('mapToolsToggle').setAttribute('aria-expanded', String(panel !== null));
+  $('mapSceneButton').setAttribute('aria-expanded', String(panel === 'scene'));
+  $('mapSceneToggle').setAttribute('aria-pressed', String(panel === 'scene'));
   $('mapCameraToggle').setAttribute('aria-expanded', String(panel === 'camera'));
   $('mapObjectsToggle').setAttribute('aria-pressed', String(panel === 'objects'));
-  $('mapBoardToggle').setAttribute('aria-pressed', String(panel === null));
-  if (panel !== 'objects') objectRosette?.close();
   if (state) updateMapTargets(state);
-  requestAnimationFrame(() => world?.refreshLayout());
+}
+function setMapHighlights(active: boolean) {
+  mapObjectsHighlighted = active;
+  $('mapHighlightToggle').setAttribute('aria-pressed', String(active));
+  $('mapHighlightToggle').firstChild!.textContent = active ? '◇ Ocultar marcas ' : '◇ Resaltar objetos ';
+  if (state) updateMapTargets(state);
 }
 type CampPoint = NonNullable<PublicCampaignDefinition['scenes'][number]['camp']>['interactionPoints'][number];
 let campInteractionMode = false, campPointSceneId: string | null = null;
@@ -64,9 +84,9 @@ type DmCombatActionCategory = 'attack' | 'magic' | 'bonus' | 'reaction' | 'utili
 type DmDrawerTab = 'windows' | 'ambience' | 'audio' | 'settings';
 type DmConsoleDensity = 'compact' | 'comfortable' | 'spacious';
 type DmConsoleTextSize = 'small' | 'standard' | 'large';
-type DmUiPreferences = { showGrid: boolean; sideControlsOpen: boolean; drawerTab: DmDrawerTab; combatActionCategory: DmCombatActionCategory; shareCameraOrientation: boolean; consoleDensity?: DmConsoleDensity; consoleTextSize?: DmConsoleTextSize };
+type DmUiPreferences = { showGrid: boolean; gridStyle: GridStyle; sideControlsOpen: boolean; drawerTab: DmDrawerTab; combatActionCategory: DmCombatActionCategory; shareCameraOrientation: boolean; consoleDensity?: DmConsoleDensity; consoleTextSize?: DmConsoleTextSize };
 const dmUiPreferencesStorageKey = 'dnd-dm-ui-preferences.v1';
-const defaultDmUiPreferences: DmUiPreferences = { showGrid: true, sideControlsOpen: false, drawerTab: 'windows', combatActionCategory: 'attack', shareCameraOrientation: true, consoleDensity: 'comfortable', consoleTextSize: 'standard' };
+const defaultDmUiPreferences: DmUiPreferences = { showGrid: true, gridStyle: { ...DEFAULT_GRID_STYLE }, sideControlsOpen: false, drawerTab: 'windows', combatActionCategory: 'attack', shareCameraOrientation: true, consoleDensity: 'comfortable', consoleTextSize: 'standard' };
 const dmCombatCategories: DmCombatActionCategory[] = ['attack', 'magic', 'bonus', 'reaction', 'utility', 'dm'];
 const dmConsoleDensities: DmConsoleDensity[] = ['compact', 'comfortable', 'spacious'];
 const dmConsoleTextSizes: DmConsoleTextSize[] = ['small', 'standard', 'large'];
@@ -74,25 +94,46 @@ const isDmUiPreferences = (value: unknown): value is DmUiPreferences => {
   if (!value || typeof value !== 'object') return false;
   const saved = value as Partial<DmUiPreferences>;
   return typeof saved.showGrid === 'boolean' && typeof saved.sideControlsOpen === 'boolean'
+    && (saved.gridStyle === undefined || Boolean(saved.gridStyle && typeof saved.gridStyle === 'object'
+      && ['contrast','fixed'].includes(saved.gridStyle.mode) && /^#[0-9a-f]{6}$/i.test(saved.gridStyle.color)
+      && Number.isFinite(saved.gridStyle.opacity) && [1,2,3].includes(saved.gridStyle.thickness)))
     && (saved.drawerTab === 'windows' || saved.drawerTab === 'ambience' || saved.drawerTab === 'audio' || saved.drawerTab === 'settings')
     && typeof saved.combatActionCategory === 'string' && dmCombatCategories.includes(saved.combatActionCategory as DmCombatActionCategory)
     && typeof saved.shareCameraOrientation === 'boolean'
     && (saved.consoleDensity === undefined || dmConsoleDensities.includes(saved.consoleDensity))
     && (saved.consoleTextSize === undefined || dmConsoleTextSizes.includes(saved.consoleTextSize));
 };
-let dmUiPreferences: DmUiPreferences = { ...defaultDmUiPreferences, ...readUiPreferences(dmUiPreferencesStorageKey, defaultDmUiPreferences, isDmUiPreferences) };
+const storedDmUiPreferences = readUiPreferences(dmUiPreferencesStorageKey, defaultDmUiPreferences, isDmUiPreferences);
+let dmUiPreferences: DmUiPreferences = { ...defaultDmUiPreferences, ...storedDmUiPreferences,
+  gridStyle: normalizeGridStyle(storedDmUiPreferences.gridStyle) };
 let dmCombatActionCategory: DmCombatActionCategory = dmUiPreferences.combatActionCategory;
 function updateDmUiPreferences<K extends keyof DmUiPreferences>(key: K, value: DmUiPreferences[K]) {
   dmUiPreferences = { ...dmUiPreferences, [key]: value };
   writeUiPreferences(dmUiPreferencesStorageKey, dmUiPreferences);
 }
-type SaveStatus = { mode: string; stateRevision: number; savedStateRevision: number | null; generation: number | null; savedAt: string | null; dirty: boolean; errorCode: string | null; runtimeEpoch: string };
+function syncDmGridSettings() {
+  const style = dmUiPreferences.gridStyle;
+  ($('dmGridMode') as HTMLSelectElement).value = style.mode;
+  ($('dmGridColor') as HTMLInputElement).value = style.color;
+  ($('dmGridColor') as HTMLInputElement).disabled = style.mode === 'contrast';
+  ($('dmGridOpacity') as HTMLInputElement).value = String(Math.round(style.opacity * 100));
+  $('dmGridOpacityValue').textContent = `${Math.round(style.opacity * 100)}%`;
+  ($('dmGridThickness') as HTMLInputElement).value = String(style.thickness);
+  $('dmGridThicknessValue').textContent = style.thickness === 1 ? 'Fina' : style.thickness === 2 ? 'Media' : 'Gruesa';
+}
+function updateDmGridStyle(change: Partial<GridStyle>) {
+  const gridStyle = normalizeGridStyle({ ...dmUiPreferences.gridStyle, ...change });
+  updateDmUiPreferences('gridStyle', gridStyle);
+  world?.setGridStyle(gridStyle);
+  syncDmGridSettings();
+}
+type SaveStatus = { mode: string; stateRevision: number; savedStateRevision: number | null; generation: number | null; savedAt: string | null; dirty: boolean; errorCode: string | null; runtimeEpoch: string; recoveryNotice?: string | null };
 let saveStatus: SaveStatus | null = null;
 let draftAction: { type: 'transform' | 'detach' | 'structure'; outcome?: 'caught' | 'fallen'; structure?: 'damaged' | 'destroyed'; requestId?: string; objectRevision: number; sceneEpoch: number; connectionGeneration: number } | null = null;
 const epochCommands = new Set(['scene', 'view:focus', 'entity:portal', 'scene:animation', 'creature', 'npc:visible', 'camera', 'environment', 'entity:move', 'entity:seat', 'combat:start', 'combat:participant', 'combat:initiative', 'combat:initiativeOrder', 'combat:condition', 'combat:endTurn', 'combat:next', 'combat:end', 'combat:declare', 'combat:basic', 'combat:escape', 'combat:rollAttack', 'combat:rollDamage', 'combat:rollSave', 'combat:rollDeathSave', 'combat:recharge', 'resolveInteraction', 'object:door', 'object:interact', 'object:transform', 'object:detach', 'object:structure', 'object:undo', 'pickup:take', 'camp:rest', 'camp:interact']);
 
 type WorkspaceLayouts = Partial<Record<WorkspaceMode, WorkspaceState>>;
-const workspaceStorageKey = 'dnd-dm-workspace-v11', legacyWorkspaceStorageKey = 'dnd-dm-workspace-v9', workspaceColumns = 12, minimumWindowHeight = 132;
+const workspaceStorageKey = 'dnd-dm-workspace-v12', legacyWorkspaceStorageKey = 'dnd-dm-workspace-v9', workspaceColumns = 12, minimumWindowHeight = 100;
 let workspaceGap = 16;
 const workspaceWindows = new Map<string, HTMLElement>();
 let workspaceLayouts: WorkspaceLayouts = {};
@@ -102,7 +143,7 @@ function workspace() { return document.querySelector<HTMLElement>('.grid.workspa
 function applyConsoleCustomization() {
   const density = dmUiPreferences.consoleDensity ?? defaultDmUiPreferences.consoleDensity!;
   const textSize = dmUiPreferences.consoleTextSize ?? defaultDmUiPreferences.consoleTextSize!;
-  workspaceGap = density === 'compact' ? 10 : density === 'spacious' ? 22 : 16;
+  workspaceGap = density === 'compact' ? 8 : density === 'spacious' ? 18 : 12;
   document.documentElement.dataset.dmDensity = density;
   document.documentElement.dataset.dmTextSize = textSize;
   document.documentElement.style.setProperty('--dm-gap', `${workspaceGap}px`);
@@ -131,7 +172,7 @@ function normalizeWorkspace(value: unknown): WorkspaceState | null {
 function readWorkspaceLayouts(): WorkspaceLayouts {
   try {
     const current = localStorage.getItem(workspaceStorageKey);
-    const saved = JSON.parse(current ?? localStorage.getItem('dnd-dm-workspace-v10') ?? 'null') as Partial<WorkspaceLayouts> | null;
+    const saved = JSON.parse(current ?? localStorage.getItem('dnd-dm-workspace-v11') ?? localStorage.getItem('dnd-dm-workspace-v10') ?? 'null') as Partial<WorkspaceLayouts> | null;
     if (saved && typeof saved === 'object' && ('exploration' in saved || 'combat' in saved)) {
       const exploration = normalizeWorkspace(saved.exploration), combat = normalizeWorkspace(saved.combat);
       // Old resizing copied one height to every neighbour, including empty panels.
@@ -165,23 +206,19 @@ function setDrawerTab(tab: DmDrawerTab, persist = true) {
 }
 function defaultWindowSpan(card: HTMLElement) { return card.id === 'mapWindow' || card.dataset.windowTitle === 'Jugadores' ? 12 : card.id === 'animationAuditCard' ? 6 : 4; }
 function minimumWindowSpan(card: HTMLElement) {
-  const desk = workspace(); if (!desk || desk.clientWidth <= 0) return card.id === 'mapWindow' ? 6 : 3;
-  const track = (desk.clientWidth - (workspaceColumns - 1) * workspaceGap) / workspaceColumns;
-  const minimumWidth = card.id === 'mapWindow' ? 620 : card.id === 'combatCard' ? 280 : 240;
-  return Math.min(workspaceColumns, Math.max(card.id === 'mapWindow' ? 6 : 3, Math.ceil((minimumWidth + workspaceGap) / (track + workspaceGap))));
+  const desk = workspace(); if (!desk || desk.clientWidth <= 0) return card.id === 'mapWindow' ? 6 : 2;
+  const minimumWidth = card.id === 'mapWindow' ? 600 : ['combatCard', 'jugadores', 'pnj-de-escena', 'explorationCard'].includes(card.id) ? 250 : 210;
+  return Math.min(workspaceColumns, Math.max(card.id === 'mapWindow' ? 6 : 1, Math.ceil((minimumWidth + workspaceGap) / desk.clientWidth * workspaceColumns * 5) / 5));
 }
 function setWindowSpan(card: HTMLElement, requested: number) {
-  const desk = workspace();
-  // setupWorkspace se ejecuta antes de mostrar la consola. No reduzcas los
-  // anchos guardados al mínimo cuando el contenedor todavía mide cero.
-  const minimum = desk && desk.clientWidth > 0 ? minimumWindowSpan(card) : 1;
-  const span = Math.max(minimum, Math.min(workspaceColumns, Math.round(requested)));
+  // Store the requested proportion, not the temporary minimum needed on a
+  // narrow screen. Packing applies that minimum without changing preferences.
+  const span = Math.max(1, Math.min(workspaceColumns, Math.round(requested * 5) / 5));
   card.style.setProperty('--window-span', String(span)); card.dataset.windowSpan = String(span);
 }
 function spanForWidth(card: HTMLElement, width: number) {
   const desk = workspace(); if (!desk || desk.clientWidth <= 0) return defaultWindowSpan(card);
-  const track = (desk.clientWidth - (workspaceColumns - 1) * workspaceGap) / workspaceColumns;
-  return Math.round((width + workspaceGap) / (track + workspaceGap));
+  return Math.round((width + workspaceGap) / desk.clientWidth * workspaceColumns * 5) / 5;
 }
 function captureWorkspace(): WorkspaceState {
   const current: WorkspaceState = { closed: [], minimized: [], maximized: [], windows: {}, order: [] };
@@ -210,14 +247,46 @@ function syncRowHeight(card: HTMLElement, height: number) {
 }
 function syncWorkspaceRowHeights() {
   const desk = workspace(); if (!desk || !desk.clientWidth) return;
-  const cards = Array.from(desk.children).filter((card): card is HTMLElement => card instanceof HTMLElement && !card.hidden && !card.classList.contains('window-closed'));
+  const cards = Array.from(desk.children).filter((card): card is HTMLElement => card instanceof HTMLElement && workspaceWindows.has(card.id) && !card.hidden && !card.classList.contains('window-closed'));
   const singleColumn = matchMedia('(max-width: 900px)').matches;
-  const placements = packDmWorkspace(cards.map(card => ({ id: card.id, span: singleColumn ? 1 : card.classList.contains('window-maximized') ? 12 : Math.max(minimumWindowSpan(card), Number(card.dataset.windowSpan) || 4) })), singleColumn ? 1 : 12);
+  const columns = singleColumn ? 1 : 60;
+  const deskStyle = getComputedStyle(desk);
+  const width = desk.clientWidth - parseFloat(deskStyle.paddingLeft) - parseFloat(deskStyle.paddingRight);
+  const entries = cards.map(card => ({ card, span: singleColumn || card.classList.contains('window-maximized') || card.id === 'mapWindow' && width < 1050 ? columns : Math.min(columns, Math.round(Math.max(minimumWindowSpan(card), Number(card.dataset.windowSpan) || 4) * 5)) }));
+  // If a full-width panel splits off an otherwise short row, spread that row
+  // across the available width. The original requested widths remain intact.
+  let segmentStart = 0;
+  for (let end = 0; end <= entries.length; end++) {
+    if (end < entries.length && entries[end]!.span !== columns) continue;
+    const segment = entries.slice(segmentStart, end);
+    let spare = columns - segment.reduce((sum, entry) => sum + entry.span, 0);
+    if (segment.length && spare > 0) segment.forEach((entry, index) => { const extra = Math.ceil(spare / (segment.length - index)); entry.span += extra; spare -= extra; });
+    segmentStart = end + 1;
+  }
+  const items = entries.map(({ card, span }) => {
+    const maximized = card.classList.contains('window-maximized'), minimized = card.classList.contains('window-minimized');
+    card.style.gridColumn = `1 / span ${span}`;
+    const cardWidth = width * span / columns - workspaceGap;
+    const manualHeight = !maximized ? parseFloat(card.style.getPropertyValue('--window-height')) : NaN;
+    let height: number;
+    if (minimized) height = card.querySelector<HTMLElement>('.window-titlebar')!.offsetHeight + 2;
+    else if (card.id === 'mapWindow') height = Math.max(340, Number.isFinite(manualHeight) ? manualHeight : Math.min(window.innerHeight * .66, cardWidth * .5));
+    else {
+      const content = card.querySelector<HTMLElement>('.window-content')!;
+      card.style.height = 'auto'; content.style.flex = '0 0 auto';
+      const naturalHeight = card.querySelector<HTMLElement>('.window-titlebar')!.offsetHeight + content.scrollHeight + 2;
+      content.style.removeProperty('flex');
+      height = Number.isFinite(manualHeight) ? manualHeight : Math.min(naturalHeight, Math.max(260, window.innerHeight * .64));
+    }
+    return { id: card.id, span, height: Math.max(2, height) };
+  });
+  const placements = packDmWorkspace(items, columns, workspaceGap);
   for (const placement of placements) {
     const card = workspaceWindows.get(placement.id)!;
     card.style.gridColumn = `${placement.column} / span ${placement.span}`;
     card.style.setProperty('--packed-column', `${placement.column} / span ${placement.span}`);
-    card.style.gridRow = String(placement.row);
+    card.style.gridRow = `${placement.row} / span ${placement.rowSpan}`;
+    card.style.height = `${placement.height}px`;
   }
 }
 function updateMinimizeControl(card: HTMLElement) {
@@ -225,6 +294,13 @@ function updateMinimizeControl(card: HTMLElement) {
   if (!button) return;
   const label = card.classList.contains('window-minimized') ? 'Restaurar ventana' : 'Minimizar ventana';
   button.title = label; button.setAttribute('aria-label', label);
+  button.setAttribute('aria-expanded', String(!card.classList.contains('window-minimized')));
+  const maximize = card.querySelector<HTMLButtonElement>('[data-window-action="maximize"]');
+  if (maximize) {
+    const full = card.classList.contains('window-maximized');
+    maximize.title = full ? 'Restaurar anchura anterior' : 'Ocupar toda la fila';
+    maximize.setAttribute('aria-label', maximize.title); maximize.setAttribute('aria-pressed', String(full)); maximize.textContent = full ? '▣' : '□';
+  }
 }
 function restoreWorkspaceLayout(saved: WorkspaceState | null) {
   const desk = workspace(); if (!desk) return;
@@ -262,14 +338,20 @@ function applyWorkspacePreset(preset: DmWorkspacePresetId) {
   const current = captureWorkspace(), layout = createDmWorkspacePreset(activeWorkspaceMode, preset);
   const order = [...layout.order, ...current.order.filter(id => !layout.order.includes(id)), ...[...workspaceWindows.keys()].filter(id => !layout.order.includes(id) && !current.order.includes(id))];
   const windows = { ...current.windows, ...layout.windows };
-  // A preset changes the arrangement, not the user's decision to close/minimize
-  // a panel. Clear custom heights/maximize so the new rows can size evenly.
+  // Presets restore minimized windows and clear custom heights so the selected
+  // arrangement can reflow around the current screen and each panel's content.
   for (const bounds of Object.values(windows)) delete bounds.height;
-  restoreWorkspaceLayout({ closed: current.closed, minimized: current.minimized, maximized: [], order, windows });
+  restoreWorkspaceLayout({ closed: current.closed, minimized: [], maximized: [], order, windows });
   requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); });
 }
 function windowTitle(card: HTMLElement) { return card.querySelector('h2')?.textContent?.trim() || 'Ventana'; }
 function openWorkspaceWindow(id: string) {
+  if (id === 'connectionPanel') {
+    const panel = $('connectionPanel') as HTMLDetailsElement;
+    panel.open = true; panel.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    panel.querySelector('summary')?.focus({ preventScroll: true });
+    return;
+  }
   const card = workspaceWindows.get(id);
   if (!card || card.hidden) { toast('Esta herramienta no está disponible en la escena actual.'); return; }
   card.classList.remove('window-closed', 'window-minimized'); updateMinimizeControl(card); renderClosedWindows();
@@ -287,11 +369,50 @@ function focusEntityOnMap(id: string, cell: Cell, surfaceId: string) {
 function renderClosedWindows() {
   const list = $('closedWindows'); list.replaceChildren(); const closed = [...workspaceWindows.values()].filter(card => !card.hidden && card.classList.contains('window-closed'));
   if (!closed.length) { const note = document.createElement('p'); note.className = 'note'; note.textContent = 'No hay ventanas cerradas.'; list.append(note); return; }
-  for (const card of closed) { const row = document.createElement('div'), title = document.createElement('span'), restore = document.createElement('button'); row.className = 'closed-window'; title.textContent = card.dataset.windowTitle ?? 'Ventana'; restore.textContent = 'Recuperar'; restore.onclick = () => { card.classList.remove('window-closed'); setWindowSpan(card, Number(card.style.getPropertyValue('--window-span')) || defaultWindowSpan(card)); renderClosedWindows(); requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); }); }; row.append(title, restore); list.append(row); }
+  for (const card of closed) { const row = document.createElement('div'), title = document.createElement('span'), restore = document.createElement('button'); row.className = 'closed-window'; title.textContent = card.dataset.windowTitle ?? 'Ventana'; restore.textContent = 'Recuperar'; restore.onclick = () => { card.classList.remove('window-closed', 'window-minimized'); updateMinimizeControl(card); setWindowSpan(card, Number(card.style.getPropertyValue('--window-span')) || defaultWindowSpan(card)); renderClosedWindows(); requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); }); }; row.append(title, restore); list.append(row); }
 }
 function toggleMaximize(card: HTMLElement) {
+  card.classList.remove('window-minimized');
   card.classList.toggle('window-maximized');
+  updateMinimizeControl(card);
   requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); });
+}
+function installWorkspaceScrolling(desk: HTMLElement) {
+  $('app').addEventListener('wheel', event => {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target || target.closest('dialog, .side-controls, select, textarea, input[type="range"]')) return;
+    const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? desk.clientHeight : 1);
+    const canScroll = (element: HTMLElement) => element.scrollHeight > element.clientHeight + 1 && (delta < 0 ? element.scrollTop > 0 : element.scrollTop + element.clientHeight < element.scrollHeight - 1);
+    for (let parent = target instanceof HTMLElement ? target : target.parentElement; parent && parent !== desk && parent !== $('app'); parent = parent.parentElement) {
+      if (/(auto|scroll)/.test(getComputedStyle(parent).overflowY) && canScroll(parent)) return;
+    }
+    if (canScroll(desk)) { event.preventDefault(); event.stopPropagation(); desk.scrollTop += delta; }
+    else if (target.closest('#dmMap')) { event.preventDefault(); event.stopPropagation(); }
+  }, { capture: true, passive: false });
+}
+function installWorkspaceDock() {
+  const dock = document.querySelector<HTMLElement>('.dm-dock')!;
+  const sensor = document.createElement('div'); sensor.className = 'dm-dock-sensor'; sensor.setAttribute('aria-hidden', 'true'); document.body.append(sensor);
+  let timer = 0;
+  const hide = () => { if (!dock.matches(':hover, :focus-within')) dock.classList.remove('is-visible'); };
+  const reveal = () => { clearTimeout(timer); dock.classList.add('is-visible'); timer = window.setTimeout(hide, 2600); };
+  sensor.addEventListener('pointerenter', reveal);
+  dock.addEventListener('pointerenter', reveal); dock.addEventListener('pointerleave', reveal);
+  dock.addEventListener('focusin', reveal); dock.addEventListener('focusout', reveal);
+  document.addEventListener('pointermove', event => { if (event.clientY > window.innerHeight - 44) reveal(); }, { passive: true });
+  const alerts = new Map<HTMLElement, string>();
+  new MutationObserver(() => {
+    dock.querySelectorAll<HTMLElement>('[data-open-window]').forEach(button => {
+      const signature = button.classList.contains('has-attention') ? `alert:${button.querySelector('small')?.textContent ?? ''}` : '';
+      if (signature && signature !== alerts.get(button)) {
+        reveal(); button.classList.remove('dock-notify'); void button.offsetWidth; button.classList.add('dock-notify');
+        button.addEventListener('animationend', () => button.classList.remove('dock-notify'), { once: true });
+      }
+      alerts.set(button, signature);
+    });
+  }).observe(dock, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class'] });
+  reveal();
 }
 function setupWorkspace() {
   const desk = document.querySelector<HTMLElement>('.grid'); if (!desk) return; desk.classList.add('workspace'); workspaceLayouts = readWorkspaceLayouts(); const saved = workspaceLayouts.exploration ?? null, used = new Set<string>();
@@ -304,7 +425,7 @@ function setupWorkspace() {
     const content = document.createElement('div'); content.className = 'window-content'; content.append(...Array.from(card.childNodes)); const title = document.createElement('h2'); title.className = 'window-title'; title.textContent = card.dataset.windowTitle; const controls = document.createElement('div'); controls.className = 'window-controls';
     const control = (symbol: string, label: string, action: () => void, extra = '', windowAction = '') => { const button = document.createElement('button'); button.type = 'button'; button.className = `window-control ${extra}`; button.textContent = symbol; button.title = label; button.setAttribute('aria-label', label); if (windowAction) button.dataset.windowAction = windowAction; button.onclick = event => { event.stopPropagation(); action(); }; return button; };
     const minimize = control('—', 'Minimizar ventana', () => { card.classList.toggle('window-minimized'); updateMinimizeControl(card); requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); }); }, '', 'minimize');
-    controls.append(minimize, control('□', 'Ampliar ventana', () => toggleMaximize(card)), control('×', 'Cerrar ventana', () => { card.classList.add('window-closed'); renderClosedWindows(); requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); }); }, 'close'));
+    controls.append(minimize, control('□', 'Ocupar toda la fila', () => toggleMaximize(card), '', 'maximize'), control('×', 'Cerrar ventana', () => { card.classList.add('window-closed'); renderClosedWindows(); requestAnimationFrame(() => { syncWorkspaceRowHeights(); writeWorkspace(); world?.refreshLayout(); }); }, 'close'));
     const bar = document.createElement('div'); bar.className = 'window-titlebar'; bar.draggable = true; bar.title = 'Arrastra esta barra para recolocar la ventana'; bar.append(title, controls); card.replaceChildren(bar, content); card.querySelector('.window-content h2')?.classList.add('window-original-title');
     const resizeHandle = document.createElement('button'); resizeHandle.type = 'button'; resizeHandle.className = 'window-resize-handle'; resizeHandle.title = 'Redimensionar ventana'; resizeHandle.setAttribute('aria-label', 'Redimensionar ventana'); card.append(resizeHandle);
     resizeHandle.addEventListener('pointerdown', event => {
@@ -330,7 +451,7 @@ function setupWorkspace() {
     const bounds = saved?.windows[id]; setWindowSpan(card, bounds?.span ?? defaultWindowSpan(card)); if (bounds?.height) card.style.setProperty('--window-height', `${Math.max(minimumWindowHeight, bounds.height)}px`); if (saved?.closed.includes(id)) card.classList.add('window-closed'); if (saved?.minimized.includes(id)) card.classList.add('window-minimized'); if (saved?.maximized.includes(id)) card.classList.add('window-maximized'); updateMinimizeControl(card);
   }
   const ordered = (saved?.order ?? []).map(id => workspaceWindows.get(id)).filter((card): card is HTMLElement => Boolean(card)); const remaining = [...workspaceWindows.values()].filter(card => !ordered.includes(card)); desk.append(...ordered, ...remaining);
-  $('arrangeWorkspace').onclick = arrangeWorkspace; $('resetWorkspace').onclick = () => { localStorage.removeItem(workspaceStorageKey); localStorage.removeItem('dnd-dm-workspace-v10'); localStorage.removeItem(legacyWorkspaceStorageKey); location.reload(); };
+  $('arrangeWorkspace').onclick = arrangeWorkspace; $('resetWorkspace').onclick = () => { localStorage.removeItem(workspaceStorageKey); localStorage.removeItem('dnd-dm-workspace-v11'); localStorage.removeItem('dnd-dm-workspace-v10'); localStorage.removeItem(legacyWorkspaceStorageKey); location.reload(); };
   document.querySelectorAll<HTMLButtonElement>('[data-drawer-tab]').forEach(button => button.onclick = () => { const tab = button.dataset.drawerTab; if (tab === 'windows' || tab === 'ambience' || tab === 'audio' || tab === 'settings') setDrawerTab(tab); });
   document.querySelectorAll<HTMLButtonElement>('[data-workspace-preset]').forEach(button => button.onclick = () => {
     const preset = button.dataset.workspacePreset;
@@ -346,6 +467,7 @@ function setupWorkspace() {
   textSize.onchange = () => {
     if (!dmConsoleTextSizes.includes(textSize.value as DmConsoleTextSize)) return;
     updateDmUiPreferences('consoleTextSize', textSize.value as DmConsoleTextSize); applyConsoleCustomization();
+    requestAnimationFrame(syncWorkspaceRowHeights);
   };
   $('resetConsoleSettings').onclick = () => {
     dmUiPreferences = { ...dmUiPreferences, consoleDensity: 'comfortable', consoleTextSize: 'standard' };
@@ -354,7 +476,13 @@ function setupWorkspace() {
   };
   setDrawerTab(dmUiPreferences.drawerTab, false); renderClosedWindows();
   let reflowFrame = 0;
-  new ResizeObserver(() => { cancelAnimationFrame(reflowFrame); reflowFrame = requestAnimationFrame(() => { syncWorkspaceRowHeights(); world?.refreshLayout(); }); }).observe(desk);
+  const reflow = () => { cancelAnimationFrame(reflowFrame); reflowFrame = requestAnimationFrame(syncWorkspaceRowHeights); };
+  new ResizeObserver(reflow).observe(desk);
+  new MutationObserver(reflow).observe(desk, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['hidden', 'open'] });
+  desk.addEventListener('toggle', reflow, true);
+  void document.fonts.ready.then(reflow);
+  installWorkspaceScrolling(desk);
+  installWorkspaceDock();
   desk.addEventListener('dragover', event => {
     if (!draggedWindow) return;
     event.preventDefault();
@@ -380,9 +508,44 @@ function toast(message: string) { const element = $('toast'); element.textConten
 function command(body: Record<string, unknown>) {
   if (!socket?.connected || !runtimeEpoch) { toast('Sin conexión: el cambio no se ha enviado.'); return null; }
   const id = commandId();
-  const epoch = epochCommands.has(String(body.type)) || String(body.type).startsWith('combat:') || String(body.type).startsWith('story:') || String(body.type).startsWith('encounter:') ? { sceneEpoch: state?.sceneEpoch } : {};
+  const epoch = epochCommands.has(String(body.type)) || String(body.type)==='scene:resolveCheck' || String(body.type).startsWith('combat:') || String(body.type).startsWith('story:') || String(body.type).startsWith('encounter:') ? { sceneEpoch: state?.sceneEpoch } : {};
   const objectVersion = String(body.type).startsWith('object:') || body.type === 'resolveInteraction' ? { objectRevision: state?.objectRevision ?? 0 } : {};
   socket.emit('dm:command', { commandId: id, runtimeEpoch, ...epoch, ...objectVersion, ...body }); return id;
+}
+
+let decisionPauseInstalled = false, decisionPauseSequence = 0;
+const activeDialogPauseIds = new WeakMap<HTMLDialogElement, string>();
+function sendDecisionPause(action: 'open' | 'close', dialogId = `decision-${++decisionPauseSequence}`) {
+  if (socket?.connected && runtimeEpoch) command({ type: 'clock:decision', action, dialogId });
+  return dialogId;
+}
+function installDecisionClockPauses() {
+  if (decisionPauseInstalled) return;
+  decisionPauseInstalled = true;
+  const showModal = HTMLDialogElement.prototype.showModal;
+  HTMLDialogElement.prototype.showModal = function (...args: Parameters<typeof showModal>) {
+    const alreadyOpen = this.open, result = showModal.apply(this, args);
+    if (!alreadyOpen && this.open) {
+      activeDialogPauseIds.set(this, sendDecisionPause('open'));
+      this.addEventListener('close', () => {
+        // Escape closes natively, without calling the patched close() method.
+        if (this.open) return;
+        const id = activeDialogPauseIds.get(this);
+        if (id) { activeDialogPauseIds.delete(this); sendDecisionPause('close', id); }
+      }, { once: true });
+    }
+    return result;
+  };
+  const close = HTMLDialogElement.prototype.close;
+  HTMLDialogElement.prototype.close = function (...args: Parameters<typeof close>) {
+    const pauseId = activeDialogPauseIds.get(this), result = close.apply(this, args);
+    if (pauseId) { activeDialogPauseIds.delete(this); sendDecisionPause('close', pauseId); }
+    return result;
+  };
+  const alert = window.alert.bind(window), confirm = window.confirm.bind(window), prompt = window.prompt.bind(window);
+  window.alert = message => { const id = sendDecisionPause('open'); try { alert(message); } finally { sendDecisionPause('close', id); } };
+  window.confirm = message => { const id = sendDecisionPause('open'); try { return confirm(message); } finally { sendDecisionPause('close', id); } };
+  window.prompt = (message, defaultValue) => { const id = sendDecisionPause('open'); try { return prompt(message, defaultValue); } finally { sendDecisionPause('close', id); } };
 }
 
 function renderAnimationAudit(snapshot: WorldSnapshot | null, force = false) { renderD8AnimationAudit(snapshot, state, campaign, world, force); }
@@ -432,6 +595,9 @@ function selectCurrentScene(sceneId: string) {
     option.value = sceneId; option.textContent = `${savedTitle ?? 'Escena guardada'} · solo para esta partida`; option.hidden = true; option.disabled = true; option.dataset.savedScene = 'true'; select.append(option);
   }
   select.value = sceneId;
+  const title = campaign?.scenes.find(item => item.id === sceneId)?.title ?? select.selectedOptions[0]?.textContent ?? sceneId;
+  $('mapSceneButton').textContent = `⌖ ${title}`;
+  $('mapSceneButton').title = `${title} · Cambiar de escena`;
 }
 
 function renderConnectionStatus() {
@@ -443,6 +609,7 @@ function renderConnectionStatus() {
 }
 function connect() {
   socket = io({ auth: { role: 'dm', protocolVersion: PROTOCOL_VERSION, objectModelVersion: OBJECT_MODEL_VERSION } });
+  installDecisionClockPauses();
   socket.on('connect', () => { sceneLoadRecovery.reset(); connectionGeneration++; $('socketDot').classList.add('on'); renderConnectionStatus(); readyEpoch = -1; latestSnapshot = null; lastSharedCameraKey = null; clearDraft(); world?.resetConnection(); });
   socket.on('disconnect', () => { sceneLoadRecovery.reset(); connectionGeneration++; $('socketDot').classList.remove('on'); renderConnectionStatus(); readyEpoch = -1; latestSnapshot = null; renderAnimationAudit(null, true); clearDraft(); });
   socket.on('auth:error', (error: { code?: string }) => { if (error.code === 'PROTOCOL_MISMATCH' || error.code === 'DM_AUTH_REQUIRED') { location.reload(); return; } showLogin(); });
@@ -451,7 +618,7 @@ function connect() {
     connectionGeneration++; runtimeEpoch = event.runtimeEpoch; state = null; latestSnapshot = null; renderAnimationAudit(null, true); readyEpoch = -1; lastSharedCameraKey = null; clearDraft(); world?.resetConnection();
     void fetch('/api/dm/save/status', { cache: 'no-store' }).then(x => x.ok ? x.json() : null).then(next => { if (next?.runtimeEpoch === runtimeEpoch) { saveStatus = next; renderSave(); } });
   });
-  socket.on('save:status', (next: SaveStatus) => { if (next.runtimeEpoch === runtimeEpoch) { saveStatus = next; renderSave(); if (next.mode === 'ready') void renderSaveHistory(); } });
+  socket.on('save:status', (next: SaveStatus) => { if (next.runtimeEpoch === runtimeEpoch) { saveStatus = next; renderSave(); if (next.mode === 'ready' && ($('loadGameDialog') as HTMLDialogElement).open) void renderSaveHistory(); } });
   socket.on('world:snapshot', (snapshot: WorldSnapshot) => { if (snapshot.runtimeEpoch !== runtimeEpoch) return; latestSnapshot = snapshot; renderAnimationAudit(snapshot); void installSnapshot(snapshot); });
   socket.on('dm:state', (next: DmState) => { if (next.runtimeEpoch !== runtimeEpoch) return; if (draftAction && (draftAction.objectRevision !== next.objectRevision || draftAction.sceneEpoch !== next.sceneEpoch || draftAction.connectionGeneration !== connectionGeneration)) clearDraft(); state = next; render(next); });
   socket.on('command:result', (result: CommandResult) => {
@@ -467,6 +634,7 @@ function connect() {
   });
 socket.on('combat:animation', (event: { runtimeEpoch: string; sceneEpoch?: number; bodyState?: string; attackerId: string; targetId: string; type: 'melee' | 'arrow' | 'thrownWeapon' | 'radiantArrow' | 'vine' | 'fireProjectile' | 'magicalProjectile'; hit: boolean; frozen: boolean; sneakAttack?: boolean }) => { if (event.runtimeEpoch === runtimeEpoch && (event.sceneEpoch === undefined || event.sceneEpoch === latestSnapshot?.sceneEpoch)) world?.playRangedAttack(event.attackerId, event.targetId, event.type, event.hit, event.frozen, event.sneakAttack, event.bodyState); });
   socket.on('scene:animation', (event: { runtimeEpoch: string; sceneEpoch: number; entityId: string; state: string; durationMs: number }) => { if (event.runtimeEpoch === runtimeEpoch && event.sceneEpoch === latestSnapshot?.sceneEpoch) world?.playTokenAnimation(event.entityId, event.state, event.durationMs); });
+  socket.on('scene:reward',(event:{runtimeEpoch:string;sceneEpoch:number;entityId:string;effect:string})=>{if(event.runtimeEpoch===runtimeEpoch&&event.sceneEpoch===latestSnapshot?.sceneEpoch&&event.effect==='inspiration')world?.playRewardEffect(event.entityId);});
   socket.on('scene:area-effect', (event: { runtimeEpoch: string; sceneEpoch: number; cell: { col: number; row: number }; type: 'fog'; radiusMeters: number; durationMs: number }) => { if (event.runtimeEpoch === runtimeEpoch && event.sceneEpoch === latestSnapshot?.sceneEpoch) world?.playAreaEffect(event.cell, event.type, event.radiusMeters, event.durationMs); });
   socket.on('mirror:transformation', (event: { runtimeEpoch: string; sceneEpoch: number; propId: string; sourceId: string; reflectionId: string; frames: string[]; durationMs: number }) => { if (event.runtimeEpoch === runtimeEpoch && event.sceneEpoch === latestSnapshot?.sceneEpoch) world?.playMirrorTransformation(event.propId, event.sourceId, event.reflectionId, event.frames, event.durationMs); });
 }
@@ -485,7 +653,6 @@ async function installSnapshot(snapshot: WorldSnapshot) {
   }
 }
 
-const cameraOrientationLabels = ['Vista inicial', '45° a la derecha', '90° a la derecha', '135° a la derecha', '180° · lado opuesto', '135° a la izquierda', '90° a la izquierda', '45° a la izquierda'];
 function supportsCameraOrbit(sceneId?: string | null) {
   const scene = campaign?.scenes.find(candidate => candidate.id === sceneId);
   return supportsCameraOrientation(scene);
@@ -493,18 +660,24 @@ function supportsCameraOrbit(sceneId?: string | null) {
 function updateCameraOrbitControls(sceneId = state?.sceneId ?? latestSnapshot?.sceneId) {
   $('cameraOrbitControls').hidden = !supportsCameraOrbit(sceneId);
   const step = world?.getCameraOrientationStep() ?? 0;
-  $('cameraOrientationLabel').textContent = cameraOrientationLabels[step] ?? cameraOrientationLabels[0]!;
-  const tilt = world?.getCameraTiltDegrees() ?? 30;
-  const tiltInput = $('cameraTilt') as HTMLInputElement;
-  if (document.activeElement !== tiltInput) tiltInput.value = String(tilt);
+  $('cameraOrientationLabel').textContent = cameraOrbitLabel(step);
+  ($('cameraTurnLeft') as HTMLButtonElement).disabled = step <= -2;
+  ($('cameraTurnRight') as HTMLButtonElement).disabled = step >= 2;
+  const tiltProfile=cameraProfileForScene(sceneId??null);
+  const tilt = world?.getCameraTiltDegrees() ?? tiltProfile.default;
+  $('cameraTiltControls').title=`Inclinación: ${tiltProfile.min}° / ${tiltProfile.default}° / ${tiltProfile.max}°`;
+  ($('cameraTiltDown') as HTMLButtonElement).disabled = tilt <= tiltProfile.min;
+  ($('cameraTiltUp') as HTMLButtonElement).disabled = tilt >= tiltProfile.max;
   $('cameraTiltValue').textContent = `${tilt}°`;
 }
 function publishCameraOrientation(force = false) {
   const snapshot = latestSnapshot;
   if (!(($('shareCameraOrientation') as HTMLInputElement | null)?.checked) || !socket?.connected || !runtimeEpoch || !snapshot || !supportsCameraOrbit(snapshot.sceneId)) return;
-  const step = world?.getCameraOrientationStep() ?? 0, key = `${snapshot.sceneEpoch}:${snapshot.sceneId}:${step}`;
+  const step = world?.getCameraOrientationStep() ?? 0, tilt = world?.getCameraTiltDegrees() ?? cameraProfileForScene(snapshot.sceneId).default;
+  const frame = world?.getSharedCameraFrame();
+  const key = `${snapshot.sceneEpoch}:${snapshot.sceneId}:${step}:${tilt}:${JSON.stringify(frame)}`;
   if (!force && key === lastSharedCameraKey) return;
-  socket.emit('camera:orientation', { runtimeEpoch, sceneEpoch: snapshot.sceneEpoch, sceneId: snapshot.sceneId, step });
+  socket.emit('camera:orientation', { runtimeEpoch, sceneEpoch: snapshot.sceneEpoch, sceneId: snapshot.sceneId, step, tilt, frame, profile: CAMERA_ORBIT_PROFILE });
   lastSharedCameraKey = key;
 }
 function stopSharingCameraOrientation() {
@@ -518,9 +691,16 @@ function rotateCamera(delta: number) {
   if (!supportsCameraOrbit(sceneId)) return;
   world?.rotateCameraOrientation(delta); updateCameraOrbitControls(sceneId); publishCameraOrientation();
 }
+function tiltCamera(direction: number) {
+  const sceneId = state?.sceneId ?? latestSnapshot?.sceneId;
+  if (!supportsCameraOrbit(sceneId)) return;
+  const profile = cameraProfileForScene(sceneId ?? null);
+  world?.setCameraTiltDegrees((world?.getCameraTiltDegrees() ?? profile.default) + direction * profile.step);
+  updateCameraOrbitControls(sceneId); publishCameraOrientation();
+}
 
 function showLogin(message = '') { $('login').hidden = false; $('app').hidden = true; $('loginError').textContent = message; }
-const campUpdatesStorageKey = 'dnd-camp-rests-updates-v1.4.6-seen';
+const campUpdatesStorageKey = 'dnd-camp-rests-updates-v1.4.8-seen';
 function hasCampRestModule() {
   return campaign?.scenes.some(scene => scene.id === 'camp-a1-rooms');
 }
@@ -540,7 +720,9 @@ async function beginDm(password?: string) {
   if (!response.ok) { showLogin(password === undefined ? 'Esta mesa requiere clave de DM.' : 'Clave incorrecta.'); return; }
   csrfToken = (await response.json()).csrfToken;
   try {
-    campaign = await loadCampaign(); syncAnimationAuditAvailability(); populateCampaign(); ($('showGrid') as HTMLInputElement).checked = dmUiPreferences.showGrid; ($('shareCameraOrientation') as HTMLInputElement).checked = dmUiPreferences.shareCameraOrientation; world = new WorldRenderer($('dmMap'), campaign, { persistCameraPreferences: true, showGrid: dmUiPreferences.showGrid }); world.setMapClick(onMapClick); await loadInfo();
+    campaign = await loadCampaign(); syncAnimationAuditAvailability(); populateCampaign(); ($('showGrid') as HTMLInputElement).checked = dmUiPreferences.showGrid; ($('shareCameraOrientation') as HTMLInputElement).checked = dmUiPreferences.shareCameraOrientation; syncDmGridSettings(); world = new WorldRenderer($('dmMap'), campaign, { cameraRole: 'dm', persistCameraPreferences: true, showGrid: dmUiPreferences.showGrid, gridStyle: dmUiPreferences.gridStyle }); world.setMapClick(onMapClick); await loadInfo();
+    world.setCameraTiltChangeHandler(() => { updateCameraOrbitControls(); publishCameraOrientation(); });
+    world.setCameraFrameChangeHandler(() => publishCameraOrientation());
     mapTargets = new DmMapTargets($('dmMap'));
     objectRosette = new DmObjectRosette($('dmMap'), () => Array.from($(rosetteSource).querySelectorAll<HTMLButtonElement>('button')));
   } catch (error) { console.error('Error al preparar la vista DM', error); showLogin('No se pudo cargar la campaña. Recarga la página.'); return; }
@@ -553,9 +735,9 @@ function render(current: DmState) {
   switchWorkspaceMode(current.combat.active ? 'combat' : 'exploration');
   $('app').classList.toggle('combat-mode', current.combat.active);
   const timeOfDayButton = $('timeOfDayToggle') as HTMLButtonElement;
-  timeOfDayButton.hidden = !campaign?.scenes.find(scene => scene.id === current.sceneId)?.camp;
-  $('timeOfDaySection').hidden=timeOfDayButton.hidden;
-  const isNight = (current.environment.timeOfDay ?? 'auto') === 'night' || (current.environment.timeOfDay ?? 'auto') === 'auto' && current.campRest?.sceneId === current.sceneId && current.campRest.phase === 'night';
+  timeOfDayButton.hidden = true;
+  $('timeOfDaySection').hidden = true;
+  const isNight = lightPhaseLabel(current.environment,current.gameClock.seconds)==='Noche';
   $('timeOfDayIcon').textContent = isNight ? '☀' : '☾'; $('timeOfDayLabel').textContent = isNight ? 'Pasar a día' : 'Pasar a noche';
   timeOfDayButton.setAttribute('aria-pressed', String(isNight));
   timeOfDayButton.title = isNight ? 'La escena está de noche. Cambiar a día.' : 'La escena está de día. Cambiar a noche.';
@@ -574,9 +756,13 @@ function render(current: DmState) {
   $('storm').setAttribute('aria-pressed', String(current.environment.storm));
   const phaseNames={auto:'Ambiente de escena',day:'Mediodía',sunset:'Atardecer',night:'Noche',dawn:'Madrugada'};
   const precipitation=current.environment.precipitation??(current.environment.storm?'rain':'none');
-  for(const [id,value] of Object.entries({weatherTime:current.environment.timeOfDay??'auto',weatherKind:current.environment.precipitation??(current.environment.storm?'rain':'none'),weatherLevel:String(current.environment.precipitationLevel??2),weatherWind:String(current.environment.windIntensity??0)})){
+  for(const [id,value] of Object.entries({weatherTime:current.environment.timeOfDay??'auto',weatherKind:current.environment.precipitation??(current.environment.storm?'rain':'none'),weatherLevel:String(current.environment.precipitationLevel??2),weatherWind:String(current.environment.windIntensity??0),weatherTemperature:String(current.environment.temperatureC??0),weatherFog:String(current.environment.fogTarget??0),weatherFlood:String(current.environment.floodTarget??0),weatherSea:String(seaState(current.environment,current.sceneId==='camp-wreck-beach'?.8:current.sceneId==='camp-coastal-refuge'?.22:.35))})){
     const input=$(id) as HTMLInputElement;if(!input.matches(':focus'))input.value=value;
   }
+  const difficult = $('snowDifficultTerrain') as HTMLInputElement; if (!difficult.matches(':focus')) difficult.checked = Boolean(current.environment.snowDifficultTerrain);
+  $('weatherTemperatureValue').textContent = `${current.environment.temperatureC ?? 0} °C`;
+  $('weatherFogValue').textContent = `${Math.round((current.environment.fogTarget ?? 0) * 100)}%`;
+  $('weatherFloodValue').textContent = `${Math.round((current.environment.floodTarget ?? 0) * 100)}%`;
   const stormIntensity = $('stormIntensity') as HTMLInputElement;
   if (!stormIntensity.matches(':focus')) stormIntensity.value = String(current.environment.stormIntensity);
   $('stormIntensityValue').textContent = `${Math.round(current.environment.stormIntensity * 100)}%`;
@@ -586,10 +772,19 @@ function render(current: DmState) {
   $('weatherLevelValue').textContent = ['Suave', 'Media', 'Intensa'][Number(($('weatherLevel') as HTMLInputElement).value) - 1] ?? 'Media';
   const wind = Math.round(Number(($('weatherWind') as HTMLInputElement).value) * 100);
   $('weatherWindValue').textContent = `${wind}%`;
-  $('weatherVisualIcon').textContent = current.environment.storm ? 'ϟ' : precipitation === 'snow' ? '❄' : precipitation === 'rain' ? '☂' : isNight ? '☾' : '☀';
-  $('weatherVisualTitle').textContent = phaseNames[weatherTime];
-  $('weatherVisualStatus').textContent = `${current.environment.storm ? 'Tormenta' : precipitation === 'snow' ? 'Nieve' : precipitation === 'rain' ? 'Lluvia' : 'Despejado'} · ${wind ? `Viento ${wind}%` : 'Sin viento'}`;
+  $('weatherVisualIcon').textContent = weatherMode(current.environment) === 'tempest' ? '〰' : current.environment.storm ? 'ϟ' : precipitation === 'snow' ? '❄' : precipitation === 'rain' ? '☂' : isNight ? '☾' : '☀';
+  $('weatherVisualTitle').textContent = lightPhaseLabel(current.environment,gameClockAt(current.gameClock,dmServerClock.now(Date.now())));
+  $('weatherSeaCard').hidden=current.sceneId==='camp-forest-pleamar'||!current.sceneId.startsWith('camp-');
+  $('weatherSeaValue').textContent=seaStateLabel(Number(($('weatherSea') as HTMLInputElement).value));
+  $('weatherSeaAuto').setAttribute('aria-pressed',String(current.environment.seaIntensity===undefined));
+  ($('weatherRulesEnabled') as HTMLInputElement).checked=Boolean(current.environment.weatherRules);
+  ($('weatherKind') as HTMLSelectElement).value = weatherMode(current.environment);
+  $('weatherModeHint').textContent = weatherDescription(current.environment);
+  $('weatherLevel').closest<HTMLElement>('.climate-icon-section')!.hidden = weatherMode(current.environment) === 'clear';
+  $('weatherVisualStatus').textContent = `${weatherModeLabels[weatherMode(current.environment)]} · ${wind ? `Viento ${wind}%` : 'Sin viento'}`;
   $('weatherVisual').dataset.weather = current.environment.storm ? 'storm' : isNight ? 'night' : precipitation;
+  climateIcons.update();
+  renderGameClock(current);
   const encounter = $('encounterCard'); encounter.hidden = !current.creature || current.sceneId !== current.creature.sceneId;
   if (current.creature) {
     $('creatureSummary').replaceChildren(...chips([current.creature.label, [current.creature.visible ? 'Visible' : 'Oculta', current.creature.visible ? 'positive' : 'info'], `PG ${current.creature.hp}/${current.creature.maxHp}`, `Casilla ${current.creature.cell.col},${current.creature.cell.row}`]).childNodes);
@@ -601,7 +796,6 @@ function render(current: DmState) {
   $('projectorDot').classList.toggle('on', current.projectorReady); $('projectorStatus').textContent = current.projectorReady ? 'Proyector conectado' : 'Proyector sin preparar';
   $('projectorStatus').textContent = current.projectorReady ? 'Proyector listo' : 'Proyector pendiente';
   $('projectorBadge').className = `badge dm-${current.projectorReady ? 'positive' : 'pending'}`;
-  const gameUndo = $('gameUndo') as HTMLButtonElement; gameUndo.disabled = !current.gameUndo.canUndo; gameUndo.textContent = current.gameUndo.label ? `Deshacer: ${current.gameUndo.label}` : 'Deshacer última acción';
   renderMonsterSheet(current); renderPlayers(current); renderNpcs(current); renderCombat(current); renderExploration(current); renderObjects(current); renderAudio(current); renderSfx(current); renderRequests(current); renderCampRest(current);
   refreshSheetConditions(current);
   requestAnimationFrame(() => syncWorkspaceRowHeights());
@@ -612,10 +806,37 @@ function render(current: DmState) {
   }
   // Availability follows the current render, not the previous scene/mode.
   document.querySelectorAll<HTMLElement>('[data-open-window]').forEach(button => {
-    const id = button.dataset.openWindow!; button.classList.toggle('has-attention', id === 'interacciones' && pendingCount > 0);
+    const id = button.dataset.openWindow!; button.classList.toggle('has-attention', id === 'interacciones' && pendingCount > 0 || id === 'combatCard' && Boolean(current.combat.prompt) || id === 'connectionPanel' && ['error', 'recovery', 'incompatible'].includes(saveStatus?.mode ?? ''));
     button.setAttribute('aria-current', String(id === (current.combat.active ? 'combatCard' : 'explorationCard')));
     if (button instanceof HTMLButtonElement) button.disabled = Boolean(workspaceWindows.get(id)?.hidden);
   });
+}
+
+function renderGameClock(current: DmState) {
+  dmServerClock.observe(current.gameClock.serverTime, Date.now());
+  const seconds = gameClockAt(current.gameClock, dmServerClock.now(Date.now()));
+  $('gameClockValue').textContent = formatGameClock(seconds).text;
+  const pause = $('clockPauseToggle') as HTMLButtonElement;
+  if (current.combat.active) { pause.textContent = 'En combate'; pause.disabled = true; $('gameClockMode').textContent = 'El reloj está detenido · avanza 6 segundos al cerrar cada asalto.'; }
+  else if (current.gameClock.pauseReason === 'decision') { pause.textContent = 'Pausa de decisión'; pause.disabled = true; $('gameClockMode').textContent = 'El reloj se reanuda al cerrar el diálogo del DM.'; }
+  else if (current.gameClock.pauseReason === 'dm') { pause.textContent = 'Reanudar'; pause.disabled = false; $('gameClockMode').textContent = 'Pausado por el DM.'; }
+  else { pause.textContent = 'Pausar'; pause.disabled = false; $('gameClockMode').textContent = 'Exploración · 1 segundo real = 1 segundo de juego.'; }
+  const restInProgress = Boolean(current.combat.active || current.campRest?.phase && !current.campRest.outcome);
+  ($('clockShortRest') as HTMLButtonElement).disabled = restInProgress;
+  ($('clockLongRest') as HTMLButtonElement).disabled = restInProgress;
+  const climate = advanceClimate(current.climate, current.environment, seconds);
+  ($('weatherTime') as HTMLSelectElement).value = clockTimeSelection(current.environment, seconds);
+  climateIcons.update();
+  if (weatherMode(current.environment) === 'snow') $('weatherModeHint').textContent = `${weatherDescription(current.environment)} Cobertura ${Math.round(climate.snowCoverage * 100)}% · ${climate.snowDepthCm.toFixed(1)} cm.`;
+  $('climateReadout').textContent=climateSummary(current.environment,climate,current.sceneId.startsWith('camp-')&&current.sceneId!=='camp-forest-pleamar');
+  renderWeatherRules($('weatherRules'),current.environment,climate,current.sceneId.startsWith('camp-')&&current.sceneId!=='camp-forest-pleamar');
+  const routes = current.ports.filter(port => port.travelSeconds && port.travelSeconds > 0);
+  const routeRow = $('clockTravelRow'); routeRow.hidden = routes.length === 0;
+  const select = $('clockTravelRoute') as HTMLSelectElement, selected = select.value;
+  if (JSON.stringify(routes.map(route => route.id)) !== JSON.stringify(Array.from(select.options).map(option => option.value))) {
+    select.replaceChildren(...routes.map(route => { const option = document.createElement('option'); option.value = route.id; const duration = Math.round((route.travelSeconds ?? 0) / 60); option.textContent = `${route.from.zoneId} → ${route.to.zoneId} · ${duration} min`; return option; }));
+    if (routes.some(route => route.id === selected)) select.value = selected;
+  }
 }
 
 const restPhaseLabels: Record<string, string> = { arrival: 'Llegada', dusk: 'Anochecer', night: 'Noche', dawn: 'Amanecer', finalization: 'Finalización' };
@@ -810,6 +1031,7 @@ function renderExploration(current: DmState) {
       input.onchange = () => command({ type: 'progress:toggle', flag, value: input.checked }); row.append(input, label); events.append(row);
     };
     eventCheck('wreck.c4-second-force-failed', 'DM confirma: hizo falta más de una prueba de Fuerza para abrir C4');
+    eventCheck('wreck.cofa-free-climb', 'Omitir Atletismo CD 10 para subir a la cofa (adaptación opcional; por defecto se pide la tirada)');
     eventCheck('wreck.aboard-rest-completed', 'Registrar descanso completado a bordo (la arpía vuelve en la próxima entrada a C1)', true, current.characters.some(character => character.sceneId === 'wreck-ship'));
     eventCheck('wreck.harpy-resolved', 'Arpía resuelta: derrotada, ahuyentada o negociada', true,
       Boolean(current.progress['wreck.harpy-return-triggered']), 'La arpía debe haber regresado y aparecer en el barco antes de registrar su resolución.');
@@ -863,7 +1085,8 @@ function renderExploration(current: DmState) {
   const title = document.createElement('b'); title.textContent = campaign?.scenes.find(candidate => candidate.id === current.sceneId)?.title ?? scene.relevant; const objective = document.createElement('p'); objective.className = 'dm-scene-objective'; objective.textContent = scene.objective;
   const sceneGuidance = document.createElement('details'), guidanceSummary = document.createElement('summary'); guidanceSummary.textContent = 'Guía de esta escena · solo DM'; sceneGuidance.append(guidanceSummary);
   for (const text of current.adventure?.sceneGuidance[current.sceneId] ?? []) { const paragraph = document.createElement('p'); paragraph.className = 'note'; paragraph.textContent = text; sceneGuidance.append(paragraph); }
-  const presentNames = [...current.characters.filter(character => character.claimed && character.sceneId === current.sceneId).map(character => character.label), ...current.npcs.filter(npc => npc.visible).map(npc => npc.label), ...(current.creature?.visible && current.creature.sceneId === current.sceneId ? [current.creature.label] : [])];
+  const siteCues=new Set(campaign?.scenes.find(s=>s.id===current.sceneId)?.stageActors?.filter(a=>a.interactionOnly).map(a=>a.id));
+  const presentNames = [...current.characters.filter(character => character.claimed && character.sceneId === current.sceneId).map(character => character.label), ...current.npcs.filter(npc => npc.visible&&!siteCues.has(npc.id)).map(npc => npc.label), ...(current.creature?.visible && current.creature.sceneId === current.sceneId ? [current.creature.label] : [])];
   const present = sceneBlock('PRESENTES', presentNames);
   const seatCount=campaign?.scenes.find(scene=>scene.id===current.sceneId)?.seats?.length??0;
   const interactables = sceneObjectAccess(current, seatCount ? [`${seatCount} asientos`] : []);
@@ -906,7 +1129,7 @@ function renderExploration(current: DmState) {
     progress.append(inventory, back);
   }
   const currentDefinition = campaign?.scenes.find(candidate => candidate.id === current.sceneId);
-  const stageActors = current.progress['wreck.curse-day-after'] && current.sceneId === 'wreck-ship' ? [] : currentDefinition?.stageActors ?? [];
+  const stageActors = current.progress['wreck.curse-day-after'] && current.sceneId === 'wreck-ship' ? [] : currentDefinition?.stageActors?.filter(a=>!a.interactionOnly) ?? [];
   if (stageActors.length && campaign) {
     const cues = document.createElement('details'), cueTitle = document.createElement('summary'), cueButtons = document.createElement('div'); cueTitle.textContent = 'Gestos de PNJ'; cueButtons.className = 'button-row'; cues.append(cueTitle, cueButtons);
     for (const actor of stageActors) {
@@ -969,19 +1192,20 @@ function selectObject(id: string | null, edit = false) {
   if (edit) objectRosette?.close();
 }
 function startWheelDraft(object: Extract<DmObject, { kind: 'wheel' }>, outcome: 'caught' | 'fallen', requestId?: string) {
-  inspectedPickupId = null; setMapToolPanel('objects');
+  inspectedPickupId = null; setMapToolPanel(null);
   selectedId = object.id; draft = structuredClone(object); draft.attachment = 'detached'; draft.state = outcome; draft.cell = { col: object.mount.cell.col + 1, row: object.mount.cell.row };
   draftAction = { type: 'detach', outcome, requestId, objectRevision: state!.objectRevision, sceneEpoch: state!.sceneEpoch, connectionGeneration }; renderObjects(state!);
 }
 
 function startStructureDraft(object: DmObject, structure: 'damaged' | 'destroyed') {
-  inspectedPickupId = null; setMapToolPanel('objects');
+  inspectedPickupId = null; setMapToolPanel(null);
   selectedId = object.id; draft = structuredClone(object); draft.structure = structure;
   draftAction = { type: 'structure', structure, objectRevision: state!.objectRevision, sceneEpoch: state!.sceneEpoch, connectionGeneration }; renderObjects(state!);
 }
 
 function onMapClick(cell: Cell, entityId?: string) {
   if (!state) return;
+  setMapToolPanel(null);
   if (armedDmCombatPoint) {
     const { actorId, action } = armedDmCombatPoint;
     if (state.combat.currentId !== actorId && action.actionCost !== 'reaction' || state.combat.prompt) { armedDmCombatPoint = null; world?.clearAttackRange(); return; }
@@ -991,7 +1215,7 @@ function onMapClick(cell: Cell, entityId?: string) {
     armedDmCombatPoint = null; world?.clearAttackRange(); renderCombat(state); return;
   }
   if (draft) { draft.cell = { ...cell }; renderDraft(); return; }
-  if (mapToolPanel === 'objects' && currentScene()?.camp) {
+  if (mapObjectsHighlighted && currentScene()?.camp) {
     const scene = currentScene(), camp = scene?.camp;
     if (scene && camp) {
       const point = camp.interactionPoints.find(candidate => sameCell(candidate.cell, cell) || candidate.objectCell && sameCell(candidate.objectCell, cell));
@@ -1112,12 +1336,17 @@ function renderPlayers(current: DmState) {
     const resources = document.createElement('div'); resources.className = 'player-resources';
     const routes = document.createElement('div'); routes.className = 'player-routes';
     for (const port of current.ports) {
-      if (port.return !== 'adjudicated') continue;
+      if (port.return !== 'adjudicated'&&port.id!=='P10') continue;
       const forward = character.sceneId === port.from.mapId && character.surfaceId === port.from.surfaceId && sameCell(character.cell, port.from.cell);
       const back = character.sceneId === port.to.mapId && character.surfaceId === port.to.surfaceId && sameCell(character.cell, port.to.cell);
       if (!forward && !back) continue;
       const direction = forward ? 'forward' : 'return', destination = forward ? port.to : port.from;
       const button = document.createElement('button'); button.textContent = `${port.id} · ${port.mode} → ${destination.zoneId}`;
+      if(port.id==='P10'&&forward&&!current.progress['wreck.cofa-free-climb']){
+        const total=document.createElement('input');total.type='number';total.min='-30';total.max='100';total.placeholder='Total Atletismo';total.setAttribute('aria-label',`${character.label} · Atletismo CD 10`);button.textContent='Subir cofa · CD 10';button.disabled=true;
+        total.oninput=()=>{button.disabled=total.value===''||!Number.isInteger(Number(total.value))||Number(total.value)<10||Number(total.value)>100;};
+        button.onclick=()=>command({type:'entity:portal',entityId:character.id,portId:'P10',direction:'forward',checkTotal:Number(total.value)});routes.append(total,button);continue;
+      }
       const adjudicate = Boolean(port.conditionId) || port.return === 'adjudicated';
       button.onclick = () => command({ type: 'entity:portal', entityId: character.id, portId: port.id, direction, ...(adjudicate ? { adjudicate: true } : {}) }); routes.append(button);
     }
@@ -1153,7 +1382,8 @@ function renderMonsterSheet(current: DmState) {
 }
 function renderNpcs(current: DmState) {
   const box = $('npcs'); if (box.contains(document.activeElement) && document.activeElement instanceof HTMLInputElement) return; box.replaceChildren();
-  const npcs = current.npcs.filter(npc => npc.id !== 'wreck-rowboat');
+  const siteCues=new Set(campaign?.scenes.find(s=>s.id===current.sceneId)?.stageActors?.filter(a=>a.interactionOnly).map(a=>a.id));
+  const npcs = current.npcs.filter(npc => npc.id !== 'wreck-rowboat'&&!siteCues.has(npc.id));
   if (!npcs.length) { box.append(emptyState('Sin PNJ en esta escena', 'Los personajes de escena aparecerán aquí.')); return; }
   for (const npc of npcs) {
     const row = document.createElement('div'); row.className = 'object-row'; const name = document.createElement('button'); name.className = 'link-button'; name.textContent = npc.label; name.title = `Abrir hoja de ${npc.label}`; name.onclick = () => openNpcSheet(npc);
@@ -1222,8 +1452,14 @@ function renderCombatLegacy(current: DmState) {
 
 addEventListener('keydown', event => {
   if (event.key === 'Escape' && armedDmCombatPoint) { armedDmCombatPoint = null; world?.clearAttackRange(); if (state) renderCombat(state); event.preventDefault(); return; }
-  if (event.target instanceof Element && event.target.matches('input,textarea,select')) return;
+  if (event.target instanceof Element && event.target.closest('input,textarea,select,[contenteditable="true"],dialog[open]')) return;
+  if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'z') {
+    if (!event.repeat && state?.gameUndo.canUndo) { event.preventDefault(); command({ type: 'game:undo' }); }
+    return;
+  }
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
   const key = event.key.toLowerCase();
+  if (!event.repeat && (key === 'r' || key === 'f') && supportsCameraOrbit(state?.sceneId)) { event.preventDefault(); tiltCamera(key === 'r' ? 1 : -1); return; }
   if (!event.repeat && (key === 'q' || key === 'e') && supportsCameraOrbit(state?.sceneId)) { event.preventDefault(); rotateCamera(key === 'q' ? -1 : 1); return; }
   const axes = key === 'w' ? { x: 0, up: 1 } : key === 'a' ? { x: -1, up: 0 } : key === 's' ? { x: 0, up: -1 } : key === 'd' ? { x: 1, up: 0 } : null;
   const delta = axes ? worldVectorToCellDelta(world?.screenVectorToWorld(axes.x, axes.up) ?? { x: axes.x, z: -axes.up }) : null;
@@ -1299,6 +1535,31 @@ function renderRequests(current: DmState) {
   const box = $('requests'), pending = current.interactions.filter(request => request.status === 'pending'); box.replaceChildren();
   if (!pending.length) { box.append(emptyState('Sin solicitudes activas', 'Las interacciones de los jugadores aparecerán aquí.')); return; }
   for (const request of pending) {
+    if(request.kind==='prayer'){
+      const row=document.createElement('article');row.className='dm-request';
+      const label=document.createElement('strong');label.textContent=`${request.characterLabel} reza a Sylvania`;
+      const character=current.characters.find(character=>character.id===request.characterId),help=document.createElement('p');
+      help.textContent=`${character?.sheet?.background??''}. ${character?.sheet?.features.slice(0,3).join(' · ')??''}. El reglamento no concede un bono racial/de clase por rezar. Puedes premiar la interpretación con una Inspiración, utilizable una vez durante 24 h de juego (adaptación).`;
+      row.append(label,help,localButton('Conceder Inspiración',()=>command({type:'scene:resolveCheck',requestId:request.id,total:1})),localButton('Sin bendición',()=>command({type:'scene:resolveCheck',requestId:request.id,total:null})));box.append(row);continue;
+    }
+    if(request.kind==='proximity-check'){
+      const row=document.createElement('article');row.className='dm-request';
+      const label=document.createElement('strong');label.textContent=`${request.characterLabel} · ${request.skill} CD ${request.dc}`;
+      const help=document.createElement('p');help.textContent=`Pasas junto a ${request.targetLabel}. Introduce el total del dado físico. Molestar a dos clientes inicia el combate.`;
+      const total=document.createElement('input');total.type='number';total.min='-30';total.max='100';total.setAttribute('aria-label',`${request.characterLabel} · total de ${request.skill}`);
+      const resolve=localButton('Confirmar tirada',()=>command({type:'scene:resolveCheck',requestId:request.id,total:Number(total.value)}));resolve.disabled=true;
+      if(request.playerTotal!==undefined){total.value=String(request.playerTotal);resolve.disabled=false;help.textContent=`El jugador ha introducido ${request.playerTotal}. Confirma el total del dado físico. Molestar a dos clientes inicia combate.`;}
+      total.oninput=()=>{const value=Number(total.value);resolve.disabled=total.value===''||!Number.isInteger(value)||value< -30||value>100;};
+      const cancel=localButton('Cancelar',()=>command({type:'scene:resolveCheck',requestId:request.id,total:null}));row.append(label,help,total,resolve,cancel);box.append(row);continue;
+    }
+    if(request.targetId==='P10'){
+      const row=document.createElement('article');row.className='dm-request';const label=document.createElement('strong');label.textContent=`${request.characterLabel} · Subir a la cofa`;
+      const help=document.createElement('p');help.textContent='Fuerza (Atletismo) CD 10 · adaptación por mástil inclinado. Introduce el total del dado físico. Un fallo permite reintentar; no aplica caída ni daño.';
+      const total=document.createElement('input');total.type='number';total.min='-30';total.max='100';total.setAttribute('aria-label',`${request.characterLabel} · total de Atletismo`);
+      const approve=localButton('Autorizar escalada',()=>command({type:'entity:portal',entityId:request.characterId,portId:'P10',direction:'forward',checkTotal:Number(total.value)}));approve.disabled=true;
+      total.oninput=()=>{approve.disabled=total.value===''||!Number.isInteger(Number(total.value))||Number(total.value)<10||Number(total.value)>100;};
+      const cancel=localButton('Cancelar o resolver fallo',()=>command({type:'resolveInteraction',requestId:request.id,result:'cancelled'}));row.append(label,help,total,approve,cancel);box.append(row);continue;
+    }
     const row = document.createElement('article'), label = document.createElement('strong'), target = document.createElement('span'), age = document.createElement('small'); row.className = 'dm-request';
     const object = current.objects.find(object => object.id === request.targetId);
     label.textContent = request.characterLabel; target.textContent = `→ ${object?.label ?? 'Objeto de escena'}`;
@@ -1317,12 +1578,14 @@ function renderRequests(current: DmState) {
   }
 }
 
-function humanCode(code: string) { return ({ MIMIC_ACTION_MISMATCH: 'el Reflejo debe imitar la última acción del original; si es imposible, resuelve la excepción con el DM', MIMIC_TARGET_REQUIRED: 'elige el personaje cuya forma copia el Reflejo', LINE_OF_EFFECT_BLOCKED: 'una pared o puerta cerrada bloquea el efecto', STORY_PREREQUISITES: 'faltan las pruebas previas o un motivo de excepción del DM', STORY_TIE_REASON: 'hay empate: indica por qué el DM elige ese final', RECHARGE_REQUIRED: 'esta acción necesita recargarse', INVENTORY_DEPLETED: 'no queda munición o una daga disponible', DOOR_LOCKED: 'la puerta está bloqueada', BLOCKED_CELL: 'casilla bloqueada', OCCUPIED_CELL: 'hay una criatura en la casilla', GRID_STEP_REQUIRED: 'cada movimiento debe ser a una casilla ortogonal contigua', MOVEMENT_SPENT: 'ese turno ya ha gastado todo su movimiento', ENTITY_MOVING: 'ese personaje ya está terminando un paso', NOT_YOUR_TURN: 'no es el turno de esa criatura', ACTION_USED: 'esa criatura ya ha usado su acción este turno', INVALID_TARGET: 'ese objetivo no puede recibir el ataque', UNKNOWN_ACTION: 'esa acción no está disponible', SPAWN_RESERVED: 'zona de aparición reservada', STALE_OBJECTS: 'otro cambio se aplicó antes; vuelve a intentarlo', STALE_SCENE: 'la escena cambió', REQUEST_STALE: 'la solicitud ya no es válida', OBJECT_ATTACHED: 'el timón sigue montado', INVALID_TRANSITION: 'esa transición no está permitida', CAPABILITY_UNAVAILABLE: 'el objeto no admite esa acción', COMMAND_ID_REUSED: 'petición repetida con datos distintos', PARTY_STILL_ABOARD: 'saca primero a todos los personajes del pecio; no debe desaparecer con nadie dentro', CAMP_FEATURE_UNAVAILABLE: 'esta escena no contiene interacciones de campamento', CAMP_INTERACTION_OUT_OF_REACH: 'el personaje debe estar junto al punto de interacción', CAMP_INTERACTION_NOT_YOURS: 'ese objeto pertenece a otro personaje', IN_COMBAT: 'no puedes usar objetos del campamento durante el combate', REST_ACTIVE_ELSEWHERE: 'ya hay un descanso en curso en otro campamento', REST_ALREADY_ACTIVE: 'el descanso ya está preparado', REST_NOT_ACTIVE: 'no hay descanso activo', REST_INTERRUPTED: 'reanuda el descanso antes de avanzar', REST_ALREADY_INTERRUPTED: 'el descanso ya está interrumpido', REST_NOT_INTERRUPTED: 'no hay una interrupción que reanudar', REST_NOT_AT_DAWN: 'la confirmación solo está disponible al amanecer', REST_NEEDS_FINAL_CONFIRMATION: 'confirma el resultado del descanso', INVALID_CAMP_ACTION: 'acción de descanso no válida' } as Record<string, string>)[code] ?? code; }
+function humanCode(code: string) { if (code === 'SAVE_UNAVAILABLE') return saveStatus?.mode === 'restoring' ? 'se está cargando una partida; espera a que termine' : saveStatus?.mode === 'saving' ? 'se está guardando para actualizar; espera a la reconexión' : 'la partida necesita recuperación: carga una de las últimas partidas o inicia una nueva'; if (code === 'SAVE_CLOSING') return 'la mesa se está guardando para actualizar'; return ({ MIMIC_ACTION_MISMATCH: 'el Reflejo debe imitar la última acción del original; si es imposible, resuelve la excepción con el DM', MIMIC_TARGET_REQUIRED: 'elige el personaje cuya forma copia el Reflejo', LINE_OF_EFFECT_BLOCKED: 'una pared o puerta cerrada bloquea el efecto', STORY_PREREQUISITES: 'faltan las pruebas previas o un motivo de excepción del DM', STORY_TIE_REASON: 'hay empate: indica por qué el DM elige ese final', RECHARGE_REQUIRED: 'esta acción necesita recargarse', INVENTORY_DEPLETED: 'no queda munición o una daga disponible', DOOR_LOCKED: 'la puerta está bloqueada', BLOCKED_CELL: 'casilla bloqueada', OCCUPIED_CELL: 'hay una criatura en la casilla', GRID_STEP_REQUIRED: 'cada movimiento debe ser a una casilla ortogonal contigua', MOVEMENT_SPENT: 'ese turno ya ha gastado todo su movimiento', ENTITY_MOVING: 'ese personaje ya está terminando un paso', NOT_YOUR_TURN: 'no es el turno de esa criatura', ACTION_USED: 'esa criatura ya ha usado su acción este turno', INVALID_TARGET: 'ese objetivo no puede recibir el ataque', UNKNOWN_ACTION: 'esa acción no está disponible', SPAWN_RESERVED: 'zona de aparición reservada', STALE_OBJECTS: 'otro cambio se aplicó antes; vuelve a intentarlo', STALE_SCENE: 'la escena cambió', REQUEST_STALE: 'la solicitud ya no es válida', OBJECT_ATTACHED: 'el timón sigue montado', INVALID_TRANSITION: 'esa transición no está permitida', CAPABILITY_UNAVAILABLE: 'el objeto no admite esa acción', COMMAND_ID_REUSED: 'petición repetida con datos distintos', PARTY_STILL_ABOARD: 'saca primero a todos los personajes del pecio; no debe desaparecer con nadie dentro', CAMP_FEATURE_UNAVAILABLE: 'esta escena no contiene interacciones de campamento', CAMP_INTERACTION_OUT_OF_REACH: 'el personaje debe estar junto al punto de interacción', CAMP_INTERACTION_NOT_YOURS: 'ese objeto pertenece a otro personaje', IN_COMBAT: 'no puedes usar objetos del campamento durante el combate', REST_ACTIVE_ELSEWHERE: 'ya hay un descanso en curso en otro campamento', REST_ALREADY_ACTIVE: 'el descanso ya está preparado', REST_NOT_ACTIVE: 'no hay descanso activo', REST_INTERRUPTED: 'reanuda el descanso antes de avanzar', REST_ALREADY_INTERRUPTED: 'no hay una interrupción que reanudar', REST_NOT_INTERRUPTED: 'no hay descanso activo', REST_NOT_AT_DAWN: 'la confirmación solo está disponible al amanecer', REST_NEEDS_FINAL_CONFIRMATION: 'confirma el resultado del descanso', INVALID_CAMP_ACTION: 'acción de descanso no válida' } as Record<string, string>)[code] ?? code; }
 
 function friendlyErrorCode(code: string) {
   const chapterMessages: Record<string, string> = {
+    COFA_CHECK_REQUIRED:'Introduce el total de Atletismo CD 10 para autorizar la subida; el DM puede omitir esta adaptación.',
+    COFA_CHECK_FAILED:'No alcanza CD 10. El personaje permanece en la base; sin caída ni daño automáticos.',
     ROLL_PENDING: 'resuelve o cancela la acción pendiente antes de continuar',
-    ACTION_ALREADY_RESOLVING: 'la primera tirada ya está confirmada; termina la resolución o usa Deshacer para corregir un error',
+    ACTION_ALREADY_RESOLVING: 'la primera tirada ya está confirmada; termina la resolución o usa Ctrl+Z para corregir un error',
     COMBAT_ALREADY_STARTED: 'los turnos ya han empezado; usa Finalizar combate cuando cese el peligro',
     NOT_YOUR_ACTION: 'sólo quien declaró la acción puede cancelar su selección',
     WRECK_DISAPPEARED: 'el Rosa de los Vientos ya ha desaparecido',
@@ -1342,26 +1605,27 @@ function friendlyErrorCode(code: string) {
 function renderSave() {
   const status = $('saveStatus');
   const presentation = savePresentation(saveStatus);
-  $('headerSave').textContent = `${presentation.alert ? '⚠' : presentation.tone === 'positive' ? '✓' : '◷'} ${presentation.title}`;
-  $('headerSave').className = `dm-chip dm-${presentation.tone}`;
+  const saveLabel = `${presentation.alert ? '⚠' : presentation.tone === 'positive' ? '✓' : '◷'} ${presentation.title}`;
+  $('saveHeaderSummary').textContent = saveLabel;
+  $('saveHeaderSummary').className = `dm-save-inline dm-${presentation.tone}`;
   $('saveSummaryTitle').textContent = `${presentation.alert ? '⚠' : presentation.tone === 'positive' ? '✓' : '◷'} ${presentation.title}`;
   $('saveSummaryTime').textContent = saveStatus?.savedAt ? relativeTime(saveStatus.savedAt) : 'Todavía no hay una copia confirmada';
   $('saveSummaryTime').title = saveStatus?.savedAt ? new Date(saveStatus.savedAt).toLocaleString() : '';
   $('partida-y-copias').classList.toggle('has-error', presentation.alert);
+  $('connectionPanel').classList.toggle('has-error', presentation.alert);
+  document.querySelector('[data-open-window="connectionPanel"]')?.classList.toggle('has-attention', presentation.alert);
   $('saveSummary').setAttribute('role', presentation.alert ? 'alert' : 'status');
   status.hidden = !presentation.alert;
-  if (presentation.alert && $('saveSummary').dataset.alert !== 'true') {
-    $('partida-y-copias').classList.remove('window-minimized'); updateMinimizeControl($('partida-y-copias'));
-    ($('saveCopies') as HTMLDetailsElement).open = true;
-  }
+  if (presentation.alert && $('saveSummary').dataset.alert !== 'true') ($('connectionPanel') as HTMLDetailsElement).open = true;
   $('saveSummary').dataset.alert = String(presentation.alert);
   if (!saveStatus) { status.textContent = 'Comprobando guardado…'; return; }
   const last = saveStatus.savedAt ? new Date(saveStatus.savedAt).toLocaleString() : 'todavía no guardada';
   status.textContent = saveStatus.mode === 'recovery' || saveStatus.mode === 'incompatible'
-    ? `Partida pendiente de recuperación (${saveStatus.errorCode ?? saveStatus.mode}). Revisa una copia anterior o inicia una nueva partida.`
-    : saveStatus.mode === 'error' ? `Error al guardar (${saveStatus.errorCode ?? 'disco'}). La partida sigue en memoria; exporta una copia privada o reintenta.`
+    ? `Partida pendiente de recuperación (${saveStatus.errorCode ?? saveStatus.mode}). Carga una de las últimas partidas o inicia una nueva.`
+    : saveStatus.mode === 'error' ? `Error al guardar (${saveStatus.errorCode ?? 'disco'}). La partida sigue en memoria; reintenta el guardado.`
     : saveStatus.mode === 'saving' ? `Guardando… última copia ${last}.`
     : `Última copia ${last}${saveStatus.dirty ? ' · cambios pendientes' : ' · al día'}${saveStatus.generation ? ` · generación ${saveStatus.generation}` : ''}.`;
+  if (saveStatus.recoveryNotice) status.textContent += ` ${saveStatus.recoveryNotice}`;
   ($('retrySave') as HTMLButtonElement).hidden = saveStatus.mode !== 'error';
   ($('showEvidence') as HTMLButtonElement).hidden = saveStatus.mode !== 'recovery' && saveStatus.mode !== 'incompatible';
   ($('saveNow') as HTMLButtonElement).disabled = !runtimeEpoch || saveStatus.mode === 'saving' || saveStatus.mode === 'restoring' || saveStatus.mode === 'recovery' || saveStatus.mode === 'incompatible';
@@ -1372,16 +1636,17 @@ async function renderSaveHistory() {
   try {
     const entries = await fetch('/api/dm/save/history', { cache: 'no-store' }).then(response => response.ok ? response.json() : []);
     box.replaceChildren();
-    if (!entries.length) { box.textContent = 'Aún no hay puntos de retorno.'; return; }
+    if (!entries.length) { box.textContent = 'Todavía no hay partidas guardadas.'; return; }
     for (const entry of entries) {
-      const row = document.createElement('div'); row.className = 'object-row'; const label = document.createElement('span');
+      const row = document.createElement('div'); row.className = 'save-history-row'; const label = document.createElement('span');
       const sceneTitle = campaign?.scenes.find(scene => scene.id === entry.sceneId)?.title ?? entry.sceneId;
       const actorLabel = entry.currentId ? state?.characters.find(actor => actor.id === entry.currentId)?.label
         ?? state?.npcs.find(actor => actor.id === entry.currentId)?.label
         ?? (state?.creature?.id === entry.currentId ? state?.creature?.label : undefined)
         ?? campaign?.scenes.flatMap(scene => scene.stageActors ?? []).find(actor => actor.id === entry.currentId)?.label
         ?? entry.currentId : null;
-      label.textContent = `${new Date(entry.savedAt).toLocaleString()} · ${sceneTitle} · ${entry.combat ? `Combate · ronda ${entry.round}${actorLabel ? ` · turno de ${actorLabel}` : ' · iniciativa pendiente'}` : 'Exploración'}`;
+      const kindLabel = entry.saveKind === 'manual' ? 'Manual' : 'Automática';
+      label.textContent = `${kindLabel} · ${new Date(entry.savedAt).toLocaleString()} · ${sceneTitle} · ${entry.combat ? `Combate · ronda ${entry.round}${actorLabel ? ` · turno de ${actorLabel}` : ' · iniciativa pendiente'}` : 'Exploración'}`;
       const load = document.createElement('button'); load.textContent = 'Cargar'; load.onclick = async () => { try { await confirmRestore(await privatePost(`/api/dm/save/history/${encodeURIComponent(entry.id)}/preview`, { runtimeEpoch })); } catch (error) { toast(`No disponible: ${error instanceof Error ? error.message : error}`); } };
       row.append(label, load); box.append(row);
     }
@@ -1395,11 +1660,11 @@ async function privatePost(route: string, body: unknown, raw = false) {
   if (!response.ok) throw new Error(result.code ?? 'No se completó la petición');
   return result;
 }
-async function confirmRestore(preview: { token: string; expectedStateRevision: number; summary: { campaignId: string; sceneId: string; savedAt: string; kind: string } }) {
+async function confirmRestore(preview: { token: string; expectedStateRevision: number; summary: { campaignId: string; sceneId: string; savedAt: string; kind: string }; warnings?: string[] }) {
   const playerNotice = preview.summary.kind === 'new' ? 'los jugadores volverán a elegir personaje' : 'los jugadores conectados conservarán su personaje y se sincronizarán sin recargar';
-  const message = `Restaurar ${preview.summary.kind === 'new' ? 'una partida nueva' : 'esta copia'} de ${preview.summary.campaignId}, escena ${preview.summary.sceneId}, fecha ${new Date(preview.summary.savedAt).toLocaleString()}? Se perderán los cambios posteriores de la mesa; ${playerNotice}. Deshacer empezará vacío.`;
+  const message = `Restaurar ${preview.summary.kind === 'new' ? 'una partida nueva' : 'esta copia'} de ${preview.summary.campaignId}, escena ${preview.summary.sceneId}, fecha ${new Date(preview.summary.savedAt).toLocaleString()}? Los cambios posteriores se conservarán en una copia de recuperación; ${playerNotice}. El historial de Ctrl+Z empezará vacío.${preview.warnings?.length ? '\n\n' + preview.warnings.join('\n') : ''}`;
   if (!window.confirm(message)) return;
-  try { const result = await privatePost('/api/dm/save/restore', { token: preview.token, expectedStateRevision: preview.expectedStateRevision, runtimeEpoch, requestId: commandId() }); toast(`Partida restaurada · copia ${result.generation}.`); }
+  try { const result = await privatePost('/api/dm/save/restore', { token: preview.token, expectedStateRevision: preview.expectedStateRevision, runtimeEpoch, requestId: commandId() }); toast(`Partida restaurada · copia ${result.generation}.`); const dialog = $('loadGameDialog') as HTMLDialogElement; if (dialog.open) dialog.close(); }
   catch (error) { toast(`Restauración pendiente: ${error instanceof Error ? error.message : error}`); }
 }
 ($('saveNow') as HTMLButtonElement).onclick = async () => {
@@ -1410,7 +1675,6 @@ async function confirmRestore(preview: { token: string; expectedStateRevision: n
   try { const saved = await privatePost('/api/dm/save/retry', { runtimeEpoch }); toast(`Guardado confirmado · copia ${saved.generation}.`); }
   catch (error) { toast(`No guardado: ${error instanceof Error ? error.message : error}`); }
 };
-($('exportSave') as HTMLButtonElement).onclick = () => { location.href = '/api/dm/save/export'; };
 ($('showEvidence') as HTMLButtonElement).onclick = async () => {
   const box = $('recoveryEvidence'); box.hidden = false; box.textContent = 'Buscando evidencias privadas…';
   try {
@@ -1422,10 +1686,8 @@ async function confirmRestore(preview: { token: string; expectedStateRevision: n
     if (!items.length) box.textContent = 'No hay archivos de evidencia en esta carpeta.';
   } catch { box.textContent = 'No se pudieron listar las evidencias privadas.'; }
 };
-($('backupPreview') as HTMLButtonElement).onclick = async () => {
-  try { await confirmRestore(await privatePost('/api/dm/save/backup/preview', { runtimeEpoch })); }
-  catch (error) { toast(`Copia no disponible: ${error instanceof Error ? error.message : error}`); }
-};
+($('loadGame') as HTMLButtonElement).onclick = () => { const dialog = $('loadGameDialog') as HTMLDialogElement; if (!dialog.open) dialog.showModal(); void renderSaveHistory(); };
+($('closeLoadGame') as HTMLButtonElement).onclick = () => ($('loadGameDialog') as HTMLDialogElement).close();
 ($('newPreview') as HTMLButtonElement).onclick = async () => {
   try { await confirmRestore(await privatePost('/api/dm/save/new/preview', { runtimeEpoch })); }
   catch (error) { toast(`No disponible: ${error instanceof Error ? error.message : error}`); }
@@ -1439,7 +1701,7 @@ async function confirmRestore(preview: { token: string; expectedStateRevision: n
 };
 
 $('scene').onchange = () => {
-    selectedId = null; inspectedPickupId = null; draft = null; draftAction = null; setMapToolPanel(null);
+    selectedId = null; inspectedPickupId = null; draft = null; draftAction = null; setMapToolPanel(null); setMapHighlights(false); objectRosette?.close();
     campInteractionMode = false; world?.setCampInteractionHighlights(false);
     const campPointDialog = $('campPointDialog') as HTMLDialogElement; if (campPointDialog.open) campPointDialog.close(); campPointSceneId = null;
     const sceneId = ($('scene') as HTMLSelectElement).value;
@@ -1452,16 +1714,17 @@ $('scene').onchange = () => {
   syncCampInteractionMode(isCamp);
 };
 ($('showGrid') as HTMLInputElement).onchange = () => { const visible = ($('showGrid') as HTMLInputElement).checked; world?.setGridVisible(visible); updateDmUiPreferences('showGrid', visible); };
+($('dmGridMode') as HTMLSelectElement).onchange = event => updateDmGridStyle({ mode: (event.currentTarget as HTMLSelectElement).value as GridStyle['mode'] });
+($('dmGridColor') as HTMLInputElement).oninput = event => updateDmGridStyle({ color: (event.currentTarget as HTMLInputElement).value });
+($('dmGridOpacity') as HTMLInputElement).oninput = event => updateDmGridStyle({ opacity: Number((event.currentTarget as HTMLInputElement).value) / 100 });
+($('dmGridThickness') as HTMLInputElement).oninput = event => updateDmGridStyle({ thickness: Number((event.currentTarget as HTMLInputElement).value) as GridStyle['thickness'] });
 $('cameraTurnLeft').onclick = () => rotateCamera(-1);
 $('cameraTurnRight').onclick = () => rotateCamera(1);
 $('cameraReset').onclick = () => { const sceneId = state?.sceneId ?? latestSnapshot?.sceneId; if (!supportsCameraOrbit(sceneId)) return; world?.resetCameraOrientation(); updateCameraOrbitControls(sceneId); publishCameraOrientation(); };
 $('cameraDetail').onclick = () => { if (!world?.frameActorDetail(selectedMapEntityId ?? latestSnapshot?.entities.find(entity => entity.kind === 'player')?.id)) toast('Selecciona un personaje visible para acercar la vista.'); };
 $('cameraOverview').onclick = () => world?.frameSceneOverview();
-($('cameraTilt') as HTMLInputElement).oninput = event => {
-  const input = event.currentTarget as HTMLInputElement;
-  world?.setCameraTiltDegrees(Number(input.value));
-  $('cameraTiltValue').textContent = `${world?.getCameraTiltDegrees() ?? Number(input.value)}°`;
-};
+$('cameraTiltDown').onclick = () => tiltCamera(-1);
+$('cameraTiltUp').onclick = () => tiltCamera(1);
 ($('shareCameraOrientation') as HTMLInputElement).onchange = event => {
   const share = (event.currentTarget as HTMLInputElement).checked;
   updateDmUiPreferences('shareCameraOrientation', share);
@@ -1473,9 +1736,21 @@ document.querySelectorAll<HTMLButtonElement>('[data-camera-mode]').forEach(butto
   const select = $('camera') as HTMLSelectElement; select.value = button.dataset.cameraMode!; select.dispatchEvent(new Event('change'));
 });
 $('storm').onclick = () => command({ type: 'environment', storm: !state?.environment.storm, precipitation:state?.environment.storm?'none':'rain',intensity: Number(($('stormIntensity') as HTMLInputElement).value) });
-$('mapBoardToggle').onclick = () => setMapToolPanel(null);
+$('clockPauseToggle').onclick = () => { if (!state || state.combat.active) return; command({ type: 'clock:control', action: state.gameClock.pauseReason === 'dm' ? 'resume' : 'pause' }); };
+$('clockShortRest').onclick = () => command({ type: 'clock:control', action: 'short-rest' });
+$('clockLongRest').onclick = () => command({ type: 'clock:control', action: 'long-rest' });
+$('clockAdvance').onclick = () => { const minutes = Number(($('clockAdvanceMinutes') as HTMLInputElement).value); if (!Number.isInteger(minutes) || minutes < 1 || minutes > 525_600) return toast('Indica entre 1 minuto y un año de tiempo de juego.'); command({ type: 'clock:control', action: 'advance', seconds: minutes * 60 }); };
+$('clockSet').onclick = () => { const [hours, minutes, seconds = '0'] = ($('clockSetTime') as HTMLInputElement).value.split(':'); if (hours === undefined || minutes === undefined) return toast('Indica una hora válida.'); command({ type: 'clock:control', action: 'set-time', secondsOfDay: Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds) }); };
+$('clockTravel').onclick = () => { const portId = ($('clockTravelRoute') as HTMLSelectElement).value; if (portId) command({ type: 'clock:control', action: 'travel', portId }); };
+$('mapSceneButton').onclick = () => setMapToolPanel(mapToolPanel === 'scene' ? null : 'scene');
+$('mapSceneToggle').onclick = () => setMapToolPanel('scene');
+$('mapToolsToggle').onclick = () => setMapToolPanel(mapToolPanel === null ? 'camera' : null);
+$('mapToolsClose').onclick = () => { setMapToolPanel(null); $('mapToolsToggle').focus(); };
 $('mapCameraToggle').onclick = () => setMapToolPanel(mapToolPanel === 'camera' ? null : 'camera');
 $('mapObjectsToggle').onclick = () => setMapToolPanel(mapToolPanel === 'objects' ? null : 'objects');
+$('mapHighlightToggle').onclick = () => setMapHighlights(!mapObjectsHighlighted);
+document.addEventListener('pointerdown', event => { if (mapToolPanel && event.target instanceof Element && !event.target.closest('#mapToolsPanel, #mapToolsToggle, #mapSceneButton')) setMapToolPanel(null); });
+document.addEventListener('keydown', event => { if (event.key === 'Escape' && mapToolPanel) { setMapToolPanel(null); $('mapToolsToggle').focus(); } });
 for (const [attribute, id] of [['weather-time', 'weatherTime'], ['weather-kind', 'weatherKind']] as const) {
   document.querySelectorAll<HTMLButtonElement>(`[data-${attribute}]`).forEach(button => button.onclick = () => {
     const control = $(id) as HTMLSelectElement;
@@ -1488,17 +1763,22 @@ $('weatherWind').oninput = () => { $('weatherWindValue').textContent = `${Math.r
 for(const id of ['weatherTime','weatherKind','weatherLevel','weatherWind'])$(id).onchange=()=>{
   // Send only the edited field: an earlier snapshot must not undo another
   // control changed while the previous command was in flight.
-  const field={weatherTime:'timeOfDay',weatherKind:'precipitation',weatherLevel:'precipitationLevel',weatherWind:'windIntensity'}[id]!;
+  const field={weatherTime:'timeOfDay',weatherKind:'weatherMode',weatherLevel:'precipitationLevel',weatherWind:'windIntensity'}[id]!;
   const value=($(id) as HTMLInputElement).value;
-  command({type:'environment',storm:id==='weatherKind'?false:Boolean(state?.environment.storm),[field]:id==='weatherLevel'||id==='weatherWind'?Number(value):value});
+  command({type:'environment',[field]:id==='weatherLevel'||id==='weatherWind'?Number(value):value});
 };
   $('timeOfDayToggle').onclick = () => {
     if (!state) return;
-    const isNight = (state.environment.timeOfDay ?? 'auto') === 'night' || (state.environment.timeOfDay ?? 'auto') === 'auto' && state.campRest?.sceneId === state.sceneId && state.campRest.phase === 'night';
-    command({ type: 'environment', storm: state.environment.storm, intensity: state.environment.stormIntensity, timeOfDay: isNight ? 'day' : 'night' });
+    const isNight = lightPhaseLabel(state.environment,gameClockAt(state.gameClock,dmServerClock.now(Date.now())))==='Noche';
+    command({ type: 'environment', timeOfDay: isNight ? 'day' : 'night' });
   };
 ($('stormIntensity') as HTMLInputElement).oninput = () => { $('stormIntensityValue').textContent = `${Math.round(Number(($('stormIntensity') as HTMLInputElement).value) * 100)}%`; };
-($('stormIntensity') as HTMLInputElement).onchange = () => command({ type: 'environment', storm: Boolean(state?.environment.storm), intensity: Number(($('stormIntensity') as HTMLInputElement).value) });
+($('stormIntensity') as HTMLInputElement).onchange = () => command({ type: 'environment', intensity: Number(($('stormIntensity') as HTMLInputElement).value) });
+for (const [id, field] of [['weatherTemperature', 'temperatureC'], ['weatherFog', 'fogTarget'], ['weatherFlood', 'floodTarget']] as const) {
+  $(id).oninput = () => { const input = $(id) as HTMLInputElement, value = Number(input.value); $(`${id}Value`).textContent = field === 'temperatureC' ? `${value} °C` : `${Math.round(value * 100)}%`; };
+  $(id).onchange = () => command({ type: 'environment', [field]: Number(($(id) as HTMLInputElement).value) });
+}
+($('snowDifficultTerrain') as HTMLInputElement).onchange = event => command({ type: 'environment', snowDifficultTerrain: (event.currentTarget as HTMLInputElement).checked });
 $('creature').onclick = () => {
   if (!state?.creature) return;
   const candidates = state.characters.filter(character => character.claimed && character.sceneId === state!.sceneId);
@@ -1523,7 +1803,6 @@ function setSideControlsOpen(open: boolean, focus = true, persist = true) {
 $('sideControlToggle').onclick = () => setSideControlsOpen(!$('sideControls').classList.contains('open'));
 $('sideControlClose').onclick = () => setSideControlsOpen(false);
 $('undoObject').onclick = () => { if (state?.undo.entryId) command({ type: 'object:undo', entryId: state.undo.entryId }); };
-($('gameUndo') as HTMLButtonElement).onclick = () => command({ type: 'game:undo' });
 $('rotateObject').onclick = () => { if (!draft) return; const index = draft.allowedRotations.indexOf(draft.rotation); draft.rotation = draft.allowedRotations[(index + 1) % draft.allowedRotations.length]!; renderDraft(); };
 $('applyObject').onclick = () => { if (!draft || !draftAction || !draftValid(draft) || draftAction.connectionGeneration !== connectionGeneration) return; const common = { objectRevision: draftAction.objectRevision, cell: draft.cell, rotation: draft.rotation }; const id = draftAction.type === 'detach' ? command(draftAction.requestId ? { type: 'resolveInteraction', requestId: draftAction.requestId, result: draftAction.outcome, ...common } : { type: 'object:detach', objectId: draft.id, outcome: draftAction.outcome, ...common }) : draftAction.type === 'structure' ? command({ type: 'object:structure', objectId: draft.id, structure: draftAction.structure, objectRevision: draftAction.objectRevision }) : command({ type: 'object:transform', objectId: draft.id, ...common }); if (id) pendingDraftCommand = { commandId: id, generation: connectionGeneration }; };
 $('cancelObject').onclick = () => { clearDraft(); renderObjects(state!); };
@@ -1644,13 +1923,13 @@ function updateMapTargets(current: DmState) {
   for (const point of scene?.camp?.interactionPoints ?? []) targets.push({ id: point.id, label: point.label,
     project: () => world?.mapCellScreenPoint(point.objectCell ?? point.cell, point.surfaceId) ?? null,
     select: anchor => { clearDraft(); openCampRosette(point, scene!.id, anchor); } });
-  mapTargets.update(targets, mapToolPanel === 'objects' && !draft && !armedDmCombatPoint);
+  mapTargets.update(targets, mapObjectsHighlighted && !draft && !armedDmCombatPoint);
 }
 
 function sceneObjectAccess(current: DmState, extra: string[] = []) {
   const count = current.objects.length + (current.pickups?.filter(pickup => !pickup.collected).length ?? 0) + (currentScene()?.camp?.interactionPoints.length ?? 0);
   const block = sceneBlock('INTERACTUABLES', [`${count} objetos`, ...extra]);
-  if (count) block.append(localButton('◇ Resaltar en el mapa', () => { openWorkspaceWindow('mapWindow'); setMapToolPanel('objects'); }));
+  if (count) block.append(localButton('◇ Resaltar en el mapa', () => { openWorkspaceWindow('mapWindow'); setMapToolPanel(null); setMapHighlights(true); }));
   return block;
 }
 
@@ -1727,6 +2006,14 @@ function renderCombat(current: DmState) {
   const overview = document.createElement('button'); overview.textContent = '⌖'; overview.title = world?.combatOverview ? 'Ver combate' : 'Mapa completo'; overview.setAttribute('aria-label', overview.title); overview.setAttribute('aria-pressed', String(Boolean(world?.combatOverview))); overview.onclick = () => { world?.setCombatOverview(!world.combatOverview); delete box.dataset.renderKey; renderCombat(current); };
   const management = document.createElement('details'), managementTitle = document.createElement('summary'); management.className = 'combat-management'; managementTitle.textContent = '⋯'; managementTitle.setAttribute('aria-label', 'Gestionar combate'); management.append(managementTitle, end);
   controls.className = 'button-row'; controls.append(overview, next, management); header.className = 'combat-deck-header'; header.append(title, controls); box.append(header);
+  const preview = document.createElement('nav'); preview.className = 'dm-turn-preview'; preview.setAttribute('aria-label', 'Turno actual, tres siguientes y previsión hasta siete');
+  for (const entry of combatTimeline(combat.order, combat.participants, combat.currentId, combat.round)) {
+    const button = document.createElement('button'), caption = document.createElement('small'); button.type = 'button'; button.className = `turn-preview-${entry.horizon}`;
+    button.title = `${entry.participant.label} · ${entry.index === 0 ? 'ahora' : `dentro de ${entry.index} turnos · ronda ${entry.round}`} · previsión sin cambios de iniciativa`;
+    button.setAttribute('aria-label', button.title); caption.textContent = entry.index === 0 ? 'Ahora' : `+${entry.index} · R${entry.round}`;
+    button.append(combatantPortrait(current, entry.participant), caption); button.onclick = () => { selectedCombatantId = entry.participant.id; renderCombat(current); }; preview.append(button);
+  }
+  box.append(preview);
   const roster = document.createElement('div'); roster.className = 'combat-roster combat-participant-strip'; roster.setAttribute('aria-label', 'Orden de turnos · selecciona un combatiente');
   const orderedParticipants = combat.order.flatMap(entry => combat.participants.filter(participant => participant.id === entry.id));
   for (const participant of orderedParticipants) {
@@ -1896,5 +2183,11 @@ function renderCombat(current: DmState) {
 }
 
 ($('closeCombatSheet') as HTMLButtonElement).onclick = () => ($('combatSheetDialog') as HTMLDialogElement).close();
+window.setInterval(() => { if (state) renderGameClock(state); }, 250);
 setupWorkspace();
 void beginDm();
+
+$('weatherSea').oninput=()=>{$('weatherSeaValue').textContent=seaStateLabel(Number(($('weatherSea') as HTMLInputElement).value));};
+$('weatherSea').onchange=()=>command({type:'environment',seaIntensity:Number(($('weatherSea') as HTMLInputElement).value)});
+$('weatherSeaAuto').onclick=()=>command({type:'environment',seaIntensity:null});
+$('weatherRulesEnabled').onchange=()=>command({type:'environment',weatherRules:($('weatherRulesEnabled') as HTMLInputElement).checked});

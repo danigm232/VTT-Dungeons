@@ -4,6 +4,7 @@ import { Mesh } from '@babylonjs/core/Meshes/mesh.js';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder.js';
 import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData.js';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
+import { Material } from '@babylonjs/core/Materials/material.js';
 import type { BaseTexture } from '@babylonjs/core/Materials/Textures/baseTexture.js';
 import type { Scene } from '@babylonjs/core/scene.js';
 import type { TerrainDefinition } from '../shared/terrain.js';
@@ -11,6 +12,7 @@ import { WRECK_STRUCTURE as S, wreckListHeight, wreckBeamAt, wreckHullPlan, wrec
 import { buildWreckAgeDetails } from './wreck-age-details.js';
 import { worldSurfaceUV } from './diorama-kit.js';
 import { wornTimberRelief } from './wreck-materials.js';
+import { buildWreckDeckDressing } from './wreck-deck-dressing.js';
 
 export const isRebuiltWreck = (terrain: TerrainDefinition) => terrain.cols === 56 && terrain.rows === 32
   && terrain.baseSurfaceId === 'main' && terrain.surfaces.some(s => s.id === 'c1-hull');
@@ -81,17 +83,17 @@ export function buildWreckExterior(scene: Scene, terrain: TerrainDefinition,
     }
   }
   // Exposed curved ribs at the stern fracture give the opening real depth.
-  for(const x of [-31.1,-30.2,-28.8]) {
+  for(const x of [-31.1,-30.2,-28.8].map(x=>x*S.planScale)) {
     const points=bands.slice(0,5).map((y,i)=>at(x,y,wreckBeamAt(x)*fullness[i]!-.20));
     for(let i=0;i<points.length-1;i++)beam(`torn-rib:${x}:${i}`,points[i]!,points[i+1]!,.20,.24,edge,'c1-hull','fractured-rib');
   }
-  beam('keel',at(-31.3,-7.12,0),at(30.9,-7.12,0),.46,.48,dark,'c1-hull','keel');
+  beam('keel',at(S.sternX+.2,-7.12,0),at(S.bowX-.6,-7.12,0),.46,.48,dark,'c1-hull','keel');
   // Real end walls, not an open set of independent parallel side planes.
   // Build convex strakes around the irregular mouth. A triangle fan over
   // the former concave transom polygon crossed the opening diagonally.
   const levels=bands;
   for(let i=0;i<levels.length-1;i++){
-    const low=levels[i]!,high=levels[i+1]!,wl=4.2*fullness[i]!,wh=4.2*fullness[i+1]!,open=i>=1&&i<=3;
+    const low=levels[i]!,high=levels[i+1]!,wl=wreckBeamAt(S.sternX)*fullness[i]!,wh=wreckBeamAt(S.sternX)*fullness[i+1]!,open=i>=1&&i<=3;
     if(!open)panel(`transom-whole:${i}`,[at(S.sternX,low,-wl),at(S.sternX,low,wl),at(S.sternX,high,wh),at(S.sternX,high,-wh)],shell,'c1-hull','transom');
     else for(const side of [-1,1]){
       const gl=1.10+.09*Math.sin(i*2.4),gh=1.10+.08*Math.sin((i+1)*2.4);
@@ -102,7 +104,7 @@ export function buildWreckExterior(scene: Scene, terrain: TerrainDefinition,
     const z=(i-4)*.32;
     beam(`breach-splinter:${i}`,at(S.sternX-.01,S.sternBreachTop+.04,z),at(S.sternX-.2-(i%3)*.06,-3.36-(i%4)*.12,z+.07),.055,.08,endgrain,'c1-hull','breach-splinter');
   }
-  beam('stem',at(31.3,-5.6,0),at(31.55,3.32,0),.22,.28,edge,'c1-hull','stem');
+  beam('stem',at(S.bowX-.2,-5.6,0),at(S.bowX+.05,3.32,0),.22,.28,edge,'c1-hull','stem');
 
   const plan=wreckHullPlan(false);
   // Cant bands provide a visible structural edge at each real deck level.
@@ -161,11 +163,11 @@ export function buildWreckExterior(scene: Scene, terrain: TerrainDefinition,
   // rail ends continue the exposed ribs below. All splinters stay out of the
   // clear cell centres used for walking and combat.
   for(let i=0;i<19;i++) {
-    const x=-31.3+i*.25,z=x< -30 ? 1.2+(x+31.5)*2.4 :x< -27?4.8+(x+30)*1.2:wreckBeamAt(x)-.22;
+    const originalX=-31.3+i*.25,x=originalX*S.planScale,z=originalX< -30 ? (1.2+(originalX+31.5)*2.4)*S.planScale :originalX< -27?(4.8+(originalX+30)*1.2)*S.planScale:wreckBeamAt(x)-.22;
     const height=3+(i%3)*.065;
     beam(`impact-deck-splinter:${i}`,at(x-.5,height,z-.05),at(x+.24,height+.22+(i%4)*.065,z+.26),.09,.12,endgrain,'c3','grounding-damage');
   }
-  for(const side of [-1,1])for(let x=-30;x<31;x+=2.8){
+  for(const side of [-1,1])for(let x=S.sternX+1.5;x<S.bowX-.5;x+=2.8){
     const w=wreckBeamAt(x);
     for(const y of [-2.8,-2.1,-.9]) {
       const z=side*(w+.045);
@@ -176,7 +178,7 @@ export function buildWreckExterior(scene: Scene, terrain: TerrainDefinition,
   // Small clustered growth marks the old waterline and explains decades of
   // salt exposure. It is batched by material and never obstructs a deck.
   for(let i=0;i<74;i++){
-    const x=-30+(i%37)*1.62,side=i<37?-1:1,z=side*(wreckBeamAt(x)+.055),y=-2.55+(i%5)*.23;
+    const x=S.sternX+1.5+(i%37)*(S.length-3)/36,side=i<37?-1:1,z=side*(wreckBeamAt(x)+.055),y=-2.55+(i%5)*.23;
     const shell=MeshBuilder.CreateIcoSphere(`wreck:barnacles:${i}`,{radius:.075+(i%3)*.015,subdivisions:1},scene);
     shell.position.copyFrom(at(x,y,z));shell.scaling.set(1,.8,.46);shell.material=endgrain;mark(shell,'c1-hull','barnacle-growth',y-.1,y+.1);
   }
@@ -231,32 +233,37 @@ export function buildWreckExterior(scene: Scene, terrain: TerrainDefinition,
   // One tapered main mast. The old duplicate crow-mast is no longer rendered.
   const mast=terrain.occluders.find(o=>o.id==='c1-mast')!;
   const mx=(mast.cell.col+.5)*1.5,mz=(mast.cell.row+.5)*1.5;
-  const main=MeshBuilder.CreateCylinder('wreck:main-mast',{height:23,diameterBottom:.85,diameterTop:.31,tessellation:14},scene);
-  main.position.set(mx,11.5,mz);main.material=dark;mark(main,'main','main-mast',0,23);
-  const mastAt=(x:number,y:number,z:number)=>new Vector3(mx+x,y,mz+z);
+  const mastAt=(x:number,y:number,z:number)=>new Vector3(mx+x+y*.015,y,mz+z-y*.021);
+  // Slight lean (1.48 degrees), but intact. Independent height sections let
+  // the near foot fade without making the entire 23 m mast disappear from C1.
+  for(const [index,lo,hi] of [[0,0,2.2],[1,2.2,13.8],[2,13.8,16.6],[3,16.6,23]]){
+    const a=mastAt(0,lo!,0),b=mastAt(0,hi!,0),direction=b.subtract(a),part=MeshBuilder.CreateCylinder(index===0?'wreck:main-mast':`wreck:main-mast:${index}`,{height:direction.length(),diameterBottom:.85-lo!*.54/23,diameterTop:.85-hi!*.54/23,tessellation:14},scene);
+    part.position.copyFrom(a.add(b).scale(.5));part.rotationQuaternion=Quaternion.FromUnitVectorsToRef(Vector3.Up(),direction.normalize(),new Quaternion());part.material=dark;worldSurfaceUV(part,4.5);mark(part,'main','main-mast',lo!,hi!,false);
+  }
   for(const y of [.5,1.4,14.55,15.4,20]) {
     const collar=MeshBuilder.CreateTorus(`wreck:mast-collar:${y}`,{diameter:y<2?.89:y<16?.64:.44,thickness:.055,tessellation:16},scene);
-    collar.position.set(mx,y,mz);collar.material=iron;mark(collar,'main','mast-collar',y-.03,y+.03);
+    collar.position.copyFrom(mastAt(0,y,0));collar.rotation.x=-.021;collar.rotation.z=-.015;collar.material=iron;mark(collar,'main','mast-collar',y-.03,y+.03,false);
   }
   for(const side of [-1,1])for(const z of [-1,1])beam(`mast-knee:${side}:${z}`,mastAt(side*.95,.12,z*.65),mastAt(side*.28,1.45,z*.22),.19,.22,edge,'main','mast-knee');
   const crowCenter=new Vector3(S.origin.x,15,S.origin.z);
-  // Full circular structural floor; the nav ring is clipped to this same circle.
-  const nest=MeshBuilder.CreateCylinder('wreck:cofa-floor',{height:.22,diameter:5.8,tessellation:40},scene);
+  // A narrow structural fascia outside the unchanged 2.9 m navigation ring
+  // carries the railing. The woven basket must not intersect its posts.
+  const nest=MeshBuilder.CreateCylinder('wreck:cofa-floor',{height:.22,diameter:6.12,tessellation:48},scene);
   nest.position.copyFrom(crowCenter);nest.position.y-=.12;nest.material=stepWood;worldSurfaceUV(nest,4.5);mark(nest,'crow','cofa-floor',14.76,15);
   for(let i=0;i<16;i++) {
     const a=i/16*Math.PI*2,b=(i+1)/16*Math.PI*2;
-    const p=(angle:number,y:number,r=2.77)=>new Vector3(crowCenter.x+Math.cos(angle)*r,y,crowCenter.z+Math.sin(angle)*r);
+    const p=(angle:number,y:number,r=3.00)=>new Vector3(crowCenter.x+Math.cos(angle)*r,y,crowCenter.z+Math.sin(angle)*r);
     // East-facing entrance follows P10's existing rope ladder cell.
     if(i!==0 && i!==15) {
       beam(`cofa-post:${i}`,p(a,15),p(a,16),.10,.11,dark,'crow','cofa-rail');
       beam(`cofa-rail:${i}`,p(a,15.96),p(b,15.96),.12,.12,edge,'crow','cofa-rail');
       panel(`cofa-kickboard:${i}`,[p(a,15),p(b,15),p(b,15.4),p(a,15.4)],shell,'crow','cofa-rail');
     }
-    if(i%2===0)beam(`cofa-bracket:${i}`,mastAt(0,12.9,0),p(a,14.8,2.55),.17,.18,edge,'crow','cofa-bracket');
+    if(i%2===0)beam(`cofa-bracket:${i}`,mastAt(0,12.9,0),p(a,14.8,2.88),.17,.18,edge,'crow','cofa-bracket');
   }
   const ladderX=S.origin.x+2.25, ladderZ=mz;
-  for(const side of [-.48,.48])beam(`ratline-rope:${side}`,new Vector3(ladderX,0,ladderZ+side),new Vector3(ladderX,15.5,ladderZ+side),.035,.035,rope,'main','mast-ladder');
-  for(let y=.25;y<15.2;y+=.32)beam(`ratline-rung:${y}`,new Vector3(ladderX,y,ladderZ-.48),new Vector3(ladderX,y,ladderZ+.48),.047,.047,rope,'main','mast-ladder');
+  for(const side of [-.48,.48])beam(`ratline-rope:${side}`,new Vector3(ladderX,0,ladderZ+side),new Vector3(ladderX+.2325,15.5,ladderZ+side-.3255),.035,.035,rope,'main','mast-ladder');
+  for(let y=.25;y<15.2;y+=.32)beam(`ratline-rung:${y}`,new Vector3(ladderX+y*.015,y,ladderZ-.48-y*.021),new Vector3(ladderX+y*.015,y,ladderZ+.48-y*.021),.047,.047,rope,'main','mast-ladder');
   for(const z of [-7.6,7.6]) {
     beam(`standing-rigging:${z}`,mastAt(0,21,0),mastAt(-8,0,z),.025,.025,rope,'main','rigging');
     beam(`standing-rigging-forward:${z}`,mastAt(0,20,0),mastAt(9,0,z),.025,.025,rope,'main','rigging');
@@ -271,7 +278,7 @@ export function buildWreckExterior(scene: Scene, terrain: TerrainDefinition,
   }
   for(const y of [10.4,19.8])beam(`yard:${y}`,mastAt(0,y,-4.8),mastAt(0,y,4.8),.16,.16,dark,'main','mast-yard');
   if(textures.sail) {
-    const mat=wood('torn-linen','#ada588');mat.diffuseTexture=textures.sail;mat.useAlphaFromDiffuseTexture=true;mat.alphaCutOff=.35;mat.transparencyMode=1;
+    const mat=wood('torn-linen','#ada588');mat.diffuseTexture=textures.sail;mat.useAlphaFromDiffuseTexture=true;mat.alphaCutOff=.35;mat.transparencyMode=Material.MATERIAL_ALPHATESTANDBLEND;
     for(const [id,x,y,z,w,h,surface] of [['main',mx-.55,10.4,mz,7.2,5.1,'main'],['fore',S.origin.x+33.5,3.5,S.origin.z-4.8,3.4,5.8,'c2']] as const){
       const positions:number[]=[],uvs:number[]=[],indices:number[]=[],normals:number[]=[];
       for(let row=0;row<=8;row++)for(let col=0;col<=6;col++){const u=col/6,v=row/8;const rag=col%3===0?.75:col%3===1?1:.87;positions.push(x+Math.sin(u*4)*v*.19,y-v*h*(v>.75?rag:1),z+(u-.5)*w);uvs.push(u,1-v);
@@ -286,6 +293,7 @@ export function buildWreckExterior(scene: Scene, terrain: TerrainDefinition,
     }
   }
   meshes.push(...buildWreckAgeDetails(scene,terrain,textures.hull));
+  meshes.push(...buildWreckDeckDressing(scene,terrain,textures.hull));
   if(textures.debris){const mat=wood('canonical-c1-debris','#cbc4ad');mat.diffuseTexture=textures.debris;mat.useAlphaFromDiffuseTexture=true;mat.transparencyMode=1;mat.alphaCutOff=.25;
     const m=MeshBuilder.CreateGround('wreck:boots-bones-blood',{width:3.4,height:3.4},scene);m.position.set(41.25,.035,27.75);m.material=mat;mark(m,'main','canonical-deck-debris',0,.04,false);}
   // Canonical fallen foremast and fractured quarterdeck mast. Their bases stay

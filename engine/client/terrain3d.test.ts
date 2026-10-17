@@ -26,6 +26,25 @@ describe('Babylon terrain adapter', () => {
     expect(result.occluders).toHaveLength(2);
     expect(result.lights).toHaveLength(1);
   });
+  it('applies per-terrain contrast and adjustable thickness without changing the map cells', () => {
+    const engine = new NullEngine(); engines.push(engine);
+    const scene = new Scene(engine);
+    const terrain = { ...bridgeFixture, surfaces: bridgeFixture.surfaces.map(surface => ({
+      ...surface, tiles: surface.tiles.map(tile => ({ ...tile, materialId: surface.id === 'ground' ? 'sand' : 'basalt' }))
+    })) };
+    const result = buildTerrain3D(scene, terrain, { gridStyle: { color: '#c8cec3', alpha: .22, mode: 'contrast', thickness: 1 } });
+    const groundColors = result.grids.get('ground')!.getVerticesData(VertexBuffer.ColorKind)!;
+    const bridgeColors = result.grids.get('bridge')!.getVerticesData(VertexBuffer.ColorKind)!;
+    expect(groundColors[0]).toBeCloseTo(32 / 255);
+    expect(bridgeColors[0]).toBeCloseTo(240 / 255);
+    expect(result.grids.get('ground')!.alpha).toBeCloseTo(.22);
+    const thinVertexCount = result.grids.get('ground')!.getVerticesData(VertexBuffer.PositionKind)!.length;
+    result.setGridStyle({ mode: 'fixed', color: '#22aa88', opacity: .5, thickness: 3 });
+    expect(result.grids.get('ground')!.color.g).toBeCloseTo(170 / 255);
+    expect(result.grids.get('ground')!.alpha).toBeCloseTo(.5);
+    expect(result.grids.get('ground')!.getVerticesData(VertexBuffer.PositionKind)!.length).toBeGreaterThan(thinVertexCount);
+    expect(result.tiles.size).toBe(22);
+  });
   it('uses ramp corner heights for the actual Babylon mesh', () => {
     const engine = new NullEngine(); engines.push(engine);
     const result = buildTerrain3D(new Scene(engine), bridgeFixture);

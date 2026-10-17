@@ -30,13 +30,23 @@ if /I "%~1"=="--check" (
   exit /b 0
 )
 
+set "DND_SAVE_ROOT=%CD%\data\saves"
+if defined DUNGEONS_DATA_DIR set "DND_SAVE_ROOT=%DUNGEONS_DATA_DIR%"
+"%DND_NODE%" scripts\prepared-build.mjs check "%DND_SAVE_ROOT%"
+if errorlevel 1 (echo Cierra y guarda la mesa antes de instalar dependencias. & pause & exit /b 1)
+
 echo Instalando dependencias bloqueadas por pnpm-lock.yaml...
 call "%DND_PNPM_EXE%" %DND_PNPM_PREFIX% install --frozen-lockfile
 if errorlevel 1 (echo ERROR: No se pudieron instalar las dependencias. Comprueba Internet y vuelve a intentarlo. & pause & exit /b 1)
 
 echo Compilando la candidata...
-call "%DND_PNPM_EXE%" %DND_PNPM_PREFIX% run build
+"%DND_NODE%" scripts\generate-audio.mjs
+if errorlevel 1 (echo ERROR: No se pudo preparar el audio. & pause & exit /b 1)
+set "DND_PREPARED_BUILD=%CD%\runtime\prepared-install-%RANDOM%-%RANDOM%-%RANDOM%"
+"%DND_NODE%" scripts\prepared-build.mjs prepare "%DND_PREPARED_BUILD%"
 if errorlevel 1 (echo ERROR: La compilacion ha fallado. & pause & exit /b 1)
+"%DND_NODE%" scripts\prepared-build.mjs activate "%DND_PREPARED_BUILD%" "%DND_SAVE_ROOT%"
+if errorlevel 1 (echo ERROR: No se pudo instalar la candidata. & pause & exit /b 1)
 
 echo.
 echo Instalacion terminada. Ejecuta INICIAR.cmd para abrir la mesa.

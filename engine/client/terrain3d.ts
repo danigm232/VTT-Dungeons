@@ -1,6 +1,6 @@
 import { Camera } from '@babylonjs/core/Cameras/camera.js';
 import { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera.js';
-import { Color3 } from '@babylonjs/core/Maths/math.color.js';
+import { Color3, Color4 } from '@babylonjs/core/Maths/math.color.js';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight.js';
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight.js';
@@ -27,12 +27,13 @@ import { buildWreckOcean } from './wreck-ocean.js';
 import { buildWreckInterior } from './wreck-interior.js';
 import { buildSternBreach } from './wreck-breach.js';
 import { finishWreck } from './wreck-finish.js';
+import { weatherWreckBulkhead } from './wreck-wall-decay.js';
 import { wornTimberRelief } from './wreck-materials.js';
+import { gridContrastColor, gridMaterialLuminance, type GridStyle } from './grid-style.js';
 import { WRECK_STRUCTURE, wreckListHeight, wreckBeamAt } from '../shared/wreck-structure.js';
-import { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator.js';
 import '@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent.js';
 
-export type Terrain3DView = { tiles: Map<string, Mesh>; grid: LinesMesh; grids: Map<string, LinesMesh>; deckDetails: Mesh[]; occluders: Mesh[]; structures: Mesh[]; lights: PointLight[]; camera: ArcRotateCamera };
+export type Terrain3DView = { tiles: Map<string, Mesh>; grid: LinesMesh; grids: Map<string, LinesMesh>; setGridStyle(style: GridStyle): void; deckDetails: Mesh[]; occluders: Mesh[]; structures: Mesh[]; lights: PointLight[]; camera: ArcRotateCamera };
 const addressKey = (surfaceId: string, col: number, row: number) => `${surfaceId}:${col},${row}`;
 const shipDeckTextureRepeatMeters = 4.5;
 const shipWaterTextureRepeatMeters = 9;
@@ -289,9 +290,10 @@ function addNavigableSeaObstacles(scene: Scene, terrain: TerrainDefinition, tile
 }
 
 /** Build geometry from the *same corner heights* used for movement and selection. */
-export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options: { ambientIntensity?: number; shipDeck?: boolean; deckTexture?: BaseTexture; exteriorDeckTexture?: BaseTexture; sailTexture?: BaseTexture; boardingDebrisTexture?: BaseTexture; cabinPortraitTexture?: BaseTexture; hullTexture?: BaseTexture; reefTexture?: BaseTexture; waterTexture?: Texture; floodedDeckTexture?: Texture; waterBackdropTexture?: Texture; scenicWaterTexture?: Texture; foamTexture?: Texture; wreckageTexture?: Texture; contextSurfaceIds?: string[]; renderTiles?: boolean; batchTiles?: boolean; gridStyle?: { color: string; alpha: number } } = {}): Terrain3DView {
+export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options: { ambientIntensity?: number; shipDeck?: boolean; deckTexture?: BaseTexture; exteriorDeckTexture?: BaseTexture; sailTexture?: BaseTexture; boardingDebrisTexture?: BaseTexture; cabinPortraitTexture?: BaseTexture; hullTexture?: BaseTexture; reefTexture?: BaseTexture; waterTexture?: Texture; floodedDeckTexture?: Texture; waterBackdropTexture?: Texture; scenicWaterTexture?: Texture; foamTexture?: Texture; wreckageTexture?: Texture; contextSurfaceIds?: string[]; renderTiles?: boolean; batchTiles?: boolean; gridStyle?: { color: string; alpha: number; mode?: GridStyle['mode']; thickness?: GridStyle['thickness'] }; gridSurfaceLifts?: Record<string,number> } = {}): Terrain3DView {
   const tiles = new Map<string, Mesh>();
   const gridSegments = new Map<string, Vector3[][]>();
+  const gridSegmentMaterials = new Map<string, string[]>();
   const tileBatches = new Map<string, { materialId: string; surfaceId: string; positions: number[]; indices: number[]; uvs: number[]; colors: number[] }>();
   const deckDetails: Mesh[] = [];
   const materials = new Map<string, StandardMaterial>();
@@ -350,14 +352,19 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
   };
   const corner = (address: SurfaceAddress, u: number, v: number, lift = 0) =>
     new Vector3((address.cell.col + u) * tileMeters, surfaceHeight(terrain, address, u, v) + lift, (address.cell.row + v) * tileMeters);
+  const addGridSegment = (surfaceId: string, line: Vector3[], materialId: string) => {
+    gridSegments.get(surfaceId)!.push(line.map(p=>p.add(new Vector3(0,options.gridSurfaceLifts?.[surfaceId]??0,0))));
+    gridSegmentMaterials.get(surfaceId)!.push(materialId);
+  };
   for (const surface of terrain.surfaces) {
     gridSegments.set(surface.id, []);
+    gridSegmentMaterials.set(surface.id, []);
     for (const tile of surface.tiles) {
     // Navigation retains the sea cells, but one continuous ocean renders them.
     if (rebuilt && ['sea','lower-water','hold-water'].includes(surface.id)) {
       if(surface.id==='sea'&&!contextSurfaces.has(surface.id)) {
         const address={surfaceId:surface.id,cell:tile.cell},p=[[0,0],[1,0],[1,1],[0,1]].map(([u,v])=>corner(address,u!,v!,.12));
-        for(let i=0;i<4;i++)gridSegments.get(surface.id)!.push([p[i]!,p[(i+1)%4]!]);
+        for(let i=0;i<4;i++)addGridSegment(surface.id,[p[i]!,p[(i+1)%4]!],tile.materialId);
       }
       continue;
     }
@@ -455,7 +462,7 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
     // All four borders follow the geometry. Multiple surfaces in one cell have
     // independent borders, so the underpass is never confused with the bridge.
     if (!contextSurfaces.has(surface.id)) for (let a=0;a<corners.length;a++)
-      gridSegments.get(surface.id)!.push([corners[a]!.add(new Vector3(0, 0.012, 0)), corners[(a+1)%corners.length]!.add(new Vector3(0, 0.012, 0))]);
+      addGridSegment(surface.id,[corners[a]!.add(new Vector3(0, 0.012, 0)), corners[(a+1)%corners.length]!.add(new Vector3(0, 0.012, 0))],renderMaterialId);
     }
   }
   for (const [batchKey, batch] of tileBatches) {
@@ -835,23 +842,69 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
       }
     }
   }
+  const initialGridStyle: GridStyle = options.gridStyle
+    ? { mode: options.gridStyle.mode ?? 'fixed', color: options.gridStyle.color, opacity: options.gridStyle.alpha, thickness: options.gridStyle.thickness ?? 1 }
+    : { mode: 'fixed', color: options.shipDeck ? '#88968b' : '#dbe6d3', opacity: options.shipDeck ? .38 : 1, thickness: 1 };
   const grids = new Map<string, LinesMesh>();
-  for (const [surfaceId, lines] of gridSegments) {
-    if (!lines.length) continue;
+  const widenLines = (lines: Vector3[][], thickness: GridStyle['thickness']) => {
+    const offsets = thickness === 1 ? [0] : thickness === 2 ? [-.006, 0, .006] : [-.012, -.006, 0, .006, .012];
+    return lines.flatMap(line => {
+      const start = line[0]!, end = line[line.length - 1]!;
+      const length = Math.hypot(end.x - start.x, end.z - start.z) || 1;
+      return offsets.map(offset => line.map(point => new Vector3(
+        point.x - (end.z - start.z) / length * offset * tileMeters,
+        point.y + .0005,
+        point.z + (end.x - start.x) / length * offset * tileMeters
+      )));
+    });
+  };
+  const createGrid = (surfaceId: string, style: GridStyle) => {
+    const lines = gridSegments.get(surfaceId)!;
+    const materialIds = gridSegmentMaterials.get(surfaceId)!;
+    const multiplier = style.thickness === 1 ? [0] : style.thickness === 2 ? [-1, 0, 1] : [-2, -1, 0, 1, 2];
+    const expandedLines = widenLines(lines, style.thickness);
+    const colors = style.mode === 'contrast' ? materialIds.flatMap(materialId => {
+      const color = Color4.FromHexString(gridContrastColor(gridMaterialLuminance(materialId), style.color));
+      return multiplier.map(() => [color, color]);
+    }) : undefined;
     const surfaceGrid = MeshBuilder.CreateLineSystem(`terrain-grid:${surfaceId}`, {
-      lines,
-      // LinesMesh only enables blending when vertex alpha is opted into at
-      // creation time; assigning `alpha` alone leaves the grid fully opaque.
-      useVertexAlpha: Boolean(options.shipDeck || options.gridStyle)
+      lines: expandedLines,
+      colors,
+      // Vertex alpha must be enabled when using translucent settings.
+      useVertexAlpha: style.opacity < 1
     }, scene);
-    // An explicit style enables actual alpha blending for illustrated camps;
-    // callers without one retain the existing grid, including ship surfaces.
-    surfaceGrid.color = Color3.FromHexString(options.gridStyle?.color ?? (options.shipDeck ? '#88968b' : '#dbe6d3'));
-    surfaceGrid.alpha = options.gridStyle?.alpha ?? (options.shipDeck ? surfaceId === 'sea' ? 0.18 : 0.38 : 1);
-    if (options.exteriorDeckTexture && ['main', 'c2', 'c3'].includes(surfaceId)) surfaceGrid.alpha = .2;
+    surfaceGrid.color = style.mode === 'contrast' ? Color3.White() : Color3.FromHexString(style.color);
+    surfaceGrid.alpha = style.opacity;
     surfaceGrid.isPickable = false;
     surfaceGrid.metadata = { surfaceId };
-    grids.set(surfaceId, surfaceGrid);
+    return surfaceGrid;
+  };
+  let activeGridStyle = initialGridStyle;
+  const setGridStyle = (style: GridStyle) => {
+    const rebuild = style.mode !== activeGridStyle.mode || style.thickness !== activeGridStyle.thickness
+      || style.mode === 'contrast' && style.color !== activeGridStyle.color;
+    activeGridStyle = style;
+    if (rebuild) {
+      for (const [surfaceId, oldGrid] of grids) {
+        const visible = oldGrid.isVisible;
+        oldGrid.dispose();
+        const nextGrid = createGrid(surfaceId, style);
+        nextGrid.isVisible = visible;
+        grids.set(surfaceId, nextGrid);
+      }
+      const baseGrid = grids.get(terrain.baseSurfaceId) ?? [...grids.values()][0];
+      if (baseGrid) baseGrid.metadata = { ...(baseGrid.metadata ?? {}), surfaceIds: [...grids.keys()] };
+      return;
+    }
+    for (const grid of grids.values()) {
+      grid.alpha = style.opacity;
+      grid.color = style.mode === 'contrast' ? Color3.White() : Color3.FromHexString(style.color);
+    }
+  };
+  for (const surfaceId of gridSegments.keys()) if (gridSegments.get(surfaceId)!.length) {
+    const surfaceStyle = options.gridStyle ? initialGridStyle : { ...initialGridStyle,
+      opacity: options.shipDeck ? surfaceId === 'sea' ? .18 : options.exteriorDeckTexture && ['main', 'c2', 'c3'].includes(surfaceId) ? .2 : .38 : 1 };
+    grids.set(surfaceId, createGrid(surfaceId, surfaceStyle));
   }
   const grid = grids.get(terrain.baseSurfaceId) ?? [...grids.values()][0]!;
   grid.metadata = { ...(grid.metadata ?? {}), surfaceIds: [...grids.keys()] };
@@ -1083,7 +1136,7 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
     for(const [key,group] of groups){
       const axis=group[0]!.metadata.axis,plane=axis==='z'?group[0]!.position.x:group[0]!.position.z;
       const m=Mesh.MergeMeshes(group,true,true,undefined,false,false);if(!m)continue;
-      m.name=`wreck:cabin-bulkheads:${key}`;m.metadata={kind:'wall',cabinIds:key.split(':')[0]!.split('+'),axis,plane,bottom:0,top:2.4};m.isPickable=false;m.receiveShadows=true;occluders.push(m);
+      m.name=`wreck:cabin-bulkheads:${key}`;m.metadata={kind:'wall',cabinIds:key.split(':')[0]!.split('+'),axis,plane,bottom:0,top:2.4};m.isPickable=false;m.receiveShadows=true;occluders.push(weatherWreckBulkhead(scene,m));
     }
   }
   if (options.shipDeck) {
@@ -1173,13 +1226,7 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
     const keyLight = new DirectionalLight('ship-key-light', new Vector3(-0.42, -1, 0.35), scene);
     keyLight.diffuse = Color3.FromHexString('#eee3cb');
     keyLight.intensity = rebuilt ? .92 : 0.58;
-    if (rebuilt) {
-      keyLight.position.set(30,60,-15);
-      const shadows = new ShadowGenerator(1024,keyLight);
-      shadows.usePercentageCloserFiltering = true; shadows.bias=.0004; shadows.normalBias=.025;
-      for(const mesh of [...structures,...occluders,...deckDetails])
-        if(mesh.metadata?.deckSurfaceId!=='sea' && !mesh.name.includes('darkness') && !mesh.name.includes('shimmer'))shadows.addShadowCaster(mesh);
-    }
+    if (rebuilt) keyLight.position.set(30,60,-15);
     keyLight.metadata = { baseIntensity: keyLight.intensity };
   }
   const lights = terrain.lights.map(item => {
@@ -1204,5 +1251,6 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
   camera.orthoRight = camera.orthoTop * aspect;
   scene.activeCamera = camera;
   if(rebuilt)deckDetails.push(...finishWreck(scene,terrain));
-  return { tiles, grid, grids, deckDetails, occluders, structures, lights, camera };
+  return { tiles, get grid() { return grids.get(terrain.baseSurfaceId) ?? [...grids.values()][0]!; },
+    grids, setGridStyle, deckDetails, occluders, structures, lights, camera };
 }

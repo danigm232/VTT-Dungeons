@@ -1,17 +1,24 @@
 import type { Cell } from './campaign.js';
 
+const wreckPlanScale=41/42;
+const originalStations=[[-31.5,4.2],[-30,6.35],[-27,8.8],[-22,10.1],[-18,10.5],
+  [0,10.55],[14,10.5],[20,10.3],[24,8.4],[28,5.2],[30,2.4],[31.5,.12]] as const;
+
 /** Metres relative to the keel. Both navigation and the exterior renderer use
  * this profile; changing a beam station cannot leave an old square floor. */
 export const WRECK_STRUCTURE = {
-  length: 63, tileMeters: 1.5, origin: { x: 42, z: 20.25 },
-  sternX: -31.5, bowX: 31.5, listSlope: .015,
+  length: 61.5, planScale: wreckPlanScale, tileMeters: 1.5, origin: { x: 42, z: 20.25 },
+  sternX: -30.75, bowX: 30.75, listSlope: .015,
   mainHeight: 0, upperHeight: 3, seaHeight: -3.05, keelHeight: -7.1,
   // The torn lip barely breaks the surface; C9 and its traversable entrance
   // stay submerged. This lets the exterior camera read the damage at sea level.
   sternBreachTop: -2.78,
   sternDeckEnd: -13.5, bowDeckStart: 13.5, crowHeight: 15, crowRadius: 2.9,
-  stations: [[-31.5, 4.2], [-30, 6.35], [-27, 8.8], [-22, 10.1], [-18, 10.5],
-    [0, 10.55], [14, 10.5], [20, 10.3], [24, 8.4], [28, 5.2], [30, 2.4], [31.5, .12]] as readonly (readonly [number, number])[]
+  // Soft walking bed now fills the cofa. Only the raised outer rim has volume;
+  // the original inner exclusion and P10 landing remain unchanged.
+  nestRadius: 2.86,
+  nestCoreRadius: 1.55,
+  stations: originalStations.map(([x,z])=>[x*wreckPlanScale,z*wreckPlanScale] as const)
 };
 /** A slight starboard rise agrees with C8's 15–45 cm flood gradient. */
 export const wreckListHeight = (worldZ: number) => (worldZ - WRECK_STRUCTURE.origin.z) * WRECK_STRUCTURE.listSlope;
@@ -47,10 +54,11 @@ export function wreckHullPlan(world = true): PlanPoint[] {
 /** Upper deck edges sheared at the grounding quarter and fallen foremast.
  * These cuts are shared by walkable polygons, deck thickness and rail edges. */
 export function wreckUpperDeckPlan(surface:'c2'|'c3',world=true):PlanPoint[] {
-  const {origin}=WRECK_STRUCTURE;
-  return wreckHullPlan(false).map(p=>({x:p.x,z:surface==='c3'&&p.z>0
-    ? p.x===-31.5?1.2:p.x===-30?4.8:p.x===-27?8.4:p.z
-    :surface==='c2'&&p.z<0 ? p.x===28?-3.8:p.x===30?-1.8:p.z :p.z}))
+  const {origin,planScale:k}=WRECK_STRUCTURE;
+  return wreckHullPlan(false).map(p=>{const x=p.x/k,near=(value:number)=>Math.abs(x-value)<.001;
+    return {x:p.x,z:surface==='c3'&&p.z>0
+      ? near(-31.5)?1.2*k:near(-30)?4.8*k:near(-27)?8.4*k:p.z
+      :surface==='c2'&&p.z<0 ? near(28)?-3.8*k:near(30)?-1.8*k:p.z :p.z};})
     .map(p=>({x:p.x+(world?origin.x:0),z:p.z+(world?origin.z:0)}));
 }
 export function planContains(plan:PlanPoint[],p:PlanPoint):boolean {

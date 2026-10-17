@@ -40,6 +40,7 @@ export function createCoastalBackdrop(scene: Scene, root: TransformNode, url: st
   sea.setVerticesData('color', waterColors, true, 4);
 
   // Steepened trochoidal wave function simulating real incoming ocean swells
+  let seaIntensity = .35;
   const waveHeight = (x: number, z: number, time: number) => {
     // Primary swell train rolling towards the shore (+z)
     const swell1 = Math.sin(x * .038 + z * .082 - time * 1.45);
@@ -49,7 +50,7 @@ export function createCoastalBackdrop(scene: Scene, root: TransformNode, url: st
     const swell3 = Math.sin(x * .14 + z * .042 - time * 2.3) * .14;
     // Shoaling effect: waves grow in height and steepness as they reach the cliffs (z > 22)
     const shoal = 1 + clamp01((z - 18) / 10) * .85;
-    return (swellPeak1 + swell2 + swell3) * shoal;
+    return (swellPeak1 + swell2 + swell3) * shoal * (.12+seaIntensity*1.65);
   };
 
   const foamMaterial = illustratedMaterial(scene, 'a1:shore-wash-v2', '#ffffff');
@@ -119,10 +120,10 @@ export function createCoastalBackdrop(scene: Scene, root: TransformNode, url: st
         const phase = time * 1.45 + x * .15 + rowT * 1.9;
         const swellPulse = Math.sin(phase);
         const crashPeak = Math.max(0, swellPulse);
-        const runup = Math.pow(crashPeak, 1.6) * 1.45 - (1 - crashPeak) * .35;
+        const runup = Math.pow(crashPeak, 1.6) * ( .22+seaIntensity*2.2) - (1 - crashPeak) * .35;
         const z = baseZ - runup;
         // Dramatic surge climbing up the rocks when waves strike
-        const rockSurge = Math.pow(crashPeak, 2.2) * 2.65;
+        const rockSurge = Math.pow(crashPeak, 2.2) * (.12+seaIntensity*3.7);
         const y = -9.05 + waveHeight(x + waterX, z + waterZ, time) + rockSurge * (1 - rowT * .6);
         const fleck = .5 + .5 * Math.sin(x * .92 + row * 2.4 - time * 1.8) * Math.sin(x * 1.6 - row * 1.1 + time * .8);
         const breakup = clamp01(.3 + .6 * fleck + .25 * Math.sin(x * .25 - time * .5));
@@ -133,7 +134,7 @@ export function createCoastalBackdrop(scene: Scene, root: TransformNode, url: st
         colors[color] = .82 + crest * .18;
         colors[color + 1] = .94 + crest * .06;
         colors[color + 2] = .97 + crest * .03;
-        colors[color + 3] = alpha;
+        colors[color + 3] = alpha*(.18+seaIntensity*.82);
       }
     }
     foam.updateVerticesData('position', positions, false, false);
@@ -146,7 +147,8 @@ export function createCoastalBackdrop(scene: Scene, root: TransformNode, url: st
 
   return {
     sea,
-    update(time: number, dark: number) {
+    update(time: number, dark: number, intensity = .35) {
+      seaIntensity=clamp01(intensity);sea.metadata.seaIntensity=seaIntensity;
       const day = 1 - dark;
       material.diffuseColor = Color3.Lerp(Color3.FromHexString('#6faec2'), Color3.FromHexString('#31576d'), dark);
       material.emissiveColor = Color3.Lerp(Color3.FromHexString('#092535'), Color3.FromHexString('#0f2032'), dark);

@@ -1,5 +1,8 @@
 import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
-import { Color3 } from '@babylonjs/core/Maths/math.color.js';
+import { Color3, Color4 } from '@babylonjs/core/Maths/math.color.js';
+import { Plane } from '@babylonjs/core/Maths/math.plane.js';
+import { MirrorTexture } from '@babylonjs/core/Materials/Textures/mirrorTexture.js';
+import { RawTexture } from '@babylonjs/core/Materials/Textures/rawTexture.js';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder.js';
 import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData.js';
 import { Mesh as MeshBuilderMesh, type Mesh } from '@babylonjs/core/Meshes/mesh.js';
@@ -10,7 +13,7 @@ import type { Scene } from '@babylonjs/core/scene.js';
 import type { TerrainDefinition } from '../shared/terrain.js';
 import { WRECK_STRUCTURE as S, wreckHullPlan } from '../shared/wreck-structure.js';
 import { fracturedStone } from './diorama-kit.js';
-import { buildDragonRemains } from './wreck-dragon-bones.js';
+import { buildDragonRemains,buildDistantDragonBones } from './wreck-dragon-bones.js';
 
 /** Jagged marine stacks, not bevelled rectangular blocks. UVs belong to each
  * face and their stratum tint changes with height; gameplay clips the final
@@ -50,11 +53,11 @@ export function buildWreckOcean(scene: Scene, terrain: TerrainDefinition, reefTe
     const [nx,nw]=S.stations[i+1]!;return `if(x<=${nx.toFixed(3)})return mix(${w.toFixed(3)},${nw.toFixed(3)},clamp((x-(${x.toFixed(3)}))/${(nx-x).toFixed(3)},0.,1.));`;
   }).join('\n');
   const vertexSource=`precision highp float; attribute vec3 position; uniform mat4 worldViewProjection;
-    uniform mat4 world; uniform float time; varying vec3 p;
+    uniform mat4 world; uniform float time; varying vec3 p; varying vec4 reflectionClip;
     void main(){vec3 q=position;vec3 w=(world*vec4(position,1.)).xyz;
-      q.y+=.06*sin(w.x*.24+w.z*.19+time*.75)+.025*sin(w.z*.71-w.x*.37-time*.93);
-      p=(world*vec4(q,1.)).xyz;gl_Position=worldViewProjection*vec4(q,1.);}`;
-  const fragmentSource=`precision highp float; varying vec3 p; uniform float time; uniform float lightLevel; uniform vec3 eye;
+      q.y+=.035*sin(w.x*.08+w.z*.06+time*.75)+.012*sin(w.z*.11-w.x*.07-time*.93);
+      p=(world*vec4(q,1.)).xyz;reflectionClip=worldViewProjection*vec4(position,1.);gl_Position=worldViewProjection*vec4(q,1.);}`;
+  const fragmentSource=`precision highp float; varying vec3 p; varying vec4 reflectionClip; uniform float time; uniform float lightLevel; uniform vec3 eye; uniform sampler2D reflectionSampler; uniform float reflectionStrength; uniform float roughness;
     float hash(vec2 v){vec3 q=fract(vec3(v.xyx)*.1031);q+=dot(q,q.yzx+33.33);return fract((q.x+q.y)*q.z);}
     float noise(vec2 v){vec2 i=floor(v),f=fract(v);f=f*f*(3.-2.*f);
       return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+1.),f.x),f.y);}
@@ -81,6 +84,11 @@ export function buildWreckOcean(scene: Scene, terrain: TerrainDefinition, reefTe
       color=mix(color,vec3(.17,.29,.31),fresnel*.42);
       float sun=pow(max(0.,dot(reflect(normalize(vec3(.42,-1.,-.35)),normal),view)),96.);
       color+=vec3(.69,.66,.51)*sun*.24;
+      vec2 reflectionUV=reflectionClip.xy/reflectionClip.w*.5+.5;
+      vec2 distortion=vec2(sin(uv.y*1.2+time*.8),cos(uv.x*.85-time*.65))*(.002+roughness*.003);
+      vec4 reflected=texture2D(reflectionSampler,clamp(reflectionUV+distortion,.001,.999));
+      float inImage=step(0.,reflectionUV.x)*step(reflectionUV.x,1.)*step(0.,reflectionUV.y)*step(reflectionUV.y,1.);
+      color=mix(color,reflected.rgb,reflected.a*inImage*reflectionStrength*(.40+fresnel*.36)*(1.-roughness*.4));
       float haze=1.-exp(-length(uv-vec2(42.,20.25))*.0019);
       color=mix(color,vec3(.105,.19,.22),haze);
       // A restrained clear-water patch reveals the submerged stern entrance
@@ -88,8 +96,10 @@ export function buildWreckOcean(scene: Scene, terrain: TerrainDefinition, reefTe
       float entry=exp(-pow((ship.x+32.0)/3.3,4.)-pow(ship.y/2.1,4.));
       gl_FragColor=vec4(color*lightLevel,1.-entry*.73);}`;
   const waterMat=new ShaderMaterial('wreck-continuous-ocean',scene,{vertexSource,fragmentSource},
-    {attributes:['position'],uniforms:['world','worldViewProjection','time','lightLevel','eye'],needAlphaBlending:true});
+    {attributes:['position'],uniforms:['world','worldViewProjection','time','lightLevel','eye','reflectionStrength','roughness'],samplers:['reflectionSampler'],needAlphaBlending:true});
   waterMat.setFloat('lightLevel',1);
+  waterMat.setFloat('roughness',.25);waterMat.setFloat('reflectionStrength',0);
+  const emptyReflection=RawTexture.CreateRGBATexture(new Uint8Array([0,0,0,0]),1,1,scene,false,false);waterMat.setTexture('reflectionSampler',emptyReflection);
   waterMat.forceDepthWrite=true;
   waterMat.backFaceCulling=false;
   const water=MeshBuilder.CreateGround('wreck-ocean',{width:1600,height:1600,subdivisions:128},scene);
@@ -210,6 +220,24 @@ export function buildWreckOcean(scene: Scene, terrain: TerrainDefinition, reefTe
     const t=(performance.now()-started)/1000;waterMat.setFloat('time',t);foamMat.setFloat('time',t);
     if(scene.activeCamera)waterMat.setVector3('eye',scene.activeCamera.globalPosition);
   });
-  meshes.push(...buildDragonRemains(scene,terrain));
+  meshes.push(...buildDragonRemains(scene,terrain),...buildDistantDragonBones(scene));
+  if(typeof window!=='undefined'){
+    const compact=scene.getEngine().getRenderWidth()<800,mirror=new MirrorTexture('wreck:object-reflections',compact?256:512,scene,true);
+    mirror.mirrorPlane=new Plane(0,-1,0,S.seaHeight);mirror.clearColor=new Color4(0,0,0,0);mirror.refreshRate=0;
+    mirror.renderParticles=false;mirror.renderSprites=false;mirror.renderList=[];scene.customRenderTargets.push(mirror);waterMat.setTexture('reflectionSampler',mirror);
+    let count=-1,lastUpdate=-1;const lastCamera=Vector3.Zero();
+    scene.onBeforeRenderObservable.add(()=>{
+      const t=performance.now()/1000,camera=scene.activeCamera;
+      const interior=scene.metadata?.wreckInterior===true,enabled=scene.metadata?.wreckReflectionsEnabled!==false;
+      waterMat.setFloat('reflectionStrength',interior||!enabled?0:1);
+      if(interior||!enabled||!camera)return;
+      if(count!==scene.meshes.length){count=scene.meshes.length;mirror.renderList=scene.meshes.filter(m=>!m.metadata?.nativeBillboard&&!/actor:|weather:|water|ocean|foam|wake|wash|shimmer|darkness|shadow|stain|decal|algae|bubble|fish/i.test(m.name)&&m.material&&m.getTotalVertices()>0);}
+      // One cached planar pass, not six cube faces per object. Camera movement
+      // invalidates immediately; boat/waves update at a bounded cadence.
+      if(t-lastUpdate>(compact?.24:.12)||Vector3.DistanceSquared(camera.position,lastCamera)>.06){lastUpdate=t;lastCamera.copyFrom(camera.position);mirror.resetRefreshCounter();}
+      scene.metadata={...scene.metadata,wreckReflection:{size:compact?256:512,objects:mirror.renderList?.length??0,planar:true}};
+    });
+    scene.onDisposeObservable.addOnce(()=>mirror.dispose());
+  }
   return meshes;
 }

@@ -2,6 +2,8 @@
 
 Actualizado: 2026-09-28, fauna CC0 del bosque. Los avisos de terceros permanecen en `node_modules` y deben conservarse al empaquetar. El barco C1–C9 se renderiza como escena continua de terreno Babylon; Pixi mantiene escenas/runtime heredados. Los recursos añadidos tienen registros separados y algunos originales aportados aún carecen de licencia verificable; no se afirma que todo lo existente esté certificado para redistribución.
 
+El reloj global y el clima dinámico (12/10/2026) no añaden dependencias, fuentes de audio ni imágenes externas. Su presentación reutiliza Babylon.js y PixiJS ya instalados y registrados abajo, junto con código propio del proyecto.
+
 ## Dependencias directas
 
 Metadatos y archivos `LICENSE` comprobados en la instalación bloqueada de esta candidata:
@@ -55,6 +57,12 @@ El token `campaigns/one-shot/public/art/tokens/fritz-v3.png` se generó el 2026-
 No se ha copiado código de RPGJS, VeilCast, Open-VTT, MiniVTT ni RPGAtlas. Kenney Pirate Kit no consta incorporado, pero sí hay audio externo y partículas con procedencia Kenney/OpenGameArt registrada en los créditos de campaña. Las menciones a candidatos no adoptados en `docs/OPEN_SOURCE_REVIEW.md` no son licencia de otros archivos de esos catálogos.
 
 ## Originales aportados y revisión pendiente
+
+El 13/10/2026 se generaron con ImageGen integrada siete PNG de D8 V52: fondo costero de isla plana, cuatro vistas de tres parroquianos bebiendo, oración de los dos personajes y Margaret sujetando una cuerda. Destinos en `campaigns/one-shot/public/art/v52/`; referencias, prompts de trabajo, originales y límites de aceptación en `docs/evidence/D8_V52_ASSET_PROMPTS.md` y `docs/evidence/D8_V52_CORRECTIONS_20261013.md`. Son derivados para la mesa privada, no arte oficial ni recursos declarados CC0. La generación no certifica derechos de redistribución de las referencias.
+
+El 2026-10-12 se generaron con ImageGen integrada 14 atlas aceptados de caminata para Trinity y Silverfarben, tomando sus bases existentes como referencias, en `campaigns/one-shot/public/art/player-walks-v2/`. Las siete imágenes de Trinity se copian idénticas a `campaigns/stormwreck-isle/public/art/player-walks-v2/`. Los originales se conservan; dos candidatos mal orientados no se incorporan. Prompts, referencias y rutas: `docs/PLAYER_LOCOMOTION_PROMPTS.json`; revisión y aliases espejados: `docs/PLAYER_LOCOMOTION_AUDIT.md`. Son derivados para mesa privada, no arte oficial ni recursos declarados CC0. La generación no certifica derechos de redistribución de las referencias.
+
+El 2026-10-12 se generaron con ImageGen integrada cinco atlas de vistas quietas para Mike, Mia, zombi, arpía y gul en `campaigns/stormwreck-isle/public/art/m3/facing-20261012/`, usando sus PNG existentes como referencias de identidad. Los originales se conservan. Prompts exactos, referencias y destinos: `docs/SPRITE_FACING_PROMPTS.json`; recortes alfa e integración: `docs/PERSISTENT_SPRITE_FACING.md`. Son derivados para la mesa privada, no arte oficial ni recursos declarados CC0. La generación no certifica derechos de redistribución de las referencias.
 
 `Imagenes VTT/DnD VTT/` contiene231PNG:40zombi,57arpía,104María y30condiciones. No se localizó un manifiesto de origen/condiciones para este conjunto durante la auditoría. No atribuirles CC0 ni afirmar que todos fueron generados por una herramienta concreta. Los30recursos de condiciones tienen copias en arte servido; debe completarse su procedencia antes de una distribución pública. M3 seleccionó sólo ciclos mínimos de zombi, arpía, Trinity y gul para el pack Stormwreck; trazabilidad en [M3_ASSET_PROVENANCE_20260923.md](campaigns/stormwreck-isle/private/M3_ASSET_PROVENANCE_20260923.md). La revisión visual de las bases no certifica toda la tanda.
 

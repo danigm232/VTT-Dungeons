@@ -1,0 +1,1688 @@
+{
+  "date": "2026-10-15",
+  "zone": "A1",
+  "scope": "preserved core plus separate approach",
+  "tileMeters": 1.5,
+  "worldPlazaElevationMeters": 9,
+  "shoreLocalHeight": -8.75,
+  "actorRadius": 0.3,
+  "coordinateBridge": "Blender(x,y,z) = Babylon LH(x,z,y), north -Y",
+  "surface": {
+    "id": "a1-approach",
+    "tiles": [
+      {
+        "cell": {
+          "col": 47,
+          "row": 13
+        },
+        "kind": "floor",
+        "corners": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 47,
+          "row": 14
+        },
+        "kind": "floor",
+        "corners": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 48,
+          "row": 13
+        },
+        "kind": "floor",
+        "corners": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 48,
+          "row": 14
+        },
+        "kind": "floor",
+        "corners": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 49,
+          "row": 13
+        },
+        "kind": "floor",
+        "corners": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 49,
+          "row": 14
+        },
+        "kind": "floor",
+        "corners": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 50,
+          "row": 13
+        },
+        "kind": "floor",
+        "corners": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 50,
+          "row": 14
+        },
+        "kind": "floor",
+        "corners": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 51,
+          "row": 13
+        },
+        "kind": "floor",
+        "corners": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 51,
+          "row": 14
+        },
+        "kind": "floor",
+        "corners": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 50,
+          "row": 15
+        },
+        "kind": "floor",
+        "corners": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 50,
+          "row": 16
+        },
+        "kind": "floor",
+        "corners": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 50,
+          "row": 17
+        },
+        "kind": "floor",
+        "corners": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 50,
+          "row": 18
+        },
+        "kind": "floor",
+        "corners": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 51,
+          "row": 15
+        },
+        "kind": "floor",
+        "corners": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 51,
+          "row": 16
+        },
+        "kind": "floor",
+        "corners": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 51,
+          "row": 17
+        },
+        "kind": "floor",
+        "corners": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 51,
+          "row": 18
+        },
+        "kind": "floor",
+        "corners": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 52,
+          "row": 18
+        },
+        "kind": "stair",
+        "corners": [
+          0,
+          -0.5,
+          -0.5,
+          0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 52,
+          "row": 19
+        },
+        "kind": "stair",
+        "corners": [
+          0,
+          -0.5,
+          -0.5,
+          0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 53,
+          "row": 18
+        },
+        "kind": "stair",
+        "corners": [
+          -0.5,
+          -1.0,
+          -1.0,
+          -0.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 53,
+          "row": 19
+        },
+        "kind": "stair",
+        "corners": [
+          -0.5,
+          -1.0,
+          -1.0,
+          -0.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 54,
+          "row": 18
+        },
+        "kind": "stair",
+        "corners": [
+          -1.0,
+          -1.5,
+          -1.5,
+          -1.0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 54,
+          "row": 19
+        },
+        "kind": "stair",
+        "corners": [
+          -1.0,
+          -1.5,
+          -1.5,
+          -1.0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 55,
+          "row": 18
+        },
+        "kind": "stair",
+        "corners": [
+          -1.5,
+          -2.0,
+          -2.0,
+          -1.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 55,
+          "row": 19
+        },
+        "kind": "stair",
+        "corners": [
+          -1.5,
+          -2.0,
+          -2.0,
+          -1.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 56,
+          "row": 18
+        },
+        "kind": "stair",
+        "corners": [
+          -2.0,
+          -2.5,
+          -2.5,
+          -2.0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 56,
+          "row": 19
+        },
+        "kind": "stair",
+        "corners": [
+          -2.0,
+          -2.5,
+          -2.5,
+          -2.0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 57,
+          "row": 18
+        },
+        "kind": "floor",
+        "corners": [
+          -2.5,
+          -2.5,
+          -2.5,
+          -2.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 57,
+          "row": 19
+        },
+        "kind": "floor",
+        "corners": [
+          -2.5,
+          -2.5,
+          -2.5,
+          -2.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 57,
+          "row": 20
+        },
+        "kind": "floor",
+        "corners": [
+          -2.5,
+          -2.5,
+          -2.5,
+          -2.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 57,
+          "row": 21
+        },
+        "kind": "floor",
+        "corners": [
+          -2.5,
+          -2.5,
+          -2.5,
+          -2.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 58,
+          "row": 18
+        },
+        "kind": "floor",
+        "corners": [
+          -2.5,
+          -2.5,
+          -2.5,
+          -2.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 58,
+          "row": 19
+        },
+        "kind": "floor",
+        "corners": [
+          -2.5,
+          -2.5,
+          -2.5,
+          -2.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 58,
+          "row": 20
+        },
+        "kind": "floor",
+        "corners": [
+          -2.5,
+          -2.5,
+          -2.5,
+          -2.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 58,
+          "row": 21
+        },
+        "kind": "floor",
+        "corners": [
+          -2.5,
+          -2.5,
+          -2.5,
+          -2.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 59,
+          "row": 20
+        },
+        "kind": "stair",
+        "corners": [
+          -2.5,
+          -3.0,
+          -3.0,
+          -2.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 59,
+          "row": 21
+        },
+        "kind": "stair",
+        "corners": [
+          -2.5,
+          -3.0,
+          -3.0,
+          -2.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 60,
+          "row": 20
+        },
+        "kind": "stair",
+        "corners": [
+          -3.0,
+          -3.5,
+          -3.5,
+          -3.0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 60,
+          "row": 21
+        },
+        "kind": "stair",
+        "corners": [
+          -3.0,
+          -3.5,
+          -3.5,
+          -3.0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 61,
+          "row": 20
+        },
+        "kind": "stair",
+        "corners": [
+          -3.5,
+          -4.0,
+          -4.0,
+          -3.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 61,
+          "row": 21
+        },
+        "kind": "stair",
+        "corners": [
+          -3.5,
+          -4.0,
+          -4.0,
+          -3.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 62,
+          "row": 20
+        },
+        "kind": "stair",
+        "corners": [
+          -4.0,
+          -4.5,
+          -4.5,
+          -4.0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 62,
+          "row": 21
+        },
+        "kind": "stair",
+        "corners": [
+          -4.0,
+          -4.5,
+          -4.5,
+          -4.0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 63,
+          "row": 20
+        },
+        "kind": "stair",
+        "corners": [
+          -4.5,
+          -5.0,
+          -5.0,
+          -4.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 63,
+          "row": 21
+        },
+        "kind": "stair",
+        "corners": [
+          -4.5,
+          -5.0,
+          -5.0,
+          -4.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 64,
+          "row": 20
+        },
+        "kind": "floor",
+        "corners": [
+          -5.0,
+          -5.0,
+          -5.0,
+          -5.0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 64,
+          "row": 21
+        },
+        "kind": "floor",
+        "corners": [
+          -5.0,
+          -5.0,
+          -5.0,
+          -5.0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 64,
+          "row": 22
+        },
+        "kind": "floor",
+        "corners": [
+          -5.0,
+          -5.0,
+          -5.0,
+          -5.0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 64,
+          "row": 23
+        },
+        "kind": "floor",
+        "corners": [
+          -5.0,
+          -5.0,
+          -5.0,
+          -5.0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 65,
+          "row": 20
+        },
+        "kind": "floor",
+        "corners": [
+          -5.0,
+          -5.0,
+          -5.0,
+          -5.0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 65,
+          "row": 21
+        },
+        "kind": "floor",
+        "corners": [
+          -5.0,
+          -5.0,
+          -5.0,
+          -5.0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 65,
+          "row": 22
+        },
+        "kind": "floor",
+        "corners": [
+          -5.0,
+          -5.0,
+          -5.0,
+          -5.0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 65,
+          "row": 23
+        },
+        "kind": "floor",
+        "corners": [
+          -5.0,
+          -5.0,
+          -5.0,
+          -5.0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 66,
+          "row": 22
+        },
+        "kind": "stair",
+        "corners": [
+          -5.0,
+          -5.5,
+          -5.5,
+          -5.0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 66,
+          "row": 23
+        },
+        "kind": "stair",
+        "corners": [
+          -5.0,
+          -5.5,
+          -5.5,
+          -5.0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 67,
+          "row": 22
+        },
+        "kind": "stair",
+        "corners": [
+          -5.5,
+          -6.0,
+          -6.0,
+          -5.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 67,
+          "row": 23
+        },
+        "kind": "stair",
+        "corners": [
+          -5.5,
+          -6.0,
+          -6.0,
+          -5.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 68,
+          "row": 22
+        },
+        "kind": "stair",
+        "corners": [
+          -6.0,
+          -6.5,
+          -6.5,
+          -6.0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 68,
+          "row": 23
+        },
+        "kind": "stair",
+        "corners": [
+          -6.0,
+          -6.5,
+          -6.5,
+          -6.0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 69,
+          "row": 22
+        },
+        "kind": "stair",
+        "corners": [
+          -6.5,
+          -7.0,
+          -7.0,
+          -6.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 69,
+          "row": 23
+        },
+        "kind": "stair",
+        "corners": [
+          -6.5,
+          -7.0,
+          -7.0,
+          -6.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 70,
+          "row": 22
+        },
+        "kind": "stair",
+        "corners": [
+          -7.0,
+          -7.5,
+          -7.5,
+          -7.0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 70,
+          "row": 23
+        },
+        "kind": "stair",
+        "corners": [
+          -7.0,
+          -7.5,
+          -7.5,
+          -7.0
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 71,
+          "row": 22
+        },
+        "kind": "floor",
+        "corners": [
+          -7.5,
+          -7.5,
+          -7.5,
+          -7.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 71,
+          "row": 23
+        },
+        "kind": "floor",
+        "corners": [
+          -7.5,
+          -7.5,
+          -7.5,
+          -7.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 71,
+          "row": 24
+        },
+        "kind": "floor",
+        "corners": [
+          -7.5,
+          -7.5,
+          -7.5,
+          -7.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 71,
+          "row": 25
+        },
+        "kind": "floor",
+        "corners": [
+          -7.5,
+          -7.5,
+          -7.5,
+          -7.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 72,
+          "row": 22
+        },
+        "kind": "floor",
+        "corners": [
+          -7.5,
+          -7.5,
+          -7.5,
+          -7.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 72,
+          "row": 23
+        },
+        "kind": "floor",
+        "corners": [
+          -7.5,
+          -7.5,
+          -7.5,
+          -7.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 72,
+          "row": 24
+        },
+        "kind": "floor",
+        "corners": [
+          -7.5,
+          -7.5,
+          -7.5,
+          -7.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 72,
+          "row": 25
+        },
+        "kind": "floor",
+        "corners": [
+          -7.5,
+          -7.5,
+          -7.5,
+          -7.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 73,
+          "row": 24
+        },
+        "kind": "stair",
+        "corners": [
+          -7.5,
+          -7.916666666666667,
+          -7.916666666666667,
+          -7.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 73,
+          "row": 25
+        },
+        "kind": "stair",
+        "corners": [
+          -7.5,
+          -7.916666666666667,
+          -7.916666666666667,
+          -7.5
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 74,
+          "row": 24
+        },
+        "kind": "stair",
+        "corners": [
+          -7.916666666666667,
+          -8.333333333333334,
+          -8.333333333333334,
+          -7.916666666666667
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 74,
+          "row": 25
+        },
+        "kind": "stair",
+        "corners": [
+          -7.916666666666667,
+          -8.333333333333334,
+          -8.333333333333334,
+          -7.916666666666667
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 75,
+          "row": 24
+        },
+        "kind": "stair",
+        "corners": [
+          -8.333333333333334,
+          -8.75,
+          -8.75,
+          -8.333333333333334
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 75,
+          "row": 25
+        },
+        "kind": "stair",
+        "corners": [
+          -8.333333333333334,
+          -8.75,
+          -8.75,
+          -8.333333333333334
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 76,
+          "row": 23
+        },
+        "kind": "floor",
+        "corners": [
+          -8.75,
+          -8.75,
+          -8.75,
+          -8.75
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 76,
+          "row": 24
+        },
+        "kind": "floor",
+        "corners": [
+          -8.75,
+          -8.75,
+          -8.75,
+          -8.75
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 76,
+          "row": 25
+        },
+        "kind": "floor",
+        "corners": [
+          -8.75,
+          -8.75,
+          -8.75,
+          -8.75
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 76,
+          "row": 26
+        },
+        "kind": "floor",
+        "corners": [
+          -8.75,
+          -8.75,
+          -8.75,
+          -8.75
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 76,
+          "row": 27
+        },
+        "kind": "floor",
+        "corners": [
+          -8.75,
+          -8.75,
+          -8.75,
+          -8.75
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 77,
+          "row": 23
+        },
+        "kind": "floor",
+        "corners": [
+          -8.75,
+          -8.75,
+          -8.75,
+          -8.75
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 77,
+          "row": 24
+        },
+        "kind": "floor",
+        "corners": [
+          -8.75,
+          -8.75,
+          -8.75,
+          -8.75
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 77,
+          "row": 25
+        },
+        "kind": "floor",
+        "corners": [
+          -8.75,
+          -8.75,
+          -8.75,
+          -8.75
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 77,
+          "row": 26
+        },
+        "kind": "floor",
+        "corners": [
+          -8.75,
+          -8.75,
+          -8.75,
+          -8.75
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 77,
+          "row": 27
+        },
+        "kind": "floor",
+        "corners": [
+          -8.75,
+          -8.75,
+          -8.75,
+          -8.75
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 78,
+          "row": 23
+        },
+        "kind": "floor",
+        "corners": [
+          -8.75,
+          -8.75,
+          -8.75,
+          -8.75
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 78,
+          "row": 24
+        },
+        "kind": "floor",
+        "corners": [
+          -8.75,
+          -8.75,
+          -8.75,
+          -8.75
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 78,
+          "row": 25
+        },
+        "kind": "floor",
+        "corners": [
+          -8.75,
+          -8.75,
+          -8.75,
+          -8.75
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 78,
+          "row": 26
+        },
+        "kind": "floor",
+        "corners": [
+          -8.75,
+          -8.75,
+          -8.75,
+          -8.75
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 78,
+          "row": 27
+        },
+        "kind": "floor",
+        "corners": [
+          -8.75,
+          -8.75,
+          -8.75,
+          -8.75
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 79,
+          "row": 23
+        },
+        "kind": "floor",
+        "corners": [
+          -8.75,
+          -8.75,
+          -8.75,
+          -8.75
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 79,
+          "row": 24
+        },
+        "kind": "floor",
+        "corners": [
+          -8.75,
+          -8.75,
+          -8.75,
+          -8.75
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 79,
+          "row": 25
+        },
+        "kind": "floor",
+        "corners": [
+          -8.75,
+          -8.75,
+          -8.75,
+          -8.75
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 79,
+          "row": 26
+        },
+        "kind": "floor",
+        "corners": [
+          -8.75,
+          -8.75,
+          -8.75,
+          -8.75
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      },
+      {
+        "cell": {
+          "col": 79,
+          "row": 27
+        },
+        "kind": "floor",
+        "corners": [
+          -8.75,
+          -8.75,
+          -8.75,
+          -8.75
+        ],
+        "materialId": "a1-stone",
+        "movementCost": 1,
+        "medium": "solid"
+      }
+    ]
+  },
+  "cols": 80,
+  "rows": 28,
+  "transition": {
+    "from": {
+      "surfaceId": "ground",
+      "cell": {
+        "col": 46,
+        "row": 13
+      }
+    },
+    "to": {
+      "surfaceId": "a1-approach",
+      "cell": {
+        "col": 47,
+        "row": 13
+      }
+    },
+    "mode": "ramp"
+  },
+  "colliders": [
+    {
+      "id": "lower-garden-22",
+      "center": [
+        87.0,
+        -2.25,
+        33.75
+      ],
+      "size": [
+        3,
+        0.7,
+        1.5
+      ]
+    },
+    {
+      "id": "lower-garden-24",
+      "center": [
+        97.5,
+        -4.75,
+        36.75
+      ],
+      "size": [
+        3,
+        0.7,
+        1.5
+      ]
+    }
+  ],
+  "legacyEastBoundaryFacesRemovedInPreview": 274,
+  "routeTargets": [
+    {
+      "surfaceId": "a1-approach",
+      "cell": {
+        "col": 57,
+        "row": 21
+      }
+    },
+    {
+      "surfaceId": "a1-approach",
+      "cell": {
+        "col": 64,
+        "row": 23
+      }
+    },
+    {
+      "surfaceId": "a1-approach",
+      "cell": {
+        "col": 77,
+        "row": 26
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "A1_SHORE_ENTRY",
+      "surfaceId": "a1-approach",
+      "cell": {
+        "col": 77,
+        "row": 26
+      },
+      "status": "local shore, global coast pending"
+    },
+    {
+      "id": "A1_MONASTERY_CONNECTION",
+      "surfaceId": "ground",
+      "cell": {
+        "col": 1,
+        "row": 13
+      },
+      "status": "prepared for A2-A5 assembly; no teleportation"
+    }
+  ],
+  "manualInteractions": [
+    {
+      "id": "A1_STATUE",
+      "canon": "Stone statue depicting Astalagan, a bronze dragon; investigation resolved by DM"
+    },
+    {
+      "id": "A1_REST",
+      "canon": "Four original beds and eight hammocks; rest duration and outcomes resolved by DM"
+    },
+    {
+      "id": "A1_GARDENS",
+      "canon": "Flowers, herbs and vegetables on the lower approach; harvest decisions by DM"
+    }
+  ]
+}

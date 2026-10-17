@@ -13,7 +13,7 @@ function sceneLoader() {
     reachable: { clear: vi.fn() }, areaEffects: { clear: vi.fn() }, occlusionCache: new Map(), combatOcclusionCues: new Map(), combatOcclusionCache: new Map(), tokenViews: new Map(), propViews: new Map(), pickupViews: new Map(), standingActors: new Set(), mirrorGeneration: 0,
     readCameraOrientation: vi.fn(() => 0), readCameraZoom: vi.fn(() => null),
     clearEditor: vi.fn(), clearAttackRange: vi.fn(), drawGrid: vi.fn(), drawWaves: vi.fn(), updateCamera: vi.fn(),
-    installD8Renderer: vi.fn(async () => true), d8CameraMotion: { reset: vi.fn() }
+    installD8Renderer: vi.fn(async () => true), d8CameraMotion: { reset: vi.fn() }, d8InteriorTilt: {reset:vi.fn()}
   });
   vi.stubGlobal('window', { matchMedia: () => ({ matches: false }) });
   return renderer;

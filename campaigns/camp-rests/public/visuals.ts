@@ -3,12 +3,13 @@ import type { Scene } from '@babylonjs/core/scene.js';
 import type { Cell, PublicSceneDefinition } from '../../../engine/shared/campaign.js';
 import type { CampRestPhase, CampRestState } from '../../../engine/shared/camp-rest.js';
 import type { EnvironmentState } from '../../../engine/shared/protocol.js';
+import type { ClimateState, NaturalLightProfile } from '../../../engine/shared/game-time.js';
 import { createA1Visuals } from './a1-visuals.js';
 import { createOutdoorVisuals } from './outdoor-visuals.js';
 
 export type CampVisuals = {
   root: TransformNode;
-  update: (elapsedSeconds: number, phase?: CampRestPhase | null, interactions?: CampRestState['interactions'], focusCell?: Cell | null, environment?: EnvironmentState, serverNow?: number) => void;
+  update: (elapsedSeconds: number, phase?: CampRestPhase | null, interactions?: CampRestState['interactions'], focusCell?: Cell | null, environment?: EnvironmentState, serverNow?: number, climate?: ClimateState, light?: NaturalLightProfile) => void;
   weatherCovered?: (x: number, z: number) => boolean;
   setInteractionHighlights: (target: boolean | string | null) => void;
 };

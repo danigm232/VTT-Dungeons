@@ -1,5 +1,5 @@
 import { basicCombatActionAnimationStates, explorationBasicActionCatalogue } from '../shared/protocol';
-import { combatActionVisualState } from '../shared/combat-animation';
+import { combatActionVisualState, combatVisualFallbackState } from '../shared/combat-animation';
 import type { AttackAnimationType, CombatAction, DmState, WorldSnapshot } from '../shared/protocol';
 import type { PublicCampaignDefinition } from '../shared/campaign';
 
@@ -18,7 +18,8 @@ export function visibleAuditActors(snapshot: WorldSnapshot | null, campaignId: s
 export function resolveVisualState(states: Record<string, unknown>, state: string, direction = 's'): string | null {
   const prefix = state === 'moving' ? 'direction' : state;
   for (const candidate of [`${state}-${direction}`, `${prefix}-${direction}`, state]) if (states[candidate]) return candidate;
-  return null;
+  const fallback=combatVisualFallbackState(state);
+  return fallback && states[fallback] ? fallback : null;
 }
 export function auditActions(entity: { id: string; tokenId: string; kind: string }, snapshot: WorldSnapshot, dm: DmState | null, campaign: PublicCampaignDefinition): VisualAction[] {
   const states = snapshot.tokenAssets.tokenAnimations[entity.tokenId] ?? campaign.tokenAnimations[entity.tokenId] ?? {};
@@ -28,7 +29,7 @@ export function auditActions(entity: { id: string; tokenId: string; kind: string
   const add = (id: string, label: string, state: string, group: string, extra: Partial<VisualAction> = {}) => {
     const chosen = resolveVisualState(states, state), signature = chosen ? fingerprint(chosen) : '';
     const sharedState = chosen && Object.keys(states).some(other => other !== chosen && !/-(n|ne|e|se|s|sw|w|nw)$/.test(other) && fingerprint(other) === signature);
-    result.push({ id, label, state, group, coverage: !chosen ? 'missing' : signatureOwners.has(signature) || sharedState ? 'reused' : 'own', ...extra });
+    result.push({ id, label, state, group, coverage: !chosen ? 'missing' : chosen!==state && chosen===combatVisualFallbackState(state) || signatureOwners.has(signature) || sharedState ? 'reused' : 'own', ...extra });
     if (chosen) signatureOwners.set(signature, id);
   };
   for (const name of ['idle', 'moving', 'running', 'jump', 'climb', 'swim', 'hit', 'fall', 'prone', 'defeated', 'stand']) add(`pose:${name}`, visualStateLabel(name), name, 'Movimiento y estados');
@@ -41,7 +42,7 @@ export function auditActions(entity: { id: string; tokenId: string; kind: string
     }
     for (const action of own?.explorationActions ?? []) {
       const text = `${action.id} ${action.label}`.toLowerCase();
-      add(`explore-spell:${action.id}`, action.label, 'spell', 'Fuera de combate', { effect: /pluma|feather/.test(text) ? 'feather' : /niebla|fog/.test(text) ? 'fog' : 'spark' });
+      add(`explore-spell:${action.id}`, action.label, /pluma|feather/.test(text) ? 'spell-feather' : /niebla|fog/.test(text) ? 'spell-fog' : 'spell', 'Fuera de combate', { effect: /pluma|feather/.test(text) ? 'feather' : /niebla|fog/.test(text) ? 'fog' : 'spark' });
     }
   }
   const attacks: CombatAction[] = own?.attacks ?? dm?.npcs.find(npc => npc.id === entity.id)?.attacks ?? dm?.combat.participants.find(actor => actor.id === entity.id)?.attacks ?? [];

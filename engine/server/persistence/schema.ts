@@ -4,6 +4,7 @@ import { campRestStateSchema } from '../../shared/camp-rest.js';
 import { durableVisualEffectSchema } from '../../shared/world-visual-effects.js';
 
 const boundedInt = z.number().int().safe().nonnegative();
+const climateState = z.object({ updatedAtGameSeconds: z.number().finite().min(0), snowCoverage: z.number().finite().min(0).max(1), snowDepthCm: z.number().finite().min(0).max(500), wetness: z.number().finite().min(0).max(1), puddleCoverage: z.number().finite().min(0).max(1), fogDensity: z.number().finite().min(0).max(1), floodLevel: z.number().finite().min(0).max(1) }).strict();
 const track = z.object({ playing: z.boolean(), volume: z.number().finite().min(0).max(1), offsetSeconds: z.number().finite().min(0).max(1e12), assetId: idSchema.optional(), loop: z.boolean().optional(), rate: z.number().finite().min(.5).max(1.5).optional(), repeats: z.number().int().min(1).max(12).optional() }).strict();
 const common = { id: idSchema, cell: cellSchema, surfaceId: idSchema.optional(), rotation: rotationSchema, structure: z.enum(['intact', 'damaged', 'destroyed']) };
 const loot = { lootId: idSchema, lootLabel: z.string().min(1).max(160), lootOwnerId: idSchema.nullable() };
@@ -77,8 +78,10 @@ export const durablePayloadSchema = z.object({
   sceneId: idSchema,
   /** Geometry revision for campaigns whose saved grid coordinates can change. */
   wreckGridVersion: boundedInt.min(1).optional(),
+  retreatGridVersion: boundedInt.min(1).optional(),
   /** Tactical cell layout revision for the private D8 maps. */
   d8GridVersion: boundedInt.min(1).max(9).optional(),
+  actorLayoutVersion: boundedInt.min(1).max(99).optional(),
   characters: z.array(z.object({ id: idSchema, hp: boundedInt.max(999), maxHp: boundedInt.min(1).max(999).optional(), inventory: z.array(z.string().min(1).max(200)).max(100), sheet: characterSheet.nullable().optional(), resources: z.record(idSchema, resource).optional(), deathSaves: z.object({ successes: boundedInt.max(3), failures: boundedInt.max(3), stable: z.boolean() }).strict().optional(), sceneId: idSchema.optional(), cell: cellSchema, surfaceId: idSchema, facing: z.enum(['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west']) }).strict()).min(1).max(20),
   npcs: z.array(z.object({ id: idSchema, sceneId: idSchema, surfaceId: idSchema, cell: cellSchema, facing: z.enum(['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west']), hp: boundedInt.max(999).optional(), maxHp: boundedInt.min(1).max(999).optional(), combatEnabled: z.boolean().optional(), visible: z.boolean().optional() }).strict()).max(100).optional(),
   creature: z.object({
@@ -87,7 +90,9 @@ export const durablePayloadSchema = z.object({
   }).strict().nullable(),
   scenes: z.array(z.object({ sceneId: idSchema, objects: z.array(object).max(100) }).strict()).min(1).max(100),
   camera: z.object({ mode: z.enum(['fixed', 'semiFixed', 'follow']), focusId: idSchema.nullable() }).strict(),
-  environment: z.object({ storm: z.boolean(), stormIntensity: z.number().finite().min(0).max(1).optional(), timeOfDay: z.enum(['auto', 'day', 'night','sunset','dawn']).optional(), precipitation: z.enum(['none','rain','snow']).optional(), precipitationLevel: z.union([z.literal(1),z.literal(2),z.literal(3)]).optional(), windIntensity: z.number().finite().min(0).max(1).optional() }).strict(),
+  environment: z.object({ storm: z.boolean(), stormIntensity: z.number().finite().min(0).max(1).optional(), timeOfDay: z.enum(['auto', 'day', 'night','sunset','dawn']).optional(), precipitation: z.enum(['none','rain','snow']).optional(), precipitationLevel: z.union([z.literal(1),z.literal(2),z.literal(3)]).optional(), windIntensity: z.number().finite().min(0).max(1).optional(), temperatureC: z.number().finite().min(-60).max(60).optional(), fogTarget: z.number().finite().min(0).max(1).optional(), floodTarget: z.number().finite().min(0).max(1).optional(), snowDifficultTerrain: z.boolean().optional(), seaIntensity: z.number().finite().min(0).max(1).optional(), weatherRules: z.boolean().optional() }).strict(),
+  gameClock: z.object({ seconds: z.number().finite().min(0).max(3_153_600_000), manuallyPaused: z.boolean() }).strict().optional(),
+  climates: z.array(z.object({ sceneId: idSchema, state: climateState }).strict()).max(100).optional(),
   audio: z.object({ music: track, layers: z.object({ ocean: track, wind: track, wood: track, storm: track }).strict(), sfxLoops: z.record(idSchema, track).optional() }).strict(),
   conditions: z.record(idSchema, z.array(combatCondition).max(8)).optional(),
   conditionSources: z.record(idSchema, z.array(conditionSource).max(16)).optional(),
@@ -102,7 +107,7 @@ export const durablePayloadSchema = z.object({
 }).strict();
 export type DurablePayload = z.infer<typeof durablePayloadSchema>;
 
-const envelope = { format: z.literal('dungeons-save'), campaignId: idSchema, campaignVersion: z.string().min(1).max(30), campaignStateVersion: boundedInt.min(1), saveId: z.string().uuid(), generation: boundedInt.min(1), stateRevision: boundedInt, savedAt: z.string().datetime({ offset: true }), checksum: z.string().regex(/^[a-f0-9]{64}$/) };
+const envelope = { format: z.literal('dungeons-save'), campaignId: idSchema, campaignVersion: z.string().min(1).max(30), campaignStateVersion: boundedInt.min(1), saveId: z.string().uuid(), generation: boundedInt.min(1), stateRevision: boundedInt, savedAt: z.string().datetime({ offset: true }), saveKind: z.enum(['automatic', 'manual']).optional(), checksum: z.string().regex(/^[a-f0-9]{64}$/) };
 export const saveV1Schema = z.object({ ...envelope, schemaVersion: z.literal(1), payload: durablePayloadSchema }).strict();
 const legacyPayload = durablePayloadSchema.omit({ camera: true });
 export const saveV0Schema = z.object({ ...envelope, schemaVersion: z.literal(0), payload: legacyPayload }).strict();

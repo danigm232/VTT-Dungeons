@@ -1,5 +1,7 @@
+import { seaState, strongWind, precipitationKind, weatherLight } from '../../../engine/shared/weather.js';
+import { createA1DragonStatue } from './a1-dragon-statue.js';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color.js';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
+import { Matrix, Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import { PointLight } from '@babylonjs/core/Lights/pointLight.js';
 import { Mesh } from '@babylonjs/core/Meshes/mesh.js';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder.js';
@@ -15,6 +17,7 @@ import type { Scene } from '@babylonjs/core/scene.js';
 import type { Cell, PublicSceneDefinition } from '../../../engine/shared/campaign.js';
 import type { CampRestPhase, CampRestState } from '../../../engine/shared/camp-rest.js';
 import type { EnvironmentState } from '../../../engine/shared/protocol.js';
+import type { ClimateState, NaturalLightProfile } from '../../../engine/shared/game-time.js';
 import { illustratedMaterial, mergeDecoration, updateCutaway, createRestLighting, softPoolMaterial, fracturedStone, organicStone, worldSurfaceUV } from '../../../engine/client/diorama-kit.js';
 import { createCoastalBackdrop } from '../../../engine/client/coastal-backdrop.js';
 import type { CampVisuals } from './visuals.js';
@@ -22,7 +25,8 @@ import { registerInteractionPart, type InteractionPartRole } from '../../../engi
 import { A1_FIRE_CELL, A1_PLAZA_CELLS, A1_ROOMS, A1_ROOM_CELL_KEYS, A1_STATUE_CELL, A1_TILE_METERS, type A1RoomSpec } from './a1-layout.js';
 import { campMaterialRelief, campClothSurface, campFoamTexture, createCampDetailKit, weatherRock } from './camp-detail-kit.js';
 import { CampFire } from './camp-fire.js';
-import { CampShadows, createCampCoals, createCampSurfaceEffects } from './camp-surface-effects.js';
+import { createCampLife } from './camp-life.js';
+import { CampShadows, createCampCoals, createCampSurfaceEffects, includeCampActors } from './camp-surface-effects.js';
 
 const darkness: Record<CampRestPhase, number> = { arrival: .12, dusk: .65, night: .95, dawn: .4, finalization: .12 };
 const worldCell = (col: number, row: number) => new Vector3((col + .5) * A1_TILE_METERS, 0, (row + .5) * A1_TILE_METERS);
@@ -79,7 +83,7 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition)
     glow: painted('fire-glow-v5', '#ffd084'),
     flame: painted('fire-core-v5', '#ff9738'),
     halo: painted('interaction-halo-v5', '#ffe0a0'),
-    shade: softPoolMaterial(scene, 'a1:contact-shadow-v5', '#211d1a', .34)
+    shade: softPoolMaterial(scene, 'a1:contact-shadow-v5', '#211d1a', .48)
   };
   [M.carved,M.cliff,M.limestone,...[M.cellFloor,M.cellWarm,M.cellCool,M.cellDark]].forEach(m=>campMaterialRelief(scene,m,'rock'));
   // Ribbons and carved roofs share the rock material. Light both exposed faces
@@ -134,7 +138,7 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition)
     const mesh=Mesh.MergeMeshes(parts,true,true,undefined,false,true);if(!mesh)return [];
     mesh.name=name;mesh.parent=root;mesh.isPickable=false;mesh.checkCollisions=false;mesh.metadata={content:'VTT_AMBIENCE',decorativeOnly:true};return [mesh];
   }
-  function box(name: string, x: number, y: number, z: number, width: number, height: number, depth: number, material: StandardMaterial) { const mesh = add(MeshBuilder.CreateBox(name, { width, height, depth }, scene), new Vector3(x, y, z), material); if (material.name.includes('-v8') || material.name.includes('-v6')) worldSurfaceUV(mesh, material.name.includes('cliff') ? 14 : 6.2); return mesh; }
+  function box(name: string, x: number, y: number, z: number, width: number, height: number, depth: number, material: StandardMaterial) { const mesh = add(MeshBuilder.CreateBox(name, { width, height, depth }, scene), new Vector3(x, y, z), material); if(material===M.cliff||material===M.carved)worldSurfaceUV(mesh,3.3);else if(material.name.includes('-v8')||material.name.includes('-v6'))worldSurfaceUV(mesh,6.2); return mesh; }
   function sphere(name: string, x: number, y: number, z: number, sx: number, sy: number, sz: number, material: StandardMaterial, segments = 8) { const mesh = add(MeshBuilder.CreateSphere(name, { diameter: 1, segments }, scene), new Vector3(x, y, z), material); mesh.scaling.set(sx, sy, sz); return mesh; }
   function cylinder(name: string, x: number, y: number, z: number, height: number, diameter: number, material: StandardMaterial, tessellation = 10) { return add(MeshBuilder.CreateCylinder(name, { height, diameter, tessellation }, scene), new Vector3(x, y, z), material); }
   function rock(name: string, x: number, y: number, z: number, width: number, height: number, depth: number, seed: number, material = M.cliff) { const mesh = add(fracturedStone(scene, name, width, height, depth, seed), new Vector3(x, y, z), material); mesh.rotation.y = Math.sin(seed * 2.71) * .28;if(material===M.cliff||material===M.carved)weatherRock(mesh,seed);return mesh; }
@@ -161,8 +165,8 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition)
   function grassTuft(x: number, z: number, size: number, seed: number, y = 0) { const material = foliageVariants[(Math.abs(seed) + 1) % foliageVariants.length]!; for (let card = 0; card < 3; card++) plantCard(x, y + size * .36, z, size * (.44 + card * .08), size, 1 + card % 3, seed + card * Math.PI / 3, 0, material); }
   function flame(name: string, x: number, y: number, z: number, scale = 1) { const previous = bucket; bucket = flameMeshes; const mesh = sphere(name, x, y, z, .18 * scale, .34 * scale, .18 * scale, M.flame, 7); mesh.metadata = { baseX: .18 * scale, baseY: .34 * scale, baseZ: .18 * scale, phase: x * .3 + z * .7 }; bucket = previous; return mesh; }
 
-  box('a1:ledge-base', 36, -.42, 17.2, 96, .8, 19.5, M.cliff);
-  box('a1:cliff-plinth', 36, -4.8, 13.4, 102, 9.4, 28, M.cliff);
+  box('a1:ledge-base', 36, -.42, 17.2, 312, .8, 19.5, M.cliff);
+  box('a1:cliff-plinth', 36, -4.8, 13.4, 312, 9.4, 28, M.cliff);
 
   for (const cell of A1_PLAZA_CELLS) {
     const p = worldCell(cell.col, cell.row), seed = cell.col * 13 + cell.row * 31;
@@ -183,14 +187,49 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition)
     if (seed % 11 === 0) { const scar = rock('a1:plaza-worn-patch', p.x + .28, .105, p.z - .24, .58, .055, .42, seed + 700, M.earth); scar.rotation.y = seed * .17; }
   }
   for (let i = 0; i < 44; i++) { const x = 3.2 + i * 1.55, z = 23.7 + Math.sin(i * .43) * .22; const slab = box('a1:worn-path-slab', x, .075, z, 1.28, .06, .75, M.plaza); slab.rotation.y = Math.sin(i * 2.2) * .07; }
-  for (const side of [-1, 1]) for (let step = 0; step < 7; step++) { const x = side < 0 ? 2.2 - step * 1.05 : 69.8 + step * 1.05, z = 24.3 + step * .62; const stair = box('a1:path-stair', x, .08 - step * .05, z, 1.45, .14, .92, M.plaza); stair.rotation.y = side * .12; }
-
-  // Terrace edge balustrade posts overlooking the coastal cliffs
-  for (let col = 4; col <= 43; col += 3) {
-    const bp = worldCell(col, 18);
-    box('a1:balustrade-post', bp.x, .42, bp.z + .68, .26, .84, .26, M.limestone);
-    cylinder('a1:balustrade-cap', bp.x, .88, bp.z + .68, .1, .32, M.limestone, 6);
+  // Continuation beyond the playable boundary; visual terrain only. The rail
+  // marks the end of this independent module, while the road keeps its course.
+  for (const side of [-1, 1]) {
+    const edge = side < 0 ? 1.45 : 70.55;
+    for (let step = 0; step < 54; step++) {
+      const x=edge+side*(1.05+step*2.1), z=20.9+Math.sin(step*.18)*1.05+step*.018;
+      const base=box('a1:continuing-road-bed',x,-.025,z,2.5,.18,3.65,M.earth);
+      base.metadata={content:'VTT_AMBIENCE',decorativeOnly:true,continuation:true};
+      for(let lane=0;lane<3;lane++) {
+        const slab=rock('a1:continuing-road-stone',x+Math.sin(step*3+lane)*.14,.11,z+(lane-1)*1.03,1.95,.14,.92,step*17+lane+(side+1)*90,plazaMaterials[(step+lane)%4]!);
+        worldSurfaceUV(slab,6.2);slab.rotation.y=Math.sin(step*1.8+lane)*.12;
+      }
+      if(step%4===1){shrub(x+side*.45,z+2.3,.55+cliffRandom(step+74)*.5,920+step,.05);grassTuft(x-.6,z-2.15,.65,990+step,.03);}
+    }
+    for(const z of [19.25,20.9,22.55]) {
+      box('a1:road-limit-post',edge,.62,z,.18,1.24,.18,M.darkWood);
+      cylinder('a1:road-limit-cap',edge,1.27,z,.1,.24,M.wood,8);
+    }
+    for(const y of [.54,1])detail.tube('road-limit-rope',[new Vector3(edge,y,19.25),new Vector3(edge,y-.12,20.05),new Vector3(edge,y,20.9),new Vector3(edge,y-.12,21.7),new Vector3(edge,y,22.55)],.047,M.linen);
+    const board=box('a1:road-limit-barrier',edge,.8,20.9,.10,.27,1.6,M.wood);board.metadata={content:'VTT_AMBIENCE',decorativeOnly:true,boundary:true};
   }
+
+  // Grounded safety posts and a visibly sagging rope along the real ledge.
+  const rail:Vector3[]=[];
+  for (let col = 4; col <= 43; col += 3) {
+    const row=Math.max(...A1_PLAZA_CELLS.filter(c=>c.col===col).map(c=>c.row));
+    const bp=worldCell(col,row);rock('a1:balustrade-grounded-foot',bp.x,-.16,bp.z+.48,.72,.6,.9,col,M.carved);
+    box('a1:balustrade-post',bp.x,.53,bp.z+.48,.23,1.06,.23,M.darkWood);
+    cylinder('a1:balustrade-cap',bp.x,1.10,bp.z+.48,.1,.29,M.wood,8);
+    rail.push(bp.add(new Vector3(0,.98,.48)));
+    // Asymmetric pockets, never a uniform line: bare gaps, moss, flowering
+    // shrubs and grasses cluster around sheltered stones instead of each post.
+    if(col%4!==1)for(let i=0;i<2+col%3;i++){
+      const seed=col*41+i*17,x=bp.x+(cliffRandom(seed)-.5)*2.9,z=bp.z-.25+(cliffRandom(seed+1)-.5)*1.3;
+      if(i%2)grassTuft(x,z,.45+cliffRandom(seed+2)*.5,seed,.10);
+      else shrub(x,z,.42+cliffRandom(seed+3)*.58,seed,.08);
+    }
+  }
+  for(let i=1;i<rail.length;i++){
+    const a=rail[i-1]!,b=rail[i]!,mid=Vector3.Lerp(a,b,.5);mid.y-=.21;
+    detail.tube('cliff-safety-rope',[a,Vector3.Lerp(a,mid,.5),mid,Vector3.Lerp(mid,b,.5),b],.042,M.linen);
+  }
+
 
   bucket = cliffMeshes;
   // Natural rugged multi-tiered coastal cliff with organic fractures and jagged profile
@@ -200,7 +239,7 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition)
   for (let layer = 0; layer < coastY.length; layer++) {
     const path: Vector3[] = [];
     for (let i = 0; i <= 96; i++) {
-      const x = -18 + i * 1.125;
+      const x = -120 + i * 3.25;
       const jaggedRidge = Math.sin(x * .12 + layer * .85) * 1.45 + Math.cos(x * .28 - layer * 1.1) * .95 + Math.sin(x * .65 + layer * 2.1) * .45;
       const rockCrag = Math.sin(x * .38 + layer * 1.5) * .55 + Math.cos(x * .82 - layer) * .35;
       const cragHeight = Math.sin(x * .45 + layer * .7) * .48 + Math.cos(x * .18 - layer * 1.4) * .32;
@@ -212,7 +251,7 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition)
   organicCliffUV(coastalFace, 3.3);weatherRock(coastalFace,41,true);
 
   // Varied jagged rock shelves and sea boulders breaking up linear lines
-  const cliffRandom = (seed: number) => { const value = Math.sin(seed * 78.233 + 12.9898) * 43758.5453; return value - Math.floor(value); };
+  function cliffRandom(seed: number) { const value = Math.sin(seed * 78.233 + 12.9898) * 43758.5453; return value - Math.floor(value); }
   for (let i = 0; i < 28; i++) {
     const seed = 90 + i * 13, x = -14 + cliffRandom(seed) * 105;
     const y = -.45 - cliffRandom(seed + 1) * 8.2;
@@ -222,7 +261,7 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition)
     if (i % 3 === 0) organicBoulder('a1:tidal-boulder', x + (cliffRandom(seed + 6) - .5) * 3.2, -8.6 + cliffRandom(seed + 7) * .9, 31.8 + (cliffRandom(seed + 8) - .5) * 3.4, 2.4 + cliffRandom(seed + 9) * 2.1, 1.2 + cliffRandom(seed + 10) * 1.3, 2.3 + cliffRandom(seed + 11) * 1.8, seed + 500, M.cliff);
   }
 
-  const inlandPlateau = add(MeshBuilder.CreateGround('a1:inland-plateau', { width: 170, height: 90, subdivisions: 32, updatable: true }, scene), new Vector3(36, 21, -74), M.cliff);
+  const inlandPlateau = add(MeshBuilder.CreateGround('a1:inland-plateau', { width: 312, height: 90, subdivisions: 32, updatable: true }, scene), new Vector3(36, 21, -74), M.cliff);
   const plateauPositions = inlandPlateau.getVerticesData('position')!;
   const plateauHeight = (x: number, z: number) => {
     const rise=Math.min(1,Math.max(0,(-z-30)/18));
@@ -248,7 +287,7 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition)
   for (let layer = 0; layer < upperY.length; layer++) {
     const path: Vector3[] = [], y = upperY[layer]!, z = upperZ[layer]!;
     for (let i = 0; i <= 78; i++) {
-      const x = -16 + i * 1.35;
+      const x = -120 + i * 4;
       const broadRidge = Math.sin(x * .085 + layer * .63) * 1.15 + Math.sin(x * .22 - layer * .81) * .62 + Math.cos(x * .041 + layer * .9) * 1.35;
       const fracture = Math.sin(x * .31 + layer * 1.3) * .8 + Math.sin(x * .071 - layer) * 1.1 + Math.cos(x * .49 + layer * 2.4) * .45;
       path.push(new Vector3(x, y + Math.sin(x * .54 + layer) * .35 + broadRidge * .2, z + broadRidge * .75 + fracture * .8));
@@ -460,10 +499,17 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition)
   }
   function furnishRoom(room: A1RoomSpec, roomStatics: Mesh[]) {
     const previous = bucket; bucket = roomStatics;
+    const footprint=new Set(room.cells.map(c=>key(c.col,c.row)));
     const cloth = room.role === 'varnoth' ? M.blue : room.role === 'myla' ? M.red : room.role.includes('kobolds') ? M.green : M.linen;
     const rugMat = room.role === 'varnoth' ? M.blue : room.role === 'myla' ? M.red : M.linen;
     for (const item of room.furniture) {
       const p = worldCell(item.cell.col, item.cell.row);
+      // Bed frames and desk trims exceed a half-cell near the carved walls.
+      // Inset the actual object, preserving its authoritative interaction cell.
+      const halfX=item.kind==='bed'?.71:item.kind==='desk'?.67:.38;
+      const inset=Math.max(0,halfX+.28-.75);
+      if(!footprint.has(key(item.cell.col-1,item.cell.row)))p.x+=inset;
+      if(!footprint.has(key(item.cell.col+1,item.cell.row)))p.x-=inset;
       const point = definition.camp!.interactionPoints.find(point => point.kind === 'bed' && point.objectCell?.col === room.objectCell.col && point.objectCell.row === room.objectCell.row)!;
       if (item.kind === 'bed') {
         box('a1:bed-rug', p.x, .04, p.z, 1.85, .015, 2.65, rugMat);
@@ -530,86 +576,63 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition)
         }
       }
     }
-    const center = roomCenters.get(room.id)!;
-    if (room.role === 'free') {
-      shelfUnit('a1:free-linen-shelf', center.x - 2.1, center.z - 2.1, 1.35, 3);
-      for (let i = 0; i < 5; i++) box('a1:free-folded-linen', center.x - 2.55 + i * .23, .55 + (i % 2) * .5, center.z - 1.82, .2, .17, .36, i % 2 ? M.blue : M.linen);
-      box('a1:free-bench', center.x + 1.45, .3, center.z + 1.2, 1.45, .22, .52, M.wood);
-      box('a1:free-washstand', center.x - 1.6, .38, center.z + 1.2, .82, .72, .64, M.wood);
-      cylinder('a1:free-basin', center.x - 1.6, .82, center.z + 1.2, .14, .42, M.pottery, 8);
-      cylinder('a1:free-pitcher', center.x - 1.3, .88, center.z + 1.2, .26, .19, M.pottery, 8);
-      const bed=worldCell(room.objectCell.col,room.objectCell.row);detail.basket(bed.add(new Vector3(.45,.04,.68)),.3);
+    // Perimeter anchors use the cave footprint; the entrance neck is excluded.
+    const cells=room.cells.filter(c=>c.row<11),x0=Math.min(...cells.map(c=>c.col))*1.5,x1=(Math.max(...cells.map(c=>c.col))+1)*1.5,z0=Math.min(...cells.map(c=>c.row))*1.5,z1=(Math.max(...cells.map(c=>c.row))+1)*1.5;
+    const rear=z0+.52,front=z1-.85;
+    if(room.role==='free'){
+      shelfUnit('a1:free-linen-shelf',x1-2.25,rear,1.15,3);
+      for(let i=0;i<4;i++)box('a1:free-folded-linen',x1-2.65+i*.26,.55+(i%2)*.5,rear+.08,.2,.17,.3,i%2?M.blue:M.linen);
+      box('a1:free-bench',x1-1.1,.3,front,1.1,.22,.48,M.wood);shadow(x1-1.1,front,1.2,.6);
+      box('a1:free-washstand',x0+1,.38,front,.8,.72,.64,M.wood);shadow(x0+1,front,.9,.8);
+      detail.bowl(new Vector3(x0+1,.78,front),.22);detail.bottle(new Vector3(x0+1.24,.76,front+.1),.27);
+    }else if(room.role==='tarak'){
+      shelfUnit('a1:tarak-herb-shelf',x1-1.05,rear,1.1,4);
+      for(let i=0;i<8;i++)detail.bottle(new Vector3(x1-1.45+(i%3)*.36,.25+Math.floor(i/3)*.52,rear+.07),.22);
+      for(let i=0;i<4;i++)plantCard(x0+.9+i*.38,1.9,rear,.35,.65,i%2,0,Math.PI);
+      const p=new Vector3(x0+1,.03,z1-3);box('a1:tarak-mortar-table',p.x,.32,p.z,.68,.64,.68,M.wood);detail.bowl(p.add(new Vector3(0,.66,0)),.16,M.limestone);shadow(p.x,p.z,.8,.8);
+    }else if(room.role==='varnoth'){
+      shelfUnit('a1:varnoth-bookcase',x1-1.15,rear,1.5,4,M.darkWood);
+      for(let i=0;i<10;i++)box('a1:varnoth-book',x1-1.7+(i%5)*.27,.4+Math.floor(i/5)*.53,rear+.08,.2,.36,.28,i%4?M.paper:M.blue);
+      const shield=add(MeshBuilder.CreateDisc('a1:varnoth-shield',{radius:.46,tessellation:18},scene),new Vector3(x0+1.1,1.3,rear),M.brass);shield.rotation.y=0;
+      box('a1:varnoth-spear',x0+1.85,1.25,rear,.07,2.5,.07,M.darkWood).rotation.z=.12;
+    }else if(room.role==='myla'){
+      shelfUnit('a1:myla-parts-shelf',x0+1.25,rear,1.65,4);shelfUnit('a1:myla-crate-shelf',x1-1.1,rear,1.25,3,M.darkWood);
+      for(let i=0;i<12;i++)detail.round('myla-rivet-tin',new Vector3(x0+.65+(i%5)*.3,.27+Math.floor(i/5)*.52,rear+.08),.12,.1,i%2?M.brass:M.metal);
+      for(let i=0;i<3;i++)box('a1:myla-crate',x1-.8,.3+i*.56,z0+3,.62,.56,.62,M.wood);shadow(x1-.8,z0+3,.8,.8);
+    }else if(room.role==='kobolds-west'){
+      shelfUnit('a1:kobold-west-shelf',(x0+x1)/2,rear,1.6,3);
+      for(let i=0;i<6;i++)sphere('a1:kobold-bundle',(x0+x1)/2-.6+(i%3)*.5,.35+Math.floor(i/3)*.5,rear+.05,.34,.2,.28,i%2?M.green:M.linen);
+      for(let i=0;i<2;i++)detail.basket(new Vector3(x0+.55+i*(x1-x0-1.1),.02,front-.25),.3);
+    }else{
+      shelfUnit('a1:kobold-east-cubbies',(x0+x1)/2,rear,1.5,4,M.darkWood);
+      for(let i=0;i<8;i++)box('a1:kobold-keepsake',(x0+x1)/2-.5+(i%4)*.35,.3+Math.floor(i/4)*.52,rear+.05,.23,.2,.24,i%3?M.pottery:M.brass);
+      const x=x0+1.7,z=front-.3;box('a1:kobold-low-table',x,.28,z,1.15,.18,.7,M.wood);shadow(x,z,1.3,.9);
+      for(const dx of [-.9,.9]){cylinder('a1:kobold-stool',x+dx,.22,z,.44,.26,M.darkWood,8);shadow(x+dx,z,.4,.4);}
+      detail.bowl(new Vector3(x-.25,.4,z),.12);detail.bottle(new Vector3(x+.25,.38,z),.2);
     }
-    else if (room.role === 'tarak') {
-      shelfUnit('a1:tarak-herb-shelf', center.x + 1.25, center.z - 3.7, 1.1, 4);
-      for (let i = 0; i < 8; i++) cylinder('a1:tarak-jar', center.x + .82 + (i % 3) * .37, .36 + Math.floor(i / 3) * .49, center.z - 3.38, .28, .2 + (i % 2) * .06, i % 3 ? M.pottery : M.brass, 9);
-      for (let i = 0; i < 4; i++) plantCard(center.x - 1.25 + i * .36, 1.9, center.z - 3.55, .42, .7, i % 2, 0, Math.PI);
-      box('a1:tarak-mortar-table', center.x - 1.4, .32, center.z - 1.8, .68, .64, .68, M.wood);
-      cylinder('a1:tarak-mortar', center.x - 1.4, .72, center.z - 1.8, .14, .24, M.limestone, 8);
-      detail.bowl(new Vector3(center.x-1.4,.79,center.z-1.8),.13,M.limestone);detail.bottle(new Vector3(center.x+1.2,1.25,center.z-3.35),.24);
-    }
-    else if (room.role === 'varnoth') {
-      shelfUnit('a1:varnoth-bookcase', center.x + 2.25, center.z - 2.45, 1.5, 4, M.darkWood);
-      for (let i = 0; i < 11; i++) box('a1:varnoth-book', center.x + 1.65 + (i % 5) * .27, .45 + Math.floor(i / 5) * .52, center.z - 2.15, .2, .38 + (i % 3) * .05, .28, i % 4 === 0 ? M.blue : M.paper);
-      const shield = add(MeshBuilder.CreateDisc('a1:varnoth-shield', { radius: .46, tessellation: 18 }, scene), new Vector3(center.x - 2.45, 1.3, center.z - 1), M.brass);
-      shield.rotation.y = Math.PI / 2;
-      box('a1:varnoth-spear', center.x - 2.37, 1.25, center.z + .45, .07, 2.5, .07, M.darkWood).rotation.x = .12;
-      for(let i=0;i<5;i++)box('a1:varnoth-book-spine',center.x+1.65+i*.27,.49,center.z-1.999,.15,.022,.008,M.brass);
-    }
-    else if (room.role === 'myla') {
-      shelfUnit('a1:myla-parts-shelf', center.x - 2.25, center.z - 2.7, 1.65, 4);
-      shelfUnit('a1:myla-crate-shelf', center.x + 2.2, center.z - 2.7, 1.25, 3, M.darkWood);
-      for (let i = 0; i < 12; i++) sphere('a1:myla-parts', center.x - 2.86 + (i % 5) * .3, .38 + Math.floor(i / 5) * .54, center.z - 2.4, .13, .12 + (i % 2) * .08, .13, i % 2 ? M.brass : M.metal, 7);
-      for (let i = 0; i < 3; i++) box('a1:myla-crate', center.x + 1.7 + (i % 2) * .67, .3 + Math.floor(i / 2) * .58, center.z + 2.05, .62, .56, .62, M.wood);
-      for(let i=0;i<4;i++){const p=new Vector3(center.x-2.75+i*.38,.82,center.z-2.37);detail.ring('myla-spare-cogs',p,.16+i*.025,.03,M.brass);detail.round('myla-rivet-tin',p.add(new Vector3(0,-.5,.07)),.17,.11,M.metal);}
-    }
-    else if (room.role === 'kobolds-west') {
-      shelfUnit('a1:kobold-west-shelf', center.x, center.z - 4.7, 1.6, 3);
-      for (let i = 0; i < 7; i++) sphere('a1:kobold-bundle', center.x - .62 + (i % 4) * .4, .35 + Math.floor(i / 4) * .42, center.z - 4.36, .34, .2, .28, i % 2 ? M.green : M.linen);
-      for (let i = 0; i < 3; i++) cylinder('a1:kobold-basket', center.x - .7 + i * .7, .31, center.z + 4, .55, .48, M.pottery, 10);
-      detail.coil(new Vector3(center.x,.16,center.z-4.35),.24);
-    }
-    else {
-      shelfUnit('a1:kobold-east-cubbies', center.x + 2.7, center.z - 3.5, 1.5, 4, M.darkWood);
-      for (let i = 0; i < 9; i++) box('a1:kobold-keepsake', center.x + 2.12 + (i % 4) * .35, .37 + Math.floor(i / 4) * .48, center.z - 3.18, .24, .22, .24, i % 3 === 0 ? M.brass : M.pottery);
-      box('a1:kobold-low-table', center.x - 1.8, .28, center.z + 2.0, 1.35, .18, .88, M.wood);
-      for (const [sx, sz] of ([[-.7, 0], [.7, 0], [0, -.5], [0, .5]] as const)) {
-        cylinder('a1:kobold-stool', center.x - 1.8 + sx, .22, center.z + 2.0 + sz, .44, .26, M.darkWood, 8);
-      }
-      cylinder('a1:kobold-bowl-1', center.x - 2.1, .42, center.z + 2.0, .07, .16, M.pottery, 7);
-      cylinder('a1:kobold-bowl-2', center.x - 1.5, .42, center.z + 2.0, .07, .16, M.pottery, 7);
-      detail.bowl(new Vector3(center.x-2.1,.41,center.z+2),.14);detail.bottle(new Vector3(center.x-1.6,.4,center.z+2.22),.2);
-    }
+    for(const item of room.furniture){const p=worldCell(item.cell.col,item.cell.row);if(item.kind==='chair'||item.kind==='nightstand'||item.kind==='tools')shadow(p.x,p.z,item.kind==='tools'?1.4:.8,item.kind==='tools'?1.1:.8);}
     bucket = previous;
   }
 
   const statue = worldCell(A1_STATUE_CELL.col, A1_STATUE_CELL.row);
-  cylinder('a1:astalagan-step', statue.x, .12, statue.z, .24, 2.3, M.limestone, 8);
-  cylinder('a1:astalagan-pedestal', statue.x, .48, statue.z, .64, 1.65, M.limestone, 8);
-  cylinder('a1:astalagan-plinth', statue.x, .88, statue.z, .18, 1.22, M.limestone, 8);
-  sphere('a1:astalagan-body', statue.x, 1.62, statue.z, .82, 1.1, .66, M.limestone, 10).rotation.x = -.16;
-  sphere('a1:astalagan-chest', statue.x, 1.95, statue.z - .38, .58, .72, .55, M.limestone, 9);
-  sphere('a1:astalagan-neck', statue.x, 2.3, statue.z - .5, .36, .76, .34, M.limestone, 8).rotation.x = -.4;
-  sphere('a1:astalagan-head', statue.x, 2.78, statue.z - .78, .48, .37, .64, M.limestone, 9);
-  sphere('a1:astalagan-muzzle', statue.x, 2.66, statue.z - 1.2, .36, .25, .43, M.limestone, 7);
-  for (const side of [-1, 1]) {
-    for (const front of [-1, 1]) {
-      const leg = cylinder('a1:astalagan-leg', statue.x + side * .48, 1.3, statue.z + front * .36, .86, .22, M.limestone, 8); leg.rotation.x = front * .16; leg.rotation.z = side * .11;
-      sphere('a1:astalagan-claw', statue.x + side * .5, .98, statue.z + front * .48 - .08, .3, .16, .4, M.limestone, 7);
-    }
-    const wing = add(MeshBuilder.CreateDisc('a1:astalagan-wing', { radius: 1.05, tessellation: 3 }, scene), new Vector3(statue.x + side * .72, 2.08, statue.z + .14), M.limestone);
-    wing.scaling.set(1, 1.3, 1); wing.rotation.set(-.1, side * .42, side * .32);
-    const rib = cylinder('a1:astalagan-wing-rib', statue.x + side * .63, 2.08, statue.z + .14, 1.45, .11, M.limestone, 7); rib.rotation.z = side * .72;
-    const horn = add(MeshBuilder.CreateCylinder('a1:astalagan-horn', { height: .55, diameterTop: .02, diameterBottom: .16, tessellation: 7 }, scene), new Vector3(statue.x + side * .2, 3.08, statue.z - .72), M.limestone); horn.rotation.x = -.32; horn.rotation.z = side * .18;
-    sphere('a1:astalagan-eye-carving',statue.x+side*.23,2.82,statue.z-.98,.045,.055,.1,M.carved,7);
-    for(let rib=0;rib<3;rib++)detail.tube('dragon-wing-finger',[statue.add(new Vector3(side*.35,2.23,.05)),statue.add(new Vector3(side*(.9+rib*.16),2.3+rib*.16,.18)),statue.add(new Vector3(side*(1.25+rib*.14),1.6+rib*.27,.3))],.035,M.limestone);
+  const statueTexture=painted('astalagan-weathered-stone','#b1b5a4','limestone-v3.webp',1.5);
+  campMaterialRelief(scene,statueTexture,'rock');readableMaterials.push(statueTexture);
+  const dragon=createA1DragonStatue(scene,root,statue,statueTexture,M.carved);
+  shadow(statue.x,statue.z,2.1,1.8);
+  for(let i=0;i<5;i++){const a=Math.PI*.12+i*Math.PI*.19,x=statue.x+Math.cos(a)*1.35,z=statue.z+Math.sin(a)*1.35;
+    detail.bowl(new Vector3(x,.17,z),.15,M.brass);cylinder('a1:astalagan-votive',x,.3,z,.28,.12,M.linen,8);
+    const wick=flame('a1:statue-votive-flame',x,.48,z,.32);wick.metadata={...wick.metadata,independentLamp:true};
   }
-  for(let i=0;i<5;i++){const spike=add(MeshBuilder.CreateCylinder('a1:astalagan-dorsal-spine',{height:.27,diameterTop:0,diameterBottom:.18,tessellation:7},scene),statue.add(new Vector3(0,2.3-i*.2,-.4+i*.24)),M.limestone);spike.rotation.x=.35+i*.09;}
-  const tail = add(MeshBuilder.CreateTorus('a1:astalagan-tail', { diameter: 1.25, thickness: .18, tessellation: 18 }, scene), new Vector3(statue.x, 1.12, statue.z + .43), M.limestone); tail.rotation.x = Math.PI / 2; tail.scaling.z = .65; shadow(statue.x, statue.z, 2.1, 1.8);
+  const votiveLight=new PointLight('a1:statue-votive-light',statue.add(new Vector3(0,.7,1.2)),scene);votiveLight.diffuse=Color3.FromHexString('#ffc98c');votiveLight.range=4.2;votiveLight.renderPriority=86;
+  const wickParts=flameMeshes.filter(m=>m.metadata?.independentLamp);
+  const wicks=compound(wickParts,'a1:statue-votive-flame')[0]!;
+  wicks.bakeTransformIntoVertices(Matrix.Translation(-statue.x,0,-statue.z));wicks.position.set(statue.x,0,statue.z);
+  flameMeshes.splice(0,flameMeshes.length,...flameMeshes.filter(m=>!wickParts.includes(m)),wicks);
+  wicks.metadata={independentLamp:true,candleCount:5,baseX:1,baseY:1,baseZ:1};
 
   // Offering altar in front of Astalagan
-  cylinder('a1:astalagan-altar-bowl', statue.x, .42, statue.z + 1.25, .28, .64, M.brass, 8);
-  cylinder('a1:astalagan-altar-oil', statue.x, .54, statue.z + 1.25, .04, .54, M.brass, 8);
+  detail.bowl(statue.add(new Vector3(0,.14,1.54)),.27,M.brass);
+  cylinder('a1:astalagan-offering',statue.x,.19,statue.z+1.54,.018,.32,M.darkWood,16);
 
   const fire = worldCell(A1_FIRE_CELL.col, A1_FIRE_CELL.row);
   const firePoint=definition.camp!.interactionPoints.find(p=>p.kind==='fire')!;
@@ -701,12 +724,12 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition)
   const propMaterials=[M.wood,M.darkWood,M.metal,M.brass,M.pottery,M.paper,M.linen,M.blue,M.red,M.green];
   const propParts=statics.filter(m=>propMaterials.includes(m.material as StandardMaterial)),otherStatics=statics.filter(m=>!propMaterials.includes(m.material as StandardMaterial));
   const props=compound(propParts,'a1:static:small-props');props.forEach(m=>m.freezeWorldMatrix());
-  const merged = [...mergeDecoration(scene, root, otherStatics, 'a1:static', true),...props], ridge = mergeDecoration(scene, root, cliffMeshes, 'a1:ridge', true);
-  plazaLight.includedOnlyMeshes = [...merged, ...ridge];
+  const merged = [...mergeDecoration(scene, root, otherStatics, 'a1:static', true),...props], ridge = compound(cliffMeshes,'a1:ridge:continuation');
+  plazaLight.includedOnlyMeshes = [...merged, ...ridge];votiveLight.includedOnlyMeshes=[...merged,...dragon.getChildMeshes()];
   const lighting = createRestLighting(scene, definition.id);
   const coastFill = new PointLight('a1:coastal-rim-light', new Vector3(36, 9, 34), scene); coastFill.diffuse = Color3.FromHexString('#89aabc'); coastFill.specular = Color3.FromHexString('#718d9e'); coastFill.range = 64; coastFill.includedOnlyMeshes = [...ridge,...bedrockPartitions.flatMap(p=>p.meshes)];
   scene.getLightByName('terrain-ambient')?.setEnabled(false); for (const light of scene.lights) if (light.name.startsWith(`light:${definition.id}-`)) light.setEnabled(false);
-  const shadowCache=new CampShadows(scene,lighting.sun,typeof matchMedia==='function'&&matchMedia('(pointer: coarse), (max-width:850px)').matches),climate=createCampSurfaceEffects(scene,definition);
+  const shadowCache=new CampShadows(scene,lighting.sun,typeof matchMedia==='function'&&matchMedia('(pointer: coarse), (max-width:850px)').matches),climate=createCampSurfaceEffects(scene,definition),life=createCampLife(scene,root,'a1',72,33);
   if (typeof window !== 'undefined' && window.matchMedia('(pointer: fine) and (min-width: 851px)').matches) {
     const geometry = [...merged, ...ridge,...bedrockPartitions.flatMap(p=>p.meshes), ...litRoomSurfaces, ...walls.flatMap(wall => wall.meshes), ...facades.values(), ...roofs.values()].flat().filter((mesh, index, all) => all.indexOf(mesh) === index);
     for (const mesh of geometry) mesh.receiveShadows = true;
@@ -715,36 +738,44 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition)
   const interactionPoints = definition.camp!.interactionPoints;
   const rings = interactionPoints.map(point => { const objectCell = point.objectCell ?? point.cell; const ring = MeshBuilder.CreateTorus(`${point.id}:dm-interaction-halo`, { diameter: 1.14, thickness: .055, tessellation: 24 }, scene); ring.position = worldCell(objectCell.col, objectCell.row); ring.position.y = .1; ring.material = M.halo; ring.parent = root; ring.isPickable = false; ring.visibility = 0; return ring; });
   let highlights: boolean | string | null = false, lastTime = 0;
-  const update = (time: number, phase?: CampRestPhase | null, interactions:CampRestState['interactions']=[], focusCell?: Cell | null,environment?:EnvironmentState,serverNow=Date.now()) => {
-    const dark = darkness[phase ?? 'arrival'], day = 1 - dark, elapsed=Math.min(1,Math.max(0,time-lastTime)),dt=Math.min(.1,elapsed); lastTime = time;
+  const update = (time: number, phase?: CampRestPhase | null, interactions:CampRestState['interactions']=[], focusCell?: Cell | null,environment?:EnvironmentState,serverNow=Date.now(),climateState?:ClimateState,light?:NaturalLightProfile) => {
+    const dark = light ? 1-light.ambient : darkness[phase ?? 'arrival'], day = 1 - dark, elapsed=Math.min(1,Math.max(0,time-lastTime)),dt=Math.min(.1,elapsed); lastTime = time;
     const fireLevel=hearth.update(elapsed,dark,environment,interactions,serverNow),lamps=dark>.2;
-    coals.update(time,fireLevel.embers);climate.update(elapsed,environment);
+    const votivesLit=lamps&&!(environment&&(strongWind(environment)||precipitationKind(environment)==='rain'&&(environment.precipitationLevel??2)===3));
+    coals.update(time,fireLevel.embers);climate.update(elapsed,environment,climateState);life.update(time,dark);
     M.glow.emissiveColor=Color3.FromHexString('#ff782c').scale(fireLevel.embers*.55);M.glow.diffuseColor=Color3.FromHexString(fireLevel.embers>.05?'#ab522b':'#29231e');
     const activeRoom = focusCell ? A1_ROOMS.find(room => room.cells.some(cell => cell.col === focusCell.col && cell.row === focusCell.row))?.id : undefined;
     lighting.update(dark);
-    lighting.ambient.intensity *= 1.07 + day * .16;
+    lighting.ambient.intensity *= .88 + day * .12;
     lighting.sun.intensity *= .94 + day * .22;
+    const weatherGlow=weatherLight(environment,serverNow/1000,typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+    lighting.ambient.intensity*=.75+weatherGlow.cloud*.25;lighting.sun.intensity=lighting.sun.intensity*weatherGlow.cloud+weatherGlow.flash;
+    lighting.sun.diffuse=Color3.Lerp(lighting.sun.diffuse,Color3.FromHexString('#bbd6ef'),Math.min(1,weatherGlow.flash));
     lighting.ambient.groundColor = Color3.FromHexString(dark > .7 ? '#1b3043' : '#625b4e');
     coastFill.intensity = .11 + dark * .34;
-    backdrop.update(time, dark);
+    backdrop.update(time,dark,seaState(environment,.35));
     fireLights.forEach((light, index) => {
       const roomId = Number(light.metadata?.roomId ?? 0);
+      includeCampActors(light,m=>{const p=m.getAbsolutePosition(),r=A1_ROOMS.find(r=>r.cells.some(c=>c.col===Math.floor(p.x/1.5)&&c.row===Math.floor(p.z/1.5)));return roomId?r?.id===roomId:!r;},scene);
       light.intensity = !lamps||(roomId && roomId !== activeRoom) ? 0 : (.78 + dark * 2.55 + Math.sin(time * 9.2 + index * 2.1) * .11 + Math.sin(time * 14.7 + index) * .045)*(roomId?1:fireLevel.flame);
     });
+    includeCampActors(votiveLight,m=>Vector3.Distance(m.getAbsolutePosition(),statue)<4.2,scene);
+    votiveLight.intensity=votivesLit?.72+Math.sin(time*8)*.035:0;
     candleLights.forEach((light, index) => {
       const roomId = Number(light.metadata?.roomId ?? 0);
+      includeCampActors(light,m=>{const p=m.getAbsolutePosition(),r=A1_ROOMS.find(r=>r.cells.some(c=>c.col===Math.floor(p.x/1.5)&&c.row===Math.floor(p.z/1.5)));return roomId?r?.id===roomId:!r;},scene);
       light.intensity = !lamps||roomId !== activeRoom ? 0 : .14 + dark * .44 + Math.sin(time * 7.1 + index) * .026;
     });
     flameMeshes.forEach((mesh, index) => {
       const roomId = Number(mesh.name.match(/a1:room-(\d+)/)?.[1] ?? 0);
-      mesh.visibility = !lamps||(roomId && roomId !== activeRoom) ? 0 : roomId?1:fireLevel.flame;
+      mesh.visibility = !lamps||mesh.metadata?.independentLamp&&!votivesLit||(roomId && roomId !== activeRoom) ? 0 : roomId||mesh.metadata?.independentLamp?1:fireLevel.flame;
       const baseX = Number(mesh.metadata?.baseX ?? .18), baseY = Number(mesh.metadata?.baseY ?? .34), baseZ = Number(mesh.metadata?.baseZ ?? .18), phaseOffset = Number(mesh.metadata?.phase ?? index);
       const pulse = 1 + Math.sin(time * 10.4 + phaseOffset) * .11 + Math.sin(time * 17.3 + index) * .035;
       mesh.scaling.x = baseX * pulse;
       mesh.scaling.y = baseY * (1 + Math.sin(time * 8.2 + phaseOffset) * .16);
       mesh.scaling.z = baseZ * (2 - pulse);
     });
-    const materialLift = .065 + day * .085;
+    const materialLift = .04 + day * .065;
     for(const [roomId,meshes] of roomInteriors)for(const mesh of meshes)mesh.isVisible=roomId===activeRoom;
     for (const material of readableMaterials) material.emissiveColor.set(material.diffuseColor.r * materialLift, material.diffuseColor.g * materialLift, material.diffuseColor.b * materialLift);
     warmPool.alpha = lamps?.1 + dark * .24:0;firePool.isVisible=fireLevel.flame>.005;
@@ -757,12 +788,12 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition)
       else if (system.name.includes('wave-break')) {
         const index = Number(system.name.match(/wave-break-(\d+)/)?.[1] ?? 0);
         const crest = Math.max(0, Math.sin(time * 1.45 + index * 1.25));
-        system.emitRate = 4 + Math.pow(crest, 2.2) * 56;
+        system.emitRate = (2 + Math.pow(crest,2.2)*56)*(.15+seaState(environment,.35)*1.4);
       }
       if(!lamps&&/fire-smoke|fire-embers|kettle-steam/.test(system.name)&&system.getActiveCount())system.reset();
     });
     scene.clearColor.set(.035 + day * .19, .065 + day * .26, .11 + day * .32, 1);
-    scene.fogMode = 0;
+    scene.fogMode = 2;scene.fogDensity=(climateState?.fogDensity??0)*.018;scene.fogColor=Color3.FromHexString(dark>.7?'#29404d':'#9caeab');
     const camera = scene.activeCamera;
     for (const [roomId, meshes] of facades) {
       const reveal = roomId === activeRoom ? 1 : -1;
@@ -778,7 +809,7 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition)
     }
     if (camera) {
       for(const partition of bedrockPartitions){
-        const reveal=activeRoom!==undefined&&partition.rooms.includes(activeRoom);
+        const reveal=activeRoom!==undefined&&partition.rooms.includes(activeRoom)&&scene.activeCamera!.globalPosition.z<2.4;
         updateCutaway(partition.meshes,reveal?1:-1,dt);
         if(partition.meshes.some(m=>Math.abs(m.scaling.y-(reveal?.035:1))>.003))shadowCache.invalidate();
       }
@@ -787,7 +818,10 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition)
         const direction = position.subtract(wall.center); direction.y = 0; direction.normalize();
         // Even a slight oblique angle hides a bed against a side wall. The
         // occupied cell uses a complete side cutaway; other cells stay closed.
-        const dot = Vector3.Dot(wall.normal, direction), facing = wall.roomId === activeRoom ? (wall.normal.x !== 0 ? 1 : dot) : -1;
+        const dot=Vector3.Dot(wall.normal,direction);
+        // Keep the side walls when entering from the plaza. At oblique/rear
+        // views cut only the wall actually between camera and occupied room.
+        const facing=wall.roomId===activeRoom ? (wall.normal.x!==0 && Math.abs(direction.x)<.55 ? -1 : dot) : -1;
         updateCutaway(wall.meshes, facing, dt);
         if (wall.meshes.some(mesh => Math.abs(mesh.scaling.y - (facing > .18 ? .035 : 1)) > .003)) shadowCache.invalidate();
       }
@@ -807,7 +841,7 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition)
       const highlighted = highlights === true || (typeof highlights === 'string' && highlights === pointId);
       ring.visibility = highlighted ? .56 + Math.sin(time * 2 + index) * .07 : 0;
     });
-    shadowCache.update(time,fireLights,focusCell?worldCell(focusCell.col,focusCell.row):fire,interactions.some(i=>serverNow-i.at>=0&&serverNow-i.at<8500));
+    shadowCache.update(time,[...fireLights,...candleLights,votiveLight],focusCell?worldCell(focusCell.col,focusCell.row):fire,interactions.some(i=>serverNow-i.at>=0&&serverNow-i.at<8500));
   };
   update(0, 'arrival');
   return { root, update,weatherCovered:climate.covered, setInteractionHighlights: target => { highlights = target; } };

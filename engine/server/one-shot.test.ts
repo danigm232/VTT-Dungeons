@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { d8VillageRoads, oneShotBundle } from '../../campaigns/one-shot/server.js';
 import { D8NIGHT, D8_VERSION } from '../../campaigns/one-shot/playground/d8night.config.js';
@@ -10,6 +10,7 @@ import { compileCampaignBundle } from './campaign.js';
 import { GameState } from './game.js';
 import { STEP_DURATION_MS, type Facing } from '../shared/protocol.js';
 import { surfaceNeighbors } from '../shared/terrain.js';
+import { d8NearestWalkableCell } from '../../campaigns/one-shot/public/pack.js';
 
 const beginCombat = (state: GameState, firstId: string) => {
   expect(state.startCombat()).toBe(true);
@@ -170,40 +171,33 @@ describe('independent private one-shot pack', () => {
 
   it('calcula el salto de Silverfarben y de María con la FUE transcrita de sus fichas', () => {
     const state = new GameState(oneShotBundle), silver = state.characters.get('aoife')!, maria = state.characters.get('maria')!;
-    const scene = oneShotBundle.public.scenes.find(candidate => candidate.id === silver.sceneId)!;
-    const direction = silver.cell.col + 3 < scene.grid.width ? 1 : -1;
-    const withinStrength = { col: silver.cell.col + direction * 2, row: silver.cell.row };
-    const beyondStrength = { col: silver.cell.col + direction * 3, row: silver.cell.row };
+    state.changeScene('market');silver.cell=d8NearestWalkableCell('market',0,10.5);
+    const withinStrength = { col: silver.cell.col, row: silver.cell.row - 1 };
+    const beyondStrength = { col: silver.cell.col, row: silver.cell.row - 3 };
 
     expect(silver.sheet?.strengthScore).toBe(10);
+    expect(state.declareExplorationBasicAction('aoife', 'jump', undefined, beyondStrength)).toMatchObject({ ok: false, code: 'JUMP_OUT_OF_RANGE' });
     expect(state.declareExplorationBasicAction('aoife', 'jump', undefined, withinStrength)).toMatchObject({
       ok: true, guidance: expect.stringContaining('largo 10 pies (3 m) con carrera')
     });
-    expect(state.declareExplorationBasicAction('aoife', 'jump', undefined, beyondStrength)).toMatchObject({ ok: false, code: 'JUMP_OUT_OF_RANGE' });
     expect(maria.sheet?.strengthScore).toBe(8);
   });
 
   it('anima caminar y correr de Silverfarben en los ocho rumbos sin perder orientación', () => {
     const movement = oneShotBundle.public.tokenAnimations['silverfarben-hotel']!;
-    expect(movement['moving-s']).toMatchObject({ fps: 8, frames: expect.arrayContaining(['/art/tokens/Silverfarben Hotel/silverfarben_hotel_caminar_01.png']) });
     for (const direction of ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw']) {
-      expect(movement[`moving-${direction}`]?.frames).toHaveLength(4);
-      expect(movement[`running-${direction}`]).toMatchObject({ fps: 10, frames: expect.any(Array) });
-      expect(movement[`running-${direction}`]?.frames).toHaveLength(4);
-    }
-    expect(movement['moving-sw']).toMatchObject({ flipX: true, frames: expect.any(Array) });
-    expect(movement['moving-nw']).toMatchObject({ flipX: true, frames: expect.any(Array) });
-    expect(movement['moving-w']).toMatchObject({ flipX: true, frames: expect.any(Array) });
-    expect(movement['running-sw']).toMatchObject({ flipX: true, frames: expect.any(Array) });
-    expect(movement['running-nw']).toMatchObject({ flipX: true, frames: expect.any(Array) });
-    expect(movement['running-w']).toMatchObject({ flipX: true, frames: expect.any(Array) });
-    for (const state of ['moving-n', 'moving-ne', 'moving-e', 'running-n', 'running-ne', 'running-e']) {
-      for (const frame of movement[state]!.frames) {
+      expect(movement[`moving-${direction}`]).toMatchObject({fps:16,flipX:direction==='sw'});
+      expect(movement[`running-${direction}`]).toMatchObject({fps:20,flipX:direction==='sw'});
+      expect(movement[`moving-${direction}`]?.frames).toHaveLength(8);
+      expect(movement[`running-${direction}`]?.frames).toHaveLength(8);
+      expect(movement[`running-${direction}`]?.frames).toEqual(movement[`moving-${direction}`]?.frames);
+      for (const frame of movement[`moving-${direction}`]!.frames) {
         expect(typeof frame).not.toBe('string');
         if (typeof frame !== 'string') {
-          expect(frame.url).toContain(state.startsWith('moving-') ? 'walk_orientations_atlas.png' : 'run_orientations_atlas.png');
-          expect(frame.x + frame.width).toBeLessThanOrEqual(state.startsWith('moving-') ? 1448 : 1122);
-          expect(frame.y + frame.height).toBeLessThanOrEqual(state.startsWith('moving-') ? 1086 : 1402);
+          expect(frame.url).toBe(`/art/player-walks-v2/silverfarben-${direction==='sw'?'se':direction}-walk-v2.png`);
+          const bytes=readFileSync(resolve('campaigns/one-shot/public',frame.url.slice(1)));
+          expect(frame.x + frame.width).toBeLessThanOrEqual(bytes.readUInt32BE(16));
+          expect(frame.y + frame.height).toBeLessThanOrEqual(bytes.readUInt32BE(20));
           expect(frame.logicalWidth).toBeGreaterThan(0);
           expect(frame.logicalHeight).toBeGreaterThan(0);
           expect(frame.logicalWidth!/frame.logicalHeight!).toBeCloseTo(frame.width/frame.height,2);

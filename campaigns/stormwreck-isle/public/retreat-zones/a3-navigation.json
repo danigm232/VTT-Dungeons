@@ -1,0 +1,449 @@
+{
+  "schema": "a3-prototype-navigation-v1",
+  "units": "meters",
+  "tileMeters": 1.5,
+  "axis": "glTF Y-up; X east, Z south",
+  "actorRadius": 0.3,
+  "worldDeckElevationMeters": 18,
+  "walkableSurfaces": [
+    {
+      "id": "entrance",
+      "height": 0.045,
+      "polygon": [
+        [
+          0,
+          2.25
+        ],
+        [
+          1.5,
+          2.25
+        ],
+        [
+          1.5,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "hallway",
+      "height": 0.045,
+      "polygon": [
+        [
+          0,
+          0
+        ],
+        [
+          1.5,
+          0
+        ],
+        [
+          1.5,
+          -4.5
+        ],
+        [
+          0,
+          -4.5
+        ]
+      ]
+    },
+    {
+      "id": "dining",
+      "height": 0.045,
+      "polygon": [
+        [
+          1.5,
+          0
+        ],
+        [
+          9,
+          0
+        ],
+        [
+          9,
+          -3
+        ],
+        [
+          1.5,
+          -3
+        ]
+      ]
+    },
+    {
+      "id": "kitchen",
+      "height": 0.045,
+      "polygon": [
+        [
+          0,
+          -4.5
+        ],
+        [
+          3,
+          -4.5
+        ],
+        [
+          3,
+          -7.5
+        ],
+        [
+          0,
+          -7.5
+        ]
+      ]
+    }
+  ],
+  "colliders": [
+    {
+      "id": "West_Entry_Hall",
+      "type": "box",
+      "center": [
+        0.0,
+        1.42,
+        -1.5
+      ],
+      "size": [
+        0.3,
+        2.8,
+        6.0
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "East_Entry",
+      "type": "box",
+      "center": [
+        1.5,
+        1.42,
+        0.75
+      ],
+      "size": [
+        0.3,
+        2.8,
+        1.5
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Dining_South",
+      "type": "box",
+      "center": [
+        5.25,
+        1.42,
+        -0.0
+      ],
+      "size": [
+        7.5,
+        2.8,
+        0.3
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Dining_East",
+      "type": "box",
+      "center": [
+        9.0,
+        1.42,
+        -1.5
+      ],
+      "size": [
+        0.3,
+        2.8,
+        3
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Dining_North",
+      "type": "box",
+      "center": [
+        5.25,
+        1.42,
+        -3.0
+      ],
+      "size": [
+        7.5,
+        2.8,
+        0.3
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Dining_Access_South",
+      "type": "box",
+      "center": [
+        1.5,
+        1.42,
+        -0.31
+      ],
+      "size": [
+        0.3,
+        2.8,
+        0.62
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Dining_Access_North",
+      "type": "box",
+      "center": [
+        1.5,
+        1.42,
+        -2.69
+      ],
+      "size": [
+        0.3,
+        2.8,
+        0.6200000000000001
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Hall_East",
+      "type": "box",
+      "center": [
+        1.5,
+        1.42,
+        -3.75
+      ],
+      "size": [
+        0.3,
+        2.8,
+        1.5
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Kitchen_South",
+      "type": "box",
+      "center": [
+        2.25,
+        1.42,
+        -4.5
+      ],
+      "size": [
+        1.5,
+        2.8,
+        0.3
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Kitchen_East",
+      "type": "box",
+      "center": [
+        3.0,
+        1.42,
+        -6.0
+      ],
+      "size": [
+        0.3,
+        2.8,
+        3.0
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Kitchen_North",
+      "type": "box",
+      "center": [
+        1.5,
+        1.42,
+        -7.5
+      ],
+      "size": [
+        3,
+        2.8,
+        0.3
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Kitchen_West",
+      "type": "box",
+      "center": [
+        0.0,
+        1.42,
+        -6.0
+      ],
+      "size": [
+        0.3,
+        2.8,
+        3.0
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Long_Table",
+      "type": "box",
+      "center": [
+        5.5,
+        0.415,
+        -1.5
+      ],
+      "size": [
+        4.65,
+        0.74,
+        0.85
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Bench_South",
+      "type": "box",
+      "center": [
+        5.5,
+        0.28,
+        -0.95
+      ],
+      "size": [
+        5.05,
+        0.5,
+        0.28
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Bench_North",
+      "type": "box",
+      "center": [
+        5.5,
+        0.28,
+        -2.05
+      ],
+      "size": [
+        5.05,
+        0.5,
+        0.28
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Only_Head_Chair",
+      "type": "box",
+      "center": [
+        2.67,
+        0.58,
+        -1.5
+      ],
+      "size": [
+        0.56,
+        1.1,
+        0.54
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Kitchen_Hearth",
+      "type": "box",
+      "center": [
+        0.68,
+        0.4,
+        -6.88
+      ],
+      "size": [
+        0.98,
+        0.71,
+        0.85
+      ],
+      "provenance": "VTT_AMBIENCE"
+    },
+    {
+      "id": "Preparation_Bench",
+      "type": "box",
+      "center": [
+        2.02,
+        0.45,
+        -6.91
+      ],
+      "size": [
+        1.2,
+        0.81,
+        0.65
+      ],
+      "provenance": "VTT_AMBIENCE"
+    },
+    {
+      "id": "Pantry_Shelf",
+      "type": "box",
+      "center": [
+        2.74,
+        0.73,
+        -5.43
+      ],
+      "size": [
+        0.38,
+        1.4,
+        1.32
+      ],
+      "provenance": "VTT_AMBIENCE"
+    }
+  ],
+  "walkthrough": [
+    [
+      0.75,
+      1.9
+    ],
+    [
+      0.75,
+      -1.5
+    ],
+    [
+      2.0,
+      -1.5
+    ],
+    [
+      2.0,
+      -0.48
+    ],
+    [
+      8.43,
+      -0.48
+    ],
+    [
+      8.43,
+      -2.52
+    ],
+    [
+      2.0,
+      -2.52
+    ],
+    [
+      2.0,
+      -1.5
+    ],
+    [
+      0.75,
+      -1.5
+    ],
+    [
+      0.75,
+      -3.9
+    ],
+    [
+      0.75,
+      -5.25
+    ],
+    [
+      1.95,
+      -5.9
+    ]
+  ],
+  "connections": [
+    {
+      "id": "A3_ENTRY_TO_UPPER_PATH",
+      "position": [
+        0.75,
+        0.045,
+        2.25
+      ],
+      "worldDeckElevationMeters": 18,
+      "destination": "UPPER_PATH_A2_A4_A5",
+      "status": "prepared; external upper path reserved for global integration"
+    }
+  ],
+  "note": "Zone 2. Continuous-radius 0.30m demo. Local deck +0; official elevation +18m. The 1.5m grid is a visual reference; VTT grid integration is pending."
+}

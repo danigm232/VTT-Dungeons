@@ -209,13 +209,17 @@ describe('Alpha 0.3 durable state', () => {
     expect((await coordinator.result(requestId)).code).toBe('RESTORED');
     await coordinator.close();
     const restarted = new SaveStore(path.join(directory, 'campaign'));
-    expect((await restarted.open()).save?.generation).toBe(receipt.generation);
+    const loaded = (await restarted.open()).save!;
+    expect(loaded.generation).toBeGreaterThanOrEqual(receipt.generation);
+    expect(loaded.stateRevision).toBe(receipt.stateRevision);
+    expect(loaded.payload.characters.find(character => character.id === 'mike')!.hp).toBe(seed.payload.characters.find(character => character.id === 'mike')!.hp);
     await restarted.close();
   });
   it('cancels a pending seed autosave so it cannot overwrite the restored generation', async () => {
     const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dungeons-alpha03-restore-autosave-')); temporary.push(directory);
     const store = new SaveStore(path.join(directory, 'campaign'));
     let state = new GameState(stormwreckBundle);
+    state.applyClockControl('pause');
     const coordinator = new PersistenceCoordinator(store, stormwreckBundle, () => state, candidate => {
       state = candidate; state.runtimeEpoch = crypto.randomUUID(); return state.runtimeEpoch;
     }, () => state.runtimeEpoch, () => {});
@@ -229,7 +233,9 @@ describe('Alpha 0.3 durable state', () => {
       await coordinator.close();
     } finally { vi.useRealTimers(); }
     const restarted = new SaveStore(path.join(directory, 'campaign'));
-    expect((await restarted.open()).save?.generation).toBe(1);
+    const loaded = (await restarted.open()).save!;
+    expect(loaded.generation).toBe(2); // Final playback offsets are flushed on close.
+    expect(loaded.payload.gameClock?.manuallyPaused).toBe(true);
     await restarted.close();
   });
   it('keeps ten useful checkpoints while music runs on an unchanged table', async () => {
@@ -248,7 +254,8 @@ describe('Alpha 0.3 durable state', () => {
       await vi.advanceTimersByTimeAsync(330_000);
       expect(coordinator.status().generation).toBe(generation);
       expect(await coordinator.history()).toEqual(before);
-      expect(before).toHaveLength(10);
+      expect(before).toHaveLength(5); // Only the five latest appear in the load dialog.
+      expect(await store.listHistory()).toHaveLength(9); // All ten manual saves remain on disk, including active.
     } finally { await coordinator.close(); vi.useRealTimers(); }
   });
   it('archives legacy format 0 before migrating the committed slot to format 1', async () => {
@@ -342,7 +349,7 @@ describe('Alpha 0.3 durable state', () => {
     const state = new GameState(stormwreckBundle); const saveId = crypto.randomUUID();
     for (let generation = 1; generation <= 11; generation++) {
       state.characters.get('mike')!.hp = Math.max(1, 12 - generation);
-      const save = seal({ ...saveOf(state, generation), saveId, generation, savedAt: new Date(Date.UTC(2026, 0, 1, 0, 0, generation)).toISOString() });
+      const save = seal({ ...saveOf(state, generation), saveKind: 'automatic', saveId, generation, savedAt: new Date(Date.UTC(2026, 0, 1, 0, 0, generation)).toISOString() });
       await store.checkpoint(save);
     }
     const history = await store.listHistory();

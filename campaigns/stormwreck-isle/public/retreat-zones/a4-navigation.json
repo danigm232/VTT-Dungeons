@@ -1,0 +1,601 @@
+{
+  "schema": "retreat-zone-navigation-v1",
+  "units": "meters",
+  "tileMeters": 1.5,
+  "axis": "glTF Y-up; X east, Z south",
+  "actorRadius": 0.3,
+  "worldDeckElevationMeters": 18,
+  "walkableSurfaces": [
+    {
+      "id": "library",
+      "height": 0.045,
+      "polygon": [
+        [
+          0,
+          0
+        ],
+        [
+          12,
+          0
+        ],
+        [
+          12,
+          -6
+        ],
+        [
+          0,
+          -6
+        ]
+      ]
+    },
+    {
+      "id": "entry_threshold",
+      "height": 0.045,
+      "polygon": [
+        [
+          6,
+          2.25
+        ],
+        [
+          7.5,
+          2.25
+        ],
+        [
+          7.5,
+          0
+        ],
+        [
+          6,
+          0
+        ]
+      ]
+    }
+  ],
+  "colliders": [
+    {
+      "id": "North_Wall",
+      "type": "box",
+      "center": [
+        6.0,
+        1.42,
+        -6.12
+      ],
+      "size": [
+        12,
+        2.8,
+        0.3
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "West_Wall",
+      "type": "box",
+      "center": [
+        -0.12,
+        1.42,
+        -3.0
+      ],
+      "size": [
+        0.3,
+        2.8,
+        6
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "East_Wall",
+      "type": "box",
+      "center": [
+        12.12,
+        1.42,
+        -3.0
+      ],
+      "size": [
+        0.3,
+        2.8,
+        6
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "South_Wall_West",
+      "type": "box",
+      "center": [
+        3.0,
+        1.42,
+        0.12
+      ],
+      "size": [
+        6,
+        2.8,
+        0.3
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "South_Wall_East",
+      "type": "box",
+      "center": [
+        9.75,
+        1.42,
+        0.12
+      ],
+      "size": [
+        4.5,
+        2.8,
+        0.3
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "South_Access_5.84",
+      "type": "box",
+      "center": [
+        5.84,
+        1.42,
+        0.35
+      ],
+      "size": [
+        0.26,
+        2.8,
+        0.7
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "South_Access_7.66",
+      "type": "box",
+      "center": [
+        7.66,
+        1.42,
+        0.35
+      ],
+      "size": [
+        0.26,
+        2.8,
+        0.7
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Oak_Door_Closed",
+      "type": "box",
+      "center": [
+        6.75,
+        1.13,
+        0.12
+      ],
+      "size": [
+        1.44,
+        2.17,
+        0.14
+      ],
+      "provenance": "CANON",
+      "enabledWhen": "door-closed"
+    },
+    {
+      "id": "Oak_Door_Open",
+      "type": "box",
+      "center": [
+        6.03,
+        1.13,
+        0.84
+      ],
+      "size": [
+        0.14,
+        2.17,
+        1.44
+      ],
+      "provenance": "CANON",
+      "enabledWhen": "door-open"
+    },
+    {
+      "id": "CANON_Independent_Shelf_1",
+      "type": "box",
+      "center": [
+        1.6,
+        1.01,
+        -3.0
+      ],
+      "size": [
+        0.56,
+        1.93,
+        3.2
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_Independent_Shelf_2",
+      "type": "box",
+      "center": [
+        3.5,
+        1.01,
+        -3.0
+      ],
+      "size": [
+        0.56,
+        1.93,
+        3.2
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_Independent_Shelf_3",
+      "type": "box",
+      "center": [
+        5.4,
+        1.01,
+        -3.0
+      ],
+      "size": [
+        0.56,
+        1.93,
+        3.2
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_North_Bookcase_0",
+      "type": "box",
+      "center": [
+        1.5,
+        1.01,
+        -5.78
+      ],
+      "size": [
+        2.94,
+        1.93,
+        0.38
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_North_Bookcase_1",
+      "type": "box",
+      "center": [
+        4.5,
+        1.01,
+        -5.78
+      ],
+      "size": [
+        2.94,
+        1.93,
+        0.38
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_North_Bookcase_2",
+      "type": "box",
+      "center": [
+        7.5,
+        1.01,
+        -5.78
+      ],
+      "size": [
+        2.94,
+        1.93,
+        0.38
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_North_Bookcase_3",
+      "type": "box",
+      "center": [
+        10.5,
+        1.01,
+        -5.78
+      ],
+      "size": [
+        2.94,
+        1.93,
+        0.38
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_South_Bookcase_0",
+      "type": "box",
+      "center": [
+        1.5,
+        1.01,
+        -0.22
+      ],
+      "size": [
+        2.94,
+        1.93,
+        0.38
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_South_Bookcase_1",
+      "type": "box",
+      "center": [
+        4.5,
+        1.01,
+        -0.22
+      ],
+      "size": [
+        2.94,
+        1.93,
+        0.38
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_South_Bookcase_2",
+      "type": "box",
+      "center": [
+        9.75,
+        1.01,
+        -0.22
+      ],
+      "size": [
+        4.35,
+        1.93,
+        0.38
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_West_Bookcase_0",
+      "type": "box",
+      "center": [
+        0.22,
+        1.01,
+        -1.65
+      ],
+      "size": [
+        0.38,
+        1.93,
+        2.38
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_West_Bookcase_1",
+      "type": "box",
+      "center": [
+        0.22,
+        1.01,
+        -4.35
+      ],
+      "size": [
+        0.38,
+        1.93,
+        2.38
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_East_Bookcase_0",
+      "type": "box",
+      "center": [
+        11.78,
+        1.01,
+        -1.65
+      ],
+      "size": [
+        0.38,
+        1.93,
+        2.38
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_East_Bookcase_1",
+      "type": "box",
+      "center": [
+        11.78,
+        1.01,
+        -4.35
+      ],
+      "size": [
+        0.38,
+        1.93,
+        2.38
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Study_Table",
+      "type": "box",
+      "center": [
+        8.95,
+        0.46,
+        -3
+      ],
+      "size": [
+        1.35,
+        0.82,
+        2.55
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Study_Bench_West",
+      "type": "box",
+      "center": [
+        7.95,
+        0.29,
+        -3
+      ],
+      "size": [
+        0.29,
+        0.49,
+        2.65
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Study_Bench_East",
+      "type": "box",
+      "center": [
+        9.95,
+        0.29,
+        -3
+      ],
+      "size": [
+        0.29,
+        0.49,
+        2.65
+      ],
+      "provenance": "CANON"
+    }
+  ],
+  "walkthrough": [
+    [
+      6.75,
+      1.8
+    ],
+    [
+      6.75,
+      -0.92
+    ],
+    [
+      0.92,
+      -0.92
+    ],
+    [
+      0.92,
+      -5.04
+    ],
+    [
+      2.55,
+      -5.04
+    ],
+    [
+      2.55,
+      -0.92
+    ],
+    [
+      4.45,
+      -0.92
+    ],
+    [
+      4.45,
+      -5.04
+    ],
+    [
+      6.6,
+      -5.04
+    ],
+    [
+      10.95,
+      -5.04
+    ],
+    [
+      10.95,
+      -0.92
+    ],
+    [
+      7.15,
+      -0.92
+    ],
+    [
+      7.15,
+      -3
+    ],
+    [
+      7.15,
+      -0.92
+    ],
+    [
+      6.75,
+      -0.92
+    ],
+    [
+      6.75,
+      1.8
+    ]
+  ],
+  "door": {
+    "node": "CANON_Oak_Iron_Door",
+    "closedAngle": 0,
+    "openAngle": -1.5707963267948966,
+    "defaultState": "closed",
+    "hinge": [
+      6.03,
+      0.045,
+      0.12
+    ]
+  },
+  "connections": [
+    {
+      "id": "A4_SOUTH_TO_UPPER_PATH",
+      "position": [
+        6.75,
+        0.045,
+        2.25
+      ],
+      "worldDeckElevationMeters": 18,
+      "destination": "UPPER_PATH_A3_A2_A5",
+      "status": "prepared; global assembly pending"
+    }
+  ],
+  "interactions": [
+    {
+      "id": "ENTRY_UPPER_PATH",
+      "position": [
+        6.75,
+        0.045,
+        2.25
+      ],
+      "action": "connection-to-upper-path",
+      "resolution": "DM manual"
+    },
+    {
+      "id": "DOOR",
+      "position": [
+        6.75,
+        0.045,
+        0.72
+      ],
+      "action": "manual-open-close",
+      "resolution": "DM manual"
+    },
+    {
+      "id": "RUNARA_STUDY",
+      "position": [
+        10.75,
+        0.045,
+        -3.0
+      ],
+      "action": "manual-conversation",
+      "resolution": "DM manual"
+    },
+    {
+      "id": "RESEARCH",
+      "position": [
+        7.12,
+        0.045,
+        -3.0
+      ],
+      "action": "manual-research",
+      "resolution": "DM manual"
+    },
+    {
+      "id": "TARAK_VARNOTH_READING",
+      "position": [
+        7.15,
+        0.045,
+        -4.95
+      ],
+      "action": "manual-conversation",
+      "resolution": "DM manual"
+    },
+    {
+      "id": "MYLA_BOOKS",
+      "position": [
+        4.45,
+        0.045,
+        -3.0
+      ],
+      "action": "manual-conversation",
+      "resolution": "DM manual"
+    }
+  ],
+  "note": "A4 only; local deck +0.045m. Preview continuous radius navigation, not yet the VTT discrete grid adapter. Door is manual."
+}

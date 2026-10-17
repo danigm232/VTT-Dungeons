@@ -15,6 +15,9 @@ describe('DM save presentation without persistence changes', () => {
     expect(savePresentation({ ...ready, mode: 'saving' }).title).toBe('Guardando…');
     expect(savePresentation({ ...ready, mode: 'restoring' }).title).toBe('Restaurando…');
   });
+  it('makes an automatic backup recovery visible even after the new save succeeds', () => {
+    expect(savePresentation({ ...ready, recoveryNotice: 'Se recuperó un respaldo' })).toMatchObject({ alert: true, tone: 'pending' });
+  });
   it('formats elapsed times and invalid dates safely', () => {
     expect(relativeTime(ready.savedAt, Date.parse('2026-10-06T10:02:00Z'))).toBe('Hace 2 min');
     expect(relativeTime(ready.savedAt, Date.parse('2026-10-06T09:00:00Z'))).toBe('Hace un momento');

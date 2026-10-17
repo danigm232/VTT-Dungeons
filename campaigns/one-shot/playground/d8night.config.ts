@@ -8,7 +8,7 @@
 // Garden -> El jardin de la srta fritz IA.png
 // Market -> El Mercado Nocturno IA.png
 // Mirror -> El Espejo de plata del amor verdadero IA.png
-export const D8_VERSION = "V49";
+export const D8_VERSION = "V65";
 
 export const D8NIGHT: any = {
   maps: {
@@ -128,7 +128,7 @@ export const D8NIGHT: any = {
         environment: { clearColor: [0.10, 0.072, 0.045], fog: false, fogDensity: 0, exposure: 1.00, contrast: 1.03, toneMapping: false, vignette: false, glowIntensity: 0.12, sharpen: 0.62, sharpenColor: 1.04 },
         lighting: {
           mode: "interior",
-          ambientIntensity: 0.42,
+          ambientIntensity: 0.22,
           ambientColor: [1.00, 0.88, 0.72],
           globalFill: {
             color: [1.00, 0.80, 0.60],
@@ -144,7 +144,7 @@ export const D8NIGHT: any = {
               { position: [5.8, 4.0, 4.6], color: [0.64, 0.86, 0.88], intensity: 0.42, range: 8.8 }
             ]
           },
-          shadows: { enabled: true, mapSize: 1024, blurKernel: 10, intensity: 0.48, darkness: 0.42, position: [8, 9, -5], direction: [-0.42, -1, 0.28], color: [1.00, 0.83, 0.64] },
+          shadows: { enabled: true, mapSize: 1024, blurKernel: 10, intensity: 0.28, darkness: 0.58, position: [8, 9, -5], direction: [-0.42, -1, 0.28], color: [1.00, 0.72, 0.42] },
           lights: [
             { position: [-9.2, 2.0, -1.3], color: [1.00, 0.44, 0.16], intensity: 1.05, range: 12.5 },
             { position: [5.6, 0.80, 10.0], color: [0.08, 0.42, 0.50], intensity: 0.22, range: 5.2 }
@@ -240,7 +240,7 @@ export const D8NIGHT: any = {
           // Continuous ceremonial axis.
           { asset: "runner", position: [0, -2.0], size: [2.65, 11.8], material: "templeBurgundy", border: "stoneLight" },
           { asset: "runner", position: [0, 12.8], size: [2.65, 9.2], material: "templeBurgundy", border: "stoneLight" },
-          { asset: "runner", position: [0, 0.8], size: [9.3, 4.8], material: "templeBurgundy", border: "gold" },
+          { asset: "runner", position: [0, 0.8], size: [9.3, 4.8], surfaceY: .292, material: "templeBurgundy", border: "gold" },
 
           // Bridge ends at the stairs. There is no loose dirt gap anymore.
           { asset: "stairs", position: [0, 19.85], size: [6.2, 3.4], steps: 9, baseHeight: 0.23, height: 0.95, ascending: "north", material: "stone" },
@@ -287,7 +287,7 @@ export const D8NIGHT: any = {
           ...Array.from({ length: 14 }, (_, i) => ({ asset: "temple_tree", position: [-23 + (i % 7) * 7.4, -14.5 - Math.floor(i / 7) * 7.2], height: 5.2 + (i % 3) * 0.55, crown: 4.4 + (i % 2) * 0.45 })),
           { asset: "temple_window", position: [-10.0, -8.46], width: 2.1, height: 4.2, y: 3.0, rotation: 0, sunlit: false },
           { asset: "temple_window", position: [10.0, -8.46], width: 2.1, height: 4.2, y: 3.0, rotation: 0, sunlit: false },
-          { asset: "runner", position: [0, -6.1], size: [5.1, 2.6], material: "templeBurgundy", border: "stoneLight" },
+          { asset: "runner", position: [0, -6.1], size: [5.1, 2.6], surfaceY: .292, material: "templeBurgundy", border: "stoneLight" },
           { asset: "temple_altar", position: [0, -6.2], size: [5.4, 2.1], height: 1.10 },
           { asset: "statue", position: [0, -7.65] },
 
@@ -419,14 +419,15 @@ export const D8NIGHT: any = {
       CANON: { interactables: [], triggers: [] },
       VTT_AMBIENCE: {
         horizon: { style: "coast", zenith: "#273247", horizon: "#b59ba0", ground: "#4e655b", far: "#596976", near: "#77717a", water: "#376b78", warmWindows: false },
+        templeEnvironment: { enabled: true, phase: 5, source: 'VTT_AMBIENCE', layers: { near: true, village: true, distant: true, panorama: true, atmosphere: true } },
         environment: { clearColor: [0.024, 0.035, 0.062], fog: false, fogDensity: 0, exposure: 1.18, contrast: 1.10, toneMapping: true, vignette: true, vignetteWeight: 0.16, vignetteStretch: 0.08 },
         lighting: {
           mode: "exterior",
-          ambientIntensity: 0.40,
-          ambientColor: [0.54, 0.65, 0.88],
-          natural: { color: [0.60, 0.72, 1.00], intensity: 0.92, direction: [0.55, -0.85, -0.32], position: [-22, 28, 12] },
-          globalFill: { color: [0.52, 0.61, 0.86], intensity: 0.10, hemiIntensity: 0.14, directionalIntensity: 0.08, direction: [0.55, -0.85, -0.32] },
-          shadows: { enabled: true, mapSize: 2048, blurKernel: 12, intensity: 0.92, color: [0.60, 0.72, 1.00], direction: [0.55, -0.85, -0.32], position: [-22, 28, 12], darkness: 0.38 },
+          ambientIntensity: 0.22,
+          ambientColor: [0.76, 0.70, 0.59],
+          natural: { color: [1.00, 0.72, 0.40], intensity: 1.12, direction: [0.88, -0.50, 0.18], position: [-22, 13, 4] },
+          globalFill: { color: [0.70, 0.73, 0.78], intensity: 0.06, hemiIntensity: 0.08, directionalIntensity: 0.04, direction: [0.88, -0.50, 0.18] },
+          shadows: { enabled: true, mapSize: 2048, blurKernel: 12, intensity: 0.72, color: [1.00, 0.72, 0.40], direction: [0.88, -0.50, 0.18], position: [-22, 13, 4], darkness: 0.58 },
           lights: [
             { position: [0, 3.8, -6.4], color: [1.00, 0.58, 0.27], intensity: 2.10, range: 9.5 },
             { position: [0, 2.3, 0.8], color: [1.00, 0.67, 0.34], intensity: 2.15, range: 7.5 },
@@ -445,7 +446,7 @@ export const D8NIGHT: any = {
           exposure: 1.18,
           contrast: 1.10,
           fov: 0.72,
-          sceneAmbient: [0.10, 0.13, 0.21],
+          sceneAmbient: [0.15, 0.14, 0.12],
           diffuseBoost: 1.05,
           emissiveFloor: 0.025,
           specular: 0.020,
@@ -483,6 +484,7 @@ export const D8NIGHT: any = {
       camera: { radius: 25.8, beta: 0.58, alpha: -Math.PI / 2.08 },
       MAP: {
         size: [28, 18],
+        visualFloorExtension: { positiveZ: 9 },
         floor: "stone",
         visualFloor: "night_cobble",
         visualComposition: "dinner_reference",
@@ -607,8 +609,8 @@ export const D8NIGHT: any = {
           { asset: "plant_cluster", position: [3.2, -3.9], spread: 1.3, count: 12 },
           { asset: "plant_cluster", position: [11.3, -2.0], spread: 1.4, count: 14 },
           { asset: "grass_tufts", position: [8.8, -7.55], spread: 2.1, count: 18 },
-          { asset: "stone_lantern", position: [4.0, 4.8], height: 1.4, intensity: 0.42, range: 5 },
-          { asset: "stone_lantern", position: [8.0, 1.0], height: 1.4, intensity: 0.38, range: 4.8 },
+          { asset: "stone_lantern", position: [2.3, 3.0], height: 1.4, intensity: 0.42, range: 5 },
+          { asset: "stone_lantern", position: [10.8, 1.8], height: 1.4, intensity: 0.38, range: 4.8 },
           { asset: "bed", position: [7.2, -3.6], size: [1.3, 2.25] },
           { asset: "rug", position: [7.2, -1.1], size: [3.0, 2.0] },
           { asset: "candle", position: [6.2, -1.0], intensity: 0.18, range: 2.4 },
@@ -622,7 +624,7 @@ export const D8NIGHT: any = {
           { asset: "snow_tree", position: [-11.2, 2.8], height: 3.4 },
           { asset: "snow_tree", position: [0.0, -7.2], height: 3.3 },
           { asset: "snow_tree", position: [11.4, 4.6], height: 3.5 },
-          { asset: "lantern_post", position: [3.7, 4.8], intensity: 0.45, range: 4.5 },
+          { asset: "lantern_post", position: [3.7, 7.0], intensity: 0.45, range: 4.5 },
           { asset: "wall", position: [0, -9.6], size: [27.0, 0.45], height: 1.1, material: "stone2" },
           { asset: "wall", position: [-13.5, 0], size: [0.45, 19.0], height: 1.1, material: "stone2" },
 
@@ -638,7 +640,6 @@ export const D8NIGHT: any = {
           // V16 REFERENCE MATCH — rose enclosure and ruined garden threshold
           { asset: "thorn_wall", position: [-2.0, 7.7], length: 7.0, count: 13, rotation: 0 },
           { asset: "thorn_wall", position: [11.8, 1.2], length: 7.8, count: 13, rotation: Math.PI / 2 },
-          { asset: "arch_ruin", position: [3.8, 4.8], size: [2.7, 0.6], height: 2.2, tilt: 0.04 },
           { asset: "plant_cluster", position: [-4.8, -6.5], spread: 1.5, count: 10 },
           { asset: "rock_cluster", position: [10.8, 5.6], spread: 1.3, count: 8 },
 
@@ -674,7 +675,7 @@ export const D8NIGHT: any = {
           mode: "exterior",
           ambientIntensity: 0.50,
           ambientColor: [0.65, 0.77, 0.91],
-          natural: { position: [-10, 8, -10], direction: [0.62, -0.72, 0.38], color: [0.54, 0.70, 0.95], intensity: 0.62 },
+          natural: { position: [-10, 8, -10], direction: [0.62, -0.72, 0.38], color: [0.54, 0.70, 0.95], intensity: 0.86 },
           shadows: { enabled: true, mapSize: 1024, blurKernel: 16, darkness: 0.48 },
           lights: []
         },
@@ -690,7 +691,7 @@ export const D8NIGHT: any = {
           exposure: 1.02,
           contrast: 1.12,
           fov: 0.74,
-          sceneAmbient: [0.075, 0.12, 0.18],
+          sceneAmbient: [0.12, 0.135, 0.16],
           diffuseBoost: 1.05,
           emissiveFloor: 0.012,
           specular: 0.018,
@@ -790,7 +791,7 @@ export const D8NIGHT: any = {
           mode: "exterior",
           ambientIntensity: 0.61,
           ambientColor: [0.69, 0.76, 0.94],
-          natural: { position: [-12, 8, -8], direction: [0.62, -0.72, 0.30], color: [0.58, 0.70, 0.96], intensity: 0.42 },
+          natural: { position: [-12, 8, -8], direction: [0.62, -0.72, 0.30], color: [0.58, 0.70, 0.96], intensity: 0.78 },
           shadows: { enabled: true, mapSize: 1024, blurKernel: 16, darkness: 0.46 },
           lights: []
         },
@@ -805,7 +806,7 @@ export const D8NIGHT: any = {
           exposure: 1.07,
           contrast: 1.08,
           fov: 0.73,
-          sceneAmbient: [0.13, 0.16, 0.24],
+          sceneAmbient: [0.16, 0.155, 0.17],
           diffuseBoost: 1.06,
           emissiveFloor: 0.010,
           specular: 0.020,
@@ -957,7 +958,10 @@ function physicalBoxes(objects: any[]) {
     if (['wall', 'temple_wall', 'stone_partition', 'collider_only', 'cabinet'].includes(o.asset)) add(x, z, o.size[0], o.size[1], o.asset !== 'cabinet' && o.asset !== 'collider_only');
     else if (o.asset === 'low_wall') rotated((o.size?.[0] ?? 4) * s, (o.size?.[1] ?? .42) * s);
     else if (o.asset === 'temple_gate') for (const side of [-1, 1]) add(x + side * (o.width ?? 6.4) * s / 2, z, .92 * s, (o.depth ?? .9) * s, true);
-    else if (['archway', 'arch_ruin'].includes(o.asset)) for (const side of [-1, 1]) add(x + side * (o.size?.[0] ?? 3.4) * s * .42, z, .46 * s, .60 * s, true);
+    else if (['archway', 'arch_ruin'].includes(o.asset)) for (const side of [-1, 1]){
+      const offset=side*(o.size?.[0]??3.4)*s*.42;
+      add(x+Math.cos(a)*offset,z-Math.sin(a)*offset,(Math.abs(Math.cos(a))*.46+Math.abs(Math.sin(a))*.60)*s,(Math.abs(Math.sin(a))*.46+Math.abs(Math.cos(a))*.60)*s,true);
+    }
     else if (o.asset === 'round_room') {
       const radius = (o.radius ?? 3) * s, segments = o.segments ?? 20, opening = o.opening ?? 3;
       for (let i = opening; i < segments; i++) {
@@ -998,7 +1002,7 @@ function physicalBoxes(objects: any[]) {
         const doorX=o.doorX??x-w*.28,edge=.98;
         add((x-w/2+doorX-edge)/2,z+d/2,doorX-edge-(x-w/2),.3,true);
         add((doorX+edge+x+w/2)/2,z+d/2,x+w/2-doorX-edge,.3,true);
-        if(!o.material){add(x,z,2.2,1.15);add(x-w*.32,z+d*.26,w*.2,.8);add(x+w*.32,z+d*.24,1.6,.85);}
+        if(!o.material){add(x,z,2.2,1.15);add(x-w*.32,z-d*.26,w*.2,.8);add(x+w*.32,z+d*.24,1.6,.85);}
       }else add(x,z,w,d,true);
     }
     else if (o.asset === 'statue') add(x, z, 2, 1.4);
@@ -1027,21 +1031,29 @@ for (const [id, c] of Object.entries<any>(D8NIGHT.maps)) {
   // Preserve grid counts/save coordinates, while making every square 1.5m.
   c.MAP.size = c.MAP.size.map((n: number) => Math.round(n / 1.5) * 1.5);
   const nav = c.MAP.navigation;
+  if(id==='cafe')c.MAP.tavernEnvelope={width:24,roofDepth:15.8,height:3.2,leftX:-11.65,rightX:11.65,backZ:-7.65,frontZ:7.55,sideThickness:.65,frontThickness:.52,wallSpan:15.3};
+  c.MAP.windows=id==='cafe'?[...[-8,-4,4,8].map((x,i)=>({id:`cafe-window-front-${i}`,x,z:7.55,width:1.55,sill:1.4,height:1.2})),...[-6.4,1,8.7].map((x,i)=>({id:`cafe-window-back-${i}`,x,z:-7.65,width:1.39,sill:1.52,height:1.3}))]:[];
+  if(id==='cafe'){nav.bounds[2]=-11.55;nav.zones.push({type:'walkable',label:'paso exterior trasero',position:[0,-9.8],size:[27,3.5]},{type:'walkable',label:'paso junto al caballo',position:[5.6,12.75],size:[10.8,3]},...[-1,1].map(side=>({type:'walkable',label:'calle lateral exterior',position:[side*12.75,0],size:[1.5,22]})));}
   c.MAP.doors = id==='cafe' ? [{id:'cafe-entry-door',label:'Puerta del Café No-Me-Olvides',x:.75,z:7.55,width:1.8,height:2.5,rotation:0}]
-    : id==='garden' ? [{id:'fritz-entry-door',label:'Puerta de la cabaña de Fritz',x:6,z:.2,width:1.8,height:2.5,rotation:0}]
+    : id==='garden' ? [{id:'fritz-entry-door',label:'Puerta de la cabaña de Fritz',x:6,z:.3,width:1.8,height:2.5,rotation:0}]
     : id==='dinner' ? [{id:'dinner-entry-door',label:'Puerta de la casa de Anteros',x:-3.36,z:-2.2,width:1.8,height:2.3,rotation:0}]
-    : id==='temple' ? [{id:'temple-entry-door',label:'Puerta del templo',x:0,z:18.15,width:5.6,height:3.8,rotation:0},{id:'temple-nave-door',label:'Puerta de la nave del templo',x:0,z:8.1,width:5.6,height:4.3,rotation:0}] : [];
+    : id==='temple' ? [{id:'temple-entry-door',label:'Puerta del templo',x:0,z:18.15,width:5.6,height:3.8,rotation:0},{id:'temple-nave-door',label:'Puerta de la nave del templo',x:0,z:8.1,width:2.8,height:3.2,rotation:0}] : [];
   if(id==='dinner')for(const house of c.MAP.objects.filter((o:any)=>o.asset==='house'&&Math.abs(o.position[0])<1))house.playable=true;
-  if(id==='cafe')for(const chair of c.MAP.objects.filter((o:any)=>o.asset==='chair'))if(Math.abs(chair.rotation??0)===Math.PI/2)chair.rotation=-chair.rotation;
+  // A chair's local +Z is its front. Aim that vector at the nearest table.
+  for(const chair of c.MAP.objects.filter((o:any)=>o.asset==='chair')){
+    const table=c.MAP.objects.filter((o:any)=>['table_round','long_table'].includes(o.asset)).sort((a:any,b:any)=>Math.hypot(a.position[0]-chair.position[0],a.position[1]-chair.position[1])-Math.hypot(b.position[0]-chair.position[0],b.position[1]-chair.position[1]))[0];
+    if(table)chair.rotation=Math.atan2(table.position[0]-chair.position[0],table.position[1]-chair.position[1]);
+  }
+  if(['temple','cafe','market','dinner'].includes(id))nav.bounds[3]+=9;
   if(['temple','cafe','market'].includes(id)){
-    nav.bounds[3]+=9;
     const paths: [number,number,number,number][]=id==='temple'?[[-1.5,31.5,-4,40.5],[1.5,31.5,4,40.5]]:id==='cafe'?[[-9,10.5,-12,19.5],[9,10.5,12,19.5]]:[[-2,8.5,-10,17.5],[2,8.5,10,17.5]];
     for(const [i,[ax,az,bx,bz]] of paths.entries()){
       const dx=bx-ax,dz=bz-az,len=Math.hypot(dx,dz),nx=-dz/len*1.8,nz=dx/len*1.8;
       nav.zones.push({type:'walkable',label:`camino transitable ${i+1}`,position:[0,0],size:[100,100],outline:[[ax+nx,az+nz],[bx+nx,bz+nz],[bx-nx,bz-nz],[ax-nx,az-nz]]});
     }
   }
-  if(id==='dinner')nav.zones.push({type:'walkable',label:'patio y calles de la finca',position:[0,0],size:[27,17]});
+  if(id==='dinner')nav.zones.push({type:'walkable',label:'patio y calles de la finca',position:[0,4.5],size:[27,26]});
+  if(id==='temple')nav.zones.unshift({type:'walkable',label:'jardines y caminos del templo',position:[0,0],size:c.MAP.size});
   nav.obstacles = id === 'cafe' ? tavernPhysical : physicalBoxes(c.MAP.objects);
   nav.obstacles.push(...(nav.blockers ?? []));
   nav.supports = c.MAP.objects.flatMap((o: any) => o.asset === 'temple_floor'
@@ -1067,4 +1079,18 @@ for (const [id, c] of Object.entries<any>(D8NIGHT.maps)) {
       nav.zones.push({type:'hazard',label:'placa de hielo azul fino',position:floe.position,size:[d,d],outline});
     }
   }
+}
+
+// Scenic layers only. MAP/CANON, actor placement, triggers and camera are preserved.
+export const SYLVANIA_SCENIC_MAPS = ['cafe', 'market', 'garden', 'dinner'] as const;
+for (const id of ['temple', ...SYLVANIA_SCENIC_MAPS]) {
+  const ambience = D8NIGHT.maps[id].VTT_AMBIENCE;
+  if (id !== 'temple') ambience.sylvaniaEnvironment = {
+    enabled: true, phase: 5, identity: id, content: 'VTT_AMBIENCE',
+    layers: { near: true, village: true, distant: true, panorama: true, atmosphere: true }
+  };
+  // Public palette mirrors the shared panorama; the visual tests check both.
+  Object.assign(ambience.horizon, { zenith: '#707e98', horizon: '#e0b893', far: '#857e80', near: '#9b8983' });
+  if (ambience.lighting.natural) Object.assign(ambience.lighting.natural, { color: [1, .72, .4], direction: [.88, -.5, .18], position: [-22, 13, 4] });
+  Object.assign(ambience.lighting.shadows, { color: [1, .72, .4], direction: [.88, -.5, .18], position: [-22, 13, 4] });
 }

@@ -40,25 +40,25 @@ export const A1_ROOMS: A1RoomSpec[] = [
     id: 1, role: 'free', label: 'Habitación libre',
     cells: uniqueCells(cellsIn(3, 7, 7, 10), [{ col: 6, row: 11 }]),
     entry: { col: 6, row: 11 }, interaction: { col: 5, row: 10 }, objectCell: { col: 4, row: 8 },
-    furniture: furniture(1, [['bed', 4, 8], ['nightstand', 4, 7], ['desk', 7, 8], ['chair', 7, 9]])
+    furniture: furniture(1, [['bed', 4, 8], ['nightstand', 5, 7], ['desk', 7, 8], ['chair', 7, 9]])
   },
   {
     id: 2, role: 'tarak', label: 'Celda de Tarak',
     cells: uniqueCells(cellsIn(10, 13, 3, 10), [{ col: 12, row: 11 }]),
     entry: { col: 12, row: 11 }, interaction: { col: 11, row: 9 }, objectCell: { col: 10, row: 5 },
-    furniture: furniture(2, [['bed', 10, 5], ['nightstand', 10, 4], ['desk', 13, 5], ['chair', 13, 6]])
+    furniture: furniture(2, [['bed', 10, 5], ['nightstand', 11, 4], ['desk', 13, 8], ['chair', 13, 9]])
   },
   {
     id: 3, role: 'varnoth', label: 'Celda de Varnoth',
     cells: uniqueCells(cellsIn(16, 21, 5, 10), [{ col: 19, row: 11 }]),
     entry: { col: 19, row: 11 }, interaction: { col: 18, row: 9 }, objectCell: { col: 17, row: 7 },
-    furniture: furniture(3, [['bed', 17, 7], ['nightstand', 17, 6], ['desk', 21, 7], ['chair', 21, 8]])
+    furniture: furniture(3, [['bed', 17, 7], ['nightstand', 18, 6], ['desk', 20, 6], ['chair', 20, 7]])
   },
   {
     id: 4, role: 'myla', label: 'Celda de Myla',
     cells: uniqueCells(cellsIn(24, 29, 4, 10), [{ col: 26, row: 11 }]),
     entry: { col: 26, row: 11 }, interaction: { col: 26, row: 9 }, objectCell: { col: 25, row: 6 },
-    furniture: furniture(4, [['bed', 25, 6], ['nightstand', 25, 5], ['desk', 29, 6], ['chair', 29, 7], ['tools', 27, 4]])
+    furniture: furniture(4, [['bed', 25, 6], ['nightstand', 26, 5], ['desk', 28, 8], ['chair', 28, 9], ['tools', 27, 4]])
   },
   {
     id: 5, role: 'kobolds-west', label: 'Celda de kobolds oeste',

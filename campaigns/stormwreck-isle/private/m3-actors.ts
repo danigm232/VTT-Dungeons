@@ -57,9 +57,9 @@ export const wreckM3Actors: PrivateActorDefinition[] = [
 /** Three hidden beach zombies from the official opening encounter. The DM
  * reveals them at the table when the party starts up from the shore. */
 export const retreatOpeningZombies: PrivateActorDefinition[] = [
-  [-34.5, 14.25], [-33, 15.75], [-36, 12.75]
-].map(([x, z], index) => ({
+  [-45,42],[-45,39],[-48,37]
+].map(([x,z], index) => ({
   id: `retreat-beach-zombie-${index + 1}`, label: `Marinero ahogado · playa ${index + 1}`,
   tokenId: 'zombie', color: '#718f7d', sceneId: 'dragon-rest', surfaceId: 'beach',
-  cell: retreatCellAtMeters('beach', x!, z!), profile: zombieCombatProfile
+  cell: retreatCellAtMeters('beach',x!,z!), profile: zombieCombatProfile
 }));

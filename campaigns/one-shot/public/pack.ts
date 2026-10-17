@@ -3,6 +3,9 @@ import { D8NIGHT } from '../playground/d8night.config.js';
 import { d8MotionAtlases } from './generated-motion-atlases.js';
 import { d8DirectionAtlases } from './generated-direction-atlases.js';
 import { completeD8Animations } from './generated-completion-atlases.js';
+import { installCombatSprites } from './combat-sprites.js';
+import { installPlayerLocomotion } from '../../../engine/client/player-locomotion.js';
+import { installCafeSprites } from './cafe-sprites.js';
 import { silverfarbenAtlasBounds } from './silverfarben-atlas-bounds.js';
 import { connectedSpatialCells, rasterSpatialNavigation, containsSpatialPoint } from '../../../engine/shared/spatial-navigation.js';
 
@@ -13,7 +16,7 @@ export const D8_GRID_METERS = 1.5;
 export function d8SceneGrid(sceneId: D8SceneId) {
   const size = D8NIGHT.maps[sceneId].MAP.size as [number, number];
   const cols = Math.max(1, Math.round(size[0] / D8_GRID_METERS));
-  const rows = Math.max(1, Math.round(size[1] / D8_GRID_METERS))+(['temple','cafe','market'].includes(sceneId)?6:0);
+  const rows = Math.max(1, Math.round(size[1] / D8_GRID_METERS))+(['temple','cafe','market','dinner'].includes(sceneId)?6:0);
   const tileSize = 48;
   return { cols, rows, tileSize, originX: 0, originY: 0, width: cols * tileSize, height: rows * tileSize,worldOrigin:{x:-size[0]/2,z:-size[1]/2} };
 }
@@ -287,8 +290,8 @@ const definition: PublicCampaignDefinition = {
       // ciclo original cubre sur y sus dos diagonales delanteras. Se espejan
       // solo las orientaciones oeste para conservar ocho rumbos coherentes.
       'moving-n': silverfarbenAtlasCycle('walk', 0, 8),
-      'moving-ne': silverfarbenAtlasCycle('walk', 1, 8),
-      'moving-nw': silverfarbenAtlasCycle('walk', 1, 8, true),
+      'moving-ne': silverfarbenAtlasCycle('walk', 1, 8, true),
+      'moving-nw': silverfarbenAtlasCycle('walk', 1, 8),
       'moving-e': silverfarbenAtlasCycle('walk', 2, 8),
       'moving-w': silverfarbenAtlasCycle('walk', 2, 8, true),
       'moving-s': { frames: silverfarbenFrames('caminar', 4), fps: 8 },
@@ -298,9 +301,9 @@ const definition: PublicCampaignDefinition = {
       'running-s': silverfarbenAtlasCycle('run', 0, 10),
       'running-se': silverfarbenAtlasCycle('run', 1, 10),
       'running-sw': silverfarbenAtlasCycle('run', 1, 10, true),
-      'running-n': silverfarbenAtlasCycle('run', 2, 10),
-      'running-ne': silverfarbenAtlasCycle('run', 3, 10),
-      'running-nw': silverfarbenAtlasCycle('run', 3, 10, true),
+      'running-n': silverfarbenAtlasCycle('walk', 0, 12),
+      'running-ne': silverfarbenAtlasCycle('run', 2, 10, true),
+      'running-nw': silverfarbenAtlasCycle('run', 2, 10),
       'running-e': silverfarbenAtlasCycle('run', 4, 10),
       'running-w': silverfarbenAtlasCycle('run', 4, 10, true),
       'combat-idle': { frames: silverfarbenFrames('combate_idle', 3), fps: 4 },
@@ -328,13 +331,13 @@ const definition: PublicCampaignDefinition = {
       climbing: { frames: silverfarbenFrames('trepar', 4), fps: 6 },
       climb: { frames: silverfarbenFrames('trepar', 4), fps: 6 },
       'direction-n': silverfarbenAtlasCycle('walk', 0, 6),
-      'direction-ne': silverfarbenAtlasCycle('walk', 1, 6),
+      'direction-ne': silverfarbenAtlasCycle('walk', 1, 6, true),
       'direction-e': silverfarbenAtlasCycle('walk', 2, 6),
       'direction-se': { frames: silverfarbenFrames('caminar', 4), fps: 6 },
       'direction-s': { frames: silverfarbenFrames('caminar', 4), fps: 6 },
       'direction-sw': { frames: silverfarbenFrames('caminar', 4), fps: 6, flipX: true },
       'direction-w': silverfarbenAtlasCycle('walk', 2, 6, true),
-      'direction-nw': silverfarbenAtlasCycle('walk', 1, 6, true)
+      'direction-nw': silverfarbenAtlasCycle('walk', 1, 6)
     },
     anteros: {
       idle: { frames: [tokenFrame('Anteros/anteros_base')], fps: 1 },
@@ -467,6 +470,7 @@ const definition: PublicCampaignDefinition = {
     library: {
       music: [
         { id: 'd8-night-music-silence', label: 'Sin música · solo ambiente', description: 'Deja que la escena se sostenga con sus capas ambientales y efectos.', url: '/audio/d8-night/music/d8-night-music-silence.ogg' },
+        { id: 'd8-night-music-cafe-lute', label: 'Taberna · laúd tenue', description: 'Melodía instrumental pausada, casi al fondo.', url: '/audio/d8-night/music/d8-night-music-cafe-lute.mp3' },
         { id: 'd8-night-music-temple', label: 'Templo · celestial', description: 'Calma luminosa y sagrada.', url: '/audio/d8-night/music/d8-night-music-temple-mystery.mp3' },
         { id: 'd8-night-music-mirror', label: 'Espejo · calma helada', description: 'Música tenue sobre aire frío.', url: '/audio/d8-night/music/d8-night-music-mirror-frost.mp3' },
         { id: 'd8-night-music-dinner', label: 'Cena · esperanza', description: 'Desenlace íntimo y luminoso.', url: '/audio/d8-night/music/d8-night-music-dinner-hope.mp3' },
@@ -547,7 +551,12 @@ const definition: PublicCampaignDefinition = {
     sceneProfiles: {
       temple: { music: { id: 'd8-night-music-temple', playing: true, volume: .28 }, layers: { ocean: { id: 'd8-night-loop-temple-awe', playing: true, volume: .12 }, wind: { id: 'd8-night-loop-mirror-icy-wind', playing: false, volume: .1 }, wood: { id: 'd8-night-loop-cafe-fireplace', playing: false, volume: .1 }, storm: { id: 'd8-night-loop-storm', playing: false, volume: .25 } }, recommendedSfx: ['d8-night-sfx-attack-dagger', 'd8-night-sfx-door'] },
       garden: { music: { id: 'd8-night-music-silence', playing: false, volume: .25 }, layers: { ocean: { id: 'd8-night-loop-garden-forest', playing: true, volume: .34 }, wind: { id: 'd8-night-loop-mirror-icy-wind', playing: false, volume: .1 }, wood: { id: 'd8-night-loop-cafe-fireplace', playing: false, volume: .1 }, storm: { id: 'd8-night-loop-storm', playing: false, volume: .25 } }, recommendedSfx: ['d8-night-sfx-attack-dagger', 'd8-night-sfx-creature-hurt', 'd8-night-sfx-creature-defeat', 'd8-night-sfx-magic-ominous', 'd8-night-sfx-world-wood-impact'] },
-      cafe: { music: { id: 'd8-night-music-silence', playing: false, volume: .25 }, layers: { ocean: { id: 'd8-night-loop-cafe-fireplace', playing: true, volume: .32 }, wind: { id: 'd8-night-loop-temple-awe', playing: false, volume: .1 }, wood: { id: 'd8-night-loop-cafe-fireplace', playing: false, volume: .08 }, storm: { id: 'd8-night-loop-storm', playing: false, volume: .25 } }, recommendedSfx: ['d8-night-sfx-cafe-chair', 'd8-night-sfx-cafe-glass', 'd8-night-sfx-cafe-drink', 'd8-night-sfx-door', 'd8-night-sfx-world-door-close'] },
+      cafe: {
+        music: { id: 'd8-night-music-cafe-lute', playing: true, volume: .07 },
+        layers: { ocean: { id: 'd8-night-loop-cafe-fireplace', playing: true, volume: .14 }, wind: { id: 'd8-night-loop-temple-awe', playing: false, volume: .1 }, wood: { id: 'd8-night-loop-cafe-fireplace', playing: false, volume: .08 }, storm: { id: 'd8-night-loop-storm', playing: false, volume: .25 } },
+        recommendedSfx: ['d8-night-sfx-cafe-chair', 'd8-night-sfx-cafe-glass', 'd8-night-sfx-cafe-drink', 'd8-night-sfx-door', 'd8-night-sfx-world-door-close'],
+        ambientCues: {intervalSeconds:[18,42],actorIds:['woman-cafe','patron-cafe','bartender-cafe'],effects:[{id:'d8-night-sfx-cafe-glass',volume:.14,weight:3},{id:'d8-night-sfx-cafe-drink',volume:.10,weight:1},{id:'d8-night-sfx-cafe-chair',volume:.08,weight:.3}]}
+      },
       market: { music: { id: 'd8-night-music-silence', playing: false, volume: .25 }, layers: { ocean: { id: 'd8-night-loop-market-crowd', playing: true, volume: .2 }, wind: { id: 'd8-night-loop-market-crowd', playing: false, volume: .18 }, wood: { id: 'd8-night-loop-cafe-fireplace', playing: false, volume: .1 }, storm: { id: 'd8-night-loop-storm', playing: false, volume: .25 } }, recommendedSfx: ['d8-night-sfx-market-shout', 'd8-night-sfx-market-cow-moo', 'd8-night-sfx-coins', 'd8-night-sfx-world-metal', 'd8-night-sfx-world-wood-impact', 'd8-night-sfx-world-chain'] },
       mirror: { music: { id: 'd8-night-music-mirror', playing: true, volume: .25 }, layers: { ocean: { id: 'd8-night-loop-garden-forest', playing: false, volume: .1 }, wind: { id: 'd8-night-loop-mirror-icy-wind', playing: true, volume: .26 }, wood: { id: 'd8-night-loop-cafe-fireplace', playing: false, volume: .1 }, storm: { id: 'd8-night-loop-storm', playing: false, volume: .25 } }, recommendedSfx: ['d8-night-sfx-spell-ice', 'd8-night-sfx-mirror', 'd8-night-sfx-creature-hurt', 'd8-night-sfx-creature-defeat', 'd8-night-sfx-magic-ominous'] },
       dinner: { music: { id: 'd8-night-music-dinner', playing: true, volume: .25 }, layers: { ocean: { id: 'd8-night-loop-cafe-fireplace', playing: false, volume: .1 }, wind: { id: 'd8-night-loop-temple-awe', playing: false, volume: .1 }, wood: { id: 'd8-night-loop-cafe-fireplace', playing: false, volume: .08 }, storm: { id: 'd8-night-loop-storm', playing: false, volume: .25 } }, recommendedSfx: ['d8-night-sfx-cafe-chair', 'd8-night-sfx-cafe-glass', 'd8-night-sfx-cafe-drink', 'd8-night-sfx-door', 'd8-night-sfx-world-door-close', 'd8-night-sfx-coins'] }
@@ -572,9 +581,14 @@ for (const scene of definition.scenes) {
     remapLegacyCell(sceneId, actor.cell, legacy.cols, legacy.rows), walkable) }));
   const chair=sceneId==='dinner'?{x:0,z:1.4}:sceneId==='temple'?{x:4.35,z:.8}:sceneId==='cafe'?{x:-5.3,z:1.9}:null;
   if(chair)for(const actor of scene.stageActors??[])if(['anteros-temple','anteros-dinner','woman-cafe'].includes(actor.id)){actor.cell=d8NearestWalkableCell(sceneId,chair.x,chair.z);actor.seatedAt=chair;actor.idleAnimation=actor.id==='woman-cafe'?'drink':'sit';}
+  if(sceneId==='cafe'){
+    const places:Record<string,{x:number;z:number}>={'woman-cafe':{x:-5.3,z:1.9},'patron-cafe':{x:1.55,z:3.8},'bartender-cafe':{x:5.05,z:1}};
+    for(const actor of scene.stageActors??[]){const place=places[actor.id];if(place){actor.cell=d8NearestWalkableCell(sceneId,place.x,place.z);actor.seatedAt=place;actor.idleAnimation='drink';actor.facing='north';}}
+    scene.stageActors!.push({id:'horse-cafe',label:'Caballo del abrevadero',tokenId:'cafe-horse',cell:d8NearestWalkableCell(sceneId,5.6,11.25),facing:'north',idleAnimation:'drink'});
+  }
   if(['temple','cafe','market'].includes(sceneId)){
     const signs=sceneId==='temple'?[{x:0,z:31.5,label:'Camino del pueblo',text:'Al oeste: Café No-Me-Olvides. Al este: Mercado Nocturno. Camina al menos cinco casillas por el camino para viajar.'}]:sceneId==='cafe'?[{x:0,z:11,label:'Calles del pueblo',text:'Al oeste: Templo. Al este: Mercado Nocturno. Sigue el camino al menos cinco casillas antes de abandonar la escena.'}]:[{x:0,z:9,label:'Plaza del mercado',text:'Café No-Me-Olvides al oeste; Templo al este. Avanza cinco casillas por la calle para viajar.'}];
-    scene.readableSigns=signs.map((sign,i)=>({id:`${sceneId}-road-sign-${i}`,label:sign.label,text:sign.text,cell:d8NearestWalkableCell(sceneId,sign.x,sign.z)}));
+    scene.readableSigns=signs.map((sign,i)=>({id:`${sceneId}-road-sign-${i}`,label:sign.label,text:sign.text,cell:d8NearestWalkableCell(sceneId,sign.x,sign.z),position:{x:sign.x+.55,z:sign.z+.45,height:1.35}}));
   }
   scene.props = scene.props.map(prop => {
     const visual = D8NIGHT.maps[sceneId].MAP.objects.find((object: any) => object.asset === 'mirror_frame');
@@ -582,6 +596,7 @@ for (const scene of definition.scenes) {
       ? d8NearestWalkableCell(sceneId, visual.position[0], visual.position[1])
       : remapLegacyCell(sceneId, prop.cell, legacy.cols, legacy.rows) };
   });
+  if(sceneId==='cafe')scene.pickups=[{id:'cafe-wine-bottle',label:'Botella de vino para Anteros',item:'Vino del Café',cell:d8NearestWalkableCell(sceneId,-3.15,-3.5),surfaceId:scene.surfaceId,kind:'treasure'}];
   scene.seats=D8NIGHT.maps[sceneId].MAP.objects.filter((o:any)=>['chair','sofa_red','bench'].includes(o.asset)).map((o:any,i:number)=>{
     const [x,z]=o.position,rotation=o.rotation??0;
     const reserved=(scene.stageActors??[]).find(actor=>actor.seatedAt&&Math.hypot(actor.seatedAt.x-x,actor.seatedAt.z-z)<.2);
@@ -589,15 +604,16 @@ for (const scene of definition.scenes) {
     return {id:`${sceneId}-seat-${i}`,label:o.asset==='sofa_red'?'Sofá':o.asset==='bench'?'Banco':'Silla',cell:d8NearestWalkableCell(sceneId,x,z),surfaceId:scene.surfaceId,position:{x,z,height:o.asset==='sofa_red'?.63:o.asset==='bench'?.5:.435},facing,...(reserved?{reservedActorId:reserved.id}:{})};
   });
   if(sceneId==='market')for(const actor of scene.stageActors??[]){
-    const place:Record<string,[number,number]>={'cow-market':[4.5,1.5],'ben-market':[4.5,3],'margaret-market':[6,1.5],'boris-market':[6,-6.75]};
+    const place:Record<string,[number,number]>={'cow-market':[2.25,1.5],'ben-market':[.75,1.5],'margaret-market':[3.75,1.5],'boris-market':[-12.75,0]};
     const point=place[actor.id];if(point)actor.cell=d8NearestWalkableCell(sceneId,...point);
-    if(actor.id==='ben-market')actor.idleAnimation='guide-cow';if(actor.id==='boris-market')actor.idleAnimation='negotiate';
+    if(actor.id==='margaret-market'){actor.idleAnimation='guide-cow';actor.facing='west';}if(actor.id==='cow-market')actor.facing='west';if(actor.id==='boris-market')actor.idleAnimation='negotiate';
   }
   if(sceneId==='garden'){
     const fritz=scene.stageActors?.find(actor=>actor.id==='fritz-garden');
-    if(fritz)fritz.cell=d8NearestWalkableCell(sceneId,8.25,1.5);
+    if(fritz)fritz.cell=d8NearestWalkableCell(sceneId,8.7,-1.2);
   }
   for(const door of (D8NIGHT.maps[sceneId].MAP as any).doors??[])scene.props.push({id:door.id,kind:'door',label:door.label,assetId:'cafe-entry-door',cell:d8CellFromWorld(sceneId,door.x-(door.width>3?1.5:0),door.z),surfaceId:scene.surfaceId,rotation:0,initialState:'closed',baseFootprint:door.width>3?[{col:0,row:0},{col:1,row:0},{col:2,row:0}]:[{col:0,row:0}],allowedRotations:[0],capabilities:{transform:false,detach:false,structure:true},renderedByScene:true,sourceKind:'addition'});
+  for(const window of (D8NIGHT.maps[sceneId].MAP as any).windows??[])scene.props.push({id:window.id,kind:'door',label:'Ventana del Café',assetId:'cafe-entry-door',cell:d8NearestWalkableCell(sceneId,window.x,window.z+(window.z>0?1.6:-1.6)),surfaceId:scene.surfaceId,rotation:0,initialState:'closed',baseFootprint:[{col:0,row:0}],allowedRotations:[0],capabilities:{transform:false,detach:false,structure:true},renderedByScene:true,sourceKind:'addition'});
   if(sceneId === 'mirror') {
     // The authored 3D mirror is the sole visible object; retain its logical
     // prop for interaction/save/undo, without drawing a second PNG on top.
@@ -651,4 +667,7 @@ definition.tokens.cow!.worldHeightMeters = 1.35;
 definition.tokenAnimations.roses!.wake = { frames: tokenFrames('Rosas asesinas/rosa_asesina_base', 'Rosas asesinas/rosa_asesina_despertar', 'Rosas asesinas/rosa_asesina_idle_hostil'), fps: 3 };
 
 completeD8Animations(definition);
+installCafeSprites(definition);
+installPlayerLocomotion(definition);
+installCombatSprites(definition);
 export const oneShotCampaignDefinition = validatePublicCampaign(definition);

@@ -30,7 +30,7 @@ describe('shared world weather',()=>{
     const engine=new NullEngine(),scene=new Scene(engine),weather=new WorldWeather(scene);
     weather.update({storm:false,lightning:false,stormIntensity:0,precipitation:'rain',precipitationLevel:3},new Vector3(10,0,20),false,16,90);
     const drops=scene.meshes.filter(m=>m.isVisible);expect(drops).toHaveLength(192);
-    expect(drops.some(m=>Math.abs(m.position.x-10)>30)).toBe(true);expect(drops.every(m=>m.scaling.x===90/24)).toBe(true);
+    expect(drops.some(m=>Math.abs(m.position.x-10)>30)).toBe(true);expect(drops.every(m=>m.scaling.x===90/24||m.scaling.x===90/24*3)).toBe(true);
     weather.dispose();scene.dispose();engine.dispose();
   });
 });

@@ -10,6 +10,7 @@ import type { TerrainDefinition } from '../shared/terrain.js';
 import { WRECK_STRUCTURE as S, wreckListHeight, wreckBeamAt } from '../shared/wreck-structure.js';
 import { worldSurfaceUV } from './diorama-kit.js';
 import { buildHarpyNest } from './wreck-nest.js';
+import { weatheredBoneMaterial } from './wreck-bone-material.js';
 
 /** Canonical dressing: batched real geometry, grouped by level for cutaways.
  * The nest occupies the non-walkable inner cofa, decay stays off cell centres.
@@ -18,7 +19,7 @@ export function buildWreckAgeDetails(scene:Scene,terrain:TerrainDefinition,hull?
   const groups=new Map<string,Mesh[]>(),result:Mesh[]=buildHarpyNest(scene);
   const mat=(name:string,color:string)=>{const m=new StandardMaterial(`wreck-age:${name}`,scene);
     m.diffuseColor=Color3.FromHexString(color);m.specularColor=Color3.FromHexString('#111918');m.backFaceCulling=false;return m;};
-  const twig=mat('basket-twigs','#574432'),bone=mat('nest-bones','#6d6859'),
+  const twig=mat('basket-twigs','#574432'),bone=weatheredBoneMaterial(scene,'wreck-age:dragon-bones','#8a856e'),
     blackwood=mat('rotten-wood','#74644b'),growth=mat('salt-growth','#7e8066'),algae=mat('algae','#334738');
   blackwood.diffuseTexture=hull??null;
   const add=(m:Mesh,surface:string,kind:string,material:StandardMaterial)=>{
@@ -29,11 +30,11 @@ export function buildWreckAgeDetails(scene:Scene,terrain:TerrainDefinition,hull?
   const at=(x:number,y:number,z:number)=>new Vector3(S.origin.x+x,y+wreckListHeight(S.origin.z+z),S.origin.z+z);
   // Broken binding timber and marine growth follow the waterline of the real
   // hull, with heavier forty-year decay towards the stern impact.
-  for(let i=0;i<48;i++){
-    const x=-29.4+(i%24)*2.45,side=i<24?-1:1,z=side*(wreckBeamAt(x)+.065),y=-2.95+(i%6)*.24;
+  for(let i=0;i<96;i++){
+    const x=S.sternX+2.1+(i%48)*(S.length-5.6)/47,side=i<48?-1:1,z=side*(wreckBeamAt(x)+.065),y=-2.95+(i%8)*.28;
     const p=at(x,y,z),splinter=MeshBuilder.CreateBox('wreck-age:split-strake',{width:.85+(i%3)*.15,height:.09,depth:.10},scene);
     splinter.position.copyFrom(p);splinter.rotation.y=.05*Math.sin(i);splinter.rotation.z=.04*Math.cos(i);worldSurfaceUV(splinter,4.5);add(splinter,'c1-hull','decay-strakes',blackwood);
-    for(let k=0;k<3;k++){const shell=MeshBuilder.CreateIcoSphere('wreck-age:limpet',{radius:.06+(k%2)*.02,subdivisions:1},scene);shell.position.copyFrom(p.add(new Vector3(k*.14,-.12,z<0?-.06:.06)));shell.scaling.set(1,.72,.45);add(shell,'c1-hull','marine-growth',growth);}
+    for(let k=0;k<5;k++){const shell=MeshBuilder.CreateIcoSphere('wreck-age:limpet',{radius:.06+(k%2)*.02,subdivisions:1},scene);shell.position.copyFrom(p.add(new Vector3(k*.14,-.12,z<0?-.06:.06)));shell.scaling.set(1,.72,.45);add(shell,'c1-hull','marine-growth',growth);}
     tube(`hull-algae:${i}`,[p,p.add(new Vector3(.08,-.28,side*.06)),p.add(new Vector3(-.03,-.55,side*.09))],.034,algae,'c1-hull','marine-growth');
   }
   // Mainmast is sound, but its ropes are frayed. The fallen foremast's loose

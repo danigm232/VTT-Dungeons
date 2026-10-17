@@ -74,11 +74,13 @@ try {
   // The old fixture shot from the entry bridge through the temple wall.
   const { oneShotCampaignDefinition } = await import(pathToFileURL(path.join(serverBuild, 'campaigns/one-shot/public/pack.js')).href);
   const { surfaceNeighbors } = await import(pathToFileURL(path.join(serverBuild, 'engine/shared/terrain.js')).href);
-  const { segmentCrossesBox } = await import(pathToFileURL(path.join(serverBuild, 'engine/shared/geometry.js')).href);
+  const { segmentCrossesBox, footprintFor } = await import(pathToFileURL(path.join(serverBuild, 'engine/shared/geometry.js')).href);
   const scene = oneShotCampaignDefinition.scenes.find(scene => scene.id === 'temple');
   const target = dm.__world.entities.find(entity => entity.id === 'anteros-temple').cell;
   const origin = dm.__world.entities.find(entity => entity.id === 'maria').cell;
   const forbidden = new Set(dm.__world.entities.filter(entity => entity.id !== 'maria').map(entity => `${entity.cell.col},${entity.cell.row}`));
+  for (const prop of dm.__world.props) if (prop.structure !== 'destroyed' && (prop.kind !== 'door' || prop.state !== 'open'))
+    for (const cell of footprintFor(prop.cell, prop.rotation, prop.footprint)) forbidden.add(`${cell.col},${cell.row}`);
   const key = cell => `${cell.col},${cell.row}`, paths = [[origin]], visited = new Set([key(origin)]);
   let legalPath;
   for (let i = 0; i < paths.length; i++) {
@@ -88,7 +90,8 @@ try {
   }
   assert.ok(legalPath, 'no unobstructed approach to Anteros');
   for (const cell of legalPath.slice(1)) {
-    assert.equal((await emitResult(dm, 'dm:command', { runtimeEpoch: dmInitial.runtimeEpoch, type: 'entity:move', commandId: crypto.randomUUID(), sceneEpoch: initialWorld.sceneEpoch, entityId: 'maria', cell })).ok, true);
+    const moved = await emitResult(dm, 'dm:command', { runtimeEpoch: dmInitial.runtimeEpoch, type: 'entity:move', commandId: crypto.randomUUID(), sceneEpoch: initialWorld.sceneEpoch, entityId: 'maria', cell });
+    assert.equal(moved.ok, true, `Approach ${cell.col},${cell.row}: ${moved.code}`);
     await delay(250); // Allow the normal one-square motion clock to finish.
   }
   let dmStatePromise = wait(dm, 'dm:state', value => value.combat.active);
@@ -149,6 +152,10 @@ try {
   await afterWithdrawal;
   const ended = wait(dm, 'dm:state', value => !value.combat.active);
   assert.equal((await emitResult(dm, 'dm:command', { runtimeEpoch: dmInitial.runtimeEpoch, type: 'combat:withdraw', commandId: crypto.randomUUID(), sceneEpoch: dmState.sceneEpoch, entityId: 'aoife' })).ok, true); await ended;
+  if (process.argv.includes('--combat-only')) {
+    await stop();
+    console.log('D8 combat integration PASS: DM/two players/projector, physical initiative, private dice, damage, idempotent retries and withdrawal.');
+  } else {
   // The same authoritative clients now play the full adventure and restore it.
   const command = async (fields, predicate = () => true) => {
     const updated = wait(dm, 'dm:state', predicate);
@@ -240,6 +247,7 @@ try {
   assert.equal(reopened.payload.npcs.find(actor => actor.id === 'anteros-temple').hp, after);
   await stop();
   console.log('D8 integration PASS: private dice flow, idempotency, withdrawal, three rain/snow levels and all day phases live to DM/two players/projector, single mirror transformation/player appearance before combat, all six scenes/four objectives, final, full-world restore, preserved player ownership, ten saves and restart/autoload.');
+  }
 } finally {
   sockets.forEach(socket => socket.disconnect());
   if (child?.exitCode === null) child.kill('SIGTERM');

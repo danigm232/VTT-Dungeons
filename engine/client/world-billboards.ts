@@ -14,6 +14,8 @@ import '@babylonjs/core/Culling/ray.js';
 import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData.js';
 import type { Scene } from '@babylonjs/core/scene.js';
 import { interactionActorVertex, type InteractionActorPose } from './interaction-actor-pose.js';
+import { actorShadow } from './actor-shadow.js';
+import { bloodPoolTexture, unconsciousGroundTexture, paintDefeatGround } from './defeat-presentation';
 
 export type BillboardFrame = {
   url: string; sourceWidth: number; sourceHeight: number;
@@ -23,11 +25,13 @@ export type BillboardFrame = {
   worldWidth: number; worldHeight: number; anchorX: number; anchorY: number;
   offsetX: number; offsetY: number; flipX: boolean; alpha: number; tint: number;
   lean?: number;
+  grounded?: boolean;
+  defeatStyle?: 'blood' | 'unconscious';
   interactionPose?: InteractionActorPose;
   worldOffset?: { x: number; y: number; z: number };
 };
 type Layer = { mesh: Mesh; material: StandardMaterial; key: string; grid?: boolean; frame?: BillboardFrame };
-type Actor = { body: Layer; ghost: Layer; shadow: Mesh; ring: Mesh };
+type Actor = { body: Layer; ghost: Layer; shadow: Mesh; ring: Mesh; projection?: Mesh; effects: Layer[] };
 
 /** UVs use the atlas' actual pixel dimensions and stay inside its frame.
  * The half-pixel inset prevents neighbouring poses leaking into an edge. */
@@ -54,6 +58,10 @@ function paintedTexture(url: string, scene: Scene, frame?: BillboardFrame): Text
   }
   // Painted illustrations need filtered mipmaps when minified. Nearest-only
   // sampling made their clothes and faces sparkle at normal map zoom.
+  if (url === bloodPoolTexture || url === unconsciousGroundTexture) {
+    const texture = new DynamicTexture(url, { width: 128, height: 128 }, scene, false, Texture.BILINEAR_SAMPLINGMODE);
+    paintDefeatGround(texture.getContext() as CanvasRenderingContext2D, url === bloodPoolTexture ? 'blood' : 'unconscious'); texture.hasAlpha = true; texture.update(); return texture;
+  }
   if (url !== contactShadow) return new Texture(url, scene, false, true, Texture.TRILINEAR_SAMPLINGMODE);
   const texture = new DynamicTexture(contactShadow, { width: 64, height: 64 }, scene, false, Texture.BILINEAR_SAMPLINGMODE);
   const context = texture.getContext(), gradient = context.createRadialGradient(32, 32, 0, 32, 32, 31);
@@ -67,7 +75,7 @@ function paintedTexture(url: string, scene: Scene, frame?: BillboardFrame): Text
 export class WorldBillboards {
   private actors = new Map<string, Actor>();
   private textures = new Map<string, Texture>();
-  constructor(private scene: Scene, private textureFactory = (url: string, frame?: BillboardFrame) => paintedTexture(url, scene, frame)) {}
+  constructor(private scene: Scene, private textureFactory = (url: string, frame?: BillboardFrame) => paintedTexture(url, scene, frame), private dynamicShadows = false) {}
   get count() { return this.actors.size; }
   private texture(url: string, frame?: BillboardFrame) {
     let texture = this.textures.get(url);
@@ -107,7 +115,20 @@ export class WorldBillboards {
     ringMaterial.disableLighting = true; ringMaterial.emissiveColor = Color3.FromHexString('#ffd36a'); ringMaterial.alpha = .85;
     ring.material = ringMaterial; ring.isPickable = false;
     for (const mesh of [shadow, ring]) { mesh.metadata = { tokenOccluder: false }; this.scene.getGlowLayerByName?.('glow')?.addExcludedMesh(mesh); }
-    const actor = { body, ghost, shadow, ring }; this.actors.set(id, actor); return actor;
+    let projection: Mesh | undefined;
+    if (this.dynamicShadows) {
+      projection = MeshBuilder.CreateGround(`actor:${id}:projected-shadow`, {width:1,height:1}, this.scene);
+      const paint = new StandardMaterial(`${projection.name}:paint`, this.scene);
+      // A cloned DynamicTexture has no uploaded pixels. Both shadows must
+      // share the already painted radial mask, including on WebGL startup.
+      paint.diffuseTexture = shadowMaterial.diffuseTexture;
+      paint.useAlphaFromDiffuseTexture = true;
+      paint.disableLighting = true; paint.emissiveColor = Color3.Black();
+      paint.transparencyMode = Material.MATERIAL_ALPHABLEND;
+      paint.alpha = .3; projection.material = paint; projection.isPickable = false;
+      projection.metadata = { tokenOccluder:false, actorShadow:true };
+    }
+    const actor: Actor = { body, ghost, shadow, ring, projection, effects: [] }; this.actors.set(id, actor); return actor;
   }
   private updateLayer(layer: Layer, frame: BillboardFrame | null, ground: Vector3, camera: Camera, visible: boolean) {
     layer.mesh.setEnabled(Boolean(frame && visible && frame.alpha > .001));
@@ -155,6 +176,18 @@ export class WorldBillboards {
     // Upright cylindrical billboards: a camera-facing card used to lean its
     // head backwards into tables, roofs and walls when the camera tilted.
     const right = camera.getDirection(Vector3.Right()); right.y = 0; right.normalize();
+    if (frame.grounded) {
+      // The texture already depicts a lying body. Laying the entire card flat
+      // a second time made it paper-thin. Keep a low, camera-readable 2.5D
+      // silhouette with depth toward the floor, anchored at its lower edge.
+      const alongGround = Vector3.Cross(Vector3.Up(), right).normalize();
+      const up = Vector3.Up().scale(.87).add(alongGround.scale(.49)).normalize();
+      const height = frame.worldHeight * .6;
+      layer.mesh.scaling.set(frame.worldWidth, height, 1);
+      layer.mesh.rotationQuaternion.copyFrom(Quaternion.RotationQuaternionFromAxis(right, up, Vector3.Cross(right, up)));
+      layer.mesh.position.copyFrom(ground).addInPlace(Vector3.Up().scale(.035)).addInPlace(up.scale(height/2));
+      return;
+    }
     const upright = Vector3.Up(), lean = frame.lean ?? 0;
     const up = upright.scale(Math.cos(lean)).subtract(right.scale(Math.sin(lean)));
     const tiltedRight = right.scale(Math.cos(lean)).add(upright.scale(Math.sin(lean)));
@@ -162,15 +195,40 @@ export class WorldBillboards {
     layer.mesh.rotationQuaternion.copyFrom(Quaternion.RotationQuaternionFromAxis(tiltedRight, up, forward));
     layer.mesh.position.copyFrom(billboardCenter(ground, tiltedRight, up, frame));
   }
-  sync(id: string, ground: Vector3, camera: Camera, body: BillboardFrame | null, ghost: BillboardFrame | null, visible: boolean, selected: boolean) {
+  sync(id: string, ground: Vector3, camera: Camera, body: BillboardFrame | null, ghost: BillboardFrame | null, visible: boolean, selected: boolean, effects: readonly BillboardFrame[] = []) {
     const actor = this.actors.get(id) ?? this.create(id);
     this.updateLayer(actor.body, body, ground, camera, visible);
     // A tiny shift toward the camera keeps blend poses coplanar without z-fighting.
     const blendPoint = ground.subtract(camera.getForwardRay().direction.scale(.002));
     this.updateLayer(actor.ghost, ghost, blendPoint, camera, visible);
+    // Effects share the scenery's depth test and the actor's feet/scale. They
+    // cannot leak through a wall or replace the actor when a state expires.
+    for (let index = 0; index < Math.max(effects.length, actor.effects.length); index++) {
+      let layer = actor.effects[index];
+      if (!layer) {
+        layer = this.layer(`${id}:condition-${index}`, true); layer.mesh.isPickable = false;
+        layer.mesh.metadata = { tokenOccluder: false, conditionOverlay: true }; actor.effects.push(layer);
+      }
+      const point = ground.subtract(camera.getForwardRay().direction.scale(.006 + index * .002));
+      this.updateLayer(layer, effects[index] ?? null, point, camera, visible);
+    }
     actor.shadow.position.copyFrom(ground); if(body?.worldOffset)actor.shadow.position.addInPlace(new Vector3(body.worldOffset.x,0,body.worldOffset.z));actor.shadow.position.y += .008;
     actor.shadow.scaling.set(Math.max(.5, Math.min(1.2, body?.worldWidth ?? .8)), 1, .65);
+    const contact = actor.shadow.material as StandardMaterial;
+    contact.diffuseTexture = this.texture(body?.defeatStyle === 'blood' ? bloodPoolTexture : body?.defeatStyle === 'unconscious' ? unconsciousGroundTexture : contactShadow);
+    contact.emissiveColor.copyFrom(body?.defeatStyle ? Color3.White() : Color3.Black());
+    contact.alpha = body?.defeatStyle ? .9 : .55;
+    if (body?.defeatStyle) actor.shadow.scaling.set(Math.max(.8, body.worldWidth * 1.35), 1, Math.max(1, body.worldHeight * 1.1));
     actor.shadow.setEnabled(visible && Boolean(body));
+    if (actor.projection && body && !body.grounded) {
+      const light = actorShadow(this.scene, actor.shadow.position, actor.body.mesh, body.worldHeight);
+      actor.projection.position.copyFrom(actor.shadow.position).addInPlace(light.direction.scale(light.length*.45));
+      actor.projection.position.y += .002;
+      actor.projection.rotation.y = Math.atan2(light.direction.x,light.direction.z);
+      actor.projection.scaling.set(Math.max(.35,Math.min(.8,body.worldWidth*.6)),1,light.length+.45);
+      (actor.projection.material as StandardMaterial).alpha = light.alpha * body.alpha;
+      actor.projection.setEnabled(visible && light.alpha>.005);
+    } else actor.projection?.setEnabled(false);
     actor.ring.position.copyFrom(ground); actor.ring.position.y += .018; actor.ring.setEnabled(visible && selected);
   }
   pick(ray: Ray) {
@@ -179,7 +237,7 @@ export class WorldBillboards {
   }
   remove(id: string) {
     const actor = this.actors.get(id); if (!actor) return;
-    for (const mesh of [actor.body.mesh, actor.ghost.mesh, actor.shadow, actor.ring]) { mesh.material?.dispose(false, false); mesh.dispose(); }
+    for (const mesh of [actor.body.mesh, actor.ghost.mesh, actor.shadow, actor.ring, actor.projection, ...actor.effects.map(layer => layer.mesh)].filter((m):m is Mesh=>Boolean(m))) { mesh.material?.dispose(false, false); mesh.dispose(); }
     this.actors.delete(id);
   }
   dispose() { for (const id of [...this.actors.keys()]) this.remove(id); for (const texture of this.textures.values()) texture.dispose(); this.textures.clear(); }

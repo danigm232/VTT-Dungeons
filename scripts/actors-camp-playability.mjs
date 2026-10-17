@@ -43,7 +43,8 @@ try{
  const p=players[0],hp=players.map(s=>s.private.hp);
  const ids=['camp-a1-rooms','camp-forest-pleamar','camp-wreck-beach','camp-cliffs-observatory','camp-coastal-refuge'];
  for(const id of ids){
-  await dmCommand(dm,{type:'scene',sceneId:id});await delay(150);assert.equal(projector.latest.sceneId,id);assert.ok(players.every(s=>s.latest.sceneId===id&&s.private.characterId===s.actor));
+  const arrived=[dm,projector,...players].map(s=>s.latest.sceneId===id?Promise.resolve():wait(s,'world:snapshot',v=>v.sceneId===id));
+  await dmCommand(dm,{type:'scene',sceneId:id});await Promise.all(arrived);assert.equal(projector.latest.sceneId,id);assert.ok(players.every(s=>s.latest.sceneId===id&&s.private.characterId===s.actor));
   const definition=p.latest.scene;let steps=0,used=0;
   for(const point of definition.camp.interactionPoints.filter(point=>!point.ownerCharacterId||point.ownerCharacterId==='mike')){
    for(const destination of route(p,point.cell)){await step(p,destination);steps++;}

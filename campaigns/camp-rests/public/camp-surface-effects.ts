@@ -12,10 +12,11 @@ import type { Scene } from '@babylonjs/core/scene.js';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import type { PublicSceneDefinition } from '../../../engine/shared/campaign.js';
 import type { EnvironmentState } from '../../../engine/shared/protocol.js';
+import type { ClimateState } from '../../../engine/shared/game-time.js';
 import { advanceWeatherSurface } from '../../../engine/client/weather-surface.js';
 import { A1_ROOMS } from './a1-layout.js';
 
-const deposition = new Map<string, { wet: number; snow: number }>();
+const deposition = new Map<string, { wet: number; snow: number; puddles: number; flood: number }>();
 /** These predicates also keep precipitation out of the same physical roofs. */
 export function campCovered(definition: PublicSceneDefinition, x: number, z: number) {
   if (definition.camp?.visualProfile === 'rooms') return A1_ROOMS.some(r => r.cells.some(c => x >= c.col * 1.5 && x <= (c.col + 1) * 1.5 && z >= c.row * 1.5 && z <= (c.row + 1) * 1.5));
@@ -23,9 +24,9 @@ export function campCovered(definition: PublicSceneDefinition, x: number, z: num
 }
 
 class CampSurfacePlugin extends MaterialPluginBase {
-  constructor(material: StandardMaterial, private amount: { wet: number; snow: number }, private cover: string) { super(material, 'CampSurfaceWeather', 190, {}, true, true); }
-  getUniforms() { return { ubo: [{ name: 'campDeposition', size: 2, type: 'vec2' }], fragment: '#ifndef UNIFORMBUFFERS\nuniform vec2 campDeposition;\n#endif' }; }
-  bindForSubMesh(buffer: UniformBuffer) { buffer.updateFloat2('campDeposition', this.amount.wet, this.amount.snow); }
+  constructor(material: StandardMaterial, private amount: { wet: number; snow: number; puddles: number; flood: number }, private cover: string) { super(material, 'CampSurfaceWeather', 190, {}, true, true); }
+  getUniforms() { return { ubo: [{ name: 'campDeposition', size: 4, type: 'vec4' }], fragment: '#ifndef UNIFORMBUFFERS\nuniform vec4 campDeposition;\n#endif' }; }
+  bindForSubMesh(buffer: UniformBuffer) { buffer.updateFloat4('campDeposition', this.amount.wet, this.amount.snow, this.amount.puddles, this.amount.flood); }
   getCustomCode(type: string) {
     if (type !== 'fragment') return null;
     return { CUSTOM_FRAGMENT_BEFORE_LIGHTS: `
@@ -34,14 +35,17 @@ class CampSurfacePlugin extends MaterialPluginBase {
       float campGrain = fract(sin(dot(floor(vPositionW.xz*5.0),vec2(12.9898,78.233)))*43758.5453);
       float campTop = smoothstep(0.20,0.72,normalW.y);
       float campSnow = campExposure*campTop*clamp(campDeposition.y*1.6-campGrain*0.48,0.0,1.0);
+      float campLow = 1.0-smoothstep(0.04,0.18,vPositionW.y);
+      float campWater = campExposure*campTop*campLow*clamp(max(campDeposition.z,campDeposition.w)-campGrain*0.5,0.0,1.0);
       baseColor.rgb = mix(baseColor.rgb*(1.0-campDeposition.x*campExposure*0.22),vec3(0.86,0.93,0.98)/max(diffuseColor,vec3(0.08)),campSnow);
+      baseColor.rgb = mix(baseColor.rgb,vec3(0.10,0.29,0.34),campWater*0.34);
     ` };
   }
 }
 
 /** A single bounded shader layer per existing material; no extra draw pass. */
 export function createCampSurfaceEffects(scene: Scene, definition: PublicSceneDefinition) {
-  const amount = { ...(deposition.get(definition.id) ?? { wet: 0, snow: 0 }) };
+  const amount = { ...(deposition.get(definition.id) ?? { wet: 0, snow: 0, puddles: 0, flood: 0 }) };
   let cover = '';
   if (definition.camp!.visualProfile === 'rooms') for (const room of A1_ROOMS) {
     const body=room.cells.filter(c=>c.col!==room.entry.col||c.row!==room.entry.row);
@@ -61,9 +65,12 @@ export function createCampSurfaceEffects(scene: Scene, definition: PublicSceneDe
     }
   }
   prepare();
-  return { amount, covered: (x: number,z: number) => campCovered(definition,x,z), update(seconds: number, environment?: EnvironmentState) {
-    const kind = environment?.precipitation ?? (environment?.storm ? 'rain' : 'none');
-    Object.assign(amount, advanceWeatherSurface(amount.wet,amount.snow,kind,(environment?.precipitationLevel??2)/3,seconds));
+  return { amount, covered: (x: number,z: number) => campCovered(definition,x,z), update(seconds: number, environment?: EnvironmentState, climate?: ClimateState) {
+    if (climate) Object.assign(amount, { wet: climate.wetness, snow: climate.snowCoverage, puddles: climate.puddleCoverage, flood: climate.floodLevel });
+    else {
+      const kind = environment?.precipitation ?? (environment?.storm ? 'rain' : 'none');
+      Object.assign(amount, advanceWeatherSurface(amount.wet,amount.snow,kind,(environment?.precipitationLevel??2)/3,seconds));
+    }
     deposition.set(definition.id,{...amount}); prepare();
   }};
 }
@@ -84,6 +91,13 @@ export function createCampCoals(scene: Scene, root: TransformNode, at: Vector3, 
 }
 
 /** Sun/moon plus the nearest active warm source. Includes every real prop. */
+const lightTargets = new WeakMap<PointLight, PointLight['includedOnlyMeshes']>();
+export function includeCampActors(light: PointLight, belongs: (mesh: Mesh)=>boolean, scene: Scene) {
+  let scenery = lightTargets.get(light);
+  if (!scenery) { scenery = light.includedOnlyMeshes.filter(m=>!m.metadata?.nativeBillboard); lightTargets.set(light,scenery); }
+  light.includedOnlyMeshes = [...scenery,...scene.meshes.filter((m):m is Mesh=>m instanceof Mesh && m.metadata?.nativeBillboard && belongs(m))];
+}
+
 export class CampShadows {
   private sunMap?: ShadowGenerator;
   private localMap?: ShadowGenerator;
@@ -92,7 +106,8 @@ export class CampShadows {
   private meshCount = -1;
   private lastRefresh = -Infinity;
   private shadowFocus?: Vector3;
-  constructor(private scene: Scene, private sun: DirectionalLight, private compact: boolean) {
+  constructor(private scene: Scene, private sun: DirectionalLight, private compact: boolean,
+    private accepts?: (mesh: Mesh) => boolean, private economicalFilters=false) {
     // Camera far planes cover distant scenery. A shadow map needs only the
     // diorama's depth; using 10 km here erased small furniture shadows.
     sun.shadowMinZ=.1;sun.shadowMaxZ=110;
@@ -100,13 +115,23 @@ export class CampShadows {
     this.prepare();scene.onDisposeObservable.addOnce(()=>{this.sunMap?.dispose();this.localMap?.dispose();});
   }
   private map(light: DirectionalLight|PointLight,size:number) {
-    const map=new ShadowGenerator(size,light);map.bias=light===this.sun?.00075:.0008;map.normalBias=.04;map.forceBackFacesOnly=true;map.getShadowMap()!.refreshRate=0;map.setDarkness(.20);
-    if(!this.compact){map.usePercentageCloserFiltering=true;map.filteringQuality=ShadowGenerator.QUALITY_LOW;}
+    const map=new ShadowGenerator(size,light);map.bias=light===this.sun?.0015:.005;map.normalBias=light===this.sun?.04:.08;map.forceBackFacesOnly=false;map.getShadowMap()!.refreshRate=0;map.setDarkness(.08);
+    // Cube maps near low flames need a depth offset large enough to avoid
+    // self-shadow stripes on the ground and thin cloth at the compact size.
+    if(this.economicalFilters){
+      // Wreck point lights already render six faces. Single-sample crisp
+      // torch shadows avoid adding Poisson's many reads to every fragment.
+      // Daylight retains hardware PCF (Babylon handles WebGL1 fallback).
+      if(light===this.sun){map.usePercentageCloserFiltering=true;map.filteringQuality=ShadowGenerator.QUALITY_LOW;}
+    }else{
+      if(this.compact)map.usePoissonSampling=true;
+      if(!this.compact){map.usePercentageCloserFiltering=true;map.filteringQuality=ShadowGenerator.QUALITY_LOW;}
+    }
     return map;
   }
   private prepare() {
     this.meshCount=this.scene.meshes.length;
-    this.meshes=this.scene.meshes.filter((m):m is Mesh=>m instanceof Mesh && !/weather:|halo|contact|bounce|flame|embers|coal-bed|ripple|aurora|cloud|ocean|sea-|stream|surf|water|wind/i.test(m.name));
+    this.meshes=this.scene.meshes.filter((m):m is Mesh=>m instanceof Mesh && (this.accepts ? this.accepts(m) : !/^actor:|weather:|halo|contact|bounce|flame|embers|coal-bed|ripple|aurora|cloud|ocean|sea-|stream|surf|water|wind|ambient-life/i.test(m.name)));
     for(const m of this.meshes){m.receiveShadows=true;m.computeWorldMatrix(true);}
     if(this.sunMap){this.sunMap.getShadowMap()!.renderList=[];for(const m of this.meshes)if(!/terrain-batch|continuous-ground|organic-ground|groundsheet|carpet/i.test(m.name))this.sunMap.addShadowCaster(m,false);}
   }
@@ -122,6 +147,7 @@ export class CampShadows {
       this.invalidate();
     }
     if(this.localMap && light){this.localMap.getShadowMap()!.renderList=this.meshes.filter(m=>m.isVisible && m.isEnabled() && (!light.includedOnlyMeshes.length||light.includedOnlyMeshes.includes(m)) && Vector3.Distance(m.getBoundingInfo().boundingBox.centerWorld,light.position)<light.range+7);}
-    if(animating && time-this.lastRefresh>1/6){this.lastRefresh=time;this.invalidate();}
+    // Moving wildlife and opened cloth need to update their real silhouettes too.
+    if(time-this.lastRefresh>(animating?1/6:.5)){this.lastRefresh=time;this.invalidate();}
   }
 }

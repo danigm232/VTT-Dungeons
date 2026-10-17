@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orientación · caminar y detenerse</title><link rel="stylesheet" href="/apps/web/common.css">
+<style>
+body{padding:24px;background:#091217;overflow:auto}main{max-width:1120px;margin:auto}h1{font:30px Georgia,serif;color:#e5d1aa}
+.toolbar{display:flex;gap:16px;flex-wrap:wrap;margin:20px 0}.toolbar label{display:grid;gap:6px}.toolbar select{min-width:190px}
+.demonstration{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:18px;border:1px solid #dfc48f40;border-radius:14px;background:#122125}
+.demonstration canvas{width:250px;height:230px}.arrows{display:grid;grid-template-columns:repeat(3,48px);gap:5px}.arrows button{padding:8px;touch-action:none}.arrows span{display:grid;place-items:center}
+.gallery{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:20px}.card{background:linear-gradient(145deg,#19292d,#0d191d);border:1px solid #8b9d9333;border-radius:12px;overflow:hidden}
+.card h2{margin:12px 12px 0;font:18px Georgia,serif;color:#e5d1aa}.card p{font-size:12px;color:#a5b6b0;margin:6px 12px}.card canvas{width:100%;display:block}
+@media(max-width:700px){body{padding:12px}.gallery{grid-template-columns:repeat(2,minmax(0,1fr))}.demonstration{justify-content:center}.toolbar label{flex:1}.toolbar select{min-width:150px}}
+</style></head><body><main>
+<p>D&D · REVISIÓN VISUAL</p><h1>Camina, suelta y conserva la dirección</h1>
+<p>Prueba W/A/S/D o mantén una flecha. Al soltar, la pose queda quieta mirando al último rumbo. Girar la cámara cambia la vista, no la orientación del personaje en el mundo.</p>
+<div class="toolbar"><label>Personaje<select id="actor"></select></label><label>Cámara<select id="camera"></select></label></div>
+<div class="toolbar"><label>Ciclo<select id="mode"><option value="walk">Caminar</option><option value="run">Correr (ciclo reutilizado)</option><option value="rest">Quieto</option><option value="auto">Caminar → quieto</option></select></label><label>Velocidad<select id="speed"><option value="1">Normal</option><option value="0.25">Lento · 25 %</option><option value="0.125">Muy lento · 12,5 %</option></select></label><button id="pause">Pausar</button><button id="previous" aria-label="Fotograma anterior">← Fotograma</button><button id="next" aria-label="Fotograma siguiente">Fotograma →</button><label><span id="frameLabel">Fotograma 1/8</span><input id="frame" type="range" min="0" max="7" value="0"></label></div>
+<div class="demonstration"><canvas id="demo" width="500" height="460" aria-label="Personaje de prueba"></canvas><div><div id="arrows" class="arrows"></div><p id="demoStatus" role="status">Quieto</p><p>Prueba aislada: no modifica la partida.</p></div></div>
+<p id="status" role="status">Preparando las vistas…</p><div id="gallery" class="gallery"></div>
+<p>Trinity y Silverfarben usan ocho poses por rumbo, con recorte aislado. Este de Trinity y suroeste de Silverfarben reutilizan una vista simétrica. Correr reutiliza la caminata a mayor cadencia: no es una animación de sprint nueva. Para los demás personajes de Stormwreck las vistas direccionales son poses, no ciclos completos nuevos.</p>
+<p><a href="/scripts/conditions-review.html">Volver a los estados</a></p>
+</main><script type="module" src="/scripts/facing-review.ts"></script></body></html>

@@ -66,6 +66,8 @@ export type PortDefinition = {
   autoDirection?: 'both' | 'forward' | 'manual';
   /** Continuous physical approach before an automatic road transition. */
   minimumApproachSteps?: number;
+  /** DM-confirmed journey duration from the campaign source, in game seconds. */
+  travelSeconds?: number;
 };
 export type InteractiveObjectDefinition =
   | { sceneId: string; objectId: string; kind: 'barred-door'; barrier: 'barred' | 'removed' }
@@ -83,6 +85,15 @@ export type CampaignServerBundle = {
   wheelInteraction?: WheelInteractionDefinition;
   mirrorInteraction?: MirrorInteractionDefinition;
   stageActorInteractions?: StageActorInteractionDefinition[];
+  proximityEncounter?: {
+    id: string; sceneId: string; actorIds: string[]; skill: string; dc: number; quietDc?:number; radiusMeters: number; failuresBeforeCombat: number;
+    distraction?: { actorId: string; entranceDoorId: string; destinations: Array<{ col: number; row: number }> };
+  };
+  sceneWindows?: Array<{id:string;sceneId:string;cell:{col:number;row:number};inside:{col:number;row:number};outside:{col:number;row:number};destinations:Array<{col:number;row:number}>;sillMeters:number}>;
+  prayerShrine?: {sceneId:string;cell:{col:number;row:number};label:string};
+  animalFleeDestination?: {col:number;row:number};
+  movementDoorEdges?: Array<{sceneId:string;propId:string;edges:Array<{from:{col:number;row:number};to:{col:number;row:number}}>}>;
+  actorLayout?: { version:number; corrections:Array<{id:string;sceneId:string;previousCells:Array<{col:number;row:number}>}> };
   adventure?: AdventureDefinition;
   doorStates?: Record<string, Record<string, 'open' | 'closed' | 'locked'>>;
   ports?: PortDefinition[];
@@ -242,6 +253,33 @@ export function compileCampaignBundle(input: CampaignServerBundle): CompiledCamp
       }
     }
   }
+  if(input.proximityEncounter){
+    const rule=input.proximityEncounter,scene=publicDefinition.scenes.find(scene=>scene.id===rule.sceneId);
+    if(!scene||!rule.actorIds.length||new Set(rule.actorIds).size!==rule.actorIds.length||rule.actorIds.some(id=>!scene.stageActors?.some(actor=>actor.id===id))||!Number.isInteger(rule.dc)||rule.dc<0||rule.dc>100||!Number.isFinite(rule.radiusMeters)||rule.radiusMeters<=0||!Number.isInteger(rule.failuresBeforeCombat)||rule.failuresBeforeCombat<1)errors.push('Encuentro de proximidad inválido');
+    if(rule.distraction&&(!scene?.stageActors?.some(actor=>actor.id===rule.distraction!.actorId)||!scene.props.some(prop=>prop.id===rule.distraction!.entranceDoorId&&prop.kind==='door')||rule.distraction.destinations.length!==rule.actorIds.length||rule.distraction.destinations.some(cell=>!scene.walkable.some(candidate=>cellKey(candidate)===cellKey(cell)))))errors.push('Distracción o rutas de salida inválidas');
+    if(rule.quietDc!==undefined&&(!Number.isInteger(rule.quietDc)||rule.quietDc<0||rule.quietDc>rule.dc))errors.push('CD de modo sigilo inválida');
+  }
+  const windowIds=new Set<string>();
+  for(const window of input.sceneWindows??[]){
+    const scene=publicDefinition.scenes.find(scene=>scene.id===window.sceneId);
+    const cells=[window.cell,window.inside,window.outside,...window.destinations];
+    if(!/^[a-z0-9][a-z0-9._-]{0,39}$/.test(window.id)||windowIds.has(window.id)
+      ||!scene?.props.some(prop=>prop.id===window.id&&prop.kind==='door'&&prop.capabilities.structure)
+      ||cells.some(cell=>!Number.isInteger(cell.col)||!Number.isInteger(cell.row)||!scene?.walkable.some(candidate=>cellKey(candidate)===cellKey(cell)))
+      ||cellKey(window.inside)===cellKey(window.outside)||!Number.isFinite(window.sillMeters)||window.sillMeters<0||window.sillMeters>3
+      ||new Set(window.destinations.map(cellKey)).size!==window.destinations.length
+      ||window.destinations.length!==input.proximityEncounter?.actorIds.length||window.sceneId!==input.proximityEncounter?.sceneId)errors.push(`Ventana o destinos inválidos: ${window.id}`);
+    windowIds.add(window.id);
+  }
+  if(input.prayerShrine){
+    const shrine=input.prayerShrine,scene=publicDefinition.scenes.find(scene=>scene.id===shrine.sceneId);
+    if(!shrine.label||shrine.label.length>80||!scene?.walkable.some(cell=>cellKey(cell)===cellKey(shrine.cell)))errors.push('Santuario de oración inválido');
+  }
+  if(input.animalFleeDestination&&!publicDefinition.scenes.find(scene=>scene.id===input.proximityEncounter?.sceneId)?.walkable.some(cell=>cellKey(cell)===cellKey(input.animalFleeDestination!)))errors.push('Destino de huida inválido');
+  for(const barrier of input.movementDoorEdges??[]){
+    const scene=publicDefinition.scenes.find(scene=>scene.id===barrier.sceneId);
+    if(!scene?.props.some(prop=>prop.id===barrier.propId&&prop.kind==='door')||barrier.edges.some(edge=>[edge.from,edge.to].some(cell=>!scene.walkable.some(candidate=>cellKey(cell)===cellKey(candidate)))||Math.max(Math.abs(edge.from.col-edge.to.col),Math.abs(edge.from.row-edge.to.row))!==1))errors.push('Aristas de puerta inválidas');
+  }
   if (errors.length) throw new Error(`Bundle de campaña inválido:\n- ${errors.join('\n- ')}`);
   return {
     public: structuredClone(publicDefinition),
@@ -253,6 +291,12 @@ export function compileCampaignBundle(input: CampaignServerBundle): CompiledCamp
     wheelInteraction: input.wheelInteraction ? structuredClone(input.wheelInteraction) : undefined,
     mirrorInteraction: input.mirrorInteraction ? structuredClone(input.mirrorInteraction) : undefined,
     stageActorInteractions: input.stageActorInteractions ? structuredClone(input.stageActorInteractions) : undefined,
+    proximityEncounter: input.proximityEncounter ? structuredClone(input.proximityEncounter) : undefined,
+    sceneWindows:input.sceneWindows?structuredClone(input.sceneWindows):undefined,
+    prayerShrine:input.prayerShrine?structuredClone(input.prayerShrine):undefined,
+    animalFleeDestination:input.animalFleeDestination?structuredClone(input.animalFleeDestination):undefined,
+    movementDoorEdges:input.movementDoorEdges?structuredClone(input.movementDoorEdges):undefined,
+    actorLayout: input.actorLayout ? structuredClone(input.actorLayout) : undefined,
     doorStates: input.doorStates ? structuredClone(input.doorStates) : undefined,
     ports: input.ports ? structuredClone(input.ports) : undefined,
     interactiveObjects: input.interactiveObjects ? structuredClone(input.interactiveObjects) : undefined,

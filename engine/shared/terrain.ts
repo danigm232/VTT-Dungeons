@@ -7,6 +7,7 @@ const idSchema = z.string().regex(/^[a-z0-9][a-z0-9._-]{0,39}$/);
 const cellSchema = z.object({ col: z.number().int().min(0).max(255), row: z.number().int().min(0).max(255) }).strict();
 
 const height = z.number().finite().min(-100).max(100);
+const horizontal = z.number().finite().min(-1000).max(1000);
 const edge = z.enum(['north', 'east', 'south', 'west']);
 const sameCell = (a: Cell, b: Cell) => a.col === b.col && a.row === b.row;
 const tile = z.object({ cell: cellSchema, kind: z.enum(['floor', 'ramp', 'stair', 'bridge']),
@@ -14,6 +15,9 @@ const tile = z.object({ cell: cellSchema, kind: z.enum(['floor', 'ramp', 'stair'
   /** Convex floor boundary within a cell. Cell centres remain the movement
    * anchors; rendering, picking and the grid share these fractional vertices. */
   polygon: z.array(z.tuple([z.number().finite().min(0).max(1), z.number().finite().min(0).max(1)])).min(3).max(12).optional(),
+  /** Physical stopping point in an authored narrow passage; the tactical cell
+   * and its metre scale remain unchanged. Defaults to the cell centre. */
+  anchor: z.tuple([z.number().finite().min(0).max(1),z.number().finite().min(0).max(1)]).optional(),
   /** Coste mínimo de recorrido. Dos representa terreno difícil. */
   movementCost: z.union([z.literal(1), z.literal(2)]).default(1),
   /** El medio es información física; nunca se usa como barrera de privacidad. */
@@ -35,6 +39,9 @@ export const terrainSchema = z.object({
     /** Context geometry is rendered, but cannot be walked, selected or gridded. */
     visualOnly: z.boolean().optional() }).strict()).min(1).max(20),
   transitions: z.array(z.object({ from: address, to: address, mode: z.enum(['ramp', 'stair', 'portal']) }).strict()).max(1000),
+  /** Authored clear route between adjacent tactical cells, in world metres.
+   * This prevents linear interpolation through a chair or a door jamb. */
+  edgePaths: z.array(z.object({from:address,to:address,points:z.array(z.tuple([horizontal,height,horizontal])).min(2).max(64)}).strict()).max(10000).optional(),
   /** Explicit physical breaks in an otherwise adjacent raster surface. */
   blockedEdges: z.array(z.object({ surfaceId: idSchema, from: cellSchema, to: cellSchema }).strict()).max(10_000).optional(),
   /** Source geometry cells rejected by the collision sampler, with provenance for audits. */
@@ -85,6 +92,13 @@ export const terrainSchema = z.object({
     }
   }
   const blockedEdgeKeys = new Set<string>();
+  const pathKeys=new Set<string>();
+  for(const [index,path] of (terrain.edgePaths??[]).entries()){
+    const from=`${path.from.surfaceId}:${path.from.cell.col},${path.from.cell.row}`,to=`${path.to.surfaceId}:${path.to.cell.col},${path.to.cell.row}`,pair=[from,to].sort().join('|');
+    if(!known.has(from)||!known.has(to)||pathKeys.has(pair)||Math.abs(path.from.cell.col-path.to.cell.col)+Math.abs(path.from.cell.row-path.to.cell.row)!==1)
+      context.addIssue({code:'custom',path:['edgePaths',index],message:'Ruta física sin dos casillas contiguas o duplicada'});
+    pathKeys.add(pair);
+  }
   for (const [index, edge] of (terrain.blockedEdges ?? []).entries()) {
     const fromKey = `${edge.surfaceId}:${edge.from.col},${edge.from.row}`;
     const toKey = `${edge.surfaceId}:${edge.to.col},${edge.to.row}`;
@@ -137,6 +151,22 @@ export function surfaceHeight(terrain: TerrainDefinition, address: SurfaceAddres
   if (!entry || u < 0 || u > 1 || v < 0 || v > 1) throw new Error('TERRAIN_ADDRESS');
   const [nw, ne, se, sw] = entry.corners;
   return nw * (1 - u) * (1 - v) + ne * u * (1 - v) + se * u * v + sw * (1 - u) * v;
+}
+
+/** Logical address -> authored physical anchor. Existing maps retain centres. */
+export function surfacePoint(terrain:TerrainDefinition,address:SurfaceAddress):[number,number,number]{
+ const tile=terrainTile(terrain,address);if(!tile)throw new Error('TERRAIN_ADDRESS');const [u,v]=tile.anchor??[.5,.5];
+ return [(address.cell.col+u)*terrain.tileMeters,surfaceHeight(terrain,address,u,v),(address.cell.row+v)*terrain.tileMeters];
+}
+const physicalPathCache=new WeakMap<object,Map<string,[number,number,number][]>>();
+export function surfaceStepPath(terrain:TerrainDefinition,from:SurfaceAddress,to:SurfaceAddress):[number,number,number][]{
+ let map=physicalPathCache.get(terrain);if(!map){map=new Map();for(const p of terrain.edgePaths??[]){const a=addressKey(p.from),b=addressKey(p.to);map.set(a+'|'+b,p.points);map.set(b+'|'+a,[...p.points].reverse());}physicalPathCache.set(terrain,map);}
+ return map.get(addressKey(from)+'|'+addressKey(to))??[surfacePoint(terrain,from),surfacePoint(terrain,to)];
+}
+export function surfaceStepPoint(terrain:TerrainDefinition,from:SurfaceAddress,to:SurfaceAddress,progress:number):[number,number,number]{
+ const points=surfaceStepPath(terrain,from,to),lengths=points.slice(1).map((p,i)=>Math.hypot(p[0]-points[i]![0],p[1]-points[i]![1],p[2]-points[i]![2]));let left=Math.max(0,Math.min(1,progress))*lengths.reduce((a,b)=>a+b,0);
+ for(let i=0;i<lengths.length;i++){const length=lengths[i]!;if(left<=length||i===lengths.length-1){const t=length?left/length:1,a=points[i]!,b=points[i+1]!;return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}left-=length;}
+ return points[points.length-1]!;
 }
 
 export function surfaceNeighbors(terrain: TerrainDefinition, origin: SurfaceAddress): SurfaceAddress[] {

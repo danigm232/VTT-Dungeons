@@ -20,11 +20,17 @@ Solo son fuente maestra:
 
 - `index.ts` — punto de entrada Babylon Playground.
 - `renderer.ts` — motor, builders, render, VFX e interacción ambiental; también lo usa el VTT.
+- `temple-environment.ts` — módulo independiente de las capas decorativas del Templo (desde V58).
+- `sylvania-environment.ts` — estilo, cielo y distancia compartidos de Sylvania; capas decorativas de Café, Mercado, Fritz y Cena (desde V60).
 - `d8night.config.ts` — configuración de mapas, `CANON`, `VTT_AMBIENCE`, navegación y composición.
 - `VERSION` — número activo.
 - `generate-playground-json.mjs` — generador oficial.
 
 Los archivos `playground_*.json` son **artefactos generados**. No deben editarse como fuente.
+
+El generador también incluye las dependencias compartidas `engine/client/weather-surface.ts`, `engine/client/interior-camera.ts` y `engine/client/camera-profile.ts`, copiadas de sus fuentes reales, sin duplicarlas en esta carpeta. Los imports relativos deben resolverse dentro del manifest; el generador aborta si falta alguno.
+
+`generated-assets.ts` es un artefacto del generador; no editarlo a mano. V52–V57 incrustaban el fondo lejano del pueblo como data URL. V58 retira ese rectángulo y usa capas decorativas 3D con un horizonte curvo continuo: el módulo generado conserva el contrato del wrapper, sin incluir la imagen que ya no se consume. Se conservan los snapshots anteriores y el PNG original.
 
 ## 3. Arranque obligatorio de cualquier sesión
 
@@ -40,7 +46,7 @@ Antes de modificar nada:
    - `payload.code`;
    - `payload.unicode`;
    - `payload.unicode === base64(UTF-8(payload.code))`.
-8. Confirmar que `index.ts`, `renderer.ts` y `d8night.config.ts` incrustados en el payload coinciden exactamente con sus fuentes.
+8. Confirmar que `index.ts`, `renderer.ts`, `d8night.config.ts` y las dependencias compartidas incrustadas en el payload coinciden exactamente con sus fuentes. Verificar también que todos los imports relativos se resuelven.
 9. Revisar `historico/` y confirmar que la versión anterior está archivada.
 
 Si algo no coincide, **corregir primero el versionado/generación y después tocar el mapa**.
@@ -233,6 +239,7 @@ Antes de decir que una versión está terminada:
 - [ ] `playground_current.json == playground_vN.json`
 - [ ] `payload.code == decoded(payload.unicode)`
 - [ ] wrapper y `renderer.ts` incrustados == fuentes actuales
+- [ ] dependencias compartidas incrustadas == fuentes actuales e imports relativos resueltos
 - [ ] versión anterior archivada
 - [ ] versión activa única en raíz
 - [ ] mapa objetivo carga según su renderMode

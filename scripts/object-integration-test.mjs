@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { io } from 'socket.io-client';
-import { OBJECT_MODEL_VERSION, PROTOCOL_VERSION } from '../dist/server/engine/shared/protocol.js';
+
+const serverBuild = path.resolve(process.env.DUNGEONS_SERVER_BUILD || 'dist/server');
+const { OBJECT_MODEL_VERSION, PROTOCOL_VERSION } = await import(pathToFileURL(path.join(serverBuild, 'engine/shared/protocol.js')).href);
 
 const base = process.env.TEST_URL ?? 'http://127.0.0.1:3124';
 let phase = 'inicialización';

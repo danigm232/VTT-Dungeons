@@ -1,5 +1,142 @@
 # Estado del proyecto
 
+## Controles de giro compactos — 2026-10-17
+
+La consola DM muestra horizontal y vertical juntos en dos columnas iguales, con botones en ambos ejes y el ángulo entre ellos. Retirado el deslizador vertical; bajar/subir y F/R usan el mismo ajuste por pasos y desactivan el botón al alcanzar cada límite. Se conserva la publicación de giro e inclinación. Tipos y build cliente correctos; comprobados en una mesa aislada los clics, límites 15°/35° y disposición real de 410 px. Cliente publicado sin reiniciar la mesa; [captura](output/camera-buttons-20261017/camera-buttons.png).
+
+## Inclinación compartida con el proyector — 2026-10-17
+
+La casilla DM comparte ahora giro e inclinación, incluidos R/F, control vertical y presets de zona/combate. El proyector respeta el ángulo del DM mientras se comparte y lo recupera al reconectar; desactivar libera ambos ejes. 15 pruebas dirigidas, integración de cámara D8/Stormwreck, tipos y compilaciones correctos. Mesa D8 del puerto 3000 guardada, actualizada y reiniciada; estado recuperado en `ready`. [Detalle y límites](docs/evidence/SHARED_CAMERA_TILT_20261017.md).
+
+## Retiro del Dragón · mejora integral en ocho fases — 2026-10-16
+
+Ocho fases construidas y verificadas sobre la escena existente. Las 128 mallas originales de A1, sus seis celdas y todo el mobiliario conservan geometría y matrices exactas; escala 1,5 m, 850 posiciones, conexiones, puertas, PNJ y narrativa intactos. Interiores integrados, arquitectura revisada, continuidad rocosa, materiales PBR compartidos, jardines, sombras globales y costa mejorados. Perfil propio del Retiro 20°/30°/40°, combate inicial a 40° y gesto del jugador compatible; D8 mantiene sus valores anteriores.
+
+65 pruebas dirigidas, 936 encuadres entre las ocho fases, 1.514 pasos del servidor, 4.828 posiciones contra el GLB final y dos recorridos en pantalla con 1.413 comprobaciones de apoyo/visibilidad, sin fallos. Clientes DM/jugador/proyector y 23 recursos HTTP comprobados. Medición Intel UHD: 23,4 FPS conjunto, 40,3 comedor, 33,9 templo; la vista general requiere más perfilado para buscar mayor frecuencia.
+
+Fuentes y ocho comparativas en [informe de la mejora](prototypes/retreat-refinement/INFORME_FINAL.md). Visor compilado 4568 y mesa de revisión 4591 con guardados separados. La mesa habitual no se ha reiniciado. Pendientes: sesión física prolongada, destinos definitivos Pleamar/Observatorio y ampliaciones previas del palé/historial. Siguiente tarea: revisión artística y rendimiento en el equipo de juego.
+
+## Retiro del Dragón · integración global A1–A5 — 2026-10-15
+
+Fase 6 construida para revisión: escena `dragon-rest`, celdas reales de `camp-a1-rooms` conservadas, módulos Blender aprobados y conexiones a 9/15/18/27 m. Navegación de 1,5 m con 850 direcciones conectadas, puertas A2/A4 y pasos físicos para los pasillos estrechos. Se reservan los márgenes rocosos ante las fachadas de A1 sin mover sus habitaciones. 1.514 pasos del servidor, 46.490 muestras frente a cajas y 4.828 posiciones contrastadas con los triángulos sólidos del GLB, sin colisiones a cuatro alturas corporales. Recorrido final compilado: 1.424 comprobaciones de suelo, cero pérdidas de apoyo y cero oclusiones. Cuadrícula independiente, puntos de interacción discretos y decisiones/dados manuales. GLB completo y fuente Blender disponibles; mesa de prueba separada de los guardados habituales.
+
+27/27 pruebas dirigidas; compilaciones cliente/servidor y visor comprobadas. La pasada general del historial mantiene dos expectativas fallidas de cantidad/rotación; la migración del Retiro conserva estados. Destinos Pleamar/Observatorio preparados a falta de mapas definitivos; animación de pasajeros del palé y prueba física prolongada en móvil/proyector pendientes. Revisar conceptualmente el conjunto antes de activar en la mesa habitual. [Informe y fuentes](prototypes/retreat-global/GLOBAL_REPORT.md).
+
+
+## Frentes de Stormwreck, pecio y campamentos — 2026-10-14
+
+Retiro del Dragón inicia mirando desde la playa hacia el camino y las puertas del monasterio, con el límite habitual de ±30° alrededor de ese frente. En el Pecio, al seguir o seleccionar un personaje dentro de C6/C7, el frente orbital gira suavemente al lado oeste donde están sus puertas; C4/C5 conservan el lado este. Las tiendas de la playa, observatorio, refugio y bosque orientan sus entradas hacia la cámara inicial de cada campamento, para que sean visibles dentro del arco limitado. Coordenadas de movimiento, terreno y objetos no cambian.
+
+## Inclinación vertical 15° / 25° / 35° — 2026-10-14
+
+D8 y Stormwreck comparten límites de 15°–35° y tres posiciones de inclinación (15°, 25°, 35°) para DM y jugador: R/F, deslizador DM y gesto vertical con dos dedos. El gesto acumula desplazamiento y la cámara interpola suavemente. Interiores automáticos a 15°, exteriores a 25°; combate conserva el encuadre elevado a 35°. Se mantiene el zoom del jugador al cruzar puertas.
+
+## Zoom del jugador al cruzar interiores — 2026-10-14
+
+La exploración del jugador conserva su escala ortográfica al entrar y salir de edificios en D8 y Stormwreck: el cambio de tamaño de zona y la inclinación automática ya no recalculan el zoom. La base se fija por escena; los límites de la nueva zona se aplican al ajuste manual sin saltar desde un zoom heredado fuera de rango. Se mantienen los presets verticales 20°/40° y el encuadre de combate y vista general.
+
+## D8 · frente de puertas corregido — 2026-10-13
+
+Las seis escenas centran el giro limitado mirando perpendicularmente a las fachadas, hacia +Z; corregidos el redondeo diagonal y el lado opuesto de Cena. Preferencias horizontales D8 separadas como `doors-v3`. 43 pruebas y seis vistas reales aprobadas; tipos y compilación PASS. Cliente actualizado en la mesa de puerto 3000, con páginas anteriores conservadas; recargar DM primero y luego jugador/proyector. [Registro y capturas](docs/evidence/D8_CAMERA_FRONT_20261013.md).
+
+## Cámara limitada D8 y Stormwreck — 2026-10-13
+
+Perfil ortográfico compartido de 20°–40° vertical y ±30° horizontal alrededor del frente propio de cada mapa. Q/E avanzan 15°, dos dedos ajustan giro/inclinación y la pinza controla un zoom limitado por escena, zona y pantalla. R/F también disponibles en DM. Entrar/salir de interiores aplica 20°/40° una vez y admite ajuste manual posterior. Combate aplica 40°, frente inicial y encuadre del encuentro; al terminar recupera las preferencias de exploración. Retirado el preset de 55° del Pecio y adaptado su recorte de paredes/techos a la vista baja, conservando ocultos los otros camarotes.
+
+64 pruebas dirigidas aprobadas; tipos cliente/servidor/visor y compilaciones de cliente/servidor PASS. Visor real: 208 comprobaciones en los 13 mapas y 8 adicionales en C4–C7, sin fallos registrados; 38 capturas. La pasada general precede a los últimos ajustes de encuadre colectivo y recorte, comprobados después en interiores. Integración D8 con orientación compartida firmada/fraccionaria y persistencia PASS. No se ha repetido la suite completa ni probado móvil/proyector físicos; la mesa real conserva su servidor abierto. [Informe, registros y activación](docs/evidence/CAMERA_POLICY_20261013.md).
+
+## Guardado, carga y actualizaciones seguras — 2026-10-13
+
+Auditados Stormwreck/campamentos y D8. El cierre exige guardar antes de confirmar;
+si falla conserva la mesa. Actualizaciones preparadas fuera de `dist`, originales
+archivados al migrar, incompatibilidades futuras bloqueadas, historial protegido
+de copias del reloj y aviso DM al recuperar un respaldo. Jugador/proyector
+recargan tras reinicio; arte/audio revalidados. 48 pruebas dirigidas, seis pruebas
+del lanzador e integraciones aisladas de Stormwreck y D8 superadas. También
+corregido el cierre con descargas de arte/audio pendientes. No se interrumpió la
+mesa real. [Evidencia, comprobaciones finales y límites](docs/evidence/SAVE_UPDATE_AUDIT_20261013.md).
+
+
+## Cuadrícula táctica configurable — 2026-10-13
+
+La línea inicial ahora es más tenue. DM y Jugador pueden elegir transparencia,
+grosor y color fijo o contraste claro/oscuro por casilla; los mapas ilustrados
+muestrean el suelo una sola vez por escena. Las preferencias se conservan en
+cada dispositivo y son independientes por interfaz. No cambian movimiento,
+colisiones ni estado de campaña. 21 pruebas dirigidas y typecheck de cliente
+superados; build de 2.213 módulos y candidata aislada en el puerto 3002. Falta
+validar en Pixel 9a, MSI y proyector físico. [Registro de aceptación](docs/evidence/GRID_SETTINGS_20261013.md).
+
+## Campamentos · camino, reloj y clima V1.4.8 — 2026-10-12
+
+Camino A1 prolongado con barreras, cuerda de seguridad y vegetación irregular.
+Laterales de celdas conservados desde el frente; Astalagan esculpido con velas.
+Clima y reloj en DM y móvil: oleaje separado de inundación, reglas consultables,
+pausas y cambios de hora corregidos; selección de audio por nombres exactos.
+132 pruebas dirigidas y 13 comprobaciones adicionales; recorrido conectado de
+705 pasos y 120 interacciones. Candidata separada en 4494, galería en 4492.
+[Registro y límites](docs/evidence/CAMPS_CLIMATE_20261012.md).
+
+## Pecio · cofa y nido orgánico — 2026-10-12
+
+Canasta tridimensional con ramas entrelazadas, fibras, lona desgarrada, huesos,
+pelo y plumas. Tesoro canónico conservado por piezas; encuadre centrado y
+barandilla separada del tejido. Se corrigió el descenso automático al pisar
+P10: el jugador puede explorar toda la cofa y bajar mediante una acción.
+62 pruebas superadas, 44 pasos conectados por las diez casillas, cinco piezas
+recogidas y persistidas, 19 vistas reales sin errores. Cliente y servidor
+compilados. No se reinició la mesa real ni se modificó el resto del barco.
+[Registro y límites](docs/evidence/PECIO_NEST_20261012.md).
+
+## Pecio · sombras, clima y detalle — candidata visual, 2026-10-12
+
+Sombras compartidas con campamentos, reflejo planar real de objetos, algas y
+restos de cubierta, mobiliario deteriorado y huesos con erosión/relieve. Nido
+ampliado, mástil íntegro levemente inclinado y separado en tramos para evitar
+su desaparición completa. Cámara interior gradual que supera techos vecinos
+sin descubrir sus camarotes. Lluvia/humedad/nieve según clima autoritativo,
+interiores protegidos y espuma/spray de contacto en la barca.
+
+Subir a la cofa solicita Atletismo CD 10 al DM (adaptación opcional, sin dados,
+caída ni daño automáticos); el descenso conserva su movimiento gradual libre.
+Prueba conectada: **241 pasos**, dos jugadores y proyector, C1–C9, puertas,
+natación/buceo, CD fallida/superada y persistencia. Una segunda prueba confirma
+la acción contextual del jugador, descenso sin CD y guardado. No se reinició
+la mesa real. M5 conserva aceptación artística y M7 dispositivos/audio físicos.
+Suite de 633 pruebas superada y 22 regresiones dirigidas finales de cámara,
+oclusiones/velas, protocolo y cofa. Visor: 112 capturas, 106 diagnósticos listos
+sin errores, más reproducción visual del recorrido y escalada.
+[Cambios, capturas y comprobaciones](docs/evidence/PECIO_ATMOSPHERE_20261012.md).
+
+## Reloj global, iluminación y clima — candidata técnica, 2026-10-12
+
+El servidor mantiene un reloj de campaña único, visible y sincronizado para DM,
+jugadores y proyector. Exploración a escala real; combate detenido con seis
+segundos al cerrar cada asalto; descansos y rutas avanzan el tiempo explícito.
+El estado del reloj y el clima por escena se guarda y se recupera con la campaña.
+El clima calcula nieve, espesor, deshielo, humedad, charcos, niebla e inundación;
+la capa visual no cambia reglas por sí sola. El terreno nevado solo se considera
+difícil si alcanza el umbral y el DM activa esa decisión.
+
+Tipos, build de cliente/servidor y pruebas específicas pasan. En la suite global
+concurrente hubo siete fallos en seis archivos: cinco límites de tiempo de
+render y dos aserciones de arte ajenas al reloj. Los cinco renderes pasan con
+un worker aislado. La integración aislada llega a la vuelta de C2
+y queda pendiente por un timeout de movimiento. Móvil, MSI y proyector físicos
+pendientes. La candidata está iniciada en el puerto 3001 con guardados de
+prueba separados; la mesa del puerto 3000 conserva su proceso. Evidencia:
+[reloj y clima](docs/evidence/GAME_CLOCK_CLIMATE_20261012.md).
+
+## Cinco campamentos — correcciones V1.4.7, 2026-10-12
+
+Muebles A1 redistribuidos, Astalagan hacia el mar con velas, continuidad del
+acantilado y postes apoyados. Tiendas integradas con el suelo, cristales
+texturizados con luz tenue, fauna con reloj de pose/movimiento y vida ambiental.
+Sombras de contacto, de tiendas y proyección dinámica básica de personajes.
+Prueba conectada: 680 pasos, 120 interacciones, tres jugadores y proyector.
+Registro: [CAMPS_POLISH_20261011](docs/evidence/CAMPS_POLISH_20261011.md).
+Capturas y compilación en `output/camps-polish-20261011`.
+
 ## Cinco campamentos — correcciones V1.4.6, 2026-10-11
 
 Brasas en las cinco hogueras; luces apagadas de día, nieve acumulada,

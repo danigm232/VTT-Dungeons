@@ -4,14 +4,17 @@ import { Ray } from '@babylonjs/core/Culling/ray.js';
 import { surfaceHeight, terrainTile, type TerrainDefinition } from '../shared/terrain';
 import { CAMERA_DEFAULT_TILT, CAMERA_MAX_TILT, CAMERA_MIN_TILT } from './camera-profile';
 
-export const D8_CAMERA_DEFAULT_TILT = 25;
+export {D8_CAMERA_DEFAULT_TILT,D8InteriorCameraTilt} from './interior-camera';
 export type D8CameraPoint = { x: number; y: number; z: number };
 export type D8CameraPose = { alpha: number; beta: number; halfHeight: number; target: D8CameraPoint };
 
-/** Keep the authored front of each map, with a diagonal 3/4 starting view. */
-export function d8CameraBaseAlpha(authoredAlpha: number) {
+/** The playable entrances face +Z. Center the limited orbit perpendicular to
+ * their facades, including Dinner whose legacy camera looked from the rear. */
+const d8FrontDoorScenes = new Set(['temple', 'garden', 'cafe', 'market', 'mirror', 'dinner']);
+export function d8CameraBaseAlpha(authoredAlpha: number, sceneId?: string) {
+  if (sceneId && d8FrontDoorScenes.has(sceneId)) return Math.PI / 2;
   const alpha = Number.isFinite(authoredAlpha) ? authoredAlpha : -Math.PI / 2;
-  return Math.round((alpha - Math.PI / 4) / (Math.PI / 2)) * Math.PI / 2 + Math.PI / 4;
+  return Math.round(alpha / (Math.PI / 2)) * Math.PI / 2;
 }
 
 export function d8GroundHeight(terrain: TerrainDefinition | undefined, col: number, row: number) {
@@ -67,6 +70,14 @@ export function d8CameraHalfHeight(size: { width: number; depth: number; height:
   return Math.max(groundRadius / Math.max(.01, aspect), groundRadius * Math.cos(beta) + size.height / 2 * Math.sin(beta)) * 1.08;
 }
 
+/** Orthographic rays are parallel. At a low tilt on portrait displays the
+ * bottom of the near plane can otherwise lie below the floor, clipping it.
+ * Moving that plane backwards preserves pose, zoom and permitted angles. */
+export function d8CameraNearPlane(radius: number, beta: number, halfHeight: number, targetY: number) {
+  const bottomY = targetY + radius * Math.cos(beta) - halfHeight * Math.sin(beta);
+  return Math.min(.1, (bottomY - 2) / Math.max(.1, Math.cos(beta)));
+}
+
 function damp(current: number, target: number, velocity: number, seconds: number, smoothTime: number) {
   const omega = 2 / smoothTime, displacement = current - target, decay = Math.exp(-omega * seconds);
   const change = (velocity + omega * displacement) * seconds;
@@ -82,9 +93,10 @@ export class D8CameraMotion {
   private pose: D8CameraPose | null = null;
   private velocity = { alpha: 0, beta: 0, halfHeight: 0, x: 0, y: 0, z: 0 };
   reset() { this.pose = null; this.velocity = { alpha: 0, beta: 0, halfHeight: 0, x: 0, y: 0, z: 0 }; }
-  update(target: D8CameraPose, deltaMs: number): D8CameraPose {
+  update(target: D8CameraPose, deltaMs: number, maxTiltDegrees=CAMERA_MAX_TILT): D8CameraPose {
     if (!this.pose) {
-      this.pose = { ...target, target: { x: target.target.x, y: target.target.y, z: target.target.z } };
+      this.pose = { ...target, beta: Math.max((90-CAMERA_MAX_TILT)*Math.PI/180, Math.min((90-CAMERA_MIN_TILT)*Math.PI/180, target.beta)),
+        target: { x: target.target.x, y: target.target.y, z: target.target.z } };
       return this.pose;
     }
     if (deltaMs <= 0) return this.pose;
@@ -98,7 +110,7 @@ export class D8CameraMotion {
       const next = damp(this.pose.target[key], target.target[key], this.velocity[key], seconds, .20);
       this.pose.target[key] = next.value; this.velocity[key] = next.velocity;
     }
-    const beta = Math.max((90 - CAMERA_MAX_TILT) * Math.PI / 180, Math.min((90 - CAMERA_MIN_TILT) * Math.PI / 180, this.pose.beta));
+    const beta = Math.max((90 - Math.max(CAMERA_MIN_TILT,Math.min(CAMERA_MAX_TILT,maxTiltDegrees))) * Math.PI / 180, Math.min((90 - CAMERA_MIN_TILT) * Math.PI / 180, this.pose.beta));
     if (beta !== this.pose.beta) { this.pose.beta = beta; this.velocity.beta = 0; }
     if (this.pose.halfHeight < .75) { this.pose.halfHeight = .75; this.velocity.halfHeight = 0; }
     return this.pose;

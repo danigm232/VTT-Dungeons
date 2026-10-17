@@ -1,3 +1,5 @@
+import { seaState } from '../../../engine/shared/weather.js';
+import type { EnvironmentState } from '../../../engine/shared/protocol.js';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color.js';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import { Mesh } from '@babylonjs/core/Meshes/mesh.js';
@@ -107,20 +109,22 @@ export function createCampAtmosphere(scene: Scene, root: TransformNode, profile:
       const drops = particle('cove:ceiling-drips', at, 'drips', 4, new Vector3(2.5, .1, 1.5));
       if (drops) { drops.minSize = .02; drops.maxSize = .05; drops.minLifeTime = .7; drops.maxLifeTime = 1.7; drops.direction1 = drops.direction2 = new Vector3(0, -.3, 0); drops.gravity = new Vector3(0, -3, 0); drops.color1 = new Color4(.64, .83, .9, .48); }
     },
-    update(time: number, dark: number, fireLevels?: Map<string,CampFireLevel>) {
+    update(time: number, dark: number, fireLevels?: Map<string,CampFireLevel>, environment?:EnvironmentState) {
+      const seaStrength=seaState(environment,profile==='wreck-beach'?.8:profile==='coastal-refuge'?.22:.4),seaScale=.1+seaStrength*1.6;
+      if(sea)sea.metadata.seaIntensity=seaStrength;
       for (const {system,rate,kind,fireId} of systems) {
         const index = Number(system.name.match(/spray-(\d+)/)?.[1] ?? 0);
         const crest = kind === 'spray' ? .16 + Math.pow(Math.max(0, Math.sin(time * 1.55 + index * 1.25)), 3) : 1;
         const level=fireId?fireLevels?.get(fireId):undefined;
         const fireFactor=fireId?(level?(kind==='smoke'?level.smoke:kind==='embers'?level.embers:level.flame):(dark>.2?1:0)):1;
-        system.emitRate = rate * (reduced ? .12 : compact ? .55 : 1) * crest * fireFactor * (kind === 'motes' ? .5 + dark : 1);
+        system.emitRate = rate * (reduced ? .12 : compact ? .55 : 1) * crest * fireFactor * (kind === 'motes' ? .5 + dark : kind==='spray'?seaScale:1);
         if(fireId&&fireFactor===0&&system.getActiveCount())system.reset();
       }
       seaMaterial.emissiveColor = Color3.FromHexString('#244e64').scale(.18 + dark * .05);
       seaMaterial.diffuseColor = Color3.Lerp(Color3.FromHexString('#538d95'), Color3.FromHexString('#2c4961'), dark);
       if (texture instanceof Texture && !reduced) { texture.uOffset = time * .003 % 1; texture.vOffset = time * .007 % 1; }
       if (reduced || time - lastWater < (compact ? 1 / 12 : 1 / 20)) return; lastWater = time;
-      const force = profile === 'wreck-beach' ? .42 : profile === 'coastal-refuge' ? .12 : .24;
+      const force=(profile==='coastal-refuge'?.20:.48)*seaScale;
       if (sea && seaBase && seaCurrent) {
         for (let i = 0; i < seaBase.length; i += 3) { const x = seaBase[i]!, z = seaBase[i + 2]!; seaCurrent[i + 1] = force * (Math.sin(x * .18 + z * .19 - time * 1.5) + .42 * Math.sin(z * .37 - x * .06 - time * 2.1)); }
         sea.updateVerticesData('position', seaCurrent, false, false); VertexData.ComputeNormals(seaCurrent, sea.getIndices()!, waterNormals); sea.updateVerticesData('normal', waterNormals, false, false);
@@ -128,10 +132,10 @@ export function createCampAtmosphere(scene: Scene, root: TransformNode, profile:
       if (surf && surfBase && surfPositions && surfColors) {
         for (let i = 0; i < surfBase.length; i += 3) {
           const x = surfBase[i]!, r = Math.floor(i / 3 / 65), cross = r / 4, pulse = Math.max(0, Math.sin(time * 1.55 - x * .17));
-          surfPositions[i + 1] = waterLevel + (profile === 'wreck-beach' ? .68 : .26) + pulse * (profile === 'wreck-beach' ? .34 : .15) * (1 - cross);
-          const dx=surfBase[i]!-width/2,dz=surfBase[i+2]!-depth/2,length=Math.max(1,Math.hypot(dx,dz)),advance=pulse*(profile==='wreck-beach'?1.1:.4);
+          surfPositions[i + 1] = waterLevel + (profile === 'wreck-beach' ? .68 : .26) + pulse * (profile === 'wreck-beach' ? .34 : .15)*seaScale * (1 - cross);
+          const dx=surfBase[i]!-width/2,dz=surfBase[i+2]!-depth/2,length=Math.max(1,Math.hypot(dx,dz)),advance=pulse*(profile==='wreck-beach'?1.1:.4)*seaScale;
           surfPositions[i]=surfBase[i]!-dx/length*advance;surfPositions[i+2]=surfBase[i+2]!-dz/length*advance;
-          const c = i / 3 * 4; surfColors[c] = .82; surfColors[c + 1] = .94; surfColors[c + 2] = .94; surfColors[c + 3] = Math.sin(cross * Math.PI) * (.1 + pulse * .7) * (.65 + .35 * Math.sin(x * 2.4 + time));
+          const c = i / 3 * 4; surfColors[c] = .82; surfColors[c + 1] = .94; surfColors[c + 2] = .94; surfColors[c + 3] = Math.sin(cross * Math.PI) * (.1 + pulse * .7)*Math.min(1,seaScale) * (.65 + .35 * Math.sin(x * 2.4 + time));
         }
         surf.updateVerticesData('position', surfPositions, false, false); surf.updateVerticesData('color', surfColors, false, false);
       }

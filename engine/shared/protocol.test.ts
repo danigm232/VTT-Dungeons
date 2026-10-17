@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dmCommandSchema } from './protocol';
+import { dmCommandSchema,interactSchema } from './protocol';
 
 describe('protocolo de audio del DM', () => {
   it('acepta el cambio día/noche desde una consola vinculada a la escena', () => {
@@ -48,6 +48,15 @@ describe('protocolo de audio del DM', () => {
 });
 
 describe('protocolo de conexiones entre zonas', () => {
+  it('acepta el puerto canónico P10 y su solicitud de jugador sin abrir otros IDs en mayúsculas',()=>{
+    const base={commandId:'11111111-1111-4111-8111-111111111111',sceneEpoch:1};
+    expect(interactSchema.safeParse({...base,targetId:'P10'}).success).toBe(true);
+    expect(interactSchema.safeParse({...base,targetId:'OTHER'}).success).toBe(false);
+    const portal={...base,type:'entity:portal',entityId:'mike',portId:'P10',direction:'forward',checkTotal:10};
+    expect(dmCommandSchema.safeParse(portal).success).toBe(true);
+    expect(dmCommandSchema.safeParse({...portal,portId:'../../P10'}).success).toBe(false);
+    expect(dmCommandSchema.safeParse({...portal,checkTotal:101}).success).toBe(false);
+  });
   it('acepta IDs de puerto válidos definidos por la campaña', () => {
     const result = dmCommandSchema.safeParse({
       type: 'entity:portal', commandId: '11111111-1111-4111-8111-111111111111',
@@ -63,5 +72,22 @@ describe('protocolo de botín C8', () => {
     expect(dmCommandSchema.safeParse({ ...base, action: 'assign-result', resultId: 6 }).success).toBe(true);
     expect(dmCommandSchema.safeParse({ ...base, action: 'assign-result' }).success).toBe(false);
     expect(dmCommandSchema.safeParse({ ...base, action: 'take-loot', characterId: 'mike', resultId: 6 }).success).toBe(false);
+  });
+});
+
+describe('protocolo del reloj global', () => {
+  const commandId = '11111111-1111-4111-8111-111111111111';
+  it('valida ajustes, descansos y viajes dirigidos por el DM', () => {
+    expect(dmCommandSchema.safeParse({ type: 'clock:control', commandId, action: 'pause' }).success).toBe(true);
+    expect(dmCommandSchema.safeParse({ type: 'clock:control', commandId, action: 'advance', seconds: 600 }).success).toBe(true);
+    expect(dmCommandSchema.safeParse({ type: 'clock:control', commandId, action: 'set-time', secondsOfDay: 43_200 }).success).toBe(true);
+    expect(dmCommandSchema.safeParse({ type: 'clock:control', commandId, action: 'short-rest' }).success).toBe(true);
+    expect(dmCommandSchema.safeParse({ type: 'clock:control', commandId, action: 'long-rest' }).success).toBe(true);
+    expect(dmCommandSchema.safeParse({ type: 'clock:control', commandId, action: 'travel', portId: 'travel-pecio-boat' }).success).toBe(true);
+  });
+  it('rechaza controles con datos que no corresponden a la acción', () => {
+    expect(dmCommandSchema.safeParse({ type: 'clock:control', commandId, action: 'advance' }).success).toBe(false);
+    expect(dmCommandSchema.safeParse({ type: 'clock:control', commandId, action: 'pause', seconds: 60 }).success).toBe(false);
+    expect(dmCommandSchema.safeParse({ type: 'clock:control', commandId, action: 'travel' }).success).toBe(false);
   });
 });

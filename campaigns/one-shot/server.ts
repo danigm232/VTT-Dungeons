@@ -1,6 +1,7 @@
 import type { CampaignServerBundle, CombatProfile, PortDefinition } from '../../engine/server/campaign.js';
-import { d8AdjacentWalkableCells, d8NearestWalkableCell, oneShotCampaignDefinition } from './public/pack.js';
+import { d8AdjacentWalkableCells, d8CellToWorld, d8NearestWalkableCell, oneShotCampaignDefinition } from './public/pack.js';
 import { d8Adventure } from './story.js';
+import { D8NIGHT } from './playground/d8night.config.js';
 
 const d8ActorCell = (sceneId: string, actorId: string) => oneShotCampaignDefinition.scenes.find(scene => scene.id === sceneId)?.stageActors?.find(actor => actor.id === actorId)?.cell;
 const mirrorCell = oneShotCampaignDefinition.scenes.find(scene => scene.id === 'mirror')?.props.find(prop => prop.id === 'true-love-mirror')?.cell
@@ -39,6 +40,14 @@ export const oneShotBundle: CampaignServerBundle = {
   public: oneShotCampaignDefinition, campaignStateVersion: 1,
   ports: d8VillageRoads,
   adventure: d8Adventure,
+  proximityEncounter:{id:'cafe-stealth',sceneId:'cafe',actorIds:['woman-cafe','patron-cafe','bartender-cafe'],skill:'Sigilo',dc:18,quietDc:16,radiusMeters:1.5,failuresBeforeCombat:2,
+    distraction:{actorId:'horse-cafe',entranceDoorId:'cafe-entry-door',destinations:[d8NearestWalkableCell('cafe',-.75,9),d8NearestWalkableCell('cafe',.75,10.5),d8NearestWalkableCell('cafe',2.25,9)]}},
+  actorLayout:{version:3,corrections:[
+    {id:'boris-market',sceneId:'market',previousCells:[d8NearestWalkableCell('market',-8.25,-2.25)]},
+    {id:'horse-cafe',sceneId:'cafe',previousCells:[d8NearestWalkableCell('cafe',5.6,12.4)]},
+    {id:'fritz-garden',sceneId:'garden',previousCells:[d8NearestWalkableCell('garden',8.25,1.5)]},
+    ...([['cow-market',4.5,1.5],['ben-market',4.5,3],['margaret-market',6,1.5],['boris-market',6,-6.75]] as const).map(([id,x,z])=>({id,sceneId:'market',previousCells:[d8NearestWalkableCell('market',x,z)]})),
+    ...([['patron-cafe',26,12],['bartender-cafe',24,6]] as const).map(([id,col,row])=>{const size=D8NIGHT.maps.cafe.MAP.size;return{id,sceneId:'cafe',previousCells:[d8NearestWalkableCell('cafe',-size[0]/2+(col+.5)*size[0]/32,-size[1]/2+(row+.5)*size[1]/21)]};})]},
   encounterGroups: [
     { id: 'roses', label: 'Rosas asesinas · resultado de 1d6', sceneId: 'garden', actorIds: Array.from({ length: 6 }, (_, i) => `rose-garden-${i + 1}`) },
     { id: 'patrons', label: 'Parroquianos hostiles · resultado de 1d10', sceneId: 'cafe', actorIds: Array.from({ length: 10 }, (_, i) => `brawler-cafe-${i + 1}`) }
@@ -112,6 +121,7 @@ export const oneShotBundle: CampaignServerBundle = {
     'bartender-cafe': villagerProfile('bartender'),
     'patron-cafe': villagerProfile('patron'),
     'woman-cafe': villagerProfile('woman-cafe'),
+    'horse-cafe':{maxHp:19,armorClass:10,speedMeters:18,initiativeBonus:0,startsVisible:true,startsInCombat:false,attacks:[]},
     'ben-market': villagerProfile('ben'),
     'margaret-market': villagerProfile('margaret'),
     'boris-market': villagerProfile('boris')
@@ -128,7 +138,28 @@ oneShotBundle.privateActors = Array.from({ length: 4 }, (_, index) => ({
   sceneId: 'garden', surfaceId: gardenScene.surfaceId, cell: roseCells[index]!, profile: structuredClone(oneShotBundle.combatProfiles!['rose-garden-1']!)
 }));
 const cafeScene = oneShotCampaignDefinition.scenes.find(scene => scene.id === 'cafe')!;
+oneShotBundle.movementDoorEdges=oneShotCampaignDefinition.scenes.flatMap(scene=>(D8NIGHT.maps[scene.id].MAP.doors??[]).map((door:any)=>{
+  const cells=new Set(scene.walkable.map(cell=>`${cell.col},${cell.row}`)),edges:Array<{from:{col:number;row:number};to:{col:number;row:number}}>=[];
+  const local=(cell:{col:number;row:number})=>{const p=d8CellToWorld(scene.id as Parameters<typeof d8CellToWorld>[0],cell),dx=p.x-door.x,dz=p.z-door.z,c=Math.cos(door.rotation??0),s=Math.sin(door.rotation??0);return{u:dx*c-dz*s,v:dx*s+dz*c};};
+  for(const from of scene.walkable)for(const [dc,dr] of [[1,0],[0,1],[1,1],[-1,1]]){
+    const to={col:from.col+dc!,row:from.row+dr!};if(!cells.has(`${to.col},${to.row}`))continue;
+    const a=local(from),b=local(to);if(a.v*b.v>0||Math.abs(a.v-b.v)<1e-8)continue;
+    const t=a.v/(a.v-b.v),u=a.u+(b.u-a.u)*t;if(t>=0&&t<=1&&Math.abs(u)<door.width/2+.18)edges.push({from:{...from},to});
+  }
+  return{sceneId:scene.id,propId:door.id,edges};
+}));
+for(const character of Object.values(oneShotBundle.characters))character.explorationBasics=[...new Set([...(character.explorationBasics??[]),'hide' as const])];
+oneShotBundle.prayerShrine={sceneId:'temple',cell:d8NearestWalkableCell('temple',0,-7.65),label:'Estatua de Sylvania'};
+oneShotBundle.animalFleeDestination=d8NearestWalkableCell('cafe',12,16.5);
+oneShotBundle.sceneWindows=(D8NIGHT.maps.cafe.MAP.windows??[]).map((window:any)=>({id:window.id,sceneId:'cafe',cell:{...cafeScene.props.find(prop=>prop.id===window.id)!.cell},inside:d8NearestWalkableCell('cafe',window.x,window.z+(window.z>0?-1.6:1.6)),outside:d8NearestWalkableCell('cafe',window.x,window.z+(window.z>0?1.6:-1.6)),sillMeters:window.sill,destinations:[-1.5,0,1.5].map(dx=>d8NearestWalkableCell('cafe',window.x+dx,window.z+(window.z>0?-2.1:2.1)))}));
 const occupiedCafe = new Set([...cafeScene.spawns, ...(cafeScene.stageActors ?? []).map(actor => actor.cell)].map(cell => `${cell.col},${cell.row}`));
+for(const window of oneShotBundle.sceneWindows??[]){
+  const origin=cafeScene.grid.worldOrigin!,rear=window.id.includes('-back-');
+  // Rear windows are behind the bar: patrons watch from its public side,
+  // instead of queuing in the narrow bartender-only service strip.
+  const target=rear?d8NearestWalkableCell('cafe',origin.x+(window.inside.col+.5)*1.5,-3.0):window.inside;
+  window.destinations=d8AdjacentWalkableCells('cafe',target,100).filter(cell=>{const z=origin.z+(cell.row+.5)*1.5;return z>(rear?-4.4:-7.1)&&z<6.9&&!occupiedCafe.has(`${cell.col},${cell.row}`);}).slice(0,3);
+}
 const cafeCells = d8AdjacentWalkableCells('cafe', d8ActorCell('cafe', 'patron-cafe')!, 100).filter(cell => !occupiedCafe.has(`${cell.col},${cell.row}`));
 oneShotBundle.privateActors.push(...Array.from({ length: 10 }, (_, index) => ({
   id: `brawler-cafe-${index + 1}`, label: `Parroquiano hostil ${index + 1}`, tokenId: index % 2 ? 'patron-woman' : 'patron', color: '#a77b61',

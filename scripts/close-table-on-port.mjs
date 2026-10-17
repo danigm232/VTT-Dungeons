@@ -7,6 +7,7 @@ import { execFile } from 'node:child_process';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { requestSafeTableShutdown } from './safe-table-shutdown.mjs';
 
 const run = promisify(execFile);
 const processIdentityToleranceMs = 2_500;
@@ -130,6 +131,7 @@ if (owners.length === 0) {
 }
 if (owners.length > 1) throw new Error('Hay más de una mesa D&D válida asociada; no se ha cerrado ningún proceso.');
 const { campaignId, pid, ports } = owners[0];
+if (!ports.includes(port)) throw new Error(`La mesa ${campaignId} está en otro puerto; no se ha cerrado ningún proceso.`);
 
 let graceful = false;
 const tokenPath = path.join(realRoot, campaignId, 'shutdown.token');
@@ -138,22 +140,14 @@ try {
   if (!tokenStat.isFile() || tokenStat.isSymbolicLink() || (await fs.realpath(tokenPath)) !== tokenPath) throw new Error('El token local de cierre no es un archivo regular.');
   const token = (await fs.readFile(tokenPath, 'utf8')).trim();
   if (!/^[0-9a-f]{64}$/i.test(token)) throw new Error('El token local de cierre no es válido.');
-  for (const ownerPort of ports) {
-    try {
-      const response = await fetch(`http://127.0.0.1:${ownerPort}/__local/shutdown`, {
-        method: 'POST', headers: { 'x-dungeons-shutdown-token': token }, signal: AbortSignal.timeout(2_000)
-      });
-      if (response.status === 202) { graceful = true; break; }
-    } catch { /* try the process's other local listener */ }
-  }
+  await requestSafeTableShutdown({ port, token });
+  graceful = true;
 } catch (error) {
   if (!(error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT')) throw error;
 }
 
 if (!graceful) {
-  console.warn(`La mesa ${campaignId} no aceptó el cierre ordenado. Se confirmó su PID, bloqueo y hora de inicio; se finalizará únicamente esa instancia.`);
-  if (process.platform === 'win32') await run('taskkill.exe', ['/PID', String(pid), '/F'], { windowsHide: true });
-  else process.kill(pid, 'SIGTERM');
+  throw new Error(`La mesa ${campaignId} no dispone de cierre confirmado. Guarda desde DM y ciérrala manualmente; no se ha terminado ningún proceso.`);
 }
 
 async function stillOwnsListener() {

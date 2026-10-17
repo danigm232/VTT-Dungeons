@@ -7,6 +7,7 @@ Estado de la biblioteca tras incorporar la tanda descargada. Los originales impo
 | Archivo local | Uso en la consola | Fuente |
 | --- | --- | --- |
 | `public/audio/d8-night/ambience/d8-night-loop-tavern-openfire.mp3` | Capa Taberna del preajuste; pista larga seleccionada. Se combina con viento frío bajo. | [Tavern ambience with openfire effect · Placidplace](https://pixabay.com/sound-effects/tavern-ambience-with-openfire-effect-no-loops-86151/) |
+| `public/audio/d8-night/music/d8-night-music-cafe-lute.mp3` | Música opcional y predeterminada de la Taberna al 7%; se combina con el fuego al 14%. | [Just Lute - Medieval Lute Music · kaazoom](https://pixabay.com/music/folk-just-lute-medieval-lute-music-363314/) |
 | `public/audio/d8-night/ambience/d8-night-ambience-tempest-rain-wind.mp3` | Estado «Temporal» (intensidad alta) en D8; máster compuesto provisional. | [Rainstorm with wind · DRAGON-STUDIO](https://pixabay.com/sound-effects/nature-rainstorm-with-wind-351117/) |
 | `public/audio/d8-night/sfx/d8-night-sfx-attack-whip-crack.mp3` | Ataques/enredos de las rosas; se dispara como efecto breve, nunca en bucle. | [Mixed Whip Crack 1 · peterbullmusic](https://pixabay.com/de/sound-effects/film-spezialeffekte-mixed-whip-crack-1-102825/) |
 | `private/audio/archive/sfx/unused/d8-night-sfx-attack-plant-impact.mp3` | Alternativa descartada: para las rosas se eligió el latigazo; se conserva fuera de `public`. | [Hit Tree 01 · u_xjrmmgxfru](https://pixabay.com/sound-effects/film-special-effects-hit-tree-01-266310/) |
@@ -21,7 +22,7 @@ El mugido alternativo se conserva fuera de la biblioteca activa, en `private/aud
 
 ## Conexiones y decisiones
 
-- Taberna usa la pista de 4:40 elegida como capa de escena y conserva viento nocturno suave en otra capa. El archivo es largo y la página lo presenta como «no loops»; no he podido verificar aquí mediante escucha que toda la pista mantenga el tono triste y sin voces. Conviene probarla antes de la partida. Sillas, vasos y bebida siguen siendo efectos manuales puntuales; falta descargar el tosido aislado.
+- Taberna inicia con laúd tenue (7%) y fuego bajo (14%). Desde V51, vasos (14%), bebida (10%) y silla (8%) suenan de forma ocasional cada 18–42 segundos, mientras quedan clientes en sus mesas y no hay combate; siguen disponibles manualmente para el DM. Se suspenden al silenciar el ambiente, desconectar o cambiar de escena. Falta incorporar tos, sollozo o carraspeo de Pixabay: el recurso está identificado ([Clearing Throat (Female) · CreativeSoumen](https://pixabay.com/sound-effects/people-clearing-throat-female-393243/)), pero la descarga del archivo fue bloqueada por el navegador del entorno y la petición directa al host devolvió 403; no se añadió una URL sin un archivo local verificable. La pista larga de taberna (4:40, «no loops») queda disponible como alternativa, pero no se validó por escucha en esta revisión.
 - Jardín recomienda latigazo y golpe de vegetación. La acción de enredar de las rosas reproduce el latigazo automáticamente.
 - Los disparos con arco encadenan cuerda → vuelo → impacto (solo con acierto). Un `soundId` explícito de una acción conserva prioridad.
 - El Espejo usa pisadas de hielo mientras se desplaza y el quiebre de hielo en vez del antiguo impacto genérico de piedra.

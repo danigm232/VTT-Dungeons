@@ -55,7 +55,7 @@ export const publicSceneSchema = z.object({
   id: sceneIdSchema, title: z.string().min(1).max(100), surfaceId: idSchema, movementEnabled: z.boolean(), background: z.string().regex(/^\/art\/[\p{L}\p{N}._,/ &-]+$/u),
   grid: gridSchema, walkable: z.array(cellSchema).max(65_536), spawns: z.array(cellSchema).min(1).max(20), props: z.array(propDefinitionSchema).max(100), waves: z.boolean().default(false),
   pickups: z.array(pickupSchema).max(30).optional(),
-  readableSigns: z.array(z.object({ id: idSchema, label: z.string().max(80), cell: cellSchema, text: z.string().max(500) }).strict()).max(20).optional(),
+  readableSigns: z.array(z.object({ id: idSchema, label: z.string().max(80), cell: cellSchema, text: z.string().max(500),position:z.object({x:z.number().finite(),z:z.number().finite(),height:z.number().finite()}).strict().optional() }).strict()).max(20).optional(),
   seats: z.array(z.object({id:idSchema,label:z.string().min(1).max(80),cell:cellSchema,surfaceId:idSchema,position:z.object({x:z.number().finite(),z:z.number().finite(),height:z.number().finite().min(0).max(3)}).strict(),facing:z.enum(['north','east','south','west']),reservedActorId:idSchema.optional()}).strict()).max(80).optional(),
   movementHazards: z.array(z.object({ id: idSchema, label: z.string().max(120), cells: z.array(cellSchema).max(65_536), consequence: z.literal('fatal-cold') }).strict()).max(20).optional(),
   /** Physical obstructions are distinct from water, darkness and walkability. */
@@ -69,7 +69,9 @@ export const publicSceneSchema = z.object({
   visibility: z.object({ darkness: z.number().finite().min(0).max(1).default(0), manualReveal: z.boolean().default(false) }).strict().optional(),
   // Scenic characters are always public and never participate in collision or DM commands.
   stageActors: z.array(z.object({ id: idSchema, label: z.string().min(1).max(80), tokenId: idSchema,
-    cell: cellSchema, surfaceId: idSchema.optional(), seatedAt: z.object({x:z.number().finite(),z:z.number().finite()}).strict().optional(), idleAnimation:idSchema.optional() }).strict()).max(30).optional()
+    /** A site cue can be targeted for a manual interaction without becoming a combatant in the DM's NPC list. */
+    interactionOnly:z.boolean().optional(),
+    cell: cellSchema, surfaceId: idSchema.optional(), facing:z.enum(['north','north-east','east','south-east','south','south-west','west','north-west']).optional(), seatedAt: z.object({x:z.number().finite(),z:z.number().finite()}).strict().optional(), idleAnimation:idSchema.optional() }).strict()).max(30).optional()
 }).strict();
 export type PublicSceneDefinition = z.infer<typeof publicSceneSchema>;
 
@@ -122,7 +124,12 @@ const audioSceneProfileSchema = z.object({
   layers: z.object({ ocean: audioTrackProfileSchema, wind: audioTrackProfileSchema, wood: audioTrackProfileSchema, storm: audioTrackProfileSchema }).strict(),
   // The soundboard starts with a short scene-specific set. The full library
   // stays available behind its filter instead of flooding the mobile console.
-  recommendedSfx: z.array(idSchema).max(28).optional()
+  recommendedSfx: z.array(idSchema).max(28).optional(),
+  ambientCues: z.object({
+    intervalSeconds: z.tuple([z.number().min(5).max(600),z.number().min(5).max(600)]).refine(([min,max])=>min<=max),
+    effects: z.array(z.object({id:idSchema,volume:z.number().min(0).max(1),weight:z.number().positive().max(100).optional()}).strict()).min(1).max(12),
+    actorIds: z.array(idSchema).max(20).optional()
+  }).strict().optional()
 }).strict();
 
 export const publicCampaignSchema = z.object({
@@ -153,6 +160,12 @@ export const publicCampaignSchema = z.object({
     if (!campaign.scenes.some(scene => scene.id === sceneId)) context.addIssue({ code: 'custom', path: ['audio', 'sceneProfiles', sceneId], message: 'Perfil de audio para escena inexistente' });
     profile.recommendedSfx?.forEach((effectId, index) => {
       if (!knownSfx.has(effectId)) context.addIssue({ code: 'custom', path: ['audio', 'sceneProfiles', sceneId, 'recommendedSfx', index], message: 'Efecto recomendado inexistente' });
+    });
+    profile.ambientCues?.effects.forEach((effect,index)=>{
+      if(!knownSfx.has(effect.id))context.addIssue({code:'custom',path:['audio','sceneProfiles',sceneId,'ambientCues','effects',index],message:'Efecto ambiental inexistente'});
+    });
+    profile.ambientCues?.actorIds?.forEach((id,index)=>{
+      if(!campaign.scenes.find(scene=>scene.id===sceneId)?.stageActors?.some(actor=>actor.id===id))context.addIssue({code:'custom',path:['audio','sceneProfiles',sceneId,'ambientCues','actorIds',index],message:'Actor ambiental inexistente'});
     });
   }
   if (!campaign.scenes.some(scene => scene.id === campaign.initialSceneId)) context.addIssue({ code: 'custom', path: ['initialSceneId'], message: 'La escena inicial no existe' });

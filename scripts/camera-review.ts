@@ -1,3 +1,5 @@
+import { wreckCabins } from '../engine/client/wreck-cabins';
+import { runD8PolishReview } from './d8-polish-review';
 import { WorldRenderer } from '../apps/web/world';
 import { oneShotCampaignDefinition,d8NearestWalkableCell } from '../campaigns/one-shot/public/pack';
 import { publicCampaignDefinition } from '../campaigns/stormwreck-isle/public/pack';
@@ -5,6 +7,7 @@ import { PROTOCOL_VERSION, OBJECT_MODEL_VERSION, type WorldSnapshot, type Public
 import { footprintFor } from '../engine/shared/geometry';
 import { activitiesForCampPoint, campActivities } from '../engine/shared/camp-activities';
 import { directionFromVector } from '../engine/server/navigation';
+import { advanceClimate,emptyClimateState } from '../engine/shared/game-time';
 const $=<T extends HTMLElement>(id:string)=>document.getElementById(id) as T;
 const campaignKey=new URLSearchParams(location.search).get('campaign')==='storm'?'storm':'d8';
 const campaign=structuredClone(campaignKey==='d8'?oneShotCampaignDefinition:publicCampaignDefinition);
@@ -14,8 +17,10 @@ $('campaign').addEventListener('change',()=>location.search=`?campaign=${$<HTMLS
 for(const scene of campaign.scenes)if(scene.renderer==='babylon-hd2d'||scene.renderer==='babylon-d8')map.add(new Option(scene.title,scene.id));
 const requestedMap=new URLSearchParams(location.search).get('map');if(requestedMap&&Array.from(map.options).some(option=>option.value===requestedMap))map.value=requestedMap;
 let snapshot:WorldSnapshot,revision=0,loading=false,selected:string|null=null,movementGeneration=0;
-const renderer=new WorldRenderer($('world'),campaign,{showGrid:false,persistCameraPreferences:false,showStairMarker:false});
+const rendererOptions = { cameraRole: 'dm' as 'dm'|'player'|'projector', showGrid:false,persistCameraPreferences:false,showStairMarker:false };
+const renderer=new WorldRenderer($('world'),campaign,rendererOptions);
 const errors:string[]=[];window.addEventListener('error',e=>errors.push(e.message));window.addEventListener('unhandledrejection',e=>errors.push(String(e.reason)));
+$('polish-audit').addEventListener('click',()=>void runD8PolishReview({renderer,rendererOptions,getSnapshot:()=>snapshot,update,settle,frame,errors}).catch(fail));
 renderer.setMapClick((cell,id)=>{selected=id??null;renderer.setSelectedEntity(selected);renderer.setCameraFocusCell(cell);if(id)actor.value=id;});
 function poseDistance(a:ReturnType<typeof renderer.getCameraAudit>['pose'],b:ReturnType<typeof renderer.getCameraAudit>['pose']){
   if(!a||!b)return Infinity;return Math.max(Math.abs(a.alpha-b.alpha),Math.abs(a.beta-b.beta),Math.abs(a.halfHeight-b.halfHeight),...(['x','y','z'] as const).map(k=>Math.abs(a.target[k]-b.target[k])));
@@ -37,7 +42,7 @@ async function settle(){let stable=0,steps=0,previous=renderer.getCameraAudit().
   while(stable<12){renderer.renderCaptureFrame(32,true);if(++steps%12===0)renderer.renderCaptureFrame();const current=renderer.getCameraAudit();stable=current.ready&&poseDistance(previous,current.pose)<1e-6?stable+1:0;previous=current.pose;if(!current.ready)await frame();if(performance.now()>deadline)throw new Error('La cámara no se estabilizó');}
   renderer.renderCaptureFrame();
 }
-async function update(){snapshot.revision=++revision;snapshot.serverTime=Date.now();await renderer.applySnapshot(snapshot);}
+async function update(){snapshot.revision=++revision;snapshot.serverTime=Date.now();await renderer.applySnapshot(structuredClone(snapshot));}
 async function capture(name:string){
   const host=$('world'),canvas=document.createElement('canvas');canvas.width=host.clientWidth;canvas.height=host.clientHeight;
   const context=canvas.getContext('2d')!;context.fillStyle='#172635';context.fillRect(0,0,canvas.width,canvas.height);
@@ -54,14 +59,16 @@ async function load(){loading=true;movementGeneration++;status.textContent='Carg
   await frame();
   const scene=campaign.scenes.find(s=>s.id===map.value)!;
   const entities:PublicEntity[]=campaign.roster.map((a,i)=>({...a,kind:'player',cell:scene.spawns[i%scene.spawns.length]!,surfaceId:scene.surfaceId,facing:'south',moving:false,step:null,sceneId:scene.id,hp:10,maxHp:10}));
-  entities.push(...(scene.stageActors??[]).map(a=>({...a,kind:'npc' as const,color:'#b5ae91',surfaceId:a.surfaceId??scene.surfaceId,facing:'south' as const,moving:false,step:null,sceneId:scene.id})));
+  entities.push(...(scene.stageActors??[]).map(a=>({...a,kind:'npc' as const,color:'#b5ae91',surfaceId:a.surfaceId??scene.surfaceId,facing:a.facing??'south' as const,moving:false,step:null,sceneId:scene.id})));
   const props=scene.props.map(p=>({...p,surfaceId:p.surfaceId??scene.surfaceId,footprint:p.baseFootprint,structure:'intact',state:p.kind==='door'?p.initialState:'upright',attachment:'attached',
     ...(p.kind==='wheel'?{mount:p.mount}:{})})) as PublicProp[];
-  snapshot={v:PROTOCOL_VERSION,objectModelVersion:OBJECT_MODEL_VERSION,revision:++revision,serverTime:Date.now(),sceneId:scene.id,scene,sceneEpoch:revision,runtimeEpoch:'isolated-camera-review',entities,tokenAssets:{tokens:campaign.tokens,tokenAnimations:campaign.tokenAnimations},props,camera:{mode:mode.value as CameraMode,focusId:entities[0]!.id},environment:{storm:false,lightning:false,stormIntensity:0,timeOfDay:$<HTMLSelectElement>('weather-time').value as 'day',precipitation:$<HTMLSelectElement>('weather-kind').value as 'none',precipitationLevel:Number($<HTMLSelectElement>('weather-level').value) as 1,windIntensity:Number($<HTMLInputElement>('weather-wind').value)},combat:{active:false,round:0,currentId:null,movement:null,participants:[],lastEvent:null}};
+  snapshot={gameClock:{seconds:43200,serverTime:Date.now(),running:false,pauseReason:'dm',mode:'paused'},climate:emptyClimateState(43200),v:PROTOCOL_VERSION,objectModelVersion:OBJECT_MODEL_VERSION,revision:++revision,serverTime:Date.now(),sceneId:scene.id,scene,sceneEpoch:revision,runtimeEpoch:'isolated-camera-review',entities,tokenAssets:{tokens:campaign.tokens,tokenAnimations:campaign.tokenAnimations},props,camera:{mode:mode.value as CameraMode,focusId:entities[0]!.id},environment:{storm:false,lightning:false,stormIntensity:0,timeOfDay:$<HTMLSelectElement>('weather-time').value as 'day',precipitation:$<HTMLSelectElement>('weather-kind').value as 'none',precipitationLevel:Number($<HTMLSelectElement>('weather-level').value) as 1,windIntensity:Number($<HTMLInputElement>('weather-wind').value)},combat:{active:false,round:0,currentId:null,movement:null,participants:[],lastEvent:null}};
+  const weatherSeconds=43200+Number($<HTMLInputElement>('weather-hours').value)*3600;
+  snapshot.gameClock={seconds:weatherSeconds,serverTime:Date.now(),running:false,pauseReason:'dm',mode:'paused'};snapshot.climate=advanceClimate(emptyClimateState(43200),snapshot.environment,weatherSeconds);
   actor.replaceChildren(...entities.map(a=>new Option(a.label,a.id)));selected=null;renderer.setSelectedEntity(null);renderer.setLocalPlayer(null);renderer.setCameraFocusCell(null);
   $('camp-point').replaceChildren(...(scene.camp?.interactionPoints ?? []).map(point => new Option(point.label, point.id)));
   updateCampActions();
-  await renderer.applySnapshot(snapshot);renderer.setCameraTiltDegrees(Number($<HTMLSelectElement>('tilt').value));await settle();loading=false;updatePoseList();
+  await renderer.applySnapshot(structuredClone(snapshot));renderer.setCameraTiltDegrees(Number($<HTMLSelectElement>('tilt').value));await settle();loading=false;updatePoseList();
   document.querySelectorAll<HTMLButtonElement|HTMLSelectElement>('header button,header select').forEach(control=>{control.disabled=false;});
 }
 map.addEventListener('change',()=>void load().catch(fail));
@@ -83,7 +90,7 @@ $('camp-use').addEventListener('click',async()=>{
   const point=snapshot.scene.camp?.interactionPoints.find(p=>p.id===$<HTMLSelectElement>('camp-point').value),a=snapshot.entities.find(a=>a.id===actor.value),activity=campActivities[$<HTMLSelectElement>('camp-action').value as keyof typeof campActivities];if(!point||!a||!activity)return;
   const object=point.objectCell??point.cell;a.facing=directionFromVector(object.col-a.cell.col,object.row-a.cell.row)??a.facing;
   const entries=snapshot.campRest?.interactions??[];
-  const action=activity.id==='chest-toggle'?(entries.filter(e=>e.pointId===point.id&&(e.action==='opened'||e.action==='closed')).at(-1)?.action==='opened'?'closed':'opened'):'used';
+  const action: 'opened'|'closed'|'used'=activity.id==='chest-toggle'?(entries.filter(e=>e.pointId===point.id&&(e.action==='opened'||e.action==='closed')).at(-1)?.action==='opened'?'closed':'opened'):'used';
   if(activity.id==='sit'){if(a.seatId===point.id)delete a.seatId;else a.seatId=point.id;}
   snapshot.campRest={sceneId:snapshot.sceneId,phase:null,paused:false,outcome:null,interruptions:[],interactions:[...entries,{pointId:point.id,pointLabel:point.label,characterId:a.id,characterLabel:a.label,at:Date.now(),action,activityId:activity.id}].slice(-30)};
   await update();renderer.playTokenAnimation(a.id,activity.animation,activity.durationMs);await settle();
@@ -104,8 +111,10 @@ $('test-door').addEventListener('click',async()=>{for(const p of snapshot.props)
 $('test-mirror').addEventListener('click',async()=>{const mirror=snapshot.props.find(p=>p.id==='true-love-mirror'),source=snapshot.entities.find(a=>a.id===actor.value);if(!mirror||!source)return;renderer.setLocalPlayer(null);renderer.setCameraFocusCell(mirror.cell,mirror.surfaceId);renderer.zoomCameraBy(3/renderer.getCameraAudit().zoom);await settle();const id='reflection';snapshot.entities=snapshot.entities.filter(a=>a.id!==id);snapshot.entities.push({...source,id,label:'Reflejo de prueba',kind:'npc',cell:{...mirror.cell},step:null,moving:false});mirror.structure='destroyed';await update();renderer.playMirrorTransformation(mirror.id,source.id,id,[]);const start=performance.now();for(const moment of [.25,.8,1.8]){while(performance.now()-start<moment*1000)await frame();await capture(`d8-mirror-reveal-${Math.round(moment*100)}.png`);}});
 mode.addEventListener('change',()=>{snapshot.camera.mode=mode.value as CameraMode;snapshot.camera.focusId=actor.value;void update();});
 $('night').addEventListener('change',()=>{snapshot.environment.timeOfDay=$<HTMLInputElement>('night').checked?'night':'day';void update();});
-for(const id of ['weather-time','weather-kind','weather-level','weather-wind'])$(id).addEventListener('change',()=>{
-  snapshot.environment={...snapshot.environment,timeOfDay:$<HTMLSelectElement>('weather-time').value as 'day',precipitation:$<HTMLSelectElement>('weather-kind').value as 'none',precipitationLevel:Number($<HTMLSelectElement>('weather-level').value) as 1,windIntensity:Number($<HTMLInputElement>('weather-wind').value)};void update();
+for(const id of ['weather-time','weather-kind','weather-level','weather-wind','weather-hours'])$(id).addEventListener('change',()=>{
+  snapshot.environment={...snapshot.environment,timeOfDay:$<HTMLSelectElement>('weather-time').value as 'day',precipitation:$<HTMLSelectElement>('weather-kind').value as 'none',precipitationLevel:Number($<HTMLSelectElement>('weather-level').value) as 1,windIntensity:Number($<HTMLInputElement>('weather-wind').value)};
+  const seconds=43200+Number($<HTMLInputElement>('weather-hours').value)*3600;
+  snapshot.climate=advanceClimate(emptyClimateState(43200),snapshot.environment,seconds);snapshot.gameClock={seconds,serverTime:Date.now(),running:false,pauseReason:'dm',mode:'paused'};void update();
 });
 $('condition').addEventListener('change',()=>{const a=snapshot.entities.find(a=>a.id===actor.value)!;a.conditions=$<HTMLSelectElement>('condition').value?[$<HTMLSelectElement>('condition').value as 'derribada']:[];void update();});
 $('move').addEventListener('click',async()=>{const generation=++movementGeneration,a=snapshot.entities.find(a=>a.id===actor.value)!,origin={...a.cell};
@@ -125,10 +134,10 @@ $('test-combat').addEventListener('click',async()=>{
 async function audit(all:boolean,captureViews=true){const rows:unknown[]=[];const savedMap=map.value;const maps=all?Array.from(map.options).map(o=>o.value):[savedMap];
   renderer.zoomCameraBy(1/renderer.getCameraAudit().zoom);
   for(const id of maps){map.value=id;await load();const positions=JSON.stringify(snapshot.entities.map(a=>[a.id,a.cell,a.surfaceId]));
-    for(const tilt of [25,35,45,50]){renderer.setCameraTiltDegrees(tilt);for(let step=0;step<8;step++){renderer.setCameraOrientation(step);await settle();const first=renderer.getCameraAudit();let jitter=0;
+    for(const tilt of [20,30,40]){renderer.setCameraTiltDegrees(tilt);for(let step=-2;step<=2;step++){renderer.setCameraOrientation(step);await settle();const first=renderer.getCameraAudit();let jitter=0;
       for(let n=0;n<30;n++){renderer.renderCaptureFrame(32);jitter=Math.max(jitter,poseDistance(first.pose,renderer.getCameraAudit().pose));}
       rows.push({...first,jitter,positionsUnchanged:positions===JSON.stringify(snapshot.entities.map(a=>[a.id,a.cell,a.surfaceId]))});
-      if(captureViews&&(tilt===25||tilt===45))await capture(`${campaignKey}-${id}-tilt-${tilt}-angle-${step}.png`);
+      if(captureViews&&(tilt===20||tilt===40))await capture(`${campaignKey}-${id}-tilt-${tilt}-angle-${step+2}.png`);
       $('report').textContent=`Revisando ${id}, inclinación ${tilt}°, orientación ${step+1}/8 · ${rows.length} vistas`;
       // Yield even without PNG export so the browser can paint progress and
       // process input between views instead of blocking for an entire map.
@@ -143,11 +152,11 @@ $('metrics-audit').addEventListener('click',()=>void audit(true,false).catch(fai
 async function auditInitialViews(){
   const rows:unknown[]=[],savedMap=map.value;
   for(const id of Array.from(map.options).map(option=>option.value)){
-    map.value=id;await load();renderer.setCameraTiltDegrees(25);renderer.setCameraOrientation(0);await settle();
+    map.value=id;await load();renderer.setCameraTiltDegrees(40);renderer.setCameraOrientation(0);await settle();
     const first=renderer.getCameraAudit(),positions=JSON.stringify(snapshot.entities.map(a=>[a.id,a.cell,a.surfaceId]));let jitter=0;
     for(let n=0;n<30;n++){renderer.renderCaptureFrame(32);jitter=Math.max(jitter,poseDistance(first.pose,renderer.getCameraAudit().pose));}
-    await settle();rows.push({...renderer.getCameraAudit(),jitter,positionsUnchanged:positions===JSON.stringify(snapshot.entities.map(a=>[a.id,a.cell,a.surfaceId]))});
-    await capture(`${campaignKey}-${id}-tilt-25-angle-0.png`);
+    await settle();rows.push({...renderer.getCameraAudit(),frontCorrect:Boolean(first.pose && Math.abs(Math.cos(first.pose.alpha)) < 1e-5 && Math.sin(first.pose.alpha) > .99999),jitter,positionsUnchanged:positions===JSON.stringify(snapshot.entities.map(a=>[a.id,a.cell,a.surfaceId]))});
+    await capture(`${campaignKey}-${id}-front-door-40.png`);
     $('report').textContent=`Verificando carga completa de ${id} · ${rows.length} vistas iniciales`;
   }
   const report={kind:'startup',campaign:campaignKey,views:rows.length,errors,rows};$('report').textContent=JSON.stringify(report,null,2);
@@ -155,6 +164,29 @@ async function auditInitialViews(){
 }
 $('startup-audit').addEventListener('click',()=>void auditInitialViews().catch(fail));
 $('capture').addEventListener('click',()=>void capture(`${campaignKey}-${map.value}-weather-${$<HTMLSelectElement>('weather-time').value}-${$<HTMLSelectElement>('weather-kind').value}-${$<HTMLSelectElement>('weather-level').value}.png`).catch(fail));
+async function auditCorrections(){
+  const rows:unknown[]=[],saved=map.value;
+  for(const id of Array.from(map.options).map(option=>option.value)){
+    map.value=id;await load();const hero=snapshot.entities.find(entity=>entity.kind==='player')!,spawn={...hero.cell};
+    const npcPositions=JSON.stringify(snapshot.entities.filter(entity=>entity.kind==='npc').map(entity=>[entity.id,entity.cell]));
+    const points:Record<string,[number,number]>={temple:[0,-2],cafe:[0,1],garden:[6,-1.5],dinner:[-3.36,-4.5],market:[2,3],mirror:[-9.2,-2.5]};
+    for(const phase of ['far','mid','interior-25','interior-manual-45','night'] as const){
+      renderer.setSelectedEntity(null);renderer.setCameraFocusCell(null);renderer.setLocalPlayer(phase.startsWith('interior')?hero.id:null);
+      hero.cell=phase.startsWith('interior')?d8NearestWalkableCell(id as any,...points[id]!):spawn;
+      if(snapshot.entities.some(entity=>entity.id!==hero.id&&entity.cell.col===hero.cell.col&&entity.cell.row===hero.cell.row))hero.cell=snapshot.scene.walkable.find(cell=>!snapshot.entities.some(entity=>entity.id!==hero.id&&entity.cell.col===cell.col&&entity.cell.row===cell.row)&&Math.max(Math.abs(cell.col-hero.cell.col),Math.abs(cell.row-hero.cell.row))<=1)??hero.cell;
+      snapshot.environment.timeOfDay=phase==='night'?'night':'sunset';await update();
+      renderer.zoomCameraBy((phase==='mid'?1.8:phase.startsWith('interior')?2.4:1)/renderer.getCameraAudit().zoom);
+      renderer.setCameraTiltDegrees(phase==='interior-manual-45'?45:25);await settle();
+      await capture(`d8-v50-${id}-${phase}.png`);
+      const first=renderer.getCameraAudit();let jitter=0;for(let n=0;n<24;n++){renderer.renderCaptureFrame(32);jitter=Math.max(jitter,poseDistance(first.pose,renderer.getCameraAudit().pose));}
+      rows.push({phase,...renderer.getCameraAudit(),jitter,npcPositionsUnchanged:npcPositions===JSON.stringify(snapshot.entities.filter(entity=>entity.kind==='npc').map(entity=>[entity.id,entity.cell]))});
+      $('report').textContent=`Correcciones D8 · ${id} · ${phase} · ${rows.length}/30 vistas`;
+      await frame();
+    }
+  }
+  const report={kind:'corrections',campaign:campaignKey,views:rows.length,errors,rows};$('report').textContent=JSON.stringify(report,null,2);await fetch('/__camera_report',{method:'POST',body:JSON.stringify(report)});map.value=saved;await load();
+}
+$('corrections-audit').addEventListener('click',()=>void auditCorrections().catch(fail));
 async function auditFocusModes(){
   await load(); const entity=snapshot.entities[0]!, origin={...entity.cell}, rows:unknown[]=[];
   const other=snapshot.scene.walkable.find(c=>Math.abs(c.col-origin.col)+Math.abs(c.row-origin.row)===1);
@@ -178,7 +210,7 @@ async function auditFocusModes(){
     renderer.setSelectedEntity(null);renderer.setCameraFocusCell(null);
   }
   renderer.setSelectedEntity(entity.id);renderer.setCameraFocusCell(entity.cell,entity.surfaceId);renderer.zoomCameraBy(1000);await settle();
-  const close=renderer.getCameraAudit(); rows.push({zoom:close.zoom,correct:close.zoom===24&&close.pose!.halfHeight>=.75});
+  const close=renderer.getCameraAudit(); rows.push({zoom:close.zoom,correct:Boolean(close.zoomLimits&&Math.abs(close.pose!.halfHeight-close.zoomLimits.minHalfHeight)<1e-4)});
   entity.cell=origin;renderer.setCameraFocusCell(origin,entity.surfaceId);await update();await settle();
   renderer.setSelectedEntity(null);renderer.setCameraFocusCell(null);
   for(const candidate of snapshot.entities.filter(a=>a.kind==='player'))for(const cameraMode of ['fixed','semiFixed','follow'] as const){
@@ -195,8 +227,71 @@ let lastStatusAt=0;
 function show(){
   requestAnimationFrame(show);if(performance.now()-lastStatusAt<250)return;lastStatusAt=performance.now();
   const a=renderer.getCameraAudit();
-  status.textContent=`${loading?'Cargando · ':''}${a.scene} · ${a.nativeActors} fichas 3D · ${a.tilt}° · giro ${a.orientation+1}/8 · zoom ${a.zoom.toFixed(2)} · ${a.ready?'Listo':'Cargando texturas'} · selección ${selected??'ninguna'}\nHORIZONTE: ${JSON.stringify(a.horizon)}\n${JSON.stringify(a.pose)}\nRENDIMIENTO: ${JSON.stringify(a.performance)}\nMALLAS: ${JSON.stringify(a.meshGroups)}\nAMBIENTE: ${JSON.stringify(a.presentation)}\nFICHAS: ${JSON.stringify(a.actors)}\nARQUITECTURA: ${JSON.stringify(a.architecture)}\nPendientes: ${a.pendingTextures.join(', ')} / ${a.pendingMeshes.join(', ')}${errors.length?'\nERRORES: '+errors.join(' | '):''}`;
+  status.textContent=`${loading?'Cargando · ':''}${a.scene} · ${a.nativeActors} fichas 3D · ${a.tilt}° · giro ${(a.orientation*15).toFixed(1)}° / ±30° · zoom ${a.zoom.toFixed(2)} · ${a.ready?'Listo':'Cargando texturas'} · selección ${selected??'ninguna'}\nHORIZONTE: ${JSON.stringify(a.horizon)}\n${JSON.stringify(a.pose)}\nRENDIMIENTO: ${JSON.stringify(a.performance)}\nMALLAS: ${JSON.stringify(a.meshGroups)}\nAMBIENTE: ${JSON.stringify(a.presentation)}\nCHARCOS: ${JSON.stringify(a.rainAccumulation)}\nFICHAS: ${JSON.stringify(a.actors)}\nARQUITECTURA: ${JSON.stringify(a.architecture)}\nPendientes: ${a.pendingTextures.join(', ')} / ${a.pendingMeshes.join(', ')}${errors.length?'\nERRORES: '+errors.join(' | '):''}`;
 }show();
 // Do not await at module scope: Pixi's lazy WebGL renderer may import this
 // entry chunk after bundling, creating an entry/renderer initialization cycle.
 void load().then(updatePoseList).catch(fail);
+
+$('policy-audit').addEventListener('click',()=>void auditCameraPolicy().catch(fail));
+$('review-shape').addEventListener('change',async()=>{
+ const shape=$<HTMLSelectElement>('review-shape').value,host=$('world');
+ host.style.width=shape==='portrait'?'390px':shape==='landscape'?'844px':'';
+ host.style.height=shape==='portrait'?'700px':shape==='landscape'?'390px':'';
+ await frame();await settle();
+});
+$('review-role').addEventListener('change',async()=>{
+ rendererOptions.cameraRole=$<HTMLSelectElement>('review-role').value as 'dm'|'player'|'projector';
+ renderer.setLocalPlayer(rendererOptions.cameraRole==='player'?actor.value:null);await settle();
+});
+async function auditCameraPolicy(){
+ const rows:unknown[]=[],saved=map.value;
+ for(const id of Array.from(map.options).map(option=>option.value)){
+  map.value=id;rendererOptions.cameraRole='dm';await load();
+  const positions=JSON.stringify(snapshot.entities.map(a=>[a.id,a.cell,a.surfaceId]));
+  for(const tilt of [20,40])for(const step of [-2,0,2]){
+   renderer.setCameraTiltDegrees(tilt);renderer.setCameraOrientation(step);await settle();
+   const a=renderer.getCameraAudit();
+   rows.push({kind:'angle',...a,correct:Math.abs(a.tilt-tilt)<.1&&Math.abs(a.orientation-step)<.001&&a.pose!==null&&Math.abs(90-a.pose.beta*180/Math.PI-tilt)<.01,positionsUnchanged:positions===JSON.stringify(snapshot.entities.map(e=>[e.id,e.cell,e.surfaceId]))});
+   if(step===0)await capture(campaignKey+'-'+id+'-policy-tilt-'+tilt+'.png');
+  }
+  renderer.rotateCameraOrientation(100);rows.push({kind:'orbit-limit',scene:id,correct:renderer.getCameraOrientationStep()===2});
+  renderer.rotateCameraOrientation(-100);rows.push({kind:'orbit-limit',scene:id,correct:renderer.getCameraOrientationStep()===-2});
+  renderer.resetCameraOrientation();
+  for(const role of ['dm','player','projector'] as const){
+   rendererOptions.cameraRole=role;renderer.setLocalPlayer(role==='player'?actor.value:null);
+   await settle();renderer.zoomCameraBy(1e6);await settle();let a=renderer.getCameraAudit();
+   rows.push({kind:'zoom-in',role,...a,correct:Boolean(a.zoomLimits&&Math.abs(a.pose!.halfHeight-a.zoomLimits.minHalfHeight)<1e-4)});
+   renderer.zoomCameraBy(1e-6);await settle();a=renderer.getCameraAudit();
+   rows.push({kind:'zoom-out',role,...a,correct:Boolean(a.zoomLimits&&Math.abs(a.pose!.halfHeight-a.zoomLimits.maxHalfHeight)<1e-4)});
+  }
+  rendererOptions.cameraRole='player';renderer.setLocalPlayer(actor.value);
+  snapshot.combat.active=true;snapshot.combat.round=1;snapshot.combat.currentId=actor.value;
+  snapshot.combat.participants=snapshot.entities.map(entity=>({id:entity.id,label:entity.label,kind:entity.kind,controller:entity.kind==='player'?'player':'dm',initiative:0,initiativeSubmitted:true,active:true,hp:10,maxHp:10,armorClass:16,speedMeters:9,attacks:[],conditions:[]}));
+  await update();await settle();const combat=renderer.getCameraAudit();
+  rows.push({kind:'combat',...combat,correct:combat.tilt===40&&combat.orientation===0});
+  renderer.setCameraTiltDegrees(30);await settle();rows.push({kind:'combat-manual',scene:id,correct:renderer.getCameraTiltDegrees()===30});
+  snapshot.combat.active=false;snapshot.combat.participants=[];await update();await settle();
+  $('report').textContent='Política: '+id+' · '+rows.length+' comprobaciones';await frame();
+ }
+ const report={kind:'policy',campaign:campaignKey,errors,rows};$('report').textContent=JSON.stringify(report,null,2);
+ await fetch('/__camera_report',{method:'POST',body:JSON.stringify(report)});
+ rendererOptions.cameraRole='dm';map.value=saved;await load();
+}
+
+$('wreck-interior-camera').addEventListener('click',()=>void auditWreckInteriors().catch(fail));
+async function auditWreckInteriors(){
+ map.value='wreck-ship';await load();snapshot.camera.mode='follow';rendererOptions.cameraRole='player';renderer.setLocalPlayer(actor.value);
+ const hero=snapshot.entities.find(entity=>entity.id===actor.value)!;const rows:unknown[]=[];
+ for(const [id,bounds] of Object.entries(wreckCabins)){
+  hero.cell={col:Math.floor((bounds.minCol+bounds.maxCol)/2),row:Math.floor((bounds.minRow+bounds.maxRow)/2)};hero.surfaceId='main';hero.carriedLightRadiusMeters=5;
+  await update();await settle();const automatic=renderer.getCameraAudit();
+  rows.push({room:id,kind:'automatic',...automatic,correct:automatic.tilt===20});
+  renderer.setCameraTiltDegrees(30);await settle();rows.push({room:id,kind:'manual',correct:renderer.getCameraTiltDegrees()===30});
+  renderer.setCameraTiltDegrees(20);for(const step of [-2,0,2]){renderer.setCameraOrientation(step);await settle();await capture(campaignKey+'-'+id+'-interior-20-angle-'+(step+2)+'.png');}
+  // Crossing the outdoor threshold arms the next indoor preset.
+  hero.cell={...snapshot.scene.spawns[0]!};await update();await settle();
+  $('report').textContent='Interior: '+id;await frame();
+ }
+ const report={kind:'interior',campaign:campaignKey,errors,rows};$('report').textContent=JSON.stringify(report,null,2);await fetch('/__camera_report',{method:'POST',body:JSON.stringify(report)});
+}

@@ -1,5 +1,20 @@
 # Roadmap vigente — hacer jugable todo el Pecio Maldito
 
+## Retiro del Dragón · mejora integral en ocho fases — 2026-10-16
+
+Ocho fases construidas y verificadas sobre la escena existente. Las 128 mallas originales de A1, sus seis celdas y todo el mobiliario conservan geometría y matrices exactas; escala 1,5 m, 850 posiciones, conexiones, puertas, PNJ y narrativa intactos. Interiores integrados, arquitectura revisada, continuidad rocosa, materiales PBR compartidos, jardines, sombras globales y costa mejorados. Perfil propio del Retiro 20°/30°/40°, combate inicial a 40° y gesto del jugador compatible; D8 mantiene sus valores anteriores.
+
+65 pruebas dirigidas, 936 encuadres entre las ocho fases, 1.514 pasos del servidor, 4.828 posiciones contra el GLB final y dos recorridos en pantalla con 1.413 comprobaciones de apoyo/visibilidad, sin fallos. Clientes DM/jugador/proyector y 23 recursos HTTP comprobados. Medición Intel UHD: 23,4 FPS conjunto, 40,3 comedor, 33,9 templo; la vista general requiere más perfilado para buscar mayor frecuencia.
+
+Fuentes y ocho comparativas en [informe de la mejora](prototypes/retreat-refinement/INFORME_FINAL.md). Visor compilado 4568 y mesa de revisión 4591 con guardados separados. La mesa habitual no se ha reiniciado. Pendientes: sesión física prolongada, destinos definitivos Pleamar/Observatorio y ampliaciones previas del palé/historial. Siguiente tarea: revisión artística y rendimiento en el equipo de juego.
+
+## Retiro del Dragón · integración global A1–A5 — 2026-10-15
+
+Fase 6 construida para revisión: escena `dragon-rest`, celdas reales de `camp-a1-rooms` conservadas, módulos Blender aprobados y conexiones a 9/15/18/27 m. Navegación de 1,5 m con 850 direcciones conectadas, puertas A2/A4 y pasos físicos para los pasillos estrechos. Se reservan los márgenes rocosos ante las fachadas de A1 sin mover sus habitaciones. 1.514 pasos del servidor, 46.490 muestras frente a cajas y 4.828 posiciones contrastadas con los triángulos sólidos del GLB, sin colisiones a cuatro alturas corporales. Recorrido final compilado: 1.424 comprobaciones de suelo, cero pérdidas de apoyo y cero oclusiones. Cuadrícula independiente, puntos de interacción discretos y decisiones/dados manuales. GLB completo y fuente Blender disponibles; mesa de prueba separada de los guardados habituales.
+
+27/27 pruebas dirigidas; compilaciones cliente/servidor y visor comprobadas. La pasada general del historial mantiene dos expectativas fallidas de cantidad/rotación; la migración del Retiro conserva estados. Destinos Pleamar/Observatorio preparados a falta de mapas definitivos; animación de pasajeros del palé y prueba física prolongada en móvil/proyector pendientes. Revisar conceptualmente el conjunto antes de activar en la mesa habitual. [Informe y fuentes](prototypes/retreat-global/GLOBAL_REPORT.md).
+
+
 ## Campamentos · correcciones V1.4.6 · 11/10/2026
 
 Diez correcciones de revisión: brasas, árboles con troncos en el recorte,
@@ -27,6 +42,8 @@ usando la galería comparativa. La discrepancia de puerta D8 V48 queda anotada
 en el informe. [Cambios, componentes y evidencia](docs/evidence/CAMPS_DETAIL_20261011.md).
 
 ## Historial del Pecio
+
+Revisión 55 · 12/10/2026. Pase de atmósfera y detalle: sombras del sol/luna y luz portada reutilizadas de campamentos; reflejos planares reales de barco/bote/rocas/huesos; algas, astillas, cabos y restos canónicos de C1. Balista rota, dos cajones/pergaminos de C4, silla deteriorada C7 y presentación condicionada de objetos C9. Más huesos con relieve, nido ampliado y mástil íntegro con inclinación de aproximadamente 1,5°; tramos de visibilidad independientes. Encuadre interior progresivo por encima de techos vecinos, sin revelar camarotes adyacentes. Humedad/lluvia/nieve autoritativas, cubiertas expuestas e interiores protegidos; espuma/spray en la barca. P10 pide **Atletismo CD 10 opcional**, validado por DM con dado físico; fracaso sin daño/caída automáticos y descenso libre. Prueba conectada **241 pasos**, dos jugadores/proyector, C1–C9, puertas, natación/buceo, cofa y guardado; segunda comprobación específica de acción contextual y descenso. Se conserva la mesa real y las funciones de las otras escenas. M5 sigue pendiente de aceptación artística y M7 de dispositivos/audio físicos. [Evidencia y límites](docs/evidence/PECIO_ATMOSPHERE_20261012.md).
 
 Revisión 54 · 11/10/2026. Pase de detalle sobre las capturas: nido orgánico reconstruido, timón reanclado a C3 con migración v5 conservadora, huesos de dragón volumétricos legibles desde ocho orientaciones, brecha convexa con interior visible y transición de natación/buceo temporizada por P16. Se cierran márgenes y extremos de C8/C9, fondos de escaleras y se mejora mobiliario canónico sin botín nuevo. La llegada al mar se encuadra desde el lado abierto una sola vez, conservando giro manual y cámara compartida del DM; mástil/jarcias se atenúan solo al ocultar la ficha y recuperan opacidad al girar. Acabado exclusivo al pecio: contacto/AO analítico, multiescala, manchas, mapas estáticos UV2, grading y filtrado anisotrópico; sin GI/SSAO ni luces de antorcha inventadas. **535/535 pruebas, 72 archivos**, tipos/builds PASS; **239 pasos**, dos jugadores, proyector, C1–C9, P16, cofa y persistencia PASS. **69 capturas estáticas, 61 diagnósticos sin errores ni recursos pendientes**, más reproducción visual con 14 capturas de movimiento. M5 sigue pendiente de aceptación artística y M7 de dispositivos/audio físicos; no se declara perfección. Mesa real intacta. [Detalle, técnicas aplicadas, capturas y límites](docs/evidence/PECIO_DETAIL_20261010.md).
 

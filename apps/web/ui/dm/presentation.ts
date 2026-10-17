@@ -84,6 +84,7 @@ export function sceneActions(label: string, actions: Array<{ label: string; sele
 }
 
 export type SavePresentationInput = {
+  recoveryNotice?: string | null;
   mode: string; dirty: boolean; savedAt: string | null; errorCode: string | null;
   savedStateRevision: number | null; stateRevision: number;
 };
@@ -94,6 +95,7 @@ export function savePresentation(status: SavePresentationInput | null) {
     return { title: status.mode === 'error' ? 'Error de guardado' : 'Recuperación necesaria', tone: 'error' as StateTone, alert: true };
   }
   if (status.mode === 'saving' || status.mode === 'restoring') return { title: status.mode === 'saving' ? 'Guardando…' : 'Restaurando…', tone: 'pending' as StateTone, alert: false };
+    if (status.recoveryNotice) return { title: 'Copia recuperada · revisar', tone: 'pending' as StateTone, alert: true };
   if (status.dirty || !status.savedAt || status.savedStateRevision !== status.stateRevision) return { title: 'Cambios pendientes', tone: 'pending' as StateTone, alert: false };
   return { title: 'Partida guardada', tone: 'positive' as StateTone, alert: false };
 }

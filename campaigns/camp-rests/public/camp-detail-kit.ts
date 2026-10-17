@@ -49,6 +49,13 @@ export function campMaterialRelief(scene: Scene, material: StandardMaterial, kin
   let texture = maps.get(kind);
   if (!texture) {
     const size = 128, data = new Uint8Array(size * size * 4), tau = Math.PI * 2;
+    const rockNoise=(x:number,y:number,cells:number)=>{
+      const u=x/size*cells,v=y/size*cells,ix=Math.floor(u),iy=Math.floor(v);
+      const fx=u-ix,fy=v-iy,sx=fx*fx*(3-2*fx),sy=fy*fy*(3-2*fy);
+      const value=(a:number,b:number)=>{a=(a%cells+cells)%cells;b=(b%cells+cells)%cells;const n=Math.sin(a*127.1+b*311.7+cells*17.3)*43758.5453;return n-Math.floor(n);};
+      const a=value(ix,iy)*(1-sx)+value(ix+1,iy)*sx,b=value(ix,iy+1)*(1-sx)+value(ix+1,iy+1)*sx;
+      return a*(1-sy)+b*sy;
+    };
     const height = (x: number, y: number) => {
       const u = x / size * tau, v = y / size * tau;
       if (kind === 'cloth') return Math.sin(u * 32) * .022 + Math.sin(v * 32) * .022 + Math.sin(u * 4 + v * 2) * .018;
@@ -56,9 +63,10 @@ export function campMaterialRelief(scene: Scene, material: StandardMaterial, kin
       if (kind === 'water') return Math.sin(u * 3 + v * 5 + Math.sin(v * 2)) * .04
         + Math.cos(u * 7 - v * 4 + .6*Math.sin(u*2)) * .031
         + Math.sin(u*11+v*9+.9)*.022+Math.cos(u*17-v*13+2.1)*.013;
-      const bedding = Math.sin(v * 7 + Math.sin(u * 2) * .8);
-      return Math.sin(u * 3 + v * 2) * .13 + Math.cos(u * 7 - v * 9) * .065
-        + Math.sin(u * 17 + v * 13) * .022 - Math.pow(Math.max(0, bedding - .72), 2) * .8;
+      // Seamless, irregular mineral grain. Repeated sine waves made diagonal
+      // bands visible under low firelight across the entire stone floor.
+      const wx=x+(rockNoise(x,y,4)-.5)*11,wy=y+(rockNoise(x+37,y+19,4)-.5)*11;
+      return rockNoise(wx,wy,4)*.19+rockNoise(wx,wy,8)*.11+rockNoise(wx,wy,16)*.045+rockNoise(wx,wy,32)*.018;
     };
     const strength = kind === 'rock' ? 3 : kind === 'water' ? 2.3 : 1.6;
     for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {

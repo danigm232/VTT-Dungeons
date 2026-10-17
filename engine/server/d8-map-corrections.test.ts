@@ -20,7 +20,19 @@ describe('D8 map corrections',()=>{
       expect(state.concentration.maria).toBeUndefined();
       const now=Date.now(),save=state.captureDurable(now),restored=new GameState(oneShotBundle);restored.restoreDurable(save,now);
       expect(restored.captureDurable(now)).toEqual(save);expect(restored.startStep(restored.characters.get('maria')!,'east')).toBe(false);
-      expect(restored.moveEntityOneSquare('maria',{col:target.col+1,row:target.row})).toBe('INCAPACITATED');
+      expect(restored.moveEntityOneSquare('maria',{col:target.col-1,row:target.row})).toBe('MOVED');
+      expect(restored.characters.get('maria')!.hp).toBe(0);
+      expect(restored.startStep(restored.characters.get('maria')!,'east')).toBe(false);
+      const rescued=restored.characters.get('maria')!;
+      rescued.step!.startedAt=Date.now()-2000;restored.tick();
+      expect(restored.applyHitPoints('maria',1)).toBe(true);
+      expect(restored.conditionsFor('maria')).not.toContain('inconsciente');
+      const safe=[['north',0,-1],['east',1,0],['south',0,1],['west',-1,0]] as const;
+      const moved=safe.some(([facing,dx,dz])=>{
+        const destination={col:rescued.cell.col+dx,row:rescued.cell.row+dz};
+        return scene.walkable.some(cell=>cell.col===destination.col&&cell.row===destination.row)&&!hazard.cells.some(cell=>cell.col===destination.col&&cell.row===destination.row)&&restored.startStep(rescued,facing);
+      });
+      expect(moved).toBe(true);
     }
   });
   it('white snowy ice is difficult and blue hazards follow the actual authored outlines',()=>{
@@ -35,9 +47,12 @@ describe('D8 map corrections',()=>{
     for(const timeOfDay of ['day','night','sunset','dawn'] as const)for(const precipitation of ['rain','snow'] as const)for(const precipitationLevel of [1,2,3] as const){
       expect(dmCommandSchema.safeParse({type:'environment',sceneEpoch:state.sceneEpoch,commandId:crypto.randomUUID(),storm:false,timeOfDay,precipitation,precipitationLevel,windIntensity:.65}).success).toBe(true);
       state.environment={storm:false,lightning:false,stormIntensity:.5,timeOfDay,precipitation,precipitationLevel,windIntensity:.65};state.applyWeatherAudio();
-      expect(state.audio.layers.storm.playing).toBe(precipitation==='rain');expect(state.audio.layers.wind.playing).toBe(true);
+      expect(state.audio.layers.storm.playing).toBe(true);
+      expect(state.audio.layers.storm.assetId).toBe(precipitation==='rain'?'d8-night-loop-rain-drizzle':'d8-night-loop-mirror-icy-wind');
+      expect(state.audio.layers.wind.playing).toBe(true);
       const now=Date.now(),save=state.captureDurable(now),restored=new GameState(oneShotBundle);restored.restoreDurable(save,now);expect(restored.captureDurable(now)).toEqual(save);
-      state.changeScene('cafe');expect(state.audio.layers.storm.playing).toBe(precipitation==='rain');
+      state.changeScene('cafe');expect(state.audio.layers.storm.playing).toBe(true);
+      expect(state.audio.layers.storm.assetId).toBe(precipitation==='rain'?'d8-night-loop-rain-drizzle':'d8-night-loop-mirror-icy-wind');
     }
   });
   it('prepares a blocked reflection on a free nonfatal tile and transforms the sole mirror',()=>{
@@ -50,8 +65,8 @@ describe('D8 map corrections',()=>{
   });
   it('retains thunder instead of silently replacing a storm with plain rain',()=>{
     const state=new GameState(oneShotBundle);
-    state.environment={storm:true,lightning:true,stormIntensity:.8,timeOfDay:'night',precipitation:'rain',precipitationLevel:3};
-    state.applyWeatherAudio();expect(state.audio.layers.storm.assetId).toBe('d8-night-loop-storm');expect(state.audio.layers.storm.volume).toBe(.8);
+    state.environment={storm:true,lightning:true,stormIntensity:.7,timeOfDay:'night',precipitation:'rain',precipitationLevel:3};
+    state.applyWeatherAudio();expect(state.audio.layers.storm.assetId).toBe('d8-night-loop-storm');expect(state.audio.layers.storm.volume).toBe(.68);
     state.changeScene('market');expect(state.audio.layers.storm.assetId).toBe('d8-night-loop-storm');expect(state.audio.layers.storm.playing).toBe(true);
   });
   it('clears partial road approaches on a DM scene jump, not when restoring a save',()=>{

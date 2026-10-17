@@ -35,7 +35,7 @@ describe('partial token occlusion', () => {
     renderer.campaign = { tokens: { maria: { logicalHeight: 92, worldHeightMeters: 1.6 } } };
     renderer.billboardSourceUrls = new Map([[7, '/maria.png']]);
     renderer.actorGrounding = new Map();
-    const view: any = { entity: { tokenId: 'maria' }, body: { x: 0, y: 0 }, sprite: { height: 92 } };
+    const view: any = { entity: { tokenId: 'maria' }, body: { x: 0, y: 0, rotation: 0, scale: { x: 1, y: 1 } }, sprite: { height: 92 } };
     const sprite: any = { visible: true, texture: { source: { uid: 7, width: 1024, height: 1024 }, frame: { x: 0, y: 0, width: 1024, height: 1024 } },
       width: 92, height: 92, anchor: { x: .5, y: .84 }, x: 0, y: 0, scale: { x: 1 }, alpha: 1, tint: 0xffffff };
     view.root = { alpha: 1 }; view.body.alpha = 1;

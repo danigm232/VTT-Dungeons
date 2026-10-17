@@ -146,12 +146,12 @@ export function buildShipPropVisual(scene: Scene, prop: PublicProp, width: numbe
     }
     box('stand', 0, .55, 0, .4, 1.1, .4, 'dark');
     box('stock', 0, 1.12, 0, Math.min(width, 2.9), .24, .38, 'timber');
-    box('bolt', 0, 1.3, 0, Math.min(width, 2.8), .07, .07, 'iron');
+    const brokenStock=box('fractured-stock',.70,1.22,.11,.83,.08,.13,'rust');brokenStock.rotation.y=.23;brokenStock.rotation.z=-.14;
     for (const side of [-1, 1]) {
       const arm = box('spring-arm', side * .73, 1.17, side * .45, 1.45, .16, .12, 'edge');
-      arm.rotation.y = side * .48;
+      arm.rotation.y = side * .48;arm.rotation.z=side<0?-.18:.08;
     }
-    box('bowstring', 0, 1.18, -.7, 2.7, .025, .025, 'rope');
+    for(const side of [-1,1]){const brokenString=box('snapped-bowstring',side*.95,1.02,-.7,.84,.019,.019,'rope');brokenString.rotation.z=side*.35;}
     torus('winch', -.5, 1.12, .32, .38, .07, 'rust');
   } else if (id.includes('bowsprit') || id.includes('flotsam') || id.includes('debris')) {
     for (let i = 0; i < (id.includes('bowsprit') ? 3 : 5); i++) {
@@ -160,6 +160,11 @@ export function buildShipPropVisual(scene: Scene, prop: PublicProp, width: numbe
       beam.rotation.y = (i - 2) * .26;
     }
     if (id.includes('flotsam')) torus('loose-rope', 0, .29, .25, .55, .06, 'rope');
+    if(id.startsWith('c9-debris')){
+      for(const side of [-1,1]){const sideBoard=box('broken-cargo-stave',side*.27,.20,0,.065,.37,.70,'dark');sideBoard.rotation.z=side*.13;}
+      const hoop=torus('broken-cargo-hoop',.05,.15,0,.56,.035,'rust');hoop.rotation.z=.35;
+      box('cargo-hessian',-.12,.09,.15,.43,.065,.31,'canvas');
+    }
   } else if (id.includes('bookshelf')) {
     box('back', 0, 1.05, .28, Math.min(width, 1.35), 2.1, .13, 'dark');
     for (const y of [.12, .8, 1.48]) plank('shelf', 0, y, 0, Math.min(width, 1.35), .53);
@@ -167,6 +172,10 @@ export function buildShipPropVisual(scene: Scene, prop: PublicProp, width: numbe
     for (const x of [-.58, .58]) box('upright', x, 1.05, 0, .12, 2.1, .56, 'timber');
     for (let i = 0; i < 12; i++) box('waterlogged-book', -.5 + (i % 7) * .155, i < 7 ? .49 : 1.17,
       -.09, .11, .48 + (i % 3) * .03, .28, i % 4 === 0 ? 'canvas' : i % 3 === 0 ? 'rust' : 'dark');
+    for(let i=0;i<4;i++){
+      const scroll=cylinder('waterlogged-scroll',-.35+i*.22,i<2?.84:1.53,-.1,.10,.32,'canvas',8);scroll.rotation.z=Math.PI/2;scroll.rotation.y=i*.08;
+      box('frayed-scroll-end',-.44+i*.22,i<2?.82:1.51,-.13,.19,.012,.15,'blanket');
+    }
   } else if (id.includes('desk') || id.includes('counter') || id.includes('table')) {
     const w = Math.min(width * .88, id.includes('c7-table') ? 5.4 : 3.8), d = Math.min(depth * .76, 1.5);
     plank('worktop', 0, .84, 0, w, d);
@@ -186,8 +195,10 @@ export function buildShipPropVisual(scene: Scene, prop: PublicProp, width: numbe
     // Framed drawers belong to the desk; kitchen stays an empty counter.
     if(id.includes('c4-desk')){
       box('drawer-apron',w*.19,.68,-d*.45,w*.50,.24,.09,'dark');
-      box('drawer-front',w*.19,.69,-d*.50,w*.43,.16,.05,'timber');
-      torus('drawer-pull',w*.19,.69,-d*.535,.075,.014,'iron').rotation.x=Math.PI/2;
+      for(const side of [-1,1]){
+        box('drawer-front',w*(.19+side*.115),.69,-d*.50,w*.21,.16,.05,'timber');
+        torus('drawer-pull',w*(.19+side*.115),.69,-d*.535,.075,.014,'iron').rotation.x=Math.PI/2;
+      }
     }
     for(const side of [-1,1])box('table-apron',0,.72,side*(d/2-.09),w*.90,.13,.09,'dark');
   } else if (id.includes('bed') || id.includes('bunk')) {
@@ -218,7 +229,7 @@ export function buildShipPropVisual(scene: Scene, prop: PublicProp, width: numbe
     }
   } else if (id.includes('chair')) {
     plank('seat', 0, .48, 0, .62, .61);
-    for (const x of [-.24, .24]) for (const z of [-.24, .24]) leg(x, z, .47);
+    for (const x of [-.24, .24]) for (const z of [-.24, .24]) if(!(id.endsWith('04')&&x>0&&z>0))leg(x, z, .47);
     const back=box('backrest', 0, .94, .28, .62, .9, .11, 'timber');back.rotation.z=id.endsWith('02')?.12:id.endsWith('04')?-.08:0;
     for(const side of [-1,1])box('chair-stretcher',0,.21,side*.23,.53,.06,.065,'timber');
   } else if (id.includes('skeleton')) {
@@ -247,6 +258,19 @@ export function buildShipPropVisual(scene: Scene, prop: PublicProp, width: numbe
       const rivet=cylinder('corroded-rivet',x,y,-.448,.045,.027,'rust',6);rivet.rotation.x=Math.PI/2;
     }
     for(const side of [-1,1])box('iron-end-brace',side*.572,.37,0,.025,.55,.66,'iron');
+    if(open&&id==='c9-iron-chest'){
+      // Canonical contents are visible only after the authoritative chest
+      // opens. These meshes are not additional pickups or duplicated loot.
+      for(const side of [-1,1]){
+        box('elven-boot',side*.17,.72,-.10,.15,.12,.32,'canvas');
+        const toe=box('elven-boot-point',side*.17,.74,-.27,.11,.05,.13,'edge');toe.rotation.x=-.12;
+      }
+      if(prop.interaction?.kind==='chest'&&prop.interaction.package!=='taken'){
+        const y=prop.interaction.package==='released'?3.6:.89;
+        box('waxed-logbook-package',0,y,.16,.48,.15,.34,'canvas');
+        for(const x of [-.15,.15])box('package-binding',x,y+.083,.16,.018,.012,.36,'rope');
+      }
+    }
   } else if (id.includes('stash')) {
     plank('loose-floorboard', 0, .11, 0, Math.min(width * .8, 1.25), .5);
     for (const x of [-.35, .35]) cylinder('nail', x, .19, 0, .035, .02, 'iron');

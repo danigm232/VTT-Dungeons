@@ -1,10 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { combatActionDescription, combatTurnIndicators, combatRadialOrigin, compactCombatPrompt } from './combat-presentation';
+import { combatActionDescription, combatTurnIndicators, combatRadialOrigin, compactCombatPrompt, combatInteractionSurface } from './combat-presentation';
 import type { CombatAction, CombatPrompt } from '../shared/protocol';
 
 const action: CombatAction = { id: 'test', label: 'Test', attackBonus: 4, damageDice: '1d10', damageBonus: 0, damageType: 'fuego', range: { kind: 'ranged', normalMeters: 36 } };
 const physicalPrompt: CombatPrompt = { id: 'roll', actorId: 'hero', targetId: 'enemy', title: 'Héroe · Daga', instruction: 'Introduce el d20 natural: el sistema añade +4.', stage: 'attack', advantage: 'normal', minimum: 1, maximum: 20 };
 describe('compact physical dice cards', () => {
+  it('never stacks a selected/queued attack card on initiative or dice',()=>{
+    for(const hasSelection of [false,true])for(const hasPendingAction of [false,true]){
+      expect(combatInteractionSurface({initiativePending:true,hasPrompt:false,hasSelection,hasPendingAction})).toBe('initiative');
+      expect(combatInteractionSurface({initiativePending:false,hasPrompt:true,hasSelection,hasPendingAction})).toBe('dice');
+    }
+    expect(combatInteractionSurface({initiativePending:false,hasPrompt:false,hasSelection:true,hasPendingAction:false})).toBe('selection');
+    expect(combatInteractionSurface({initiativePending:false,hasPrompt:false,hasSelection:false,hasPendingAction:true})).toBe('selection');
+    expect(combatInteractionSurface({initiativePending:false,hasPrompt:false,hasSelection:false,hasPendingAction:false})).toBe('none');
+  });
   it('retains actor and action, and asks for the natural d20', () => {
     const compact = compactCombatPrompt(physicalPrompt);
     expect(compact.title).toBe('Héroe · Daga'); expect(compact.instruction).toContain('sin sumar modificadores'); expect(compact.placeholder).toBe('d20');

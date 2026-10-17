@@ -3,6 +3,7 @@
  * overview: UI panels reserve their own safe rectangle and every visible
  * participant is fitted inside it, so following one token cannot hide another.
  */
+import {initiativeCameraInsets,type InitiativePosition} from './initiative-layout';
 export type CombatCameraFrame = { centerX: number; centerY: number; scale: number; safe: { left: number; top: number; width: number; height: number } };
 
 export type CombatBounds = { center: { x: number; y: number; z: number }; size: { width: number; height: number; depth: number } };
@@ -43,9 +44,9 @@ export function combatCamera3DFit(size: { width: number; depth: number; height: 
   return { radius: radius * 1.12, halfHeight: halfHeight * 1.12 };
 }
 
-export function combatCameraFrame(grid: { width: number; height: number }, viewport: { width: number; height: number }): CombatCameraFrame {
+export function combatCameraFrame(grid: { width: number; height: number }, viewport: { width: number; height: number }, initiativePosition?:InitiativePosition): CombatCameraFrame {
   const mobile = viewport.width <= 1050;
-  const inset = mobile
+  const inset = initiativePosition ? initiativeCameraInsets(initiativePosition) : mobile
     ? { left: 8, right: 8, top: 116, bottom: 120 }
     : { left: 16, right: 276, top: 16, bottom: 142 };
   const safe = {

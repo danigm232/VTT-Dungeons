@@ -12,7 +12,7 @@ describe('V48 player seating, doors and extended roads',()=>{
   it('keeps every old cell at the same world position while adding six real road rows',()=>{
     for(const scene of oneShotCampaignDefinition.scenes){const size=D8NIGHT.maps[scene.id].MAP.size;
       expect(d8CellToWorld(scene.id as any,{col:2,row:3})).toEqual({x:-size[0]/2+3.75,z:-size[1]/2+5.25});
-      expect(scene.grid.rows).toBe(size[1]/1.5+(['temple','cafe','market'].includes(scene.id)?6:0));
+      expect(scene.grid.rows).toBe(size[1]/1.5+(['temple','cafe','market','dinner'].includes(scene.id)?6:0));
     }
     for(const port of d8VillageRoads)for(const endpoint of [port.from,port.to])expect(d8CellToWorld(endpoint.mapId as any,endpoint.cell).z).toBeGreaterThan(D8NIGHT.maps[endpoint.mapId].MAP.size[1]/2);
   });
@@ -21,6 +21,7 @@ describe('V48 player seating, doors and extended roads',()=>{
     const cells=footprintFor(door.cell,door.rotation,door.baseFootprint);
     expect(cells.every(cell=>scene.walkable.some(other=>sameCell(other,cell))&&!scene.spawns.some(other=>sameCell(other,cell)))).toBe(true);
     maria.cell={col:cells[0]!.col,row:cells[0]!.row+1};
+    expect(state.interactNearbyDoor('maria',door.id)).toEqual({ok:true,code:'DOOR_OPENED'});
     expect(state.interactNearbyDoor('maria',door.id)).toEqual({ok:true,code:'DOOR_CLOSED'});
     expect(state.startStep(maria,'north')).toBe(false);
     expect(state.interactNearbyDoor('maria',door.id)).toEqual({ok:true,code:'DOOR_OPENED'});

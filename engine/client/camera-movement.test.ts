@@ -13,12 +13,16 @@ describe('movimiento relativo a la cámara', () => {
     expect(exteriorArrivalOrientation({x:9.75,z:20.25},center,half,Math.PI/4)).toBe(3);
   });
   it('frames Stormwreck arrivals from the open side and uses that visible basis for controls', () => {
-    for (const id of ['dragon-rest', 'camp-wreck-beach', 'camp-cliffs-observatory', 'camp-coastal-refuge']) {
+    for (const id of ['camp-wreck-beach', 'camp-cliffs-observatory', 'camp-coastal-refuge']) {
       const alpha = cameraAlphaForOrientation(terrainCameraBaseAlpha(id), sceneOrientationForView(id, 0));
       expect(alpha).toBeCloseTo(Math.PI / 4);
       const up = screenVectorToWorldAtAlpha(0, 1, alpha, Math.PI / 4);
       expect(up.x).toBeLessThan(0); expect(up.z).toBeLessThan(0);
     }
+    const retreatAlpha = cameraAlphaForOrientation(terrainCameraBaseAlpha('dragon-rest'), sceneOrientationForView('dragon-rest', 0));
+    expect(retreatAlpha).toBeCloseTo(125*Math.PI/180);
+    const retreatUp = screenVectorToWorldAtAlpha(0, 1, retreatAlpha, Math.PI / 4);
+    expect(retreatUp.x).toBeGreaterThan(0); expect(retreatUp.z).toBeLessThan(0);
     expect(cameraAlphaForOrientation(terrainCameraBaseAlpha('camp-a1-rooms'), sceneOrientationForView('camp-a1-rooms', 0))).toBeCloseTo(Math.PI / 2);
     expect(terrainCameraBaseAlpha('camp-forest-pleamar')).toBeCloseTo(-Math.PI / 4);
   });
@@ -29,9 +33,9 @@ describe('movimiento relativo a la cámara', () => {
     expect(Math.sin(left)).toBeCloseTo(Math.sin(-3 * Math.PI / 4));
     expect(cameraAlphaForOrientation(-Math.PI / 2, 8)).toBeCloseTo(-Math.PI / 2);
     expect(normalizeCameraOrientationStep(-1)).toBe(7);
-    expect(cameraTiltDegreesForBeta(cameraBetaForTiltDegrees(48))).toBeCloseTo(48);
-    expect(cameraTiltDegreesForBeta(cameraBetaForTiltDegrees(5))).toBeCloseTo(25);
-    expect(cameraTiltDegreesForBeta(cameraBetaForTiltDegrees(80))).toBeCloseTo(50);
+    expect(cameraTiltDegreesForBeta(cameraBetaForTiltDegrees(48))).toBeCloseTo(35);
+    expect(cameraTiltDegreesForBeta(cameraBetaForTiltDegrees(5))).toBeCloseTo(15);
+    expect(cameraTiltDegreesForBeta(cameraBetaForTiltDegrees(80))).toBeCloseTo(35);
   });
 
   it('usa el mismo frente A1 para cámara y WASD sin cambiar las otras escenas', () => {

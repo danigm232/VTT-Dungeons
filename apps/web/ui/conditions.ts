@@ -1,5 +1,5 @@
 import type { CombatCondition, ConditionSource, ConditionStateView } from '../../../engine/shared/protocol';
-import { conditionDurationLabel, conditionOrder, conditionPresentation } from '../../../engine/shared/conditions';
+import { conditionDurationLabel, conditionOrder, conditionPresentation, displayConditions } from '../../../engine/shared/conditions';
 import { conditionHelp } from '../../../engine/client/condition-presentation';
 import '../conditions.css';
 
@@ -13,13 +13,30 @@ function badge(condition: CombatCondition) {
 /** Compact, explicitly named controls; no emoji overlays or hidden toggle meanings. */
 export function conditionStrip(entity: ConditionStateView, remove?: (condition: CombatCondition) => void) {
   const strip = document.createElement('div'); strip.className = 'condition-strip';
-  for (const condition of entity.conditions ?? []) {
+  for (const condition of displayConditions(entity.conditions ?? [])) {
     const chip = document.createElement(remove ? 'button' : 'span'); chip.className = 'condition-chip';
-    chip.append(badge(condition), document.createTextNode(`${conditionPresentation[condition].label}${remove ? ' ×' : ''}`));
+    const label = document.createElement('span'); label.className = 'condition-label'; label.textContent = `${conditionPresentation[condition].label}${remove ? ' ×' : ''}`;
+    chip.append(badge(condition), label);
+    const source = entity.conditionSources?.find(source => source.condition === condition);
+    chip.title = `${conditionPresentation[condition].label} · ${conditionDurationLabel(source ?? { condition })}\n${conditionHelp(condition, source)}`;
+    chip.setAttribute('aria-label', conditionPresentation[condition].label);
     if (chip instanceof HTMLButtonElement) { chip.type = 'button'; chip.title = `Quitar ${conditionPresentation[condition].label}`; chip.setAttribute('aria-label', chip.title); chip.onclick = () => remove?.(condition); }
     strip.append(chip);
   }
+  strip.hidden = strip.childElementCount === 0;
   return strip;
+}
+
+/** HUD/sheet names own their icons; the map only draws poses and subtle VFX. */
+export class ConditionNameIndicators {
+  readonly root = document.createElement('div');
+  private key = '';
+  constructor() { this.root.className = 'condition-name-icons'; this.root.setAttribute('aria-label', 'Estados del personaje'); this.root.hidden = true; }
+  update(entity: ConditionStateView) {
+    const key = JSON.stringify([entity.conditions, entity.conditionSources]);
+    if (key !== this.key) { this.key = key; this.root.replaceChildren(conditionStrip(entity)); }
+    this.root.hidden = !entity.conditions?.length;
+  }
 }
 
 export class ConditionPanel {
@@ -59,7 +76,7 @@ export class ConditionPanel {
     if (key !== this.key) {
       this.key = key; this.list.replaceChildren(); this.timers = [];
       if (!entity.conditions?.length) { const empty = document.createElement('p'); empty.className = 'condition-note'; empty.textContent = 'Sin estados activos'; this.list.append(empty); }
-      for (const condition of entity.conditions ?? []) {
+      for (const condition of displayConditions(entity.conditions ?? [])) {
         const row = document.createElement('article'), heading = document.createElement('div'), name = document.createElement('strong'); row.className = 'condition-row'; heading.className = 'condition-row-title'; name.textContent = conditionPresentation[condition].label;
         heading.append(badge(condition), name);
         if (this.edit) { const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'condition-remove'; remove.textContent = 'Quitar'; remove.setAttribute('aria-label', `Quitar ${name.textContent}`); remove.onclick = () => this.edit?.({ condition, active: false }); heading.append(remove); }

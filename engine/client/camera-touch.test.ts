@@ -22,25 +22,25 @@ describe('player camera with two fingers', () => {
     expect(cameraTouchAxis(0, 0, 40, false)).toBe('zoom');
   });
   it('raises the view when swiping up and lowers it when swiping down', () => {
-    expect(cameraTiltFromTouch(45, -40)).toBe(47);
-    expect(cameraTiltFromTouch(45, 40)).toBe(43);
+    expect(cameraTiltFromTouch(30, -40)).toBe(32);
+    expect(cameraTiltFromTouch(30, 40)).toBe(28);
   });
   it('starts smoothly after the recognition threshold without jumping to a limit', () => {
-    expect(cameraTiltFromTouch(45, -20)).toBe(45);
-    expect(cameraTiltFromTouch(45, -21)).toBeCloseTo(45.1);
-    expect(cameraTiltFromTouch(45, 21)).toBeCloseTo(44.9);
+    expect(cameraTiltFromTouch(30, -20)).toBe(30);
+    expect(cameraTiltFromTouch(30, -21)).toBeCloseTo(30.1);
+    expect(cameraTiltFromTouch(30, 21)).toBeCloseTo(29.9);
   });
-  it('always respects the shared 25–50 degree limits and allows reversal', () => {
-    expect(cameraTiltFromTouch(45, -500)).toBe(50);
-    expect(cameraTiltFromTouch(45, 500)).toBe(25);
-    expect(cameraTiltFromTouch(50, 40)).toBe(48);
-    expect(cameraTiltFromTouch(35, -40)).toBe(37);
+  it('always respects the shared 15–35 degree limits and allows reversal', () => {
+    expect(cameraTiltFromTouch(25, -500)).toBe(35);
+    expect(cameraTiltFromTouch(30, 500)).toBe(15);
+    expect(cameraTiltFromTouch(25, 40)).toBe(23);
+    expect(cameraTiltFromTouch(15, -40)).toBe(17);
   });
   it('responds immediately when reversing at a limit and keeps small frame movements', () => {
-    expect(adjustCameraTiltForTouch(50, 5)).toBe(49.5);
-    expect(adjustCameraTiltForTouch(35, -5)).toBe(35.5);
-    let tilt = 45;
+    expect(adjustCameraTiltForTouch(35, 5)).toBe(34.5);
+    expect(adjustCameraTiltForTouch(15, -5)).toBe(15.5);
+    let tilt = 25;
     for (let frame = 0; frame < 10; frame++) tilt = adjustCameraTiltForTouch(tilt, -1);
-    expect(tilt).toBeCloseTo(46);
+    expect(tilt).toBeCloseTo(26);
   });
 });

@@ -1,0 +1,306 @@
+{
+  "schema": "retreat-zone-navigation-v1",
+  "units": "meters",
+  "tileMeters": 1.5,
+  "axis": "glTF Y-up; X east, Z south",
+  "actorRadius": 0.3,
+  "worldDeckElevationMeters": 15,
+  "walkableSurfaces": [
+    {
+      "id": "house",
+      "height": 0.045,
+      "polygon": [
+        [
+          0,
+          0
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          -3
+        ],
+        [
+          0,
+          -3
+        ]
+      ]
+    },
+    {
+      "id": "west_path",
+      "height": 0.045,
+      "polygon": [
+        [
+          -3.75,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          -1.5
+        ],
+        [
+          -3.75,
+          -1.5
+        ]
+      ]
+    }
+  ],
+  "colliders": [
+    {
+      "id": "North_Wall",
+      "type": "box",
+      "center": [
+        1.5,
+        1.42,
+        -3.12
+      ],
+      "size": [
+        3,
+        2.8,
+        0.3
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "East_Wall",
+      "type": "box",
+      "center": [
+        3.12,
+        1.42,
+        -1.5
+      ],
+      "size": [
+        0.3,
+        2.8,
+        3
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "South_Wall",
+      "type": "box",
+      "center": [
+        1.5,
+        1.42,
+        0.12
+      ],
+      "size": [
+        3,
+        2.8,
+        0.3
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "West_Wall_North",
+      "type": "box",
+      "center": [
+        -0.12,
+        1.42,
+        -2.175
+      ],
+      "size": [
+        0.3,
+        2.8,
+        1.65
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "West_Wall_South",
+      "type": "box",
+      "center": [
+        -0.12,
+        1.42,
+        -0.075
+      ],
+      "size": [
+        0.3,
+        2.8,
+        0.15
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Door_Closed",
+      "type": "box",
+      "center": [
+        -0.12,
+        1.1,
+        -0.75
+      ],
+      "size": [
+        0.18,
+        2.12,
+        1.2
+      ],
+      "provenance": "CANON",
+      "enabledWhen": "door-closed"
+    },
+    {
+      "id": "Door_Open",
+      "type": "box",
+      "center": [
+        -0.72,
+        1.1,
+        -0.15
+      ],
+      "size": [
+        1.2,
+        2.12,
+        0.18
+      ],
+      "provenance": "CANON",
+      "enabledWhen": "door-open"
+    },
+    {
+      "id": "Winch_Mechanism",
+      "type": "box",
+      "center": [
+        1.88,
+        0.7,
+        -1.96
+      ],
+      "size": [
+        1.92,
+        1.4,
+        0.9
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Retaining_Lever",
+      "type": "box",
+      "center": [
+        1.07,
+        0.55,
+        -1.31
+      ],
+      "size": [
+        0.22,
+        0.9,
+        0.42
+      ],
+      "provenance": "CANON"
+    }
+  ],
+  "walkthrough": [
+    [
+      -3.3,
+      -0.75
+    ],
+    [
+      0.5,
+      -0.75
+    ],
+    [
+      0.5,
+      -2.55
+    ],
+    [
+      0.5,
+      -0.75
+    ],
+    [
+      2.5,
+      -0.75
+    ],
+    [
+      0.5,
+      -0.75
+    ],
+    [
+      -3.3,
+      -0.75
+    ]
+  ],
+  "door": {
+    "node": "CANON_Worn_Wooden_Door",
+    "closedAngle": 0,
+    "openAngle": 1.5707963267948966,
+    "defaultState": "closed",
+    "hinge": [
+      -0.12,
+      0.045,
+      -0.15
+    ]
+  },
+  "lift": {
+    "palletNode": "CANON_Suspended_Wooden_Pallet",
+    "drumNode": "CANON_Winch_Drum",
+    "crankNode": "CANON_Winch_Crank",
+    "leverNode": "CANON_Retaining_Lever",
+    "seaHeight": -14.955,
+    "topHeight": 0.045,
+    "defaultAbsoluteElevation": 12,
+    "raisePerActionMeters": 3,
+    "dropMetersBelowHouse": 15,
+    "chainTop": 1.24,
+    "chainSpacing": 0.074,
+    "attachmentAbovePallet": 1.03,
+    "linkCount": 206,
+    "surface": {
+      "id": "cargo-pallet",
+      "dynamic": true,
+      "walkableInPreview": false,
+      "polygon": [
+        [
+          0.75,
+          0.47
+        ],
+        [
+          2.85,
+          0.47
+        ],
+        [
+          2.85,
+          1.87
+        ],
+        [
+          0.75,
+          1.87
+        ]
+      ],
+      "heightFromState": "seaHeight + absoluteElevation"
+    },
+    "collision": {
+      "id": "moving-pallet",
+      "type": "box",
+      "center": [
+        1.8,
+        -3.055,
+        1.17
+      ],
+      "size": [
+        2.1,
+        0.2,
+        1.4
+      ],
+      "transformFrom": "palletNode",
+      "blocksHouseRoute": false
+    },
+    "note": "Cargo platform only; passenger use and boarding require DM adjudication and global movement integration."
+  },
+  "connections": [
+    {
+      "id": "A2_WEST_TO_CLIFF_PATH",
+      "position": [
+        -3.75,
+        0.045,
+        -0.75
+      ],
+      "worldDeckElevationMeters": 15,
+      "destinations": [
+        "A1_PATH",
+        "A3_A4_UPPER_PATH"
+      ],
+      "status": "prepared; final stairs and global placement pending"
+    }
+  ]
+}

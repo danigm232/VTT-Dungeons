@@ -144,16 +144,14 @@ export class SaveStore {
     }
     historyCandidates.sort((a, b) => b.save.generation - a.save.generation);
     candidates.push(...historyCandidates);
+    // A previous interrupted update can leave a valid newer checkpoint in the
+    // backup/history. File role is only a tie-breaker, never the recency order.
+    candidates.sort((a, b) => b.save.generation - a.save.generation);
     const unique = candidates.filter((candidate, index, all) => all.findIndex(item => item.save.checksum === candidate.save.checksum) === index);
     if (unique.length) return { mode: 'ready', save: unique[0]!.save, backup: backup.save, legacyOriginal: unique[0]!.legacyOriginal, errorCode: active.error ?? backup.error, candidates: unique };
     const files = await fs.readdir(this.directory);
     if (active.found || backup.found || historyFound || files.some(name => name.startsWith('.active-') || name.startsWith('.backup-'))) return { mode: 'recovery', save: null, backup: null, legacyOriginal: null, errorCode: active.error ?? backup.error ?? (historyFound ? 'HISTORY_INVALID' : 'UNCOMMITTED_TEMPORARY'), candidates: [] };
     return { mode: 'new', save: null, backup: null, legacyOriginal: null, errorCode: null, candidates: [] };
-  }
-  async readBackupBytes() {
-    const stat = await fs.lstat(this.backup);
-    if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 4 * 1024 * 1024 || (await fs.realpath(this.backup)) !== this.backup) throw new Error('SAVE_FILE_LINK');
-    return fs.readFile(this.backup);
   }
   async matchesCommitted(save: SaveV1) {
     try {
@@ -176,12 +174,12 @@ export class SaveStore {
     return folder;
   }
   async listHistory() {
-    const folder = await this.historyFolder(), entries: Array<{ id: string; savedAt: string; generation: number; sceneId: string; combat: boolean; round: number | null; currentId: string | null }> = [];
+    const folder = await this.historyFolder(), entries: Array<{ id: string; savedAt: string; generation: number; saveKind: 'automatic' | 'manual'; sceneId: string; combat: boolean; round: number | null; currentId: string | null }> = [];
     for (const name of await fs.readdir(folder)) {
       if (!/^[0-9]+\.json$/.test(name)) continue;
-      try { const filename = path.join(folder, name), stat = await fs.lstat(filename); if (!stat.isFile() || stat.isSymbolicLink() || (await fs.realpath(filename)) !== filename) continue; const save = decode(await fs.readFile(filename)); entries.push({ id: name, savedAt: save.savedAt, generation: save.generation, sceneId: save.payload.sceneId, combat: Boolean(save.payload.combat?.active), round: save.payload.combat?.active ? save.payload.combat.round : null, currentId: save.payload.combat?.active ? save.payload.combat.order[save.payload.combat.turnIndex] ?? null : null }); } catch { /* corrupt history is ignored; active and backup remain authoritative */ }
+      try { const filename = path.join(folder, name), stat = await fs.lstat(filename); if (!stat.isFile() || stat.isSymbolicLink() || (await fs.realpath(filename)) !== filename) continue; const save = decode(await fs.readFile(filename)); entries.push({ id: name, savedAt: save.savedAt, generation: save.generation, saveKind: save.saveKind ?? 'manual', sceneId: save.payload.sceneId, combat: Boolean(save.payload.combat?.active), round: save.payload.combat?.active ? save.payload.combat.round : null, currentId: save.payload.combat?.active ? save.payload.combat.order[save.payload.combat.turnIndex] ?? null : null }); } catch { /* corrupt history is ignored; active and backup remain authoritative */ }
     }
-    return entries.sort((a, b) => b.generation - a.generation).slice(0, 9);
+    return entries.sort((a, b) => b.generation - a.generation);
   }
   async readHistory(id: string) {
     if (!/^[0-9]+\.json$/.test(id)) throw new Error('SAVE_HISTORY_ID');
@@ -192,9 +190,23 @@ export class SaveStore {
   private async archiveHistory(save: SaveV1, bytes: Buffer) {
     const folder = await this.historyFolder(), filename = path.join(folder, `${save.generation}.json`);
     try { await fs.lstat(filename); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') await syncedFile(filename, bytes); else throw error; }
-    const names = (await fs.readdir(folder)).filter(name => /^[0-9]+\.json$/.test(name)).sort((a, b) => Number(b.slice(0, -5)) - Number(a.slice(0, -5)));
-    // El slot activo es el décimo punto recuperable; el historial conserva nueve anteriores.
-    for (const stale of names.slice(9)) await fs.unlink(path.join(folder, stale));
+  }
+  private async pruneAutomaticHistory(activeKind: 'automatic' | 'manual') {
+    const folder = await this.historyFolder(), automatic: Array<{ name: string; generation: number }> = [];
+    for (const name of await fs.readdir(folder)) {
+      if (!/^[0-9]+\.json$/.test(name)) continue;
+      try {
+        const filename = path.join(folder, name), stat = await fs.lstat(filename);
+        if (!stat.isFile() || stat.isSymbolicLink() || (await fs.realpath(filename)) !== filename) continue;
+        const save = decode(await fs.readFile(filename));
+        // Saves created before saveKind existed are protected as manual. Their
+        // origin cannot be inferred safely, so automatic cleanup must not erase them.
+        if (save.saveKind === 'automatic') automatic.push({ name, generation: save.generation });
+      } catch { /* invalid history remains available for recovery review */ }
+    }
+    automatic.sort((a, b) => b.generation - a.generation);
+    const keep = activeKind === 'automatic' ? 9 : 10; // active.json is the tenth automatic point when it is automatic
+    for (const stale of automatic.slice(keep)) await retry(() => fs.unlink(path.join(folder, stale.name)));
   }
   async listEvidence() {
     this.evidenceFiles.clear();
@@ -227,8 +239,9 @@ export class SaveStore {
     await syncedFile(filename, data);
     return filename;
   }
-  async checkpoint(save: SaveV1, allowInvalidActive = false): Promise<void> {
+  async checkpoint(save: SaveV1, allowInvalidActive = false, retainPreviousInHistory = true): Promise<void> {
     if (!this.locked) throw new Error('SAVE_LOCK_REQUIRED');
+    await this.assertWriterLock();
     const bytes = Buffer.from(JSON.stringify(save), 'utf8');
     if (bytes.length > 4 * 1024 * 1024) throw new Error('SAVE_TOO_LARGE');
     const id = crypto.randomUUID();
@@ -246,9 +259,10 @@ export class SaveStore {
         await syncedFile(pendingBackup, former);
         if (decode(await fs.readFile(pendingBackup)).checksum !== recognized.checksum) throw new Error('BACKUP_READBACK');
         await retry(() => fs.rename(pendingBackup, this.backup));
-        await this.archiveHistory(recognized, former);
+        if (retainPreviousInHistory) await this.archiveHistory(recognized, former);
       }
     }
+    await this.assertWriterLock();
     try { await retry(() => fs.rename(pending, this.active)); }
     catch (error) {
       try { if (decode(await fs.readFile(this.active)).checksum === save.checksum) return; } catch { /* uncertain commit */ }
@@ -256,8 +270,17 @@ export class SaveStore {
     }
     const committed = decode(await fs.readFile(this.active));
     if (committed.generation !== save.generation || committed.checksum !== save.checksum) throw new Error('SAVE_COMMIT_UNCERTAIN');
+    await this.pruneAutomaticHistory(save.saveKind ?? 'automatic');
     try { const folder = await fs.open(this.directory, 'r'); try { await folder.sync(); } finally { await folder.close(); } }
     catch { /* Windows may not support directory fsync; file fsync and readback still happened. */ }
+  }
+  private async assertWriterLock() {
+    try {
+      const stat = await fs.lstat(this.lockPath);
+      if (!stat.isFile() || stat.isSymbolicLink()) throw saveError('SAVE_LOCK_CHANGED');
+      const lock = parseWriterLock(await fs.readFile(this.lockPath, 'utf8'));
+      if (lock.owner !== this.owner || lock.pid !== process.pid) throw saveError('SAVE_LOCK_CHANGED');
+    } catch { throw saveError('SAVE_LOCK_CHANGED'); }
   }
   async archiveExisting() {
     for (const [name, filename] of [['active', this.active], ['backup', this.backup]] as const) {

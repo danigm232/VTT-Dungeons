@@ -1,5 +1,13 @@
 # Stormwreck Isle · créditos de audio y VFX
 
+## Climatología unificada · 12/10/2026
+
+- `stormwreck-loop-thunder.ogg`: copia exacta del recurso ya incluido en D8, `d8-night-ambience-storm-thunder.ogg`; lluvia y truenos de kindland, [OpenGameArt](https://opengameart.org/content/rain-and-thunders), CC0. SHA-256: `8E0337DBE4DA49EC97563E4134072C55B76E71ED44C7E462E4AFC8891DA95248`.
+- `stormwreck-loop-tempest.mp3`: copia exacta de `d8-night-ambience-tempest-rain-wind.mp3`; [Rainstorm with Wind · DRAGON-STUDIO](https://pixabay.com/sound-effects/nature-rainstorm-with-wind-351117/), Pixabay Content License. SHA-256: `500A06C80A150CD35C9C909E49BEF1AAC2E955E7B34639A204888A89E0BB7F3A`.
+- Nieve: viento frío tenue con `stormwreck-loop-cliff-wind.ogg`, idéntico al recurso D8 `d8-night-loop-mirror-icy-wind.ogg` (SHA-256 `0CFDBD3F21ED449689A9024264EDF267D0037A6495813A7010827672EC191DAC`). No se asigna sonido de lluvia a una nevada.
+
+Se reutilizan archivos locales existentes; las dos páginas de origen se consultaron el 12/10/2026. La lluvia suave/media/intensa utiliza la pista costera sin truenos. Despejado conserva el ambiente de la escena y detiene la capa de precipitación.
+
 Esta campaña usa únicamente los recursos locales enumerados aquí. No incorpora
 audio, voces, texto ni mapas extraídos de la aventura comercial.
 

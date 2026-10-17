@@ -21,7 +21,7 @@ export class WorldWeather {
     this.snow.material=paint('weather:snow:paint',new Color3(.85,.94,1));
     for(const mesh of [this.rain,this.snow]){mesh.isVisible=false;mesh.isPickable=false;mesh.metadata={tokenOccluder:false};scene.getGlowLayerByName?.('glow')?.addExcludedMesh(mesh);}
   }
-  update(environment: EnvironmentState, focus: Vector3, indoor: boolean, deltaMs: number, coverageMeters=24, covered?: (x:number,z:number)=>boolean) {
+  update(environment: EnvironmentState, focus: Vector3, indoor: boolean, deltaMs: number, coverageMeters=24, covered?: (x:number,z:number,y?:number)=>boolean) {
     this.elapsed+=Math.min(deltaMs,100)/1000;
     const kind=environment.precipitation??(environment.storm?'rain':'none'), budget=indoor&&!covered?0:weatherParticleBudget(kind==='none'?0:environment.precipitationLevel??2);
     const particles=kind==='snow'?this.flakes:this.drops,base=kind==='snow'?this.snow:this.rain;
@@ -33,10 +33,12 @@ export class WorldWeather {
       const offset=this.offsets[i]!;
       const x=((offset[0]!*span+t*wind*2)%span)-span/2,z=((offset[1]!*span+t*wind*.7)%span)-span/2;
       const y=10-((offset[2]!*10+t*(kind==='rain'?12:1.2))%10);
-      const mesh=(kind==='snow'?flake:drop)!;mesh.position.set(focus.x+x,focus.y+y,focus.z+z);mesh.rotation.z=kind==='rain'?-.12-wind*.35:0;
+      const mesh=(kind==='snow'?flake:drop)!;mesh.position.set(focus.x+x,focus.y+y,focus.z+z);mesh.rotation.set(0,0,kind==='rain'?-.12-wind*.35:0);
       mesh.scaling.setAll(visualScale*(kind==='snow'?.7+Math.sin(i)*.25:1));
-      if(kind==='snow')mesh.position.x+=Math.sin(t*.8+i)*.4;
-      if(covered?.(mesh.position.x,mesh.position.z))mesh.isVisible=false;
+      if(kind==='snow')mesh.position.x+=Math.sin(t*.8+i)*(.4+wind*.65);
+      // Reuse each falling drop for a brief ground splash; no extra instances.
+      if(kind==='rain'&&y<.3){mesh.position.y=focus.y+.05;mesh.rotation.z=Math.PI/2;mesh.scaling.set(visualScale*3,visualScale*.35,visualScale*3);}
+      if(covered?.(mesh.position.x,mesh.position.z,mesh.position.y))mesh.isVisible=false;
     }
   }
   dispose(){for(const mesh of [...this.drops,...this.flakes])mesh.dispose();for(const mesh of [this.rain,this.snow]){mesh.material?.dispose();mesh.dispose();}}
