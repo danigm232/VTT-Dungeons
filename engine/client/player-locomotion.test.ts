@@ -15,9 +15,12 @@ describe('audited player locomotion', () => {
       for (const dir of directions) {
         const walk = states[`moving-${dir}`]!;
         expect(walk.frames).toHaveLength(8); expect(walk.fps).toBe(16);
-        expect(states[`running-${dir}`]!.frames).toEqual(walk.frames);
-        expect(states[`running-${dir}`]!.fps).toBe(20);
-        expect(states[`idle-${dir}`]!.frames).toEqual([walk.frames[0]]);
+        const run=states[`running-${dir}`]!;
+        if(id==='silverfarben-hotel'){
+          expect(run.frames).toHaveLength(6);expect(run.frames).not.toEqual(walk.frames);expect(run.fps).toBe(14);
+        }else{expect(run.frames).toEqual(walk.frames);expect(run.fps).toBe(20);}
+        if(id==='silverfarben-hotel')expect(JSON.stringify(states[`idle-${dir}`]!.frames)).toContain('silverfarben-v3/model.png');
+        else expect(states[`idle-${dir}`]!.frames).toEqual([walk.frames[0]]);
         expect(states[`idle-${dir}`]!.motion).toBeUndefined();
         expect(new Set(walk.frames.map(frame => JSON.stringify(frame))).size).toBe(8);
         for (const frame of walk.frames) {

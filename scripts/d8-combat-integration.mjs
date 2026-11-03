@@ -22,7 +22,8 @@ const freePort = async () => {
 const port = await freePort(), base = `http://127.0.0.1:${port}`;
 let child;
 const wait = (socket, event, predicate = () => true, timeout = 5_000) => new Promise((resolve, reject) => {
-  const timer = setTimeout(() => { socket.off(event, handler); reject(new Error(`Timeout esperando ${event}`)); }, timeout);
+  const waiting = new Error(`Timeout esperando ${event}`);
+  const timer = setTimeout(() => { socket.off(event, handler); reject(waiting); }, timeout);
   const handler = value => { if (!predicate(value)) return; clearTimeout(timer); socket.off(event, handler); resolve(value); };
   socket.on(event, handler);
 });
@@ -41,8 +42,8 @@ const connect = (auth, extraHeaders) => new Promise((resolve, reject) => {
 async function launch() {
   child = spawn(process.execPath, [path.join(serverBuild, 'apps/server/index.js')], { cwd: root, stdio: ['ignore', 'pipe', 'pipe', 'ipc'], windowsHide: true,
     env: { ...process.env, PORT: String(port), HOST: '127.0.0.1', DUNGEONS_DATA_DIR: temporary, DUNGEONS_CAMPAIGN: 'd8-night-private', DUNGEONS_TEST_CHILD: '1' } });
-  let output = ''; child.stdout.on('data', chunk => output += chunk); child.stderr.on('data', chunk => output += chunk);
-  for (let attempt = 0; attempt < 300; attempt++) {
+  let output = ''; child.stdout.on('data', chunk => output += chunk); child.stderr.on('data', chunk => {output += chunk;process.stderr.write(chunk);});
+  for (let attempt = 0; attempt < 600; attempt++) {
     if (child.exitCode !== null) throw new Error(`Servidor D8 terminó: ${output}`);
     try { if ((await fetch(`${base}/api/campaign`)).ok) return; } catch { /* starting */ }
     await delay(100);
@@ -159,31 +160,50 @@ try {
   // The same authoritative clients now play the full adventure and restore it.
   const command = async (fields, predicate = () => true) => {
     const updated = wait(dm, 'dm:state', predicate);
-    const result = await emitResult(dm, 'dm:command', { runtimeEpoch: dm.__dmState.runtimeEpoch, sceneEpoch: dm.__dmState.sceneEpoch, commandId: crypto.randomUUID(), ...fields });
-    assert.equal(result.ok, true, JSON.stringify(result)); await updated;
+    // Keep a later observer timeout from masking a command rejection.
+    updated.catch(()=>{});
+    const result = await emitResult(dm, 'dm:command', { runtimeEpoch: dm.__dmState.runtimeEpoch, ...(fields.type.startsWith('clock:')?{}:{sceneEpoch: dm.__dmState.sceneEpoch}), commandId: crypto.randomUUID(), ...fields });
+    assert.equal(result.ok, true, JSON.stringify({fields,result}));
+    try { await updated; } catch(error) { console.error('Expected state not received',fields,dm.__dmState?.gameClock);throw error; }
   };
   // Shared weather changes are real authoritative commands, not preview-only.
   for(const precipitation of ['rain','snow'])for(const precipitationLevel of [1,2,3]){
     const fields={type:'environment',storm:false,precipitation,precipitationLevel,windIntensity:.65,timeOfDay:'sunset'};
     const received=sockets.map(socket=>wait(socket,'world:snapshot',world=>world.environment.precipitation===precipitation&&world.environment.precipitationLevel===precipitationLevel&&world.environment.windIntensity===.65));
     await command(fields);await Promise.all(received);
-    assert.equal(dm.__dmState.audio.layers.storm.playing,precipitation==='rain');
+    // The existing server deliberately uses this channel for cold wind in snow.
+    // Verify the authored snow sound/level rather than expecting a silent channel.
+    const ambience=oneShotCampaignDefinition.audio.library.ambience;
+    const expected=precipitation==='snow'
+      ? ambience.find(t=>/icy-wind|cliff-wind/.test(t.id))??ambience.find(t=>/(?:^|-)wind$/.test(t.id))
+      : ambience.find(t=>/(?:^|-)rain(?:-|$)/.test(t.id))??ambience.find(t=>/(?:^|-)storm$/.test(t.id));
+    assert.equal(dm.__dmState.audio.layers.storm.playing,true);
+    assert.equal(dm.__dmState.audio.layers.storm.assetId,expected.id);
+    assert.equal(dm.__dmState.audio.layers.storm.volume,(precipitation==='snow'?[0,.10,.18,.28]:[0,.18,.42,.72])[precipitationLevel]);
   }
-  for(const timeOfDay of ['day','night','dawn'])await command({type:'environment',storm:false,timeOfDay,precipitation:'none',windIntensity:0},state=>state.environment.timeOfDay===timeOfDay);
+  for(const [timeOfDay,hour] of [['day',12],['night',22],['dawn',5]]){
+    // Phase commands now advance the shared clock and keep automatic daylight.
+    await command({type:'environment',storm:false,timeOfDay,precipitation:'none',windIntensity:0},state=>state.environment.timeOfDay==='auto'&&Math.floor(state.gameClock.seconds%86400/3600)===hour);
+  }
   // Player seating uses the authenticated interaction channel, including
   // duplicate protection; DM seating shares the same authoritative action.
   await command({type:'scene',sceneId:'cafe'},state=>state.sceneId==='cafe');
+  for(const door of dm.__dmState.objects.filter(o=>o.kind==='door'&&o.state!=='open')){
+    await command({type:'object:door',objectRevision:dm.__dmState.objectRevision,objectId:door.id,state:'open'});
+  }
   const cafe=oneShotCampaignDefinition.scenes.find(scene=>scene.id==='cafe');
   const cafeWorld=dm.__world.sceneId==='cafe'?dm.__world:await wait(dm,'world:snapshot',world=>world.sceneId==='cafe');
   maria.emit('scene:ready',{runtimeEpoch:cafeWorld.runtimeEpoch,sceneEpoch:cafeWorld.sceneEpoch});
   const cafeOrigin=cafeWorld.entities.find(entity=>entity.id==='maria').cell;
   const occupied=new Set(cafeWorld.entities.filter(entity=>entity.id!=='maria').map(entity=>key(entity.cell)));
+  for(const prop of cafeWorld.props)if(prop.structure!=='destroyed'&&(prop.kind!=='door'||prop.state!=='open'))
+    for(const cell of footprintFor(prop.cell,prop.rotation,prop.footprint))occupied.add(key(cell));
   const seatPaths=[[cafeOrigin]],seatVisited=new Set([key(cafeOrigin)]);let chosenSeat,seatPath;
   for(let i=0;i<seatPaths.length;i++){
     const path=seatPaths[i],cell=path.at(-1);
     chosenSeat=cafe.seats.find(seat=>!seat.reservedActorId&&key(seat.cell)===key(cell));
     if(chosenSeat){seatPath=path;break;}
-    for(const neighbor of surfaceNeighbors(cafe.terrain,{surfaceId:cafe.surfaceId,cell}))if(!seatVisited.has(key(neighbor.cell))&&!occupied.has(key(neighbor.cell))){seatVisited.add(key(neighbor.cell));seatPaths.push([...path,neighbor.cell]);}
+    for(const neighbor of surfaceNeighbors(cafe.terrain,{surfaceId:cafe.surfaceId,cell}))if(cafe.walkable.some(c=>key(c)===key(neighbor.cell))&&!seatVisited.has(key(neighbor.cell))&&!occupied.has(key(neighbor.cell))){seatVisited.add(key(neighbor.cell));seatPaths.push([...path,neighbor.cell]);}
   }
   assert.ok(chosenSeat&&seatPath,'no accessible free seat');
   for(const cell of seatPath.slice(1)){await command({type:'entity:move',entityId:'maria',cell});await delay(250);}
@@ -198,7 +218,42 @@ try {
   const mirrorEvents=sockets.map(socket=>wait(socket,'mirror:transformation'));
   const mirrorSound=wait(projector,'sfx:play',event=>event.sfxId==='d8-night-sfx-mirror');
   await command({type:'creature',visible:true,sourceId:'maria'},state=>state.creature?.visible);
-  await Promise.all([...transformed,...mirrorEvents,mirrorSound]);
+  const mirrorResults=await Promise.all([...transformed,...mirrorEvents,mirrorSound]);
+  const presentation=mirrorResults.slice(transformed.length,-1),sound=mirrorResults.at(-1);
+  assert.ok(presentation.every(event=>event.eventId===sound.eventId&&Number.isFinite(event.serverTime)), 'one authoritative identity for mirror light, appearance and sound');
+  let replayedMirrorEvents=0;for(const socket of sockets)socket.on('mirror:transformation',()=>replayedMirrorEvents++);
+  maria.disconnect();const reconnectWorld=wait(maria,'world:snapshot',world=>world.sceneId==='mirror'&&world.entities.some(e=>e.kind==='creature'));
+  const reconnectOwner=wait(maria,'player:private',value=>value.characterId==='maria');maria.connect();await Promise.all([reconnectWorld,reconnectOwner]);await delay(200);
+  assert.equal(replayedMirrorEvents,0,'reconnect restores the public reflection without replaying its transient reveal');
+  // The requested physical gallery opens on HP adjudication, independently
+  // of the four story choices. Every client sees the same persistent seal.
+  const sealedAttempt=await emitResult(dm,'dm:command',{runtimeEpoch:dm.__dmState.runtimeEpoch,sceneEpoch:dm.__dmState.sceneEpoch,commandId:crypto.randomUUID(),type:'entity:portal',entityId:'maria',portId:'galeria-espejo-cena',direction:'forward'});
+  assert.equal(sealedAttempt.code,'PORT_CONDITION_BLOCKED');
+  const opened=sockets.map(socket=>wait(socket,'world:snapshot',world=>world.sceneId==='mirror'&&world.props.find(p=>p.id==='mirror-ice-seal')?.structure==='destroyed'));
+  const defeatId=crypto.randomUUID(),defeat={runtimeEpoch:dm.__dmState.runtimeEpoch,commandId:defeatId,type:'entity:hp',entityId:'reflection',hp:0};
+  assert.equal((await emitResult(dm,'dm:command',defeat)).ok,true);await Promise.all(opened);
+  assert.equal((await emitResult(dm,'dm:command',defeat)).ok,true,'defeat command remains idempotent');
+  assert.equal(dm.__dmState.adventure.objectives.find(g=>g.id==='mirror')?.complete??false,false,'physical exit must not choose the mirror story outcome');
+  const mirrorWorld=dm.__world,exitStart=mirrorWorld.entities.find(e=>e.id==='maria').cell,exitGoal={col:5,row:1};
+  const blockedExit=new Set(mirrorWorld.entities.filter(e=>e.id!=='maria'&&e.hp!==0).map(e=>key(e.cell)));
+  for(const p of mirrorWorld.props)if(p.structure!=='destroyed'&&(p.kind!=='door'||p.state!=='open'))for(const cell of footprintFor(p.cell,p.rotation,p.footprint))blockedExit.add(key(cell));
+  for(const hazard of mirrorWorld.scene.movementHazards??[])for(const cell of hazard.cells)blockedExit.add(key(cell));
+  const safeExit=new Set(mirrorWorld.scene.walkable.map(key)),exitQueue=[exitStart],exitPrevious=new Map([[key(exitStart),null]]);
+  for(let i=0;i<exitQueue.length&&!exitPrevious.has(key(exitGoal));i++)for(const [dc,dr] of [[1,0],[-1,0],[0,1],[0,-1]]){const from=exitQueue[i],cell={col:from.col+dc,row:from.row+dr};if(!safeExit.has(key(cell))||blockedExit.has(key(cell))||exitPrevious.has(key(cell)))continue;exitPrevious.set(key(cell),from);exitQueue.push(cell);}
+  assert.ok(exitPrevious.has(key(exitGoal)));const exitPath=[exitGoal];while(exitPrevious.get(key(exitPath[0])))exitPath.unshift(exitPrevious.get(key(exitPath[0])));
+  for(const cell of exitPath.slice(1)){await command({type:'entity:move',entityId:'maria',cell});await delay(250);}
+  const dinnerArrivals=[dm,projector,maria].map(socket=>wait(socket,'world:snapshot',world=>world.sceneId==='dinner',12000));
+  const departures=[dm,projector,maria].map(socket=>wait(socket,'world:snapshot',world=>world.sceneId==='mirror'&&world.entities.find(e=>e.id==='maria')?.step?.movementKind==='passage'));
+  maria.emit('scene:ready',{runtimeEpoch:dm.__dmState.runtimeEpoch,sceneEpoch:dm.__dmState.sceneEpoch});
+  maria.emit('input:move',{runtimeEpoch:dm.__dmState.runtimeEpoch,sceneEpoch:dm.__dmState.sceneEpoch,seq:500,x:0,z:-1});
+  const departureViews=await Promise.all(departures),departureStep=departureViews[0].entities.find(e=>e.id==='maria').step;
+  assert.equal(departureStep.durationMs,5000);assert.equal(departureStep.passage.points.length,6);
+  assert.ok(departureViews.every(v=>v.entities.find(e=>e.id==='maria').step.startedAt===departureStep.startedAt),'all clients share one departure clock');
+  maria.disconnect();const midExit=wait(maria,'world:snapshot',world=>world.entities.find(e=>e.id==='maria')?.step?.movementKind==='passage');maria.connect();
+  assert.equal((await midExit).entities.find(e=>e.id==='maria').step.startedAt,departureStep.startedAt,'reconnect resumes the same walk');
+  await Promise.all(dinnerArrivals);assert.equal(aoife.__world.sceneId,'mirror','another player must retain their own scene');
+  maria.disconnect();const exitReconnect=wait(maria,'world:snapshot',world=>world.sceneId==='dinner');maria.connect();await exitReconnect;
+  assert.equal(replayedMirrorEvents,0,'walking and reconnecting must not replay the reveal');
   for (const goal of dm.__dmState.adventure.objectives) {
     await command({ type: 'scene', sceneId: goal.sceneId }, state => state.sceneId === goal.sceneId);
     await command({ type: 'story:choice', objectiveId: goal.id, choiceId: goal.choices[0].id, note: 'Recorrido completo por red' }, state => state.adventure.objectives.find(item => item.id === goal.id).complete);
@@ -206,13 +261,16 @@ try {
   }
   await command({ type: 'scene', sceneId: 'dinner' }, state => state.sceneId === 'dinner');
   await command({ type: 'story:ending', endingId: 'ending1', reason: 'Cuatro decisiones pacíficas' }, state => state.adventure.endings[0].selected);
+  await command({type:'clock:control',action:'pause'},state=>!state.gameClock.running);
   const csrfToken = (await (await fetch(`${base}/api/dm/save/status`, { headers: { cookie } })).json()).csrfToken;
   const request = async (route, body) => {
     const response = await fetch(`${base}/api/dm/save${route}`, { method: 'POST', headers: { cookie, origin: base, 'content-type': 'application/json', 'x-dungeons-csrf': csrfToken }, body: JSON.stringify({ runtimeEpoch: dm.__dmState.runtimeEpoch, ...body }) });
     const result = await response.json(); assert.equal(response.ok, true, JSON.stringify(result)); return result;
   };
   await request('', { requestId: crypto.randomUUID() });
-  const saved = await (await fetch(`${base}/api/dm/save/export`, { headers: { cookie } })).json();
+  // Export HTTP was intentionally removed; inspect only this test's own save.
+  const readSave=async()=>JSON.parse(await fs.readFile(path.join(temporary,'d8-night-private','active.json'),'utf8'));
+  const saved = await readSave();
   await command({ type: 'story:choice', objectiveId: 'rose', choiceId: 'attack', note: 'Cambio que debe deshacerse al cargar' });
   await request('', { requestId: crypto.randomUUID() });
   const history = await (await fetch(`${base}/api/dm/save/history`, { headers: { cookie } })).json();
@@ -227,7 +285,9 @@ try {
   const restoredDm = wait(dm, 'dm:state', state => state.runtimeEpoch !== beforeEpoch && state.adventure.endings[0].selected);
   const restored = await request('/restore', { token: preview.token, expectedStateRevision: preview.expectedStateRevision, requestId: crypto.randomUUID() });
   assert.equal(restored.code, 'RESTORED'); await Promise.all([...snapshots, ...restoredOwners]); await restoredDm;
-  const exported = await (await fetch(`${base}/api/dm/save/export`, { headers: { cookie } })).json();
+  assert.equal(replayedMirrorEvents,0,'restore and scene changes must not replay the mirror sequence');
+  await request('', { requestId: crypto.randomUUID() });
+  const exported = await readSave();
   const worldWithoutAudioClock = payload => { const copy = structuredClone(payload); delete copy.audio; return copy; };
   assert.deepEqual(worldWithoutAudioClock(exported.payload), worldWithoutAudioClock(saved.payload), 'restore debe conservar todos los datos del mundo, no solo posiciones');
   assert.equal(exported.payload.audio.music.assetId, saved.payload.audio.music.assetId);
@@ -236,17 +296,21 @@ try {
     await request('', { requestId: crypto.randomUUID() });
   }
   const rotated = await (await fetch(`${base}/api/dm/save/history`, { headers: { cookie } })).json();
-  assert.equal(rotated.length, 10, 'el menú debe tener exactamente diez puntos de carga');
+  assert.equal(rotated.length, 5, 'el menú vigente conserva cinco puntos de carga');
   await delay(100);
   sockets.forEach(socket => socket.disconnect()); await stop();
   await launch();
   const restartLogin = await fetch(`${base}/api/dm/login`, { method: 'POST', headers: { 'content-type': 'application/json', origin: base }, body: '{}' });
   const restartCookie = restartLogin.headers.get('set-cookie').split(';')[0];
-  const reopened = await (await fetch(`${base}/api/dm/save/export`, { headers: { cookie: restartCookie } })).json();
+  const restarted=await connect({role:'dm'},{Cookie:restartCookie});sockets.push(restarted);
+  const restartedState=restarted.__dmState??await wait(restarted,'dm:state');
+  assert.equal(restartedState.sceneId,'dinner');
+  const reopened = await readSave();
   assert.equal(reopened.payload.sceneId, 'dinner'); assert.equal(reopened.payload.storyNotes.rose, 'Punto de carga 10');
+  assert.deepEqual(restartedState.characters.map(c=>[c.id,c.hp]).sort(),reopened.payload.characters.map(c=>[c.id,c.hp]).sort());
   assert.equal(reopened.payload.npcs.find(actor => actor.id === 'anteros-temple').hp, after);
   await stop();
-  console.log('D8 integration PASS: private dice flow, idempotency, withdrawal, three rain/snow levels and all day phases live to DM/two players/projector, single mirror transformation/player appearance before combat, all six scenes/four objectives, final, full-world restore, preserved player ownership, ten saves and restart/autoload.');
+  console.log('D8 integration PASS: private dice flow, idempotency, withdrawal, three rain/snow levels and all day phases live to DM/two players/projector, single mirror transformation/player appearance before combat, defeat-conditioned gallery and physical player traversal to Anteros with independent second player, reconnect without replay, all six scenes/four objectives, final, full-world restore, preserved player ownership, five-point save history and restart/autoload.');
   }
 } finally {
   sockets.forEach(socket => socket.disconnect());

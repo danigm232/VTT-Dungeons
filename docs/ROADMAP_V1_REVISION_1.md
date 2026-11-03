@@ -1,5 +1,7 @@
 # D&D Immersive Engine — Roadmap maestro hacia v1.0
 
+**HISTÓRICO — revisión inicial de septiembre de 2026.** La entrada vigente es [ROADMAP_V1.md, en la raíz](../ROADMAP_V1.md). Los valores de Alpha 0.1 y las próximas tareas inferiores documentan aquella propuesta; no son el estado actual ni un segundo roadmap maestro. Se conserva el contenido como antecedente.
+
 **Archivo recomendado:** `ROADMAP_V1.md`  
 **Propósito:** fuente única de verdad del proyecto para que Astra/Codex/otros modelos puedan leer, actualizar y auditar el progreso sin saltarse fases.  
 **Última revisión inicial:** 2026-09-13  

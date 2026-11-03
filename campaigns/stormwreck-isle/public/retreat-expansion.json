@@ -1,0 +1,18 @@
+{
+ "schema":"retreat-expansion-v1",
+ "date":"2026-10-22",
+ "content":"VTT_AMBIENCE",
+ "tileMeters":1.5,
+ "saveGridVersion":3,
+ "source":"Delivered G1.1 native scene; approved A2–A5 floor extensions",
+ "preserved":{"a1Meshes":128,"a1Tiles":409,"verticalConnections":15,"manualDoors":2,"interactionPoints":13},
+ "floors":{
+  "a2":{"beforeArea":9,"afterArea":18,"width":4.5,"depth":4,"height":15},
+  "a3":{"beforeArea":22.5,"afterArea":112.5,"width":15,"depth":7.5,"height":18,"kitchenArea":18,"shortPassageArea":2.25},
+  "a4":{"beforeArea":72,"afterArea":189,"width":18,"depth":10.5,"height":18},
+  "a5":{"beforeArea":81,"afterArea":162,"width":12,"depth":13.5,"height":27}
+ },
+ "templeColumns":{"count":8,"shaftDiameter":0.864,"height":4.7115,"style":"plain substantial stone columns; existing timber roof retained"},
+ "separationA3A4Meters":3,
+ "navigationDirectory":"retreat-zones/expanded"
+}

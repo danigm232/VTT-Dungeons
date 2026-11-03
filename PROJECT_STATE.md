@@ -1,5 +1,158 @@
 # Estado del proyecto
 
+## Instalación habitual 3000 y comparativas por superposición — 2026-11-02
+
+Por petición explícita del usuario se instalan en `dist` las muestras Retiro/Pecio, adaptación de actores y cráneo terminado; la mesa habitual Stormwreck queda arrancada en el puerto 3000 con los guardados existentes. Preparación de cliente/tipos/servidor PASS y activación con el instalador existente; compilación anterior conservada en `runtime/previous-build-*`. El acabado queda activo por defecto en futuros arranques (`DUNGEONS_STYLE_SAMPLE=0` permite una compilación base aislada). [Registro de instalación y comprobaciones HTTP](output/stormwreck-style-sample-20261101/deployment-3000-20261102.json). La instalación solicitada no inventa aceptación artística ni física.
+
+Nueva regla persistida en AGENTS/dirección/anexo visual: todos los informes nuevos o regenerados alternan antes/después superpuestos con clic/toque, sin perder encuadre/zoom/desplazamiento. Componente común `scripts/lib/visual-comparison.mjs`, ampliación hasta 300 %, etiquetas y teclado. Regenerados informes de materiales/cráneo y luz del 01/11 sin alterar capturas originales. La interfaz se verifica con imágenes sintéticas; el navegador de prueba bloquea `file:` y no se reexpone el informe local para sortear esa restricción. Las comparativas reales mantienen sus fechas/condiciones y aceptación pendiente.
+
+## Muestras Retiro/Pecio y finalización del cráneo — 2026-11-02
+
+Implementadas las primeras muestras de materiales ilustrados en el WorldRenderer actual: A3/umbral y piedra continua compartida del Retiro, cubierta/C4 del Pecio. Tres albedos derivados con ImageGen integrada, normales/UV y geometría conservadas, activación reversible y compilación de revisión separada. Cráneo recibido de Antigravity terminado por encargo explícito posterior del usuario: escala coherente dentro de la huella, bóveda redondeada, mandíbula conectada y cavidades hundidas. Se conserva el resto de su archivo y material óseo. Corregida la preparación de las capas vivas de clima de los materiales nuevos antes de dibujarlos. Pruebas dirigidas: 45/45 en siete archivos; tipos/compilación PASS y 10 comprobaciones de red real de la candidata PASS. La integración ampliada histórica mantiene una expectativa antigua de abordaje pendiente, detallada en el informe.
+
+Acceso: `REVISAR-ACABADO.cmd`, con puerto libre y guardado temporal. [Galería real](output/stormwreck-style-sample-20261101/index.html) e [informe, propietarios, pruebas y pendientes](docs/evidence/STORMWRECK_STYLE_SKULL_20261102.md). La dirección artística está aprobada; la implementación requiere revisión del usuario. No se han instalado las muestras en la mesa habitual, reiniciado 3000, cambiado de modelo o publicado en GitHub. No cierra VIS2–6 ni Q1/M5/M7; mobiliario, plantas y profundidad completos siguen en el maestro.
+
+## Coordinación inicial con Antigravity: sustituida por autorización posterior — 2026-11-01
+
+Inicialmente el usuario pidió dejar el cráneo a Antigravity. Después encargó explícitamente terminarlo tras las muestras: «Cuando acabes de hacer lo tuyo, acaba el craneo que ha dejado a la mitad antigravity». La finalización del 02/11 parte de su fuente, no la revierte. El material de hueso sigue separado del controlador de madera/piedra. Los demás cambios concurrentes se conservan y no se atribuyen a esta entrega.
+
+## Huesos de dragón del Pecio Rosa de los Vientos (Clyssavar) · fidelidad al canon del PDF — 2026-11-01
+
+Reconstrucción integral de los restos esqueléticos de Clyssavar, el dragón de oro anciano cuya muerte violenta en el bajío norte dio origen al arrecife de huesos y provocó el naufragio del *Rosa de los Vientos* hace 40 años, según la descripción literal del libro oficial (`Aventura Los Dragones de la Isla de las Tempestades`, Cap. 3, pp. 22–27):
+
+- **Identidad anatómica del dragón de oro:** cráneo en `reef-south-west` con cuernos curvados hacia atrás sobre el cuello, cuernos secundarios de cresta/corona, barbillones óseos mandibulares (chin-spurs), fosa temporal expuesta, cuencas oculares cavernosas con cavidad interna profunda (`cavities`), bóveda craneal con cresta sagital y mandíbula desencajada con grandes colmillos superiores e inferiores en marfil mineralizado.
+- **Eliminación del clamp plano:** eliminada la función anterior de pinzamiento que aplastaba los vértices contra las paredes cuadradas de la celda. Las trayectorias paramétricas y volúmenes están calibrados analíticamente para respetar la huella de obstáculos (`reef-south-west` cols 14..16, rows 28..29; `dragon-bone-stern` col 1, rows 13..15) con cero deformación geométrica y cero violaciones de footprint.
+- **Espina y costillar de popa (`dragon-bone-stern`):** 5 vértebras articuladas a lo largo del eje Z con apófisis espinosas dorsales y arcos de costillas gigantes que se elevan hasta 2,8 m sobre la lámina de agua, con cabezas de costilla (capitulum) y fracturas desgastadas por el salitre.
+- **Huesos que rompen y sostienen el casco (Cap. 3, p. 23):** en `buildDistantDragonBones`, se incorporan las costillas colosales y el espinazo que empalan y acunan el casco fracturado en la brecha de popa («sostenido en los huesos antiguos que rompieron el casco»), además de las osamentas bajo el arrecife del trinquete en C2 («hasta las rocas y los huesos de dragón que se encuentran en el agua»).
+- **Verificación:** 15/15 tests dirigidos de pecio (`wreck-rebuild.test.ts` y `wreck-atmosphere.test.ts`) PASS; typecheck cliente/servidor PASS (0 errores); bundle de producción Vite PASS.
+
+## Dirección de las dos láminas aprobada — 2026-11-01
+
+Respuesta explícita del usuario: «Acabado de las dos láminas (recomendado)». Aprobada la dirección ilustrada 2.5D para Retiro/Pecio y el desarrollo de muestras reales VIS-2. Actualizados maestro, dirección y perfil; los números de material se calibran en el motor. Las láminas continúan siendo conceptos, sin autoridad para alterar geometría o contenido. Esta aceptación no cierra muestras aún no construidas, pruebas, dispositivos, Q1 o M5/M7.
+
+## Dirección visual candidata V1 de Retiro/Pecio — 2026-11-01
+
+El usuario pide tomar decisiones visuales. Preparadas dos láminas de concepto con image_gen integrado, editando capturas propias recientes del comedor del Retiro y cubierta del Pecio; originales conservados y copias estables en `docs/references/stormwreck-style-20261101/`. Recomendación: misma familia 2.5D estilizada, Retiro volcánico templado y Pecio salino frío. Paletas por rol, material, muestreo/UV/resolución, grid y límites en `docs/design/STORMWRECK_VISUAL_PROFILE.json`; contiene prompts completos y procedencia. La dirección artística y el maestro enlazan esta especificación de VIS-2 sin crear otro roadmap.
+
+**Estado: propuesta, valoración del usuario pendiente, no aplicada al juego.** Los bocetos no fijan geometría o contenido: no reinterpretar puertas como bancos, copiar refuerzos/vegetación/cielo, reparar barco o añadir botín por detalles generados. Valores de roughness/normal/UV son candidatos de muestra, aún no resultados verificados en motor. No se alteran fuentes de runtime, mapas, guardados, controles, dependencias o servidor habitual, ni se ejecutan nuevas pruebas del juego. Láminas, paletas, antes real/concepto y prompts en `output/stormwreck-style-decisions-20261101/index.html`.
+
+## Roadmap consolidado y matriz de cambios — 2026-11-01
+
+Auditoría de nombres fuera de copias/prototipos/runtime/output/dependencias/respaldos: 19 archivos con `roadmap`, de los que 14 son históricos/puentes antiguos, cuatro anexos y uno maestro. `ROADMAP_V1.md` contiene ahora la única secuencia de ejecución, motor/herramientas, diez categorías de cambios concretos por Retiro/Pecio, referencias por categoría, criterios de salida y decisiones aún abiertas. El anexo visual deja de duplicar la tabla de fases/estados. README/AGENTS/NEXT_MODEL_PROMPT apuntan a las secciones activas; el relevo r36 del Pecio queda explícitamente histórico.
+
+Se conserva Babylon 9.26.0, PBR/StandardMaterial y propietarios actuales; no se encarga migrar motor/bibliotecas. Muestras A3/umbral y cubierta/C4 siguientes; paleta final, UV/resolución/normal/roughness y derivados se deciden con esas muestras, no constan aprobados. Referencias modernas ya incorporadas: doce documentadas, cinco familias examinadas y siete secundarias de estudio. No hay nueva implementación gráfica, compilación, prueba del juego, instalación, publicación o cambio de modelo por esta consolidación.
+
+## Inicio visual: Retiro del Dragón y Pecio Rosa de los Vientos — 2026-11-01
+
+El usuario cambia la prioridad de la línea visual: Retiro y Pecio antes que Cena. Actualizados el maestro y su anexo visual; Cena mantiene sus listas para después. Primera subentrega acotada VA-10/11: respuesta pictórica de los personajes al sol/ambiente y luces existentes, con separación por camarotes/plantas/celdas y sin alterar autoridad, visibilidad de entidades, física, colocación, sprites o controles. Se usa el renderizador integrado en una revisión aislada; no son sesiones reales de red ni certificación de dispositivos. [Registro de implementación, comparativas y límites](docs/evidence/STORMWRECK_VISUAL_START_20261101.md). El acabado de materiales, muebles, vegetación y profundidad del conjunto sigue pendiente, sin promover versión ni aceptación artística por esta entrada.
+
+## Entrada única de planificación — 2026-11-01
+
+Aclarada la jerarquía para evitar roadmaps competidores: `ROADMAP_V1.md` es el maestro y punto inicial para cualquier chat. `docs/VISUAL_ROADMAP.md` pasa a titularse plan de acabado visual; la ficha del Retiro conserva revisión 19 y orden local; Cena mantiene E0–E6/C01–C60; Dani/Fer conserva coordinación. Se mantienen nombres/rutas para no romper referencias y se etiqueta la propuesta `docs/ROADMAP_V1_REVISION_1.md` como histórica. README y AGENTS apuntan primero al maestro. No se mueven archivos, reinician mapas, cambian prioridades locales autorizadas o publican revisiones del juego. La siguiente muestra de Cena corresponde a la línea visual, sin detener los trabajos ya autorizados de otras escenas.
+
+## Referencias modernas y dirección visual compartida — 2026-11-01
+
+Encargo del 30/10, acotado por el usuario a 2018 en adelante: biblioteca de 12 juegos/ediciones modernas en `docs/design/VISUAL_REFERENCE_CATALOG.json` y `docs/design/VISUAL_REFERENCE_LIBRARY.md`; incluye Octopath 2018/II 2023, Witchbrook promocional 2026, FFTactics Enhanced 2025, Triangle Strategy 2022, DQIII HD-2D 2024, Star Ocean 2R 2023, Sea of Stars 2023, Eastward 2021, Chained Echoes 2022, Live A Live 2022, Eiyuden 2024 y Songs of Conquest 2024. Distingue cinco familias con imágenes examinadas y siete de estudio documental pendiente; no declara revisión completa de los 12 juegos ni convierte sus capturas en assets libres.
+
+Guía común `docs/design/VISUAL_ART_DIRECTION.md`, auditoría `docs/audits/VISUAL_GAP_AUDIT_20261101.md` (VA-01–VA-18) y `docs/VISUAL_ROADMAP.md` (VIS-0…VIS-6), enlazadas desde arranque/roadmaps/relevos. Conserva mapas vigentes, fases del Retiro, referencias aprobadas y C01–C60 de Cena. El diagnóstico prioriza muestra coherente de materiales, muebles, vegetación, personajes y luz; reconoce sistemas ya hechos. `AGENTS.md` guía a futuros chats en tareas visuales; no se han enviado mensajes a otros chats ni cambiado modelos.
+
+Galería local en `output/visual-reference-library-20261030/index.html` (carpeta conserva fecha de inicio del encargo). Investigación y planificación, sin arte integrado, reinicio/despliegue, nuevas pruebas del juego o aprobación física/artística. Las evidencias antiguas conservan su fecha; pendientes revalidación y ejecución de los bloques autorizados.
+
+## Espejo D8 · bruma, sonido y recorrido de salida — 2026-10-21
+
+Bruma baja reforzada con capas cruzadas; móvil conserva las dos bolsas disponibles más cercanas, sin elegir la galería sellada. Audio original de aire interior, dos gotas y crujido: incidencias cada 32–58 s, mezcla discreta y suspensión durante combate/activación/salida/silencio. Al cruzar la abertura tras la derrota se ven cinco casillas (7,5 m) de avance durante cinco segundos, sincronizadas por servidor, antes de la cena. Reconexión viva conserva el reloj; restauración duradera vuelve al umbral sin repetir automáticamente. Cámara del Espejo con envolvente corporal estable y margen bajo los pies; corregida la mesa vacía sin personaje de foco. Sin cambiar reglas, estadísticas o preferencias de otros mapas.
+
+Candidata `runtime/d8-mirror-immersive-20261020/{server,web}`; lanzador `scripts/review-d8-mirror.ps1`, ahora versión predeterminada `immersive`. Mesa temporal `http://127.0.0.1:59950/dm`, galería `http://127.0.0.1:4603/gallery/`. 52 pruebas en 11 archivos, tipos/compilaciones e integración DM/dos jugadores/proyector correctos. 160 vistas, 252 muestras durante 413 estados de movimiento, 16 perfiles y mesa vacía sin errores ni pérdida del jugador. Grabación sonora de 70 s con gota a los 57,756 s. Conservadas 399 casillas, 344 difíciles y 49 peligrosas.
+
+Tres regresos idénticos: 604 mallas, 60 texturas, 73,1043 MiB estimados. Perfiles: 130–298 llamadas y 69,33–83,97 MiB; 1080p aún supera el presupuesto orientativo de 80 MiB. Revisión enfocada, sin nueva sesión de veinte minutos ni certificación física de FPS. Pendientes aprobación artística, escucha con voces y Pixel/proyector físicos. Distribución habitual y guardados reales conservados; sin publicación ni subagentes. [Informe y reproducción](docs/evidence/D8_MIRROR_IMMERSIVE_20261021.md).
+
+## Retiro · correcciones y piedra por fases — 2026-10-21
+
+Primera entrega de piedra integrada sobre la entrega existente. Corregidos el agua que invadía el desembarco, la exclusión de las rocas de primer plano del sistema de ocultación y las estadísticas de capas/mar. Juego y visor comparten frente de 90° y dimensiones de zona; se conserva el perfil actual continuo de 5° a 25° y el controlador de cámara existente. Documentación FASE_3A/3B contrastada con el código.
+
+Tres fases revisadas: material de basalto compartido, refinado en Blender de 18 masas existentes y contactos/variación mineral. Tres bloques de primer plano sustituidos por salientes nativos. Capa final de 21 mallas, 28.514 triángulos y 1,28 MiB. Conservadas las 128 mallas originales de celdas y siete archivos protegidos de navegación/distribución/campaña. 68/68 pruebas, cliente/servidor compilados, recorrido físico de 4.828 posiciones sin colisiones nuevas y coronación sin pliegues. Auditoría de 195 encuadres y 83 casos de primer plano sin incidencias; personaje completa las diez superficies con cuadrícula visible/oculta y sin perder apoyos. Capturas por fase y mediciones en el [informe](docs/evidence/RETREAT_STONE_20261021.md). Pendiente reducir el coste de la piedra en A3; después afinar encuentros y coronaciones y validar dispositivos físicos.
+
+## Cena final D8 · instrucciones literales para compartir — 2026-10-21
+
+El usuario concreta «mejorarlo, no cambiarlo». Añadido contrato de conservación de distribución/identidad/funciones y lista C01–C60 en `docs/design/D8_DINNER_LITERAL_CHECKLIST_20261021.json`, con versión legible `.md`. Once categorías; cada punto declara evidencia/tipo, qué falta o comprobar, acción, qué conservar, aceptación, fase y prioridad. Distingue observación visual, código auditado, verificación pendiente y efectos condicionados. Se revalida antes de implementar para conservar trabajo de otros chats.
+
+Actualizados auditoría, encargo e informe visual con los 60 puntos completos, búsqueda y filtros. Copia autónoma `output/d8-dinner-octopath-audit-20261020/informe-para-compartir.html`: análisis, lista, prompt, base/pruebas fechadas y 13 imágenes integradas, sin dependencias de archivos locales. Validación documental de IDs, enlaces, PNG y sintaxis; sin ejecutar ni desplegar mejoras del juego, sin nuevos tests de runtime ni pruebas físicas. Las 41 pruebas y cifras de ejecución siguen siendo evidencia de base del 20/10.
+
+## Cena final D8 · luz y profundidad explícitas — 2026-10-21
+
+Ampliado el apartado 17 de `docs/design/D8_DINNER_OCTOPATH_AUDIT_20261020.md`, su encargo `docs/design/D8_DINNER_EXECUTION_PROMPT.md` y la galería local. Luz/profundidad ahora tienen entregables por fase: E0 base de planos y fuentes, E1 profundidad geométrica y luz inicial, E2 volumen/materiales, E3 iluminación completa y actores, E4 profundidad atmosférica/luz en el aire, E5 estados de luz por desenlace, E6 comparativas sin efectos/completas/móvil y vídeo de movimiento. Incluye primer plano selectivo, entorno lejano, sombras proyectadas/contacto, fuentes locales, reloj y claridad táctica. Cambios de documentación; sin implementar ni desplegar mejoras y sin acreditar pruebas nuevas del juego. Las 41 pruebas citadas siguen siendo la base del 20/10.
+
+## Cena final D8 · auditoría Octopath — 2026-10-20
+
+Auditoría centrada exclusivamente en `dinner`, sin modificar ejecución, mapas, partidas o despliegue. Informe completo en `docs/design/D8_DINNER_OCTOPATH_AUDIT_20261020.md`, encargo de producción en `docs/design/D8_DINNER_EXECUTION_PROMPT.md` y galería local en `output/d8-dinner-octopath-audit-20261020/index.html` (capturas reales identificadas por fecha, seis observaciones visuales y referencias del usuario; no hay un después simulado).
+
+Base inspeccionada: grid 19×18 de 1,5 m, 318 casillas transitables, 4 difíciles, 35 objetos autorados, puerta e interacción con Anteros conservadas. Cambio de escena correcto en estado aislado en memoria; conectividad estática 318/318, sin acreditar recorrido legal completo. 41 pruebas aprobadas en cuatro archivos de campaña/paquete/cámara/movimiento. Rendimiento mostrado de 725 mallas/540 draw calls es histórico del 18/10, no medición nueva de móvil. Pendientes pruebas físicas y rendimiento sostenido.
+
+Prioridad: composición y recorte de casa/patio, materiales y siluetas, integración de actores con luz local (actualmente conectada solo al Espejo), después ambiente, audio y tres desenlaces. Siete fases E0–E6, cada una funcional; validar en mesa integrada, no solo Playground. Recoge cámara actual continua 5°–25°, interior 10°, comparación artística a 15°, giro ±30° y WASD estable. No restaura el perfil antiguo de las capturas ni reemplaza mejoras recientes del Espejo/personajes.
+
+## Espejo D8 · sello completo y ambiente — 2026-10-20
+
+Corregida la lámina de cierre que dejaba ver detrás al girar: bloque de hielo cerrado de 3,35 m, base enterrada, revestimiento arqueado y unión superior a la caverna. Mantiene rotura, polvo/fragmentos y salida física a la cena tras derrotar al Reflejo. Añadidas tres bolsas de bruma baja y caídas pequeñas y espaciadas de escarcha, con reducción en combate/pantallas pequeñas y respeto a movimiento reducido. Ambiente sonoro propuesto, sin cambiar la mezcla.
+
+Candidata aislada `runtime/d8-mirror-seal-atmosphere-20261020/{server,web}`; lanzador `scripts/review-d8-mirror.ps1`, versión predeterminada `atmosphere`, conservadas las anteriores. Mesa temporal `http://127.0.0.1:57255/dm`; galería `http://127.0.0.1:4602/gallery/`. 19 pruebas, 5.985 rayos contra la abertura, 384 comprobaciones de espacio corporal, 70 vistas anteriores y 70 finales, 16 perfiles y red DM/dos jugadores/proyector correctos. Conservadas 399 casillas, 344 difíciles y 49 peligrosas, cámaras continuas y trabajo de otros chats.
+
+Tres regresos estables: 599 mallas, 62 texturas, 78,1043 MiB estimados. Perfiles: 120–291 llamadas, 74,33–88,97 MiB; 1080p todavía supera el objetivo orientativo de 80 MiB. Comprobación enfocada: no se repite la sesión de veinte minutos anterior ni se certifican FPS/dispositivos físicos. Pendientes aprobación artística, móvil/proyector y escucha. Servidor habitual, distribución y guardados reales intactos; sin publicación. [Informe y reproducción](docs/evidence/D8_MIRROR_SEAL_ATMOSPHERE_20261020.md).
+
+## Espejo D8 · hielo, bóveda y salida — 2026-10-20
+
+Implementados los cinco refinamientos solicitados: suelo sin juntas repetidas ni borde estirado en la extensión frontal; reflejos tenues de personajes sobre hielo con muestreo de nieve/luz y atlas compartidos; paredes y contrafuertes con relieve irregular; bóveda interior continua que se retira del encuadre útil; y sello de hielo con grietas, fragmentos y polvo que se abre al derrotar al Reflejo preparado. Cruzar el umbral lleva a la cena con Anteros, sin elegir desenlace ni cambiar dados, estadísticas o inventarios. El sello ocupa temporalmente tres casillas; las 399 casillas, 344 difíciles y 49 peligrosas conservan sus coordenadas.
+
+Candidata aislada en `runtime/d8-mirror-icepass-20261020/{server,web}`. El lanzador `scripts/review-d8-mirror.ps1` usa ahora `icepass` por defecto y conserva las revisiones anteriores mediante `-Version`. Mesa de revisión `http://127.0.0.1:50722/dm`, jugador `/player`, proyector `/projector`; galería `http://127.0.0.1:4601/gallery/`. Guardados exclusivos en una carpeta temporal. No se ha sustituido `dist`, reiniciado el puerto 3000 ni publicado en GitHub; se conserva la corrección de cámara y los cambios de otros chats.
+
+126 regresiones en 20 archivos, 8 comprobaciones finales específicas y 3 de pasos compartidos correctas; tipos, compilaciones y prueba de red DM/dos jugadores/proyector aprobados. Sello bloqueado, derrota, movimiento físico de jugador hasta la cena, independencia del segundo jugador, reconexión, guardado/restauración y reinicio verificados. 120 cámaras, 16 perfiles y sesión automatizada de 20,69 minutos, ocho idas/vueltas y cero errores. Tres regresos de limpieza idénticos: 583 mallas, 58 texturas y 72,6877 MiB. Texturas repetidas entre 72,68 y 72,69 MiB; pico tras animaciones de 118,81 MiB, todavía sobre el presupuesto orientativo de 80 MiB. Entre 135 y 232 llamadas de dibujo en los perfiles medidos. No son FPS ni memoria total de dispositivos físicos.
+
+Pendientes la aprobación artística y las pruebas físicas en Pixel 9a/proyector/sonido. [Informe, límites y guion de revisión](docs/evidence/D8_MIRROR_ICEPASS_20261020.md), [capturas y secuencia de salida](output/d8-mirror-icepass-20261020/index.html).
+
+## Espejo · corrección de cámara vacía — 2026-10-20
+
+Corregida la pérdida de `y` al copiar un Vector3 en `clampMirrorCameraTarget`, que invalidaba la cámara y dejaba el mapa azul pese a tener cargados los recursos. 17/17 regresiones de cámara, tipos y compilaciones cliente/servidor correctos. Revisión visual aislada con escenario visible; corrección instalada en `dist/` y distribución anterior retenida. El puerto 3000 estaba libre; el arranque automático en segundo plano fue rechazado por la revisión de permisos («blocked by policy»). Pendiente abrir `INICIAR-ONE-SHOT.cmd` y recargar el DM. Mantenimiento reforzado para conservar siempre lo funcional y aplazar carpetas generadas con servidores abiertos: 27 comprobaciones. [Causa, prueba visual y estado de arranque](docs/evidence/MIRROR_CAMERA_HEIGHT_FIX_20261020.md).
+
+## Orden y mantenimiento de la carpeta — 2026-10-20
+
+Retirados 12.778 archivos antiguos: 5,29 GB (4,92 GiB) de respaldos intermedios, compilaciones, cachés y capturas sin referencias. Protegido todo lo creado o modificado desde el 13/10/2026: 60.312 archivos recientes conservados. Comparación SHA-256 de 3.009 fuentes/recursos sin diferencias al terminar el borrado; guardados, distribución instalada, originales, prototipos y servidores abiertos conservados. Cinco hitos ZIP y parches posteriores retenidos. `MANTENIMIENTO.cmd` permite revisar o repetir con un mínimo de siete días; 26 comprobaciones aisladas correctas y revisión posterior sin residuos adicionales propuestos. DM/jugador/proyector responden 200. [Resultado y registros](docs/evidence/WORKSPACE_CLEANUP_20261020.md), [guía de carpetas y mantenimiento](docs/WORKSPACE_MAINTENANCE.md).
+
+## Espejo D8 · diez puntos de acabado — 2026-10-20
+
+Implementados en orden los diez puntos de la revisión: terreno con relieve y materiales diferenciados, fondo en capas, primer plano, plataforma ritual del espejo, composición lateral, luz focal y rebote frío, nieve/escarcha, bóveda rota con volumen, huellas de magia y acabado conjunto. Cuatro capturas y una compilación funcional por punto. Módulo `mirror-art-direction.ts`, dos albedos originales de ImageGen con prompts/procedencia y exportaciones optimizadas; navegación de 399 casillas, 344 difíciles y 49 peligrosas conservada.
+
+Candidata ejecutable en `runtime/d8-mirror-artpass-20261019/{server,web}`. `./scripts/review-d8-mirror.ps1` usa esta revisión por defecto; `-Version refinement`/`candidate` conservan las anteriores. Sesión aislada actual: `http://127.0.0.1:57177/dm`; galería: `http://127.0.0.1:4598/gallery/`. La mesa habitual y la revisión abierta en 59822 siguen intactas.
+
+78/78 regresiones, paquete Playground, tipos, compilaciones y prueba de red DM/dos jugadores/proyector correctos. 120 vistas y 16 perfiles sin errores. Sesión automatizada nueva de 20,15 minutos, catorce idas/vueltas y cero errores; memoria repetida 72,34–72,35 MiB. Tres regresos de limpieza estables: 553 mallas, 57 texturas, 69,94 MiB. Recorrido de 387 estados autoritativos hasta el perímetro, sin daño.
+
+Carga limpia: 68,13–78,40 MiB estimados. El pico tras secuencia alcanza 137,65 MiB y el máximo es de 359 llamadas de dibujo: los guardarraíles transitorios/rendimiento siguen pendientes de validación y ajuste en el dispositivo objetivo. No se certifican FPS ni aceptación artística por capturas. [Informe, pruebas físicas pendientes y materiales](docs/evidence/D8_MIRROR_ARTPASS_20261020.md), [comparativas y vídeos](output/d8-mirror-artpass-20261019/index.html).
+
+## Espejo D8 · correcciones de la revisión visual — 2026-10-19
+
+Segunda candidata: pedestal duplicado eliminado, una galería interior profunda, paredes continuas de hielo de 26 m, bóvedas y estalactitas, vetas/normal de hielo y contacto irregular con el suelo. La oclusión usa triángulos y volumen corporal; conserva 32 % de visibilidad cuando hay un obstáculo real. Se retiran sombras de objetos sustituidos.
+
+Por petición del usuario, el perímetro irregular añade 139 casillas: 399 transitables, 344 difíciles y los mismos 49 peligros. Origen e índices anteriores, espejo, llegadas y estadísticas preservados. Guardado/carga en casillas nuevas y migración del formato más antiguo comprobados. 78/78 pruebas en 15 archivos; integración de red, reconexión, guardados y autoload PASS. Compilaciones aisladas en `runtime/d8-mirror-refinement`; el lanzador `./scripts/review-d8-mirror.ps1` usa esta revisión por defecto y admite `-Version candidate` para la anterior.
+
+[Informe de correcciones y aceptación pendiente](docs/evidence/D8_MIRROR_REFINEMENT_20261019.md). [Comparativas, recorridos y medidas](output/d8-mirror-refinement-20261019/index.html). La sesión de veinte minutos anterior es histórica; aprobación artística y dispositivos físicos siguen pendientes. La mesa habitual y sus guardados se conservan.
+
+120 vistas finales y 16 casos de luz/pantalla sin errores. Carga limpia: 54,31–62,42 MiB estimados; pico tras animaciones/recorrido: 133,68 MiB, presupuesto transitorio pendiente. Tres idas/vueltas café–Espejo vuelven a 422 mallas, 46 texturas y 56,53 MiB estables.
+
+## Espejo D8 · candidata HD-2D E0–E6 — 2026-10-19
+
+Implementada la presentación exclusiva de `mirror`: envolvente estratificada y primer plano selectivo, materiales propios, espejo ornamentado local, luz interior y respuesta opcional de personajes, bruma/partículas por calidad, secuencia sincronizada con el servidor y mezcla temporal. Navegación, 260 casillas transitables, 205 difíciles, 49 peligrosas, estadísticas, interacción y reglas conservadas; dados y decisiones en mesa. Corregido en esta escena un shader exterior duplicado al asignar/reconectar personaje.
+
+Candidata aislada en `runtime/d8-mirror-candidate`, sin tocar la distribución ni guardados reales. Abrir con `./scripts/review-d8-mirror.ps1` (añadir `-Build` para reconstruir). Base 44/44, regresiones 74/74, comprobación final dirigida 10/10; integración DM/dos jugadores/proyector, reconexión sin repetir aparición, restauración y autoload PASS. Matriz de 75 vistas y sesión registrada de 20,47 minutos; tres regresos con 45 texturas/58,56 MiB estables. El pico transitorio después de animaciones alcanza 111,49 MiB; no equivale a una prueba de FPS ni certifica el Pixel físico.
+
+[Informe, límites y aceptación física/artística pendiente](docs/evidence/D8_MIRROR_CANDIDATE_20261019.md). [Evidencias y comparativa](output/d8-mirror-candidate-20261018/index.html). E6 técnica tiene candidata ejecutable; la aprobación artística, escucha real, proyector y sesión física continua siguen pendientes. No se ha publicado en GitHub. Cambios previos de cámara/Retiro y auditoría original preservados.
+
+## Cámara compartida y frente del Retiro — 2026-10-17
+
+El giro horizontal 0° del Retiro del Dragón queda centrado a 90° de Babylon: la cámara mira desde la playa hacia el acantilado. Los encuadres por zona y combate usan el mismo frente. La casilla «Compartir cámara con la mesa» publica además zoom y encuadre del DM al proyector; desmarcada, el proyector recupera su encuadre propio y el zoom personal del jugador permanece independiente. Pruebas dirigidas 24/24, humo de red D8/Stormwreck con reconexión y validación del encuadre PASS; typecheck y compilaciones cliente/servidor correctos. Mesa D8 local reiniciada; estado `ready`, página DM y recursos 200.
+
+## Retiro del Dragón · Profundidad Escénica 2.5D y Composición de Cámara — 2026-10-17
+
+Incorporado el sistema integral de siete capas visuales ([retreat-scenic-depth.ts](campaigns/stormwreck-isle/public/retreat-scenic-depth.ts)) y presets de encuadre inmersivo 2.5D ([retreat-camera-composition.ts](campaigns/stormwreck-isle/public/retreat-camera-composition.ts)). Capa 1 de primer plano con atenuación dinámica por proximidad; Capa 2 con máxima nitidez de zona jugable; Capa 3 con zócalos de basalto descendiendo hasta el fondo marino (-1 m a -5 m) y 10 arrecifes sumergidos que reflejan las caídas de 9 a 27 m; Capa 4 con cabos oriental y occidental y farallones; Capa 5 con 4 picos volcánicos distantes de la Isla de las Tempestades (300-500 m) con perspectiva aérea; Capa 6 con anillo de horizonte continuo 360° a 920 m de diámetro; Capa 7 con bruma marina cuadrática graduada y oscilación ambiental.
+Encuadres optimizados para Playa, A1, A2, A3, A4 y A5 respetando 20°–40° vertical (con 15° interior), ±30° horizontal y combate automático a 40°. 4.828 posiciones verificadas contra sólidos del GLB con 0 colisiones en todas las fases. Pruebas dirigidas 9/9 PASS, typecheck cliente/servidor y compilaciones Vite y TypeScript completadas con éxito. [Documentación FASE_3A](prototypes/retreat-refinement/FASE_3A.md) y [FASE_3B](prototypes/retreat-refinement/FASE_3B.md).
+
 ## Controles de giro compactos — 2026-10-17
 
 La consola DM muestra horizontal y vertical juntos en dos columnas iguales, con botones en ambos ejes y el ángulo entre ellos. Retirado el deslizador vertical; bajar/subir y F/R usan el mismo ajuste por pasos y desactivan el botón al alcanzar cada límite. Se conserva la publicación de giro e inclinación. Tipos y build cliente correctos; comprobados en una mesa aislada los clics, límites 15°/35° y disposición real de 410 px. Cliente publicado sin reiniciar la mesa; [captura](output/camera-buttons-20261017/camera-buttons.png).

@@ -51,7 +51,7 @@ describe('persistent camera-relative resting direction', () => {
     expect(directionalRestAnimation(states, 'idle-nw')!.flipX).toBe(false);
     const other = { frames: [{ ...frame, url: '/art/other-character.png' }], fps: 8 };
     expect(correctDirectionalClip('moving-ne', other, states)).toBe(other);
-    expect(d8.tokenAnimations['silverfarben-hotel']!['running-n']!.frames[0]).toEqual(d8.tokenAnimations['silverfarben-hotel']!['direction-n']!.frames[0]);
+    expect(d8.tokenAnimations['silverfarben-hotel']!['running-n']!.frames[0]).not.toEqual(d8.tokenAnimations['silverfarben-hotel']!['direction-n']!.frames[0]);
   });
   it('keeps new facing art with an older running server, without resurrecting removed attacks', () => {
     const local = { 'idle-n': { frames: ['local-back.png'], fps: 1 }, 'direction-w': { frames: ['local-left.png'], fps: 1 }, attack: { frames: ['old-attack.png'], fps: 6 } };
@@ -103,7 +103,8 @@ describe('persistent camera-relative resting direction', () => {
         renderer.snapshot.combat.active = combat;
         const state = renderer.activeTokenState(view, 200);
         expect(state).toBe(`${combat ? 'combat-idle' : 'idle'}-${suffixes[facings.indexOf(facing)]}`);
-        expect(renderer.animationFor(tokenId, state).frames[0]).toEqual(walk.frames[0]);
+        if(tokenId==='silverfarben-hotel')expect(JSON.stringify(renderer.animationFor(tokenId,state).frames)).toContain('silverfarben-v3/model.png');
+        else expect(renderer.animationFor(tokenId, state).frames[0]).toEqual(walk.frames[0]);
         expect(entity.facing).toBe(facing);
       }
       renderer.snapshot.combat.active = false;

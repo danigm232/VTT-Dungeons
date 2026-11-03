@@ -77,7 +77,19 @@ export function createCampAtmosphere(scene: Scene, root: TransformNode, profile:
   seaMaterial.specularColor = Color3.FromHexString(stormySea ? '#365e6c' : '#4f8393'); seaMaterial.specularPower = 80; seaMaterial.maxSimultaneousLights = 2;
   campMaterialRelief(scene,seaMaterial,'water');
   // A dedicated UV repeat keeps sea relief distinct without changing pool materials.
-  if(seaMaterial.bumpTexture){seaMaterial.bumpTexture=seaMaterial.bumpTexture.clone();if(seaMaterial.bumpTexture instanceof Texture)seaMaterial.bumpTexture.uScale=seaMaterial.bumpTexture.vScale=stormySea ? 12 : 32;}
+  if(seaMaterial.bumpTexture instanceof Texture){
+    const shared=seaMaterial.bumpTexture,image=shared.getInternalTexture();
+    if(image){
+      // RawTexture.clone in the bundled Babylon version allocates an unused
+      // GPU image before replacing it. A plain sampler shares the existing
+      // image and owns exactly one reference, released with this scene.
+      image.incrementReferences();
+      const sampler=new Texture(null,scene,{internalTexture:image,noMipmap:false,invertY:shared.invertY,samplingMode:shared.samplingMode});
+      // Preserve the old RawTexture clone's intensity and clamp mode.
+      sampler.name='camp:sea-relief-sampler';sampler.level=1;sampler.wrapU=sampler.wrapV=Texture.CLAMP_ADDRESSMODE;
+      sampler.uScale=sampler.vScale=stormySea?12:32;seaMaterial.bumpTexture=sampler;
+    }
+  }
   const texture = seaMaterial.diffuseTexture;
   if (texture instanceof Texture) texture.uScale = texture.vScale = 9;
   if (profile !== 'forest') {

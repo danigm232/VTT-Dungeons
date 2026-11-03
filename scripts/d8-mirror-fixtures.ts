@@ -1,0 +1,17 @@
+import {readFile,writeFile} from 'node:fs/promises';
+import assert from 'node:assert/strict';
+import {GameState} from '../engine/server/game';
+import {oneShotBundle} from '../campaigns/one-shot/server';
+const dir='output/d8-mirror-candidate-20261018';
+const base=JSON.parse(await readFile(`${dir}/safe-snapshots.json`,'utf8'))[0].snapshot;
+const state=new GameState(oneShotBundle);state.changeScene('mirror');
+for(const [i,id] of [...state.characters.keys()].entries())state.claim(String(i+1).repeat(32),'review-'+id,id);
+const before=state.publicSnapshot();
+for(const key of ['walkable','difficultCells','movementHazards','props','terrain','spawns','grid'])assert.deepEqual((before.scene as any)[key],base.scene[key],key);
+const stats=state.captureDurable();state.prepareMirrorEncounter('maria');state.creature!.visible=true;
+const after=state.publicSnapshot();assert.equal(after.entities.find(e=>e.kind==='creature')!.tokenId,after.entities.find(e=>e.id==='maria')!.tokenId);
+const now=Date.now(),saved=state.captureDurable(now),restored=new GameState(oneShotBundle);restored.restoreDurable(saved,now);assert.deepEqual(restored.captureDurable(now),saved);
+state.changeScene('cafe');const cafe=state.publicSnapshot();
+await writeFile(`${dir}/sequence-fixtures.json`,JSON.stringify({before,after,cafe,reflectionId:after.entities.find(e=>e.kind==='creature')!.id}));
+await writeFile(`${dir}/gameplay-invariants.json`,JSON.stringify({at:new Date().toISOString(),checks:['walkable','difficultCells','movementHazards','props','terrain','spawns','grid','reflection identity','durable round trip'],pass:true,characters:stats.characters.map(c=>c.id)},null,2));
+console.log('GameState fixture, unchanged tactical contract, reflection identity and durable round trip PASS');

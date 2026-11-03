@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "availableStage": 3,
+  "completedSubphase": "G2.4",
+  "journeysEnabled": true,
+  "content": "VTT_AMBIENCE",
+  "preserveOriginalTiles": 980,
+  "architectureOrientationPreserved": true,
+  "dockRemainsOnRight": true
+}

@@ -10,7 +10,7 @@ const { GameState } = await import(fromServerBuild('engine/server/game.js'));
 const { footprintFor } = await import(fromServerBuild('engine/shared/geometry.js'));
 const { surfaceNeighbors, terrainTile } = await import(fromServerBuild('engine/shared/terrain.js'));
 const { stormwreckBundle } = await import(fromServerBuild('campaigns/stormwreck-isle/server.js'));
-const { retreatCellAtMeters, retreatTerrain } = await import(fromServerBuild('campaigns/stormwreck-isle/public/retreat-runtime.js'));
+const { retreatLandmarks, retreatTerrain } = await import(fromServerBuild('campaigns/stormwreck-isle/public/retreat-runtime.js'));
 const { wreckCellFromLocal, wreckRuntimeScenes } = await import(fromServerBuild('campaigns/stormwreck-isle/public/wreck-runtime.js'));
 
 const base = process.env.TEST_URL ?? 'http://127.0.0.1:3123';
@@ -262,15 +262,16 @@ p1.emit('scene:ready', { sceneEpoch: deck.sceneEpoch });
 p2.emit('scene:ready', { sceneEpoch: deck.sceneEpoch });
 projector.emit('scene:ready', { sceneEpoch: deck.sceneEpoch });
 
-const boatOrigin = { surfaceId: 'beach', cell: retreatCellAtMeters('beach', -47.25, 20.25) };
+const boatOrigin = structuredClone(retreatLandmarks.boat);
 const boatArrival = async (socket, id, spawn) => {
   const path = await walkPath(socket, socket, deck.sceneEpoch, id,
     { surfaceId: 'beach', cell: spawn }, boatOrigin, retreatTerrain, 'dragon-rest');
   assert.deepEqual(path.address, boatOrigin);
-  const arrival = wait(socket, 'world:snapshot', value => value.sceneId === 'wreck-ship' && entity(value, id)?.surfaceId === 'sea');
+  // The current route includes the approved 9.5 s departure walk.
+  const arrival = wait(socket, 'world:snapshot', value => value.sceneId === 'wreck-ship' && entity(value, id)?.surfaceId === 'sea', 15_000);
   const moved = await emitAck(dm, 'dm:command', { type: 'entity:portal', commandId: crypto.randomUUID(), sceneEpoch: deck.sceneEpoch,
     entityId: id, portId: 'travel-pecio-boat', direction: 'forward', adjudicate: true });
-  assert.equal(moved.ok, true);
+  assert.equal(moved.ok, true, JSON.stringify(moved));
   assert.equal(moved.code, 'APPLIED');
   const snapshot = await arrival;
   assert.deepEqual(entity(snapshot, id).cell, shipCell(24, 15), 'el viaje deja al personaje en la barca, junto a la jarcia');

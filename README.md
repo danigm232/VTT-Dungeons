@@ -1,16 +1,26 @@
 # D&D Immersive Engine
 
+**Empieza por el [roadmap maestro: ROADMAP_V1.md](ROADMAP_V1.md).** Es la única entrada general de planificación. Los planes del Retiro, Cena, acabado visual y coordinación son anexos con tareas concretas; `PROJECT_STATE.md` registra el estado, no otra planificación.
+
+Para acabado gráfico, el maestro contiene el orden, motor/herramientas y matriz de cambios por categoría en sus secciones 3–5. Enlaza al [anexo técnico visual](docs/VISUAL_ROADMAP.md), la [dirección artística](docs/design/VISUAL_ART_DIRECTION.md) y las [12 referencias modernas](docs/design/VISUAL_REFERENCE_LIBRARY.md). Prioridad: Retiro del Dragón y Pecio Rosa de los Vientos; Cena después. Se mantienen nuestros mapas y su funcionamiento.
+
 Última versión aceptada operativamente por el usuario: **Alpha 0.2.0 RC2**. Esta carpeta contiene una versión DEV que todavía no es una RC aceptada. La campaña **Los Dragones de la Isla de las Tempestades** reúne el Retiro del Dragón, el mapa continuo del Rosa de los Vientos (C1–C9 y cofa) y cinco mapas de campamento/descanso. Todos se cargan desde el mismo guardado `stormwreck-isle` y se distinguen en categorías de la consola DM. **D8 Night** sigue siendo una campaña privada separada. El aspecto y la fluidez en los dispositivos de mesa aún requieren aceptación; consulta [ROADMAP_V1.md](ROADMAP_V1.md) y el histórico de [PROJECT_STATE.md](PROJECT_STATE.md).
 
 La mesa presencial para Windows permite al DM controlar la escena, al proyector mostrar el mapa público y a cada jugador mover su ficha desde un móvil de la misma red. La consola agrupa los mapas de la aventura y los campamentos; al seleccionar otra localización el DM cambia la escena para el grupo. Las tiradas, turnos y decisiones siguen en la mesa.
 
 ## Roadmap compartido Dani + Fer
 
-La coordinación entre **Dani (campañas)** y **Fer (plataforma y generador de campañas)** está en [ROADMAP_COMPARTIDO_DANI_FER.md](ROADMAP_COMPARTIDO_DANI_FER.md). Complementa, sin sustituir, el roadmap del Pecio [ROADMAP_V1.md](ROADMAP_V1.md). Incluye ciclos de trabajo paralelos, dependencias, criterios de aceptación y adopción segura de mejoras compartidas.
+La coordinación entre **Dani (campañas)** y **Fer (plataforma y generador de campañas)** está en el [anexo de coordinación](ROADMAP_COMPARTIDO_DANI_FER.md). Depende del [roadmap maestro](ROADMAP_V1.md) y contiene responsabilidades, dependencias, criterios de aceptación y adopción segura de mejoras compartidas.
 
-Los encargos iniciales para sus sesiones separadas de Codex son [Dani / D0](docs/CODEX_DANI_NEXT.md) y [Fer / F0](docs/CODEX_FER_NEXT.md). El relevo [NEXT_MODEL_PROMPT.md](docs/NEXT_MODEL_PROMPT.md) permanece orientado al Pecio y no debe sobrescribirse entre ambos agentes.
+Los encargos iniciales para sus sesiones separadas de Codex son [Dani / D0](docs/CODEX_DANI_NEXT.md) y [Fer / F0](docs/CODEX_FER_NEXT.md), sujetos al maestro y estado actual. [NEXT_MODEL_PROMPT.md](docs/NEXT_MODEL_PROMPT.md) es una entrada al plan actual y conserva su antiguo encargo del Pecio como histórico; no debe usarse para reabrir tareas cerradas ni sobrescribirse entre colaboradores.
 
 ## Ejecutar en Windows
+
+**Actualización Retiro/Pecio del 02/11 instalada en el puerto 3000.** El arranque normal incluye el acabado y el cráneo terminado. Los informes de materiales/cráneo e iluminación permiten pulsar la imagen para alternar antes/después y ampliarla. **Revisión aislada opcional:** abre `REVISAR-ACABADO.cmd` para probar materiales ilustrados y el cráneo terminado en una partida temporal, en otro puerto. La consola muestra los enlaces DM/jugador/proyector del PC; escribe `quit` para cerrarla. No sustituye la mesa habitual. [Capturas y resultado](output/stormwreck-style-sample-20261101/index.html), [alcance y pruebas](docs/evidence/STORMWRECK_STYLE_SKULL_20261102.md). Si falta su compilación la prepara automáticamente; para reconstruirla expresamente: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/review-stormwreck-style.ps1 -Build`.
+
+Para ordenar los archivos de trabajo y retirar residuos antiguos, abre
+`MANTENIMIENTO.cmd`. Conserva al menos los últimos siete días, las fuentes,
+los guardados y las compilaciones en uso. [Criterios y mapa de carpetas](docs/WORKSPACE_MAINTENANCE.md).
 
 La persistencia está implementada y probada automáticamente; no sustituye la aceptación de [puerta, móvil y servidor de mesa](docs/ALPHA_0_3_ACCEPTANCE_PLAN.md). Para actualizar mientras juegas, vuelve a abrir `INICIAR.cmd`, elige la misma campaña y pulsa **A**. Primero comprueba y compila una candidata en una carpeta separada mientras la mesa anterior sigue abierta. Sólo después solicita guardar y cerrar: si falla el guardado, cancela la actualización y conserva la mesa. Instala la candidata al confirmar el cierre; si falla el intercambio de carpetas, intenta restaurar la compilación anterior, que queda conservada en `runtime`. No cierres las pestañas; jugador y proyector recargan la aplicación al reconectar con el servidor nuevo. El proyector puede pedir que prepares el audio otra vez. Los assets con nombres fijos se revalidan para recoger cambios de texturas y sonido. Si Windows recicló el PID de un bloqueo antiguo, el lanzador archiva sólo ese bloqueo en `recovery`; no termina un proceso ajeno que ocupa el puerto.
 

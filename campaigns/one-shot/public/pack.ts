@@ -1,10 +1,12 @@
 import { validatePublicCampaign, type Cell, type PublicCampaignDefinition } from '../../../engine/shared/campaign.js';
 import { D8NIGHT } from '../playground/d8night.config.js';
+import { MIRROR_CAVE_GRID } from '../playground/mirror-cave-layout.js';
 import { d8MotionAtlases } from './generated-motion-atlases.js';
 import { d8DirectionAtlases } from './generated-direction-atlases.js';
 import { completeD8Animations } from './generated-completion-atlases.js';
 import { installCombatSprites } from './combat-sprites.js';
 import { installPlayerLocomotion } from '../../../engine/client/player-locomotion.js';
+import { installSilverfarbenVisuals } from './silverfarben-visuals.js';
 import { installCafeSprites } from './cafe-sprites.js';
 import { silverfarbenAtlasBounds } from './silverfarben-atlas-bounds.js';
 import { connectedSpatialCells, rasterSpatialNavigation, containsSpatialPoint } from '../../../engine/shared/spatial-navigation.js';
@@ -15,10 +17,10 @@ export const D8_GRID_METERS = 1.5;
 
 export function d8SceneGrid(sceneId: D8SceneId) {
   const size = D8NIGHT.maps[sceneId].MAP.size as [number, number];
-  const cols = Math.max(1, Math.round(size[0] / D8_GRID_METERS));
-  const rows = Math.max(1, Math.round(size[1] / D8_GRID_METERS))+(['temple','cafe','market','dinner'].includes(sceneId)?6:0);
+  const cols = sceneId==='mirror'?MIRROR_CAVE_GRID.cols:Math.max(1, Math.round(size[0] / D8_GRID_METERS));
+  const rows = sceneId==='mirror'?MIRROR_CAVE_GRID.rows:Math.max(1, Math.round(size[1] / D8_GRID_METERS))+(['temple','cafe','market','dinner'].includes(sceneId)?6:0);
   const tileSize = 48;
-  return { cols, rows, tileSize, originX: 0, originY: 0, width: cols * tileSize, height: rows * tileSize,worldOrigin:{x:-size[0]/2,z:-size[1]/2} };
+  return { cols, rows, tileSize, originX: 0, originY: 0, width: cols * tileSize, height: rows * tileSize,worldOrigin:sceneId==='mirror'?{...MIRROR_CAVE_GRID.origin}:{x:-size[0]/2,z:-size[1]/2} };
 }
 
 export function d8CellToWorld(sceneId: D8SceneId, cell: Cell) {
@@ -490,6 +492,7 @@ const definition: PublicCampaignDefinition = {
         { id: 'd8-night-loop-boat-waves', label: 'Barco · olas', description: 'Agua golpeando el casco.', url: '/audio/d8-night/ambience/d8-night-loop-boat-waves.ogg' },
         { id: 'd8-night-loop-rain-drizzle', label: 'Llovizna · lluvia fina', description: 'Lluvia discreta, sin trueno.', url: '/audio/d8-night/ambience/d8-night-ambience-rain-steady.ogg' },
         { id: 'd8-night-loop-mirror-icy-wind', label: 'Espejo · aire gélido', description: 'Viento frío y continuo.', url: '/audio/d8-night/ambience/d8-night-loop-mirror-icy-wind.ogg' },
+        { id: 'd8-mirror-chamber-air', label: 'Espejo · aire profundo de caverna', description: 'Rumor interior grave y suave, sin ráfagas exteriores.', url: '/audio/d8-night/mirror-cave-v1/chamber-air.wav' },
         { id: 'd8-night-loop-storm', label: 'Tormenta · lluvia y trueno', description: 'Clima oscuro de lluvia sostenida.', url: '/audio/d8-night/ambience/d8-night-ambience-storm-thunder.ogg' },
         { id: 'd8-night-loop-tempest', label: 'Temporal · lluvia y viento', description: 'Capa compuesta provisional; en una fase posterior se separarán lluvia, tormenta y viento.', url: '/audio/d8-night/ambience/d8-night-ambience-tempest-rain-wind.mp3' },
       ],
@@ -531,6 +534,9 @@ const definition: PublicCampaignDefinition = {
         { id: 'd8-night-sfx-world-book-open', label: 'Libro · abrir', description: 'Inicio de lectura o descubrimiento.', url: '/audio/d8-night/sfx/d8-night-sfx-world-book-open.ogg', category: 'object', manual: false },
         { id: 'd8-night-sfx-coins', label: 'Monedas', description: 'Mercado, trato o recompensa.', url: '/audio/d8-night/sfx/d8-night-sfx-action-coins.ogg', category: 'object' },
         { id: 'd8-night-sfx-mirror', label: 'Espejo · grieta', description: 'Quiebre de hielo para el espejo encantado.', url: '/audio/d8-night/sfx/d8-night-sfx-ice-shatter.mp3', category: 'object' },
+        { id: 'd8-mirror-drop-a', label: 'Caverna · gota lejana', description: 'Una sola gota con cola corta de caverna.', url: '/audio/d8-night/mirror-cave-v1/cave-drop-a.wav', category: 'scene' },
+        { id: 'd8-mirror-drop-b', label: 'Caverna · gota grave', description: 'Variante suave de una gota lejana.', url: '/audio/d8-night/mirror-cave-v1/cave-drop-b.wav', category: 'scene' },
+        { id: 'd8-mirror-ice-settle', label: 'Caverna · hielo que se asienta', description: 'Crujido interior discreto y aislado.', url: '/audio/d8-night/mirror-cave-v1/ice-settle.wav', category: 'scene' },
         { id: 'd8-night-sfx-world-lock', label: 'Cerradura', description: 'Forzar, abrir o descubrir un mecanismo.', url: '/audio/d8-night/sfx/d8-night-sfx-world-lock.ogg', category: 'object' },
         { id: 'd8-night-sfx-world-lock-latch', label: 'Pestillo metálico', description: 'Cierre pequeño, cadena o mecanismo.', url: '/audio/d8-night/sfx/d8-night-sfx-world-lock-latch.ogg', category: 'object' },
         { id: 'd8-night-sfx-world-chain', label: 'Cadena', description: 'Grilletes, reja o elevador viejo.', url: '/audio/d8-night/sfx/d8-night-sfx-world-chain.ogg', category: 'object' },
@@ -558,7 +564,7 @@ const definition: PublicCampaignDefinition = {
         ambientCues: {intervalSeconds:[18,42],actorIds:['woman-cafe','patron-cafe','bartender-cafe'],effects:[{id:'d8-night-sfx-cafe-glass',volume:.14,weight:3},{id:'d8-night-sfx-cafe-drink',volume:.10,weight:1},{id:'d8-night-sfx-cafe-chair',volume:.08,weight:.3}]}
       },
       market: { music: { id: 'd8-night-music-silence', playing: false, volume: .25 }, layers: { ocean: { id: 'd8-night-loop-market-crowd', playing: true, volume: .2 }, wind: { id: 'd8-night-loop-market-crowd', playing: false, volume: .18 }, wood: { id: 'd8-night-loop-cafe-fireplace', playing: false, volume: .1 }, storm: { id: 'd8-night-loop-storm', playing: false, volume: .25 } }, recommendedSfx: ['d8-night-sfx-market-shout', 'd8-night-sfx-market-cow-moo', 'd8-night-sfx-coins', 'd8-night-sfx-world-metal', 'd8-night-sfx-world-wood-impact', 'd8-night-sfx-world-chain'] },
-      mirror: { music: { id: 'd8-night-music-mirror', playing: true, volume: .25 }, layers: { ocean: { id: 'd8-night-loop-garden-forest', playing: false, volume: .1 }, wind: { id: 'd8-night-loop-mirror-icy-wind', playing: true, volume: .26 }, wood: { id: 'd8-night-loop-cafe-fireplace', playing: false, volume: .1 }, storm: { id: 'd8-night-loop-storm', playing: false, volume: .25 } }, recommendedSfx: ['d8-night-sfx-spell-ice', 'd8-night-sfx-mirror', 'd8-night-sfx-creature-hurt', 'd8-night-sfx-creature-defeat', 'd8-night-sfx-magic-ominous'] },
+      mirror: { music: { id: 'd8-night-music-mirror', playing: true, volume: .13 }, layers: { ocean: { id: 'd8-night-loop-garden-forest', playing: false, volume: .1 }, wind: { id: 'd8-mirror-chamber-air', playing: true, volume: .14 }, wood: { id: 'd8-night-loop-cafe-fireplace', playing: false, volume: .1 }, storm: { id: 'd8-night-loop-storm', playing: false, volume: .25 } }, recommendedSfx: ['d8-mirror-drop-a','d8-mirror-drop-b','d8-mirror-ice-settle','d8-night-sfx-spell-ice', 'd8-night-sfx-mirror', 'd8-night-sfx-creature-hurt', 'd8-night-sfx-creature-defeat', 'd8-night-sfx-magic-ominous'],ambientCues:{intervalSeconds:[32,58],effects:[{id:'d8-mirror-drop-a',volume:.16,weight:3},{id:'d8-mirror-drop-b',volume:.14,weight:2},{id:'d8-mirror-ice-settle',volume:.085,weight:1}]} },
       dinner: { music: { id: 'd8-night-music-dinner', playing: true, volume: .25 }, layers: { ocean: { id: 'd8-night-loop-cafe-fireplace', playing: false, volume: .1 }, wind: { id: 'd8-night-loop-temple-awe', playing: false, volume: .1 }, wood: { id: 'd8-night-loop-cafe-fireplace', playing: false, volume: .08 }, storm: { id: 'd8-night-loop-storm', playing: false, volume: .25 } }, recommendedSfx: ['d8-night-sfx-cafe-chair', 'd8-night-sfx-cafe-glass', 'd8-night-sfx-cafe-drink', 'd8-night-sfx-door', 'd8-night-sfx-world-door-close', 'd8-night-sfx-coins'] }
     }
   }
@@ -615,6 +621,7 @@ for (const scene of definition.scenes) {
   for(const door of (D8NIGHT.maps[sceneId].MAP as any).doors??[])scene.props.push({id:door.id,kind:'door',label:door.label,assetId:'cafe-entry-door',cell:d8CellFromWorld(sceneId,door.x-(door.width>3?1.5:0),door.z),surfaceId:scene.surfaceId,rotation:0,initialState:'closed',baseFootprint:door.width>3?[{col:0,row:0},{col:1,row:0},{col:2,row:0}]:[{col:0,row:0}],allowedRotations:[0],capabilities:{transform:false,detach:false,structure:true},renderedByScene:true,sourceKind:'addition'});
   for(const window of (D8NIGHT.maps[sceneId].MAP as any).windows??[])scene.props.push({id:window.id,kind:'door',label:'Ventana del Café',assetId:'cafe-entry-door',cell:d8NearestWalkableCell(sceneId,window.x,window.z+(window.z>0?1.6:-1.6)),surfaceId:scene.surfaceId,rotation:0,initialState:'closed',baseFootprint:[{col:0,row:0}],allowedRotations:[0],capabilities:{transform:false,detach:false,structure:true},renderedByScene:true,sourceKind:'addition'});
   if(sceneId === 'mirror') {
+    scene.props.push({id:'mirror-ice-seal',kind:'door',label:'Muro de hielo de la galería',assetId:'mirror-ice-seal',cell:{col:4,row:0},surfaceId:scene.surfaceId,rotation:0,initialState:'closed',baseFootprint:[{col:0,row:0},{col:1,row:0},{col:2,row:0}],allowedRotations:[0],capabilities:{transform:false,detach:false,structure:true},renderedByScene:true,sourceKind:'addition'});
     // The authored 3D mirror is the sole visible object; retain its logical
     // prop for interaction/save/undo, without drawing a second PNG on top.
     const mirror = scene.props.find(prop=>prop.id==='true-love-mirror');
@@ -634,7 +641,8 @@ for (const scene of definition.scenes) {
 
 // Native geometry supplies the door; this catalogue entry is only its DM icon.
 definition.props['cafe-entry-door']={variants:Object.fromEntries(['default','intact:open','intact:closed','damaged:open','damaged:closed','destroyed'].map(key=>[key,{url:'/art/props/cafe-entry-door.svg',logicalWidth:64,logicalHeight:96,anchorX:.5,anchorY:1}]))};
-definition.tokenAnimations['silverfarben-hotel']!.sit={frames:[{url:tokenFrame('Silverfarben Hotel/silverfarben_seated_v48'),x:0,y:0,width:1280,height:1280,logicalWidth:75,logicalHeight:75,anchorX:.5,anchorY:1}],fps:1};
+definition.props['mirror-ice-seal']={variants:Object.fromEntries(['default','open','closed','intact:open','intact:closed','damaged:open','damaged:closed','destroyed'].map(key=>[key,{url:'/art/materials/mirror/glacial-slate-v1-1024.png',logicalWidth:96,logicalHeight:96,anchorX:.5,anchorY:1}]))};
+definition.tokenAnimations['silverfarben-hotel']!.sit={frames:[{url:tokenFrame('Silverfarben Hotel/silverfarben_seated_v48'),x:0,y:0,width:1254,height:1254,logicalWidth:75,logicalHeight:75,anchorX:.5,anchorY:1}],fps:1};
 definition.tokenAnimations.rogue!.sit={frames:[{url:tokenFrame('Maria Trinity D8/maria_seated_v48'),x:0,y:0,width:1280,height:1280,logicalWidth:76,logicalHeight:76,anchorX:.5,anchorY:1}],fps:1};
 
 // Real additional PNG poses; combat profiles and rule statistics are untouched.
@@ -670,4 +678,5 @@ completeD8Animations(definition);
 installCafeSprites(definition);
 installPlayerLocomotion(definition);
 installCombatSprites(definition);
+installSilverfarbenVisuals(definition);
 export const oneShotCampaignDefinition = validatePublicCampaign(definition);

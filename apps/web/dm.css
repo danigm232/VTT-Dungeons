@@ -545,3 +545,10 @@ html[data-dm-text-size="large"] body { font-size: clamp(17px,1vw,19px); }
 #campPointActions { list-style: none; padding: 0; display: grid; gap: .6rem; }
 #campPointActions button { width: 100%; text-align: left; }
 #campPointActor { width: 100%; }
+.dm-map-context-menu{position:fixed;z-index:10020;min-width:210px;max-width:min(310px,calc(100vw - 16px));max-height:calc(100vh - 16px);overflow:auto;padding:7px;background:#142a30;color:#f5e6c9;border:1px solid #c9ab64;border-radius:10px;box-shadow:0 10px 32px #0009;display:flex;flex-direction:column;gap:3px}
+.dm-map-context-menu[hidden]{display:none}
+.dm-map-context-menu strong{padding:6px 9px;font-size:13px;color:#e7c56f}
+.dm-map-context-menu button{text-align:left;padding:9px 11px;background:transparent;border:0;white-space:normal}
+.dm-map-context-menu button:hover,.dm-map-context-menu button:focus-visible{background:#365056;outline:1px solid #c9ab64}
+#dmMap canvas{touch-action:none;user-select:none}
+.dm-navigation-help{margin:4px 10px;font-size:12px;pointer-events:none}

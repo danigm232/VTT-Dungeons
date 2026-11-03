@@ -1,5 +1,9 @@
 # Licencias y créditos
 
+El 02/11/2026 se generan con ImageGen integrada tres albedos ilustrados para muestras Retiro/Pecio: `basalt-illustrated-v1.png`, `oak-illustrated-v1.png` y `ship-timber-illustrated-v1.png`, en `campaigns/stormwreck-isle/public/art/visual-style-v1/`. Son derivados de texturas ya existentes del proyecto, usando las dos láminas aprobadas como guía de estilo. [Manifiesto con fuentes, prompts exactos, dimensiones y hashes](campaigns/stormwreck-isle/public/art/visual-style-v1/SOURCE_MANIFEST.json). Originales conservados; no se usan capturas comerciales como texturas, ni se atribuyen a Octopath/Witchbrook/Sea of Stars, ni se declaran CC0 o nuevos derechos sobre sus fuentes. Código de aplicación y mejora geométrica del cráneo: implementación propia que conserva el diseño/material recibido de Antigravity, sin bibliotecas nuevas.
+
+El 21/10/2026 se incorporan cuatro WAV originales para la caverna del Espejo: rumor interior, dos gotas aisladas y asentamiento de hielo, en `campaigns/one-shot/public/audio/d8-night/mirror-cave-v1/`. Síntesis determinista sin muestras externas; fuente y medidas en su README y `scripts/generate-mirror-cave-audio.mjs`. La gota adapta el generador original del abrigo del propio proyecto. No se atribuyen a Octopath ni se declaran CC0.
+
 Actualizado: 2026-09-28, fauna CC0 del bosque. Los avisos de terceros permanecen en `node_modules` y deben conservarse al empaquetar. El barco C1–C9 se renderiza como escena continua de terreno Babylon; Pixi mantiene escenas/runtime heredados. Los recursos añadidos tienen registros separados y algunos originales aportados aún carecen de licencia verificable; no se afirma que todo lo existente esté certificado para redistribución.
 
 El reloj global y el clima dinámico (12/10/2026) no añaden dependencias, fuentes de audio ni imágenes externas. Su presentación reutiliza Babylon.js y PixiJS ya instalados y registrados abajo, junto con código propio del proyecto.
@@ -57,6 +61,8 @@ El token `campaigns/one-shot/public/art/tokens/fritz-v3.png` se generó el 2026-
 No se ha copiado código de RPGJS, VeilCast, Open-VTT, MiniVTT ni RPGAtlas. Kenney Pirate Kit no consta incorporado, pero sí hay audio externo y partículas con procedencia Kenney/OpenGameArt registrada en los créditos de campaña. Las menciones a candidatos no adoptados en `docs/OPEN_SOURCE_REVIEW.md` no son licencia de otros archivos de esos catálogos.
 
 ## Originales aportados y revisión pendiente
+
+El 20/10/2026 se generaron con `imagegen` integrada dos albedos originales para el Espejo, sin imágenes de entrada: `campaigns/one-shot/public/art/materials/mirror/glacial-{slate,floor}-v1.png`. Prompts exactos y trazabilidad en [materiales del Espejo](campaigns/one-shot/public/art/materials/mirror/README.md). No son arte oficial ni recursos declarados CC0; no contienen capturas de Octopath ni de la referencia del usuario.
 
 El 13/10/2026 se generaron con ImageGen integrada siete PNG de D8 V52: fondo costero de isla plana, cuatro vistas de tres parroquianos bebiendo, oración de los dos personajes y Margaret sujetando una cuerda. Destinos en `campaigns/one-shot/public/art/v52/`; referencias, prompts de trabajo, originales y límites de aceptación en `docs/evidence/D8_V52_ASSET_PROMPTS.md` y `docs/evidence/D8_V52_CORRECTIONS_20261013.md`. Son derivados para la mesa privada, no arte oficial ni recursos declarados CC0. La generación no certifica derechos de redistribución de las referencias.
 

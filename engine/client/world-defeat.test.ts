@@ -24,7 +24,7 @@ function fixture() {
     billboardSourceUrls: new Map(), areaEffects: { sync: vi.fn() },
     sceneBillboards: { remove: vi.fn() }, lastCombatEventId: null,
     storm: {}, rain: {}, rainNear: {},
-    installScene: vi.fn(async () => true), drawReachable: vi.fn(), drawAttackRange: vi.fn(),
+    installScene: vi.fn(async () => true), drawReachable: vi.fn(), drawAttackRange: vi.fn(), drawSelection:vi.fn(),
     playCombatTokenAnimation: vi.fn(), renderProps: vi.fn(async () => {}), renderPickups: vi.fn(), updateCamera: vi.fn(),
     upsertEntity: vi.fn(), animationFor: vi.fn(() => null)
   });

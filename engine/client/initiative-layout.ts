@@ -3,7 +3,11 @@ export const INITIATIVE_MARGIN_CM = 1.5;
 // CSS reference pixels (96/in); physical size depends on browser/display scaling.
 export const INITIATIVE_MARGIN_PX = INITIATIVE_MARGIN_CM * 96 / 2.54;
 export function normalizeInitiativePosition(value:unknown):InitiativePosition {
-  return value==='left'||value==='top'?value:'right';
+  return value==='left'||value==='right'?value:'top';
+}
+/** One-time layout migration; subsequent explicit edge choices are respected. */
+export function migratedInitiativePosition(value:unknown, version:unknown):InitiativePosition {
+  return version===2?normalizeInitiativePosition(value):'top';
 }
 /** Space occupied by the compact line, not the former full-width HUD panel. */
 export function initiativeCameraInsets(position:InitiativePosition){

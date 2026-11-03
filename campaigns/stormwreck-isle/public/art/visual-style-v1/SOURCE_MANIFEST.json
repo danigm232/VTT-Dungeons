@@ -1,0 +1,48 @@
+{
+  "schema": "stormwreck-style-v1-art-provenance",
+  "date": "2026-11-02",
+  "tool": "image_gen.imagegen integrado",
+  "intent": "style-transfer de texturas de superficie; no imágenes de mapas",
+  "rights": "Derivados para el proyecto a partir de texturas existentes; no arte oficial ni declaración CC0.",
+  "assets": [
+    {
+      "id": "basalt",
+      "file": "basalt-illustrated-v1.png",
+      "originalGeneratedFile": "exec-9d231579-4ab1-4a2f-90f1-8eaa023ff4e2.png",
+      "source": "campaigns/stormwreck-isle/public/art/retreat-stone/basalt-coastal-albedo-v1.webp",
+      "approvedStyleReference": "docs/references/stormwreck-style-20261101/retreat-concept-v1.png",
+      "prompt": "Use case: style-transfer. GAME MATERIAL ALBEDO TEXTURE ONLY, square 1024x1024 requested. Image 1 is the existing basalt texture to restyle; Image 2 is an APPROVED visual style reference, NOT a scene to reproduce. Return only a seamless tileable flat volcanic basalt surface, covering the image edge to edge. No room, landscape, geometry, furniture, border, text, lighting vignette, AO, cast shadows, fake 3D emboss, or perspective. Preserve the broad irregular basalt fracture character of image 1 but replace its photographic fine noise with clearly painted grouped masses, angular medium-size mineral chips and quiet charcoal-slate areas matching image 2's stylized stone. Dark grey-green slate palette, medium base around #78827B, shadow colour #515D60, restrained warm stone edge #929386. Neither brickwork nor cobblestones; no perfect repeated blocks or big white cracks. Maintain enough calm surface to avoid busy noise at tactical viewing distance. Hand-painted 2.5D illustrated fantasy finish, not cartoon outlines, nearest-neighbor pixelation or photo. Broad even diffuse illumination with no baked directional highlights; both pairs of opposite edges should match for tiling. This is a reusable albedo for the existing 3D rocks, not an image of a map.",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 2491117,
+      "sha256": "4919e39b80f6ed0c475ccc849f574408ce413c1346ad9a0e104e97eed267dbcb",
+      "sourceSha256": "2f2099d8f7d07d52ca9a7865d45da6d33f45618af811c8e7a35eaa1e580001a1"
+    },
+    {
+      "id": "oak",
+      "file": "oak-illustrated-v1.png",
+      "originalGeneratedFile": "exec-c33c5531-4b33-48d6-8720-7b21b8f69e11.png",
+      "source": "campaigns/camp-rests/public/art/a1-hd2d-v1/oak-v4.webp",
+      "approvedStyleReference": "docs/references/stormwreck-style-20261101/retreat-concept-v1.png",
+      "prompt": "Use case: style-transfer. GAME MATERIAL ALBEDO TEXTURE ONLY, square 1024x1024 requested. Image 1 is the existing upright oak-board texture; Image 2 is the APPROVED style reference, only for colour/detail family. Restyle image 1 as a seamlessly tileable flat hand-painted warm used oak surface with the SAME vertical plank/grain direction. Edge-to-edge material swatch, even diffuse lighting, no perspective, furniture, room, border, text, cast shadows, 3D bevel illustration or vignette. Preserve roughly six broad vertical boards, calm warm ochre-brown bodies around #B08C62, restrained darker joins #66513D, a few larger muted grain curves and small quiet knots. Replace photographic tiny fibers with grouped painted medium-size grain, mostly calm board surfaces. Gentle worn edges and believable timber, not polished plastic, orange saturated wood, woodcut outlines or giant black knot ovals. The reference scene should NOT appear in the image. Opposite edges must match to tile. This is albedo only for existing 3D dining furniture and timber, not a prelit rendering.",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 2197936,
+      "sha256": "11d59a5c99b865672b5bdbf1bc79e37d88d32dee2947618d7e911f2e0d8b4679",
+      "sourceSha256": "14af333c3a9b6b3f9514265e0d72481f88eb239be8dfa414ad786dc8f161e395"
+    },
+    {
+      "id": "ship",
+      "file": "ship-timber-illustrated-v1.png",
+      "originalGeneratedFile": "exec-41007910-13ba-4bd1-92fc-f2d7f9b6e684.png",
+      "source": "campaigns/stormwreck-isle/public/art/ship/deck-exterior-art07.png",
+      "approvedStyleReference": "docs/references/stormwreck-style-20261101/wreck-concept-v1.png",
+      "prompt": "Use case: style-transfer. GAME MATERIAL ALBEDO TEXTURE ONLY, square 1024x1024 requested. Image 1 is existing horizontal weathered ship timber to restyle; Image 2 is APPROVED style reference, NOT a scene to reproduce. Return a seamless tileable edge-to-edge flat surface of salt-aged grey-olive ship planks with the SAME horizontal board orientation and similar approximately ten plank rows/staggered join scale as image 1. Reduce the dense scratched photographic-looking grain to illustrated grouped larger forms and calm surfaces, matching the material family of image 2. Base dry wood around #777B65, damp darker seams #444F49, muted salt edges #A79D79, dark restrained iron nail heads only where already implied by image 1. Chipped/worn edges but no large new holes, treasure, moss carpet, gold or repaired shiny iron bands. Broad even diffuse illumination, no baked sun shadows, perspective, scene, deck with geometry, rigging, ocean, furniture, character, UI, text, border or vignette. Subtle grain/knots with coherent medium-size brush/pixel clusters, not blur, photorealism or cartoon outline. Opposite edges should match for tiling. This texture will be applied to the original 3D ship pieces and must not contain a rendered ship.",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 2488979,
+      "sha256": "7b4d570ba125ac59741767eacc00586bfdf2a0d8b4173544e84c5106b8af7004",
+      "sourceSha256": "d0802f98b9795faad6fb252d414c3967f2f93fda9f9e84d5a385a2c6d4912fb1"
+    }
+  ]
+}

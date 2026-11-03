@@ -1,0 +1,315 @@
+{
+  "schema": "retreat-zone-navigation-v1",
+  "units": "meters",
+  "tileMeters": 1.5,
+  "axis": "glTF Y-up; X east, Z south",
+  "actorRadius": 0.3,
+  "worldDeckElevationMeters": 15,
+  "walkableSurfaces": [
+    {
+      "id": "house",
+      "height": 0.045,
+      "polygon": [
+        [
+          0,
+          -4
+        ],
+        [
+          4.5,
+          -4
+        ],
+        [
+          4.5,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "west_path",
+      "height": 0.045,
+      "polygon": [
+        [
+          -3.75,
+          -1.5
+        ],
+        [
+          0,
+          -1.5
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          -3.75,
+          0
+        ]
+      ]
+    }
+  ],
+  "colliders": [
+    {
+      "id": "Door_Closed",
+      "type": "box",
+      "center": [
+        -0.12,
+        1.1,
+        -0.75
+      ],
+      "size": [
+        0.18,
+        2.12,
+        1.2
+      ],
+      "provenance": "CANON",
+      "enabledWhen": "door-closed"
+    },
+    {
+      "id": "Door_Open",
+      "type": "box",
+      "center": [
+        -0.72,
+        1.1,
+        -0.15
+      ],
+      "size": [
+        1.2,
+        2.12,
+        0.18
+      ],
+      "provenance": "CANON",
+      "enabledWhen": "door-open"
+    },
+    {
+      "id": "CANON_Retaining_Lever",
+      "type": "box",
+      "center": [
+        1.07000732421875,
+        0.6222914886474609,
+        -1.5447959899902344
+      ],
+      "size": [
+        0.220001220703125,
+        1.0845832824707031,
+        0.8695907592773438
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_Winch_Drum",
+      "type": "box",
+      "center": [
+        1.8000030517578125,
+        1.159999771118164,
+        -1.970001220703125
+      ],
+      "size": [
+        1.760009765625,
+        0.720001220703125,
+        0.720001220703125
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_Winch_Trestles",
+      "type": "box",
+      "center": [
+        1.8000106811523438,
+        0.667499942779541,
+        -1.970001220703125
+      ],
+      "size": [
+        1.5800018310546875,
+        1.234999656677246,
+        0.8000030517578125
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "East_Wall",
+      "type": "box",
+      "center": [
+        4.620002746582031,
+        1.42,
+        -2.0
+      ],
+      "size": [
+        0.3000030517578125,
+        2.8,
+        4.0
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "North_Wall",
+      "type": "box",
+      "center": [
+        2.25,
+        1.42,
+        -4.119998931884766
+      ],
+      "size": [
+        4.5,
+        2.8,
+        0.29999542236328125
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "South_Wall",
+      "type": "box",
+      "center": [
+        2.25,
+        1.42,
+        0.11999893188476562
+      ],
+      "size": [
+        4.5,
+        2.8,
+        0.29999542236328125
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "West_Wall_North",
+      "type": "box",
+      "center": [
+        -0.12000274658203125,
+        1.42,
+        -2.674999237060547
+      ],
+      "size": [
+        0.3000030517578125,
+        2.8,
+        2.6500015258789062
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "West_Wall_South",
+      "type": "box",
+      "center": [
+        -0.1199951171875,
+        1.42,
+        -0.07500076293945312
+      ],
+      "size": [
+        0.29998779296875,
+        2.8,
+        0.15000152587890625
+      ],
+      "provenance": "CANON"
+    }
+  ],
+  "walkthrough": [
+    [
+      -3.1999999999999886,
+      -0.75
+    ],
+    [
+      0.5,
+      -0.7999999999999972
+    ],
+    [
+      0.5,
+      -3.4000000000000057
+    ],
+    [
+      3.9000000000000057,
+      -3.4000000000000057
+    ],
+    [
+      3.9000000000000057,
+      -0.7000000000000028
+    ]
+  ],
+  "door": {
+    "node": "CANON_Worn_Wooden_Door",
+    "closedAngle": 0,
+    "openAngle": 1.5707963267948966,
+    "defaultState": "closed",
+    "hinge": [
+      -0.12,
+      0.045,
+      -0.15
+    ]
+  },
+  "lift": {
+    "palletNode": "CANON_Suspended_Wooden_Pallet",
+    "drumNode": "CANON_Winch_Drum",
+    "crankNode": "CANON_Winch_Crank",
+    "leverNode": "CANON_Retaining_Lever",
+    "seaHeight": -14.955,
+    "topHeight": 0.045,
+    "defaultAbsoluteElevation": 12,
+    "raisePerActionMeters": 3,
+    "dropMetersBelowHouse": 15,
+    "chainTop": 1.24,
+    "chainSpacing": 0.074,
+    "attachmentAbovePallet": 1.03,
+    "linkCount": 206,
+    "surface": {
+      "id": "cargo-pallet",
+      "dynamic": true,
+      "walkableInPreview": false,
+      "polygon": [
+        [
+          0.75,
+          0.47
+        ],
+        [
+          2.85,
+          0.47
+        ],
+        [
+          2.85,
+          1.87
+        ],
+        [
+          0.75,
+          1.87
+        ]
+      ],
+      "heightFromState": "seaHeight + absoluteElevation"
+    },
+    "collision": {
+      "id": "moving-pallet",
+      "type": "box",
+      "center": [
+        1.8,
+        -3.055,
+        1.17
+      ],
+      "size": [
+        2.1,
+        0.2,
+        1.4
+      ],
+      "transformFrom": "palletNode",
+      "blocksHouseRoute": false
+    },
+    "note": "Cargo platform only; passenger use and boarding require DM adjudication and global movement integration."
+  },
+  "connections": [
+    {
+      "id": "A2_WEST_TO_CLIFF_PATH",
+      "position": [
+        -3.75,
+        0.045,
+        -0.75
+      ],
+      "worldDeckElevationMeters": 15,
+      "destinations": [
+        "A1_PATH",
+        "A3_A4_UPPER_PATH"
+      ],
+      "status": "prepared; final stairs and global placement pending"
+    }
+  ],
+  "expansion": "2026-10-22",
+  "note": "Integrated expanded module. Existing authoritative grid mover, 0.30m radius and manual resolution."
+}

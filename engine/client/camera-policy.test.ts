@@ -17,32 +17,22 @@ describe('shared VTT camera policy', () => {
     for (const value of [NaN,Infinity,-2.1,2.1,'1',null]) expect(validCameraOrbitStep(value)).toBe(false);
     expect(cameraOrbitLabel(-1)).toBe('15° a la izquierda');
   });
-  it('shares the 15–35 vertical range in 10 degree steps', () => {
-    expect(CAMERA_MIN_TILT).toBe(15); expect(CAMERA_MAX_TILT).toBe(35);
-    expect(clampCameraTilt(-200)).toBe(15); expect(clampCameraTilt(90)).toBe(35);
+  it('shares the 5–25 vertical test range', () => {
+    expect(CAMERA_MIN_TILT).toBe(5); expect(CAMERA_MAX_TILT).toBe(25);
+    expect(clampCameraTilt(-200)).toBe(5); expect(clampCameraTilt(90)).toBe(25);
     expect(clampCameraTilt(24)).toBe(24);
   });
-  it('preserves manual adjustments until entering or leaving an interior', () => {
-    const preset=new D8InteriorCameraTilt();
-    expect(preset.update(false,25)).toBe(25);
-    expect(preset.update(false,25)).toBe(25);
-    expect(preset.update(true,25)).toBe(15);
-    expect(preset.update(true,35)).toBe(35);
-    expect(preset.update(false,35)).toBe(25);
+  it('changes elevation only at interior/exterior boundaries',()=>{
+    const preset=new D8InteriorCameraTilt();expect(preset.update(false,25)).toBe(25);
+    expect(preset.update(true,7.3)).toBe(10);expect(preset.update(true,7.3)).toBe(7.3);
+    expect(preset.update(true,7.3,true)).toBe(7.3);expect(preset.update(true,7.3,false)).toBe(7.3);
+    expect(preset.update(false,7.3)).toBe(25);
   });
-  it('frames combat once, allows manual tilt and restores exploration afterwards', () => {
-    const preset=new D8InteriorCameraTilt(); preset.update(true,25);
-    expect(preset.update(true,15,true)).toBe(35);
-    expect(preset.update(true,25,true)).toBe(25);
-    expect(preset.update(true,25,false)).toBe(15);
-    preset.update(true,15,true);
-    expect(preset.update(false,25,false)).toBe(25);
-  });
-  it('starts correctly when loading directly inside or in combat', () => {
-    expect(new D8InteriorCameraTilt().update(true,25)).toBe(15);
-    const preset=new D8InteriorCameraTilt(); expect(preset.update(true,25,true)).toBe(35);
-    expect(preset.update(true,35,false)).toBe(15);
-    preset.reset(); expect(preset.update(false,15)).toBe(25);
+  it('restores an initial preference and preserves it over reloads in the same zone',()=>{
+    const c=new D8InteriorCameraTilt();expect(c.update(true,5,false,undefined,true)).toBe(5);
+    c.enterScene();expect(c.update(true,7.35,false,undefined,true)).toBe(7.35);
+    c.enterScene();expect(c.update(true,25,false)).toBe(10);
+    c.enterScene();expect(c.update(false,7.35,false,undefined,true)).toBe(25);
   });
   it('adapts zoom limits to map, room, viewport and character height', () => {
     const policy={size:{width:80,depth:60,height:8},beta:cameraBetaForTiltDegrees(35),aspect:1.8,baseHalfHeight:30};
@@ -86,7 +76,7 @@ describe('shared VTT camera policy', () => {
     for(const [x,z] of [[24.75,111.75],[110,96],[42,67.5],[66.8,76.8]])expect(dragonRestCameraCovered(x!,z!)).toBe(false);
   });
   it('keeps movement projected onto the visible camera throughout the limited orbit', () => {
-    for(const tilt of [15,25,35]) for(let step=-2;step<=2;step+=.2){
+    for(const tilt of [5,10,15,25]) for(let step=-2;step<=2;step+=.2){
       const alpha=limitedCameraAlpha(Math.PI/4,step),beta=cameraBetaForTiltDegrees(tilt),v=screenVectorToWorldAtAlpha(0,1,alpha,beta);
       expect(-Math.sin(alpha)*v.x+Math.cos(alpha)*v.z).toBeCloseTo(0,8);
     }

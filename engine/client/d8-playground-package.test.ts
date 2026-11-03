@@ -32,6 +32,7 @@ describe('D8 generated Playground project',()=>{
     }
     expect(files).toHaveProperty('engine/client/interior-camera.ts');
     expect(files).toHaveProperty('engine/client/camera-profile.ts');
+    expect(files).toHaveProperty('engine/shared/camera-profile.ts');
     expect(files).toHaveProperty('engine/client/weather-surface.ts');
   });
 });

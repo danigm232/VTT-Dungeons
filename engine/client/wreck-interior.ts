@@ -122,28 +122,40 @@ export function buildWreckInterior(scene: Scene, hullTexture?: BaseTexture, terr
   holdSkin.material=water;add(holdSkin,'hold-air','submerged-caustics',false);
   // Tiny submerged fish are ambient life in C9, not interactable creatures.
   const fish=new StandardMaterial('wreck-interior:fish',scene);fish.diffuseColor=Color3.FromHexString('#879188');fish.specularColor=Color3.Black();
+  const fishes:Mesh[]=[],bubbles:Mesh[]=[];
   for(let i=0;i<9;i++) {
     const f=MeshBuilder.CreateSphere(`wreck-interior:fish:${i}`,{diameter:.18,segments:6},scene);f.scaling.set(1.8,.55,.45);f.material=fish;
     add(f,'hold-air','submerged-fish',false);
-    scene.onBeforeRenderObservable.add(()=>{if(!f.isVisible)return;const t=performance.now()*.00035+i;
-      f.position.copyFrom(at(-14+i*3+Math.sin(t)*1.2,-5.5+(i%3)*.23,Math.cos(t*.7+i)*3.5));f.rotation.y=-t*.7;});
+    fishes.push(f);
   }
   const bubble=new StandardMaterial('wreck-interior:submerged-bubbles',scene);bubble.diffuseColor=Color3.FromHexString('#72999a');bubble.specularColor=Color3.FromHexString('#6d9394');bubble.alpha=.22;
   // Sparse rising air/silt sells a submerged volume rather than a flooded
   // floor. It adds no sunlight or gameplay creature to the dark hold.
   for(let i=0;i<18;i++){
     const b=MeshBuilder.CreateSphere(`wreck-interior:bubble:${i}`,{diameter:.035+(i%3)*.013,segments:6},scene);b.material=bubble;add(b,'hold-air','submerged-bubbles',false);
-    scene.onBeforeRenderObservable.add(()=>{if(!b.isVisible)return;const t=performance.now()*.00015+i*.31;
-      b.position.copyFrom(at(-27+(i%9)*5.4+Math.sin(t)*.09,-6.1+(t%1)*1.75,(i%5-2)*1.6));});
+    bubbles.push(b);
   }
   for(const [key,group] of groups){const metadata={...group[0]!.metadata};const m=Mesh.MergeMeshes(group,true,true,undefined,false,false);if(m){m.name=`wreck-interior-batch:${key}`;m.metadata=metadata;m.isPickable=false;m.receiveShadows=true;meshes.push(m);}}
-  const off=new Vector4(0,0,1,0);
-  scene.onBeforeRenderObservable.add(()=>{
-    water.setFloat('time',performance.now()/1000);
-    const sources=scene.lights.filter(l=>l.name.startsWith('carried-light:')&&l.isEnabled()).slice(0,3);
-    for(let i=0;i<3;i++){const source=sources[i] as typeof sources[number]&{position?:Vector3};
-      water.setVector4(`source${i}`,source?.position?new Vector4(source.position.x,source.position.z,source.range*.5,source.intensity):off);}
+  const uniforms=[new Vector4(0,0,1,0),new Vector4(0,0,1,0),new Vector4(0,0,1,0)];
+  const observer=scene.onBeforeRenderObservable.add(()=>{
+    // One callback/clock for the entire interior instead of one per fish and
+    // bubble. Hidden floors do no animation/light-list work. Absolute time
+    // resumes at the current phase, with no deferred catch-up simulation.
+    if(!m.isVisible&&!holdSkin.isVisible)return;
+    const now=performance.now();water.setFloat('time',now/1000);
+    if(holdSkin.isVisible){
+      for(let i=0;i<fishes.length;i++){const f=fishes[i]!;if(!f.isVisible)continue;const t=now*.00035+i,x=-14+i*3+Math.sin(t)*1.2,z=Math.cos(t*.7+i)*3.5;
+        f.position.set(S.origin.x+x,-5.5+(i%3)*.23,S.origin.z+z);f.rotation.y=-t*.7;}
+      for(let i=0;i<bubbles.length;i++){const b=bubbles[i]!;if(!b.isVisible)continue;const t=now*.00015+i*.31,x=-27+(i%9)*5.4+Math.sin(t)*.09,z=(i%5-2)*1.6;
+        b.position.set(S.origin.x+x,-6.1+(t%1)*1.75,S.origin.z+z);}
+    }
+    let count=0;
+    for(const light of scene.lights){if(count===3)break;if(!light.name.startsWith('carried-light:')||!light.isEnabled())continue;
+      const source=light as typeof light&{position?:Vector3};if(source.position)uniforms[count++]!.set(source.position.x,source.position.z,source.range*.5,source.intensity);}
+    for(let i=count;i<3;i++)uniforms[i]!.set(0,0,1,0);
+    for(let i=0;i<3;i++)water.setVector4(`source${i}`,uniforms[i]!);
   });
+  scene.onDisposeObservable.addOnce(()=>scene.onBeforeRenderObservable.remove(observer));
   if(terrain)meshes.push(...buildWreckFloorClosure(scene,terrain,timber));
   return meshes;
 }

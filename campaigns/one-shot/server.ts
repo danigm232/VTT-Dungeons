@@ -2,6 +2,7 @@ import type { CampaignServerBundle, CombatProfile, PortDefinition } from '../../
 import { d8AdjacentWalkableCells, d8CellToWorld, d8NearestWalkableCell, oneShotCampaignDefinition } from './public/pack.js';
 import { d8Adventure } from './story.js';
 import { D8NIGHT } from './playground/d8night.config.js';
+import { MIRROR_DEPARTURE } from './playground/mirror-cave-layout.js';
 
 const d8ActorCell = (sceneId: string, actorId: string) => oneShotCampaignDefinition.scenes.find(scene => scene.id === sceneId)?.stageActors?.find(actor => actor.id === actorId)?.cell;
 const mirrorCell = oneShotCampaignDefinition.scenes.find(scene => scene.id === 'mirror')?.props.find(prop => prop.id === 'true-love-mirror')?.cell
@@ -38,7 +39,11 @@ const villagerProfile = (identityId: string): CombatProfile => ({
 // Private adventure definitions reuse the authoritative engine and save system.
 export const oneShotBundle: CampaignServerBundle = {
   public: oneShotCampaignDefinition, campaignStateVersion: 1,
-  ports: d8VillageRoads,
+  ports: [...d8VillageRoads,{id:'galeria-espejo-cena',mode:'road',return:'explicit',autoDirection:'forward',conditionId:'mirror-ice-seal',
+    departureWalk:MIRROR_DEPARTURE,
+    from:{mapId:'mirror',zoneId:'galería de hielo',surfaceId:'ice',cell:{col:5,row:0}},
+    to:{mapId:'dinner',zoneId:'Cena con Anteros',surfaceId:'village',cell:d8NearestWalkableCell('dinner',0,9)}}],
+  doorStates:{mirror:{'mirror-ice-seal':'locked'}},
   adventure: d8Adventure,
   proximityEncounter:{id:'cafe-stealth',sceneId:'cafe',actorIds:['woman-cafe','patron-cafe','bartender-cafe'],skill:'Sigilo',dc:18,quietDc:16,radiusMeters:1.5,failuresBeforeCombat:2,
     distraction:{actorId:'horse-cafe',entranceDoorId:'cafe-entry-door',destinations:[d8NearestWalkableCell('cafe',-.75,9),d8NearestWalkableCell('cafe',.75,10.5),d8NearestWalkableCell('cafe',2.25,9)]}},
@@ -104,7 +109,7 @@ export const oneShotBundle: CampaignServerBundle = {
       ] }
     }
   },
-  encounter: { sceneId: 'mirror', mirrorPlayer: true, creature: { id: 'reflection', label: 'Reflejo de hielo', tokenId: 'reflection',
+  encounter: { sceneId: 'mirror', mirrorPlayer: true, defeatUnlockObjectId:'mirror-ice-seal', creature: { id: 'reflection', label: 'Reflejo de hielo', tokenId: 'reflection',
     color: '#7fc8e8', cell: mirrorPlatformCell, sheet: { maxHp: 7, armorClass: 14, speedMeters: 7.5, traits: ['Réplica helada: adopta las estadísticas y ataques de quien afronta el espejo, con el 75 % de sus PG.'], actions: ['Imita exactamente la acción de quien afronta el espejo; el DM resuelve los dados físicos.'], combat: { armorClass: 14, speedMeters: 7.5, initiativeBonus: 0, attacks: [] } } },
     note: 'El DM elige quién afronta el espejo. El reflejo copia su forma base, actúa inmediatamente después e imita su acción; PG máximos = 75 % de los máximos del original, redondeados hacia abajo. No comparte heridas ni estados posteriores.' },
   mirrorInteraction: { sceneId: 'mirror', targetId: 'true-love-mirror', cells: mirrorNearbyCells, nearbyLabel: 'Mirar en el espejo', notice: 'El espejo se empaña de escarcha y tu reflejo cobra vida.', effectFrames: ['/art/tokens/Espejo/espejo_amor_verdadero_activacion_01.png', '/art/tokens/Espejo/espejo_amor_verdadero_activacion_02.png', '/art/tokens/Espejo/espejo_transformacion_01.png', '/art/tokens/Espejo/espejo_transformacion_02.png', '/art/tokens/Espejo/espejo_transformacion_03.png', '/art/tokens/Espejo/espejo_fx_copia_final.png'], durationMs: 1_600 },

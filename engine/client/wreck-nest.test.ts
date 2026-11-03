@@ -1,4 +1,4 @@
-import {describe,it,expect} from 'vitest';
+import {describe,it,expect,vi} from 'vitest';
 import {NullEngine} from '@babylonjs/core/Engines/nullEngine.js';
 import {Scene} from '@babylonjs/core/scene.js';
 import {StandardMaterial} from '@babylonjs/core/Materials/standardMaterial.js';
@@ -9,9 +9,19 @@ import {WRECK_STRUCTURE as S,wreckListHeight} from '../shared/wreck-structure.js
 import {wreckRuntimeScenes,wreckPorts} from '../../campaigns/stormwreck-isle/public/wreck-runtime.js';
 
 describe('cofa: canasta orgánica y accesos originales',()=>{
+  it('retains exact clearance distances after removing temporary arrays from the construction hot path',()=>{
+    const edges=nestWalkingCentres.flatMap((a,i)=>nestWalkingCentres.slice(i+1).filter(b=>Math.hypot(a[0]-b[0],a[1]-b[1])<=1.501).map(b=>[a,b] as const));
+    for(let x=-3;x<=3;x+=.17)for(let z=-3;z<=3;z+=.19){
+      const expected=Math.min(...edges.map(([a,b])=>{const dx=b[0]-a[0],dz=b[1]-a[1],t=Math.max(0,Math.min(1,((x-a[0])*dx+(z-a[1])*dz)/(dx*dx+dz*dz)));return Math.hypot(x-a[0]-dx*t,z-a[1]-dz*t);}));
+      expect(nestWalkDistance(x,z)).toBeCloseTo(expected,12);
+    }
+  });
   it('tiene profundidad, materiales con relieve y siete lotes sin obstáculos nuevos',()=>{
     const e=new NullEngine(),scene=new Scene(e);try{
+      const created=vi.spyOn(scene,'addMesh');
       const meshes=buildHarpyNest(scene);expect(meshes).toHaveLength(7);
+      expect(created.mock.calls.length).toBeLessThan(500);
+      expect(meshes.map(m=>m.getTotalVertices())).toEqual([6993,5616,22085,24780,440,2339,378]);
       expect(meshes[0]!.metadata.grassBladeCount).toBeGreaterThan(2000);
       const ivory=meshes.find(m=>m.material!.name.includes('old-bones'))!.material as StandardMaterial;
       expect(ivory.diffuseColor.r).toBeGreaterThan(.88);expect(ivory.diffuseColor.g).toBeGreaterThan(.86);expect(ivory.diffuseColor.b).toBeGreaterThan(.8);

@@ -1,0 +1,37 @@
+{
+  "original": true,
+  "stats": [
+    {
+      "name": "chamber-air",
+      "seconds": 34.5,
+      "peak": 0.42,
+      "rms": 0.08516750325445098,
+      "sampleRate": 22050,
+      "loop": true
+    },
+    {
+      "name": "cave-drop-a",
+      "seconds": 2.8,
+      "peak": 0.55,
+      "rms": 0.03598368851560043,
+      "sampleRate": 22050,
+      "loop": false
+    },
+    {
+      "name": "cave-drop-b",
+      "seconds": 2.8,
+      "peak": 0.55,
+      "rms": 0.03629533267117266,
+      "sampleRate": 22050,
+      "loop": false
+    },
+    {
+      "name": "ice-settle",
+      "seconds": 3.6,
+      "peak": 0.46,
+      "rms": 0.07021361624239374,
+      "sampleRate": 22050,
+      "loop": false
+    }
+  ]
+}

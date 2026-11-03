@@ -1,6 +1,7 @@
 import { strongWind, seaState, precipitationKind, weatherMode, resolveWeatherChange, type WeatherChange } from '../shared/weather.js';
 import { A1_ROOM_CELL_KEYS } from '../../campaigns/camp-rests/public/a1-layout.js';
 import crypto from 'node:crypto';
+import {journeyReturnKey} from '../shared/journey.js';
 import type { Server, Socket } from 'socket.io';
 import {
   OBJECT_MODEL_VERSION, PROTOCOL_VERSION, STEP_DURATION_MS, basicCombatActionAnimationStates, campPlayerInteractSchema, characterSheetUpdateSchema, claimSchema, dmCommandSchema, explorationActionSchema, interactSchema, inventoryUpdateSchema, inventoryUseSchema, moveInputSchema, playerCombatSchema, sceneReadySchema, sfxLoopEndedSchema,
@@ -26,7 +27,7 @@ import { combatActionVisualState, combatTargetReactionState } from '../shared/co
 import { compileCampaignBundle, type CampaignServerBundle, type CompiledCampaign, type RuleTraits, type SceneDefinition } from './campaign.js';
 import { directionFromVector, isWalkable, resolveStep } from './navigation.js';
 import { durablePayloadSchema, type DurablePayload } from './persistence/schema.js';
-import {migrateRetreatAssembly} from './retreat-migration.js';
+import {migrateRetreatAssembly,RETREAT_SAVE_GRID_VERSION} from './retreat-migration.js';
 import type { PersistenceCoordinator } from './persistence/coordinator.js';
 import { advanceClimate, emptyClimateState, initialGameTimeSeconds, nextTimeOfDaySeconds, LONG_REST_SECONDS, SHORT_REST_SECONDS, SECONDS_PER_DAY, type ClimateState, type GameClockSnapshot } from '../shared/game-time.js';
 
@@ -988,8 +989,11 @@ export class GameState {
       if (!definition) return cloneCell(cell);
       // Road extensions do not enlarge the historical authoring rectangle.
       const baseRows=definition.grid.worldOrigin?Math.round(-2*definition.grid.worldOrigin.z/1.5):definition.grid.rows;
+      // The expanded cave keeps the old origin. Its oldest 32-column saves
+      // still map into the original 20 columns, never into the new fringe.
+      const baseCols=sceneId==='mirror'&&definition.grid.worldOrigin?Math.round(-2*definition.grid.worldOrigin.x/1.5):definition.grid.cols;
       const old = legacySize(sceneId), target = previousVersion >= 2 ? cloneCell(cell) : {
-        col: Math.max(0, Math.min(definition.grid.cols - 1, Math.floor((cell.col + .5) * definition.grid.cols / old.cols))),
+        col: Math.max(0, Math.min(baseCols - 1, Math.floor((cell.col + .5) * baseCols / old.cols))),
         row: Math.max(0, Math.min(baseRows - 1, Math.floor((cell.row + .5) * baseRows / old.rows)))
       };
       const walkable = definition.walkable;
@@ -1153,6 +1157,19 @@ export class GameState {
     return migrated;
   }
   get objectRevision() { return this.currentObjectState().revision; }
+  /** Only saves predating this passage need placement repair. Existing modern
+   * states remain strict, including an invalid character placed inside ice. */
+  private migrateEncounterPassage(payload:DurablePayload,raw:DurablePayload){
+    const encounter=this.campaign.encounter,id=encounter?.defeatUnlockObjectId;if(!encounter||!id)return;
+    if(raw.scenes.find(s=>s.sceneId===encounter.sceneId)?.objects.some(o=>o.id===id))return;
+    const saved=payload.scenes.find(s=>s.sceneId===encounter.sceneId)?.objects.find(o=>o.id===id),definition=this.sceneById(encounter.sceneId).props.find(o=>o.id===id);
+    if(!saved||saved.kind!=='door'||!definition)return;
+    if(payload.creature?.hp===0&&(!encounter.mirrorPlayer||payload.creature.runtimeProfile?.mimicOfPlayerId)){saved.structure='destroyed';saved.state='open';return;}
+    const blocked=new Set(footprintFor(saved.cell,saved.rotation,definition.baseFootprint).map(cellKey)),scene=this.sceneById(encounter.sceneId),hazards=new Set((scene.movementHazards??[]).flatMap(h=>h.cells.map(cellKey)));
+    const actors=[...payload.characters.filter(c=>(c.sceneId??payload.sceneId)===encounter.sceneId),...(payload.npcs??[]).filter(c=>c.sceneId===encounter.sceneId),...(payload.creature?.sceneId===encounter.sceneId?[payload.creature]:[])];
+    const occupied=new Set(actors.map(c=>cellKey(c.cell)));
+    for(const actor of actors)if(blocked.has(cellKey(actor.cell))){const nearest=scene.walkable.filter(c=>!blocked.has(cellKey(c))&&!hazards.has(cellKey(c))&&!occupied.has(cellKey(c))).sort((a,b)=>Math.abs(a.col-actor.cell.col)+Math.abs(a.row-actor.cell.row)-Math.abs(b.col-actor.cell.col)-Math.abs(b.row-actor.cell.row))[0];if(nearest){occupied.delete(cellKey(actor.cell));actor.cell=cloneCell(nearest);occupied.add(cellKey(nearest));}}
+  }
   get wheelState() {
     return this.currentObjects().find(isWheel)?.state ?? 'upright';
   }
@@ -1423,6 +1440,31 @@ export class GameState {
     return movement?.actorId === entityId && movement.remainingSquares >= cost && !conditions.some(condition => condition === 'restringida' || condition === 'apresada' || condition === 'agarrada' || condition === 'inconsciente' || condition === 'paralizada');
   }
   private spendMovement(entityId: string, terrainCost = 1) { if (this.combat.active) this.combat.spentSquares[entityId] = (this.combat.spentSquares[entityId] ?? 0) + terrainCost * (this.conditionsFor(entityId).includes('derribada') ? 2 : 1); }
+  /** DM placement is instantaneous and does not run movement, attacks or hazards. */
+  placeEntity(entityId:string,sceneId:SceneId,surfaceId:string,cell:Cell) {
+    const character=this.characters.get(entityId),npc=this.npcs.get(entityId);
+    const entity=character??npc??(this.creature?.id===entityId?this.creature:null);
+    if(!entity)return 'UNKNOWN_ENTITY';
+    if(npc?.id==='wreck-rowboat'&&this.rowboatPassengers().length)return 'ENTITY_ABOARD_ROWBOAT';
+    if(!this.hasScene(sceneId))return 'UNKNOWN_SCENE';
+    if(this.combat.pending)return 'ROLL_PENDING';
+    if(sceneId==='wreck-ship'&&this.progress['wreck.curse-day-after'])return 'WRECK_DISAPPEARED';
+    if(!Number.isInteger(cell.col)||!Number.isInteger(cell.row)||!this.walkableAt(sceneId,surfaceId,cell))return 'BLOCKED_CELL';
+    const props=this.publicObjectProps(sceneId);
+    if(props.some(prop=>prop.surfaceId===surfaceId&&prop.structure!=='destroyed'&&(prop.kind!=='door'||prop.state!=='open')&&footprintFor(prop.cell,prop.rotation,prop.footprint).some(c=>sameCell(c,cell))))return 'BLOCKED_CELL';
+    if(this.occupiedByActor(sceneId,surfaceId,cell,entityId)||[...this.characters.values()].some(actor=>actor.id!==entityId&&actor.sceneId===sceneId&&this.occupiesAddress(actor,surfaceId,cell)))return 'OCCUPIED_CELL';
+    if(entity.sceneId!==sceneId&&this.combat.active&&this.combat.participantIds.includes(entityId))this.withdrawCombatant(entityId);
+    if(character){
+      this.cancelPlannedJump(entityId);this.walkingRunUp.delete(entityId);this.clearSeat(entityId);this.cancelInteractionsForCharacter(entityId);
+      character.step=null;character.moving=false;character.input.held=null;character.input.updatedAt=Date.now();
+      this.progress[this.rowboatFlag(entityId)]=false;this.progress[this.rowboatPilotFlag(entityId)]=false;
+      for(const key of Object.keys(this.progress))if(key.startsWith('road.'+entityId+'.'))delete this.progress[key];
+    }
+    if(npc){npc.step=null;this.sceneNpcRoutes.delete(entityId);}
+    entity.sceneId=sceneId;entity.surfaceId=surfaceId;entity.cell=cloneCell(cell);
+    this.revision++;this.stateRevision++;return 'PLACED';
+  }
+
   moveEntityOneSquare(entityId: string, destination: Cell) {
     const character = this.characters.get(entityId);
     const creature = this.creature?.id === entityId && this.creature.visible && this.creature.hp > 0 ? this.creature : null;
@@ -1503,7 +1545,7 @@ export class GameState {
     return { defeated: Boolean(style), ...(style ? { defeatStyle: style } : {}) };
   }
 
-  publicSnapshot(redactCombat = false, viewSceneId: SceneId = this.sceneId, viewSurfaceId?: string): WorldSnapshot {
+  publicSnapshot(redactCombat = false, viewSceneId: SceneId = this.sceneId, viewSurfaceId?: string, includeUnclaimed=false): WorldSnapshot {
     const now = Date.now(), gameClock = this.gameClockSnapshot(now);
     const viewScene = this.sceneById(viewSceneId);
     const wreckDisappeared = this.campaign.public.campaignId === 'stormwreck-isle' && Boolean(this.progress['wreck.curse-day-after']);
@@ -1515,7 +1557,7 @@ export class GameState {
     const authorizedScene = { ...structuredClone(viewScene), props: viewScene.props.filter(prop => visiblePropIds.has(prop.id)).map(prop => structuredClone(prop)),
       ...(wreckDisappeared && viewSceneId === 'wreck-ship' ? { stageActors: [] } : {}),
       pickups: (viewScene.pickups ?? []).filter(pickup => remainsInScene(viewSceneId, pickup.surfaceId) && (viewSurfaceId === undefined || pickup.surfaceId === viewSurfaceId) && (!redactCombat || this.pickupAvailable(viewSceneId, pickup))) };
-    const entities: PublicEntity[] = [...this.characters.values()].filter(character => (Boolean(character.sessionToken) || character.hp <= 0 || this.conditionsFor(character.id).includes('inconsciente')) && character.sceneId === viewSceneId && remainsInScene(character.sceneId, character.surfaceId) && visibleSurface(character.surfaceId, character.step)).map(character => ({
+    const entities: PublicEntity[] = [...this.characters.values()].filter(character => (includeUnclaimed || Boolean(character.sessionToken) || character.hp <= 0 || this.conditionsFor(character.id).includes('inconsciente')) && character.sceneId === viewSceneId && remainsInScene(character.sceneId, character.surfaceId) && visibleSurface(character.surfaceId, character.step)).map(character => ({
       id: character.id, kind: 'player', label: character.label, sceneId: character.sceneId, cell: cloneCell(character.cell), surfaceId: character.surfaceId,
       facing: character.facing, moving: character.moving, step: character.step ? structuredClone(character.step) : null, color: character.color, tokenId: character.tokenId, conditions: [...this.conditionsFor(character.id)],
       carriedLightRadiusMeters: carriedLightRadiusMeters(character.inventory),
@@ -1525,8 +1567,8 @@ export class GameState {
       ...(this.seatFor(character.id)?{seatId:this.seatFor(character.id)!.id}:{}),
       ...(!redactCombat && this.combat.active && this.combat.participantIds.includes(character.id) ? { hp: character.hp, maxHp: character.maxHp } : {}), ...this.publicDefeatState(character.id, character.hp)
     }));
-    if (this.creature?.visible && this.creature.sceneId === viewSceneId && remainsInScene(this.creature.sceneId, this.creature.surfaceId) && visibleSurface(this.creature.surfaceId)) entities.push({
-      id: this.creature.id, kind: 'creature', label: this.creature.label, sceneId: this.creature.sceneId, cell: cloneCell(this.creature.cell), surfaceId: this.creature.surfaceId,
+    if (this.creature && (includeUnclaimed||this.creature.visible) && this.creature.sceneId === viewSceneId && remainsInScene(this.creature.sceneId, this.creature.surfaceId) && visibleSurface(this.creature.surfaceId)) entities.push({
+      id: this.creature.id, kind: 'creature',...(includeUnclaimed&&!this.creature.visible?{dmHidden:true}:{}), label: this.creature.label, sceneId: this.creature.sceneId, cell: cloneCell(this.creature.cell), surfaceId: this.creature.surfaceId,
       facing: this.creature.facing, moving: false, step: null, color: this.creature.color, tokenId: this.creature.tokenId, conditions: [...this.conditionsFor(this.creature.id)],
       ...(!redactCombat && this.combat.active && this.combat.participantIds.includes(this.creature.id) ? { hp: this.creature.hp, maxHp: this.creature.maxHp } : {}), ...this.publicDefeatState(this.creature.id, this.creature.hp)
     });
@@ -1535,8 +1577,8 @@ export class GameState {
     const visibleNpcSurface = (npc: NpcState) => visibleSurface(npc.surfaceId, npc.step)
       || (npc.id === 'wreck-rowboat' && viewSceneId === 'wreck-ship'
         && ['main', 'c1-hull', 'c2', 'c3', 'crow'].includes(viewSurfaceId ?? ''));
-    for (const npc of this.npcs.values()) if (npc.visible && npc.sceneId === viewSceneId && remainsInScene(npc.sceneId, npc.surfaceId) && visibleNpcSurface(npc)) entities.push({
-      id: npc.id, kind: 'npc', label: npc.label, sceneId: npc.sceneId, cell: cloneCell(npc.cell), surfaceId: npc.surfaceId, facing: npc.facing, moving: Boolean(npc.step), step: npc.step ? structuredClone(npc.step) : null, color: npc.color, tokenId: npc.tokenId, conditions: [...this.conditionsFor(npc.id)],
+    for (const npc of this.npcs.values()) if ((includeUnclaimed||npc.visible) && npc.sceneId === viewSceneId && remainsInScene(npc.sceneId, npc.surfaceId) && visibleNpcSurface(npc)) entities.push({
+      id: npc.id, kind: 'npc',...(includeUnclaimed&&!npc.visible?{dmHidden:true}:{}), label: npc.label, sceneId: npc.sceneId, cell: cloneCell(npc.cell), surfaceId: npc.surfaceId, facing: npc.facing, moving: Boolean(npc.step), step: npc.step ? structuredClone(npc.step) : null, color: npc.color, tokenId: npc.tokenId, conditions: [...this.conditionsFor(npc.id)],
       ...(!redactCombat && this.combat.active && this.combat.participantIds.includes(npc.id) ? { hp: npc.hp, maxHp: npc.maxHp } : {}), ...this.publicDefeatState(npc.id, npc.hp)
     });
     const visibleTokenIds = new Set(entities.map(entity => entity.tokenId));
@@ -1568,6 +1610,7 @@ export class GameState {
       v: PROTOCOL_VERSION, objectModelVersion: OBJECT_MODEL_VERSION, revision: this.revision, serverTime: now, gameClock, sceneId: viewSceneId, scene: authorizedScene, sceneEpoch: this.sceneEpoch, runtimeEpoch: this.runtimeEpoch,
       entities, tokenAssets, props, collectedPickups: (viewScene.pickups ?? []).filter(pickup => remainsInScene(viewSceneId, pickup.surfaceId) && (viewSurfaceId === undefined || pickup.surfaceId === viewSurfaceId) && this.pickupAvailable(viewSceneId, pickup) && this.progress[`pickup.${pickup.id}`]).map(pickup => pickup.id), camera: { mode: this.camera.mode, focusId: publicFocus }, environment: { ...this.environment }, climate: this.climateAt(viewSceneId, gameClock.seconds),
       story: { wreckDisappeared, ...(this.campaign.public.campaignId === 'd8-night-private' && ['temple','cafe','market','garden','dinner'].includes(viewSceneId) && this.campaign.adventure?.endings.some(ending => this.progress[endingFlag(ending.id)]) ? { d8TimeLoopBroken: true, ...(['temple','dinner'].includes(viewSceneId) ? { d8EndingVisual: this.progress[endingFlag('ending3')] ? 'darkness' as const : this.progress[endingFlag('ending2')] ? 'solitude' as const : 'celebration' as const } : {}) } : {}) },
+      ...(viewSceneId==='dragon-rest'?{retreat:{winchLowered:Boolean(this.progress['retreat.winch.lowered'])}}:{}),
       visualEffects: this.activeVisualEffects().filter(effect => effect.visual.sceneId === viewSceneId &&
         (viewSurfaceId === undefined || effect.visual.surfaceId === viewSurfaceId) &&
         (!effect.visual.entityId || visibleIds.has(effect.visual.entityId))).map(effect => structuredClone(effect.visual)),
@@ -1702,9 +1745,9 @@ export class GameState {
     });
   }
 
-  private dmObjects(): DmObject[] {
-    if (this.sceneId === 'wreck-ship' && this.campaign.public.campaignId === 'stormwreck-isle' && this.progress['wreck.curse-day-after']) return [];
-    return this.currentObjects().map(object => {
+  private dmObjects(sceneId=this.sceneId): DmObject[] {
+    if (sceneId === 'wreck-ship' && this.campaign.public.campaignId === 'stormwreck-isle' && this.progress['wreck.curse-day-after']) return [];
+    return this.objectsFor(sceneId).map(object => {
       const common = { id: object.id, label: object.label, assetId: object.assetId, cell: cloneCell(object.cell), surfaceId: object.surfaceId, capabilities: { ...object.capabilities }, rotation: object.rotation, footprint: object.baseFootprint.map(cloneCell), allowedRotations: [...object.allowedRotations] };
       if (object.kind === 'door') return { ...common, kind: 'door' as const, structure: object.structure, state: object.state, ...(object.interaction ? { interaction: structuredClone(object.interaction) } : {}) };
       if (object.kind === 'wheel') return { ...common, kind: 'wheel' as const, structure: object.structure, attachment: object.attachment, state: object.state, mount: { cell: cloneCell(object.mount.cell), footprint: object.mount.footprint.map(cloneCell), assetId: object.mount.assetId } };
@@ -1717,13 +1760,46 @@ export class GameState {
   }
 
   private nearbyStageActorInteraction(character: CharacterState | null) {
-    if (this.combat.active || !character || character.hp <= 0 || character.step) return null;
+    if (this.combat.active || !character || character.hp <= 0 || character.step || this.conditionsFor(character.id).some(c=>c==='inconsciente'||c==='paralizada')) return null;
+    const scene=this.sceneForCharacter(character);
     return this.campaign.stageActorInteractions?.find(interaction => {
       const npc = this.npcs.get(interaction.targetId);
-      return interaction.sceneId === this.sceneId && npc?.visible && npc.hp > 0 && !this.conditionsFor(npc.id).includes('inconsciente') && npc.surfaceId === character.surfaceId
-        && character.surfaceId === (interaction.surfaceId ?? this.currentScene().surfaceId)
+      if(!npc||npc.sceneId!==character.sceneId||!npc.visible||npc.hp<=0||this.conditionsFor(npc.id).includes('inconsciente'))return false;
+      const site=interaction.siteAnchor===true&&scene.stageActors?.some(a=>a.id===interaction.targetId&&a.interactionOnly===true);
+      return interaction.sceneId === character.sceneId && (site||npc.surfaceId === character.surfaceId)
+        && character.surfaceId === (interaction.surfaceId ?? scene.surfaceId)
         && interaction.cells.some(cell => sameCell(cell, character.cell));
     }) ?? null;
+  }
+
+  /** Choices come from authored manual ports at the character's real location. */
+  manualJourneyOptions(characterId:string,targetId:string):Array<{portId:string;direction:'forward'|'return'}>{
+    const character=this.characters.get(characterId);
+    if(!character?.sessionToken||!character.socketId||character.hp<=0||character.step||this.combat.active||this.conditionsFor(characterId).some(c=>c==='inconsciente'||c==='paralizada'))return [];
+    const remembered=(this.campaign.ports??[]).filter(p=>p.rememberReturn&&this.progress[journeyReturnKey(characterId,p.id)]);
+    return (this.campaign.ports??[]).flatMap((port):Array<{portId:string;direction:'forward'|'return'}>=>{
+      if(port.autoDirection!=='manual'||port.return!=='adjudicated')return [];
+      const authoredPoint=port.interactionTargetId||this.campaign.public.scenes.find(s=>s.id===port.from.mapId)?.stageActors?.some(a=>a.id===port.id&&a.interactionOnly);
+      if(!authoredPoint)return [];
+      const matches=(a:typeof port.from)=>a.mapId===character.sceneId&&a.surfaceId===character.surfaceId&&sameCell(a.cell,character.cell);
+      if(targetId==='manual-journey-return'&&matches(port.to)){
+        if(port.rememberReturn&&remembered.length&&!remembered.some(p=>p.id===port.id))return [];
+        return [{portId:port.id,direction:'return' as const}];
+      }
+      if(targetId===(port.interactionTargetId??port.id)&&matches(port.from)&&this.stageActorInteractionFor(characterId,targetId))return [{portId:port.id,direction:'forward' as const}];
+      return [];
+    });
+  }
+
+  requestManualJourney(characterId:string,targetId:string){
+    const character=this.characters.get(characterId),options=this.manualJourneyOptions(characterId,targetId);
+    if(!character||!options.length)return 'TOO_FAR';
+    if(this.interactions.some(r=>r.characterId===characterId&&r.kind==='journey'&&r.status==='pending'))return 'INTERACTION_PENDING';
+    this.interactions=this.interactions.filter(r=>r.status==='pending'||Date.now()-r.createdAt<600_000);
+    if(this.interactions.length>=200)return 'INTERACTION_LIMIT';
+    this.interactions.push({id:crypto.randomUUID(),characterId,characterLabel:character.label,targetId,createdAt:Date.now(),status:'pending',kind:'journey',journeyOptions:options,
+      targetLabel:targetId==='manual-journey-return'?'Preparar el regreso':'Preparar la continuación del viaje',sceneId:character.sceneId,sceneEpoch:this.sceneEpoch,objectVersion:0,sessionToken:character.sessionToken!});
+    this.revision++;return 'REQUESTED';
   }
 
   private nearbyMirrorInteraction(character: CharacterState | null) {
@@ -1767,6 +1843,7 @@ export class GameState {
     return [
       ...(this.campaign.proximityEncounter?.distraction&&character&&!character.step&&!this.combat.active&&!this.progress[`distraction.${this.campaign.proximityEncounter.id}`]&&this.campaign.proximityEncounter.sceneId===character.sceneId&&(()=>{const animal=this.npcs.get(this.campaign.proximityEncounter!.distraction!.actorId);return animal?.visible&&animal.surfaceId===character.surfaceId&&Math.max(Math.abs(animal.cell.col-character.cell.col),Math.abs(animal.cell.row-character.cell.row))<=1;})()?[{targetId:'scene-animal-distraction',label:'Espantar al caballo'}]:[]),
       ...(rowboat ? [rowboat] : []),
+      ...(character&&this.manualJourneyOptions(character.id,'manual-journey-return').length?[{targetId:'manual-journey-return',label:'Solicitar regreso',cell:cloneCell(character.cell),surfaceId:character.surfaceId}]:[]),
       ...(character&&!character.step&&!this.combat.active?[
         ...(this.campaign.sceneWindows??[]).filter(window=>window.sceneId===character.sceneId&&Math.max(Math.abs(character.cell.col-window.cell.col),Math.abs(character.cell.row-window.cell.row))<=2).flatMap(window=>[{targetId:window.id+'.break',label:'Romper ventana',cell:window.cell,surfaceId:character.surfaceId},{targetId:window.id+'.vault',label:'Saltar por la ventana',cell:window.cell,surfaceId:character.surfaceId}]),
         ...(this.campaign.prayerShrine?.sceneId===character.sceneId&&Math.max(Math.abs(character.cell.col-this.campaign.prayerShrine.cell.col),Math.abs(character.cell.row-this.campaign.prayerShrine.cell.row))<=2?[{targetId:'temple-prayer',label:'Rezar a Sylvania',cell:this.campaign.prayerShrine.cell,surfaceId:character.surfaceId}]:[]),
@@ -1777,7 +1854,7 @@ export class GameState {
       ...doors,
       ...pickups,
       ...(character&&!character.step&&!this.combat.active?(this.sceneForCharacter(character).readableSigns??[]).filter(sign=>Math.max(Math.abs(sign.cell.col-character.cell.col),Math.abs(sign.cell.row-character.cell.row))<=1).map(sign=>({targetId:sign.id,label:`Leer · ${sign.label}`})):[]),
-      ...(stage ? [{ targetId: stage.targetId, label: stage.nearbyLabel }] : []),
+      ...(stage ? [{ targetId: stage.targetId, label: stage.nearbyLabel,...(stage.siteAnchor&&character?{cell:cloneCell(character.cell),surfaceId:character.surfaceId}:{}) }] : []),
       ...(mirror ? [{ targetId: mirror.targetId, label: mirror.nearbyLabel }] : []),
       ...(nearWheel ? [{ targetId: config!.targetId, label: config!.nearbyLabel }] : []),
       ...(character&&!character.step&&!this.combat.active?(this.sceneForCharacter(character).seats??[]).filter(seat=>!this.sceneForCharacter(character).camp?.interactionPoints.some(point=>point.id===seat.id)&&(!seat.reservedActorId||!this.npcs.get(seat.reservedActorId)?.visible||!sameCell(this.npcs.get(seat.reservedActorId)!.cell,seat.cell))&&seat.surfaceId===character.surfaceId&&Math.max(Math.abs(seat.cell.col-character.cell.col),Math.abs(seat.cell.row-character.cell.row))<=1).map(seat=>({targetId:seat.id,label:`${this.seatFor(character.id)?.id===seat.id?'Levantarte':'Sentarte'} · ${seat.label}`})):[]),
@@ -1878,14 +1955,14 @@ export class GameState {
     };
   }
 
-  dmState(): DmState {
+  dmState(viewSceneId=this.sceneId): DmState {
     const gameClock = this.gameClockSnapshot();
-    const objectState = this.currentObjectState();
+    const objectState = this.objectScenes.get(viewSceneId)!;
     return {
-      runtimeEpoch: this.runtimeEpoch,
-      campaignTitle: this.campaign.public.title, sceneId: this.sceneId, sceneEpoch: this.sceneEpoch, objectRevision: objectState.revision,
+      runtimeEpoch: this.runtimeEpoch, tableSceneId:this.sceneId,
+      campaignTitle: this.campaign.public.title, sceneId: viewSceneId, sceneEpoch: this.sceneEpoch, objectRevision: objectState.revision,
       ...(this.campaign.public.campaignId === 'd8-night-private' ? { animationAudit: [...this.characters.values()]
-        .filter(character => character.sceneId === this.sceneId && Boolean(character.sessionToken))
+        .filter(character => character.sceneId === viewSceneId && Boolean(character.sessionToken))
         .map(character => ({ id: character.id, attacks: structuredClone(character.combat.attacks), explorationActions: structuredClone(character.explorationActions ?? []), explorationBasics: [...(character.explorationBasics ?? [])] })) } : {}),
       characters: [...this.characters.values()].map(character => ({
         id: character.id, label: character.label, archetype: character.archetype, color: character.color, tokenId: character.tokenId, conditions: [...this.conditionsFor(character.id)], conditionSources: structuredClone(this.conditionSourcesFor(character.id)),
@@ -1893,24 +1970,25 @@ export class GameState {
         session: Boolean(character.sessionToken), sceneId: character.sceneId, cell: cloneCell(character.cell), surfaceId: character.surfaceId, step: character.step ? structuredClone(character.step) : null, inventory: [...character.inventory], sheet: character.sheet ? structuredClone(character.sheet) : null, resources: structuredClone(character.combat.resources), concentration: structuredClone(this.concentration[character.id] ?? null), deathSaves: { ...character.deathSaves }
       })),
       creature: this.creature ? { id: this.creature.id, label: this.creature.label, visible: this.creature.visible, cell: cloneCell(this.creature.cell), surfaceId: this.creature.surfaceId, sceneId: this.creature.sceneId, hp: this.creature.hp, maxHp: this.creature.maxHp, armorClass: this.creature.armorClass, speedMeters: this.creature.speedMeters, traits: [...this.creature.traits], actions: [...this.creature.actions], conditions: [...this.conditionsFor(this.creature.id)], conditionSources: structuredClone(this.conditionSourcesFor(this.creature.id)) } : null,
-      npcs: [...this.npcs.values()].filter(npc => npc.sceneId === this.sceneId).map(npc => ({ id: npc.id, label: npc.label, tokenId: npc.tokenId, color: npc.color, cell: cloneCell(npc.cell), surfaceId: npc.surfaceId, hp: npc.hp, maxHp: npc.maxHp, armorClass: npc.armorClass, speedMeters: npc.speedMeters, traits: [...npc.traits], attacks: structuredClone(npc.attacks), combatEnabled: npc.combatEnabled, visible: npc.visible, conditions: [...this.conditionsFor(npc.id)], conditionSources: structuredClone(this.conditionSourcesFor(npc.id)) })),
+      npcs: [...this.npcs.values()].filter(npc => npc.sceneId === viewSceneId).map(npc => ({ id: npc.id, label: npc.label, tokenId: npc.tokenId, color: npc.color, cell: cloneCell(npc.cell), surfaceId: npc.surfaceId, hp: npc.hp, maxHp: npc.maxHp, armorClass: npc.armorClass, speedMeters: npc.speedMeters, traits: [...npc.traits], attacks: structuredClone(npc.attacks), combatEnabled: npc.combatEnabled, visible: npc.visible, conditions: [...this.conditionsFor(npc.id)], conditionSources: structuredClone(this.conditionSourcesFor(npc.id)) })),
       combat: { sequences: structuredClone(this.combat.sequences), active: this.combat.active, round: this.combat.round, currentId: this.currentCombatId(), movement: this.combatMovement(), participants: this.combat.active ? this.combatParticipants() : [], lastEvent: this.combat.lastEvent, prompt: this.combatPromptFor('dm'), initiativePending: this.combat.initiativePending, initiativeSubmitted: { ...this.combat.initiativeSubmitted }, actionUsed: { ...this.combat.actionUsed }, bonusActionUsed: { ...this.combat.bonusActionUsed }, reactionUsed: { ...this.combat.reactionUsed }, concentration: structuredClone(this.concentration), recharge: structuredClone(this.combat.recharge), order: this.combat.order.map(id => {
         const entity = this.combatEntity(id); if (!entity) throw new Error('COMBAT_ENTITY_MISSING'); return { id, label: entity.label, kind: entity.kind };
       }) },
       privateNotes: { creature: this.campaign.encounter?.note ?? '', wheel: this.campaign.wheelInteraction?.note ?? '' },
-      camera: { ...this.camera }, environment: { ...this.environment }, gameClock, climate: this.climateAt(this.sceneId, gameClock.seconds), campRest: this.campRest ? structuredClone(this.campRest) : null, campActivity: this.campStateFor(this.sceneId), audio: structuredClone(this.audio), projectorReady: this.projectorReady,
-      interactions: this.interactions.map(({ id, characterId, characterLabel, targetId, createdAt, status, kind,skill,dc,targetLabel,playerTotal }) => ({ id, characterId, characterLabel, targetId, createdAt, status,...(kind?{kind,skill,dc,targetLabel,playerTotal}:{}) })), objects: this.dmObjects(),
-      pickups: (this.currentScene().pickups ?? []).map(pickup => ({ id: pickup.id, label: pickup.label, sceneId: this.sceneId, surfaceId: pickup.surfaceId, cell: pickup.cell, kind: pickup.kind, collected: Boolean(this.progress[`pickup.${pickup.id}`]), available: this.pickupAvailable(this.sceneId, pickup) })), progress: { ...this.progress },
+      camera: { ...this.camera }, environment: { ...this.environment }, gameClock, climate: this.climateAt(viewSceneId, gameClock.seconds), campRest: this.campRest ? structuredClone(this.campRest) : null, campActivity: this.campStateFor(viewSceneId), audio: structuredClone(this.audio), projectorReady: this.projectorReady,
+      interactions: this.interactions.map(({ id, characterId, characterLabel, targetId, createdAt, status, kind,skill,dc,targetLabel,playerTotal,journeyOptions }) => ({ id, characterId, characterLabel, targetId, createdAt, status,...(kind?{kind,skill,dc,targetLabel,playerTotal,journeyOptions}:{}) })), objects: this.dmObjects(viewSceneId),
+      pickups: (this.sceneById(viewSceneId).pickups ?? []).map(pickup => ({ id: pickup.id, label: pickup.label, sceneId: viewSceneId, surfaceId: pickup.surfaceId, cell: pickup.cell, kind: pickup.kind, collected: Boolean(this.progress[`pickup.${pickup.id}`]), available: this.pickupAvailable(viewSceneId, pickup) })), progress: { ...this.progress },
       ...(this.campaign.adventure ? { adventure: adventureView(this.campaign.adventure, this.progress, this.storyNotes) } : {}),
       encounterGroups: (this.campaign.encounterGroups ?? []).map(group => ({ id: group.id, label: group.label, sceneId: group.sceneId, maximum: group.actorIds.length, visibleCount: group.actorIds.filter(id => this.npcs.get(id)?.visible).length })),
       ...(this.creature?.mimicOfPlayerId ? { mimicInstruction: { entityId: this.creature.id, sourceId: this.creature.mimicOfPlayerId, actionId: this.combat.turnActions[this.creature.mimicOfPlayerId]?.actionId ?? null, label: this.combat.turnActions[this.creature.mimicOfPlayerId]?.label ?? 'Espera a la acción del original. Sin acción posible: resolver excepción con el DM.' } } : {}),
-      lastExplorationAction: this.lastExplorationAction && this.lastExplorationAction.sceneId === this.sceneId ? structuredClone(this.lastExplorationAction) : null,
+      lastExplorationAction: this.lastExplorationAction && this.lastExplorationAction.sceneId === viewSceneId ? structuredClone(this.lastExplorationAction) : null,
       undo: { canUndo: objectState.undo.length > 0, label: objectState.undo.at(-1)?.label ?? null, entryId: objectState.undo.at(-1)?.entryId ?? null },
       gameUndo: { canUndo: false, label: null }, ports: structuredClone(this.campaign.ports ?? [])
     };
   }
 
   tick(_dt = 0) {
+    this.unlockDefeatedEncounterPassage();
     const now = Date.now(), changedCharacters = new Set<string>();
     for (const [entityId, sources] of Object.entries(this.conditionSources)) for (const source of [...sources]) {
       if (source.expiresAt !== undefined && now >= source.expiresAt) {
@@ -1965,7 +2043,7 @@ export class GameState {
         const fromSceneId = character.sceneId, fromSurfaceId = character.surfaceId;
         character.surfaceId = completedStep.toSurfaceId ?? character.surfaceId;
         character.step = null; character.moving = false; this.revision++; changedCharacters.add(character.id);
-        if (!this.plannedJumps.has(character.id) && !completedStep.movementKind && !this.progress[this.rowboatFlag(character.id)] && this.autoTraverseAfterStep(character, completedStep.to)) changedCharacters.add(character.id);
+        if (!this.plannedJumps.has(character.id) && (!completedStep.movementKind||completedStep.movementKind==='passage') && !this.progress[this.rowboatFlag(character.id)] && this.autoTraverseAfterStep(character, completedStep.to,completedStep.passage?.portId)) changedCharacters.add(character.id);
         this.observeWreckLocationChange(character, fromSceneId, fromSurfaceId);
       }
       if (!character.step && this.advancePlannedJump(character,nextStepAt)) changedCharacters.add(character.id);
@@ -1977,9 +2055,19 @@ export class GameState {
     return changedCharacters;
   }
 
-  private autoTraverseAfterStep(character: CharacterState, arrived: Cell) {
+  private beginPortDeparture(character:CharacterState,port:NonNullable<CampaignServerBundle['ports']>[number]){
+    const walk=port.departureWalk;if(!walk||character.hp<=0)return false;
+    character.step={from:cloneCell(character.cell),to:cloneCell(character.cell),fromSurfaceId:character.surfaceId,toSurfaceId:character.surfaceId,startedAt:Date.now(),durationMs:walk.durationMs,movementKind:'passage',passage:{portId:port.id,points:structuredClone(walk.points)}};
+    character.moving=true;character.facing=port.id==='travel-pecio-boat'?'south':'north';character.input.held=null;
+    this.cancelInteractionsForCharacter(character.id);this.revision++;return true;
+  }
+  private autoTraverseAfterStep(character: CharacterState, arrived: Cell,finishedDeparture?:string) {
     if (this.combat.active && this.campaign.public.campaignId === 'd8-night-private') return false;
     for (const port of this.campaign.ports ?? []) {
+      if(finishedDeparture&&port.id!==finishedDeparture)continue;
+      // Reuse manual traversal after its authorised departure animation. This
+      // rechecks party occupancy; walking onto the berth never starts a trip.
+      if(finishedDeparture===port.id&&port.autoDirection==='manual')return this.traversePort(character.id,port.id,'forward',true,undefined,true)==='MOVED';
       // Hatches/holes with adjudication and doors are not auto-portals: doors
       // are traversed by ordinary collision-aware movement when actually open.
       if (!['stairs', 'road', 'rope-ladder', 'rigging', 'swim'].includes(port.mode) || port.autoDirection === 'manual') continue;
@@ -1988,9 +2076,11 @@ export class GameState {
       else if (character.sceneId === port.to.mapId && character.surfaceId === port.to.surfaceId
         && port.autoDirection !== 'forward' && (sameCell(arrived, port.to.cell) || sameCell(arrived, port.from.cell))) destination = port.from;
       if (!destination || !this.walkableAt(destination.mapId, destination.surfaceId, destination.cell)) continue;
+      if(port.conditionId){const gate=this.objectsFor(port.from.mapId).find(o=>o.id===port.conditionId);if(!gate||!isDoor(gate)||gate.structure!=='destroyed'&&(gate.state!=='open'||gate.interaction?.barrier==='barred'))continue;}
       if(port.minimumApproachSteps&&!this.progress[`road.${character.id}.${port.id}.${port.minimumApproachSteps}`])continue;
       const occupied = this.occupiedByActor(destination.mapId, destination.surfaceId, destination.cell, character.id);
       if (occupied) return false;
+      if(port.departureWalk&&character.sceneId===port.from.mapId&&!finishedDeparture)return this.beginPortDeparture(character,port);
       if (['rope-ladder','rigging','swim'].includes(port.mode) && character.sceneId === destination.mapId) {
         if(port.id==='P10'&&destination.surfaceId==='crow'&&this.progress['wreck.cofa-free-climb']!==true)continue;
         this.startClimb(character,destination.surfaceId,destination.cell,port.mode==='swim'?'dive':'climb');
@@ -2044,7 +2134,7 @@ export class GameState {
     return true;
   }
 
-  traversePort(entityId: string, portId: string, direction: 'forward' | 'return', adjudicate = false, checkTotal?:number) {
+  traversePort(entityId: string, portId: string, direction: 'forward' | 'return', adjudicate = false, checkTotal?:number,completedDeparture=false) {
     const port = this.campaign.ports?.find(candidate => candidate.id === portId);
     const character = this.characters.get(entityId);
     if (!port) return 'UNKNOWN_PORT';
@@ -2067,10 +2157,11 @@ export class GameState {
     if (!this.walkableAt(destination.mapId, destination.surfaceId, destination.cell)) return 'BLOCKED_CELL';
     const occupied = (cell: Cell) => this.occupiedByActor(destination.mapId, destination.surfaceId, cell, entityId);
     let landingCell = destination.cell;
-    // Several adventurers may return by the same boat while the first still
-    // stands at its beach landing. Stage later arrivals on the nearest free
-    // beach tile rather than trapping them aboard with OCCUPIED_CELL.
-    if (occupied(landingCell) && port.id === 'travel-pecio-boat' && direction === 'return') {
+    // Stage a manual party arrival on nearby real floor. The existing wreck
+    // boat also accepts several adventurers without overlapping them.
+    const partyArrival=port.id==='travel-pecio-boat'||Boolean(port.rememberReturn&&port.autoDirection==='manual'&&port.return==='adjudicated');
+    const blockedLanding=(cell:Cell)=>this.publicObjectProps(destination.mapId).some(prop=>prop.surfaceId===destination.surfaceId&&prop.structure!=='destroyed'&&(prop.kind!=='door'||prop.state!=='open')&&footprintFor(prop.cell,prop.rotation,prop.footprint).some(p=>sameCell(p,cell)));
+    if (partyArrival&&(occupied(landingCell)||blockedLanding(landingCell))) {
       const terrain = this.sceneById(destination.mapId).terrain;
       if (terrain) {
         const queue = [{ surfaceId: destination.surfaceId, cell: destination.cell }];
@@ -2080,18 +2171,24 @@ export class GameState {
           const key = cellKey(current.cell);
           if (seen.has(key)) continue;
           seen.add(key);
-          if (this.walkableAt(destination.mapId, destination.surfaceId, current.cell) && !occupied(current.cell)) { landingCell = current.cell; break; }
+          if (this.walkableAt(destination.mapId, destination.surfaceId, current.cell) && !occupied(current.cell)&&!blockedLanding(current.cell)) { landingCell = current.cell; break; }
           for (const next of surfaceNeighbors(terrain, current)) if (next.surfaceId === destination.surfaceId && !seen.has(cellKey(next.cell))) queue.push(next);
         }
       }
     }
     if (occupied(landingCell)) return 'OCCUPIED_CELL';
+    if(partyArrival&&blockedLanding(landingCell))return 'BLOCKED_CELL';
+    if(port.departureWalk&&direction==='forward'&&!completedDeparture)return this.beginPortDeparture(character,port)?'MOVED':'ENTITY_UNAVAILABLE';
     if (['rope-ladder','rigging','swim'].includes(port.mode) && character.sceneId === destination.mapId) {
       this.startClimb(character,destination.surfaceId,landingCell,port.mode==='swim'?'dive':'climb');
       return 'MOVED';
     }
     const fromSceneId = character.sceneId, fromSurfaceId = character.surfaceId;
     this.clearSeat(character.id);character.sceneId = destination.mapId; character.surfaceId = destination.surfaceId; character.cell = cloneCell(landingCell);
+    if(port.rememberReturn){
+      for(const route of this.campaign.ports??[])if(route.rememberReturn&&this.progress[journeyReturnKey(entityId,route.id)])this.progress[journeyReturnKey(entityId,route.id)]=false;
+      if(direction==='forward')this.progress[journeyReturnKey(entityId,port.id)]=true;
+    }
     this.progress[this.rowboatFlag(character.id)] = false;
     this.progress[this.rowboatPilotFlag(character.id)] = false;
     character.step = null; character.moving = false; character.input = { held: null, seq: -1, updatedAt: 0 };
@@ -2180,6 +2277,10 @@ export class GameState {
   public interactionObject(id: string) { return this.currentObjects().find(object => object.id === id) ?? null; }
   public interactionRequestValid(request: RuntimeInteraction) {
     const character = this.characters.get(request.characterId), object = this.interactionObject(request.targetId);
+    if(request.kind==='journey'){
+      const options=this.manualJourneyOptions(request.characterId,request.targetId);
+      return Boolean(request.status==='pending'&&request.sceneEpoch===this.sceneEpoch&&character?.sceneId===request.sceneId&&character?.sessionToken===request.sessionToken&&character?.socketId&&request.journeyOptions?.length&&request.journeyOptions.every(o=>options.some(live=>live.portId===o.portId&&live.direction===o.direction)));
+    }
     if(request.targetId==='P10')return Boolean(request.status==='pending'&&request.sceneId===this.sceneId&&request.sceneEpoch===this.sceneEpoch&&character?.sessionToken===request.sessionToken&&character?.socketId&&this.cofaClimbAvailable(request.characterId));
     return Boolean(
       request.status === 'pending' && request.sceneId === this.sceneId && request.sceneEpoch === this.sceneEpoch &&
@@ -3157,6 +3258,16 @@ export class GameState {
       if (source.sourceId === sourceId && source.endsWhenSourceDefeated) this.setCombatCondition(targetId, source.condition, false, source);
     }
   }
+  private unlockDefeatedEncounterPassage(){
+    const encounter=this.campaign.encounter,creature=this.creature;
+    if(!encounter?.defeatUnlockObjectId||!creature||creature.hp>0||encounter.mirrorPlayer&&!creature.mimicOfPlayerId)return;
+    const state=this.objectScenes.get(encounter.sceneId),gate=state?.objects.find(o=>o.id===encounter.defeatUnlockObjectId);
+    if(!state||!gate||!isDoor(gate)||gate.structure==='destroyed')return;
+    // Derived from real HP adjudication. It neither resolves the adventure
+    // objective nor picks up the mirror, rolls dice or moves another player.
+    gate.structure='destroyed';gate.state='open';gate.version++;state.revision++;
+    this.cancelInteractionsForObject(gate.id);this.revision++;this.stateRevision++;
+  }
   applyHitPoints(entityId: string, delta: number) {
     if (delta > 0 && this.conditionSourcesFor(entityId).some(source => source.sourceAbility === 'nonlethal-finish')) this.setCombatCondition(entityId, 'inconsciente', false, { condition: 'inconsciente', sourceAbility: 'nonlethal-finish' });
     const character = this.characters.get(entityId);
@@ -3180,7 +3291,7 @@ export class GameState {
       this.endCombatIfSideDefeated();
       return true;
     }
-    if (this.creature?.id === entityId) { this.creature.hp = Math.max(0, Math.min(this.creature.maxHp, this.creature.hp + delta)); if (this.creature.hp <= 0) { this.clearConditionsFromDefeatedSource(entityId); this.endConcentration(entityId); } this.endCombatIfSideDefeated(); return true; }
+    if (this.creature?.id === entityId) { this.creature.hp = Math.max(0, Math.min(this.creature.maxHp, this.creature.hp + delta)); if (this.creature.hp <= 0) { this.clearConditionsFromDefeatedSource(entityId); this.endConcentration(entityId);this.unlockDefeatedEncounterPassage(); } this.endCombatIfSideDefeated(); return true; }
     const npc = this.npcs.get(entityId); if (npc) {
       npc.hp = Math.max(0, Math.min(npc.maxHp, npc.hp + delta));
       // A stage actor can be the same person in several scenes.  The pose and
@@ -3516,7 +3627,7 @@ export class GameState {
       sceneId: this.sceneId,
       gameClock: { seconds: Math.floor(clockSeconds), manuallyPaused: this.gameClockManuallyPaused },
       climates: this.campaign.public.scenes.map(scene => ({ sceneId: scene.id, state: this.climateAt(scene.id, clockSeconds) })),
-      ...(this.campaign.public.campaignId === 'stormwreck-isle' ? { wreckGridVersion: WRECK_SAVE_GRID_VERSION,retreatGridVersion:2 } : {}),
+      ...(this.campaign.public.campaignId === 'stormwreck-isle' ? { wreckGridVersion: WRECK_SAVE_GRID_VERSION,retreatGridVersion:RETREAT_SAVE_GRID_VERSION } : {}),
       ...(this.campaign.public.campaignId === 'd8-night-private' ? { d8GridVersion: D8_SAVE_GRID_VERSION } : {}),
       ...(this.campaign.actorLayout?{actorLayoutVersion:this.campaign.actorLayout.version}:{}),
       ...(this.campRest ? { campRest: structuredClone(this.campRest) } : {}),
@@ -3545,7 +3656,7 @@ export class GameState {
   restoreDurable(raw: DurablePayload, now = Date.now()) {
     const payload = durablePayloadSchema.parse(structuredClone(raw));
     if ((this.campaign.public.campaignId === 'stormwreck-isle' && (payload.wreckGridVersion ?? 1) > WRECK_SAVE_GRID_VERSION)
-      || (this.campaign.public.campaignId === 'stormwreck-isle' && (payload.retreatGridVersion??1)>2)
+      || (this.campaign.public.campaignId === 'stormwreck-isle' && (payload.retreatGridVersion??1)>RETREAT_SAVE_GRID_VERSION)
       || (this.campaign.public.campaignId === 'd8-night-private' && (payload.d8GridVersion ?? 1) > D8_SAVE_GRID_VERSION)
       || (this.campaign.actorLayout && (payload.actorLayoutVersion ?? 1) > this.campaign.actorLayout.version)) {
       throw new Error('SAVE_GEOMETRY_INCOMPATIBLE');
@@ -3571,6 +3682,7 @@ export class GameState {
     this.migrateCombinedStormwreckCampScenes(payload);
     const migratedObjectInteractions = this.migrateMissingObjectInteractions(payload);
     const migratedCampaignObjects = this.migrateAddedCampaignObjects(payload);
+    this.migrateEncounterPassage(payload,raw);
     const migratedPayload = beforeMigrations !== JSON.stringify(payload);
     let migratedCharacterSheets = false;
     const exactIds = (actual: string[], expected: string[]) => actual.length === expected.length && new Set(actual).size === actual.length && actual.every(id => expected.includes(id));
@@ -3825,10 +3937,14 @@ export class GameServer {
     this.state = new GameState(bundle);
   }
 
-  private dmState(): DmState {
-    const state = this.state.dmState(), latest = this.gameplayUndo.at(-1);
+  private dmState(socket?:Socket): DmState {
+    const state = this.state.dmState(socket?.data.previewSceneId ?? this.state.sceneId), latest = this.gameplayUndo.at(-1);
     state.gameUndo = { canUndo: Boolean(latest), label: latest?.label ?? null };
     return state;
+  }
+
+  private broadcastDmState() {
+    for(const socket of this.io.sockets.sockets.values())if(socket.data.role==='dm')socket.emit('dm:state',this.dmState(socket));
   }
 
   private rememberUndo(label: string, payload: DurablePayload) {
@@ -3853,13 +3969,13 @@ export class GameServer {
     }
     for (const connected of this.io.sockets.sockets.values()) connected.data.sceneReadyEpoch = -1;
     this.io.emit('runtime:reset', { runtimeEpoch: candidate.runtimeEpoch, cause: 'restore', reason: 'Partida restaurada. Sincronizando la mesa…' });
-    this.io.to('dm').emit('world:snapshot', candidate.publicSnapshot());
+    for(const socket of this.io.sockets.sockets.values())if(socket.data.role==='dm'){socket.data.previewSceneId=null;socket.emit('world:snapshot',this.snapshotForSocket(socket));}
     for (const connected of this.io.sockets.sockets.values()) if (connected.data.role === 'player') connected.emit('world:snapshot', this.snapshotForSocket(connected));
     this.io.to('projector').emit('world:snapshot', candidate.publicSnapshot(true));
     this.io.emit('audio:state', { ...candidate.audio, runtimeEpoch: candidate.runtimeEpoch });
     this.broadcastPrivate();
     this.io.to('player').emit('characters:available', { runtimeEpoch: candidate.runtimeEpoch, characters: this.availableCharacters() });
-    this.io.to('dm').emit('dm:state', this.dmState());
+    this.broadcastDmState();
     return candidate.runtimeEpoch;
   }
 
@@ -3892,7 +4008,7 @@ export class GameServer {
       this.broadcastSnapshot();
       for (const characterId of changedCharacters) if (this.state.characters.get(characterId)?.step) this.emitMovementSfx(characterId);
       for (const characterId of changedCharacters) this.broadcastPrivateFor(characterId);
-      this.io.to('dm').emit('dm:state', this.dmState());
+      this.broadcastDmState();
     }, 1000 / 30);
     this.snapshotTimer = setInterval(() => {
       if (this.worldOpen() && this.state.revision !== this.lastSnapshotRevision) this.broadcastSnapshot();
@@ -3931,7 +4047,11 @@ export class GameServer {
   }
 
   private snapshotForSocket(socket: Socket) {
-    if (socket.data.role === 'dm') return this.state.publicSnapshot(false, this.state.sceneId);
+    if (socket.data.role === 'dm') {
+      const snapshot=this.state.publicSnapshot(false,socket.data.previewSceneId??this.state.sceneId,undefined,true);
+      if(!snapshot.entities.some(e=>snapshot.combat.participants.some(p=>p.id===e.id)))snapshot.combat={...snapshot.combat,active:false,currentId:null,movement:null,participants:[]};
+      return snapshot;
+    }
     if (socket.data.role === 'projector') return this.state.publicSnapshot(true, this.state.sceneId);
     const character = this.state.characterForSession(String(socket.data.sessionToken ?? ''));
     const publicScene = this.state.campaign.public.scenes.find(scene => scene.access !== 'authorized')?.id ?? this.state.campaign.public.initialSceneId;
@@ -3998,14 +4118,21 @@ export class GameServer {
     socket.on('scene:ready', raw => this.handleSceneReady(socket, sessionToken, raw));
 
     if (isDm) {
-      socket.emit('dm:state', this.dmState());
+      socket.emit('dm:state', this.dmState(socket));
       socket.on('dm:command', raw => this.handleDm(socket, raw));
+      socket.on('dm:view', raw => {
+        if(!this.mutatorAllowed(raw)||!raw||typeof raw!=='object')return;
+        const sceneId=(raw as {sceneId?:unknown}).sceneId;
+        if(sceneId!==null&&(typeof sceneId!=='string'||!this.state.hasScene(sceneId)))return;
+        socket.data.previewSceneId=sceneId;
+        socket.emit('world:snapshot',this.snapshotForSocket(socket));socket.emit('dm:state',this.dmState(socket));
+      });
       socket.on('camera:orientation', raw => this.handleCameraOrientation(socket, raw));
     } else if (isProjector) {
       socket.on('projector:ready', (ready: unknown) => {
         if (!this.mutatorAllowed(ready)) return;
         this.state.projectorReady = (ready as { ready?: unknown }).ready === true;
-        this.io.to('dm').emit('dm:state', this.dmState());
+        this.broadcastDmState();
       });
       socket.on('sfx:loop:ended', raw => {
         if (!this.mutatorAllowed(raw)) return;
@@ -4020,7 +4147,7 @@ export class GameServer {
         this.state.stateRevision++;
         this.persistence?.markDirty();
         this.io.emit('audio:state', { ...this.state.audio, runtimeEpoch: this.state.runtimeEpoch });
-        this.io.to('dm').emit('dm:state', this.dmState());
+        this.broadcastDmState();
       });
     } else {
       const current = this.state.characterForSession(sessionToken);
@@ -4057,7 +4184,7 @@ export class GameServer {
         if (character?.sceneId === 'wreck-ship' && character.surfaceId === 'sea') this.broadcastPrivate();
       }
       if (socket.data.role === 'projector') this.state.projectorReady = false;
-      this.io.to('dm').emit('dm:state', this.dmState());
+      this.broadcastDmState();
     });
   }
 
@@ -4098,7 +4225,7 @@ export class GameServer {
     this.broadcastSnapshot();
     this.sendSharedCameraOrientation(socket, snapshot.sceneId, snapshot.sceneEpoch);
     this.io.to('player').emit('characters:available', { runtimeEpoch: this.state.runtimeEpoch, characters: this.availableCharacters() });
-    this.io.to('dm').emit('dm:state', this.dmState());
+    this.broadcastDmState();
   }
 
   private handleMove(socket: Socket, token: string, raw: unknown) {
@@ -4110,6 +4237,20 @@ export class GameServer {
     if (parsed.data.sceneEpoch !== this.state.sceneEpoch || parsed.data.seq <= character.input.seq) return;
     character.input.seq = parsed.data.seq;
     character.input.updatedAt = Date.now();
+    if (parsed.data.turnOnly) {
+      character.input.held = null;
+      if (character.step || character.hp <= 0 || this.state.conditionsFor(character.id).some(condition => condition === 'inconsciente' || condition === 'paralizada')) return;
+      const facing = directionFromVector(parsed.data.x, parsed.data.z);
+      if (!facing || facing === character.facing) return;
+      this.state.cancelPlannedJump(character.id);
+      character.facing = facing;
+      this.state.revision++; this.state.stateRevision++;
+      this.persistence?.markDirty();
+      this.broadcastSnapshot();
+      this.broadcastPrivateFor(character.id);
+      this.broadcastDmState();
+      return;
+    }
     if (parsed.data.end) { character.input.held = null; return; }
     const facing = directionFromVector(parsed.data.x, parsed.data.z);
     if (facing) this.state.cancelPlannedJump(character.id);
@@ -4126,7 +4267,7 @@ export class GameServer {
       this.emitMovementSfx(character.id, STEP_DURATION_MS);
       this.broadcastSnapshot();
       this.broadcastPrivateFor(character.id);
-      this.io.to('dm').emit('dm:state', this.dmState());
+      this.broadcastDmState();
     }
   }
 
@@ -4180,7 +4321,7 @@ export class GameServer {
     this.state.revision++; this.state.stateRevision++; this.persistence?.markDirty();
     if (pendingBefore && (parsed.data.type === 'combat:rollAttack' || parsed.data.type === 'combat:rollSave' || parsed.data.type === 'combat:rollDamage') && this.combatRollCompletesVisual(pendingBefore, resultCode)) this.emitCombatAnimation(pendingBefore, resultCode !== 'ATTACK_MISSED' && resultCode !== 'SAVE_SUCCESS');
     if (parsed.data.type === 'combat:declare' && resultCode === 'GUIDED_RESOLUTION') this.emitGuidedCombatSound(character.id, parsed.data.actionId);
-    finish({ commandId: parsed.data.commandId, ok: true, code: resultCode }); this.broadcastSnapshot(); this.broadcastPrivate(); this.io.to('dm').emit('dm:state', this.dmState());
+    finish({ commandId: parsed.data.commandId, ok: true, code: resultCode }); this.broadcastSnapshot(); this.broadcastPrivate(); this.broadcastDmState();
   }
 
   private handleInventory(socket: Socket, token: string, raw: unknown) {
@@ -4200,7 +4341,7 @@ export class GameServer {
     character.inventory = [...parsed.data.items]; this.state.revision++; this.state.stateRevision++;
     this.rememberUndo(`${character.label}: mochila`, before); this.persistence?.markDirty();
     const result = this.rememberResult(scope, parsed.data, { commandId: parsed.data.commandId, ok: true, code: 'INVENTORY_SAVED' });
-    this.emitResult(socket, result); this.broadcastSnapshot(); this.broadcastPrivateFor(character.id); this.io.to('dm').emit('dm:state', this.dmState());
+    this.emitResult(socket, result); this.broadcastSnapshot(); this.broadcastPrivateFor(character.id); this.broadcastDmState();
   }
 
   private handleInventoryUse(socket: Socket, token: string, raw: unknown) {
@@ -4220,7 +4361,7 @@ export class GameServer {
     this.state.revision++; this.state.stateRevision++; this.persistence?.markDirty();
     this.rememberUndo(`${character.label}: ${parsed.data.action} · mochila`, before);
     this.emitBasicActionAnimation(character.id, 'use-object');
-    this.broadcastSnapshot(); this.broadcastPrivateFor(character.id); this.io.to('dm').emit('dm:state', this.dmState());
+    this.broadcastSnapshot(); this.broadcastPrivateFor(character.id); this.broadcastDmState();
   }
 
   private handleCharacterSheet(socket: Socket, token: string, raw: unknown) {
@@ -4238,7 +4379,7 @@ export class GameServer {
     character.combat.speedMeters = parsed.data.sheet.speedMeters;
     this.state.revision++; this.state.stateRevision++; this.rememberUndo(`${character.label}: hoja`, before); this.persistence?.markDirty();
     const result = this.rememberResult(scope, parsed.data, { commandId: parsed.data.commandId, ok: true, code: 'SHEET_SAVED' });
-    this.emitResult(socket, result); this.broadcastPrivateFor(character.id); this.io.to('dm').emit('dm:state', this.dmState());
+    this.emitResult(socket, result); this.broadcastPrivateFor(character.id); this.broadcastDmState();
   }
 
   private handleInteract(socket: Socket, token: string, raw: unknown) {
@@ -4260,18 +4401,18 @@ export class GameServer {
       if(code==='INSPIRATION_SPENT'){this.state.progress[`prayer.${character.id}.inspiration`]=false;this.state.revision++;this.state.stateRevision++;}
       finish({commandId:parsed.data.commandId,ok:['INSPIRATION_SPENT','PRAYER_REQUESTED'].includes(code),code});
       if(code==='PRAYER_REQUESTED')this.io.emit('scene:animation',{runtimeEpoch:this.state.runtimeEpoch,sceneEpoch:this.state.sceneEpoch,entityId:character.id,state:'pray',durationMs:6000});
-      this.persistence?.markDirty();this.broadcastSnapshot();this.broadcastPrivate();this.io.to('dm').emit('dm:state',this.dmState());return;
+      this.persistence?.markDirty();this.broadcastSnapshot();this.broadcastPrivate();this.broadcastDmState();return;
     }
     const window=this.state.campaign.sceneWindows?.find(window=>parsed.data.targetId===window.id+'.break'||parsed.data.targetId===window.id+'.vault');
     if(window){const breaking=parsed.data.targetId.endsWith('.break'),code=breaking?this.state.breakSceneWindow(character.id,window.id):this.state.jumpThroughSceneWindow(character.id,window.id);finish({commandId:parsed.data.commandId,ok:['WINDOW_BROKEN','JUMP_COMPLETED'].includes(code),code});
       if(code==='WINDOW_BROKEN')this.emitProjectorSfx('d8-night-sfx-cafe-glass');
       if(code==='JUMP_COMPLETED')this.io.emit('scene:animation',{runtimeEpoch:this.state.runtimeEpoch,sceneEpoch:this.state.sceneEpoch,entityId:character.id,state:'jump',durationMs:1000});
-      this.persistence?.markDirty();this.broadcastSnapshot();this.broadcastPrivate();this.io.to('dm').emit('dm:state',this.dmState());return;}
+      this.persistence?.markDirty();this.broadcastSnapshot();this.broadcastPrivate();this.broadcastDmState();return;}
     const seat=this.state.interactSeat(character.id,parsed.data.targetId);
     if(seat){
       if(!seat.ok)return finish({commandId:parsed.data.commandId,ok:false,code:seat.code});
       this.persistence?.markDirty();finish({commandId:parsed.data.commandId,ok:true,code:seat.code});
-      this.broadcastSnapshot();this.broadcastPrivate();this.io.to('dm').emit('dm:state',this.dmState());return;
+      this.broadcastSnapshot();this.broadcastPrivate();this.broadcastDmState();return;
     }
     const sign=this.state.sceneForCharacter(character).readableSigns?.find(sign=>sign.id===parsed.data.targetId);
     if(sign){
@@ -4285,13 +4426,13 @@ export class GameServer {
       this.persistence?.markDirty();
       finish({ commandId: parsed.data.commandId, ok: true, code: door.code });
       this.io.emit('scene:animation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, entityId: character.id, state: 'interact', durationMs: 650 });
-      this.broadcastSnapshot(); this.broadcastPrivate(); this.io.to('dm').emit('dm:state', this.dmState());
+      this.broadcastSnapshot(); this.broadcastPrivate(); this.broadcastDmState();
       return;
     }
     if(parsed.data.targetId==='scene-animal-distraction'){
       const code=this.state.scareSceneAnimal(character.id);finish({commandId:parsed.data.commandId,ok:code==='ANIMAL_STARTLED',code});
       if(code==='ANIMAL_STARTLED'){
-        this.persistence?.markDirty();this.broadcastSnapshot();this.broadcastPrivate();this.io.to('dm').emit('dm:state',this.dmState());
+        this.persistence?.markDirty();this.broadcastSnapshot();this.broadcastPrivate();this.broadcastDmState();
         this.io.emit('scene:animation',{runtimeEpoch:this.state.runtimeEpoch,sceneEpoch:this.state.sceneEpoch,entityId:this.state.campaign.proximityEncounter!.distraction!.actorId,state:'react',durationMs:1800});
       }
       return;
@@ -4301,14 +4442,14 @@ export class GameServer {
       if (code !== 'ROWBOAT_BOARDED' && code !== 'ROWBOAT_LEFT') return finish({ commandId: parsed.data.commandId, ok: false, code });
       this.persistence?.markDirty();
       finish({ commandId: parsed.data.commandId, ok: true, code });
-      this.broadcastSnapshot(); this.broadcastPrivate(); this.io.to('dm').emit('dm:state', this.dmState());
+      this.broadcastSnapshot(); this.broadcastPrivate(); this.broadcastDmState();
       return;
     }
     if(parsed.data.targetId==='P10'){
       const code=this.state.requestCofaClimb(character.id);finish({commandId:parsed.data.commandId,ok:code==='REQUESTED'||code==='MOVED',code});
       if(code==='MOVED'){this.persistence?.markDirty();this.broadcastSnapshot();this.broadcastPrivate();}
       if(code==='REQUESTED')this.io.to(socket.id).emit('player:private',this.state.playerPrivate(token,'El mástil se inclina y balancea. Tira Fuerza (Atletismo) CD 10 e indica el total al DM; no hay caída ni daño automáticos.'));
-      this.io.to('dm').emit('dm:state',this.dmState());return;
+      this.broadcastDmState();return;
     }
     if (this.state.sceneForCharacter(character).pickups?.some(pickup => pickup.id === parsed.data.targetId)) {
       const code = this.state.takePickup(character.id, parsed.data.targetId);
@@ -4316,8 +4457,17 @@ export class GameServer {
       this.persistence?.markDirty();
       finish({ commandId: parsed.data.commandId, ok: true, code });
       this.io.emit('scene:animation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, entityId: character.id, state: 'interact', durationMs: 650 });
-      this.broadcastSnapshot(); this.broadcastPrivate(); this.io.to('dm').emit('dm:state', this.dmState());
+      this.broadcastSnapshot(); this.broadcastPrivate(); this.broadcastDmState();
       return;
+    }
+    if(parsed.data.targetId==='manual-journey-return'||this.state.manualJourneyOptions(character.id,parsed.data.targetId).length){
+      const code=this.state.requestManualJourney(character.id,parsed.data.targetId);
+      finish({commandId:parsed.data.commandId,ok:code==='REQUESTED',code});
+      if(code==='REQUESTED'){
+        this.io.emit('scene:animation',{runtimeEpoch:this.state.runtimeEpoch,sceneEpoch:this.state.sceneEpoch,entityId:character.id,state:'interact',durationMs:650});
+        this.io.to(socket.id).emit('player:private',this.state.playerPrivate(token,'Has solicitado continuar el viaje. El DM confirma la ruta, el tiempo y los acontecimientos.'));
+      }
+      this.broadcastDmState();return;
     }
     const stageInteraction = this.state.stageActorInteractionFor(character.id, parsed.data.targetId);
     if (stageInteraction) {
@@ -4329,7 +4479,7 @@ export class GameServer {
       this.io.emit('scene:animation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, entityId: character.id, state: 'interact', durationMs: 650 });
       this.io.emit('scene:animation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, entityId: stageInteraction.targetId, state: stageInteraction.responseAnimation, durationMs: stageInteraction.durationMs ?? 1_800 });
       this.io.to(socket.id).emit('player:private', this.state.playerPrivate(token, stageInteraction.notice));
-      this.io.to('dm').emit('dm:state', this.dmState());
+      this.broadcastDmState();
       return;
     }
     const mirrorInteraction = this.state.mirrorInteractionFor(character.id, parsed.data.targetId);
@@ -4340,11 +4490,11 @@ export class GameServer {
       this.state.revision++; this.state.stateRevision++; this.persistence?.markDirty();
       finish({ commandId: parsed.data.commandId, ok: true, code: 'INTERACTION_RESOLVED' });
       this.io.emit('scene:animation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, entityId: character.id, state: 'interact', durationMs: 650 });
-      this.io.emit('mirror:transformation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, propId: mirrorInteraction.targetId, sourceId: character.id, reflectionId: this.state.creature.id, frames: mirrorInteraction.effectFrames, durationMs: mirrorInteraction.durationMs ?? 1_600 });
-      this.emitProjectorSfx('d8-night-sfx-mirror');
+      this.io.emit('mirror:transformation', { eventId: parsed.data.commandId, serverTime: Date.now(), runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, propId: mirrorInteraction.targetId, sourceId: character.id, reflectionId: this.state.creature.id, frames: mirrorInteraction.effectFrames, durationMs: mirrorInteraction.durationMs ?? 1_600 });
+      this.emitProjectorSfx('d8-night-sfx-mirror',parsed.data.commandId);
       this.broadcastSnapshot(); this.broadcastPrivate();
       this.io.to(socket.id).emit('player:private', this.state.playerPrivate(token, mirrorInteraction.notice));
-      this.io.to('dm').emit('dm:state', this.dmState());
+      this.broadcastDmState();
       return;
     }
     const interaction = this.state.campaign.wheelInteraction;
@@ -4366,7 +4516,7 @@ export class GameServer {
     };
     this.state.interactions.push(request);
     finish({ commandId: parsed.data.commandId, ok: true, code: 'REQUESTED' });
-    this.io.to('dm').emit('dm:state', this.dmState());
+    this.broadcastDmState();
   }
 
   private handleCampInteract(socket: Socket, token: string, raw: unknown) {
@@ -4388,7 +4538,7 @@ export class GameServer {
     this.broadcastSnapshot();
     this.broadcastPrivate();
     this.io.to(socket.id).emit('player:private', this.state.playerPrivate(token, result.notice));
-    this.io.to('dm').emit('dm:state', this.dmState());
+    this.broadcastDmState();
   }
 
   private handleExplorationAction(socket: Socket, token: string, raw: unknown) {
@@ -4404,13 +4554,13 @@ export class GameServer {
       const result = this.state.startCombatFromAttack(character.id, parsed.data.targetId, parsed.data.actionId);
       if (!result.ok) return finish({ commandId: parsed.data.commandId, ...result });
       this.state.revision++; this.state.stateRevision++; this.persistence?.markDirty();
-      finish({ commandId: parsed.data.commandId, ok: true, code: result.code }); this.broadcastSnapshot(); this.broadcastPrivate(); this.io.to('dm').emit('dm:state', this.dmState());
+      finish({ commandId: parsed.data.commandId, ok: true, code: result.code }); this.broadcastSnapshot(); this.broadcastPrivate(); this.broadcastDmState();
       return;
     }
     if(parsed.data.type==='exploration:check'){
       const data=parsed.data,request=this.state.interactions.find(request=>request.id===data.requestId&&request.characterId===character.id&&request.kind==='proximity-check'&&request.status==='pending'&&request.sceneEpoch===this.state.sceneEpoch);
       if(!request)return finish({commandId:parsed.data.commandId,ok:false,code:'REQUEST_STALE'});
-      request.playerTotal=parsed.data.total;finish({commandId:parsed.data.commandId,ok:true,code:'CHECK_SUBMITTED'});this.broadcastPrivate();this.io.to('dm').emit('dm:state',this.dmState());return;
+      request.playerTotal=parsed.data.total;finish({commandId:parsed.data.commandId,ok:true,code:'CHECK_SUBMITTED'});this.broadcastPrivate();this.broadcastDmState();return;
     }
     if (parsed.data.type === 'exploration:basic') {
       const result = this.state.declareExplorationBasicAction(character.id, parsed.data.action, parsed.data.targetId, parsed.data.targetCell, parsed.data.jumpMode);
@@ -4424,7 +4574,7 @@ export class GameServer {
        const playerNotice = parsed.data.action === 'jump' ? `Salto hacia ${result.targetLabel}.`
          : `${result.action.label} · ${result.targetLabel}. ${result.guidance}`;
        this.io.to(socket.id).emit('player:private', this.state.playerPrivate(token, playerNotice));
-      this.io.to('dm').emit('dm:state', this.dmState());
+      this.broadcastDmState();
       this.broadcastSnapshot();this.broadcastPrivate();
       return;
     }
@@ -4436,12 +4586,12 @@ export class GameServer {
     if (!result.action.soundId) this.emitAreaEffect(result.action.id, result.target.cell);
     finish({ commandId: parsed.data.commandId, ok: true, code: result.code });
     this.io.to(socket.id).emit('player:private', this.state.playerPrivate(token, `${result.action.label} sobre ${result.target.label}. ${result.action.guidance}`));
-    this.io.to('dm').emit('dm:state', this.dmState());
+    this.broadcastDmState();
   }
 
   applyDmCommand(command: DmCommand, decisionSocketId = 'dm'): CommandResult {
     let resultCode = 'APPLIED';
-    const staleTypes = new Set(['encounter:reveal', 'story:choice', 'story:ending', 'scene', 'view:focus', 'entity:portal', 'scene:animation', 'creature', 'npc:visible', 'camera', 'environment', 'camp:rest', 'entity:move', 'resolveInteraction', 'combat:start', 'combat:participant', 'combat:initiative', 'combat:initiativeOrder', 'combat:condition', 'combat:endTurn', 'combat:next', 'combat:end', 'combat:declare', 'combat:basic', 'combat:stand', 'combat:dropProne', 'combat:reaction', 'combat:rollAttack', 'combat:rollDamage', 'combat:rollSave', 'combat:rollDeathSave', 'combat:recharge', 'progress:toggle', 'pickup:take']);
+    const staleTypes = new Set(['encounter:reveal', 'story:choice', 'story:ending', 'scene', 'view:focus', 'entity:portal', 'scene:animation', 'creature', 'npc:visible', 'camera', 'environment', 'camp:rest', 'entity:move', 'entity:place', 'resolveInteraction', 'combat:start', 'combat:participant', 'combat:initiative', 'combat:initiativeOrder', 'combat:condition', 'combat:endTurn', 'combat:next', 'combat:end', 'combat:declare', 'combat:basic', 'combat:stand', 'combat:dropProne', 'combat:reaction', 'combat:rollAttack', 'combat:rollDamage', 'combat:rollSave', 'combat:rollDeathSave', 'combat:recharge', 'progress:toggle', 'pickup:take']);
     if ((staleTypes.has(command.type) || command.type==='scene:resolveCheck' || command.type.startsWith('camp:') || command.type==='entity:seat' || command.type.startsWith('combat:')) && 'sceneEpoch' in command && command.sceneEpoch !== this.state.sceneEpoch) {
       return { commandId: command.commandId, ok: false, code: 'STALE_SCENE' };
     }
@@ -4501,6 +4651,9 @@ export class GameServer {
       if (!result.ok) return { commandId: command.commandId, ok: false, code: result.code };
       if (result.activity.durationMs) this.io.emit('scene:animation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, entityId: command.characterId, state: result.activity.animation, durationMs: result.activity.durationMs });
       if (result.activity.id === 'chest-toggle') this.emitProjectorSfx('creak');
+    } else if (command.type === 'entity:place') {
+      const result=this.state.placeEntity(command.entityId,command.sceneId,command.surfaceId,command.cell);
+      if(result!=='PLACED')return {commandId:command.commandId,ok:false,code:result};
     } else if (command.type === 'entity:move') {
       const result = this.state.moveEntityOneSquare(command.entityId, command.cell);
       if (result !== 'MOVED' && result !== 'REACTION_PENDING') return { commandId: command.commandId, ok: false, code: result };
@@ -4662,6 +4815,7 @@ export class GameServer {
         request.status = 'resolved';
         return this.state.objectCommandResult(command.commandId, true, 'APPLIED');
       }
+      if(request.kind==='journey')return this.state.objectCommandResult(command.commandId,false,'INVALID_TRANSITION');
       const result = this.state.applyObjectCommand({ type: 'object:detach', commandId: command.commandId, sceneEpoch: command.sceneEpoch, objectRevision: command.objectRevision, objectId: request.targetId, cell: command.cell!, rotation: command.rotation!, outcome: command.result });
       if (result.ok) request.status = 'resolved';
       return result;
@@ -4710,7 +4864,7 @@ export class GameServer {
     if (durableChanged && (before.sceneId !== this.state.sceneId || command.type === 'story:choice' || command.type === 'story:ending' || command.type === 'combat:start' || command.type === 'combat:end')) void this.persistence?.saveAutomaticNow().catch(() => {});
     this.emitResult(socket, this.rememberResult(scope, command, result));
     if (!result.ok) {
-      if (objectCommand && (result.code === 'STALE_OBJECTS' || result.code === 'REQUEST_STALE')) socket.emit('dm:state', this.dmState());
+      if (objectCommand && (result.code === 'STALE_OBJECTS' || result.code === 'REQUEST_STALE')) socket.emit('dm:state', this.dmState(socket));
       return;
     }
     if (pendingBefore && result.ok && (command.type === 'combat:rollAttack' || command.type === 'combat:rollSave' || command.type === 'combat:rollDamage') && this.combatRollCompletesVisual(pendingBefore, result.code)) this.emitCombatAnimation(pendingBefore, result.code !== 'ATTACK_MISSED' && result.code !== 'SAVE_SUCCESS');
@@ -4723,7 +4877,7 @@ export class GameServer {
     if (command.type === 'sfx') this.emitProjectorSfx(command.sfxId, command.commandId);
     if(command.type==='creature'&&command.visible&&this.state.creature?.mimicOfPlayerId&&this.state.campaign.mirrorInteraction){
       const mirror=this.state.campaign.mirrorInteraction;
-      this.io.emit('mirror:transformation',{runtimeEpoch:this.state.runtimeEpoch,sceneEpoch:this.state.sceneEpoch,propId:mirror.targetId,sourceId:this.state.creature.mimicOfPlayerId,reflectionId:this.state.creature.id,frames:mirror.effectFrames,durationMs:mirror.durationMs??1600});
+      this.io.emit('mirror:transformation',{eventId:command.commandId,serverTime:Date.now(),runtimeEpoch:this.state.runtimeEpoch,sceneEpoch:this.state.sceneEpoch,propId:mirror.targetId,sourceId:this.state.creature.mimicOfPlayerId,reflectionId:this.state.creature.id,frames:mirror.effectFrames,durationMs:mirror.durationMs??1600});
       this.emitProjectorSfx('d8-night-sfx-mirror',command.commandId);
     }
     if (command.type === 'scene:animation') {
@@ -4742,12 +4896,12 @@ export class GameServer {
     this.broadcastPrivate();
     if (command.type === 'progress:toggle' && command.value) this.emitWreckProgressNotice(command.flag);
     if (command.type === 'wreck:level-up') this.emitWreckLevelNotice(command.level);
-    this.io.to('dm').emit('dm:state', this.dmState());
+    this.broadcastDmState();
   }
 
   private broadcastSnapshot() {
     this.lastSnapshotRevision = this.state.revision;
-    this.io.to('dm').emit('world:snapshot', this.state.publicSnapshot());
+    for(const socket of this.io.sockets.sockets.values())if(socket.data.role==='dm')socket.emit('world:snapshot',this.snapshotForSocket(socket));
     this.io.to('projector').emit('world:snapshot', this.state.publicSnapshot(true));
     for (const socket of this.io.sockets.sockets.values()) if (socket.data.role === 'player') socket.emit('world:snapshot', this.snapshotForSocket(socket));
   }

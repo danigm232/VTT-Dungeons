@@ -95,7 +95,11 @@ const lightTargets = new WeakMap<PointLight, PointLight['includedOnlyMeshes']>()
 export function includeCampActors(light: PointLight, belongs: (mesh: Mesh)=>boolean, scene: Scene) {
   let scenery = lightTargets.get(light);
   if (!scenery) { scenery = light.includedOnlyMeshes.filter(m=>!m.metadata?.nativeBillboard); lightTargets.set(light,scenery); }
-  light.includedOnlyMeshes = [...scenery,...scene.meshes.filter((m):m is Mesh=>m instanceof Mesh && m.metadata?.nativeBillboard && belongs(m))];
+  const targets=[...scenery,...scene.meshes.filter((m):m is Mesh=>m instanceof Mesh && m.metadata?.nativeBillboard && belongs(m))];
+  // Babylon resynchronizes this light against every scene mesh on assignment.
+  // Keep its existing hooked array while membership and order are unchanged;
+  // actor entry, movement between rooms and removal still update immediately.
+  if(targets.length!==light.includedOnlyMeshes.length||targets.some((m,i)=>m!==light.includedOnlyMeshes[i]))light.includedOnlyMeshes=targets;
 }
 
 export class CampShadows {

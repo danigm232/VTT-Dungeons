@@ -17,7 +17,9 @@ export class DmMapTargets {
         button.textContent = '◇'; button.onpointerdown = event => event.stopPropagation();
         entry = { target, button, x: NaN, y: NaN };
         this.targets.set(target.id, entry);
-        button.onclick = event => { event.stopPropagation(); const active = this.targets.get(target.id)?.target; const point = active?.project(); if (point) active?.select(point); };
+        button.onclick = event => {event.stopPropagation();if(event.detail===0)activate();};
+        button.ondblclick = event => {event.stopPropagation();activate();};
+        const activate = () => { const active = this.targets.get(target.id)?.target; const point = active?.project(); if (point) active?.select(point); };
         this.layer.append(button);
       }
       entry.target = target;

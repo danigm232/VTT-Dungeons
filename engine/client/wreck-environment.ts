@@ -18,7 +18,7 @@ export function wreckWeatherCovered(x:number,z:number,surface='main',height=0) {
   return Object.values(WRECK_CABINS).some(r=>x>=r.minCol*1.5&&x<=(r.maxCol+1)*1.5&&z>=r.minRow*1.5&&z<=(r.maxRow+1)*1.5);
 }
 class WreckSurfaceWeather extends MaterialPluginBase {
-  constructor(material:StandardMaterial,private amount:typeof deposition){super(material,'WreckSurfaceWeather',191,{},true,true);}
+  constructor(material:StandardMaterial,private amount:typeof deposition){super(material,'WreckSurfaceWeather',191,{},true,true);this.doNotSerialize=true;}
   getUniforms(){return {ubo:[{name:'wreckDeposition',size:4,type:'vec4'}],fragment:'#ifndef UNIFORMBUFFERS\nuniform vec4 wreckDeposition;\n#endif'};}
   bindForSubMesh(buffer:UniformBuffer){buffer.updateFloat4('wreckDeposition',this.amount.wet,this.amount.snow,this.amount.puddles,this.amount.flood);}
   getCustomCode(type:string){if(type!=='fragment')return null;
@@ -37,12 +37,18 @@ class WreckSurfaceWeather extends MaterialPluginBase {
  * abandoned lamps. Interior darkness and authoritative climate remain intact. */
 export function createWreckEnvironment(scene:Scene,compact=false){
   const sun=scene.getLightByName('ship-key-light') as DirectionalLight;
-  const shadows=new CampShadows(scene,sun,compact,m=>!m.metadata?.nativeBillboard&&!/actor:|weather:|water|ocean|foam|wake|wash|shimmer|darkness|shadow|weather-decal|algae|bubble|fish|salt-and-rot/i.test(m.name),true),amount={...deposition},applied=new Set<StandardMaterial>();
-  function prepare(){for(const material of scene.materials)if(material instanceof StandardMaterial&&!applied.has(material)&&!material.disableLighting&&!/water|ocean|sea|shimmer|darkness|contact|foam|shadow/i.test(material.name)){
+  const shadows=new CampShadows(scene,sun,compact,m=>!m.metadata?.nativeBillboard&&!m.metadata?.scenicLayer&&!/actor:|weather:|water|ocean|foam|wake|wash|shimmer|darkness|shadow|weather-decal|algae|bubble|fish|salt-and-rot/i.test(m.name),true),amount={...deposition},applied=new Set<StandardMaterial>();
+  // Material construction can notify before subclass initialization finishes.
+  // Queue additions and prepare them on the next update, rather than scanning
+  // every scene material on every frame or patching half-constructed objects.
+  const pending=[...scene.materials];
+  const added=scene.onNewMaterialAddedObservable.add(material=>pending.push(material));
+  scene.onDisposeObservable.addOnce(()=>{scene.onNewMaterialAddedObservable.remove(added);pending.length=0;applied.clear();});
+  function prepare(){for(const material of pending)if(material instanceof StandardMaterial&&!applied.has(material)&&!material.disableLighting&&!/water|ocean|sea|shimmer|darkness|contact|foam|shadow/i.test(material.name)&&scene.materials.includes(material)){
     new WreckSurfaceWeather(material,amount);applied.add(material);
-  }}
+  }pending.length=0;}
   prepare();
-  return {amount,shadows,update(time:number,seconds:number,environment:EnvironmentState,climate:ClimateState|undefined,focus:Vector3,sources:PointLight[],animating=false){
+  return {amount,shadows,prepare,update(time:number,seconds:number,environment:EnvironmentState,climate:ClimateState|undefined,focus:Vector3,sources:PointLight[],animating=false){
     if(climate)Object.assign(amount,{wet:climate.wetness,snow:climate.snowCoverage,puddles:climate.puddleCoverage,flood:climate.floodLevel});
     else Object.assign(amount,advanceWeatherSurface(amount.wet,amount.snow,environment.precipitation??(environment.storm?'rain':'none'),(environment.precipitationLevel??2)/3,seconds));
     Object.assign(deposition,amount);prepare();shadows.update(time,sources,focus,animating);

@@ -187,10 +187,10 @@ describe('independent private one-shot pack', () => {
     const movement = oneShotBundle.public.tokenAnimations['silverfarben-hotel']!;
     for (const direction of ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw']) {
       expect(movement[`moving-${direction}`]).toMatchObject({fps:16,flipX:direction==='sw'});
-      expect(movement[`running-${direction}`]).toMatchObject({fps:20,flipX:direction==='sw'});
+      expect(movement[`running-${direction}`]).toMatchObject({fps:14,flipX:['sw','w','nw'].includes(direction)});
       expect(movement[`moving-${direction}`]?.frames).toHaveLength(8);
-      expect(movement[`running-${direction}`]?.frames).toHaveLength(8);
-      expect(movement[`running-${direction}`]?.frames).toEqual(movement[`moving-${direction}`]?.frames);
+      expect(movement[`running-${direction}`]?.frames).toHaveLength(6);
+      expect(movement[`running-${direction}`]?.frames).not.toEqual(movement[`moving-${direction}`]?.frames);
       for (const frame of movement[`moving-${direction}`]!.frames) {
         expect(typeof frame).not.toBe('string');
         if (typeof frame !== 'string') {
@@ -219,16 +219,15 @@ describe('independent private one-shot pack', () => {
           expect(animations[`direction-${direction}`]).toBeDefined();
       } else expect(animations[state]).toBeDefined();
     }
-    expect(animations.attack?.frames).toHaveLength(4);
-    expect(animations['attack-arrow']?.frames).toHaveLength(4);
+    expect(animations.attack?.frames).toHaveLength(6);
+    expect(animations['attack-arrow']?.frames).toHaveLength(6);
     expect(animations['attack-arrow-mirrored']).toMatchObject({ flipX: true, frames: expect.any(Array) });
-    expect(animations['attack-throw']?.frames).toHaveLength(4);
+    expect(animations['attack-throw']?.frames).toHaveLength(6);
     expect(animations['attack-throw-mirrored']).toMatchObject({ flipX: true, frames: expect.any(Array) });
-    expect(animations.prone?.frames).toHaveLength(1);
-    expect(animations.crawl?.frames).toHaveLength(4);
-    expect(animations.defeated?.frames).toEqual([
-      '/art/tokens/Silverfarben Hotel/silverfarben_hotel_derrotada.png'
-    ]);
+    expect(animations.prone?.frames).toHaveLength(6);
+    expect(animations.crawl?.frames).toHaveLength(6);
+    expect(animations.defeated?.frames).toHaveLength(1);
+    expect(JSON.stringify(animations.defeated?.frames)).toContain('/art/silverfarben-v3/conditions3.png');
   });
 
   it('asigna a cada PNJ de D8 Night sus ciclos propios de movimiento, interacción y ataque', () => {

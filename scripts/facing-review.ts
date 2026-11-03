@@ -48,8 +48,9 @@ let paused = false, elapsed = 0, lastNow = 0;
 const pause = $('pause') as HTMLButtonElement;
 pause.onclick = () => { paused = !paused; pause.textContent = paused ? 'Reproducir' : 'Pausar'; };
 function seek(frame: number) {
-  paused = true; pause.textContent = 'Reproducir'; frameControl.value = String((frame + 8) % 8);
-  elapsed = Number(frameControl.value) * 1000 / (mode.value === 'run' ? 20 : poses[0]?.fps ?? 16);
+  const count=poses[0]?.walk.length??8;
+  paused = true; pause.textContent = 'Reproducir'; frameControl.value = String((frame + count) % count);
+  elapsed = Number(frameControl.value) * 1000 / (poses[0]?.fps ?? 16);
 }
 frameControl.oninput = () => seek(Number(frameControl.value));
 frameControl.onchange = () => seek(Number(frameControl.value));
@@ -70,7 +71,7 @@ async function refresh() {
       canvas.width = 400; canvas.height = 400; card.append(title,description,canvas); $('gallery').append(card);
       return { walk: await Promise.all(walk.frames.map(picture)), rest: await Promise.all(rest.frames.map(picture)), fps: walk.fps, restFps: rest.fps, flip: walk.flipX ?? false, restFlip: rest.flipX ?? false, canvas, direction: screen };
     }));
-    if (request === generation) { poses = next; $('status').textContent = `Ocho rumbos · ${next[0]!.walk.length} fotogramas por ciclo · escala constante dentro de cada ciclo`; }
+    if (request === generation) { poses = next; frameControl.max=String(next[0]!.walk.length-1); frameControl.value='0';elapsed=0; $('status').textContent = `Ocho rumbos · ${next[0]!.walk.length} fotogramas por ciclo · escala constante dentro de cada ciclo`; }
   } catch (error) { if (request === generation) $('status').textContent = String(error); }
 }
 selector.onchange = () => { moving = false; void refresh(); }; camera.onchange = () => void refresh();
@@ -97,8 +98,8 @@ function draw(canvas: HTMLCanvasElement, pose: Pose, walking: boolean, now: numb
   ctx.clearRect(0,0,canvas.width,canvas.height); ctx.save(); ctx.translate(canvas.width / 2,canvas.height - 45);
   ctx.fillStyle = '#c5aa7533'; ctx.beginPath(); ctx.ellipse(0,0,42,8,0,0,Math.PI * 2); ctx.fill();
   // Use one reference scale per clip, never resize every pose to hide gait jitter.
-  const reference = frames[0]!;
-  const scale = (canvas.height - 90) / Math.max(.1,reference.ground.heightFraction * reference.height);
+  const actor=actors[Number(selector.value)]!;
+  const scale = (canvas.height - 90) / actor.campaign.tokens[actor.id]!.logicalHeight;
   const height = pic.height * scale, width = pic.width * scale;
   ctx.scale((walking ? pose.flip : pose.restFlip) ? -1 : 1,1);
   ctx.drawImage(pic.canvas,-width * pic.anchor,-height * pic.anchorY,width,height); ctx.restore();
@@ -106,8 +107,9 @@ function draw(canvas: HTMLCanvasElement, pose: Pose, walking: boolean, now: numb
 function render(now: number) {
   if (lastNow && !paused) elapsed += Math.min(100,now - lastNow) * Number(speed.value);
   lastNow = now;
-  if (!paused) frameControl.value = String(Math.floor(elapsed / 1000 * (poses[0]?.fps ?? 16)) % 8);
-  $('frameLabel').textContent = `Fotograma ${Number(frameControl.value) + 1}/8`;
+  const count=poses[0]?.walk.length??8;
+  if (!paused) frameControl.value = String(Math.floor(elapsed / 1000 * (poses[0]?.fps ?? 16)) % count);
+  $('frameLabel').textContent = `Fotograma ${Number(frameControl.value) + 1}/${count}`;
   for (const pose of poses) draw(pose.canvas,pose,mode.value === 'auto' ? elapsed % 3600 < 1500 : mode.value !== 'rest',elapsed);
   const pose = poses[headings.indexOf(demoHeading)];
   if (pose) draw($('demo') as HTMLCanvasElement,pose,moving,elapsed);

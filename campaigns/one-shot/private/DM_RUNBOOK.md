@@ -42,11 +42,13 @@ Anteros: 71 PG, CA16, velocidad9 m, vuelo18 m; inmune a envenenada y resistencia
 
 ## Reflejo e hielo
 
+La revisión visual del 19/10 amplía el perímetro irregular a 399 casillas transitables (344 difíciles). Las 260 anteriores, sus coordenadas, el espejo y las 49 casillas peligrosas se conservan. Las casillas nuevas junto a las paredes son hielo firme nevado; no amplían el lago ni añaden peligros.
+
 Solo en espejo, revela y elige original si hay varios PJ. Usa su forma base antes del combate con efecto helado. Copia perfil/ataques/recursos iniciales una vez; PG máximos =75% del máximo original, redondeado hacia abajo. PG, estados y recursos posteriores son independientes. Revelar otra vez no cambia original ni cura reflejo. Enlace/perfil se guardan.
 
 No ataca primero. Turno inmediatamente después del original; panel indica qué acción imitar. Si no hay equivalente legal, DM resuelve excepción mediante control guiado; no inventar ataque libre.
 
-Hielo blanco nevado: terreno difícil, movimiento doble. Hielo azul: las casillas coinciden con el contorno del lago y excluyen los témpanos sólidos. Pisar una casilla azul, tanto desde el jugador como desde el DM, aplica caída y muerte por congelación según la petición de esta mesa: PG 0, inconsciente, tres fallos de salvación contra muerte, fin de concentración y movimiento detenido. No es una regla general de D&D ni una tirada de DEX automática. La consecuencia se guarda y restaura; una criatura muerta no puede seguir caminando. Excepciones creativas, magia y el posible bucle narrativo se arbitran con el DM y una restauración confirmada, no con un reinicio silencioso.
+Hielo blanco nevado: terreno difícil, movimiento doble. Hielo azul: la regla vigente del servidor incluye el contorno del lago y las seis placas de hielo fino (49 casillas en la base del 18/10/2026). Las placas elevadas son peligrosas; no son témpanos seguros. Esta aclaración documental conserva la regla ejecutada y no modifica peligros. Pisar una casilla azul, tanto desde el jugador como desde el DM, aplica caída y muerte por congelación según la petición de esta mesa: PG 0, inconsciente, tres fallos de salvación contra muerte, fin de concentración y movimiento detenido. No es una regla general de D&D ni una tirada de DEX automática. La consecuencia se guarda y restaura; una criatura muerta no puede seguir caminando. Excepciones creativas, magia y el posible bucle narrativo se arbitran con el DM y una restauración confirmada, no con un reinicio silencioso.
 
 ## Caminos, carteles y clima — V47
 

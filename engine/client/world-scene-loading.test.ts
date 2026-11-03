@@ -9,11 +9,12 @@ function sceneLoader() {
     campaign: { scenes: [{ id: 'garden', renderer: 'babylon-d8', grid: { width: 600, height: 400 } }] },
     options: {}, sceneId: null, installedSceneId: null,
     connectionGeneration: 0, requestGeneration: 1, d8ConfigRequest: null,
+    mirrorRevealAt:new Map(),mirrorTravel:new Map(),stageCameraLimits:new Map(),
     background: { position: { set: vi.fn() } }, dynamic: { removeChildren: vi.fn() },
     reachable: { clear: vi.fn() }, areaEffects: { clear: vi.fn() }, occlusionCache: new Map(), combatOcclusionCues: new Map(), combatOcclusionCache: new Map(), tokenViews: new Map(), propViews: new Map(), pickupViews: new Map(), standingActors: new Set(), mirrorGeneration: 0,
-    readCameraOrientation: vi.fn(() => 0), readCameraZoom: vi.fn(() => null),
+    readCameraOrientation: vi.fn(() => 0), readCameraZoom: vi.fn(() => null), readCameraTilt:vi.fn(()=>null),
     clearEditor: vi.fn(), clearAttackRange: vi.fn(), drawGrid: vi.fn(), drawWaves: vi.fn(), updateCamera: vi.fn(),
-    installD8Renderer: vi.fn(async () => true), d8CameraMotion: { reset: vi.fn() }, d8InteriorTilt: {reset:vi.fn()}
+    installD8Renderer: vi.fn(async () => true), d8CameraMotion: { reset: vi.fn() }, d8InteriorTilt: {reset:vi.fn(),enterScene:vi.fn()}
   });
   vi.stubGlobal('window', { matchMedia: () => ({ matches: false }) });
   return renderer;

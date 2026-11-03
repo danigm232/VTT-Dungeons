@@ -15,6 +15,7 @@ import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData.js';
 import type { Scene } from '@babylonjs/core/scene.js';
 import { interactionActorVertex, type InteractionActorPose } from './interaction-actor-pose.js';
 import { actorShadow } from './actor-shadow.js';
+import { iceReflectionGeometry, type IceSample } from './ice-reflection.js';
 import { bloodPoolTexture, unconsciousGroundTexture, paintDefeatGround } from './defeat-presentation';
 
 export type BillboardFrame = {
@@ -31,7 +32,7 @@ export type BillboardFrame = {
   worldOffset?: { x: number; y: number; z: number };
 };
 type Layer = { mesh: Mesh; material: StandardMaterial; key: string; grid?: boolean; frame?: BillboardFrame };
-type Actor = { body: Layer; ghost: Layer; shadow: Mesh; ring: Mesh; projection?: Mesh; effects: Layer[] };
+type Actor = { body: Layer; ghost: Layer; shadow: Mesh; ring: Mesh; projection?: Mesh; reflections?:[Layer,Layer]; effects: Layer[] };
 
 /** UVs use the atlas' actual pixel dimensions and stay inside its frame.
  * The half-pixel inset prevents neighbouring poses leaking into an edge. */
@@ -75,8 +76,12 @@ function paintedTexture(url: string, scene: Scene, frame?: BillboardFrame): Text
 export class WorldBillboards {
   private actors = new Map<string, Actor>();
   private textures = new Map<string, Texture>();
-  constructor(private scene: Scene, private textureFactory = (url: string, frame?: BillboardFrame) => paintedTexture(url, scene, frame), private dynamicShadows = false) {}
+  constructor(private scene: Scene, private textureFactory = (url: string, frame?: BillboardFrame) => paintedTexture(url, scene, frame), private dynamicShadows = false,
+    private sampleLight?: (ground: Vector3, actorId: string) => { r:number; g:number; b:number },
+    private sampleIce?: (ground:{x:number;y:number;z:number})=>IceSample,
+    private modulatePaintedAlbedo = false) {}
   get count() { return this.actors.size; }
+  get reflectionAudit(){return [...this.actors].flatMap(([id,a])=>(a.reflections??[]).map(r=>({id,enabled:r.mesh.isEnabled(),peakOpacity:Math.max(0,...(r.mesh.getVerticesData('color')??[]).filter((_,i)=>i%4===3)),textureShared:r.material.diffuseTexture===a.body.material.diffuseTexture})));}
   private texture(url: string, frame?: BillboardFrame) {
     let texture = this.textures.get(url);
     if (!texture) {
@@ -128,7 +133,24 @@ export class WorldBillboards {
       paint.alpha = .3; projection.material = paint; projection.isPickable = false;
       projection.metadata = { tokenOccluder:false, actorShadow:true };
     }
-    const actor: Actor = { body, ghost, shadow, ring, projection, effects: [] }; this.actors.set(id, actor); return actor;
+    const reflections=this.sampleIce ? [this.layer(`${id}:ice-reflection`,true),this.layer(`${id}:ice-reflection-blend`,true)] as [Layer,Layer] : undefined;
+    for(const layer of reflections??[]){layer.mesh.isPickable=false;layer.mesh.hasVertexAlpha=true;layer.mesh.metadata={tokenOccluder:false,iceReflection:true};layer.material.forceDepthWrite=false;layer.material.disableDepthWrite=true;layer.material.transparencyMode=Material.MATERIAL_ALPHABLEND;}
+    const actor: Actor = { body, ghost, shadow, ring, projection, reflections, effects: [] }; this.actors.set(id, actor); return actor;
+  }
+  private reflect(target:Layer,source:Layer,frame:BillboardFrame|null,ground:Vector3,camera:Camera,visible:boolean){
+    if(!frame||!visible||!this.sampleIce){target.mesh.setEnabled(false);return;}
+    const right=camera.getDirection(Vector3.Right());right.y=0;right.normalize();
+    const direction=camera.getForwardRay().direction,toward=new Vector3(-direction.x,0,-direction.z).normalize();
+    const geometry=iceReflectionGeometry(source.frame??frame,ground,right,toward,Math.asin(Math.abs(direction.y)),this.sampleIce,billboardUVs(source.frame??frame));
+    if(target.mesh.getTotalVertices()===geometry.positions.length/3){
+      target.mesh.updateVerticesData(VertexBuffer.PositionKind,geometry.positions,true);target.mesh.updateVerticesData(VertexBuffer.UVKind,geometry.uvs);target.mesh.updateVerticesData(VertexBuffer.ColorKind,geometry.colors);
+    }else{const data=new VertexData();Object.assign(data,geometry);data.applyToMesh(target.mesh,true);}
+    target.mesh.setEnabled(geometry.colors.some((a,i)=>i%4===3&&a>.003));
+    // Reuse the visible atlas/pose: zero reflection textures or render targets.
+    target.material.diffuseTexture=source.material.diffuseTexture;
+    target.material.emissiveTexture=source.material.emissiveTexture;
+    target.material.diffuseColor=Color3.Black();target.material.emissiveColor.copyFrom(source.material.emissiveColor);
+    target.material.alpha=frame.alpha;
   }
   private updateLayer(layer: Layer, frame: BillboardFrame | null, ground: Vector3, camera: Camera, visible: boolean) {
     layer.mesh.setEnabled(Boolean(frame && visible && frame.alpha > .001));
@@ -152,7 +174,10 @@ export class WorldBillboards {
       // below: neither invisible frames nor a frozen-then-teleporting body.
       if(texture.isReady()||!layer.key){
         layer.material.diffuseTexture = texture;
-        layer.material.emissiveTexture = texture;
+        // The legacy emissive image is added to emissiveColor by Babylon.
+        // A scene opting into albedo modulation must use only the diffuse
+        // atlas, otherwise that added image washes out the light multiplier.
+        layer.material.emissiveTexture = this.modulatePaintedAlbedo ? null : texture;
         layer.material.diffuseColor=Color3.Black();
         layer.material.opacityTexture = null;
         layer.frame=frame;
@@ -201,6 +226,12 @@ export class WorldBillboards {
     // A tiny shift toward the camera keeps blend poses coplanar without z-fighting.
     const blendPoint = ground.subtract(camera.getForwardRay().direction.scale(.002));
     this.updateLayer(actor.ghost, ghost, blendPoint, camera, visible);
+    // Optional scene-local painted light, multiplied after state tint. It never
+    // touches alpha, feet, UVs, animation, condition overlays or other scenes.
+    if(this.sampleLight){const light=this.sampleLight(ground,id);for(const layer of [actor.body,actor.ghost]){
+      layer.material.emissiveColor.multiplyInPlace(new Color3(light.r,light.g,light.b));
+    }}
+    if(actor.reflections){this.reflect(actor.reflections[0],actor.body,body,ground,camera,visible);this.reflect(actor.reflections[1],actor.ghost,ghost,ground,camera,visible);}
     // Effects share the scenery's depth test and the actor's feet/scale. They
     // cannot leak through a wall or replace the actor when a state expires.
     for (let index = 0; index < Math.max(effects.length, actor.effects.length); index++) {
@@ -237,7 +268,7 @@ export class WorldBillboards {
   }
   remove(id: string) {
     const actor = this.actors.get(id); if (!actor) return;
-    for (const mesh of [actor.body.mesh, actor.ghost.mesh, actor.shadow, actor.ring, actor.projection, ...actor.effects.map(layer => layer.mesh)].filter((m):m is Mesh=>Boolean(m))) { mesh.material?.dispose(false, false); mesh.dispose(); }
+    for (const mesh of [actor.body.mesh, actor.ghost.mesh, actor.shadow, actor.ring, actor.projection, ...(actor.reflections??[]).map(layer=>layer.mesh), ...actor.effects.map(layer => layer.mesh)].filter((m):m is Mesh=>Boolean(m))) { mesh.material?.dispose(false, false); mesh.dispose(); }
     this.actors.delete(id);
   }
   dispose() { for (const id of [...this.actors.keys()]) this.remove(id); for (const texture of this.textures.values()) texture.dispose(); this.textures.clear(); }

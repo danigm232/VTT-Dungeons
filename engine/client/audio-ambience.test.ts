@@ -16,6 +16,22 @@ const context=()=>({sceneId:scene.id,sceneEpoch:1,runtimeEpoch:'test',scene,enti
 describe('quiet incidental scene audio',()=>{
   beforeEach(()=>{vi.useFakeTimers();vi.spyOn(Math,'random').mockReturnValue(0);log.volume=[];log.next=0;});
   afterEach(()=>{vi.useRealTimers();vi.restoreAllMocks();});
+  it('spaces cave drips, deduplicates snapshots, and cancels them on mute/combat/scene exit',async()=>{
+    const audio=new AudioDirector(oneShotCampaignDefinition.audio),play=vi.spyOn(audio,'playSfx'),mirror={...context(),sceneId:'mirror'};
+    await audio.unlock();audio.apply(mix());for(let i=0;i<40;i++)audio.setSceneAmbience(mirror);
+    vi.advanceTimersByTime(31999);expect(play).not.toHaveBeenCalled();vi.advanceTimersByTime(2);expect(play).toHaveBeenCalledExactlyOnceWith('d8-mirror-drop-a',.16);
+    audio.setSceneAmbience({...mirror,combat:{...mirror.combat,active:true}});vi.advanceTimersByTime(120000);expect(play).toHaveBeenCalledTimes(1);
+    audio.setSceneAmbience(mirror);audio.apply(mix(false));vi.advanceTimersByTime(120000);expect(play).toHaveBeenCalledTimes(1);
+    audio.apply(mix());audio.setSceneAmbience({...context(),sceneId:'market',sceneEpoch:2});vi.advanceTimersByTime(120000);expect(play).toHaveBeenCalledTimes(1);audio.reset();
+  });
+  it('ducks mirror ambience once and restores current DM levels without changing the saved mix',()=>{
+    const audio=new AudioDirector(oneShotCampaignDefinition.audio),state=mix(),before=structuredClone(state);
+    audio.setSceneAmbience({...context(),sceneId:'mirror'});audio.apply(state);audio.playSfx('d8-night-sfx-mirror');
+    const music=(audio as any).channels.get('music');expect(music.volume()).toBeCloseTo(.04);expect(state).toEqual(before);
+    const revised=mix();revised.music.volume=.3;audio.apply(revised);expect(music.volume()).toBeCloseTo(.12);
+    vi.advanceTimersByTime(1101);expect(music.volume()).toBeCloseTo(.3);
+    audio.playSfx('d8-night-sfx-mirror');audio.setSceneAmbience(context());expect(music.volume()).toBeCloseTo(.3);audio.reset();
+  });
   it('silences only the confirmed dark ending and restores the saved mixer on leaving it',()=>{
     const audio=new AudioDirector(oneShotCampaignDefinition.audio),state=mix(),before=structuredClone(state);
     audio.apply(state);const music=(audio as any).channels.get('music');expect(music.volume()).toBeGreaterThan(0);

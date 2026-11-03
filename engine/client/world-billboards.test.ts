@@ -12,6 +12,21 @@ import { WorldBillboards, billboardUVs, billboardCenter, type BillboardFrame } f
 const frame: BillboardFrame = { url: '/atlas.png', sourceWidth: 1024, sourceHeight: 512, x: 256, y: 128, width: 128, height: 256,
   worldWidth: .8, worldHeight: 1.6, anchorX: .45, anchorY: .95, offsetX: 0, offsetY: 0, flipX: false, alpha: 1, tint: 0xffffff };
 describe('painted characters inside the 3D scenery', () => {
+  it('modulates only opted-in painted albedo, preserving tint, opacity, UVs and the legacy material elsewhere',()=>{
+    const engine=new NullEngine(),scene=new Scene(engine),camera=new ArcRotateCamera('camera',0,.8,40,Vector3.Zero(),scene);
+    let multiplier={r:.4,g:.5,b:.6};const sampled:string[]=[];
+    const painted=new WorldBillboards(scene,()=>new Texture(null,scene),false,(_point,id)=>{sampled.push(id);return multiplier;},undefined,true);
+    const pose={...frame,tint:0x804020,alpha:.7};
+    painted.sync('lit',Vector3.Zero(),camera,pose,null,true,true);
+    const mesh=scene.getMeshByName('actor:lit:body')!,material=mesh.material as any,uv=mesh.getVerticesData('uv');
+    expect(material.emissiveTexture).toBeNull();expect(material.diffuseTexture).not.toBeNull();
+    expect(material.emissiveColor.r).toBeCloseTo(128/255*.4);expect(material.alpha).toBe(.7);expect(sampled).toEqual(['lit']);
+    multiplier={r:1,g:1,b:1};painted.sync('lit',Vector3.Zero(),camera,pose,null,true,true);
+    expect(material.emissiveColor.r).toBeCloseTo(128/255);expect(mesh.getVerticesData('uv')).toEqual(uv);
+    const legacy=new WorldBillboards(scene,()=>new Texture(null,scene));legacy.sync('legacy',Vector3.Zero(),camera,frame,null,true,false);
+    const old=scene.getMeshByName('actor:legacy:body')!.material as any;expect(old.emissiveTexture).toBe(old.diffuseTexture);
+    legacy.dispose();painted.dispose();scene.dispose();engine.dispose();
+  });
   it('keeps lying bodies readable with low volume, anchors their lower edge and removes the pool on recovery', () => {
     const engine = new NullEngine(), scene = new Scene(engine), ground = new Vector3(2, .8, 3);
     const camera = new ArcRotateCamera('camera', -.8, .8, 80, ground, scene); camera.getViewMatrix(true);

@@ -17,8 +17,11 @@ it('installs 64 distinct, measured frames without sharing a generic gesture betw
       expect(frame.y+frame.height).toBeLessThanOrEqual(png.readUInt32BE(20));
       expect(frame.anchorX).toBeGreaterThan(0);expect(frame.anchorX).toBeLessThan(1);expect(frame.anchorY).toBe(1);
     }
-    for(const role of combatSpriteRoles[tokenId])expect(states[role]!.frames).toHaveLength(4);
-    expect(states['hit-fire']!.frames).not.toEqual(states['hit-arcane']!.frames);
+    for(const role of combatSpriteRoles[tokenId])expect(states[role]!.frames).toHaveLength(tokenId==='silverfarben-hotel'?6:4);
+    // Silverfarben now uses the same anatomically consistent flinch body;
+    // fire/force effects remain the independent attack VFX, not a different body.
+    if(tokenId==='silverfarben-hotel')expect(states['hit-fire']!.frames).toEqual(states['hit-arcane']!.frames);
+    else expect(states['hit-fire']!.frames).not.toEqual(states['hit-arcane']!.frames);
   }
 });
 it('audits both real player sheets, including new utility gestures and receiving reactions',()=>{

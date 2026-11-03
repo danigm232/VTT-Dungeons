@@ -23,9 +23,9 @@ describe('D8 animation coverage and atlas integrity', () => {
   it('uses empty-handed player punches instead of dagger frames', () => {
     for (const id of ['rogue', 'silverfarben-hotel']) {
       const states = campaign.tokenAnimations[id]!;
-      expect(states['attack-unarmed']!.frames).toHaveLength(4);
+      expect(states['attack-unarmed']!.frames).toHaveLength(id==='silverfarben-hotel'?6:4);
       expect(JSON.stringify(states['attack-unarmed']!.frames)).not.toBe(JSON.stringify(states.attack!.frames));
-      expect(JSON.stringify(states['attack-unarmed']!.frames)).toContain(`${id}-unarmed.png`);
+      expect(JSON.stringify(states['attack-unarmed']!.frames)).toContain(id==='silverfarben-hotel'?'silverfarben-v3/unarmed6.png':`${id}-unarmed.png`);
     }
   });
   it('has existing PNGs, genuine transparent corners, and bounded crops for every generated pose', () => {

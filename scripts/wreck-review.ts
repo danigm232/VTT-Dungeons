@@ -52,6 +52,7 @@ async function overview(){snapshot.camera={mode:'fixed',focusId:null};renderer.s
 $('left').onclick=()=>renderer.rotateCameraOrientation(-1);$('right').onclick=()=>renderer.rotateCameraOrientation(1);
 $('closer').onclick=()=>renderer.zoomCameraBy(1.4);$('farther').onclick=()=>renderer.zoomCameraBy(1/1.4);
 $('overview').onclick=()=>void overview();$('focus').onclick=()=>void focus(($('location') as HTMLSelectElement).value);
+if($('scenic-tilt'))$('scenic-tilt').onchange=()=>renderer.setCameraTiltDegrees(Number(($('scenic-tilt') as HTMLSelectElement).value));
 $('carried-light').onchange=$('night').onchange=()=>void focus(($('location') as HTMLSelectElement).value);
 if($('reflections'))$('reflections').onchange=()=>renderer.setWreckReflectionsEnabled(($('reflections') as HTMLInputElement).checked);
 if($('dense-fog'))$('dense-fog').onchange=async()=>{snapshot.climate.fogDensity=($('dense-fog') as HTMLInputElement).checked?1:0;snapshot.environment!.fogTarget=snapshot.climate.fogDensity;snapshot.revision++;await renderer.applySnapshot(structuredClone(snapshot));await settle();};
@@ -167,7 +168,7 @@ $('audit').onclick=async()=>{if(busy)return;setBusy(true);try{
   $('status').textContent=`Auditoría guardada: ${results.length} vistas; errores: ${errors.length}.`;
 }catch(e){errors.push(String(e));$('status').textContent=String(e);}finally{setBusy(false);}};
 setBusy(true);
-await renderer.ready;await renderer.applySnapshot(snapshot);renderer.setCameraTiltDegrees(45);
+await renderer.ready;await renderer.applySnapshot(snapshot);renderer.setCameraTiltDegrees(25);
 // Assets may finish asynchronously, but do not strand the whole inspector
 // behind background-tab timer throttling. Readiness is recorded per capture.
 for(let i=0;i<80;i++)renderer.renderCaptureFrame(32,true);

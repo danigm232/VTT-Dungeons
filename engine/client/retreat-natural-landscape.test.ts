@@ -1,0 +1,24 @@
+import {describe,it,expect,vi,afterEach} from 'vitest';
+import {NullEngine} from '@babylonjs/core/Engines/nullEngine.js';
+import {Scene} from '@babylonjs/core/scene.js';
+import {MeshBuilder} from '@babylonjs/core/Meshes/meshBuilder.js';
+import {Mesh} from '@babylonjs/core/Meshes/mesh.js';
+import {StandardMaterial} from '@babylonjs/core/Materials/standardMaterial.js';
+import {SceneLoader} from '@babylonjs/core/Loading/sceneLoader.js';
+import {installRetreatDepartureLandscape,naturalLandscapeReplacements,retreatDepartureStage} from '../../campaigns/stormwreck-isle/public/retreat-departure-landscape.js';
+import {releaseReplacedRetreatBackdrops} from '../../campaigns/stormwreck-isle/public/retreat-quick-opt.js';
+import {parseCoastalCairnContact,parseGroveContacts,applyGroveContacts} from '../../campaigns/stormwreck-isle/public/retreat-departure-contacts.js';
+const engines:NullEngine[]=[];afterEach(()=>{vi.restoreAllMocks();engines.splice(0).forEach(e=>e.dispose());});
+function fixture(missing=false){
+ const engine=new NullEngine();engines.push(engine);const scene=new Scene(engine),shared=new StandardMaterial('a1:coastal-cliff-v10',scene),base=MeshBuilder.CreateBox('G2_Backland_Connected_Volcanic_Island',{},scene);
+ const imports=[1,2,2.5].map(phase=>{const root=new Mesh('import-'+phase,scene),names=phase===2.5?naturalLandscapeReplacements.map(p=>p[1]!).slice(missing?1:0):[`SAL${phase}_Backland_Presentation`],meshes=names.map(name=>{const m=MeshBuilder.CreateBox(name,{},scene);m.parent=root;m.material=new StandardMaterial(shared.name,scene);m.metadata={gltf:{extras:{permanentBackdrop:true}}};return m;});return {root,meshes,result:{meshes:[root,...meshes],particleSystems:[],skeletons:[],animationGroups:[],transformNodes:[],geometries:[],lights:[],spriteManagers:[]}as any};});
+ for(const [oldName]of naturalLandscapeReplacements)if(!scene.getMeshByName(oldName!))MeshBuilder.CreateBox(oldName!,{},scene);
+ let i=0;vi.spyOn(SceneLoader,'ImportMeshAsync').mockImplementation(async()=>imports[i++]!.result);vi.spyOn(console,'warn').mockImplementation(()=>{});return {scene,shared,imports,base};
+}
+describe('Retiro · natural landscape preserves usable originals',()=>{
+ it('permits only the coastal cairn reserve and keeps the interior parser strict',()=>{const value={trees:[],cairn:{id:'G2_Wayfinding_Cairns_3',bounds:[155.5,157,25.5,27],deltaY:-5}};expect(parseCoastalCairnContact(value).cairn).toEqual(value.cairn);expect(()=>parseGroveContacts(value)).toThrow();expect(()=>parseCoastalCairnContact({...value,cairn:{...value.cairn,bounds:[116.5,118,15,16.6]}})).toThrow();expect(()=>parseCoastalCairnContact({...value,trees:[{id:'A4'}]})).toThrow();});
+ it('moves only the coastal stones through a mirrored parent, preserving interior geometry',()=>{const f=fixture();const cairn=new Mesh('G2_Wayfinding_Cairns_3',f.scene);cairn.scaling.z=-1;const positions=[117,43,-15,117.5,43,-15,117.2,44,-16,156,40,-26,156.5,40,-26,156.3,41,-26.5];cairn.setVerticesData('position',new Float32Array(positions));cairn.setIndices([0,1,2,3,4,5]);const stored=Array.from(cairn.getVerticesData('position')!);const result=applyGroveContacts(f.scene,parseCoastalCairnContact({trees:[],cairn:{id:cairn.name,bounds:[155.5,157,25.5,27],deltaY:-5}}));const actual=Array.from(cairn.getVerticesData('position')!);expect(actual.slice(0,9)).toEqual(stored.slice(0,9));for(let i=9;i<actual.length;i++)expect(actual[i]).toBeCloseTo(positions[i]!-(i%3===1?5:0));expect(result.cairn?.adjustedVertices).toBe(3);});
+ it('retains the earlier stages for before/after and permits the reviewed 2R revision',()=>{expect(retreatDepartureStage(2)).toBe(2);expect(retreatDepartureStage(2.5)).toBe(2.5);expect(retreatDepartureStage(NaN)).toBe(0);expect(retreatDepartureStage(-2)).toBe(0);});
+ it('preflights all replacements before suppressing any old terrain',async()=>{const f=fixture(true);const result=await installRetreatDepartureLandscape(f.scene,new Map([[f.shared.name,f.shared]]),2.5);expect(result.stats.error).toContain('incompleto');for(const [name]of naturalLandscapeReplacements)expect(f.scene.getMeshByName(name!)!.isEnabled()).toBe(true);expect(f.imports[2]!.root.isDisposed()).toBe(true);});
+ it('reuses original materials and releases only successfully replaced runtime copies',async()=>{const f=fixture();const result=await installRetreatDepartureLandscape(f.scene,new Map([[f.shared.name,f.shared]]),2.5);expect(result.stats.error).toBe('');for(const [name]of naturalLandscapeReplacements)expect(f.scene.getMeshByName(name!)!.isEnabled()).toBe(false);const released=releaseReplacedRetreatBackdrops(f.scene,result.meshes);expect(released.releasedMeshes).toBe(8);expect(f.scene.materials).toContain(f.shared);for(const m of f.imports[2]!.meshes){expect(m.material).toBe(f.shared);expect(m.checkCollisions).toBe(false);expect(m.isPickable).toBe(false);expect(m.isDisposed()).toBe(false);}});
+});

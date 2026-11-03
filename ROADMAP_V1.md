@@ -1,4 +1,130 @@
-# Roadmap vigente — hacer jugable todo el Pecio Maldito
+# Roadmap maestro del proyecto VTT
+
+**Plan único de ejecución para todos los chats. Consolidación: 01/11/2026.** Aquí se decide prioridad, orden, categorías, referencias y siguiente entrega. Los demás documentos aportan contratos locales, criterios, coordinación o evidencia; no eligen una segunda cola de trabajo. Reorganizar documentos no cambia la aceptación del juego.
+
+**Ahora:** Retiro del Dragón y Pecio Rosa de los Vientos. **En revisión:** primeras muestras reales de materiales/paleta/actor en A3/umbral y cubierta/C4, y cráneo terminado. **Después:** refinamiento de mobiliario/plantas y extensión por zonas, conforme a las secciones 3–5. Cena de D8 va después. Cada entrega conserva una versión jugable e identifica si está en fuente, candidata aislada o instalada en la mesa habitual.
+
+**Dirección visual V1 aprobada por el usuario, 01/11:** «Acabado de las dos láminas (recomendado)». [Paletas y decisiones](docs/design/VISUAL_ART_DIRECTION.md#9-propuesta-visual-concreta-del-retiro-y-pecio--01112026), [ficha de parámetros/prompts](docs/design/STORMWRECK_VISUAL_PROFILE.json) y [láminas](output/stormwreck-style-decisions-20261101/index.html). Continúa su traducción a muestras reales VIS-2; no equivale a aceptar implementación, rendimiento o dispositivos. No es un nuevo roadmap.
+
+**Cuántos archivos hay:** inventario del 01/11/2026, sin copias de prototipos, runtime, output, dependencias o respaldos: 19 nombres con `roadmap`; **1 maestro, 4 anexos y 14 históricos/puentes antiguos**. Doce históricos están bajo `archive/`; los otros dos son `docs/ROADMAP_V1_REVISION_1.md` y `docs/audits/RETREAT_ROADMAP_20261021.md`. Las rutas se conservan para no romper enlaces. No son 19 planes vigentes.
+
+**Entrega del 02/11:** muestras de materiales Retiro/Pecio y cráneo de Antigravity completados en [candidata aislada y capturas reales](output/stormwreck-style-sample-20261101/index.html). Abrir `REVISAR-ACABADO.cmd`. [Alcance/propietarios/pruebas](docs/evidence/STORMWRECK_STYLE_SKULL_20261102.md). Incluye la familia compartida de piedra del Retiro para evitar un parche A3; no remodela muebles ni vegetación. Siguiente: revisar las muestras y continuar el refinamiento local de objetos/plantas y VIS3–5. La mesa habitual y aceptación física siguen separadas.
+
+**Instalación posterior solicitada el 02/11:** actualización activa en la mesa habitual **puerto 3000**. Comparativas de materiales/cráneo e iluminación actualizadas con superposición por clic, ampliación y teclado; regla común para futuros informes. La siguiente mejora sigue siendo muebles/plantas y extensión por zonas. La instalación no cierra la revisión artística, VIS2–6 o las pruebas físicas.
+
+## 1. Qué documento manda en cada caso
+
+Las instrucciones actuales del usuario prevalecen. Se empieza aquí; después se lee el estado real y solo el anexo del trabajo autorizado. El detalle más reciente de una escena conserva su orden y sus contratos. Una nueva guía de estilo no anula referencias aprobadas ni reabre entregas terminadas.
+
+| Documento | Función y límite |
+| --- | --- |
+| **Este archivo: `ROADMAP_V1.md`** | Roadmap maestro y entrada común. Mantiene la jerarquía, líneas de trabajo y referencias a los anexos. |
+| [PROJECT_STATE.md](PROJECT_STATE.md) | Registro de estado y evidencias. No es otro roadmap; contrastar código y ficha local cuando una entrada histórica esté atrasada. |
+| [Anexo de acabado visual](docs/VISUAL_ROADMAP.md) | Traduce VIS/VA y las fichas locales. El orden y la matriz de trabajo están en este maestro. |
+| [Ficha del Retiro](docs/audits/RETREAT_TECHNICAL_ROADMAP_20261023.md) | Detalle de `dragon-rest`, actualmente revisión 19. Conserva su secuencia y sus entregas; no se reinicia al leer el anexo visual. |
+| [Encargo de Cena](docs/design/D8_DINNER_EXECUTION_PROMPT.md) y [C01–C60](docs/design/D8_DINNER_LITERAL_CHECKLIST_20261021.md) | Detalle de `dinner`: E0–E6 sobre el mismo mapa. El anexo visual aporta criterios, sin sustituir esta lista. |
+| [Ficha D8](docs/D8_NIGHT_SOL_ROADMAP.md) | Detalle/histórico funcional de la campaña D8. Leer también la evidencia reciente de la escena concreta. |
+| Detalle del Pecio M0–M7, más abajo | Contratos del capítulo, acabado M5 y validación M7. No confundir cifras antiguas con la candidata actual. |
+| [Coordinación Dani + Fer](ROADMAP_COMPARTIDO_DANI_FER.md) | Anexo de responsabilidades, dependencias y adopción de plataforma. No sustituye las fichas de mapa ni decide otra prioridad artística. |
+| [Dirección artística](docs/design/VISUAL_ART_DIRECTION.md), [biblioteca](docs/design/VISUAL_REFERENCE_LIBRARY.md) y [auditoría](docs/audits/VISUAL_GAP_AUDIT_20261101.md) | Criterios y referencias. No son planes de ejecución competidores ni autorizaciones para rehacer mapas. |
+
+Los archivos bajo `docs/archive/`, `docs/audits/archive/` y `docs/ROADMAP_V1_REVISION_1.md` son antecedentes. No recuperar de ellos una versión, cámara o siguiente tarea que ya haya sido sustituida.
+
+## 2. Líneas actuales y siguiente paso
+
+| Línea | Situación que se conserva | Cómo continuar |
+| --- | --- | --- |
+| Juego funcional | Mesas, campañas, movimiento, estados y sistemas existentes | Cada bloque deja una candidata jugable. Corregir incidencias reproducibles del alcance sin mezclar una remodelación no encargada. |
+| Dirección visual común | Biblioteca moderna y auditoría VA-01–VA-18 documentadas; no equivalen a arte implementado | Aplicar sus criterios al siguiente bloque gráfico autorizado. |
+| Prioridad visual: Retiro del Dragón y Pecio Rosa de los Vientos | Nueva elección explícita del usuario, 01/11/2026. Se conservan revisión 19 del Retiro y contratos M5/M7 del Pecio | Primera muestra de integración de personajes con la luz existente; después muestras de materiales/muebles/vegetación y profundidad sobre los mismos mapas. [Registro del primer bloque](docs/evidence/STORMWRECK_VISUAL_START_20261101.md). |
+| Cena de D8, pendiente posterior | Encargo E0–E6/C01–C60 preparado; conserva toda su lista | Retomar cuando corresponda; deja de ser el primer piloto por la elección del usuario. |
+| Retiro/Pecio/Espejo/campamentos | Avances, ampliaciones y pruebas locales se conservan | Los chats que ya trabajan en ellos siguen su ficha vigente e incorporan criterios visuales donde corresponda; no abandonan su tarea para rehacer Cena. |
+| Cierre por escena | Aceptación visual, física y rendimiento tienen estados separados | Validar lo pendiente según el anexo local. No subir de versión por completar documentos o acumular tests. |
+
+**Recorrido del acabado visual:** base actual → muestra coherente → extensión de materiales/muebles/vegetación → profundidad e iluminación completas → ambiente/estados/audio → candidata, comparativas y aceptación. La muestra ya incluye luz inicial. Cada etapa conserva el VTT funcional y los mapas vigentes.
+
+**Prioridad actual elegida el 01/11/2026: Retiro del Dragón y Pecio Rosa de los Vientos, antes que Cena.** Se empieza por una subentrega acotada y comprobable en ambos; no se declara completo su acabado por terminar ese primer punto. El orden particular de construcción/optimización del Retiro sigue en su ficha; los contratos del Pecio y las decisiones de campaña permanecen. No interrumpe trabajos de otros chats ajenos al alcance.
+
+## 3. Orden único: apartados de producción y entregas jugables
+
+Se trabaja **por categorías, aplicadas por zonas**: una muestra reúne suelo, arquitectura, mueble, vegetación, personaje y luz; después se extiende lo que funcione. No completar todos los materiales del proyecto y posponer la iluminación hasta el final.
+
+| Orden / bloque | Entrega y salida verificable | Estado actual |
+| --- | --- | --- |
+| 0 · VIS-0 | Referencias modernas y criterios comunes | 12 referencias documentadas; cinco familias con imágenes examinadas y siete de estudio documental. No son doce juegos completamente auditados. |
+| 1 · VIS-1 | Base actual por zona: recursos, colocación, luz y carencias | Hay muestras recientes de plaza/A3/A4 y cubierta/C4; falta completar las zonas que se vayan a intervenir. No retomar fotos antiguas como si fueran el juego actual. |
+| 2 · VIS-2, en revisión | Dos muestras coherentes: A3/umbral del Retiro y cubierta/camarote del Pecio, con paleta/material/objeto/vegetación/actor/luz juntos | Actores, primeras familias de materiales y cráneo instalados por petición del usuario en 3000 el 02/11, con capturas reales superpuestas. Revisión artística, muebles y vegetación refinados pendientes; no cierra VIS-2. |
+| 3 · VIS-3 | Extensión de materiales, objetos y vegetación por zonas | Retiro: A1 → A3 → A4 → A2 → A5 y paisaje vigente. Pecio: C1–C3 → C4–C7 → C8/C9/cofa. Conservar el orden y contratos locales aplicables, sin repetir fases cerradas ni reconstruir mapas. |
+| 4 · VIS-4, coordinado con 2/3 | Profundidad, iluminación y sombras completas | Afinar primer plano, plano del grupo, respaldo y distancia; fuentes, sombras y contactos. Reutilizar capas/luces; comprobar varios puntos/giros, día/ocaso/noche y fuentes apagadas. |
+| 5 · VIS-5 | Atmósfera, clima, estados, VFX y audio | Ajustar lo que ya existe después de comprobar la escena sin efectos. Transiciones reversibles, interiores protegidos y voz del DM clara; no crear otro reloj o mezclador. |
+| 6 · VIS-6 y cierres locales | Candidata funcional, comparativas, recorrido y aceptación | Regresiones pertinentes por entrega. Optimización/certificación Q1 del Retiro al cierre previsto; M5 artístico y M7 físico del Pecio separados. Registrar instalación y aceptación explícitamente. |
+| Posterior | Cena D8 y adopción en otros mapas | Cena conserva E0–E6/C01–C60. Reutilizar familias adecuadas preservando biomas; plataforma sigue el anexo Dani/Fer cuando se encargue. |
+
+La revisión conceptual por subfase se mantiene donde la ficha local la requiera, salvo autorización posterior de un lote. Un resultado técnico no inventa esa aceptación. Esta consolidación no implementa nuevas muestras, publica o cambia de modelo.
+
+## 4. Motor, bibliotecas y herramientas
+
+**Se mejora el arte y su integración en el motor actual.** La auditoría no ha demostrado una limitación que obligue a migrar. No se encarga instalar otro motor/biblioteca gráfica ni actualizar dependencias para imitar una referencia.
+
+| Área | Base real / propietario | Decisión para este trabajo |
+| --- | --- | --- |
+| Escena 2.5D | Babylon.js 9.26.0 + loaders; `apps/web/world.ts` y `engine/client/terrain3d.ts` | Conservar carga, profundidad, cámara, selección y superficies. Pixi.js 8.20.1 sigue atendiendo sus capas actuales. |
+| Materiales del Retiro | `campaigns/stormwreck-isle/public/retreat-refinement-materials.ts` | Reutilizar biblioteca PBR cercana y materiales compartidos de distancia. Afinar color base/albedo, textura, normal, rugosidad/metal y UV por familia; no crear un material por objeto. |
+| Materiales del Pecio | `engine/client/wreck-materials.ts`, `wreck-interior.ts`, `ship-exterior-art.ts`, `ship-cabin-dressing.ts` | Conservar StandardMaterial y relieve compartido donde sirven; ajustar variantes actuales. Migrar una pieza a PBR solo ante una mejora concreta demostrada, no todo el barco por defecto. |
+| Modelado | Fuentes/generadores Blender existentes, piezas y GLB separados | Derivar solo piezas visuales necesarias; conservar originales, pivotes, escala, huellas, colisiones y fuentes reproducibles. |
+| Actores y luz | `engine/client/world-billboards.ts`, `campaigns/stormwreck-isle/public/actor-light.ts`, luces/sombras actuales | Conservar atlas/animaciones y revisar la primera candidata. No propagar cambios a Espejo u otras escenas sin su encargo. |
+| Mar y profundidad | `engine/client/wreck-ocean.ts`, `coastal-backdrop.ts`; Retiro: `retreat-scenic-depth.ts`, `retreat-coastal-presentation.ts` | Afinar los sistemas existentes; no sustituir agua por imagen ni duplicar fondos/niebla. |
+| Audio/controles/red | Howler 2.2.4, nipplejs 0.10.2, Socket.IO 4.8.1 y servidor actual | Reutilizar. Preservar permisos, reconexión y orientación estable de movimiento. |
+| Recursos reutilizables | Inventario local y `LICENSES_AND_CREDITS.md` | Reutilizar primero assets coherentes con licencia/procedencia verificadas. Si falta una pieza concreta, evaluar recurso abierto o derivado propio; no añadir bibliotecas por costumbre. |
+
+Estas versiones son las del repositorio, no recomendaciones de la última versión disponible. Un cambio de arquitectura necesita problema reproducible, alternativas, coste y beneficio; una diferencia artística no basta.
+
+## 5. Cambios específicos por categoría y mapa
+
+**Conservar en todas las filas:** mapa vigente y ampliaciones aprobadas, escala de 1,5 m, navegación, alturas de apoyo, distribución/funciones canónicas, progreso y controles. Una fila pendiente puede pedir verificación: no declara un fallo reproducido en todas las zonas.
+
+| Categoría / VA | Retiro del Dragón | Pecio Rosa de los Vientos | Referencia y criterio de salida |
+| --- | --- | --- | --- |
+| **Paleta/familia · 01/02** | Reunir en A3 basalto, suelo, madera de mesa/bancos, planta del umbral y actor. Reducir discordancia de roca fotográfica, mueble simple y actor nítido, conservando costa volcánica/flora mediterránea. | Familia de madera gris/oliva salina, herrajes oscuros, tela envejecida y mar frío; distinguir expuesto/interior húmedo sin recolorear botín ni usar la calidez de Cena. | REF-02 Witchbrook y REF-07 Sea of Stars. Muestras de suelo/arquitectura/planta/sombra/acento con valores reales de material, día/noche. Paleta final por validar. |
+| **Texturas/escala · 03/04/05** | Comparar basalto/pavimento/roble; atenuar ruido fino discordante mediante derivado, UV o material donde se confirme. Mantener detalle grande/medio y áreas tranquilas. | Revalidar `deck-planks-art06.png`, `hull-planks-art04.png`, `reef-rock-art05.png` y normal compartida. Ajustar repetición, veta/desgaste a cubierta/casco/mueble; no reemplazar todo de entrada. | REF-07/02. A 15° y zoom de juego no hay motivos incompatibles/parpadeo dominante. Registrar resolución, metros por repetición, normal y roughness elegidos. |
+| **Muebles/props · 06** | Refinar grosor, patas, uniones y cantos de mesa larga/dos bancos/silla A3; luego estantes/libros A4. Mantener cantidades, función y huellas; agrupar objetos de uso coherente. | Revisar timón, balista rota, literas, mesas, cofres/cajas y objetos según inventario M5. Mejorar silueta/material/estados sin añadir botín. | REF-02 y REF-08 Eastward. Construcción legible desde varios giros; caras, puertas y selección libres. |
+| **Vegetación/contactos · 07/08/09** | Aprovechar los 86 árboles/31 jardineras existentes: agrupar césped, calmar rellenos, afinar copa/ramas/huecos y unión con roca/tierra/camino. No replantar todo. | Algas, humedad, cofa y costa donde ya corresponda; ordenar restos/cabos/musgo sin convertir el barco en jardín o añadir obstáculos. | REF-02/07. Masas legibles y apoyos naturales sin invadir rutas ni cambiar especies/posiciones aprobadas. |
+| **Actor/luz · 10** | Revisar candidata en exterior, celdas y A2–A4, conservando lámparas y atlas existentes. | Revisar cubierta/C4–C7/C8/C9/cofa y luz portada encendida/apagada; conservar separación de camarote/planta. | REF-01 Octopath/II. Primera subentrega técnica en candidata aislada; revisión extendida y aceptación pendientes. |
+| **Iluminación/sombras · 11/12** | Afinar sol/cielo, fuentes/rellenos reales y contacto de muebles/actor; comprobar piedra/madera de día/ocaso/noche. | Mantener exterior marítimo y oscuridad propia de cada planta; comprobar sombras/contacto/reflejos y alcance de antorchas. | REF-01/07. Fuente reconocible, volumen y lectura táctica; sin luz atravesando salas. Adaptación de color no equivale a GI o sombras terminadas. |
+| **Profundidad/cámara · 13/14** | Afinar primer plano parcial, grupo, respaldo rocoso/interior insular y distancia ya construidos; recortar solo la pieza que oculte cuerpo/acción. | Afinar jarcias/bordas/mástiles, compartimento, casco, roca y distancia existentes. Revalidar el cruce de escalera del encuadre C4 como caso concreto de visibilidad. | REF-01; REF-03 FFTactics Enhanced 2025 para táctica. Profundidad también sin blur/bruma, misma planta, cámaras vigentes y WASD estable. |
+| **Agua/costa · 15** | Unir roca/tierra/planta/orilla con color, transparencia, espuma localizada y contactos del sistema costero actual. | Afinar océano continuo, roca/casco/barca e inundación C8/C9 respetando nivel, escora, navegación y apoyos. | REF-07. Misma familia visual; espuma justificada y accesos/brecha/escaleras visibles. No rehacer el mar. |
+| **Ambiente/VFX/audio · 16** | Revisar bruma por distancia, viento, fuego/partículas y estados de hora/clima ya existentes. | Revisar mar/viento/madera y ambiente por planta; humedad/spray/burbujas/tormenta según estados actuales. | REF-01/07/08. Comparación sin efectos, transiciones reversibles y sin duplicación. DoF/bloom/haces opcionales; no ocultan incoherencias de arte. |
+| **Coste/aceptación · 17/18** | Compartir recursos por entrega; después Q1 pendiente conforme a ficha, sin repetir etapas cerradas o recortar arte implícitamente. | Validar zonas/estados, retorno/carga, botín/cámara/recursos; M5 artístico y M7 físico independientes. | Criterios del VTT: candidata arrancable/jugable, antes/después comparable y costes/pendientes honestos. |
+
+### Qué está definido y qué falta decidir
+
+- **Definido:** motor y propietarios, familia estilizada, identidad de cada lugar, referencias por categoría, muestras iniciales, cambios/objetos, conservación y comprobación.
+- **Dirección aprobada en VIS-2:** acabado ilustrado de las dos láminas, paletas y familia visual de `docs/design/STORMWRECK_VISUAL_PROFILE.json`. Los números de resolución/UV/normal/roughness son candidatos de calibración. **Implementado en candidata:** primeras familias y derivados del 02/11. **Pendiente:** aceptación de las muestras reales, muebles/vegetación y extensión; no se inventa un porcentaje de parecido o aceptación de rendimiento.
+- **Regla de concreción:** antes de extender una muestra, registrar objeto/material por nombre o ID, archivo propietario, valor/asset actual, valor/derivado candidato, VA/referencia, conservación y comparación. Si el valor candidato no existe, sigue pendiente. Esta ficha va en el registro local, no en otro roadmap.
+- **Siguiente acción exacta:** revisar las muestras reales de materiales/actor del 02/11 y continuar el refinamiento de muebles/vegetación del mismo lugar; después extender por zonas lo revisado. No ejecutar toda la matriz como una sola intervención sin entregas comprobables.
+
+Biblioteca de las [12 referencias](docs/design/VISUAL_REFERENCE_LIBRARY.md), [catálogo JSON](docs/design/VISUAL_REFERENCE_CATALOG.json) y [galería](output/visual-reference-library-20261030/index.html). Witchbrook es material promocional. Las otras siete referencias son secundarias/documentales hasta revisar una escena comparable: no se mezclan todas en cada objeto ni bloquean estas muestras.
+
+## 6. Mantenimiento de esta planificación
+
+- Empezar los relevos con este archivo y `PROJECT_STATE.md`, y añadir únicamente el anexo necesario para el alcance.
+- Actualizar la tarea/estado en su ficha; actualizar aquí si cambia la prioridad global, una dependencia o la ubicación de la ficha vigente.
+- No crear otro roadmap maestro para una mejora. Usar una ficha de bloque o un anexo de este maestro.
+- Conservar histórico y evidencias sin tratarlos como órdenes actuales. No borrar ni mover documentación para resolver una ambigüedad de nombres.
+- Conservar reparto de modelos y autorizaciones vigentes; no cambiar modelos, delegar o publicar por el hecho de leer un anexo.
+
+## 7. Contratos del Pecio y registro de entregas anteriores
+
+<details>
+<summary>Consulta selectiva: contratos M0–M7 y entregas fechadas. El plan activo está en las secciones 1–6 superiores.</summary>
+
+Las secciones siguientes conservan el contrato M0–M7 y las entregas con sus fechas. Los valores de versión, cámara, pruebas o «siguiente tarea» de una entrada histórica se contrastan con la ficha local y el código actuales. No representan por sí solos la situación global del proyecto al 01/11/2026.
+
+## Dirección y roadmap visual comunes — 01/11/2026
+
+Aplicable a trabajo gráfico de **D8 Night, Retiro, Pecio y campamentos**: [roadmap visual compartido](docs/VISUAL_ROADMAP.md), [dirección artística](docs/design/VISUAL_ART_DIRECTION.md), [biblioteca de referencias modernas](docs/design/VISUAL_REFERENCE_LIBRARY.md) y [auditoría VA-01–VA-18](docs/audits/VISUAL_GAP_AUDIT_20261101.md). Las referencias se limitan a juegos/ediciones de 2018 en adelante, incluyendo Final Fantasy Tactics Enhanced 2025; Witchbrook se identifica como material promocional, no juego publicado. Final Fantasy IX queda fuera de la selección moderna principal.
+
+Nuevo bloque transversal VIS-0…VIS-6: base reproducible → muestra coherente → familias de materiales/objetos/vegetación → profundidad y luz → ambiente/estados → candidata y aceptación por escena. **Mejorar nuestros mapas conservándolos**, sin mover distribución/funciones por imitar otra obra. No sustituye M0–M7, C01–C60 ni el roadmap técnico vigente del Retiro; no reabre fases terminadas ni certifica rendimiento o aprobación artística. VIS-0 está documentado; la nueva ejecución de arte permanece pendiente. Las entradas antiguas de cámara/versión de este histórico no prevalecen sobre código y fichas recientes.
 
 ## Retiro del Dragón · mejora integral en ocho fases — 2026-10-16
 
@@ -42,6 +168,8 @@ usando la galería comparativa. La discrepancia de puerta D8 V48 queda anotada
 en el informe. [Cambios, componentes y evidencia](docs/evidence/CAMPS_DETAIL_20261011.md).
 
 ## Historial del Pecio
+
+Revisión 56 · 01/11/2026. Reconstrucción anatómica y canónica de los huesos de dragón (Clyssavar, dragón de oro) según el PDF oficial («Aventura Los Dragones de la Isla de las Tempestades», capítulo 3, pp. 22–27). El cráneo en `reef-south-west` incorpora la anatomía canónica del dragón de oro: cuernos mayores curvados hacia atrás sobre el cuello, cuernos secundarios de corona, barbillones óseos mandibulares y del mentón, bóveda craneal con cresta sagital y espinas dorsales, órbitas y fosas temporales profundas con cavidades internas, mandíbula desencajada en rugido de muerte y colmillos rapaces curvados. Se elimina el pinzamiento/clamp plano que aplastaba los vértices contra los bordes de la celda; la geometría se diseña para ajustarse limpiamente a la huella sin deformación. En popa (`dragon-bone-stern`), la columna vertebral articulada y arcos de costillas gigantes (hasta 2,8 m sobre el mar) se orientan longitudinalmente sobre el eje Z con apoyo de vértebras y fracturas expuestas. En `buildDistantDragonBones`, se incorporan los huesos canónicos que rompen y sostienen el casco del pecio en la brecha de popa («sostenido en los huesos antiguos que rompieron el casco») y los restos bajo el castillo de proa (C2) donde caen jarcias y lonas desgarradas al agua. Pruebas de cliente/servidor, tipos, build y 15/15 tests específicos de pecio y atmósfera PASS, con cero violaciones de footprint.
 
 Revisión 55 · 12/10/2026. Pase de atmósfera y detalle: sombras del sol/luna y luz portada reutilizadas de campamentos; reflejos planares reales de barco/bote/rocas/huesos; algas, astillas, cabos y restos canónicos de C1. Balista rota, dos cajones/pergaminos de C4, silla deteriorada C7 y presentación condicionada de objetos C9. Más huesos con relieve, nido ampliado y mástil íntegro con inclinación de aproximadamente 1,5°; tramos de visibilidad independientes. Encuadre interior progresivo por encima de techos vecinos, sin revelar camarotes adyacentes. Humedad/lluvia/nieve autoritativas, cubiertas expuestas e interiores protegidos; espuma/spray en la barca. P10 pide **Atletismo CD 10 opcional**, validado por DM con dado físico; fracaso sin daño/caída automáticos y descenso libre. Prueba conectada **241 pasos**, dos jugadores/proyector, C1–C9, puertas, natación/buceo, cofa y guardado; segunda comprobación específica de acción contextual y descenso. Se conserva la mesa real y las funciones de las otras escenas. M5 sigue pendiente de aceptación artística y M7 de dispositivos/audio físicos. [Evidencia y límites](docs/evidence/PECIO_ATMOSPHERE_20261012.md).
 
@@ -271,3 +399,5 @@ Capacidades generales consultadas 21/09: [Luna](https://developers.openai.com/ap
 - D8 F3–F7 conservado como ruta independiente; reutilizar mejoras compartidas, sin exigir terminarlo antes del pecio.
 - Editor general, IA aprobada por DM, resto de campaña y distribuciónv1 siguen como horizonte posterior; esta revisión no declara v1 completa ni renuncia a esos objetivos.
 - Cerrar cada bloque actualizando estado, evidencia, roadmap y un único NEXT_MODEL_PROMPT: entregable, comprobación, siguiente modelo y objetivo exacto.
+
+</details>

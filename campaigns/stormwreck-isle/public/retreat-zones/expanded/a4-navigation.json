@@ -1,0 +1,664 @@
+{
+  "schema": "retreat-zone-navigation-v1",
+  "units": "meters",
+  "tileMeters": 1.5,
+  "axis": "glTF Y-up; X east, Z south",
+  "actorRadius": 0.3,
+  "worldDeckElevationMeters": 18,
+  "walkableSurfaces": [
+    {
+      "id": "library",
+      "height": 0.045,
+      "polygon": [
+        [
+          -3,
+          -10.5
+        ],
+        [
+          15,
+          -10.5
+        ],
+        [
+          15,
+          0
+        ],
+        [
+          -3,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "entry_threshold",
+      "height": 0.045,
+      "polygon": [
+        [
+          6,
+          0
+        ],
+        [
+          7.5,
+          0
+        ],
+        [
+          7.5,
+          2.25
+        ],
+        [
+          6,
+          2.25
+        ]
+      ]
+    }
+  ],
+  "colliders": [
+    {
+      "id": "Oak_Door_Closed",
+      "type": "box",
+      "center": [
+        6.75,
+        1.13,
+        0.12
+      ],
+      "size": [
+        1.44,
+        2.17,
+        0.14
+      ],
+      "provenance": "CANON",
+      "enabledWhen": "door-closed"
+    },
+    {
+      "id": "Oak_Door_Open",
+      "type": "box",
+      "center": [
+        6.03,
+        1.13,
+        0.84
+      ],
+      "size": [
+        0.14,
+        2.17,
+        1.44
+      ],
+      "provenance": "CANON",
+      "enabledWhen": "door-open"
+    },
+    {
+      "id": "CANON_East_Bookcase_0",
+      "type": "box",
+      "center": [
+        14.781246185302734,
+        1.014999313354494,
+        -1.6500015258789062
+      ],
+      "size": [
+        0.38249969482421875,
+        1.9300003051757812,
+        2.3799972534179688
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_East_Bookcase_1",
+      "type": "box",
+      "center": [
+        14.781246185302734,
+        1.014999313354494,
+        -4.349998474121094
+      ],
+      "size": [
+        0.38249969482421875,
+        1.9300003051757812,
+        2.3799972534179688
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_East_Study_Table",
+      "type": "box",
+      "center": [
+        10.450000762939453,
+        0.4537495803833025,
+        -5.249998092651367
+      ],
+      "size": [
+        1.3420028686523438,
+        0.8075008392333984,
+        2.549999237060547
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_Independent_Shelf_1",
+      "type": "box",
+      "center": [
+        0.09999847412109375,
+        1.014999313354494,
+        -5.25
+      ],
+      "size": [
+        0.55999755859375,
+        1.9300003051757812,
+        3.1999969482421875
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_Independent_Shelf_2",
+      "type": "box",
+      "center": [
+        2.0,
+        1.014999313354494,
+        -5.25
+      ],
+      "size": [
+        0.55999755859375,
+        1.9300003051757812,
+        3.1999969482421875
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_Independent_Shelf_3",
+      "type": "box",
+      "center": [
+        3.9000015258789062,
+        1.014999313354494,
+        -5.25
+      ],
+      "size": [
+        0.55999755859375,
+        1.9300003051757812,
+        3.1999969482421875
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_North_Bookcase_0",
+      "type": "box",
+      "center": [
+        -1.5,
+        1.014999313354494,
+        -10.28125
+      ],
+      "size": [
+        2.94000244140625,
+        1.9300003051757812,
+        0.38249969482421875
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_North_Bookcase_1",
+      "type": "box",
+      "center": [
+        1.5,
+        1.014999313354494,
+        -10.28125
+      ],
+      "size": [
+        2.94000244140625,
+        1.9300003051757812,
+        0.38249969482421875
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_North_Bookcase_2",
+      "type": "box",
+      "center": [
+        4.5,
+        1.014999313354494,
+        -10.28125
+      ],
+      "size": [
+        2.94000244140625,
+        1.9300003051757812,
+        0.38249969482421875
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_North_Bookcase_3",
+      "type": "box",
+      "center": [
+        7.5,
+        1.014999313354494,
+        -10.28125
+      ],
+      "size": [
+        2.94000244140625,
+        1.9300003051757812,
+        0.38249969482421875
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_South_Bookcase_0",
+      "type": "box",
+      "center": [
+        1.5,
+        1.014999313354494,
+        -0.21875
+      ],
+      "size": [
+        2.94000244140625,
+        1.9300003051757812,
+        0.38249969482421875
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_South_Bookcase_1",
+      "type": "box",
+      "center": [
+        4.5,
+        1.014999313354494,
+        -0.21875
+      ],
+      "size": [
+        2.94000244140625,
+        1.9300003051757812,
+        0.38249969482421875
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_South_Bookcase_2",
+      "type": "box",
+      "center": [
+        9.75,
+        1.014999313354494,
+        -0.21875
+      ],
+      "size": [
+        4.350006103515625,
+        1.9300003051757812,
+        0.38249969482421875
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_Study_Bench_East",
+      "type": "box",
+      "center": [
+        11.450000762939453,
+        0.29125015258789233,
+        -5.25
+      ],
+      "size": [
+        0.29000091552734375,
+        0.4724998474121094,
+        2.6500015258789062
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_Study_Bench_West",
+      "type": "box",
+      "center": [
+        9.450000762939453,
+        0.29125015258789233,
+        -5.25
+      ],
+      "size": [
+        0.29000091552734375,
+        0.4724998474121094,
+        2.6500015258789062
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_West_Bookcase_0",
+      "type": "box",
+      "center": [
+        -2.7812461853027344,
+        1.014999313354494,
+        -1.6500015258789062
+      ],
+      "size": [
+        0.38249969482421875,
+        1.9300003051757812,
+        2.3799972534179688
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_West_Bookcase_1",
+      "type": "box",
+      "center": [
+        -2.7812461853027344,
+        1.014999313354494,
+        -4.349998474121094
+      ],
+      "size": [
+        0.38249969482421875,
+        1.9300003051757812,
+        2.3799972534179688
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "East_Wall_Base.001",
+      "type": "box",
+      "center": [
+        15.119998931884766,
+        1.42,
+        -5.25
+      ],
+      "size": [
+        0.29999542236328125,
+        2.8,
+        10.5
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Expanded_East_Bookcase_North",
+      "type": "box",
+      "center": [
+        14.781246185302734,
+        1.014999313354494,
+        -7.4499969482421875
+      ],
+      "size": [
+        0.38249969482421875,
+        1.9300003051757812,
+        2.3799972534179688
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Expanded_North_Bookcase_4",
+      "type": "box",
+      "center": [
+        10.5,
+        1.014999313354494,
+        -10.28125
+      ],
+      "size": [
+        2.94000244140625,
+        1.9300003051757812,
+        0.38249969482421875
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Expanded_North_Bookcase_5",
+      "type": "box",
+      "center": [
+        13.5,
+        1.014999313354494,
+        -10.28125
+      ],
+      "size": [
+        2.94000244140625,
+        1.9300003051757812,
+        0.38249969482421875
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Expanded_South_Bookcase_East",
+      "type": "box",
+      "center": [
+        13.5,
+        1.014999313354494,
+        -0.21875
+      ],
+      "size": [
+        2.94000244140625,
+        1.9300003051757812,
+        0.38249969482421875
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Expanded_South_Bookcase_West",
+      "type": "box",
+      "center": [
+        -1.5,
+        1.014999313354494,
+        -0.21875
+      ],
+      "size": [
+        2.94000244140625,
+        1.9300003051757812,
+        0.38249969482421875
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "Expanded_West_Bookcase_North",
+      "type": "box",
+      "center": [
+        -2.7812461853027344,
+        1.014999313354494,
+        -7.4499969482421875
+      ],
+      "size": [
+        0.38249969482421875,
+        1.9300003051757812,
+        2.3799972534179688
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "North_Wall_Base.001",
+      "type": "box",
+      "center": [
+        6.0,
+        1.42,
+        -10.620000839233398
+      ],
+      "size": [
+        18.0,
+        2.8,
+        0.2999992370605469
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "South_Access_5.84",
+      "type": "box",
+      "center": [
+        5.839996337890625,
+        1.42,
+        0.35000038146972656
+      ],
+      "size": [
+        0.2599945068359375,
+        2.8,
+        0.7000007629394531
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "South_Access_7.66",
+      "type": "box",
+      "center": [
+        7.660003662109375,
+        1.42,
+        0.35000038146972656
+      ],
+      "size": [
+        0.2599945068359375,
+        2.8,
+        0.7000007629394531
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "South_Wall_East",
+      "type": "box",
+      "center": [
+        11.25,
+        1.42,
+        0.12000083923339844
+      ],
+      "size": [
+        7.5,
+        2.8,
+        0.2999992370605469
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "South_Wall_West",
+      "type": "box",
+      "center": [
+        1.5,
+        1.42,
+        0.12000083923339844
+      ],
+      "size": [
+        9.0,
+        2.8,
+        0.2999992370605469
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "West_Wall",
+      "type": "box",
+      "center": [
+        -3.1199989318847656,
+        1.42,
+        -5.25
+      ],
+      "size": [
+        0.29999542236328125,
+        2.8,
+        10.5
+      ],
+      "provenance": "CANON"
+    }
+  ],
+  "walkthrough": [
+    [
+      6.75,
+      1.7999999999999972
+    ],
+    [
+      6.75,
+      -1.5
+    ],
+    [
+      -2,
+      -1.5
+    ],
+    [
+      -2,
+      -9.399999999999999
+    ],
+    [
+      13.700000000000003,
+      -9.399999999999999
+    ],
+    [
+      13.700000000000003,
+      -1.5
+    ],
+    [
+      7,
+      -8
+    ],
+    [
+      7,
+      -4
+    ],
+    [
+      1,
+      -7
+    ]
+  ],
+  "door": {
+    "node": "CANON_Oak_Iron_Door",
+    "closedAngle": 0,
+    "openAngle": -1.5707963267948966,
+    "defaultState": "closed",
+    "hinge": [
+      6.03,
+      0.045,
+      0.12
+    ]
+  },
+  "connections": [
+    {
+      "id": "A4_SOUTH_TO_UPPER_PATH",
+      "position": [
+        6.75,
+        0.045,
+        2.25
+      ],
+      "worldDeckElevationMeters": 18,
+      "destination": "UPPER_PATH_A3_A2_A5",
+      "status": "prepared; global assembly pending"
+    }
+  ],
+  "interactions": [
+    {
+      "id": "ENTRY_UPPER_PATH",
+      "position": [
+        6.75,
+        0.045,
+        2.25
+      ],
+      "action": "connection-to-upper-path",
+      "resolution": "DM manual"
+    },
+    {
+      "id": "DOOR",
+      "position": [
+        6.75,
+        0.045,
+        0.72
+      ],
+      "action": "manual-open-close",
+      "resolution": "DM manual"
+    },
+    {
+      "id": "RUNARA_STUDY",
+      "position": [
+        10.75,
+        0.045,
+        -3.0
+      ],
+      "action": "manual-conversation",
+      "resolution": "DM manual"
+    },
+    {
+      "id": "RESEARCH",
+      "position": [
+        7.12,
+        0.045,
+        -3.0
+      ],
+      "action": "manual-research",
+      "resolution": "DM manual"
+    },
+    {
+      "id": "TARAK_VARNOTH_READING",
+      "position": [
+        7.15,
+        0.045,
+        -4.95
+      ],
+      "action": "manual-conversation",
+      "resolution": "DM manual"
+    },
+    {
+      "id": "MYLA_BOOKS",
+      "position": [
+        4.45,
+        0.045,
+        -3.0
+      ],
+      "action": "manual-conversation",
+      "resolution": "DM manual"
+    }
+  ],
+  "note": "Integrated expanded module. Existing authoritative grid mover, 0.30m radius and manual resolution.",
+  "expansion": "2026-10-22"
+}

@@ -14,6 +14,9 @@ import type { TerrainDefinition } from '../shared/terrain.js';
 import { WRECK_STRUCTURE as S, wreckHullPlan } from '../shared/wreck-structure.js';
 import { fracturedStone } from './diorama-kit.js';
 import { buildDragonRemains,buildDistantDragonBones } from './wreck-dragon-bones.js';
+import { buildWreckScenicDepth } from './wreck-scenic-depth.js';
+import { buildWreckOceanGrid } from './wreck-ocean-grid.js';
+import { wreckReflectionCandidates, WreckReflectionCadence } from './wreck-reflections.js';
 
 /** Jagged marine stacks, not bevelled rectangular blocks. UVs belong to each
  * face and their stratum tint changes with height; gameplay clips the final
@@ -57,7 +60,7 @@ export function buildWreckOcean(scene: Scene, terrain: TerrainDefinition, reefTe
     void main(){vec3 q=position;vec3 w=(world*vec4(position,1.)).xyz;
       q.y+=.035*sin(w.x*.08+w.z*.06+time*.75)+.012*sin(w.z*.11-w.x*.07-time*.93);
       p=(world*vec4(q,1.)).xyz;reflectionClip=worldViewProjection*vec4(position,1.);gl_Position=worldViewProjection*vec4(q,1.);}`;
-  const fragmentSource=`precision highp float; varying vec3 p; varying vec4 reflectionClip; uniform float time; uniform float lightLevel; uniform vec3 eye; uniform sampler2D reflectionSampler; uniform float reflectionStrength; uniform float roughness;
+  const fragmentSource=`precision highp float; varying vec3 p; varying vec4 reflectionClip; uniform float time; uniform float lightLevel; uniform vec3 eye; uniform sampler2D reflectionSampler; uniform float reflectionStrength; uniform float roughness; uniform float scenicHorizon;
     float hash(vec2 v){vec3 q=fract(vec3(v.xyx)*.1031);q+=dot(q,q.yzx+33.33);return fract((q.x+q.y)*q.z);}
     float noise(vec2 v){vec2 i=floor(v),f=fract(v);f=f*f*(3.-2.*f);
       return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+1.),f.x),f.y);}
@@ -94,15 +97,19 @@ export function buildWreckOcean(scene: Scene, terrain: TerrainDefinition, reefTe
       // A restrained clear-water patch reveals the submerged stern entrance
       // and timber depth behind it. Not a second sea or a rectangular decal.
       float entry=exp(-pow((ship.x+32.0)/3.3,4.)-pow(ship.y/2.1,4.));
-      gl_FragColor=vec4(color*lightLevel,1.-entry*.73);}`;
+      // The orthographic scenic horizon occupies the upper frame. Blend the
+      // existing continuous ocean into it; never add a second water sheet.
+      float horizon=mix(1.,1.-smoothstep(.34,.66,reflectionClip.y/reflectionClip.w),scenicHorizon);
+      float alpha=(1.-entry*.73)*horizon;if(alpha<.002)discard;
+      gl_FragColor=vec4(color*lightLevel,alpha);}`;
   const waterMat=new ShaderMaterial('wreck-continuous-ocean',scene,{vertexSource,fragmentSource},
-    {attributes:['position'],uniforms:['world','worldViewProjection','time','lightLevel','eye','reflectionStrength','roughness'],samplers:['reflectionSampler'],needAlphaBlending:true});
-  waterMat.setFloat('lightLevel',1);
+    {attributes:['position'],uniforms:['world','worldViewProjection','time','lightLevel','eye','reflectionStrength','roughness','scenicHorizon'],samplers:['reflectionSampler'],needAlphaBlending:true});
+  waterMat.setFloat('lightLevel',1);waterMat.setFloat('scenicHorizon',0);
   waterMat.setFloat('roughness',.25);waterMat.setFloat('reflectionStrength',0);
   const emptyReflection=RawTexture.CreateRGBATexture(new Uint8Array([0,0,0,0]),1,1,scene,false,false);waterMat.setTexture('reflectionSampler',emptyReflection);
   waterMat.forceDepthWrite=true;
   waterMat.backFaceCulling=false;
-  const water=MeshBuilder.CreateGround('wreck-ocean',{width:1600,height:1600,subdivisions:128},scene);
+  const water=buildWreckOceanGrid(scene);
   water.position.set(S.origin.x,S.seaHeight,S.origin.z);water.material=waterMat;water.isPickable=false;
   water.metadata={visualOnly:true,kind:'continuous-ocean',deckSurfaceId:'sea'};meshes.push(water);
   const foamMat=new ShaderMaterial('wreck-contact-foam',scene,{vertexSource:`precision highp float;attribute vec3 position;attribute vec2 uv;uniform mat4 worldViewProjection;varying vec2 vUV;
@@ -220,24 +227,21 @@ export function buildWreckOcean(scene: Scene, terrain: TerrainDefinition, reefTe
     const t=(performance.now()-started)/1000;waterMat.setFloat('time',t);foamMat.setFloat('time',t);
     if(scene.activeCamera)waterMat.setVector3('eye',scene.activeCamera.globalPosition);
   });
-  meshes.push(...buildDragonRemains(scene,terrain),...buildDistantDragonBones(scene));
+  meshes.push(...buildDragonRemains(scene,terrain),...buildDistantDragonBones(scene),...buildWreckScenicDepth(scene));
   if(typeof window!=='undefined'){
     const compact=scene.getEngine().getRenderWidth()<800,mirror=new MirrorTexture('wreck:object-reflections',compact?256:512,scene,true);
     mirror.mirrorPlane=new Plane(0,-1,0,S.seaHeight);mirror.clearColor=new Color4(0,0,0,0);mirror.refreshRate=0;
     mirror.renderParticles=false;mirror.renderSprites=false;mirror.renderList=[];scene.customRenderTargets.push(mirror);waterMat.setTexture('reflectionSampler',mirror);
-    let count=-1,lastUpdate=-1;const lastCamera=Vector3.Zero();
+    const candidates=wreckReflectionCandidates(scene),cadence=new WreckReflectionCadence(compact);
     scene.onBeforeRenderObservable.add(()=>{
       const t=performance.now()/1000,camera=scene.activeCamera;
       const interior=scene.metadata?.wreckInterior===true,enabled=scene.metadata?.wreckReflectionsEnabled!==false;
       waterMat.setFloat('reflectionStrength',interior||!enabled?0:1);
-      if(interior||!enabled||!camera)return;
-      if(count!==scene.meshes.length){count=scene.meshes.length;mirror.renderList=scene.meshes.filter(m=>!m.metadata?.nativeBillboard&&!/actor:|weather:|water|ocean|foam|wake|wash|shimmer|darkness|shadow|stain|decal|algae|bubble|fish/i.test(m.name)&&m.material&&m.getTotalVertices()>0);}
-      // One cached planar pass, not six cube faces per object. Camera movement
-      // invalidates immediately; boat/waves update at a bounded cadence.
-      if(t-lastUpdate>(compact?.24:.12)||Vector3.DistanceSquared(camera.position,lastCamera)>.06){lastUpdate=t;lastCamera.copyFrom(camera.position);mirror.resetRefreshCounter();}
-      scene.metadata={...scene.metadata,wreckReflection:{size:compact?256:512,objects:mirror.renderList?.length??0,planar:true}};
+      if(!cadence.update(t,!interior&&enabled&&Boolean(camera),camera))return;
+      mirror.renderList=candidates.get();mirror.resetRefreshCounter();
+      scene.metadata={...scene.metadata,wreckReflection:{size:compact?256:512,objects:mirror.renderList.length,planar:true,maxPassesPerSecond:compact?9:15}};
     });
-    scene.onDisposeObservable.addOnce(()=>mirror.dispose());
+    scene.onDisposeObservable.addOnce(()=>{candidates.dispose();mirror.dispose();});
   }
   return meshes;
 }

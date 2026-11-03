@@ -557,7 +557,7 @@ export const D8NIGHT: any = {
           mode: "exterior",
           ambientIntensity: 0.64,
           ambientColor: [0.72, 0.78, 0.96],
-          natural: { position: [-8, 11, -6], direction: [0.42, -1, 0.28], color: [0.70, 0.78, 1.00], intensity: 0.68 },
+          natural: { position: [-8, 11, -6], direction: [0.42, -1, 0.28], color: [0.70, 0.78, 1.00], intensity: 0.84 },
           shadows: { enabled: true, mapSize: 1024, blurKernel: 14, darkness: 0.52 },
           lights: []
         },
@@ -572,7 +572,7 @@ export const D8NIGHT: any = {
           exposure: 1.08,
           contrast: 1.07,
           fov: 0.72,
-          sceneAmbient: [0.16, 0.18, 0.25],
+          sceneAmbient: [0.18, 0.16, 0.14],
           diffuseBoost: 1.12,
           emissiveFloor: 0.025,
           specular: 0.024,
@@ -1069,6 +1069,10 @@ for (const [id, c] of Object.entries<any>(D8NIGHT.maps)) {
   if (id === 'garden' || id === 'mirror') nav.zones.unshift({ type: 'walkable', label: id === 'garden' ? 'suelo nevado firme' : 'perímetro de hielo firme', position: [0,0], size: c.MAP.size });
   if (id === 'market') nav.zones.push({ type: 'walkable', label: 'todo el mercado y sus pasillos', position: [0,0], size: [29,20] });
   if(id==='mirror'){
+    // User-requested perimeter expansion. Keep the original 1.5 m origin and
+    // every old cell address, hazard, prop and spawn; add only the firm fringe.
+    nav.zones[0]={type:'walkable',label:'perímetro irregular de hielo firme',position:[0,0],size:[42,32],outline:[[-15,-10],[15,-10],[18,-8.5],[21,-5.5],[21,9.5],[19.5,15.5],[-12,15.5],[-15,12.5]]};
+    nav.bounds=[-15,21,-10,15.5];
     const pool=c.MAP.objects.find((o:any)=>o.asset==='water_area');
     const seeded=(n:number)=>{const x=Math.sin(n*12.9898+78.233)*43758.5453;return x-Math.floor(x);};
     pool.outline=Array.from({length:40},(_,i)=>{const a=i/40*Math.PI*2,r=.92+seeded(i*8.7+13)*.16;return[Math.cos(a)*pool.size[0]*.5*r,Math.sin(a)*pool.size[1]*.5*r];});

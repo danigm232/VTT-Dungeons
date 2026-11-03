@@ -4,6 +4,7 @@ const ORIENTATION_COUNT = 8;
 import { CAMERA_MIN_TILT as CAMERA_TILT_MIN_DEGREES, CAMERA_MAX_TILT as CAMERA_TILT_MAX_DEGREES } from './camera-profile';
 import {DEFAULT_CAMERA_PROFILE,clampCameraTilt,type CameraTiltProfile} from './camera-profile';
 import type { Facing } from '../shared/protocol';
+import { WRECK_CAMERA_BASE_ALPHA } from '../shared/wreck-camera-profile.js';
 
 const headings: readonly Facing[] = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
 /** Sprite direction in the current camera basis; gameplay heading stays in world space. */
@@ -38,7 +39,11 @@ export function sceneOrientationForView(sceneId: string | null, step: number) {
 }
 /** Open toward the arriving party, not from behind cliffs or the north tent. */
 export function terrainCameraBaseAlpha(sceneId: string | null) {
-  if (sceneId === 'dragon-rest') return 125*Math.PI/180;
+  // At 90° Babylon places the camera on the south (+Z) side, looking north
+  // across the arrival beach toward the Retreat's cliff face. Keep horizontal
+  // orbit step 0 aligned with that world-space frontage.
+  if (sceneId === 'dragon-rest') return Math.PI / 2;
+  if (sceneId === 'wreck-ship') return WRECK_CAMERA_BASE_ALPHA;
   return ['camp-wreck-beach', 'camp-cliffs-observatory', 'camp-coastal-refuge'].includes(sceneId ?? '') ? Math.PI / 4 : INITIAL_ALPHA;
 }
 

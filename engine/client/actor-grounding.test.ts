@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { alphaGrounding, actorDetailZoom } from './actor-grounding';
+import { alphaGrounding, alphaVisibleRect, actorDetailZoom } from './actor-grounding';
 import { campActivityMotion } from './camp-activity-motion';
 describe('grounding and readable actor framing', () => {
   it('grounds opaque feet, ignores stray alpha and excludes transparent margins from height', () => {
@@ -7,6 +7,7 @@ describe('grounding and readable actor framing', () => {
     for (let y = 3; y < 17; y++) for (let x = 6; x < 12; x++) rgba[(y * 20 + x) * 4 + 3] = 255;
     rgba[(19 * 20 + 1) * 4 + 3] = 255;
     expect(alphaGrounding(rgba, 20, 20)).toEqual({ anchorY: .85, heightFraction: .7 });
+    expect(alphaVisibleRect(rgba,20,20)).toEqual({left:.3,top:.15,right:.6,bottom:.85});
     expect(alphaGrounding(new Uint8Array(16), 2, 2)).toEqual({ anchorY: 1, heightFraction: 1 });
   });
   it('zooms further for a halfling than an elf without changing their physical scale', () => {

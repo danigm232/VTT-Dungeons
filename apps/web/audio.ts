@@ -32,8 +32,11 @@ export class AudioDirector {
   private unlocked=false;
   private sceneSilence=false;
   private lastMixerState:AudioState|null=null;
+  private mirrorDuckUntil=0;
+  private mirrorDuckTimer:ReturnType<typeof setTimeout>|undefined;
 
   setSceneAmbience(scene:AmbientScene|null){
+    if(scene?.sceneId!=='mirror'&&this.mirrorDuckUntil){this.mirrorDuckUntil=0;if(this.mirrorDuckTimer!==undefined)clearTimeout(this.mirrorDuckTimer);this.mirrorDuckTimer=undefined;if(this.lastMixerState)this.apply(this.lastMixerState);}
     this.ambientScene=scene;
     const silent=Boolean(scene&&['temple','dinner'].includes(scene.sceneId)&&scene.story?.d8EndingVisual==='darkness');
     if(silent!==this.sceneSilence){this.sceneSilence=silent;if(this.lastMixerState)this.apply(this.lastMixerState);}
@@ -46,7 +49,8 @@ export class AudioDirector {
       const actor=scene?.entities.find(entity=>entity.id===id),seat=scene?.scene.stageActors?.find(actor=>actor.id===id);
       return actor&&seat&&(actor.hp===undefined||actor.hp>0)&&actor.cell.col===seat.cell.col&&actor.cell.row===seat.cell.row&&!actor.moving;
     });
-    const active=Boolean(scene&&profile&&this.unlocked&&this.ambientMixerOn&&!this.sceneSilence&&!scene.combat.active&&occupied);
+    const busyMirror=scene?.sceneId==='mirror'&&(this.mirrorDuckUntil>Date.now()||scene.entities.some(e=>e.step?.movementKind==='passage'));
+    const active=Boolean(scene&&profile&&this.unlocked&&this.ambientMixerOn&&!this.sceneSilence&&!scene.combat.active&&!busyMirror&&occupied);
     if(key!==this.ambientSceneKey||!active){if(this.ambientTimer!==undefined)clearTimeout(this.ambientTimer);this.ambientTimer=undefined;this.ambientSceneKey=key;}
     if(!active||!profile||this.ambientTimer!==undefined)return;
     const [min,max]=profile.intervalSeconds;
@@ -100,6 +104,7 @@ export class AudioDirector {
   ) {}
 
   reset() {
+    if(this.mirrorDuckTimer!==undefined)clearTimeout(this.mirrorDuckTimer);this.mirrorDuckTimer=undefined;this.mirrorDuckUntil=0;
     this.sceneSilence=false;this.lastMixerState=null;
     if(this.ambientTimer!==undefined)clearTimeout(this.ambientTimer);
     this.ambientTimer=undefined;this.ambientScene=null;this.ambientSceneKey='';this.ambientMixerOn=false;
@@ -131,6 +136,7 @@ export class AudioDirector {
 
   apply(state: AudioState) {
     this.lastMixerState=state;
+    if(this.mirrorDuckUntil>Date.now()){state=structuredClone(state);state.music.volume*=.4;state.layers.wind.volume*=.4;}
     // The confirmed dark ending changes presentation, not the DM's saved mix
     // or track transport. Leaving it restores the original channel levels.
     if(this.sceneSilence){state=structuredClone(state);state.music.volume=0;for(const track of [...Object.values(state.layers),...Object.values(state.sfxLoops??{})])track.volume=0;}
@@ -245,6 +251,11 @@ export class AudioDirector {
   }
 
   playSfx(id: string,volume?:number) {
+    if(id==='d8-night-sfx-mirror'&&this.ambientScene?.sceneId==='mirror'){
+      this.mirrorDuckUntil=Date.now()+1100;if(this.mirrorDuckTimer!==undefined)clearTimeout(this.mirrorDuckTimer);
+      if(this.lastMixerState)this.apply(this.lastMixerState);
+      this.mirrorDuckTimer=globalThis.setTimeout(()=>{this.mirrorDuckTimer=undefined;this.mirrorDuckUntil=0;if(this.lastMixerState)this.apply(this.lastMixerState);},1100);
+    }
     let sound = this.sfx.get(id);
     if (!sound) {
       const source = this.catalog.library?.sfx.find(effect => effect.id === id)?.url ?? this.catalog.sfx[id as keyof PublicCampaignDefinition['audio']['sfx']];

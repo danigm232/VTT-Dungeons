@@ -4,9 +4,14 @@ import type { PortDefinition, StageActorInteractionDefinition } from '../../../e
 import terrainJson from './retreat-terrain-v2.json' with { type: 'json' };
 import assembly from './retreat-zones/global-layout.json' with {type:'json'};
 import { wreckRowboatCell } from './wreck-runtime.js';
+import { expandRetreatIslandWalkability } from './retreat-island-walkability.js';
+import { adaptRetreatTempleNavigation } from './retreat-temple-navigation.js';
+import {adaptRetreatCorrectionsNavigation} from './retreat-corrections-navigation.js';
 
 /** CANON is recorded in authored floors, walls, locations and official props; VTT_AMBIENCE is rendered as its own mesh batch. */
-export const retreatTerrain: TerrainDefinition = terrainSchema.parse(terrainJson);
+export const retreatTerrain: TerrainDefinition = terrainSchema.parse(
+  adaptRetreatCorrectionsNavigation(adaptRetreatTempleNavigation(expandRetreatIslandWalkability(terrainSchema.parse(terrainJson))))
+);
 const CELL = retreatTerrain.tileMeters;
 const bySurface = new Map(retreatTerrain.surfaces.map(surface => [surface.id, surface.tiles]));
 const centerX = (cell: Cell) => (cell.col + .5) * CELL - 72;
@@ -32,7 +37,8 @@ function nearbyCells(surfaceId: string, cell: Cell) {
     .filter(candidate => walkable.has(`${candidate.col},${candidate.row}`));
 }
 
-const stageActor = (id: string, label: string, tokenId: string, landmark: keyof typeof retreatLandmarks) => ({id,label,interactionOnly:tokenId==='retreat-marker'||tokenId==='wreck-rowboat',tokenId:tokenId==='wreck-rowboat'?tokenId:'retreat-site-point',...retreatLandmarks[landmark]});
+// The native GLB supplies the boat; its travel point uses the existing site cue.
+const stageActor = (id: string, label: string, tokenId: string, landmark: keyof typeof retreatLandmarks) => ({id,label,interactionOnly:tokenId==='retreat-marker'||tokenId==='wreck-rowboat',tokenId:'retreat-site-point',...retreatLandmarks[landmark]});
 const actors = [
   stageActor('retreat-runara', 'Runara', 'npc-runara', 'runara'),
   stageActor('retreat-tarak', 'Tarak', 'npc-tarak', 'tarak'),
@@ -90,5 +96,6 @@ export const dragonRestPorts: PortDefinition[] = [{
   id: 'travel-pecio-boat',
   from: { mapId: 'dragon-rest', zoneId: 'port', surfaceId: 'beach', cell: retreatLandmarks.boat.cell },
   to: { mapId: 'wreck-ship', zoneId: 'sea', surfaceId: 'sea', cell: wreckRowboatCell },
-  mode: 'swim', return: 'adjudicated', autoDirection: 'manual', travelSeconds: 6_000
+  mode: 'swim', return: 'adjudicated', autoDirection: 'manual', travelSeconds: 6_000,
+  departureWalk:{durationMs:9500,points:[{x:20.25,y:.25,z:113.25},{x:20.25,y:.37,z:116.7},{x:20.25,y:.18,z:119.4},{x:20.25,y:.18,z:124.4}]}
 }];

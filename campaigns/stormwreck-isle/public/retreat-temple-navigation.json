@@ -1,0 +1,7864 @@
+{
+  "source": "V3 authorised perimeter columns / 1.5m raster / 0.30m body radius",
+  "surface": {
+    "id": "a5",
+    "tiles": [
+      {
+        "cell": {
+          "col": 22,
+          "row": 42
+        },
+        "kind": "floor",
+        "corners": [
+          27,
+          27,
+          27,
+          27
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.725,
+          0.514166
+        ],
+        "polygon": [
+          [
+            0.5,
+            0.116666
+          ],
+          [
+            1.0,
+            0.116666
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.5,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 22,
+          "row": 43
+        },
+        "kind": "floor",
+        "corners": [
+          27,
+          27,
+          27,
+          27
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.725,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.5,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.5,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 22,
+          "row": 44
+        },
+        "kind": "floor",
+        "corners": [
+          27,
+          27,
+          27,
+          27
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.725,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.5,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.5,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 22,
+          "row": 45
+        },
+        "kind": "floor",
+        "corners": [
+          27,
+          27,
+          27,
+          27
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.725,
+          0.48622
+        ],
+        "polygon": [
+          [
+            0.5,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.6946
+          ],
+          [
+            0.5,
+            0.6946
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 22,
+          "row": 46
+        },
+        "kind": "floor",
+        "corners": [
+          27,
+          27,
+          27,
+          27
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.725,
+          0.822433
+        ],
+        "polygon": [
+          [
+            0.5,
+            0.605408
+          ],
+          [
+            1.0,
+            0.605408
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.5,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 22,
+          "row": 47
+        },
+        "kind": "floor",
+        "corners": [
+          27,
+          27,
+          27,
+          27
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.725,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.5,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.5,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 22,
+          "row": 48
+        },
+        "kind": "floor",
+        "corners": [
+          27,
+          27,
+          27,
+          27
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.725,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.5,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.5,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 22,
+          "row": 49
+        },
+        "kind": "floor",
+        "corners": [
+          27,
+          27,
+          27,
+          27
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.725,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.5,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.5,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 23,
+          "row": 42
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.116666
+          ],
+          [
+            1.0,
+            0.116666
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 23,
+          "row": 43
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 23,
+          "row": 44
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 23,
+          "row": 45
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.48622
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.6946
+          ],
+          [
+            0.0,
+            0.6946
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 23,
+          "row": 46
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.688242,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.480403,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.480403,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 23,
+          "row": 47
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 23,
+          "row": 48
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 23,
+          "row": 49
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 23,
+          "row": 50
+        },
+        "kind": "floor",
+        "corners": [
+          27,
+          27,
+          27,
+          27
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.688242,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.480403,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.480403,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 24,
+          "row": 42
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.116666
+          ],
+          [
+            1.0,
+            0.116666
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 24,
+          "row": 43
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 24,
+          "row": 44
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 24,
+          "row": 45
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 24,
+          "row": 46
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 24,
+          "row": 47
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 24,
+          "row": 48
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 24,
+          "row": 49
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 24,
+          "row": 50
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 25,
+          "row": 42
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.116666
+          ],
+          [
+            1.0,
+            0.116666
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 25,
+          "row": 43
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 25,
+          "row": 44
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 25,
+          "row": 45
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 25,
+          "row": 46
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 25,
+          "row": 47
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 25,
+          "row": 48
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 25,
+          "row": 49
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 25,
+          "row": 50
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 26,
+          "row": 42
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.116666
+          ],
+          [
+            1.0,
+            0.116666
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 26,
+          "row": 43
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 26,
+          "row": 44
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 26,
+          "row": 45
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.826665
+          ],
+          [
+            0.0,
+            0.826665
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 26,
+          "row": 46
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.114334,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.326668,
+            0.0
+          ],
+          [
+            0.326668,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 26,
+          "row": 47
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.173335
+          ],
+          [
+            1.0,
+            0.173335
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 26,
+          "row": 48
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 26,
+          "row": 49
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 26,
+          "row": 50
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 27,
+          "row": 42
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.116666
+          ],
+          [
+            1.0,
+            0.116666
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 27,
+          "row": 43
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 27,
+          "row": 44
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 27,
+          "row": 45
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.826665
+          ],
+          [
+            0.0,
+            0.826665
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 27,
+          "row": 46
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.885666,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.673332,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.673332,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 27,
+          "row": 47
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.173335
+          ],
+          [
+            1.0,
+            0.173335
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 27,
+          "row": 48
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 27,
+          "row": 49
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 27,
+          "row": 50
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 28,
+          "row": 42
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.116666
+          ],
+          [
+            1.0,
+            0.116666
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 28,
+          "row": 43
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 28,
+          "row": 44
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 28,
+          "row": 45
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 28,
+          "row": 46
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 28,
+          "row": 47
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 28,
+          "row": 48
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 28,
+          "row": 49
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 28,
+          "row": 50
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 29,
+          "row": 42
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.116666
+          ],
+          [
+            1.0,
+            0.116666
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 29,
+          "row": 43
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 29,
+          "row": 44
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 29,
+          "row": 45
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 29,
+          "row": 46
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 29,
+          "row": 47
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 29,
+          "row": 48
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 29,
+          "row": 49
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 29,
+          "row": 50
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 30,
+          "row": 42
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.116666
+          ],
+          [
+            1.0,
+            0.116666
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 30,
+          "row": 43
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 30,
+          "row": 44
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 30,
+          "row": 45
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.48622
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.6946
+          ],
+          [
+            0.0,
+            0.6946
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 30,
+          "row": 46
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.311758,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.519597,
+            0.0
+          ],
+          [
+            0.519597,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 30,
+          "row": 47
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 30,
+          "row": 48
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 30,
+          "row": 49
+        },
+        "kind": "floor",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 30,
+          "row": 50
+        },
+        "kind": "floor",
+        "corners": [
+          27,
+          27,
+          27,
+          27
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.311758,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.519597,
+            0.0
+          ],
+          [
+            0.519597,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 31,
+          "row": 42
+        },
+        "kind": "floor",
+        "corners": [
+          27,
+          27,
+          27,
+          27
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.275,
+          0.514166
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.116666
+          ],
+          [
+            0.5,
+            0.116666
+          ],
+          [
+            0.5,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 31,
+          "row": 43
+        },
+        "kind": "bridge",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 31,
+          "row": 44
+        },
+        "kind": "floor",
+        "corners": [
+          27,
+          27,
+          27,
+          27
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.275,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.5,
+            0.0
+          ],
+          [
+            0.5,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 31,
+          "row": 45
+        },
+        "kind": "floor",
+        "corners": [
+          27,
+          27,
+          27,
+          27
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.275,
+          0.48622
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.5,
+            0.0
+          ],
+          [
+            0.5,
+            0.6946
+          ],
+          [
+            0.0,
+            0.6946
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 31,
+          "row": 46
+        },
+        "kind": "floor",
+        "corners": [
+          27,
+          27,
+          27,
+          27
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.275,
+          0.822433
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.605408
+          ],
+          [
+            0.5,
+            0.605408
+          ],
+          [
+            0.5,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 31,
+          "row": 47
+        },
+        "kind": "floor",
+        "corners": [
+          27,
+          27,
+          27,
+          27
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.275,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.5,
+            0.0
+          ],
+          [
+            0.5,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 31,
+          "row": 48
+        },
+        "kind": "floor",
+        "corners": [
+          27,
+          27,
+          27,
+          27
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.275,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.5,
+            0.0
+          ],
+          [
+            0.5,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 31,
+          "row": 49
+        },
+        "kind": "floor",
+        "corners": [
+          27,
+          27,
+          27,
+          27
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.275,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.5,
+            0.0
+          ],
+          [
+            0.5,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "cell": {
+          "col": 32,
+          "row": 43
+        },
+        "kind": "bridge",
+        "corners": [
+          27.0,
+          27.0,
+          27.0,
+          27.0
+        ],
+        "materialId": "retreat-stone",
+        "movementCost": 1,
+        "medium": "solid",
+        "anchor": [
+          0.5,
+          0.5
+        ],
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ]
+      }
+    ]
+  },
+  "edgePaths": [
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 22,
+          "row": 42
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 42
+        }
+      },
+      "points": [
+        [
+          34.087500000000006,
+          27,
+          63.771249000000005
+        ],
+        [
+          35.25,
+          27,
+          63.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 22,
+          "row": 42
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 22,
+          "row": 43
+        }
+      },
+      "points": [
+        [
+          34.087500000000006,
+          27,
+          63.771249000000005
+        ],
+        [
+          34.087500000000006,
+          27,
+          65.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 22,
+          "row": 43
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 43
+        }
+      },
+      "points": [
+        [
+          34.087500000000006,
+          27,
+          65.25
+        ],
+        [
+          35.25,
+          27,
+          65.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 22,
+          "row": 43
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 22,
+          "row": 44
+        }
+      },
+      "points": [
+        [
+          34.087500000000006,
+          27,
+          65.25
+        ],
+        [
+          34.087500000000006,
+          27,
+          66.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 22,
+          "row": 44
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 44
+        }
+      },
+      "points": [
+        [
+          34.087500000000006,
+          27,
+          66.75
+        ],
+        [
+          35.25,
+          27,
+          66.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 22,
+          "row": 44
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 22,
+          "row": 45
+        }
+      },
+      "points": [
+        [
+          34.087500000000006,
+          27,
+          66.75
+        ],
+        [
+          34.087500000000006,
+          27,
+          68.22933
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 22,
+          "row": 45
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 45
+        }
+      },
+      "points": [
+        [
+          34.087500000000006,
+          27,
+          68.22933
+        ],
+        [
+          35.25,
+          27,
+          68.22933
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 22,
+          "row": 46
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 46
+        }
+      },
+      "points": [
+        [
+          34.087500000000006,
+          27,
+          70.2336495
+        ],
+        [
+          35.28,
+          27,
+          70.32
+        ],
+        [
+          35.52,
+          27,
+          70.08
+        ],
+        [
+          35.532363,
+          27,
+          69.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 22,
+          "row": 46
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 22,
+          "row": 47
+        }
+      },
+      "points": [
+        [
+          34.087500000000006,
+          27,
+          70.2336495
+        ],
+        [
+          34.087500000000006,
+          27,
+          71.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 22,
+          "row": 47
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 47
+        }
+      },
+      "points": [
+        [
+          34.087500000000006,
+          27,
+          71.25
+        ],
+        [
+          35.25,
+          27,
+          71.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 22,
+          "row": 47
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 22,
+          "row": 48
+        }
+      },
+      "points": [
+        [
+          34.087500000000006,
+          27,
+          71.25
+        ],
+        [
+          34.087500000000006,
+          27,
+          72.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 22,
+          "row": 48
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 48
+        }
+      },
+      "points": [
+        [
+          34.087500000000006,
+          27,
+          72.75
+        ],
+        [
+          35.25,
+          27,
+          72.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 22,
+          "row": 48
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 22,
+          "row": 49
+        }
+      },
+      "points": [
+        [
+          34.087500000000006,
+          27,
+          72.75
+        ],
+        [
+          34.087500000000006,
+          27,
+          74.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 22,
+          "row": 49
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 49
+        }
+      },
+      "points": [
+        [
+          34.087500000000006,
+          27,
+          74.25
+        ],
+        [
+          35.25,
+          27,
+          74.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 42
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 42
+        }
+      },
+      "points": [
+        [
+          35.25,
+          27,
+          63.75
+        ],
+        [
+          36.75,
+          27,
+          63.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 42
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 43
+        }
+      },
+      "points": [
+        [
+          35.25,
+          27,
+          63.75
+        ],
+        [
+          35.25,
+          27,
+          65.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 43
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 43
+        }
+      },
+      "points": [
+        [
+          35.25,
+          27,
+          65.25
+        ],
+        [
+          36.75,
+          27,
+          65.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 43
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 44
+        }
+      },
+      "points": [
+        [
+          35.25,
+          27,
+          65.25
+        ],
+        [
+          35.25,
+          27,
+          66.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 44
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 44
+        }
+      },
+      "points": [
+        [
+          35.25,
+          27,
+          66.75
+        ],
+        [
+          36.75,
+          27,
+          66.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 44
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 45
+        }
+      },
+      "points": [
+        [
+          35.25,
+          27,
+          66.75
+        ],
+        [
+          35.25,
+          27,
+          68.22933
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 45
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 45
+        }
+      },
+      "points": [
+        [
+          35.25,
+          27,
+          68.22933
+        ],
+        [
+          36.75,
+          27,
+          68.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 45
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 46
+        }
+      },
+      "points": [
+        [
+          35.25,
+          27,
+          68.22933
+        ],
+        [
+          35.34,
+          27,
+          68.22
+        ],
+        [
+          35.58,
+          27,
+          68.46
+        ],
+        [
+          35.532363,
+          27,
+          69.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 46
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 46
+        }
+      },
+      "points": [
+        [
+          35.532363,
+          27,
+          69.75
+        ],
+        [
+          36.75,
+          27,
+          69.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 46
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 47
+        }
+      },
+      "points": [
+        [
+          35.532363,
+          27,
+          69.75
+        ],
+        [
+          35.46,
+          27,
+          70.92
+        ],
+        [
+          35.25,
+          27,
+          71.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 47
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 47
+        }
+      },
+      "points": [
+        [
+          35.25,
+          27,
+          71.25
+        ],
+        [
+          36.75,
+          27,
+          71.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 47
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 48
+        }
+      },
+      "points": [
+        [
+          35.25,
+          27,
+          71.25
+        ],
+        [
+          35.25,
+          27,
+          72.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 48
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 48
+        }
+      },
+      "points": [
+        [
+          35.25,
+          27,
+          72.75
+        ],
+        [
+          36.75,
+          27,
+          72.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 48
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 49
+        }
+      },
+      "points": [
+        [
+          35.25,
+          27,
+          72.75
+        ],
+        [
+          35.25,
+          27,
+          74.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 49
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 49
+        }
+      },
+      "points": [
+        [
+          35.25,
+          27,
+          74.25
+        ],
+        [
+          36.75,
+          27,
+          74.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 49
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 50
+        }
+      },
+      "points": [
+        [
+          35.25,
+          27,
+          74.25
+        ],
+        [
+          35.58,
+          27,
+          75.18
+        ],
+        [
+          35.532363,
+          27,
+          75.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 23,
+          "row": 50
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 50
+        }
+      },
+      "points": [
+        [
+          35.532363,
+          27,
+          75.75
+        ],
+        [
+          36.75,
+          27,
+          75.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 42
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 42
+        }
+      },
+      "points": [
+        [
+          36.75,
+          27,
+          63.75
+        ],
+        [
+          38.25,
+          27,
+          63.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 42
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 43
+        }
+      },
+      "points": [
+        [
+          36.75,
+          27,
+          63.75
+        ],
+        [
+          36.75,
+          27,
+          65.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 43
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 43
+        }
+      },
+      "points": [
+        [
+          36.75,
+          27,
+          65.25
+        ],
+        [
+          38.25,
+          27,
+          65.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 43
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 44
+        }
+      },
+      "points": [
+        [
+          36.75,
+          27,
+          65.25
+        ],
+        [
+          36.75,
+          27,
+          66.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 44
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 44
+        }
+      },
+      "points": [
+        [
+          36.75,
+          27,
+          66.75
+        ],
+        [
+          38.25,
+          27,
+          66.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 44
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 45
+        }
+      },
+      "points": [
+        [
+          36.75,
+          27,
+          66.75
+        ],
+        [
+          36.75,
+          27,
+          68.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 45
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 45
+        }
+      },
+      "points": [
+        [
+          36.75,
+          27,
+          68.25
+        ],
+        [
+          38.25,
+          27,
+          68.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 45
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 46
+        }
+      },
+      "points": [
+        [
+          36.75,
+          27,
+          68.25
+        ],
+        [
+          36.75,
+          27,
+          69.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 46
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 46
+        }
+      },
+      "points": [
+        [
+          36.75,
+          27,
+          69.75
+        ],
+        [
+          38.25,
+          27,
+          69.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 46
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 47
+        }
+      },
+      "points": [
+        [
+          36.75,
+          27,
+          69.75
+        ],
+        [
+          36.75,
+          27,
+          71.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 47
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 47
+        }
+      },
+      "points": [
+        [
+          36.75,
+          27,
+          71.25
+        ],
+        [
+          38.25,
+          27,
+          71.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 47
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 48
+        }
+      },
+      "points": [
+        [
+          36.75,
+          27,
+          71.25
+        ],
+        [
+          36.75,
+          27,
+          72.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 48
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 48
+        }
+      },
+      "points": [
+        [
+          36.75,
+          27,
+          72.75
+        ],
+        [
+          38.25,
+          27,
+          72.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 48
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 49
+        }
+      },
+      "points": [
+        [
+          36.75,
+          27,
+          72.75
+        ],
+        [
+          36.75,
+          27,
+          74.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 49
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 49
+        }
+      },
+      "points": [
+        [
+          36.75,
+          27,
+          74.25
+        ],
+        [
+          38.25,
+          27,
+          74.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 49
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 50
+        }
+      },
+      "points": [
+        [
+          36.75,
+          27,
+          74.25
+        ],
+        [
+          36.75,
+          27,
+          75.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 24,
+          "row": 50
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 50
+        }
+      },
+      "points": [
+        [
+          36.75,
+          27,
+          75.75
+        ],
+        [
+          38.25,
+          27,
+          75.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 42
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 42
+        }
+      },
+      "points": [
+        [
+          38.25,
+          27,
+          63.75
+        ],
+        [
+          39.75,
+          27,
+          63.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 42
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 43
+        }
+      },
+      "points": [
+        [
+          38.25,
+          27,
+          63.75
+        ],
+        [
+          38.25,
+          27,
+          65.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 43
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 43
+        }
+      },
+      "points": [
+        [
+          38.25,
+          27,
+          65.25
+        ],
+        [
+          39.75,
+          27,
+          65.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 43
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 44
+        }
+      },
+      "points": [
+        [
+          38.25,
+          27,
+          65.25
+        ],
+        [
+          38.25,
+          27,
+          66.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 44
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 44
+        }
+      },
+      "points": [
+        [
+          38.25,
+          27,
+          66.75
+        ],
+        [
+          39.75,
+          27,
+          66.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 44
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 45
+        }
+      },
+      "points": [
+        [
+          38.25,
+          27,
+          66.75
+        ],
+        [
+          38.25,
+          27,
+          68.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 45
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 45
+        }
+      },
+      "points": [
+        [
+          38.25,
+          27,
+          68.25
+        ],
+        [
+          39.75,
+          27,
+          68.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 45
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 46
+        }
+      },
+      "points": [
+        [
+          38.25,
+          27,
+          68.25
+        ],
+        [
+          38.25,
+          27,
+          69.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 46
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 46
+        }
+      },
+      "points": [
+        [
+          38.25,
+          27,
+          69.75
+        ],
+        [
+          39.171501,
+          27,
+          69.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 46
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 47
+        }
+      },
+      "points": [
+        [
+          38.25,
+          27,
+          69.75
+        ],
+        [
+          38.25,
+          27,
+          71.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 47
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 47
+        }
+      },
+      "points": [
+        [
+          38.25,
+          27,
+          71.25
+        ],
+        [
+          39.75,
+          27,
+          71.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 47
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 48
+        }
+      },
+      "points": [
+        [
+          38.25,
+          27,
+          71.25
+        ],
+        [
+          38.25,
+          27,
+          72.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 48
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 48
+        }
+      },
+      "points": [
+        [
+          38.25,
+          27,
+          72.75
+        ],
+        [
+          39.75,
+          27,
+          72.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 48
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 49
+        }
+      },
+      "points": [
+        [
+          38.25,
+          27,
+          72.75
+        ],
+        [
+          38.25,
+          27,
+          74.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 49
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 49
+        }
+      },
+      "points": [
+        [
+          38.25,
+          27,
+          74.25
+        ],
+        [
+          39.75,
+          27,
+          74.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 49
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 50
+        }
+      },
+      "points": [
+        [
+          38.25,
+          27,
+          74.25
+        ],
+        [
+          38.25,
+          27,
+          75.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 25,
+          "row": 50
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 50
+        }
+      },
+      "points": [
+        [
+          38.25,
+          27,
+          75.75
+        ],
+        [
+          39.75,
+          27,
+          75.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 42
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 42
+        }
+      },
+      "points": [
+        [
+          39.75,
+          27,
+          63.75
+        ],
+        [
+          41.25,
+          27,
+          63.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 42
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 43
+        }
+      },
+      "points": [
+        [
+          39.75,
+          27,
+          63.75
+        ],
+        [
+          39.75,
+          27,
+          65.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 43
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 43
+        }
+      },
+      "points": [
+        [
+          39.75,
+          27,
+          65.25
+        ],
+        [
+          41.25,
+          27,
+          65.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 43
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 44
+        }
+      },
+      "points": [
+        [
+          39.75,
+          27,
+          65.25
+        ],
+        [
+          39.75,
+          27,
+          66.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 44
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 44
+        }
+      },
+      "points": [
+        [
+          39.75,
+          27,
+          66.75
+        ],
+        [
+          41.25,
+          27,
+          66.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 44
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 45
+        }
+      },
+      "points": [
+        [
+          39.75,
+          27,
+          66.75
+        ],
+        [
+          39.75,
+          27,
+          68.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 45
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 45
+        }
+      },
+      "points": [
+        [
+          39.75,
+          27,
+          68.25
+        ],
+        [
+          41.25,
+          27,
+          68.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 45
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 46
+        }
+      },
+      "points": [
+        [
+          39.75,
+          27,
+          68.25
+        ],
+        [
+          39.12,
+          27,
+          68.58
+        ],
+        [
+          39.171501,
+          27,
+          69.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 46
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 47
+        }
+      },
+      "points": [
+        [
+          39.171501,
+          27,
+          69.75
+        ],
+        [
+          39.12,
+          27,
+          70.92
+        ],
+        [
+          39.75,
+          27,
+          71.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 47
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 47
+        }
+      },
+      "points": [
+        [
+          39.75,
+          27,
+          71.25
+        ],
+        [
+          41.25,
+          27,
+          71.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 47
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 48
+        }
+      },
+      "points": [
+        [
+          39.75,
+          27,
+          71.25
+        ],
+        [
+          39.75,
+          27,
+          72.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 48
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 48
+        }
+      },
+      "points": [
+        [
+          39.75,
+          27,
+          72.75
+        ],
+        [
+          41.25,
+          27,
+          72.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 48
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 49
+        }
+      },
+      "points": [
+        [
+          39.75,
+          27,
+          72.75
+        ],
+        [
+          39.75,
+          27,
+          74.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 49
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 49
+        }
+      },
+      "points": [
+        [
+          39.75,
+          27,
+          74.25
+        ],
+        [
+          41.25,
+          27,
+          74.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 49
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 50
+        }
+      },
+      "points": [
+        [
+          39.75,
+          27,
+          74.25
+        ],
+        [
+          39.75,
+          27,
+          75.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 26,
+          "row": 50
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 50
+        }
+      },
+      "points": [
+        [
+          39.75,
+          27,
+          75.75
+        ],
+        [
+          41.25,
+          27,
+          75.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 42
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 42
+        }
+      },
+      "points": [
+        [
+          41.25,
+          27,
+          63.75
+        ],
+        [
+          42.75,
+          27,
+          63.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 42
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 43
+        }
+      },
+      "points": [
+        [
+          41.25,
+          27,
+          63.75
+        ],
+        [
+          41.25,
+          27,
+          65.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 43
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 43
+        }
+      },
+      "points": [
+        [
+          41.25,
+          27,
+          65.25
+        ],
+        [
+          42.75,
+          27,
+          65.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 43
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 44
+        }
+      },
+      "points": [
+        [
+          41.25,
+          27,
+          65.25
+        ],
+        [
+          41.25,
+          27,
+          66.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 44
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 44
+        }
+      },
+      "points": [
+        [
+          41.25,
+          27,
+          66.75
+        ],
+        [
+          42.75,
+          27,
+          66.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 44
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 45
+        }
+      },
+      "points": [
+        [
+          41.25,
+          27,
+          66.75
+        ],
+        [
+          41.25,
+          27,
+          68.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 45
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 45
+        }
+      },
+      "points": [
+        [
+          41.25,
+          27,
+          68.25
+        ],
+        [
+          42.75,
+          27,
+          68.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 45
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 46
+        }
+      },
+      "points": [
+        [
+          41.25,
+          27,
+          68.25
+        ],
+        [
+          41.7,
+          27,
+          68.46
+        ],
+        [
+          41.82,
+          27,
+          68.58
+        ],
+        [
+          41.828499,
+          27,
+          69.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 46
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 46
+        }
+      },
+      "points": [
+        [
+          41.828499,
+          27,
+          69.75
+        ],
+        [
+          42.75,
+          27,
+          69.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 46
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 47
+        }
+      },
+      "points": [
+        [
+          41.828499,
+          27,
+          69.75
+        ],
+        [
+          41.82,
+          27,
+          70.92
+        ],
+        [
+          41.46,
+          27,
+          71.16
+        ],
+        [
+          41.25,
+          27,
+          71.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 47
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 47
+        }
+      },
+      "points": [
+        [
+          41.25,
+          27,
+          71.25
+        ],
+        [
+          42.75,
+          27,
+          71.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 47
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 48
+        }
+      },
+      "points": [
+        [
+          41.25,
+          27,
+          71.25
+        ],
+        [
+          41.25,
+          27,
+          72.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 48
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 48
+        }
+      },
+      "points": [
+        [
+          41.25,
+          27,
+          72.75
+        ],
+        [
+          42.75,
+          27,
+          72.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 48
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 49
+        }
+      },
+      "points": [
+        [
+          41.25,
+          27,
+          72.75
+        ],
+        [
+          41.25,
+          27,
+          74.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 49
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 49
+        }
+      },
+      "points": [
+        [
+          41.25,
+          27,
+          74.25
+        ],
+        [
+          42.75,
+          27,
+          74.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 49
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 50
+        }
+      },
+      "points": [
+        [
+          41.25,
+          27,
+          74.25
+        ],
+        [
+          41.25,
+          27,
+          75.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 27,
+          "row": 50
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 50
+        }
+      },
+      "points": [
+        [
+          41.25,
+          27,
+          75.75
+        ],
+        [
+          42.75,
+          27,
+          75.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 42
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 42
+        }
+      },
+      "points": [
+        [
+          42.75,
+          27,
+          63.75
+        ],
+        [
+          44.25,
+          27,
+          63.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 42
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 43
+        }
+      },
+      "points": [
+        [
+          42.75,
+          27,
+          63.75
+        ],
+        [
+          42.75,
+          27,
+          65.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 43
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 43
+        }
+      },
+      "points": [
+        [
+          42.75,
+          27,
+          65.25
+        ],
+        [
+          44.25,
+          27,
+          65.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 43
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 44
+        }
+      },
+      "points": [
+        [
+          42.75,
+          27,
+          65.25
+        ],
+        [
+          42.75,
+          27,
+          66.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 44
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 44
+        }
+      },
+      "points": [
+        [
+          42.75,
+          27,
+          66.75
+        ],
+        [
+          44.25,
+          27,
+          66.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 44
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 45
+        }
+      },
+      "points": [
+        [
+          42.75,
+          27,
+          66.75
+        ],
+        [
+          42.75,
+          27,
+          68.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 45
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 45
+        }
+      },
+      "points": [
+        [
+          42.75,
+          27,
+          68.25
+        ],
+        [
+          44.25,
+          27,
+          68.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 45
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 46
+        }
+      },
+      "points": [
+        [
+          42.75,
+          27,
+          68.25
+        ],
+        [
+          42.75,
+          27,
+          69.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 46
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 46
+        }
+      },
+      "points": [
+        [
+          42.75,
+          27,
+          69.75
+        ],
+        [
+          44.25,
+          27,
+          69.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 46
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 47
+        }
+      },
+      "points": [
+        [
+          42.75,
+          27,
+          69.75
+        ],
+        [
+          42.75,
+          27,
+          71.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 47
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 47
+        }
+      },
+      "points": [
+        [
+          42.75,
+          27,
+          71.25
+        ],
+        [
+          44.25,
+          27,
+          71.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 47
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 48
+        }
+      },
+      "points": [
+        [
+          42.75,
+          27,
+          71.25
+        ],
+        [
+          42.75,
+          27,
+          72.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 48
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 48
+        }
+      },
+      "points": [
+        [
+          42.75,
+          27,
+          72.75
+        ],
+        [
+          44.25,
+          27,
+          72.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 48
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 49
+        }
+      },
+      "points": [
+        [
+          42.75,
+          27,
+          72.75
+        ],
+        [
+          42.75,
+          27,
+          74.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 49
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 49
+        }
+      },
+      "points": [
+        [
+          42.75,
+          27,
+          74.25
+        ],
+        [
+          44.25,
+          27,
+          74.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 49
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 50
+        }
+      },
+      "points": [
+        [
+          42.75,
+          27,
+          74.25
+        ],
+        [
+          42.75,
+          27,
+          75.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 28,
+          "row": 50
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 50
+        }
+      },
+      "points": [
+        [
+          42.75,
+          27,
+          75.75
+        ],
+        [
+          44.25,
+          27,
+          75.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 42
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 42
+        }
+      },
+      "points": [
+        [
+          44.25,
+          27,
+          63.75
+        ],
+        [
+          45.75,
+          27,
+          63.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 42
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 43
+        }
+      },
+      "points": [
+        [
+          44.25,
+          27,
+          63.75
+        ],
+        [
+          44.25,
+          27,
+          65.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 43
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 43
+        }
+      },
+      "points": [
+        [
+          44.25,
+          27,
+          65.25
+        ],
+        [
+          45.75,
+          27,
+          65.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 43
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 44
+        }
+      },
+      "points": [
+        [
+          44.25,
+          27,
+          65.25
+        ],
+        [
+          44.25,
+          27,
+          66.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 44
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 44
+        }
+      },
+      "points": [
+        [
+          44.25,
+          27,
+          66.75
+        ],
+        [
+          45.75,
+          27,
+          66.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 44
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 45
+        }
+      },
+      "points": [
+        [
+          44.25,
+          27,
+          66.75
+        ],
+        [
+          44.25,
+          27,
+          68.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 45
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 45
+        }
+      },
+      "points": [
+        [
+          44.25,
+          27,
+          68.25
+        ],
+        [
+          45.75,
+          27,
+          68.22933
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 45
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 46
+        }
+      },
+      "points": [
+        [
+          44.25,
+          27,
+          68.25
+        ],
+        [
+          44.25,
+          27,
+          69.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 46
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 46
+        }
+      },
+      "points": [
+        [
+          44.25,
+          27,
+          69.75
+        ],
+        [
+          45.467637,
+          27,
+          69.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 46
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 47
+        }
+      },
+      "points": [
+        [
+          44.25,
+          27,
+          69.75
+        ],
+        [
+          44.25,
+          27,
+          71.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 47
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 47
+        }
+      },
+      "points": [
+        [
+          44.25,
+          27,
+          71.25
+        ],
+        [
+          45.75,
+          27,
+          71.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 47
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 48
+        }
+      },
+      "points": [
+        [
+          44.25,
+          27,
+          71.25
+        ],
+        [
+          44.25,
+          27,
+          72.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 48
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 48
+        }
+      },
+      "points": [
+        [
+          44.25,
+          27,
+          72.75
+        ],
+        [
+          45.75,
+          27,
+          72.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 48
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 49
+        }
+      },
+      "points": [
+        [
+          44.25,
+          27,
+          72.75
+        ],
+        [
+          44.25,
+          27,
+          74.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 49
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 49
+        }
+      },
+      "points": [
+        [
+          44.25,
+          27,
+          74.25
+        ],
+        [
+          45.75,
+          27,
+          74.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 49
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 50
+        }
+      },
+      "points": [
+        [
+          44.25,
+          27,
+          74.25
+        ],
+        [
+          44.25,
+          27,
+          75.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 29,
+          "row": 50
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 50
+        }
+      },
+      "points": [
+        [
+          44.25,
+          27,
+          75.75
+        ],
+        [
+          45.467637,
+          27,
+          75.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 42
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 31,
+          "row": 42
+        }
+      },
+      "points": [
+        [
+          45.75,
+          27,
+          63.75
+        ],
+        [
+          46.912499999999994,
+          27,
+          63.771249000000005
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 42
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 43
+        }
+      },
+      "points": [
+        [
+          45.75,
+          27,
+          63.75
+        ],
+        [
+          45.75,
+          27,
+          65.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 43
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 31,
+          "row": 43
+        }
+      },
+      "points": [
+        [
+          45.75,
+          27,
+          65.25
+        ],
+        [
+          47.25,
+          27,
+          65.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 43
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 44
+        }
+      },
+      "points": [
+        [
+          45.75,
+          27,
+          65.25
+        ],
+        [
+          45.75,
+          27,
+          66.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 44
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 31,
+          "row": 44
+        }
+      },
+      "points": [
+        [
+          45.75,
+          27,
+          66.75
+        ],
+        [
+          46.912499999999994,
+          27,
+          66.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 44
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 45
+        }
+      },
+      "points": [
+        [
+          45.75,
+          27,
+          66.75
+        ],
+        [
+          45.75,
+          27,
+          68.22933
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 45
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 31,
+          "row": 45
+        }
+      },
+      "points": [
+        [
+          45.75,
+          27,
+          68.22933
+        ],
+        [
+          46.912499999999994,
+          27,
+          68.22933
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 45
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 46
+        }
+      },
+      "points": [
+        [
+          45.75,
+          27,
+          68.22933
+        ],
+        [
+          45.48,
+          27,
+          68.34
+        ],
+        [
+          45.467637,
+          27,
+          69.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 46
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 31,
+          "row": 46
+        }
+      },
+      "points": [
+        [
+          45.467637,
+          27,
+          69.75
+        ],
+        [
+          45.48,
+          27,
+          70.08
+        ],
+        [
+          45.84,
+          27,
+          70.32
+        ],
+        [
+          46.912499999999994,
+          27,
+          70.2336495
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 46
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 47
+        }
+      },
+      "points": [
+        [
+          45.467637,
+          27,
+          69.75
+        ],
+        [
+          45.48,
+          27,
+          70.56
+        ],
+        [
+          45.75,
+          27,
+          71.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 47
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 31,
+          "row": 47
+        }
+      },
+      "points": [
+        [
+          45.75,
+          27,
+          71.25
+        ],
+        [
+          46.912499999999994,
+          27,
+          71.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 47
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 48
+        }
+      },
+      "points": [
+        [
+          45.75,
+          27,
+          71.25
+        ],
+        [
+          45.75,
+          27,
+          72.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 48
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 31,
+          "row": 48
+        }
+      },
+      "points": [
+        [
+          45.75,
+          27,
+          72.75
+        ],
+        [
+          46.912499999999994,
+          27,
+          72.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 48
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 49
+        }
+      },
+      "points": [
+        [
+          45.75,
+          27,
+          72.75
+        ],
+        [
+          45.75,
+          27,
+          74.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 49
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 31,
+          "row": 49
+        }
+      },
+      "points": [
+        [
+          45.75,
+          27,
+          74.25
+        ],
+        [
+          46.912499999999994,
+          27,
+          74.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 49
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 30,
+          "row": 50
+        }
+      },
+      "points": [
+        [
+          45.75,
+          27,
+          74.25
+        ],
+        [
+          45.36,
+          27,
+          75.3
+        ],
+        [
+          45.467637,
+          27,
+          75.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 31,
+          "row": 42
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 31,
+          "row": 43
+        }
+      },
+      "points": [
+        [
+          46.912499999999994,
+          27,
+          63.771249000000005
+        ],
+        [
+          46.86,
+          27,
+          64.56
+        ],
+        [
+          47.25,
+          27,
+          65.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 31,
+          "row": 43
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 32,
+          "row": 43
+        }
+      },
+      "points": [
+        [
+          47.25,
+          27,
+          65.25
+        ],
+        [
+          48.75,
+          27,
+          65.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 31,
+          "row": 43
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 31,
+          "row": 44
+        }
+      },
+      "points": [
+        [
+          47.25,
+          27,
+          65.25
+        ],
+        [
+          46.86,
+          27,
+          66.06
+        ],
+        [
+          46.912499999999994,
+          27,
+          66.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 31,
+          "row": 44
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 31,
+          "row": 45
+        }
+      },
+      "points": [
+        [
+          46.912499999999994,
+          27,
+          66.75
+        ],
+        [
+          46.912499999999994,
+          27,
+          68.22933
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 31,
+          "row": 46
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 31,
+          "row": 47
+        }
+      },
+      "points": [
+        [
+          46.912499999999994,
+          27,
+          70.2336495
+        ],
+        [
+          46.912499999999994,
+          27,
+          71.25
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 31,
+          "row": 47
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 31,
+          "row": 48
+        }
+      },
+      "points": [
+        [
+          46.912499999999994,
+          27,
+          71.25
+        ],
+        [
+          46.912499999999994,
+          27,
+          72.75
+        ]
+      ]
+    },
+    {
+      "from": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 31,
+          "row": 48
+        }
+      },
+      "to": {
+        "surfaceId": "a5",
+        "cell": {
+          "col": 31,
+          "row": 49
+        }
+      },
+      "points": [
+        [
+          46.912499999999994,
+          27,
+          72.75
+        ],
+        [
+          46.912499999999994,
+          27,
+          74.25
+        ]
+      ]
+    }
+  ],
+  "blockedEdges": [
+    {
+      "surfaceId": "a5",
+      "from": {
+        "col": 22,
+        "row": 45
+      },
+      "to": {
+        "col": 22,
+        "row": 46
+      }
+    },
+    {
+      "surfaceId": "a5",
+      "from": {
+        "col": 26,
+        "row": 46
+      },
+      "to": {
+        "col": 27,
+        "row": 46
+      }
+    },
+    {
+      "surfaceId": "a5",
+      "from": {
+        "col": 31,
+        "row": 45
+      },
+      "to": {
+        "col": 31,
+        "row": 46
+      }
+    }
+  ],
+  "originalAddresses": 72,
+  "addedAddresses": 17
+}

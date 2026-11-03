@@ -1,5 +1,7 @@
 # Dirección aprobada — VTT de mesa HD-2D
 
+**Lectura vigente, 01/11/2026:** Babylon y varios sistemas gráficos ya están integrados; los párrafos de instalación pendiente y etapas del 15/09 inferiores son contexto histórico, no una orden de reinstalar o reconstruir. Para acabado actual de cualquier escena leer [dirección artística común](design/VISUAL_ART_DIRECTION.md), [roadmap visual](VISUAL_ROADMAP.md) y [referencias modernas](design/VISUAL_REFERENCE_LIBRARY.md), junto con el roadmap local. Se conserva la arquitectura y el reparto de trabajo acordado; la ampliación concreta coherencia de arte, luz y profundidad sin cambiar el mapa.
+
 **Actualización21/09/2026:** dirección gráfica y elección Babylon vigentes. Babylon9.26 ya está instalado y tiene pruebas sintéticas; la aplicación todavía usa Pixi. Las frases inferiores sobre instalación pendiente y el orden0.3/0.3.1 describen el15/09. El orden actual es M1 del [roadmap](../ROADMAP_V1.md) y ADR-024: mapa maestro por Terra, integración mínima por Sol, sin rehacer motor ni exigir cerrar todo D8. Oscuridad/secretos mínimos del pecio se adelantan; FOV avanzado queda posterior. Este documento no declara un benchmark físico superado.
 
 Decisión del usuario, 2026-09-15, posterior a la comparación de motores. Estado: **dirección aprobada; Babylon.js todavía no instalado ni integrado**. Referencia arquitectónica: ADR-023. No sustituye los contratos de implementación de Alpha 0.3.

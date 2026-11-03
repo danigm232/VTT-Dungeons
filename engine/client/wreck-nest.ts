@@ -15,7 +15,12 @@ const random=(i:number)=>{const n=Math.sin(i*127.1+73.13)*43758.5453;return n-Ma
 // Existing cofa walking centres: no new navigation layout.
 export const nestWalkingCentres=[[-2.25,-1.5],[-.75,-1.5],[.75,-1.5],[2.25,-1.5],[-2.25,0],[2.25,0],[-2.25,1.5],[-.75,1.5],[.75,1.5],[2.25,1.5]] as const;
 const walkingEdges=nestWalkingCentres.flatMap((a,i)=>nestWalkingCentres.slice(i+1).filter(b=>Math.hypot(a[0]-b[0],a[1]-b[1])<=1.501).map(b=>[a,b] as const));
-export function nestWalkDistance(x:number,z:number){return Math.min(...walkingEdges.map(([a,b])=>{const dx=b[0]-a[0],dz=b[1]-a[1],t=Math.max(0,Math.min(1,((x-a[0])*dx+(z-a[1])*dz)/(dx*dx+dz*dz)));return Math.hypot(x-a[0]-dx*t,z-a[1]-dz*t);}));}
+const walkSegments=walkingEdges.map(([a,b])=>({x:a[0],z:a[1],dx:b[0]-a[0],dz:b[1]-a[1],inverseLengthSquared:1/((b[0]-a[0])**2+(b[1]-a[1])**2)}));
+export function nestWalkDistance(x:number,z:number){
+  let squared=Infinity;
+  for(const edge of walkSegments){const dx=x-edge.x,dz=z-edge.z,t=Math.max(0,Math.min(1,(dx*edge.dx+dz*edge.dz)*edge.inverseLengthSquared)),px=dx-edge.dx*t,pz=dz-edge.dz*t;squared=Math.min(squared,px*px+pz*pz);}
+  return Math.sqrt(squared);
+}
 /** Visual offsets within original pickup cells. Server IDs still own reach,
  * inventory and collection. The basket never creates duplicate treasure. */
 export function nestTreasureOffset(id:string){const offsets:Record<string,{x:number;y:number;z:number}>={
@@ -27,6 +32,7 @@ export function nestTreasureOffset(id:string){const offsets:Record<string,{x:num
  * the leaning mast, leaves P10 open and clears all existing walking edges. */
 export function buildHarpyNest(scene:Scene){
   const groups=new Map<StandardMaterial,Mesh[]>();
+  const surfaces=new Map<StandardMaterial,{positions:number[];indices:number[];normals:number[];uvs:number[];colors:number[]}>();
   const material=(id:string,color:string,pattern:'bark'|'fibres'|'cloth')=>{
     const m=new StandardMaterial(`harpy-nest:${id}`,scene);m.diffuseColor=Color3.FromHexString(color);m.specularColor=Color3.FromHexString('#10120f');m.specularPower=8;m.backFaceCulling=false;
     const size=128,data=new Uint8Array(size*size*4),normal=new Uint8Array(size*size*4);
@@ -48,12 +54,20 @@ export function buildHarpyNest(scene:Scene){
   const bedHeight=(x:number,z:number)=>{const r=Math.hypot(x,z),a=Math.atan2(z,x),rim=Math.min(1,Math.max(0,(r-2.15)/.66)),core=.16*Math.exp(-Math.pow((r-1.07)/.36,2));
     const h=.025+core+(.79+.12*Math.sin(a*3+.8))*Math.pow(rim,1.7)*entrance(a),clearance=Math.min(1,Math.max(0,(nestWalkDistance(x,z)-.28)/.24));return Math.min(h,.045+(h-.045)*clearance);};
   const tube=(id:string,path:Vector3[],r:number,mat:StandardMaterial)=>add(MeshBuilder.CreateTube(`harpy-nest:${id}`,{path,radius:r,radiusFunction:i=>r*(.62+.38*Math.sin(i/(path.length-1)*Math.PI)),tessellation:6,cap:Mesh.CAP_ALL},scene),mat);
-  const surface=(id:string,points:Vector3[],indices:number[],mat:StandardMaterial,uv?:number[],shades?:number[])=>{const m=new Mesh(`harpy-nest:${id}`,scene),d=new VertexData(),ns:number[]=[];
+  const surface=(id:string,points:Vector3[],indices:number[],mat:StandardMaterial,uv?:number[],shades?:number[])=>{const d=new VertexData(),ns:number[]=[];
     d.positions=points.flatMap(p=>[p.x,p.y,p.z]);d.indices=indices;d.uvs=uv??points.flatMap(p=>[(p.x-S.origin.x)*3,(p.z-S.origin.z)*3]);if(shades)d.colors=shades.flatMap(n=>[n,n,n,1]);VertexData.ComputeNormals(d.positions,indices,ns);
     // Babylon's left-handed winding must face upward on horizontal bedding.
     // Repair indices (not just normals), so the final batch recompute is safe.
     if(id!=='basket-thick-skirt'&&ns.filter((_,i)=>i%3===1).reduce((a,b)=>a+b,0)<0){for(let i=0;i<indices.length;i+=3){const swap=indices[i+1]!;indices[i+1]=indices[i+2]!;indices[i+2]=swap;}VertexData.ComputeNormals(d.positions,indices,ns);}
-    d.normals=ns;d.applyToMesh(m);return add(m,mat);};
+    // Thousands of blades used to allocate/register/upload a temporary Mesh,
+    // only to dispose it again during the final merge. Accumulate the exact
+    // same geometry by material before touching the scene or GPU instead.
+    let batch=surfaces.get(mat);if(!batch){batch={positions:[],indices:[],normals:[],uvs:[],colors:[]};surfaces.set(mat,batch);}
+    if(!groups.has(mat))groups.set(mat,[]);
+    const offset=batch.positions.length/3;
+    batch.positions.push(...d.positions);batch.indices.push(...indices.map(i=>i+offset));batch.normals.push(...ns);batch.uvs.push(...d.uvs);
+    batch.colors.push(...(d.colors??new Array(points.length*4).fill(1)));
+  };
   // Bowl + closed thick skirt; the central aperture surrounds the leaned mast.
   const sectors=96,rings=18,points:Vector3[]=[],indices:number[]=[],shades:number[]=[];
   for(let ring=0;ring<=rings;ring++)for(let i=0;i<=sectors;i++){const a=i/sectors*TAU,t=ring/rings,r=radius(a),x=(mast.x+Math.cos(a)*.40)*(1-t)+Math.cos(a)*r*t,z=(mast.z+Math.sin(a)*.40)*(1-t)+Math.sin(a)*r*t;
@@ -100,6 +114,7 @@ export function buildHarpyNest(scene:Scene){
     if(i===4||i===8){const skull=MeshBuilder.CreateIcoSphere(`harpy-nest:victim-skull:${i}`,{radius:.16,subdivisions:2},scene);skull.position.copyFrom(p.add(new Vector3(0,.035,0)));skull.scaling.set(.83,.74,1.08);add(skull,bone);for(const side of [-1,1]){const socket=MeshBuilder.CreateIcoSphere(`harpy-nest:skull-socket:${i}:${side}`,{radius:.047,subdivisions:1},scene);socket.position.copyFrom(p.add(new Vector3(side*.065,.09,.12)));socket.scaling.z=.35;add(socket,dark);}}}
   for(let i=0;i<32;i++){const a=i*2.39,r=.73+random(i+41)*1.78,x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.hypot(x-mast.x,z-mast.z)<.68)continue;const len=.19+random(i+62)*.20,p:Vector3[]=[],idx:number[]=[];
     for(let j=0;j<7;j++){const t=j/6,w=Math.sin(t*Math.PI)*.045,px=x+Math.cos(a)*len*t,pz=z+Math.sin(a)*len*t,h=bedHeight(px,pz)+.06+Math.sin(t*Math.PI)*.045;p.push(at(px-Math.sin(a)*w,h,pz+Math.cos(a)*w),at(px,h+.018,pz),at(px+Math.sin(a)*w*.78,h,pz-Math.cos(a)*w*.78));if(j<6){const n=j*3;idx.push(n,n+3,n+1,n+1,n+3,n+4,n+1,n+4,n+2,n+2,n+4,n+5);}}surface(`fallen-feather:${i}`,p,idx,i%3?feathers:dark);}
+  for(const [mat,batch] of surfaces){const mesh=new Mesh(`harpy-nest:surface-batch:${mat.name}`,scene),data=new VertexData();Object.assign(data,batch);data.applyToMesh(mesh);add(mesh,mat);}
   return [...groups].flatMap(([mat,parts])=>{
     // Babylon merges only matching attribute sets. Colour-modulated cloth and
     // bowl meshes share batches with tubes, which need neutral vertex colours.

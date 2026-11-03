@@ -14,9 +14,11 @@ export const STEP_DURATION_MS = 220;
 export type SceneId = string;
 export type CameraMode = 'fixed' | 'semiFixed' | 'follow';
 export type Facing = 'north' | 'north-east' | 'east' | 'south-east' | 'south' | 'south-west' | 'west' | 'north-west';
-export interface StepState { from: Cell; to: Cell; fromSurfaceId?: string; toSurfaceId?: string; startedAt: number; durationMs: number; movementKind?: 'climb' | 'dive' | 'jump' | 'run-up' }
+export interface StepState { from: Cell; to: Cell; fromSurfaceId?: string; toSurfaceId?: string; startedAt: number; durationMs: number; movementKind?: 'climb' | 'dive' | 'jump' | 'run-up' | 'passage'; passage?:{portId:string;points:{x:number;y:number;z:number}[]} }
 
 export interface PublicEntity {
+  /** Only populated in the authenticated DM snapshot. */
+  dmHidden?:boolean;
   stealth?:boolean;
   id: string;
   kind: 'player' | 'creature' | 'npc';
@@ -184,6 +186,8 @@ export interface WorldSnapshot {
     props: PublicProp[];
     /** Active, scene-authorized visual cues, including on reconnect. */
     visualEffects?: import('./world-visual-effects.js').WorldVisualEffect[];
+  /** Public mechanical pose; private adventure progress stays with the DM. */
+  retreat?:{winchLowered:boolean};
   collectedPickups?: string[];
   camera: CameraState;
   environment: EnvironmentState;
@@ -250,7 +254,8 @@ export interface InteractionRequest {
   targetId: string;
   createdAt: number;
   status: 'pending' | 'resolved';
-  kind?: 'proximity-check' | 'prayer';
+  kind?: 'proximity-check' | 'prayer' | 'journey';
+  journeyOptions?:Array<{portId:string;direction:'forward'|'return'}>;
   playerTotal?: number;
   skill?: string;
   dc?: number;
@@ -259,6 +264,8 @@ export interface InteractionRequest {
 
 export interface ConditionStateView { conditions?: CombatCondition[]; conditionSources?: ConditionSource[] }
 export interface DmState {
+  /** The shared table scene may differ from this DM’s private view. */
+  tableSceneId?:SceneId;
   /** D8-only, DM-only action catalogue for local visual QA; never authorizes gameplay. */
   animationAudit?: Array<{ id: string; attacks: CombatAction[]; explorationActions: ExplorationAction[]; explorationBasics: ExplorationBasicAction[] }>;
   runtimeEpoch: string;
@@ -290,7 +297,7 @@ export interface DmState {
   lastExplorationAction: { id: string; sceneId: SceneId; characterId: string; characterLabel: string; action: ExplorationBasicAction; actionLabel: string; targetLabel: string; guidance: string; createdAt: number } | null;
   undo: { canUndo: boolean; label: string | null; entryId: string | null };
   gameUndo: { canUndo: boolean; label: string | null };
-  ports: Array<{ id: string; mode: 'rigging' | 'stairs' | 'road' | 'door' | 'rope-ladder' | 'hatch' | 'hole' | 'swim'; return: 'explicit' | 'adjudicated'; conditionId?: string; travelSeconds?: number; from: { mapId: string; zoneId: string; surfaceId: string; cell: Cell }; to: { mapId: string; zoneId: string; surfaceId: string; cell: Cell } }>;
+  ports: Array<{ id: string; label?:string;returnLabel?:string;rememberReturn?:boolean; mode: 'rigging' | 'stairs' | 'road' | 'door' | 'rope-ladder' | 'hatch' | 'hole' | 'swim'; return: 'explicit' | 'adjudicated'; conditionId?: string; travelSeconds?: number; from: { mapId: string; zoneId: string; surfaceId: string; cell: Cell }; to: { mapId: string; zoneId: string; surfaceId: string; cell: Cell } }>;
 }
 
 const epochSchema = z.number().int().nonnegative();
@@ -303,7 +310,8 @@ export const moveInputSchema = z.object({
   sceneEpoch: epochSchema,
   x: z.number().finite().min(-1).max(1),
   z: z.number().finite().min(-1).max(1),
-  end: z.boolean().optional()
+  end: z.boolean().optional(),
+  turnOnly: z.boolean().optional()
 }).strict();
 export const sceneReadySchema = z.object({ runtimeEpoch: runtimeEpochSchema.optional(), sceneEpoch: epochSchema }).strict();
 export const claimSchema = z.object({ runtimeEpoch: runtimeEpochSchema.optional(), characterId: idSchema }).strict();
@@ -403,6 +411,7 @@ export const dmCommandSchema = z.discriminatedUnion('type', [
   z.object({ ...runtimeField, type: z.literal('clock:decision'), commandId: commandIdSchema, action: z.enum(['open', 'close']), dialogId: idSchema }).strict(),
   campRestCommandSchema,
   z.object({ ...runtimeField, type: z.literal('entity:move'), commandId: commandIdSchema, sceneEpoch: epochSchema, entityId: z.string().max(40), cell: cellSchema }).strict(),
+  z.object({ ...runtimeField, type: z.literal('entity:place'), commandId: commandIdSchema, sceneEpoch: epochSchema, entityId:idSchema, sceneId:sceneIdSchema, surfaceId:idSchema, cell:cellSchema }).strict(),
   z.object({ ...runtimeField, type: z.literal('entity:seat'), commandId: commandIdSchema, sceneEpoch: epochSchema, entityId:idSchema,seatId:idSchema }).strict(),
   z.object({ ...runtimeField, type: z.literal('hp'), commandId: commandIdSchema, characterId: z.string().max(40), hp: z.number().int().min(0).max(999) }).strict(),
   z.object({ ...runtimeField, type: z.literal('resource'), commandId: commandIdSchema, characterId: idSchema, resourceId: idSchema, current: z.number().int().min(0).max(99) }).strict(),

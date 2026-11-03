@@ -1,0 +1,165 @@
+{
+  "spell-n6": {
+    "rows": 2,
+    "columns": 3,
+    "phases": [
+      "Reposo original",
+      "Elevar mano",
+      "Trazar gesto",
+      "Extender hacia el blanco",
+      "Soltar el conjuro",
+      "Recuperar"
+    ]
+  },
+  "spell-ne6": {
+    "rows": 2,
+    "columns": 3,
+    "phases": [
+      "Reposo original",
+      "Elevar mano",
+      "Trazar gesto",
+      "Extender hacia el blanco",
+      "Soltar el conjuro",
+      "Recuperar"
+    ]
+  },
+  "spell-e6": {
+    "rows": 2,
+    "columns": 3,
+    "phases": [
+      "Reposo original",
+      "Elevar mano",
+      "Trazar gesto",
+      "Extender hacia el blanco",
+      "Soltar el conjuro",
+      "Recuperar"
+    ]
+  },
+  "spell-se6": {
+    "rows": 2,
+    "columns": 3,
+    "phases": [
+      "Reposo original",
+      "Elevar mano",
+      "Trazar gesto",
+      "Extender hacia el blanco",
+      "Soltar el conjuro",
+      "Recuperar"
+    ]
+  },
+  "spell-s6": {
+    "rows": 2,
+    "columns": 3,
+    "phases": [
+      "Reposo original",
+      "Elevar mano",
+      "Trazar gesto",
+      "Extender hacia el blanco",
+      "Soltar el conjuro",
+      "Recuperar"
+    ]
+  },
+  "climb6": {
+    "rows": 2,
+    "columns": 3,
+    "referenceHeight": 430,
+    "phases": [
+      "Alcanzar con primer brazo",
+      "Tirar del primer apoyo",
+      "Transferir apoyo",
+      "Alcanzar con el otro brazo",
+      "Tirar del segundo apoyo",
+      "Recuperar el apoyo"
+    ]
+  },
+  "swim6": {
+    "rows": 2,
+    "columns": 3,
+    "horizontal": true,
+    "referenceHeight": 460,
+    "phases": [
+      "Extender primer brazo",
+      "Tirar con el otro brazo",
+      "Recuperar la brazada",
+      "Nueva extensión · cambiar patada",
+      "Barrido del otro brazo bajo el pecho",
+      "Preparar la siguiente brazada"
+    ]
+  },
+  "crawl6": {
+    "rows": 2,
+    "columns": 3,
+    "horizontal": true,
+    "referenceHeight": 500,
+    "phases": [
+      "Extender primer brazo por el suelo",
+      "Tirar con el antebrazo",
+      "Transferir apoyo al codo",
+      "Extender el otro brazo",
+      "Tirar con el otro antebrazo",
+      "Volver al primer apoyo"
+    ]
+  },
+  "condition-paralizada6": {
+    "rows": 2,
+    "columns": 3,
+    "phases": [
+      "Rigidez",
+      "Inspiración leve",
+      "Tensión de dedos",
+      "Párpados bajos",
+      "Espiración leve",
+      "Mirada fija"
+    ]
+  },
+  "condition-restringida6": {
+    "rows": 2,
+    "columns": 3,
+    "phases": [
+      "Muñecas juntas",
+      "Tirar hacia arriba",
+      "Forzar codos",
+      "Girar a izquierda",
+      "Girar a derecha",
+      "Seguir sujeta"
+    ]
+  },
+  "condition-agarrada6": {
+    "rows": 2,
+    "columns": 3,
+    "phases": [
+      "Afirmar pies",
+      "Sujetar muñeca",
+      "Tirar a izquierda",
+      "Centrar apoyo",
+      "Tirar a derecha",
+      "Volver a afirmarse"
+    ]
+  },
+  "condition-hechizada6": {
+    "rows": 2,
+    "columns": 3,
+    "phases": [
+      "Mirar a quien encanta",
+      "Elevar mano",
+      "Mano al pecho",
+      "Inclinar cabeza",
+      "Abrir palma",
+      "Bajar mano"
+    ]
+  },
+  "condition-derribada6": {
+    "rows": 2,
+    "columns": 3,
+    "horizontal": true,
+    "referenceHeight": 560,
+    "phases": [
+      "Apoyo en ambos codos",
+      "Girar cabeza",
+      "Apoyo izquierdo",
+      "Alzar un poco la cabeza",
+      "Apoyo derecho",
+      "Apoyo en ambos antebrazos"
+    ]
+  }
+}

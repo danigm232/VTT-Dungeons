@@ -32,7 +32,7 @@ export function conditionFromSpriteState(state: string): CombatCondition | undef
 }
 export function conditionSpriteSelection(animations: Animations, condition: CombatCondition) {
   const state = conditionSpriteState(condition), authored = animations[state];
-  if (authored) return { animation: authored, source: state, authored: true, groundPose: true };
+  if (authored) return { animation: authored, source: state, authored: true, groundPose: condition === 'inconsciente' || condition === 'derribada' };
   const source = poseSources[condition].find(candidate => animations[candidate]?.frames.length);
   const clip = source ? animations[source] : undefined;
   const index = source === 'fall' ? clip!.frames.length - 1 : source === 'hit' ? Math.min(1, clip!.frames.length - 1) : 0;

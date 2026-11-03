@@ -34,7 +34,7 @@ const key = (col: number, row: number) => `${col},${row}`;
 
 /** CANON: six unequal excavated cave cells carved into a continuous mountain cliff, an elongated plaza,
  * the Astalagan statue, four beds and eight hammocks. Surface dressing is VTT_AMBIENCE. */
-export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition): CampVisuals {
+export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition,options:{pauseInvisibleSea?:boolean;courtyardSpread?:boolean}={}): CampVisuals {
   const root = new TransformNode(`camp-visuals:${definition.id}`, scene);
   scene.imageProcessingConfiguration.exposure = 1.18;
   scene.imageProcessingConfiguration.contrast = 1.14;
@@ -97,7 +97,7 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition)
   const cellMaterials = [M.cellFloor, M.cellWarm, M.cellCool, M.cellDark];
   const readableMaterials = [...plazaMaterials, M.carved, M.cliff, ...cellMaterials, M.limestone, M.earth, M.ashlar, M.wood, M.darkWood, M.linen, M.blue, M.red, M.green, M.metal, M.brass, M.paper, M.pottery, M.soil];
   const warmPool = softPoolMaterial(scene, 'a1:warm-bounce-v5', '#ef9d42', .22);
-  const backdrop = createCoastalBackdrop(scene, root, asset + 'bay-v3.png');
+  const backdrop = createCoastalBackdrop(scene, root, asset + 'bay-v3.png',{pauseOffscreen:options.pauseInvisibleSea});
   // The sea already has animated wave normals from its real geometry. A second
   // high-frequency normal texture caused both distant moiré and a severe GPU
   // slowdown on integrated graphics, so keep the geometric water relief only.
@@ -655,13 +655,13 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition)
   const firePool = add(MeshBuilder.CreateDisc('a1:plaza-fire-bounce', { radius: 5.2, tessellation: 28 }, scene), new Vector3(fire.x, .1, fire.z), warmPool); firePool.rotation.x = Math.PI / 2;
 
   for (const side of [-1, 1]) {
-    const benchX = fire.x + side * 3;
-    box('a1:fire-bench-seat', benchX, .53, fire.z, 1.18, .2, 2.35, M.wood);
-    for (const dz of [-.82, .82]) box('a1:fire-bench-leg', benchX, .27, fire.z + dz, .18, .54, .18, M.darkWood);
-    const back = box('a1:fire-bench-back', benchX + side * .48, .94, fire.z, .13, .85, 2.25, M.wood); back.rotation.z = -side * .08;
+    const benchX = fire.x + side * (options.courtyardSpread?4.5:3),benchZ=fire.z-(options.courtyardSpread?1.5:0);
+    box('a1:fire-bench-seat', benchX, .53, benchZ, 1.18, .2, 2.35, M.wood);
+    for (const dz of [-.82, .82]) box('a1:fire-bench-leg', benchX, .27, benchZ + dz, .18, .54, .18, M.darkWood);
+    const back = box('a1:fire-bench-back', benchX + side * .48, .94, benchZ, .13, .85, 2.25, M.wood); back.rotation.z = -side * .08;
     const point=definition.camp!.interactionPoints.find(p=>p.kind==='seat'&&p.objectCell?.col===(side<0?22:26))!;
-    keep(point.id,'seat-cloth',box('a1:bench-folded-cloth',benchX,.65,fire.z,.75,.055,.5,M.blue));
-    shadow(benchX, fire.z, 1.35, 2.65);
+    keep(point.id,'seat-cloth',box('a1:bench-folded-cloth',benchX,.65,benchZ,.75,.055,.5,M.blue));
+    shadow(benchX, benchZ, 1.35, 2.65);
   }
   const tripodX = fire.x + 1.15;
   for (let leg = 0; leg < 3; leg++) { const angle = leg / 3 * Math.PI * 2; const pole = cylinder('a1:fire-tripod', tripodX + Math.cos(angle) * .32, .88, fire.z + Math.sin(angle) * .32, 1.8, .07, M.metal, 7); pole.rotation.z = Math.cos(angle) * .18; pole.rotation.x = Math.sin(angle) * .18; }
@@ -678,7 +678,7 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition)
   cylinder('a1:fire-water-bucket', fire.x - 1.35, .38, fire.z - 1.45, .64, .58, M.wood, 10);
   detail.bowl(fire.add(new Vector3(-1.35,.68,-1.45)),.26,M.darkWood);
   detail.coil(fire.add(new Vector3(-1.08,.14,1.12)),.28);
-  for(const side of [-1,1]){detail.bowl(fire.add(new Vector3(side*2.8,.66,.75)),.13);detail.bottle(fire.add(new Vector3(side*3.1,.66,-.8)),.23);}
+  for(const side of [-1,1]){const dx=side*(options.courtyardSpread?4.5:3),dz=options.courtyardSpread?-1.5:0;detail.bowl(fire.add(new Vector3(dx-side*.2,.66,dz+.75)),.13);detail.bottle(fire.add(new Vector3(dx+side*.1,.66,dz-.8)),.23);}
 
   // Natural irregular coastal rocks and occasional mossy crevices along the terrace edge
   for (let i = 0; i < 14; i++) {
@@ -770,6 +770,10 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition)
       const roomId = Number(mesh.name.match(/a1:room-(\d+)/)?.[1] ?? 0);
       mesh.visibility = !lamps||mesh.metadata?.independentLamp&&!votivesLit||(roomId && roomId !== activeRoom) ? 0 : roomId||mesh.metadata?.independentLamp?1:fireLevel.flame;
       const baseX = Number(mesh.metadata?.baseX ?? .18), baseY = Number(mesh.metadata?.baseY ?? .34), baseZ = Number(mesh.metadata?.baseZ ?? .18), phaseOffset = Number(mesh.metadata?.phase ?? index);
+      // The five votive flames share a mesh whose origin is the statue. A
+      // horizontal scale animated their spacing around it, making them dance
+      // away from the candles. Keep X/Z fixed; only a tiny vertical flicker.
+      if(mesh.metadata?.independentLamp){mesh.scaling.set(1,1+Math.sin(time*6.1)*.008,1);return;}
       const pulse = 1 + Math.sin(time * 10.4 + phaseOffset) * .11 + Math.sin(time * 17.3 + index) * .035;
       mesh.scaling.x = baseX * pulse;
       mesh.scaling.y = baseY * (1 + Math.sin(time * 8.2 + phaseOffset) * .16);

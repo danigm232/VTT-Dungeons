@@ -1,11 +1,11 @@
-import { Container, Graphics, Sprite, Texture } from 'pixi.js';
+import { Container, Graphics } from 'pixi.js';
 import type { Cell } from '../../engine/shared/protocol';
 import type { WorldVisualEffect } from '../../engine/shared/world-visual-effects';
 
 type Point = { x: number; y: number };
 /** One lifecycle on the world ticker, not a detached RAF per effect. */
 export class WorldAreaEffects {
-  private views = new Map<string, { effect: WorldVisualEffect; root: Container; graphics: Graphics; fog?: Sprite }>();
+  private views = new Map<string, { effect: WorldVisualEffect; root: Container; graphics: Graphics; fog?: Graphics }>();
   private transient = new Set<string>();
   constructor(private parent: Container) {}
   sync(effects: WorldVisualEffect[]) {
@@ -15,8 +15,10 @@ export class WorldAreaEffects {
       const existing = this.views.get(effect.id);
       if (existing) { existing.effect = effect; continue; }
       const root = new Container(), graphics = new Graphics();
-      const fog = effect.type === 'fog' ? new Sprite(Texture.from('/art/vfx/d8-night/particles/d8-night-vfx-fog-smoke.png')) : undefined;
-      if (fog) { fog.anchor.set(.5); fog.tint = '#dce8e2'; root.addChild(fog); }
+      // Geometry has transparent space outside each lobe: never stretch an
+      // opaque rectangular PNG over the map (including its baked-in matte).
+      const fog = effect.type === 'fog' ? new Graphics() : undefined;
+      if (fog) root.addChild(fog);
       root.addChild(graphics); this.parent.addChild(root);
       this.views.set(effect.id, { effect, root, graphics, fog });
     }
@@ -39,10 +41,24 @@ export class WorldAreaEffects {
       view.root.position.set(center.x, center.y); view.root.zIndex = Math.round(center.y) + 1; view.root.alpha = fade;
       const g = view.graphics; g.clear();
       if (view.fog) {
-        // Set dimensions after every pulse; scale.set(1) would erase map/zoom scale.
-        view.fog.width = rx * 2 * (1 + Math.sin(t * .7) * .035);
-        view.fog.height = ry * 2 * (1 + Math.cos(t * .8) * .035);
-        view.fog.alpha = .5;
+        const fog = view.fog; fog.clear();
+        // Project every lobe on the same ground plane as cells and tokens.
+        // Unlike an axis-aligned screen ellipse this follows camera orbit.
+        const extent = Math.max(rx, ry);
+        for (let i=0;i<24;i++) {
+          const angle=i*2.399963229728653 + Math.sin(t*.19+i)*.045;
+          const spread=Math.sqrt((i+.5)/24)*.76;
+          const p=project({col:e.cell.col+Math.cos(angle)*radius*spread,row:e.cell.row+Math.sin(angle)*radius*spread},e.surfaceId);
+          const size=extent*(.19+.055*Math.sin(i*7+t*.35));
+          const lift=extent*.24*(1-spread*spread);
+          // Nested translucent lobes approximate a feathered alpha gradient;
+          // the outermost band is nearly invisible, without a hard boundary.
+          for(let band=6;band>=1;band--) {
+            const scale=.45+band*.13;
+            fog.ellipse(p.x-center.x,p.y-center.y-lift,size*scale,size*.62*scale)
+              .fill({color:i%3===0?'#a8b9bd':'#d8e3e4',alpha:.014+(7-band)*.006});
+          }
+        }
       } else if (e.type === 'feather') {
         const h = attached?.height ?? rx * 2;
         for (let i = 0; i < 6; i++) {

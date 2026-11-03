@@ -17,22 +17,22 @@ export function d8CameraBaseAlpha(authoredAlpha: number, sceneId?: string) {
   return Math.round(alpha / (Math.PI / 2)) * Math.PI / 2;
 }
 
-export function d8GroundHeight(terrain: TerrainDefinition | undefined, col: number, row: number) {
+export function d8GroundHeight(terrain: TerrainDefinition | undefined, col: number, row: number, surfaceId=terrain?.baseSurfaceId) {
   if (!terrain) return .045;
   const candidates = [{ col: Math.floor(col), row: Math.floor(row) }];
   if (Number.isInteger(col)) candidates.push({ col: col - 1, row: Math.floor(row) });
   if (Number.isInteger(row)) candidates.push({ col: Math.floor(col), row: row - 1 });
   if (Number.isInteger(col) && Number.isInteger(row)) candidates.push({ col: col - 1, row: row - 1 });
-  const heights = candidates.filter(cell => terrainTile(terrain, { surfaceId: terrain.baseSurfaceId, cell }))
-    .map(cell => surfaceHeight(terrain, { surfaceId: terrain.baseSurfaceId, cell }, col - cell.col, row - cell.row));
+  const heights = candidates.filter(cell => terrainTile(terrain, { surfaceId: surfaceId!, cell }))
+    .map(cell => surfaceHeight(terrain, { surfaceId: surfaceId!, cell }, col - cell.col, row - cell.row));
   return (heights.length ? Math.max(...heights) : 0) + .045;
 }
 type D8Grid = {cols:number;rows:number;worldOrigin?:{x:number;z:number}};
 export function d8GridWorldPoint(col:number,row:number,size:[number,number],grid:D8Grid) {
   return {x:(grid.worldOrigin?.x??-size[0]/2)+col*(grid.worldOrigin?1.5:size[0]/grid.cols),z:(grid.worldOrigin?.z??-size[1]/2)+row*(grid.worldOrigin?1.5:size[1]/grid.rows)};
 }
-export function d8CellWorldPoint(cell: { col: number; row: number }, size: [number, number], grid: D8Grid, terrain?: TerrainDefinition): D8CameraPoint {
-  return {...d8GridWorldPoint(cell.col+.5,cell.row+.5,size,grid), y: d8GroundHeight(terrain, cell.col + .5, cell.row + .5)};
+export function d8CellWorldPoint(cell: { col: number; row: number }, size: [number, number], grid: D8Grid, terrain?: TerrainDefinition, surfaceId=terrain?.baseSurfaceId): D8CameraPoint {
+  return {...d8GridWorldPoint(cell.col+.5,cell.row+.5,size,grid), y: d8GroundHeight(terrain, cell.col + .5, cell.row + .5,surfaceId)};
 }
 
 export function d8PickCell(point: { x: number; y: number }, viewport: { width: number; height: number }, view: Matrix, projection: Matrix, size: [number, number], grid: D8Grid, terrain?: TerrainDefinition) {
@@ -75,7 +75,7 @@ export function d8CameraHalfHeight(size: { width: number; depth: number; height:
  * Moving that plane backwards preserves pose, zoom and permitted angles. */
 export function d8CameraNearPlane(radius: number, beta: number, halfHeight: number, targetY: number) {
   const bottomY = targetY + radius * Math.cos(beta) - halfHeight * Math.sin(beta);
-  return Math.min(.1, (bottomY - 2) / Math.max(.1, Math.cos(beta)));
+  return Math.min(.1, (bottomY - 2) / Math.max(.01, Math.cos(beta)));
 }
 
 function damp(current: number, target: number, velocity: number, seconds: number, smoothTime: number) {
@@ -93,6 +93,18 @@ export class D8CameraMotion {
   private pose: D8CameraPose | null = null;
   private velocity = { alpha: 0, beta: 0, halfHeight: 0, x: 0, y: 0, z: 0 };
   reset() { this.pose = null; this.velocity = { alpha: 0, beta: 0, halfHeight: 0, x: 0, y: 0, z: 0 }; }
+  /** Apply a hard stage boundary and discard velocity pushing through it. */
+  constrainTarget(target:D8CameraPoint) {
+    if(!this.pose)return;
+    for(const key of ['x','y','z'] as const)if(Math.abs(this.pose.target[key]-target[key])>1e-7){
+      this.pose.target[key]=target[key];this.velocity[key]=0;
+    }
+  }
+  /** Keep boundary/actor corrections authoritative during the smooth orbit. */
+  constrainFrame(frame:{target:D8CameraPoint;halfHeight:number}) {
+    this.constrainTarget(frame.target);
+    if(this.pose&&Math.abs(this.pose.halfHeight-frame.halfHeight)>1e-7){this.pose.halfHeight=frame.halfHeight;this.velocity.halfHeight=0;}
+  }
   update(target: D8CameraPose, deltaMs: number, maxTiltDegrees=CAMERA_MAX_TILT): D8CameraPose {
     if (!this.pose) {
       this.pose = { ...target, beta: Math.max((90-CAMERA_MAX_TILT)*Math.PI/180, Math.min((90-CAMERA_MIN_TILT)*Math.PI/180, target.beta)),

@@ -8,6 +8,21 @@ import {wreckFogRange} from './wreck-fog.js';
 import {emptyClimateState} from '../shared/game-time.js';
 import {wreckRuntimeScenes} from '../../campaigns/stormwreck-isle/public/wreck-runtime.js';
 import {campRestsPublicCampaign} from '../../campaigns/camp-rests/public/pack.js';
+it('prepara variantes antes del primer dibujo y conserva la misma climatología viva al clonarlas',()=>{
+ const engine=new NullEngine(),scene=new Scene(engine);try{
+  const base=new StandardMaterial('wood',scene),rain=new RainAccumulation(scene,wreckRuntimeScenes[0]!);
+  rain.update(12,{...emptyClimateState(),wetness:.8,puddleCoverage:.4},1);
+  const variant=base.clone('style-v1:ship:wood');
+  expect(variant.pluginManager?.getPlugin('RainAccumulation')).toBeFalsy();
+  rain.prepare();const plugin=variant.pluginManager?.getPlugin('RainAccumulation')!;
+  expect(plugin.getCustomCode('fragment')?.CUSTOM_FRAGMENT_BEFORE_FOG).toContain('rainPool');
+  const values:any[]=[];const buffer={updateFloat4:(...v:any[])=>values.push(v),updateFloat:(...v:any[])=>values.push(v)};
+  (plugin as any).bindForSubMesh(buffer);expect(values[0]).toEqual(['rainSurface',.8,.4,0,12]);
+  rain.update(20,{...emptyClimateState(),wetness:.3,puddleCoverage:.1},0);values.length=0;
+  (plugin as any).bindForSubMesh(buffer);expect(values[0]).toEqual(['rainSurface',.3,.1,0,0]);
+  rain.prepare();expect(variant.pluginManager?.getPlugin('RainAccumulation')).toBe(plugin);
+ }finally{scene.dispose();engine.dispose();}
+});
 it('mantiene visible el centro del barco al alejarse incluso con niebla máxima',()=>{
   for(const radius of [25,80,160,350]){
     const fog=wreckFogRange(radius,1),opacity=(radius-fog.start)/(fog.end-fog.start);

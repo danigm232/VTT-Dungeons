@@ -33,7 +33,8 @@ import { gridContrastColor, gridMaterialLuminance, type GridStyle } from './grid
 import { WRECK_STRUCTURE, wreckListHeight, wreckBeamAt } from '../shared/wreck-structure.js';
 import '@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent.js';
 
-export type Terrain3DView = { tiles: Map<string, Mesh>; grid: LinesMesh; grids: Map<string, LinesMesh>; setGridStyle(style: GridStyle): void; deckDetails: Mesh[]; occluders: Mesh[]; structures: Mesh[]; lights: PointLight[]; camera: ArcRotateCamera };
+export type GridSegmentProjector=(surfaceId:string,a:Vector3,b:Vector3)=>ReadonlyArray<readonly [Vector3,Vector3]>;
+export type Terrain3DView = { tiles: Map<string, Mesh>; grid: LinesMesh; grids: Map<string, LinesMesh>; setGridStyle(style: GridStyle): void; setGridProjection(project:GridSegmentProjector):void; deckDetails: Mesh[]; occluders: Mesh[]; structures: Mesh[]; lights: PointLight[]; camera: ArcRotateCamera };
 const addressKey = (surfaceId: string, col: number, row: number) => `${surfaceId}:${col},${row}`;
 const shipDeckTextureRepeatMeters = 4.5;
 const shipWaterTextureRepeatMeters = 9;
@@ -908,6 +909,20 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
   }
   const grid = grids.get(terrain.baseSurfaceId) ?? [...grids.values()][0]!;
   grid.metadata = { ...(grid.metadata ?? {}), surfaceIds: [...grids.keys()] };
+  const originalGridSegments=new Map([...gridSegments].map(([id,lines])=>[id,[...lines]]));
+  const originalGridMaterials=new Map([...gridSegmentMaterials].map(([id,materials])=>[id,[...materials]]));
+  const setGridProjection=(project:GridSegmentProjector)=>{
+    for(const [id,lines]of originalGridSegments){
+      const projected:Vector3[][]=[],materials:string[]=[],seen=new Set<string>();
+      lines.forEach((line,index)=>{
+        const key=line.map(p=>p.asArray().map(n=>n.toFixed(4)).join(',')).sort().join('|');if(seen.has(key))return;seen.add(key);
+        for(const [a,b]of project(id,line[0]!,line[1]!)){projected.push([a,b]);materials.push(originalGridMaterials.get(id)![index]!);}
+      });
+      gridSegments.set(id,projected);gridSegmentMaterials.set(id,materials);
+      const old=grids.get(id);if(!old)continue;const visible=old.isVisible,metadata={...old.metadata};old.dispose();
+      const next=createGrid(id,activeGridStyle);next.isVisible=visible;next.metadata=metadata;grids.set(id,next);
+    }
+  };
   if (options.shipDeck && options.waterTexture) {
     const startedAt = performance.now();
     scene.onBeforeRenderObservable.add(() => {
@@ -1252,5 +1267,5 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
   scene.activeCamera = camera;
   if(rebuilt)deckDetails.push(...finishWreck(scene,terrain));
   return { tiles, get grid() { return grids.get(terrain.baseSurfaceId) ?? [...grids.values()][0]!; },
-    grids, setGridStyle, deckDetails, occluders, structures, lights, camera };
+    grids, setGridStyle, setGridProjection, deckDetails, occluders, structures, lights, camera };
 }

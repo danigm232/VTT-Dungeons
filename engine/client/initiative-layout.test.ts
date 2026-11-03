@@ -1,12 +1,16 @@
 import {expect,it} from 'vitest';
-import {INITIATIVE_MARGIN_CM,INITIATIVE_MARGIN_PX,normalizeInitiativePosition,initiativeCameraInsets} from './initiative-layout';
+import {INITIATIVE_MARGIN_CM,INITIATIVE_MARGIN_PX,normalizeInitiativePosition,migratedInitiativePosition,initiativeCameraInsets} from './initiative-layout';
 import {combatCameraFrame} from './combat-camera';
 import {readUiPreferences,writeUiPreferences,type PreferenceStorage} from './ui-preferences';
 import {readFileSync} from 'node:fs';
-it('defaults old/invalid preferences to the right and restores all three positions',()=>{
-  for(const value of [undefined,null,'bottom','RIGHT',{},0])expect(normalizeInitiativePosition(value)).toBe('right');
+it('defaults old/invalid preferences to the top and restores all three positions',()=>{
+  for(const value of [undefined,null,'bottom','RIGHT',{},0])expect(normalizeInitiativePosition(value)).toBe('top');
   for(const value of ['right','left','top'])expect(normalizeInitiativePosition(value)).toBe(value);
   expect(INITIATIVE_MARGIN_CM).toBe(1.5);expect(INITIATIVE_MARGIN_PX).toBeCloseTo(56.6929,3);
+});
+it('moves existing side layouts once, but respects later explicit choices',()=>{
+  for(const position of ['right','left','top',undefined])expect(migratedInitiativePosition(position,undefined)).toBe('top');
+  for(const position of ['right','left','top'])expect(migratedInitiativePosition(position,2)).toBe(position);
 });
 it('persists placement independently of campaign state and preserves the fallback',()=>{
   const values=new Map<string,string>(),storage:PreferenceStorage={getItem:key=>values.get(key)??null,setItem:(key,value)=>{values.set(key,value);}};
@@ -19,7 +23,7 @@ it('wires the setting and uses the same CSS centimeter margin without transforme
   expect(css).toContain(`--initiative-margin:${INITIATIVE_MARGIN_CM}cm`);
   for(const position of ['right','left','top'])expect(player).toContain(`value="${position}"`);
   expect(player).toContain("$('combatInitiative').dataset.position=playerDisplaySettings.initiativePosition");
-  expect(player).toContain("normalizeInitiativePosition(saved.initiativePosition)");
+  expect(player).toContain("migratedInitiativePosition(saved.initiativePosition,saved.initiativeLayoutVersion)");
   expect(css).toContain('height:max-content');expect(css).toContain('margin-block:auto');
   const rootRule=/body\.combat-active \.combat-initiative\{([^}]+)\}/.exec(css)?.[1];
   const topRule=/body\.combat-active \.combat-initiative\[data-position="top"\]\{([^}]+)\}/.exec(css)?.[1];

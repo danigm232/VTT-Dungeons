@@ -1,0 +1,251 @@
+{
+  "schema": "retreat-zone-navigation-v1",
+  "units": "meters",
+  "tileMeters": 1.5,
+  "axis": "glTF Y-up; X east, Z south",
+  "actorRadius": 0.3,
+  "worldDeckElevationMeters": 27,
+  "walkableSurfaces": [
+    {
+      "id": "temple",
+      "height": 0.045,
+      "polygon": [
+        [
+          -7.5,
+          -4.5
+        ],
+        [
+          4.5,
+          -4.5
+        ],
+        [
+          4.5,
+          9.0
+        ],
+        [
+          -7.5,
+          9.0
+        ]
+      ]
+    },
+    {
+      "id": "east_connection",
+      "height": 0.045,
+      "polygon": [
+        [
+          4.5,
+          -3.0
+        ],
+        [
+          7.5,
+          -3.0
+        ],
+        [
+          7.5,
+          -1.5
+        ],
+        [
+          4.5,
+          -1.5
+        ]
+      ]
+    }
+  ],
+  "colliders": [
+    {
+      "id": "CANON_Bahamut_Pedestal",
+      "type": "box",
+      "center": [
+        -1.5,
+        0.3100003433227556,
+        2.25
+      ],
+      "size": [
+        2.0199966430664062,
+        0.5599994659423828,
+        2.0200042724609375
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_Column_-1.5_-4.02",
+      "type": "box",
+      "center": [
+        -3.5,
+        2.404124183654787,
+        8.279998779296875
+      ],
+      "size": [
+        1.24200439453125,
+        4.71824836730957,
+        1.24200439453125
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_Column_-1.5_0.35",
+      "type": "box",
+      "center": [
+        -3.5,
+        2.404124183654787,
+        1.725006103515625
+      ],
+      "size": [
+        1.24200439453125,
+        4.71824836730957,
+        1.24200439453125
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_Column_-4.12_-4.02",
+      "type": "box",
+      "center": [
+        -6.799999237060547,
+        2.404124183654787,
+        8.279998779296875
+      ],
+      "size": [
+        1.24200439453125,
+        4.71824836730957,
+        1.24200439453125
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_Column_-4.12_0.35",
+      "type": "box",
+      "center": [
+        -6.799999237060547,
+        2.404124183654787,
+        1.725006103515625
+      ],
+      "size": [
+        1.24200439453125,
+        4.71824836730957,
+        1.24200439453125
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_Column_1.5_-4.02",
+      "type": "box",
+      "center": [
+        0.5,
+        2.404124183654787,
+        8.279998779296875
+      ],
+      "size": [
+        1.24200439453125,
+        4.71824836730957,
+        1.24200439453125
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_Column_1.5_0.35",
+      "type": "box",
+      "center": [
+        0.5,
+        2.404124183654787,
+        1.725006103515625
+      ],
+      "size": [
+        1.24200439453125,
+        4.71824836730957,
+        1.24200439453125
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_Column_4.12_-4.02",
+      "type": "box",
+      "center": [
+        3.799999237060547,
+        2.404124183654787,
+        8.279998779296875
+      ],
+      "size": [
+        1.24200439453125,
+        4.71824836730957,
+        1.24200439453125
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_Column_4.12_0.35",
+      "type": "box",
+      "center": [
+        3.799999237060547,
+        2.404124183654787,
+        1.725006103515625
+      ],
+      "size": [
+        1.24200439453125,
+        4.71824836730957,
+        1.24200439453125
+      ],
+      "provenance": "CANON"
+    },
+    {
+      "id": "CANON_North_Carved_Rock_Wall",
+      "type": "box",
+      "center": [
+        -1.5000019073486328,
+        2.5762500000000017,
+        -4.650001525878906
+      ],
+      "size": [
+        12.533329010009766,
+        5.129997253417969,
+        0.6500015258789062
+      ],
+      "provenance": "CANON"
+    }
+  ],
+  "walkthrough": [
+    [
+      6.700000000000003,
+      -2.25
+    ],
+    [
+      3,
+      -2.25
+    ],
+    [
+      -6,
+      -2.25
+    ],
+    [
+      -6,
+      4.5
+    ],
+    [
+      -1.5,
+      7.099999999999994
+    ],
+    [
+      2,
+      4.5
+    ],
+    [
+      2,
+      -1.5
+    ]
+  ],
+  "connections": [
+    {
+      "id": "A5_EAST_TO_UPPER_PATH",
+      "position": [
+        7.5,
+        0.045,
+        -2.25
+      ],
+      "worldDeckElevationMeters": 27,
+      "destination": "A3_A4_UPPER_PATH",
+      "status": "prepared; full approach and stairs reserved for global integration"
+    }
+  ],
+  "note": "Integrated expanded module. Existing authoritative grid mover, 0.30m radius and manual resolution.",
+  "expansion": "2026-10-22"
+}

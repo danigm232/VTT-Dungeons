@@ -1,0 +1,347 @@
+{
+  "schema": "stormwreck-visual-profile-v1",
+  "revision": "2026-11-01",
+  "status": "APPROVED_DIRECTION_ENGINE_SAMPLES_PENDING_REVIEW",
+  "userAcceptance": "APPROVED_DIRECTION",
+  "approval": {
+    "date": "2026-11-01",
+    "answer": "Acabado de las dos láminas (recomendado)",
+    "scope": "Dirección artística de las dos láminas y desarrollo de muestras reales; no aceptación de un resultado aún no implementado, rendimiento o dispositivos."
+  },
+  "runtimeApplied": true,
+  "runtimeScope": "Instalado en la mesa habitual del puerto 3000 por petición explícita del usuario el 02/11/2026. La aceptación artística y física continúa pendiente.",
+  "candidate": {
+    "date": "2026-11-02",
+    "implemented": true,
+    "launcher": "REVISAR-ACABADO.cmd",
+    "build": "runtime/stormwreck-style-skull-20261102",
+    "evidence": "docs/evidence/STORMWRECK_STYLE_SKULL_20261102.md",
+    "gallery": "output/stormwreck-style-sample-20261101/index.html",
+    "assetManifest": "campaigns/stormwreck-isle/public/art/visual-style-v1/SOURCE_MANIFEST.json",
+    "acceptance": "PENDING_USER_REVIEW",
+    "scope": "Primeras familias de materiales, actor/luz existente y cráneo terminado; no remodelación completa de muebles/vegetación ni VIS3–5."
+  },
+  "purpose": "Ficha de acabado compartida para muestras VIS-2 de Retiro y Pecio; no es otro roadmap ni una captura del juego mejorado.",
+  "direction": {
+    "language": "2.5D estilizado de textura dibujada/agrupada, con lectura táctica y personajes existentes",
+    "recommendation": "Una familia de arte con dos identidades de lugar; volumen y luz de Octopath/II, agrupación/color/materiales de Witchbrook/Sea of Stars, objetos de Eastward, claridad de FFTactics Enhanced 2025.",
+    "pixelTreatment": "Píxel/texel aparente coherente y bordes legibles; sin filtro global nearest, pixelado artificial, ruido fotográfico ni diorama de juguete.",
+    "detailHierarchy": "Masas grandes, construcción/dibujo medio, desgaste pequeño agrupado. Reservar zonas tranquilas alrededor de pies, puertas y acciones.",
+    "sourceRule": "Los conceptos generados orientan color, dibujo y ambiente. No cambian plantas ni dictan geometría, herrajes, vegetación, objetos, huecos, identidad o estados canónicos."
+  },
+  "engine": {
+    "renderer": "Babylon.js 9.26.0 existente",
+    "retreatMaterialOwner": "campaigns/stormwreck-isle/public/retreat-refinement-materials.ts",
+    "wreckMaterialOwner": "engine/client/wreck-materials.ts",
+    "integrationOwner": "apps/web/world.ts",
+    "retreat": "PBR cercano + materiales compartidos de distancia existentes",
+    "wreck": "StandardMaterial y relieve compartido existentes; sin migración global",
+    "dependencyChanges": []
+  },
+  "paletteMeaning": "Anclas propuestas para color base y selección de familia; no son una medición de píxeles ni el tinte obligatorio de todas las texturas. La luz/clima vigentes modulan el resultado.",
+  "common": {
+    "nightShadow": "#253D49",
+    "skyFill": "#BCCED4",
+    "warmExistingLight": "#FFD2A4",
+    "selection": "Conservar selección, estados y preferencias existentes",
+    "grid": {
+      "proposedDefaultOpacity": 0.18,
+      "proposedDefaultColor": "#A6ADA1",
+      "proposedThicknessPx": 1,
+      "preserveSavedPreferences": true,
+      "contrastMode": "Conservar opción de contraste adaptativo existente"
+    }
+  },
+  "scenes": [
+    {
+      "id": "dragon-rest",
+      "label": "Retiro del Dragón",
+      "identity": "Monasterio costero volcánico, vivido y sereno; matices cálidos en suelo/madera y vegetación mediterránea contenida.",
+      "palette": [
+        {
+          "role": "Basalto principal",
+          "hex": "#515D60"
+        },
+        {
+          "role": "Plano claro de roca",
+          "hex": "#77817B"
+        },
+        {
+          "role": "Caliza al sol",
+          "hex": "#B9B09B"
+        },
+        {
+          "role": "Caliza en sombra",
+          "hex": "#8D8975"
+        },
+        {
+          "role": "Roble usado",
+          "hex": "#947451"
+        },
+        {
+          "role": "Madera estructural",
+          "hex": "#66513D"
+        },
+        {
+          "role": "Verde de base",
+          "hex": "#526C48"
+        },
+        {
+          "role": "Hoja al sol",
+          "hex": "#7D8C59"
+        },
+        {
+          "role": "Hierro",
+          "hex": "#465052"
+        }
+      ],
+      "sample": "A3/umbral: basalto + suelo + mesa larga/dos bancos/silla + plantas existentes del borde + mismo actor/luz",
+      "sourceScreenshot": "C:/Users/User/Desktop/Dungeons/output/stormwreck-light-sample-20261101/dragon-rest-comedor-day-after.png",
+      "concept": "docs/references/stormwreck-style-20261101/retreat-concept-v1.png",
+      "proposedMaterials": [
+        {
+          "family": "Basalto",
+          "effectiveMetallic": 0,
+          "roughness": [
+            0.9,
+            0.98
+          ],
+          "normalStrength": [
+            0.16,
+            0.24
+          ],
+          "albedo": "Masas pintadas y estratos/chips medios; atenuar ruido fotográfico sin borrar modelado aprobado"
+        },
+        {
+          "family": "Caliza",
+          "effectiveMetallic": 0,
+          "roughness": [
+            0.85,
+            0.95
+          ],
+          "normalStrength": [
+            0.12,
+            0.18
+          ],
+          "albedo": "Piezas grandes sobrias, junta y desgaste agrupados; no patrón repetido dominante"
+        },
+        {
+          "family": "Roble",
+          "effectiveMetallic": 0,
+          "roughness": [
+            0.86,
+            0.95
+          ],
+          "normalStrength": [
+            0.2,
+            0.3
+          ],
+          "albedo": "Veta longitudinal tenue, testas/uniones visibles y borde de uso; sin plástico"
+        },
+        {
+          "family": "Hierro",
+          "effectiveMetallic": [
+            0.7,
+            0.9
+          ],
+          "roughness": [
+            0.7,
+            0.85
+          ],
+          "albedo": "Oscuro, reflejo pequeño; no brillo cromado"
+        },
+        {
+          "family": "Hojas/césped",
+          "effectiveMetallic": 0,
+          "roughness": [
+            0.9,
+            1
+          ],
+          "albedo": "Racimos y huecos, varios tonos de la misma familia; conservar especies/posiciones, evitar brizna uniforme"
+        }
+      ],
+      "invariantNotes": [
+        "Conservar revisión 19 y todas sus ampliaciones, seis celdas, fuentes y mobiliario.",
+        "Las hojas/irregularidades extra sugeridas por el generador no autorizan plantaciones o colliders nuevos.",
+        "Las dos piezas de puerta visibles delante de la terraza conservan su identidad/estado; no reinterpretarlas como bancos por el dibujo generado."
+      ]
+    },
+    {
+      "id": "wreck-ship",
+      "label": "Pecio Rosa de los Vientos",
+      "identity": "Barco varado y húmedo, viejo y salino; frío marítimo con calidez de fuentes reales cuando estén encendidas.",
+      "palette": [
+        {
+          "role": "Madera seca salina",
+          "hex": "#777B65"
+        },
+        {
+          "role": "Madera húmeda",
+          "hex": "#444F49"
+        },
+        {
+          "role": "Estructura oscura",
+          "hex": "#343F3E"
+        },
+        {
+          "role": "Cabo envejecido",
+          "hex": "#A79D79"
+        },
+        {
+          "role": "Hierro",
+          "hex": "#3A4647"
+        },
+        {
+          "role": "Tela existente",
+          "hex": "#A39B7F"
+        },
+        {
+          "role": "Mar profundo",
+          "hex": "#285A66"
+        },
+        {
+          "role": "Agua cercana",
+          "hex": "#427C84"
+        },
+        {
+          "role": "Óxido puntual",
+          "hex": "#8E6950"
+        }
+      ],
+      "sample": "Cubierta C1/C3 y camarote C4: madera, unión/herraje, cabo/restos existentes, actor y mar/luz reales",
+      "sourceScreenshot": "C:/Users/User/Desktop/Dungeons/output/stormwreck-light-sample-20261101/wreck-ship-cubierta-day-after.png",
+      "concept": "docs/references/stormwreck-style-20261101/wreck-concept-v1.png",
+      "proposedMaterials": [
+        {
+          "family": "Madera seca",
+          "effectiveMetallic": 0,
+          "targetRoughness": [
+            0.9,
+            0.98
+          ],
+          "sharedNormalStrength": [
+            0.45,
+            0.6
+          ],
+          "albedo": "Tablas legibles, sal clara en bordes y veta contenida; mantener daños/huecos reales"
+        },
+        {
+          "family": "Madera húmeda",
+          "effectiveMetallic": 0,
+          "targetRoughness": [
+            0.72,
+            0.86
+          ],
+          "sharedNormalStrength": [
+            0.45,
+            0.6
+          ],
+          "albedo": "Oscurecimiento localizado por estado/exposición; no barnizar todo el barco"
+        },
+        {
+          "family": "Cabo/tela",
+          "effectiveMetallic": 0,
+          "targetRoughness": [
+            0.92,
+            1
+          ],
+          "albedo": "Fibra/pliegue de escala media y sombra de contacto; no sustituir la pieza por cilindro liso"
+        },
+        {
+          "family": "Hierro",
+          "targetRoughness": [
+            0.72,
+            0.88
+          ],
+          "albedo": "Oscuro, desgaste y óxido puntuales sobre piezas existentes"
+        },
+        {
+          "family": "Mar",
+          "materialOwner": "engine/client/wreck-ocean.ts",
+          "albedo": "Reutilizar shader/oleaje; matiz por profundidad y contacto localizado",
+          "roughness": "Conservar respuesta autoritativa de viento/lluvia; no imponer un valor fijo"
+        }
+      ],
+      "invariantNotes": [
+        "Conservar casco/escora, cubiertas/camarotes, C1–C9/cofa, escalera/rutas, botín y estados.",
+        "Los remaches/refuerzos y el cielo dibujados por la propuesta son orientativos; no autorizan reparar barco, añadir piezas o reemplazar geometría por la lámina.",
+        "Mantener oscuridad C8/C9 y fuentes portadas; no añadir antorchas por ambientación."
+      ]
+    }
+  ],
+  "production": {
+    "numbersStatus": "Ajustes iniciales candidatos para comparar en motor; no medición ni valores ya aprobados. No sobreescribir parámetros compartidos de otras escenas.",
+    "effectiveMetallicNote": "En PBR leer el canal azul ORM y el multiplicador conjuntamente: metallic=1 en el material no implica metal si el mapa vale 0. En StandardMaterial roughness es intención de acabado, no una propiedad que se pueda copiar sin equivalencia; ajustar specularPower/specularColor con prueba visual.",
+    "textureBudgetProposal": {
+      "groundOrRockAlbedo": {
+        "width": 1024,
+        "height": 1024,
+        "format": "WebP",
+        "worldRepeatMeters": [
+          6,
+          8
+        ]
+      },
+      "woodAlbedo": {
+        "width": 512,
+        "height": 512,
+        "format": "WebP",
+        "worldRepeatMeters": [
+          3,
+          4
+        ]
+      },
+      "sharedNormalORM": {
+        "width": 512,
+        "height": 512
+      },
+      "propsAtlas": {
+        "width": 1024,
+        "height": 1024
+      },
+      "exceptions": "Reutilizar resolución/formato actuales si dan calidad equivalente. No reescalar por sistema ni sobrescribir originales; props por isla UV y tamaño real."
+    },
+    "sampling": "Mipmaps y trilineal; anisotropía 4–8 según recurso/perfil, sin nearest global.",
+    "UV": "Preservar costuras UV de roca nativa; no reproyectar triángulos curvos ni imponer escala uniforme a suelo/mueble/casco.",
+    "lighting": "Conservar reloj/clima. Evaluar mediodía, ocaso, noche y fuentes apagadas. Los conceptos muestran una condición concreta, no clima/hora permanentes.",
+    "depth": "Reutilizar primer plano selectivo, grupo nítido, respaldo y distancia existentes. Sombras de contacto y solapamiento antes que niebla/blur. Rostro/pies/acciones legibles.",
+    "effects": "Sin desenfoque sobre tablero. Bloom y partículas discretos y motivados por fuentes; no requieren librería nueva ni GI/SSAO por defecto.",
+    "furniture": "Derivar apariencia de las piezas existentes, con espesor, patas, huecos y unión legibles; preservar cantidad, función, altura y huella/collider.",
+    "acceptance": [
+      "Dirección visual de las dos láminas por revisar con el usuario.",
+      "Traducir al menos una muestra real por mapa y comparar con igual cámara a 15°, zoom, hora, clima, posición y estado.",
+      "Verificar también giros permitidos, día/noche, grid visible/oculto y perfiles actuales.",
+      "Conservar la candidata jugable; separar prueba técnica, visual, usuario y hardware.",
+      "Registrar desviaciones del concepto y recursos que realmente se hayan construido; no declarar implementación por aprobar una imagen."
+    ]
+  },
+  "provenance": {
+    "tool": "image_gen.imagegen integrado",
+    "type": "Conceptos de estudio generados mediante edición de capturas propias del VTT",
+    "runtimeAsset": false,
+    "sourceFiles": {
+      "dragon-rest": "C:\\Users\\User\\.codex\\generated_images\\01a096e4-878a-73b2-bed4-d5677a64500f\\exec-60a64b8c-4cd7-4838-9602-b0454ac90040.png",
+      "wreck-ship": "C:\\Users\\User\\.codex\\generated_images\\01a096e4-878a-73b2-bed4-d5677a64500f\\exec-4978c97d-6a8b-45c2-bc41-48bc4b1df898.png"
+    },
+    "prompts": [
+      {
+        "sceneId": "dragon-rest",
+        "input": "C:\\Users\\User\\Desktop\\Dungeons\\output\\stormwreck-light-sample-20261101\\dragon-rest-comedor-day-after.png",
+        "prompt": "Use case: style-transfer. Asset type: art-direction concept paintover of an existing D&D VTT game screenshot, NOT a finished in-game screenshot. Image 1 is the EDIT TARGET and must determine the exact composition and layout. Make one polished landscape 16:9 image. Repaint this same dragon-rest monastic cliff dining room in a coherent modern HD-2D tactical fantasy aesthetic: carefully hand-clustered pixel/painterly textures, restrained warm coastal sunlight, cooler blue-green shadow, strong medium-scale material shapes and quiet large areas. Preserve the actual camera projection/inclination and framing from the target, every platform/height/footprint, all walls and visible routes, the long communal table with its existing two benches and chair, the kitchen opening/corridor and kitchen equipment, the existing door, railings and existing hanging plants. No new houses, roofs, bridges, doors, torches, furniture, characters, flowers, terrain, or camera repositioning. The single blond blue-clad character keeps identical identity, position, proportions, pose and equipment. Improve only the appearance of existing stone, floor, furniture and foliage and their light/contact. Stone should read as stylized volcanic basalt with broad charcoal-slate masses and medium chipped strata, not a photographic noisy wall or a flat geometric block. Floor pale warm limestone (#B9B09B / #8D8975), rough warm oak (#947451 / #66513D), dark basalt (#515D60 / #77817B), olive/rosemary foliage (#526C48 / #7D8C59); these are palette anchors, not a global tint. Furniture gets readable construction/joints/edges within its same silhouette and footprint, no extra clutter. Foliage is grouped in leaf clusters, preserving its current occupied positions. Existing actor, table, rock and floor share lighting and subtle contact shadows; keep feet, face, selection and tactical reading sharp. Depth from overlap, value separation and existing near/far rock planes; no heavy bloom, haze, lens blur or depth of field. Keep the same square-grid alignment on all existing walkable surfaces, but render it as a thin subdued warm-gray line around 18% visual opacity, never a white glowing net. Do not turn the place into photorealistic 3D, toy diorama, chibi mobile game or oversaturated purple/teal fantasy. No copied commercial assets. Add a small clean unobtrusive label in an upper corner reading exactly 'PROPUESTA VISUAL · NO IMPLEMENTADA'. The result is one faithful concept of how to improve the SAME screenshot, not a redesigned map."
+      },
+      {
+        "sceneId": "wreck-ship",
+        "input": "C:\\Users\\User\\Desktop\\Dungeons\\output\\stormwreck-light-sample-20261101\\wreck-ship-cubierta-day-after.png",
+        "prompt": "Use case: style-transfer. Asset type: art-direction concept paintover of an existing D&D VTT game screenshot, NOT a finished in-game screenshot. Image 1 is the EDIT TARGET and must determine exact composition/layout. One landscape 16:9 image. Improve the SAME shipwreck deck in a coherent modern HD-2D tactical fantasy aesthetic, with carefully hand-clustered pixel/painterly texture detail, broad calm areas and clear material identities. Preserve the target's exact camera view, ship hull/deck/stair geometry and silhouette, mast and rigging locations, all deck levels and square walkable grid positions, holes, railings, crate/rope/debris placements, and surrounding ocean horizon. Do not add another ship, island, mast, sails, treasure, NPC, door, lamp, torch, missing hull part or navigable platform. Keep the single blond blue-clad character's exact identity, position, pose, proportions and equipment. This is the Rosa de los Vientos existing ship, no redesign. Make existing timber read as aged salt-worn gray-olive wood: broad desaturated medium-value plank masses, restrained grain and lighter salt at damaged edges, localized damp dark seams, subtle construction joints. Palette anchors: dry wood #777B65, damp wood #444F49, structural dark timber #343F3E, weathered rope #A79D79, iron #3A4647, aged canvas only where already visible #A39B7F, cold marine water #285A66 / #427C84; a few ochre/rust accents #8E6950 only on existing hardware, no giant copper bands. Keep the canonical state broken and weathered, but do not create new holes or destroy objects. Existing table/boxes/deck, rigging and actor should share cool overcast maritime daylight and contact shadows. No invented warm light source; warm highlights must be material colour, not a torch added for mood. Preserve the tactical grid but render it as thin low-contrast gray-sage line around 18% visual opacity, not a bright white net. Use existing ropes/mast/rail in foreground, playable group plane and ocean background to give depth; keep main actor/feet sharp and readable. No perspective distortion, new camera orbit, cinematic bokeh, heavy bloom, smoke hiding the deck, photorealistic noise, chibi styling or global monochrome tint. No commercial assets copied. Add a small clean unobtrusive label in an upper corner reading exactly 'PROPUESTA VISUAL · NO IMPLEMENTADA'. This is a faithful art/look concept of the same screenshot, never a claimed game implementation."
+      }
+    ]
+  },
+  "deployment": {
+    "date": "2026-11-02",
+    "port": 3000,
+    "campaign": "stormwreck-isle",
+    "build": "dist",
+    "source": "runtime/prepared-stormwreck-live-20261102",
+    "scope": "Muestras Retiro/Pecio, adaptación de actores, cráneo terminado y corrección de preparación de clima. Activado por defecto en futuros arranques normales."
+  }
+}

@@ -1,0 +1,1529 @@
+{
+  "schema": "retreat-verified-forest-v1",
+  "tileMeters": 1.5,
+  "source": "output/retreat-visual-fixes-20261027/evidence/forest-candidates.json",
+  "sourceSha256": "8d0b84b3399bf91d584c005f97e2796143431e6bf82932473a03433b47dd6287",
+  "method": "Nine floor probes per full cell; trunk footprint plus 0.35m clearance; headroom and radial body checks on the final loaded scene. Connected at existing path edges.",
+  "cells": [
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 7,
+        "row": 69
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 7,
+        "row": 70
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 8,
+        "row": 70
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 9,
+        "row": 70
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 10,
+        "row": 70
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 1,
+        "row": 71
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 4,
+        "row": 71
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 5,
+        "row": 71
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 6,
+        "row": 71
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 7,
+        "row": 71
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 8,
+        "row": 71
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 9,
+        "row": 71
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 10,
+        "row": 71
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 1,
+        "row": 72
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 3,
+        "row": 72
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 4,
+        "row": 72
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 5,
+        "row": 72
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 6,
+        "row": 72
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 7,
+        "row": 72
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 8,
+        "row": 72
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 9,
+        "row": 72
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 10,
+        "row": 72
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 11,
+        "row": 72
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 1,
+        "row": 73
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 3,
+        "row": 73
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 4,
+        "row": 73
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 5,
+        "row": 73
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 6,
+        "row": 73
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 7,
+        "row": 73
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 8,
+        "row": 73
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 9,
+        "row": 73
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 10,
+        "row": 73
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 11,
+        "row": 73
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 1,
+        "row": 74
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 1,
+        "row": 75
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 2,
+        "row": 75
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 1,
+        "row": 76
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 2,
+        "row": 76
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 3,
+        "row": 76
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 4,
+        "row": 76
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 5,
+        "row": 76
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 6,
+        "row": 76
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 7,
+        "row": 76
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 8,
+        "row": 76
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 9,
+        "row": 76
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 10,
+        "row": 76
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 2,
+        "row": 77
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 3,
+        "row": 77
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 4,
+        "row": 77
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 5,
+        "row": 77
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 6,
+        "row": 77
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 7,
+        "row": 77
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 8,
+        "row": 77
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 9,
+        "row": 77
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 10,
+        "row": 77
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 2,
+        "row": 78
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 3,
+        "row": 78
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 4,
+        "row": 78
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 5,
+        "row": 78
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 6,
+        "row": 78
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 7,
+        "row": 78
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 8,
+        "row": 78
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 9,
+        "row": 78
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 10,
+        "row": 78
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 2,
+        "row": 79
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 3,
+        "row": 79
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 4,
+        "row": 79
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 5,
+        "row": 79
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 8,
+        "row": 79
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "beach",
+      "cell": {
+        "col": 9,
+        "row": 79
+      },
+      "height": 0.16
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 90,
+        "row": 29
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 92,
+        "row": 29
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 93,
+        "row": 29
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 94,
+        "row": 29
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 95,
+        "row": 29
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 96,
+        "row": 29
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 97,
+        "row": 29
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 88,
+        "row": 30
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 89,
+        "row": 30
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 90,
+        "row": 30
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 91,
+        "row": 30
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 92,
+        "row": 30
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 93,
+        "row": 30
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 95,
+        "row": 30
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 96,
+        "row": 30
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 97,
+        "row": 30
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 98,
+        "row": 30
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 88,
+        "row": 31
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 90,
+        "row": 31
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 91,
+        "row": 31
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 92,
+        "row": 31
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 93,
+        "row": 31
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 94,
+        "row": 31
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 95,
+        "row": 31
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 96,
+        "row": 31
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 97,
+        "row": 31
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 98,
+        "row": 31
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 99,
+        "row": 31
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 88,
+        "row": 32
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 90,
+        "row": 32
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 91,
+        "row": 32
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 92,
+        "row": 32
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 93,
+        "row": 32
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 95,
+        "row": 32
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 96,
+        "row": 32
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 97,
+        "row": 32
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 98,
+        "row": 32
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 99,
+        "row": 32
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 100,
+        "row": 32
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 88,
+        "row": 33
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 89,
+        "row": 33
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 90,
+        "row": 33
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 91,
+        "row": 33
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 92,
+        "row": 33
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 95,
+        "row": 33
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 96,
+        "row": 33
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 97,
+        "row": 33
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 100,
+        "row": 33
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 88,
+        "row": 34
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 89,
+        "row": 34
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 90,
+        "row": 34
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 91,
+        "row": 34
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 92,
+        "row": 34
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 95,
+        "row": 34
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 96,
+        "row": 34
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 97,
+        "row": 34
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 100,
+        "row": 34
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 88,
+        "row": 35
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 89,
+        "row": 35
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 90,
+        "row": 35
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 91,
+        "row": 35
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 92,
+        "row": 35
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 95,
+        "row": 35
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 96,
+        "row": 35
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 97,
+        "row": 35
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 98,
+        "row": 35
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 99,
+        "row": 35
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 88,
+        "row": 36
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 89,
+        "row": 36
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 90,
+        "row": 36
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 91,
+        "row": 36
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 92,
+        "row": 36
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 95,
+        "row": 36
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 96,
+        "row": 36
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 97,
+        "row": 36
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 98,
+        "row": 36
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 99,
+        "row": 36
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 88,
+        "row": 37
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 89,
+        "row": 37
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 90,
+        "row": 37
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 91,
+        "row": 37
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 92,
+        "row": 37
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 95,
+        "row": 37
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 96,
+        "row": 37
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 97,
+        "row": 37
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 98,
+        "row": 37
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 99,
+        "row": 37
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 88,
+        "row": 38
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 89,
+        "row": 38
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 90,
+        "row": 38
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 91,
+        "row": 38
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 92,
+        "row": 38
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 95,
+        "row": 38
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 96,
+        "row": 38
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 97,
+        "row": 38
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 98,
+        "row": 38
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 99,
+        "row": 38
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 88,
+        "row": 39
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 90,
+        "row": 39
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 91,
+        "row": 39
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 92,
+        "row": 39
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 95,
+        "row": 39
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 96,
+        "row": 39
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 97,
+        "row": 39
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 98,
+        "row": 39
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 90,
+        "row": 40
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 91,
+        "row": 40
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 92,
+        "row": 40
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 95,
+        "row": 40
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 96,
+        "row": 40
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 97,
+        "row": 40
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 98,
+        "row": 40
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 90,
+        "row": 41
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 91,
+        "row": 41
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 92,
+        "row": 41
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 95,
+        "row": 41
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 96,
+        "row": 41
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 97,
+        "row": 41
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 98,
+        "row": 41
+      },
+      "height": 17.68
+    },
+    {
+      "surfaceId": "upper",
+      "cell": {
+        "col": 95,
+        "row": 42
+      },
+      "height": 17.68
+    }
+  ]
+}

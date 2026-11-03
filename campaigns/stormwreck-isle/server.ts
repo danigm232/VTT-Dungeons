@@ -4,15 +4,16 @@ import { publicCampaignDefinition } from './public/pack.js';
 import { wreckCellFromLocal, wreckPorts } from './public/wreck-runtime.js';
 import { retreatOpeningZombies, wreckM3Actors } from './private/m3-actors.js';
 import { dragonRestPorts, retreatStageActorInteractions } from './public/retreat-runtime.js';
+import {retreatJourneyPorts,retreatJourneyInteractions,withRetreatJourneyNotices} from './public/retreat-journeys.js';
 
 export const stormwreckBundle: CampaignServerBundle = {
   public: publicCampaignDefinition,
   // El campo sceneId por PJ es opcional al decodificar: los guardados 0.3
   // heredan payload.sceneId y por eso no requieren una ruptura de estado.
   campaignStateVersion: 1,
-  ports: [...wreckPorts, ...dragonRestPorts],
+  ports: [...wreckPorts, ...dragonRestPorts,...retreatJourneyPorts],
   privateActors: [...wreckM3Actors, ...retreatOpeningZombies],
-  stageActorInteractions: retreatStageActorInteractions,
+  stageActorInteractions: [...withRetreatJourneyNotices(retreatStageActorInteractions),...retreatJourneyInteractions],
   interactiveObjects: [
     { sceneId: 'wreck-ship', objectId: 'c4-barred-door', kind: 'barred-door', barrier: 'barred' },
     { sceneId: 'wreck-ship', objectId: 'c6-trapped-stash', kind: 'trap-stash', revealed: false, open: false, trap: 'armed', lootId: 'c6-gold-pouch', lootLabel: 'Bolsa con 200 po' },

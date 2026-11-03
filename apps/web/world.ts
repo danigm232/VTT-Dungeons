@@ -1,3 +1,5 @@
+import {installDmMapInput,type DmMapInteraction} from '../../engine/client/dm-map-input';
+import type {CameraLocation} from '../../engine/shared/camera';
 import { Application, Assets, Container, Graphics, Rectangle, Sprite, Texture } from 'pixi.js';
 import { ConditionEffectLibrary, ConditionEffectView } from '../../engine/client/condition-effects';
 import { conditionFromSpriteState, conditionSpriteAnimation, conditionSpriteEnabled, conditionSpriteMotion, conditionSpriteSelection, persistentConditionState } from '../../engine/client/condition-sprites';
@@ -35,7 +37,7 @@ import { nestTreasureOffset } from '../../engine/client/wreck-nest';
 import { WRECK_STRUCTURE } from '../../engine/shared/wreck-structure';
 import { buildShipRowboat, rowboatHullClearance, rowboatYaw } from '../../engine/client/ship-rowboat3d';
 import { wreckCabinAt, wreckCabins } from '../../engine/client/wreck-cabins';
-import { cameraSpaceAt, cameraSpaceBeta, type CameraSpace } from '../../engine/client/camera-space';
+import { cameraSpaceAt, cameraSpaceBeta } from '../../engine/client/camera-space';
 import { explorationCameraSafeArea } from '../../engine/client/camera-viewport';
 import { boundCameraZoom, type CameraZoomPolicy } from '../../engine/client/camera-zoom';
 import type { InitiativePosition } from '../../engine/client/initiative-layout';
@@ -45,17 +47,29 @@ import { structureObscuresFocus } from '../../engine/client/structure-occlusion'
 import { shipAmbientLightIntensity, shipWeatherLighting, shipWindStreaks } from '../../engine/client/ship-ambience';
 import { campTerrainHardwareScalingLevel } from '../../engine/client/camp-render-quality';
 import type { createRetreatGlobalVisuals } from '../../campaigns/stormwreck-isle/public/retreat-global-visuals.js';
+import {retreatViewSize,retreatPlayerCameraHalfHeight,retreatWinchContextY} from '../../campaigns/stormwreck-isle/public/retreat-camera-composition.js';
 import { installStormwreckFacingSprites } from '../../campaigns/stormwreck-isle/public/facing-sprites';
+import {sampleStormwreckActorLight,stormwreckActorLightRegion} from '../../campaigns/stormwreck-isle/public/actor-light';
+import {createStormwreckStyleSample} from '../../campaigns/stormwreck-isle/public/style-sample';
+
+declare const __STORMWRECK_STYLE_SAMPLE__: boolean;
 import { installPlayerLocomotion, locomotionEpoch } from '../../engine/client/player-locomotion';
+import { installSilverfarbenVisuals } from '../../campaigns/one-shot/public/silverfarben-visuals';
+import { directedTokenState, sameAnimationAction, tokenAnimationFrame, tokenAnimationRole } from '../../engine/client/token-animation-playback';
 import type { CampVisuals } from '../../campaigns/camp-rests/public/visuals.js';
 import { combatCameraFrame, combatCamera3DFit, combatEncounterBounds, combatSafeProjection, type CombatBounds } from '../../engine/client/combat-camera';
 import { cameraBetaForTiltDegrees, cameraRelativeHeading, normalizeCameraOrientationStep, screenVectorToWorldAtAlpha, sceneOrientationForView, terrainCameraBaseAlpha } from '../../engine/client/camera-movement';
-import { D8CameraMotion, D8InteriorCameraTilt, D8_CAMERA_DEFAULT_TILT, d8CameraBaseAlpha, d8CameraHalfHeight, d8CameraNearPlane, d8CellWorldPoint, d8GridWorldPoint, d8GroundHeight, d8FocusHeight, d8PickCell } from '../../engine/client/d8-camera';
+import { D8CameraMotion, D8InteriorCameraTilt, d8CameraBaseAlpha, d8CameraHalfHeight, d8CameraNearPlane, d8CellWorldPoint, d8GridWorldPoint, d8GroundHeight, d8FocusHeight, d8PickCell } from '../../engine/client/d8-camera';
 import { MovementTimeline } from '../../engine/client/movement-timeline';
 import { D8OcclusionIndex } from '../../engine/client/d8-occlusion-index';
-import { CAMERA_DEFAULT_TILT, CAMERA_MIN_TILT, CAMERA_MAX_TILT, snapCameraTilt, cameraProfileForScene } from '../../engine/client/camera-profile';
+import { CAMERA_DEFAULT_TILT, CAMERA_MIN_TILT, CAMERA_MAX_TILT, clampCameraTilt, cameraProfileForScene } from '../../engine/client/camera-profile';
 import { WorldBillboards, type BillboardFrame } from '../../engine/client/world-billboards';
-import { alphaGrounding, actorDetailZoom } from '../../engine/client/actor-grounding';
+import { MirrorSequenceGate } from '../../engine/client/mirror-sequence';
+import { MIRROR_WALL_OUTLINE } from '../../campaigns/one-shot/playground/mirror-cave-layout';
+import {passageWalkPosition} from '../../engine/client/passage-walk';
+import {retreatBoatDeparture} from '../../engine/client/retreat-boat-departure';
+import { constrainCameraToStage, stageHalfHeightLimit, stageScreenPolygons, type StageFrame, type StageOutline, type StagePoint } from '../../engine/client/camera-stage-bounds';
+import { alphaVisibleRect, actorDetailZoom } from '../../engine/client/actor-grounding';
 import { CampActivityVisuals } from '../../engine/client/camp-activity-visuals';
 import { campActivityMotion } from '../../engine/client/camp-activity-motion';
 import { campActivities } from '../../engine/shared/camp-activities';
@@ -70,11 +84,13 @@ import { isolateAtlasRGBA } from '../../engine/client/atlas-isolation';
 import { clearBlackSpriteMatte } from '../../engine/client/sprite-matte';
 import { correctDirectionalClip, directionalRestAnimation, mergeDirectionalArt } from '../../engine/client/directional-rest';
 import { hasWreckProjection, nearestWreckCell, projectWreckPoint } from './wreck-projection';
+import { WRECK_CAMERA_SPACES, wreckOverviewFrame, wreckLongitudinalTarget } from '../../engine/client/wreck-camera';
+import { wreckCameraFront } from '../../engine/shared/wreck-camera-profile';
 
-type TokenView = { root: Container; body: Container; defeatOverlay?: Graphics; occlusionMask: Graphics; occlusionMaskKey?: string; ghost: Sprite; displayedState: string | null; stateStartedAt: number; blendStartedAt: number; ring: Graphics; sprite: Sprite; health: Graphics; states: ConditionEffectView; entity: PublicEntity; phase: number; animationState: string | null; animationStartedAt: number; animationUntil: number; frameUrl: string | null };
+type TokenView = { root: Container; body: Container; defeatOverlay?: Graphics; occlusionMask: Graphics; occlusionMaskKey?: string; ghost: Sprite; displayedState: string | null; stateStartedAt: number; blendStartedAt: number; ring: Graphics; sprite: Sprite; health: Graphics; states: ConditionEffectView; entity: PublicEntity; phase: number; animationState: string | null; animationFacing?: Facing; animationStartedAt: number; animationUntil: number; frameUrl: string | null };
 type MapObject = PublicProp | DmObject;
 type PropView = { root: Container; sprite: Sprite | null; variantUrl: string | null };
-type WorldRendererOptions = { cameraRole?: 'player' | 'dm' | 'projector'; showGrid?: boolean; gridStyle?: GridStyle; showReachable?: boolean; persistCameraPreferences?: boolean; cameraPreferenceNamespace?: string; followSharedCameraOrientation?: boolean; showStairMarker?: boolean; conditionPoseTokens?: readonly string[]; combatInitiativePosition?:InitiativePosition };
+type WorldRendererOptions = { stormwreckVisualSample?: boolean; retreatRevisionStage?: number; retreatPolishStage?: number; retreatDepartureStage?: number; retreatFinishStage?: number; retreatIslandStage?: number; retreatExpansion?: boolean; cameraRole?: 'player' | 'dm' | 'projector'; showGrid?: boolean; gridStyle?: GridStyle; showReachable?: boolean; persistCameraPreferences?: boolean; cameraPreferenceNamespace?: string; followSharedCameraOrientation?: boolean; showStairMarker?: boolean; conditionPoseTokens?: readonly string[]; combatInitiativePosition?:InitiativePosition };
 type TokenOcclusionCacheEntry = { checkedAt: number; blocked: boolean[]; shape: string; point: { x: number; y: number; z: number }; camera: { x: number; y: number; z: number } };
 const TERRAIN_CAMERA_INITIAL_ALPHA = -Math.PI / 4;
 const CAMERA_ZOOM_MIN = 0.4;
@@ -96,7 +112,9 @@ export class WorldRenderer {
   private combatOcclusionCache = new Map<string, { key: string; at: number; blocked: boolean }>();
   private mirrorCleanup: (() => void) | null = null;
   private mirrorGeneration = 0;
-  private stopMirrorEffect() { this.mirrorGeneration++; this.mirrorCleanup?.(); this.mirrorCleanup = null; }
+  private mirrorEventGate=new MirrorSequenceGate();
+  private mirrorTravel=new Map<string,{started:number;duration:number}>();
+  private stopMirrorEffect() { this.mirrorGeneration++; this.mirrorCleanup?.(); this.mirrorCleanup = null; this.mirrorRevealAt.clear();this.mirrorTravel.clear(); }
   private visualPreview: D8VisualPreview | null = null;
   startVisualPreview(options: VisualPreviewOptions) {
     this.stopVisualPreview();
@@ -188,6 +206,9 @@ export class WorldRenderer {
   private cameraFocusScreenPoint: { x: number; y: number } | null = null;
   private cameraFocusWorldPoint: { x: number; y: number; z: number } | null = null;
   private cameraTiltDegrees = CAMERA_DEFAULT_TILT;
+  private cameraTiltPreferences = new Map<string,number>();
+  private cameraTiltZones = new Map<string,boolean>();
+  private localCameraTiltOverrides = new Set<string>();
   private terrainAuditTilt: number | null = null;
   private terrainCutawayHeight=Infinity;
   private wreckOcclusionSample: { view: Terrain3DView; at: number; room: string | null; focus: Vector3 | null; camera: Vector3; direction: Vector3 } | null = null;
@@ -197,6 +218,10 @@ export class WorldRenderer {
   private requestGeneration = 0;
   private connectionGeneration = 0;
   private accepted = { epoch: -1, revision: -1 };
+  private dmInteraction:DmMapInteraction|null=null;
+  private dmLocation:CameraLocation|null=null;
+  private dmFollowId:string|null=null;
+  private pickedSurfaceId:string|undefined;
   private mapClick: ((cell: Cell, entityId?: string) => void) | null = null;
   private previewGeneration = 0;
   private lastCombatEventId: string | null = null;
@@ -220,8 +245,9 @@ export class WorldRenderer {
   private d8ConfigRequest: Promise<any> | null = null;
   private d8OverlayProjectionKey = '';
   private retreatVisuals: ReturnType<typeof createRetreatGlobalVisuals> | null = null;
+  private stormwreckStyleSample: ReturnType<typeof createStormwreckStyleSample> = null;
   private campVisuals: CampVisuals | null = null;
-  private actorGrounding = new Map<string, { anchorY: number; heightFraction: number }>();
+  private actorGrounding = new Map<string, { anchorY: number; heightFraction: number; leftFraction?:number; rightFraction?:number }>();
   private campActivityVisuals: CampActivityVisuals | null = null;
   private campVisualGeneration = 0;
   private campInteractionHighlights: boolean | string = false;
@@ -236,10 +262,13 @@ export class WorldRenderer {
   private stairPin: HTMLDivElement | null = null;
   private cameraOrientationStep = 0;
   private cameraZoomPolicy: CameraZoomPolicy | null = null;
-  private playerExplorationZoomBase: number | null = null;
+  private explorationZoomBase: number | null = null;
   private combatViewSaved: { zoom: number; step: number } | null = null;
   private cameraOrientationInitialized = false;
   private sharedCameraOrientations = new Map<string, number>();
+  private localCameraOrientationOverrides = new Set<string>();
+  private stageCameraLimits = new Map<string, number>();
+  private stageCutawayMatte: HTMLCanvasElement | null = null;
   private sharedCameraTilts = new Map<string, number>();
   private cameraTiltChangeHandler: (() => void) | null = null;
   private sharedCameraFrames = new Map<string, SharedCameraFrame>();
@@ -279,6 +308,11 @@ export class WorldRenderer {
     this.app.canvas.style.position = 'absolute'; this.app.canvas.style.inset = '0'; this.app.canvas.style.zIndex = '2';
     this.app.canvas.style.touchAction = 'none';
     this.host.appendChild(this.app.canvas);
+    this.stageCutawayMatte=document.createElement('canvas');
+    this.stageCutawayMatte.style.cssText='position:absolute;inset:0;z-index:3;pointer-events:none';
+    this.stageCutawayMatte.hidden=true;
+    this.stageCutawayMatte.setAttribute('aria-hidden','true');
+    this.host.appendChild(this.stageCutawayMatte);
     const stairMarker = document.createElement('div');
     stairMarker.setAttribute('aria-label', 'Acceso a la cubierta inferior');
     stairMarker.style.cssText = 'position:absolute;left:0;top:0;z-index:3;pointer-events:none;display:none;padding:5px 10px;border:2px solid #e5ba69;border-radius:7px;background:#142a30ed;color:#ffe3a6;font:700 16px Arial,sans-serif;white-space:nowrap;box-shadow:0 3px 12px #000b';
@@ -299,7 +333,7 @@ export class WorldRenderer {
     let pendingTouchTap: { pointerId: number; cell: Cell | null; entityId?: string; x: number; y: number; moved: boolean } | null = null;
     let pointerEntityId: string | undefined;
     const cellAtPointer = (clientX: number, clientY: number): Cell | null => {
-      pointerEntityId = undefined;
+      pointerEntityId = undefined;this.pickedSurfaceId=this.scene?.surfaceId;
       if (!this.mapClick || !this.scene) return null;
       const rect = this.app.canvas.getBoundingClientRect();
       const global = { x: (clientX - rect.left) * this.app.screen.width / rect.width, y: (clientY - rect.top) * this.app.screen.height / rect.height };
@@ -307,14 +341,14 @@ export class WorldRenderer {
       if (this.sceneBillboards && nativeCamera) {
         const ray = Ray.CreateNew(global.x, global.y, this.app.screen.width, this.app.screen.height, Matrix.Identity(), nativeCamera.getViewMatrix(), nativeCamera.getProjectionMatrix());
         const id = this.sceneBillboards.pick(ray), entity = this.snapshot?.entities.find(candidate => candidate.id === id);
-        if (entity) { pointerEntityId = entity.id; return entity.cell; }
+        if (entity) { pointerEntityId = entity.id;this.pickedSurfaceId=entity.surfaceId; return entity.cell; }
       }
       if (this.d8Scene) {
         // A click on a character's body belongs to that character, not the
         // floor cell behind the upright sprite. Respect the visible draw order.
         const hit = [...this.tokenViews.values()].filter(view => !this.sceneBillboards && view.root.visible && view.root.alpha > .1 && view.sprite.getBounds().containsPoint(global.x, global.y))
           .sort((a, b) => b.root.zIndex - a.root.zIndex)[0];
-        if (hit) { pointerEntityId = hit.entity.id; return hit.entity.cell; }
+        if (hit) { pointerEntityId = hit.entity.id;this.pickedSurfaceId=hit.entity.surfaceId; return hit.entity.cell; }
         return this.d8CellAtPointer(global);
       }
       if (this.terrainScene && this.terrainView) return this.terrainCellAt(global);
@@ -325,7 +359,12 @@ export class WorldRenderer {
       const cell = projected ?? { col: Math.floor((local.x - grid.originX) / grid.tileSize), row: Math.floor((local.y - grid.originY) / grid.tileSize) };
       return cell.col >= 0 && cell.row >= 0 && cell.col < grid.cols && cell.row < grid.rows ? cell : null;
     };
+    if(this.options.cameraRole==='dm')installDmMapInput(this.app.canvas,{
+      pick:(x,y)=>{const cell=cellAtPointer(x,y);return cell?{cell,surfaceId:this.pickedSurfaceId??this.scene!.surfaceId,entityId:pointerEntityId}:null;},
+      select:hit=>this.mapClick?.(hit.cell,hit.entityId),interaction:()=>this.dmInteraction,pan:(x,y)=>this.panDmCamera(x,y)
+    });
     this.app.canvas.addEventListener('pointerdown', event => {
+      if(this.options.cameraRole==='dm')return;
       if (event.pointerType === 'touch') {
         if (!this.mapClick || !this.scene) return;
         if (!activeTouchPointers.size) { touchGestureActive = false; pendingTouchTap = null; }
@@ -363,6 +402,7 @@ export class WorldRenderer {
 
   setLocalPlayer(id: string | null) { this.localId = id; }
   setWreckReflectionsEnabled(enabled:boolean){if(this.sceneId==='wreck-ship'&&this.terrainScene)this.terrainScene.metadata={...this.terrainScene.metadata,wreckReflectionsEnabled:enabled};}
+  setStormwreckStyleSampleEnabled(enabled:boolean){this.stormwreckStyleSample?.setEnabled(enabled);}
   private wreckSightAudit(){
     const focus=this.snapshot?.entities.find(e=>e.id===(this.localId??this.selectedEntityId??this.snapshot?.camera.focusId)),scene=this.terrainScene,camera=this.terrainView?.camera;
     if(!focus||!scene||!camera)return [];
@@ -408,12 +448,13 @@ export class WorldRenderer {
     // Hidden grid helpers can have uncompiled shadow variants indefinitely.
     // Audit the resources actually contributing to the rendered view.
     return { scene: this.sceneId, tilt: this.getCameraTiltDegrees(), orientation: this.cameraOrientationStep,
-      nativeActors: this.sceneBillboards?.count ?? 0, zoom: this.cameraZoom, zoomLimits: this.cameraZoomPolicy ? boundCameraZoom(this.cameraZoom, this.cameraZoomPolicy) : null,
+      nativeActors: this.sceneBillboards?.count ?? 0, reflections:this.sceneId==='mirror'?this.sceneBillboards?.reflectionAudit:undefined, zoom: this.cameraZoom, zoomLimits: this.cameraZoomPolicy ? boundCameraZoom(this.cameraZoom, this.cameraZoomPolicy) : null,
       performance: this.frameIntervals.length ? {frames:this.frameIntervals.length,medianMs:[...this.frameIntervals].sort((a,b)=>a-b)[Math.floor(this.frameIntervals.length/2)],p95Ms:[...this.frameIntervals].sort((a,b)=>a-b)[Math.floor(this.frameIntervals.length*.95)],fps:scene?.getEngine().getFps(),meshes:scene?.meshes.length,activeMeshes:scene?.getActiveMeshes().length} : null,
       meshGroups: scene ? Object.entries(scene.meshes.reduce<Record<string,number>>((groups,mesh)=>{const key=mesh.name.replace(/_[0-9]+$/, '');groups[key]=(groups[key]??0)+1;return groups;},{})).sort((a,b)=>b[1]-a[1]).slice(0,15) : [],
       horizon: (scene as any)?.metadata?.d8Vtt?.horizon ?? null,
       presentation: (scene as any)?.metadata?.d8Vtt?.presentationDiagnostic ?? null,
       rainAccumulation:scene?.metadata?.rainAccumulation,
+      styleSample:this.stormwreckStyleSample?{...this.stormwreckStyleSample.stats}:undefined,
       gpu:this.terrainEngine?.getGlInfo(),
       fog:scene?{mode:scene.fogMode,start:scene.fogStart,end:scene.fogEnd,radius:(scene.activeCamera as any)?.radius}:undefined,
       wreckSight:this.sceneId==='wreck-ship'?this.wreckSightAudit():undefined,
@@ -424,6 +465,7 @@ export class WorldRenderer {
       ready: pendingTextures.length === 0 && pendingMeshes.length === 0 && (scene?.getWaitingItemsCount() ?? 0) === 0
         && (this.sceneId!=='dragon-rest'||this.retreatVisuals?.stats.loaded===true)
         && (!this.scene?.camp || this.campVisuals !== null)
+        && (!this.stormwreckStyleSample || this.stormwreckStyleSample.ready())
         && (!this.sceneBillboards || this.sceneBillboards.count >= this.tokenViews.size),
       pendingTextures, pendingMeshes: pendingMeshes.slice(0, 12),
       actors: this.snapshot?.entities.map(entity => {
@@ -438,7 +480,7 @@ export class WorldRenderer {
         target: { x: camera.target.x, y: camera.target.y, z: camera.target.z } } : null };
   }
   /** DM-only selection; clients can use it too without changing game state. */
-  setSelectedEntity(id: string | null) { this.selectedEntityId = id; if (id) this.sceneOverview = false; }
+  setSelectedEntity(id: string | null) { this.selectedEntityId = id; if (id) {this.sceneOverview = false;} }
   /** Remembers a DM-selected map location as the zoom anchor without moving game pieces. */
   setCameraFocusCell(cell: Cell | null, surfaceId = this.scene?.surfaceId) {
     if (cell) this.sceneOverview = false;
@@ -449,7 +491,7 @@ export class WorldRenderer {
     this.cameraFocusScreenPoint = this.cellToPixel(cell, surfaceId);
     if (this.d8Scene && this.d8MapConfig?.MAP?.size) {
       const size = this.d8MapConfig.MAP.size as [number, number], grid = this.scene.grid;
-      this.cameraFocusWorldPoint = d8CellWorldPoint(cell, size, grid, this.scene.terrain);
+      this.cameraFocusWorldPoint = d8CellWorldPoint(cell, size, grid, this.scene.terrain,surfaceId);
       return;
     }
     const terrain = this.scene.terrain;
@@ -461,6 +503,48 @@ export class WorldRenderer {
         this.focusTerrainZoomOnTarget(); this.updateCamera(0);
       }
     }
+  }
+  setDmMapInteraction(interaction:DmMapInteraction){if(this.options.cameraRole==='dm')this.dmInteraction=interaction;}
+  clearDmNavigation(){this.dmLocation=null;this.dmFollowId=null;}
+  followDmEntity(id:string){if(this.options.cameraRole!=='dm')return;this.dmLocation=null;this.dmFollowId=id;this.sceneOverview=false;}
+  getDisplayedSceneId(){return this.sceneId;}
+  getPickedSurfaceId(){return this.pickedSurfaceId??this.scene?.surfaceId;}
+  private navigationLocation(){return this.options.cameraRole==='dm'?this.dmLocation:this.projectorCameraFrame()?.location??null;}
+  private navigationFocus():PublicEntity|undefined {
+    const location=this.navigationLocation();if(!location||!this.sceneId)return this.options.cameraRole==='dm'?this.snapshot?.entities.find(e=>e.id===this.dmFollowId):undefined;
+    return {id:'__dm_camera__',kind:'player',label:'Cámara DM',cell:location.cell,surfaceId:location.surfaceId,sceneId:this.sceneId,
+      facing:'north',moving:false,step:null,color:'#e7c56f',tokenId:'__camera__'};
+  }
+  exploreDmCell(cell:Cell,surfaceId=this.scene?.surfaceId){
+    if(this.options.cameraRole!=='dm'||!this.scene||!surfaceId)return;
+    this.sceneOverview=false;this.dmFollowId=null;
+    const point=this.d8Scene&&this.d8MapConfig?d8CellWorldPoint(cell,this.d8MapConfig.MAP.size,this.scene.grid,this.scene.terrain,surfaceId)
+      :{x:(cell.col+.5)*(this.scene.terrain?.tileMeters??1.5),z:(cell.row+.5)*(this.scene.terrain?.tileMeters??1.5),y:this.scene.terrain&&terrainTile(this.scene.terrain,{cell,surfaceId})?surfaceHeight(this.scene.terrain,{cell,surfaceId}):0};
+    this.dmLocation={cell:{...cell},surfaceId,point};this.updateCamera(0);
+  }
+  dmAdjacentLayer(cell:Cell,direction:number){
+    const terrain=this.scene?.terrain;if(!terrain)return undefined;
+    const surface=this.dmLocation?.surfaceId??this.pickedSurfaceId??this.scene?.surfaceId;
+    const layers=terrain.surfaces.filter(s=>!s.visualOnly&&terrainTile(terrain,{cell,surfaceId:s.id})).map(s=>({surfaceId:s.id,height:surfaceHeight(terrain,{cell,surfaceId:s.id})})).sort((a,b)=>a.height-b.height);
+    const index=layers.findIndex(s=>s.surfaceId===surface);return layers[index+(direction>0?1:-1)]?.surfaceId;
+  }
+  private panDmCamera(dx:number,dy:number){
+    if(this.options.cameraRole!=='dm'||!this.scene)return;
+    const camera=(this.d8Scene??this.terrainScene)?.activeCamera as any;
+    if(!camera){this.cameraOffset.x-=dx/Math.max(.001,this.cameraCurrent.scale);this.cameraOffset.y-=dy/Math.max(.001,this.cameraCurrent.scale);return;}
+    const grid=this.scene.grid,terrain=this.scene.terrain,size=this.d8MapConfig?.MAP?.size as [number,number]|undefined;
+    const origin=this.d8Scene&&size?d8GridWorldPoint(0,0,size,grid):{x:0,z:0};
+    const tileX=this.d8Scene&&size&&!grid.worldOrigin?size[0]/grid.cols:terrain?.tileMeters??1.5;
+    const tileZ=this.d8Scene&&size&&!grid.worldOrigin?size[1]/grid.rows:terrain?.tileMeters??1.5;
+    const alpha=camera.alpha,mpp=(camera.orthoTop-camera.orthoBottom)/Math.max(1,this.host.clientHeight),up=dy*mpp/Math.max(.08,Math.cos(camera.beta));
+    const previous=this.dmLocation,point={...(previous?.point??{x:camera.target.x,y:0,z:camera.target.z})};
+    point.x+=Math.sin(alpha)*dx*mpp-Math.cos(alpha)*up;point.z-=Math.cos(alpha)*dx*mpp+Math.sin(alpha)*up;
+    point.x=Math.max(origin.x+.01,Math.min(origin.x+grid.cols*tileX-.01,point.x));point.z=Math.max(origin.z+.01,Math.min(origin.z+grid.rows*tileZ-.01,point.z));
+    const cell={col:Math.floor((point.x-origin.x)/tileX),row:Math.floor((point.z-origin.z)/tileZ)};
+    let surfaceId=previous?.surfaceId??this.scene.surfaceId;
+    if(terrain){const layers=terrain.surfaces.filter(s=>!s.visualOnly&&terrainTile(terrain,{cell,surfaceId:s.id}));const surface=layers.find(s=>s.id===surfaceId)??layers.sort((a,b)=>Math.abs(surfaceHeight(terrain,{cell,surfaceId:a.id})-point.y)-Math.abs(surfaceHeight(terrain,{cell,surfaceId:b.id})-point.y))[0];if(surface){surfaceId=surface.id;point.y=surfaceHeight(terrain,{cell,surfaceId});}}
+    else if(this.d8Scene)point.y=.045;
+    this.sceneOverview=false;this.dmLocation={cell,surfaceId,point};this.updateCamera(0);
   }
   setMapClick(handler: ((cell: Cell, entityId?: string) => void) | null) { this.mapClick = handler; }
   /** Local UI anchors using the installed camera; no world or player state changes. */
@@ -538,6 +622,7 @@ export class WorldRenderer {
     Object.assign(this.campaign.tokens, snapshot.tokenAssets.tokens);
     installStormwreckFacingSprites(this.campaign);
     installPlayerLocomotion(this.campaign);
+    installSilverfarbenVisuals(this.campaign);
     // Only the runtime can reveal or remove a NPC. Stage actors are spawn definitions.
     const renderEntities = snapshot.entities;
     if (this.sceneId !== snapshot.sceneId) { this.cameraZoom = 1; this.cameraBaseZoom = 1; this.cameraOffset = { x: 0, y: 0 }; this.terrainCameraOffset = { x: 0, y: 0, z: 0 }; this.cameraFocusScreenPoint = null; this.cameraFocusWorldPoint = null; this.cameraInitialized = false; }
@@ -556,7 +641,6 @@ export class WorldRenderer {
     }))];
     const conditionUrls: string[] = [];
     if (this.campaign.campaignId === 'd8-night-private') conditionUrls.push(...Object.values(d8CombatProjectileTextures));
-    if (snapshot.visualEffects?.some(effect => effect.type === 'fog')) conditionUrls.push('/art/vfx/d8-night/particles/d8-night-vfx-fog-smoke.png');
     const pendingUrls=[...tokenUrls,...conditionUrls].filter(url=>!this.preparedTextureUrls.has(url));
     if(pendingUrls.length){await Promise.all(pendingUrls.map(url=>Assets.load<Texture>(url)));for(const url of pendingUrls)this.preparedTextureUrls.add(url);}
     for (const url of [...tokenUrls, ...conditionUrls]) this.billboardSourceUrls.set(Texture.from(url).source.uid, url);
@@ -582,6 +666,7 @@ export class WorldRenderer {
     if ((this.terrainView || this.d8Scene) && !this.terrainCameraInitialized) this.updateCamera(0);
     this.drawReachable(); this.drawAttackRange();
     for (const entity of renderEntities) { this.retiringTokens.delete(entity.id); this.upsertEntity(entity); }
+    this.drawSelection();
     if (this.campaign.campaignId === 'd8-night-private' && previousSnapshot?.sceneEpoch === snapshot.sceneEpoch && previousSnapshot.sceneId === snapshot.sceneId) {
       for (const entity of renderEntities) {
         const prior = previousSnapshot.entities.find(item => item.id === entity.id);
@@ -619,7 +704,7 @@ export class WorldRenderer {
   getCameraOrientationStep() { return this.cameraOrientationStep; }
   rotateCameraByDegrees(degrees: number) { this.setCameraOrientation(this.cameraOrientationStep + degrees / CAMERA_ORBIT_STEP_DEGREES); }
   private limitRequestedZoom(zoom: number) {
-    if (this.localId && this.cameraZoomPolicy && !this.cameraZoomPolicy.tactical && !this.cameraZoomPolicy.overview) {
+    if (this.cameraZoomPolicy && !this.cameraZoomPolicy.tactical && !this.cameraZoomPolicy.overview) {
       const limits = boundCameraZoom(this.cameraZoom, this.cameraZoomPolicy);
       return Math.max(Math.min(limits.minZoom, this.cameraZoom), Math.min(Math.max(limits.maxZoom, this.cameraZoom), zoom));
     }
@@ -628,22 +713,22 @@ export class WorldRenderer {
   private applyZoomPolicy(policy: CameraZoomPolicy) {
     const prop = this.selectedObject;
     if (prop) { const cells = prop.footprint; policy.focusWidth = Math.max(...cells.map(cell => cell.col)) - Math.min(...cells.map(cell => cell.col)) + 1; policy.focusWidth *= policy.tileMeters ?? 1.5; }
-    // Keep the orthographic scale chosen by the player across doors. Both
+    // Keep the orthographic scale chosen by the DM/player across doors. Both
     // shelter bounds and tilt change the fit, even if the zoom slider does not.
     // Zone limits constrain the next manual zoom, never an automatic transition.
-    if (this.localId && !policy.tactical && !policy.overview) {
-      const initial = this.playerExplorationZoomBase === null;
-      this.playerExplorationZoomBase ??= policy.baseHalfHeight;
-      policy.baseHalfHeight = this.playerExplorationZoomBase;
+    if (!policy.tactical && !policy.overview) {
+      const initial = this.explorationZoomBase === null;
+      this.explorationZoomBase ??= policy.baseHalfHeight;
+      policy.baseHalfHeight = this.explorationZoomBase;
       this.cameraZoomPolicy = policy;
-      if (initial) this.cameraZoom = boundCameraZoom(this.cameraZoom, policy).zoom;
+      if (initial || policy.maxStageHalfHeight!==undefined&&policy.baseHalfHeight/this.cameraZoom>policy.maxStageHalfHeight) this.cameraZoom = boundCameraZoom(this.cameraZoom, policy).zoom;
       return policy.baseHalfHeight / this.cameraZoom;
     }
     this.cameraZoomPolicy = policy;
     const bounded = boundCameraZoom(this.cameraZoom, policy);
     this.cameraZoom = bounded.zoom; return bounded.halfHeight;
   }
-  getCameraTiltDegrees() { return Math.round(this.cameraTiltDegrees); }
+  getCameraTiltDegrees() { return this.cameraTiltDegrees; }
   /** Isolated visual review: no saved preference and no gameplay mutation. */
   setTerrainAuditView(tilt: number | null, greybox = false) {
     this.terrainAuditTilt=tilt;
@@ -658,10 +743,9 @@ export class WorldRenderer {
   setCameraTiltDegrees(degrees: number) {
     if (!Number.isFinite(degrees) || (!this.terrainView && !this.d8Scene)) return;
     if (this.sceneId) this.sharedCameraTilts.delete(this.sceneId);
-    this.assignCameraTilt(snapCameraTilt(degrees,cameraProfileForScene(this.sceneId)));
-    if (this.options.persistCameraPreferences && this.sceneId) {
-      try { localStorage.setItem(this.cameraTiltPreferenceKey(this.sceneId), String(this.cameraTiltDegrees)); } catch { /* La cámara sigue funcionando aunque el navegador bloquee el almacenamiento. */ }
-    }
+    this.assignCameraTilt(clampCameraTilt(degrees,cameraProfileForScene(this.sceneId)));
+    if(this.sceneId)this.localCameraTiltOverrides.add(this.sceneId);
+    this.rememberCameraTilt();
   }
   setCameraTiltChangeHandler(handler: () => void) { this.cameraTiltChangeHandler = handler; }
   setCameraFrameChangeHandler(handler: () => void) { this.cameraFrameChangeHandler = handler; }
@@ -670,7 +754,7 @@ export class WorldRenderer {
   private resolveCameraFraming(halfHeight:number,target:{x:number;y:number;z:number},focusId:string|null) {
     if (this.options.cameraRole==='dm' && this.sceneId) {
       const round=(value:number)=>Math.round(value*1000)/1000;
-      const frame={halfHeight:round(halfHeight),target:{x:round(target.x),y:round(target.y),z:round(target.z)},focusId};
+      const frame={halfHeight:round(halfHeight),target:{x:round(target.x),y:round(target.y),z:round(target.z)},focusId:focusId==='__dm_camera__'?null:focusId,...(this.dmLocation?{location:structuredClone(this.dmLocation)}:{})};
       if (this.lastCameraFrame?.sceneId!==this.sceneId || JSON.stringify(this.lastCameraFrame.frame)!==JSON.stringify(frame)) {
         this.lastCameraFrame={sceneId:this.sceneId,frame}; this.cameraFrameChangeHandler?.();
       }
@@ -683,10 +767,27 @@ export class WorldRenderer {
     this.cameraTiltDegrees = degrees;
     this.cameraTiltChangeHandler?.();
   }
-  private applyAutomaticCameraTilt(degrees: number) {
+  private rememberCameraTilt() {
+    if(!this.sceneId||this.cameraTiltPreferences.get(this.sceneId)===this.cameraTiltDegrees)return;
+    this.cameraTiltPreferences.set(this.sceneId,this.cameraTiltDegrees);
+    if(this.options.persistCameraPreferences)try{localStorage.setItem(this.cameraTiltPreferenceKey(this.sceneId),String(this.cameraTiltDegrees));}catch{}
+  }
+  private ownsCameraTilt(sceneId=this.sceneId) { return this.options.cameraRole==='player'&&Boolean(sceneId&&this.localCameraTiltOverrides.has(sceneId)); }
+  private preserveCameraTiltInZone(inside:boolean) {
+    const zone=this.sceneId?this.cameraTiltZones.get(this.sceneId):undefined;
+    return Boolean(this.sceneId&&this.cameraTiltPreferences.has(this.sceneId)&&(zone===undefined||zone===inside));
+  }
+  private rememberCameraTiltZone(inside:boolean) {
+    if(!this.sceneId||this.cameraTiltZones.get(this.sceneId)===inside)return;
+    this.cameraTiltZones.set(this.sceneId,inside);
+    if(this.options.persistCameraPreferences)try{localStorage.setItem(this.cameraTiltPreferenceKey(this.sceneId)+'.zone',inside?'interior':'exterior');}catch{}
+  }
+  private applyAutomaticCameraTilt(degrees: number,zoneChanged=false) {
     const shared = this.sceneId ? this.sharedCameraTilts.get(this.sceneId) : undefined;
     const follows = !this.options.persistCameraPreferences || this.options.followSharedCameraOrientation;
-    this.assignCameraTilt(follows && shared !== undefined ? shared : degrees);
+    if(zoneChanged&&this.options.cameraRole==='player'&&this.sceneId){this.sharedCameraTilts.delete(this.sceneId);this.localCameraTiltOverrides.add(this.sceneId);}
+    this.assignCameraTilt(!(zoneChanged&&this.options.cameraRole==='player')&&!this.ownsCameraTilt()&&follows&&shared!==undefined ? shared : degrees);
+    this.rememberCameraTilt();
   }
   zoomCameraBy(factor: number) {
     this.sceneOverview = false;
@@ -711,7 +812,10 @@ export class WorldRenderer {
   setCameraOrientation(step: number, persist = this.options.persistCameraPreferences === true) {
     if (!Number.isFinite(step) || (!this.terrainView && !this.d8Scene)) return;
     this.cameraOrientationStep = clampCameraOrbitStep(step);
-    if (persist && this.sceneId) this.saveCameraOrientation(this.sceneId, this.cameraOrientationStep);
+    if (persist && this.sceneId) {
+      this.localCameraOrientationOverrides.add(this.sceneId);
+      this.saveCameraOrientation(this.sceneId, this.cameraOrientationStep);
+    }
   }
   setSharedCameraOrientation(sceneId: string, step: number, tilt?: number, frame?:SharedCameraFrame) {
     if (!Number.isFinite(step)) return;
@@ -721,10 +825,12 @@ export class WorldRenderer {
       if (validSharedCameraFrame(frame)) this.sharedCameraFrames.set(sceneId,frame);
       else if (frame===undefined) this.sharedCameraFrames.delete(sceneId);
     }
-    if (tilt !== undefined && Number.isFinite(tilt)) this.sharedCameraTilts.set(sceneId, snapCameraTilt(tilt,cameraProfileForScene(sceneId)));
+    if (tilt !== undefined && Number.isFinite(tilt)) this.sharedCameraTilts.set(sceneId, clampCameraTilt(tilt,cameraProfileForScene(sceneId)));
     if (sceneId === this.sceneId && (!this.options.persistCameraPreferences || this.options.followSharedCameraOrientation)) {
-      this.setCameraOrientation(normalized, false);
-      if (tilt !== undefined) this.assignCameraTilt(snapCameraTilt(tilt,cameraProfileForScene(sceneId)));
+      // A player's manual horizontal orbit wins after they turn it. Keep
+      // accepting the DM's angle until then, and continue sharing the tilt.
+      if (!this.options.persistCameraPreferences || !this.localCameraOrientationOverrides.has(sceneId)) this.setCameraOrientation(normalized, false);
+      if (tilt !== undefined&&!this.ownsCameraTilt(sceneId)) this.assignCameraTilt(clampCameraTilt(tilt,cameraProfileForScene(sceneId)));
     }
   }
   clearSharedCameraOrientations() { this.sharedCameraOrientations.clear(); this.sharedCameraTilts.clear(); this.sharedCameraFrames.clear(); }
@@ -732,9 +838,9 @@ export class WorldRenderer {
   /** Shows the legal distance bands for an armed attack without deciding a target. */
   showAttackRange(originId: string, normalMeters: number, longMeters?: number) {
     this.attackRangePreview = { originId, normalMeters: Math.max(0, normalMeters), longMeters: Math.max(normalMeters, longMeters ?? normalMeters) };
-    this.drawAttackRange();
+    this.drawAttackRange(); this.drawSelection();
   }
-  clearAttackRange() { this.attackRangePreview = null; this.attackRange.clear(); }
+  clearAttackRange() { this.attackRangePreview = null; this.attackRange.clear(); this.drawSelection(); }
   private entityScreenPosition(entityId: string, fallback: { x: number; y: number }) {
     const position = this.tokenViews.get(entityId)?.root.position;
     return position ? { x: position.x, y: position.y } : fallback;
@@ -782,7 +888,7 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
   playAreaEffect(cell: Cell, type: 'fog' | 'feather' | 'spark', radiusMeters: number, durationMs = 5_000) {
     if (!this.scene || !this.snapshot) return;
     const snapshot = this.snapshot, connection = this.connectionGeneration;
-    void (type === 'fog' ? Assets.load<Texture>('/art/vfx/d8-night/particles/d8-night-vfx-fog-smoke.png') : Promise.resolve()).then(() => {
+    void Promise.resolve().then(() => {
       if (connection !== this.connectionGeneration || snapshot.sceneEpoch !== this.snapshot?.sceneEpoch || snapshot.sceneId !== this.sceneId) return;
       const now = Date.now() - this.clockOffset;
       this.areaEffects.addTransient({ id: crypto.randomUUID(), type, cell, radiusMeters, sceneId: snapshot.sceneId, surfaceId: this.scene!.surfaceId, startedAt: now, expiresAt: now + durationMs });
@@ -814,16 +920,19 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
       if (state === 'stand') this.standingActors.add(entityId);
       if (state === 'sit') this.standingActors.delete(entityId);
     }
+    view.animationFacing = facingOverride ?? view.entity.facing;
     view.animationState = state; view.animationStartedAt = performance.now(); view.animationUntil = view.animationStartedAt + durationMs;
   }
   /** The mirror is a prop, never an NPC. This transient scene effect lets its
    * surface bloom into the exact player who touched it before the server's
    * independent reflection token takes over. */
-  playMirrorTransformation(propId: string, sourceId: string, reflectionId: string, frames: string[], durationMs = 1_600) {
+  playMirrorTransformation(propId: string, sourceId: string, reflectionId: string, frames: string[], durationMs = 1_600, event?:{eventId:string;serverTime:number}) {
+    const age=event?this.mirrorEventGate.accept(event,this.presentationClock.now(Date.now()),durationMs):0;if(age===null)return;
     this.mirrorCleanup?.(); this.mirrorCleanup = null;
     if(this.d8Scene&&this.scene?.props.find(p=>p.id===propId)?.renderedByScene){
-      this.mirrorRevealAt.set(reflectionId,performance.now()+durationMs*.65);
-      (this.d8Scene as any).metadata?.d8Vtt?.mirrorTransformation?.();return;
+      this.mirrorTravel.set(reflectionId,{started:performance.now()-age,duration:durationMs});
+      this.mirrorRevealAt.set(reflectionId,performance.now()-age+durationMs*.35);
+      (this.d8Scene as any).metadata?.d8Vtt?.mirrorTransformation?.({age,duration:durationMs});return;
     }
     const generation = ++this.mirrorGeneration, sceneEpoch = this.snapshot?.sceneEpoch;
     if (!frames.length) return;
@@ -864,6 +973,7 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     }).catch(() => { /* A missing frame must not break the map or leave a dim prop. */ });
   }
   frameActorDetail(entityId = this.localId ?? this.selectedEntityId ?? this.snapshot?.camera.focusId) {
+    if(this.options.cameraRole==='dm'&&entityId){this.clearDmNavigation();this.setSelectedEntity(entityId);}
     const entity = this.snapshot?.entities.find(item => item.id === entityId);
     const camera = (this.d8Scene ?? this.terrainScene)?.activeCamera as any;
     if (!entity || !camera || !camera.orthoTop) return false;
@@ -873,6 +983,17 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     this.zoomCameraBy(zoom / this.cameraZoom); return true;
   }
   frameSceneOverview() {
+    if(this.options.cameraRole==='dm')this.clearDmNavigation();
+    if(this.sceneId==='wreck-ship'){
+      this.terrainCameraOffset={x:0,y:0,z:0};this.cameraOffset={x:0,y:0};
+    }
+    if(this.sceneId==='dragon-rest'&&this.options.cameraRole==='player'){
+      const actor=this.snapshot?.entities.find(entity=>entity.id===(this.localId??this.snapshot?.camera.focusId));
+      this.setSelectedEntity(actor?.id??null);this.setCameraFocusCell(actor?.cell??null,actor?.surfaceId);
+      this.sceneOverview=false;
+      this.cameraZoom=this.cameraZoomPolicy?boundCameraZoom(.0001,this.cameraZoomPolicy).zoom:1;
+      this.updateCamera(0);this.saveCameraZoom(this.sceneId,this.cameraZoom);this.redrawProjectedOverlays();return;
+    }
     this.setSelectedEntity(null); this.setCameraFocusCell(null);
     this.sceneOverview = true; this.cameraZoom = 1; this.saveCameraZoom(this.sceneId, this.cameraZoom);
     this.updateCamera(0); this.redrawProjectedOverlays();
@@ -891,13 +1012,17 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
   }
   clearEditor() { this.selectedObject = null; this.previewObject = null; this.selection.clear(); this.previewCells.clear(); this.previewSprite.visible = false; this.previewGeneration++; }
   screenVectorToWorld(x: number, up: number) {
+    // Keep movement tied to each scene's authored front. Camera orbit and
+    // camera-follow framing are visual choices and must not rotate WASD or
+    // joystick directions underneath the player.
     if (this.d8Scene) {
       const configuredAlpha = Number(this.d8MapConfig?.camera?.alpha);
-      const alpha = (this.d8Scene.activeCamera as any)?.alpha ?? limitedCameraAlpha(d8CameraBaseAlpha(configuredAlpha, this.sceneId ?? undefined), this.cameraOrientationStep);
+      const alpha = d8CameraBaseAlpha(configuredAlpha, this.sceneId ?? undefined);
       return screenVectorToWorldAtAlpha(x, up, alpha, (this.d8Scene.activeCamera as (Camera & { beta: number }) | null)?.beta ?? cameraBetaForTiltDegrees(this.cameraTiltDegrees));
     }
     if (!this.terrainView) return { x, z: -up };
-    return screenVectorToWorldAtAlpha(x, up, this.terrainView.camera.alpha, this.terrainView.camera.beta);
+    const authoredFront = terrainCameraBaseAlpha(this.sceneId) + (this.sceneId === 'camp-a1-rooms' ? 3 * Math.PI / 4 : 0);
+    return screenVectorToWorldAtAlpha(x, up, authoredFront, this.terrainView.camera.beta);
   }
   dispose() {
     this.campActivityVisuals?.dispose(); this.campActivityVisuals = null; this.actorGrounding.clear();
@@ -946,6 +1071,7 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     this.tokenOcclusionCache.clear(); this.terrainScene?.dispose(); this.d8Scene?.dispose(); this.d8Scene = null; this.d8MapConfig = null; this.terrainProps.clear(); this.rowboatVisual = null; this.rowboatHullCells = []; this.carriedLights.clear(); this.retreatVisuals = null; this.campVisuals = null; this.terrainScene = new BabylonScene(this.terrainEngine!);
     if (!definition.camp) this.campInteractionHighlights = false;
     this.terrainScene.clearColor.set(.025, .07, .09, 1);
+    this.stormwreckStyleSample=(this.options.stormwreckVisualSample??(typeof __STORMWRECK_STYLE_SAMPLE__!=='undefined'&&__STORMWRECK_STYLE_SAMPLE__))?createStormwreckStyleSample(this.terrainScene,definition.id,undefined,()=>{this.rainAccumulation?.prepare();this.wreckEnvironment?.prepare();}):null;
     const deckTexture = definition.id === 'wreck-ship'
       ? new BabylonTexture('/art/ship/deck-planks-art06.png', this.terrainScene, false, true, BabylonTexture.TRILINEAR_SAMPLINGMODE)
       : undefined;
@@ -1080,15 +1206,17 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
       this.rowboatHullCells = definition.terrain?.surfaces.find(surface => surface.id === 'c1-hull')?.tiles.map(tile => tile.cell) ?? [];
     }
     if (definition.id === 'camp-a1-rooms') this.terrainView.camera.beta = .92;
-    this.cameraTiltDegrees = CAMERA_DEFAULT_TILT;
+    
     this.restoreCameraOrientation(definition.id);
     if (definition.id === 'dragon-rest') {
       const retreatScene=this.terrainScene;
-      void import('../../campaigns/stormwreck-isle/public/retreat-global-visuals.js').then(({createRetreatGlobalVisuals})=>{
+      void import('../../campaigns/stormwreck-isle/public/retreat-global-visuals.js').then(({createRetreatGlobalVisuals,conformRetreatGrid})=>{
         if(this.campVisualGeneration!==campVisualGeneration||this.terrainScene!==retreatScene)return;
-        this.retreatVisuals=createRetreatGlobalVisuals(retreatScene);
+        this.retreatVisuals=createRetreatGlobalVisuals(retreatScene,{expanded:this.options.retreatExpansion,islandStage:this.options.retreatIslandStage,finishStage:this.options.retreatFinishStage,departureStage:this.options.retreatDepartureStage,polishStage:this.options.retreatPolishStage,revisionStage:this.options.retreatRevisionStage});
         this.renderTerrainProps(this.snapshot?.props??[]);
-        void this.retreatVisuals.ready.catch(error=>console.error('Retiro: carga incompleta',error));
+        void this.retreatVisuals.ready.then(()=>{
+          if(this.campVisualGeneration===campVisualGeneration&&this.terrainScene===retreatScene&&this.terrainView)conformRetreatGrid(retreatScene,this.terrainView);
+        }).catch(error=>console.error('Retiro: carga incompleta',error));
       }).catch(error=>console.error('Retiro: no se pudo iniciar la escena',error));
     }
       if (definition.camp) {
@@ -1158,8 +1286,8 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
       mesh.metadata = { ...mesh.metadata, tokenOccluder: opaque && height > .3 && !/sky|horizon|backdrop|environment|water|shimmer|ripple|fog|smoke|fire|flame|glow|lightpool|shadow|debug|player|marker|interact|glass|pane/.test(name) };
     }
     this.rebuildD8OcclusionIndex();
-    this.cameraTiltDegrees = D8_CAMERA_DEFAULT_TILT;
-    this.d8InteriorTilt.reset();
+    
+    
     this.terrainCanvas.hidden = false; this.background.visible = false; this.terrainEngine!.resize();
     return true;
   }
@@ -1196,9 +1324,11 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     const texture = isBabylonScene ? Texture.EMPTY : await Assets.load<Texture>(definition.background);
     if (connection !== this.connectionGeneration || request !== this.requestGeneration) return false;
     this.installedSceneId = null;
-    this.sceneId = sceneId; this.shelterCache = null; this.sceneOverview = false; this.d8InteriorTilt.reset(); this.cameraZoomPolicy = null; this.playerExplorationZoomBase = null; this.combatViewSaved = null; this.cameraInitialized = false; this.terrainCameraInitialized = false; this.cameraOrientationInitialized = false;
+    this.d8InteriorTilt.enterScene();
+    this.dmLocation=null;this.dmFollowId=null;this.sceneId = sceneId; this.shelterCache = null; this.sceneOverview = false; this.cameraZoomPolicy = null; this.explorationZoomBase = null; this.combatViewSaved = null; this.cameraInitialized = false; this.terrainCameraInitialized = false; this.cameraOrientationInitialized = false;
     this.stopVisualPreview(); this.stopMirrorEffect(); this.areaEffects.clear(); this.standingActors.clear();
     this.cameraOrientationStep = this.readCameraOrientation(sceneId);
+    this.cameraTiltDegrees = this.readCameraTilt(sceneId) ?? CAMERA_DEFAULT_TILT;
     this.cameraBaseZoom = definition.renderer === 'babylon-hd2d'
       ? definition.id === 'camp-a1-rooms' ? 1.2 : definition.camp ? 2.4 : 1.8
       : 1;
@@ -1209,6 +1339,7 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
       ? this.cameraBaseZoom
       : savedZoom ?? this.cameraBaseZoom;
     this.background.texture = texture; this.backgroundGridSample = null; this.background.position.set(0, 0); this.background.width = definition.grid.width; this.background.height = definition.grid.height;
+    this.stormwreckStyleSample = null;
     if (definition.renderer === 'babylon-d8') {
       if (!await this.installD8Renderer(definition, connection, request)) return false;
     }
@@ -1216,9 +1347,18 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     if (connection !== this.connectionGeneration || request !== this.requestGeneration) return false;
     this.sceneBillboards?.dispose(); this.campActivityVisuals?.dispose(); this.campActivityVisuals = null;
     const billboardScene = this.d8Scene ?? this.terrainScene;
-    this.sceneBillboards = billboardScene ? new WorldBillboards(billboardScene, undefined, Boolean(definition.camp) || definition.id==='wreck-ship') : null;
+    this.sceneBillboards = billboardScene ? new WorldBillboards(billboardScene, undefined, Boolean(definition.camp) || definition.id==='wreck-ship'||definition.id==='mirror',
+      definition.id==='mirror' ? point => (billboardScene as any).metadata?.d8Vtt?.actorLight?.(point)??{r:1,g:1,b:1}
+        : ['dragon-rest','wreck-ship'].includes(definition.id) ? (point,id) => {
+          const actor=this.snapshot?.entities.find(entity=>entity.id===id);
+          return actor ? sampleStormwreckActorLight(billboardScene,definition.id,point,actor) : {r:1,g:1,b:1};
+        } : undefined,
+      definition.id==='mirror' ? point => (billboardScene as any).metadata?.d8Vtt?.sampleIce?.(point)??{strength:0,height:0} : undefined,
+      ['dragon-rest','wreck-ship'].includes(definition.id)) : null;
     this.wreckEnvironment=definition.id==='wreck-ship'&&this.terrainScene?createWreckEnvironment(this.terrainScene,this.host.clientWidth<800):null;
-    this.rainAccumulation=billboardScene?new RainAccumulation(billboardScene,definition):null;
+    // The mirror is a fully sheltered cave with its own authored ice/snow.
+    // Do not stack exterior surface plugins when a claim reloads this scene.
+    this.rainAccumulation=billboardScene&&definition.id!=='mirror'?new RainAccumulation(billboardScene,definition):null;
     if (billboardScene && definition.camp) this.campActivityVisuals = new CampActivityVisuals(billboardScene, definition);
     this.nativeWeather?.dispose(); this.nativeWeather=billboardScene?new WorldWeather(billboardScene):null;
     for(const layer of [this.storm,this.rain,this.rainNear])if(layer)layer.visible=false;
@@ -1405,7 +1545,7 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
         if (!side) side = Math.sign(cross);
         else if (Math.sign(cross) !== side) { inside = false; break; }
       }
-      if (inside) return candidate.cell;
+      if (inside) {this.pickedSurfaceId=candidate.surfaceId;return candidate.cell;}
     }
     return null;
   }
@@ -1414,7 +1554,9 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     const scene = this.scene!;
     if (this.d8Scene && this.d8MapConfig) {
       const mapSize = this.d8MapConfig.MAP.size as [number, number];
-      const p=d8GridWorldPoint(col,row,mapSize,scene.grid);const position = new Vector3(p.x,d8GroundHeight(scene.terrain,col,row),p.z);
+      const cell={col:Math.floor(col),row:Math.floor(row)},address={surfaceId:surfaceId??scene.surfaceId,cell};
+      const height=scene.terrain&&terrainTile(scene.terrain,address)?surfaceHeight(scene.terrain,address,col-cell.col,row-cell.row)+.045:d8GroundHeight(scene.terrain,col,row);
+      const p=d8GridWorldPoint(col,row,mapSize,scene.grid);const position = new Vector3(p.x,height,p.z);
       const camera = this.d8Scene.activeCamera as any;
       const viewport = camera?.viewport?.toGlobal(this.app.screen.width, this.app.screen.height);
       if (!viewport) return null;
@@ -1624,7 +1766,7 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
       Boolean(weather?.lightning), timeSeconds);
     const sunlight = naturalLightProfile(gameSeconds, weather?.timeOfDay);
     const focusId=this.localId??this.selectedEntityId??this.snapshot?.camera.focusId;
-    const focus=this.snapshot?.entities.find(entity=>entity.id===focusId);
+    const focus=this.sceneOverview?undefined:this.navigationFocus()??this.snapshot?.entities.find(entity=>entity.id===focusId);
     const room=focus?wreckCabinAt(focus.cell,focus.surfaceId):null;
     const hold=focus?.surfaceId==='hold-air',lower=focus?.surfaceId==='lower-deck';
     const ambientScale=hold ? 0 : lower ? .21 : room ? .13 : 1, keyScale=hold||lower||room?0:1;
@@ -1686,6 +1828,7 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
       light.range = entity.carriedLightRadiusMeters * 2;
       light.intensity = 1.55 + Math.sin(timeSeconds * 4.7 + entity.id.length) * .09;
       const sourceRoom=wreckCabinAt(entity.cell,entity.surfaceId);
+      light.metadata={...light.metadata,actorLightRegion:stormwreckActorLightRegion('wreck-ship',entity)};
       light.setEnabled(!focus || (entity.surfaceId===focus.surfaceId && sourceRoom===room));
     }
     for (const [id, light] of this.carriedLights) if (!lit.has(id)) { light.dispose(); this.carriedLights.delete(id); }
@@ -1837,6 +1980,8 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     const specialPoses = conditionSpriteEnabled(view.entity.tokenId, this.options?.conditionPoseTokens);
     const moving = !['inconsciente', 'paralizada', 'restringida', 'apresada', 'agarrada'].some(condition => conditions.has(condition as CombatCondition))
       && (this.d8Scene ? this.movementTimeline.sample(view.entity, this.presentationClock.now(Date.now())).moving : view.entity.moving);
+    const directed = (state: string, facing = view.entity.facing) => directedTokenState(state,
+      facingSuffix[this.cameraRelativeFacing(facing)], candidate => Boolean(this.animationFor(view.entity.tokenId,candidate)));
     const camp = this.campActivityVisuals?.current(this.presentationClock.now(Date.now()), view.entity,
       this.snapshot?.campRest?.sceneId === this.sceneId ? this.snapshot.campRest.interactions : [], this.snapshot?.combat.active ?? false);
     if (camp && this.animationFor(view.entity.tokenId, campActivities[camp.id].animation)) {
@@ -1860,14 +2005,19 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     if (view.entity.defeated) return 'defeated';
     if (specialPoses && conditions.has('derribada')) return persistent === 'crawl' && !this.animationFor(view.entity.tokenId, 'crawl') ? 'condition-derribada' : persistent!;
     if (!specialPoses && conditions.has('derribada') && this.animationFor(view.entity.tokenId, 'prone')) return moving && this.animationFor(view.entity.tokenId, 'crawl') ? 'crawl' : 'prone';
-    if (moving && view.entity.step?.movementKind === 'climb' && this.animationFor(view.entity.tokenId,'climb')) return 'climb';
-    if(moving&&view.entity.step?.movementKind==='jump'&&this.animationFor(view.entity.tokenId,'jump'))return 'jump';
+    const boatDeparture=this.sceneId==='dragon-rest'?retreatBoatDeparture(view.entity.step,this.stepProgress(view.entity)):null;
+    if(boatDeparture?.seated&&this.animationFor(view.entity.tokenId,'sit'))return 'sit';
+    if (moving && view.entity.step?.movementKind === 'climb' && this.animationFor(view.entity.tokenId,'climb')) return directed('climb');
+    if(moving&&view.entity.step?.movementKind==='jump'&&this.animationFor(view.entity.tokenId,'jump'))return directed('jump');
     if (moving && view.entity.step?.movementKind === 'run-up') {
       const directed = `running-${facingSuffix[this.cameraRelativeFacing(view.entity.facing)]}`;
       if (this.animationFor(view.entity.tokenId,directed)) return directed;
       if (this.animationFor(view.entity.tokenId,'running')) return 'running';
     }
-    if(view.entity.kind==='player'&&view.entity.stealth&&this.animationFor(view.entity.tokenId,'stealth'))return 'stealth';
+    if(view.entity.kind==='player'&&view.entity.stealth&&this.animationFor(view.entity.tokenId,'stealth')){
+      const rest=directed('stealth-idle');
+      return !moving&&this.animationFor(view.entity.tokenId,rest)?rest:directed('stealth');
+    }
     if (view.animationState && now < view.animationUntil) {
       // A dash/walk command cannot pin a moving actor to the frontal clip.
       if (moving && /^(moving|direction|running)$/.test(view.animationState)) {
@@ -1878,11 +2028,12 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
         const directed = `${view.animationState}-${facingSuffix[this.cameraRelativeFacing(view.entity.facing)]}`;
         if (this.animationFor(view.entity.tokenId, directed)) return directed;
       }
+      if (view.animationFacing) return directed(view.animationState,view.animationFacing);
       return view.animationState;
     }
     if (view.entity.waterMovement === 'swim' || view.entity.waterMovement === 'dive' || view.entity.step?.movementKind === 'dive') {
-      if (this.animationFor(view.entity.tokenId, 'swimming')) return 'swimming';
-      if (this.animationFor(view.entity.tokenId, 'swim')) return 'swim';
+      if (this.animationFor(view.entity.tokenId, 'swimming')) return directed('swimming');
+      if (this.animationFor(view.entity.tokenId, 'swim')) return directed('swim');
     }
     if (moving) {
       const suffix = facingSuffix[this.cameraRelativeFacing(view.entity.facing)], facing = `direction-${suffix}`;
@@ -1935,9 +2086,13 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     const base = this.campaign.tokens[view.entity.tokenId] ?? Object.values(this.campaign.tokens)[0]!;
     const preview = this.visualPreview?.frameFor(view.entity.id);
     const frozen = !conditionSpriteEnabled(view.entity.tokenId, this.options?.conditionPoseTokens) && view.entity.conditions?.some(condition => condition === 'paralizada' || condition === 'inconsciente');
-    const sequenceIndex = animation && !frozen ? Math.floor(Math.max(0, now - (state === view.animationState || state.startsWith('camp-') && view.animationState?.startsWith('camp-') ? view.animationStartedAt : view.stateStartedAt)) / (1000 / animation.fps)) : 0;
-    const oneShot = this.campaign.campaignId === 'd8-night-private' && ['stand', 'fall', 'hit', 'wake', 'transform', 'jump'].includes(state);
-    const frame = animation?.frames.length ? animation.frames[preview ? Math.min(animation.frames.length - 1, preview.index) : oneShot ? Math.min(animation.frames.length - 1, sequenceIndex) : sequenceIndex % animation.frames.length]! : base.url;
+    const role=tokenAnimationRole(state);
+    const commanded=sameAnimationAction(state,view.animationState)||state.startsWith('camp-')&&view.animationState?.startsWith('camp-');
+    const elapsed=now-(commanded?view.animationStartedAt:view.stateStartedAt);
+    const legacyOnce=this.campaign.campaignId==='d8-night-private'&&['stand','fall','hit','wake','transform','jump'].includes(role);
+    const flight=role==='jump'&&view.entity.step?.movementKind==='jump'?this.stepProgress(view.entity):undefined;
+    const index=animation&&!frozen?tokenAnimationFrame(animation.frames.length,animation.fps,elapsed,animation.loop??!legacyOnce,flight):0;
+    const frame = animation?.frames.length ? animation.frames[preview ? Math.min(animation.frames.length - 1, preview.index) : index]! : base.url;
     const key = typeof frame === 'string' ? frame : `${frame.url}#${frame.x},${frame.y},${frame.width},${frame.height}`;
     if (view.frameUrl !== key) {
       if (typeof frame === 'string') view.sprite.texture = Texture.from(frame);
@@ -2079,7 +2234,8 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
         const canvas = document.createElement('canvas'); canvas.width = rect.width; canvas.height = rect.height;
         const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
         ctx.drawImage(texture.source.resource as CanvasImageSource, rect.x, rect.y, rect.width, rect.height, 0, 0, rect.width, rect.height);
-        bounds = alphaGrounding(ctx.getImageData(0, 0, rect.width, rect.height).data, rect.width, rect.height);
+        const visible=alphaVisibleRect(ctx.getImageData(0,0,rect.width,rect.height).data,rect.width,rect.height);
+        bounds={anchorY:visible.bottom,heightFraction:visible.bottom-visible.top,leftFraction:visible.left,rightFraction:visible.right};
         this.actorGrounding.set(key, bounds);
       } catch { return { anchorY: 1, heightFraction: 1 }; }
     }
@@ -2141,6 +2297,7 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
         y:camp.id==='rest'?Math.max(0,camp.contact.y-origin.y-actorHeight*.29)*camp.timing.reach:0};
     }
     const facing=facingDirections.indexOf(view.entity.facing),angle=facing*Math.PI/4;
+    const rowing=this.sceneId==='dragon-rest'?retreatBoatDeparture(view.entity.step,this.stepProgress(view.entity)):null;
     const right=camera?.getDirection(Vector3.Right())??Vector3.Right();right.y=0;right.normalize();
     return { url, sourceWidth: texture.source.width, sourceHeight: texture.source.height,
       ...(url.endsWith('.svg')||url.includes('#isolated-') ? { sourceCanvas: texture.source.resource as CanvasImageSource } : {}),
@@ -2151,7 +2308,7 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
       worldWidth: sprite.width * meters * view.body.scale.x, worldHeight: sprite.height * meters * view.body.scale.y, anchorX: sprite.anchor.x,
       anchorY: ground.anchorY,
       offsetX: (view.body.x + sprite.x) * meters, offsetY: -(view.body.y + sprite.y) * meters + seatLift,
-      lean: view.body.rotation + (this.sceneId==='wreck-ship' && view.entity.surfaceId==='hold-air' && view.entity.moving ? .38 : 0),
+      lean: view.body.rotation + (this.sceneId==='wreck-ship' && view.entity.surfaceId==='hold-air' && view.entity.moving ? .38 : 0)+(rowing?.rowing?Math.sin(rowing.stroke)*.065:0),
       ...(defeatGroundStyle(view.entity) && view.displayedState !== 'fall' ? { grounded: true, defeatStyle: defeatGroundStyle(view.entity) } : {}),
       ...(camp ? { interactionPose: { action: camp.id, timing: camp.timing, facingX: Math.sin(angle)*right.x-Math.cos(angle)*right.z, anchorY: ground.anchorY, heightFraction: ground.heightFraction },worldOffset } : {}),
       flipX: sprite.scale.x < 0, alpha: view.root.alpha * view.body.alpha * sprite.alpha, tint: sprite.tint };
@@ -2275,6 +2432,19 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
 
   private drawSelection() {
     this.selection.clear();
+    const focusId=this.localId??this.selectedEntityId??this.snapshot?.camera?.focusId;
+    const focus=this.snapshot?.entities.find(entity=>entity.id===focusId);
+    // Occupied squares and the actual feet share the installed 3D camera,
+    // including orbit, tilt, zoom, surface height and seated NPC offsets.
+    if(this.scene&&this.snapshot&&(this.snapshot.combat.active||this.attackRangePreview))for(const entity of this.snapshot.entities){
+      if(!this.entityVisibleFromFocus(entity,focus)||this.tokenViews.get(entity.id)?.root.visible===false)continue;
+      const color=entity.id===this.localId?'#80dfff':entity.color;
+      if(this.d8Scene||this.terrainView||(this.sceneId&&hasWreckProjection(this.sceneId)))this.traceProjectedCell(this.selection,entity.cell.col,entity.cell.row,entity.surfaceId);
+      else {const g=this.scene!.grid;this.selection.rect(g.originX+entity.cell.col*g.tileSize,g.originY+entity.cell.row*g.tileSize,g.tileSize,g.tileSize);}
+      this.selection.fill({color,alpha:.08}).stroke({color,width:2,alpha:.9});
+      const p=this.interpolatedScreenPoint(entity);
+      this.selection.circle(p.x,p.y,3).fill({color,alpha:.95});
+    }
     if (this.selectedObject) this.drawFootprint(this.selection, this.selectedObject, '#ffd36a', 0.15);
   }
 
@@ -2315,7 +2485,7 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
   private cameraPreferenceKey(sceneId: string) {
     const namespace = this.options.cameraPreferenceNamespace;
     const revision = this.campaign.scenes.find(scene => scene.id === sceneId)?.renderer === 'babylon-d8' ? 'doors-v3'
-      : sceneId === 'dragon-rest' ? 'front-v3' : 'v2';
+      : sceneId === 'dragon-rest' ? 'front-v3' : sceneId === 'wreck-ship' ? 'boat-front-v1' : 'v2';
     return namespace ? `dungeons.camera-orientation.${namespace}.${revision}:${this.campaign.campaignId}:${sceneId}` : `dungeons.camera-orientation.${revision}:${this.campaign.campaignId}:${sceneId}`;
   }
   private cameraTiltPreferenceKey(sceneId: string) {
@@ -2339,22 +2509,33 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     try { localStorage.setItem(this.cameraZoomPreferenceKey(sceneId), String(zoom)); } catch { /* La cámara sigue funcionando aunque no pueda persistirse. */ }
   }
   private readCameraTilt(sceneId: string) {
+    const cached=this.cameraTiltPreferences.get(sceneId);if(cached!==undefined)return cached;
     if (!this.options.persistCameraPreferences) return null;
     try {
       const stored = Number(localStorage.getItem(this.cameraTiltPreferenceKey(sceneId)));
       const profile=cameraProfileForScene(sceneId);
-      return Number.isFinite(stored) && stored >= profile.min && stored <= profile.max ? snapCameraTilt(stored,profile) : null;
+      if(!Number.isFinite(stored)||stored<profile.min||stored>profile.max)return null;
+      this.cameraTiltPreferences.set(sceneId,stored);this.localCameraTiltOverrides.add(sceneId);
+      const zone=localStorage.getItem(this.cameraTiltPreferenceKey(sceneId)+'.zone');
+      if(zone==='interior'||zone==='exterior')this.cameraTiltZones.set(sceneId,zone==='interior');
+      return stored;
     } catch { return null; }
   }
   private readCameraOrientation(sceneId: string) {
     const sharedOrientation = this.sharedCameraOrientations.get(sceneId);
-    if (this.options.followSharedCameraOrientation && sharedOrientation !== undefined) return sharedOrientation;
     if (this.options.persistCameraPreferences) {
       try {
-        const stored = Number(localStorage.getItem(this.cameraPreferenceKey(sceneId)));
-        if (Number.isFinite(stored)) return clampCameraOrbitStep(stored);
+        const raw = localStorage.getItem(this.cameraPreferenceKey(sceneId));
+        if (raw !== null) {
+          const stored = Number(raw);
+          if (Number.isFinite(stored)) {
+            this.localCameraOrientationOverrides.add(sceneId);
+            return clampCameraOrbitStep(stored);
+          }
+        }
       } catch { /* La cámara conserva la orientación actual si el almacenamiento está bloqueado. */ }
     }
+    if (this.options.followSharedCameraOrientation && sharedOrientation !== undefined) return sharedOrientation;
     return sharedOrientation ?? 0;
   }
   private restoreCameraOrientation(sceneId: string) { this.cameraOrientationStep = this.readCameraOrientation(sceneId); }
@@ -2368,7 +2549,10 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
   private stepProgress(entity: PublicEntity) { return !entity.step ? 1 : Math.max(0, Math.min(1, (this.presentationClock.now(Date.now()) - (this.d8Scene ? this.movementTimeline.delayMs : 0) - entity.step.startedAt) / entity.step.durationMs)); }
   private interpolatedCell(entity: PublicEntity) { if (!entity.step) return entity.cell; const progress = this.stepProgress(entity); return { col: entity.step.from.col + (entity.step.to.col - entity.step.from.col) * progress, row: entity.step.from.row + (entity.step.to.row - entity.step.from.row) * progress }; }
   private interpolatedScreenPoint(entity: PublicEntity) {
-    if(this.scene?.terrain?.edgePaths?.length&&this.terrainScene&&this.terrainView){const p=this.interpolatedWorldPosition(entity),q=Vector3.Project(p,Matrix.Identity(),this.terrainScene.getTransformMatrix(),this.terrainView.camera.viewport.toGlobal(this.app.screen.width,this.app.screen.height));return {x:q.x,y:q.y};}
+    // Do not independently reconstruct a second position from the logical
+    // cell: seats, steps, jumps and the mirror pedestal adjust native feet.
+    const native=this.d8Scene??this.terrainScene,camera=native?.activeCamera;
+    if(native&&camera){const p=this.interpolatedWorldPosition(entity),q=Vector3.Project(p,Matrix.Identity(),native.getTransformMatrix(),camera.viewport.toGlobal(this.app.screen.width,this.app.screen.height));return {x:q.x,y:q.y};}
     if(this.d8Scene)entity=this.movementTimeline.sample(entity,this.presentationClock.now(Date.now()));
     const step = entity.step, progress = this.stepProgress(entity);
     if (step && step.fromSurfaceId && step.toSurfaceId && step.fromSurfaceId !== step.toSurfaceId) {
@@ -2378,16 +2562,18 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     return this.cellToPixel(this.interpolatedCell(entity), entity.surfaceId);
   }
   private interpolatedWorldPosition(entity: PublicEntity) {
+    if(entity.id==='__dm_camera__'){const p=this.navigationLocation()?.point;if(p)return new Vector3(p.x,p.y,p.z);}
     if(this.d8Scene)entity=this.movementTimeline.sample(entity,this.presentationClock.now(Date.now()));
     const terrain = this.scene?.terrain;
     if (this.d8Scene && this.d8MapConfig && this.scene?.renderer === 'babylon-d8') {
       const size = this.d8MapConfig.MAP.size as [number, number], grid = this.scene.grid;
-      const point = (cell: Cell) => {
-        const position = d8CellWorldPoint(cell, size, grid, terrain);
+      const point = (cell: Cell, surfaceId=entity.surfaceId) => {
+        const position = d8CellWorldPoint(cell, size, grid, terrain,surfaceId);
         return new Vector3(position.x, position.y, position.z);
       };
       const step = entity.step, progress = this.stepProgress(entity);
-      if (step){const position=Vector3.Lerp(point(step.from),point(step.to),progress);if(step.movementKind==='jump')position.y+=Math.sin(Math.PI*progress)*1.2;return position;}
+      if(step){const passage=passageWalkPosition(step,progress);if(passage)return new Vector3(passage.x,passage.y,passage.z);}
+      if (step){const position=Vector3.Lerp(point(step.from,step.fromSurfaceId),point(step.to,step.toSurfaceId),progress);if(step.movementKind==='jump')position.y+=Math.sin(Math.PI*progress)*1.2;return position;}
       const position=point(entity.cell),playerSeat=this.scene.seats?.find(seat=>seat.id===entity.seatId);
       if(entity.id==='reflection'&&this.scene.id==='mirror'){
         const platform=this.d8MapConfig.MAP.objects.find((o:any)=>o.asset==='magic_pedestal');
@@ -2406,6 +2592,11 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
       return new Vector3(physical[0],physical[1]-(immersed?.92:0),physical[2]);
     };
     const step = entity.step, progress = this.stepProgress(entity);
+    if(step){const passage=passageWalkPosition(step,progress);if(passage){
+      const boat=this.sceneId==='dragon-rest'?retreatBoatDeparture(step,progress):null;
+      if(boat?.seated)passage.y=(this.terrainScene?.metadata?.retreatBuoyancy?.height??0)+.03+Math.sin(boat.stroke)*.025;
+      return new Vector3(passage.x,passage.y,passage.z);
+    }}
     if (step) {
       const p=terrain.edgePaths?.length?Vector3.FromArray(surfaceStepPoint(terrain,{surfaceId:step.fromSurfaceId??entity.surfaceId,cell:step.from},{surfaceId:step.toSurfaceId??entity.surfaceId,cell:step.to},progress)):Vector3.Lerp(point(step.from, step.fromSurfaceId ?? entity.surfaceId),point(step.to, step.toSurfaceId ?? entity.surfaceId), progress);
       if(this.retreatVisuals)p.y=this.retreatVisuals.supportHeight(p);return p;
@@ -2421,6 +2612,7 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
   }
 
   private zoomFocusEntity() {
+    const navigation=this.navigationFocus();if(navigation)return navigation;
     const focusId = this.localId ?? this.selectedEntityId ?? (this.cameraFocusScreenPoint ? null : this.snapshot?.camera.focusId);
     return focusId ? this.snapshot?.entities.find(entity => entity.id === focusId) : undefined;
   }
@@ -2558,12 +2750,12 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     }
     const sharedFrame=this.projectorCameraFrame();
     const cameraFocusId = sharedFrame ? sharedFrame.focusId : this.localId ?? this.selectedEntityId ?? this.snapshot.camera.focusId;
-    const cameraFocus = cameraFocusId ? this.snapshot.entities.find(entity => entity.id === cameraFocusId) : undefined;
+    const cameraFocus = this.navigationFocus() ?? (cameraFocusId ? this.snapshot.entities.find(entity => entity.id === cameraFocusId) : undefined);
     if (this.terrainView || this.d8Scene) this.updateCamera(deltaMs);
-    const visualFocus=sharedFrame ? cameraFocus : this.snapshot.entities.find(e=>e.id===(this.localId??this.selectedEntityId))??cameraFocus??this.snapshot.entities.find(e=>e.kind==='player');
-    const focusPoint=sharedFrame&&!visualFocus?new Vector3(sharedFrame.target.x,sharedFrame.target.y,sharedFrame.target.z):this.d8Scene?this.d8CutawayFocus(visualFocus):visualFocus&&(this.localId||this.selectedEntityId||sharedFrame)?this.interpolatedWorldPosition(visualFocus):this.cameraFocusWorldPoint?new Vector3(this.cameraFocusWorldPoint.x,this.cameraFocusWorldPoint.y,this.cameraFocusWorldPoint.z):visualFocus?this.interpolatedWorldPosition(visualFocus):Vector3.Zero();
+    const visualFocus=this.sceneId==='wreck-ship'&&this.sceneOverview?undefined:this.navigationFocus()??(sharedFrame ? cameraFocus : this.snapshot.entities.find(e=>e.id===(this.localId??this.selectedEntityId))??cameraFocus??this.snapshot.entities.find(e=>e.kind==='player'));
+    const focusPoint=this.sceneId==='wreck-ship'&&this.sceneOverview&&this.terrainView?this.terrainView.camera.target.clone():sharedFrame&&!visualFocus?new Vector3(sharedFrame.target.x,sharedFrame.target.y,sharedFrame.target.z):this.d8Scene?this.d8CutawayFocus(visualFocus):visualFocus&&(this.localId||this.selectedEntityId||sharedFrame||this.navigationFocus())?this.interpolatedWorldPosition(visualFocus):this.cameraFocusWorldPoint?new Vector3(this.cameraFocusWorldPoint.x,this.cameraFocusWorldPoint.y,this.cameraFocusWorldPoint.z):visualFocus?this.interpolatedWorldPosition(visualFocus):Vector3.Zero();
     const context=(this.d8Scene as any)?.metadata?.d8Vtt;
-    const indoors=context?.setViewContext?.({focus:focusPoint,cameraPosition:this.d8Scene?.activeCamera?.position,environment:this.snapshot.environment,climate,naturalLight:light,story:this.snapshot.story,props:this.snapshot.props,collectedPickups:this.snapshot.collectedPickups,entities:this.snapshot.entities,actorPositions:this.scene.id==='market'?Object.fromEntries(this.snapshot.entities.map(entity=>[entity.id,this.interpolatedWorldPosition(entity)])):undefined,seats:this.scene.stageActors,combat:this.snapshot.combat.active})??false;
+    const indoors=context?.setViewContext?.({focus:focusPoint,cameraPosition:this.d8Scene?.activeCamera?.position,environment:this.snapshot.environment,climate,naturalLight:light,story:this.snapshot.story,props:this.snapshot.props,collectedPickups:this.snapshot.collectedPickups,entities:this.snapshot.entities,actorPositions:['market','mirror'].includes(this.scene.id)?Object.fromEntries(this.snapshot.entities.map(entity=>[entity.id,this.interpolatedWorldPosition(entity)])):undefined,seats:this.scene.stageActors,combat:this.snapshot.combat.active&&!this.navigationFocus()})??false;
     const weatherCamera=(this.d8Scene??this.terrainScene)?.activeCamera as (Camera&{target?:Vector3;orthoTop?:number;orthoBottom?:number})|undefined;
     const weatherCenter=weatherCamera?.target?new Vector3(weatherCamera.target.x,0,weatherCamera.target.z):focusPoint;
     const weatherSpan=weatherCamera?.mode===Camera.ORTHOGRAPHIC_CAMERA?Math.max(24,Math.abs((weatherCamera.orthoTop??12)-(weatherCamera.orthoBottom??-12))*Math.max(1,this.host.clientWidth/this.host.clientHeight)*1.4):24;
@@ -2579,10 +2771,10 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
       const now = performance.now(), position = this.interpolatedScreenPoint(view.entity), conditions = new Set(view.entity.conditions ?? []), selected = view.entity.id === this.selectedEntityId, contextual = view.entity.id === this.contextTargetId;
       this.updateTokenFrame(view, now);
       const active = this.animationFor(view.entity.tokenId, this.activeTokenState(view, now));
-      const commanded = view.animationUntil > now && (view.animationState === view.displayedState || Boolean(view.animationState?.startsWith('camp-')));
+      const commanded = view.animationUntil > now && (sameAnimationAction(view.displayedState,view.animationState) || Boolean(view.animationState?.startsWith('camp-')));
       const clock = this.visualPreview?.status?.elapsed ?? Math.max(0, now - (commanded ? view.animationStartedAt : view.stateStartedAt));
       const duration = commanded ? view.animationUntil - view.animationStartedAt : Math.max(500, (active?.frames.length ?? 1) * 1000 / (active?.fps ?? 6));
-      const progress = Math.min(1, clock / duration), pulse = Math.sin(progress * Math.PI);
+      const progress = active?.motion==='jump'&&view.entity.step?.movementKind==='jump'?this.stepProgress(view.entity):Math.min(1, clock / duration), pulse = Math.sin(progress * Math.PI);
       view.body.position.set(0, 0); view.body.rotation = 0; view.body.scale.set(1);
       if (active?.motion === 'jump') view.body.y = -view.sprite.height * .22 * pulse;
       else if (active?.motion === 'dodge') view.body.x = view.sprite.width * .09 * Math.sin(progress * Math.PI * 2);
@@ -2624,7 +2816,7 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
       view.sprite.scale.x = Math.abs(view.sprite.scale.x) * (flipX ? -1 : 1);
       const retiringUntil = this.retiringTokens.get(view.entity.id);
       const alpha = retiringUntil !== undefined ? Math.max(0, Math.min(1, (retiringUntil - now) / 250))
-        : downed ? 1 : conditions.has('invisible') ? .2 : conditions.has('oculta') ? .45 : 1;
+        : downed ? 1 : view.entity.dmHidden ? .35 : conditions.has('invisible') ? .2 : conditions.has('oculta') ? .45 : 1;
       view.root.alpha += (alpha - view.root.alpha) * Math.min(1, deltaMs / 90);
       view.ring.tint = selected || contextual ? '#ffd36a' : view.entity.color;
       view.ring.alpha = selected ? 1 : contextual ? .76 + Math.sin(time * 2.1) * .08 : view.entity.id === this.snapshot?.combat.currentId ? 1 : view.entity.id === this.localId ? .9 : .65;
@@ -2634,7 +2826,14 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
         view.body.mask = null; view.occlusionMask.visible = false; view.ring.visible = false;
         const camera = (this.d8Scene ?? this.terrainScene)!.activeCamera!;
         const bodyFrame = this.nativeTokenFrame(view, view.sprite);
-        this.sceneBillboards.sync(view.entity.id, this.interpolatedWorldPosition(view.entity), camera,
+        let ground=this.interpolatedWorldPosition(view.entity);
+        const travel=this.mirrorTravel.get(view.entity.id);
+        if(travel&&this.sceneId==='mirror'){
+          const progress=Math.min(1,Math.max(0,(now-travel.started)/travel.duration));
+          if(progress>=1)this.mirrorTravel.delete(view.entity.id);
+          else {const t=Math.max(0,(progress-.35)/.65),ease=t*t*(3-2*t);ground=Vector3.Lerp(new Vector3(-9.2,ground.y,-2.5),ground,ease);}
+        }
+        this.sceneBillboards.sync(view.entity.id, ground, camera,
           bodyFrame, this.nativeTokenFrame(view, view.ghost), view.root.visible, selected || contextual || view.entity.id === this.localId,
           view.states.nativeFrames(bodyFrame, this.textureGrounding(view.sprite.texture)));
         const cue = this.combatOcclusionCues.get(view.entity.id);
@@ -2657,7 +2856,7 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     if (this.campVisuals && this.sceneId) {
       const campRest = this.snapshot.campRest?.sceneId === this.sceneId ? this.snapshot.campRest : null;
       const focusId = cameraFocusId;
-      const focusCell = focusId ? this.snapshot.entities.find(entity => entity.id === focusId && entity.sceneId === this.sceneId)?.cell : null;
+      const focusCell = this.navigationFocus()?.cell ?? (focusId ? this.snapshot.entities.find(entity => entity.id === focusId && entity.sceneId === this.sceneId)?.cell : null);
       const timeOfDay = this.snapshot.environment.timeOfDay ?? 'auto';
       const phase = timeOfDay === 'auto' ? light.phase === 'night' ? 'night' : light.phase === 'dawn' ? 'dawn' : light.phase === 'sunset' ? 'dusk' : 'arrival'
         : timeOfDay === 'night' ? 'night' : timeOfDay === 'day' ? 'arrival' : timeOfDay === 'sunset' ? 'dusk' : 'dawn';
@@ -2666,9 +2865,14 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
         entity => this.interpolatedWorldPosition(entity), entity => this.campaign.tokens[entity.tokenId]?.worldHeightMeters ?? 1.65, this.snapshot.combat.active);
     }
     if(this.retreatVisuals){
+      this.retreatVisuals.setMechanicalState(Boolean(this.snapshot.retreat?.winchLowered),serverNow);
+      if(this.terrainScene){const voyages=this.snapshot.entities.map(e=>retreatBoatDeparture(e.step,this.stepProgress(e))).filter(Boolean);this.terrainScene.metadata={...this.terrainScene.metadata,retreatBoatDeparture:voyages.sort((a,b)=>b!.boat.z-a!.boat.z)[0]??null};}
       const focusId=cameraFocusId;
-      const focus=this.snapshot.entities.find(entity=>entity.id===focusId&&entity.sceneId===this.sceneId);
-      this.retreatVisuals.setFocusPoint(focus?this.interpolatedWorldPosition(focus):null);
+      const focus=this.navigationFocus()??this.snapshot.entities.find(entity=>entity.id===focusId&&entity.sceneId===this.sceneId);
+      const participants=this.snapshot.combat.active?new Set(this.snapshot.combat.participants.map(p=>p.id)):null;
+      const combatFocus=participants?this.snapshot.entities.filter(entity=>entity.id!==focus?.id&&entity.sceneId===this.sceneId&&participants.has(entity.id))
+        .map(entity=>({id:entity.id,point:this.interpolatedWorldPosition(entity),height:this.campaign.tokens[entity.tokenId]?.worldHeightMeters??1.65})):[];
+      this.retreatVisuals.setFocusPoint(focus?this.interpolatedWorldPosition(focus):null,this.campaign.tokens[focus?.tokenId??'']?.worldHeightMeters??1.65,focus?.id,combatFocus,focus?.surfaceId);
       this.retreatVisuals.update(time,light.phase==='night'?'night':'arrival',[],focus?.cell,this.snapshot.environment,serverNow,climate,light);
     }
     if (this.rowboatVisual) {
@@ -2822,12 +3026,48 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     this.shelterCache = { covered, minX: point.x-left, maxX: point.x+right, minZ: point.z-back, maxZ: point.z+front, size };
     return size;
   }
+  private stageCameraHalfHeight(outline:StageOutline,frame:StageFrame,front:number) {
+    // Keep one scene zoom-out ceiling across orbit/indoor tilt changes. The
+    // lowest permitted tilt has the largest footprint on the ground plane.
+    const key=JSON.stringify([this.sceneId,frame.aspect,frame.viewport,frame.safe,front]);
+    let limit=this.stageCameraLimits.get(key);
+    if(limit===undefined){
+      const beta=cameraBetaForTiltDegrees(cameraProfileForScene(this.sceneId).min);
+      limit=Math.min(...[-30,-20,-10,0,10,20,30].map(degrees=>stageHalfHeightLimit(outline,{...frame,beta,alpha:front+degrees*Math.PI/180})))*.9;
+      this.stageCameraLimits.set(key,limit);
+    }
+    return limit;
+  }
+  private stageCameraFocus(entity:PublicEntity|undefined) {
+    if(!entity)return undefined;
+    const position=this.interpolatedWorldPosition(entity),view=this.tokenViews.get(entity.id);
+    if(this.sceneId==='mirror'){
+      // A stable body envelope prevents each changing atlas silhouette from
+      // nudging the boundary-constrained camera during a walk or turn.
+      const height=this.campaign.tokens[entity.tokenId]?.worldHeightMeters??1.65;
+      // Include the grounding/sole offset below the logical foot position;
+      // otherwise low edge-follow views can clip the feet by a pixel.
+      const soleMargin=.18;
+      return {x:position.x,y:position.y-soleMargin,z:position.z,height:height+.12+soleMargin,width:Math.max(.85,height*.75)};
+    }
+    const body=view?this.nativeTokenFrame(view,view.sprite):null;
+    const visible=view?this.textureGrounding(view.sprite.texture):null;
+    const height=body?body.worldHeight*(visible?.heightFraction??1):this.campaign.tokens[entity.tokenId]?.worldHeightMeters??1.65;
+    const width=body?body.worldWidth*((visible?.rightFraction??1)-(visible?.leftFraction??0)):height*.65;
+    let centre=((visible?.leftFraction??0)+(visible?.rightFraction??1))/2;
+    if(body?.flipX)centre=1-centre;
+    const offset=body?(centre-body.anchorX)*body.worldWidth+body.offsetX:0;
+    const right=(this.d8Scene??this.terrainScene)?.activeCamera?.getDirection(Vector3.Right());
+    return {x:position.x+(body?.worldOffset?.x??0)+(right?.x??1)*offset,y:position.y+(body?.worldOffset?.y??0)+(body?.offsetY??0),z:position.z+(body?.worldOffset?.z??0)+(right?.z??0)*offset,height,width};
+  }
   private updateCamera(deltaMs = 0) {
-    if (!this.snapshot || !this.scene || !this.host.clientWidth || !this.host.clientHeight) return; const grid = this.scene.grid, viewWidth = this.host.clientWidth, viewHeight = this.host.clientHeight;
-    const tactical = this.snapshot.combat.active;
+    if(this.stageCutawayMatte)this.stageCutawayMatte.hidden=true;
+    if (!this.snapshot || !this.scene || this.snapshot.sceneId!==this.sceneId || !this.host.clientWidth || !this.host.clientHeight) return; const grid = this.scene.grid, viewWidth = this.host.clientWidth, viewHeight = this.host.clientHeight;
+    const navigation=this.navigationFocus();
+    const tactical = this.snapshot.combat.active&&!navigation;
     const sharedFrame = this.projectorCameraFrame();
     if (tactical && !this.combatViewSaved) { this.combatViewSaved = { zoom: this.cameraZoom, step: this.cameraOrientationStep }; this.cameraZoom = 1; this.setCameraOrientation(0, false); }
-    else if (!tactical && this.combatViewSaved) { const saved = this.combatViewSaved; this.combatViewSaved = null; this.cameraZoom = saved.zoom; this.setCameraOrientation(saved.step, false); this.saveCameraZoom(this.sceneId, saved.zoom); if (this.sceneId) this.saveCameraOrientation(this.sceneId, saved.step); }
+    else if (!tactical && this.combatViewSaved) { const saved = this.combatViewSaved; this.combatViewSaved = null; this.cameraZoom = saved.zoom; this.setCameraOrientation(saved.step, false); this.saveCameraZoom(this.sceneId, saved.zoom); }
     const safe = tactical && this.localId ? combatCameraFrame(grid, { width: viewWidth, height: viewHeight },this.options.combatInitiativePosition).safe : explorationCameraSafeArea(viewWidth, viewHeight, Boolean(this.localId));
     const tacticalViewport = new Viewport(0, 0, 1, 1);
     const applySafeProjection = (camera: any, orthographic: boolean) => {
@@ -2848,21 +3088,27 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
       camera.upperBetaLimit = cameraBetaForTiltDegrees(CAMERA_TILT_MIN_DEGREES);
       camera.lowerRadiusLimit = null; camera.upperRadiusLimit = null;
       const configuredAlpha = Number(this.d8MapConfig.camera?.alpha ?? -Math.PI / 2);
-      const alphaTarget = limitedCameraAlpha(d8CameraBaseAlpha(configuredAlpha, this.sceneId ?? undefined), this.cameraOrientationStep);
+      const departure=this.sceneId==='mirror'?this.snapshot.entities.find(e=>e.step?.movementKind==='passage'&&e.step.passage&&(this.options.cameraRole!=='player'||!this.localId||e.id===this.localId)):undefined;
+      // A temporary shot from the mouth of the gallery lets the traveller
+      // recede. Saved orbit/tilt/zoom preferences are never overwritten.
+      const alphaTarget = departure?d8CameraBaseAlpha(configuredAlpha,this.sceneId!):limitedCameraAlpha(d8CameraBaseAlpha(configuredAlpha, this.sceneId ?? undefined), this.cameraOrientationStep);
       let betaTarget = cameraBetaForTiltDegrees(this.cameraTiltDegrees);
       const aspect = safe.width / Math.max(1, safe.height);
-      const fullBounds = { center: { x: 0, y: 4, z: 0 }, size: { width: mapSize[0], depth: mapSize[1], height: 8 } };
+      const caveGrid=this.sceneId==='mirror'?this.scene.grid:null;
+      const fullBounds = caveGrid ? {center:{x:(caveGrid.worldOrigin?.x??-mapSize[0]/2)+caveGrid.cols*.75,y:4,z:(caveGrid.worldOrigin?.z??-mapSize[1]/2)+caveGrid.rows*.75},size:{width:caveGrid.cols*1.5,depth:caveGrid.rows*1.5,height:8}}
+        : { center: { x: 0, y: 4, z: 0 }, size: { width: mapSize[0], depth: mapSize[1], height: 8 } };
       const encounter = tactical ? this.encounterBounds(fullBounds, 4.5) : this.options.cameraRole === 'projector' && !this.sceneOverview && this.snapshot.camera.mode !== 'fixed' ? this.cameraGroupBounds(fullBounds) : null;
-      const initialTarget = encounter ? new Vector3(encounter.center.x, encounter.center.y, encounter.center.z) : new Vector3(0, 4, 0);
+      const initialCenter=encounter?.center??fullBounds.center;
+      const initialTarget = new Vector3(initialCenter.x,initialCenter.y,initialCenter.z);
       const focusId = sharedFrame ? sharedFrame.focusId : this.localId ?? this.selectedEntityId ?? this.snapshot.camera.focusId;
-      const follow = !tactical && !this.sceneOverview && this.options.cameraRole !== 'projector' && this.snapshot.camera.mode !== 'fixed' && focusId
-        ? this.snapshot.entities.find(entity => entity.id === focusId) : undefined;
+      const follow = navigation ?? (!tactical && !this.sceneOverview && this.options.cameraRole !== 'projector' && this.snapshot.camera.mode !== 'fixed' && focusId
+        ? this.snapshot.entities.find(entity => entity.id === focusId) : undefined);
       const previewFocus = this.visualPreview?.options.focusCamera
         ? this.snapshot.entities.find(entity => entity.id === this.visualPreview!.options.entityId) : undefined;
       const interiorFocus = previewFocus ?? follow ?? this.snapshot.entities.find(entity=>entity.id===focusId) ?? (sharedFrame ? undefined : this.snapshot.entities.find(entity=>entity.kind==='player'));
       const interiorPoint = interiorFocus ? this.interpolatedWorldPosition(interiorFocus) : null;
-      const indoor = interiorPoint && (this.d8Scene as any).metadata?.d8Vtt?.weatherCovered?.(interiorPoint.x, interiorPoint.z);
-      this.applyAutomaticCameraTilt(this.d8InteriorTilt.update(Boolean(indoor), this.cameraTiltDegrees, tactical));
+      const indoor = this.sceneId==='mirror'?true:interiorPoint&&(this.options.cameraRole!=='player'||!this.localId||interiorFocus?.id===this.localId)?Boolean((this.d8Scene as any).metadata?.d8Vtt?.weatherCovered?.(interiorPoint.x, interiorPoint.z)):null;
+      if(indoor!==null){const tilt=this.d8InteriorTilt.update(indoor,this.cameraTiltDegrees,tactical,cameraProfileForScene(this.sceneId),this.preserveCameraTiltInZone(indoor));this.applyAutomaticCameraTilt(tilt,this.d8InteriorTilt.zoneChanged);this.rememberCameraTiltZone(indoor);}
       if (!indoor) this.shelterCache = null;
       betaTarget = cameraBetaForTiltDegrees(this.cameraTiltDegrees);
       // An explicit DM selection focuses immediately at any zoom. A player in
@@ -2879,27 +3125,43 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
         const asset = this.campaign.tokens[(previewFocus ?? follow ?? zoomEntity)!.tokenId];
         target.y += d8FocusHeight(asset?.worldHeightMeters ?? 1.65, asset?.anchorY ?? .9, betaTarget);
       }
-      if (follow && !indoor && this.snapshot.camera.mode === 'semiFixed' && follow.id !== this.selectedEntityId && this.cameraZoom <= this.cameraBaseZoom + .01) {
+      if (!navigation && follow && !indoor && this.snapshot.camera.mode === 'semiFixed' && follow.id !== this.selectedEntityId && this.cameraZoom <= this.cameraBaseZoom + .01) {
         target.x = Math.max(-mapSize[0] * .2, Math.min(mapSize[0] * .2, target.x));
         target.z = Math.max(-mapSize[1] * .2, Math.min(mapSize[1] * .2, target.z));
       }
       const previewTarget = previewFocus && this.visualPreview?.options.targetId ? this.snapshot.entities.find(entity => entity.id === this.visualPreview!.options.targetId) : undefined;
       const a = previewFocus ? this.interpolatedWorldPosition(previewFocus) : null, b = previewTarget ? this.interpolatedWorldPosition(previewTarget) : a;
       if (a && b && previewTarget) { target.x = (a.x + b.x) / 2; target.z = (a.z + b.z) / 2; }
-      const size = a && b ? { width: Math.max(8, Math.abs(a.x - b.x) + 5), depth: Math.max(8, Math.abs(a.z - b.z) + 5), height: 4 } : encounter?.size ?? { width: mapSize[0], depth: mapSize[1], height: 8 };
-      const zoomSize = indoor && !tactical && !encounter && !this.sceneOverview ? this.cameraShelterSize(interiorPoint!, (scene as any).metadata.d8Vtt.weatherCovered, size) : size;
-      const halfHeight = this.applyZoomPolicy({ size: zoomSize, beta: betaTarget, aspect, baseHalfHeight: d8CameraHalfHeight(zoomSize, betaTarget, aspect),
-        actorHeight: this.campaign.tokens[(interiorFocus ?? zoomEntity)?.tokenId ?? '']?.worldHeightMeters, tactical: tactical || this.options.cameraRole === 'projector', combatDetail: tactical && this.options.cameraRole !== 'projector' && !this.combatOverview, player: Boolean(this.localId), overview: this.sceneOverview, viewportHeight: safe.height });
+      if(departure){const path=departure.step!.passage!.points,first=path[0]!,last=path.at(-1)!;target=new Vector3((first.x+last.x)/2,.7,(first.z+last.z)/2);}
+      const size = a && b ? { width: Math.max(8, Math.abs(a.x - b.x) + 5), depth: Math.max(8, Math.abs(a.z - b.z) + 5), height: 4 } : encounter?.size ?? (caveGrid&&!follow&&!zoomEntity?fullBounds.size:{ width: mapSize[0], depth: mapSize[1], height: 8 });
+      const zoomSize = indoor && interiorPoint && !tactical && !encounter && !this.sceneOverview ? this.cameraShelterSize(interiorPoint, (scene as any).metadata.d8Vtt.weatherCovered, size) : size;
+      const front=d8CameraBaseAlpha(configuredAlpha,this.sceneId??undefined);
+      const stageLimit=this.sceneId==='mirror'&&!this.sceneOverview&&!navigation?this.stageCameraHalfHeight(MIRROR_WALL_OUTLINE,{alpha:alphaTarget,beta:betaTarget,halfHeight:1,aspect,wallHeight:26,viewport:{width:viewWidth,height:viewHeight},safe},front):undefined;
+      let halfHeight = this.applyZoomPolicy({ size: zoomSize, beta: betaTarget, aspect, baseHalfHeight: d8CameraHalfHeight(zoomSize, betaTarget, aspect),
+        actorHeight: this.campaign.tokens[(interiorFocus ?? zoomEntity)?.tokenId ?? '']?.worldHeightMeters, tactical: tactical || this.options.cameraRole === 'projector', combatDetail: tactical && this.options.cameraRole !== 'projector' && !this.combatOverview, player: Boolean(this.localId), overview: this.sceneOverview, viewportHeight: safe.height,maxStageHalfHeight:stageLimit });
       // Babylon Vector3 exposes coordinates through getters. Give the motion
       // clock a plain point: spreading Vector3 would lose x/y/z on first use.
-      const framing = this.resolveCameraFraming(halfHeight,target,this.sceneOverview ? null : (previewFocus??follow??zoomEntity??(indoor?interiorFocus:undefined))?.id??focusId??null);
-      const pose = this.d8CameraMotion.update({ alpha: alphaTarget, beta: betaTarget, ...framing, target: {x:framing.target.x,y:framing.target.y,z:framing.target.z} }, deltaMs);
+      if(departure)halfHeight=Math.max(3.5,halfHeight);
+      let stageFocus=this.stageCameraFocus(previewFocus??follow??zoomEntity??(sharedFrame||tactical?interiorFocus:undefined));
+      if(departure){const first=departure.step!.passage!.points[0]!;stageFocus={...first,height:1.8,width:1.1};}
+      // Use the existing 26m enclosure as backdrop. The cutaway is masked
+      // where the chosen frame cannot fit, without changing its manual zoom.
+      const frame={alpha:alphaTarget,beta:betaTarget,halfHeight,aspect,wallHeight:this.sceneId==='mirror'?26:0,viewport:{width:viewWidth,height:viewHeight},safe,focus:stageFocus};
+      const bound=(point:StagePoint,view:StageFrame)=>this.sceneId==='mirror'&&!this.sceneOverview&&!navigation?constrainCameraToStage(MIRROR_WALL_OUTLINE,point,view):{target:point,halfHeight:view.halfHeight};
+      const bounded=bound(target,frame);
+      const framing=this.resolveCameraFraming(bounded.halfHeight,bounded.target,this.sceneOverview?null:(previewFocus??follow??zoomEntity??(indoor?interiorFocus:undefined))?.id??focusId??null);
+      const requested=bound(framing.target,{...frame,halfHeight:framing.halfHeight});
+      const pose = this.d8CameraMotion.update({alpha:alphaTarget,beta:betaTarget,...requested},deltaMs);
+      this.d8CameraMotion.constrainFrame(bound(pose.target,{...frame,alpha:pose.alpha,beta:pose.beta,halfHeight:pose.halfHeight}));
       camera.alpha = pose.alpha; camera.beta = pose.beta;
       // Orthographic zoom changes the visible area, never camera distance.
       // The authored D8 environment reaches at least 360m from its centre.
       // Keep it inside the camera frustum while orbiting; otherwise Babylon
       // clips the dome and the scene silently falls back to clearColor (blue).
-      camera.radius = Math.hypot(...mapSize) + 24;
+      // Low tilts can move the bounded target far behind the stage. Keep the
+      // physical camera in front of every actor; radius has no zoom effect
+      // with an orthographic projection.
+      camera.radius = Math.hypot(...mapSize) + 24 + (this.sceneId==='mirror'?Math.hypot(pose.target.x-fullBounds.center.x,pose.target.z-fullBounds.center.z):0);
       if(this.sceneId!=='mirror')camera.minZ = d8CameraNearPlane(camera.radius, pose.beta, pose.halfHeight, pose.target.y);
       camera.maxZ = Math.max(camera.radius * 4, Math.max(...mapSize) * 50, 900);
       camera.target.set(pose.target.x, pose.target.y, pose.target.z);
@@ -2907,6 +3169,17 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
       camera.orthoLeft = -pose.halfHeight * aspect; camera.orthoRight = pose.halfHeight * aspect;
       this.cameraOrientationInitialized = true; this.terrainCameraInitialized = true;
       camera.getViewMatrix(true); applySafeProjection(camera, true); scene.updateTransformMatrix();
+      if(this.sceneId==='mirror'&&!this.sceneOverview&&!navigation&&this.stageCutawayMatte){
+        const matte=this.stageCutawayMatte;
+        if(matte.width!==viewWidth)matte.width=viewWidth;if(matte.height!==viewHeight)matte.height=viewHeight;
+        const context=matte.getContext('2d')!;
+        context.globalCompositeOperation='source-over';context.fillStyle='#101923';context.fillRect(0,0,viewWidth,viewHeight);
+        context.globalCompositeOperation='destination-out';
+        for(const polygon of stageScreenPolygons(MIRROR_WALL_OUTLINE,pose.target,{...frame,alpha:pose.alpha,beta:pose.beta,halfHeight:pose.halfHeight},[5])){
+          context.beginPath();polygon.forEach((p,i)=>i?context.lineTo(p.x,p.y):context.moveTo(p.x,p.y));context.closePath();context.fill();
+        }
+        context.globalCompositeOperation='source-over';matte.hidden=false;
+      }
       this.refreshD8ProjectedOverlays();
       this.map.scale.set(1); this.map.position.set(0); this.cameraInitialized = true;
       return;
@@ -2928,50 +3201,52 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
         bounds = { bottom: bottom - 1, top: top + 4 }; this.combatTerrainBounds.set(terrain, bounds);
       }
       const bottomHeight = bounds.bottom, topHeight = bounds.top;
+      const retreatPlayer=this.sceneId==='dragon-rest'&&this.options.cameraRole==='player';
       const followsCameraFocus = !this.snapshot.combat.active && !this.sceneOverview && this.options.cameraRole !== 'projector' && this.snapshot.camera.mode !== 'fixed';
       const cameraFocusId = sharedFrame ? sharedFrame.focusId : this.localId ?? this.selectedEntityId ?? this.snapshot.camera.focusId;
-      const cameraFocus = followsCameraFocus && cameraFocusId ? this.snapshot.entities.find(entity => entity.id === cameraFocusId) : undefined;
+      const cameraFocus = navigation ?? ((followsCameraFocus||retreatPlayer) && cameraFocusId ? this.snapshot.entities.find(entity => entity.id === cameraFocusId) : undefined);
       const baseAlpha = terrainCameraBaseAlpha(this.sceneId);
       const zoneFocus = sharedFrame ? sharedFrame.focusId : this.localId ?? this.selectedEntityId ?? this.snapshot.camera.focusId;
-      const zoneEntity = zoneFocus ? this.snapshot.entities.find(entity => entity.id === zoneFocus) : undefined;
+      const zoneEntity = this.sceneId==='wreck-ship'&&this.sceneOverview ? undefined : navigation ?? (zoneFocus ? this.snapshot.entities.find(entity => entity.id === zoneFocus) : undefined);
       // The aft cabins open on the east bulkhead; the forward cabins open on
       // the west. Recenter the same limited orbit on the active doorway side
       // so the player can see the exit without unlocking a full ship orbit.
       const wreckRoom = this.sceneId === 'wreck-ship' && zoneEntity ? wreckCabinAt(zoneEntity.cell, zoneEntity.surfaceId ?? '') : null;
-      const roomFrontOffset = wreckRoom === 'c6' || wreckRoom === 'c7' ? Math.PI : 0;
-      const alphaTarget = limitedCameraAlpha(baseAlpha + (this.sceneId === 'camp-a1-rooms' ? 3 * Math.PI / 4 : 0) + roomFrontOffset, this.cameraOrientationStep);
+      const roomFrontOffset = wreckRoom ? wreckCameraFront(wreckRoom)-baseAlpha : 0;
+      // Frame the moving load through its open seaward shaft. The selected
+      // orbit remains stored and returns through the normal damper afterwards.
+      const winchFollow=this.sceneId==='dragon-rest'&&cameraFocus?.surfaceId==='a2'&&!tactical&&!this.sceneOverview&&this.retreatVisuals?.liftCameraFollow(Date.now()-this.clockOffset);
+      const alphaTarget = limitedCameraAlpha(baseAlpha + (this.sceneId === 'camp-a1-rooms' ? 3 * Math.PI / 4 : 0) + roomFrontOffset, winchFollow?0:this.cameraOrientationStep);
       const zonePosition = zoneEntity ? this.interpolatedWorldPosition(zoneEntity) : null;
       const insideCabin = Boolean(this.sceneId === 'wreck-ship' && zoneEntity && zonePosition && wreckWeatherCovered(zonePosition.x, zonePosition.z, zoneEntity.surfaceId, zonePosition.y));
       const covered = this.campVisuals?.weatherCovered ?? (this.sceneId === 'dragon-rest' ? dragonRestCameraCovered : undefined);
       const indoor = insideCabin || Boolean(zonePosition && covered?.(zonePosition.x, zonePosition.z));
-      this.applyAutomaticCameraTilt(this.d8InteriorTilt.update(indoor, this.cameraTiltDegrees, tactical,tiltProfile));
+      if(zonePosition){const tilt=this.d8InteriorTilt.update(indoor,this.cameraTiltDegrees,tactical,tiltProfile,this.preserveCameraTiltInZone(indoor));this.applyAutomaticCameraTilt(tilt,this.d8InteriorTilt.zoneChanged);this.rememberCameraTiltZone(indoor);}
       if (!indoor) this.shelterCache = null;
       const betaTarget = this.terrainAuditTilt===null?cameraSpaceBeta(this.cameraTiltDegrees,insideCabin,tiltProfile):Math.max(.001,(90-this.terrainAuditTilt)*Math.PI/180);
       const fullBounds = { center: { x: terrain.cols * terrain.tileMeters / 2, y: (topHeight + bottomHeight) / 2, z: terrain.rows * terrain.tileMeters / 2 }, size: { width: terrain.cols * terrain.tileMeters, depth: terrain.rows * terrain.tileMeters, height: topHeight - bottomHeight } };
       const encounter = tactical ? this.encounterBounds(fullBounds, terrain.tileMeters * 3) : this.options.cameraRole === 'projector' && !this.sceneOverview && this.snapshot.camera.mode !== 'fixed' ? this.cameraGroupBounds(fullBounds) : null;
       let size = encounter?.size ?? { width: terrain.cols * terrain.tileMeters, depth: terrain.rows * terrain.tileMeters, height: topHeight - bottomHeight };
       if(this.sceneId==='wreck-ship' && !tactical && !encounter) {
-        const spaces:CameraSpace[]=Object.entries(wreckCabins).map(([id,b])=>({id,surfaceIds:['main'],bounds:{minX:b.minCol*1.5,maxX:(b.maxCol+1)*1.5,minZ:b.minRow*1.5,maxZ:(b.maxRow+1)*1.5},
-          size:{width:(b.maxCol-b.minCol+3)*1.5,depth:(b.maxRow-b.minRow+3)*1.5,height:3.5}}));
-        spaces.push({id:'cofa',surfaceIds:['crow'],size:{width:10,depth:10,height:5}},
-          {id:'proa',surfaceIds:['c2'],size:{width:24,depth:20,height:5}},
-          {id:'popa',surfaceIds:['c3'],size:{width:24,depth:20,height:5}},
-          {id:'bodega',surfaceIds:['hold-air','hold-water'],size:{width:26,depth:18,height:4}},
-          {id:'inferior',surfaceIds:['lower-deck','lower-water'],size:{width:28,depth:22,height:4}},
-          {id:'exterior',surfaceIds:['main','c2','c3','sea'],size:{width:34,depth:25,height:7}});
         const spaceFocus = this.sceneOverview ? null : cameraFocus ?? (indoor ? zoneEntity : null);
-        size=spaceFocus ? cameraSpaceAt(spaces,spaceFocus.surfaceId,this.interpolatedWorldPosition(spaceFocus))?.size??size : {width:70,depth:30,height:29};
+        size=spaceFocus ? cameraSpaceAt(WRECK_CAMERA_SPACES,spaceFocus.surfaceId,this.interpolatedWorldPosition(spaceFocus))?.size??size : {width:70,depth:30,height:31};
       }
-      if(this.sceneId==='dragon-rest'&&!tactical&&!encounter){const surface=cameraFocus?.surfaceId;size=this.sceneOverview?{width:160,depth:76,height:33}:surface==='a5'?{width:19,depth:15,height:7}:surface==='a4'?{width:17,depth:12,height:5}:surface==='a3'?{width:15,depth:14,height:5}:surface==='a2'?{width:15,depth:15,height:18}:surface==='a1'?{width:32,depth:23,height:12}:{width:35,depth:26,height:15};}
-      if (indoor && covered && zonePosition && !tactical && !encounter && !this.sceneOverview) size = this.cameraShelterSize(zonePosition, covered, size);
-      const halfHeight = this.applyZoomPolicy({ size, beta: betaTarget, aspect, baseHalfHeight: d8CameraHalfHeight(size, betaTarget, aspect) * (cameraFocus && !tactical ? .72 : 1),
-        actorHeight: this.campaign.tokens[zoneEntity?.tokenId ?? '']?.worldHeightMeters, tileMeters: terrain.tileMeters, tactical: tactical || this.options.cameraRole === 'projector', combatDetail: tactical && this.options.cameraRole !== 'projector' && !this.combatOverview, player: Boolean(this.localId), overview: this.sceneOverview, viewportHeight: safe.height });
+      if(this.sceneId==='dragon-rest'&&!tactical&&!encounter)size=retreatViewSize(cameraFocus?.surfaceId,this.sceneOverview);
+      // The winch serves the water below its small house. Its existing A2
+      // context bounds must remain available at wide zoom; a shelter-only
+      // fit would discard the pallet even with the follow target lowered.
+      const retreatWinchContext=this.sceneId==='dragon-rest'&&cameraFocus?.surfaceId==='a2'&&this.retreatVisuals?.stats.refinement?.finishing?.stage>=4;
+      if (indoor && covered && zonePosition && !tactical && !encounter && !this.sceneOverview && !retreatWinchContext) size = this.cameraShelterSize(zonePosition, covered, size);
+      const stageLimit=retreatPlayer?retreatPlayerCameraHalfHeight(viewWidth,viewHeight,safe.height):undefined;
+      const wreckOverview=this.sceneId==='wreck-ship'&&!tactical&&!encounter&&!cameraFocus&&(!indoor||this.sceneOverview)?wreckOverviewFrame(alphaTarget,betaTarget,aspect):null;
+      const halfHeight = this.applyZoomPolicy({ size, beta: betaTarget, aspect, baseHalfHeight: wreckOverview?.halfHeight??d8CameraHalfHeight(size, betaTarget, aspect) * (cameraFocus && !tactical ? .72 : 1),
+        actorHeight: this.campaign.tokens[zoneEntity?.tokenId ?? '']?.worldHeightMeters, tileMeters: terrain.tileMeters, tactical: tactical || this.options.cameraRole === 'projector', combatDetail: tactical && this.options.cameraRole !== 'projector' && !this.combatOverview, player: Boolean(this.localId), overview: this.sceneOverview, viewportHeight: safe.height,maxStageHalfHeight:stageLimit });
       const wreckView = this.sceneId?.startsWith('wreck-') ?? false;
       const visibilityFocusId = sharedFrame ? sharedFrame.focusId : this.localId ?? this.selectedEntityId ?? this.snapshot.camera.focusId;
-      const visibilityFocus = wreckView && visibilityFocusId ? this.snapshot.entities.find(entity => entity.id === visibilityFocusId) : undefined;
+      const visibilityFocus = this.sceneId==='wreck-ship'&&this.sceneOverview?undefined:navigation ?? (wreckView && visibilityFocusId ? this.snapshot.entities.find(entity => entity.id === visibilityFocusId) : undefined);
       let target = new Vector3(terrain.cols * terrain.tileMeters / 2, tactical ? (topHeight + bottomHeight) / 2 : .8, !tactical && this.sceneId==='camp-a1-rooms'?15.8:terrain.rows * terrain.tileMeters / 2);
       if(this.sceneId==='dragon-rest'&&!cameraFocus)target.set(91,14,80);
-      if(this.sceneId==='wreck-ship' && !tactical && !cameraFocus)target.set(42,7.8,20.25);
+      if(wreckOverview)target.set(wreckOverview.target.x,wreckOverview.target.y,wreckOverview.target.z);
       if (encounter) target = new Vector3(encounter.center.x, encounter.center.y, encounter.center.z);
       if (indoor && zonePosition && zoneEntity && !encounter && !this.sceneOverview) target = new Vector3(zonePosition.x, zonePosition.y + d8FocusHeight(this.campaign.tokens[zoneEntity.tokenId]?.worldHeightMeters ?? 1.65, .9, betaTarget), zonePosition.z);
       if (cameraFocus) {
@@ -2984,11 +3259,22 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
         if(this.sceneId==='wreck-ship'&&cameraFocus.surfaceId==='crow'&&!tactical){
           target.x=WRECK_STRUCTURE.origin.x;target.z=WRECK_STRUCTURE.origin.z;
         }
-        if (!indoor && this.snapshot.camera.mode === 'semiFixed' && cameraFocus.id !== this.selectedEntityId && this.cameraZoom <= this.cameraBaseZoom + .01) {
+        if(this.sceneId==='dragon-rest'&&cameraFocus.surfaceId==='a2'&&!tactical&&!this.sceneOverview&&this.retreatVisuals?.stats.refinement?.finishing?.stage>=4){
+          const load=this.retreatVisuals?.getLiftPosition();
+          if(load){
+            if(this.retreatVisuals?.liftCameraFollow(Date.now()-this.clockOffset))target.set(load.x,load.y+1.6,load.z);
+            else {const forward=(load.x-position.x)*Math.cos(alphaTarget)+(load.z-position.z)*Math.sin(alphaTarget);target.y=retreatWinchContextY(target.y,position.y,asset?.worldHeightMeters??1.65,asset?.anchorY??.9,halfHeight,betaTarget,load.y,forward);}
+          }
+        }
+        if (!navigation && !retreatPlayer && !indoor && this.snapshot.camera.mode === 'semiFixed' && cameraFocus.id !== this.selectedEntityId && this.cameraZoom <= this.cameraBaseZoom + .01) {
+          const alongShip=this.sceneId==='wreck-ship'?wreckLongitudinalTarget(cameraFocus.surfaceId??'',target,{alpha:alphaTarget,halfHeight,aspect}):null;
+          if(alongShip)target.set(alongShip.x,alongShip.y,alongShip.z);
+          else {
           const centerX = terrain.cols * terrain.tileMeters / 2, centerZ = terrain.rows * terrain.tileMeters / 2;
           const followX = terrain.cols * terrain.tileMeters * .18, followZ = terrain.rows * terrain.tileMeters * .18;
           target.x = Math.max(centerX - followX, Math.min(centerX + followX, target.x));
           target.z = Math.max(centerZ - followZ, Math.min(centerZ + followZ, target.z));
+          }
         }
       } else if (!this.snapshot.combat.active && this.snapshot.camera.mode === 'fixed') {
         const zoomTarget = !this.sceneOverview && (this.selectedEntityId || this.cameraZoom > this.cameraBaseZoom + 0.01) ? this.zoomFocusEntity() : undefined;
@@ -3003,12 +3289,22 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
       const before = [camera.alpha, camera.beta, camera.orthoTop, camera.target.x, camera.target.y, camera.target.z].join(':');
       const framing = this.resolveCameraFraming(halfHeight,target,this.sceneOverview ? null : zoneEntity?.id??null);
       const pose = this.d8CameraMotion.update({ alpha: alphaTarget, beta: betaTarget, ...framing }, deltaMs);
+      // A previous wide preference or a viewport change must not expose the
+      // full Retreat during the damper's transition to the local player frame.
+      if(stageLimit!==undefined&&pose.halfHeight>stageLimit){
+        this.d8CameraMotion.constrainFrame({halfHeight:stageLimit,target:pose.target});
+        pose.halfHeight=stageLimit;
+      }
       // Preserve the damper on exit too: restoring the exterior slider limit
       // immediately would snap a steeper interior pose back to 50 degrees.
       if(this.terrainAuditTilt===null)camera.lowerBetaLimit=Math.min(cameraBetaForTiltDegrees(tiltProfile.max,tiltProfile),betaTarget,pose.beta);
       camera.alpha = pose.alpha; camera.beta = this.terrainAuditTilt===null?pose.beta:betaTarget; camera.target.set(pose.target.x, pose.target.y, pose.target.z);
       camera.orthoTop = pose.halfHeight; camera.orthoBottom = -pose.halfHeight;
       camera.orthoLeft = -pose.halfHeight * aspect; camera.orthoRight = pose.halfHeight * aspect;
+      // Low Retreat/ship overviews can put the bottom of an orthographic near
+      // plane below sea level. Reuse the existing near-plane correction;
+      // extending the ocean alone cannot fill rays already below its surface.
+      if(this.sceneId==='dragon-rest'||this.sceneId==='wreck-ship')camera.minZ=d8CameraNearPlane(camera.radius,pose.beta,pose.halfHeight*Math.max(safe.top+safe.height/2,viewHeight-safe.top-safe.height/2)/(safe.height/2),pose.target.y);
       this.terrainCameraInitialized = this.cameraOrientationInitialized = true;
       this.updateDeckCutaway(visibilityFocus);
       camera.getViewMatrix(true); applySafeProjection(camera, true);
@@ -3109,8 +3405,8 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
       // reveal the entire upper-deck grid over C8 or C9.
       grid.isVisible = this.options.showGrid !== false && visibleFloorSurfaces.has(surfaceId) && surfaceId!==coveredSurface;
     }
-    const litRoom = Boolean(room && this.snapshot?.entities.some(entity => entity.carriedLightRadiusMeters
-      && wreckCabinAt(entity.cell, entity.surfaceId) === room));
+    const litRoom = Boolean(room && (this.options.cameraRole==='dm'||this.snapshot?.entities.some(entity => entity.carriedLightRadiusMeters
+      && wreckCabinAt(entity.cell, entity.surfaceId) === room)));
     for (const detail of this.terrainView.deckDetails) {
       const surfaceId = String(detail.metadata?.deckSurfaceId ?? detail.metadata?.surfaceId ?? '');
       const cabinId = String(detail.metadata?.cabinId ?? '');
@@ -3207,7 +3503,7 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     const entityRoom = wreckCabinAt(entity.cell, entity.surfaceId);
     const focusRoom = wreckCabinAt(focus.cell, focus.surfaceId);
     if (entityRoom && entityRoom !== focusRoom) return false;
-    if (entityRoom && entity.kind !== 'player' && !this.snapshot?.entities.some(other => other.carriedLightRadiusMeters
+    if (this.options.cameraRole!=='dm' && entityRoom && entity.kind !== 'player' && !this.snapshot?.entities.some(other => other.carriedLightRadiusMeters
       && wreckCabinAt(other.cell, other.surfaceId) === entityRoom)) return false;
     return !['lower-deck', 'lower-water', 'hold-air', 'hold-water'].includes(entity.surfaceId);
   }

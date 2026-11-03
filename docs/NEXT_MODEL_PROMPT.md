@@ -1,4 +1,14 @@
-# Relevo vigente — Pecio C1–C9, revisión r36
+# Entrada de relevo — consultar el roadmap maestro
+
+**Estado posterior del 02/11:** a petición del usuario, las mejoras están instaladas y activas en la mesa habitual del puerto 3000; el arranque normal incorpora el acabado. Consultar `PROJECT_STATE.md` antes de usar instrucciones inferiores de candidata aislada. Todos los informes nuevos/regenerados deben usar la comparación superpuesta de `scripts/lib/visual-comparison.mjs`, conforme a AGENTS y el anexo visual. Continuación artística: misma prioridad Retiro/Pecio, sin cerrar aceptación por la instalación.
+
+**Entrega más reciente, 02/11/2026:** muestras reales Retiro/Pecio y cráneo terminado en candidata aislada. Abrir `REVISAR-ACABADO.cmd`; leer [resultado y límites](evidence/STORMWRECK_STYLE_SKULL_20261102.md) y [capturas reales](../output/stormwreck-style-sample-20261101/index.html). Se conserva el trabajo recibido de Antigravity; el usuario autorizó expresamente acabar el cráneo. Revisar antes de extender el acabado; muebles, vegetación y VIS3–5 continúan pendientes. Las entradas inferiores fechadas el 01/11 o anteriores son contexto histórico.
+
+**Actualizado el 01/11/2026.** Empezar por [ROADMAP_V1.md](../ROADMAP_V1.md), secciones 1–5, y `PROJECT_STATE.md`. El orden actual es Retiro/Pecio y sus muestras de materiales/paleta/mobiliario; la adaptación de actores está en candidata aislada. El maestro contiene motor, propietarios y cambios por categoría. Leer después la ficha local y revalidar el código/estado reciente. No ejecutar automáticamente la revisión r36 inferior, restaurar sus cifras/recursos o repetir trabajo cerrado. No cambiar modelo, usar subagentes o publicar por leer este archivo.
+
+## Relevo histórico del Pecio C1–C9 · r36, 25/09/2026
+
+**Complemento de acabado, 01/11/2026:** en tareas visuales leer `docs/VISUAL_ROADMAP.md`, `docs/design/VISUAL_ART_DIRECTION.md` y `docs/design/VISUAL_REFERENCE_LIBRARY.md`. Este relevo del 25/09 es histórico: revalidar estado/código y ficha actual antes de aplicar cifras o tareas pendientes. La guía visual no autoriza rehacer mapas, repetir trabajo cerrado o ejecutar todas sus fases fuera del encargo actual.
 
 Actualizado el 25/09/2026. Trabaja en `C:\Users\User\Desktop\Dungeons`. Antes de editar, consulta `ROADMAP_V1.md`, `PROJECT_STATE.md`, `campaigns/stormwreck-isle/private/C1_GREYBOX_GATE.md`, `campaigns/stormwreck-isle/private/M4_ARRIVAL_AND_DEPARTURE_AUDIT_20260925.md`, `campaigns/stormwreck-isle/private/m5/ART_WORKLOG_20260925.md` y `campaigns/stormwreck-isle/private/m5/M6_M7_PHYSICAL_PLAYTEST_20260925.md`.
 

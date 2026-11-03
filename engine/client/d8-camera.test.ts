@@ -10,11 +10,18 @@ import { d8SceneGrid, d8SpatialNavigation } from '../../campaigns/one-shot/publi
 import { combatCameraFrame, combatSafeProjection } from './combat-camera';
 import { cameraBetaForTiltDegrees } from './camera-movement';
 import { CAMERA_MIN_TILT, CAMERA_MAX_TILT } from './camera-profile';
-import { D8CameraMotion, D8InteriorCameraTilt, d8CameraBaseAlpha, d8CameraHalfHeight, d8CellWorldPoint, d8FocusHeight, d8PickCell, type D8CameraPose } from './d8-camera';
+import { D8CameraMotion, D8InteriorCameraTilt, d8CameraBaseAlpha, d8CameraHalfHeight, d8CameraNearPlane, d8CellWorldPoint, d8FocusHeight, d8PickCell, type D8CameraPose } from './d8-camera';
 
 const start: D8CameraPose = { alpha: -Math.PI / 4, beta: Math.PI / 4, halfHeight: 20, target: { x: 0, y: 4, z: 0 } };
 
 describe('D8 2.5D camera', () => {
+  it('keeps the bottom near plane above the floor even at five degrees',()=>{
+    for(const tilt of [5,10,15,25]){
+      const beta=cameraBetaForTiltDegrees(tilt),radius=60,halfHeight=12,targetY=1;
+      const near=d8CameraNearPlane(radius,beta,halfHeight,targetY);
+      expect(targetY+(radius-near)*Math.cos(beta)-halfHeight*Math.sin(beta)).toBeGreaterThanOrEqual(2-1e-8);
+    }
+  });
   it('centers every D8 orbit in front of the entrance facades, including Dinner', () => {
     for (const [id, map] of Object.entries(D8NIGHT.maps) as Array<[string, any]>) {
       const alpha = d8CameraBaseAlpha(map.camera.alpha, id);
@@ -24,13 +31,13 @@ describe('D8 2.5D camera', () => {
       for (const offset of [-30, 0, 30]) expect(Math.sin(alpha + offset * Math.PI / 180)).toBeGreaterThan(.85);
     }
   });
-  it('enters at 15 degrees, allows manual interior tilt and uses 25 outside', () => {
+  it('enters at 10 degrees, allows manual interior tilt and uses 25 outside', () => {
     const tilt = new D8InteriorCameraTilt();
     expect(tilt.update(false, 25)).toBe(25);
-    expect(tilt.update(true, 35)).toBe(15);
-    expect(tilt.update(true, 35)).toBe(35);
+    expect(tilt.update(true, 10)).toBe(10);
+    expect(tilt.update(true, 10)).toBe(10);
     expect(tilt.update(false, 35)).toBe(25);
-    expect(tilt.update(true, 25)).toBe(15);
+    expect(tilt.update(true, 25)).toBe(10);
   });
   it('selects raised stair cells at their actual projected height in every camera direction', () => {
     const terrain = d8SpatialNavigation('temple').terrain, grid = d8SceneGrid('temple'), size = D8NIGHT.maps.temple.MAP.size as [number,number];
@@ -53,6 +60,13 @@ describe('D8 2.5D camera', () => {
     point.x = 99;
     expect(pose.target.x).toBe(12);
     expect(motion.update({ ...start, target: new Vector3(5, 2, -3) }, 16).target.x).toBeGreaterThan(5);
+  });
+
+  it('stops residual camera motion at a hard focus boundary',()=>{
+    const motion=new D8CameraMotion();motion.update(start,0);
+    for(let frame=0;frame<30;frame++)motion.update({...start,target:{x:20,y:4,z:0}},1000/60);
+    motion.constrainTarget({x:2,y:4,z:0});
+    expect(motion.update({...start,target:{x:2,y:4,z:0}},1000/60).target.x).toBe(2);
   });
 
   it('keeps motion continuous across network snapshots, wraps and rapid direction changes', () => {
@@ -82,7 +96,7 @@ describe('D8 2.5D camera', () => {
   });
 
   it('fits every map throughout an orbit without changing scale or perspective depth', () => {
-    for (const map of Object.values(D8NIGHT.maps) as any[]) for (const aspect of [.46, 1, 1.78]) for (const tilt of [15,25,35]) {
+    for (const map of Object.values(D8NIGHT.maps) as any[]) for (const aspect of [.46, 1, 1.78]) for (const tilt of [5,10,15,25]) {
       const [width, depth] = map.MAP.size, beta = cameraBetaForTiltDegrees(tilt);
       const halfHeight = d8CameraHalfHeight({ width, depth, height: 8 }, beta, aspect);
       const projection = Matrix.OrthoLH(halfHeight * aspect * 2, halfHeight * 2, .1, 1000);
@@ -102,7 +116,7 @@ describe('D8 2.5D camera', () => {
   });
 
   it('picks the projected cell and centers an upright sprite at every tilt and screen shape', () => {
-    for (const viewport of [{ width: 390, height: 844 }, { width: 1600, height: 900 }]) for (const tactical of [false, true]) for (const tilt of [15,25,35]) for (let step = 0; step < 8; step++) {
+    for (const viewport of [{ width: 390, height: 844 }, { width: 1600, height: 900 }]) for (const tactical of [false, true]) for (const tilt of [5,10,15,25]) for (let step = 0; step < 8; step++) {
       const size: [number, number] = [52, 68], grid = { cols: 80, rows: 104 };
       const cell = { col: 55, row: 70 }, floor = d8CellWorldPoint(cell, size, grid), beta = cameraBetaForTiltDegrees(tilt), alpha = -Math.PI / 4 + step * Math.PI / 4;
       const center = new Vector3(floor.x, floor.y + d8FocusHeight(1.8, .9, beta), floor.z);
@@ -124,7 +138,7 @@ describe('D8 2.5D camera', () => {
     const engine = new NullEngine(), scene = new Scene(engine), camera = new ArcRotateCamera('d8', 0, Math.PI / 4, 100, Vector3.Zero(), scene);
     camera.mode = Camera.ORTHOGRAPHIC_CAMERA;
     camera.lowerBetaLimit = cameraBetaForTiltDegrees(CAMERA_MAX_TILT); camera.upperBetaLimit = cameraBetaForTiltDegrees(CAMERA_MIN_TILT);
-    for (const tilt of [15, 35]) {
+    for (const tilt of [5, 10, 15, 25]) {
       const rig = new D8CameraMotion(), target = { ...start, beta: cameraBetaForTiltDegrees(tilt) };
       for (let frame = 0; frame < 120; frame++) {
         const pose = rig.update(target, 1000 / 60); camera.alpha = pose.alpha; camera.beta = pose.beta;

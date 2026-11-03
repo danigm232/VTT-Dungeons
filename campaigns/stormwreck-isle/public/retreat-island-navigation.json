@@ -1,0 +1,3515 @@
+{
+  "phase": 3,
+  "tileMeters": 1.5,
+  "originalTiles": 980,
+  "newTiles": [
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 8,
+        "row": 61
+      },
+      "kind": "ramp",
+      "corners": [
+        0.5875,
+        0.5875,
+        0.55,
+        0.55
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 9,
+        "row": 61
+      },
+      "kind": "ramp",
+      "corners": [
+        0.5875,
+        0.5875,
+        0.55,
+        0.55
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 8,
+        "row": 62
+      },
+      "kind": "ramp",
+      "corners": [
+        0.55,
+        0.55,
+        0.5125,
+        0.5125
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 9,
+        "row": 62
+      },
+      "kind": "ramp",
+      "corners": [
+        0.55,
+        0.55,
+        0.5125,
+        0.5125
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 8,
+        "row": 63
+      },
+      "kind": "ramp",
+      "corners": [
+        0.5125,
+        0.5125,
+        0.475,
+        0.475
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 9,
+        "row": 63
+      },
+      "kind": "ramp",
+      "corners": [
+        0.5125,
+        0.5125,
+        0.475,
+        0.475
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 8,
+        "row": 64
+      },
+      "kind": "ramp",
+      "corners": [
+        0.475,
+        0.475,
+        0.4375,
+        0.4375
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 9,
+        "row": 64
+      },
+      "kind": "ramp",
+      "corners": [
+        0.475,
+        0.475,
+        0.4375,
+        0.4375
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 8,
+        "row": 65
+      },
+      "kind": "ramp",
+      "corners": [
+        0.4375,
+        0.4375,
+        0.4,
+        0.4
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 9,
+        "row": 65
+      },
+      "kind": "ramp",
+      "corners": [
+        0.4375,
+        0.4375,
+        0.4,
+        0.4
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 5,
+        "row": 66
+      },
+      "kind": "ramp",
+      "corners": [
+        0.4,
+        0.4,
+        0.3625,
+        0.3625
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 6,
+        "row": 66
+      },
+      "kind": "ramp",
+      "corners": [
+        0.4,
+        0.4,
+        0.3625,
+        0.3625
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 7,
+        "row": 66
+      },
+      "kind": "ramp",
+      "corners": [
+        0.4,
+        0.4,
+        0.3625,
+        0.3625
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 8,
+        "row": 66
+      },
+      "kind": "ramp",
+      "corners": [
+        0.4,
+        0.4,
+        0.3625,
+        0.3625
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 9,
+        "row": 66
+      },
+      "kind": "ramp",
+      "corners": [
+        0.4,
+        0.4,
+        0.3625,
+        0.3625
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 5,
+        "row": 67
+      },
+      "kind": "ramp",
+      "corners": [
+        0.3625,
+        0.3625,
+        0.325,
+        0.325
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 6,
+        "row": 67
+      },
+      "kind": "ramp",
+      "corners": [
+        0.3625,
+        0.3625,
+        0.325,
+        0.325
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 5,
+        "row": 68
+      },
+      "kind": "ramp",
+      "corners": [
+        0.325,
+        0.325,
+        0.2875,
+        0.2875
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 6,
+        "row": 68
+      },
+      "kind": "ramp",
+      "corners": [
+        0.325,
+        0.325,
+        0.2875,
+        0.2875
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 5,
+        "row": 69
+      },
+      "kind": "ramp",
+      "corners": [
+        0.2875,
+        0.2875,
+        0.25,
+        0.25
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 6,
+        "row": 69
+      },
+      "kind": "ramp",
+      "corners": [
+        0.2875,
+        0.2875,
+        0.25,
+        0.25
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 2,
+        "row": 70
+      },
+      "kind": "floor",
+      "corners": [
+        0.25,
+        0.25,
+        0.25,
+        0.25
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 3,
+        "row": 70
+      },
+      "kind": "floor",
+      "corners": [
+        0.25,
+        0.25,
+        0.25,
+        0.25
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 4,
+        "row": 70
+      },
+      "kind": "floor",
+      "corners": [
+        0.25,
+        0.25,
+        0.25,
+        0.25
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 5,
+        "row": 70
+      },
+      "kind": "floor",
+      "corners": [
+        0.25,
+        0.25,
+        0.25,
+        0.25
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 6,
+        "row": 70
+      },
+      "kind": "floor",
+      "corners": [
+        0.25,
+        0.25,
+        0.25,
+        0.25
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 2,
+        "row": 71
+      },
+      "kind": "floor",
+      "corners": [
+        0.25,
+        0.25,
+        0.25,
+        0.25
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 2,
+        "row": 72
+      },
+      "kind": "floor",
+      "corners": [
+        0.25,
+        0.25,
+        0.25,
+        0.25
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 2,
+        "row": 73
+      },
+      "kind": "floor",
+      "corners": [
+        0.25,
+        0.25,
+        0.25,
+        0.25
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "cell": {
+        "col": 2,
+        "row": 74
+      },
+      "kind": "floor",
+      "corners": [
+        0.25,
+        0.25,
+        0.25,
+        0.25
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 8,
+        "row": 29
+      },
+      "kind": "floor",
+      "corners": [
+        21.25,
+        21.25,
+        21.25,
+        21.25
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 9,
+        "row": 29
+      },
+      "kind": "floor",
+      "corners": [
+        21.25,
+        21.25,
+        21.25,
+        21.25
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 10,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        21.25,
+        22.0,
+        22.0,
+        21.25
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 11,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        22.0,
+        22.75,
+        22.75,
+        22.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 12,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        22.75,
+        23.5,
+        23.5,
+        22.75
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 13,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        23.5,
+        24.25,
+        24.25,
+        23.5
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 14,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        24.25,
+        25.0,
+        25.0,
+        24.25
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 15,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        25.0,
+        25.75,
+        25.75,
+        25.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 16,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        25.75,
+        26.5,
+        26.5,
+        25.75
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 17,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        26.5,
+        27.25,
+        27.25,
+        26.5
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 18,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        27.25,
+        28.0,
+        28.0,
+        27.25
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 19,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        28.0,
+        28.75,
+        28.75,
+        28.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 20,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        28.75,
+        29.5,
+        29.5,
+        28.75
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 21,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        29.5,
+        30.25,
+        30.25,
+        29.5
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 22,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        30.25,
+        31.0,
+        31.0,
+        30.25
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 23,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        31.0,
+        31.75,
+        31.75,
+        31.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 24,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        31.75,
+        32.5,
+        32.5,
+        31.75
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 25,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        32.5,
+        33.25,
+        33.25,
+        32.5
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 26,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        33.25,
+        34.0,
+        34.0,
+        33.25
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 27,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        34.0,
+        34.75,
+        34.75,
+        34.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 28,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        34.75,
+        35.5,
+        35.5,
+        34.75
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 29,
+        "row": 29
+      },
+      "kind": "floor",
+      "corners": [
+        35.5,
+        35.5,
+        35.5,
+        35.5
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 30,
+        "row": 29
+      },
+      "kind": "floor",
+      "corners": [
+        35.5,
+        35.5,
+        35.5,
+        35.5
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 29,
+        "row": 30
+      },
+      "kind": "floor",
+      "corners": [
+        35.5,
+        35.5,
+        35.5,
+        35.5
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 30,
+        "row": 30
+      },
+      "kind": "floor",
+      "corners": [
+        35.5,
+        35.5,
+        35.5,
+        35.5
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 29,
+        "row": 31
+      },
+      "kind": "stair",
+      "corners": [
+        35.5,
+        35.5,
+        34.75,
+        34.75
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 30,
+        "row": 31
+      },
+      "kind": "stair",
+      "corners": [
+        35.5,
+        35.5,
+        34.75,
+        34.75
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 29,
+        "row": 32
+      },
+      "kind": "stair",
+      "corners": [
+        34.75,
+        34.75,
+        34.0,
+        34.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 30,
+        "row": 32
+      },
+      "kind": "stair",
+      "corners": [
+        34.75,
+        34.75,
+        34.0,
+        34.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 31,
+        "row": 32
+      },
+      "kind": "stair",
+      "corners": [
+        34.75,
+        34.75,
+        34.0,
+        34.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 32,
+        "row": 32
+      },
+      "kind": "stair",
+      "corners": [
+        34.75,
+        34.75,
+        34.0,
+        34.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 33,
+        "row": 32
+      },
+      "kind": "stair",
+      "corners": [
+        34.75,
+        34.75,
+        34.0,
+        34.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 34,
+        "row": 32
+      },
+      "kind": "stair",
+      "corners": [
+        34.75,
+        34.75,
+        34.0,
+        34.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 35,
+        "row": 32
+      },
+      "kind": "stair",
+      "corners": [
+        34.75,
+        34.75,
+        34.0,
+        34.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 34,
+        "row": 33
+      },
+      "kind": "stair",
+      "corners": [
+        34.0,
+        34.0,
+        33.25,
+        33.25
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 35,
+        "row": 33
+      },
+      "kind": "stair",
+      "corners": [
+        34.0,
+        34.0,
+        33.25,
+        33.25
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 34,
+        "row": 34
+      },
+      "kind": "stair",
+      "corners": [
+        33.25,
+        33.25,
+        32.5,
+        32.5
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 35,
+        "row": 34
+      },
+      "kind": "stair",
+      "corners": [
+        33.25,
+        33.25,
+        32.5,
+        32.5
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 34,
+        "row": 35
+      },
+      "kind": "stair",
+      "corners": [
+        32.5,
+        32.5,
+        31.75,
+        31.75
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 35,
+        "row": 35
+      },
+      "kind": "stair",
+      "corners": [
+        32.5,
+        32.5,
+        31.75,
+        31.75
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 34,
+        "row": 36
+      },
+      "kind": "stair",
+      "corners": [
+        31.75,
+        31.75,
+        31.0,
+        31.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 35,
+        "row": 36
+      },
+      "kind": "stair",
+      "corners": [
+        31.75,
+        31.75,
+        31.0,
+        31.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 34,
+        "row": 37
+      },
+      "kind": "stair",
+      "corners": [
+        31.0,
+        31.0,
+        30.21875,
+        30.25
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 35,
+        "row": 37
+      },
+      "kind": "stair",
+      "corners": [
+        31.0,
+        31.0,
+        30.21875,
+        30.21875
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 34,
+        "row": 38
+      },
+      "kind": "stair",
+      "corners": [
+        30.25,
+        30.21875,
+        29.375,
+        29.5
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 35,
+        "row": 38
+      },
+      "kind": "stair",
+      "corners": [
+        30.21875,
+        30.21875,
+        29.375,
+        29.375
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 34,
+        "row": 39
+      },
+      "kind": "stair",
+      "corners": [
+        29.5,
+        29.375,
+        28.53125,
+        28.75
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 34,
+        "row": 40
+      },
+      "kind": "stair",
+      "corners": [
+        28.75,
+        28.53125,
+        27.6875,
+        28.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 34,
+        "row": 41
+      },
+      "kind": "stair",
+      "corners": [
+        28.0,
+        27.6875,
+        26.84375,
+        27.25
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "cell": {
+        "col": 34,
+        "row": 42
+      },
+      "kind": "stair",
+      "corners": [
+        27.25,
+        26.84375,
+        26.0,
+        26.5
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 80,
+        "row": 10
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 81,
+        "row": 10
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 80,
+        "row": 11
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 81,
+        "row": 11
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 80,
+        "row": 12
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 81,
+        "row": 12
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 80,
+        "row": 13
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 81,
+        "row": 13
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 82,
+        "row": 13
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 83,
+        "row": 13
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 84,
+        "row": 13
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 85,
+        "row": 13
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 86,
+        "row": 13
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 87,
+        "row": 13
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 88,
+        "row": 13
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 89,
+        "row": 13
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 90,
+        "row": 13
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 91,
+        "row": 13
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 92,
+        "row": 13
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 93,
+        "row": 13
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 94,
+        "row": 13
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 95,
+        "row": 13
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 96,
+        "row": 13
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 97,
+        "row": 13
+      },
+      "kind": "floor",
+      "corners": [
+        37.0,
+        37.0,
+        37.0,
+        37.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 96,
+        "row": 14
+      },
+      "kind": "ramp",
+      "corners": [
+        37.0,
+        37.0,
+        36.864706,
+        36.864706
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 97,
+        "row": 14
+      },
+      "kind": "ramp",
+      "corners": [
+        37.0,
+        37.0,
+        36.864706,
+        36.864706
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 96,
+        "row": 15
+      },
+      "kind": "stair",
+      "corners": [
+        36.864706,
+        36.864706,
+        35.85,
+        35.85
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 97,
+        "row": 15
+      },
+      "kind": "stair",
+      "corners": [
+        36.864706,
+        36.864706,
+        35.85,
+        35.85
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 96,
+        "row": 16
+      },
+      "kind": "stair",
+      "corners": [
+        35.85,
+        35.85,
+        34.8,
+        34.8
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 97,
+        "row": 16
+      },
+      "kind": "stair",
+      "corners": [
+        35.85,
+        35.85,
+        34.8,
+        34.8
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 96,
+        "row": 17
+      },
+      "kind": "stair",
+      "corners": [
+        34.8,
+        34.8,
+        33.75,
+        33.75
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 97,
+        "row": 17
+      },
+      "kind": "stair",
+      "corners": [
+        34.8,
+        34.8,
+        33.75,
+        33.75
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 106,
+        "row": 17
+      },
+      "kind": "floor",
+      "corners": [
+        32.7,
+        32.7,
+        32.7,
+        32.7
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 107,
+        "row": 17
+      },
+      "kind": "floor",
+      "corners": [
+        32.7,
+        32.7,
+        32.7,
+        32.7
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 96,
+        "row": 18
+      },
+      "kind": "stair",
+      "corners": [
+        33.75,
+        33.75,
+        32.7,
+        32.7
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 97,
+        "row": 18
+      },
+      "kind": "stair",
+      "corners": [
+        33.75,
+        33.75,
+        32.7,
+        32.7
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 106,
+        "row": 18
+      },
+      "kind": "floor",
+      "corners": [
+        32.7,
+        32.7,
+        32.7,
+        32.7
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 107,
+        "row": 18
+      },
+      "kind": "floor",
+      "corners": [
+        32.7,
+        32.7,
+        32.7,
+        32.7
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 96,
+        "row": 19
+      },
+      "kind": "stair",
+      "corners": [
+        32.7,
+        32.7,
+        31.766667,
+        31.766667
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 97,
+        "row": 19
+      },
+      "kind": "stair",
+      "corners": [
+        32.7,
+        32.7,
+        31.766667,
+        31.766667
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 106,
+        "row": 19
+      },
+      "kind": "stair",
+      "corners": [
+        32.7,
+        32.7,
+        31.766667,
+        31.766667
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 107,
+        "row": 19
+      },
+      "kind": "stair",
+      "corners": [
+        32.7,
+        32.7,
+        31.766667,
+        31.766667
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 96,
+        "row": 20
+      },
+      "kind": "stair",
+      "corners": [
+        31.766667,
+        31.766667,
+        30.833333,
+        30.833333
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 97,
+        "row": 20
+      },
+      "kind": "stair",
+      "corners": [
+        31.766667,
+        31.766667,
+        30.833333,
+        30.833333
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 106,
+        "row": 20
+      },
+      "kind": "stair",
+      "corners": [
+        31.766667,
+        31.766667,
+        30.833333,
+        30.833333
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 107,
+        "row": 20
+      },
+      "kind": "stair",
+      "corners": [
+        31.766667,
+        31.766667,
+        30.833333,
+        30.833333
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 96,
+        "row": 21
+      },
+      "kind": "stair",
+      "corners": [
+        30.833333,
+        30.833333,
+        29.9,
+        29.9
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 97,
+        "row": 21
+      },
+      "kind": "stair",
+      "corners": [
+        30.833333,
+        30.833333,
+        29.9,
+        29.9
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 2,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 106,
+        "row": 21
+      },
+      "kind": "stair",
+      "corners": [
+        30.833333,
+        30.833333,
+        29.9,
+        29.9
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 107,
+        "row": 21
+      },
+      "kind": "stair",
+      "corners": [
+        30.833333,
+        30.833333,
+        29.9,
+        29.9
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 96,
+        "row": 22
+      },
+      "kind": "floor",
+      "corners": [
+        29.9,
+        29.9,
+        29.9,
+        29.9
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 97,
+        "row": 22
+      },
+      "kind": "floor",
+      "corners": [
+        29.9,
+        29.9,
+        29.9,
+        29.9
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 98,
+        "row": 22
+      },
+      "kind": "floor",
+      "corners": [
+        29.9,
+        29.9,
+        29.9,
+        29.9
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 99,
+        "row": 22
+      },
+      "kind": "floor",
+      "corners": [
+        29.9,
+        29.9,
+        29.9,
+        29.9
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 100,
+        "row": 22
+      },
+      "kind": "floor",
+      "corners": [
+        29.9,
+        29.9,
+        29.9,
+        29.9
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 101,
+        "row": 22
+      },
+      "kind": "floor",
+      "corners": [
+        29.9,
+        29.9,
+        29.9,
+        29.9
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 102,
+        "row": 22
+      },
+      "kind": "floor",
+      "corners": [
+        29.9,
+        29.9,
+        29.9,
+        29.9
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 103,
+        "row": 22
+      },
+      "kind": "floor",
+      "corners": [
+        29.9,
+        29.9,
+        29.9,
+        29.9
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 104,
+        "row": 22
+      },
+      "kind": "floor",
+      "corners": [
+        29.9,
+        29.9,
+        29.9,
+        29.9
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 105,
+        "row": 22
+      },
+      "kind": "floor",
+      "corners": [
+        29.9,
+        29.9,
+        29.9,
+        29.9
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 106,
+        "row": 22
+      },
+      "kind": "floor",
+      "corners": [
+        29.9,
+        29.9,
+        29.9,
+        29.9
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 107,
+        "row": 22
+      },
+      "kind": "floor",
+      "corners": [
+        29.9,
+        29.9,
+        29.9,
+        29.9
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 96,
+        "row": 23
+      },
+      "kind": "stair",
+      "corners": [
+        29.9,
+        29.9,
+        28.85,
+        28.85
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 97,
+        "row": 23
+      },
+      "kind": "stair",
+      "corners": [
+        29.9,
+        29.9,
+        28.85,
+        28.85
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 96,
+        "row": 24
+      },
+      "kind": "stair",
+      "corners": [
+        28.85,
+        28.85,
+        27.8,
+        27.8
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 97,
+        "row": 24
+      },
+      "kind": "stair",
+      "corners": [
+        28.85,
+        28.85,
+        27.8,
+        27.8
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 96,
+        "row": 25
+      },
+      "kind": "stair",
+      "corners": [
+        27.8,
+        27.8,
+        26.75,
+        26.75
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 97,
+        "row": 25
+      },
+      "kind": "stair",
+      "corners": [
+        27.8,
+        27.8,
+        26.75,
+        26.75
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 96,
+        "row": 26
+      },
+      "kind": "stair",
+      "corners": [
+        26.75,
+        26.75,
+        25.7,
+        25.7
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 97,
+        "row": 26
+      },
+      "kind": "stair",
+      "corners": [
+        26.75,
+        26.75,
+        25.7,
+        25.7
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 96,
+        "row": 27
+      },
+      "kind": "stair",
+      "corners": [
+        25.7,
+        25.7,
+        24.3,
+        24.3
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 97,
+        "row": 27
+      },
+      "kind": "stair",
+      "corners": [
+        25.7,
+        25.7,
+        24.3,
+        24.3
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 96,
+        "row": 28
+      },
+      "kind": "stair",
+      "corners": [
+        24.3,
+        24.3,
+        22.9,
+        22.9
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 97,
+        "row": 28
+      },
+      "kind": "stair",
+      "corners": [
+        24.3,
+        24.3,
+        22.9,
+        22.9
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 93,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        22.9,
+        22.9,
+        21.5,
+        21.5
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 94,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        22.9,
+        22.9,
+        21.5,
+        21.5
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 95,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        22.9,
+        22.9,
+        21.5,
+        21.5
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 96,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        22.9,
+        22.9,
+        21.5,
+        21.5
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 97,
+        "row": 29
+      },
+      "kind": "stair",
+      "corners": [
+        22.9,
+        22.9,
+        21.5,
+        21.5
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 93,
+        "row": 30
+      },
+      "kind": "stair",
+      "corners": [
+        21.5,
+        21.5,
+        20.1,
+        20.1
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 93,
+        "row": 31
+      },
+      "kind": "stair",
+      "corners": [
+        20.1,
+        20.1,
+        19.05,
+        19.05
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "cell": {
+        "col": 93,
+        "row": 32
+      },
+      "kind": "stair",
+      "corners": [
+        19.05,
+        19.05,
+        18.0,
+        18.0
+      ],
+      "materialId": "retreat-stone",
+      "movementCost": 1,
+      "medium": "solid"
+    }
+  ],
+  "surfaces": [
+    {
+      "surfaceId": "island-pleamar-low",
+      "phase": 2,
+      "tiles": 30,
+      "centres": [
+        {
+          "col": 2,
+          "row": 74
+        },
+        {
+          "col": 2,
+          "row": 73
+        },
+        {
+          "col": 2,
+          "row": 72
+        },
+        {
+          "col": 2,
+          "row": 71
+        },
+        {
+          "col": 2,
+          "row": 70
+        },
+        {
+          "col": 3,
+          "row": 70
+        },
+        {
+          "col": 4,
+          "row": 70
+        },
+        {
+          "col": 5,
+          "row": 70
+        },
+        {
+          "col": 5,
+          "row": 69
+        },
+        {
+          "col": 5,
+          "row": 68
+        },
+        {
+          "col": 5,
+          "row": 67
+        },
+        {
+          "col": 5,
+          "row": 66
+        },
+        {
+          "col": 6,
+          "row": 66
+        },
+        {
+          "col": 7,
+          "row": 66
+        },
+        {
+          "col": 8,
+          "row": 66
+        },
+        {
+          "col": 8,
+          "row": 65
+        },
+        {
+          "col": 8,
+          "row": 64
+        },
+        {
+          "col": 8,
+          "row": 63
+        },
+        {
+          "col": 8,
+          "row": 62
+        },
+        {
+          "col": 8,
+          "row": 61
+        }
+      ],
+      "start": {
+        "col": 2,
+        "row": 74
+      },
+      "ends": [
+        {
+          "id": "pleamar-low",
+          "surfaceId": "island-pleamar-low",
+          "cell": {
+            "col": 8,
+            "row": 61
+          }
+        }
+      ],
+      "lengthMetres": 28.5
+    },
+    {
+      "surfaceId": "island-pleamar-high",
+      "phase": 2,
+      "tiles": 50,
+      "centres": [
+        {
+          "col": 34,
+          "row": 42
+        },
+        {
+          "col": 34,
+          "row": 41
+        },
+        {
+          "col": 34,
+          "row": 40
+        },
+        {
+          "col": 34,
+          "row": 39
+        },
+        {
+          "col": 34,
+          "row": 38
+        },
+        {
+          "col": 34,
+          "row": 37
+        },
+        {
+          "col": 34,
+          "row": 36
+        },
+        {
+          "col": 34,
+          "row": 35
+        },
+        {
+          "col": 34,
+          "row": 34
+        },
+        {
+          "col": 34,
+          "row": 33
+        },
+        {
+          "col": 34,
+          "row": 32
+        },
+        {
+          "col": 33,
+          "row": 32
+        },
+        {
+          "col": 32,
+          "row": 32
+        },
+        {
+          "col": 31,
+          "row": 32
+        },
+        {
+          "col": 30,
+          "row": 32
+        },
+        {
+          "col": 29,
+          "row": 32
+        },
+        {
+          "col": 29,
+          "row": 31
+        },
+        {
+          "col": 29,
+          "row": 30
+        },
+        {
+          "col": 29,
+          "row": 29
+        },
+        {
+          "col": 28,
+          "row": 29
+        },
+        {
+          "col": 27,
+          "row": 29
+        },
+        {
+          "col": 26,
+          "row": 29
+        },
+        {
+          "col": 25,
+          "row": 29
+        },
+        {
+          "col": 24,
+          "row": 29
+        },
+        {
+          "col": 23,
+          "row": 29
+        },
+        {
+          "col": 22,
+          "row": 29
+        },
+        {
+          "col": 21,
+          "row": 29
+        },
+        {
+          "col": 20,
+          "row": 29
+        },
+        {
+          "col": 19,
+          "row": 29
+        },
+        {
+          "col": 18,
+          "row": 29
+        },
+        {
+          "col": 17,
+          "row": 29
+        },
+        {
+          "col": 16,
+          "row": 29
+        },
+        {
+          "col": 15,
+          "row": 29
+        },
+        {
+          "col": 14,
+          "row": 29
+        },
+        {
+          "col": 13,
+          "row": 29
+        },
+        {
+          "col": 12,
+          "row": 29
+        },
+        {
+          "col": 11,
+          "row": 29
+        },
+        {
+          "col": 10,
+          "row": 29
+        },
+        {
+          "col": 9,
+          "row": 29
+        },
+        {
+          "col": 8,
+          "row": 29
+        }
+      ],
+      "start": {
+        "col": 34,
+        "row": 42
+      },
+      "ends": [
+        {
+          "id": "pleamar-high",
+          "surfaceId": "island-pleamar-high",
+          "cell": {
+            "col": 8,
+            "row": 29
+          }
+        }
+      ],
+      "lengthMetres": 58.5
+    },
+    {
+      "surfaceId": "island-observatory",
+      "phase": 3,
+      "tiles": 82,
+      "centres": [
+        {
+          "col": 93,
+          "row": 32
+        },
+        {
+          "col": 93,
+          "row": 31
+        },
+        {
+          "col": 93,
+          "row": 30
+        },
+        {
+          "col": 93,
+          "row": 29
+        },
+        {
+          "col": 94,
+          "row": 29
+        },
+        {
+          "col": 95,
+          "row": 29
+        },
+        {
+          "col": 96,
+          "row": 29
+        },
+        {
+          "col": 96,
+          "row": 28
+        },
+        {
+          "col": 96,
+          "row": 27
+        },
+        {
+          "col": 96,
+          "row": 26
+        },
+        {
+          "col": 96,
+          "row": 25
+        },
+        {
+          "col": 96,
+          "row": 24
+        },
+        {
+          "col": 96,
+          "row": 23
+        },
+        {
+          "col": 96,
+          "row": 22
+        },
+        {
+          "col": 96,
+          "row": 21
+        },
+        {
+          "col": 96,
+          "row": 20
+        },
+        {
+          "col": 96,
+          "row": 19
+        },
+        {
+          "col": 96,
+          "row": 18
+        },
+        {
+          "col": 96,
+          "row": 17
+        },
+        {
+          "col": 96,
+          "row": 16
+        },
+        {
+          "col": 96,
+          "row": 15
+        },
+        {
+          "col": 96,
+          "row": 14
+        },
+        {
+          "col": 96,
+          "row": 13
+        },
+        {
+          "col": 95,
+          "row": 13
+        },
+        {
+          "col": 94,
+          "row": 13
+        },
+        {
+          "col": 93,
+          "row": 13
+        },
+        {
+          "col": 92,
+          "row": 13
+        },
+        {
+          "col": 91,
+          "row": 13
+        },
+        {
+          "col": 90,
+          "row": 13
+        },
+        {
+          "col": 89,
+          "row": 13
+        },
+        {
+          "col": 88,
+          "row": 13
+        },
+        {
+          "col": 87,
+          "row": 13
+        },
+        {
+          "col": 86,
+          "row": 13
+        },
+        {
+          "col": 85,
+          "row": 13
+        },
+        {
+          "col": 84,
+          "row": 13
+        },
+        {
+          "col": 83,
+          "row": 13
+        },
+        {
+          "col": 82,
+          "row": 13
+        },
+        {
+          "col": 81,
+          "row": 13
+        },
+        {
+          "col": 80,
+          "row": 13
+        },
+        {
+          "col": 80,
+          "row": 12
+        },
+        {
+          "col": 80,
+          "row": 11
+        },
+        {
+          "col": 80,
+          "row": 10
+        },
+        {
+          "col": 97,
+          "row": 22
+        },
+        {
+          "col": 98,
+          "row": 22
+        },
+        {
+          "col": 99,
+          "row": 22
+        },
+        {
+          "col": 100,
+          "row": 22
+        },
+        {
+          "col": 101,
+          "row": 22
+        },
+        {
+          "col": 102,
+          "row": 22
+        },
+        {
+          "col": 103,
+          "row": 22
+        },
+        {
+          "col": 104,
+          "row": 22
+        },
+        {
+          "col": 105,
+          "row": 22
+        },
+        {
+          "col": 106,
+          "row": 22
+        },
+        {
+          "col": 106,
+          "row": 21
+        },
+        {
+          "col": 106,
+          "row": 20
+        },
+        {
+          "col": 106,
+          "row": 19
+        },
+        {
+          "col": 106,
+          "row": 18
+        },
+        {
+          "col": 106,
+          "row": 17
+        }
+      ],
+      "start": {
+        "col": 93,
+        "row": 32
+      },
+      "ends": [
+        {
+          "id": "observatory-inland",
+          "surfaceId": "island-observatory",
+          "cell": {
+            "col": 80,
+            "row": 10
+          }
+        },
+        {
+          "id": "observatory-coast",
+          "surfaceId": "island-observatory",
+          "cell": {
+            "col": 106,
+            "row": 17
+          }
+        },
+        {
+          "id": "observatory-fork",
+          "surfaceId": "island-observatory",
+          "cell": {
+            "col": 96,
+            "row": 22
+          }
+        }
+      ],
+      "lengthMetres": 84.0
+    }
+  ],
+  "anchors": {
+    "pleamar-low": {
+      "surfaceId": "island-pleamar-low",
+      "cell": {
+        "col": 8,
+        "row": 61
+      }
+    },
+    "pleamar-high": {
+      "surfaceId": "island-pleamar-high",
+      "cell": {
+        "col": 8,
+        "row": 29
+      }
+    },
+    "observatory-inland": {
+      "surfaceId": "island-observatory",
+      "cell": {
+        "col": 80,
+        "row": 10
+      }
+    },
+    "observatory-coast": {
+      "surfaceId": "island-observatory",
+      "cell": {
+        "col": 106,
+        "row": 17
+      }
+    },
+    "observatory-fork": {
+      "surfaceId": "island-observatory",
+      "cell": {
+        "col": 96,
+        "row": 22
+      }
+    }
+  },
+  "plannedAnchors": {},
+  "coords": "X=(col+.5)*1.5 / Z=(row+.5)*1.5 / Y=authored corners",
+  "regionalTimeAccounting": "local approach is part of total route; no automatic time advancement"
+}

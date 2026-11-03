@@ -7,11 +7,13 @@ import { Texture } from '@babylonjs/core/Materials/Textures/texture.js';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import type { Scene } from '@babylonjs/core/scene.js';
 import { illustratedMaterial } from './diorama-kit.js';
+import {createCoastalAnimationVisibility} from './coastal-animation-visibility.js';
+import {createCoastalNormalUpdater} from './coastal-normals.js';
 
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 
 /** The bay is modeled as an animated surging body of water with ocean swells crashing into the rocks below A1. */
-export function createCoastalBackdrop(scene: Scene, root: TransformNode, url: string) {
+export function createCoastalBackdrop(scene: Scene, root: TransformNode, url: string,options:{pauseOffscreen?:boolean}={}) {
   const material = illustratedMaterial(scene, 'a1:sheltered-bay-v2', '#ffffff', url);
   material.specularColor = Color3.FromHexString('#3a7588');
   material.specularPower = 64;
@@ -35,8 +37,10 @@ export function createCoastalBackdrop(scene: Scene, root: TransformNode, url: st
 
   const basePositions = sea.getVerticesData('position')!.slice();
   const wavePositions = new Float32Array(basePositions.length);
+  const waterNormals = new Float32Array(basePositions.length);
   const waterColors = new Float32Array(basePositions.length / 3 * 4);
   const indices = sea.getIndices()!;
+  const waterNormalUpdater=createCoastalNormalUpdater(indices,basePositions.length/3);
   sea.setVerticesData('color', waterColors, true, 4);
 
   // Steepened trochoidal wave function simulating real incoming ocean swells
@@ -87,11 +91,17 @@ export function createCoastalBackdrop(scene: Scene, root: TransformNode, url: st
   foam.isPickable = false;
   foam.checkCollisions = false;
   foam.metadata = { content: 'VTT_AMBIENCE', decorativeOnly: true, effect: 'animated-shore-break' };
+  const animatedFoamPositions=new Float32Array(foamPositions.length),animatedFoamColors=new Float32Array(foamColors.length),foamNormals=new Float32Array(foamPositions.length);
+  let foamNormalUpdater:ReturnType<typeof createCoastalNormalUpdater>|null=null;
+  const animationStats={geometryUpdates:0,foamUpdates:0,skippedOffscreenUpdates:0,skippedFoamUpdates:0,pauseOffscreen:options.pauseOffscreen===true,normalTopologyBytes:waterNormalUpdater.topologyBytes};sea.metadata.coastalAnimation=animationStats;
+  const contributes=options.pauseOffscreen?createCoastalAnimationVisibility(scene,[sea]):null;
+  const foamContributes=options.pauseOffscreen?createCoastalAnimationVisibility(scene,[foam],false):null;
 
   const reduced = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let lastGeometryTime = -Infinity;
-  const updateGeometry = (time: number) => {
+  const updateGeometry = (time: number,waterVisible=true,foamVisible=true) => {
     const waterX = sea.position.x, waterZ = sea.position.z;
+    if(waterVisible){
     for (let i = 0; i < basePositions.length; i += 3) {
       const x = basePositions[i]! + waterX, z = basePositions[i + 2]! + waterZ;
       const height = waveHeight(x, z, time), crest = clamp01((height + .25) / .85);
@@ -106,12 +116,14 @@ export function createCoastalBackdrop(scene: Scene, root: TransformNode, url: st
       waterColors[color + 3] = 1;
     }
     sea.updateVerticesData('position', wavePositions, false, false);
-    const normals: number[] = [];
-    VertexData.ComputeNormals(wavePositions, indices, normals);
-    sea.updateVerticesData('normal', normals, false, false);
+    waterNormalUpdater.update(wavePositions,waterNormals);
+    sea.updateVerticesData('normal', waterNormals, false, false);
     sea.updateVerticesData('color', waterColors, false, false);
+    sea.metadata.coastalGeometryVersion=++animationStats.geometryUpdates;
+    }
 
-    const positions: number[] = [], colors = new Float32Array((columns + 1) * rows * 4);
+    if(foamVisible){
+    const positions=animatedFoamPositions,colors=animatedFoamColors;
     let vertex = 0;
     for (let row = 0; row < rows; row++) {
       const rowT = row / (rows - 1), envelope = Math.pow(Math.sin(rowT * Math.PI), .55);
@@ -129,7 +141,7 @@ export function createCoastalBackdrop(scene: Scene, root: TransformNode, url: st
         const breakup = clamp01(.3 + .6 * fleck + .25 * Math.sin(x * .25 - time * .5));
         const crest = clamp01(.2 + crashPeak * .8);
         const alpha = envelope * (.15 + crest * .85) * breakup;
-        positions.push(x + Math.sin(phase * .6) * .1, y, z);
+        positions[vertex*3]=x+Math.sin(phase*.6)*.1;positions[vertex*3+1]=y;positions[vertex*3+2]=z;
         const color = vertex * 4;
         colors[color] = .82 + crest * .18;
         colors[color + 1] = .94 + crest * .06;
@@ -139,9 +151,15 @@ export function createCoastalBackdrop(scene: Scene, root: TransformNode, url: st
     }
     foam.updateVerticesData('position', positions, false, false);
     foam.updateVerticesData('color', colors, false, false);
-    const foamNormals: number[] = [];
-    VertexData.ComputeNormals(positions, foamIndices, foamNormals);
-    foam.updateVerticesData('normal', foamNormals, false, false);
+    // updateVerticesData does not create a missing attribute. The unlit native
+    // ribbon has none, so its previous normal calculation was discarded.
+    if(foam.isVerticesDataPresent('normal')){
+      if(!foamNormalUpdater){foamNormalUpdater=createCoastalNormalUpdater(foamIndices,foamPositions.length/3);animationStats.normalTopologyBytes+=foamNormalUpdater.topologyBytes;}
+      foamNormalUpdater.update(positions,foamNormals);
+      foam.updateVerticesData('normal', foamNormals, false, false);
+    }
+    animationStats.foamUpdates++;
+    }
   };
   updateGeometry(0);
 
@@ -159,8 +177,10 @@ export function createCoastalBackdrop(scene: Scene, root: TransformNode, url: st
         texture.vOffset = reduced ? 0 : Math.sin(time * .16) * .024;
       }
       if (!reduced && time - lastGeometryTime >= 1 / 24) {
-        updateGeometry(time);
-        lastGeometryTime = time;
+        const waterVisible=!contributes||contributes(),foamVisible=!foamContributes||foamContributes();
+        if(waterVisible||foamVisible){updateGeometry(time,waterVisible,foamVisible);lastGeometryTime=time;}
+        if(!waterVisible)animationStats.skippedOffscreenUpdates++;
+        if(!foamVisible)animationStats.skippedFoamUpdates++;
       }
       material.diffuseColor = Color3.Lerp(material.diffuseColor, Color3.FromHexString('#98c7ce'), day * .12);
     }

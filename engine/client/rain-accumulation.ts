@@ -13,7 +13,7 @@ type Cover=(x:number,z:number,y?:number)=>boolean;
  * Pigment, ripples and grazing-angle sheen use existing lighting/shadows;
  * this layer never emits light, alters navigation, or fills sheltered rooms. */
 class RainSurfacePlugin extends MaterialPluginBase {
-  constructor(material:StandardMaterial,private amount:Amount,private shelter:string,private snowEnabled=false){super(material,'RainAccumulation',195,{},true,true);}
+  constructor(material:StandardMaterial,private amount:Amount,private shelter:string,private snowEnabled=false){super(material,'RainAccumulation',195,{},true,true);this.doNotSerialize=true;}
   getUniforms(){return {ubo:[{name:'rainSurface',size:4,type:'vec4'},{name:'rainFall',size:1,type:'float'}],fragment:'#ifndef UNIFORMBUFFERS\nuniform vec4 rainSurface;\nuniform float rainFall;\n#endif'};}
   bindForSubMesh(buffer:UniformBuffer){
     // Material-wide data only. Rewriting a shared UBO for every submesh/face
@@ -63,12 +63,17 @@ export class RainAccumulation {
   constructor(private scene:Scene,private definition:PublicSceneDefinition){}
   update(time:number,climate:ClimateState,rain:number,covered?:Cover){
     Object.assign(this.amount,{time:rain>0?time:0,wet:climate.wetness,puddles:climate.puddleCoverage,snow:climate.snowCoverage,rain});
+    this.prepare();
+    this.scene.metadata={...this.scene.metadata,rainAccumulation:{...this.amount,materials:this.applied.size}};
+  }
+  /** New material variants must receive the live climate plugin before their
+   * first draw. Its campaign state cannot be serialized into a generic clone. */
+  prepare(){
     for(const material of this.scene.materials)if(material instanceof StandardMaterial&&!this.applied.has(material)&&!material.disableLighting&&!/water|ocean|sea|shimmer|darkness|contact|foam|shadow|flame|glow|ember|bubble/i.test(material.name)){
       let shelter=rainShelterCode(this.scene,this.definition);
       if(this.definition.id==='wreck-ship'&&/rowboat/i.test(material.name))shelter=shelter.replace('vPositionW.y<-.20','vPositionW.y<-3.05');
       new RainSurfacePlugin(material,this.amount,shelter,Boolean(this.definition.terrain&&!this.definition.camp&&this.definition.id!=='wreck-ship'&&!this.scene.metadata?.d8Vtt));this.applied.add(material);
     }
-    this.scene.metadata={...this.scene.metadata,rainAccumulation:{...this.amount,materials:this.applied.size}};
   }
 }
 /** Fragment-level shelter is necessary for large shared floors: classifying

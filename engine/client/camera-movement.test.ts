@@ -20,9 +20,9 @@ describe('movimiento relativo a la cámara', () => {
       expect(up.x).toBeLessThan(0); expect(up.z).toBeLessThan(0);
     }
     const retreatAlpha = cameraAlphaForOrientation(terrainCameraBaseAlpha('dragon-rest'), sceneOrientationForView('dragon-rest', 0));
-    expect(retreatAlpha).toBeCloseTo(125*Math.PI/180);
+    expect(retreatAlpha).toBeCloseTo(Math.PI/2);
     const retreatUp = screenVectorToWorldAtAlpha(0, 1, retreatAlpha, Math.PI / 4);
-    expect(retreatUp.x).toBeGreaterThan(0); expect(retreatUp.z).toBeLessThan(0);
+    expect(retreatUp.x).toBeCloseTo(0); expect(retreatUp.z).toBeLessThan(0);
     expect(cameraAlphaForOrientation(terrainCameraBaseAlpha('camp-a1-rooms'), sceneOrientationForView('camp-a1-rooms', 0))).toBeCloseTo(Math.PI / 2);
     expect(terrainCameraBaseAlpha('camp-forest-pleamar')).toBeCloseTo(-Math.PI / 4);
   });
@@ -33,9 +33,9 @@ describe('movimiento relativo a la cámara', () => {
     expect(Math.sin(left)).toBeCloseTo(Math.sin(-3 * Math.PI / 4));
     expect(cameraAlphaForOrientation(-Math.PI / 2, 8)).toBeCloseTo(-Math.PI / 2);
     expect(normalizeCameraOrientationStep(-1)).toBe(7);
-    expect(cameraTiltDegreesForBeta(cameraBetaForTiltDegrees(48))).toBeCloseTo(35);
-    expect(cameraTiltDegreesForBeta(cameraBetaForTiltDegrees(5))).toBeCloseTo(15);
-    expect(cameraTiltDegreesForBeta(cameraBetaForTiltDegrees(80))).toBeCloseTo(35);
+    expect(cameraTiltDegreesForBeta(cameraBetaForTiltDegrees(48))).toBeCloseTo(25);
+    expect(cameraTiltDegreesForBeta(cameraBetaForTiltDegrees(5))).toBeCloseTo(5);
+    expect(cameraTiltDegreesForBeta(cameraBetaForTiltDegrees(80))).toBeCloseTo(25);
   });
 
   it('usa el mismo frente A1 para cámara y WASD sin cambiar las otras escenas', () => {

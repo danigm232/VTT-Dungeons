@@ -9,8 +9,10 @@ import type { AudioState, BasicCombatAction, Cell, CommandResult, CombatAction, 
 import type { PublicCampaignDefinition } from '../../engine/shared/campaign';
 import { supportsCameraOrientation, cameraOrbitLabel, CAMERA_ORBIT_PROFILE } from '../../engine/shared/camera';
 import {cameraProfileForScene} from '../../engine/client/camera-profile';
+import {cameraTiltControl} from '../../engine/client/camera-tilt-input';
 import { activitiesForCampPoint, campActivities, campPointInReach } from '../../engine/shared/camp-activities';
 import { footprintFor } from '../../engine/shared/geometry';
+import {journeyPortLabel,journeyReturnKey} from '../../engine/shared/journey';
 import { commandId } from '../../engine/client/uuid';
 import { worldVectorToCellDelta } from '../../engine/client/camera-movement';
 import { readUiPreferences, writeUiPreferences } from '../../engine/client/ui-preferences';
@@ -26,6 +28,8 @@ import { advanceClimate, formatGameClock, gameClockAt, clockTimeSelection } from
 import { SnapshotClock } from '../../engine/client/snapshot-clock.js';
 import { DmObjectRosette } from './ui/dm/object-rosette';
 import { DmMapTargets } from './ui/dm/map-targets';
+import {DmMapContextMenu,type MapContextAction} from './ui/dm/map-context-menu';
+import type {DmMapHit} from '../../engine/client/dm-map-input';
 import { chip, chips, disclosure, emptyState, localButton, preserveDisclosures, relativeTime, savePresentation, sceneBlock, sectionDeck } from './ui/dm/presentation';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -43,6 +47,10 @@ setInterval(() => { if (($('combatSheetDialog') as HTMLDialogElement).open) dmCo
 let mapToolPanel: 'scene' | 'camera' | 'objects' | null = null;
 let mapObjectsHighlighted = false;
 let objectRosette: DmObjectRosette | null = null, mapTargets: DmMapTargets | null = null;
+let selectedDmActor:{id:string;label:string;kind:string}|null=null;
+let pendingDmExplore:{sceneId:string;cell:Cell;surfaceId:string}|null=null;
+const mapContextMenu=new DmMapContextMenu();
+let pendingPlacementId:string|null=null;
 let rosetteSource = 'objects';
 let campRosetteSelection: { sceneId: string; pointId: string } | null = null;
 function setMapToolPanel(panel: typeof mapToolPanel) {
@@ -84,9 +92,9 @@ type DmCombatActionCategory = 'attack' | 'magic' | 'bonus' | 'reaction' | 'utili
 type DmDrawerTab = 'windows' | 'ambience' | 'audio' | 'settings';
 type DmConsoleDensity = 'compact' | 'comfortable' | 'spacious';
 type DmConsoleTextSize = 'small' | 'standard' | 'large';
-type DmUiPreferences = { showGrid: boolean; gridStyle: GridStyle; sideControlsOpen: boolean; drawerTab: DmDrawerTab; combatActionCategory: DmCombatActionCategory; shareCameraOrientation: boolean; consoleDensity?: DmConsoleDensity; consoleTextSize?: DmConsoleTextSize };
+type DmUiPreferences = { navigationVersion?:1; showGrid: boolean; gridStyle: GridStyle; sideControlsOpen: boolean; drawerTab: DmDrawerTab; combatActionCategory: DmCombatActionCategory; shareCameraOrientation: boolean; consoleDensity?: DmConsoleDensity; consoleTextSize?: DmConsoleTextSize };
 const dmUiPreferencesStorageKey = 'dnd-dm-ui-preferences.v1';
-const defaultDmUiPreferences: DmUiPreferences = { showGrid: true, gridStyle: { ...DEFAULT_GRID_STYLE }, sideControlsOpen: false, drawerTab: 'windows', combatActionCategory: 'attack', shareCameraOrientation: true, consoleDensity: 'comfortable', consoleTextSize: 'standard' };
+const defaultDmUiPreferences: DmUiPreferences = { showGrid: true, gridStyle: { ...DEFAULT_GRID_STYLE }, sideControlsOpen: false, drawerTab: 'windows', combatActionCategory: 'attack', shareCameraOrientation: false, navigationVersion:1, consoleDensity: 'comfortable', consoleTextSize: 'standard' };
 const dmCombatCategories: DmCombatActionCategory[] = ['attack', 'magic', 'bonus', 'reaction', 'utility', 'dm'];
 const dmConsoleDensities: DmConsoleDensity[] = ['compact', 'comfortable', 'spacious'];
 const dmConsoleTextSizes: DmConsoleTextSize[] = ['small', 'standard', 'large'];
@@ -105,6 +113,7 @@ const isDmUiPreferences = (value: unknown): value is DmUiPreferences => {
 };
 const storedDmUiPreferences = readUiPreferences(dmUiPreferencesStorageKey, defaultDmUiPreferences, isDmUiPreferences);
 let dmUiPreferences: DmUiPreferences = { ...defaultDmUiPreferences, ...storedDmUiPreferences,
+  navigationVersion:1,shareCameraOrientation:storedDmUiPreferences.navigationVersion===1?storedDmUiPreferences.shareCameraOrientation:false,
   gridStyle: normalizeGridStyle(storedDmUiPreferences.gridStyle) };
 let dmCombatActionCategory: DmCombatActionCategory = dmUiPreferences.combatActionCategory;
 function updateDmUiPreferences<K extends keyof DmUiPreferences>(key: K, value: DmUiPreferences[K]) {
@@ -130,7 +139,7 @@ function updateDmGridStyle(change: Partial<GridStyle>) {
 type SaveStatus = { mode: string; stateRevision: number; savedStateRevision: number | null; generation: number | null; savedAt: string | null; dirty: boolean; errorCode: string | null; runtimeEpoch: string; recoveryNotice?: string | null };
 let saveStatus: SaveStatus | null = null;
 let draftAction: { type: 'transform' | 'detach' | 'structure'; outcome?: 'caught' | 'fallen'; structure?: 'damaged' | 'destroyed'; requestId?: string; objectRevision: number; sceneEpoch: number; connectionGeneration: number } | null = null;
-const epochCommands = new Set(['scene', 'view:focus', 'entity:portal', 'scene:animation', 'creature', 'npc:visible', 'camera', 'environment', 'entity:move', 'entity:seat', 'combat:start', 'combat:participant', 'combat:initiative', 'combat:initiativeOrder', 'combat:condition', 'combat:endTurn', 'combat:next', 'combat:end', 'combat:declare', 'combat:basic', 'combat:escape', 'combat:rollAttack', 'combat:rollDamage', 'combat:rollSave', 'combat:rollDeathSave', 'combat:recharge', 'resolveInteraction', 'object:door', 'object:interact', 'object:transform', 'object:detach', 'object:structure', 'object:undo', 'pickup:take', 'camp:rest', 'camp:interact']);
+const epochCommands = new Set(['scene', 'view:focus', 'entity:portal', 'scene:animation', 'creature', 'npc:visible', 'camera', 'environment', 'entity:move', 'entity:place', 'entity:seat', 'combat:start', 'combat:participant', 'combat:initiative', 'combat:initiativeOrder', 'combat:condition', 'combat:endTurn', 'combat:next', 'combat:end', 'combat:declare', 'combat:basic', 'combat:escape', 'combat:rollAttack', 'combat:rollDamage', 'combat:rollSave', 'combat:rollDeathSave', 'combat:recharge', 'resolveInteraction', 'object:door', 'object:interact', 'object:transform', 'object:detach', 'object:structure', 'object:undo', 'pickup:take', 'camp:rest', 'camp:interact']);
 
 type WorkspaceLayouts = Partial<Record<WorkspaceMode, WorkspaceState>>;
 const workspaceStorageKey = 'dnd-dm-workspace-v12', legacyWorkspaceStorageKey = 'dnd-dm-workspace-v9', workspaceColumns = 12, minimumWindowHeight = 100;
@@ -361,7 +370,9 @@ function openWorkspaceWindow(id: string) {
   requestAnimationFrame(() => { writeWorkspace(); world?.refreshLayout(); });
 }
 function focusEntityOnMap(id: string, cell: Cell, surfaceId: string) {
-  clearDraft(); selectedId = null; selectedMapEntityId = id;
+  clearDraft();world?.clearDmNavigation(); selectedId = null; selectedMapEntityId = id;
+  const actor=state?.characters.find(e=>e.id===id)??state?.npcs.find(e=>e.id===id);if(actor)selectedDmActor={id,label:actor.label,kind:state?.characters.some(e=>e.id===id)?'player':'npc'};
+  const scene=state?.characters.find(e=>e.id===id)?.sceneId;if(scene&&scene!==state?.sceneId)browseDmScene(scene,cell,surfaceId);
   world?.setSelectedEntity(id); world?.setCameraFocusCell(cell, surfaceId); setMapToolPanel(null);
   openWorkspaceWindow('mapWindow'); if (state) renderObjects(state);
   toast('Ficha seleccionada. Muévela con WASD, un paso por pulsación.');
@@ -507,6 +518,7 @@ function activateWorkspace() {
 function toast(message: string) { const element = $('toast'); element.textContent = message; element.classList.add('show'); clearTimeout(toastTimer); toastTimer = window.setTimeout(() => element.classList.remove('show'), 2600); }
 function command(body: Record<string, unknown>) {
   if (!socket?.connected || !runtimeEpoch) { toast('Sin conexión: el cambio no se ha enviado.'); return null; }
+  if(state?.tableSceneId&&state.tableSceneId!==state.sceneId&&(String(body.type).startsWith('object:')||['creature','combat:start','resolveInteraction'].includes(String(body.type)))){toast('Comparte esta escena antes de aplicar sus acciones de partida.');return null;}
   const id = commandId();
   const epoch = epochCommands.has(String(body.type)) || String(body.type)==='scene:resolveCheck' || String(body.type).startsWith('combat:') || String(body.type).startsWith('story:') || String(body.type).startsWith('encounter:') ? { sceneEpoch: state?.sceneEpoch } : {};
   const objectVersion = String(body.type).startsWith('object:') || body.type === 'resolveInteraction' ? { objectRevision: state?.objectRevision ?? 0 } : {};
@@ -610,12 +622,12 @@ function renderConnectionStatus() {
 function connect() {
   socket = io({ auth: { role: 'dm', protocolVersion: PROTOCOL_VERSION, objectModelVersion: OBJECT_MODEL_VERSION } });
   installDecisionClockPauses();
-  socket.on('connect', () => { sceneLoadRecovery.reset(); connectionGeneration++; $('socketDot').classList.add('on'); renderConnectionStatus(); readyEpoch = -1; latestSnapshot = null; lastSharedCameraKey = null; clearDraft(); world?.resetConnection(); });
+  socket.on('connect', () => { sceneLoadRecovery.reset(); connectionGeneration++;selectedMapEntityId=null;selectedDmActor=null;mapContextMenu.close(); $('socketDot').classList.add('on'); renderConnectionStatus(); readyEpoch = -1; latestSnapshot = null; lastSharedCameraKey = null; clearDraft(); world?.resetConnection(); });
   socket.on('disconnect', () => { sceneLoadRecovery.reset(); connectionGeneration++; $('socketDot').classList.remove('on'); renderConnectionStatus(); readyEpoch = -1; latestSnapshot = null; renderAnimationAudit(null, true); clearDraft(); });
   socket.on('auth:error', (error: { code?: string }) => { if (error.code === 'PROTOCOL_MISMATCH' || error.code === 'DM_AUTH_REQUIRED') { location.reload(); return; } showLogin(); });
   socket.on('runtime:reset', (event: { runtimeEpoch: string; reason?: string }) => {
     sceneLoadRecovery.reset();
-    connectionGeneration++; runtimeEpoch = event.runtimeEpoch; state = null; latestSnapshot = null; renderAnimationAudit(null, true); readyEpoch = -1; lastSharedCameraKey = null; clearDraft(); world?.resetConnection();
+    connectionGeneration++;selectedMapEntityId=null;selectedDmActor=null;pendingDmExplore=null;mapContextMenu.close(); runtimeEpoch = event.runtimeEpoch; state = null; latestSnapshot = null; renderAnimationAudit(null, true); readyEpoch = -1; lastSharedCameraKey = null; clearDraft(); world?.resetConnection();
     void fetch('/api/dm/save/status', { cache: 'no-store' }).then(x => x.ok ? x.json() : null).then(next => { if (next?.runtimeEpoch === runtimeEpoch) { saveStatus = next; renderSave(); } });
   });
   socket.on('save:status', (next: SaveStatus) => { if (next.runtimeEpoch === runtimeEpoch) { saveStatus = next; renderSave(); if (next.mode === 'ready' && ($('loadGameDialog') as HTMLDialogElement).open) void renderSaveHistory(); } });
@@ -623,6 +635,7 @@ function connect() {
   socket.on('dm:state', (next: DmState) => { if (next.runtimeEpoch !== runtimeEpoch) return; if (draftAction && (draftAction.objectRevision !== next.objectRevision || draftAction.sceneEpoch !== next.sceneEpoch || draftAction.connectionGeneration !== connectionGeneration)) clearDraft(); state = next; render(next); });
   socket.on('command:result', (result: CommandResult) => {
     if (result.runtimeEpoch !== runtimeEpoch) return;
+    if(result.commandId===pendingPlacementId){pendingPlacementId=null;if(result.ok)toast('Ficha colocada. Puedes deshacer con Ctrl + Z.');}
     const pending = pendingDraftCommand;
     if (!result.ok) {
       toast(`No aplicado: ${friendlyErrorCode(result.code)}`);
@@ -636,14 +649,17 @@ socket.on('combat:animation', (event: { runtimeEpoch: string; sceneEpoch?: numbe
   socket.on('scene:animation', (event: { runtimeEpoch: string; sceneEpoch: number; entityId: string; state: string; durationMs: number }) => { if (event.runtimeEpoch === runtimeEpoch && event.sceneEpoch === latestSnapshot?.sceneEpoch) world?.playTokenAnimation(event.entityId, event.state, event.durationMs); });
   socket.on('scene:reward',(event:{runtimeEpoch:string;sceneEpoch:number;entityId:string;effect:string})=>{if(event.runtimeEpoch===runtimeEpoch&&event.sceneEpoch===latestSnapshot?.sceneEpoch&&event.effect==='inspiration')world?.playRewardEffect(event.entityId);});
   socket.on('scene:area-effect', (event: { runtimeEpoch: string; sceneEpoch: number; cell: { col: number; row: number }; type: 'fog'; radiusMeters: number; durationMs: number }) => { if (event.runtimeEpoch === runtimeEpoch && event.sceneEpoch === latestSnapshot?.sceneEpoch) world?.playAreaEffect(event.cell, event.type, event.radiusMeters, event.durationMs); });
-  socket.on('mirror:transformation', (event: { runtimeEpoch: string; sceneEpoch: number; propId: string; sourceId: string; reflectionId: string; frames: string[]; durationMs: number }) => { if (event.runtimeEpoch === runtimeEpoch && event.sceneEpoch === latestSnapshot?.sceneEpoch) world?.playMirrorTransformation(event.propId, event.sourceId, event.reflectionId, event.frames, event.durationMs); });
+  socket.on('mirror:transformation', (event: { eventId:string;serverTime:number;runtimeEpoch: string; sceneEpoch: number; propId: string; sourceId: string; reflectionId: string; frames: string[]; durationMs: number }) => { if (event.runtimeEpoch === runtimeEpoch && event.sceneEpoch === latestSnapshot?.sceneEpoch) world?.playMirrorTransformation(event.propId, event.sourceId, event.reflectionId, event.frames, event.durationMs,event); });
 }
 
 async function installSnapshot(snapshot: WorldSnapshot) {
   try {
   const installed = await world?.applySnapshot(snapshot);
   if (installed) sceneLoadRecovery.reset();
-  if (installed) { updateCameraOrbitControls(snapshot.sceneId); publishCameraOrientation(); }
+  if (installed) {
+    if(pendingDmExplore?.sceneId===snapshot.sceneId){world?.exploreDmCell(pendingDmExplore.cell,pendingDmExplore.surfaceId);pendingDmExplore=null;}
+    updateCameraOrbitControls(snapshot.sceneId);publishCameraOrientation();
+  }
   if (installed && socket?.connected && latestSnapshot?.sceneEpoch === snapshot.sceneEpoch && latestSnapshot?.runtimeEpoch === snapshot.runtimeEpoch && readyEpoch !== snapshot.sceneEpoch) { readyEpoch = snapshot.sceneEpoch; socket.emit('scene:ready', { runtimeEpoch, sceneEpoch: snapshot.sceneEpoch }); }
   } catch (error) {
     if (!socket?.connected || snapshot.runtimeEpoch !== runtimeEpoch) return;
@@ -665,10 +681,10 @@ function updateCameraOrbitControls(sceneId = state?.sceneId ?? latestSnapshot?.s
   ($('cameraTurnRight') as HTMLButtonElement).disabled = step >= 2;
   const tiltProfile=cameraProfileForScene(sceneId??null);
   const tilt = world?.getCameraTiltDegrees() ?? tiltProfile.default;
-  $('cameraTiltControls').title=`Inclinación: ${tiltProfile.min}° / ${tiltProfile.default}° / ${tiltProfile.max}°`;
+  $('cameraTiltControls').title=`Inclinación: ${tiltProfile.stops.map(degrees=>`${degrees}°`).join(' / ')}`;
   ($('cameraTiltDown') as HTMLButtonElement).disabled = tilt <= tiltProfile.min;
   ($('cameraTiltUp') as HTMLButtonElement).disabled = tilt >= tiltProfile.max;
-  $('cameraTiltValue').textContent = `${tilt}°`;
+  $('cameraTiltValue').textContent = `${Number(tilt.toFixed(1))}°`;
 }
 function publishCameraOrientation(force = false) {
   const snapshot = latestSnapshot;
@@ -691,13 +707,13 @@ function rotateCamera(delta: number) {
   if (!supportsCameraOrbit(sceneId)) return;
   world?.rotateCameraOrientation(delta); updateCameraOrbitControls(sceneId); publishCameraOrientation();
 }
-function tiltCamera(direction: number) {
-  const sceneId = state?.sceneId ?? latestSnapshot?.sceneId;
-  if (!supportsCameraOrbit(sceneId)) return;
-  const profile = cameraProfileForScene(sceneId ?? null);
-  world?.setCameraTiltDegrees((world?.getCameraTiltDegrees() ?? profile.default) + direction * profile.step);
-  updateCameraOrbitControls(sceneId); publishCameraOrientation();
-}
+const verticalCameraControl=cameraTiltControl(
+  ()=>world?.getCameraTiltDegrees()??25,
+  degrees=>{world?.setCameraTiltDegrees(degrees);updateCameraOrbitControls();publishCameraOrientation();},
+  ()=>cameraProfileForScene(state?.sceneId??latestSnapshot?.sceneId??null)
+);
+
+addEventListener('keyup',event=>{if(['r','f'].includes(event.key.toLowerCase()))verticalCameraControl.end();});
 
 function showLogin(message = '') { $('login').hidden = false; $('app').hidden = true; $('loginError').textContent = message; }
 const campUpdatesStorageKey = 'dnd-camp-rests-updates-v1.4.8-seen';
@@ -720,7 +736,7 @@ async function beginDm(password?: string) {
   if (!response.ok) { showLogin(password === undefined ? 'Esta mesa requiere clave de DM.' : 'Clave incorrecta.'); return; }
   csrfToken = (await response.json()).csrfToken;
   try {
-    campaign = await loadCampaign(); syncAnimationAuditAvailability(); populateCampaign(); ($('showGrid') as HTMLInputElement).checked = dmUiPreferences.showGrid; ($('shareCameraOrientation') as HTMLInputElement).checked = dmUiPreferences.shareCameraOrientation; syncDmGridSettings(); world = new WorldRenderer($('dmMap'), campaign, { cameraRole: 'dm', persistCameraPreferences: true, showGrid: dmUiPreferences.showGrid, gridStyle: dmUiPreferences.gridStyle }); world.setMapClick(onMapClick); await loadInfo();
+    campaign = await loadCampaign(); syncAnimationAuditAvailability(); populateCampaign(); ($('showGrid') as HTMLInputElement).checked = dmUiPreferences.showGrid; ($('shareCameraOrientation') as HTMLInputElement).checked = dmUiPreferences.shareCameraOrientation; syncDmGridSettings(); world = new WorldRenderer($('dmMap'), campaign, { cameraRole: 'dm', persistCameraPreferences: true, showGrid: dmUiPreferences.showGrid, gridStyle: dmUiPreferences.gridStyle }); world.setMapClick(onMapClick);world.setDmMapInteraction({canPan:()=>!selectedMapEntityId&&!selectedId&&!draft&&!armedDmCombatPoint,singleClick:()=>Boolean(draft||armedDmCombatPoint),context:openDmMapContext});await loadInfo();
     world.setCameraTiltChangeHandler(() => { updateCameraOrbitControls(); publishCameraOrientation(); });
     world.setCameraFrameChangeHandler(() => publishCameraOrientation());
     mapTargets = new DmMapTargets($('dmMap'));
@@ -742,7 +758,7 @@ function render(current: DmState) {
   timeOfDayButton.setAttribute('aria-pressed', String(isNight));
   timeOfDayButton.title = isNight ? 'La escena está de noche. Cambiar a día.' : 'La escena está de día. Cambiar a noche.';
   $('campaignTitle').textContent = current.campaignTitle; $('creatureNote').textContent = current.privateNotes.creature; $('wheelNote').textContent = current.privateNotes.wheel;
-  $('headerScene').textContent = campaign?.scenes.find(scene => scene.id === current.sceneId)?.title ?? current.sceneId;
+  $('headerScene').textContent = (current.tableSceneId&&current.tableSceneId!==current.sceneId?'Privado · ':'')+(campaign?.scenes.find(scene => scene.id === current.sceneId)?.title ?? current.sceneId);
   $('headerCombat').textContent = current.combat.active ? current.combat.initiativePending ? '⚔ Iniciativa pendiente' : `⚔ Combate · ronda ${current.combat.round}` : '◎ Exploración';
   $('headerCombat').className = `dm-chip dm-${current.combat.active ? 'pending' : 'info'}`;
   const pendingCount = current.interactions.filter(request => request.status === 'pending').length;
@@ -1184,7 +1200,7 @@ function draftValid(object: DmObject) {
 
 function selectObject(id: string | null, edit = false) {
   inspectedPickupId = null;
-  selectedMapEntityId = null; world?.setSelectedEntity(null);
+  selectedMapEntityId = null;selectedDmActor=null; world?.setSelectedEntity(null);
   selectedId = id; const object = state?.objects.find(item => item.id === id) ?? null;
   draft = edit && object && object.structure !== 'destroyed' && (object.kind === 'crate' || (object.kind === 'wheel' && object.attachment === 'detached')) ? structuredClone(object) : null;
   draftAction = draft && state ? { type: 'transform', objectRevision: state.objectRevision, sceneEpoch: state.sceneEpoch, connectionGeneration } : null;
@@ -1203,8 +1219,43 @@ function startStructureDraft(object: DmObject, structure: 'damaged' | 'destroyed
   draftAction = { type: 'structure', structure, objectRevision: state!.objectRevision, sceneEpoch: state!.sceneEpoch, connectionGeneration }; renderObjects(state!);
 }
 
+function browseDmScene(sceneId:string,cell?:Cell,surfaceId?:string){
+  if(!socket?.connected||!runtimeEpoch)return;
+  mapContextMenu.close();selectedId=null;clearDraft();objectRosette?.close();
+  if(cell&&surfaceId)pendingDmExplore={sceneId,cell,surfaceId};
+  if(($('shareCameraOrientation') as HTMLInputElement).checked)command({type:'view:focus',sceneId});
+  socket.emit('dm:view',{runtimeEpoch,sceneId});
+}
+function openDmMapContext(hit:DmMapHit,x:number,y:number){
+  if(!state||!latestSnapshot||latestSnapshot.sceneId!==state.sceneId||world?.getDisplayedSceneId()!==state.sceneId)return;
+  const epoch=state.sceneEpoch,sceneId=state.sceneId,runtime=runtimeEpoch;
+  const actor=selectedMapEntityId?(latestSnapshot.entities.find(e=>e.id===selectedMapEntityId)??selectedDmActor):null;
+  const actions:MapContextAction[]=[];
+  const current=()=>state?.sceneEpoch===epoch&&state?.sceneId===sceneId&&runtimeEpoch===runtime;
+  const add=(label:string,run:()=>void,disabled=false)=>actions.push({label,run:()=>{if(current())run();else toast('El mapa ha cambiado. Elige de nuevo el destino.');},disabled});
+  if(actor){
+    add('Colocar aquí',()=>{pendingPlacementId=command({type:'entity:place',entityId:actor.id,sceneId,surfaceId:hit.surfaceId,cell:hit.cell});});
+    add('Seguir ficha',()=>world?.followDmEntity(actor.id),!latestSnapshot.entities.some(e=>e.id===actor.id));
+    add('Ficha y estado',()=>{if(!state)return;if(actor.kind==='player')openEntitySheet(state,actor.id);else {const npc=state.npcs.find(n=>n.id===actor.id);if(npc)openNpcSheet(npc);else openWorkspaceWindow('encounterCard');}},actor.kind==='npc'&&!state.npcs.some(n=>n.id===actor.id));
+    const participant=state.combat.participants.find(p=>p.id===actor.id);
+    if(participant)add('Retirar del combate',()=>command({type:'combat:withdraw',entityId:actor.id}),Boolean(state.combat.prompt));
+    const npc=state.npcs.find(n=>n.id===actor.id);
+    if(npc)add(npc.visible?'Ocultar PNJ':'Mostrar PNJ',()=>command({type:'npc:visible',entityId:npc.id,visible:!npc.visible}));
+  }
+  add('Mirar aquí · entrar al interior',()=>world?.exploreDmCell(hit.cell,hit.surfaceId));
+  if(sceneId==='dragon-rest'&&hit.surfaceId==='a2')add(state.progress['retreat.winch.lowered']?'Subir plataforma del cabrestante':'Bajar plataforma al agua',()=>command({type:'progress:toggle',flag:'retreat.winch.lowered',value:!state!.progress['retreat.winch.lowered']}));
+  if(!actor&&!selectedId){add('Acercar aquí',()=>{world?.exploreDmCell(hit.cell,hit.surfaceId);world?.zoomCameraBy(1.5);});add('Alejar cámara',()=>world?.zoomCameraBy(1/1.5));}
+  for(const [direction,label] of [[-1,'Bajar una planta aquí'],[1,'Subir una planta aquí']] as const){const surface=world?.dmAdjacentLayer(hit.cell,direction);if(surface)add(label,()=>world?.exploreDmCell(hit.cell,surface));}
+  const port=state.ports.find(p=>[p.from,p.to].some(a=>a.mapId===sceneId&&a.surfaceId===hit.surfaceId&&Math.abs(a.cell.col-hit.cell.col)+Math.abs(a.cell.row-hit.cell.row)<=1));
+  if(port){const to=port.from.mapId===sceneId&&port.from.surfaceId===hit.surfaceId?port.to:port.from;add('Explorar al otro lado del acceso',()=>to.mapId===sceneId?world?.exploreDmCell(to.cell,to.surfaceId):browseDmScene(to.mapId,to.cell,to.surfaceId));}
+  if(selectedId){const object=state.objects.find(o=>o.id===selectedId);if(object)add('Acciones del objeto',()=>{rosetteSource='objects';const anchor=projectDmObject(object.id);if(anchor)objectRosette?.show(object.label,anchor,()=>projectDmObject(object.id));});}
+  if(actor||selectedId)add('Deseleccionar · volver a arrastrar',()=>{selectedMapEntityId=null;selectedDmActor=null;selectedId=null;world?.setSelectedEntity(null);clearDraft();objectRosette?.close();if(state)renderObjects(state);});
+  if(state.gameUndo.canUndo)add('Deshacer último cambio',()=>command({type:'game:undo'}));
+  mapContextMenu.show(actor?.label??'Cámara del DM',x,y,actions);
+}
+
 function onMapClick(cell: Cell, entityId?: string) {
-  if (!state) return;
+  if (!state||world?.getDisplayedSceneId()!==state.sceneId||latestSnapshot?.sceneId!==state.sceneId) return;
   setMapToolPanel(null);
   if (armedDmCombatPoint) {
     const { actorId, action } = armedDmCombatPoint;
@@ -1222,26 +1273,27 @@ function onMapClick(cell: Cell, entityId?: string) {
       if (point) { openCampRosette(point, scene.id, world?.mapCellScreenPoint(cell, point.surfaceId) ?? { x: 150, y: 150 }); return; }
     }
   }
-  const entity = [...(latestSnapshot?.entities ?? [])].reverse().find(candidate => entityId ? candidate.id === entityId : sameCell(candidate.cell, cell));
+  const entity = [...(latestSnapshot?.entities ?? [])].reverse().find(candidate => entityId ? candidate.id === entityId : candidate.surfaceId===world?.getPickedSurfaceId()&&sameCell(candidate.cell, cell));
   if (entity) {
     objectRosette?.close();
     inspectedPickupId = null;
-    selectedMapEntityId = entity.id; selectedId = null; draft = null; draftAction = null;
+    selectedMapEntityId = entity.id; selectedDmActor={id:entity.id,label:entity.label,kind:entity.kind}; selectedId = null; draft = null; draftAction = null;
+    world?.clearDmNavigation();
     world?.setSelectedEntity(entity.id);
     world?.setCameraFocusCell(cell, entity.surfaceId);
     renderObjects(state); renderCombat(state);
     return;
   }
-  selectedMapEntityId = null; world?.setSelectedEntity(null);
-  const hit = [...state.objects].reverse().find(object => objectCells(object).some(occupied => sameCell(occupied, cell))); selectObject(hit?.id ?? null);
-  world?.setCameraFocusCell(cell, hit?.surfaceId ?? currentScene()?.surfaceId);
+  selectedMapEntityId = null;selectedDmActor=null; world?.setSelectedEntity(null);
+  const hit = [...state.objects].reverse().find(object => object.surfaceId===world?.getPickedSurfaceId()&&objectCells(object).some(occupied => sameCell(occupied, cell))); selectObject(hit?.id ?? null);
+  world?.exploreDmCell(cell,hit?.surfaceId??world?.getPickedSurfaceId());
   if (hit) { rosetteSource = 'objects'; const project = () => projectDmObject(hit.id); const anchor = project(); if (anchor) objectRosette?.show(hit.label, anchor, project); }
   else objectRosette?.close();
 }
 
 function renderDraft() {
   const valid = draft ? draftValid(draft) : false, selectedEntity = latestSnapshot?.entities.find(entity => entity.id === selectedMapEntityId) ?? null;
-  if (selectedMapEntityId && !selectedEntity) selectedMapEntityId = null;
+  if(selectedMapEntityId&&!selectedEntity&&selectedDmActor?.id!==selectedMapEntityId)selectedMapEntityId=null;
   world?.setSelectedEntity(selectedMapEntityId); world?.showSelection(state?.objects.find(object => object.id === selectedId) ?? null); world?.showPreview(draft, valid);
   $('draftActions').hidden = !draft; ($('applyObject') as HTMLButtonElement).disabled = !valid;
   $('mapObjectsPanel').hidden = !draft;
@@ -1323,7 +1375,7 @@ function renderObjects(current: DmState) {
 
 function renderPlayers(current: DmState) {
   const box = $('players'); if (box.contains(document.activeElement) && document.activeElement instanceof HTMLInputElement) return; box.replaceChildren();
-  const present = current.characters.filter(character => character.claimed || character.connected);
+  const present = current.characters;
   if (!present.length) { box.append(emptyState('Sin jugadores asignados', 'Abre las conexiones para que el grupo elija personaje.'), localButton('Gestionar conexiones', () => { ($('connectionPanel') as HTMLDetailsElement).open = true; $('connectionPanel').scrollIntoView({ block: 'start' }); })); return; }
   for (const character of present) {
     const article = document.createElement('article'); article.className = 'player-card'; const info = document.createElement('div'), heading = document.createElement('h3'), dot = document.createElement('span'), small = document.createElement('small');
@@ -1340,8 +1392,10 @@ function renderPlayers(current: DmState) {
       const forward = character.sceneId === port.from.mapId && character.surfaceId === port.from.surfaceId && sameCell(character.cell, port.from.cell);
       const back = character.sceneId === port.to.mapId && character.surfaceId === port.to.surfaceId && sameCell(character.cell, port.to.cell);
       if (!forward && !back) continue;
+      if(current.interactions.some(r=>r.kind==='journey'&&r.status==='pending'&&r.characterId===character.id&&r.journeyOptions?.some(o=>o.portId===port.id)))continue;
+      if(back&&port.rememberReturn&&current.ports.some(p=>p.rememberReturn&&current.progress[journeyReturnKey(character.id,p.id)])&&!current.progress[journeyReturnKey(character.id,port.id)])continue;
       const direction = forward ? 'forward' : 'return', destination = forward ? port.to : port.from;
-      const button = document.createElement('button'); button.textContent = `${port.id} · ${port.mode} → ${destination.zoneId}`;
+      const button = document.createElement('button'); button.textContent = journeyPortLabel(port,direction);
       if(port.id==='P10'&&forward&&!current.progress['wreck.cofa-free-climb']){
         const total=document.createElement('input');total.type='number';total.min='-30';total.max='100';total.placeholder='Total Atletismo';total.setAttribute('aria-label',`${character.label} · Atletismo CD 10`);button.textContent='Subir cofa · CD 10';button.disabled=true;
         total.oninput=()=>{button.disabled=total.value===''||!Number.isInteger(Number(total.value))||Number(total.value)<10||Number(total.value)>100;};
@@ -1396,7 +1450,7 @@ function renderNpcs(current: DmState) {
     const states = chips([[npc.visible ? 'Visible' : 'Oculto', npc.visible ? 'positive' : 'info'], `PG ${npc.hp}/${npc.maxHp}`, `Casilla ${npc.cell.col},${npc.cell.row}`, [npc.combatEnabled ? 'Participa en combate' : 'Fuera de combate', npc.combatEnabled ? 'pending' : 'info']]);
     const fields = document.createElement('div'); fields.className = 'dm-editor-fields'; fields.append(col.label, line.label, move);
     const actions = document.createElement('div'); actions.className = 'dm-entity-actions';
-    const focus = localButton('Mover en mapa', () => focusEntityOnMap(npc.id, npc.cell, npc.surfaceId)); focus.disabled = !npc.visible;
+    const focus = localButton('Mover en mapa', () => focusEntityOnMap(npc.id, npc.cell, npc.surfaceId)); focus.disabled = false;
     actions.append(reveal, focus, combat, recover); row.append(name, states, actions, disclosure(`npc:${npc.id}`, 'Editar posición · un paso', fields)); box.append(row);
   }
 }
@@ -1451,6 +1505,7 @@ function renderCombatLegacy(current: DmState) {
 }
 
 addEventListener('keydown', event => {
+  if(event.key==='Escape'&&!armedDmCombatPoint){mapContextMenu.close();selectedMapEntityId=null;selectedDmActor=null;selectedId=null;world?.setSelectedEntity(null);objectRosette?.close();clearDraft();if(state)renderObjects(state);}
   if (event.key === 'Escape' && armedDmCombatPoint) { armedDmCombatPoint = null; world?.clearAttackRange(); if (state) renderCombat(state); event.preventDefault(); return; }
   if (event.target instanceof Element && event.target.closest('input,textarea,select,[contenteditable="true"],dialog[open]')) return;
   if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'z') {
@@ -1459,7 +1514,7 @@ addEventListener('keydown', event => {
   }
   if (event.ctrlKey || event.metaKey || event.altKey) return;
   const key = event.key.toLowerCase();
-  if (!event.repeat && (key === 'r' || key === 'f') && supportsCameraOrbit(state?.sceneId)) { event.preventDefault(); tiltCamera(key === 'r' ? 1 : -1); return; }
+  if ((key === 'r' || key === 'f') && supportsCameraOrbit(state?.sceneId)) { event.preventDefault(); if(!event.repeat)verticalCameraControl.begin(key==='r'?1:-1); return; }
   if (!event.repeat && (key === 'q' || key === 'e') && supportsCameraOrbit(state?.sceneId)) { event.preventDefault(); rotateCamera(key === 'q' ? -1 : 1); return; }
   const axes = key === 'w' ? { x: 0, up: 1 } : key === 'a' ? { x: -1, up: 0 } : key === 's' ? { x: 0, up: -1 } : key === 'd' ? { x: 1, up: 0 } : null;
   const delta = axes ? worldVectorToCellDelta(world?.screenVectorToWorld(axes.x, axes.up) ?? { x: axes.x, z: -axes.up }) : null;
@@ -1535,6 +1590,19 @@ function renderRequests(current: DmState) {
   const box = $('requests'), pending = current.interactions.filter(request => request.status === 'pending'); box.replaceChildren();
   if (!pending.length) { box.append(emptyState('Sin solicitudes activas', 'Las interacciones de los jugadores aparecerán aquí.')); return; }
   for (const request of pending) {
+    if(request.kind==='journey'){
+      const row=document.createElement('article');row.className='dm-request';
+      const label=document.createElement('strong');label.textContent=`${request.characterLabel} · ${request.targetLabel??'Preparar viaje'}`;
+      const help=document.createElement('p');help.textContent='Confirma la continuación acordada. Los campamentos son paradas opcionales; el tiempo, los encuentros y el descanso los decide el DM.';
+      const character=current.characters.find(c=>c.id===request.characterId),choices=document.createElement('div');choices.className='button-row';
+      for(const option of request.journeyOptions??[]){
+        const port=current.ports.find(p=>p.id===option.portId);if(!port)continue;
+        const origin=option.direction==='forward'?port.from:port.to;
+        const approve=localButton(journeyPortLabel(port,option.direction),()=>command({type:'entity:portal',entityId:request.characterId,portId:port.id,direction:option.direction,adjudicate:true}));
+        approve.disabled=!character||Boolean(character.step)||character.sceneId!==origin.mapId||character.surfaceId!==origin.surfaceId||!sameCell(character.cell,origin.cell);choices.append(approve);
+      }
+      choices.append(localButton('Cancelar solicitud',()=>command({type:'resolveInteraction',requestId:request.id,result:'cancelled'})));row.append(label,help,choices);box.append(row);continue;
+    }
     if(request.kind==='prayer'){
       const row=document.createElement('article');row.className='dm-request';
       const label=document.createElement('strong');label.textContent=`${request.characterLabel} reza a Sylvania`;
@@ -1705,7 +1773,7 @@ $('scene').onchange = () => {
     campInteractionMode = false; world?.setCampInteractionHighlights(false);
     const campPointDialog = $('campPointDialog') as HTMLDialogElement; if (campPointDialog.open) campPointDialog.close(); campPointSceneId = null;
     const sceneId = ($('scene') as HTMLSelectElement).value;
-    command({ type: 'scene', sceneId });
+    browseDmScene(sceneId);
   };
 ($('campInteractionToggle') as HTMLButtonElement).onclick = () => {
   const isCamp = Boolean(currentScene()?.camp);
@@ -1723,15 +1791,15 @@ $('cameraTurnRight').onclick = () => rotateCamera(1);
 $('cameraReset').onclick = () => { const sceneId = state?.sceneId ?? latestSnapshot?.sceneId; if (!supportsCameraOrbit(sceneId)) return; world?.resetCameraOrientation(); updateCameraOrbitControls(sceneId); publishCameraOrientation(); };
 $('cameraDetail').onclick = () => { if (!world?.frameActorDetail(selectedMapEntityId ?? latestSnapshot?.entities.find(entity => entity.kind === 'player')?.id)) toast('Selecciona un personaje visible para acercar la vista.'); };
 $('cameraOverview').onclick = () => world?.frameSceneOverview();
-$('cameraTiltDown').onclick = () => tiltCamera(-1);
-$('cameraTiltUp').onclick = () => tiltCamera(1);
+verticalCameraControl.bind($('cameraTiltDown') as HTMLButtonElement,-1);
+verticalCameraControl.bind($('cameraTiltUp') as HTMLButtonElement,1);
 ($('shareCameraOrientation') as HTMLInputElement).onchange = event => {
   const share = (event.currentTarget as HTMLInputElement).checked;
   updateDmUiPreferences('shareCameraOrientation', share);
-  if (share) publishCameraOrientation(true);
+  if(share){if(state&&state.tableSceneId!==state.sceneId)command({type:'view:focus',sceneId:state.sceneId});else publishCameraOrientation(true);}
   else stopSharingCameraOrientation();
 };
-$('camera').onchange = $('focus').onchange = () => command({ type: 'camera', mode: ($('camera') as HTMLSelectElement).value, focusId: ($('focus') as HTMLSelectElement).value || null });
+$('camera').onchange = $('focus').onchange = () => {world?.clearDmNavigation();command({ type: 'camera', mode: ($('camera') as HTMLSelectElement).value, focusId: ($('focus') as HTMLSelectElement).value || null });};
 document.querySelectorAll<HTMLButtonElement>('[data-camera-mode]').forEach(button => button.onclick = () => {
   const select = $('camera') as HTMLSelectElement; select.value = button.dataset.cameraMode!; select.dispatchEvent(new Event('change'));
 });

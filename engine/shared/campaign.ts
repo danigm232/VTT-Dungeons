@@ -96,7 +96,8 @@ const tokenAnimationSchema = z.object({
     anchorX: z.number().min(0).max(1).optional(),
     alphaSeeds: z.array(z.tuple([z.number().int().min(0),z.number().int().min(0)])).min(1).max(12).optional()
   }).strict()])).min(1).max(32), fps: z.number().positive().max(30).default(6), flipX: z.boolean().optional(),
-  motion: z.enum(['jump', 'dodge', 'disengage', 'swim', 'climb']).optional()
+  motion: z.enum(['jump', 'dodge', 'disengage', 'swim', 'climb']).optional(),
+  loop: z.boolean().optional()
 }).strict();
 const audioUrl = z.string().regex(/^\/audio\/[a-zA-Z0-9._/-]+$/);
 const audioCategorySchema = z.enum(['movement', 'combat', 'magic', 'creature', 'object', 'scene']);

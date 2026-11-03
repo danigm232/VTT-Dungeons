@@ -43,6 +43,8 @@ export type EncounterDefinition = {
   creature: { id: string; label: string; tokenId: string; color: string; cell: { col: number; row: number }; sheet?: CreatureSheet };
   note: string;
   mirrorPlayer?: boolean;
+  /** A physical passage opens after this prepared encounter reaches 0 HP. */
+  defeatUnlockObjectId?:string;
 };
 /** Enemies prepared for the DM. Unlike stageActors, their identity and
  * starting coordinates are never included in the public campaign definition. */
@@ -56,16 +58,19 @@ export type WheelInteractionDefinition = { sceneId: string; targetId: string; ce
 export type MirrorInteractionDefinition = { sceneId: string; targetId: string; cells: Array<{ col: number; row: number }>; nearbyLabel: string; notice: string; effectFrames: string[]; durationMs?: number };
 /** Interacción de proximidad con un PNJ de escena. Su reacción es visual y no
  * resuelve diálogo, tiradas ni progreso narrativo por cuenta propia. */
-export type StageActorInteractionDefinition = { sceneId: string; targetId: string; surfaceId?: string; cells: Array<{ col: number; row: number }>; nearbyLabel: string; responseAnimation: string; notice: string; durationMs?: number };
+export type StageActorInteractionDefinition = { sceneId: string; targetId: string; surfaceId?: string; siteAnchor?:boolean; cells: Array<{ col: number; row: number }>; nearbyLabel: string; responseAnimation: string; notice: string; durationMs?: number };
 export type MapAddress = { mapId: string; zoneId: string; surfaceId: string; cell: { col: number; row: number } };
 export type PortDefinition = {
   id: string; from: MapAddress; to: MapAddress;
+  label?:string;returnLabel?:string;interactionTargetId?:string;rememberReturn?:boolean;
   mode: 'rigging' | 'stairs' | 'road' | 'door' | 'rope-ladder' | 'hatch' | 'hole' | 'swim';
   return: 'explicit' | 'adjudicated'; conditionId?: string;
   /** Restricts automatic traversal to a direction; manual adjudication remains available. */
   autoDirection?: 'both' | 'forward' | 'manual';
   /** Continuous physical approach before an automatic road transition. */
   minimumApproachSteps?: number;
+  /** Server-timed departure walk before changing maps; never adds tactical cells. */
+  departureWalk?:{durationMs:number;points:{x:number;y:number;z:number}[]};
   /** DM-confirmed journey duration from the campaign source, in game seconds. */
   travelSeconds?: number;
 };
@@ -136,6 +141,7 @@ export function compileCampaignBundle(input: CampaignServerBundle): CompiledCamp
     if (!publicDefinition.tokens[input.encounter.creature.tokenId]) errors.push('Token del encuentro inexistente');
     if (publicDefinition.roster.some(actor => actor.id === input.encounter?.creature.id)) errors.push('ID de criatura duplicado con un personaje');
     const sheet = input.encounter.creature.sheet;
+    if(input.encounter.defeatUnlockObjectId&&!scene?.props.some(p=>p.id===input.encounter!.defeatUnlockObjectId&&p.kind==='door'))errors.push('Salida del encuentro sin puerta en su escena');
     if (sheet && (!Number.isInteger(sheet.maxHp) || sheet.maxHp < 1 || !Number.isInteger(sheet.armorClass) || sheet.armorClass < 1 || !Number.isFinite(sheet.speedMeters) || sheet.speedMeters <= 0 || [...sheet.traits, ...sheet.actions].some(value => typeof value !== 'string' || value.length > 200) || (sheet.combat && !validCombatProfile({ ...sheet.combat, maxHp: sheet.maxHp })))) errors.push('Hoja de criatura inválida');
   }
   const knownCombatIds = new Set([...publicDefinition.roster.map(actor => actor.id), ...publicDefinition.scenes.flatMap(scene => (scene.stageActors ?? []).map(actor => actor.id)), ...(input.encounter ? [input.encounter.creature.id] : [])]);
@@ -175,7 +181,8 @@ export function compileCampaignBundle(input: CampaignServerBundle): CompiledCamp
     const surfaceId = interaction.surfaceId ?? actor.surfaceId ?? scene.surfaceId;
     const surfaceCells = scene.terrain?.surfaces.find(candidate => candidate.id === surfaceId && !candidate.visualOnly)?.tiles.map(tile => tile.cell)
       ?? (surfaceId === scene.surfaceId ? scene.walkable : []);
-    if (surfaceId !== (actor.surfaceId ?? scene.surfaceId) || !interaction.cells.length
+    if (interaction.siteAnchor && actor.interactionOnly!==true) errors.push(`Ancla de lugar aplicada a un PNJ: ${interaction.targetId}`);
+    if ((!interaction.siteAnchor && surfaceId !== (actor.surfaceId ?? scene.surfaceId)) || !interaction.cells.length
       || interaction.cells.some(cell => !surfaceCells.some(walkable => cellKey(walkable) === cellKey(cell))))
       errors.push(`Interacción de PNJ fuera de suelo transitable: ${interaction.targetId}`);
     if (!interaction.nearbyLabel || interaction.nearbyLabel.length > 80 || !interaction.notice || interaction.notice.length > 240) errors.push(`Texto de interacción de PNJ inválido: ${interaction.targetId}`);
@@ -200,7 +207,11 @@ export function compileCampaignBundle(input: CampaignServerBundle): CompiledCamp
   for (const port of input.ports ?? []) {
     if (!/^[a-z0-9][a-z0-9._-]{0,39}$/i.test(port.id) || portIds.has(port.id)) errors.push(`Puerto duplicado o inválido: ${port.id}`);
     portIds.add(port.id);
+    if([port.label,port.returnLabel].some(label=>label!==undefined&&(!label.trim()||label.length>100)))errors.push(`Etiqueta de viaje inválida: ${port.id}`);
+    if(port.rememberReturn&&(port.autoDirection!=='manual'||port.return!=='adjudicated'||port.departureWalk))errors.push(`Retorno recordado requiere viaje manual directo: ${port.id}`);
+    if(port.interactionTargetId&&!publicDefinition.scenes.find(s=>s.id===port.from.mapId)?.stageActors?.some(a=>a.id===port.interactionTargetId))errors.push(`Viaje sin punto de interacción: ${port.id}`);
     if(port.minimumApproachSteps!==undefined&&(!Number.isInteger(port.minimumApproachSteps)||port.minimumApproachSteps<1||port.minimumApproachSteps>20||port.mode!=='road'))errors.push(`Aproximación de camino inválida: ${port.id}`);
+    if(port.departureWalk&&(!Number.isFinite(port.departureWalk.durationMs)||port.departureWalk.durationMs<500||port.departureWalk.durationMs>10000||!(port.mode==='road'||port.mode==='swim'&&port.id==='travel-pecio-boat')||port.departureWalk.points.length<2||port.departureWalk.points.length>16||port.departureWalk.points.some(p=>![p.x,p.y,p.z].every(Number.isFinite))))errors.push(`Salida animada inválida: ${port.id}`);
     if (!terrainHas(port.from) || !terrainHas(port.to)) errors.push(`Puerto fuera de una superficie: ${port.id}`);
     if (port.from.mapId === port.to.mapId && port.from.surfaceId === port.to.surfaceId && cellKey(port.from.cell) === cellKey(port.to.cell)) errors.push(`Puerto sin desplazamiento: ${port.id}`);
   }

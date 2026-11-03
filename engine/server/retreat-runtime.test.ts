@@ -9,6 +9,8 @@ import { surfaceNeighbors, terrainSchema, terrainTile } from '../shared/terrain.
 import { compileCampaignBundle } from './campaign.js';
 import { GameState } from './game.js';
 import { stormwreckBundle } from '../../campaigns/stormwreck-isle/server.js';
+import {retreatJourneyInteractions} from '../../campaigns/stormwreck-isle/public/retreat-journeys.js';
+import {RETREAT_SAVE_GRID_VERSION} from './retreat-migration.js';
 
 const engines: NullEngine[] = [];
 afterEach(() => engines.splice(0).forEach(engine => engine.dispose()));
@@ -129,7 +131,7 @@ describe('Retiro del Dragón · integración global v2', () => {
   it('uses the existing campaign movement, interaction and travel systems without resolving narrative actions', () => {
     const compiled = compileCampaignBundle(stormwreckBundle);
     expect(compiled.public.initialSceneId).toBe('dragon-rest');
-    expect(compiled.stageActorInteractions).toHaveLength(retreatStageActorInteractions.length);
+    expect(compiled.stageActorInteractions).toHaveLength(retreatStageActorInteractions.length+retreatJourneyInteractions.length);
     expect(compiled.privateActors!.filter(actor => actor.sceneId === 'dragon-rest')).toHaveLength(3);
     expect(compiled.doorStates!['dragon-rest']!['a4-library-door']).toBe('closed');
     expect(terrainTile(dragonRestScene.terrain!, { surfaceId: 'beach', cell: dragonRestScene.spawns[0]! })).not.toBeNull();
@@ -144,5 +146,21 @@ describe('Retiro del Dragón · integración global v2', () => {
     expect(result.doorChecks.every((d:any)=>d.closedBlocks&&d.manualOpen)).toBe(true);
     expect(result.legacySavePreserved).toBe(true);
     expect(result.interactionPoints).toHaveLength(13);
+  });
+
+  it('migrates a version 2 save only where an expanded module removed a floor address',()=>{
+    const state=new GameState(stormwreckBundle),saved=state.captureDurable();
+    saved.retreatGridVersion=2;
+    const actor=saved.characters[0]!;actor.sceneId='dragon-rest';actor.surfaceId='a3';actor.cell={col:78,row:39};
+    expect(terrainTile(dragonRestScene.terrain!,{surfaceId:actor.surfaceId,cell:actor.cell})).toBeNull();
+    actor.hp=3;const inventory=[...actor.inventory];saved.progress={...saved.progress,'expansion-sentinel':true};
+    const restored=new GameState(stormwreckBundle);restored.restoreDurable(saved);
+    const next=restored.captureDurable(),moved=next.characters[0]!;
+    expect(next.retreatGridVersion).toBe(RETREAT_SAVE_GRID_VERSION);expect(moved.hp).toBe(3);expect(moved.inventory).toEqual(inventory);
+    expect(next.progress!['expansion-sentinel']).toBe(true);
+    expect(terrainTile(dragonRestScene.terrain!,{surfaceId:moved.surfaceId,cell:moved.cell})).not.toBeNull();
+    const valid=next.characters[0]!;valid.surfaceId='a1';valid.cell={...assembly.walkTargets['a1-room-1'].cell};
+    next.retreatGridVersion=2;const cell={...valid.cell};const again=new GameState(stormwreckBundle);again.restoreDurable(next);
+    expect(again.captureDurable().characters[0]!.cell).toEqual(cell);
   });
 });

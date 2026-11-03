@@ -1,5 +1,11 @@
 # Ruta de Sol: D8 fiable, motor reutilizable para Stormwreck
 
+**Ficha específica de D8 e histórico de su ejecución.** Empezar por el [roadmap maestro](../ROADMAP_V1.md), después estado/código actual y encargo de la escena. Este archivo no es otro roadmap general y sus entradas fechadas no reabren tareas cerradas.
+
+## Acabado visual común — 01/11/2026
+
+Consultar [roadmap visual](VISUAL_ROADMAP.md), [dirección artística](design/VISUAL_ART_DIRECTION.md) y [referencias modernas](design/VISUAL_REFERENCE_LIBRARY.md). Cena conserva su [encargo E0–E6](design/D8_DINNER_EXECUTION_PROMPT.md) y [lista C01–C60](design/D8_DINNER_LITERAL_CHECKLIST_20261021.md), mejorando la misma distribución. Espejo conserva su candidata y sistemas ya implementados. Adoptar estos criterios al siguiente bloque autorizado, sin reconstruir por defecto todas las escenas ni convertir pruebas históricas en cierre artístico.
+
 ## Correcciones solicitadas de mapas y clima — V47 · 05/10/2026
 
 Evidencia vigente: [D8_MAP_CORRECTIONS_20261005.md](evidence/D8_MAP_CORRECTIONS_20261005.md). Amplía el alcance anterior: **entrar en hielo azul ya aplica la caída fatal**, no queda simplemente guiado. Magia, excepciones y el bucle narrativo siguen arbitrados.

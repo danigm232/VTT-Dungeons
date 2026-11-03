@@ -1,5 +1,7 @@
 # D8 Night · audio y VFX
 
+21/10/2026: `audio/d8-night/mirror-cave-v1/{chamber-air,cave-drop-a,cave-drop-b,ice-settle}.wav`, originales sintetizados por `scripts/generate-mirror-cave-audio.mjs`, sin muestras externas. La síntesis de gotas adapta `scripts/generate-camp-audio.mjs` del propio proyecto. Procedencia, medidas y cadencia en `audio/d8-night/mirror-cave-v1/README.md`; no son audio oficial ni recursos declarados CC0.
+
 Los ficheros activos de esta biblioteca se han renombrado con el prefijo `d8-night-` para que la mesa pueda referirse a una intención narrativa, no al nombre de descarga original. Los ambientes y recursos visuales conservan sus créditos CC0. Las descargas de Pixabay que el catálogo ya no usa se conservan en `campaigns/one-shot/private/audio/archive` y no se sirven a la consola.
 
 | Uso en D8 Night | Recurso y autor | Licencia y origen |
@@ -62,3 +64,19 @@ Estos archivos siguen en `campaigns/one-shot/private/audio/archive`; ya no forma
 | Vaso, bebida, madera, piedra e impactos | Glass Clink · https://pixabay.com/sound-effects/film-special-effects-glass-clink-57538/ · Drink Sip and Swallow · https://pixabay.com/sound-effects/people-drink-sip-and-swallow-6974/ · Wood Impact · https://pixabay.com/sound-effects/film-special-effects-wood-impact-84721/ · Single Rock hit dirt 2 · https://pixabay.com/sound-effects/film-special-effects-single-rock-hit-dirt-2-83898/ |
 
 Los archivos activos de `audio/d8-night/` son los que consume la consola. Los originales sustituidos están preservados fuera de `public` para no cargarlos a los clientes. Los de `art/vfx/d8-night/` son la biblioteca visual preparada para las siguientes variantes de clima, hechizos y acciones.
+
+## Candidata del Espejo · 19/10/2026
+
+`playground/mirror-environment.ts` añade geometría y superficies originales generadas por código: estratos de roca, nieve, fracturas de hielo y máscara de bruma. No incorpora imágenes de Octopath ni otros assets externos. Se reutilizan sin modificar los PNG locales `art/tokens/Espejo/espejo_amor_verdadero_base.png` y `espejo_amor_verdadero_activacion_01/02.png`; conservan su procedencia y condiciones previas, sin atribuirles una licencia nueva. El sonido de quiebre sigue siendo **Shattering Ice · DRAGON-STUDIO**, acreditado arriba; solo cambia la mezcla temporal. Las referencias de Octopath se usan exclusivamente para análisis visual.
+
+La segunda revisión añade por código la envolvente glacial continua, bóvedas, estalactitas, galería interior, normal de hielo y máscaras de contacto. No incorpora recursos externos adicionales.
+
+## Acabado del Espejo · 20/10/2026
+
+Se incorporan dos albedos originales generados con `imagegen` integrada: `art/materials/mirror/glacial-slate-v1.png` y `glacial-floor-v1.png`. No usan imágenes de entrada ni contienen arte de Octopath. Prompts, originales y condiciones en [materiales del Espejo](art/materials/mirror/README.md). No son recursos oficiales ni se declaran CC0. Las máscaras espaciales, normales, grabados rituales y geometría son originales por código en `playground/mirror-art-direction.ts`.
+
+## Silverfarben · revisión de identidad · 20/10/2026
+
+Los 17 PNG de `art/silverfarben-v3/` son variantes generadas con `image_gen` integrada a partir del PNG de Silverfarben aportado por el usuario, conservando su identidad y diseño. El original no se sustituye ni recibe una licencia nueva. No son arte oficial de D&D ni se declaran CC0. Referencias y prompts exactos: [procedencia](art/silverfarben-v3/provenance.json). Recortes alfa, condiciones de reutilización y limitaciones de vistas: [auditoría](../../../docs/evidence/SILVERFARBEN_VISUAL_AUDIT_20261020.md).
+
+La revisión `art/silverfarben-v4/` sustituye conjurar, trepar, nadar, arrastrarse y cinco estados solicitados por el usuario con seis poses por secuencia (13 láminas y 78 dibujos contando las cinco vistas de conjurar). Se utilizó la herramienta integrada de imágenes con el original como referencia de identidad. No se alteran el original ni su licencia; no son arte oficial ni CC0. [Prompts y procedencia V4](art/silverfarben-v4/provenance.json), [uso y límites](art/silverfarben-v4/README.md).

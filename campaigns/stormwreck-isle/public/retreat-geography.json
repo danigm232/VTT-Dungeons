@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "availableStage": 4,
+  "completedSubphase": "G1.4",
+  "content": "VTT_AMBIENCE",
+  "modules": [
+    "Geography_G11_A3_A4_Connected_Inland",
+    "Geography_G12_Temple_A1_Connected_Inland",
+    "Geography_G13_Winch_Observatorio_Connected_Headland",
+    "Geography_G14_Pleamar_Coastal_Skirt",
+    "Geography_G14_Approach_Basal_Talus",
+    "Geography_G14_Landing_Bank_Connection"
+  ],
+  "navigationModified": false
+}

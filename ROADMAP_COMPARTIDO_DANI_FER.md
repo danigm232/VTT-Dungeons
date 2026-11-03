@@ -1,4 +1,8 @@
-# Roadmap compartido Dani + Fer — producción de campañas y evolución del VTT
+# Anexo de coordinación Dani + Fer — campañas y plataforma
+
+**Entrada principal: [roadmap maestro ROADMAP_V1.md](ROADMAP_V1.md).** Este archivo conserva su nombre por compatibilidad y concreta responsabilidades/dependencias entre colaboradores; no es una planificación general alternativa.
+
+**Consolidación, 01/11/2026:** el orden activo, herramientas y matriz de cambios de Retiro/Pecio se consultan en las secciones 3–5 del maestro. Los hitos de plataforma y encargos iniciales inferiores son coordinación/backlog; no se activan automáticamente ni sustituyen el bloque vigente.
 
 **Versión del plan:** 1.0 · **Fecha:** 27/09/2026 · **Estado:** hoja de ruta conjunta propuesta, pendiente de ejecutar sus nuevos hitos.  
 **Repositorio:** VTT-Dungeons · **Responsables:** Dani (campañas y aceptación jugable) y Fer (plataforma y capacidades compartidas).
@@ -11,8 +15,9 @@ Este documento **coordina** dos líneas de trabajo. No sustituye el roadmap de l
 
 | Documento | Autoridad |
 |---|---|
-| [ROADMAP_V1.md](ROADMAP_V1.md) | Hitos M0–M7, decisiones y criterios del Pecio; fuente de verdad de la planificación específica de Dani. |
+| [ROADMAP_V1.md](ROADMAP_V1.md) | Entrada única de planificación general, jerarquía de anexos y contrato M0–M7 del Pecio. |
 | [PROJECT_STATE.md](PROJECT_STATE.md) | Estado observado más reciente del código, versión, incidencias y evidencia. Prevalece sobre cifras históricas del roadmap. |
+| [Roadmap visual común](docs/VISUAL_ROADMAP.md) y [dirección artística](docs/design/VISUAL_ART_DIRECTION.md) | Ampliación del 01/11/2026: referencias modernas y criterios de arte para ambos; se aplican al bloque autorizado sin reemplazar orden ni referencias aprobadas de una escena. |
 | [Guion M6/M7](campaigns/stormwreck-isle/private/m5/M6_M7_PHYSICAL_PLAYTEST_20260925.md) | Procedimiento de validación física del Pecio; no sustituirlo por pruebas simuladas. |
 | [Plan M5 de recursos](campaigns/stormwreck-isle/private/m5/M5_ASSET_COVERAGE_PLAN_20260925.md) | Cobertura de arte y sus criterios de aceptación separados de la lógica. |
 | [Dirección HD-2D](docs/HD2D_DIRECTION.md) y [reutilización](docs/OPEN_SOURCE_REVIEW.md) | Arquitectura, experiencia de mesa, procedencia, licencias y evaluación antes de incorporar dependencias. |
