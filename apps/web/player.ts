@@ -1,5 +1,6 @@
 import { io } from 'socket.io-client';
 import nipplejs from 'nipplejs';
+import { Assets, type Texture } from 'pixi.js';
 import { OBJECT_MODEL_VERSION, PROTOCOL_VERSION, explorationBasicActionCatalogue } from '../../engine/shared/protocol';
 import type { BasicCombatAction, CharacterPublic, CombatAction, CommandResult, ExplorationAction, ExplorationBasicAction, Facing, PlayerPrivate, WorldSnapshot } from '../../engine/shared/protocol';
 import type { Cell } from '../../engine/shared/campaign';
@@ -443,7 +444,10 @@ let lastSnapshot: WorldSnapshot | null = null;
 let lastSnapshotCharacterId: string | null = null;
 let readyEpoch = -1;
 let runtimeEpoch: string | null = null;
-const skillTransition = new SkillTransitionScreen($<HTMLDialogElement>('skillTransition'));
+const skillTransition = new SkillTransitionScreen(async url => {
+  const { source } = await Assets.load<Texture>(url);
+  return { image: source.resource as CanvasImageSource, width: source.pixelWidth, height: source.pixelHeight };
+});
 const sceneTransitionKey = ({ sceneEpoch, sceneId }: WorldSnapshot) => `${sceneEpoch}:${sceneId}`;
 const backpack = new InventoryPanel($('inventory') as HTMLDialogElement, campaign.campaignId, (request, retryId) => {
   if (!socket.connected || !runtimeEpoch || !privateState?.characterId) return null;

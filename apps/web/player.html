@@ -1,26 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><title>Jugador · D&D Immersive Engine</title><link rel="stylesheet" href="/apps/web/common.css"><link rel="stylesheet" href="/apps/web/player.css"><link rel="stylesheet" href="/apps/web/player-combat.css"><link rel="stylesheet" href="/apps/web/inventory.css"></head><body>
 <div id="world"></div><main id="join" class="sheet"><h1>D&D Immersive Engine</h1><p>Elige el aventurero que controlarás en esta sesión.</p><div id="characters"></div><p id="connection" class="muted">Conectando…</p></main>
-<dialog id="skillTransition" class="skill-transition" aria-labelledby="skillTitle" aria-describedby="skillDescription">
-  <header>
-    <p class="skill-destination"><span>Destino</span> · <span id="skillDestination"></span></p>
-    <h2 id="skillTitle" tabindex="-1"></h2>
-    <p id="skillAbility" class="skill-ability"></p>
-  </header>
-  <canvas class="skill-stage" width="640" height="260" aria-hidden="true"></canvas>
-  <p id="skillDescription" class="skill-description"></p>
-  <div class="skill-controls">
-    <button id="skillDie" class="skill-die" type="button" aria-label="Lanzar d20 de práctica">
-      <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M24 3 43 13 44 34 24 45 4 34 5 13Z M5 13l7 19 12 13 12-13 7-19M12 32h24L24 3Z" stroke="currentColor" stroke-width="1.3"/><text id="skillDieFace" x="24" y="29" text-anchor="middle">20</text></svg>
-    </button>
-    <div class="skill-feedback">
-      <p>Prueba de práctica · opcional</p>
-      <p id="skillResult" role="status"></p>
-      <p id="skillCaption" aria-live="polite"></p>
-    </div>
-    <div class="skill-next"><small id="skillStatus" role="status"></small><button id="skillContinue" class="primary" type="button" disabled>Continuar</button></div>
-  </div>
-</dialog>
 <section id="hud" hidden><div class="identity"><strong id="name">—</strong><span id="hp">PG —</span><button id="sheetButton">Hoja</button><button id="inventoryButton">Mochila</button><button id="settingsButton" type="button" aria-label="Configuración y opciones" title="Configuración y opciones">⚙</button></div><div id="combatNotice" class="combat-notice" hidden></div><div id="combatHud" hidden><button id="combatHp">❤️ —</button><button id="combatSheet">Hoja</button><button id="combatSettingsButton" type="button" aria-label="Configuración y opciones" title="Configuración y opciones">⚙</button></div><aside id="combatInitiative" class="combat-initiative" aria-label="Orden de iniciativa" hidden></aside><aside id="combatLegend" class="combat-legend" aria-label="Leyenda táctica" hidden><strong>Leyenda táctica</strong><span><i class="legend-move"></i>Movimiento</span><span><i class="legend-normal"></i>Alcance normal</span><span><i class="legend-long"></i>Alcance largo</span><span><i class="legend-hostile"></i>Oponente</span></aside><section id="combatHero" class="combat-hero" aria-label="Estado de tu personaje" hidden></section><nav id="combatCommandBar" class="combat-command-bar" aria-label="Acciones de combate" hidden></nav><button id="endTurn" hidden>Terminar turno</button><div id="targetMenu" hidden></div><div id="explorationMenu" hidden></div><div id="sceneNotice" class="scene-notice"></div><aside id="campInteractions" class="camp-player-interactions" aria-label="Interacciones cercanas" hidden><header><strong>A tu alrededor</strong><small>Interactúas tú</small></header><div id="campInteractionList"></div></aside><nav id="playerCameraControls" class="player-camera-controls" aria-label="Orientación de cámara. En móvil, desliza horizontalmente con dos dedos para girar." hidden><button id="playerCameraLeft" type="button" title="Girar 15° a la izquierda (Q)">↶ <kbd>Q</kbd></button><span id="playerCameraLabel" aria-live="polite">Vista inicial</span><small class="player-camera-touch-hint">↔ Desliza con dos dedos</small><button id="playerCameraDetail" type="button" title="Ver tu personaje con más detalle">Detalle</button><button id="playerCameraOverview" type="button" title="Volver al encuadre del escenario">Conjunto</button><button id="playerCameraReset" type="button" title="Restablecer la vista inicial">Inicio</button><button id="playerCameraRight" type="button" title="Girar 15° a la derecha (E)">↷ <kbd>E</kbd></button></nav><div id="joystick"></div><button id="actionToggle" aria-controls="targetMenu explorationMenu" aria-expanded="false">⚔ Acciones</button><button id="interact" disabled>Acércate al objetivo</button>
 <section id="combatResources" class="combat-resources" aria-label="Recursos de tu turno" hidden></section>
 <aside id="selectedAction" class="selected-action" aria-live="polite" hidden></aside>

@@ -1,11 +1,14 @@
 import {
-  blendMotion, sampleTrack, skillAbilities, SkillMicroScenePlayback,
-  type ActorAnimation, type Motion, type SkillPhase, type Track
+  blendMotion, sampleTrack, skillAbilities, skillSceneRoles, SkillMicroScenePlayback,
+  type ActorAnimation, type Motion, type SkillMicroScene, type SkillPhase, type Track
 } from '../../../engine/client/skill-micro-scene';
 import { drawProp, line, oval } from './skill-scene-art';
-import { SkillSceneSprite, selectSkillActor } from './skill-scene-sprite';
+import { SkillSceneSprite, type SkillActor, type SkillImageLoader } from './skill-scene-sprite';
 import { skillMicroScenes } from './skill-scenes';
 import { preparePerformanceSound } from './skill-performance-sound';
+import markup from './skill-transition.html?raw';
+import chasmPlate from './art/skill-chasm.webp';
+import floorPlate from './art/skill-floor.webp';
 import './skill-transition.css';
 
 type Frame = ReturnType<SkillMicroScenePlayback['frame']>;
@@ -42,6 +45,7 @@ function at(ctx: CanvasRenderingContext2D, x: number, y: number, motion: Motion,
 }
 
 export class SkillTransitionScreen {
+  readonly dialog: HTMLDialogElement;
   private readonly title: HTMLElement;
   private readonly destination: HTMLElement;
   private readonly ability: HTMLElement;
@@ -52,6 +56,7 @@ export class SkillTransitionScreen {
   private readonly die: HTMLButtonElement;
   private readonly dieFace: Element;
   private readonly continueButton: HTMLButtonElement;
+  private readonly plate: HTMLImageElement;
   private readonly ctx: CanvasRenderingContext2D | null;
   private readonly reduced = matchMedia('(prefers-reduced-motion: reduce)');
   private active: { key: string; playback: SkillMicroScenePlayback; sprite: SkillSceneSprite; modifier?: number } | undefined;
@@ -62,41 +67,49 @@ export class SkillTransitionScreen {
   private startedAt = 0;
   private sound: ReturnType<typeof preparePerformanceSound>;
 
-  constructor(private readonly dialog: HTMLDialogElement) {
+  constructor(private readonly loadImage: SkillImageLoader, private readonly options: { onContinue?: () => void; random?: () => number } = {}) {
+    const template = document.createElement('template');
+    template.innerHTML = markup;
+    const dialog = template.content.querySelector('dialog')!;
+    this.dialog = dialog;
+    document.body.append(dialog);
     const get = <T extends Element>(selector: string) => dialog.querySelector<T>(selector)!;
     this.title = get('#skillTitle'); this.destination = get('#skillDestination'); this.ability = get('#skillAbility');
     this.description = get('#skillDescription'); this.status = get('#skillStatus'); this.result = get('#skillResult');
     this.caption = get('#skillCaption'); this.die = get('#skillDie'); this.dieFace = get('#skillDieFace');
+    this.plate = get('.skill-plate');
     this.continueButton = get('#skillContinue'); this.ctx = get<HTMLCanvasElement>('canvas').getContext('2d');
     this.die.addEventListener('click', () => this.roll());
-    this.continueButton.addEventListener('click', () => { if (!this.continueButton.disabled) this.reset(); });
+    this.continueButton.addEventListener('click', () => {
+      if (this.continueButton.disabled) return;
+      if (this.options.onContinue) this.options.onContinue();
+      else this.reset();
+    });
     dialog.addEventListener('cancel', event => event.preventDefault());
   }
 
   get open() { return this.dialog.open; }
 
-  show(key: string, destination: string, actor: ReturnType<typeof selectSkillActor>,
-    options: { dc?: number; modifiers?: Readonly<Record<string, number>> } = {}) {
+  show(key: string, destination: string, actor: SkillActor | undefined,
+    options: { dc?: number; modifiers?: Readonly<Record<string, number>>; scene?: SkillMicroScene } = {}) {
     if (this.active?.key === key) return;
-    const scene = skillMicroScenes[Math.floor(Math.random() * skillMicroScenes.length)]!;
-    const roles = new Set([scene.ambientAnimation, scene.preparationAnimation, scene.successAnimation.animation,
-      scene.failureAnimation.animation, scene.recoveryAnimation, 'idle_breath' as const]);
-    for (const action of [scene.successAnimation, scene.failureAnimation]) {
-      for (const [, animation] of action.beats ?? []) roles.add(animation);
-    }
+    const scene = options.scene ?? skillMicroScenes[Math.floor(Math.random() * skillMicroScenes.length)]!;
     this.sound?.close(); this.sound = undefined;
     this.startedAt = performance.now();
     this.active = { key, playback: new SkillMicroScenePlayback(scene, this.startedAt, options.dc),
-      sprite: new SkillSceneSprite(actor, [...roles]), modifier: options.modifiers?.[scene.id] };
+      sprite: new SkillSceneSprite(actor, skillSceneRoles(scene), this.loadImage), modifier: options.modifiers?.[scene.id] };
     this.previousFrame = -Infinity; this.previousPhase = undefined; this.previousPaint = '';
     this.dialog.dataset.skill = scene.id;
+    this.dialog.dataset.terrain = scene.terrain ?? 'floor';
+    const plate = scene.terrain === 'chasm' ? chasmPlate : floorPlate;
+    if (this.plate.getAttribute('src') !== plate) this.plate.src = plate;
     this.title.textContent = scene.name;
     this.destination.textContent = destination;
     this.ability.textContent = `${skillAbilities[scene.ability]} · CD ${this.active.playback.dc}`;
     this.description.textContent = scene.description;
     this.result.textContent = '';
     this.result.removeAttribute('data-outcome');
-    this.caption.textContent = '';
+    this.caption.textContent = scene.prompt;
     this.dieFace.textContent = '20';
     this.die.disabled = false;
     this.setLoading('Preparando el mapa…');
@@ -127,7 +140,7 @@ export class SkillTransitionScreen {
 
   private roll() {
     const active = this.active;
-    if (!active?.playback.roll(performance.now(), active.modifier)) return;
+    if (!active?.playback.roll(performance.now(), active.modifier, this.options.random)) return;
     if (active.playback.scene.sound === 'instrument') this.sound = preparePerformanceSound();
     this.die.disabled = true;
     this.result.textContent = 'Lanzando el d20…';
@@ -158,7 +171,7 @@ export class SkillTransitionScreen {
       this.caption.textContent = (result.success ? playback.scene.successAnimation : playback.scene.failureAnimation).caption;
     }
     if (winding(frame.phase) && !this.reduced.matches) this.dieFace.textContent = String(1 + Math.floor(frame.elapsedMs / 45 * 7) % 20);
-    const paintKey = `${this.reduced.matches}:${frame.phase}:${sprite.revision}`;
+    const paintKey = `${this.reduced.matches}:${frame.phase}:${sprite.revision}:${this.plate.complete}:${this.plate.naturalWidth}`;
     if (this.ctx && (!this.reduced.matches || paintKey !== this.previousPaint)) {
       this.previousPaint = paintKey;
       this.paint(this.ctx, frame, (now - this.startedAt) / 1000);
@@ -168,6 +181,7 @@ export class SkillTransitionScreen {
   private paint(ctx: CanvasRenderingContext2D, frame: Frame, seconds: number) {
     const { playback, sprite } = this.active!;
     const { scene, result } = playback;
+    const paintedPlate = this.plate.complete && this.plate.naturalWidth > 0;
     const reduced = this.reduced.matches;
     const outcome = result?.success ? 'success' : 'failure';
     const action = result?.success ? scene.successAnimation : scene.failureAnimation;
@@ -190,6 +204,7 @@ export class SkillTransitionScreen {
     const drawLayer = (front: boolean) => {
       for (const prop of scene.props) {
         if (Boolean(prop.front) !== front) continue;
+        if (paintedPlate && (prop.art === 'ledge-left' || prop.art === 'ledge-right')) continue;
         const pose = motionAt(frame, prop.ambient, prop[outcome], reduced);
         const fraction = prop.anchor === 'head' ? .8 : .47;
         const x = prop.anchor ? scene.actor.x + prop.x + (motion.x ?? 0) + sprite.height * fraction * (motion.tilt ?? 0) : prop.x;
@@ -198,14 +213,21 @@ export class SkillTransitionScreen {
       }
     };
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.save();
+    ctx.translate(640, 471);
+    const scale = scene.terrain === 'chasm' ? 2 : 1.86;
+    ctx.scale(scale, scale);
+    ctx.translate(-320, -202);
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    if (scene.ground !== false) line(ctx, [[117, 205], [523, 205]], '#7d998345', 1.5);
+    if (!scene.terrain && !paintedPlate) line(ctx, [[117, 205], [523, 205]], '#7d998345', 1.5);
     drawLayer(false);
-    if (scene.actor.y >= 192 && (motion.y ?? 0) < 30) {
-      oval(ctx, scene.actor.x + (motion.x ?? 0), scene.actor.y + 2, 23, 4, '#080e125c');
+    if (scene.actor.y >= 192 && Math.abs(motion.y ?? 0) < 8) {
+      const x = scene.actor.x + (motion.x ?? 0);
+      if (!scene.terrain || x < 196 || x > 453) oval(ctx, x, scene.actor.y + 2, 21, 3, '#080e1287');
     }
     at(ctx, scene.actor.x, scene.actor.y, motion, () => sprite.draw(ctx, role, t * 1000,
       role === 'jump' ? actionProgress : undefined, reduced));
     drawLayer(true);
+    ctx.restore();
   }
 }

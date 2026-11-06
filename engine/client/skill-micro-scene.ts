@@ -34,6 +34,7 @@ export type SkillMicroScene = {
   id: string;
   name: string;
   ability: keyof typeof skillAbilities;
+  prompt: string;
   description: string;
   ambientAnimation: ActorAnimation;
   preparationAnimation: ActorAnimation;
@@ -42,10 +43,19 @@ export type SkillMicroScene = {
   recoveryAnimation: ActorAnimation;
   actor: { x: number; y: number; ambient?: Track };
   props: readonly SceneProp[];
-  ground?: boolean;
+  terrain?: 'chasm';
   sound?: 'instrument';
   defaultDC: number;
 };
+
+export function skillSceneRoles(scene: SkillMicroScene) {
+  const roles = new Set<ActorAnimation>([scene.ambientAnimation, scene.preparationAnimation, scene.recoveryAnimation, 'idle_breath']);
+  for (const action of [scene.successAnimation, scene.failureAnimation]) {
+    roles.add(action.animation);
+    for (const [, animation] of action.beats ?? []) roles.add(animation);
+  }
+  return roles;
+}
 
 const motionDefaults: Required<Motion> = { x: 0, y: 0, tilt: 0, scale: 1, opacity: 1, cue: 0, facing: 1 };
 

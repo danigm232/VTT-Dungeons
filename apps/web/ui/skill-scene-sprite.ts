@@ -1,4 +1,3 @@
-import { Assets, type Texture } from 'pixi.js';
 import type { PublicCampaignDefinition } from '../../../engine/shared/campaign';
 import type { WorldSnapshot } from '../../../engine/shared/protocol';
 import { isolateAtlasRGBA } from '../../../engine/client/atlas-isolation';
@@ -10,9 +9,10 @@ import { drawFallbackActor } from './skill-scene-art';
 
 type Animations = PublicCampaignDefinition['tokenAnimations'][string];
 type Frame = Animations[string]['frames'][number];
-type Actor = { asset: PublicCampaignDefinition['tokens'][string]; animations: Animations };
+export type SkillActor = { asset: PublicCampaignDefinition['tokens'][string]; animations: Animations };
+export type SkillImageLoader = (url: string) => Promise<{ image: CanvasImageSource; width: number; height: number }>;
 
-export function selectSkillActor(campaign: PublicCampaignDefinition, current: WorldSnapshot, previous: WorldSnapshot, characterId: string): Actor | undefined {
+export function selectSkillActor(campaign: PublicCampaignDefinition, current: WorldSnapshot, previous: WorldSnapshot, characterId: string): SkillActor | undefined {
   const roster = campaign.roster.find(character => character.id === characterId);
   const tokenId = current.entities.find(entity => entity.id === characterId)?.tokenId
     ?? previous.entities.find(entity => entity.id === characterId)?.tokenId ?? roster?.tokenId
@@ -39,27 +39,35 @@ const spriteRoles: Record<ActorAnimation, readonly string[]> = {
 
 type SpriteFrame = { image: HTMLCanvasElement; width: number; height: number; pivot: number };
 
+export function skillSpriteClips(actor: SkillActor, roles: Iterable<ActorAnimation>) {
+  const clips = new Map<ActorAnimation, { clip?: Animations[string]; mirror: boolean; authored: boolean }>();
+  for (const role of roles) {
+    const facing = role === 'idle_listen_away' ? ['w', 'sw', 'e', 'se', 's'] : ['e', 'se', 'ne', 'w', 'sw', 's'];
+    const resolve = (options: readonly string[]) => options.flatMap(state => [...facing.map(dir => `${state}-${dir}`), state])
+      .find(state => actor.animations[state]?.frames.length);
+    const specific = resolve(spriteRoles[role]);
+    const state = specific ?? resolve(['idle-standing', 'idle', 'combat-idle']);
+    const clip = state ? correctDirectionalClip(state, actor.animations[state]!, actor.animations)
+      : directionalRestAnimation(actor.animations, `idle-${facing[0]}`) ?? undefined;
+    const wrongSide = role === 'idle_listen_away' ? /-(e|se|ne)$/ : /-(w|sw)$/;
+    clips.set(role, { clip, mirror: Boolean(clip?.flipX) !== Boolean(state && wrongSide.test(state)), authored: Boolean(specific) });
+  }
+  return clips;
+}
+
 export class SkillSceneSprite {
-  private readonly images = new Map<string, CanvasImageSource | null>();
+  private readonly images = new Map<string, Awaited<ReturnType<SkillImageLoader>> | null>();
   private readonly frames = new Map<Frame, SpriteFrame | null>();
-  private readonly clips = new Map<ActorAnimation, { clip?: Animations[string]; mirror: boolean; authored: boolean }>();
+  private readonly clips: ReturnType<typeof skillSpriteClips>;
   revision = 0;
 
   get height() { return 108 * ((this.actor?.asset.worldHeightMeters ?? 1.65) / 1.65); }
 
-  constructor(private readonly actor: Actor | undefined, roles: ActorAnimation[]) {
+  constructor(private readonly actor: SkillActor | undefined, roles: Iterable<ActorAnimation>, private readonly loadImage: SkillImageLoader) {
+    this.clips = actor ? skillSpriteClips(actor, roles) : new Map();
     if (!actor) return;
     this.load(actor.asset.url);
-    for (const role of roles) {
-      const facing = role === 'idle_listen_away' ? ['w', 'sw', 'e', 'se', 's'] : ['e', 'se', 'ne', 'w', 'sw', 's'];
-      const resolve = (options: readonly string[]) => options.flatMap(state => [...facing.map(dir => `${state}-${dir}`), state])
-        .find(state => actor.animations[state]?.frames.length);
-      const specific = resolve(spriteRoles[role]);
-      const state = specific ?? resolve(['idle-standing', 'idle', 'combat-idle']);
-      const clip = state ? correctDirectionalClip(state, actor.animations[state]!, actor.animations)
-        : directionalRestAnimation(actor.animations, `idle-${facing[0]}`) ?? undefined;
-      const wrongSide = role === 'idle_listen_away' ? /-(e|se|ne)$/ : /-(w|sw)$/;
-      this.clips.set(role, { clip, mirror: Boolean(clip?.flipX) !== Boolean(state && wrongSide.test(state)), authored: Boolean(specific) });
+    for (const { clip } of this.clips.values()) {
       for (const frame of clip?.frames ?? []) this.load(typeof frame === 'string' ? frame : frame.url);
     }
   }
@@ -67,8 +75,8 @@ export class SkillSceneSprite {
   private load(url: string) {
     if (this.images.has(url)) return;
     this.images.set(url, null);
-    void Assets.load<Texture>(url).then(texture => {
-      this.images.set(url, texture.source.resource as CanvasImageSource);
+    void this.loadImage(url).then(image => {
+      this.images.set(url, image);
       this.revision++;
     }).catch(() => { /* The actor can use another pose or its base art. */ });
   }
@@ -79,14 +87,13 @@ export class SkillSceneSprite {
     const crop = typeof source === 'string' ? null : source;
     const image = this.images.get(typeof source === 'string' ? source : source.url);
     if (!image) return null;
-    const texture = Assets.get<Texture>(typeof source === 'string' ? source : source.url);
-    const width = crop?.width ?? texture?.source.pixelWidth ?? 0;
-    const height = crop?.height ?? texture?.source.pixelHeight ?? 0;
+    const width = crop?.width ?? image.width;
+    const height = crop?.height ?? image.height;
     if (!width || !height) return null;
     const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return null;
-    ctx.drawImage(image, crop?.x ?? 0, crop?.y ?? 0, width, height, 0, 0, width, height);
+    ctx.drawImage(image.image, crop?.x ?? 0, crop?.y ?? 0, width, height, 0, 0, width, height);
     const pixels = ctx.getImageData(0, 0, width, height);
     if (crop?.alphaSeeds) {
       pixels.data.set(isolateAtlasRGBA(pixels.data, width, height, crop.alphaSeeds)); ctx.putImageData(pixels, 0, 0);

@@ -1,0 +1,54 @@
+body { margin: 0; background: #0a2024; }
+.skill-preview {
+  position: absolute;
+  top: max(.68rem, env(safe-area-inset-top));
+  left: max(.85rem, env(safe-area-inset-left));
+  z-index: 2;
+  color: #ead8b9;
+  font: 500 .78rem/1.2 system-ui, sans-serif;
+}
+.skill-preview-label { display: block; margin-bottom: .32rem; color: #d2c09f; }
+.skill-preview-label b { margin: 0 .12em; color: #e2b16a; }
+.skill-preview-pages { display: flex; gap: .28rem; align-items: center; }
+.skill-preview button, .skill-preview select, .skill-preview summary {
+  box-sizing: border-box;
+  min-height: 44px;
+  border: 1px solid #9c8462;
+  border-radius: .33rem;
+  padding: .37rem .58rem;
+  color: #f3e4c5;
+  background: #14292bec;
+  font: inherit;
+}
+.skill-preview button, .skill-preview summary, .skill-preview select { cursor: pointer; }
+.skill-preview button:hover, .skill-preview summary:hover { background: #28413e; }
+.skill-preview button[data-previous], .skill-preview button[data-next] { width: 44px; font: 400 1.43rem/1 Georgia, serif; }
+.skill-preview select { color-scheme: dark; max-width: 12rem; }
+.skill-preview summary { display: grid; place-items: center; list-style: none; }
+.skill-preview summary::-webkit-details-marker { display: none; }
+.skill-preview-settings {
+  position: absolute;
+  top: calc(100% + .4rem);
+  right: 0;
+  display: grid;
+  gap: .6rem;
+  min-width: 12rem;
+  padding: .8rem;
+  border: 1px solid #9c8462;
+  border-radius: .36rem;
+  background: #13282a;
+  box-shadow: 0 10px 24px #06171bad;
+}
+.skill-preview-settings label { display: grid; gap: .24rem; }
+.skill-preview-settings select { width: 100%; max-width: none; }
+@media (max-aspect-ratio: 4/3) {
+  .skill-preview { right: max(.85rem, env(safe-area-inset-right)); }
+  .skill-preview-pages { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px auto; }
+  .skill-preview select { width: 100%; max-width: none; }
+  .skill-preview .skill-preview-label { font-size: .71rem; }
+  .skill-transition:has(.skill-preview) .skill-heading { top: 15%; }
+}
+@media (min-aspect-ratio: 4/3) and (max-width: 980px) {
+  .skill-transition:has(.skill-preview) .skill-heading { top: 18%; }
+  .skill-transition:has(.skill-preview) .skill-destination { display: none; }
+}

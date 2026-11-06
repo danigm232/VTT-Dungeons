@@ -3,11 +3,28 @@ type Point = readonly [number, number];
 type Art = (ctx: Brush, cue: number, seconds: number) => void;
 
 const ink = '#0e1c20', slate = '#3c5457', moss = '#82a397', gold = '#e2bc7c', pale = '#f4e4c5';
+const materialTones = new Map<string, [string, string]>();
+
+function litMaterial(ctx: Brush, fill: string, top: number, bottom: number) {
+  if (!/^#[\da-f]{6}$/i.test(fill) || bottom - top < 8) return fill;
+  let tones = materialTones.get(fill);
+  if (!tones) {
+    const value = Number.parseInt(fill.slice(1), 16);
+    const channels = [value >> 16, value >> 8 & 255, value & 255];
+    const mix = (tint: number[], amount: number) => `rgb(${channels.map((channel, i) => Math.round(channel * (1 - amount) + tint[i]! * amount)).join(',')})`;
+    tones = [mix([243, 196, 128], .22), mix([17, 31, 35], .38)];
+    materialTones.set(fill, tones);
+  }
+  const light = ctx.createLinearGradient(0, top, 0, bottom);
+  light.addColorStop(0, tones[0]); light.addColorStop(.37, fill); light.addColorStop(1, tones[1]);
+  return light;
+}
 
 export function shape(ctx: Brush, points: readonly Point[], fill: string, stroke?: string) {
   ctx.beginPath();
   points.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
-  ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+  const ys = points.map(([, y]) => y);
+  ctx.closePath(); ctx.fillStyle = litMaterial(ctx, fill, Math.min(...ys), Math.max(...ys)); ctx.fill();
   if (stroke) { ctx.strokeStyle = stroke; ctx.stroke(); }
 }
 
@@ -18,7 +35,9 @@ export function line(ctx: Brush, points: readonly Point[], color: string, width 
 }
 
 export function oval(ctx: Brush, x: number, y: number, rx: number, ry: number, fill: string | CanvasGradient, angle = 0) {
-  ctx.beginPath(); ctx.ellipse(x, y, rx, ry, angle, 0, 2 * Math.PI); ctx.fillStyle = fill; ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x, y, rx, ry, angle, 0, 2 * Math.PI);
+  ctx.fillStyle = typeof fill === 'string' ? litMaterial(ctx, fill, y - ry, y + ry) : fill;
+  ctx.fill();
 }
 
 function ledge(ctx: Brush, side: number, stride = 0) {
@@ -66,13 +85,18 @@ export function supportingActor(ctx: Brush, kind: 'merchant' | 'guard' | 'bandit
     line(ctx, [[6, -46], [10 - flee * .35, -22], [12 - flee, -4], [19 - flee, -2]], '#233238', 10);
   }
   shape(ctx, [[-17, top + 24], [9, top + 22], [18, top + 44], [14, -31], [-19, -31], [-13, top + 56]], coat, '#182b30');
+  line(ctx, [[-17, top + 25], [-5, top + 27], [0, top + 43]], '#dcc59b75', 1.8);
+  line(ctx, [[-5, top + 34], [-2, -47], [2, -37]], '#2d332e70', 2.2);
   line(ctx, [[-15, -43], [15, -43]], '#443a32', 5);
+  shape(ctx, [[-2, -46], [5, -46], [5, -40], [-2, -40]], '#b19664', '#63533a');
   const nod = Math.sin(time * 1.65) * 1.7 + (cue > 0 ? Math.sin(time * 6) * cue * 3 : 0);
   ctx.save(); ctx.translate(0, top + nod);
   oval(ctx, -4, 5, 12, 15, '#c69470');
   shape(ctx, [[-12, -4], [-20, 2], [-12, 7], [-6, 3], [-3, -4]], '#c69470');
   const hat = kind === 'guard' ? '#7a9096' : kind === 'merchant' ? '#827053' : '#3c4946';
   shape(ctx, [[-20, -2], [-13, -15], [4, -17], [12, -4], [20, 0], [-22, 1]], hat, ink);
+  line(ctx, [[-15, -9], [-10, -14], [3, -16]], '#d9b7809c', 1.45);
+  line(ctx, [[-18, -1], [3, -3], [13, -2]], '#1f2c2e96', 2.4);
   oval(ctx, -12, 4, 1.4, kind === 'guard' && cue < 0 ? .5 : 1.6, ink);
   line(ctx, [[-14, 12], [-11, 13 + (cue > 0 ? 1 : 0)], [-8, cue > 0 ? 11 : 13]], '#644839', 1.5);
   ctx.restore();
@@ -180,12 +204,13 @@ const art: Record<string, Art> = {
   },
   rope: (ctx, cue) => {
     const sag = 6 + Math.max(0, -cue) * 12;
-    for (const x of [-150, 150]) {
-      line(ctx, [[x, -8], [x, 35]], '#8c6749', 9);
-      line(ctx, [[x - 13, 35], [x + 13, 35]], '#695641', 5);
+    for (const x of [-137, 137]) {
+      line(ctx, [[x, -8], [x, 33]], '#8c6749', 9);
+      line(ctx, [[x - 2, -8], [x - 2, 31]], '#c29b64', 1.8);
     }
-    line(ctx, [[-150, 0], [-75, sag * .65], [0, sag], [75, sag * .65], [150, 0]], '#dfba80', 3.5);
-    for (const x of [-150, 150]) line(ctx, [[x - 4, -5], [x + 4, 2], [x - 4, 4]], gold, 2.4);
+    line(ctx, [[-137, 0], [-68, sag * .65], [0, sag], [68, sag * .65], [137, 0]], '#543e30', 4.5);
+    line(ctx, [[-137, 0], [-68, sag * .65], [0, sag], [68, sag * .65], [137, 0]], '#dfba80', 2.6);
+    for (const x of [-137, 137]) line(ctx, [[x - 4, -5], [x + 4, 2], [x - 4, 4]], gold, 2.4);
   },
   disguise: ctx => shape(ctx, [[-14, -2], [-6, 1], [0, -4], [5, 1], [14, -2], [12, 4], [5, 7], [0, 4], [-5, 7], [-12, 4]], '#c6a56e', '#594b3c'),
   heraldry,

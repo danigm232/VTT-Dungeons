@@ -6,7 +6,8 @@ const point: Track = [[0, {}], [.52, { x: 14, tilt: .085 }], [1, { x: 12, tilt: 
 
 export const skillMicroScenes: readonly SkillMicroScene[] = [
   {
-    id: 'acrobatics', name: 'Acrobacias', ability: 'dex', defaultDC: defaultSkillDC,
+    id: 'acrobatics', name: 'Acrobacias', ability: 'dex', defaultDC: defaultSkillDC, terrain: 'chasm',
+    prompt: 'Cruza la cuerda sin perder el equilibrio.',
     description: 'Se utiliza para mantener el equilibrio en situaciones difíciles o realizar movimientos acrobáticos, como atravesar una superficie estrecha sin caer.',
     actor: { x: 218, y: 173, ambient: [[0, {}], [.3, { x: 5, tilt: .055 }], [.68, { x: 1, tilt: -.064 }], [1, {}]] },
     ambientAnimation: 'idle_balance', preparationAnimation: 'idle_balance', recoveryAnimation: 'idle_balance',
@@ -18,29 +19,34 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
       [0, {}], [.25, { x: 33, y: 4, tilt: .26 }], [.48, { x: 44, y: 60, tilt: -.36 }],
       [.74, { x: 46, y: 61, tilt: -.28 }], [1, { x: 25, y: 4 }]
     ] },
-    props: [{ id: 'tightrope', art: 'rope', x: 320, y: 169,
-      failure: [[0, {}], [.49, { cue: -.85 }], [.73, { cue: -.77 }], [1, {}]] }]
+    props: [
+      { id: 'takeoff', art: 'ledge-left', x: 196, y: 202 },
+      { id: 'landing', art: 'ledge-right', x: 453, y: 202 },
+      { id: 'tightrope', art: 'rope', x: 324, y: 169, failure: [[0, {}], [.49, { cue: -.85 }], [.73, { cue: -.77 }], [1, {}]] }
+    ]
   },
   {
-    id: 'athletics', name: 'Atletismo', ability: 'str', defaultDC: defaultSkillDC, ground: false,
+    id: 'athletics', name: 'Atletismo', ability: 'str', defaultDC: defaultSkillDC, terrain: 'chasm',
+    prompt: 'Salta la grieta y aterriza al otro lado.',
     description: 'Sirve para realizar esfuerzos físicos exigentes, como saltar más lejos de lo normal, nadar en aguas turbulentas o superar obstáculos mediante la fuerza.',
-    actor: { x: 183, y: 202 }, ambientAnimation: 'run_loop', preparationAnimation: 'idle_prepare', recoveryAnimation: 'idle_breath',
+    actor: { x: 116, y: 202 }, ambientAnimation: 'run_loop', preparationAnimation: 'idle_prepare', recoveryAnimation: 'idle_breath',
     successAnimation: { animation: 'run_loop', beats: [[.16, 'jump'], [.9, 'idle_breath']], caption: 'Salta la grieta y aterriza al otro lado.', actor: [
-      [0, {}], [.16, { x: 73 }], [.55, { x: 180, y: -75 }], [.88, { x: 264 }], [1, { x: 277 }]
+      [0, {}], [.16, { x: 77 }], [.52, { x: 208, y: -79 }], [.88, { x: 350 }], [1, { x: 369 }]
     ] },
     failureAnimation: { animation: 'run_loop', beats: [[.16, 'jump'], [.62, 'hang'], [.8, 'climb'], [.98, 'idle_breath']],
       caption: 'Se queda corto, se agarra al borde y consigue subir.', actor: [
-      [0, {}], [.16, { x: 68 }], [.45, { x: 156, y: -55 }], [.66, { x: 215, y: 43, tilt: -.12 }],
-      [.8, { x: 218, y: 41, tilt: -.12 }], [1, { x: 251 }]
+      [0, {}], [.16, { x: 77 }], [.45, { x: 202, y: -59 }], [.66, { x: 329, y: 43, tilt: -.12 }],
+      [.8, { x: 331, y: 41, tilt: -.12 }], [1, { x: 350 }]
     ] },
     props: [
-      { id: 'takeoff', art: 'ledge-left', x: 256, y: 202, ambient: [[0, { cue: 1 }]], success: [[0, {}]], failure: [[0, {}]] },
-      { id: 'landing', art: 'ledge-right', x: 410, y: 202 },
-      { id: 'stride-dust', art: 'dust', x: 167, y: 196, ambient: [[0, { opacity: 0 }], [.2, { x: -13, opacity: .75 }], [.8, { x: -52, opacity: 0 }], [1, { opacity: 0 }]] }
+      { id: 'takeoff', art: 'ledge-left', x: 196, y: 202, ambient: [[0, { cue: 1 }]], success: [[0, {}]], failure: [[0, {}]] },
+      { id: 'landing', art: 'ledge-right', x: 453, y: 202 },
+      { id: 'stride-dust', art: 'dust', x: 101, y: 196, ambient: [[0, { opacity: 0 }], [.2, { x: -13, opacity: .75 }], [.8, { x: -52, opacity: 0 }], [1, { opacity: 0 }]] }
     ]
   },
   {
     id: 'arcana', name: 'Conocimiento arcano', ability: 'int', defaultDC: defaultSkillDC,
+    prompt: 'Identifica la runa del cristal.',
     description: 'Permite recordar información sobre conjuros, objetos mágicos y planos de existencia, ayudando a reconocer elementos relacionados con la magia.',
     actor: { x: 234, y: 202, ambient: [[0, {}], [.33, { tilt: -.03 }], [.64, { tilt: .04, x: 3 }], [1, {}]] },
     ambientAnimation: 'idle_inspect', preparationAnimation: 'idle_listen', recoveryAnimation: 'idle_breath',
@@ -57,6 +63,7 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
   },
   {
     id: 'persuasion', name: 'Persuasión', ability: 'cha', defaultDC: defaultSkillDC,
+    prompt: 'Convence al comerciante con buenos argumentos.',
     description: 'Se utiliza para convencer a alguien mediante argumentos sinceros, diplomacia y amabilidad, buscando acuerdos sin amenazas ni engaños.',
     actor: { x: 232, y: 202 }, ambientAnimation: 'idle_talk', preparationAnimation: 'idle_listen', recoveryAnimation: 'idle_breath',
     successAnimation: { animation: 'reach', caption: 'El comerciante asiente y ambos estrechan la mano.', actor: [[0, {}], [.64, { x: 56, tilt: .07 }], [1, { x: 56, tilt: .05 }]] },
@@ -71,6 +78,7 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
   },
   {
     id: 'deception', name: 'Engaño', ability: 'cha', defaultDC: defaultSkillDC,
+    prompt: 'Haz que el guardia crea tu historia.',
     description: 'Se utiliza para mentir de manera convincente, ocultar intenciones o conseguir que otras personas crean una identidad o historia falsa.',
     actor: { x: 240, y: 202 }, ambientAnimation: 'idle_talk', preparationAnimation: 'idle_listen', recoveryAnimation: 'idle_breath',
     successAnimation: { animation: 'walk_loop', caption: 'El guardia se cree la historia y le deja pasar.', actor: [[0, {}], [.35, {}], [1, { x: 184 }]] },
@@ -86,6 +94,7 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
   },
   {
     id: 'history', name: 'Historia', ability: 'int', defaultDC: defaultSkillDC,
+    prompt: 'Reconoce el emblema del escudo antiguo.',
     description: 'Ayuda a recordar acontecimientos históricos, civilizaciones, personajes importantes y símbolos del pasado que pueden explicar lugares u objetos antiguos.',
     actor: { x: 251, y: 202, ambient: [[0, {}], [.5, { tilt: .035 }], [1, {}]] },
     ambientAnimation: 'idle_read', preparationAnimation: 'idle_inspect', recoveryAnimation: 'idle_read',
@@ -100,6 +109,7 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
   },
   {
     id: 'performance', name: 'Interpretación', ability: 'cha', defaultDC: defaultSkillDC, sound: 'instrument',
+    prompt: 'Toca una melodía que cautive al público.',
     description: 'Se utiliza para entretener mediante música, baile, teatro o narración, buscando captar la atención del público con una actuación.',
     actor: { x: 278, y: 202, ambient: [[0, {}], [.27, { tilt: .038 }], [.72, { tilt: -.033 }], [1, {}]] },
     ambientAnimation: 'idle_play', preparationAnimation: 'idle_prepare', recoveryAnimation: 'idle_play',
@@ -115,6 +125,7 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
   },
   {
     id: 'intimidation', name: 'Intimidación', ability: 'cha', defaultDC: defaultSkillDC,
+    prompt: 'Haz retroceder al bandido con tu sola presencia.',
     description: 'Sirve para influir en alguien mediante amenazas, gestos intimidantes o una presencia imponente, intentando que ceda sin necesidad de combatir.',
     actor: { x: 255, y: 202, ambient: [[0, {}], [.5, { tilt: -.03 }], [1, {}]] },
     ambientAnimation: 'idle_brace', preparationAnimation: 'idle_prepare', recoveryAnimation: 'idle_breath',
@@ -127,6 +138,7 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
   },
   {
     id: 'investigation', name: 'Investigación', ability: 'int', defaultDC: defaultSkillDC,
+    prompt: 'Descubre qué palanca abre el mecanismo.',
     description: 'Permite examinar pistas, relacionar indicios y deducir cómo funcionan mecanismos u objetos cuando la respuesta no resulta evidente.',
     actor: { x: 254, y: 202, ambient: [[0, { tilt: .04 }], [.5, { tilt: .09 }], [1, { tilt: .04 }]] },
     ambientAnimation: 'idle_inspect', preparationAnimation: 'idle_listen', recoveryAnimation: 'idle_inspect',
@@ -142,6 +154,7 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
   },
   {
     id: 'sleight-of-hand', name: 'Juego de manos', ability: 'dex', defaultDC: defaultSkillDC,
+    prompt: 'Haz desaparecer la moneda de tus manos.',
     description: 'Se utiliza para manipular objetos discretamente, ocultar pequeñas cosas o realizar movimientos rápidos con las manos sin llamar la atención.',
     actor: { x: 267, y: 202 }, ambientAnimation: 'hand_interact', preparationAnimation: 'idle_prepare', recoveryAnimation: 'idle_breath',
     successAnimation: { animation: 'hand_interact', caption: 'Oculta la moneda y la muestra detrás de la oreja.', actor: [[0, {}], [.55, { tilt: .04 }], [1, { tilt: -.04 }]] },
@@ -158,6 +171,7 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
   },
   {
     id: 'medicine', name: 'Medicina', ability: 'wis', defaultDC: defaultSkillDC,
+    prompt: 'Examina la herida y venda al compañero.',
     description: 'Ayuda a diagnosticar enfermedades, examinar heridas de un compañero o identificar posibles causas de una muerte reciente mediante conocimientos médicos.',
     actor: { x: 256, y: 202, ambient: [[0, { tilt: .03 }], [.56, { tilt: .11 }], [1, { tilt: .03 }]] },
     ambientAnimation: 'idle_inspect', preparationAnimation: 'idle_prepare', recoveryAnimation: 'idle_breath',
@@ -175,6 +189,7 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
   },
   {
     id: 'nature', name: 'Naturaleza', ability: 'int', defaultDC: defaultSkillDC,
+    prompt: 'Identifica la planta por sus hojas.',
     description: 'Permite recordar conocimientos sobre animales, plantas, terrenos y fenómenos climáticos para reconocer especies y comprender el entorno natural.',
     actor: { x: 252, y: 202, ambient: [[0, { tilt: .045 }], [.5, { tilt: .1 }], [1, { tilt: .045 }]] },
     ambientAnimation: 'idle_crouch', preparationAnimation: 'idle_inspect', recoveryAnimation: 'idle_crouch',
@@ -189,6 +204,7 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
   },
   {
     id: 'perception', name: 'Percepción', ability: 'wis', defaultDC: defaultSkillDC,
+    prompt: 'Escucha y localiza la lechuza oculta.',
     description: 'Sirve para detectar sonidos, movimientos y detalles difíciles de percibir utilizando la vista, el oído y los demás sentidos.',
     actor: { x: 235, y: 202, ambient: [[0, {}], [.35, { tilt: -.047 }], [.74, { tilt: .04 }], [1, {}]] },
     ambientAnimation: 'idle_listen', preparationAnimation: 'idle_listen', recoveryAnimation: 'idle_breath',
@@ -204,6 +220,7 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
   },
   {
     id: 'insight', name: 'Perspicacia', ability: 'wis', defaultDC: defaultSkillDC,
+    prompt: 'Observa qué podría inquietar al viajero.',
     description: 'Ayuda a interpretar gestos, emociones y comportamientos para comprender las posibles intenciones de otras personas durante una conversación.',
     actor: { x: 251, y: 202 }, ambientAnimation: 'idle_listen', preparationAnimation: 'idle_listen', recoveryAnimation: 'idle_breath',
     successAnimation: { animation: 'idle_talk', caption: 'Percibe la inquietud y responde con comprensión.', actor: [[0, {}], [.44, { tilt: .08 }], [.7, { tilt: .02 }], [1, { x: 12, tilt: .045 }]] },
@@ -215,6 +232,7 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
   },
   {
     id: 'religion', name: 'Religión', ability: 'int', defaultDC: defaultSkillDC,
+    prompt: 'Identifica el símbolo del altar.',
     description: 'Permite recordar conocimientos sobre dioses, símbolos sagrados, rituales y tradiciones religiosas para comprender ceremonias y lugares de culto.',
     actor: { x: 252, y: 202, ambient: [[0, {}], [.52, { tilt: .05 }], [1, {}]] },
     ambientAnimation: 'idle_read', preparationAnimation: 'idle_listen', recoveryAnimation: 'idle_read',
@@ -230,6 +248,7 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
   },
   {
     id: 'stealth', name: 'Sigilo', ability: 'dex', defaultDC: defaultSkillDC,
+    prompt: 'Pasa detrás del guardia sin hacer ruido.',
     description: 'Se usa para esconderse, caminar silenciosamente y evitar ser detectado cuando una criatura podría ver u oír al personaje.',
     actor: { x: 187, y: 202, ambient: [[0, {}], [.58, { x: 43 }], [.71, { x: 43 }], [1, {}]] },
     ambientAnimation: 'sneak_loop', preparationAnimation: 'idle_crouch', recoveryAnimation: 'idle_crouch',
@@ -245,6 +264,7 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
   },
   {
     id: 'survival', name: 'Supervivencia', ability: 'wis', defaultDC: defaultSkillDC,
+    prompt: 'Distingue el rastro correcto y síguelo.',
     description: 'Ayuda a seguir huellas, encontrar caminos seguros, conseguir alimento y reconocer peligros naturales mientras se exploran territorios desconocidos.',
     actor: { x: 210, y: 200, ambient: [[0, { tilt: .09 }], [.48, { tilt: -.03 }], [.78, { tilt: .12 }], [1, { tilt: .09 }]] },
     ambientAnimation: 'idle_crouch', preparationAnimation: 'idle_listen', recoveryAnimation: 'idle_crouch',
@@ -258,6 +278,7 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
   },
   {
     id: 'animal-handling', name: 'Trato con animales', ability: 'wis', defaultDC: defaultSkillDC,
+    prompt: 'Calma al caballo antes de acercarte.',
     description: 'Se utiliza para tranquilizar, guiar o adiestrar animales, como calmar a un caballo nervioso para que permita acercarse.',
     actor: { x: 217, y: 202, ambient: [[0, {}], [.61, { x: 8, tilt: .075 }], [1, {}]] },
     ambientAnimation: 'idle_reach', preparationAnimation: 'idle_listen', recoveryAnimation: 'idle_breath',
