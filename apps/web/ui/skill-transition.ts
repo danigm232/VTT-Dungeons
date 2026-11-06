@@ -1,0 +1,211 @@
+import {
+  blendMotion, sampleTrack, skillAbilities, SkillMicroScenePlayback,
+  type ActorAnimation, type Motion, type SkillPhase, type Track
+} from '../../../engine/client/skill-micro-scene';
+import { drawProp, line, oval } from './skill-scene-art';
+import { SkillSceneSprite, selectSkillActor } from './skill-scene-sprite';
+import { skillMicroScenes } from './skill-scenes';
+import { preparePerformanceSound } from './skill-performance-sound';
+import './skill-transition.css';
+
+type Frame = ReturnType<SkillMicroScenePlayback['frame']>;
+const winding = (phase: SkillPhase) => phase === 'D20_PRESSED' || phase === 'ROLL';
+const loopTime = (ms: number) => ms / 3200 % 1;
+const eased = (t: number) => t * t * (3 - 2 * t);
+
+function motionAt(frame: Frame, ambient: Track | undefined, action: Track | undefined, reduced: boolean): Motion {
+  const idle = sampleTrack(ambient, reduced ? 0 : loopTime(frame.ambientMs));
+  const home = sampleTrack(ambient, 0);
+  if (frame.phase === 'AMBIENT_LOOP' || frame.phase === 'INIT' || winding(frame.phase)) return idle;
+  if (!action) return idle;
+  if (frame.phase === 'ACTION_PREPARE') return blendMotion(idle, sampleTrack(action, 0), eased(frame.progress));
+  if (frame.phase === 'SUCCESS' || frame.phase === 'FAILURE') return sampleTrack(action, reduced ? .7 : frame.progress);
+  if (frame.phase === 'REACTION') return sampleTrack(action, reduced ? .7 : 1);
+  const end = sampleTrack(action, 1);
+  const t = eased(frame.progress);
+  if (Math.hypot((end.x ?? 0) - (home.x ?? 0), (end.y ?? 0) - (home.y ?? 0)) > 90) {
+    const pose = t < .5 ? end : home;
+    return { ...pose, opacity: (pose.opacity ?? 1) * Math.abs(1 - 2 * t) };
+  }
+  return blendMotion(end, home, t);
+}
+
+function at(ctx: CanvasRenderingContext2D, x: number, y: number, motion: Motion, draw: () => void) {
+  if (motion.opacity === 0) return;
+  ctx.save();
+  ctx.translate(x + (motion.x ?? 0), y + (motion.y ?? 0));
+  ctx.rotate(motion.tilt ?? 0);
+  ctx.scale((motion.scale ?? 1) * (motion.facing ?? 1), motion.scale ?? 1);
+  ctx.globalAlpha = motion.opacity ?? 1;
+  draw();
+  ctx.restore();
+}
+
+export class SkillTransitionScreen {
+  private readonly title: HTMLElement;
+  private readonly destination: HTMLElement;
+  private readonly ability: HTMLElement;
+  private readonly description: HTMLElement;
+  private readonly status: HTMLElement;
+  private readonly result: HTMLElement;
+  private readonly caption: HTMLElement;
+  private readonly die: HTMLButtonElement;
+  private readonly dieFace: Element;
+  private readonly continueButton: HTMLButtonElement;
+  private readonly ctx: CanvasRenderingContext2D | null;
+  private readonly reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  private active: { key: string; playback: SkillMicroScenePlayback; sprite: SkillSceneSprite; modifier?: number } | undefined;
+  private animation = 0;
+  private previousFrame = -Infinity;
+  private previousPhase: SkillPhase | undefined;
+  private previousPaint = '';
+  private startedAt = 0;
+  private sound: ReturnType<typeof preparePerformanceSound>;
+
+  constructor(private readonly dialog: HTMLDialogElement) {
+    const get = <T extends Element>(selector: string) => dialog.querySelector<T>(selector)!;
+    this.title = get('#skillTitle'); this.destination = get('#skillDestination'); this.ability = get('#skillAbility');
+    this.description = get('#skillDescription'); this.status = get('#skillStatus'); this.result = get('#skillResult');
+    this.caption = get('#skillCaption'); this.die = get('#skillDie'); this.dieFace = get('#skillDieFace');
+    this.continueButton = get('#skillContinue'); this.ctx = get<HTMLCanvasElement>('canvas').getContext('2d');
+    this.die.addEventListener('click', () => this.roll());
+    this.continueButton.addEventListener('click', () => { if (!this.continueButton.disabled) this.reset(); });
+    dialog.addEventListener('cancel', event => event.preventDefault());
+  }
+
+  get open() { return this.dialog.open; }
+
+  show(key: string, destination: string, actor: ReturnType<typeof selectSkillActor>,
+    options: { dc?: number; modifiers?: Readonly<Record<string, number>> } = {}) {
+    if (this.active?.key === key) return;
+    const scene = skillMicroScenes[Math.floor(Math.random() * skillMicroScenes.length)]!;
+    const roles = new Set([scene.ambientAnimation, scene.preparationAnimation, scene.successAnimation.animation,
+      scene.failureAnimation.animation, scene.recoveryAnimation, 'idle_breath' as const]);
+    for (const action of [scene.successAnimation, scene.failureAnimation]) {
+      for (const [, animation] of action.beats ?? []) roles.add(animation);
+    }
+    this.sound?.close(); this.sound = undefined;
+    this.startedAt = performance.now();
+    this.active = { key, playback: new SkillMicroScenePlayback(scene, this.startedAt, options.dc),
+      sprite: new SkillSceneSprite(actor, [...roles]), modifier: options.modifiers?.[scene.id] };
+    this.previousFrame = -Infinity; this.previousPhase = undefined; this.previousPaint = '';
+    this.dialog.dataset.skill = scene.id;
+    this.title.textContent = scene.name;
+    this.destination.textContent = destination;
+    this.ability.textContent = `${skillAbilities[scene.ability]} · CD ${this.active.playback.dc}`;
+    this.description.textContent = scene.description;
+    this.result.textContent = '';
+    this.result.removeAttribute('data-outcome');
+    this.caption.textContent = '';
+    this.dieFace.textContent = '20';
+    this.die.disabled = false;
+    this.setLoading('Preparando el mapa…');
+    if (!this.dialog.open) this.dialog.showModal();
+    this.title.focus();
+    cancelAnimationFrame(this.animation);
+    this.tick(performance.now());
+  }
+
+  setLoading(message: string, key = this.active?.key) {
+    if (!this.active || this.active.key !== key) return;
+    this.continueButton.disabled = true;
+    if (this.status.textContent !== message) this.status.textContent = message;
+  }
+
+  ready(key: string) {
+    if (this.active?.key !== key || !this.continueButton.disabled) return;
+    this.continueButton.disabled = false;
+    this.status.textContent = 'Mapa listo';
+  }
+
+  reset() {
+    cancelAnimationFrame(this.animation);
+    this.active = undefined;
+    this.sound?.close(); this.sound = undefined;
+    if (this.dialog.open) this.dialog.close();
+  }
+
+  private roll() {
+    const active = this.active;
+    if (!active?.playback.roll(performance.now(), active.modifier)) return;
+    if (active.playback.scene.sound === 'instrument') this.sound = preparePerformanceSound();
+    this.die.disabled = true;
+    this.result.textContent = 'Lanzando el d20…';
+  }
+
+  private tick = (now: number) => {
+    if (!this.active) return;
+    this.animation = requestAnimationFrame(this.tick);
+    if (now - this.previousFrame < 30) return;
+    this.previousFrame = now;
+    const { playback, sprite } = this.active;
+    const frame = playback.frame(now);
+    const result = playback.result;
+    if (this.previousPhase !== frame.phase) {
+      this.previousPhase = frame.phase;
+      this.dialog.dataset.phase = frame.phase;
+      if (result && (frame.phase === 'SUCCESS' || frame.phase === 'FAILURE')) this.sound?.play(result.success);
+    }
+    if (this.sound && (frame.phase === 'RECOVERY' || frame.phase === 'AMBIENT_LOOP')) {
+      this.sound.close(); this.sound = undefined;
+    }
+    if (result && !winding(frame.phase) && !this.result.dataset.outcome) {
+      const total = result.modifier === undefined ? `${result.natural}`
+        : `${result.natural} ${result.modifier < 0 ? '−' : '+'} ${Math.abs(result.modifier)} = ${result.total}`;
+      this.dieFace.textContent = String(result.natural);
+      this.result.textContent = `${result.success ? 'Éxito' : 'Fallo'} · ${total} contra CD ${playback.dc}`;
+      this.result.dataset.outcome = result.success ? 'success' : 'failure';
+      this.caption.textContent = (result.success ? playback.scene.successAnimation : playback.scene.failureAnimation).caption;
+    }
+    if (winding(frame.phase) && !this.reduced.matches) this.dieFace.textContent = String(1 + Math.floor(frame.elapsedMs / 45 * 7) % 20);
+    const paintKey = `${this.reduced.matches}:${frame.phase}:${sprite.revision}`;
+    if (this.ctx && (!this.reduced.matches || paintKey !== this.previousPaint)) {
+      this.previousPaint = paintKey;
+      this.paint(this.ctx, frame, (now - this.startedAt) / 1000);
+    }
+  };
+
+  private paint(ctx: CanvasRenderingContext2D, frame: Frame, seconds: number) {
+    const { playback, sprite } = this.active!;
+    const { scene, result } = playback;
+    const reduced = this.reduced.matches;
+    const outcome = result?.success ? 'success' : 'failure';
+    const action = result?.success ? scene.successAnimation : scene.failureAnimation;
+    const ambient = frame.phase === 'AMBIENT_LOOP' || frame.phase === 'INIT' || winding(frame.phase);
+    const actionProgress = reduced ? .7 : frame.phase === 'REACTION' ? 1 : frame.progress;
+    let actionRole = action.animation;
+    for (const [start, animation] of action.beats ?? []) {
+      if (start > actionProgress) break;
+      actionRole = animation;
+    }
+    const role: ActorAnimation = ambient ? scene.ambientAnimation : frame.phase === 'ACTION_PREPARE' ? scene.preparationAnimation
+      : frame.phase === 'RECOVERY' ? scene.recoveryAnimation : actionRole;
+    const t = reduced ? 0 : ambient ? frame.ambientMs / 1000 : frame.elapsedMs / 1000;
+    const motion = { ...motionAt(frame, scene.actor.ambient, action.actor, reduced) };
+    if (!reduced && frame.phase === 'REACTION') {
+      const reaction = Math.sin(Math.PI * frame.progress);
+      motion.tilt = (motion.tilt ?? 0) + reaction * (result?.success ? .045 : -.08);
+      motion.y = (motion.y ?? 0) - (result?.success ? 3 : 1) * reaction;
+    }
+    const drawLayer = (front: boolean) => {
+      for (const prop of scene.props) {
+        if (Boolean(prop.front) !== front) continue;
+        const pose = motionAt(frame, prop.ambient, prop[outcome], reduced);
+        const fraction = prop.anchor === 'head' ? .8 : .47;
+        const x = prop.anchor ? scene.actor.x + prop.x + (motion.x ?? 0) + sprite.height * fraction * (motion.tilt ?? 0) : prop.x;
+        const y = prop.anchor ? scene.actor.y + prop.y + (motion.y ?? 0) - sprite.height * fraction : prop.y;
+        at(ctx, x, y, pose, () => drawProp(ctx, prop.art, pose.cue ?? 0, reduced ? 0 : seconds));
+      }
+    };
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if (scene.ground !== false) line(ctx, [[117, 205], [523, 205]], '#7d998345', 1.5);
+    drawLayer(false);
+    if (scene.actor.y >= 192 && (motion.y ?? 0) < 30) {
+      oval(ctx, scene.actor.x + (motion.x ?? 0), scene.actor.y + 2, 23, 4, '#080e125c');
+    }
+    at(ctx, scene.actor.x, scene.actor.y, motion, () => sprite.draw(ctx, role, t * 1000,
+      role === 'jump' ? actionProgress : undefined, reduced));
+    drawLayer(true);
+  }
+}

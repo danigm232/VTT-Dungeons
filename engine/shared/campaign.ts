@@ -141,6 +141,7 @@ export const publicCampaignSchema = z.object({
   // Optional frame sequences for a token.  Existing campaigns can continue to
   // use one still image, while animated characters choose a sequence by state.
   tokenAnimations: z.record(idSchema, z.record(idSchema, tokenAnimationSchema)).default({}),
+  skillTransition: z.object({ dc: z.number().int().positive() }).strict().optional(),
   props: z.record(idSchema, propAssetSchema),
   audio: z.object({
     music: audioUrl,

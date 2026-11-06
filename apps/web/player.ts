@@ -11,6 +11,8 @@ import { writeUiPreferences } from '../../engine/client/ui-preferences';
 import { DEFAULT_GRID_STYLE, normalizeGridStyle, type GridStyle } from '../../engine/client/grid-style.js';
 import { WorldRenderer } from './world';
 import { SceneLoadRecovery } from '../../engine/client/scene-load-recovery';
+import { SkillTransitionScreen } from './ui/skill-transition';
+import { selectSkillActor } from './ui/skill-scene-sprite';
 import { shouldReloadAfterServerReconnect, type RuntimeReset } from '../../engine/client/runtime-reload';
 import { conditionHelp } from '../../engine/client/condition-presentation';
 import { ConditionNameIndicators, ConditionPanel, conditionStrip } from './ui/conditions';
@@ -438,8 +440,11 @@ $('name').before(playerIdentity); playerIdentity.append($('name'), playerNameInd
 $('sheetName').after(sheetNameIndicators.root);
 setInterval(() => { if (($('characterSheet') as HTMLDialogElement).open) playerConditionsPanel.updateTimers(); }, 1000);
 let lastSnapshot: WorldSnapshot | null = null;
+let lastSnapshotCharacterId: string | null = null;
 let readyEpoch = -1;
 let runtimeEpoch: string | null = null;
+const skillTransition = new SkillTransitionScreen($<HTMLDialogElement>('skillTransition'));
+const sceneTransitionKey = ({ sceneEpoch, sceneId }: WorldSnapshot) => `${sceneEpoch}:${sceneId}`;
 const backpack = new InventoryPanel($('inventory') as HTMLDialogElement, campaign.campaignId, (request, retryId) => {
   if (!socket.connected || !runtimeEpoch || !privateState?.characterId) return null;
   const id = retryId ?? commandId();
@@ -548,6 +553,7 @@ addEventListener('resize', () => {
 
 socket.on('connect', () => {
   sceneLoadRecovery.reset();
+  skillTransition.setLoading('Preparando el mapa…');
   recoveringSession = false;
   $('connection').textContent = 'Conectado a la mesa';
   readyEpoch = -1;
@@ -557,6 +563,7 @@ socket.on('connect', () => {
 socket.on('disconnect', reason => {
   document.getElementById('sceneCheckPanel')?.remove();
   sceneLoadRecovery.reset();
+  skillTransition.setLoading('Esperando conexión…');
   $('connection').textContent = recoveryRequired ? 'La partida requiere recuperación. Avisa al DM y recarga cuando la restaure.' : recoveringSession ? 'Restableciendo sesión…' : reason === 'io server disconnect' && !privateState?.characterId
     ? 'Control finalizado en esta pestaña'
     : 'Reconectando…';
@@ -592,6 +599,8 @@ socket.on('runtime:reset', (event: RuntimeReset) => {
   document.getElementById('sceneCheckPanel')?.remove();
   gameClockOverlay.reset();
   sceneLoadRecovery.reset();
+  skillTransition.reset();
+  lastSnapshotCharacterId = null;
   stop(); optimisticFacing = null; runtimeEpoch = event.runtimeEpoch; readyEpoch = -1; seq = 0; lastSnapshot = null; privateState = null; backpack.reset();
   resumedRuntimeEpoch = null; selectedTargetId = null; renderedTargetMenuKey = ''; pendingCombatNotices.clear(); pendingCombatCommands.clear(); armedActionId = null; armedBasicAction = null; actionsMenuOpen = false; actionRadialPage = 0; combatWasActive = false; combatBarMode = null; armedExplorationActionId = null; armedExplorationAttackId = null; armedExplorationBasicActionId = null; openCombatCategory = null; openExplorationCategory = null;
   $('actionRadial').hidden = true; $('actionRadial').replaceChildren(); $('interact').hidden = true;
@@ -625,15 +634,25 @@ socket.on('characters:available', (packet: { runtimeEpoch: string; characters: C
 });
 socket.on('world:snapshot', (snapshot: WorldSnapshot) => {
   if (snapshot.runtimeEpoch !== runtimeEpoch) return;
+  if (lastSnapshot && (snapshot.sceneEpoch < lastSnapshot.sceneEpoch
+    || (snapshot.sceneEpoch === lastSnapshot.sceneEpoch && snapshot.revision < lastSnapshot.revision))) return;
   const previousCombatantId = lastSnapshot?.combat.currentId;
+  const characterId = privateState?.characterId ?? null;
   const combatEndedNotice = combatWasActive && !snapshot.combat.active ? snapshot.combat.lastEvent?.text : undefined;
-  if (lastSnapshot && snapshot.sceneEpoch !== lastSnapshot.sceneEpoch) {
+  if (lastSnapshot && sceneTransitionKey(snapshot) !== sceneTransitionKey(lastSnapshot)) {
     stop();
     optimisticFacing = null;
     clearCameraTouchContacts();
     readyEpoch = -1;
+    sceneLoadRecovery.reset();
+    if (characterId && characterId === lastSnapshotCharacterId) {
+      skillTransition.show(sceneTransitionKey(snapshot), snapshot.scene.title,
+        selectSkillActor(campaign, snapshot, lastSnapshot, characterId),
+        { dc: campaign.skillTransition?.dc, modifiers: privateState?.skillModifiers });
+    }
   }
   lastSnapshot = snapshot;
+  lastSnapshotCharacterId = characterId;
   if (optimisticFacing && snapshot.entities.some(entity => entity.id === privateState?.characterId && entity.facing === optimisticFacing)) optimisticFacing = null;
   gameClockOverlay.update(snapshot);
   void prepareSnapshot(snapshot);
@@ -673,6 +692,7 @@ socket.on('player:private', (next: PlayerPrivate) => {
   if (previousCharacter !== next.characterId) optimisticFacing = null;
   if (!next.characterId) {
     stop();
+    skillTransition.reset();
     backpack.reset();
     world.setLocalPlayer(null);
     world.setContextInteractionTarget(null);
@@ -1932,17 +1952,21 @@ $('endTurn').onclick = finishCombatTurn;
 
 const sceneLoadRecovery = new SceneLoadRecovery();
 async function prepareSnapshot(snapshot: WorldSnapshot) {
+  const key = sceneTransitionKey(snapshot);
+  const current = () => socket.connected && snapshot.runtimeEpoch === runtimeEpoch && lastSnapshot && sceneTransitionKey(lastSnapshot) === key;
   try {
     const installed = await world.applySnapshot(snapshot);
-    if (!installed) return;
+    if (!installed || !current()) return;
     sceneLoadRecovery.reset();
     updatePlayerCameraControls(snapshot.sceneId);
-    if (socket.connected && readyEpoch !== snapshot.sceneEpoch && lastSnapshot?.sceneEpoch === snapshot.sceneEpoch) {
+    skillTransition.ready(key);
+    if (readyEpoch !== snapshot.sceneEpoch) {
       readyEpoch = snapshot.sceneEpoch;
       socket.emit('scene:ready', { runtimeEpoch, sceneEpoch: snapshot.sceneEpoch });
     }
   } catch (error) {
-    if (!socket.connected || lastSnapshot?.runtimeEpoch !== runtimeEpoch) return;
+    if (!current()) return;
+    if (readyEpoch !== snapshot.sceneEpoch) skillTransition.setLoading('Reintentando la carga…', key);
     if (sceneLoadRecovery.failed(() => {
       if (socket.connected && lastSnapshot?.runtimeEpoch === runtimeEpoch) void prepareSnapshot(lastSnapshot);
     })) { console.error('No se pudo cargar el mapa del jugador', error); toast('No se pudo cargar el mapa. Reintentando…'); }
@@ -2264,6 +2288,7 @@ function queueKeyboardMove() {
 const verticalCameraControl=cameraTiltControl(()=>world.getCameraTiltDegrees(),degrees=>world.setCameraTiltDegrees(degrees),()=>cameraProfileForScene(lastSnapshot?.sceneId??null));
 
 addEventListener('keydown', event => {
+  if (skillTransition.open) return;
   if (event.key === 'Escape' && !(event.target instanceof Element && event.target.closest('dialog'))) { event.preventDefault(); cancelActionSelection(); return; }
   if (event.target instanceof Element && event.target.closest('input,textarea,select,[contenteditable="true"]')) return;
   if (event.ctrlKey || event.metaKey || event.altKey) return;
@@ -2388,7 +2413,7 @@ function vector() {
 
 function sendWorldVector(next: { x: number; z: number }, end = false, turnOnly = false) {
   if (!socket.connected || !lastSnapshot || !privateState?.characterId || readyEpoch !== lastSnapshot.sceneEpoch) return;
-  if (!end && !privateState.sceneMovementEnabled) return;
+  if (!end && (!privateState.sceneMovementEnabled || skillTransition.open)) return;
   if (!end && (document.hidden || ($('inventory') as HTMLDialogElement).open || ($('playerSettings') as HTMLDialogElement).open)) return;
   if (!end && !turnOnly && Math.hypot(next.x, next.z) < 0.2) return;
   socket.emit('input:move', { runtimeEpoch, seq: seq++, sceneEpoch: lastSnapshot.sceneEpoch, x: end ? 0 : next.x, z: end ? 0 : next.z, end, ...(turnOnly ? { turnOnly: true } : {}) });
