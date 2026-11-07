@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultSkillDC, sampleTrack, SkillMicroScenePlayback } from './skill-micro-scene';
+import { defaultSkillDC, sampleTrack, SkillMicroScenePlayback, skillOutcomeStartsAt } from './skill-micro-scene';
 import { skillMicroScenes } from '../../apps/web/ui/skill-scenes';
 
 const scene = skillMicroScenes[0]!;
@@ -20,8 +20,9 @@ describe('microescenas de transición', () => {
       for (const [random, phase] of [[0, 'FAILURE'], [.999, 'SUCCESS']] as const) {
         const entry = new SkillMicroScenePlayback(skill, 0);
         entry.roll(0, undefined, () => random);
-        expect(entry.frame(1000).phase, skill.id).toBe(phase);
-        expect(entry.frame(4000).phase, skill.id).toBe('AMBIENT_LOOP');
+        expect(entry.frame(2000).phase, skill.id).toBe(phase);
+        expect(entry.frame(skillOutcomeStartsAt).phase, skill.id).toBe('OUTCOME_LOOP');
+        expect(entry.frame(90_000).phase, skill.id).toBe('OUTCOME_LOOP');
       }
     }
   });
@@ -32,8 +33,8 @@ describe('microescenas de transición', () => {
     expect(entry.result).toBeUndefined();
     expect(entry.roll(90_000, undefined, () => .55)).toBe(true);
     expect(entry.result).toEqual({ natural: 12, modifier: undefined, total: 12, success: true });
-    expect([0, 85, 550, 940, 2360, 2870, 3420].map(ms => entry.frame(90_000 + ms).phase)).toEqual([
-      'D20_PRESSED', 'ROLL', 'ACTION_PREPARE', 'SUCCESS', 'REACTION', 'RECOVERY', 'AMBIENT_LOOP'
+    expect([0, 85, 1200, 1600, 5400, 6100, 90000].map(ms => entry.frame(90_000 + ms).phase)).toEqual([
+      'D20_PRESSED', 'ROLL', 'ACTION_PREPARE', 'SUCCESS', 'REACTION', 'OUTCOME_LOOP', 'OUTCOME_LOOP'
     ]);
     expect(entry.roll(100_000, undefined, () => 0)).toBe(false);
     expect(entry.result?.natural).toBe(12);
@@ -44,7 +45,7 @@ describe('microescenas de transición', () => {
     const entry = new SkillMicroScenePlayback(scene, 0, 19);
     expect(entry.roll(0, -2, () => .999)).toBe(true);
     expect(entry.result).toEqual({ natural: 20, modifier: -2, total: 18, success: false });
-    expect(entry.frame(940).phase).toBe('FAILURE');
+    expect(entry.frame(1600).phase).toBe('FAILURE');
     const defaultEntry = new SkillMicroScenePlayback(scene, 0, Number.NaN);
     expect(defaultEntry.dc).toBe(defaultSkillDC);
     defaultEntry.roll(0, 2.5, () => 0);
@@ -55,5 +56,18 @@ describe('microescenas de transición', () => {
     const track = [[0, { x: 0 }], [1, { x: 100, opacity: 0 }]] as const;
     expect(sampleTrack(track, .5)).toMatchObject({ x: 50, opacity: .5 });
     expect(sampleTrack(track, 1)).toMatchObject({ x: 100, opacity: 0 });
+  });
+
+  it('mantiene los recorridos terrestres sobre su apoyo y conserva los saltos explícitos', () => {
+    for (const skill of skillMicroScenes) {
+      if (skill.terrain) continue;
+      expect(skill.actor.y, skill.id).toBe(202);
+      for(const action of [skill.successAnimation,skill.failureAnimation]) {
+        for(let t=0;t<=1;t+=.025) expect(sampleTrack(action.actor,t).y??0,skill.id).toBe(0);
+      }
+    }
+    const athletics=skillMicroScenes.find(skill=>skill.id==='athletics')!;
+    expect(sampleTrack(athletics.successAnimation.actor,.52).y).toBeLessThan(-50);
+    expect(sampleTrack(athletics.failureAnimation.actor,.9).y).toBeGreaterThan(90);
   });
 });

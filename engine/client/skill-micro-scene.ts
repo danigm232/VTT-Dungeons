@@ -28,6 +28,8 @@ export type SkillAction = {
   beats?: readonly (readonly [start: number, animation: ActorAnimation])[];
   actor?: Track;
   caption: string;
+  /** A living final pose. The challenge never replays after a resolved roll. */
+  settledAnimation?: ActorAnimation;
 };
 
 export type SkillMicroScene = {
@@ -78,7 +80,10 @@ export function sampleTrack(track: Track | undefined, at: number): Motion {
 
 export type SkillRoll = { natural: number; modifier?: number; total: number; success: boolean };
 export type SkillPhase = 'INIT' | 'AMBIENT_LOOP' | 'D20_PRESSED' | 'ROLL' | 'ACTION_PREPARE'
-  | 'SUCCESS' | 'FAILURE' | 'REACTION' | 'RECOVERY';
+  | 'SUCCESS' | 'FAILURE' | 'REACTION' | 'OUTCOME_LOOP';
+
+export const skillTimings = { pressed: 85, roll: 1115, prepare: 400, action: 3800, reaction: 700 } as const;
+export const skillOutcomeStartsAt = Object.values(skillTimings).reduce((sum, ms) => sum + ms, 0);
 
 export class SkillMicroScenePlayback {
   private pressedAt: number | undefined;
@@ -104,15 +109,15 @@ export class SkillMicroScenePlayback {
     if (now < this.startedAt) return { phase: 'INIT', progress: 0, ambientMs, elapsedMs: 0 };
     if (this.pressedAt !== undefined) {
       const timings: readonly (readonly [SkillPhase, number])[] = [
-        ['D20_PRESSED', 85], ['ROLL', 465], ['ACTION_PREPARE', 390],
-        [this.result?.success ? 'SUCCESS' : 'FAILURE', 1420], ['REACTION', 510], ['RECOVERY', 550]
+        ['D20_PRESSED', skillTimings.pressed], ['ROLL', skillTimings.roll], ['ACTION_PREPARE', skillTimings.prepare],
+        [this.result?.success ? 'SUCCESS' : 'FAILURE', skillTimings.action], ['REACTION', skillTimings.reaction]
       ];
       let elapsed = Math.max(0, now - this.pressedAt);
       for (const [phase, duration] of timings) {
         if (elapsed < duration) return { phase, progress: elapsed / duration, ambientMs, elapsedMs: elapsed };
         elapsed -= duration;
       }
-      return { phase: 'AMBIENT_LOOP', progress: 0, ambientMs: elapsed, elapsedMs: elapsed };
+      return { phase: 'OUTCOME_LOOP', progress: 1, ambientMs, elapsedMs: elapsed };
     }
     return { phase: 'AMBIENT_LOOP', progress: 0, ambientMs, elapsedMs: ambientMs };
   }

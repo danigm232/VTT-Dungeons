@@ -10,6 +10,7 @@ import markup from './skill-transition.html?raw';
 import chasmPlate from './art/skill-chasm.webp';
 import floorPlate from './art/skill-floor.webp';
 import { SkillPropSprites } from './skill-prop-sprites';
+import { SkillD20 } from './skill-d20';
 import './skill-transition.css';
 
 type Frame = ReturnType<SkillMicroScenePlayback['frame']>;
@@ -19,19 +20,12 @@ const eased = (t: number) => t * t * (3 - 2 * t);
 
 function motionAt(frame: Frame, ambient: Track | undefined, action: Track | undefined, reduced: boolean): Motion {
   const idle = sampleTrack(ambient, reduced ? 0 : loopTime(frame.ambientMs));
-  const home = sampleTrack(ambient, 0);
   if (frame.phase === 'AMBIENT_LOOP' || frame.phase === 'INIT' || winding(frame.phase)) return idle;
   if (!action) return idle;
   if (frame.phase === 'ACTION_PREPARE') return blendMotion(idle, sampleTrack(action, 0), eased(frame.progress));
   if (frame.phase === 'SUCCESS' || frame.phase === 'FAILURE') return sampleTrack(action, reduced ? .7 : frame.progress);
   if (frame.phase === 'REACTION') return sampleTrack(action, reduced ? .7 : 1);
-  const end = sampleTrack(action, 1);
-  const t = eased(frame.progress);
-  if (Math.hypot((end.x ?? 0) - (home.x ?? 0), (end.y ?? 0) - (home.y ?? 0)) > 90) {
-    const pose = t < .5 ? end : home;
-    return { ...pose, opacity: (pose.opacity ?? 1) * Math.abs(1 - 2 * t) };
-  }
-  return blendMotion(end, home, t);
+  return sampleTrack(action, 1);
 }
 
 function at(ctx: CanvasRenderingContext2D, x: number, y: number, motion: Motion, draw: () => void) {
@@ -56,8 +50,10 @@ export class SkillTransitionScreen {
   private readonly caption: HTMLElement;
   private readonly die: HTMLButtonElement;
   private readonly dieFace: Element;
+  private readonly tumblingDie: SkillD20;
   private readonly continueButton: HTMLButtonElement;
   private readonly plate: HTMLImageElement;
+  private readonly runningGround = new Image();
   private readonly ctx: CanvasRenderingContext2D | null;
   private readonly propSprites: SkillPropSprites;
   private readonly reduced = matchMedia('(prefers-reduced-motion: reduce)');
@@ -79,7 +75,9 @@ export class SkillTransitionScreen {
     this.title = get('#skillTitle'); this.destination = get('#skillDestination'); this.ability = get('#skillAbility');
     this.description = get('#skillDescription'); this.status = get('#skillStatus'); this.result = get('#skillResult');
     this.caption = get('#skillCaption'); this.die = get('#skillDie'); this.dieFace = get('#skillDieFace');
+    this.tumblingDie = new SkillD20(get<SVGElement>('.skill-die svg'));
     this.plate = get('.skill-plate');
+    this.runningGround.src = floorPlate;
     this.continueButton = get('#skillContinue'); this.ctx = get<HTMLCanvasElement>('canvas').getContext('2d');
     this.propSprites = new SkillPropSprites(loadImage);
     this.die.addEventListener('click', () => this.roll());
@@ -158,12 +156,13 @@ export class SkillTransitionScreen {
     const { playback, sprite } = this.active;
     const frame = playback.frame(now);
     const result = playback.result;
+    this.tumblingDie.paint(frame.phase === 'ROLL' && !this.reduceMotion ? frame.progress : undefined);
     if (this.previousPhase !== frame.phase) {
       this.previousPhase = frame.phase;
       this.dialog.dataset.phase = frame.phase;
       if (result && (frame.phase === 'SUCCESS' || frame.phase === 'FAILURE')) this.sound?.play(result.success);
     }
-    if (this.sound && (frame.phase === 'RECOVERY' || frame.phase === 'AMBIENT_LOOP')) {
+    if (this.sound && frame.phase === 'OUTCOME_LOOP') {
       this.sound.close(); this.sound = undefined;
     }
     if (result && !winding(frame.phase) && !this.result.dataset.outcome) {
@@ -190,36 +189,55 @@ export class SkillTransitionScreen {
     const outcome = result?.success ? 'success' : 'failure';
     const action = result?.success ? scene.successAnimation : scene.failureAnimation;
     const ambient = frame.phase === 'AMBIENT_LOOP' || frame.phase === 'INIT' || winding(frame.phase);
-    const actionProgress = reduced ? .7 : frame.phase === 'REACTION' ? 1 : frame.progress;
+    const settled = frame.phase === 'REACTION' || frame.phase === 'OUTCOME_LOOP';
+    const actionProgress = reduced ? 1 : settled ? 1 : frame.progress;
     let actionRole = action.animation;
+    let beatStart = 0, beatEnd = 1;
     for (const [start, animation] of action.beats ?? []) {
-      if (start > actionProgress) break;
-      actionRole = animation;
+      if (start > actionProgress) { beatEnd = start; break; }
+      actionRole = animation; beatStart = start;
     }
-    const role: ActorAnimation = ambient ? scene.ambientAnimation : frame.phase === 'ACTION_PREPARE' ? scene.preparationAnimation
-      : frame.phase === 'RECOVERY' ? scene.recoveryAnimation : actionRole;
+    const role: ActorAnimation = winding(frame.phase) ? scene.preparationAnimation : ambient ? scene.ambientAnimation : frame.phase === 'ACTION_PREPARE' ? scene.preparationAnimation
+      : settled ? action.settledAnimation ?? 'idle_breath' : actionRole;
+    const roleProgress = Math.min(1, Math.max(0, (actionProgress - beatStart) / Math.max(.01, beatEnd - beatStart)));
     const motion = { ...motionAt(frame, scene.actor.ambient, action.actor, reduced) };
-    if (!reduced && frame.phase === 'REACTION') {
-      const reaction = Math.sin(Math.PI * frame.progress);
-      motion.tilt = (motion.tilt ?? 0) + reaction * (result?.success ? .045 : -.08);
-      motion.y = (motion.y ?? 0) - (result?.success ? 3 : 1) * reaction;
+    if(scene.id==='acrobatics'&&(role==='walk_loop'||role==='hang')) {
+      const x=scene.actor.x+(motion.x??0);
+      const ropeY=169+6*Math.max(0,1-((x-324)/137)**2);
+      motion.y=ropeY-scene.actor.y+(role==='hang'?sprite.height*.94:0);
+    }
+    if(scene.id==='animal-handling'&&!ambient) {
+      motion.x=(motion.x??0)+(85-sprite.height)*.35*Math.min(1,actionProgress/.25);
     }
     const drawLayer = (front: boolean) => {
       for (const prop of scene.props) {
         if (Boolean(prop.front) !== front) continue;
+        if((prop.art==='merchant'||prop.art==='patient')&&sprite.usesPair({skillId:scene.id,phase:frame.phase,progress:actionProgress,success:result?.success}))continue;
         if (paintedPlate && (prop.art === 'ledge-left' || prop.art === 'ledge-right')) continue;
         const pose = motionAt(frame, prop.ambient, prop[outcome], reduced);
         const fraction = prop.anchor === 'head' ? .8 : sprite.handFraction;
         const x = prop.anchor ? scene.actor.x + prop.x + (motion.x ?? 0) + sprite.height * fraction * (motion.tilt ?? 0) : prop.x;
         const y = prop.anchor ? scene.actor.y + prop.y + (motion.y ?? 0) - sprite.height * fraction : prop.y;
         at(ctx, x, y, pose, () => {
-          if (!this.propSprites.draw(ctx, prop.art, pose.cue ?? 0, reduced ? 0 : seconds)) {
+          if (!this.propSprites.draw(ctx, prop.art, pose.cue ?? 0, reduced ? 0 : seconds,
+            {skillId:scene.id,phase:frame.phase,progress:actionProgress,success:result?.success,height:sprite.height})) {
             drawProp(ctx, prop.art, pose.cue ?? 0, reduced ? 0 : seconds);
           }
         });
       }
     };
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    // The approaching gap reveals the same chasm plate. The running lane itself
+    // repeats in world space, so the runner has a surface travelling beneath it.
+    if (scene.id === 'athletics' && this.runningGround.complete && this.runningGround.naturalWidth &&
+      (ambient || frame.phase === 'ACTION_PREPARE')) {
+      const stop = frame.phase === 'ACTION_PREPARE' ? 1280 - 888 * eased(frame.progress) : 1280;
+      const travel = reduced ? 0 : frame.ambientMs * .12;
+      ctx.save(); ctx.beginPath(); ctx.rect(0, 454, stop, 266); ctx.clip();
+      for(let tile=-1;tile<3;tile++) ctx.drawImage(this.runningGround,0,568,1600,332,
+        tile*1280-(travel%1280),454,1280,266);
+      ctx.restore();
+    }
     ctx.save();
     ctx.translate(640, 471);
     const scale = scene.terrain === 'chasm' ? 2 : 1.86;
@@ -233,7 +251,8 @@ export class SkillTransitionScreen {
       if (!scene.terrain || x < 196 || x > 453) oval(ctx, x, scene.actor.y + 2, 21, 3, '#080e1287');
     }
     at(ctx, scene.actor.x, scene.actor.y, motion, () => sprite.draw(ctx, role, seconds * 1000,
-      role === 'jump' ? actionProgress : undefined, reduced));
+      role === 'jump' || role === 'slip' ? roleProgress : undefined, reduced,
+      { skillId: scene.id, phase: frame.phase, progress: actionProgress, success: result?.success }));
     drawLayer(true);
     ctx.restore();
   }

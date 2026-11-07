@@ -6,7 +6,7 @@ La candidata está en `dev/skill-transition`. La entrada se identifica con `scen
 
 ## Presentación a pantalla completa y visor
 
-**Actualización de animación del 07/11.** Los tres protagonistas tienen 72 poses nuevas, con ciclos de carrera, estudio, conversación, salto, sigilo e inspección arrodillada. El caballo tiene seis poses y los secundarios veinte. La utilería usa doce piezas ilustradas y articuladas. El visor conserva su ruta y abre con las animaciones activadas. Ajustes permite reducirlas. [Recursos, propietarios y generación](../design/SKILL_ANIMATION_ASSETS_20261107.md).
+**Revisión numerada 0–18 del 07/11.** La nueva candidata incorpora poses con objetos integrados para Mía, Mike y Trinity, pies anclados al suelo, utilería detallada, escenas conjuntas para los contactos y un dado que rueda mediante una malla proyectada. El final permanece animado en `OUTCOME_LOOP` hasta Continuar o una nueva entrada; sustituye el reinicio ambiental de la entrega anterior. [Cambios por número, recursos y prompts](../design/SKILL_ANIMATION_CORRECTIONS_20261107.md). La [tanda v2](../design/SKILL_ANIMATION_ASSETS_20261107.md) se conserva como antecedente.
 
 La referencia principal es `1000059518.jpg`, aportada por el usuario. Atletismo reproduce la composición lateral, los bordes de roca sobre la niebla, el título centrado con separadores dorados, el d20 facetado y la consigna «Salta la grieta y aterriza al otro lado». La apertura del visor usa a Mía. En la partida se utiliza el personaje asignado. Acrobacias comparte el fondo de la grieta, con una cuerda sobre sus dos bordes. Las otras 16 escenas tienen una superficie continua para apoyar su utilería. En ellas el dado se coloca más alto para liberar el espacio de la acción.
 
@@ -43,7 +43,7 @@ Los fondos son ediciones realizadas con **ImageGen integrado**. El JPG del usuar
 
 ## Configuración y reutilización
 
-- `engine/client/skill-micro-scene.ts` define el contrato y el reloj compartido por actor, utilería y d20. El clic consume una tirada de práctica y el resultado se compara con la CD. El bucle ambiental vuelve tras la reacción y la recuperación.
+- `engine/client/skill-micro-scene.ts` define el contrato y el reloj compartido por actor, utilería y d20. El clic consume una tirada de práctica y el resultado se compara con la CD. Después de la reacción se mantiene el desenlace, sin reiniciar el reto ni permitir otra tirada.
 - `apps/web/ui/skill-scenes.ts` define las 18 habilidades. `defaultDC` parte de 12. El catálogo público de una campaña admite `skillTransition: { dc: 14 }`, por ejemplo, para cambiar la CD de práctica.
 - Una semilla privada puede aportar `skillModifiers: { athletics: 3 }`, donde el número es el modificador total registrado para ese ID. Se entrega en el estado privado del jugador. Las campañas existentes que omiten el dato usan el d20 natural.
 - `apps/web/ui/skill-scene-sprite.ts` resuelve el token asignado a partir de los snapshots y el catálogo de la campaña. Reutiliza el reproductor de fotogramas, las direcciones y el aislamiento alfa del VTT. Ajusta el encuadre según la altura publicada, conserva la paleta y vuelve al sprite base si falta una pose. La silueta provisional cubre el tiempo de carga del recurso.
@@ -76,9 +76,18 @@ En Stormwreck los IDs de referencia son `rogue`, `wizard` y `cleric`. Sus bases 
 | Supervivencia | `boot-trail`, `paw-trail`, `trail-marker`, dos rastros y señal | VA-06/10. Distinguir seguimiento y vuelta al origen. |
 | Trato con animales | `nervous-horse`, caballo con cabeza, orejas y cola animadas | VA-10/16. Distinguir acercamiento tranquilo y retroceso. |
 
-La aceptación artística del usuario y la prueba en un dispositivo físico se registran por separado. Las poses arrodilladas y los ciclos de trabajo de los tres protagonistas se incorporan en la actualización del 07/11. El equilibrio y el agarre utilizan variantes de las secuencias de gesto y salto, coordinadas con la cuerda y los bordes.
+La tabla anterior documenta la primera entrega. Los recursos vigentes, el cambio de bigote a sombrero, los objetos integrados y las secuencias de contacto se registran en la revisión numerada. La aceptación artística del usuario y la prueba en un dispositivo físico se registran por separado.
 
 ## Verificación
+
+**Revisión numerada 0–18, 07/11.** Construida en `dev/skill-transition`; no instalada en la mesa habitual. Se comprobaron 108 combinaciones (tres protagonistas × 18 habilidades × éxito/fallo), permanencia de `OUTCOME_LOOP`, variación del desenlace y bloqueo de la segunda tirada. Después del ajuste de alcance de animales y contraste de huellas se repitieron sus doce combinaciones. Las verificaciones finales de tipos, producción y mesa VTT usan el último código.
+
+- Diez pruebas dirigidas de reloj de habilidad, reproducción y recuperación de carga: aprobadas. Incluyen apoyo terrestre y permanencia del desenlace a 90 segundos.
+- Tipos de cliente y compilación Vite en `dist/skill-transition-corrections`: aprobados. Prueba con servidor aislado, cambio por Socket.IO, Mía, d20, desenlace final y Continuar: aprobada.
+- Visor local sin red: dado proyectado con veinte caras y geometría variable durante la tirada, movimiento reducido, reinicio, toque, móvil 390 × 700 y horizontal 844 × 390. Resultado y cabecera no se superponen en esas dos vistas.
+- Revisión visual: paneles de las 18 escenas y 36 desenlaces, más contacto de manos, venda y hocico con los tres protagonistas. El caballo mantiene su recurso y escala; las variantes conjuntas descartadas no entran en el juego.
+- `output/skill-transition/correcciones-v3/REVISAR-CORRECCIONES-0-A-18.html`: 18 comparativas por superposición, ampliación y teclado, 36 capturas de desenlace y vídeo de 90 fotogramas reales (11,25 s, 8 fps). `originales.json` conserva hashes y condiciones de las capturas. Vídeo y controles del informe comprobados en el navegador.
+- Visor autónomo: `output/skill-transition/PROBAR-LAS-18-PANTALLAS.html`, 17.501.946 bytes, con código y recursos integrados. Revisión artística del usuario y pruebas físicas siguen pendientes; las vistas táctiles son emuladas.
 
 **Tanda del 07/11.** Se compararon dos instantes del área pintada del protagonista en las 18 habilidades con Mía, Mike y Trinity, 54 combinaciones. Todas cambiaron de fotograma. Se verificó también la reducción de movimiento. El visor siguió pasando los 36 desenlaces, la selección de personaje y la entrada táctil emulada. Tipos y compilación de cliente pasaron, y Atletismo pasó con los nuevos recursos en una mesa VTT aislada.
 

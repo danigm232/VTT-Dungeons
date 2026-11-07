@@ -46,7 +46,7 @@ const actorSelect = controls.querySelector<HTMLSelectElement>('[data-actor]')!;
 const outcome = controls.querySelector<HTMLSelectElement>('[data-outcome-select]')!;
 const reduced = controls.querySelector<HTMLInputElement>('[data-reduced]')!;
 const count = controls.querySelector('[data-count]')!;
-skills.forEach((skill, position) => skillSelect.add(new Option(skill.name, String(position))));
+skills.forEach((skill, position) => skillSelect.add(new Option(`${String(position+1).padStart(2,'0')} · ${skill.name}`, String(position))));
 data.actors.forEach(actor => actorSelect.add(new Option(actor.label, actor.id)));
 if (data.actors.some(actor => actor.id === 'mia')) actorSelect.value = 'mia';
 

@@ -35,6 +35,7 @@ Los archivos bajo `docs/archive/`, `docs/audits/archive/` y `docs/ROADMAP_V1_REV
 | Línea | Situación que se conserva | Cómo continuar |
 | --- | --- | --- |
 | Juego funcional | Mesas, campañas, movimiento, estados y sistemas existentes | Cada bloque deja una candidata jugable. Corregir incidencias reproducibles del alcance sin mezclar una remodelación no encargada. |
+| Pantallas de transición, revisión numerada del 07/11 | Candidata `dev/skill-transition`, 18 habilidades y visor autónomo. | Pies apoyados, objetos en los sprites, dado rodando y desenlace persistente. [Cambios 0–18 y recursos](docs/design/SKILL_ANIMATION_CORRECTIONS_20261107.md); [validación de la candidata](docs/evidence/PLAYER_SKILL_TRANSITIONS_20261106.md). Revisión artística del usuario pendiente. |
 | Dirección visual común | Biblioteca moderna y auditoría VA-01–VA-18 documentadas; no equivalen a arte implementado | Aplicar sus criterios al siguiente bloque gráfico autorizado. |
 | Prioridad visual: Retiro del Dragón y Pecio Rosa de los Vientos | Nueva elección explícita del usuario, 01/11/2026. Se conservan revisión 19 del Retiro y contratos M5/M7 del Pecio | Primera muestra de integración de personajes con la luz existente; después muestras de materiales/muebles/vegetación y profundidad sobre los mismos mapas. [Registro del primer bloque](docs/evidence/STORMWRECK_VISUAL_START_20261101.md). |
 | Cena de D8, pendiente posterior | Encargo E0–E6/C01–C60 preparado; conserva toda su lista | Retomar cuando corresponda; deja de ser el primer piloto por la elección del usuario. |

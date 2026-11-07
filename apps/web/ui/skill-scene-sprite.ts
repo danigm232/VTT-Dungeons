@@ -6,7 +6,7 @@ import type { ActorAnimation } from '../../../engine/client/skill-micro-scene';
 import { clearBlackSpriteMatte } from '../../../engine/client/sprite-matte';
 import { tokenAnimationFrame } from '../../../engine/client/token-animation-playback';
 import { drawFallbackActor } from './skill-scene-art';
-import { skillActorSequence } from './skill-actor-sequences';
+import { skillActorSequence, skillActorEquipmentUrls, skillActorPairedSequence, type SkillSpriteContext } from './skill-actor-sequences';
 
 type Animations = PublicCampaignDefinition['tokenAnimations'][string];
 type Frame = Animations[string]['frames'][number];
@@ -68,6 +68,10 @@ export class SkillSceneSprite {
 
   get height() { return 108 * ((this.actor?.asset.worldHeightMeters ?? 1.65) / 1.65); }
   get handFraction() { return this.clips.get('idle_breath')?.referenceHeight ? .58 : .47; }
+  usesPair(context:SkillSpriteContext) {
+    const pair=this.actor?skillActorPairedSequence(this.actor.asset.url,context):undefined;
+    return Boolean(pair&&this.images.get(pair.clip.frames[0]!.url));
+  }
 
   constructor(private readonly actor: SkillActor | undefined, roles: Iterable<ActorAnimation>, private readonly loadImage: SkillImageLoader) {
     this.clips = actor ? skillSpriteClips(actor, roles) : new Map();
@@ -76,6 +80,7 @@ export class SkillSceneSprite {
     for (const { clip } of this.clips.values()) {
       for (const frame of clip?.frames ?? []) this.load(typeof frame === 'string' ? frame : frame.url);
     }
+    for (const url of skillActorEquipmentUrls(actor.asset.url)) this.load(url);
   }
 
   private load(url: string) {
@@ -122,28 +127,34 @@ export class SkillSceneSprite {
     return trimmed;
   }
 
-  draw(ctx: CanvasRenderingContext2D, role: ActorAnimation, elapsed: number, progress: number | undefined, reduced: boolean) {
+  draw(ctx: CanvasRenderingContext2D, role: ActorAnimation, elapsed: number, progress: number | undefined, reduced: boolean, context?: SkillSpriteContext) {
     if (!this.actor) { drawFallbackActor(ctx); return; }
     if (role !== this.role) { this.role = role; this.roleStartedAt = elapsed; }
-    const selection = this.clips.get(role), clip = selection?.clip;
+    const selection = (context ? skillActorSequence(this.actor.asset.url, role, context) : undefined) ?? this.clips.get(role);
+    const clip = selection?.clip;
     const idle = this.clips.get('idle_breath')?.clip?.frames[0] ?? this.actor.asset.url;
+    const authoredProgress=selection&&'poseProgress' in selection&&typeof selection.poseProgress==='number'?selection.poseProgress:undefined;
+    const controlledProgress = authoredProgress ?? progress;
     const frame = clip?.frames[tokenAnimationFrame(clip.frames.length, clip.fps, reduced ? 0 : elapsed - this.roleStartedAt,
-      progress === undefined && (clip.loop ?? true), reduced ? undefined : progress)];
+      controlledProgress === undefined && (clip.loop ?? true), reduced ? controlledProgress === undefined ? undefined : 1 : controlledProgress)];
     const painted = frame === undefined ? null : this.frame(frame);
     const fallback = painted ?? this.frame(idle) ?? this.frame(this.actor.asset.url);
     if (!fallback) { drawFallbackActor(ctx); return; }
     const reference = this.frame(clip?.frames[0] ?? idle) ?? fallback;
     const scale = this.height / (selection?.referenceHeight ?? reference.height);
-    const sway = reduced ? 0 : Math.sin(elapsed * .004);
     if (painted && selection?.mirror) ctx.scale(-1, 1);
-    if (!selection?.authored) {
-      const bend = role === 'idle_crouch' ? .15 : role === 'sneak_loop' ? .11 : 0;
-      const attentive = ['idle_inspect', 'idle_read', 'idle_reach', 'hand_interact', 'reach', 'point'].includes(role);
-      ctx.rotate((attentive ? .075 : bend) + sway * (attentive ? .035 : .02));
-      ctx.scale(1, 1 - bend * .6 + sway * .012);
-      ctx.translate(0, (role === 'run_loop' ? -5 : role === 'walk_loop' ? -2.5 : 0) * Math.abs(sway));
-    }
-    ctx.drawImage(fallback.image, -fallback.pivot * scale, -fallback.height * scale,
-      fallback.width * scale, fallback.height * scale);
+    // The origin is always the feet. Breathing never changes their ground position.
+    if (!reduced && !['run_loop','walk_loop','sneak_loop','jump','slip'].includes(role)) ctx.scale(1, 1 + Math.sin(elapsed * .0027) * .0025);
+    const position=controlledProgress===undefined?(elapsed-this.roleStartedAt)*(clip?.fps??0)/1000:controlledProgress*(clip?.frames.length??0);
+    const index=clip?tokenAnimationFrame(clip.frames.length,clip.fps,elapsed-this.roleStartedAt,controlledProgress===undefined&&(clip.loop??true),controlledProgress):0;
+    const nextIndex=clip&&(clip.loop??true)&&controlledProgress===undefined?(index+1)%clip.frames.length:Math.min(index+1,(clip?.frames.length??1)-1);
+    const next=!reduced&&clip&&nextIndex!==index?this.frame(clip.frames[nextIndex]!):null;
+    const blend=next?Math.max(0,((position%1)-.7)/.3):0;
+    const opacity=ctx.globalAlpha;
+    const draw=(frame:SpriteFrame,alpha:number)=>{
+      ctx.globalAlpha=opacity*alpha;
+      ctx.drawImage(frame.image,-frame.pivot*scale,-frame.height*scale,frame.width*scale,frame.height*scale);
+    };
+    draw(fallback,1-blend);if(next&&blend>0)draw(next,blend);ctx.globalAlpha=opacity;
   }
 }

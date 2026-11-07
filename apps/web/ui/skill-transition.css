@@ -76,13 +76,14 @@ dialog.skill-transition {
 .skill-rule i { width: .55rem; height: .55rem; box-sizing: border-box; border: 1.5px solid #d6a96c; transform: rotate(45deg); }
 
 .skill-action {
-  --die-size: clamp(6.6rem, 22dvh, 10rem);
+  --die-size: clamp(5.6rem, 18dvh, 8rem);
   top: 36%;
   transform: translate(-50%, -50%);
   width: var(--die-size);
 }
-[data-terrain='chasm'] .skill-action { --die-size: clamp(8rem, 31dvh, 14.5rem); top: 50%; }
-[data-skill='acrobatics'] .skill-action { --die-size: clamp(7rem, 23dvh, 11rem); top: 40%; }
+[data-terrain='chasm'] .skill-action { --die-size: clamp(6.4rem, 24dvh, 11rem); top: 43%; }
+[data-skill='acrobatics'] .skill-action { --die-size: clamp(6rem, 20dvh, 9rem); top: 36%; }
+[data-skill='animal-handling'] .skill-action { left:35%; --die-size:clamp(5.2rem,16dvh,7rem); }
 .skill-transition button { min-height: 44px; touch-action: manipulation; }
 .skill-transition button:focus-visible, .skill-transition select:focus-visible, .skill-transition summary:focus-visible { outline: 2px solid #f5ce8b; outline-offset: 3px; }
 .skill-transition .skill-die {
@@ -106,12 +107,21 @@ dialog.skill-transition {
 .skill-die-value { fill: #fff1c3; font: 700 29px Georgia, serif; }
 .skill-facets { font: 700 13px Georgia, serif; }
 .skill-orbit { transform-origin: 110px 110px; animation: skill-orbit 18s linear infinite; }
-.skill-transition[data-phase='ROLL'] .skill-die-core { animation: skill-die-roll .47s ease-out; }
+.skill-transition[data-phase='ROLL'] .skill-die-tumble { animation: skill-die-roll 1.115s ease-out both; transform-origin:110px 110px; filter:drop-shadow(0 0 8px #eeaf5b99); }
+.skill-die { perspective: 650px; }
 @keyframes skill-orbit { to { transform: rotate(360deg); } }
-@keyframes skill-die-roll { 45% { transform: translateY(-11px) rotate(35deg) scale(.89); } 76% { transform: rotate(-8deg) scale(1.07); } }
+@keyframes skill-die-roll {
+  0% { transform: translate(-34px,-8px); }
+  25% { transform: translate(20px,-27px) scale(.9); }
+  48% { transform: translate(37px,8px) scale(.96); }
+  65% { transform: translate(-12px,-16px); }
+  80% { transform: translate(-6px,7px); }
+  91% { transform: translate(4px,-4px); }
+  100% { transform: translate(0,0); }
+}
 .skill-transition .skill-result {
   position: absolute;
-  top: calc(100% + .18rem);
+  bottom: calc(100% + .1rem);
   left: 50%;
   transform: translateX(-50%);
   width: max-content;
@@ -166,7 +176,9 @@ dialog.skill-transition {
   .skill-heading { top: 12%; }
   .skill-transition h2 { font-size: clamp(1.9rem, 7.9vw, 3.5rem); }
   .skill-transition .skill-ability { font-size: clamp(1.05rem, 4.45vw, 1.48rem); }
-  .skill-action, [data-terrain='chasm'] .skill-action, [data-skill='acrobatics'] .skill-action { --die-size: clamp(7.9rem, 39vw, 11.5rem); top: 36%; }
+  .skill-action, [data-terrain='chasm'] .skill-action, [data-skill='acrobatics'] .skill-action { --die-size: clamp(6.5rem, 30vw, 9rem); top: 36%; }
+  .skill-transition .skill-result { top:calc(100% + .1rem);bottom:auto; }
+  [data-skill='animal-handling'] .skill-action { left:50%; }
   .skill-summary { top: 72%; width: min(90%, 40rem); }
   .skill-transition .skill-caption { font-size: clamp(1.14rem, 4.9vw, 1.5rem); }
   .skill-summary .skill-rule { margin: .7rem auto .57rem; }

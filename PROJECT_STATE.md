@@ -1,5 +1,11 @@
 # Estado del proyecto
 
+## Pantallas de habilidades · revisión numerada 0–18 — 2026-11-07
+
+Candidata aislada en `dev/skill-transition`: nuevos sprites con objetos integrados para Mía, Mike y Trinity, pies apoyados, utilería y secundarios ilustrados, dado que rueda y desenlace animado persistente. Acrobacias inicia fuera de la cuerda; Atletismo usa suelo continuo en movimiento y caída al fallar. Contactos conjuntos de apretón y vendaje; caballo con escala y poses de alcance ajustadas. Visor autónomo actualizado en `output/skill-transition/PROBAR-LAS-18-PANTALLAS.html`; comparativas y vídeo en `output/skill-transition/correcciones-v3/REVISAR-CORRECCIONES-0-A-18.html`.
+
+Diez pruebas dirigidas, tipos, compilación de cliente, 108 combinaciones y doce repeticiones de los dos últimos ajustes; móvil/táctil emulado y transición real por Socket.IO aprobados. Revisión artística del usuario y prueba física separadas. La mesa habitual y los cambios de otros chats se conservan. [Recursos y cambios por número](docs/design/SKILL_ANIMATION_CORRECTIONS_20261107.md), [evidencia y límites](docs/evidence/PLAYER_SKILL_TRANSITIONS_20261106.md).
+
 ## Instalación habitual 3000 y comparativas por superposición — 2026-11-02
 
 Por petición explícita del usuario se instalan en `dist` las muestras Retiro/Pecio, adaptación de actores y cráneo terminado; la mesa habitual Stormwreck queda arrancada en el puerto 3000 con los guardados existentes. Preparación de cliente/tipos/servidor PASS y activación con el instalador existente; compilación anterior conservada en `runtime/previous-build-*`. El acabado queda activo por defecto en futuros arranques (`DUNGEONS_STYLE_SAMPLE=0` permite una compilación base aislada). [Registro de instalación y comprobaciones HTTP](output/stormwreck-style-sample-20261101/deployment-3000-20261102.json). La instalación solicitada no inventa aceptación artística ni física.

@@ -52,3 +52,8 @@ body { margin: 0; background: #0a2024; }
   .skill-transition:has(.skill-preview) .skill-heading { top: 18%; }
   .skill-transition:has(.skill-preview) .skill-destination { display: none; }
 }
+@media (min-aspect-ratio: 4/3) and (max-height: 550px) {
+  .skill-transition:has(.skill-preview) .skill-heading { top:6%;left:65%;width:65%;gap:.2rem; }
+  .skill-transition:has(.skill-preview) h2 { font-size:clamp(1.5rem,3.4vw,2rem); }
+  .skill-transition:has(.skill-preview) .skill-heading .skill-rule { width:25vw;margin-top:.15rem; }
+}
