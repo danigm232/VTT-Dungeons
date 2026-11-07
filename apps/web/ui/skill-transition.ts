@@ -11,6 +11,7 @@ import chasmPlate from './art/skill-chasm.webp';
 import floorPlate from './art/skill-floor.webp';
 import { SkillPropSprites } from './skill-prop-sprites';
 import { SkillD20 } from './skill-d20';
+import { skillRunningGround } from '../../../engine/client/skill-running-ground';
 import './skill-transition.css';
 
 type Frame = ReturnType<SkillMicroScenePlayback['frame']>;
@@ -54,6 +55,7 @@ export class SkillTransitionScreen {
   private readonly continueButton: HTMLButtonElement;
   private readonly plate: HTMLImageElement;
   private readonly runningGround = new Image();
+  private groundSurface: HTMLCanvasElement | undefined;
   private readonly ctx: CanvasRenderingContext2D | null;
   private readonly propSprites: SkillPropSprites;
   private readonly reduced = matchMedia('(prefers-reduced-motion: reduce)');
@@ -197,7 +199,8 @@ export class SkillTransitionScreen {
       if (start > actionProgress) { beatEnd = start; break; }
       actionRole = animation; beatStart = start;
     }
-    const role: ActorAnimation = winding(frame.phase) ? scene.preparationAnimation : ambient ? scene.ambientAnimation : frame.phase === 'ACTION_PREPARE' ? scene.preparationAnimation
+    const runningLead=scene.id==='athletics'&&(winding(frame.phase)||frame.phase==='ACTION_PREPARE');
+    const role: ActorAnimation = runningLead ? 'run_loop' : winding(frame.phase) ? scene.preparationAnimation : ambient ? scene.ambientAnimation : frame.phase === 'ACTION_PREPARE' ? scene.preparationAnimation
       : settled ? action.settledAnimation ?? 'idle_breath' : actionRole;
     const roleProgress = Math.min(1, Math.max(0, (actionProgress - beatStart) / Math.max(.01, beatEnd - beatStart)));
     const motion = { ...motionAt(frame, scene.actor.ambient, action.actor, reduced) };
@@ -227,16 +230,20 @@ export class SkillTransitionScreen {
       }
     };
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    // The approaching gap reveals the same chasm plate. The running lane itself
-    // repeats in world space, so the runner has a surface travelling beneath it.
-    if (scene.id === 'athletics' && this.runningGround.complete && this.runningGround.naturalWidth &&
-      (ambient || frame.phase === 'ACTION_PREPARE')) {
-      const stop = frame.phase === 'ACTION_PREPARE' ? 1280 - 888 * eased(frame.progress) : 1280;
-      const travel = reduced ? 0 : frame.ambientMs * .12;
-      ctx.save(); ctx.beginPath(); ctx.rect(0, 454, stop, 266); ctx.clip();
-      for(let tile=-1;tile<3;tile++) ctx.drawImage(this.runningGround,0,568,1600,332,
-        tile*1280-(travel%1280),454,1280,266);
-      ctx.restore();
+    if (scene.id === 'athletics' && this.runningGround.complete && this.runningGround.naturalWidth) {
+      const ground=skillRunningGround(frame,reduced);
+      if(ground.opacity>0) {
+        const surface=this.groundSurface??=document.createElement('canvas');
+        if(surface.width!==1280||surface.height!==266){surface.width=1280;surface.height=266;}
+        const layer=surface.getContext('2d')!;layer.clearRect(0,0,1280,266);
+        layer.globalCompositeOperation='source-over';
+        for(let tile=-1;tile<3;tile++)layer.drawImage(this.runningGround,0,568,1600,332,tile*1280-ground.travel%1280,0,1280,266);
+        const mask=layer.createLinearGradient(Math.max(0,ground.edge-ground.feather),0,ground.edge+.01,0);
+        mask.addColorStop(0,'#000');mask.addColorStop(1,'#0000');
+        layer.globalCompositeOperation='destination-in';layer.fillStyle=mask;layer.fillRect(0,0,1280,266);
+        layer.globalCompositeOperation='source-over';
+        ctx.save();ctx.globalAlpha=ground.opacity;ctx.drawImage(surface,0,454);ctx.restore();
+      }
     }
     ctx.save();
     ctx.translate(640, 471);

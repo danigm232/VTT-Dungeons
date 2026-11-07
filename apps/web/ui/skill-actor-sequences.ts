@@ -121,7 +121,8 @@ export function skillActorSequence(source: string, role: ActorAnimation, context
   } else if (role === 'jump' || role === 'slip' || role === 'hang') {
     row=2; order=role==='jump' ? [0,1,2,4] : role==='hang' ? [3] : [2,3,5];
     if(settled) order=role==='hang' ? [3] : [5];
-  } else if(role==='idle_crouch') {row=4;order=[0,1,0,1];}
+  } else if(role==='idle_prepare') {row=0;order=[0];fps=1;}
+  else if(role==='idle_crouch') {row=4;order=[0,1,0,1];}
   else if (context?.skillId === 'investigation' && (acting || settled)) { row=5;order=[0,1,2,3,2,1]; }
   else {row=0;order=role==='point' ? [2,3,2,3] : role==='idle_brace' ? [3,4,3,4] : role==='idle_listen' ? [0,1,0,1] : [0,1,2,3,4,5,4,3,2,1];}
   if (useSupplement) {

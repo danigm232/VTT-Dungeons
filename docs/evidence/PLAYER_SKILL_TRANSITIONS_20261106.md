@@ -80,6 +80,13 @@ La tabla anterior documenta la primera entrega. Los recursos vigentes, el cambio
 
 ## Verificación
 
+**Corrección posterior del parpadeo, 07/11.** El render mezclaba dos dibujos del protagonista con transparencias sobre el escenario; en las zonas comunes dos pesos del 50 % producían un 75 % de cobertura. Se elimina ese fundido y sus dobles contornos en el reproductor compartido de las 18 habilidades. La espera de Acrobacias usa la pose neutral con respiración; el fallo continúa hasta caer fuera del encuadre y mantiene la bruma animada. Atletismo usa el tiempo continuo desde la tirada para desplazar el suelo, revelar la grieta durante 1.600 ms y retirar gradualmente la superficie después del despegue, sin el corte de fase anterior.
+
+- Reproducción del defecto y corrección con Mía, Mike y Trinity: 48 muestras consecutivas por personaje/habilidad/lado, 576 muestras en total. La mediana alfa del núcleo del sprite bajaba a 189–190/255 antes; en la candidata queda estable en 252–253/255. Registro `output/skill-transition/parpadeo-v4/opacidad.json`.
+- Trece pruebas dirigidas: reloj, reproducción, recuperación de carga, continuidad del suelo en los cambios de fase y caída completa. Tipos y compilación de cliente aprobados. Transición real por Socket.IO, resultado persistente y Continuar comprobados en la mesa aislada de esta compilación.
+- Visor final sin red: las 18 habilidades y 36 desenlaces comprobados, con una sola tirada y animación final persistente. También pasan d20, reducción de movimiento, toque y vistas de 390 × 700 y 844 × 390.
+- Informe `output/skill-transition/parpadeo-v4/SIN-PARPADEOS.html`: cuatro comparativas superpuestas con Mía, 1280 × 720 y el mismo tiempo de reproducción por par. Conserva fuentes/hashes. El vídeo de diez segundos usa 80 capturas reales a 8 fps. Cambios de render y trayectorias, sin generar ni sustituir arte.
+
 **Revisión numerada 0–18, 07/11.** Construida en `dev/skill-transition`; no instalada en la mesa habitual. Se comprobaron 108 combinaciones (tres protagonistas × 18 habilidades × éxito/fallo), permanencia de `OUTCOME_LOOP`, variación del desenlace y bloqueo de la segunda tirada. Después del ajuste de alcance de animales y contraste de huellas se repitieron sus doce combinaciones. Las verificaciones finales de tipos, producción y mesa VTT usan el último código.
 
 - Diez pruebas dirigidas de reloj de habilidad, reproducción y recuperación de carga: aprobadas. Incluyen apoyo terrestre y permanencia del desenlace a 90 segundos.

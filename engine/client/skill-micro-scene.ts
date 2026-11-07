@@ -104,8 +104,9 @@ export class SkillMicroScenePlayback {
     return true;
   }
 
-  frame(now: number): { phase: SkillPhase; progress: number; ambientMs: number; elapsedMs: number } {
+  frame(now: number): { phase: SkillPhase; progress: number; ambientMs: number; elapsedMs: number; rollElapsedMs?: number } {
     const ambientMs = Math.max(0, (this.pressedAt ?? now) - this.startedAt);
+    const rollElapsedMs=this.pressedAt===undefined?undefined:Math.max(0,now-this.pressedAt);
     if (now < this.startedAt) return { phase: 'INIT', progress: 0, ambientMs, elapsedMs: 0 };
     if (this.pressedAt !== undefined) {
       const timings: readonly (readonly [SkillPhase, number])[] = [
@@ -114,10 +115,10 @@ export class SkillMicroScenePlayback {
       ];
       let elapsed = Math.max(0, now - this.pressedAt);
       for (const [phase, duration] of timings) {
-        if (elapsed < duration) return { phase, progress: elapsed / duration, ambientMs, elapsedMs: elapsed };
+        if (elapsed < duration) return { phase, progress: elapsed / duration, ambientMs, elapsedMs: elapsed, rollElapsedMs };
         elapsed -= duration;
       }
-      return { phase: 'OUTCOME_LOOP', progress: 1, ambientMs, elapsedMs: elapsed };
+      return { phase: 'OUTCOME_LOOP', progress: 1, ambientMs, elapsedMs: elapsed, rollElapsedMs };
     }
     return { phase: 'AMBIENT_LOOP', progress: 0, ambientMs, elapsedMs: ambientMs };
   }

@@ -2,6 +2,8 @@
 
 ## Pantallas de habilidades · revisión numerada 0–18 — 2026-11-07
 
+Corrección posterior: eliminado el fundido entre dibujos que hacía parpadear el cuerpo y duplicaba contornos; opacidad estable con los tres protagonistas. Acrobacias completa la caída y Atletismo enlaza el suelo mediante un reloj continuo y máscara gradual. Trece pruebas, 36 desenlaces, tipos/compilación y transición VTT aislada aprobados. [Vídeo y cuatro comparativas](output/skill-transition/parpadeo-v4/SIN-PARPADEOS.html); detalle y condiciones en la ficha de evidencia.
+
 Candidata aislada en `dev/skill-transition`: nuevos sprites con objetos integrados para Mía, Mike y Trinity, pies apoyados, utilería y secundarios ilustrados, dado que rueda y desenlace animado persistente. Acrobacias inicia fuera de la cuerda; Atletismo usa suelo continuo en movimiento y caída al fallar. Contactos conjuntos de apretón y vendaje; caballo con escala y poses de alcance ajustadas. Visor autónomo actualizado en `output/skill-transition/PROBAR-LAS-18-PANTALLAS.html`; comparativas y vídeo en `output/skill-transition/correcciones-v3/REVISAR-CORRECCIONES-0-A-18.html`.
 
 Diez pruebas dirigidas, tipos, compilación de cliente, 108 combinaciones y doce repeticiones de los dos últimos ajustes; móvil/táctil emulado y transición real por Socket.IO aprobados. Revisión artística del usuario y prueba física separadas. La mesa habitual y los cambios de otros chats se conservan. [Recursos y cambios por número](docs/design/SKILL_ANIMATION_CORRECTIONS_20261107.md), [evidencia y límites](docs/evidence/PLAYER_SKILL_TRANSITIONS_20261106.md).

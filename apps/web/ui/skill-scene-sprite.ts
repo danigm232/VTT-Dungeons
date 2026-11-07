@@ -141,20 +141,12 @@ export class SkillSceneSprite {
     const fallback = painted ?? this.frame(idle) ?? this.frame(this.actor.asset.url);
     if (!fallback) { drawFallbackActor(ctx); return; }
     const reference = this.frame(clip?.frames[0] ?? idle) ?? fallback;
-    const scale = this.height / (selection?.referenceHeight ?? reference.height);
+    const scale = this.height / (painted ? selection?.referenceHeight ?? reference.height : fallback.height);
     if (painted && selection?.mirror) ctx.scale(-1, 1);
     // The origin is always the feet. Breathing never changes their ground position.
     if (!reduced && !['run_loop','walk_loop','sneak_loop','jump','slip'].includes(role)) ctx.scale(1, 1 + Math.sin(elapsed * .0027) * .0025);
-    const position=controlledProgress===undefined?(elapsed-this.roleStartedAt)*(clip?.fps??0)/1000:controlledProgress*(clip?.frames.length??0);
-    const index=clip?tokenAnimationFrame(clip.frames.length,clip.fps,elapsed-this.roleStartedAt,controlledProgress===undefined&&(clip.loop??true),controlledProgress):0;
-    const nextIndex=clip&&(clip.loop??true)&&controlledProgress===undefined?(index+1)%clip.frames.length:Math.min(index+1,(clip?.frames.length??1)-1);
-    const next=!reduced&&clip&&nextIndex!==index?this.frame(clip.frames[nextIndex]!):null;
-    const blend=next?Math.max(0,((position%1)-.7)/.3):0;
-    const opacity=ctx.globalAlpha;
-    const draw=(frame:SpriteFrame,alpha:number)=>{
-      ctx.globalAlpha=opacity*alpha;
-      ctx.drawImage(frame.image,-frame.pivot*scale,-frame.height*scale,frame.width*scale,frame.height*scale);
-    };
-    draw(fallback,1-blend);if(next&&blend>0)draw(next,blend);ctx.globalAlpha=opacity;
+    // Authored sprite poses are discrete drawings. Compositing two translucent
+    // bodies made opacity pulse and produced duplicate faces and limbs.
+    ctx.drawImage(fallback.image,-fallback.pivot*scale,-fallback.height*scale,fallback.width*scale,fallback.height*scale);
   }
 }

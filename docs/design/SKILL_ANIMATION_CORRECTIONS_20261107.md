@@ -7,7 +7,7 @@ Encargo: revisión numerada del usuario, 0 general y 1–18 en el orden del viso
 - D20 con malla de icosaedro proyectada, rotación en tres ejes, traslación, rebotes y frenado durante 1115 ms. Tamaño reducido; resultado situado encima para liberar el área de actuación.
 - Los pies son el origen del render. Se eliminan desplazamientos y giros de cuerpo completo en los gestos quietos. El movimiento de torso/manos proviene de las poses; la respiración apenas varía la altura alrededor del apoyo.
 - Los recortes se calculan por componentes alfa conectados, reutilizando `isolateAtlasRGBA`; las filas generadas no se suponen perfectamente uniformes. Así no se incluyen botas o cabezas de una fila vecina. Pivotes de pies y alturas de referencia quedan en el manifiesto.
-- Clips y fotogramas reutilizados por identidad de recurso. Las secuencias conservan la misma clave de caché entre actualizaciones; no se crea otro canvas por cada fotograma de marcha. Mezcla breve al final de cada pose para suavizar el cambio.
+- Clips y fotogramas reutilizados por identidad de recurso. Las secuencias conservan la misma clave de caché entre actualizaciones; no se crea otro canvas por cada fotograma de marcha. La revisión posterior elimina el fundido entre poses: perdía opacidad y duplicaba el contorno. Se dibuja una pose nítida por fotograma; el fallback conserva la altura del protagonista durante la carga.
 - `OUTCOME_LOOP` mantiene la posición final y un gesto vivo. No reinicia el reto, no reautoriza otra tirada y no teletransporta al protagonista al origen. Nueva entrada o Reiniciar del visor crean otra demostración.
 - Pergamino, instrumento, vendas, moneda, sombrero y libro se pintan en las manos/cabeza del personaje. Desaparecen los montajes de objetos flotantes de esas escenas. Las poses especiales se resuelven por URL del token, sin depender del nombre del personaje.
 
@@ -38,8 +38,8 @@ La preparación se reproduce con `scripts/prepare-skill-animation-art.mjs <direc
 
 | Nº | Cambio integrado | Criterio visual / VA |
 | --- | --- | --- |
-| 1 | Inicio fuera de la cuerda, salto inicial, pasos de equilibrio, salto final o agarre a la cuerda. | VA-10/12: pies sobre la altura de la cuerda durante el cruce, final conservado. |
-| 2 | Superficie que se desplaza y se repite bajo la carrera; la grieta aparece al preparar el salto. Fallo: caída hacia la bruma. | VA-07/10/16: suelo bajo los apoyos; no se representa un agarre sin contacto. |
+| 1 | Inicio fuera de la cuerda con respiración, salto inicial, pasos de equilibrio, salto final o caída completa entre la bruma. | VA-10/12: pies sobre la cuerda durante el cruce; el fallo ya no termina en un agarre detenido. |
+| 2 | Superficie que se desplaza durante carrera, dado y preparación. La grieta se descubre gradualmente y el suelo se disuelve después del despegue. Fallo: caída hacia la bruma. | VA-07/10/16: reloj continuo, sin borrar la superficie al cambiar de fase. |
 | 3 | Cristal con runas grabadas, facetas, ámbar y sombra azul verdosa. | VA-01/02/06, referencia del usuario y REF-08 para lectura de objeto. |
 | 4 | Guardia con seis poses. Sombrero pintado en cada protagonista, ajuste y sombrero torcido al fallar. | VA-10: sin bigote falso sobre una barba. |
 | 5 | Escudo sobre caballete; pergamino incorporado al protagonista. | VA-06/07: ambos objetos tienen apoyo/contacto. |

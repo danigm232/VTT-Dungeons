@@ -22,10 +22,10 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
     },
     failureAnimation: {
       animation: "jump",
-      caption: "Salta a la cuerda, pierde el apoyo y queda colgando de ella.",
-      actor: [[0,{}], [0.12,{"x":24,"y":-45}], [0.23,{"x":54,"y":-33}], [0.4,{"x":104,"y":-32}], [0.54,{"x":128,"y":-24}], [0.68,{"x":133,"y":43}], [1,{"x":133,"y":43}]],
-      beats: [[0.23,"walk_loop"], [0.52,"slip"], [0.67,"hang"]],
-      settledAnimation: "hang"
+      caption: "Pierde el apoyo y cae de la cuerda entre la bruma.",
+      actor: [[0,{}], [0.12,{"x":24,"y":-45}], [0.23,{"x":54,"y":-33}], [0.4,{"x":104,"y":-32}], [0.54,{"x":128,"y":-24}], [0.68,{"x":140,"y":38}], [0.82,{"x":146,"y":112,"opacity":0.6}], [1,{"x":148,"y":178,"opacity":0}]],
+      beats: [[0.23,"walk_loop"], [0.52,"slip"]],
+      settledAnimation: "slip"
     },
     props: [
       {"id":"takeoff","art":"ledge-left","x":196,"y":202},
@@ -35,7 +35,12 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
         art: "rope",
         x: 324,
         y: 169,
-        failure: [[0,{}], [0.49,{"cue":-0.85}], [0.73,{"cue":-0.77}], [1,{}]]
+        failure: [[0,{}], [0.49,{"cue":-0.85}], [0.73,{"cue":-0.4}], [1,{}]]
+      },
+      {
+        id: "acrobatics-fall-mist", art: "fall-mist", x: 310, y: 238, front: true,
+        ambient: [[0,{"opacity":0}]],
+        failure: [[0,{"opacity":0}], [0.68,{"opacity":0}], [0.88,{"opacity":0.7}], [1,{"opacity":0.65}]]
       }
     ]
   },
