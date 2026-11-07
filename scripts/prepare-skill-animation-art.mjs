@@ -5,7 +5,8 @@ const sharp=createRequire(import.meta.url)(process.env.DUNGEONS_SHARP_MODULE??'s
 const root=resolve(import.meta.dirname,'..');
 if(!process.argv[2])throw new Error('Uso: node scripts/prepare-skill-animation-art.mjs <directorio de PNG originales>');
 const base=resolve(process.argv[2]);
-const items=JSON.parse(await readFile(resolve(root,'docs/design/SKILL_ANIMATION_V3_SOURCES_20261107.json'),'utf8'));
+const items=JSON.parse(await readFile(resolve(root,process.argv[3]??'docs/design/SKILL_ANIMATION_V3_SOURCES_20261107.json'),'utf8'));
+const version=process.argv[4]??'v3';
 const metadata={};
 for(const [id,spec] of Object.entries(items)) {
  const source=resolve(base,'exec-'+spec.file+'.png');
@@ -28,9 +29,9 @@ for(const [id,spec] of Object.entries(items)) {
  }
  const selected=[];
  for(let row=0;row<rows;row++)for(let col=0;col<cols;col++) {
-  const prints=id==='environment'&&row===1&&col>=2;
+  const prints=spec.disconnected??(id==='environment'&&row===1&&col>=2);
   const candidates=components.filter(c=>c.area>(prints?20:1500)&&Math.floor((c.left+c.right)/2/cw)===col&&Math.floor((c.top+c.bottom)/2/ch)===row).sort((a,b)=>b.area-a.area);
-  const paired=id==='handshake'||id==='medicine-pair';
+  const paired=spec.paired??(id==='handshake'||id==='medicine-pair');
   const keep=prints?candidates:candidates.slice(0,paired?2:1);
   if(!keep.length)throw new Error(`Missing pose ${id} ${row} ${col}`);
   selected.push(new Set(keep.map(c=>c.label)));
@@ -45,16 +46,21 @@ for(const [id,spec] of Object.entries(items)) {
  const refRow=spec.refRow??0;
  const hs=frames.slice(refRow*cols,(refRow+1)*cols).map(f=>f.bounds[3]).sort((a,b)=>a-b);
  const heroHeights=[];
- if(id==='handshake'||id==='medicine-pair')for(let row=0;row<rows;row++) {
-  let top=ch,bottom=0;
-  for(let y=0;y<ch;y++)for(let x=0;x<cw*.46;x++) {
-   if(!selected[row*cols].has(labels[(row*ch+y)*width+x]))continue;
-   top=Math.min(top,y);bottom=Math.max(bottom,y+1);
-  }heroHeights.push(bottom-top);
+ if(spec.paired||id==='handshake'||id==='medicine-pair')for(let row=0;row<rows;row++) {
+  let reference=0;
+  for(let col=0;col<(spec.heroReference==='max'?cols:1);col++){
+   let top=ch,bottom=0;
+   for(let y=0;y<ch;y++)for(let x=0;x<cw*.46;x++) {
+    if(!selected[row*cols+col].has(labels[(row*ch+y)*width+col*cw+x]))continue;
+    top=Math.min(top,y);bottom=Math.max(bottom,y+1);
+   }reference=Math.max(reference,bottom-top);
+  }heroHeights.push(reference);
  }
+ if(spec.pairedRowGroups)for(let row=0;row<rows;row+=spec.pairedRowGroups){const height=Math.max(...heroHeights.slice(row,row+spec.pairedRowGroups));for(let i=0;i<spec.pairedRowGroups;i++)heroHeights[row+i]=height;}
  if(id==='animal-reach')for(let row=0;row<rows;row++)heroHeights.push(frames[row*cols].bounds[3]);
- metadata[id]={width,height,cellWidth:cw,cellHeight:ch,columns:cols,rows,referenceHeight:hs[Math.floor(hs.length/2)],frames,original:source,...(heroHeights.length?{heroHeights}:{})};
- await pipeline.webp({quality:94,alphaQuality:100}).toFile(resolve(root,'apps/web/ui/art/skill-'+id+'-v3.webp'));
+ const rowHeights=Array.from({length:rows},(_,row)=>frames[row*cols].bounds[3]);
+ metadata[id]={width,height,cellWidth:cw,cellHeight:ch,columns:cols,rows,referenceHeight:hs[Math.floor(hs.length/2)],frames,original:source,...(heroHeights.length?{heroHeights}:{}),...(version!=='v3'?{rowHeights}:{})};
+ await pipeline.webp({quality:version==='v3'?94:91,alphaQuality:100}).toFile(resolve(root,'apps/web/ui/art/skill-'+id+'-'+version+'.webp'));
 }
-await writeFile(resolve(root,'apps/web/ui/art/skill-animation-v3.json'),JSON.stringify(metadata,null,2));
+await writeFile(resolve(root,'apps/web/ui/art/skill-animation-'+version+'.json'),JSON.stringify(metadata,null,2));
 console.log(Object.keys(metadata).join(', '));

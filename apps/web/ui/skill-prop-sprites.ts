@@ -1,10 +1,11 @@
 import { isolateAtlasRGBA } from '../../../engine/client/atlas-isolation';
 import type { SkillImageLoader } from './skill-scene-sprite';
 import atlasData from './art/skill-animation-v3.json';
+import extendedData from './art/skill-animation-v5.json';
 import type { SkillSpriteContext } from './skill-actor-sequences';
 
-type AtlasMeta = {cellWidth:number;cellHeight:number;columns:number;referenceHeight:number;frames:{bounds:number[];pivot:number;alphaSeeds:[number,number][]}[]};
-const newMetadata=atlasData as unknown as Record<string,AtlasMeta>;
+type AtlasMeta = {cellWidth:number;cellHeight:number;columns:number;referenceHeight:number;rowHeights?:number[];frames:{bounds:number[];pivot:number;alphaSeeds:[number,number][]}[]};
+const newMetadata={...atlasData,...extendedData} as unknown as Record<string,AtlasMeta>;
 
 type Bounds = readonly [number, number, number, number];
 const propBounds: readonly Bounds[] = [
@@ -31,6 +32,8 @@ export class SkillPropSprites {
   private horses: HTMLCanvasElement[] = [];
   private people: HTMLCanvasElement[] = [];
   private readonly newArt:Record<string,HTMLCanvasElement[]>={};
+  private readonly floors:Record<string,number[]>={};
+  private smokePuff:HTMLCanvasElement|undefined;
   revision = 0;
 
   constructor(load: SkillImageLoader) {
@@ -56,16 +59,24 @@ export class SkillPropSprites {
     for(const [id,url] of Object.entries({
       environment:new URL('./art/skill-environment-v3.webp',import.meta.url).href,
       people:new URL('./art/skill-people-v3.webp',import.meta.url).href,
-      horse:new URL('./art/skill-horse-v3.webp',import.meta.url).href
+      horse:new URL('./art/skill-horse-v3.webp',import.meta.url).href,
+      npcs:new URL('./art/skill-npcs-v5.webp',import.meta.url).href,
+      creatures:new URL('./art/skill-creatures-v5.webp',import.meta.url).href,
+      tracks:new URL('./art/skill-tracks-v5.webp',import.meta.url).href
     })) {
       void load(url).then(({image})=>{
+        this.floors[id]=[];
+        if(!newMetadata[id])return;
         this.newArt[id]=newMetadata[id]!.frames.map(({bounds,alphaSeeds})=>{
           const [x,y,width,height]=bounds as [number,number,number,number];
           const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
           const ctx=canvas.getContext('2d',{willReadFrequently:true})!;
           ctx.drawImage(image,x,y,width,height,0,0,width,height);
           const pixels=ctx.getImageData(0,0,width,height);
-          pixels.data.set(isolateAtlasRGBA(pixels.data,width,height,alphaSeeds));ctx.putImageData(pixels,0,0);return canvas;
+          pixels.data.set(isolateAtlasRGBA(pixels.data,width,height,alphaSeeds));ctx.putImageData(pixels,0,0);
+          let floor=height;
+          for(let y=height-1;y>=0;y--){let count=0;for(let x=0;x<width;x++)if(pixels.data[(y*width+x)*4+3]!>=160)count++;if(count>=2){floor=y+1;break;}}
+          this.floors[id]!.push(floor);return canvas;
         });this.revision++;
       }).catch(()=>{});
     }
@@ -81,11 +92,56 @@ export class SkillPropSprites {
     const meta=newMetadata[group]!,frame=meta.frames[index]!,tile=this.newArt[group]![index]!;
     const localLeft=frame.bounds[0]!-index%meta.columns*meta.cellWidth;
     const pivot=anchor==='center'?tile.width/2:frame.pivot*meta.cellWidth-localLeft;
-    ctx.drawImage(tile,-pivot*scale,-tile.height*scale*(anchor==='center'?.5:1),tile.width*scale,tile.height*scale);
+    ctx.drawImage(tile,-pivot*scale,-(anchor==='center'?tile.height*.5:this.floors[group]?.[index]??tile.height)*scale,tile.width*scale,tile.height*scale);
   }
 
   private illustrated(ctx:CanvasRenderingContext2D,art:string,cue:number,time:number,context?:SkillSpriteContext&{height:number}) {
-    const cycle=Math.floor(time*6)%4;
+    const cycle=Math.floor(time*3.8)%4;
+    if(peopleRows[art]!==undefined||art==='audience')ctx.scale(1,1+Math.sin(time*2.2)*.0025);
+    const acting=context?.phase==='SUCCESS'||context?.phase==='FAILURE';
+    const settled=context?.phase==='REACTION'||context?.phase==='OUTCOME_LOOP';
+    const resolved=acting||settled;
+    const progress=context?.progress??0;
+    if(this.newArt.npcs&&context){
+      let row=-1,column=0;
+      if(art==='guard'&&resolved&&!context.success){row=0;column=progress<.38?Math.min(1,Math.floor(progress/.19)):2+Math.floor(time*7.5)%6;}
+      if(art==='bandit'&&resolved&&context.success){row=1;column=progress<.35?Math.min(1,Math.floor(progress/.175)):2+Math.floor(time*7)%6;}
+      if(art==='audience'&&resolved){row=context.success?2:5;column=Math.floor(time*(context.success?4.4:5))%8;}
+      if(art==='traveler'&&context.skillId==='insight'){
+        row=3;column=resolved?context.success?progress<.4?3:progress<.7?4:5:progress<.45?2:progress<.75?6:7:[0,1,2,3,2,1][Math.floor(time*2.4)%6]!;
+      }
+      if(art==='sleepy-guard'){
+        row=4;column=resolved&&!context.success?(progress<.42?0:progress<.6?4:progress<.8?5:7):cue>-.7?[2,3][cycle%2]!:cycle%2;
+      }
+      if(row>=0){const meta=newMetadata.npcs!;this.cell(ctx,'npcs',row*8+column,(art==='audience'?110:108)/meta.rowHeights![row]!);return true;}
+    }
+    if(this.newArt.creatures&&['goblin','kobold','mouse'].includes(art)){
+      const row=['goblin','kobold','mouse'].indexOf(art),running=resolved&&!context?.success;
+      const column=running?2+Math.floor(time*(art==='mouse'?9:7))%6:cue>.1?1:0;
+      const height=art==='mouse'?15:art==='goblin'?69:64;
+      this.cell(ctx,'creatures',row*8+column,height/newMetadata.creatures!.rowHeights![row]!);return true;
+    }
+    if(this.newArt.tracks&&(art==='tracks-boar'||art==='tracks-deer')){
+      const index=art==='tracks-boar'?0:1,tile=this.newArt.tracks[index]!;
+      const width=art==='tracks-boar'?131:113;
+      ctx.globalAlpha*=.98;
+      if(cue>.2){ctx.shadowBlur=2+cue*2;ctx.shadowColor='#eac78480';}
+      ctx.drawImage(tile,-width/2,-1,width,18);return true;
+    }
+    if(art==='symbol-match'){
+      ctx.strokeStyle='#e6c68b';ctx.fillStyle='#f7e2b5';ctx.lineWidth=1.6;
+      ctx.shadowColor='#debd8190';ctx.shadowBlur=4;
+      for(const x of [-18,26]){ctx.beginPath();ctx.moveTo(x,-10);ctx.lineTo(x+8,0);ctx.lineTo(x,10);ctx.lineTo(x-8,0);ctx.closePath();ctx.stroke();ctx.beginPath();ctx.arc(x,0,2,0,Math.PI*2);ctx.fill();}
+      ctx.setLineDash([2,3]);ctx.beginPath();ctx.moveTo(-8,0);ctx.lineTo(16,0);ctx.stroke();ctx.setLineDash([]);return true;
+    }
+    if(art==='loose-pages'){
+      for(let i=0;i<4;i++){
+        const phase=(time*.18+i*.23)%1;
+        ctx.save();ctx.translate(14+i*13+Math.sin(time*.7+i)*6,-25+phase*86);ctx.rotate(-.4+Math.sin(time+i)*.35);
+        ctx.fillStyle='#e4cda3';ctx.strokeStyle='#806747';ctx.lineWidth=.7;ctx.fillRect(-6,-8,12,16);ctx.strokeRect(-6,-8,12,16);
+        ctx.strokeStyle='#99815c';for(let y=-4;y<=4;y+=3){ctx.beginPath();ctx.moveTo(-3,y);ctx.lineTo(3,y);ctx.stroke();}ctx.restore();
+      }return true;
+    }
     const row=peopleRows[art];
     if((row!==undefined||art==='audience')&&this.newArt.people) {
       let personRow=art==='audience'?5:row!;
@@ -103,7 +159,7 @@ export class SkillPropSprites {
         const height=102;
         this.cell(ctx,'people',personRow*6+order[cycle]!,height/newMetadata.people!.referenceHeight);
       } else this.cell(ctx,'people',personRow*6+order[cycle]!,
-        (art==='patient'?82:art==='audience'?73:art==='merchant'?102:108)/newMetadata.people!.referenceHeight);
+        (art==='patient'?82:art==='audience'?110*newMetadata.people!.referenceHeight/newMetadata.people!.frames[30]!.bounds[3]!:art==='merchant'?102:108)/newMetadata.people!.referenceHeight);
       return true;
     }
     if(art==='horse'&&this.newArt.horse) {
@@ -123,6 +179,11 @@ export class SkillPropSprites {
         ctx.fillStyle='#a4c0ad13';ctx.fill();
       }return true;
     }
+    if(art==='smoke') {
+      if(!this.smokePuff){const puff=document.createElement('canvas');puff.width=puff.height=96;const p=puff.getContext('2d')!;
+        const gradient=p.createRadialGradient(46,44,3,48,48,46);gradient.addColorStop(0,'#b7afbfb0');gradient.addColorStop(.4,'#9e99ae75');gradient.addColorStop(.75,'#777f9650');gradient.addColorStop(1,'#777f9600');p.fillStyle=gradient;p.fillRect(0,0,96,96);this.smokePuff=puff;}
+      for(let i=0;i<14;i++){const wave=time*.55+i*2.1,size=22+i*2.8;ctx.save();ctx.globalAlpha*=.5+i%3*.12;ctx.translate(Math.sin(wave)*(.5+i)*2,-i*2.4+Math.cos(wave)*3);ctx.rotate(Math.sin(wave)*.25);ctx.drawImage(this.smokePuff,-size/2,-size/2,size,size);ctx.restore();}return true;
+    }
     if(art==='coin-roll') {
       if(!this.objects.length)return false;
       // Rotation is supplied by the physical bounce/roll track, never by a
@@ -136,7 +197,11 @@ export class SkillPropSprites {
     if(entry) {
       const [index,width,anchor]=entry;
       if(art==='bush')ctx.rotate(Math.sin(time*2.4)*(.012+Math.max(0,cue)*.03));
-      if(art==='crystal') {ctx.shadowBlur=8+Math.max(0,cue)*14;ctx.shadowColor='#cba869';}
+      if(art==='crystal') {
+        const light=context?.success?Math.max(0,cue):0;ctx.shadowBlur=8+light*24;ctx.shadowColor='#ffd68a';
+        if(light>0){const halo=ctx.createRadialGradient(0,0,8,0,0,82);halo.addColorStop(0,`rgba(255,218,139,${light*.4})`);halo.addColorStop(1,'#ffcf8200');ctx.fillStyle=halo;ctx.fillRect(-82,-82,164,164);ctx.filter=`brightness(${1+light*.85}) saturate(1.12)`;}
+      }
+      if(art==='heraldry')ctx.scale(-1,1);
       if(art.startsWith('tracks-')) {
         ctx.globalAlpha*=.98;ctx.scale(1,.22);ctx.filter='brightness(4.8) saturate(.6)';
         ctx.shadowBlur=cue>.3?5:2.2;ctx.shadowColor=cue>.3?'#d6b17899':'#c9b78060';

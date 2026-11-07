@@ -30,6 +30,7 @@ export type SkillAction = {
   caption: string;
   /** A living final pose. The challenge never replays after a resolved roll. */
   settledAnimation?: ActorAnimation;
+  durationMs?: number;
 };
 
 export type SkillMicroScene = {
@@ -48,6 +49,7 @@ export type SkillMicroScene = {
   terrain?: 'chasm';
   sound?: 'instrument';
   defaultDC: number;
+  variant?: string;
 };
 
 export function skillSceneRoles(scene: SkillMicroScene) {
@@ -85,6 +87,13 @@ export type SkillPhase = 'INIT' | 'AMBIENT_LOOP' | 'D20_PRESSED' | 'ROLL' | 'ACT
 export const skillTimings = { pressed: 85, roll: 1115, prepare: 400, action: 3800, reaction: 700 } as const;
 export const skillOutcomeStartsAt = Object.values(skillTimings).reduce((sum, ms) => sum + ms, 0);
 
+export function skillActionDuration(scene:SkillMicroScene,success:boolean) {
+  return (success?scene.successAnimation:scene.failureAnimation).durationMs??skillTimings.action;
+}
+export function skillOutcomeTime(scene:SkillMicroScene,success:boolean) {
+  return skillOutcomeStartsAt-skillTimings.action+skillActionDuration(scene,success);
+}
+
 export class SkillMicroScenePlayback {
   private pressedAt: number | undefined;
   result: SkillRoll | undefined;
@@ -111,7 +120,7 @@ export class SkillMicroScenePlayback {
     if (this.pressedAt !== undefined) {
       const timings: readonly (readonly [SkillPhase, number])[] = [
         ['D20_PRESSED', skillTimings.pressed], ['ROLL', skillTimings.roll], ['ACTION_PREPARE', skillTimings.prepare],
-        [this.result?.success ? 'SUCCESS' : 'FAILURE', skillTimings.action], ['REACTION', skillTimings.reaction]
+        [this.result?.success ? 'SUCCESS' : 'FAILURE', skillActionDuration(this.scene,Boolean(this.result?.success))], ['REACTION', skillTimings.reaction]
       ];
       let elapsed = Math.max(0, now - this.pressedAt);
       for (const [phase, duration] of timings) {

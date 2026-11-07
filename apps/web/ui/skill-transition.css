@@ -76,14 +76,12 @@ dialog.skill-transition {
 .skill-rule i { width: .55rem; height: .55rem; box-sizing: border-box; border: 1.5px solid #d6a96c; transform: rotate(45deg); }
 
 .skill-action {
-  --die-size: clamp(5.6rem, 18dvh, 8rem);
-  top: 36%;
-  transform: translate(-50%, -50%);
+  --die-size: clamp(5rem, 14dvh, 7rem);
+  top: auto;
+  bottom: max(.45rem,env(safe-area-inset-bottom));
+  transform: translateX(-50%);
   width: var(--die-size);
 }
-[data-terrain='chasm'] .skill-action { --die-size: clamp(6.4rem, 24dvh, 11rem); top: 43%; }
-[data-skill='acrobatics'] .skill-action { --die-size: clamp(6rem, 20dvh, 9rem); top: 36%; }
-[data-skill='animal-handling'] .skill-action { left:35%; --die-size:clamp(5.2rem,16dvh,7rem); }
 .skill-transition button { min-height: 44px; touch-action: manipulation; }
 .skill-transition button:focus-visible, .skill-transition select:focus-visible, .skill-transition summary:focus-visible { outline: 2px solid #f5ce8b; outline-offset: 3px; }
 .skill-transition .skill-die {
@@ -120,22 +118,24 @@ dialog.skill-transition {
   100% { transform: translate(0,0); }
 }
 .skill-transition .skill-result {
-  position: absolute;
-  bottom: calc(100% + .1rem);
-  left: 50%;
-  transform: translateX(-50%);
+  position: relative;
+  min-height:1.3em;
+  opacity:0;
+  transform:translateY(-3px);
+  transition:opacity .35s ease,transform .35s ease;
   width: max-content;
   max-width: 88vw;
   font: 650 clamp(.69rem, 2dvh, .88rem)/1.3 system-ui, sans-serif;
   color: #f1d7a5;
   text-shadow: 0 1px 7px #091719, 0 2px 4px #091719;
 }
+.skill-transition .skill-result[data-visible='true'] {opacity:1;transform:translateY(0);}
 .skill-result[data-outcome='success'] { color: #e8eab6; }
 .skill-result[data-outcome='failure'] { color: #ffd2b7; }
 
-.skill-summary { top: 75.5%; width: min(94%, 45rem); text-shadow: 0 2px 8px #07191c, 0 2px 4px #07191c; }
-.skill-transition .skill-caption { color: #f2e4c7; font: italic 500 clamp(1.02rem, 3.5dvh, 1.7rem)/1.18 Georgia, 'Times New Roman', serif; }
-.skill-summary .skill-rule { width: min(35vw, 14.7rem); margin: clamp(.3rem, 2.4dvh, 1.18rem) auto clamp(.35rem, 1.45dvh, .72rem); }
+.skill-summary { top:70%; width:min(94%,58rem); text-shadow: 0 2px 8px #07191c, 0 2px 4px #07191c; }
+.skill-transition .skill-caption { color: #f2e4c7; font: italic 500 clamp(.95rem,3dvh,1.5rem)/1.18 Georgia, 'Times New Roman', serif; }
+.skill-summary .skill-rule { width: min(35vw, 14.7rem); margin:.35rem auto; }
 .skill-transition .skill-description {
   margin: 0 auto;
   max-width: 64ch;
@@ -143,6 +143,7 @@ dialog.skill-transition {
   color: #d8e3d9;
 }
 .skill-next {
+  pointer-events:none;
   position: absolute;
   right: max(1.05rem, env(safe-area-inset-right));
   bottom: max(.74rem, env(safe-area-inset-bottom));
@@ -152,6 +153,7 @@ dialog.skill-transition {
 }
 .skill-next small { color: #cbd8ce; font: 520 .73rem/1.2 system-ui, sans-serif; text-shadow: 0 1px 6px #06191c; }
 .skill-transition #skillContinue {
+  pointer-events:auto;
   display: flex;
   align-items: center;
   gap: .68em;
@@ -176,20 +178,25 @@ dialog.skill-transition {
   .skill-heading { top: 12%; }
   .skill-transition h2 { font-size: clamp(1.9rem, 7.9vw, 3.5rem); }
   .skill-transition .skill-ability { font-size: clamp(1.05rem, 4.45vw, 1.48rem); }
-  .skill-action, [data-terrain='chasm'] .skill-action, [data-skill='acrobatics'] .skill-action { --die-size: clamp(6.5rem, 30vw, 9rem); top: 36%; }
-  .skill-transition .skill-result { top:calc(100% + .1rem);bottom:auto; }
-  [data-skill='animal-handling'] .skill-action { left:50%; }
-  .skill-summary { top: 72%; width: min(90%, 40rem); }
-  .skill-transition .skill-caption { font-size: clamp(1.14rem, 4.9vw, 1.5rem); }
-  .skill-summary .skill-rule { margin: .7rem auto .57rem; }
+  .skill-action { --die-size:clamp(5rem,24vw,6rem); }
+  .skill-summary { top:66%; width: min(90%, 40rem); }
+  .skill-transition .skill-caption { font-size:clamp(.95rem,4.2vw,1.15rem); }
+  .skill-summary .skill-rule { margin:.3rem auto; }
   .skill-next { width: calc(100% - 2.1rem); justify-content: space-between; }
+  .skill-next small {max-width:27%;font-size:.66rem;}
 }
 
 @media (min-aspect-ratio: 4/3) and (max-height: 550px) {
+  .skill-screen {min-height:600px;}
   .skill-heading { top: 7%; }
-  .skill-summary { width: min(68%, 36rem); top: 75%; }
+  .skill-summary { width:min(90%,48rem);top:70%; }
   .skill-summary .skill-rule { margin: .38rem auto; }
   .skill-next { gap: .36rem; flex-direction: column; align-items: flex-end; }
+}
+
+@media (max-aspect-ratio: 3/4) {
+  .skill-stage {width:min(150%,90dvh);}
+  .skill-transition[data-terrain='chasm'] .skill-stage {width:min(125%,90dvh);}
 }
 
 @media (prefers-reduced-motion: reduce) {

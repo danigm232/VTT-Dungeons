@@ -38,7 +38,11 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
         failure: [[0,{}], [0.49,{"cue":-0.85}], [0.73,{"cue":-0.4}], [1,{}]]
       },
       {
-        id: "acrobatics-fall-mist", art: "fall-mist", x: 310, y: 238, front: true,
+        id: "acrobatics-fall-mist",
+        art: "fall-mist",
+        x: 310,
+        y: 238,
+        front: true,
         ambient: [[0,{"opacity":0}]],
         failure: [[0,{"opacity":0}], [0.68,{"opacity":0}], [0.88,{"opacity":0.7}], [1,{"opacity":0.65}]]
       }
@@ -115,13 +119,15 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
       animation: "point",
       caption: "Identifica la runa y el cristal se ilumina.",
       actor: [[0,{}], [1,{}]],
-      settledAnimation: "idle_breath"
+      settledAnimation: "idle_breath",
+      durationMs: 5500
     },
     failureAnimation: {
       animation: "idle_inspect",
       caption: "Confunde la runa y el cristal suelta humo.",
       actor: [[0,{}], [1,{}]],
-      settledAnimation: "idle_breath"
+      settledAnimation: "idle_breath",
+      durationMs: 5500
     },
     props: [
       {
@@ -202,15 +208,19 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
     recoveryAnimation: "idle_breath",
     successAnimation: {
       animation: "idle_talk",
-      caption: "El guardia cree la historia y le abre el paso.",
-      actor: [[0,{}], [1,{}]],
-      settledAnimation: "idle_talk"
+      caption: "El guardia acepta la historia y le deja marchar con su disfraz.",
+      actor: [[0,{}], [0.35,{}], [0.5,{"x":40}], [0.95,{"x":470}], [1,{"x":510,"opacity":0}]],
+      settledAnimation: "idle_talk",
+      durationMs: 7000,
+      beats: [[0.35,"walk_loop"]]
     },
     failureAnimation: {
       animation: "idle_talk",
-      caption: "El sombrero se tuerce y el guardia señala el disfraz con sospecha.",
-      actor: [[0,{}], [1,{}]],
-      settledAnimation: "idle_talk"
+      caption: "¡Descubierto! Huye con el guardia persiguiéndolo hasta salir de la escena.",
+      actor: [[0,{}], [0.14,{}], [0.38,{"x":190}], [0.86,{"x":470}], [1,{"x":570,"opacity":0}]],
+      settledAnimation: "run_loop",
+      durationMs: 7000,
+      beats: [[0.14,"run_loop"]]
     },
     props: [
       {
@@ -218,9 +228,10 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
         art: "guard",
         x: 396,
         y: 202,
-        success: [[0,{}], [0.5,{"cue":1}], [1,{"cue":1}]],
-        failure: [[0,{}], [0.56,{"x":-13,"cue":-1}], [1,{"x":-13,"cue":-1}]]
-      }
+        success: [[0,{}], [0.3,{"cue":1}], [1,{"cue":1}]],
+        failure: [[0,{}], [0.23,{"cue":-0.2}], [0.38,{"x":-38,"cue":-1}], [0.95,{"x":335,"cue":-1}], [1,{"x":390,"cue":-1,"opacity":0}]]
+      },
+      {id:'chase-dust',art:'fall-mist',x:600,y:204,front:true,ambient:[[0,{opacity:0}]],failure:[[0,{opacity:0}],[.65,{opacity:0}],[.85,{opacity:.45}],[1,{opacity:.25}]]}
     ]
   },
   {
@@ -240,15 +251,18 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
     recoveryAnimation: "idle_read",
     successAnimation: {
       animation: "point",
-      caption: "Reconoce el emblema y señala el símbolo.",
-      actor: [[0,{}], [1,{}]],
-      settledAnimation: "idle_read"
+      caption: "Se acerca al emblema, lo reconoce y celebra con un pulgar arriba hacia ti.",
+      actor: [[0,{}], [0.3,{"x":65}], [1,{"x":65}]],
+      settledAnimation: "point",
+      durationMs: 6500,
+      beats: [[0,"walk_loop"], [0.3,"point"]]
     },
     failureAnimation: {
       animation: "idle_read",
-      caption: "Confunde el emblema y vuelve al pergamino.",
+      caption: "Se rasca la cabeza, vuelve al pergamino y baja los hombros, desanimado.",
       actor: [[0,{}], [1,{}]],
-      settledAnimation: "idle_read"
+      settledAnimation: "idle_read",
+      durationMs: 6500
     },
     props: [
       {
@@ -280,13 +294,15 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
       animation: "idle_play",
       caption: "La melodía gana fuerza y llegan los aplausos.",
       actor: [[0,{}], [1,{}]],
-      settledAnimation: "idle_play"
+      settledAnimation: "idle_play",
+      durationMs: 7000
     },
     failureAnimation: {
       animation: "idle_play",
-      caption: "Desafina y una nota torcida cae al suelo.",
+      caption: "Desafina; el público pierde el interés y se marcha mientras intenta recuperar el ritmo.",
       actor: [[0,{}], [1,{}]],
-      settledAnimation: "idle_play"
+      settledAnimation: "idle_play",
+      durationMs: 7000
     },
     props: [
       {
@@ -295,7 +311,7 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
         x: 320,
         y: 113,
         ambient: [[0,{"opacity":0}], [0.45,{"opacity":0.65,"x":18,"y":-19}], [1,{"opacity":0,"x":43,"y":-34}]],
-        success: [[0,{"opacity":0}], [0.28,{"opacity":1,"cue":1}], [0.74,{"x":31,"y":-27,"cue":1}], [1,{"opacity":0,"x":49,"y":-40,"cue":1}]],
+        success: [[0,{"opacity":0}], [0.25,{"opacity":1,"cue":1}], [1,{"opacity":1,"cue":1}]],
         failure: [[0,{"opacity":0}], [0.38,{"cue":-1,"tilt":-0.3}], [0.65,{"x":27,"y":60,"tilt":1.6,"cue":-1}], [1,{"x":37,"y":90,"tilt":2.2,"cue":-1}]]
       },
       {
@@ -305,7 +321,34 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
         y: 202,
         ambient: [[0,{}]],
         success: [[0,{}], [0.45,{"cue":1}], [1,{"cue":1}]],
-        failure: [[0,{}], [0.5,{"cue":-1}], [1,{"cue":-1}]]
+        failure: [[0,{}], [0.22,{"cue":-1}], [0.9,{"x":350,"cue":-1}], [1,{"x":410,"cue":-1,"opacity":0}]]
+      },
+      {
+        id: "audience-notes-0",
+        art: "notes",
+        x: 350,
+        y: 82,
+        front: true,
+        ambient: [[0,{"opacity":0}]],
+        success: [[0,{"opacity":0}], [0.35,{"opacity":0.8,"cue":1}], [1,{"opacity":0.8,"cue":1}]]
+      },
+      {
+        id: "audience-notes-1",
+        art: "notes",
+        x: 399,
+        y: 82,
+        front: true,
+        ambient: [[0,{"opacity":0}]],
+        success: [[0,{"opacity":0}], [0.35,{"opacity":0.8,"cue":1}], [1,{"opacity":0.8,"cue":1}]]
+      },
+      {
+        id: "audience-notes-2",
+        art: "notes",
+        x: 448,
+        y: 82,
+        front: true,
+        ambient: [[0,{"opacity":0}]],
+        success: [[0,{"opacity":0}], [0.35,{"opacity":0.8,"cue":1}], [1,{"opacity":0.8,"cue":1}]]
       }
     ]
   },
@@ -328,13 +371,15 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
       animation: "idle_brace",
       caption: "Se impone con su postura y el bandido huye.",
       actor: [[0,{}], [1,{}]],
-      settledAnimation: "idle_breath"
+      settledAnimation: "idle_breath",
+      durationMs: 6000
     },
     failureAnimation: {
       animation: "idle_brace",
       caption: "El bandido se ríe del intento de asustarlo.",
       actor: [[0,{}], [1,{}]],
-      settledAnimation: "idle_breath"
+      settledAnimation: "idle_breath",
+      durationMs: 6000
     },
     props: [
       {
@@ -343,7 +388,7 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
         x: 384,
         y: 202,
         ambient: [[0,{}], [0.53,{}], [1,{}]],
-        success: [[0,{}], [0.44,{"x":17,"cue":0.66}], [0.72,{"x":97,"cue":0.85}], [1,{"x":230,"opacity":0}]],
+        success: [[0,{}], [0.23,{"cue":0.2}], [0.35,{"x":10,"cue":1}], [0.94,{"x":375,"cue":1}], [1,{"x":420,"cue":1,"opacity":0}]],
         failure: [[0,{}], [0.38,{"cue":-0.55}], [0.56,{"cue":-0.8}], [0.76,{"cue":-0.8}], [1,{"cue":-0.8}]]
       },
       {
@@ -377,14 +422,16 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
       caption: "Acciona la palanca correcta y el mecanismo se abre.",
       actor: [[0,{}], [0.23,{"x":22}], [1,{"x":22}]],
       settledAnimation: "idle_inspect",
-      beats: [[0,"walk_loop"], [0.25,"hand_interact"]]
+      beats: [[0,"walk_loop"], [0.25,"hand_interact"]],
+      durationMs: 5500
     },
     failureAnimation: {
       animation: "hand_interact",
       caption: "Mueve la palanca equivocada y sale disparado un muelle.",
       actor: [[0,{}], [0.23,{"x":22}], [0.6,{"x":22}], [1,{"x":22}]],
       settledAnimation: "idle_inspect",
-      beats: [[0,"walk_loop"], [0.25,"hand_interact"], [0.6,"idle_breath"]]
+      beats: [[0,"walk_loop"], [0.25,"hand_interact"], [0.6,"idle_breath"]],
+      durationMs: 5500
     },
     props: [
       {
@@ -411,10 +458,10 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
     name: "Juego de manos",
     ability: "dex",
     defaultDC: 12,
-    prompt: "Haz desaparecer la moneda de tus manos.",
+    prompt: "Sustrae una bolsa del bolsillo sin que te descubran.",
     description: "Se utiliza para manipular objetos discretamente, ocultar pequeñas cosas o realizar movimientos rápidos con las manos sin llamar la atención.",
     actor: {
-      x: 272,
+      x: 260,
       y: 202,
       ambient: [[0,{}]]
     },
@@ -423,27 +470,20 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
     recoveryAnimation: "idle_breath",
     successAnimation: {
       animation: "hand_interact",
-      caption: "Oculta la moneda y la muestra detrás de la oreja.",
+      caption: "Saca la bolsa con cuidado y la muestra sin que el viajero lo advierta.",
       actor: [[0,{}], [1,{}]],
-      settledAnimation: "idle_breath"
+      settledAnimation: "idle_breath",
+      durationMs: 7000
     },
     failureAnimation: {
       animation: "reach",
-      caption: "La moneda resbala, rebota en el suelo y se escapa rodando.",
+      caption: "El viajero nota el tirón, se gira y lo sorprende con la mano en el bolsillo.",
       actor: [[0,{}], [1,{}]],
-      settledAnimation: "idle_breath"
+      settledAnimation: "idle_breath",
+      durationMs: 7000
     },
     props: [
-      {"id":"coin-table","art":"table","x":381,"y":203},
-      {
-        id: "dropped-coin",
-        art: "coin-roll",
-        x: 305,
-        y: 147,
-        front: true,
-        ambient: [[0,{"opacity":0}]],
-        failure: [[0,{"opacity":0}], [0.36,{"opacity":0}], [0.39,{"opacity":1}], [0.5,{"x":24,"y":30,"tilt":2}], [0.56,{"x":44,"y":56,"tilt":4}], [0.65,{"x":79,"y":47,"tilt":6}], [0.74,{"x":116,"y":56,"tilt":9}], [1,{"x":390,"y":56,"tilt":24,"opacity":0}]]
-      }
+      {"id":"pocket-owner","art":"traveler","x":375,"y":202}
     ]
   },
   {
@@ -463,15 +503,17 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
     recoveryAnimation: "idle_breath",
     successAnimation: {
       animation: "hand_interact",
-      caption: "Examina la herida y coloca bien el vendaje.",
+      caption: "Termina el vendaje; el compañero comprueba el brazo, se pone de pie y le da las gracias.",
       actor: [[0,{}], [1,{}]],
-      settledAnimation: "hand_interact"
+      settledAnimation: "hand_interact",
+      durationMs: 9000
     },
     failureAnimation: {
       animation: "hand_interact",
-      caption: "Intenta vendar el brazo y se enreda con la venda.",
+      caption: "Se enreda con la venda; el compañero lo ayuda a desenredarse y ambos sonríen al terminar.",
       actor: [[0,{}], [1,{}]],
-      settledAnimation: "hand_interact"
+      settledAnimation: "hand_interact",
+      durationMs: 9000
     },
     props: [
       {
@@ -505,14 +547,16 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
       caption: "Reconoce la especie y señala la planta correcta.",
       actor: [[0,{}], [0.22,{"x":20}], [1,{"x":20}]],
       settledAnimation: "idle_crouch",
-      beats: [[0,"sneak_loop"], [0.25,"hand_interact"]]
+      beats: [[0,"sneak_loop"], [0.25,"hand_interact"]],
+      durationMs: 7500
     },
     failureAnimation: {
       animation: "idle_crouch",
-      caption: "Se acerca a la otra planta y las esporas le hacen estornudar.",
-      actor: [[0,{}], [0.23,{"x":28}], [1,{"x":28}]],
-      settledAnimation: "slip",
-      beats: [[0,"sneak_loop"], [0.24,"hand_interact"], [0.53,"slip"]]
+      caption: "Las esporas le hacen estornudar: se pone lila, pierde el equilibrio y cae de espaldas, aturdido.",
+      actor: [[0,{}], [0.22,{"x":28}], [0.56,{"x":28}], [0.8,{"x":7}], [1,{"x":-14}]],
+      settledAnimation: "idle_breath",
+      beats: [[0,"sneak_loop"], [0.23,"hand_interact"], [0.5,"slip"]],
+      durationMs: 7500
     },
     props: [
       {
@@ -575,13 +619,15 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
       animation: "point",
       caption: "Oye el ruido, se gira y descubre la lechuza.",
       actor: [[0,{}], [1,{}]],
-      settledAnimation: "idle_breath"
+      settledAnimation: "idle_breath",
+      durationMs: 6500
     },
     failureAnimation: {
       animation: "idle_listen_away",
       caption: "Mira hacia otro lado mientras la lechuza escapa por detrás.",
       actor: [[0,{}], [1,{}]],
-      settledAnimation: "idle_breath"
+      settledAnimation: "idle_breath",
+      durationMs: 6500
     },
     props: [
       {
@@ -620,15 +666,18 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
     recoveryAnimation: "idle_breath",
     successAnimation: {
       animation: "idle_talk",
-      caption: "Percibe la inquietud y responde con comprensión.",
-      actor: [[0,{}], [1,{}]],
-      settledAnimation: "idle_breath"
+      caption: "Advierte la preocupación, se acerca a escuchar y el viajero le explica qué sucede.",
+      actor: [[0,{}], [0.22,{"x":30}], [1,{"x":30}]],
+      settledAnimation: "idle_listen",
+      durationMs: 7500,
+      beats: [[0,"walk_loop"], [0.22,"idle_listen"]]
     },
     failureAnimation: {
       animation: "idle_talk",
-      caption: "Pasa por alto la inquietud y sonríe despreocupado.",
-      actor: [[0,{}], [1,{}]],
-      settledAnimation: "idle_breath"
+      caption: "Confunde la angustia con cansancio; el viajero se cierra y se aparta.",
+      actor: [[0,{}], [0.5,{}], [1,{"x":-12}]],
+      settledAnimation: "idle_talk",
+      durationMs: 7500
     },
     props: [
       {
@@ -637,8 +686,8 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
         x: 382,
         y: 202,
         ambient: [[0,{"cue":-0.38}], [0.39,{"cue":-0.67}], [0.78,{"cue":-0.43}], [1,{"cue":-0.38}]],
-        success: [[0,{"cue":-0.38}], [0.57,{"cue":-0.1}], [1,{"cue":0.12}]],
-        failure: [[0,{"cue":-0.38}], [0.46,{"cue":-0.57}], [1,{"cue":-0.9}]]
+        success: [[0,{"cue":-0.3}], [0.4,{"cue":0.5}], [1,{"cue":1}]],
+        failure: [[0,{"cue":-0.3}], [0.45,{"cue":-0.6}], [1,{"cue":-1}]]
       }
     ]
   },
@@ -659,18 +708,38 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
     recoveryAnimation: "idle_read",
     successAnimation: {
       animation: "idle_breath",
-      caption: "Reconoce el símbolo y se inclina con respeto.",
+      caption: "Encuentra el símbolo en el libro, lo compara con el altar y hace una reverencia respetuosa.",
       actor: [[0,{}], [1,{}]],
-      settledAnimation: "idle_read"
+      settledAnimation: "idle_read",
+      durationMs: 7500
     },
     failureAnimation: {
       animation: "idle_read",
-      caption: "Pasa páginas, gira el libro y sigue sin reconocerlo.",
+      caption: "Busca a toda prisa, gira el libro y se le escapan varias páginas. Sigue desconcertado.",
       actor: [[0,{}], [1,{}]],
-      settledAnimation: "idle_read"
+      settledAnimation: "idle_read",
+      durationMs: 7500
     },
     props: [
-      {"id":"shrine","art":"altar","x":391,"y":202}
+      {"id":"shrine","art":"altar","x":391,"y":202},
+      {
+        id: "symbol-comparison",
+        art: "symbol-match",
+        x: 338,
+        y: 104,
+        front: true,
+        ambient: [[0,{"opacity":0}]],
+        success: [[0,{"opacity":0}], [0.3,{"opacity":0}], [0.5,{"opacity":1}], [1,{"opacity":1}]]
+      },
+      {
+        id: "loose-pages",
+        art: "loose-pages",
+        x: 282,
+        y: 133,
+        front: true,
+        ambient: [[0,{"opacity":0}]],
+        failure: [[0,{"opacity":0}], [0.5,{"opacity":0}], [0.7,{"opacity":1}], [1,{"opacity":0.65}]]
+      }
     ]
   },
   {
@@ -690,16 +759,19 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
     recoveryAnimation: "idle_crouch",
     successAnimation: {
       animation: "sneak_loop",
-      caption: "Pasa detrás del guardia sin que lo advierta.",
-      actor: [[0,{}], [1,{"x":302}]],
-      settledAnimation: "idle_crouch"
+      caption: "Se detiene cuando el guardia bosteza, pasa por detrás y alcanza el otro lado sin ser visto.",
+      actor: [[0,{}], [0.23,{"x":72}], [0.33,{"x":72}], [0.48,{"x":120}], [0.78,{"x":250}], [0.92,{"x":302}], [1,{"x":302}]],
+      settledAnimation: "idle_crouch",
+      durationMs: 8500,
+      beats: [[0,"sneak_loop"], [0.23,"idle_crouch"], [0.33,"sneak_loop"], [0.92,"idle_crouch"]]
     },
     failureAnimation: {
       animation: "sneak_loop",
-      caption: "Pisa la piedra y el guardia se vuelve al instante.",
-      actor: [[0,{}], [0.42,{"x":117}], [1,{"x":117}]],
+      caption: "La piedra cruje; el guardia se gira y señala al intruso, que retrocede con las manos a la vista.",
+      actor: [[0,{}], [0.42,{"x":117}], [0.55,{"x":117}], [0.75,{"x":102}], [1,{"x":102}]],
       settledAnimation: "idle_crouch",
-      beats: [[0.46,"idle_crouch"]]
+      beats: [[0.46,"idle_crouch"]],
+      durationMs: 8500
     },
     props: [
       {
@@ -716,7 +788,8 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
         y: 202,
         front: true,
         ambient: [[0,{"cue":-1,"facing":-1}]],
-        failure: [[0,{"cue":-1,"facing":-1}], [0.42,{"cue":-1,"facing":-1}], [0.62,{"cue":0.64}], [1,{"cue":0.75}]]
+        failure: [[0,{"cue":-1,"facing":-1}], [0.42,{"cue":-1,"facing":-1}], [0.62,{"cue":0.64}], [1,{"cue":0.75}]],
+        success: [[0,{"cue":-1,"facing":-1}], [0.23,{"cue":-0.4,"facing":-1}], [0.33,{"cue":-0.2,"facing":-1}], [0.45,{"cue":-1,"facing":-1}], [1,{"cue":-1,"facing":-1}]]
       },
       {
         id: "stone-noise",
@@ -734,7 +807,7 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
     name: "Supervivencia",
     ability: "wis",
     defaultDC: 12,
-    prompt: "Distingue el rastro correcto y síguelo.",
+    prompt: "Reconoce las pezuñas de jabalí y sigue su rastro.",
     description: "Ayuda a seguir huellas, encontrar caminos seguros, conseguir alimento y reconocer peligros naturales mientras se exploran territorios desconocidos.",
     actor: {
       x: 210,
@@ -746,31 +819,33 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
     recoveryAnimation: "idle_crouch",
     successAnimation: {
       animation: "walk_loop",
-      caption: "Distingue el rastro correcto y empieza a seguirlo.",
+      caption: "Reconoce las pezuñas hendidas del jabalí y sigue sus huellas por el suelo.",
       actor: [[0,{}], [0.2,{}], [1,{"x":251}]],
       settledAnimation: "idle_listen",
-      beats: [[0,"idle_crouch"], [0.2,"walk_loop"]]
+      beats: [[0,"idle_crouch"], [0.2,"walk_loop"]],
+      durationMs: 6500
     },
     failureAnimation: {
       animation: "walk_loop",
-      caption: "Sigue el rastro equivocado y acaba en el mismo sitio.",
+      caption: "Confunde el rastro del jabalí con otro animal y termina volviendo al punto de partida.",
       actor: [[0,{}], [0.15,{}], [0.5,{"x":126}], [0.58,{"x":126,"facing":-1}], [1,{"facing":-1}]],
       settledAnimation: "idle_crouch",
-      beats: [[0,"idle_crouch"], [0.15,"walk_loop"], [0.95,"idle_crouch"]]
+      beats: [[0,"idle_crouch"], [0.15,"walk_loop"], [0.95,"idle_crouch"]],
+      durationMs: 6500
     },
     props: [
       {
-        id: "boot-trail",
-        art: "tracks-boot",
-        x: 279,
-        y: 210,
+        id: "boar-trail",
+        art: "tracks-boar",
+        x: 295,
+        y: 204,
         success: [[0,{}], [0.45,{"cue":0.7}], [1,{"cue":0.8}]]
       },
       {
-        id: "paw-trail",
-        art: "tracks-paw",
-        x: 270,
-        y: 214,
+        id: "other-animal-trail",
+        art: "tracks-deer",
+        x: 414,
+        y: 204,
         failure: [[0,{}], [0.36,{"cue":0.7}], [0.77,{}], [1,{}]]
       },
       {

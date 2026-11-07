@@ -1,17 +1,18 @@
 import type { ActorAnimation, SkillPhase } from '../../../engine/client/skill-micro-scene';
 import atlasMetadata from './art/skill-animation-v3.json';
+import extendedMetadata from './art/skill-animation-v5.json';
 
 type SpriteFrame = { url: string; x: number; y: number; width: number; height: number; anchorX: number; anchorY: number; alphaSeeds?: [number,number][] };
 type Profile = { url: string; columns: number; rows: number; width: number; height: number; referenceHeight: number; sources: readonly string[]; id: 'cleric' | 'wizard' | 'rogue' };
-export type SkillSpriteContext = { skillId: string; phase: SkillPhase; progress: number; success?: boolean };
+export type SkillSpriteContext = { skillId: string; phase: SkillPhase; progress: number; success?: boolean;variant?:string };
 
 const profiles: readonly Profile[] = [
   { id: 'cleric', url: new URL('./art/skill-cleric-v2.webp', import.meta.url).href, columns: 4, rows: 6, width: 1024, height: 1536, referenceHeight: 234,
-    sources: ['/art/tokens/cleric.png'] },
+    sources: ['/art/tokens/cleric.png',new URL('../../../campaigns/stormwreck-isle/public/art/tokens/cleric.png',import.meta.url).href] },
   { id: 'wizard', url: new URL('./art/skill-wizard-v2.webp', import.meta.url).href, columns: 4, rows: 6, width: 1024, height: 1536, referenceHeight: 231,
-    sources: ['/art/tokens/wizard.png'] },
+    sources: ['/art/tokens/wizard.png',new URL('../../../campaigns/stormwreck-isle/public/art/tokens/wizard.png',import.meta.url).href] },
   { id: 'rogue', url: new URL('./art/skill-rogue-v2.webp', import.meta.url).href, columns: 4, rows: 6, width: 1024, height: 1536, referenceHeight: 246,
-    sources: ['/art/m3/trinity/maria_base.png', '/art/tokens/Maria Trinity D8/maria_base.png'] }
+    sources: ['/art/m3/trinity/maria_base.png', '/art/tokens/Maria Trinity D8/maria_base.png',new URL('../../../campaigns/stormwreck-isle/public/art/m3/trinity/maria_base.png',import.meta.url).href] }
 ];
 
 const roleRows: Record<ActorAnimation, { row: number; fps: number; order?: readonly number[] }> = {
@@ -39,6 +40,56 @@ const clipCache = new Map<string, { frames: SpriteFrame[]; fps: number; loop: bo
 const handshakeUrl=new URL('./art/skill-handshake-v3.webp',import.meta.url).href;
 const medicinePairUrl=new URL('./art/skill-medicine-pair-v3.webp',import.meta.url).href;
 const animalReachUrl=new URL('./art/skill-animal-reach-v3.webp',import.meta.url).href;
+const extendedUrls:Record<string,string>={
+  'cleric-reactions':new URL('./art/skill-cleric-reactions-v5.webp',import.meta.url).href,
+  'wizard-reactions':new URL('./art/skill-wizard-reactions-v5.webp',import.meta.url).href,
+  'rogue-reactions':new URL('./art/skill-rogue-reactions-v5.webp',import.meta.url).href,
+  pickpocket:new URL('./art/skill-pickpocket-v5.webp',import.meta.url).href,
+  treatment:new URL('./art/skill-treatment-v5.webp',import.meta.url).href,
+  'scroll-walk':new URL('./art/skill-scroll-walk-v5.webp',import.meta.url).href
+};
+type ExtendedAtlas={columns:number;cellWidth:number;referenceHeight:number;heroHeights?:number[];rowHeights:number[];frames:{bounds:number[];pivot:number;alphaSeeds:[number,number][]}[]};
+const extensions=extendedMetadata as unknown as Record<string,ExtendedAtlas>;
+function extendedClip(id:string,row:number,order:readonly number[],fps=4) {
+  const meta=extensions[id];if(!meta)return undefined;
+  const key=`v5:${id}:${row}:${order.join(',')}:${fps}`;
+  let clip=clipCache.get(key);
+  if(!clip){const frames=order.map(column=>{
+    const cell=meta.frames[row*meta.columns+column]!;
+    const[x,y,width,height]=cell.bounds as [number,number,number,number];
+    return {url:extendedUrls[id]!,x,y,width,height,anchorX:(cell.pivot*meta.cellWidth-(x-column*meta.cellWidth))/width,anchorY:1,alphaSeeds:cell.alphaSeeds};
+  });clip={frames,fps,loop:true};clipCache.set(key,clip);}
+  return {clip,mirror:false,authored:true,referenceHeight:meta.heroHeights?.[row]??meta.rowHeights[id.endsWith('-reactions')?0:row]!};
+}
+
+function extendedSequence(profile:Profile,role:ActorAnimation,context:SkillSpriteContext){
+  const id=`${profile.id}-reactions`;
+  const acting=context.phase==='SUCCESS'||context.phase==='FAILURE';
+  const settled=context.phase==='REACTION'||context.phase==='OUTCOME_LOOP';
+  const resolved=acting||settled;
+  if(context.skillId==='deception'&&resolved&&context.progress>=(context.success ? .35 : .14))
+    return extendedClip(id,2,[0,1,2,3,4,5,6,7],context.success?6.2:7.5);
+  if(context.skillId==='stealth'){
+    const moving=role==='sneak_loop';
+    return extendedClip(id,3,moving?[0,1,2,3,4,5,6,7]:[context.success?7:0],moving?4.8:1);
+  }
+  if(context.skillId==='history'&&resolved){
+    if(context.success&&context.progress<.3){
+      const walk=extendedClip('scroll-walk',profiles.indexOf(profile),[1,2,3,4,5,6],5);if(walk)return walk;
+    }
+    const clip=extendedClip(id,context.success?0:1,settled?[context.success?7:7]:[0,1,2,3,4,5,6,7]);
+    return clip?{...clip,poseProgress:settled?undefined:context.success?Math.max(0,(context.progress-.3)/.7):context.progress}:undefined;
+  }
+  if(context.skillId==='religion'&&resolved){
+    const clip=extendedClip(id,4,context.success?settled?[3]:[0,1,2,3]:settled?[7]:[4,5,6,7]);
+    return clip?{...clip,poseProgress:acting?context.progress:undefined}:undefined;
+  }
+  if(context.skillId==='nature'&&resolved&&!context.success&&context.progress>=.23){
+    const clip=extendedClip(id,5,settled?[7]:[0,1,2,3,4,5,6,7]);
+    return clip?{...clip,poseProgress:acting?Math.max(0,(context.progress-.23)/.77):undefined}:undefined;
+  }
+  return undefined;
+}
 
 function animalSequence(source:string,context:SkillSpriteContext) {
   const row=profiles.findIndex(p=>p.sources.includes(source));if(row<0)return undefined;
@@ -58,6 +109,17 @@ function animalSequence(source:string,context:SkillSpriteContext) {
 }
 
 export function skillActorPairedSequence(source:string,context:SkillSpriteContext) {
+  const profile=profiles.findIndex(p=>p.sources.includes(source));
+  if(profile>=0&&(context.skillId==='sleight-of-hand'||context.skillId==='medicine')){
+    const treatment=context.skillId==='medicine';
+    const settled=context.phase==='OUTCOME_LOOP'||context.phase==='REACTION';
+    const acting=context.phase==='SUCCESS'||context.phase==='FAILURE';
+    const row=treatment?profile*2+(context.success===false?1:0):profile;
+    const order=treatment?settled?[7]:acting?[0,1,2,3,4,5,6,7]:[0]:
+      settled?[context.success?4:7]:acting?context.success?[0,1,2,3,4]:[0,1,2,5,6,7]:[0];
+    const clip=extendedClip(treatment?'treatment':'pickpocket',row,order,3.5);
+    if(clip)return {...clip,paired:true,poseProgress:acting?context.progress:undefined};
+  }
   const medicine=context.skillId==='medicine';
   if(!medicine&&(context.skillId!=='persuasion'||!context.success||
     !(['REACTION','OUTCOME_LOOP'].includes(context.phase)||context.phase==='SUCCESS'&&context.progress>=.22)))return undefined;
@@ -82,7 +144,7 @@ export function skillActorPairedSequence(source:string,context:SkillSpriteContex
 
 export function skillActorEquipmentUrls(source: string) {
   const profile = profiles.find(profile => profile.sources.includes(source));
-  return profile ? [...Object.values(supplements[profile.id]),handshakeUrl,medicinePairUrl,animalReachUrl] : [];
+  return profile ? [...Object.values(supplements[profile.id]),extendedUrls[`${profile.id}-reactions`]!,extendedUrls.pickpocket!,extendedUrls.treatment!,extendedUrls['scroll-walk']!,handshakeUrl,medicinePairUrl,animalReachUrl] : [];
 }
 
 export function skillActorSequence(source: string, role: ActorAnimation, context?: SkillSpriteContext) {
@@ -90,11 +152,13 @@ export function skillActorSequence(source: string, role: ActorAnimation, context
   if (!profile) return undefined;
   const pair=context?skillActorPairedSequence(source,context):undefined;
   if(pair)return pair;
+  const extended=context?extendedSequence(profile,role,context):undefined;
+  if(extended)return extended;
   if(context?.skillId==='animal-handling'&&!['walk_loop','run_loop','sneak_loop'].includes(role))return animalSequence(source,context);
   const settled = context?.phase === 'OUTCOME_LOOP' || context?.phase === 'REACTION';
   const acting = context?.phase === 'SUCCESS' || context?.phase === 'FAILURE';
   const equipment = context ? equipmentRows[context.skillId] : undefined;
-  let sheet: 'objects' | 'motion' = 'motion', row = 0, order: readonly number[] = [0,1,2,3,4,5,4,3,2,1], fps = 6;
+  let sheet: 'objects' | 'motion' = 'motion', row = 0, order: readonly number[] = [0,1,2,3,4,5,4,3,2,1], fps = 3.8;
   let useSupplement = Boolean(context), poseProgress: number | undefined;
   if (equipment !== undefined) {
     sheet = 'objects'; row = equipment;
@@ -105,7 +169,7 @@ export function skillActorSequence(source: string, role: ActorAnimation, context
     if (context!.skillId === 'deception') order = settled ? context!.success ? [1,2,3,2] : [4,5,4,5] : acting ? [0,1,2,3,4,5] : [0,1,2,1];
     if (context!.skillId === 'religion') order = settled ? context!.success ? [0,1,0,1] : [4,5,4,5] : [0,1,2,3,2,1];
     if (context!.skillId === 'history') order = settled ? context!.success ? [3,4,3,4] : [2,5,2,5] : [1,2,3,2];
-    if (context!.skillId === 'performance') { order = settled && !context!.success ? [4,5,4,5] : [0,1,2,3,4,5,4,3,2,1]; fps = 8; }
+    if (context!.skillId === 'performance') { order = settled && !context!.success ? [4,5,4,5] : [0,1,2,3,4,5,4,3,2,1]; fps = 4.8; }
     if (acting && ['medicine','sleight-of-hand','deception'].includes(context!.skillId)) poseProgress = context!.progress;
   } else if (context?.skillId === 'acrobatics' && role === 'walk_loop') {
     row=1;order=[0,1,2,3,4,5];fps=8;

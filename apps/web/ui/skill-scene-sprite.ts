@@ -38,7 +38,7 @@ const spriteRoles: Record<ActorAnimation, readonly string[]> = {
   walk_loop: ['moving'], reach: ['reach', 'interact', 'help'], idle_breath: [], idle_listen_away: ['listen'], hang: ['hang', 'climb'], climb: ['climb']
 };
 
-type SpriteFrame = { image: HTMLCanvasElement; width: number; height: number; pivot: number };
+type SpriteFrame = { image: HTMLCanvasElement; width: number; height: number; pivot: number;supportY:number;partnerPivot?:number };
 
 export function skillSpriteClips(actor: SkillActor, roles: Iterable<ActorAnimation>) {
   const clips = new Map<ActorAnimation, { clip?: Animations[string]; mirror: boolean; authored: boolean; referenceHeight?: number }>();
@@ -71,6 +71,11 @@ export class SkillSceneSprite {
   usesPair(context:SkillSpriteContext) {
     const pair=this.actor?skillActorPairedSequence(this.actor.asset.url,context):undefined;
     return Boolean(pair&&this.images.get(pair.clip.frames[0]!.url));
+  }
+  pairShadowOffset(context:SkillSpriteContext) {
+    const pair=this.actor?skillActorPairedSequence(this.actor.asset.url,context):undefined;
+    const frame=pair?this.frame(pair.clip.frames[0]!):null;
+    return frame?.partnerPivot===undefined||!pair?undefined:(frame.partnerPivot-frame.pivot)*this.height/pair.referenceHeight;
   }
 
   constructor(private readonly actor: SkillActor | undefined, roles: Iterable<ActorAnimation>, private readonly loadImage: SkillImageLoader) {
@@ -118,11 +123,17 @@ export class SkillSceneSprite {
     }
     if (floor <= top) { this.frames.set(source, null); return null; }
     const paintedWidth = right - left, paintedHeight = floor - top;
+    let solidFloor=floor;
+    for(let y=floor-1;y>=top;y--){let count=0;for(let x=left;x<right;x++)if(pixels.data[(y*width+x)*4+3]!>=160)count++;if(count>=2){solidFloor=y+1;break;}}
     const factor = Math.min(1, 256 / paintedHeight);
     const tile = document.createElement('canvas');
     tile.width = Math.max(1, Math.round(paintedWidth * factor)); tile.height = Math.max(1, Math.round(paintedHeight * factor));
     tile.getContext('2d')!.drawImage(canvas, left, top, paintedWidth, paintedHeight, 0, 0, tile.width, tile.height);
-    const trimmed = { image: tile, width: paintedWidth, height: paintedHeight, pivot: width * (crop?.anchorX ?? asset.anchorX) - left };
+    const pivot=width*(crop?.anchorX??asset.anchorX)-left;
+    let partnerLeft=right,partnerRight=0;
+    for(let y=Math.max(top,solidFloor-Math.round(paintedHeight*.12));y<solidFloor;y++)for(let x=left+Math.ceil(pivot+paintedWidth*.20);x<right;x++)if(pixels.data[(y*width+x)*4+3]!>=160){partnerLeft=Math.min(partnerLeft,x);partnerRight=Math.max(partnerRight,x+1);}
+    const trimmed = { image: tile, width: paintedWidth, height: paintedHeight, pivot,supportY:solidFloor-top,
+      partnerPivot:partnerRight>partnerLeft?(partnerLeft+partnerRight)/2-left:undefined };
     this.frames.set(source, trimmed);
     return trimmed;
   }
@@ -147,6 +158,6 @@ export class SkillSceneSprite {
     if (!reduced && !['run_loop','walk_loop','sneak_loop','jump','slip'].includes(role)) ctx.scale(1, 1 + Math.sin(elapsed * .0027) * .0025);
     // Authored sprite poses are discrete drawings. Compositing two translucent
     // bodies made opacity pulse and produced duplicate faces and limbs.
-    ctx.drawImage(fallback.image,-fallback.pivot*scale,-fallback.height*scale,fallback.width*scale,fallback.height*scale);
+    ctx.drawImage(fallback.image,-fallback.pivot*scale,-fallback.supportY*scale,fallback.width*scale,fallback.height*scale);
   }
 }

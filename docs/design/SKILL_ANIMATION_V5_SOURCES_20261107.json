@@ -1,0 +1,53 @@
+{
+  "cleric-reactions": {
+    "file": "4fa03e91-eee0-4c43-a58e-1cf1a2dfa496",
+    "cols": 8,
+    "rows": 6
+  },
+  "wizard-reactions": {
+    "file": "f0407d8e-89cf-4af2-b99f-66aa92c7a731",
+    "cols": 8,
+    "rows": 6
+  },
+  "rogue-reactions": {
+    "file": "a922f9d9-7a2d-4412-a5f5-79b1f69c800c",
+    "rows": 6,
+    "cols": 8
+  },
+  "npcs": {
+    "file": "10b664d0-9474-4bc3-8e9b-70e39204eb84",
+    "rows": 6,
+    "cols": 8,
+    "disconnected": true
+  },
+  "creatures": {
+    "cols": 8,
+    "rows": 3,
+    "file": "68f4697b-1e29-42b2-9baa-5a01844ea7e4"
+  },
+  "pickpocket": {
+    "cols": 8,
+    "paired": true,
+    "rows": 3,
+    "file": "5443951d-9f52-4f48-a14f-62ae0551134d"
+  },
+  "treatment": {
+    "cols": 8,
+    "pairedRowGroups": 2,
+    "paired": true,
+    "heroReference": "max",
+    "file": "59a2b985-b2d4-4228-bb66-32ca287df86b",
+    "rows": 6
+  },
+  "tracks": {
+    "file": "c134cd8b-2ef6-49fa-b99c-b9fa01459701",
+    "cols": 2,
+    "rows": 1,
+    "disconnected": true
+  },
+  "scroll-walk": {
+    "file": "155aeb7b-ae4e-49f9-aacd-0cbe88e56e78",
+    "rows": 3,
+    "cols": 8
+  }
+}

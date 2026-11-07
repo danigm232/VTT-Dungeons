@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultSkillDC, sampleTrack, SkillMicroScenePlayback, skillOutcomeStartsAt } from './skill-micro-scene';
+import { defaultSkillDC, sampleTrack, SkillMicroScenePlayback, skillOutcomeTime } from './skill-micro-scene';
 import { skillMicroScenes } from '../../apps/web/ui/skill-scenes';
 
 const scene = skillMicroScenes[0]!;
@@ -21,7 +21,9 @@ describe('microescenas de transición', () => {
         const entry = new SkillMicroScenePlayback(skill, 0);
         entry.roll(0, undefined, () => random);
         expect(entry.frame(2000).phase, skill.id).toBe(phase);
-        expect(entry.frame(skillOutcomeStartsAt).phase, skill.id).toBe('OUTCOME_LOOP');
+        const end=skillOutcomeTime(skill,phase==='SUCCESS');
+        expect(entry.frame(end-701).phase, skill.id).toBe(phase);
+        expect(entry.frame(end).phase, skill.id).toBe('OUTCOME_LOOP');
         expect(entry.frame(90_000).phase, skill.id).toBe('OUTCOME_LOOP');
       }
     }
@@ -69,5 +71,15 @@ describe('microescenas de transición', () => {
     const athletics=skillMicroScenes.find(skill=>skill.id==='athletics')!;
     expect(sampleTrack(athletics.successAnimation.actor,.52).y).toBeLessThan(-50);
     expect(sampleTrack(athletics.failureAnimation.actor,.9).y).toBeGreaterThan(90);
+  });
+
+  it('el guardia persigue por detrás después de que el protagonista lo rebase',()=>{
+    const skill=skillMicroScenes.find(s=>s.id==='deception')!;
+    const guard=skill.props.find(p=>p.art==='guard')!;
+    for(let t=.38;t<=1;t+=.01){
+      const heroX=skill.actor.x+(sampleTrack(skill.failureAnimation.actor,t).x??0);
+      const guardX=guard.x+(sampleTrack(guard.failure,t).x??0);
+      expect(guardX,`Persecución en ${t}`).toBeLessThan(heroX);
+    }
   });
 });

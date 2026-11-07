@@ -12,6 +12,8 @@ import floorPlate from './art/skill-floor.webp';
 import { SkillPropSprites } from './skill-prop-sprites';
 import { SkillD20 } from './skill-d20';
 import { skillRunningGround } from '../../../engine/client/skill-running-ground';
+import {drawSkillGroundShadow,drawSkillPropShadow,skillPropFootprints} from './skill-scene-shadows';
+import {perceptionGuest,withPerceptionVariant} from './skill-perception-variants';
 import './skill-transition.css';
 
 type Frame = ReturnType<SkillMicroScenePlayback['frame']>;
@@ -59,7 +61,7 @@ export class SkillTransitionScreen {
   private readonly ctx: CanvasRenderingContext2D | null;
   private readonly propSprites: SkillPropSprites;
   private readonly reduced = matchMedia('(prefers-reduced-motion: reduce)');
-  private active: { key: string; playback: SkillMicroScenePlayback; sprite: SkillSceneSprite; modifier?: number } | undefined;
+  private active: { key: string; playback: SkillMicroScenePlayback; sprite: SkillSceneSprite; guest?:SkillSceneSprite; modifier?: number } | undefined;
   private animation = 0;
   private previousFrame = -Infinity;
   private previousPhase: SkillPhase | undefined;
@@ -95,15 +97,19 @@ export class SkillTransitionScreen {
   private get reduceMotion() { return this.options.reducedMotion?.() ?? this.reduced.matches; }
 
   show(key: string, destination: string, actor: SkillActor | undefined,
-    options: { dc?: number; modifiers?: Readonly<Record<string, number>>; scene?: SkillMicroScene } = {}) {
+    options: { dc?: number; modifiers?: Readonly<Record<string, number>>; scene?: SkillMicroScene; variant?:string } = {}) {
     if (this.active?.key === key) return;
-    const scene = options.scene ?? skillMicroScenes[Math.floor(Math.random() * skillMicroScenes.length)]!;
+    const scene = withPerceptionVariant(options.scene ?? skillMicroScenes[Math.floor(Math.random() * skillMicroScenes.length)]!,options.variant);
+    const guest=perceptionGuest(scene.variant);
     this.sound?.close(); this.sound = undefined;
     this.startedAt = performance.now();
     this.active = { key, playback: new SkillMicroScenePlayback(scene, this.startedAt, options.dc),
-      sprite: new SkillSceneSprite(actor, skillSceneRoles(scene), this.loadImage), modifier: options.modifiers?.[scene.id] };
+      sprite: new SkillSceneSprite(actor, skillSceneRoles(scene), this.loadImage),
+      guest:guest?new SkillSceneSprite(guest,['idle_breath','walk_loop','run_loop'],this.loadImage):undefined,
+      modifier: options.modifiers?.[scene.id] };
     this.previousFrame = -Infinity; this.previousPhase = undefined; this.previousPaint = '';
     this.dialog.dataset.skill = scene.id;
+    this.dialog.dataset.variant=scene.variant??'';
     this.dialog.dataset.terrain = scene.terrain ?? 'floor';
     const plate = scene.terrain === 'chasm' ? chasmPlate : floorPlate;
     if (this.plate.getAttribute('src') !== plate) this.plate.src = plate;
@@ -112,6 +118,7 @@ export class SkillTransitionScreen {
     this.ability.textContent = `${skillAbilities[scene.ability]} · CD ${this.active.playback.dc}`;
     this.description.textContent = scene.description;
     this.result.textContent = '';
+    this.result.dataset.visible='false';
     this.result.removeAttribute('data-outcome');
     this.caption.textContent = scene.prompt;
     this.dieFace.textContent = '20';
@@ -158,6 +165,7 @@ export class SkillTransitionScreen {
     const { playback, sprite } = this.active;
     const frame = playback.frame(now);
     const result = playback.result;
+    this.result.dataset.visible=String(Boolean(result&&!winding(frame.phase)&&(frame.rollElapsedMs??0)<4500));
     this.tumblingDie.paint(frame.phase === 'ROLL' && !this.reduceMotion ? frame.progress : undefined);
     if (this.previousPhase !== frame.phase) {
       this.previousPhase = frame.phase;
@@ -193,6 +201,7 @@ export class SkillTransitionScreen {
     const ambient = frame.phase === 'AMBIENT_LOOP' || frame.phase === 'INIT' || winding(frame.phase);
     const settled = frame.phase === 'REACTION' || frame.phase === 'OUTCOME_LOOP';
     const actionProgress = reduced ? 1 : settled ? 1 : frame.progress;
+    const context={skillId:scene.id,phase:frame.phase,progress:actionProgress,success:result?.success,variant:scene.variant};
     let actionRole = action.animation;
     let beatStart = 0, beatEnd = 1;
     for (const [start, animation] of action.beats ?? []) {
@@ -215,15 +224,20 @@ export class SkillTransitionScreen {
     const drawLayer = (front: boolean) => {
       for (const prop of scene.props) {
         if (Boolean(prop.front) !== front) continue;
-        if((prop.art==='merchant'||prop.art==='patient')&&sprite.usesPair({skillId:scene.id,phase:frame.phase,progress:actionProgress,success:result?.success}))continue;
+        if((prop.art==='merchant'||prop.art==='patient'||prop.id==='pocket-owner')&&sprite.usesPair(context))continue;
         if (paintedPlate && (prop.art === 'ledge-left' || prop.art === 'ledge-right')) continue;
         const pose = motionAt(frame, prop.ambient, prop[outcome], reduced);
         const fraction = prop.anchor === 'head' ? .8 : sprite.handFraction;
         const x = prop.anchor ? scene.actor.x + prop.x + (motion.x ?? 0) + sprite.height * fraction * (motion.tilt ?? 0) : prop.x;
-        const y = prop.anchor ? scene.actor.y + prop.y + (motion.y ?? 0) - sprite.height * fraction : prop.y;
+        const footprint=skillPropFootprints[prop.art];
+        const y = prop.anchor ? scene.actor.y + prop.y + (motion.y ?? 0) - sprite.height * fraction : footprint&&!footprint.floating?202:prop.y;
         at(ctx, x, y, pose, () => {
+          if(prop.art==='perception-guest'&&this.active?.guest){
+            const guestRole=ambient||settled||result?.success&&actionProgress>=.62?'idle_breath':result?.success?'walk_loop':'run_loop';
+            this.active.guest.draw(ctx,guestRole,seconds*1000,undefined,reduced,{...context,skillId:'perception-visitor'});return;
+          }
           if (!this.propSprites.draw(ctx, prop.art, pose.cue ?? 0, reduced ? 0 : seconds,
-            {skillId:scene.id,phase:frame.phase,progress:actionProgress,success:result?.success,height:sprite.height})) {
+            {...context,height:sprite.height})) {
             drawProp(ctx, prop.art, pose.cue ?? 0, reduced ? 0 : seconds);
           }
         });
@@ -252,14 +266,29 @@ export class SkillTransitionScreen {
     ctx.translate(-320, -202);
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     if (!scene.terrain && !paintedPlate) line(ctx, [[117, 205], [523, 205]], '#7d998345', 1.5);
-    drawLayer(false);
-    if (scene.actor.y >= 192 && Math.abs(motion.y ?? 0) < 8) {
-      const x = scene.actor.x + (motion.x ?? 0);
-      if (!scene.terrain || x < 196 || x > 453) oval(ctx, x, scene.actor.y + 2, 21, 3, '#080e1287');
+    const paired=sprite.usesPair(context);
+    if(scene.id==='arcana'&&result?.success&&!ambient){
+      const crystal=scene.props.find(p=>p.art==='crystal')!;
+      const glow=Math.max(0,motionAt(frame,crystal.ambient,crystal.success,reduced).cue??0);
+      ctx.save();ctx.translate(crystal.x,202);ctx.scale(1,.17);
+      const light=ctx.createRadialGradient(0,0,0,0,0,90);light.addColorStop(0,`rgba(255,218,140,${glow*.4})`);light.addColorStop(1,'#ffe0a000');
+      ctx.fillStyle=light;ctx.fillRect(-90,-90,180,180);ctx.restore();
     }
+    for(const prop of scene.props){
+      if(paired&&(prop.art==='merchant'||prop.art==='patient'||prop.id==='pocket-owner'))continue;
+      const pose=motionAt(frame,prop.ambient,prop[outcome],reduced);
+      drawSkillPropShadow(ctx,prop.art,prop.x,prop.y,pose);
+    }
+    const actorX=scene.actor.x+(motion.x??0);
+    if((!scene.terrain||actorX<196||actorX>453)&&(motion.opacity??1)>0){
+      drawSkillGroundShadow(ctx,actorX,202,sprite.height*.36,4,Math.max(0,-(motion.y??0)),motion.opacity??1);
+      const partnerOffset=paired?sprite.pairShadowOffset(context):undefined;
+      if(partnerOffset!==undefined)drawSkillGroundShadow(ctx,actorX+partnerOffset,202,36,5,0,motion.opacity??1);
+    }
+    drawLayer(false);
     at(ctx, scene.actor.x, scene.actor.y, motion, () => sprite.draw(ctx, role, seconds * 1000,
       role === 'jump' || role === 'slip' ? roleProgress : undefined, reduced,
-      { skillId: scene.id, phase: frame.phase, progress: actionProgress, success: result?.success }));
+      context));
     drawLayer(true);
     ctx.restore();
   }
