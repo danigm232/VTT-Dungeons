@@ -10,7 +10,7 @@ let index = skills.findIndex(skill => skill.id === 'athletics');
 let entry = 0;
 
 const load: SkillImageLoader = url => new Promise((resolve, reject) => {
-  const source = data.images[url];
+  const source = url.startsWith('data:') ? url : data.images[url];
   if (!source) { reject(new Error(`Falta el sprite ${url}`)); return; }
   const image = new Image();
   image.onload = () => resolve({ image, width: image.naturalWidth, height: image.naturalHeight });
@@ -20,7 +20,8 @@ const load: SkillImageLoader = url => new Promise((resolve, reject) => {
 
 const screen = new SkillTransitionScreen(load, {
   onContinue: () => step(1),
-  random: () => outcome.value === 'success' ? .999 : outcome.value === 'failure' ? 0 : Math.random()
+  random: () => outcome.value === 'success' ? .999 : outcome.value === 'failure' ? 0 : Math.random(),
+  reducedMotion: () => reduced.checked
 });
 const controls = document.createElement('nav');
 controls.className = 'skill-preview';
@@ -34,6 +35,7 @@ controls.innerHTML = `
     <details><summary>Ajustes</summary><div class="skill-preview-settings">
       <label>Personaje <select data-actor></select></label>
       <label>Tirada <select data-outcome-select><option value="random">Al azar</option><option value="success">Forzar éxito</option><option value="failure">Forzar fallo</option></select></label>
+      <label><span>Movimiento</span><span><input type="checkbox" data-reduced> Reducir animaciones</span></label>
       <button type="button" data-restart>Reiniciar escena</button>
     </div></details>
   </div>`;
@@ -42,6 +44,7 @@ screen.dialog.querySelector('.skill-screen')!.append(controls);
 const skillSelect = controls.querySelector<HTMLSelectElement>('[data-skill-select]')!;
 const actorSelect = controls.querySelector<HTMLSelectElement>('[data-actor]')!;
 const outcome = controls.querySelector<HTMLSelectElement>('[data-outcome-select]')!;
+const reduced = controls.querySelector<HTMLInputElement>('[data-reduced]')!;
 const count = controls.querySelector('[data-count]')!;
 skills.forEach((skill, position) => skillSelect.add(new Option(skill.name, String(position))));
 data.actors.forEach(actor => actorSelect.add(new Option(actor.label, actor.id)));

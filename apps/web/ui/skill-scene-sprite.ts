@@ -6,6 +6,7 @@ import type { ActorAnimation } from '../../../engine/client/skill-micro-scene';
 import { clearBlackSpriteMatte } from '../../../engine/client/sprite-matte';
 import { tokenAnimationFrame } from '../../../engine/client/token-animation-playback';
 import { drawFallbackActor } from './skill-scene-art';
+import { skillActorSequence } from './skill-actor-sequences';
 
 type Animations = PublicCampaignDefinition['tokenAnimations'][string];
 type Frame = Animations[string]['frames'][number];
@@ -40,8 +41,10 @@ const spriteRoles: Record<ActorAnimation, readonly string[]> = {
 type SpriteFrame = { image: HTMLCanvasElement; width: number; height: number; pivot: number };
 
 export function skillSpriteClips(actor: SkillActor, roles: Iterable<ActorAnimation>) {
-  const clips = new Map<ActorAnimation, { clip?: Animations[string]; mirror: boolean; authored: boolean }>();
+  const clips = new Map<ActorAnimation, { clip?: Animations[string]; mirror: boolean; authored: boolean; referenceHeight?: number }>();
   for (const role of roles) {
+    const sequence = skillActorSequence(actor.asset.url, role);
+    if (sequence) { clips.set(role, sequence); continue; }
     const facing = role === 'idle_listen_away' ? ['w', 'sw', 'e', 'se', 's'] : ['e', 'se', 'ne', 'w', 'sw', 's'];
     const resolve = (options: readonly string[]) => options.flatMap(state => [...facing.map(dir => `${state}-${dir}`), state])
       .find(state => actor.animations[state]?.frames.length);
@@ -59,9 +62,12 @@ export class SkillSceneSprite {
   private readonly images = new Map<string, Awaited<ReturnType<SkillImageLoader>> | null>();
   private readonly frames = new Map<Frame, SpriteFrame | null>();
   private readonly clips: ReturnType<typeof skillSpriteClips>;
+  private role: ActorAnimation | undefined;
+  private roleStartedAt = 0;
   revision = 0;
 
   get height() { return 108 * ((this.actor?.asset.worldHeightMeters ?? 1.65) / 1.65); }
+  get handFraction() { return this.clips.get('idle_breath')?.referenceHeight ? .58 : .47; }
 
   constructor(private readonly actor: SkillActor | undefined, roles: Iterable<ActorAnimation>, private readonly loadImage: SkillImageLoader) {
     this.clips = actor ? skillSpriteClips(actor, roles) : new Map();
@@ -118,15 +124,16 @@ export class SkillSceneSprite {
 
   draw(ctx: CanvasRenderingContext2D, role: ActorAnimation, elapsed: number, progress: number | undefined, reduced: boolean) {
     if (!this.actor) { drawFallbackActor(ctx); return; }
+    if (role !== this.role) { this.role = role; this.roleStartedAt = elapsed; }
     const selection = this.clips.get(role), clip = selection?.clip;
     const idle = this.clips.get('idle_breath')?.clip?.frames[0] ?? this.actor.asset.url;
-    const frame = clip?.frames[tokenAnimationFrame(clip.frames.length, clip.fps, reduced || role === 'idle_crouch' || role === 'hang' ? 0 : elapsed,
+    const frame = clip?.frames[tokenAnimationFrame(clip.frames.length, clip.fps, reduced ? 0 : elapsed - this.roleStartedAt,
       progress === undefined && (clip.loop ?? true), reduced ? undefined : progress)];
     const painted = frame === undefined ? null : this.frame(frame);
     const fallback = painted ?? this.frame(idle) ?? this.frame(this.actor.asset.url);
     if (!fallback) { drawFallbackActor(ctx); return; }
     const reference = this.frame(clip?.frames[0] ?? idle) ?? fallback;
-    const scale = this.height / reference.height;
+    const scale = this.height / (selection?.referenceHeight ?? reference.height);
     const sway = reduced ? 0 : Math.sin(elapsed * .004);
     if (painted && selection?.mirror) ctx.scale(-1, 1);
     if (!selection?.authored) {

@@ -86,7 +86,7 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
     props: [
       { id: 'gate-guard', art: 'guard', x: 396, y: 202,
         success: [[0, {}], [.42, { x: 57, y: -14, scale: .87 }], [1, { x: 58, y: -14, scale: .87 }]],
-        failure: [[0, {}], [.56, { x: -13, tilt: .04, cue: .95 }], [1, { x: -13, cue: .95 }]] },
+        failure: [[0, {}], [.56, { x: -13, tilt: .04, cue: -1 }], [1, { x: -13, cue: -1 }]] },
       { id: 'false-moustache', art: 'disguise', x: 9, y: 7, anchor: 'head', front: true,
         ambient: [[0, { scale: .62 }], [.42, { y: 2, tilt: .12, scale: .62 }], [1, { scale: .62 }]],
         failure: [[0, { scale: .62 }], [.34, { scale: .62 }], [.66, { x: 30, y: 38, tilt: 1.8, scale: .62 }], [1, { x: 39, y: 47, tilt: 2.1, scale: .62 }]] }
@@ -142,13 +142,13 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
     description: 'Permite examinar pistas, relacionar indicios y deducir cómo funcionan mecanismos u objetos cuando la respuesta no resulta evidente.',
     actor: { x: 254, y: 202, ambient: [[0, { tilt: .04 }], [.5, { tilt: .09 }], [1, { tilt: .04 }]] },
     ambientAnimation: 'idle_inspect', preparationAnimation: 'idle_listen', recoveryAnimation: 'idle_inspect',
-    successAnimation: { animation: 'hand_interact', caption: 'Acciona la palanca correcta y el mecanismo se abre.', actor: [[0, { tilt: .04 }], [.47, { x: 46, tilt: .10 }], [1, { x: 30, tilt: .045 }]] },
-    failureAnimation: { animation: 'hand_interact', caption: 'Mueve la palanca equivocada y sale disparado un muelle.', actor: [[0, { tilt: .04 }], [.43, { x: 43, tilt: .1 }], [.65, { x: -12, tilt: -.14 }], [1, { x: -6 }]] },
+    successAnimation: { animation: 'hand_interact', caption: 'Acciona la palanca correcta y el mecanismo se abre.', actor: [[0, { tilt: .04 }], [.47, { x: 66, tilt: .10 }], [1, { x: 54, tilt: .045 }]] },
+    failureAnimation: { animation: 'hand_interact', caption: 'Mueve la palanca equivocada y sale disparado un muelle.', actor: [[0, { tilt: .04 }], [.43, { x: 65, tilt: .1 }], [.65, { x: -12, tilt: -.14 }], [1, { x: -6 }]] },
     props: [
-      { id: 'lever-box', art: 'mechanism', x: 375, y: 202,
+      { id: 'lever-box', art: 'mechanism', x: 356, y: 202,
         success: [[0, {}], [.44, {}], [.72, { cue: 1 }], [1, { cue: 1 }]],
         failure: [[0, {}], [.36, {}], [.51, { cue: -.86 }], [1, { cue: -.12 }]] },
-      { id: 'released-spring', art: 'spring', x: 376, y: 154, ambient: hidden, front: true,
+      { id: 'released-spring', art: 'spring', x: 356, y: 154, ambient: hidden, front: true,
         failure: [[0, { opacity: 0 }], [.44, { opacity: 0 }], [.64, { x: -40, y: -37, tilt: -.8 }], [1, { x: -116, y: 42, tilt: -2.1 }]] }
     ]
   },
@@ -175,14 +175,14 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
     description: 'Ayuda a diagnosticar enfermedades, examinar heridas de un compañero o identificar posibles causas de una muerte reciente mediante conocimientos médicos.',
     actor: { x: 256, y: 202, ambient: [[0, { tilt: .03 }], [.56, { tilt: .11 }], [1, { tilt: .03 }]] },
     ambientAnimation: 'idle_inspect', preparationAnimation: 'idle_prepare', recoveryAnimation: 'idle_breath',
-    successAnimation: { animation: 'hand_interact', caption: 'Examina la herida y coloca bien el vendaje.', actor: [[0, {}], [.64, { x: 32, tilt: .11 }], [1, { x: 28, tilt: .06 }]] },
+    successAnimation: { animation: 'hand_interact', caption: 'Examina la herida y coloca bien el vendaje.', actor: [[0, {}], [.64, { x: 79, tilt: .11 }], [1, { x: 72, tilt: .06 }]] },
     failureAnimation: { animation: 'hand_interact', caption: 'Intenta vendar el brazo y se enreda con la venda.', actor: [[0, {}], [.46, { x: 19, tilt: .09 }], [.75, { x: -7, tilt: -.16 }], [1, { x: -8, tilt: -.07 }]] },
     props: [
-      { id: 'seated-companion', art: 'patient', x: 386, y: 202, ambient: [[0, { cue: .75 }]], success: [[0, { cue: .75 }], [1, { cue: .87 }]] },
+      { id: 'seated-companion', art: 'patient', x: 386, y: 202, ambient: [[0, { cue: .75 }]], success: [[0, { cue: .75 }], [1, { cue: .87 }]], failure: [[0, { cue: .75 }], [.7, { cue: -1 }], [1, { cue: -1 }]] },
       { id: 'bandage-roll', art: 'bandage', x: 18, y: 4, anchor: 'hand', front: true,
         ambient: [[0, { scale: .75 }], [.5, { tilt: -.22, scale: .75 }], [1, { scale: .75 }]],
         success: [[0, { scale: .75 }], [.62, { opacity: 0 }], [1, { opacity: 0 }]], failure: [[0, { scale: .75 }], [.54, { opacity: 0 }], [1, { opacity: 0 }]] },
-      { id: 'applied-bandage', art: 'bandage', x: 345, y: 145, front: true, ambient: hidden,
+      { id: 'applied-bandage', art: 'bandage', x: 355, y: 155, front: true, ambient: hidden,
         success: [[0, { opacity: 0 }], [.53, { opacity: 0 }], [.71, { scale: .68, cue: 1 }], [1, { scale: .68, cue: 1 }]] },
       { id: 'bandage-tangle', art: 'tangle', x: 1, y: 1, anchor: 'hand', front: true, ambient: hidden, failure: reveal }
     ]
@@ -256,7 +256,7 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
     failureAnimation: { animation: 'sneak_loop', caption: 'Pisa la piedra y el guardia se vuelve al instante.', actor: [[0, {}], [.42, { x: 117 }], [.57, { x: 115, y: -6, tilt: -.12 }], [1, { x: 105, tilt: -.04 }]] },
     props: [
       { id: 'loose-stone', art: 'pebble', x: 307, y: 201, failure: [[0, {}], [.42, {}], [.68, { x: 20, y: -4, tilt: .43 }], [1, { x: 29, tilt: .66 }]] },
-      { id: 'sleepy-guard', art: 'guard', x: 386, y: 202, front: true, ambient: [[0, { cue: -1, tilt: -.04, facing: -1 }]],
+      { id: 'sleepy-guard', art: 'sleepy-guard', x: 386, y: 202, front: true, ambient: [[0, { cue: -1, tilt: -.04, facing: -1 }]],
         failure: [[0, { cue: -1, tilt: -.04, facing: -1 }], [.42, { cue: -1, tilt: -.04, facing: -1 }], [.62, { cue: .64, tilt: .06 }], [1, { cue: .75 }]] },
       { id: 'stone-noise', art: 'sound', x: 319, y: 190, ambient: hidden, front: true,
         failure: [[0, { opacity: 0 }], [.42, { opacity: 0 }], [.53, {}], [.8, { y: -15, opacity: 0 }], [1, { opacity: 0 }]] }
@@ -286,7 +286,7 @@ export const skillMicroScenes: readonly SkillMicroScene[] = [
     failureAnimation: { animation: 'reach', caption: 'El caballo le empuja con el hocico y retrocede sorprendido.', actor: [[0, {}], [.37, { x: 32, tilt: .08 }], [.58, { x: -18, y: -4, tilt: -.17 }], [1, { x: -21, tilt: -.04 }]] },
     props: [{ id: 'nervous-horse', art: 'horse', x: 415, y: 203,
       ambient: [[0, {}], [.48, { x: 5, tilt: .018, cue: -.15 }], [1, {}]],
-      success: [[0, {}], [.55, { x: -21, cue: 1 }], [1, { x: -23, cue: .88 }]],
-      failure: [[0, {}], [.46, { x: -57, tilt: -.04, cue: .73 }], [.7, { x: -17, cue: -.15 }], [1, {}]] }]
+      success: [[0, {}], [.55, { x: -70, cue: 1 }], [1, { x: -72, cue: .88 }]],
+      failure: [[0, {}], [.46, { x: -70, tilt: -.04, cue: .52 }], [.7, { x: -17, cue: -.15 }], [1, {}]] }]
   }
 ];

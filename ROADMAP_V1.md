@@ -40,7 +40,7 @@ Los archivos bajo `docs/archive/`, `docs/audits/archive/` y `docs/ROADMAP_V1_REV
 | Cena de D8, pendiente posterior | Encargo E0–E6/C01–C60 preparado; conserva toda su lista | Retomar cuando corresponda; deja de ser el primer piloto por la elección del usuario. |
 | Retiro/Pecio/Espejo/campamentos | Avances, ampliaciones y pruebas locales se conservan | Los chats que ya trabajan en ellos siguen su ficha vigente e incorporan criterios visuales donde corresponda; no abandonan su tarea para rehacer Cena. |
 | Cierre por escena | Aceptación visual, física y rendimiento tienen estados separados | Validar lo pendiente según el anexo local. No subir de versión por completar documentos o acumular tests. |
-| Transiciones del jugador | 18 viñetas con presentación a pantalla completa basada en la referencia del usuario y visor HTML autónomo | [Integración, recursos y verificación](docs/evidence/PLAYER_SKILL_TRANSITIONS_20261106.md). |
+| Transiciones del jugador | 18 viñetas con presentación a pantalla completa, secuencias de sprites, objetos articulados y visor HTML autónomo | [Integración, recursos y verificación](docs/evidence/PLAYER_SKILL_TRANSITIONS_20261106.md). |
 
 **Recorrido del acabado visual:** base actual → muestra coherente → extensión de materiales/muebles/vegetación → profundidad e iluminación completas → ambiente/estados/audio → candidata, comparativas y aceptación. La muestra ya incluye luz inicial. Cada etapa conserva el VTT funcional y los mapas vigentes.
 

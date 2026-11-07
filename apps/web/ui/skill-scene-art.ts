@@ -101,8 +101,9 @@ export function supportingActor(ctx: Brush, kind: 'merchant' | 'guard' | 'bandit
   line(ctx, [[-14, 12], [-11, 13 + (cue > 0 ? 1 : 0)], [-8, cue > 0 ? 11 : 13]], '#644839', 1.5);
   ctx.restore();
   const extension = Math.max(0, cue), cross = kind === 'guard' ? 0 : Math.max(0, -cue);
-  const handX = -14 - 39 * extension + 24 * cross;
-  const handY = -50 - 9 * extension - 12 * cross + (kind === 'traveler' && cue <= 0 ? Math.sin(time * 5) * 4 : 0);
+  const gesture = kind === 'merchant' || kind === 'traveler' ? Math.sin(time * 2.8) : Math.sin(time * 1.8) * .5;
+  const handX = -14 - 39 * extension + 24 * cross - Math.max(0, 1 - Math.abs(cue)) * (7 + gesture * 5);
+  const handY = -50 - 9 * extension - 12 * cross + gesture * 4;
   line(ctx, [[10, top + 29], [16, -58], [cross ? -12 : 14, cross ? -59 : -46]], coat, 10);
   line(ctx, [[-12, top + 31], [-21 - 9 * extension, -57], [handX, handY]], coat, 10);
   oval(ctx, handX, handY, 4.8, 4, '#c69470');
@@ -194,13 +195,21 @@ const art: Record<string, Art> = {
   },
   merchant: (ctx, cue, time) => supportingActor(ctx, 'merchant', cue, time),
   guard: (ctx, cue, time) => supportingActor(ctx, 'guard', cue, time),
+  'sleepy-guard': (ctx, cue, time) => supportingActor(ctx, 'guard', cue, time),
   bandit: (ctx, cue, time) => supportingActor(ctx, 'bandit', cue, time),
   traveler: (ctx, cue, time) => supportingActor(ctx, 'traveler', cue, time),
   patient: (ctx, cue, time) => supportingActor(ctx, 'patient', cue, time),
   table: ctx => {
-    line(ctx, [[-33, -51], [-37, -2]], '#745a45', 6); line(ctx, [[32, -52], [35, -2]], '#745a45', 6);
-    shape(ctx, [[-45, -58], [39, -58], [47, -52], [-42, -52]], '#a17f5c', '#42382f');
-    line(ctx, [[-42, -51], [47, -51]], '#684e3c', 5);
+    for (const side of [-1, 1]) {
+      shape(ctx, [[side * 30, -52], [side * 36, -52], [side * 39, -2], [side * 32, -2]], '#79563a', '#392e26');
+      line(ctx, [[side * 33, -48], [side * 36, -5]], '#c2a171', 1.2);
+    }
+    line(ctx, [[-31, -20], [33, -20]], '#76583b', 5);
+    shape(ctx, [[-45, -60], [38, -60], [47, -53], [-42, -53]], '#ad8352', '#4c3827');
+    shape(ctx, [[-42, -53], [47, -53], [47, -48], [-42, -48]], '#755133', '#392e26');
+    line(ctx, [[-39, -59], [36, -59], [44, -54]], '#d8b77c', 1.5);
+    for (const y of [-57, -54]) line(ctx, [[-31, y], [-4, y + .6], [8, y], [32, y + .5]], '#62452e80', .7);
+    for (const x of [-33, 34]) oval(ctx, x, -50, 1.3, 1.1, '#d9b66e');
   },
   rope: (ctx, cue) => {
     const sag = 6 + Math.max(0, -cue) * 12;

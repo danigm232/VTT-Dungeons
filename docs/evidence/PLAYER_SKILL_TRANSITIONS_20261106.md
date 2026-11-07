@@ -6,6 +6,8 @@ La candidata está en `dev/skill-transition`. La entrada se identifica con `scen
 
 ## Presentación a pantalla completa y visor
 
+**Actualización de animación del 07/11.** Los tres protagonistas tienen 72 poses nuevas, con ciclos de carrera, estudio, conversación, salto, sigilo e inspección arrodillada. El caballo tiene seis poses y los secundarios veinte. La utilería usa doce piezas ilustradas y articuladas. El visor conserva su ruta y abre con las animaciones activadas. Ajustes permite reducirlas. [Recursos, propietarios y generación](../design/SKILL_ANIMATION_ASSETS_20261107.md).
+
 La referencia principal es `1000059518.jpg`, aportada por el usuario. Atletismo reproduce la composición lateral, los bordes de roca sobre la niebla, el título centrado con separadores dorados, el d20 facetado y la consigna «Salta la grieta y aterriza al otro lado». La apertura del visor usa a Mía. En la partida se utiliza el personaje asignado. Acrobacias comparte el fondo de la grieta, con una cuerda sobre sus dos bordes. Las otras 16 escenas tienen una superficie continua para apoyar su utilería. En ellas el dado se coloca más alto para liberar el espacio de la acción.
 
 El archivo `PROBAR-LAS-18-PANTALLAS.html` se abre directamente en el navegador. Elige habilidad con el selector o las flechas. En Ajustes puedes cambiar de personaje, forzar un desenlace para la siguiente tirada o reiniciar. Continuar avanza a la siguiente habilidad en el visor. El visor comparte la interfaz y el reproductor del VTT y lleva integrados los fondos, los sprites públicos usados y el código. `pnpm build:skill-preview` regenera el HTML en `output/skill-transition/`.
@@ -74,9 +76,13 @@ En Stormwreck los IDs de referencia son `rogue`, `wizard` y `cleric`. Sus bases 
 | Supervivencia | `boot-trail`, `paw-trail`, `trail-marker`, dos rastros y señal | VA-06/10. Distinguir seguimiento y vuelta al origen. |
 | Trato con animales | `nervous-horse`, caballo con cabeza, orejas y cola animadas | VA-10/16. Distinguir acercamiento tranquilo y retroceso. |
 
-La aceptación artística del usuario y la prueba en un dispositivo físico se registran por separado. Quedan registradas como recursos pendientes las poses de agarre exacto, brazos de equilibrio, arrodillado y contacto de manos para los personajes que carecen de ellas. La candidata representa estos gestos con los fotogramas disponibles y el movimiento de la utilería.
+La aceptación artística del usuario y la prueba en un dispositivo físico se registran por separado. Las poses arrodilladas y los ciclos de trabajo de los tres protagonistas se incorporan en la actualización del 07/11. El equilibrio y el agarre utilizan variantes de las secuencias de gesto y salto, coordinadas con la cuerda y los bordes.
 
 ## Verificación
+
+**Tanda del 07/11.** Se compararon dos instantes del área pintada del protagonista en las 18 habilidades con Mía, Mike y Trinity, 54 combinaciones. Todas cambiaron de fotograma. Se verificó también la reducción de movimiento. El visor siguió pasando los 36 desenlaces, la selección de personaje y la entrada táctil emulada. Tipos y compilación de cliente pasaron, y Atletismo pasó con los nuevos recursos en una mesa VTT aislada.
+
+La muestra `output/skill-transition/animaciones-v2/muestra-animaciones.webm` se compone de 64 fotogramas capturados del visor a intervalos de 125 ms. El informe `VER-ANIMACIONES-Y-OBJETOS.html` del mismo directorio incluye el vídeo y cuatro comparativas por superposición. Conserva los originales y sus hashes. Los pares usan Mía, ventana de 1280 × 720, la misma habilidad y el bucle ambiental a 180 ms de entrada. Se revisaron además Persuasión y Medicina con los secundarios ilustrados y los apoyos del mobiliario.
 
 El visor HTML se abrió desde disco con Chromium sin conexión. Pasaron las 18 selecciones y los 36 desenlaces, la selección de personaje, el avance con flecha y Continuar, y la tirada táctil en emulación de 390 × 700. La compilación de Vite y los tipos de cliente y servidor pasaron. Las 9 pruebas dirigidas de reloj, animación y recuperación de carga pasaron.
 

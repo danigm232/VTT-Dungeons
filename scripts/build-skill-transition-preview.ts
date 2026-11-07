@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { build } from 'vite';
 import { skillSceneRoles } from '../engine/client/skill-micro-scene';
@@ -16,7 +16,10 @@ const urls = new Set<string>();
 for (const { actor } of actors) {
   urls.add(actor.asset.url);
   for (const { clip } of skillSpriteClips(actor, roles).values()) {
-    for (const frame of clip?.frames ?? []) urls.add(typeof frame === 'string' ? frame : frame.url);
+    for (const frame of clip?.frames ?? []) {
+      const url = typeof frame === 'string' ? frame : frame.url;
+      if (url.startsWith('/art/')) urls.add(url);
+    }
   }
 }
 
@@ -47,5 +50,6 @@ const js = bundle.output.find(file => file.type === 'chunk' && file.isEntry);
 if (!css || css.type !== 'asset' || !js || js.type !== 'chunk') throw new Error('Falta el código o la hoja de estilos del visor');
 const payload = JSON.stringify({ actors, images: Object.fromEntries(images) }).replaceAll('<', '\\u003c');
 await mkdir(dirname(output), { recursive: true });
-await writeFile(output, `<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Probar las 18 pantallas · Dungeons VTT</title><style>${String(css.source)}</style><body><script type="application/json" id="skillPreviewData">${payload}</script><script>${js.code.replace(/<\/script/gi, '<\\/script')}</script></body></html>`);
+await writeFile(output + '.tmp', `<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Probar las 18 pantallas · Dungeons VTT</title><style>${String(css.source)}</style><body><script type="application/json" id="skillPreviewData">${payload}</script><script>${js.code.replace(/<\/script/gi, '<\\/script')}</script></body></html>`);
+await rename(output + '.tmp', output);
 console.log(`Visor de ${skillMicroScenes.length} habilidades · ${output}`);

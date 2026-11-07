@@ -9,6 +9,7 @@ import { preparePerformanceSound } from './skill-performance-sound';
 import markup from './skill-transition.html?raw';
 import chasmPlate from './art/skill-chasm.webp';
 import floorPlate from './art/skill-floor.webp';
+import { SkillPropSprites } from './skill-prop-sprites';
 import './skill-transition.css';
 
 type Frame = ReturnType<SkillMicroScenePlayback['frame']>;
@@ -58,6 +59,7 @@ export class SkillTransitionScreen {
   private readonly continueButton: HTMLButtonElement;
   private readonly plate: HTMLImageElement;
   private readonly ctx: CanvasRenderingContext2D | null;
+  private readonly propSprites: SkillPropSprites;
   private readonly reduced = matchMedia('(prefers-reduced-motion: reduce)');
   private active: { key: string; playback: SkillMicroScenePlayback; sprite: SkillSceneSprite; modifier?: number } | undefined;
   private animation = 0;
@@ -67,7 +69,7 @@ export class SkillTransitionScreen {
   private startedAt = 0;
   private sound: ReturnType<typeof preparePerformanceSound>;
 
-  constructor(private readonly loadImage: SkillImageLoader, private readonly options: { onContinue?: () => void; random?: () => number } = {}) {
+  constructor(private readonly loadImage: SkillImageLoader, private readonly options: { onContinue?: () => void; random?: () => number; reducedMotion?: () => boolean } = {}) {
     const template = document.createElement('template');
     template.innerHTML = markup;
     const dialog = template.content.querySelector('dialog')!;
@@ -79,6 +81,7 @@ export class SkillTransitionScreen {
     this.caption = get('#skillCaption'); this.die = get('#skillDie'); this.dieFace = get('#skillDieFace');
     this.plate = get('.skill-plate');
     this.continueButton = get('#skillContinue'); this.ctx = get<HTMLCanvasElement>('canvas').getContext('2d');
+    this.propSprites = new SkillPropSprites(loadImage);
     this.die.addEventListener('click', () => this.roll());
     this.continueButton.addEventListener('click', () => {
       if (this.continueButton.disabled) return;
@@ -89,6 +92,7 @@ export class SkillTransitionScreen {
   }
 
   get open() { return this.dialog.open; }
+  private get reduceMotion() { return this.options.reducedMotion?.() ?? this.reduced.matches; }
 
   show(key: string, destination: string, actor: SkillActor | undefined,
     options: { dc?: number; modifiers?: Readonly<Record<string, number>>; scene?: SkillMicroScene } = {}) {
@@ -170,9 +174,9 @@ export class SkillTransitionScreen {
       this.result.dataset.outcome = result.success ? 'success' : 'failure';
       this.caption.textContent = (result.success ? playback.scene.successAnimation : playback.scene.failureAnimation).caption;
     }
-    if (winding(frame.phase) && !this.reduced.matches) this.dieFace.textContent = String(1 + Math.floor(frame.elapsedMs / 45 * 7) % 20);
-    const paintKey = `${this.reduced.matches}:${frame.phase}:${sprite.revision}:${this.plate.complete}:${this.plate.naturalWidth}`;
-    if (this.ctx && (!this.reduced.matches || paintKey !== this.previousPaint)) {
+    if (winding(frame.phase) && !this.reduceMotion) this.dieFace.textContent = String(1 + Math.floor(frame.elapsedMs / 45 * 7) % 20);
+    const paintKey = `${this.reduceMotion}:${frame.phase}:${sprite.revision}:${this.propSprites.revision}:${this.plate.complete}:${this.plate.naturalWidth}`;
+    if (this.ctx && (!this.reduceMotion || paintKey !== this.previousPaint)) {
       this.previousPaint = paintKey;
       this.paint(this.ctx, frame, (now - this.startedAt) / 1000);
     }
@@ -182,7 +186,7 @@ export class SkillTransitionScreen {
     const { playback, sprite } = this.active!;
     const { scene, result } = playback;
     const paintedPlate = this.plate.complete && this.plate.naturalWidth > 0;
-    const reduced = this.reduced.matches;
+    const reduced = this.reduceMotion;
     const outcome = result?.success ? 'success' : 'failure';
     const action = result?.success ? scene.successAnimation : scene.failureAnimation;
     const ambient = frame.phase === 'AMBIENT_LOOP' || frame.phase === 'INIT' || winding(frame.phase);
@@ -194,7 +198,6 @@ export class SkillTransitionScreen {
     }
     const role: ActorAnimation = ambient ? scene.ambientAnimation : frame.phase === 'ACTION_PREPARE' ? scene.preparationAnimation
       : frame.phase === 'RECOVERY' ? scene.recoveryAnimation : actionRole;
-    const t = reduced ? 0 : ambient ? frame.ambientMs / 1000 : frame.elapsedMs / 1000;
     const motion = { ...motionAt(frame, scene.actor.ambient, action.actor, reduced) };
     if (!reduced && frame.phase === 'REACTION') {
       const reaction = Math.sin(Math.PI * frame.progress);
@@ -206,10 +209,14 @@ export class SkillTransitionScreen {
         if (Boolean(prop.front) !== front) continue;
         if (paintedPlate && (prop.art === 'ledge-left' || prop.art === 'ledge-right')) continue;
         const pose = motionAt(frame, prop.ambient, prop[outcome], reduced);
-        const fraction = prop.anchor === 'head' ? .8 : .47;
+        const fraction = prop.anchor === 'head' ? .8 : sprite.handFraction;
         const x = prop.anchor ? scene.actor.x + prop.x + (motion.x ?? 0) + sprite.height * fraction * (motion.tilt ?? 0) : prop.x;
         const y = prop.anchor ? scene.actor.y + prop.y + (motion.y ?? 0) - sprite.height * fraction : prop.y;
-        at(ctx, x, y, pose, () => drawProp(ctx, prop.art, pose.cue ?? 0, reduced ? 0 : seconds));
+        at(ctx, x, y, pose, () => {
+          if (!this.propSprites.draw(ctx, prop.art, pose.cue ?? 0, reduced ? 0 : seconds)) {
+            drawProp(ctx, prop.art, pose.cue ?? 0, reduced ? 0 : seconds);
+          }
+        });
       }
     };
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -225,7 +232,7 @@ export class SkillTransitionScreen {
       const x = scene.actor.x + (motion.x ?? 0);
       if (!scene.terrain || x < 196 || x > 453) oval(ctx, x, scene.actor.y + 2, 21, 3, '#080e1287');
     }
-    at(ctx, scene.actor.x, scene.actor.y, motion, () => sprite.draw(ctx, role, t * 1000,
+    at(ctx, scene.actor.x, scene.actor.y, motion, () => sprite.draw(ctx, role, seconds * 1000,
       role === 'jump' ? actionProgress : undefined, reduced));
     drawLayer(true);
     ctx.restore();
