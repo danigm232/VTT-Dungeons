@@ -3,6 +3,13 @@ import type {AbstractMesh} from '@babylonjs/core/Meshes/abstractMesh.js';
 import {BoundingInfo} from '@babylonjs/core/Culling/boundingInfo.js';
 import {Vector3} from '@babylonjs/core/Maths/math.vector.js';
 
+const coastalBounds=new WeakMap<AbstractMesh,BoundingInfo[]>();
+
+/** Disjoint local bounds for water that wraps around an open area. */
+export function setCoastalAnimationBounds(mesh:AbstractMesh,bounds:BoundingInfo[]){
+ coastalBounds.set(mesh,bounds);
+}
+
 /** Conservative main/secondary-camera gate. This does not infer occlusion by
  * land: water below a mountain can remain eligible until the deeper Q1 pass. */
 export function createCoastalAnimationVisibility(scene:Scene,water:AbstractMesh[],includeSkirt=true){
@@ -18,9 +25,18 @@ export function createCoastalAnimationVisibility(scene:Scene,water:AbstractMesh[
   for(const camera of cameras){camera.getViewMatrix();camera.getProjectionMatrix();}
   for(const mesh of meshes){
    if(mesh.isDisposed()||!mesh.isEnabled()||!mesh.isVisible||mesh.visibility<=0)continue;
+   if(mesh.alwaysSelectAsActiveMesh||scene.skipFrustumClipping)return true;
+   const world=mesh.computeWorldMatrix(true),parts=coastalBounds.get(mesh);
+   if(parts){
+    for(const part of parts){
+     part.update(world);
+     if(cameras.some(camera=>camera.isInFrustum(part,true)))return true;
+    }
+    continue;
+   }
    let box=bounds.get(mesh);
    if(!box){const b=mesh.getBoundingInfo().boundingBox;box=new BoundingInfo(b.minimum.subtract(new Vector3(2,20,4)),b.maximum.add(new Vector3(2,20,4)));bounds.set(mesh,box);}
-   box.update(mesh.computeWorldMatrix(true));
+   box.update(world);
    if(cameras.some(camera=>camera.isInFrustum(box,true)))return true;
   }
   return false;

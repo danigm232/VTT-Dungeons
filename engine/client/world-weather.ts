@@ -12,6 +12,7 @@ export function weatherParticleBudget(level: number) { return [0,64,128,192][Mat
  * no rules, damage or alternate game state. Usable by every Babylon campaign. */
 export class WorldWeather {
   private rain; private snow; private drops:InstancedMesh[]=[]; private flakes:InstancedMesh[]=[]; private elapsed=0;
+  private sheltered=false;
   private offsets=Array.from({length:192},(_,i)=>[127.1,311.7,74.7].map(seed=>{const n=Math.sin((i+1)*seed+23.17)*43758.5453;return n-Math.floor(n);}));
   constructor(private scene: Scene) {
     const paint=(name:string,color:Color3)=>{const m=new StandardMaterial(name,scene);m.disableLighting=true;m.emissiveColor=color;m.specularColor=Color3.Black();return m;};
@@ -21,11 +22,27 @@ export class WorldWeather {
     this.snow.material=paint('weather:snow:paint',new Color3(.85,.94,1));
     for(const mesh of [this.rain,this.snow]){mesh.isVisible=false;mesh.isPickable=false;mesh.metadata={tokenOccluder:false};scene.getGlowLayerByName?.('glow')?.addExcludedMesh(mesh);}
   }
-  update(environment: EnvironmentState, focus: Vector3, indoor: boolean, deltaMs: number, coverageMeters=24, covered?: (x:number,z:number,y?:number)=>boolean) {
+  update(environment: EnvironmentState, focus: Vector3, indoor: boolean, deltaMs: number, coverageMeters=24, covered?: (x:number,z:number,y?:number)=>boolean, fullyCovered=false) {
     this.elapsed+=Math.min(deltaMs,100)/1000;
     const kind=environment.precipitation??(environment.storm?'rain':'none'), budget=indoor&&!covered?0:weatherParticleBudget(kind==='none'?0:environment.precipitationLevel??2);
     const particles=kind==='snow'?this.flakes:this.drops,base=kind==='snow'?this.snow:this.rain;
-    while(particles.length<budget){const mesh=base.createInstance(`weather:${kind==='snow'?'flake':'drop'}:${particles.length}`);mesh.isPickable=false;mesh.metadata={tokenOccluder:false};particles.push(mesh);}
+    // Keep the pool warm when the entire view is sheltered. Its next visible
+    // positions are derived from elapsed time. Disable inactive meshes so the
+    // renderer can also skip their transforms and frustum checks.
+    if(fullyCovered!==this.sheltered){
+      for(const mesh of [...this.drops,...this.flakes]){
+        if(fullyCovered)mesh.isVisible=false;
+        mesh.setEnabled(!fullyCovered);
+      }
+      this.sheltered=fullyCovered;
+    }
+    while(particles.length<budget){
+      const mesh=base.createInstance(`weather:${kind==='snow'?'flake':'drop'}:${particles.length}`);
+      mesh.isPickable=false;mesh.metadata={tokenOccluder:false};
+      if(fullyCovered){mesh.isVisible=false;mesh.setEnabled(false);}
+      particles.push(mesh);
+    }
+    if(fullyCovered)return;
     const wind=environment.windIntensity??(environment.storm ? .7 : 0), t=this.elapsed,span=Math.max(12,Math.min(100,coverageMeters)),visualScale=Math.max(1,span/24);
     for(let i=0;i<Math.max(this.drops.length,this.flakes.length);i++){
       const drop=this.drops[i],flake=this.flakes[i];if(drop)drop.isVisible=kind==='rain'&&i<budget;if(flake)flake.isVisible=kind==='snow'&&i<budget;

@@ -11,6 +11,10 @@ import { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import type { Scene } from '@babylonjs/core/scene.js';
 import type { Facing } from '../shared/protocol.js';
 import type { Cell } from '../shared/protocol.js';
+import { WRECK_STRUCTURE as S } from '../shared/wreck-structure.js';
+import { buildWreckWaterContact, sliceWreckWaterline, wreckWaveGLSL } from './wreck-water-contact.js';
+
+export const rowboatWaterDraft = .40;
 
 export function rowboatYaw(facing: Facing): number {
   return ({ east: 0, 'north-east': Math.PI / 4, north: Math.PI / 2,
@@ -73,7 +77,7 @@ export function buildShipRowboat(scene: Scene, woodTexture?: BaseTexture): Trans
   const ironMat = mat('rowlock-iron', '#343c3a');
   const foamMat=mat('waterline-foam','#98b8b6');foamMat.alpha=.24;foamMat.disableLighting=true;
   const add = (mesh: Mesh, material: Material) => {
-    mesh.parent = root; mesh.material = material; mesh.isPickable = false;
+    mesh.parent = root; mesh.material = material; mesh.isPickable = false; mesh.receiveShadows=true;
     mesh.metadata = { visualOnly: true, kind: 'ship-rowboat-detail' };
     return mesh;
   };
@@ -143,22 +147,29 @@ export function buildShipRowboat(scene: Scene, woodTexture?: BaseTexture): Trans
   tube('stern-stem', [new Vector3(-2.1, -.14, 0), new Vector3(-2.48, .57, 0)], .09, trimMat);
   for (const side of [-1, 1]) tube('stern-transom', [new Vector3(-2.36, .5, 0),
     new Vector3(-2.18, .35, side * .44)], .055, trimMat);
-  for(const side of [-1,1])tube('waterline-wash',Array.from({length:15},(_,i)=>{
-    const t=-.82+i/14*1.64;return new Vector3(t*2.48,-.30,side*halfBeam(t)*.94);
-  }),.022,foamMat);
-  const wash=new ShaderMaterial('rowboat:wave-contact-vfx',scene,{vertexSource:`precision highp float;attribute vec3 position;attribute vec2 uv;uniform mat4 worldViewProjection;varying vec2 v;
-    void main(){v=uv;gl_Position=worldViewProjection*vec4(position,1.);}`,fragmentSource:`precision highp float;varying vec2 v;uniform float time;uniform float lightLevel;
-    void main(){float front=fract(v.y-time*.23);float ribbon=pow(max(0.,sin(front*3.14159)),5.);float broken=smoothstep(-.15,.65,sin(v.x*17.-time*1.6)+sin(v.x*39.+time));
-      gl_FragColor=vec4(vec3(.64,.77,.76)*lightLevel,ribbon*broken*.42);}`},{attributes:['position','uv'],uniforms:['worldViewProjection','time','lightLevel'],needAlphaBlending:true});
+  const wash=new ShaderMaterial('rowboat:wave-contact-vfx',scene,{vertexSource:`precision highp float;attribute vec3 position;attribute vec2 uv;uniform mat4 world;uniform mat4 viewProjection;uniform float time;varying vec2 v;varying vec2 at;
+    ${wreckWaveGLSL}
+    void main(){
+      vec3 p=(world*vec4(position.x,0.,position.z,1.)).xyz;at=p.xz;v=uv;
+      p.y=${S.seaHeight.toFixed(2)}+.015+wreckWave(at,time);
+      gl_Position=viewProjection*vec4(p,1.);
+    }`,fragmentSource:`precision highp float;varying vec2 v;varying vec2 at;uniform float time;uniform float lightLevel;
+    void main(){
+      float front=.46+.19*sin(at.x*2.1+at.y*2.9-time*1.7);
+      float broken=smoothstep(-.42,1.2,sin(at.x*13.+at.y*8.-time)+.4*sin(at.x*7.-at.y*18.));
+      float dark=(1.-smoothstep(.15,.62,v.x))*.25;
+      float crest=(1.-smoothstep(.03,.23,abs(v.x-front)))*broken*.54;
+      gl_FragColor=vec4(mix(vec3(.04,.13,.15),vec3(.64,.77,.76),crest/max(.001,crest+dark))*lightLevel,(crest+dark)*v.y);
+    }`},{attributes:['position','uv'],uniforms:['world','viewProjection','time','lightLevel'],needAlphaBlending:true});
   wash.setFloat('lightLevel',1);
   wash.backFaceCulling=false;
-  const vertices:number[]=[],uv:number[]=[],washIndices:number[]=[],washNormals:number[]=[];
-  for(let i=0;i<=48;i++){
-    const a=i/48*Math.PI*2,x=Math.cos(a)*2.55,z=Math.sin(a)*halfBeam(Math.cos(a))*.96;
-    for(const r of [0,.42]){vertices.push(x+Math.cos(a)*r,-.32,z+Math.sin(a)*r);uv.push(i/48,r/.42);}
-    if(i){const n=(i-1)*2;washIndices.push(n,n+1,n+2,n+1,n+3,n+2);}
-  }
-  const waves=new Mesh('rowboat:travelling-wave-wash',scene),v=new VertexData();Object.assign(v,{positions:vertices,indices:washIndices,uvs:uv});VertexData.ComputeNormals(vertices,washIndices,washNormals);v.normals=washNormals;v.applyToMesh(waves);add(waves,wash);
+  const paths=sliceWreckWaterline(hull,-rowboatWaterDraft/root.scaling.y);
+  const waves=buildWreckWaterContact(scene,'rowboat:travelling-wave-wash',paths,.68,.96,.14)!;
+  // Bounds stay in boat space while the shader holds the strip at the sea
+  // surface instead of inheriting the boat's vertical bob.
+  const washPositions=waves.getVerticesData('position')!;
+  for(let i=1;i<washPositions.length;i+=3)washPositions[i]=-rowboatWaterDraft/root.scaling.y;
+  waves.setVerticesData('position',washPositions);add(waves,wash);waves.receiveShadows=false;
   waves.metadata={visualOnly:true,kind:'rowboat-contact-vfx',tokenOccluder:false};
   // Eight low-cost droplets: rise where waves strike the gunwale and vanish
   // before falling into the cockpit. The boat cell/collision never changes.
@@ -168,7 +179,9 @@ export function buildShipRowboat(scene: Scene, woodTexture?: BaseTexture): Trans
   const observer=scene.onBeforeRenderObservable.add(()=>{
     if(!root.isEnabled())return;const time=performance.now()/1000;wash.setFloat('time',time);
     for(let i=0;i<spray.length;i++){const phase=(time*.42+i*.137)%1,x=-1.9+(i%4)*1.22,side=i<4?-1:1;
-      const m=spray[i]!;m.position.set(x,-.29+Math.sin(phase*Math.PI)*.25,side*(halfBeam(x/2.48)+phase*.2));m.setEnabled(phase<.66);m.scaling.setAll(.4+Math.sin(phase*Math.PI)*.6);
+      const m=spray[i]!,rise=Math.pow(Math.abs(x/2.48),2.3)*.18,water=(S.seaHeight-root.position.y)/root.scaling.y;
+      const wetted=halfBeam(x/2.48)*.8*Math.max(0,Math.min(1,(water+.45-rise)/.28));
+      m.position.set(x,water+Math.sin(phase*Math.PI)*.19,side*(wetted+.08+phase*.18));m.setEnabled(phase<.62);m.scaling.setAll(.35+Math.sin(phase*Math.PI)*.5);
     }
   });root.onDisposeObservable.add(()=>scene.onBeforeRenderObservable.remove(observer));
   return root;

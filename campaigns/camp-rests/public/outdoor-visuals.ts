@@ -65,7 +65,7 @@ export function createOutdoorVisuals(scene: Scene, definition: PublicSceneDefini
     canvas3: paint('canvas-3', '#77788d', 'linen-v4.webp', 2),
     cloth: paint('blanket', '#758491', 'wool-v4.webp', 2),
     paper: paint('paper', '#e8d8b2'), metal: paint('iron', '#4a5558'), brass: paint('brass', '#bf9554'),
-    pottery: paint('pottery', '#997456'), ember: paint('ember', '#ffe1a1'), flame: paint('flame', '#ff9e40'),
+    pottery: paint('pottery', '#997456'), ember: paint('ember', '#ffe1a1'), flame: paint('flame', '#ffa447'),
     halo: paint('interaction', '#ffe1a4'), crystal: paint('crystal', '#7997ad', 'limestone-v3.webp',1.4)
   };
   const plateauMaterial=paint('plateau-ground','#798594','limestone-v3.webp');
@@ -568,8 +568,8 @@ export function createOutdoorVisuals(scene: Scene, definition: PublicSceneDefini
     cameraDirection.y=0;cameraDirection.normalize();
     for(const mat of allMaterials)if(!mat.disableLighting&&![M.flame,M.ember,M.halo,M.crystal].includes(mat))mat.emissiveColor=mat.diffuseColor.scale(.045+day*.045);
     for(const mat of plants)mat.emissiveColor=mat.diffuseColor.scale(.08+day*.13);
-    lights.forEach(({light,intensity,kind},i)=>{const strength=kind==='fire'?fireLevels.get(light.name.replace(/:light$/,''))?.flame??0:kind==='torch'?(dark>.2&&!exposedExtinguished?1:0):1;light.intensity=intensity*strength*(kind==='fire'?.45+dark*.85:.45+dark*.75)*(reduced?1:.97+Math.sin(time*8.2+i)*.035);});
-    flames.forEach((f,i)=>{const lamp=f.metadata?.fireSource==='lamp',strength=f.metadata?.fireSource?(dark>.2&&(lamp||!exposedExtinguished||climate.covered(f.getAbsolutePosition().x,f.getAbsolutePosition().z))?1:0):[...fireLevels].find(([id])=>f.name.startsWith(id+':'))?.[1].flame??0;f.isVisible=lamp||strength>.005;f.visibility=lamp||strength>.005?1:0;if(lamp)f.material=strength?M.ember:M.brass;f.scaling.y=(reduced?1:.86+Math.sin(time*8.6+i)*.14)*(lamp?1:Math.max(.02,strength));f.rotation.z=reduced?0:Math.sin(time*4+i)*.05;});
+    lights.forEach(({light,intensity,kind},i)=>{const strength=kind==='fire'?fireLevels.get(light.name.replace(/:light$/,''))?.flame??0:kind==='torch'?(dark>.2&&!exposedExtinguished?1:0):1;light.intensity=intensity*strength*(kind==='fire'?.48+dark*.92:.48+dark*.82)*(reduced?1:.96+Math.sin(time*9.2+i)*.05+Math.sin(time*15.4+i)*.025);});
+    flames.forEach((f,i)=>{const lamp=f.metadata?.fireSource==='lamp',strength=f.metadata?.fireSource?(dark>.2&&(lamp||!exposedExtinguished||climate.covered(f.getAbsolutePosition().x,f.getAbsolutePosition().z))?1:0):[...fireLevels].find(([id])=>f.name.startsWith(id+':'))?.[1].flame??0;f.isVisible=lamp||strength>.005;f.visibility=lamp||strength>.005?1:0;if(lamp)f.material=strength?M.ember:M.brass;f.scaling.y=(reduced?1:.85+Math.sin(time*9.4+i)*.15+Math.sin(time*16.8+i)*.04)*(lamp?1:Math.max(.02,strength));f.scaling.x=(reduced?1:1-Math.sin(time*9.4+i)*.05);f.rotation.z=reduced?0:Math.sin(time*5.2+i)*.065;});
     hearths.forEach(h=>h.coals.update(time,fireLevels.get(h.id)!.embers));
     tents.forEach(t=>{
       const inside=Boolean(focusCell&&((Math.abs(focusCell.col-t.cell.col)<=1&&Math.abs(focusCell.row-t.cell.row)<=1)||(focusCell.col===t.entry.col&&focusCell.row===t.entry.row)));

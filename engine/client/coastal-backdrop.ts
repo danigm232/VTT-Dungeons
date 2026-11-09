@@ -4,10 +4,11 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder.js';
 import { Mesh } from '@babylonjs/core/Meshes/mesh.js';
 import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData.js';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture.js';
+import { BoundingInfo } from '@babylonjs/core/Culling/boundingInfo.js';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import type { Scene } from '@babylonjs/core/scene.js';
 import { illustratedMaterial } from './diorama-kit.js';
-import {createCoastalAnimationVisibility} from './coastal-animation-visibility.js';
+import {createCoastalAnimationVisibility,setCoastalAnimationBounds} from './coastal-animation-visibility.js';
 import {createCoastalNormalUpdater} from './coastal-normals.js';
 
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
@@ -45,17 +46,8 @@ export function createCoastalBackdrop(scene: Scene, root: TransformNode, url: st
 
   // Steepened trochoidal wave function simulating real incoming ocean swells
   let seaIntensity = .35;
-  const waveHeight = (x: number, z: number, time: number) => {
-    // Primary swell train rolling towards the shore (+z)
-    const swell1 = Math.sin(x * .038 + z * .082 - time * 1.45);
-    const swellPeak1 = (Math.exp(Math.sin(x * .038 + z * .082 - time * 1.45)) - 0.8) * .65;
-    // Cross-sea chop and interference
-    const swell2 = Math.sin(x * .088 - z * .055 + time * 1.85) * .28;
-    const swell3 = Math.sin(x * .14 + z * .042 - time * 2.3) * .14;
-    // Shoaling effect: waves grow in height and steepness as they reach the cliffs (z > 22)
-    const shoal = 1 + clamp01((z - 18) / 10) * .85;
-    return (swellPeak1 + swell2 + swell3) * shoal * (.12+seaIntensity*1.65);
-  };
+  const wavePhases = new Float64Array(basePositions.length / 3 * 4);
+  let phaseX = NaN, phaseZ = NaN;
 
   const foamMaterial = illustratedMaterial(scene, 'a1:shore-wash-v2', '#ffffff');
   foamMaterial.disableLighting = true;
@@ -67,11 +59,12 @@ export function createCoastalBackdrop(scene: Scene, root: TransformNode, url: st
   const columns = 96, rows = 12, foamPositions: number[] = [], foamUvs: number[] = [], foamIndices: number[] = [];
   const foamColors = new Float32Array((columns + 1) * rows * 4);
   const shore = (x: number) => 30.2 + Math.sin(x * .28) * .85 + Math.sin(x * 1.8) * .22;
+  const shoreByColumn = Array.from({ length: columns + 1 }, (_, column) => shore(-18 + column * 1.2));
   for (let row = 0; row < rows; row++) {
     const crossShore = row / (rows - 1) - .5;
     for (let column = 0; column <= columns; column++) {
       const x = -18 + column * 1.2;
-      const z = shore(x) + crossShore * 3.8;
+      const z = shoreByColumn[column]! + crossShore * 3.8;
       foamPositions.push(x, -9.05, z);
       foamUvs.push(column / columns * 10, row / (rows - 1));
     }
@@ -94,6 +87,12 @@ export function createCoastalBackdrop(scene: Scene, root: TransformNode, url: st
   const animatedFoamPositions=new Float32Array(foamPositions.length),animatedFoamColors=new Float32Array(foamColors.length),foamNormals=new Float32Array(foamPositions.length);
   let foamNormalUpdater:ReturnType<typeof createCoastalNormalUpdater>|null=null;
   const animationStats={geometryUpdates:0,foamUpdates:0,skippedOffscreenUpdates:0,skippedFoamUpdates:0,pauseOffscreen:options.pauseOffscreen===true,normalTopologyBytes:waterNormalUpdater.topologyBytes};sea.metadata.coastalAnimation=animationStats;
+  if(options.pauseOffscreen){
+    // Maximum swell is under 5.5 m at the strongest sea state. The surf
+    // adds at most 3.82 m of spray runup and moves less than 4 m across shore.
+    const foamBox=foam.getBoundingInfo().boundingBox;
+    setCoastalAnimationBounds(foam,[new BoundingInfo(foamBox.minimum.subtract(new Vector3(.11,3,4)),foamBox.maximum.add(new Vector3(.11,10,4)))]);
+  }
   const contributes=options.pauseOffscreen?createCoastalAnimationVisibility(scene,[sea]):null;
   const foamContributes=options.pauseOffscreen?createCoastalAnimationVisibility(scene,[foam],false):null;
 
@@ -101,14 +100,31 @@ export function createCoastalBackdrop(scene: Scene, root: TransformNode, url: st
   let lastGeometryTime = -Infinity;
   const updateGeometry = (time: number,waterVisible=true,foamVisible=true) => {
     const waterX = sea.position.x, waterZ = sea.position.z;
+    const swellTime = time * 1.45, chopTime = time * 1.85, rippleTime = time * 2.3;
+    const amplitude = .12 + seaIntensity * 1.65;
+    const waveHeight = (swell: number, chop: number, ripple: number, shoal: number) => {
+      const swellPeak = (Math.exp(Math.sin(swell - swellTime)) - .8) * .65;
+      return (swellPeak + Math.sin(chop + chopTime) * .28 + Math.sin(ripple - rippleTime) * .14) * shoal * amplitude;
+    };
     if(waterVisible){
-    for (let i = 0; i < basePositions.length; i += 3) {
-      const x = basePositions[i]! + waterX, z = basePositions[i + 2]! + waterZ;
-      const height = waveHeight(x, z, time), crest = clamp01((height + .25) / .85);
+    // Cache only the stationary terms in Float64, keeping the phase, vertex
+    // arithmetic and CPU buffers that the shore and rowboat already sample.
+    if(phaseX!==waterX||phaseZ!==waterZ){
+      for(let i=0,at=0;i<basePositions.length;i+=3,at+=4){
+        const x=basePositions[i]!+waterX,z=basePositions[i+2]!+waterZ;
+        wavePhases[at]=x*.038+z*.082;
+        wavePhases[at+1]=x*.088-z*.055;
+        wavePhases[at+2]=x*.14+z*.042;
+        wavePhases[at+3]=1+clamp01((z-18)/10)*.85;
+      }
+      phaseX=waterX;phaseZ=waterZ;
+    }
+    for (let i = 0, color = 0; i < basePositions.length; i += 3, color += 4) {
+      const height = waveHeight(wavePhases[color]!,wavePhases[color+1]!,wavePhases[color+2]!,wavePhases[color+3]!);
+      const crest = clamp01((height + .25) / .85);
       wavePositions[i] = basePositions[i]!;
       wavePositions[i + 1] = basePositions[i + 1]! + height;
       wavePositions[i + 2] = basePositions[i + 2]!;
-      const color = i / 3 * 4;
       // Deep sea navy into bright turquoise crests with foamy highlights
       waterColors[color] = .09 + crest * .28;
       waterColors[color + 1] = .22 + crest * .42;
@@ -128,7 +144,7 @@ export function createCoastalBackdrop(scene: Scene, root: TransformNode, url: st
     for (let row = 0; row < rows; row++) {
       const rowT = row / (rows - 1), envelope = Math.pow(Math.sin(rowT * Math.PI), .55);
       for (let column = 0; column <= columns; column++, vertex++) {
-        const x = -18 + column * 1.2, baseZ = shore(x) + (rowT - .5) * 2.2;
+        const x = -18 + column * 1.2, baseZ = shoreByColumn[column]! + (rowT - .5) * 2.2;
         const phase = time * 1.45 + x * .15 + rowT * 1.9;
         const swellPulse = Math.sin(phase);
         const crashPeak = Math.max(0, swellPulse);
@@ -136,7 +152,8 @@ export function createCoastalBackdrop(scene: Scene, root: TransformNode, url: st
         const z = baseZ - runup;
         // Dramatic surge climbing up the rocks when waves strike
         const rockSurge = Math.pow(crashPeak, 2.2) * (.12+seaIntensity*3.7);
-        const y = -9.05 + waveHeight(x + waterX, z + waterZ, time) + rockSurge * (1 - rowT * .6);
+        const wx=x+waterX,wz=z+waterZ;
+        const y = -9.05 + waveHeight(wx*.038+wz*.082,wx*.088-wz*.055,wx*.14+wz*.042,1+clamp01((wz-18)/10)*.85) + rockSurge * (1 - rowT * .6);
         const fleck = .5 + .5 * Math.sin(x * .92 + row * 2.4 - time * 1.8) * Math.sin(x * 1.6 - row * 1.1 + time * .8);
         const breakup = clamp01(.3 + .6 * fleck + .25 * Math.sin(x * .25 - time * .5));
         const crest = clamp01(.2 + crashPeak * .8);

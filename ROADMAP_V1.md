@@ -2,7 +2,7 @@
 
 **Plan único de ejecución para todos los chats. Consolidación: 01/11/2026.** Aquí se decide prioridad, orden, categorías, referencias y siguiente entrega. Los demás documentos aportan contratos locales, criterios, coordinación o evidencia; no eligen una segunda cola de trabajo. Reorganizar documentos no cambia la aceptación del juego.
 
-**Ahora:** Retiro del Dragón y Pecio Rosa de los Vientos. **En revisión:** primeras muestras reales de materiales/paleta/actor en A3/umbral y cubierta/C4, y cráneo terminado. **Después:** refinamiento de mobiliario/plantas y extensión por zonas, conforme a las secciones 3–5. Cena de D8 va después. Cada entrega conserva una versión jugable e identifica si está en fuente, candidata aislada o instalada en la mesa habitual.
+**Ahora:** Retiro del Dragón y Pecio Rosa de los Vientos, prioridades confirmadas el 04/11. La [candidata jugable del 05/11](docs/evidence/STORMWRECK_ZONE_FINISH_20261105.md) amplía materiales, muebles y paisaje por zonas, ajusta el recorte de escaleras y comprueba luz y clima. [Cuarenta comparativas reales](output/stormwreck-zone-finish-20261104/index.html). Revisar el acabado con el usuario y completar la validación física y el balance de audio en mesa según las fichas locales. Cena de D8 va después.
 
 **Dirección visual V1 aprobada por el usuario, 01/11:** «Acabado de las dos láminas (recomendado)». [Paletas y decisiones](docs/design/VISUAL_ART_DIRECTION.md#9-propuesta-visual-concreta-del-retiro-y-pecio--01112026), [ficha de parámetros/prompts](docs/design/STORMWRECK_VISUAL_PROFILE.json) y [láminas](output/stormwreck-style-decisions-20261101/index.html). Continúa su traducción a muestras reales VIS-2; no equivale a aceptar implementación, rendimiento o dispositivos. No es un nuevo roadmap.
 
@@ -12,7 +12,21 @@
 
 **Instalación posterior solicitada el 02/11:** actualización activa en la mesa habitual **puerto 3000**. Comparativas de materiales/cráneo e iluminación actualizadas con superposición por clic, ampliación y teclado; regla común para futuros informes. La siguiente mejora sigue siendo muebles/plantas y extensión por zonas. La instalación no cierra la revisión artística, VIS2–6 o las pruebas físicas.
 
+**Correcciones puntuales Retiro, 07–08/11:** pasarela A2 unida y ensanchada al mismo suelo y ancho de la escalera, con cuerdas periféricas; pradera junto al paseo prolongada y esquina excavada A3 rematada. [A2](docs/evidence/RETREAT_A2_JUNCTION_20261107.md) · [pradera y cueva](docs/evidence/RETREAT_EXPEDITION_CAVE_SEAMS_20261108.md). La candidata inicial quedó separada mientras la mesa estaba abierta y se incluyó en la instalación conjunta posterior; no cambia el orden general ni cierra las validaciones pendientes del Retiro.
+
+**Costa del cabrestante A2, 08/11:** retiradas las láminas de acantilado inacabadas delante de la carga y añadidas rocas marinas, conservando los apoyos de la casa y de la escalera. [Evidencia y seis comparativas](docs/evidence/RETREAT_WINCH_SEA_ROCKS_20261108.md). La compilación conjunta se instaló con la mesa habitual cerrada; revisión artística y validación física siguen pendientes, sin cambiar el orden general ni cerrar Q1.
+
+**Detalle marino A2, 08/11:** muestra localizada de percebes, algas y espuma que reutiliza el mar existente. [Registro y comparación](docs/evidence/RETREAT_A2_MARINE_DETAIL_20261108.md). Revisión artística y rendimiento real pendientes; no cierra Q1.
+
+**Celdas A1, 08/11:** revisión cenital de las seis celdas; ocultación de jambas delanteras en la habitación ocupada y separación localizada entre mobiliario y roca. [Registro y comparativas](docs/evidence/RETREAT_CELLS_VISIBILITY_20261108.md). Se conservan las interacciones y la geometría irregular; pendientes aceptación artística y pruebas físicas.
+
+**Antorchas del Retiro, 09/11:** finalizadas y comprobadas las cinco del pasillo y las seis de las celdas, con llama cálida y luz sincronizada, e instaladas en 3000. [Informe visual con comparación superpuesta](output/retreat-torches-20261108/index.html) y [registro técnico](docs/evidence/FIRE_SMOKE_LIGHTING_IMPROVEMENT_20261108.md#5-cierre-localizado-antorchas-del-retiro--09112026). Aceptación artística y pruebas físicas pendientes; no se da por completado el humo ni la iluminación global de las demás escenas.
+
 ## 1. Qué documento manda en cada caso
+
+**Instalación en 3000:** el acabado por zonas del 05/11 ya está activo en la mesa habitual por petición del usuario. `INICIAR.cmd` arranca la versión instalada al elegir Stormwreck. Las comprobaciones de despliegue constan en el [registro de instalación](output/stormwreck-zone-finish-20261104/deployment-3000-20261105.json). Siguen pendientes la revisión artística y el ensayo físico.
+
+**Subentrega 04/11:** [muestra integrada de mobiliario y plantas](docs/evidence/STORMWRECK_OBJECT_FINISH_20261104.md), diez pares reales superpuestos y candidata separada. Conserva mapa/funciones y corrige la carga aplazada de las hojas derivadas. Continúa VIS-3 por zonas; C4 requiere el recorte selectivo de escalera de VIS-4. La autorización actual cubre avanzar entre bloques; no equivale a aceptación artística ni física y conserva la revisión 19/Q1/M5/M7.
 
 Las instrucciones actuales del usuario prevalecen. Se empieza aquí; después se lee el estado real y solo el anexo del trabajo autorizado. El detalle más reciente de una escena conserva su orden y sus contratos. Una nueva guía de estilo no anula referencias aprobadas ni reabre entregas terminadas.
 
@@ -32,11 +46,27 @@ Los archivos bajo `docs/archive/`, `docs/audits/archive/` y `docs/ROADMAP_V1_REV
 
 ## 2. Líneas actuales y siguiente paso
 
+**Retiro · caseta A2, 07/11.** Acabado de madera, dos ventanas con vidrio y reflejo estilizado, unión del cable/soporte y recorte de la pared delantera. Candidata y diez pares de revisión registrados en [la ficha de A2](docs/evidence/RETREAT_WINCH_HOUSE_20261107.md). Incluida en la compilación conjunta instalada el 08/11 con la mesa cerrada; las pruebas físicas y la revisión artística siguen pendientes.
+
+**Retiro · auditoría integral de recorridos, 07/11.** Inventario de 26 recorridos, 1.596 casillas conectadas y prueba de 846 pasos de ida/vuelta. Candidata con prolongaciones de los cuatro senderos terrestres, apoyos rocosos y continuidad del mar oriental. La validación visual y compilación final se registran en la [ficha de esta entrega](docs/evidence/RETREAT_ROUTES_20261107.md). Mantener separados el cierre técnico de la candidata, la aceptación artística y la instalación en 3000.
+
+**Retiro · costa, 06/11.** Muestra de perfil y contacto con el mar en Pleamar baja y Observatorio, verificada en seis pares. Sigue la vegetación por hábitat. [Registro VA-07/13/15](docs/evidence/RETREAT_COAST_PROFILE_20261106.md).
+
+**Retiro · finales de sendero, 06/11.** Cuatro remates escénicos revisados desde cámara de jugador. El siguiente estudio local prioriza los bordes costeros, las agrupaciones de vegetación y el contacto con el suelo. [Cambios, comparativas y criterios](docs/evidence/RETREAT_TRAIL_ENDS_20261106.md).
+
+**Retiro · jardines.** Candidata de color y densidad de hojas, revisada en el jardín de la biblioteca y el bosquete del embarcadero. [Registro VA-08/09](docs/evidence/RETREAT_GARDENS_FINISH.md).
+
+**Retiro · cornisa A4.** Muestra de relieve bajo el paseo de la biblioteca con comparación en el mismo encuadre. [Registro VA-07](docs/evidence/RETREAT_CORNICE.md).
+
+**Retiro · muestra A4.** Refinado el acabado de los estantes y libros de la biblioteca en una candidata compilada, con una comparación diurna en el renderer integrado. [Registro VIS-3](docs/evidence/RETREAT_LIBRARY_FINISH.md).
+
+**Retiro · iluminación, 06/11.** Candidata con cinco antorchas fijadas a fachada, ajustes de las celdas y emisores ligados a las lámparas de A3/A4. Verificado técnicamente. Revisión visual pendiente antes de activar en la mesa habitual. [Registro VIS-4](docs/evidence/RETREAT_FIXTURES_20261106.md).
+
 | Línea | Situación que se conserva | Cómo continuar |
 | --- | --- | --- |
 | Juego funcional | Mesas, campañas, movimiento, estados y sistemas existentes | Cada bloque deja una candidata jugable. Corregir incidencias reproducibles del alcance sin mezclar una remodelación no encargada. |
 | Dirección visual común | Biblioteca moderna y auditoría VA-01–VA-18 documentadas; no equivalen a arte implementado | Aplicar sus criterios al siguiente bloque gráfico autorizado. |
-| Prioridad visual: Retiro del Dragón y Pecio Rosa de los Vientos | Nueva elección explícita del usuario, 01/11/2026. Se conservan revisión 19 del Retiro y contratos M5/M7 del Pecio | Primera muestra de integración de personajes con la luz existente; después muestras de materiales/muebles/vegetación y profundidad sobre los mismos mapas. [Registro del primer bloque](docs/evidence/STORMWRECK_VISUAL_START_20261101.md). |
+| Prioridad visual: Retiro del Dragón y Pecio Rosa de los Vientos | Acabado por zonas integrado en la candidata del 05/11. Se conservan revisión 19 del Retiro y contratos M5/M7 del Pecio. | Revisar las comparativas y la candidata. Registrar los ajustes artísticos observados y las pruebas físicas en su ficha. [Entrega del 05/11](docs/evidence/STORMWRECK_ZONE_FINISH_20261105.md). |
 | Cena de D8, pendiente posterior | Encargo E0–E6/C01–C60 preparado; conserva toda su lista | Retomar cuando corresponda; deja de ser el primer piloto por la elección del usuario. |
 | Retiro/Pecio/Espejo/campamentos | Avances, ampliaciones y pruebas locales se conservan | Los chats que ya trabajan en ellos siguen su ficha vigente e incorporan criterios visuales donde corresponda; no abandonan su tarea para rehacer Cena. |
 | Cierre por escena | Aceptación visual, física y rendimiento tienen estados separados | Validar lo pendiente según el anexo local. No subir de versión por completar documentos o acumular tests. |
@@ -52,12 +82,12 @@ Se trabaja **por categorías, aplicadas por zonas**: una muestra reúne suelo, a
 | Orden / bloque | Entrega y salida verificable | Estado actual |
 | --- | --- | --- |
 | 0 · VIS-0 | Referencias modernas y criterios comunes | 12 referencias documentadas; cinco familias con imágenes examinadas y siete de estudio documental. No son doce juegos completamente auditados. |
-| 1 · VIS-1 | Base actual por zona: recursos, colocación, luz y carencias | Hay muestras recientes de plaza/A3/A4 y cubierta/C4; falta completar las zonas que se vayan a intervenir. No retomar fotos antiguas como si fueran el juego actual. |
-| 2 · VIS-2, en revisión | Dos muestras coherentes: A3/umbral del Retiro y cubierta/camarote del Pecio, con paleta/material/objeto/vegetación/actor/luz juntos | Actores, primeras familias de materiales y cráneo instalados por petición del usuario en 3000 el 02/11, con capturas reales superpuestas. Revisión artística, muebles y vegetación refinados pendientes; no cierra VIS-2. |
-| 3 · VIS-3 | Extensión de materiales, objetos y vegetación por zonas | Retiro: A1 → A3 → A4 → A2 → A5 y paisaje vigente. Pecio: C1–C3 → C4–C7 → C8/C9/cofa. Conservar el orden y contratos locales aplicables, sin repetir fases cerradas ni reconstruir mapas. |
-| 4 · VIS-4, coordinado con 2/3 | Profundidad, iluminación y sombras completas | Afinar primer plano, plano del grupo, respaldo y distancia; fuentes, sombras y contactos. Reutilizar capas/luces; comprobar varios puntos/giros, día/ocaso/noche y fuentes apagadas. |
-| 5 · VIS-5 | Atmósfera, clima, estados, VFX y audio | Ajustar lo que ya existe después de comprobar la escena sin efectos. Transiciones reversibles, interiores protegidos y voz del DM clara; no crear otro reloj o mezclador. |
-| 6 · VIS-6 y cierres locales | Candidata funcional, comparativas, recorrido y aceptación | Regresiones pertinentes por entrega. Optimización/certificación Q1 del Retiro al cierre previsto; M5 artístico y M7 físico del Pecio separados. Registrar instalación y aceptación explícitamente. |
+| 1 · VIS-1 | Base actual por zona: recursos, colocación, luz y carencias | Base de 20 focos registrada en las comparativas reales del 05/11. Inventario de recursos y matrices en el informe. |
+| 2 · VIS-2, en revisión artística | Dos muestras coherentes: A3/umbral del Retiro y cubierta/camarote del Pecio, con paleta/material/objeto/vegetación/actor/luz juntos | Familias iniciales y cráneo instalados el 02/11. Muebles y plantas de muestra verificados el 04/11. Aceptación artística del usuario pendiente. |
+| 3 · VIS-3 | Extensión de materiales, objetos y vegetación por zonas | Candidata 05/11 con Retiro A1 → A3 → A4 → A2 → A5 y paisaje, y Pecio C1–C9/cofa. Construida, con pares de día/noche e inventario por ID. |
+| 4 · VIS-4, coordinado con 2/3 | Profundidad, iluminación y sombras | Recorte selectivo integrado en camarotes y bajo cubierta. Revisados giros, iluminación existente y luz portada. Siguen abiertos el juicio artístico de luces/sombras y la prueba física. |
+| 5 · VIS-5 | Atmósfera, clima, estados, VFX y audio | Revisados ocaso, lluvia y retorno a seco en 20 focos. Corregida la preparación de clima de las variantes de materiales. Mezclador existente comprobado por pruebas. Pendiente escucha con la voz del DM. |
+| 6 · VIS-6 y cierres locales | Candidata funcional, comparativas, recorrido y aceptación | Candidata aislada del 05/11 con cliente/servidor, revisión visual y red. Pendientes aceptación artística, Q1 del Retiro y M7 físico del Pecio según ficha. |
 | Posterior | Cena D8 y adopción en otros mapas | Cena conserva E0–E6/C01–C60. Reutilizar familias adecuadas preservando biomas; plataforma sigue el anexo Dani/Fer cuando se encargue. |
 
 La revisión conceptual por subfase se mantiene donde la ficha local la requiera, salvo autorización posterior de un lote. Un resultado técnico no inventa esa aceptación. Esta consolidación no implementa nuevas muestras, publica o cambia de modelo.
@@ -96,12 +126,24 @@ Estas versiones son las del repositorio, no recomendaciones de la última versi�
 | **Ambiente/VFX/audio · 16** | Revisar bruma por distancia, viento, fuego/partículas y estados de hora/clima ya existentes. | Revisar mar/viento/madera y ambiente por planta; humedad/spray/burbujas/tormenta según estados actuales. | REF-01/07/08. Comparación sin efectos, transiciones reversibles y sin duplicación. DoF/bloom/haces opcionales; no ocultan incoherencias de arte. |
 | **Coste/aceptación · 17/18** | Compartir recursos por entrega; después Q1 pendiente conforme a ficha, sin repetir etapas cerradas o recortar arte implícitamente. | Validar zonas/estados, retorno/carga, botín/cámara/recursos; M5 artístico y M7 físico independientes. | Criterios del VTT: candidata arrancable/jugable, antes/después comparable y costes/pendientes honestos. |
 
+**Rendimiento · 05/11:** por petición del usuario, optimizar Retiro y Pecio con el acabado por zonas y exigir más de 30 FPS sostenidos. [Cambios y mediciones actuales](docs/evidence/STORMWRECK_PERFORMANCE_20261105.md). El umbral sigue abierto, con prioridad de diagnóstico en A1/A4 y cubierta C1. La aceptación física de Q1 y M7 sigue sus fichas.
+
+**Segunda pasada de rendimiento:** C1 supera el umbral por segundo en la tanda diurna de escritorio. A1 y A4 mejoran y siguen por debajo de 30 FPS. Continúa Q1 por el coste del dibujo principal del Retiro y se conserva la validación M7 en las demás zonas y transiciones del Pecio. [Candidata y resultados](docs/evidence/STORMWRECK_PERFORMANCE_20261106.md).
+
+**Criterio del usuario:** al menos 30 FPS en cada zona y durante los recorridos de ambos mapas, con el acabado gráfico íntegro. Registrar la media de cada tramo, el peor segundo y los intervalos de fotograma por encima de 33,33 ms. Un promedio de mapa o una toma fija por encima del umbral no cierra la validación.
+
+**Tercera pasada de rendimiento.** El Retiro agrupa decoración estática para excluir sectores fuera de cámara antes de evaluar sus mallas. El Pecio desactiva partículas de lluvia y nieve mientras el foco está completamente protegido. Mejoran A4 y C5 en las tandas comparadas. El umbral estricto sigue abierto, especialmente durante transiciones y en interiores del Retiro. [Candidata, comparativas y recorridos](docs/evidence/STORMWRECK_PERFORMANCE_PASS3_20261106.md).
+
+En el Pecio queda identificado el coste de preparar shaders al pasar del camarote C5 a la cubierta. El siguiente ensayo de M7 debe distinguir el primer cruce de la repetición con los shaders ya preparados. El Retiro mantiene Q1.3b para la carga selectiva y Q1.4 para las mediciones en movimiento.
+
+**Cuarta pasada de rendimiento.** El Retiro afina el descarte de espuma y del borde marino fuera de cámara. El Pecio suspende las actualizaciones del mar y la espuma ocultos por el recorte de cubierta y adelanta el descarte del horizonte transparente. Se conserva el objetivo de 30 FPS por zona y recorrido. [Mediciones y candidata](docs/evidence/STORMWRECK_PERFORMANCE_PASS4_20261106.md).
+
 ### Qué está definido y qué falta decidir
 
 - **Definido:** motor y propietarios, familia estilizada, identidad de cada lugar, referencias por categoría, muestras iniciales, cambios/objetos, conservación y comprobación.
-- **Dirección aprobada en VIS-2:** acabado ilustrado de las dos láminas, paletas y familia visual de `docs/design/STORMWRECK_VISUAL_PROFILE.json`. Los números de resolución/UV/normal/roughness son candidatos de calibración. **Implementado en candidata:** primeras familias y derivados del 02/11. **Pendiente:** aceptación de las muestras reales, muebles/vegetación y extensión; no se inventa un porcentaje de parecido o aceptación de rendimiento.
+- **Dirección aprobada en VIS-2:** acabado ilustrado de las dos láminas y familias de `docs/design/STORMWRECK_VISUAL_PROFILE.json`. Los valores reales de resolución, UV, normal y rugosidad de la candidata están registrados en el [informe del 05/11](docs/evidence/STORMWRECK_ZONE_FINISH_20261105.md). La revisión artística y física sigue pendiente.
 - **Regla de concreción:** antes de extender una muestra, registrar objeto/material por nombre o ID, archivo propietario, valor/asset actual, valor/derivado candidato, VA/referencia, conservación y comparación. Si el valor candidato no existe, sigue pendiente. Esta ficha va en el registro local, no en otro roadmap.
-- **Siguiente acción exacta:** revisar las muestras reales de materiales/actor del 02/11 y continuar el refinamiento de muebles/vegetación del mismo lugar; después extender por zonas lo revisado. No ejecutar toda la matriz como una sola intervención sin entregas comprobables.
+- **Siguiente acción exacta:** abrir `REVISAR-ACABADO.cmd` y revisar la [galería del 05/11](output/stormwreck-zone-finish-20261104/index.html). Registrar con el usuario las incidencias artísticas y completar la validación física de la candidata en el orden Q1/M7 de las fichas locales.
 
 Biblioteca de las [12 referencias](docs/design/VISUAL_REFERENCE_LIBRARY.md), [catálogo JSON](docs/design/VISUAL_REFERENCE_CATALOG.json) y [galería](output/visual-reference-library-20261030/index.html). Witchbrook es material promocional. Las otras siete referencias son secundarias/documentales hasta revisar una escena comparable: no se mezclan todas en cada objeto ni bloquean estas muestras.
 
@@ -127,6 +169,8 @@ Aplicable a trabajo gráfico de **D8 Night, Retiro, Pecio y campamentos**: [road
 Nuevo bloque transversal VIS-0…VIS-6: base reproducible → muestra coherente → familias de materiales/objetos/vegetación → profundidad y luz → ambiente/estados → candidata y aceptación por escena. **Mejorar nuestros mapas conservándolos**, sin mover distribución/funciones por imitar otra obra. No sustituye M0–M7, C01–C60 ni el roadmap técnico vigente del Retiro; no reabre fases terminadas ni certifica rendimiento o aprobación artística. VIS-0 está documentado; la nueva ejecución de arte permanece pendiente. Las entradas antiguas de cámara/versión de este histórico no prevalecen sobre código y fichas recientes.
 
 ## Retiro del Dragón · mejora integral en ocho fases — 2026-10-16
+
+El 06/11/2026 se revisó el acabado de A5 con 75 comparativas desde la cámara del jugador. La candidata corrige el aspecto de la piedra y el apoyo y corte de los siete canarios. [Evidencia y límites de la revisión](docs/evidence/RETREAT_TEMPLE_CAMERA_20261106.md).
 
 Ocho fases construidas y verificadas sobre la escena existente. Las 128 mallas originales de A1, sus seis celdas y todo el mobiliario conservan geometría y matrices exactas; escala 1,5 m, 850 posiciones, conexiones, puertas, PNJ y narrativa intactos. Interiores integrados, arquitectura revisada, continuidad rocosa, materiales PBR compartidos, jardines, sombras globales y costa mejorados. Perfil propio del Retiro 20°/30°/40°, combate inicial a 40° y gesto del jugador compatible; D8 mantiene sus valores anteriores.
 
@@ -339,6 +383,8 @@ Son nombres de alcance, no versiones ya creadas. Sol elegirá el siguiente ident
 - **Relevo:** M4 → **Sol High**, M5 acabado visual por capas y ambiente. Bajo el encargo vigente del usuario, M5 ha empezado con una textura candidata; la aceptación de movimiento/cámara sigue pendiente y no se finge cerrada. Véase [auditoría privada M4](campaigns/stormwreck-isle/private/M4_ARRIVAL_AND_DEPARTURE_AUDIT_20260925.md) y la [auditoría del movimiento](campaigns/stormwreck-isle/private/C1_GREYBOX_GATE.md).
 
 ### M5 · Arte 2.5D por capas, ambiente, agua, VFX e iluminación
+
+**Candidata del 05/11:** acabado de maderas, hierro, cabo y lino por C1–C9 y cofa. Biselado de 205 componentes de los muebles y objetos existentes. Recorte selectivo de escaleras comprobado en C4 y C8. [Comparativas y registro por ID](docs/evidence/STORMWRECK_ZONE_FINISH_20261105.md). Se mantiene el inventario M5 y su aceptación artística sigue abierta. M7 conserva su ensayo físico.
 
 **Alcance obligatorio añadido por el usuario · revisión 36:** crear el mar ilustrado completo y los assets finales de todos los objetos interactuables/recogibles y de toda la decoración de C1–C9, cofa y exterior. La textura de ondulaciones ya existente es sólo una base provisional; no satisface el mar de referencia. Seguir el [inventario y gate de cobertura](campaigns/stormwreck-isle/private/m5/M5_ASSET_COVERAGE_PLAN_20260925.md). Puertas, cofres, contenedores y elementos marcados `blockout`/`practice-*` no cuentan como terminados.
 

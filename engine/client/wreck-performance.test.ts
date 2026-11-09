@@ -1,9 +1,11 @@
-import { describe, it, expect } from 'vitest';
-import { NullEngine, Scene, ArcRotateCamera, Camera, Vector3, MeshBuilder, StandardMaterial, DirectionalLight } from '@babylonjs/core';
+import { describe, it, expect, vi } from 'vitest';
+import { NullEngine, Scene, ArcRotateCamera, Camera, Vector3, MeshBuilder, StandardMaterial, DirectionalLight, ShaderMaterial } from '@babylonjs/core';
 import { buildWreckOceanGrid } from './wreck-ocean-grid.js';
+import { buildWreckOcean } from './wreck-ocean.js';
 import { wreckReflectionCandidates, WreckReflectionCadence } from './wreck-reflections.js';
 import { createWreckEnvironment } from './wreck-environment.js';
 import { emptyClimateState } from '../shared/game-time.js';
+import { wreckRuntimeScenes } from '../../campaigns/stormwreck-isle/public/wreck-runtime.js';
 
 describe('Pecio: optimización sin recortar el área jugable', () => {
   it('keeps a connected 1600 m ocean, upward faces and no internal open edges', () => {
@@ -49,6 +51,30 @@ describe('Pecio: optimización sin recortar el área jugable', () => {
         expect(idlePasses).toBeLessThanOrEqual(compact?5:9);
       } finally {e.dispose();}
     }
+  });
+
+  it('updates the ocean and its foam independently when the cutaway reveals them', () => {
+    const e=new NullEngine(),s=new Scene(e);
+    try {
+      new ArcRotateCamera('camera',.5,1,100,Vector3.Zero(),s);
+      const terrain=wreckRuntimeScenes.find(scene=>scene.id==='wreck-ship')!.terrain!;
+      const meshes=buildWreckOcean(s,terrain),water=meshes.find(m=>m.name==='wreck-ocean')!;
+      const foam=meshes.filter(m=>m.metadata?.kind==='contact-foam');
+      const waterUniforms=vi.spyOn(water.material as ShaderMaterial,'setFloat');
+      const foamUniforms=vi.spyOn(foam[0]!.material as ShaderMaterial,'setFloat');
+      water.isVisible=false;
+      for(const mesh of foam)mesh.isVisible=false;
+      s.onBeforeRenderObservable.notifyObservers(s);
+      expect(waterUniforms.mock.calls.some(([name])=>name==='time')).toBe(false);
+      expect(foamUniforms.mock.calls.some(([name])=>name==='time')).toBe(false);
+      water.isVisible=true;
+      s.onBeforeRenderObservable.notifyObservers(s);
+      expect(waterUniforms.mock.calls.some(([name])=>name==='time')).toBe(true);
+      expect(foamUniforms.mock.calls.some(([name])=>name==='time')).toBe(false);
+      foam[0]!.isVisible=true;
+      s.onBeforeRenderObservable.notifyObservers(s);
+      expect(foamUniforms.mock.calls.some(([name])=>name==='time')).toBe(true);
+    } finally {e.dispose();}
   });
 
   it('reuses reflection membership and detects equal-count replacements; leaves visibility live', () => {

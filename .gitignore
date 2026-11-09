@@ -23,3 +23,6 @@ OneDrive_1_12-9-2026/
 /.codex-remote-attachments/
 /output/
 /prototypes/
+
+__pycache__/
+*.pyc

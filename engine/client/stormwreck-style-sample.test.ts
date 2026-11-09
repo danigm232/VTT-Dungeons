@@ -4,13 +4,43 @@ import {Scene} from '@babylonjs/core/scene.js';
 import {MeshBuilder} from '@babylonjs/core/Meshes/meshBuilder.js';
 import {PBRMaterial} from '@babylonjs/core/Materials/PBR/pbrMaterial.js';
 import {StandardMaterial} from '@babylonjs/core/Materials/standardMaterial.js';
+import {MultiMaterial} from '@babylonjs/core/Materials/multiMaterial.js';
 import {Texture} from '@babylonjs/core/Materials/Textures/texture.js';
 import {RawTexture} from '@babylonjs/core/Materials/Textures/rawTexture.js';
-import {createStormwreckStyleSample,stormwreckSampleFamily} from '../../campaigns/stormwreck-isle/public/style-sample';
+import {createStormwreckStyleSample,stormwreckSampleFamily,stormwreckZoneFamily} from '../../campaigns/stormwreck-isle/public/style-sample';
 
 function fixture(run:(scene:Scene)=>void){const engine=new NullEngine(),scene=new Scene(engine);try{run(scene);}finally{scene.dispose();engine.dispose();}}
 const loader=(scene:Scene)=>(url:string)=>{const texture=new Texture(null,scene);texture.name=url;return texture;};
 describe('approved Stormwreck VIS-2 material sample',()=>{
+ it('restyles a same-size prop replacement and releases its disposed binding',()=>fixture(scene=>{
+  const base=new StandardMaterial('ship-prop:timber',scene);
+  const old=MeshBuilder.CreateBox('c7-table',{},scene);old.material=base;
+  const finish=createStormwreckStyleSample(scene,'wreck-ship',loader(scene),()=>{},'zones')!;finish.refresh();
+  const candidate=old.material,counts=[scene.materials.length,scene.textures.length];old.dispose();
+  const replacement=MeshBuilder.CreateBox('c7-table',{},scene);replacement.material=base;finish.refresh();
+  expect(replacement.material).toBe(candidate);expect(finish.audit()).toHaveLength(1);
+  expect([scene.materials.length,scene.textures.length]).toEqual(counts);
+ }));
+ it('shares authored linen instead of retaining the empty texture produced by a canvas clone',()=>fixture(scene=>{
+  const original=RawTexture.CreateRGBATexture(new Uint8Array([120,112,92,255]),1,1,scene);
+  original.clone=()=>new Texture(null,scene);
+  const base=new StandardMaterial('ship-prop:blanket',scene);base.diffuseTexture=original;
+  const bed=MeshBuilder.CreateBox('c6-bunk-01:blanket',{},scene);bed.material=base;
+  const finish=createStormwreckStyleSample(scene,'wreck-ship',loader(scene),()=>{},'zones')!;finish.refresh();
+  expect((bed.material as StandardMaterial).diffuseTexture).toBe(original);
+  expect(scene.textures).toHaveLength(1);expect(base.diffuseTexture).toBe(original);
+  finish.dispose();expect(scene.textures).toContain(original);
+ }));
+ it('finishes merged A1 materials while preserving their shared originals and paper',()=>fixture(scene=>{
+  const stone=new PBRMaterial('retreat:pbr:carved',scene),wood=new PBRMaterial('retreat:pbr:wood',scene),paper=new StandardMaterial('a1:paper',scene);
+  const base=new MultiMaterial('a1:merged',scene);base.subMaterials=[stone,wood,paper];
+  const mesh=MeshBuilder.CreateBox('a1:room-1:interior',{},scene);mesh.material=base;
+  const sample=createStormwreckStyleSample(scene,'dragon-rest',loader(scene),()=>{},'zones')!;sample.refresh();
+  const candidate=mesh.material as MultiMaterial;
+  expect(candidate).not.toBe(base);expect(candidate.subMaterials[0]?.metadata?.family).toBe('basalt');expect(candidate.subMaterials[1]?.metadata?.family).toBe('oak');expect(candidate.subMaterials[2]).toBe(paper);
+  expect(base.subMaterials).toHaveLength(3);[stone,wood,paper].forEach((material,index)=>expect(base.subMaterials[index]).toBe(material));const count=scene.materials.length;
+  sample.setScope('sample');expect(mesh.material).toBe(base);sample.setScope('zones');expect(mesh.material).toBe(candidate);expect(scene.materials.length).toBe(count);
+ }));
  it('limits Retiro objects to A3, unifies continuous stone and preserves actors and other maps',()=>{
   expect(stormwreckSampleFamily('dragon-rest',{name:'Dining_East_Base',metadata:{retreatZone:'a3'}},'retreat:pbr:carved')).toBe('basalt');
   expect(stormwreckSampleFamily('dragon-rest',{name:'CANON_Long_Table_primitive0',metadata:{retreatZone:'a3'}},'retreat:pbr:wood:planks')).toBe('oak');
@@ -72,5 +102,22 @@ describe('approved Stormwreck VIS-2 material sample',()=>{
   const before=[scene.materials.length,scene.textures.length,scene.meshes.length];
   expect(createStormwreckStyleSample(scene,'dinner',loader(scene))).toBeNull();
   expect([scene.materials.length,scene.textures.length,scene.meshes.length]).toEqual(before);
+ }));
+ it('extends wood across zones while protecting books, bone, portraits and original resources',()=>fixture(scene=>{
+  const base=new PBRMaterial('retreat:pbr:wood:structural',scene),shelf=MeshBuilder.CreateBox('Library_Shelf',{},scene);shelf.material=base;shelf.metadata={retreatZone:'a4'};
+  const originalColor=base.albedoColor.asArray(),geometry=shelf.geometry;
+  const sample=createStormwreckStyleSample(scene,'dragon-rest',loader(scene))!;sample.refresh();expect(shelf.material).toBe(base);
+  sample.setScope('zones');expect(shelf.material?.metadata?.family).toBe('oak-structure');expect(shelf.geometry).toBe(geometry);expect(base.albedoColor.asArray()).toEqual(originalColor);
+  const counts=[scene.materials.length,scene.textures.length];for(let i=0;i<5;i++){sample.setScope('sample');expect(shelf.material).toBe(base);sample.setScope('zones');}
+  expect([scene.materials.length,scene.textures.length]).toEqual(counts);
+  expect(stormwreckZoneFamily('wreck-ship',{name:'c5-bookshelf:waterlogged-book:7'},'ship-prop:dark')).toBeNull();
+  expect(stormwreckZoneFamily('wreck-ship',{name:'dragon-remains:skull'},'wreck-rebuild:shell')).toBeNull();
+  expect(stormwreckZoneFamily('wreck-ship',{name:'portrait'},'c6-portrait')).toBeNull();
+  expect(stormwreckZoneFamily('dragon-rest',{name:'CANON_North_Bookcase_0_primitive2'},'Paper_And_Parchment')).toBe('archive-paper');
+  expect(stormwreckZoneFamily('dragon-rest',{name:'Expanded_South_Bookcase_West_primitive3'},'Binding_Worn_Olive.001')).toBe('archive-olive');
+  expect(stormwreckZoneFamily('dragon-rest',{name:'Study_Table'},'Paper_And_Parchment')).toBeNull();
+  expect(stormwreckZoneFamily('wreck-ship',{name:'lining',metadata:{deckSurfaceId:'hold-air'}},'wreck-interior:wet-timber')).toBe('ship-wet');
+  expect(stormwreckZoneFamily('wreck-ship',{name:'frame'},'wreck-rebuild:frames')).toBe('ship-structure');
+  expect(stormwreckZoneFamily('dinner',{name:'table'},'wood')).toBeNull();
  }));
 });

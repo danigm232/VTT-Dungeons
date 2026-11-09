@@ -1,5 +1,11 @@
 # Retiro del Dragón — paisaje de las salidas y continuidad insular
 
+Revisión del 07/11 por encargo de auditar todos los recorridos. La [ficha de evidencia](../evidence/RETREAT_ROUTES_20261107.md) contiene el inventario de 26 rutas y el estado verificable de la candidata. Se amplían únicamente las cuatro continuaciones escénicas, conservando las anclas SAL, las casillas y la adjudicación manual de viajes. Esta revisión actualiza el detalle local; la prioridad global permanece en `ROADMAP_V1.md`.
+
+Muestra del 06/11 en la cala de Pleamar y el ramal costero del Observatorio. [Perfil, contacto con el mar y evidencia](../evidence/RETREAT_COAST_PROFILE_20261106.md).
+
+El 06/11 se refinaron los cuatro finales escénicos con el terreno y las anclas vigentes. [Ficha de cambios y 12 comparativas](../evidence/RETREAT_TRAIL_ENDS_20261106.md).
+
 Fecha inicial: 25/10/2026. Actualización: 26/10/2026. Revisión: continuación SAL autorizada. Estado: **SAL-2R/3/4/5 comprobadas y publicadas el26/10; revisión conceptual del usuario pendiente. Próxima M1**.
 
 Este documento desarrolla las fichas SAL del roadmap maestro. La petición inicial autorizó analizar, crear imágenes y actualizar el plan. Después el usuario aprobó esas imágenes como referencias y autorizó SAL-1; su posterior «Adelante» autorizó SAL-2, ya entregada. SAL-3…5 siguen pendientes; no iniciarlas sin cerrar la fase anterior y respetar la autorización vigente. G2 y A1–A5 siguen cerradas funcionalmente. El propósito es mejorar el paisaje alrededor de sus caminos conservados.

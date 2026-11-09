@@ -18,12 +18,44 @@ export function finishWreck(scene:Scene,terrain:TerrainDefinition){
   const size=256,maps=new Map<string,RawTexture>();
   const makeMap=(surface:string)=>{
     const data=new Uint8Array(size*size*4);
-    const walls=surface==='main'?terrain.occluders.filter(o=>o.kind==='wall'):[];
+    const contactMask=new Float32Array(size*size);
+    const stamp=(x:number,z:number,halfX:number,halfZ:number,falloff:number,strength:number)=>{
+      const minX=Math.max(0,Math.floor((x-halfX-falloff)/84*(size-1))),maxX=Math.min(size-1,Math.ceil((x+halfX+falloff)/84*(size-1)));
+      const minZ=Math.max(0,Math.floor((z-halfZ-falloff)/48*(size-1))),maxZ=Math.min(size-1,Math.ceil((z+halfZ+falloff)/48*(size-1)));
+      for(let row=minZ;row<=maxZ;row++)for(let col=minX;col<=maxX;col++){
+        const dx=Math.max(0,Math.abs(col/(size-1)*84-x)-halfX),dz=Math.max(0,Math.abs(row/(size-1)*48-z)-halfZ);
+        const t=Math.max(0,1-Math.hypot(dx,dz)/falloff),i=row*size+col;
+        contactMask[i]=Math.max(contactMask[i]!,strength*t*t*(3-2*t));
+      }
+    };
+    if(surface==='main'){
+      for(const wall of terrain.occluders)if(wall.kind==='wall'){
+        const alongZ=wall.axis==='z';
+        stamp((wall.cell.col+.5)*S.tileMeters,(wall.cell.row+.5)*S.tileMeters,alongZ?.09:.75,alongZ?.75:.09,.74,.34);
+      }
+      const mast=terrain.occluders.find(o=>o.id==='c1-mast');
+      if(mast)stamp((mast.cell.col+.5)*S.tileMeters,(mast.cell.row+.5)*S.tileMeters,.32,.32,1.15,.39);
+    }
+    for(const fixture of terrain.structures??[]){
+      const x=(fixture.cell.col+.5)*S.tileMeters,z=(fixture.cell.row+.5)*S.tileMeters;
+      if(fixture.kind==='hatch'&&surface==='main'&&fixture.id!=='c4-shaft')stamp(x,z,.61,.61,.65,.32);
+      if(fixture.kind==='stair'&&surface===((fixture.baseHeight??0)<-.2?'lower-deck':'main')){
+        const axisX=fixture.direction==='east'||fixture.direction==='west';
+        const run=fixture.runCells*S.tileMeters;
+        const sign=fixture.direction==='east'||fixture.direction==='south'?1:-1;
+        for(const side of [-.72,.72]){
+          stamp(x+(axisX?sign*(run-S.tileMeters)/2:side),z+(axisX?side:sign*(run-S.tileMeters)/2),
+            axisX?run/2:.08,axisX?.08:run/2,.56,.29);
+        }
+      }
+    }
     for(let y=0;y<size;y++)for(let x=0;x<size;x++){
       const wx=x/(size-1)*84,wz=y/(size-1)*48,lx=wx-S.origin.x,lz=wz-S.origin.z;
-      let contact=Math.exp(-Math.abs(wreckBeamAt(lx)-Math.abs(lz)-.8)*4)*.22;
-      if(surface==='main')for(const wall of walls){const dx=wx-(wall.cell.col+.5)*1.5,dz=wz-(wall.cell.row+.5)*1.5;if(Math.abs(dx)>1.5||Math.abs(dz)>1.5)continue;contact=Math.max(contact,.27*Math.exp(-(dx*dx+dz*dz)*1.8));}
-      if(['main','crow'].includes(surface))contact=Math.max(contact,.26*Math.exp(-(lx*lx+lz*lz)*1.6));
+      const inside=surface==='lower-deck'?.87:surface==='hold-air'?1.25:0;
+      const beamDistance=Math.abs(wreckBeamAt(lx)-Math.abs(lz)-inside);
+      const edge=surface==='c1-hull'?0:surface==='crow'?.33*Math.exp(-Math.abs(Math.hypot(lx,lz)-2.63)*3.8)
+        :Math.exp(-beamDistance*(inside?2.6:3.8))*(inside?.38:.24);
+      const contact=Math.max(edge,contactMask[y*size+x]!);
       const noise=Math.sin(wx*.34+Math.sin(wz*.19))*Math.cos(wz*.43-wx*.11);
       const fine=Math.sin(wx*4.7+wz*3.1)*.012;
       const shade=Math.max(.59,Math.min(1,.955-contact+noise*.025+fine));

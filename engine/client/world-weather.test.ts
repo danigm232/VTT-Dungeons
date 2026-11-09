@@ -4,6 +4,24 @@ import { Scene } from '@babylonjs/core/scene.js';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import { WorldWeather,weatherParticleBudget } from './world-weather';
 describe('shared world weather',()=>{
+  it('keeps a sheltered pool ready and resumes with the same outdoor pose for rain and snow',()=>{
+    const engine=new NullEngine(),sheltered=new Scene(engine),outside=new Scene(engine);
+    const hidden=new WorldWeather(sheltered),visible=new WorldWeather(outside);
+    for(const precipitation of ['rain','snow'] as const){
+      const env={storm:false,lightning:false,stormIntensity:0,precipitation,precipitationLevel:3 as const,windIntensity:.9};
+      hidden.update(env,Vector3.Zero(),false,45,48,undefined,true);
+      visible.update(env,Vector3.Zero(),false,45,48);
+      expect(sheltered.meshes.filter(m=>m.isVisible)).toHaveLength(0);
+      expect(sheltered.meshes.filter(m=>m.isAnInstance&&m.isEnabled())).toHaveLength(0);
+      const count=sheltered.meshes.length;
+      hidden.update(env,Vector3.Zero(),false,45,48);
+      visible.update(env,Vector3.Zero(),false,45,48);
+      expect(sheltered.meshes).toHaveLength(count);
+      const poses=(s:Scene)=>s.meshes.filter(m=>m.isVisible).map(m=>[m.position.asArray(),m.rotation.asArray(),m.scaling.asArray()]);
+      expect(poses(sheltered)).toEqual(poses(outside));
+    }
+    hidden.dispose();visible.dispose();engine.dispose();
+  });
   it('keeps rain and snow outside roofs even when the focus is indoors',()=>{
     const engine=new NullEngine(),scene=new Scene(engine),weather=new WorldWeather(scene);
     for(const precipitation of ['rain','snow'] as const){

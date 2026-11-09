@@ -29,13 +29,13 @@ import { PROTOCOL_VERSION } from '../../engine/shared/protocol';
 import type { AttackAnimationType, Cell, CombatCondition, CombatEvent, DmObject, Facing, PublicEntity, PublicProp, WorldSnapshot } from '../../engine/shared/protocol';
 import type { PublicCampaignDefinition, PublicSceneDefinition, VisualAsset } from '../../engine/shared/campaign';
 import { footprintFor } from '../../engine/shared/geometry';
-import { surfaceHeight, surfaceNeighbors, terrainTile, surfacePoint, surfaceStepPoint } from '../../engine/shared/terrain';
+import { surfaceHeight, surfaceNeighbors, terrainTile, tileHeight, surfaceStepPoint, type TerrainDefinition, type SurfaceAddress } from '../../engine/shared/terrain';
 import { DEFAULT_GRID_STYLE, gridContrastColor, gridMaterialLuminance, gridRgbLuminance, normalizeGridStyle, type GridStyle } from '../../engine/client/grid-style.js';
 import { buildTerrain3D, type Terrain3DView } from '../../engine/client/terrain3d';
 import { buildShipPropVisual, buildShipPickup, shipPropVisualKey } from '../../engine/client/ship-props3d';
 import { nestTreasureOffset } from '../../engine/client/wreck-nest';
 import { WRECK_STRUCTURE } from '../../engine/shared/wreck-structure';
-import { buildShipRowboat, rowboatHullClearance, rowboatYaw } from '../../engine/client/ship-rowboat3d';
+import { buildShipRowboat, rowboatHullClearance, rowboatWaterDraft, rowboatYaw } from '../../engine/client/ship-rowboat3d';
 import { wreckCabinAt, wreckCabins } from '../../engine/client/wreck-cabins';
 import { cameraSpaceAt, cameraSpaceBeta } from '../../engine/client/camera-space';
 import { explorationCameraSafeArea } from '../../engine/client/camera-viewport';
@@ -51,6 +51,7 @@ import {retreatViewSize,retreatPlayerCameraHalfHeight,retreatWinchContextY} from
 import { installStormwreckFacingSprites } from '../../campaigns/stormwreck-isle/public/facing-sprites';
 import {sampleStormwreckActorLight,stormwreckActorLightRegion} from '../../campaigns/stormwreck-isle/public/actor-light';
 import {createStormwreckStyleSample} from '../../campaigns/stormwreck-isle/public/style-sample';
+import {createStormwreckObjectFinish} from '../../engine/client/stormwreck-object-finish';
 
 declare const __STORMWRECK_STYLE_SAMPLE__: boolean;
 import { installPlayerLocomotion, locomotionEpoch } from '../../engine/client/player-locomotion';
@@ -246,6 +247,8 @@ export class WorldRenderer {
   private d8OverlayProjectionKey = '';
   private retreatVisuals: ReturnType<typeof createRetreatGlobalVisuals> | null = null;
   private stormwreckStyleSample: ReturnType<typeof createStormwreckStyleSample> = null;
+  private stormwreckObjectFinish: ReturnType<typeof createStormwreckObjectFinish> = null;
+  private stormwreckFinishScope: 'sample'|'zones' = 'zones';
   private campVisuals: CampVisuals | null = null;
   private actorGrounding = new Map<string, { anchorY: number; heightFraction: number; leftFraction?:number; rightFraction?:number }>();
   private campActivityVisuals: CampActivityVisuals | null = null;
@@ -298,6 +301,19 @@ export class WorldRenderer {
   }
 
   private get scene(): PublicSceneDefinition | null { return this.campaign.scenes.find(scene => scene.id === this.sceneId) ?? null; }
+
+  private renderTerrainTiles = new WeakMap<TerrainDefinition, Map<string, Map<string, NonNullable<ReturnType<typeof terrainTile>>>>>();
+  private renderTerrainTile(terrain: TerrainDefinition, {surfaceId, cell}: SurfaceAddress) {
+    // These are the campaign's authored terrain definitions. Render-time
+    // projection repeatedly addresses the same cells, especially sea spray.
+    let index = this.renderTerrainTiles.get(terrain);
+    if (!index) {
+      index = new Map(terrain.surfaces.map(surface => [surface.id,
+        new Map(surface.tiles.map(tile => [`${tile.cell.col},${tile.cell.row}`, tile]))]));
+      this.renderTerrainTiles.set(terrain, index);
+    }
+    return index.get(surfaceId)?.get(`${cell.col},${cell.row}`);
+  }
 
   private async initialize() {
     await this.app.init({ resizeTo: this.host, antialias: false, autoDensity: true, resolution: Math.min(devicePixelRatio, 2), background: '#06151c', backgroundAlpha: 0, preference: 'webgl' });
@@ -403,6 +419,11 @@ export class WorldRenderer {
   setLocalPlayer(id: string | null) { this.localId = id; }
   setWreckReflectionsEnabled(enabled:boolean){if(this.sceneId==='wreck-ship'&&this.terrainScene)this.terrainScene.metadata={...this.terrainScene.metadata,wreckReflectionsEnabled:enabled};}
   setStormwreckStyleSampleEnabled(enabled:boolean){this.stormwreckStyleSample?.setEnabled(enabled);}
+  setStormwreckObjectFinishEnabled(enabled:boolean){this.stormwreckObjectFinish?.setEnabled(enabled);}
+  setStormwreckFinishScope(scope:'sample'|'zones'){
+    this.stormwreckFinishScope=scope;this.stormwreckStyleSample?.setScope(scope);this.stormwreckObjectFinish?.setScope(scope);
+    this.wreckOcclusionSample=null;
+  }
   private wreckSightAudit(){
     const focus=this.snapshot?.entities.find(e=>e.id===(this.localId??this.selectedEntityId??this.snapshot?.camera.focusId)),scene=this.terrainScene,camera=this.terrainView?.camera;
     if(!focus||!scene||!camera)return [];
@@ -421,7 +442,12 @@ export class WorldRenderer {
       else {this.animate(Math.min(50, reviewDeltaMs));this.app.render();return;}
     }
     if (cameraOnly) return;
-    (this.d8Scene ?? this.terrainScene)?.render(); this.app.render();
+    const captureScene = this.d8Scene ?? this.terrainScene;
+    if (captureScene) {
+      const engine = captureScene.getEngine();
+      engine.beginFrame(); captureScene.render(); engine.endFrame();
+    }
+    this.app.render();
   }
   /** Isolated review benchmark. Explicit GPU completion avoids reporting
    * background-tab timer throttling as game performance. No game state moves. */
@@ -455,6 +481,7 @@ export class WorldRenderer {
       presentation: (scene as any)?.metadata?.d8Vtt?.presentationDiagnostic ?? null,
       rainAccumulation:scene?.metadata?.rainAccumulation,
       styleSample:this.stormwreckStyleSample?{...this.stormwreckStyleSample.stats}:undefined,
+      objectFinish:this.stormwreckObjectFinish?{...this.stormwreckObjectFinish.stats}:undefined,
       gpu:this.terrainEngine?.getGlInfo(),
       fog:scene?{mode:scene.fogMode,start:scene.fogStart,end:scene.fogEnd,radius:(scene.activeCamera as any)?.radius}:undefined,
       wreckSight:this.sceneId==='wreck-ship'?this.wreckSightAudit():undefined,
@@ -1071,7 +1098,9 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     this.tokenOcclusionCache.clear(); this.terrainScene?.dispose(); this.d8Scene?.dispose(); this.d8Scene = null; this.d8MapConfig = null; this.terrainProps.clear(); this.rowboatVisual = null; this.rowboatHullCells = []; this.carriedLights.clear(); this.retreatVisuals = null; this.campVisuals = null; this.terrainScene = new BabylonScene(this.terrainEngine!);
     if (!definition.camp) this.campInteractionHighlights = false;
     this.terrainScene.clearColor.set(.025, .07, .09, 1);
-    this.stormwreckStyleSample=(this.options.stormwreckVisualSample??(typeof __STORMWRECK_STYLE_SAMPLE__!=='undefined'&&__STORMWRECK_STYLE_SAMPLE__))?createStormwreckStyleSample(this.terrainScene,definition.id,undefined,()=>{this.rainAccumulation?.prepare();this.wreckEnvironment?.prepare();}):null;
+    const stormwreckFinishEnabled=this.options.stormwreckVisualSample??(typeof __STORMWRECK_STYLE_SAMPLE__!=='undefined'&&__STORMWRECK_STYLE_SAMPLE__);
+    this.stormwreckStyleSample=stormwreckFinishEnabled?createStormwreckStyleSample(this.terrainScene,definition.id,undefined,()=>{this.rainAccumulation?.prepare();this.wreckEnvironment?.prepare();},this.stormwreckFinishScope,()=>definition.id!=='dragon-rest'||this.retreatVisuals?.stats.loaded===true):null;
+    this.stormwreckObjectFinish=stormwreckFinishEnabled?createStormwreckObjectFinish(this.terrainScene,definition.id,()=>definition.id!=='dragon-rest'||this.retreatVisuals?.stats.loaded===true,this.stormwreckFinishScope):null;
     const deckTexture = definition.id === 'wreck-ship'
       ? new BabylonTexture('/art/ship/deck-planks-art06.png', this.terrainScene, false, true, BabylonTexture.TRILINEAR_SAMPLINGMODE)
       : undefined;
@@ -1340,6 +1369,7 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
       : savedZoom ?? this.cameraBaseZoom;
     this.background.texture = texture; this.backgroundGridSample = null; this.background.position.set(0, 0); this.background.width = definition.grid.width; this.background.height = definition.grid.height;
     this.stormwreckStyleSample = null;
+    this.stormwreckObjectFinish = null;
     if (definition.renderer === 'babylon-d8') {
       if (!await this.installD8Renderer(definition, connection, request)) return false;
     }
@@ -1347,7 +1377,7 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     if (connection !== this.connectionGeneration || request !== this.requestGeneration) return false;
     this.sceneBillboards?.dispose(); this.campActivityVisuals?.dispose(); this.campActivityVisuals = null;
     const billboardScene = this.d8Scene ?? this.terrainScene;
-    this.sceneBillboards = billboardScene ? new WorldBillboards(billboardScene, undefined, Boolean(definition.camp) || definition.id==='wreck-ship'||definition.id==='mirror',
+    this.sceneBillboards = billboardScene ? new WorldBillboards(billboardScene, undefined, Boolean(definition.camp) || definition.id==='wreck-ship'||definition.id==='mirror'||definition.id==='dragon-rest',
       definition.id==='mirror' ? point => (billboardScene as any).metadata?.d8Vtt?.actorLight?.(point)??{r:1,g:1,b:1}
         : ['dragon-rest','wreck-ship'].includes(definition.id) ? (point,id) => {
           const actor=this.snapshot?.entities.find(entity=>entity.id===id);
@@ -1566,8 +1596,8 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     if (this.terrainScene && this.terrainView && scene.terrain) {
       const cell = { col: Math.floor(col), row: Math.floor(row) };
       const address = { surfaceId: surfaceId ?? scene.surfaceId, cell };
-      const height = terrainTile(scene.terrain, address)
-        ? surfaceHeight(scene.terrain, address, col - cell.col, row - cell.row) : 0;
+      const tile = this.renderTerrainTile(scene.terrain, address);
+      const height = tile ? tileHeight(tile, col - cell.col, row - cell.row) : 0;
       const camera = this.terrainView.camera;
       const point = Vector3.Project(new Vector3(col * scene.terrain.tileMeters, height + .035, row * scene.terrain.tileMeters), Matrix.Identity(),
         this.terrainScene.getTransformMatrix(), camera.viewport.toGlobal(this.app.screen.width, this.app.screen.height));
@@ -1749,11 +1779,16 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     if (!this.terrainView || this.sceneId !== 'wreck-ship' || !scene?.terrain) return;
     const focusId = this.localId ?? this.snapshot?.camera.focusId;
     const focus = focusId ? this.snapshot?.entities.find(entity => entity.id === focusId) : undefined;
+    // Native sea spray is drawn on the Pixi overlay. A stroke with both
+    // endpoints beyond the same edge contributes no pixels, even with drift.
+    const width=this.app.screen.width,height=this.app.screen.height,padding=32;
     let drawn = 0;
     for (const streak of shipWindStreaks(scene.terrain, timeSeconds, focus?.surfaceId)) {
       const from = this.projectedPoint(streak.from.col, streak.from.row, 'sea');
       const to = this.projectedPoint(streak.to.col, streak.to.row, 'sea');
       if (!from || !to) continue;
+      if((from.x < -padding && to.x < -padding) || (from.x > width+padding && to.x > width+padding)
+        || (from.y < -padding && to.y < -padding) || (from.y > height+padding && to.y > height+padding))continue;
       this.wind.moveTo(from.x, from.y).lineTo(to.x, to.y); drawn++;
     }
     if (drawn) this.wind.stroke({ color: '#d9f4f4', width: 1.1, alpha: 0.11 });
@@ -1777,7 +1812,8 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
       if (light && Number.isFinite(baseIntensity)) {
         light.intensity = baseIntensity * (id === 'terrain-ambient' ? lighting.ambientScale * (hold ? 0 : room || lower ? nightAmbient : ambientScale * Math.max(.12, sunlight.ambient))
           : lighting.keyScale * keyScale * Math.max(.025, sunlight.direct));
-        light.setEnabled(light.intensity>.001);
+        const enabled = light.intensity > .001;
+        if (light.isEnabled(false) !== enabled) light.setEnabled(enabled);
       }
     }
     if (this.terrainScene) {
@@ -1809,7 +1845,8 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
       // A zero-intensity light still consumes a StandardMaterial light slot.
       // Disable it, otherwise the carried torch (created last) never reaches
       // the shader in C4–C9. Sun and water bounce are not burning ship lamps.
-      light.setEnabled(light.intensity > 0);
+      const enabled = light.intensity > 0;
+      if (light.isEnabled(false) !== enabled) light.setEnabled(enabled);
     }
     const lit = new Set<string>();
     for (const entity of this.snapshot?.entities ?? []) {
@@ -1829,7 +1866,10 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
       light.intensity = 1.55 + Math.sin(timeSeconds * 4.7 + entity.id.length) * .09;
       const sourceRoom=wreckCabinAt(entity.cell,entity.surfaceId);
       light.metadata={...light.metadata,actorLightRegion:stormwreckActorLightRegion('wreck-ship',entity)};
-      light.setEnabled(!focus || (entity.surfaceId===focus.surfaceId && sourceRoom===room));
+      // Babylon resynchronizes this light with every mesh even when its
+      // enabled flag is unchanged. Only do that when crossing a light region.
+      const enabled = !focus || (entity.surfaceId===focus.surfaceId && sourceRoom===room);
+      if (light.isEnabled(false) !== enabled) light.setEnabled(enabled);
     }
     for (const [id, light] of this.carriedLights) if (!lit.has(id)) { light.dispose(); this.carriedLights.delete(id); }
     // Three separated players can carry lights without dropping the third
@@ -2388,8 +2428,9 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
         mesh.metadata = { visualKey, surfaceId: prop.surfaceId, cell: prop.cell,
           destroyed: prop.structure === 'destroyed', floorHeight, bottom: floorHeight };
         for (const child of mesh.getChildMeshes(false)) {
-          child.isPickable = true;
-          child.metadata = { ...(child.metadata ?? {}), tokenOccluder: true, surfaceId: prop.surfaceId };
+          const contact = child.metadata?.visualOnly === true;
+          child.isPickable = !contact;
+          child.metadata = { ...(child.metadata ?? {}), tokenOccluder: !contact, surfaceId: prop.surfaceId };
         }
         mesh.setEnabled(prop.structure !== 'destroyed');
         continue;
@@ -2586,10 +2627,11 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     }
     if (!terrain) return new Vector3(entity.cell.col + .5, 0, entity.cell.row + .5);
     const point = (cell: Cell, surfaceId: string) => {
-      const address = { surfaceId, cell }, height = terrainTile(terrain, address) ? surfaceHeight(terrain, address) : 0;
+      const tile = this.renderTerrainTile(terrain, { surfaceId, cell });
+      const [u, v] = tile?.anchor ?? [.5, .5];
+      const height = tile ? tileHeight(tile, u, v) : 0;
       const immersed=this.sceneId==='wreck-ship'&&surfaceId==='sea'&&entity.kind==='player'&&entity.waterMovement!=='rowboat';
-      const physical:[number,number,number]=terrainTile(terrain,address)?surfacePoint(terrain,address):[(cell.col+.5)*terrain.tileMeters,height,(cell.row+.5)*terrain.tileMeters];
-      return new Vector3(physical[0],physical[1]-(immersed?.92:0),physical[2]);
+      return new Vector3((cell.col+u)*terrain.tileMeters,height-(immersed?.92:0),(cell.row+v)*terrain.tileMeters);
     };
     const step = entity.step, progress = this.stepProgress(entity);
     if(step){const passage=passageWalkPosition(step,progress);if(passage){
@@ -2760,9 +2802,9 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     const weatherCenter=weatherCamera?.target?new Vector3(weatherCamera.target.x,0,weatherCamera.target.z):focusPoint;
     const weatherSpan=weatherCamera?.mode===Camera.ORTHOGRAPHIC_CAMERA?Math.max(24,Math.abs((weatherCamera.orthoTop??12)-(weatherCamera.orthoBottom??-12))*Math.max(1,this.host.clientWidth/this.host.clientHeight)*1.4):24;
     const shipInside=Boolean(this.sceneId==='wreck-ship'&&visualFocus&&(wreckCabinAt(visualFocus.cell,visualFocus.surfaceId)||['lower-deck','hold-air'].includes(visualFocus.surfaceId??'')));
-    const shipCovered=this.sceneId==='wreck-ship'?shipInside?()=>true:(x:number,z:number,y?:number)=>wreckWeatherCovered(x,z,visualFocus?.surfaceId,y):undefined;
+    const shipCovered=this.sceneId==='wreck-ship'&&!shipInside?(x:number,z:number,y?:number)=>wreckWeatherCovered(x,z,visualFocus?.surfaceId,y):undefined;
     if(shipCovered)weatherCenter.y=['lower-deck','hold-air'].includes(visualFocus?.surfaceId??'')?focusPoint.y:focusPoint.y>10?focusPoint.y:0;
-    this.nativeWeather?.update(this.snapshot.environment,weatherCenter,indoors,deltaMs,weatherSpan,this.campVisuals?.weatherCovered??context?.weatherCovered??shipCovered);
+    this.nativeWeather?.update(this.snapshot.environment,weatherCenter,indoors,deltaMs,weatherSpan,this.campVisuals?.weatherCovered??context?.weatherCovered??shipCovered,shipInside);
     this.rainAccumulation?.update(time,climate,precipitation==='rain'?(this.snapshot.environment.precipitationLevel??2)/3:0,this.campVisuals?.weatherCovered??context?.weatherCovered??shipCovered);
     this.drawContextInteractionCue(time);
     this.visualPreview?.update(performance.now());
@@ -2883,7 +2925,7 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
         const position = this.interpolatedWorldPosition(boat);
         const yaw = rowboatYaw(boat.facing);
         const clearance = rowboatHullClearance(position.x, position.z, yaw, this.rowboatHullCells, this.scene.terrain!.tileMeters);
-        this.rowboatVisual.position.set(position.x + clearance.x, position.y + .40 + Math.sin(time * 1.4) * .045, position.z + clearance.z);
+        this.rowboatVisual.position.set(position.x + clearance.x, position.y + rowboatWaterDraft + Math.sin(time * 1.4) * .045, position.z + clearance.z);
         this.rowboatVisual.rotation.y = yaw;
       }
     }
@@ -3381,6 +3423,7 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     this.terrainCutawayHeight=opensOverhead?cutawayHeight:Infinity;
     const room = focus ? wreckCabinAt(focus.cell, focus.surfaceId) : null;
     const cameraPosition=this.terrainView.camera.position,viewDirection=this.terrainView.camera.getForwardRay().direction;
+    const nearLiningSide=viewDirection.z<0?1:-1;
     const sampled=this.wreckOcclusionSample,now=performance.now();
     const resample=!sampled||sampled.view!==this.terrainView||sampled.room!==room||now-sampled.at>100
       ||Boolean(focusPosition&&sampled.focus&&Vector3.DistanceSquared(focusPosition,sampled.focus)>.06)
@@ -3426,11 +3469,20 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
       if(mesh.metadata?.kind==='interior-overhead')mesh.isVisible=false;
       else if(mesh.metadata?.kind==='stair-landing-preview')mesh.isVisible=!opensOverhead;
       else if(mesh.name.startsWith('wreck-interior'))mesh.isVisible=visibleFloorSurfaces.has(surface);
+      if(mesh.metadata?.kind==='interior-upper-lining'&&mesh.metadata.cutSide===nearLiningSide)mesh.isVisible=false;
+      if(mesh.metadata?.kind==='interior-cut-grain'&&mesh.metadata.cutSide!==nearLiningSide)mesh.isVisible=false;
       // Interior cutaway includes the exterior rig, not just its roof. A yard
       // 10 m above C1 could otherwise cross a cabin occupant's head in screen
       // space even though the roof and foreground wall were correctly removed.
       if(room&&(surface==='crow'||['main-mast','mast-collar','mast-knee','mast-yard','mast-ladder','rigging','boarding-rigging','torn-sail'].includes(String(mesh.metadata?.kind))))mesh.isVisible=false;
       if(coveredSurface && surface===coveredSurface)mesh.isVisible=false;
+      // Interior occupants can lie behind a stair in a cabin or below deck.
+      // Fade only tread/support/rail pieces crossing their body sight rays.
+      if(stair){
+        if(resample)this.wreckStructureOcclusion.set(mesh.uniqueId,Boolean(this.stormwreckFinishScope==='zones'&&(room||opensOverhead)&&mesh.isVisible&&focusPosition&&structureObscuresFocus(mesh as Mesh,focusPosition,viewDirection.negate())));
+        const opacity=this.wreckStructureOcclusion.get(mesh.uniqueId) ? .18 : 1;
+        mesh.visibility+=(opacity-mesh.visibility)*.28;if(Math.abs(opacity-mesh.visibility)<.005)mesh.visibility=opacity;
+      }
       // A cofa occupant can stand behind the mast in one of the eight free
       // views. Fade only rig components that actually cross the sight ray;
       // never make the hull or rowboat transparent to solve that obstruction.

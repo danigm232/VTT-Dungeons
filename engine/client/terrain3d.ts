@@ -1,7 +1,7 @@
 import { Camera } from '@babylonjs/core/Cameras/camera.js';
 import { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera.js';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color.js';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
+import { Matrix, Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight.js';
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight.js';
 import { Layer } from '@babylonjs/core/Layers/layer.js';
@@ -11,6 +11,7 @@ import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js'
 import type { BaseTexture } from '@babylonjs/core/Materials/Textures/baseTexture.js';
 import type { Texture } from '@babylonjs/core/Materials/Textures/texture.js';
 import { Mesh } from '@babylonjs/core/Meshes/mesh.js';
+import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh.js';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder.js';
 import type { LinesMesh } from '@babylonjs/core/Meshes/linesMesh.js';
 import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData.js';
@@ -37,6 +38,30 @@ export type GridSegmentProjector=(surfaceId:string,a:Vector3,b:Vector3)=>Readonl
 export type Terrain3DView = { tiles: Map<string, Mesh>; grid: LinesMesh; grids: Map<string, LinesMesh>; setGridStyle(style: GridStyle): void; setGridProjection(project:GridSegmentProjector):void; deckDetails: Mesh[]; occluders: Mesh[]; structures: Mesh[]; lights: PointLight[]; camera: ArcRotateCamera };
 const addressKey = (surfaceId: string, col: number, row: number) => `${surfaceId}:${col},${row}`;
 const shipDeckTextureRepeatMeters = 4.5;
+
+class WreckSunLight extends DirectionalLight {
+  private frame = -1;
+  private casters?: AbstractMesh[];
+  private casterCount = 0;
+  private view = Matrix.Identity();
+  private projection = Matrix.Identity();
+
+  protected override _setDefaultAutoExtendShadowProjectionMatrix(matrix: Matrix, view: Matrix, casters: AbstractMesh[]) {
+    const frame = this.getScene().getFrameId();
+    // The wreck updates caster transforms before rendering. Its sun, mirror
+    // and color passes then share those bounds and fixed near/far depths.
+    if (this.frame === frame && this.casters === casters && this.casterCount === casters.length && this.view.equals(view)) {
+      matrix.copyFrom(this.projection);
+      return;
+    }
+    super._setDefaultAutoExtendShadowProjectionMatrix(matrix, view, casters);
+    this.frame = frame;
+    this.casters = casters;
+    this.casterCount = casters.length;
+    this.view.copyFrom(view);
+    this.projection.copyFrom(matrix);
+  }
+}
 const shipWaterTextureRepeatMeters = 9;
 const shipWaterBackdropRepeatMeters = 24;
 // The painted texture's boards run vertically. Rotating UVs makes them follow
@@ -1238,7 +1263,8 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
   if (options.shipDeck) {
     ambientLight.diffuse = Color3.FromHexString('#e8e9df');
     ambientLight.groundColor = Color3.FromHexString('#40545c');
-    const keyLight = new DirectionalLight('ship-key-light', new Vector3(-0.42, -1, 0.35), scene);
+    const Sun = rebuilt ? WreckSunLight : DirectionalLight;
+    const keyLight = new Sun('ship-key-light', new Vector3(-0.42, -1, 0.35), scene);
     keyLight.diffuse = Color3.FromHexString('#eee3cb');
     keyLight.intensity = rebuilt ? .92 : 0.58;
     if (rebuilt) keyLight.position.set(30,60,-15);

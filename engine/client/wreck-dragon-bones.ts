@@ -1,13 +1,15 @@
 import { Mesh } from '@babylonjs/core/Meshes/mesh.js';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder.js';
+import { SubMesh } from '@babylonjs/core/Meshes/subMesh.js';
 import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData.js';
 import { Vector3, Quaternion } from '@babylonjs/core/Maths/math.vector.js';
 import { Color3 } from '@babylonjs/core/Maths/math.color.js';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
 import type { Scene } from '@babylonjs/core/scene.js';
 import type { TerrainDefinition } from '../shared/terrain.js';
-import { WRECK_STRUCTURE as S } from '../shared/wreck-structure.js';
+import { WRECK_STRUCTURE as S, wreckBeamAt } from '../shared/wreck-structure.js';
 import { weatheredBoneMaterial } from './wreck-bone-material.js';
+import { wreckSideBreachEnd, wreckWaterlineBeam } from './wreck-water-contact.js';
 
 /** Anatomical remains of Clyssavar, the ancient Gold Dragon (Dragón de Oro).
  * Modeled in strict accordance with the adventure lore (Capítulo 3, pp. 22–27):
@@ -439,6 +441,7 @@ export function buildDragonRemains(scene: Scene, terrain: TerrainDefinition) {
 export function buildDistantDragonBones(scene: Scene) {
   const material = weatheredBoneMaterial(scene, 'dragon-remains:distant-ivory', '#a89f88');
   const parts: Mesh[] = [];
+  const groupEnds: number[] = [];
 
   // Helper for transformed point
   const atPos = (center: Vector3, yaw: number, x: number, y: number, z: number, scale = 1.55) => {
@@ -453,13 +456,10 @@ export function buildDistantDragonBones(scene: Scene) {
 
   // 1. Lore requirement from PDF: "sostenido en los huesos antiguos que rompieron el casco"
   // Colossal dragon ribs and spine under the stern impact breach cradling the ship's bottom timbers
-  const keelCenter = new Vector3(S.origin.x - 8.5, S.seaHeight, S.origin.z - 0.5);
-  const hullSpinePts = [
-    keelCenter.add(new Vector3(-5.5, -0.6, -1.8)),
-    keelCenter.add(new Vector3(-1.0, 0.4, -0.5)),
-    keelCenter.add(new Vector3(4.5, 0.8, 1.2)),
-    keelCenter.add(new Vector3(9.0, 0.3, 2.5))
-  ];
+  // The load is carried on the starboard quarter, where the impact reef
+  // overlaps the torn planking. Keep the middle of the transom (P16) clear.
+  const hullSpinePts = [new Vector3(12.1,-4.48,28.6),new Vector3(14.3,-4.22,29.7),
+    new Vector3(17.2,-4.46,30.7),new Vector3(20.1,-5.05,30.6)];
   parts.push(MeshBuilder.CreateTube('dragon-remains:hull-cradle-spine', {
     path: hullSpinePts,
     radius: 0.42,
@@ -467,38 +467,30 @@ export function buildDistantDragonBones(scene: Scene) {
     cap: Mesh.CAP_ALL
   }, scene));
 
-  // Giant ribs curving directly up into the shattered hull
-  for (let r = 0; r < 6; r++) {
-    const t = r / 5;
-    const root = Vector3.Lerp(hullSpinePts[0]!, hullSpinePts[3]!, t);
-    for (const side of [-1, 1]) {
-      const ribPath: Vector3[] = [];
-      for (let k = 0; k < 15; k++) {
-        const u = k / 14;
-        const ribY = root.y + Math.sin(u * Math.PI) * (2.8 + (r % 2) * 0.6) - u * 0.3;
-        const ribOffset = root.add(new Vector3(
-          (u * 0.6 - 0.3) * (r % 2 ? 1 : -1),
-          ribY - root.y,
-          side * (u * 3.4 + Math.sin(u * Math.PI) * 1.1)
-        ));
-        ribPath.push(ribOffset);
-      }
-      parts.push(MeshBuilder.CreateTube(`dragon-remains:hull-cradle-rib:${r}:${side}`, {
-        path: ribPath,
-        radiusFunction: (i) => 0.32 * (1 - i / 20),
-        tessellation: 9,
-        cap: Mesh.CAP_ALL
-      }, scene));
-    }
+  for (const [r, root] of hullSpinePts.entries()) {
+    const x = wreckSideBreachEnd + (r - 1) * 1.08;
+    const z = S.origin.z + wreckWaterlineBeam(wreckBeamAt(x), 1);
+    // The exposed rib ends inside the crushed lip by less than its radius.
+    // All other contact points are submerged under the grounding quarter.
+    const tip = new Vector3(S.origin.x+x+.08,r===1?-2.98:-3.65-r*.19,z+(r===1?-.02:.02));
+    const control = new Vector3(root.x-.95,r===1?-.14:-1.47,Math.max(root.z+.52,z+.85));
+    const path = Array.from({length:19},(_,i)=>{
+      const t=i/18,u=1-t;
+      return root.scale(u*u).add(control.scale(2*t*u)).add(tip.scale(t*t));
+    });
+    parts.push(MeshBuilder.CreateTube(`dragon-remains:hull-cradle-rib:${r}`,{
+      path,radiusFunction:i=>.32*(1-.64*i/18),tessellation:10,cap:Mesh.CAP_ALL
+    },scene));
   }
 
+  groupEnds.push(parts.length);
   // 2. Lore requirement from PDF C2: "desde la que baja una maraña de jarcias y lonas andrajosas hasta las rocas y los huesos de dragón que se encuentran en el agua"
   // Foremast reef dragon bones under the bow
-  const foremastCenter = new Vector3(S.origin.x + 24.5, S.seaHeight, S.origin.z - 7.5);
+  const foremastCenter = new Vector3(75.55, S.seaHeight, 16.45);
   const foreSpine = [
-    foremastCenter.add(new Vector3(-3.2, 0.1, -1.2)),
-    foremastCenter.add(new Vector3(0, 0.6, 0)),
-    foremastCenter.add(new Vector3(3.4, 0.2, 1.4))
+    foremastCenter.add(new Vector3(-.25, -.62, -1.55)),
+    foremastCenter.add(new Vector3(.10, -.29, 0)),
+    foremastCenter.add(new Vector3(.30, -.54, .94))
   ];
   parts.push(MeshBuilder.CreateTube('dragon-remains:foremast-spine', {
     path: foreSpine,
@@ -513,9 +505,9 @@ export function buildDistantDragonBones(scene: Scene) {
       const path = Array.from({ length: 14 }, (_, k) => {
         const u = k / 13;
         return p.add(new Vector3(
-          side * (u * 1.8 + Math.sin(u * Math.PI) * 0.6),
-          0.15 + Math.sin(u * Math.PI) * (1.9 + r * 0.25) - u * 0.4,
-          (u * 0.8 - 0.4)
+          side * (u * 1.53 + Math.sin(u * Math.PI) * 0.43),
+          0.05 + Math.sin(u * Math.PI) * (1.36 + r * 0.18) - u * 0.52,
+          (u * 0.65 - 0.27)
         ));
       });
       parts.push(MeshBuilder.CreateTube(`dragon-remains:foremast-rib:${r}:${side}`, {
@@ -527,6 +519,7 @@ export function buildDistantDragonBones(scene: Scene) {
     }
   }
 
+  groupEnds.push(parts.length);
   // 3. Giant Distant Skeletal Spire Formations (North-West, North-East, South-East, Northern Barrier)
   const distantFormations = [
     { cx: -46, cz: -25, yaw: 0.35, ribCount: 6, ribSpan: 2.8 },
@@ -587,9 +580,12 @@ export function buildDistantDragonBones(scene: Scene) {
         }, scene));
       }
     }
+    groupEnds.push(parts.length);
   }
 
-  for (const p of parts) {
+  const ranges: {vertexStart:number;vertexCount:number;indexStart:number;indexCount:number}[] = [];
+  let vertexStart=0,indexStart=0,vertexCount=0,indexCount=0;
+  for (const [i,p] of parts.entries()) {
     p.material = material;
     p.receiveShadows = true;
     p.isPickable = false;
@@ -599,9 +595,19 @@ export function buildDistantDragonBones(scene: Scene) {
       (v[i * 3]! + v[i * 3 + 1]! * 0.4) * 0.8,
       (v[i * 3 + 2]! + v[i * 3 + 1]! * 0.7) * 0.8
     ]).flat());
+    vertexCount+=p.getTotalVertices();
+    indexCount+=p.getTotalIndices();
+    if(i+1===groupEnds[ranges.length]){
+      ranges.push({vertexStart,vertexCount,indexStart,indexCount});
+      vertexStart+=vertexCount;indexStart+=indexCount;vertexCount=indexCount=0;
+    }
   }
 
   const merged = Mesh.MergeMeshes(parts, true, true, undefined, false, false)!;
+  // Keep the original buffers, material and shadow bounds. Cull each
+  // formation independently so deck views don't submit distant skeletons.
+  merged.releaseSubMeshes();
+  for(const range of ranges)new SubMesh(0,range.vertexStart,range.vertexCount,range.indexStart,range.indexCount,merged);
   merged.name = 'dragon-remains:distant-skeletons';
   merged.metadata = { visualOnly: true, kind: 'distant-dragon-bones', deckSurfaceId: 'sea', outsideNavigation: true };
   merged.receiveShadows = true;

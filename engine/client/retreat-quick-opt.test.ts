@@ -7,13 +7,24 @@ import {FreeCamera} from '@babylonjs/core/Cameras/freeCamera.js';
 import {Vector3} from '@babylonjs/core/Maths/math.vector.js';
 import {StandardMaterial} from '@babylonjs/core/Materials/standardMaterial.js';
 import {PointLight} from '@babylonjs/core/Lights/pointLight.js';
-import {authoredMeshLookup,releaseReplacedRetreatBackdrops} from '../../campaigns/stormwreck-isle/public/retreat-quick-opt.js';
+import {authoredMeshLookup,indexRetreatView,releaseReplacedRetreatBackdrops} from '../../campaigns/stormwreck-isle/public/retreat-quick-opt.js';
 import {createCoastalAnimationVisibility} from './coastal-animation-visibility.js';
 import {createCoastalBackdrop} from './coastal-backdrop.js';
 const engines:NullEngine[]=[];afterEach(()=>{engines.splice(0).forEach(e=>e.dispose());vi.restoreAllMocks();});
 function scene(){const e=new NullEngine({renderWidth:1280,renderHeight:720,textureSize:512,deterministicLockstep:false,lockstepMaxSteps:4});engines.push(e);return new Scene(e);}
 function camera(s:Scene,x=0){const c=new FreeCamera('camera',new Vector3(x,10,-20),s);c.setTarget(new Vector3(x,0,0));c.minZ=.1;c.maxZ=200;return c;}
 describe('Retiro · primera pasada sin reducción visual',()=>{
+ it('selects frozen scenery for each camera without changing scene order or dropping moving and forced meshes',()=>{
+  const s=scene(),near=MeshBuilder.CreateBox('near',{},s),far=MeshBuilder.CreateBox('far',{},s),moving=MeshBuilder.CreateBox('moving',{},s);
+  far.position.x=1000;moving.position.x=1000;near.freezeWorldMatrix();far.freezeWorldMatrix();
+  const first=camera(s),second=camera(s,1000),candidates=()=>s.getActiveMeshCandidates().data;
+  indexRetreatView(s);
+  s.setTransformMatrix(first.getViewMatrix(),first.getProjectionMatrix());expect(candidates()).toEqual([near,moving]);
+  s.setTransformMatrix(second.getViewMatrix(),second.getProjectionMatrix());expect(candidates()).toEqual([far,moving]);
+  near.alwaysSelectAsActiveMesh=true;expect(candidates()).toEqual([near,far,moving]);
+  far.setEnabled(false);expect(candidates()).toEqual([near,moving]);
+  s.skipFrustumClipping=true;expect(candidates()).toEqual(s.meshes);
+ });
  it('releases disabled R3 predecessors and instances only after a complete replacement is present',()=>{
   const s=scene(),old=MeshBuilder.CreateBox('P5_Refined_Existing_Pine_1_primitive0',{},s),copy=old.createInstance('SAL2_Reused_Pine_1_primitive0'),live=MeshBuilder.CreateBox('preserved-tree',{},s),owned=[old,live];old.setEnabled(false);copy.setEnabled(false);
   expect(releaseReplacedRetreatBackdrops(s,owned).releasedMeshes).toBe(0);expect(old.isDisposed()).toBe(false);

@@ -37,7 +37,7 @@ it('usa charcos autoritativos, sin nuevas superficies ni iluminación',()=>{
     expect(water.amount.puddles).toBe(.4);expect(scene.meshes).toHaveLength(1);expect(scene.lights).toHaveLength(0);
     const plugin=mat.pluginManager?.getPlugin('RainAccumulation')!;
     expect(plugin.registerForExtraEvents).toBe(false);
-    expect(plugin.getCustomCode('fragment')?.CUSTOM_FRAGMENT_BEFORE_FOG).toContain('rainPool');
+    expect(plugin.getCustomCode('fragment')?.CUSTOM_FRAGMENT_BEFORE_FOG).toContain('if(rainPool>0.)');
     water.update(16,{...emptyClimateState(),puddleCoverage:.3},0);
     expect(water.amount.rain).toBe(0);expect(water.amount.puddles).toBe(.3);
   }finally{scene.dispose();engine.dispose();}
@@ -62,6 +62,7 @@ it('muestra la nieve acumulada en un terreno exterior que no tiene su propia cap
     surfaces.update(0,{...emptyClimateState(),snowCoverage:1,snowDepthCm:3.6},0);
     const plugin=mat.pluginManager?.getPlugin('RainAccumulation')!;
     expect(plugin.getCustomCode('fragment')?.CUSTOM_FRAGMENT_BEFORE_FOG).toContain('snowCover');
+    expect(plugin.getCustomCode('fragment')?.CUSTOM_FRAGMENT_BEFORE_FOG).not.toContain('if(rainPool>0.)');
     expect(surfaces.amount.snow).toBe(1);expect(scene.meshes).toHaveLength(1);
   }finally{scene.dispose();engine.dispose();}
 });

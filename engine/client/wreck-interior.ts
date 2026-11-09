@@ -12,6 +12,7 @@ import { buildWreckFloorClosure } from './wreck-floor-closure.js';
 import { WRECK_STRUCTURE as S, wreckBeamAt } from '../shared/wreck-structure.js';
 import { worldSurfaceUV } from './diorama-kit.js';
 import { wornTimberRelief } from './wreck-materials.js';
+import { wreckBeamGLSL } from './wreck-water-contact.js';
 
 /** Inside the same hull, not a second rectangular boat. There are deliberately
  * no new centre pillars or cargo colliders: structural knees stay outside the
@@ -26,32 +27,43 @@ export function buildWreckInterior(scene: Scene, hullTexture?: BaseTexture, terr
   const algae = new StandardMaterial('wreck-interior:algae', scene);
   algae.diffuseColor = Color3.FromHexString('#42573b'); algae.specularColor = Color3.Black();
   const at = (x: number, y: number, z: number) => new Vector3(S.origin.x+x,y,S.origin.z+z);
-  const add = (m: Mesh, surface: string, kind: string, batched=true) => {
-    m.isPickable=false;m.receiveShadows=true;m.metadata={visualOnly:true,deckSurfaceId:surface,kind};
-    if(batched){const key=`${surface}:${kind}:${m.material?.name}`;const group=groups.get(key)??[];group.push(m);groups.set(key,group);}else meshes.push(m);
+  const add = (m: Mesh, surface: string, kind: string, batched=true, cutSide=0) => {
+    m.isPickable=false;m.receiveShadows=true;m.metadata={visualOnly:true,deckSurfaceId:surface,kind,cutSide};
+    if(batched){const key=`${surface}:${kind}:${m.material?.name}:${cutSide}`;const group=groups.get(key)??[];group.push(m);groups.set(key,group);}else meshes.push(m);
     return m;
   };
-  const beam = (id:string,a:Vector3,b:Vector3,w:number,material:StandardMaterial,surface:string,kind='interior-frame') => {
+  const beam = (id:string,a:Vector3,b:Vector3,w:number,material:StandardMaterial,surface:string,kind='interior-frame',cutSide=0) => {
     const delta=b.subtract(a),m=MeshBuilder.CreateBox(`wreck-interior:${id}`,{width:w,depth:w*1.15,height:delta.length()},scene);
     m.position.copyFrom(a.add(b).scale(.5));m.rotationQuaternion=Quaternion.FromUnitVectorsToRef(Vector3.Up(),delta.normalize(),new Quaternion());
-    m.material=material;worldSurfaceUV(m,4.5);return add(m,surface,kind);
+    m.material=material;worldSurfaceUV(m,4.5);return add(m,surface,kind,true,cutSide);
   };
   for(const [surface,floor,top,inset] of [['lower-deck',-3.5,-.65,.87],['hold-air',-6.4,-4.12,1.25]] as const) {
+    const cut=floor+(surface==='lower-deck'?.57:.45);
     for(const side of [-1,1])for(let x=S.sternX;x<S.bowX;x+=1.5){
       // Close both sides all the way to the stern. The entry is in the end
       // transom; omitting both sides here left the whole room open to the sea.
       const nx=Math.min(S.bowX,x+1.5),width=Math.max(.06,wreckBeamAt(x)-inset),next=Math.max(.06,wreckBeamAt(nx)-inset);
-      const vertices=[at(x,floor,side*width),at(nx,floor,side*next),at(nx,top,side*(next+.12)),at(x,top,side*(width+.12))];
-      const m=new Mesh(`wreck-interior:lining:${surface}:${side}:${x}`,scene),d=new VertexData(),normals:number[]=[];
-      d.positions=vertices.flatMap(p=>[p.x,p.y,p.z]);d.indices=side===1?[0,1,2,0,2,3]:[0,2,1,0,3,2];
-      d.uvs=vertices.flatMap(p=>[p.x/4.5,p.y/4.5]);VertexData.ComputeNormals(d.positions,d.indices,normals);d.normals=normals;d.applyToMesh(m);
-      m.material=timber;add(m,surface,'interior-lining');
+      const board=(kind:string,vertices:Vector3[],material:StandardMaterial,cutSide=0)=>{
+        const m=new Mesh(`wreck-interior:${kind}:${surface}:${side}:${x}`,scene),d=new VertexData(),normals:number[]=[];
+        d.positions=vertices.flatMap(p=>[p.x,p.y,p.z]);d.indices=side===1?[0,1,2,0,2,3]:[0,2,1,0,3,2];
+        d.uvs=vertices.map(p=>[p.x/4.5,(kind==='interior-cut-grain'?p.z:p.y)/4.5]).flat();
+        VertexData.ComputeNormals(d.positions,d.indices,normals);d.normals=normals;d.applyToMesh(m);
+        m.material=material;add(m,surface,kind,true,cutSide);
+      };
+      const lowA=at(x,floor,side*width),lowB=at(nx,floor,side*next);
+      const cutOffset=.12*(cut-floor)/(top-floor);
+      const cutA=at(x,cut,side*(width+cutOffset)),cutB=at(nx,cut,side*(next+cutOffset));
+      board('interior-lining',[lowA,lowB,cutB,cutA],timber);
+      board('interior-upper-lining',[cutA,cutB,at(nx,top,side*(next+.12)),at(x,top,side*(width+.12))],timber,side);
+      const outward=new Vector3(0,0,side*.17);
+      board('interior-cut-grain',[cutA,cutB,cutB.add(outward),cutA.add(outward)],worn,side);
     }
     for(let x=-30;x<=27;x+=3){
       const w=wreckBeamAt(x)-inset-.14;
       for(const side of [-1,1]){
-        beam(`rib:${surface}:${x}:${side}`,at(x,floor+.08,side*w),at(x,top,side*w),.21,worn,surface);
-        beam(`knee:${surface}:${x}:${side}`,at(x,top-.9,side*w),at(x,top-.04,side*(w-.85)),.16,worn,surface);
+        beam(`rib-foot:${surface}:${x}:${side}`,at(x,floor+.02,side*w),at(x,cut,side*w),.21,worn,surface);
+        beam(`rib:${surface}:${x}:${side}`,at(x,cut,side*w),at(x,top,side*w),.21,worn,surface,'interior-upper-lining',side);
+        beam(`knee:${surface}:${x}:${side}`,at(x,top-.9,side*w),at(x,top-.04,side*(w-.85)),.16,worn,surface,'interior-upper-lining',side);
       }
       // Cutaway removes overhead beams but retains the side knees and ribs.
       beam(`ceiling:${surface}:${x}`,at(x,top,-w),at(x,top,w),.19,timber,surface,'interior-overhead');
@@ -60,7 +72,7 @@ export function buildWreckInterior(scene: Scene, hullTexture?: BaseTexture, terr
       for(let x=-27;x<=24;x+=4.5){
         const z=side*(wreckBeamAt(x)-inset-.1);
         for(let n=0;n<3;n++) {
-          const path=[at(x+n*.11,floor+.1,z),at(x+n*.11+.09,floor+.5+n*.12,z-side*.04),at(x+n*.11-.06,floor+.9+n*.08,z-side*.03)];
+          const path=[at(x+n*.11,floor+.08,z),at(x+n*.11+.09,floor+.22+n*.04,z-side*.04),at(x+n*.11-.06,cut-.04+n*.02,z-side*.03)];
           const frond=MeshBuilder.CreateTube(`wreck-interior:kelp:${surface}:${side}:${x}:${n}`,{path,radius:.03,tessellation:5},scene);
           frond.material=algae;add(frond,surface,'interior-algae');
         }
@@ -96,30 +108,42 @@ export function buildWreckInterior(scene: Scene, hullTexture?: BaseTexture, terr
   const waterVertex=`precision highp float;attribute vec3 position;uniform mat4 worldViewProjection;uniform mat4 world;varying vec3 p;
     void main(){p=(world*vec4(position,1.)).xyz;gl_Position=worldViewProjection*vec4(position,1.);}`;
   const waterFragment=`precision highp float;varying vec3 p;uniform float time;uniform float lightLevel;uniform vec4 source0;uniform vec4 source1;uniform vec4 source2;
+    ${wreckBeamGLSL}
     float pool(vec4 s){return s.w*pow(max(0.,1.-distance(p.xz,s.xy)/max(.01,s.z)),2.);}
     void main(){float a=sin(p.x*1.7+p.z*.49+sin(p.z*.83-time*.22)+time*.49);
       float b=sin(p.z*1.9-p.x*.61+sin(p.x*.67+time*.26)-time*.38);
       float glint=pow(1.-abs(a),9.)*.55+pow(1.-abs(b),11.)*.45;
-      bool deep=p.y< -5.;vec3 c=deep?vec3(.06,.30,.34):vec3(.10,.32,.33);
-      c+=glint*vec3(.34,.55,.53);
+      bool deep=p.y< -5.;
+      vec2 hull=p.xz-vec2(${S.origin.x.toFixed(2)},${S.origin.z.toFixed(2)});
+      float bank=wreckBeam(hull.x)-(deep?1.25:.87);
+      float edge=max(0.,bank-abs(hull.y));
+      float contact=1.-smoothstep(.04,.69,edge);
+      glint*=1.-contact*.73;
+      vec3 c=deep?vec3(.06,.30,.34):vec3(.10,.32,.33);
+      c=mix(c,vec3(.047,.115,.12),contact*.56);
+      float meniscus=(1.-smoothstep(.015,.092,abs(edge-.05)))*(.55+.45*sin(p.x*7.1+time*.48));
+      c+=glint*vec3(.50,.85,.83)+(deep?0.:meniscus)*vec3(.07,.12,.11);
       float lit=pool(source0)+pool(source1)+pool(source2);
       // Read as shallow standing water, not a dark varnish on dry boards.
       // Glints stay tied to daylight/carried light; night never self-lights.
       float illumination=lightLevel+lit*.85;
-      c+=glint*vec3(.16,.30,.30);
-      gl_FragColor=vec4(c*illumination,.25+glint*(.20+min(.22,lit*.22)));}`;
+      gl_FragColor=vec4(c*illumination,.25+contact*.08+glint*(.20+min(.22,lit*.22)));}`;
   const water=new ShaderMaterial('wreck-interior:shallow-water',scene,{vertexSource:waterVertex,fragmentSource:waterFragment},
     {attributes:['position'],uniforms:['world','worldViewProjection','time','lightLevel','source0','source1','source2'],needAlphaBlending:true});
   water.backFaceCulling=false;water.setFloat('lightLevel',.8);
-  const outline=[...S.stations.filter(([x])=>x>=-31&&x<=28).map(([x,w])=>at(x,S.seaHeight+.016,-w+.85)),
-    ...[...S.stations].reverse().filter(([x])=>x>=-31&&x<=28).map(([x,w])=>at(x,S.seaHeight+.016,w-.85))];
-  const m=new Mesh('wreck-interior:continuous-flood',scene),d=new VertexData(),normals:number[]=[];
-  d.positions=outline.flatMap(p=>[p.x,p.y,p.z]);d.indices=[];for(let i=1;i<outline.length-1;i++)d.indices.push(0,i,i+1);
-  VertexData.ComputeNormals(d.positions,d.indices,normals);d.normals=normals;d.applyToMesh(m);m.material=water;add(m,'lower-deck','shallow-water',false);
+  const waterSkin=(name:string,y:number,inset:number)=>{
+    const end=S.bowX-1.1,stations=[...S.stations.filter(([x])=>x<end),[end,wreckBeamAt(end)] as const];
+    const outline=[...stations.map(([x,w])=>at(x,y,-Math.max(.07,w-inset))),
+      ...stations.reverse().map(([x,w])=>at(x,y,Math.max(.07,w-inset)))];
+    const mesh=new Mesh(`wreck-interior:${name}`,scene),data=new VertexData(),indices:number[]=[];
+    for(let i=1;i<outline.length-1;i++)indices.push(0,i,i+1);
+    data.positions=outline.flatMap(p=>[p.x,p.y,p.z]);data.indices=indices;data.applyToMesh(mesh);mesh.material=water;
+    return mesh;
+  };
+  const m=waterSkin('continuous-flood',S.seaHeight+.016,.84);add(m,'lower-deck','shallow-water',false);
   // C9 is submerged, not a dry room. A restrained light-dependent caustic
   // skin follows its real floor; it never invents a second surface to walk on.
-  const holdSkin=new Mesh('wreck-interior:hold-caustics',scene),v=new VertexData();v.positions=outline.flatMap(p=>[p.x,-6.36,p.z]);v.indices=d.indices;v.normals=d.normals;v.applyToMesh(holdSkin);
-  holdSkin.material=water;add(holdSkin,'hold-air','submerged-caustics',false);
+  const holdSkin=waterSkin('hold-caustics',-6.36,1.23);add(holdSkin,'hold-air','submerged-caustics',false);
   // Tiny submerged fish are ambient life in C9, not interactable creatures.
   const fish=new StandardMaterial('wreck-interior:fish',scene);fish.diffuseColor=Color3.FromHexString('#879188');fish.specularColor=Color3.Black();
   const fishes:Mesh[]=[],bubbles:Mesh[]=[];

@@ -46,13 +46,15 @@ export function sampleStormwreckActorLight(scene: Scene, sceneId: string, point:
       sourceRegion = light.name.slice('retreat:existing-interior-fill:'.length);
     } else if (/^a1:room-\d+:(torch|candle)-light$/.test(light.name)) {
       sourceRegion = `room-${light.metadata?.roomId}`;
+    } else if (light.name.startsWith('retreat:r3-wall-lamp-') && point.z >= light.metadata?.minReceiverZ) {
+      sourceRegion = light.metadata?.actorLightRegion;
     } else if (['a1:plaza-fire-light', 'a1:statue-votive-light'].includes(light.name)) sourceRegion = 'exterior';
     // Decorative coastal rim/fake water bounce and other rooms are excluded.
     if (sourceRegion !== region || !Number.isFinite(light.range) || light.range <= 0) continue;
     const source = light.getAbsolutePosition();
     const distance = Math.hypot(source.x - point.x, source.y - point.y - 1, source.z - point.z);
     const reach = clamp(1 - distance / light.range, 0, 1);
-    const amount = Math.min(1.5, light.intensity) * reach * reach * .55;
+    const amount = Math.min(1.5, light.intensity) * reach * reach * .58;
     r += amount * light.diffuse.r; g += amount * light.diffuse.g; b += amount * light.diffuse.b;
   }
   // Preserve the palette's ratios under strong daylight; only the warm local

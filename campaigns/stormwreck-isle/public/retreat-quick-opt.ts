@@ -2,6 +2,8 @@ import type {Scene} from '@babylonjs/core/scene.js';
 import type {TransformNode} from '@babylonjs/core/Meshes/transformNode.js';
 import {Mesh} from '@babylonjs/core/Meshes/mesh.js';
 import {InstancedMesh} from '@babylonjs/core/Meshes/instancedMesh.js';
+import {BoundingBox} from '@babylonjs/core/Culling/boundingBox.js';
+import {Vector3} from '@babylonjs/core/Maths/math.vector.js';
 import {naturalLandscapeReplacements,coastalLandscapeReplacements,tidalLandscapeReplacements} from './retreat-departure-landscape.js';
 
 /** Authored hierarchies finish loading before they become immutable. Actor and
@@ -9,6 +11,58 @@ import {naturalLandscapeReplacements,coastalLandscapeReplacements,tidalLandscape
 export function authoredMeshLookup(ready:()=>boolean){
  const cache=new WeakMap<TransformNode,ReturnType<TransformNode['getChildMeshes']>>();
  return (node:TransformNode)=>{if(!ready())return node.getChildMeshes(false);let children=cache.get(node);if(!children){children=node.getChildMeshes(false);cache.set(node,children);}return children;};
+}
+
+/** Reject offscreen groups before Babylon visits each individual static mesh.
+ * The main view keeps its mesh order. Picking, shadows and dynamic meshes keep
+ * their own candidate lists, including geometry outside the player's view. */
+export function indexRetreatView(scene:Scene){
+ type Sector={min:Vector3;max:Vector3;visible:boolean};
+ const original=scene.getActiveMeshCandidates;
+ const sectors=new Map<string,Sector>();
+ const owners=new WeakMap<Mesh,Sector>();
+ const sectorSize=16;
+ for(const mesh of scene.meshes){
+  if(!(mesh instanceof Mesh)||!mesh.isWorldMatrixFrozen||!mesh.getTotalVertices())continue;
+  if(mesh.hasInstances||mesh.hasThinInstances||mesh.hasLODLevels||mesh.skeleton||mesh.morphTargetManager
+    ||mesh.bakedVertexAnimationManager||mesh.infiniteDistance||mesh.billboardMode
+    ||mesh.getVertexBuffer('position')?.isUpdatable()!==false)continue;
+  const {minimumWorld:min,maximumWorld:max,centerWorld:center,extendSizeWorld:extent}=mesh.getBoundingInfo().boundingBox;
+  // Large terrain and scenery use their individual Babylon bounds.
+  if(Math.max(extent.x,extent.y,extent.z)>sectorSize/2)continue;
+  const key=[center.x,center.y,center.z].map(n=>Math.floor(n/sectorSize)).join(',');
+  let sector=sectors.get(key);
+  if(!sector){
+   sector={min:min.clone(),max:max.clone(),visible:true};
+   sectors.set(key,sector);
+  }else{
+   sector.min.minimizeInPlace(min);
+   sector.max.maximizeInPlace(max);
+  }
+  owners.set(mesh,sector);
+ }
+ const margin=new Vector3(.01,.01,.01);
+ const bounds=Array.from(sectors.values(),sector=>({sector,box:new BoundingBox(sector.min.subtract(margin),sector.max.add(margin))}));
+ const visible:typeof scene.meshes=[];
+ const result={data:visible,length:0};
+ scene.getActiveMeshCandidates=()=>{
+  const candidates=original.call(scene),planes=scene.frustumPlanes;
+  if(!planes?.length||scene.skipFrustumClipping||typeof scene.customLODSelector==='function')return candidates;
+  for(const {sector,box} of bounds)sector.visible=box.isInFrustum(planes);
+  let count=0;
+  for(let i=0;i<candidates.length;i++){
+   const mesh=candidates.data[i]!;
+   const source=mesh as Mesh,sector=owners.get(source);
+   if(!sector||!mesh.isWorldMatrixFrozen||mesh.alwaysSelectAsActiveMesh||mesh.actionManager||source.hasInstances||source.hasThinInstances){
+    visible[count++]=mesh;
+    continue;
+   }
+   if(sector.visible&&mesh.isVisible&&mesh.visibility>0&&mesh.isEnabled())visible[count++]=mesh;
+  }
+  visible.length=count;
+  result.length=count;
+  return result;
+ };
 }
 
 /** Release only explicitly approved, replaced and disabled landscape meshes.

@@ -23,6 +23,7 @@ set "DUNGEONS_OPEN_DM=1"
 "%DND_NODE%" scripts\check-port-free.mjs %DND_PORT%
 if errorlevel 3 (echo ERROR: No se pudo comprobar el puerto %DND_PORT%. & pause & exit /b 1)
 if errorlevel 2 goto :startup_failed
+if /I "%DUNGEONS_CAMPAIGN%"=="stormwreck-isle" if exist "dist\stormwreck-installed.json" if exist "dist\server\apps\server\index.js" if exist "dist\web\apps\web\dm.html" if exist "dist\web\apps\web\player.html" if exist "dist\web\apps\web\projector.html" goto :launch
 call :prepare_build
 if errorlevel 1 (pause & exit /b 1)
 call :activate_build

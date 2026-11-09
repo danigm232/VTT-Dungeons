@@ -5,8 +5,11 @@ import {VertexData} from '@babylonjs/core/Meshes/mesh.vertexData.js';
 import {StandardMaterial} from '@babylonjs/core/Materials/standardMaterial.js';
 import {Color3} from '@babylonjs/core/Maths/math.color.js';
 import {Matrix,Quaternion,Vector3} from '@babylonjs/core/Maths/math.vector.js';
+import {BoundingInfo} from '@babylonjs/core/Culling/boundingInfo.js';
+import {createCoastalAnimationVisibility,setCoastalAnimationBounds} from '../../../engine/client/coastal-animation-visibility.js';
 import {installRetreatContactSurf} from './retreat-contact-surf.js';
 import {preserveRetreatDryShore,installRetreatBoatBuoyancy} from './retreat-coastal-presentation.js';
+import {installRetreatEasternWater} from './retreat-eastern-water.js';
 
 /** Keep the native animated sea below the existing landing, independently of
  * the grid and of the distant decorative water. */
@@ -85,7 +88,24 @@ function maritimeSkirt(scene:Scene,sea:Mesh){
   mesh.updateVerticesData('position',positions);mesh.updateVerticesData('normal',normals);mesh.updateVerticesData('color',colors);
  }
  update();mesh.refreshBoundingInfo();
- return {mesh,update};
+ // The combined box fills the middle of the U, where this mesh has no faces.
+ // Bound the three strips separately, sharing corner columns at each join.
+ const turns=[0,west.length-1,west.length+south.length-1,count-1];
+ const stripBounds=turns.slice(1).map((last,i)=>{
+  const min=new Vector3(Infinity,Infinity,Infinity),max=new Vector3(-Infinity,-Infinity,-Infinity);
+  for(let row=0;row<bands.length;row++)for(let col=turns[i]!;col<=last;col++){
+   Vector3.FromArrayToRef(positions,(row*count+col)*3,point);
+   min.minimizeInPlace(point);max.maximizeInPlace(point);
+  }
+  // The skirt inherits the native waves, whose maximum is under 5.5 m.
+  // Include the -0.35 m inner seam and any old phase still in the buffer.
+  if(sea.metadata?.coastalAnimation){min.y=baseY-7;max.y=baseY+7;}
+  else{min.y-=20;max.y+=20;}
+  return new BoundingInfo(min,max);
+ });
+ setCoastalAnimationBounds(mesh,stripBounds);
+ const visible=createCoastalAnimationVisibility(scene,[mesh],false);
+ return {mesh,update,visible};
 }
 
 export function refineRetreatCoast(scene:Scene,polished=false,revisionStage=0){
@@ -118,32 +138,52 @@ export function refineRetreatCoast(scene:Scene,polished=false,revisionStage=0){
   const mat=new StandardMaterial('retreat:maritime-sky',scene);mat.disableLighting=true;mat.emissiveColor=Color3.White();mat.diffuseColor=Color3.Black();mat.backFaceCulling=false;mat.disableDepthWrite=true;sky.material=mat;
  }
  const skirt=sea?maritimeSkirt(scene,sea):null;
+ const eastern=revisionStage>=6&&sea?installRetreatEasternWater(scene,sea):null;
  const surf=polished&&sea?installRetreatContactSurf(scene,sea):null;
  const boat=revisionStage>=4&&sea?installRetreatBoatBuoyancy(scene,sea,revisionStage>=6):null;
  if(sea){sea.hasVertexAlpha=true;sea.alphaIndex=1;}
  let lastFade='';const fadePoint=new Vector3();
- function fadeDistantWater(){
+ function fadeDistantWater(showSkirt:boolean){
   const camera=scene.activeCamera;if(!camera||!sea||!sea.hasVertexAlpha)return;
-  camera.getViewMatrix(true);const eye=camera.globalPosition,direction=camera.getForwardRay().direction,source=sea.getVerticesData('position');
-  const key=[source?.[1],eye.x,eye.y,eye.z,direction.x,direction.y,direction.z].join(':');if(key===lastFade)return;lastFade=key;
-  for(const mesh of [sea,skirt?.mesh]){if(!mesh)continue;const positions=mesh.getVerticesData('position'),colors=mesh.getVerticesData('color');if(!positions||!colors)continue;const world=mesh.computeWorldMatrix(true);
+  camera.getViewMatrix();const eye=camera.globalPosition,direction=camera.getForwardRay().direction,source=sea.getVerticesData('position');
+  const key=[showSkirt,source?.[1],eye.x,eye.y,eye.z,direction.x,direction.y,direction.z].join(':');if(key===lastFade)return;lastFade=key;
+  const seaBounds=sea.getBoundingInfo().boundingBox;
+  for(const mesh of [sea,showSkirt?skirt?.mesh:undefined]){if(!mesh)continue;
+   // The native wave writer already supplies opaque alpha at these revisions.
+   if(mesh===sea&&revisionStage>=4&&sea.metadata?.coastalAnimation)continue;
+   const positions=mesh.getVerticesData('position'),colors=mesh.getVerticesData('color');if(!positions||!colors)continue;
+   let changed=false;
+   if(revisionStage>=4&&mesh===sea){
+    // The near water is always opaque here. Its wave owner normally already
+    // writes alpha 1, so avoid transforming the grid and uploading it twice.
+    for(let i=3;i<colors.length;i+=4)if(colors[i]!==1){colors[i]=1;changed=true;}
+    if(changed)mesh.updateVerticesData('color',colors);
+    continue;
+   }
+   const world=mesh.computeWorldMatrix(true);
    for(let i=0;i<positions.length;i+=3){
     Vector3.TransformCoordinatesFromFloatsToRef(positions[i]!,positions[i+1]!,positions[i+2]!,world,fadePoint);
     const local=fadePoint.x>=0&&fadePoint.x<=175&&fadePoint.z>=43&&fadePoint.z<=132;
     const depth=(fadePoint.x-eye.x)*direction.x+(fadePoint.y-eye.y)*direction.y+(fadePoint.z-eye.z)*direction.z;
-    const seaBounds=sea.getBoundingInfo().boundingBox,margin=mesh===sea?0:Math.max(seaBounds.minimumWorld.x-fadePoint.x,0,fadePoint.x-seaBounds.maximumWorld.x,seaBounds.minimumWorld.z-fadePoint.z,fadePoint.z-seaBounds.maximumWorld.z);
-    const t=revisionStage>=4&&(mesh===sea||margin<32)?0:local?0:Math.max(0,Math.min(1,(depth-260)/140));colors[i/3*4+3]=1-t*t*(3-2*t);
+    const margin=mesh===sea?0:Math.max(seaBounds.minimumWorld.x-fadePoint.x,0,fadePoint.x-seaBounds.maximumWorld.x,seaBounds.minimumWorld.z-fadePoint.z,fadePoint.z-seaBounds.maximumWorld.z);
+    const t=revisionStage>=4&&margin<32||local?0:Math.max(0,Math.min(1,(depth-260)/140));
+    const at=i/3*4+3,value=1-t*t*(3-2*t),alpha=colors instanceof Float32Array?Math.fround(value):value;
+    if(colors[at]!==alpha){colors[at]=alpha;changed=true;}
    }
-   mesh.updateVerticesData('color',colors);
+   if(changed)mesh.updateVerticesData('color',colors);
   }
  }
  const span=sea?Math.round(sea.getBoundingInfo().boundingBox.extendSizeWorld.x*2):0;
+ const skirtAnimation={visibleFrames:0,skippedFrames:0};
  return {update(_time:number){
   // The existing camp shadow owner refreshes receiveShadows on newly added
   // meshes. Distant water must stay out of both casting and receiving shadows.
   if(skirt)skirt.mesh.receiveShadows=false;
   if(sky)sky.receiveShadows=false;
-  if(sea&&revisionStage>=4)preserveRetreatDryShore(sea);else keepRetreatLandingDry(sea);skirt?.update();surf?.update(_time);boat?.update(_time);fadeDistantWater();
+  if(sea&&revisionStage>=4)preserveRetreatDryShore(sea);else keepRetreatLandingDry(sea);
+  const showSkirt=skirt?.visible()??false;
+  if(showSkirt){skirt?.update();skirtAnimation.visibleFrames++;}else if(skirt)skirtAnimation.skippedFrames++;
+  surf?.update(_time);eastern?.update();boat?.update(_time);fadeDistantWater(showSkirt);
   if(sky?.material instanceof StandardMaterial){const day=Math.max(0,Math.min(1,(scene.clearColor.r-.035)/.19));sky.material.emissiveColor.set(.10+.90*day,.17+.83*day,.28+.72*day);}
- },stats:{expandedPlayableArea:false,seaSpanMeters:span,distantSeaAddedMeshes:skirt?1:0,inlandOceanAdded:false,skyReused:Boolean(sky),skyRadiusMeters:5760,landingWaterCeilingMeters:.08,distanceFadeOnlyWater:true,polished,contactSurf:surf?.stats??null,newTextures:0,newLights:0,newReflectionPasses:0}};
+ },stats:{expandedPlayableArea:false,seaSpanMeters:span,distantSeaAddedMeshes:(skirt?1:0)+(eastern?1:0),easternSea:eastern?.stats??null,skirtAnimation,inlandOceanAdded:false,skyReused:Boolean(sky),skyRadiusMeters:5760,landingWaterCeilingMeters:.08,distanceFadeOnlyWater:true,polished,contactSurf:surf?.stats??null,newTextures:0,newLights:0,newReflectionPasses:0}};
 }

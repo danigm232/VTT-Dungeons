@@ -66,7 +66,7 @@ function paintedTexture(url: string, scene: Scene, frame?: BillboardFrame): Text
   if (url !== contactShadow) return new Texture(url, scene, false, true, Texture.TRILINEAR_SAMPLINGMODE);
   const texture = new DynamicTexture(contactShadow, { width: 64, height: 64 }, scene, false, Texture.BILINEAR_SAMPLINGMODE);
   const context = texture.getContext(), gradient = context.createRadialGradient(32, 32, 0, 32, 32, 31);
-  gradient.addColorStop(0, 'rgba(0,0,0,.55)'); gradient.addColorStop(.55, 'rgba(0,0,0,.22)'); gradient.addColorStop(1, 'rgba(0,0,0,0)');
+  gradient.addColorStop(0, 'rgba(0,0,0,.58)'); gradient.addColorStop(.28, 'rgba(0,0,0,.38)'); gradient.addColorStop(.58, 'rgba(0,0,0,.14)'); gradient.addColorStop(.82, 'rgba(0,0,0,.04)'); gradient.addColorStop(1, 'rgba(0,0,0,0)');
   context.fillStyle = gradient; context.fillRect(0, 0, 64, 64); texture.update();
   return texture;
 }

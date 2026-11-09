@@ -92,6 +92,12 @@ export function retreatRoofCutsMesh(mesh:Mesh,interior:string|null){
  * partitioned at the existing A3/A4 boundary so the other room stays enclosed.
  * Backing beyond the rooms and low wall bases remain at their authored pose. */
 export function retreatExcavationCutsMesh(mesh:AbstractMesh,interior:string|null,eye:Vector3,focus?:Vector3|null){
+ if(interior==='a2'&&!mesh.metadata?.permanentBackdrop){
+  const e=extras(mesh),role=e.role??extras(mesh.parent as AbstractMesh).role,zone=e.vttInterior??e.globalZone??mesh.metadata?.retreatZone;
+  if(zone!=='a2'||role!=='wall-upper')return false;
+  const b=mesh.getBoundingInfo().boundingBox,c=b.centerWorld,thinX=b.extendSizeWorld.x<b.extendSizeWorld.z;
+  return (thinX?Math.sign(c.x-161.25)*eye.x:Math.sign(c.z-67)*eye.z)>.12;
+ }
  if(interior!=='a3'&&interior!=='a4'||mesh.metadata?.permanentBackdrop)return false;
  const e=extras(mesh),role=e.role??extras(mesh.parent as AbstractMesh).role,zone=e.vttInterior??e.globalZone??mesh.metadata?.retreatZone;
  if(zone!==interior)return false;
@@ -141,7 +147,9 @@ export function separateRetreatCellStructure(scene:Scene,meshes:Mesh[]){
   for(const light of scene.lights)if(light.includedOnlyMeshes.includes(source)&&!light.includedOnlyMeshes.includes(proxy))light.includedOnlyMeshes.push(proxy);
   pairs.push({source,proxy,original});
  }
- function sync(){for(const {source,proxy} of pairs){proxy.isVisible=source.isVisible;proxy.visibility=source.isVisible ? .14 : 1;proxy.alphaIndex=source.isVisible ? 2 : source.alphaIndex;}}
+ // The visible furniture batch belongs to the occupied cell. Its detached
+ // stone is the entrance structure, so it must not sit in front of the room.
+ function sync(){for(const {proxy} of pairs)proxy.isVisible=false;}
  return {pairs,sync,dispose:()=>{for(const {source,proxy,original} of pairs){if(!source.isDisposed())source.subMeshes=original;if(!proxy.isDisposed())proxy.dispose(false,false);}}};
 }
 
@@ -156,8 +164,10 @@ export function retreatOcclusionOpacity(mesh:AbstractMesh){
  * roof and fixture owners update. No collision or game-state fields change. */
 export function createRetreatLocalOcclusion(scene:Scene,options:{coherentPrimitives?:boolean}={}){
  const faded=new Map<AbstractMesh,{visibility:number;isVisible:boolean;alphaIndex:number;proxy?:Mesh}>();
+ const pendingOpacity=new Map<AbstractMesh,number>();
  const proxies=new Map<AbstractMesh,{mesh:Mesh;used:number}>();
  const materialModes=new Map<Material,number|null>();
+ const fadedMaterials=new Set<Material>();
  const actorGroups=new Map<AbstractMesh,number>(),groupSetup={...scene.getAutoClearDepthStencilSetup(1)};
  // Compose the known focus actor after translucent cutaway surfaces while
  // retaining the opaque depth buffer. Walls that remain opaque still occlude.
@@ -168,23 +178,40 @@ export function createRetreatLocalOcclusion(scene:Scene,options:{coherentPrimiti
  const queryIndex=createRetreatOcclusionQueries();
  const stats={rays:0,candidates:0,faded:0,hiddenFurniture:0,instanceProxies:0,instanceProxyPool:0,peakInstanceProxies:0,acceleration:queryIndex.stats};
  function releaseProxy(mesh:Mesh){for(const light of scene.lights){const i=light.includedOnlyMeshes.indexOf(mesh);if(i>=0)light.includedOnlyMeshes.splice(i,1);}mesh.dispose(false,false);}
- function restore(){
+ function finishFrame(){
+  for(const [mesh,opacity] of pendingOpacity)if(!mesh.isDisposed()&&!faded.has(mesh))mesh.visibility=opacity;
+  pendingOpacity.clear();
+  for(const [material,mode] of materialModes){
+   if(fadedMaterials.has(material))continue;
+   if(scene.materials.includes(material))material.transparencyMode=mode;
+   materialModes.delete(material);
+  }
+ }
+ function setBaseVisibility(mesh:AbstractMesh,opacity:number){
+  if(pendingOpacity.has(mesh))pendingOpacity.set(mesh,opacity);
+  else mesh.visibility=opacity;
+ }
+ function restore(keepMaterialModes=false,stableProps?:WeakSet<AbstractMesh>){
   stats.rays=0;
   for(const [mesh,group] of actorGroups)if(!mesh.isDisposed())mesh.renderingGroupId=group;actorGroups.clear();
   for(const [mesh,state] of faded)if(!mesh.isDisposed()){
-   if(state.proxy)state.proxy.isVisible=false;else mesh.visibility=state.visibility;
+   if(state.proxy)state.proxy.isVisible=false;
+   else if(stableProps?.has(mesh))pendingOpacity.set(mesh,state.visibility);
+   else mesh.visibility=state.visibility;
    mesh.isVisible=state.isVisible;mesh.alphaIndex=state.alphaIndex;delete mesh.metadata?.retreatOcclusionOpacity;
   }
   faded.clear();
-  for(const [material,mode] of materialModes)if(scene.materials.includes(material))material.transparencyMode=mode;
-  materialModes.clear();
+  fadedMaterials.clear();
+  if(!keepMaterialModes)finishFrame();
   // A short-lived cache avoids per-frame cloning and does not accumulate one
   // proxy for every instance encountered over a long exploration session.
   const now=performance.now();for(const [owner,entry] of proxies)if(owner.isDisposed()||now-entry.used>2000){releaseProxy(entry.mesh);proxies.delete(owner);}
  }
  function attenuate(mesh:AbstractMesh,opacity=retreatOcclusionOpacity(mesh)){
-  if(!mesh.isEnabled()||!mesh.isVisible||mesh.visibility<=.3||mesh.metadata?.permanentBackdrop)return;
-  if(!faded.has(mesh))faded.set(mesh,{visibility:mesh.visibility,isVisible:mesh.isVisible,alphaIndex:mesh.alphaIndex});
+  const alreadyFaded=faded.get(mesh);
+  const visibility=alreadyFaded?mesh.visibility:pendingOpacity.get(mesh)??mesh.visibility;
+  if(!mesh.isEnabled()||!mesh.isVisible||visibility<=.3||mesh.metadata?.permanentBackdrop)return;
+  if(!alreadyFaded)faded.set(mesh,{visibility,isVisible:mesh.isVisible,alphaIndex:mesh.alphaIndex});
   // InstancedMesh.visibility delegates to the source and cannot fade one copy.
   // A temporary regular mesh shares its geometry/material and exact matrix;
   // neither the source's opacity nor any neighbouring instance is modified.
@@ -205,14 +232,16 @@ export function createRetreatLocalOcclusion(scene:Scene,options:{coherentPrimiti
   if(!faded.get(mesh)!.proxy)mesh.alphaIndex=2;
   // glTF OPAQUE explicitly ignores per-mesh visibility in Babylon. Automatic
   // mode allows this one faded piece to blend; its unfaded siblings remain
-  // opaque. Restore the exact mode before the next update/on disposal.
+  // opaque. Keep the mode while any piece still needs it; toggling it twice
+  // per frame invalidates the shader state of every mesh using the material.
   // The shared material and every texture stay in place; no clones or images.
   if(options.coherentPrimitives){
    const shown=faded.get(mesh)!.proxy??mesh,material=shown.material;
    if(material?.transparencyMode===Material.MATERIAL_OPAQUE){
-    if(!materialModes.has(material))materialModes.set(material,material.transparencyMode);
+    materialModes.set(material,material.transparencyMode);
     material.transparencyMode=null;
    }
+   if(material&&materialModes.has(material))fadedMaterials.add(material);
   }
   mesh.metadata={...mesh.metadata,retreatOcclusionOpacity:opacity};
  }
@@ -223,14 +252,16 @@ export function createRetreatLocalOcclusion(scene:Scene,options:{coherentPrimiti
   const identity=focusId??'focus',entry=targetCache.get(identity);let cached=entry?.hits??[];
   if(!entry||key!==entry.key||time<entry.time||time-entry.time>=.25){
    const hitMeshes=new Set<AbstractMesh>(),rayLayers:AbstractMesh[][]=[],right=Vector3.Cross(direction,Vector3.Up()).normalize();
+   // All twelve rays see the same mesh state. Read visibility and bounds once
+   // before tracing; attenuate only after every ray has been evaluated.
+   const visible=candidates.flatMap(mesh=>{
+    const original=faded.get(mesh);
+    if(!mesh.isEnabled()||!(original?.isVisible??mesh.isVisible)||(original?.visibility??pendingOpacity.get(mesh)??mesh.visibility)<=.3)return [];
+    return [{mesh,box:mesh.getBoundingInfo().boundingBox}];
+   });
    for(const offset of [-.22,0,.22])for(const lift of [.08,.4,height*.6,height*.92]){
     const target=point.add(new Vector3(0,lift,0)).add(right.scale(offset)),ray=new Ray(target.subtract(direction.scale(160)),direction,159.97),layers:AbstractMesh[]=[];stats.rays++;
-    for(const mesh of candidates){
-     // Another combatant may already have attenuated this piece this frame.
-     // Trace its original visibility so each cached result is independent.
-     const original=faded.get(mesh);
-     if(!mesh.isEnabled()||!(original?.isVisible??mesh.isVisible)||(original?.visibility??mesh.visibility)<=.3)continue;
-     const box=mesh.getBoundingInfo().boundingBox;
+    for(const {mesh,box} of visible){
      if(!ray.intersectsBoxMinMax(box.minimumWorld,box.maximumWorld))continue;
      if(queryIndex.intersects(ray,mesh)){hitMeshes.add(mesh);layers.push(mesh);}
     }
@@ -243,9 +274,9 @@ export function createRetreatLocalOcclusion(scene:Scene,options:{coherentPrimiti
    const primitiveGroup=(m:AbstractMesh)=>/_primitive\d+$/.test(m.name)?m.name.replace(/_primitive\d+$/,''):null;
    if(options.coherentPrimitives){
     const crossed=new Set([...hitMeshes].map(primitiveGroup).filter((key):key is string=>key!==null));
-    for(const mesh of candidates){
-     const key=primitiveGroup(mesh),original=faded.get(mesh);
-     if(key&&crossed.has(key)&&mesh.isEnabled()&&(original?.isVisible??mesh.isVisible)&&(original?.visibility??mesh.visibility)>.3)hitMeshes.add(mesh);
+    for(const {mesh} of visible){
+     const key=primitiveGroup(mesh);
+     if(key&&crossed.has(key))hitMeshes.add(mesh);
     }
    }
    // A GLB object with six material primitives must not stack six 30% layers
@@ -262,6 +293,12 @@ export function createRetreatLocalOcclusion(scene:Scene,options:{coherentPrimiti
     for(const mesh of others)opacity.set(mesh,Math.min(opacity.get(mesh)!,cap));
    }
    cached=[...opacity].map(([mesh,value])=>({mesh,opacity:value}));
+   // The perched birds are separate meshes. Follow the elder's cutaway even
+   // when no body ray strikes them, without dimming unrelated temple props.
+   const elderFade=cached.find(({mesh})=>/^CANON_Bahamut_Kind_Elder(?:_primitive\d+)?$/.test(mesh.name));
+   if(elderFade)for(const {mesh} of visible){
+    if(/^CANON_Canary_V3_[1-7]$/.test(mesh.name)&&!opacity.has(mesh))cached.push({mesh,opacity:elderFade.opacity});
+   }
    targetCache.set(identity,{key,time,hits:cached});
    if(targetCache.size>40)targetCache.delete(targetCache.keys().next().value!);
   }
@@ -273,5 +310,5 @@ export function createRetreatLocalOcclusion(scene:Scene,options:{coherentPrimiti
    if(!actorGroups.has(actor))actorGroups.set(actor,actor.renderingGroupId);actor.renderingGroupId=1;
   }
  }
- return {restore,update,cutaway:(mesh:AbstractMesh,opacity:number)=>{attenuate(mesh,opacity);stats.faded=faded.size;},prepare:()=>queryIndex.prepare(scene.meshes.filter(m=>m.metadata?.tokenOccluder===true&&!m.metadata?.retreatFloor&&!m.metadata?.permanentBackdrop&&!m.metadata?.retreatOcclusionSource)),invalidate:()=>{revision++;},stats,dispose:()=>{restore();queryIndex.dispose();scene.setRenderingAutoClearDepthStencil(1,groupSetup.autoClear,groupSetup.depth,groupSetup.stencil);for(const entry of proxies.values())releaseProxy(entry.mesh);proxies.clear();targetCache.clear();candidates=[];}};
+ return {restore,finishFrame,setBaseVisibility,update,cutaway:(mesh:AbstractMesh,opacity:number)=>{attenuate(mesh,opacity);stats.faded=faded.size;},prepare:()=>queryIndex.prepare(scene.meshes.filter(m=>m.metadata?.tokenOccluder===true&&!m.metadata?.retreatFloor&&!m.metadata?.permanentBackdrop&&!m.metadata?.retreatOcclusionSource)),invalidate:()=>{revision++;},stats,dispose:()=>{restore();queryIndex.dispose();scene.setRenderingAutoClearDepthStencil(1,groupSetup.autoClear,groupSetup.depth,groupSetup.stencil);for(const entry of proxies.values())releaseProxy(entry.mesh);proxies.clear();targetCache.clear();candidates=[];}};
 }

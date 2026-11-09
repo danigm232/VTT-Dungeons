@@ -6,6 +6,7 @@ import {MeshBuilder} from '@babylonjs/core/Meshes/meshBuilder.js';
 import {AbstractMesh} from '@babylonjs/core/Meshes/abstractMesh.js';
 import {Vector3,Quaternion} from '@babylonjs/core/Maths/math.vector.js';
 import {Ray} from '@babylonjs/core/Culling/ray.js';
+import {updateRetreatCellVisibility} from './retreat-cell-visibility.js';
 import {RawTexture} from '@babylonjs/core/Materials/Textures/rawTexture.js';
 import {Texture} from '@babylonjs/core/Materials/Textures/texture.js';
 import '@babylonjs/loaders/glTF/index.js';
@@ -40,7 +41,7 @@ import {preserveRetreatWeatherVisibility} from './retreat-weather-visibility.js'
 import {installRetreatRefinement} from './retreat-refinement.js';
 import {retreatFinishStage,bindRetreatWinchCargo} from './retreat-zone-finishes.js';
 import {retreatExpansionModules,retreatExpandedInterior,retreatExpandedCovered} from './retreat-expansion.js';
-import {authoredMeshLookup} from './retreat-quick-opt.js';
+import {authoredMeshLookup,indexRetreatView} from './retreat-quick-opt.js';
 import {isRetreatModuleFloor,preserveOpaqueRetreatGround,clearRetreatPlazaRock} from './retreat-ground-presentation.js';
 import {retreatRevisionModules,retreatRevisionStage} from './retreat-visual-revisions.js';
 export {conformRetreatGrid} from './retreat-grid-presentation.js';
@@ -65,7 +66,15 @@ export function createRetreatGlobalVisuals(scene:Scene,options:{refinementPhase?
  const finishingStage=retreatFinishStage(options.finishStage);
  const beforeLights=new Set(scene.lights),beforeParticles=new Set(scene.particleSystems);
  const definition=campRestsPublicCampaign.scenes.find(s=>s.id==='camp-a1-rooms')!;
- const base=createA1Visuals(scene,definition,{pauseInvisibleSea:true,courtyardSpread:revisionStage>=6}),root=base.root;
+ const base=createA1Visuals(scene,definition,{
+  pauseInvisibleSea:true,courtyardSpread:revisionStage>=6,retreatTorchMounts:revisionStage>=6,cullShadowCasters:true,
+  updateFog:density=>{
+   // Assign the final mode once. Switching exponential → linear every
+   // rainy frame invalidates the scene's material defines twice.
+   if(!scene.activeCamera||!Number.isFinite(density)||density<=.0001)scene.fogMode=density===0?0:2;
+   else preserveRetreatWeatherVisibility(scene,density);
+  }
+ }),root=base.root;
  const offset=new Vector3(72,9,72),sourceMaterials=new Map(scene.materials.map(m=>[m.name,m]));
  root.position.copyFrom(offset);
  const source= root.getChildMeshes(false);
@@ -74,7 +83,7 @@ export function createRetreatGlobalVisuals(scene:Scene,options:{refinementPhase?
  for(const p of scene.particleSystems)if(!beforeParticles.has(p)&&p.emitter instanceof Vector3)p.emitter.addInPlace(offset);
  const modules:AbstractMesh[]=[],floors:AbstractMesh[]=[],roofs:TransformNode[]=[],walls:TransformNode[]=[],props:TransformNode[]=[],doors=new Map<string,TransformNode>();
  const fixtures:{node:TransformNode;owner:TransformNode}[]=[],liftCargo:TransformNode[]=[];
- const originalVisibility=new Map<Mesh,number>(),states=new Map<string,boolean>();
+ const originalVisibility=new Map<AbstractMesh,number>(),states=new Map<string,boolean>();
  const localOcclusion=createRetreatLocalOcclusion(scene,{coherentPrimitives:finishingStage>=3});
  scene.metadata={...scene.metadata,retreatOcclusion:localOcclusion.stats};
  // Preserve the authored rest transforms of the original cell walls. The camp
@@ -123,6 +132,12 @@ export function createRetreatGlobalVisuals(scene:Scene,options:{refinementPhase?
     if(!(m instanceof AbstractMesh)||!m.getTotalVertices())continue;
     m.computeWorldMatrix(true);modules.push(m);m.isPickable=true;m.receiveShadows=false;
     const name=m.name,e=extra(m),role=e.role??extra(m.parent).role;
+    // Vertical clearances measured against the actual R3 head, shoulders and palms.
+    const canary = zone === 'a5' && /^CANON_Canary_V3_([1-7])$/.exec(name);
+    if (canary) {
+     m.position.y -= [.104, .065, .065, .074, .086, .074, .086][Number(canary[1]) - 1]!;
+     m.computeWorldMatrix(true);
+    }
     const authoredRevision=e.revision??extra(m.parent).revision;
     if(authoredRevision==='V3')preserveOpaqueRetreatGround(m);
     const isFloor=isRetreatModuleFloor(zone,name,role);
@@ -147,6 +162,8 @@ export function createRetreatGlobalVisuals(scene:Scene,options:{refinementPhase?
   }
   for(const material of scene.materials)if('environmentBRDFTexture' in material){(material as any).environmentBRDFTexture=null;}
   refinement=await installRetreatRefinement(scene,options.refinementPhase,options.stoneStage,expanded,options.islandStage,options.finishStage,options.departureStage,options.polishStage,revisionStage);
+  if(disposed||scene.isDisposed)return;
+  indexRetreatView(scene);
   stats.refinement=refinement.stats;
   localOcclusion.prepare();
   localOcclusion.invalidate();
@@ -162,7 +179,12 @@ export function createRetreatGlobalVisuals(scene:Scene,options:{refinementPhase?
   const hits=scene.multiPickWithRay(ray,m=>floors.includes(m as Mesh)||source.includes(m)&&/lit-floor|static:.*(earth|plaza)/.test(m.name));
   const y=Math.max(...(hits??[]).filter(h=>h.hit&&h.pickedPoint).map(h=>h.pickedPoint!.y));const result=Number.isFinite(y)?y+.055:p.y+.055;if(heightCache.size>4096)heightCache.clear();heightCache.set(cacheKey,result);return result;
  };
- const visibility=(node:TransformNode,value:number)=>{for(const m of authoredChildren(node) as Mesh[]){if(!originalVisibility.has(m))originalVisibility.set(m,m.visibility);m.visibility=value*originalVisibility.get(m)!;}if(node instanceof AbstractMesh){const mesh=node as Mesh;if(!originalVisibility.has(mesh))originalVisibility.set(mesh,node.visibility);node.visibility=value*originalVisibility.get(mesh)!;}};
+ const stablePropOpacity=new WeakSet<AbstractMesh>();
+ const restorePropOpacity=(mesh:AbstractMesh)=>{
+  if(!originalVisibility.has(mesh))originalVisibility.set(mesh,mesh.visibility);
+  stablePropOpacity.add(mesh);
+  localOcclusion.setBaseVisibility(mesh,originalVisibility.get(mesh)!);
+ };
  const update:CampVisuals['update']=(time,phase,interactions,focus,environment,now,climate,light)=>{
   if(revisionStage>=6&&pallet){
    if(liftTween){const t=Math.max(0,Math.min(1,((now??Date.now())-liftTween.start)/8500)),ease=t*t*(3-2*t);setLift(liftTween.from+(liftTween.to-liftTween.from)*ease);if(t>=1)liftTween=null;}
@@ -172,25 +194,20 @@ export function createRetreatGlobalVisuals(scene:Scene,options:{refinementPhase?
     if(winchAxle)winchAxle.rotation.x=(liftElevation-12)*2.6;
    }
   }
-  localOcclusion.restore();
+  // The authored furniture has a fixed base opacity. Reuse the last visible
+  // fade until this frame resolves it, avoiding 1 → translucent shader churn.
+  localOcclusion.restore(true,stablePropOpacity);
   const local=focus?{col:focus.col-48,row:focus.row-48}:null;
   base.update(time,phase,interactions,local,environment,now,climate,light);
   cellStructure.sync();
   const room=local?A1_ROOMS.find(r=>r.cells.some(c=>c.col===local.col&&c.row===local.row)):undefined;
   const eyeDirection=scene.activeCamera?.getForwardRay().direction.scale(-1);
-  for(const mesh of cellWalls){
-   const match=mesh.name.match(/a1:room-(\d+):face-(\d+)/),face=Number(match?.[2]);
-   const facing=eyeDirection?(face===0?-eyeDirection.z:face===1?-eyeDirection.x:face===2?eyeDirection.x:eyeDirection.z):0;
-   // Open the camera-facing side of the occupied cavity as a complete face,
-   // so the furniture behind a high lintel stays readable as well as the actor.
-   mesh.visibility=Number(match?.[1])===room?.id&&facing>.18 ? .06 : 1;
-   mesh.alphaIndex=mesh.visibility<1 ? 2 : cellWallOrder.get(mesh)!;mesh.isVisible=true;
-  }
+  updateRetreatCellVisibility(cellWalls,room?.id,eyeDirection,cellWallOrder);
   for(const m of source)if(m.name.startsWith('a1:bedrock-partition:'))m.visibility=1;
   // Only the roof over the occupied cell lifts. The rear/side walls remain
   // until an actual body sight ray identifies the obstructing face.
   if(room)for(const m of source)if(m.name.startsWith(`a1:room-${room.id}:mountain-roof`))m.visibility=0;
-  const camera=scene.activeCamera;if(!camera)return;
+  const camera=scene.activeCamera;if(!camera){localOcclusion.finishFrame();return;}
   const p=focus?new Vector3((focus.col+.5)*1.5,0,(focus.row+.5)*1.5):null;
   const candidate=p?(expanded?retreatExpandedInterior(p.x,p.z,revisionStage):(p.x>153&&p.z<72?'a2':p.x>116&&p.x<128&&p.z<66?'a3':p.x>95&&p.x<109&&p.z<66?'a4':p.x<51&&p.z<73?'a5':null)):null;
   // A street tile can share X/Z with the edge of an entrance. Entering the
@@ -204,11 +221,13 @@ export function createRetreatGlobalVisuals(scene:Scene,options:{refinementPhase?
    for(const {node,owner} of fixtures){const show=owner.isEnabled()&&(!(owner instanceof Mesh)||owner.isVisible);node.setEnabled(show);if(node instanceof Mesh)node.isVisible=show;for(const mesh of authoredChildren(node))mesh.isVisible=show;}
   // Furniture keeps its physical collision footprint. Only the piece in front of
   // the current character fades; this affects presentation, never movement.
-  for(const node of props)visibility(node,1);
+  for(const node of props){
+   for(const mesh of authoredChildren(node))restorePropOpacity(mesh);
+   if(node instanceof AbstractMesh)restorePropOpacity(node);
+  }
   const actual=focusPoint??(p?new Vector3(p.x,active?(layout.canonElevations[active as keyof typeof layout.canonElevations]??9):9,p.z):null);
   refinement?.update(room?`room${room.id}`:active,actual,time);
   if(eyeDirection)for(const wall of walls)if(wall instanceof AbstractMesh&&retreatExcavationCutsMesh(wall,active,eyeDirection,actual))wall.isVisible=false;
-  preserveRetreatWeatherVisibility(scene,climate?.fogDensity??0);
   if(actual||!combatFocus.length)localOcclusion.update(actual,focusHeight,time,focusActorId);
   for(const actor of combatFocus)localOcclusion.update(actor.point,actor.height,time,actor.id);
   if(revisionStage>=6){
@@ -225,6 +244,10 @@ export function createRetreatGlobalVisuals(scene:Scene,options:{refinementPhase?
    const opacity=1-Math.pow(.84,1/Math.max(1,children.length));
    for(const mesh of children)localOcclusion.cutaway(mesh,opacity);
   }
+  localOcclusion.finishFrame();
+  refinement?.syncWinchHouse?.();
+  const darkness=light?1-light.ambient:environment?.timeOfDay==='night'?1:environment?.timeOfDay==='sunset'?.55:0;
+  refinement?.updateFixtures?.(time,darkness);
  };
  const weatherCovered=(x:number,z:number)=>base.weatherCovered?.(x-72,z-72)||(expanded?retreatExpandedCovered(x,z,revisionStage):([['a2',153,163,64,73],['a3',116,127,55,65],['a4',95,109,56,65]] as const).some(([,x0,x1,z0,z1])=>x>x0&&x<x1&&z>z0&&z<z1));
  return {root,ready,stats,update,supportHeight,setDoor,setLift,setMechanicalState,liftCameraFollow:(now:number)=>now<liftFollowUntil,getLiftPosition:()=>{pallet?.computeWorldMatrix(true);return pallet?.getAbsolutePosition()??null;},setFocusPoint:(point:Vector3|null,height=1.65,actorId?:string,combat:ReadonlyArray<{point:Vector3;height:number;id:string}>=[],surfaceId?:string)=>{focusPoint=point?.clone()??null;focusHeight=Number.isFinite(height)?Math.max(.3,Math.min(3,height)):1.65;focusActorId=actorId;focusSurfaceId=surfaceId;combatFocus=combat;},weatherCovered,openLibraryDoor:(open:boolean)=>setDoor('a4-library-door',open),dispose:()=>{disposed=true;localOcclusion.dispose();cellStructure.dispose();}};

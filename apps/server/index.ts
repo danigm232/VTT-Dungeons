@@ -210,13 +210,21 @@ coordinator = new PersistenceCoordinator(saveStore, campaignBundle, () => game.s
 game.persistence = coordinator;
 
 async function boot() {
+  // This is the workspace's declared project version, not an assertion that
+  // the running build has been accepted as a release.
+  let projectVersion = 'no disponible';
+  try {
+    const metadata: unknown = JSON.parse(await fs.readFile(path.join(appRoot, 'package.json'), 'utf8'));
+    const value = (metadata as { version?: unknown })?.version;
+    if (typeof value === 'string' && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(value)) projectVersion = value;
+  } catch { /* A missing or invalid manifest must not prevent the table from starting. */ }
   await coordinator.open();
   await fs.writeFile(shutdownTokenPath, shutdownToken, { encoding: 'utf8', mode: 0o600 });
   shutdownTokenReady = true;
   if (['recovery', 'incompatible'].includes(coordinator.status().mode)) console.error(`Partida pendiente de recuperación: ${coordinator.status().errorCode ?? coordinator.status().mode}`);
   game.start();
   server.listen(port, host, () => {
-  console.log('\nD&D Immersive Engine — Alpha 0.3 en desarrollo');
+  console.log(`\nD&D Immersive Engine — versión del proyecto ${projectVersion}${projectVersion.includes('-') ? ' · en desarrollo' : ''}`);
   console.log(`Campaña:   ${campaignBundle.public.title}`);
   console.log(`DM:        http://localhost:${port}/dm`);
   console.log(`Consola DM: http://localhost:${port}/dm-mobile`);

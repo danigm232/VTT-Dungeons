@@ -1,4 +1,5 @@
 import { Color3 } from '@babylonjs/core/Maths/math.color.js';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder.js';
 import { Mesh } from '@babylonjs/core/Meshes/mesh.js';
 import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData.js';
@@ -298,11 +299,33 @@ export function buildShipPropVisual(scene: Scene, prop: PublicProp, width: numbe
     });
     root.onDisposeObservable.add(()=>scene.onBeforeRenderObservable.remove(observer));
   }
-  if(typeof document!=='undefined' && prop.kind!=='door'&&!floating) {
-    let cache=materialCache.get(scene)!;
-    let shadow=cache.get('contact-ao');if(!shadow){shadow=softPoolMaterial(scene,'ship-prop:contact-ao','#11191a',.36);cache.set('contact-ao',shadow);}
-    const pool=MeshBuilder.CreateGround(`${prop.id}:contact-shadow`,{width:Math.max(.7,width*.85),height:Math.max(.7,depth*.85)},scene);
-    pool.parent=root;pool.position.y=.015;pool.material=shadow;pool.isPickable=false;
+  if(typeof document!=='undefined'&&!floating) {
+    const cache=materialCache.get(scene)!;
+    let shadow=cache.get('contact-ao');if(!shadow){shadow=softPoolMaterial(scene,'ship-prop:contact-ao','#11191a',.55);cache.set('contact-ao',shadow);}
+    const inverse=root.computeWorldMatrix(true).clone().invert();
+    const parts=root.getChildMeshes().map(mesh=>{
+      mesh.computeWorldMatrix(true);
+      return {box:mesh.getBoundingInfo().boundingBox,leg:mesh.name.includes(':leg:')};
+    });
+    const feet=parts.filter(p=>p.leg),lowest=Math.min(...parts.map(p=>p.box.minimumWorld.y));
+    const supports=feet.length?feet:parts.filter(p=>p.box.minimumWorld.y<=Math.max(.075,lowest+.025));
+    const positions:number[]=[],uvs:number[]=[],indices:number[]=[],normals:number[]=[];
+    const slope=prop.surfaceId==='hold-air'||prop.surfaceId==='sea'?0:WRECK_STRUCTURE.listSlope;
+    for(const {box} of supports){
+      const min=box.minimumWorld,max=box.maximumWorld,padding=.20,n=positions.length/3;
+      for(const [x,z] of [[min.x-padding,min.z-padding],[max.x+padding,min.z-padding],
+        [max.x+padding,max.z+padding],[min.x-padding,max.z+padding]] as const){
+        const p=Vector3.TransformCoordinates(new Vector3(x,.025+z*slope,z),inverse);
+        positions.push(p.x,p.y,p.z);
+      }
+      uvs.push(0,0,1,0,1,1,0,1);indices.push(n,n+1,n+2,n,n+2,n+3);
+    }
+    if(indices.length){
+      const pool=new Mesh(`${prop.id}:contact-shadow`,scene),data=new VertexData();
+      VertexData.ComputeNormals(positions,indices,normals);
+      Object.assign(data,{positions,uvs,indices,normals});data.applyToMesh(pool);
+      pool.parent=root;pool.material=shadow;pool.isPickable=false;pool.metadata={visualOnly:true};
+    }
   }
   return root;
 }

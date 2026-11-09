@@ -25,6 +25,14 @@ export function refineRetreatLighting(scene:Scene,expanded=true,finishStage=0,po
   // keeps their reach consistent across the PBR/Standard distance transition.
   if(polished)l.falloffType=Light.FALLOFF_STANDARD;
   l.includedOnlyMeshes=scene.meshes.filter(m=>m.metadata?.retreatZone===id||m.name.startsWith(id.toUpperCase()+'_')||m.metadata?.gltf?.extras?.globalZone===id);
+  if(round2){
+   const wick=scene.getMeshByName(id==='a3'?'Oil_Lamp_Dining_primitive1':'CANON_Glass_Study_Lamp_1_primitive2');
+   if(wick){
+    wick.computeWorldMatrix(true);
+    l.position.copyFrom(wick.getBoundingInfo().boundingBox.centerWorld);
+   }
+  }
+  if(!l.includedOnlyMeshes.length)l.setEnabled(false);
   return l;
  });
  scene.onDisposeObservable.addOnce(()=>lights.forEach(l=>l.dispose()));

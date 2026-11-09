@@ -1,5 +1,94 @@
 # Estado del proyecto
 
+## Antorchas del Retiro: llama y parpadeo — 2026-11-09
+
+Terminadas las cinco antorchas de la fachada y las seis de las celdas del Retiro, conservando el trabajo recibido de Antigravity, sus posiciones y luces. Llama con forma y degradado compartidos, movimiento reducido y luz sincronizada. Compilación instalada y mesa Stormwreck iniciada en el puerto 3000; se conserva la compilación anterior. [Comparaciones superpuestas y animación](output/retreat-torches-20261108/index.html) · [registro y límites](docs/evidence/FIRE_SMOKE_LIGHTING_IMPROVEMENT_20261108.md#5-cierre-localizado-antorchas-del-retiro--09112026).
+
+Pasan 36 pruebas dirigidas y diez comprobaciones de red en una partida aislada. La prueba amplia de embarque de Mia falla igual en la compilación anterior y la nueva; causa o expectativa pendientes de investigar. Quedan por revisar con el usuario el aspecto y, físicamente, rendimiento, móvil y proyector. La entrega no valida todas las antorchas ajenas al Retiro ni el humo y la iluminación global.
+
+## Fuego, humo e iluminación de antorchas y fuentes — 2026-11-08
+
+Mejorados los tres componentes visuales y dinámicos de combustión e iluminación:
+- **Estilo visual y animación de llamas**: espectro cromático enriquecido con núcleo incandescente; parpadeo armónico compuesto (doble onda) con sutil oscilación lateral y contracción volumétrica en antorchas del Retiro y campamentos.
+- **Humo**: partículas con rotación angular orgánica, mayor tamaño máximo y tiempo de vida alargado, dando volumen denso y ascendente a la fogata.
+- **Fuentes de luz**: parpadeo sincronizado con la llama, especular cálido controlado en paredes y rebote suave en los personajes sin alterar las luces maestras ni romper techos. 9/9 tests dirigidos PASS, typecheck 0 errores, compilación Vite y server PASS. [Detalle técnico](docs/evidence/FIRE_SMOKE_LIGHTING_IMPROVEMENT_20261108.md).
+
+## Sombras de contacto de personajes y muebles — 2026-11-08
+
+Mejoradas las sombras de contacto en todos los mapas reutilizando los sistemas existentes:
+- Activada la sombra proyectada (dynamicShadows) en el Retiro del Dragón (dragon-rest) dentro de WorldBillboards, unificando su comportamiento con Pecio, Espejo y Campamentos.
+- Refinado el gradiente procedural de contacto (ctor:contact-shadow) de 2 a 5 paradas para eliminar cortes duros bajo los pies sin coste adicional.
+- Preservadas las sombras y receptores de muebles en el acabado por zonas (stormwreck-object-finish) y utilería del pecio y campamentos.
+- Verificación analítica de día (sol dominante con silueta plana) y noche (antorchas con proyección orientada; sin artefactos en oscuridad). Pruebas dirigidas 21/21 PASS, typecheck 0 errores, compilaciones Vite y server PASS. [Detalle técnico](docs/evidence/CONTACT_SHADOWS_IMPROVEMENT_20261108.md).
+
+## Celdas A1: visibilidad y mobiliario — 2026-11-08
+
+Las piezas delanteras de la celda ocupada se ocultan y los muebles próximos a roca se separan ligeramente. Las seis habitaciones se revisaron en cenital y desde jugador; la última deja visibles sus cuatro hamacas. Entradas y salidas comprobadas, candidata compilada e instalada con la mesa cerrada; el servidor 3000 no se ha iniciado. [Registro y comparativas](docs/evidence/RETREAT_CELLS_VISIBILITY_20261108.md). Aceptación visual y pruebas físicas pendientes. La muestra marina incompleta queda limitada a revisión de desarrollo.
+
+## Detalle marino en A2 — 2026-11-08
+
+Se prepara una muestra de percebes y algas adheridos a las rocas y espuma local sobre el oleaje existente. [Evidencia y comparativas](docs/evidence/RETREAT_A2_MARINE_DETAIL_20261108.md). La espuma se actualiza pero se aprecia poco en el encuadre revisado: requiere otra iteración antes de considerarla terminada. La muestra no está instalada y la medición de FPS sigue pendiente.
+
+## Rocas marinas ante el cabrestante — 2026-11-08
+
+Retiradas tres piezas visuales de acantilado que formaban paños cortados ante A2, sustituidas por siete rocas emergentes con el basalto del Retiro. Se conservan los apoyos de la caseta y de la escalera y el descenso animado con seguimiento. Seis comparativas equivalentes y 26 pruebas dirigidas. Compilación instalada con la mesa cerrada; el servidor 3000 no se ha arrancado. Esta instalación incluye las mejoras A2, pradera y cueva anteriormente pendientes. [Registro y comparativas](docs/evidence/RETREAT_WINCH_SEA_ROCKS_20261108.md). Revisión artística y física pendientes.
+
+## Pradera y pared excavada junto a A3 — 2026-11-08
+
+La pradera de expediciones llega al paseo y una pieza de roca remata la unión abierta de la fachada con el lateral de la cueva. La antorcha conserva su posición y el paño se oculta al entrar en A3. Seis pares de cámara y comprobación interior en tres giros. La candidata conjunta `runtime/prepared-retreat-a2-meadow-cave-20261108` supera 39 pruebas, compila y conecta en mesa temporal; incluida en la instalación conjunta posterior, con revisión artística y pruebas físicas pendientes. [Detalle y comparativas](docs/evidence/RETREAT_EXPEDITION_CAVE_SEAMS_20261108.md).
+
+## Unión de caminos de la caseta A2 — 2026-11-07
+
+Se cubre el hueco entre la escalera y la pasarela, se ensancha esta a dos casillas con el mismo pavimento de la escalera y se trasladan las cuerdas interiores al perímetro. Paso y puerta comprobados en ambos sentidos, con muro y posición guardada preservados. [Evidencia y comparación](docs/evidence/RETREAT_A2_JUNCTION_20261107.md). Candidata aislada; la mesa activa no se ha reiniciado.
+
+## Caseta del cabrestante A2 — 2026-11-07
+
+Paredes de madera, dos ventanas acristaladas, reflejo estilizado y encaje del cable/soporte sobre la casa existente. El paño que mira a cámara se retira al ocupar el interior. 36 pruebas y diez pares de cámara del jugador. Candidata compilada `runtime/prepared-retreat-winch-20261107b` y comprobada en una mesa temporal; continúa separada de la mesa abierta en 3000. [Evidencia y límites](docs/evidence/RETREAT_WINCH_HOUSE_20261107.md).
+
+## Recorridos del Retiro — 2026-11-07
+
+Auditoría de 26 rutas del Retiro con lectura del PDF original, 1.596 casillas conectadas y 846 pasos de ida/vuelta en una partida temporal. Las cuatro salidas terrestres reciben continuaciones curvas con apoyo de roca. Se corrige también la unión marina oriental. Candidata compilada en `runtime/prepared-retreat-routes-20261107`, 104 pares comparativos y 75 pruebas del Retiro aprobadas. Conserva seis viajes con posición y orientación de regreso comprobadas. Sigue separada de la mesa habitual; FPS sostenidos y prueba física pendientes. [Estado, capturas y límites de validación](docs/evidence/RETREAT_ROUTES_20261107.md).
+
+## Antorchas y focos del Retiro — 2026-11-06
+
+Rehechos los soportes del pasillo y de las celdas. Las luces del pasillo siguen a sus llamas y al recorte de la fachada. Los emisores de comedor y biblioteca coinciden con sus lámparas. Candidata compilada en mesa de prueba 4683 y comprobada con los modelos reales y 35 pruebas. Revisión de imagen pendiente por la configuración del navegador local de Work. [Ficha y visor](docs/evidence/RETREAT_FIXTURES_20261106.md).
+
+## Identificación de versión al arrancar — 2026-11-06
+
+El mensaje del servidor obtiene la versión declarada en `package.json` en vez de mostrar siempre «Alpha 0.3». Para la versión actual muestra «versión del proyecto 0.3.2-dev.7 · en desarrollo». La cifra identifica el código del proyecto, no certifica que una compilación o una versión hayan sido aceptadas. Si no puede leer el manifiesto, informa «no disponible» y permite iniciar la mesa. Se compiló y se comprobó el arranque con una partida temporal. El único archivo actualizado de la compilación habitual es `dist/server/apps/server/index.js`, tras comparar que sus únicas diferencias eran este anuncio; copia anterior en `runtime/version-label-20261106/`. La mesa abierta no se reinicia: mostrará el texto nuevo la próxima vez que arranque.
+
+## Acabado de Retiro y Pecio instalado en la mesa habitual
+
+Por petición del usuario se activó en `dist` la candidata de acabado por zonas del 05/11. La mesa Stormwreck está disponible en el puerto 3000 con el guardado en estado `ready`. Se cotejaron por hash las cuatro interfaces y sus recursos directos, 23 archivos en total. `INICIAR.cmd` usa la versión instalada al elegir Stormwreck. La partida y la compilación anterior tienen copias de respaldo. [Registro de instalación](output/stormwreck-zone-finish-20261104/deployment-3000-20261105.json).
+
+## Cuarta pasada de rendimiento del Retiro y del Pecio
+
+Se reduce el trabajo del mar y la espuma fuera de vista. El visor confirma la suspensión bajo cubierta en C8 y la omisión de la espuma desde el foco de expedición del Retiro. La cubierta C1 mejora en la comparación nocturna con lluvia, con intervalos que aún superan 33,33 ms. [Detalles, pruebas y candidata aislada](docs/evidence/STORMWRECK_PERFORMANCE_PASS4_20261106.md).
+
+## Tercera pasada de rendimiento del Retiro y del Pecio
+
+La biblioteca A4 baja de 2.473 a 1.576 mallas examinadas en la vista principal. De noche con lluvia, la media de dos tandas pasa de 24,1 a 28,9 FPS. El camarote C5 pasa de 44,5 a 50,0 FPS al suspender las partículas ocultas. Persisten intervalos superiores a 33,33 ms, también durante los recorridos. [Candidata aislada y pruebas](docs/evidence/STORMWRECK_PERFORMANCE_PASS3_20261106.md).
+
+## Segunda pasada de rendimiento del Retiro y del Pecio
+
+La cubierta C1 alcanza 52,7 FPS medios y 41,3 FPS en su ventana de un segundo más lenta, con picos de intervalo entre fotogramas. El Retiro mejora en la celda A1 y en A4, con 24,6 y 27,9 FPS medios en la candidata. Sigue abierto el umbral en ambos mapas completos. [Optimización de sombras, agua y recorte, pruebas y capturas](docs/evidence/STORMWRECK_PERFORMANCE_20261106.md).
+
+El barrido posterior cubre diez focos por mapa de día y de noche con lluvia. El Pecio cumple el límite de 33,33 ms por fotograma en 4/20 tandas y el Retiro en 0/20. Prioridades observadas: C5 con lluvia, y A1/A3/A4 y exteriores del Retiro. El criterio del usuario incluye las transiciones y el acabado íntegro.
+
+## Rendimiento del Retiro y del Pecio — 2026-11-05
+
+El usuario pide más de 30 FPS sostenidos con el acabado actual. Implementadas optimizaciones de sincronización de luces, búsquedas de casillas, recorte del Retiro y dibujo de agua, reflejos y huesos. Los ensayos cortos con Intel UHD muestran caídas en A1, A4 y cubierta. El objetivo sigue abierto. [Medidas, comparativas y candidata](docs/evidence/STORMWRECK_PERFORMANCE_20261105.md).
+
+## Acabado por zonas de Retiro y Pecio — 2026-11-05
+
+Candidata jugable aislada `runtime/stormwreck-zone-finish-20261105`, accesible mediante `REVISAR-ACABADO.cmd`. Retiro A1–A5 y cinco focos de paisaje con piedra, madera, cuatro muebles del comedor, 31 jardineras, 86 copas y tres praderas refinados. Pecio C1–C9 y cofa con maderas por exposición, hierro, cabo, lino, 205 componentes biselados y recorte selectivo de escalera en C4 y C8. Texturas textiles originales compartidas y acabado preservado al reconstruir el estado de un objeto.
+
+[Galería](output/stormwreck-zone-finish-20261104/index.html) con 40 pares de cámara/resolución equivalentes y 100 comprobaciones de luz, giro y clima, más tres roles por mapa. Tres ciclos de apertura y cierre de cuatro objetos con recuentos estables. Tipos, compilaciones, 48 pruebas dirigidas y diez comprobaciones de red superadas. Movimiento con D verificado en la interfaz real de jugador. [Informe y propietarios](docs/evidence/STORMWRECK_ZONE_FINISH_20261105.md). La instalación habitual sigue separada. Revisión artística, escucha con voz, Q1 y M7 físicos pendientes. Cena de D8 conserva su prioridad posterior.
+
+## Muestra de mobiliario/plantas y extensión autorizada — 2026-11-04
+
+El usuario encarga continuar con Astra el apartado visual completo y confirma Retiro/Pecio primero; Cena queda posterior. Terminada la muestra de cuatro muebles A3, dos jardineras y piezas del timón/balista/C4. Candidata aislada `runtime/stormwreck-object-finish-20261104`, tipos/compilación, seis pruebas de objetos y diez comprobaciones de red; diez pares reales con iguales cámara/resolución y sin errores. Corregida la generación de hojas antes de finalizar la transformación GLTF. [Informe, IDs y límites](docs/evidence/STORMWRECK_OBJECT_FINISH_20261104.md). La instalación 3000 sigue en la entrega del 02/11. Continúa extensión por zonas VIS-3 y corrección VIS-4 de la escalera ante el personaje en C4. Aceptación artística/física y Q1/M5/M7 pendientes; no son una nueva revisión técnica ni otra cola global.
+
 ## Instalación habitual 3000 y comparativas por superposición — 2026-11-02
 
 Por petición explícita del usuario se instalan en `dist` las muestras Retiro/Pecio, adaptación de actores y cráneo terminado; la mesa habitual Stormwreck queda arrancada en el puerto 3000 con los guardados existentes. Preparación de cliente/tipos/servidor PASS y activación con el instalador existente; compilación anterior conservada en `runtime/previous-build-*`. El acabado queda activo por defecto en futuros arranques (`DUNGEONS_STYLE_SAMPLE=0` permite una compilación base aislada). [Registro de instalación y comprobaciones HTTP](output/stormwreck-style-sample-20261101/deployment-3000-20261102.json). La instalación solicitada no inventa aceptación artística ni física.
@@ -715,3 +804,6 @@ Antes de todo componente o asset nuevo se aplica el gate de reutilización de `R
 ### Registro de cierre técnico Alpha 0.2.1 RC1 — 2026-09-14
 
 Luna Reserve completó el encargo funcional y visual iniciado por Sol sin subagentes ni cambio automático de modelo. La prueba física está deliberadamente pendiente. La copia final RC1 y su hash están registrados arriba; las copias RC2 aceptada y DEV1 siguen disponibles.
+
+
+Antorchas del Retiro instaladas en 3000 por autorización posterior del usuario. Cuatro accesos, paquete de iluminación y guardado verificados. Véase docs/evidence/RETREAT_FIXTURES_20261106.md.

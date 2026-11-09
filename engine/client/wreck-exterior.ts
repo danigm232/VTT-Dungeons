@@ -13,6 +13,7 @@ import { buildWreckAgeDetails } from './wreck-age-details.js';
 import { worldSurfaceUV } from './diorama-kit.js';
 import { wornTimberRelief } from './wreck-materials.js';
 import { buildWreckDeckDressing } from './wreck-deck-dressing.js';
+import { wreckHullBands as bands, wreckHullFullness as fullness, wreckSideBreachEnd, wreckStrakeBeam } from './wreck-water-contact.js';
 
 export const isRebuiltWreck = (terrain: TerrainDefinition) => terrain.cols === 56 && terrain.rows === 32
   && terrain.baseSurfaceId === 'main' && terrain.surfaces.some(s => s.id === 'c1-hull');
@@ -62,24 +63,39 @@ export function buildWreckExterior(scene: Scene, terrain: TerrainDefinition,
   // Individual strakes reveal thickness and accumulate asymmetric aft damage.
   // The bilge must enclose the existing broad hold floor at -6.4 m. The old
   // narrow V section intersected that playable floor when inspected sideways.
-  const bands = [-7.1,-6.55,-5.8,-4.35,S.sternBreachTop,-1.7,-.48,0];
-  const fullness = [.19,.92,.955,.97,.99,1,1,1];
+  const tornOffset=[0,.02,.24,.04,.11,0,0,0];
+  const shellPoint=(x:number,b:number,side:number,top=false)=>{
+    const tear=side===1&&Math.abs(x-wreckSideBreachEnd)<.001;
+    const edgeX=x+(tear?tornOffset[b]!:0);
+    const crush=side===1&&x<-24&&b<5?.055*Math.sin((x-S.sternX)*2.9+b*1.7):0;
+    return at(edgeX,bands[b]!-(top?.016:0),side*wreckBeamAt(edgeX)*fullness[b]!+crush);
+  };
   for (const side of [-1,1]) for (let b=0;b<bands.length-1;b++) {
     for (let x=S.sternX;x<S.bowX;x+=1.5) {
-      const next=Math.min(S.bowX,x+1.5), low=bands[b]!, high=bands[b+1]!;
+      const next=Math.min(S.bowX,x+1.5);
       // Canonical submerged stern breach. It has staggered broken edges and
       // exposed ribs, rather than a rectangular transparent decal.
-      const breach = side === 1 && x < -28.5 && low < -3.15 && high > -6.55;
-      if (breach && (b===1 || b===2 || b===3)) continue;
-      const scar = side===1 && x<-25 ? .07*Math.sin(x*4+b*2) : 0;
-      panel(`shell:${side}:${b}:${x}`,[at(x,low,side*wreckBeamAt(x)*fullness[b]!+scar),
-        at(next,low,side*wreckBeamAt(next)*fullness[b]!),at(next,high-.016,side*wreckBeamAt(next)*fullness[b+1]!),
-        at(x,high-.016,side*wreckBeamAt(x)*fullness[b+1]!+scar)], b<3?dark:shell,'c1-hull','ship-hull');
+      if (side===1 && x<wreckSideBreachEnd && b>=1 && b<=3) continue;
+      panel(`shell:${side}:${b}:${x}`,[shellPoint(x,b,side),shellPoint(next,b,side),
+        shellPoint(next,b+1,side,true),shellPoint(x,b+1,side,true)],b<3?dark:shell,'c1-hull','ship-hull');
     }
     const strake: Vector3[] = S.stations.map(([x,w])=>at(x,bands[b+1]!-.035,side*w*fullness[b+1]!));
     for(let i=0;i<strake.length-1;i++) {
       if(side===1 && b<4 && strake[i]!.x-S.origin.x<-29)continue;
       beam(`wale:${side}:${b}:${i}`,strake[i]!,strake[i+1]!,.10,.11,b===4?edge:dark,'c1-hull','ship-wale');
+    }
+  }
+  // Expose a real section through the planking at the bone strike. Separate
+  // dark crushed grain from the lighter split fibres along the loaded edge.
+  for(let b=1;b<=3;b++){
+    const low=shellPoint(wreckSideBreachEnd,b,1),high=shellPoint(wreckSideBreachEnd,b+1,1,true);
+    const inward=new Vector3(.13,0,-.31);
+    panel(`grounding-cut:${b}`,[low,low.add(inward),high.add(inward),high],endgrain,'c1-hull','grounding-endgrain');
+    for(let i=0;i<4;i++){
+      const u=(i+.35)/4,root=Vector3.Lerp(low,high,u),spread=.09+.043*(i%3);
+      const tip=root.add(new Vector3(-.21-.12*((i+b)%3),.035-i*.025,-.02+.041*(i%2)));
+      panel(`grounding-fibre:${b}:${i}`,[root.add(new Vector3(.11,-spread,-.008)),tip,
+        root.add(new Vector3(.15,spread,.019)),root.add(new Vector3(.22,.02,-.17))],i%3===0?dark:endgrain,'c1-hull','grounding-endgrain');
     }
   }
   // Exposed curved ribs at the stern fracture give the opening real depth.
@@ -170,7 +186,8 @@ export function buildWreckExterior(scene: Scene, terrain: TerrainDefinition,
   for(const side of [-1,1])for(let x=S.sternX+1.5;x<S.bowX-.5;x+=2.8){
     const w=wreckBeamAt(x);
     for(const y of [-2.8,-2.1,-.9]) {
-      const z=side*(w+.045);
+      if(side>0&&x<wreckSideBreachEnd+.5&&y< -2.6)continue;
+      const z=side*(wreckStrakeBeam(w,y)+.018);
       const path=[at(x,y,z),at(x+.17,y-.22,z+side*.03),at(x+.04,y-.61,z+side*.06)];
       const frond=MeshBuilder.CreateTube('wreck:hull-kelp',{path,radius:.026,tessellation:5},scene);frond.material=kelp;mark(frond,'c1-hull','hull-kelp',y-.61,y);
     }
@@ -178,7 +195,8 @@ export function buildWreckExterior(scene: Scene, terrain: TerrainDefinition,
   // Small clustered growth marks the old waterline and explains decades of
   // salt exposure. It is batched by material and never obstructs a deck.
   for(let i=0;i<74;i++){
-    const x=S.sternX+1.5+(i%37)*(S.length-3)/36,side=i<37?-1:1,z=side*(wreckBeamAt(x)+.055),y=-2.55+(i%5)*.23;
+    const x=S.sternX+1.5+(i%37)*(S.length-3)/36,side=i<37?-1:1,y=-2.55+(i%5)*.23;
+    const z=side*(wreckStrakeBeam(wreckBeamAt(x),y)+.035);
     const shell=MeshBuilder.CreateIcoSphere(`wreck:barnacles:${i}`,{radius:.075+(i%3)*.015,subdivisions:1},scene);
     shell.position.copyFrom(at(x,y,z));shell.scaling.set(1,.8,.46);shell.material=endgrain;mark(shell,'c1-hull','barnacle-growth',y-.1,y+.1);
   }

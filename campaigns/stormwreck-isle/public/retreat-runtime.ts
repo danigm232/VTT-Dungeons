@@ -7,10 +7,11 @@ import { wreckRowboatCell } from './wreck-runtime.js';
 import { expandRetreatIslandWalkability } from './retreat-island-walkability.js';
 import { adaptRetreatTempleNavigation } from './retreat-temple-navigation.js';
 import {adaptRetreatCorrectionsNavigation} from './retreat-corrections-navigation.js';
+import {adaptRetreatWinchJunction} from './retreat-winch-junction-navigation.js';
 
 /** CANON is recorded in authored floors, walls, locations and official props; VTT_AMBIENCE is rendered as its own mesh batch. */
 export const retreatTerrain: TerrainDefinition = terrainSchema.parse(
-  adaptRetreatCorrectionsNavigation(adaptRetreatTempleNavigation(expandRetreatIslandWalkability(terrainSchema.parse(terrainJson))))
+  adaptRetreatWinchJunction(adaptRetreatCorrectionsNavigation(adaptRetreatTempleNavigation(expandRetreatIslandWalkability(terrainSchema.parse(terrainJson)))))
 );
 const CELL = retreatTerrain.tileMeters;
 const bySurface = new Map(retreatTerrain.surfaces.map(surface => [surface.id, surface.tiles]));

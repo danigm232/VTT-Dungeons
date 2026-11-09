@@ -14,6 +14,34 @@ import {createRetreatLocalOcclusion,separateRetreatCellStructure,keepRetreatCell
 function fixture(){const engine=new NullEngine(),scene=new Scene(engine),camera=new ArcRotateCamera('camera',Math.PI/2,Math.PI/2,100,new Vector3(110,19,60),scene);scene.activeCamera=camera;camera.getViewMatrix(true);return {scene,camera,dispose:()=>{scene.dispose();engine.dispose();}};}
 function area(mesh:any){const p=mesh.getVerticesData('position'),ix=mesh.getIndices(),world=mesh.computeWorldMatrix(true);let sum=0;for(let i=0;i<ix.length;i+=3){const v=[0,1,2].map(k=>Vector3.TransformCoordinates(Vector3.FromArray(p,ix[i+k]*3),world));sum+=Vector3.Cross(v[1]!.subtract(v[0]!),v[2]!.subtract(v[0]!)).length()/2;}return sum;}
 describe('Retreat O1 local occlusion',()=>{
+ it('opens only the camera-facing upper wall of the occupied winch house',()=>{
+  const f=fixture();try{
+   const wall=(name:string,z:number)=>{const m=MeshBuilder.CreateBox(name,{width:4.5,height:2.23,depth:.3},f.scene);m.position.set(161.25,16.65,z);m.metadata={retreatZone:'a2',gltf:{extras:{role:'wall-upper',globalZone:'a2'}}};m.computeWorldMatrix(true);return m;};
+   const front=wall('front',69.12),rear=wall('rear',64.88),eye=new Vector3(0,.3,1).normalize();
+   expect(retreatExcavationCutsMesh(front,'a2',eye)).toBe(true);
+   expect(retreatExcavationCutsMesh(rear,'a2',eye)).toBe(false);
+   expect(retreatExcavationCutsMesh(front,null,eye)).toBe(false);
+   expect(retreatExcavationCutsMesh(front,'a3',eye)).toBe(false);
+  }finally{f.dispose();}
+ });
+ it('fades the perched canaries with the elder and restores them as soon as the actor moves clear',()=>{
+  const f=fixture();try{
+   const elder=MeshBuilder.CreateBox('CANON_Bahamut_Kind_Elder_primitive0',{width:1,height:2},f.scene);
+   const canary=MeshBuilder.CreateBox('CANON_Canary_V3_1',{size:.1},f.scene);
+   const other=MeshBuilder.CreateBox('Unrelated_ornament',{size:.1},f.scene);
+   elder.position.set(110,19,65);canary.position.set(110,20.2,65);other.position.copyFrom(canary.position);
+   for(const mesh of [elder,canary,other]){mesh.metadata={tokenOccluder:true};mesh.computeWorldMatrix(true);}
+   const c=createRetreatLocalOcclusion(f.scene,{coherentPrimitives:true});
+   c.update(new Vector3(110,18,60),1.8,0,'hero');
+   expect(elder.visibility).toBeLessThan(1);
+   expect(canary.visibility).toBe(elder.visibility);
+   expect(other.visibility).toBe(1);
+   c.restore();
+   c.update(new Vector3(112,18,60),1.8,.1,'hero');
+   expect(canary.visibility).toBe(1);
+   c.dispose();
+  }finally{f.dispose();}
+ });
  it('opens the kitchen from its own centre while retaining the rear walls of both connected cavities',()=>{
   const f=fixture();try{
    const wall=(name:string,x:number,z:number)=>{const m=MeshBuilder.CreateBox(name,{width:5,height:2.5,depth:.3},f.scene);m.position.set(x,19.5,z);m.metadata={gltf:{extras:{role:'wall-upper',globalZone:'a3'}}};m.computeWorldMatrix(true);return m;};
@@ -29,7 +57,20 @@ describe('Retreat O1 local occlusion',()=>{
    expect(material.needAlphaBlendingForMesh(front)).toBe(false);
    const c=createRetreatLocalOcclusion(f.scene,{coherentPrimitives:true});c.update(new Vector3(110,18,60),1.8,0,'hero');
    expect(front.material).toBe(material);expect(other.material).toBe(material);expect(material.needAlphaBlendingForMesh(front)).toBe(true);expect(material.needAlphaBlendingForMesh(other)).toBe(false);expect(other.visibility).toBe(1);
-   c.restore();expect(material.transparencyMode).toBe(Material.MATERIAL_OPAQUE);expect(material.needAlphaBlendingForMesh(front)).toBe(false);c.dispose();
+   c.finishFrame();
+   const stableProps=new WeakSet([front]);
+   const opacity=front.visibility;
+   c.restore(true,stableProps);
+   c.setBaseVisibility(front,1);
+   expect(front.visibility).toBe(opacity);
+   expect(material.transparencyMode).toBeNull();
+   c.update(new Vector3(110,18,60),1.8,.1,'hero');c.finishFrame();
+   expect(material.needAlphaBlendingForMesh(front)).toBe(true);
+   c.restore(true,stableProps);c.setBaseVisibility(front,1);
+   c.update(new Vector3(120,18,60),1.8,.2,'hero');c.finishFrame();
+   expect(front.visibility).toBe(1);
+   expect(material.transparencyMode).toBe(Material.MATERIAL_OPAQUE);
+   expect(material.needAlphaBlendingForMesh(front)).toBe(false);c.dispose();
   }finally{f.dispose();}
  });
  it('fades the books and wood of only the intersecting GLB shelf even when a narrow book primitive misses all body rays',()=>{

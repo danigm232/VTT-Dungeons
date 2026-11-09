@@ -148,15 +148,20 @@ export function terrainTile(terrain: TerrainDefinition, address: SurfaceAddress)
 // Corner order: NW, NE, SE, SW. u/v are fractional coordinates within a logical D&D cell.
 export function surfaceHeight(terrain: TerrainDefinition, address: SurfaceAddress, u = 0.5, v = 0.5) {
   const entry = terrainTile(terrain, address);
-  if (!entry || u < 0 || u > 1 || v < 0 || v > 1) throw new Error('TERRAIN_ADDRESS');
-  const [nw, ne, se, sw] = entry.corners;
+  if (!entry) throw new Error('TERRAIN_ADDRESS');
+  return tileHeight(entry, u, v);
+}
+
+export function tileHeight(tile: TerrainTile, u = 0.5, v = 0.5) {
+  if (u < 0 || u > 1 || v < 0 || v > 1) throw new Error('TERRAIN_ADDRESS');
+  const [nw, ne, se, sw] = tile.corners;
   return nw * (1 - u) * (1 - v) + ne * u * (1 - v) + se * u * v + sw * (1 - u) * v;
 }
 
 /** Logical address -> authored physical anchor. Existing maps retain centres. */
 export function surfacePoint(terrain:TerrainDefinition,address:SurfaceAddress):[number,number,number]{
  const tile=terrainTile(terrain,address);if(!tile)throw new Error('TERRAIN_ADDRESS');const [u,v]=tile.anchor??[.5,.5];
- return [(address.cell.col+u)*terrain.tileMeters,surfaceHeight(terrain,address,u,v),(address.cell.row+v)*terrain.tileMeters];
+ return [(address.cell.col+u)*terrain.tileMeters,tileHeight(tile,u,v),(address.cell.row+v)*terrain.tileMeters];
 }
 const physicalPathCache=new WeakMap<object,Map<string,[number,number,number][]>>();
 export function surfaceStepPath(terrain:TerrainDefinition,from:SurfaceAddress,to:SurfaceAddress):[number,number,number][]{

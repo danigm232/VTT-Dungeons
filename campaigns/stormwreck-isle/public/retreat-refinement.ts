@@ -1,4 +1,6 @@
 import type {Scene} from '@babylonjs/core/scene.js';
+import {installRetreatWallTorches} from './retreat-wall-torches.js';
+import {sculptRetreatCornice} from './retreat-cornice.js';
 import {releaseReplacedRetreatBackdrops} from './retreat-quick-opt.js';
 import {SceneLoader} from '@babylonjs/core/Loading/sceneLoader.js';
 import {Mesh} from '@babylonjs/core/Meshes/mesh.js';
@@ -18,10 +20,17 @@ import {retreatExpansionPhases,retreatExpansionStone,retreatExpansionGeography} 
 import {installRetreatIsland} from './retreat-island.js';
 import {installRetreatZoneFinishes} from './retreat-zone-finishes.js';
 import {installRetreatDepartureLandscape} from './retreat-departure-landscape.js';
+import {finishRetreatTrailEnds} from './retreat-trail-ends.js';
+import {finishRetreatShoreRock} from './retreat-shore-rock.js';
 import polishManifest from './retreat-polish.json' with {type:'json'};
 import {installRetreatEnvironment} from './retreat-environment.js';
 import {installRetreatVisualRevisions} from './retreat-visual-revisions.js';
 import {correctRetreatR3Geology} from './retreat-corrections-presentation.js';
+import {installRetreatWinchHouse} from './retreat-winch-house.js';
+import {installRetreatWinchJunction} from './retreat-winch-junction.js';
+import {installRetreatExpeditionSeams} from './retreat-expedition-seams.js';
+import {installRetreatWinchSeaRocks} from './retreat-winch-sea-rocks.js';
+import {installRetreatWinchMarineDetail} from './retreat-winch-marine-detail.js';
 
 const phaseUrls={1:new URL('./art/retreat-modules/retreat_refinement_p1_runtime.glb',import.meta.url).href,2:new URL('./art/retreat-modules/retreat_refinement_p2_runtime.glb',import.meta.url).href,3:new URL('./art/retreat-modules/retreat_refinement_p3_runtime.glb',import.meta.url).href,5:new URL('./art/retreat-modules/retreat_refinement_p5_runtime.glb',import.meta.url).href,6:new URL('./art/retreat-modules/retreat_refinement_p6_runtime.glb',import.meta.url).href,7:new URL('./art/retreat-modules/retreat_refinement_p7_runtime.glb',import.meta.url).href,8:new URL('./art/retreat-modules/retreat_refinement_p8_runtime.glb',import.meta.url).href};
 const stoneUrls={2:new URL('./art/retreat-modules/retreat_stone_s2_runtime.glb',import.meta.url).href,3:new URL('./art/retreat-modules/retreat_stone_s3_runtime.glb',import.meta.url).href};
@@ -116,13 +125,35 @@ export async function installRetreatRefinement(scene:Scene,requested=manifest.av
  if(environment)meshes.push(...environment.meshes);
  const visualRevisions=expanded?await installRetreatVisualRevisions(scene,materials,revisionStage):null;
  if(visualRevisions)meshes.push(...visualRevisions.meshes);
+ const winchJunction=expanded&&phase>=8&&revisionStage>=6?installRetreatWinchJunction(scene):null;
+ if(winchJunction)meshes.push(...winchJunction.meshes);
+ const retainingStrip=meshes.find(mesh=>mesh.name==='R3_Upper_Retaining_Rock_a1_coastal-cliff-v10');
+ if(retainingStrip)meshes.push(sculptRetreatCornice(retainingStrip));
  const r3Geology=revisionStage>=6?correctRetreatR3Geology(meshes):[];
+ const winchSeaRocks=expanded&&phase>=8&&revisionStage>=6?installRetreatWinchSeaRocks(scene):null;
+ if(winchSeaRocks)meshes.push(...winchSeaRocks.meshes);
+ const expeditionSeams=expanded&&phase>=8&&revisionStage>=6?installRetreatExpeditionSeams(scene):null;
+ if(expeditionSeams)meshes.push(...expeditionSeams.meshes);
  const localShells=phase>=8?splitRetreatUpperShells(meshes):{sources:[],parts:[],records:[],additionalMeshes:0};
  const quickOptimization=phase>=8?releaseReplacedRetreatBackdrops(scene,meshes):null;
  const scenicDepth=phase>=3?installRetreatScenicDepth(scene):null;
+ const torches=revisionStage>=6?installRetreatWallTorches(scene):null;
+ if(torches)meshes.push(...torches.meshes);
+ const winchHouse=expanded&&phase>=8&&revisionStage>=6?installRetreatWinchHouse(scene):null;
+ if(winchHouse)meshes.push(...winchHouse.meshes);
  const materialController=phase>=4?upgradeRetreatMaterials(scene,stoneStage,polishStage>=1,polishStage>=3,revisionStage>=5,revisionStage>=6):null;
+ if(departures&&revisionStage>=6){
+  finishRetreatShoreRock(departures.meshes);
+  meshes.push(...finishRetreatTrailEnds(scene));
+ }
  const lighting=phase>=6?refineRetreatLighting(scene,expanded,finishing?.stats.stage??0,polishStage>=3,revisionStage>=5):null;
  const coast=phase>=7?refineRetreatCoast(scene,polishStage>=3,revisionStage):null;
+ const sea=scene.getMeshByName('a1:bay-background'),outcrops=scene.getMeshByName('retreat:a2-sea-outcrops');
+ // The separate marine sample remains in the development review until its
+ // foam is visually resolved. Do not ship that unfinished sample with the
+ // unrelated cell correction; its source and review remain available.
+ const marineDetail=(import.meta as ImportMeta & {env:{DEV:boolean}}).env.DEV&&sea instanceof Mesh&&outcrops instanceof Mesh?installRetreatWinchMarineDetail(scene,sea,outcrops):null;
+ if(marineDetail)meshes.push(...marineDetail.meshes);
  let frozen=0;
  if(phase>=8)for(const m of scene.meshes){
   if(m.infiniteDistance||!m.isEnabled()||!m.getTotalVertices()||m.metadata?.retreatDynamic||/bay|shore-wash|weather:|actor:|flame|glow|mist|smoke|ambient-life/.test(m.name))continue;
@@ -132,16 +163,21 @@ export async function installRetreatRefinement(scene:Scene,requested=manifest.av
  // Static vegetation, floors and ropes have no cutaway state. O1 restores its
  // own changes before this update; only architectural candidates need a pass.
  const cutawayMeshes=meshes.filter(m=>{const e=extras(m);return !m.isDisposed()&&Boolean(e.vttCutaway||e.vttInterior||e.globalZone&&['wall-upper','wall-shelf','fixed-door-reveal'].includes(e.role));});
+ const cellJambs=meshes.flatMap(mesh=>{const match=mesh.name.match(/^(?:P1_A1_(\d+)_Carved_Jamb_|Finish_A1_(\d+)_Rock_Shoulder_)/);return match?[{mesh,interior:`room${match[1]??match[2]}`}]:[];});
  function update(interior:string|null,point:Vector3|null,time=0){
   scenicDepth?.update(time,scene.activeCamera as any,point);
   materialController?.update();
   lighting?.update(point);
   coast?.update(time);
+  marineDetail?.update(time);
   // The existing ocean animation used to pass over the 25 cm landing and the
   // forest pad. Preserve its offshore swells while keeping the harbor below shore.
   if(phase>=2&&phase<7)keepRetreatLandingDry(scene.getMeshByName('a1:bay-background') as Mesh|null);
   const eye=scene.activeCamera?.getForwardRay().direction.scale(-1);
   for(const m of cutawayMeshes){const e=extras(m),zone=e.vttInterior;const occupied=zone===interior||zone==='upper-caves'&&(interior==='a3'||interior==='a4');m.isVisible=phase>=8?!(retreatRoofCutsMesh(m,interior)||eye&&retreatExcavationCutsMesh(m,interior,eye,point)):!(occupied&&e.vttCutaway);}
+  // The A1 entrance jambs are decorative duplicates of the carved portal;
+  // they belong to the occupied room's front, not its permanent side rock.
+  for(const {mesh,interior:zone} of cellJambs)mesh.isVisible=interior!==zone;
  }
- return {phase,stoneStage,meshes,scenicDepth,update,stats:{phase,stoneStage,polishStage,stoneMeshes,quickOptimization,geography,island:island?.stats??null,finishing:finishing?.stats??null,departures:departures?.stats??null,environment:environment?.stats??null,visualRevisions:visualRevisions?.stats??null,occlusionShells:{additionalMeshes:localShells.additionalMeshes,records:localShells.records},addedMeshes:meshes.length,scenicDepth:scenicDepth?.stats??null,materialStats:materialController?.stats??null,lighting:lighting?.stats??null,coast:coast?.stats??null,frozenMatrices:frozen}};
+ return {phase,stoneStage,meshes,scenicDepth,update,updateFixtures:torches?.update,syncWinchHouse:winchHouse?.sync,stats:{phase,stoneStage,polishStage,stoneMeshes,quickOptimization,geography,island:island?.stats??null,finishing:finishing?.stats??null,departures:departures?.stats??null,environment:environment?.stats??null,visualRevisions:visualRevisions?.stats??null,winchSeaRocks:winchSeaRocks?{installed:winchSeaRocks.installed,retired:winchSeaRocks.retired}:null,winchHouse:winchHouse?{installed:winchHouse.installed,records:winchHouse.records}:null,occlusionShells:{additionalMeshes:localShells.additionalMeshes,records:localShells.records},addedMeshes:meshes.length,scenicDepth:scenicDepth?.stats??null,materialStats:materialController?.stats??null,lighting:lighting?.stats??null,coast:coast?.stats??null,frozenMatrices:frozen}};
 }

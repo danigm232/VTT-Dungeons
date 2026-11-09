@@ -2,9 +2,6 @@
 import type {Scene} from '@babylonjs/core/scene.js';
 import type {Material} from '@babylonjs/core/Materials/material.js';
 import {importRetreatDecoration} from './retreat-decoration-loader.js';
-import {PointLight} from '@babylonjs/core/Lights/pointLight.js';
-import {Vector3} from '@babylonjs/core/Maths/math.vector.js';
-import {Color3} from '@babylonjs/core/Maths/math.color.js';
 import {levelRetreatTempleSideStairs} from './retreat-stair-presentation.js';
 export const RETREAT_VISUAL_REVISION=6;
 export const retreatRevisionStage=(requested=RETREAT_VISUAL_REVISION)=>Math.max(0,Math.min(RETREAT_VISUAL_REVISION,Math.trunc(requested)));
@@ -56,9 +53,6 @@ export async function installRetreatVisualRevisions(scene:Scene,materials:Readon
    if(/^(P5_Refined_Existing_Pine_|G2_Forest_Reused_Pine_|SAL2_Reused_Pine_|SAL2R_Grove_Pine_|V2_Garden_)/.test(mesh.name))mesh.setEnabled(false);
    // Existing upper railing would stand in the middle of the wider walk.
    if(/Rope|Post|Rail/.test(mesh.name)&&!mesh.name.startsWith('R3_')){mesh.computeWorldMatrix(true);const b=mesh.getBoundingInfo().boundingBox;if(b.minimumWorld.x>=76&&b.maximumWorld.x<=136&&b.minimumWorld.z>=66.7&&b.maximumWorld.z<=69&&b.minimumWorld.y>17.5&&b.maximumWorld.y<20){mesh.setEnabled(false);}}
-  }
-  for(const [i,x] of [82.5,94.5,105,121.5,130.2].entries()){
-   const light=new PointLight('retreat:r3-wall-lamp-'+i,new Vector3(x,65.4,20.35),scene);light.diffuse=Color3.FromHexString('#ffcb85');light.intensity=.40;light.range=7;light.specular=Color3.Black();
   }
  }
  return {meshes,stats:{stage,meshes:meshes.length}};

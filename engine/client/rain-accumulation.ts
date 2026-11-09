@@ -13,7 +13,7 @@ type Cover=(x:number,z:number,y?:number)=>boolean;
  * Pigment, ripples and grazing-angle sheen use existing lighting/shadows;
  * this layer never emits light, alters navigation, or fills sheltered rooms. */
 class RainSurfacePlugin extends MaterialPluginBase {
-  constructor(material:StandardMaterial,private amount:Amount,private shelter:string,private snowEnabled=false){super(material,'RainAccumulation',195,{},true,true);this.doNotSerialize=true;}
+  constructor(material:StandardMaterial,private amount:Amount,private shelter:string,private snowEnabled=false,private skipZeroPools=false){super(material,'RainAccumulation',195,{},true,true);this.doNotSerialize=true;}
   getUniforms(){return {ubo:[{name:'rainSurface',size:4,type:'vec4'},{name:'rainFall',size:1,type:'float'}],fragment:'#ifndef UNIFORMBUFFERS\nuniform vec4 rainSurface;\nuniform float rainFall;\n#endif'};}
   bindForSubMesh(buffer:UniformBuffer){
     // Material-wide data only. Rewriting a shared UBO for every submesh/face
@@ -22,6 +22,8 @@ class RainSurfacePlugin extends MaterialPluginBase {
     buffer.updateFloat('rainFall',this.amount.rain);
   }
   getCustomCode(type:string){if(type!=='fragment')return null;
+    const whenContributing=(test:string)=>this.skipZeroPools?`if(${test}){`:'';
+    const endContribution=this.skipZeroPools?'}':'';
     return {CUSTOM_FRAGMENT_DEFINITIONS:`
       float rainHash(vec2 p){vec3 h=fract(vec3(p.xyx)*.1031);h+=dot(h,h.yzx+33.33);return fract((h.x+h.y)*h.z);}
       float rainNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(rainHash(i),rainHash(i+vec2(1.,0.)),f.x),mix(rainHash(i+vec2(0.,1.)),rainHash(i+1.),f.x),f.y);}
@@ -38,20 +40,27 @@ class RainSurfacePlugin extends MaterialPluginBase {
       }` : ''}
       if((rainSurface.x>.001 || rainSurface.y>.001) && rainSurface.z<.999){
       float rainExposure=1.; ${this.shelter??''}
+      ${whenContributing('rainExposure>0.')}
       vec3 rainNormal=normalize(vNormalW);
       float rainTop=smoothstep(.75,.97,rainNormal.y);
+      float rainFresnel=pow(1.-max(0.,dot(rainNormal,viewDirectionW)),3.);
+      float rainLit=clamp(dot(color.rgb,vec3(.2126,.7152,.0722)),0.,1.);
+      // The pool and ripples contribute zero on sheltered or steep surfaces.
+      ${whenContributing('rainTop>0.')}
       float rainBasin=rainNoise(vPositionW.xz*.74)*.72+rainNoise(vPositionW.xz*2.35)*.28;
       float rainPool=(1.-smoothstep(rainSurface.y*.58-.045,rainSurface.y*.58+.045,rainBasin))*rainTop*rainExposure*(1.-rainSurface.z);
-      float rainFresnel=pow(1.-max(0.,dot(rainNormal,viewDirectionW)),3.);
+      ${whenContributing('rainPool>0.')}
       vec2 rainCell=floor(vPositionW.xz/1.7),rainCenter=(rainCell+vec2(rainHash(rainCell),rainHash(rainCell+37.)))*1.7;
       float rainDistance=length(vPositionW.xz-rainCenter),rainPhase=fract(rainSurface.w*.65+rainHash(rainCell+11.));
       float rainRing=(1.-smoothstep(.016,.053,abs(rainDistance-rainPhase*.75)))*(1.-rainPhase)*rainFall;
-      float rainLit=clamp(dot(color.rgb,vec3(.2126,.7152,.0722)),0.,1.);
       vec3 rainWater=color.rgb*vec3(.34,.49,.55)+vec3(.16,.30,.36)*sqrt(rainLit)*(.35+rainFresnel*.65+rainRing*.9);
       color.rgb=mix(color.rgb,rainWater,rainPool*.88);
+      ${endContribution}
+      ${endContribution}
       // Damp objects acquire restrained light-dependent varnish even where
       // sloping/vertical surfaces cannot retain a standing pool.
       color.rgb+=rainExposure*rainSurface.x*(1.-rainSurface.z)*rainFresnel*rainLit*.045;
+      ${endContribution}
       }
       #endif
     `};
@@ -72,7 +81,8 @@ export class RainAccumulation {
     for(const material of this.scene.materials)if(material instanceof StandardMaterial&&!this.applied.has(material)&&!material.disableLighting&&!/water|ocean|sea|shimmer|darkness|contact|foam|shadow|flame|glow|ember|bubble/i.test(material.name)){
       let shelter=rainShelterCode(this.scene,this.definition);
       if(this.definition.id==='wreck-ship'&&/rowboat/i.test(material.name))shelter=shelter.replace('vPositionW.y<-.20','vPositionW.y<-3.05');
-      new RainSurfacePlugin(material,this.amount,shelter,Boolean(this.definition.terrain&&!this.definition.camp&&this.definition.id!=='wreck-ship'&&!this.scene.metadata?.d8Vtt));this.applied.add(material);
+      const wreck=this.definition.id==='wreck-ship';
+      new RainSurfacePlugin(material,this.amount,shelter,Boolean(this.definition.terrain&&!this.definition.camp&&!wreck&&!this.scene.metadata?.d8Vtt),wreck);this.applied.add(material);
     }
   }
 }

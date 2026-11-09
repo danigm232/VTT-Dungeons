@@ -4,9 +4,11 @@ import {Scene} from '@babylonjs/core/scene.js';
 import {MeshBuilder} from '@babylonjs/core/Meshes/meshBuilder.js';
 import {TransformNode} from '@babylonjs/core/Meshes/transformNode.js';
 import {ArcRotateCamera} from '@babylonjs/core/Cameras/arcRotateCamera.js';
+import {Camera} from '@babylonjs/core/Cameras/camera.js';
 import {StandardMaterial} from '@babylonjs/core/Materials/standardMaterial.js';
 import {Vector3} from '@babylonjs/core/Maths/math.vector.js';
 import {refineRetreatCoast} from '../../campaigns/stormwreck-isle/public/retreat-refinement-coast';
+import {createCoastalAnimationVisibility} from './coastal-animation-visibility.js';
 
 function fixture(){
  const engine=new NullEngine(),scene=new Scene(engine);
@@ -55,6 +57,30 @@ describe('Retreat C1 maritime closure',()=>{
     // No skirt triangle is placed behind the middle of the northern edge.
     expect(vertices.every(v=>p[v*3+2]! < -86.001 && p[v*3]!>0 && p[v*3]!<175)).toBe(false);
    }
+  }finally{f.dispose();}
+ });
+ it('pauses the distant water across the inland gap and restores its live buffers on return',()=>{
+  const f=fixture();try{
+   f.camera.mode=Camera.ORTHOGRAPHIC_CAMERA;
+   f.camera.orthoLeft=f.camera.orthoBottom=-15;f.camera.orthoRight=f.camera.orthoTop=15;
+   const lookAt=(z:number)=>{
+    f.camera.setTarget(new Vector3(100,0,z));
+    f.camera.alpha=Math.PI/2;f.camera.beta=.5;f.camera.radius=50;
+   };
+   lookAt(-500);
+   const c=refineRetreatCoast(f.scene,false,4),skirt=f.scene.getMeshByName('retreat:bay-maritime-skirt')!;
+   const waterVisible=createCoastalAnimationVisibility(f.scene,[f.sea]);
+   const initial=Array.from(skirt.getVerticesData('position')!);
+   const wave=f.sea.getVerticesData('position')!;
+   for(let i=1;i<wave.length;i+=3)wave[i]=.9;
+   f.sea.updateVerticesData('position',wave);
+   expect(waterVisible()).toBe(false);c.update(1);
+   expect(c.stats.skirtAnimation.skippedFrames).toBe(1);
+   expect(Array.from(skirt.getVerticesData('position')!)).toEqual(initial);
+   lookAt(500);
+   expect(waterVisible()).toBe(true);c.update(2);
+   expect(c.stats.skirtAnimation.visibleFrames).toBe(1);
+   expect(Array.from(skirt.getVerticesData('position')!)).not.toEqual(initial);
   }finally{f.dispose();}
  });
  it('keeps the landing ceiling and leaves the original offshore waves untouched',()=>{

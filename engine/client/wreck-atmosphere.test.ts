@@ -23,6 +23,16 @@ describe('pecio: luz, clima y detalle canónico',()=>{
       expect(a.diffuseTexture).toBe(b.diffuseTexture);expect(a.bumpTexture).toBe(b.bumpTexture);
       expect(a.diffuseTexture?.getSize().width).toBe(256);expect(a.bumpTexture?.name).toContain('erosion-normal');
       const bones=buildDistantDragonBones(s);expect(bones).toHaveLength(1);expect(bones[0]!.metadata.outsideNavigation).toBe(true);expect(bones[0]!.isPickable).toBe(false);
+      const batch=bones[0]!,indices=batch.getIndices()!;
+      expect(batch.subMeshes).toHaveLength(6);
+      let offset=0;
+      for(const part of batch.subMeshes){
+        expect(part.indexStart).toBe(offset);
+        expect(part.getBoundingInfo().boundingBox.extendSize.x).toBeLessThan(batch.getBoundingInfo().boundingBox.extendSize.x);
+        expect(indices.slice(offset,offset+part.indexCount).every(index=>index>=part.verticesStart&&index<part.verticesStart+part.verticesCount)).toBe(true);
+        offset+=part.indexCount;
+      }
+      expect(offset).toBe(indices.length);
     }finally{s.dispose();e.dispose();}
   });
   it('recibe clima autoritativo sin añadir lámparas encendidas',()=>{

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { NullEngine } from '@babylonjs/core/Engines/nullEngine.js';
 import { Scene } from '@babylonjs/core/scene.js';
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import { campRestsPublicCampaign } from '../../campaigns/camp-rests/public/pack.js';
 import { CampFire } from '../../campaigns/camp-rests/public/camp-fire.js';
@@ -13,6 +14,20 @@ import { GameState } from '../server/game.js';
 
 const rain=(level:1|2|3):EnvironmentState=>({storm:false,lightning:false,stormIntensity:0,precipitation:'rain',precipitationLevel:level});
 describe('campamentos: fuego, clima y recortes completos',()=>{
+  it('prepara el clima vivo de materiales derivados antes del primer dibujo sin serializarlo',()=>{
+    const engine=new NullEngine(),scene=new Scene(engine);
+    try{
+      const base=new StandardMaterial('oak',scene),definition=campRestsPublicCampaign.scenes[0]!;
+      const climate=createCampSurfaceEffects(scene,definition);climate.amount.wet=.7;
+      const candidate=base.clone('style-v1:zones:oak');
+      expect(candidate.pluginManager?.getPlugin('CampSurfaceWeather')).toBeFalsy();
+      scene.onBeforeRenderObservable.notifyObservers(scene);
+      const plugin=candidate.pluginManager?.getPlugin('CampSurfaceWeather')!,values:unknown[][]=[];
+      expect(plugin).toBeTruthy();(plugin as any).bindForSubMesh({updateFloat4:(...v:unknown[])=>values.push(v)});
+      expect(values[0]).toEqual(['campDeposition',.7,climate.amount.snow,climate.amount.puddles,climate.amount.flood]);
+      scene.onBeforeRenderObservable.notifyObservers(scene);expect(candidate.pluginManager?.getPlugin('CampSurfaceWeather')).toBe(plugin);
+    }finally{scene.dispose();engine.dispose();}
+  });
   it('apaga toda emisión diurna y conserva brasas al apagarse la llama con lluvia fuerte',()=>{
     const fire=new CampFire('fire');expect(fire.update(.1,.12,rain(1))).toMatchObject({flame:0,embers:0,smoke:0});
     let result=fire.update(0,.95,rain(3));for(let i=0;i<70;i++)result=fire.update(.1,.95,rain(3));

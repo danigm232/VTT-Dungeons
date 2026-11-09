@@ -10,6 +10,26 @@
 
 ## 0. Instrucción de arranque para otro chat
 
+**Celdas A1, 08/11.** Jambas y laterales delanteros se ocultan en la celda ocupada; pequeñas separaciones de muebles y roca conservan la distribución y el relieve. [Pruebas y comparativas](../evidence/RETREAT_CELLS_VISIBILITY_20261108.md). Vista cenital solo para revisión, no un cambio de cámara del jugador. No se reabren las fases previas.
+
+**Corrección localizada A2, 08/11.** Láminas incompletas retiradas del frente del cabrestante y rocas marinas añadidas sin cambiar la navegación, la casa, la escalera ni el mecanismo. Instalación de la compilación conjunta con la mesa cerrada; seis pares y prueba del descenso en [la ficha de evidencia](../evidence/RETREAT_WINCH_SEA_ROCKS_20261108.md). Revisión visual del usuario y validación física pendientes; no reabre ni cierra fases del Retiro.
+
+**Muestra de jardines.** Verdes y flores más vivos y hojas ensanchadas dentro de sus copas. Candidata compilada y dos comparativas disponibles. [Piezas y pruebas](../evidence/RETREAT_GARDENS_FINISH.md).
+
+**Cornisa A4.** Frente decorativo bajo el paseo modelado con entrantes y salientes. Geometría de apoyo y navegación conservadas. [Comparación y verificación](../evidence/RETREAT_CORNICE.md).
+
+**Muestra de acabado A4.** Roble estructural, papel envejecido y encuadernaciones diferenciadas en los estantes existentes. Candidata compilada y comparación equivalente disponible. [Registro y evidencia](../evidence/RETREAT_LIBRARY_FINISH.md).
+
+**Ajuste de antorchas y focos del 06/11.** Candidata compilada con las cinco luces del pasillo en sus mechas y fijadas a pared. Antorchas de celdas y luces de A3/A4 ajustadas. Pruebas de modelo, recorte y compilación superadas. Revisión visual y activación pendientes. [Registro de piezas y pruebas](../evidence/RETREAT_FIXTURES_20261106.md).
+
+**Segunda pasada Q1:** con el acabado por zonas, A1 alcanza 24,6 FPS de media y A4 alcanza 27,9 FPS. Se conservan los mapas de sombra y la animación del mar. Priorizar el dibujo principal en A1/A4 y mantener las pruebas prolongadas y físicas de Q1.4. [Resultados y comparativas](../evidence/STORMWRECK_PERFORMANCE_20261106.md).
+
+**Optimización 05/11:** el usuario pide superar 30 FPS sostenidos conservando el acabado por zonas. Se reduce trabajo repetido de luz, recorte, proyección y mar. La prueba de escritorio en la candidata actual mantiene A1 y A4 por debajo del umbral. Q1.4 conserva el contraste prolongado y la validación física. [Implementación y medidas](../evidence/STORMWRECK_PERFORMANCE_20261105.md).
+
+**Candidata artística 05/11:** extensión de materiales por A1–A5 y paisaje, cuatro muebles A3, 31 jardineras, 86 copas y tres praderas. [Informe y comparativas](../evidence/STORMWRECK_ZONE_FINISH_20261105.md). Veinte pares con cámara equivalente, 50 comprobaciones de estados y tres roles en Retiro. Se conserva revisión 19, sus ampliaciones y el cierre previsto de Q1. Pendientes revisión artística del usuario y ensayos físicos.
+
+**Subentrega artística 04/11:** refinados los cuatro muebles A3 y el follaje de dos jardineras del umbral en una candidata separada. [Informe/IDs/pruebas](../evidence/STORMWRECK_OBJECT_FINISH_20261104.md). Autorizado continuar el apartado visual de Retiro/Pecio por el maestro; se conserva revisión 19, mapa actual y Q1. Aceptación artística pendiente y extensión por zonas en curso; no reiniciar las fases históricas.
+
 **Entrega artística 02/11:** primera muestra real de basalto/roble/pavimento y actor/luz, con piedra continua compartida para evitar un parche A3. [Registro](../evidence/STORMWRECK_STYLE_SKULL_20261102.md) y `REVISAR-ACABADO.cmd`. Se conserva revisión 19; muebles/plantas no se remodelan ni se cierra Q1. Aceptación de muestra pendiente. Esta nota actualiza la subentrega sin crear otra revisión técnica del Retiro.
 
 **Nuevo bloque artístico, 01/11/2026:** el usuario elige Retiro y Pecio como primeras mejoras de la dirección común. Se parte de la revisión 19 y sus avances. La primera subentrega VA-10/11 adapta el color de los personajes a las luces actuales; no reconstruye celdas, mobiliario, paisaje, sombras o navegación, ni repite Q1. [Registro y continuación](../evidence/STORMWRECK_VISUAL_START_20261101.md). La muestra completa de familias de arte sigue pendiente; no confundir este bloque con aceptación final o con una nueva certificación Q1.
@@ -425,6 +445,8 @@ Actualizar estado en este roadmap y `prototypes/retreat-geography-20261021/PROGR
 
 ### A5 — Templo abierto, soportes y composición
 
+Pasada de acabado del 06/11/2026 con la planta vigente. [75 pares de cámara, materiales y validación técnica](../evidence/RETREAT_TEMPLE_CAMERA_20261106.md).
+
 **Estado:** acabado construido, comprobado y publicado el24/10/2026. Informe `docs/evidence/RETREAT_FINISH_A5_20261024.md`; galería `output/retreat-finish-a5-20261024/index.html`. Suelo duplicado y columnas mayores conservados. **Dependencia:** A2.
 
 1. Confirmar ocho columnas actuales, cubierta de madera, muro tallado, puntales arqueados, anciano, siete canarios, pedestal y ofrendas. No contar dos veces filas que se superponen en alzado.
@@ -490,6 +512,10 @@ Actualizar estado en este roadmap y `prototypes/retreat-geography-20261021/PROGR
 | Q1.4 | Posterior: memoria/carga y sombras según el perfil, exploración real≥10min, ciclos de escena, roles y revisión táctil real. Certificar únicamente objetivos efectivamente medidos. |
 
 Cada bloque mantiene originales, datos de navegación y partida. No deducir que toda Q1 termina por mejorar dos focos; no recortar gráficos para alcanzar una cifra.
+
+**Avance de Q1.3b, 06/11.** La cámara descarta grupos de decoración estática completamente fuera de cuadro antes del recorrido principal de Babylon. Los GLB aún se importan al entrar y las sombras y el picking conservan sus listas. A4 reduce las mallas examinadas un 36 % en el ensayo nocturno con lluvia. Sigue abierta la carga selectiva de paquetes y el umbral por fotograma de Q1.4. [Medidas y candidata](../evidence/STORMWRECK_PERFORMANCE_PASS3_20261106.md).
+
+**Mar, avance de Q1.3b.** La espuma usa límites del oleaje y el borde lejano comprueba sus tres franjas por separado. Se conservan las actualizaciones que requieren las cámaras secundarias y los destinos de renderizado. La roca que oculta un mar dentro del encuadre sigue siendo un caso distinto. [Ensayo nocturno y validación de reentrada](../evidence/STORMWRECK_PERFORMANCE_PASS4_20261106.md).
 
 
 **Estado:** en curso, autorizada expresamente el27/10 después deM1/E1/L1. **Dependencias:** todas las fichas anteriores. Suelo de A1 prioritario. Se conservan todos los criterios de certificación siguientes; una primera mejora medida no cierra la fase global.

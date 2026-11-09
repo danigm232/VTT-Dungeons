@@ -19,6 +19,31 @@ import {refineMineralSurface} from './retreat-mineral-surface.js';
  * Mesh visibility still controls the existing foreground fade. */
 export function applyRetreatStoneVertexOpacity(mesh:Mesh){mesh.hasVertexAlpha=false;}
 
+const templeStoneColors = {
+ column: '#a49b83',
+ elder: '#91887a',
+ pedestal: '#a49b83',
+ canary: '#b39855',
+};
+type TempleStoneFinish = keyof typeof templeStoneColors;
+
+function weatherTempleColumn(mesh: Mesh) {
+ const positions = mesh.getVerticesData(VertexBuffer.PositionKind);
+ if (!positions) return;
+ const {minimum, maximum} = mesh.getBoundingInfo().boundingBox;
+ const colors = new Float32Array(positions.length / 3 * 4);
+ for (let i = 0, j = 0; i < positions.length; i += 3, j += 4) {
+  const [x,y,z] = [positions[i]!, positions[i+1]!, positions[i+2]!];
+  const height = (y - minimum.y) / (maximum.y - minimum.y);
+  const stains = .025 * Math.sin(x * 29 + z * 13 + y * 2) + .018 * Math.sin(z * 17 - y * 5);
+  const value = .97 + stains - .14 * Math.max(0, 1 - height * 8) - .08 * Math.max(0, (height - .88) / .12);
+  colors.set([value,value,value,1],j);
+ }
+ mesh.makeGeometryUnique();
+ mesh.setVerticesData(VertexBuffer.ColorKind,colors);
+ applyRetreatStoneVertexOpacity(mesh);
+}
+
 /** One shared PBR library for this scene. Existing camp scenes keep their own materials. */
 export function upgradeRetreatMaterials(scene:Scene,stoneStage=0,polished=false,consistentBackfaces=false,round2=false,round3=false){
  const source=(name:string)=>scene.materials.find(m=>m.name===name&&m.getClassName()==='StandardMaterial') as any;
@@ -27,9 +52,9 @@ export function upgradeRetreatMaterials(scene:Scene,stoneStage=0,polished=false,
  if(basalt){basalt.anisotropicFilteringLevel=8;basalt.wrapU=basalt.wrapV=Texture.WRAP_ADDRESSMODE;if(polished)basalt.uScale=basalt.vScale=.34;}
  const library=new Map<string,PBRMaterial>(),normals=new Map<string,Texture>(),orms=new Map<string,Texture>(),fallbacks=new Map<Material,Material>();let assigned=0,islandLow:StandardMaterial|null=null;
  const tex=(kind:string,channel:'normal'|'orm')=>{const cache=channel==='normal'?normals:orms;let t=cache.get(kind);if(!t){t=new Texture(`/art/retreat-refinement/${kind}-${channel}-v1.png`,scene,false,false,Texture.TRILINEAR_SAMPLINGMODE);t.gammaSpace=false;t.anisotropicFilteringLevel=8;t.wrapU=t.wrapV=Texture.WRAP_ADDRESSMODE;if(channel==='normal')t.level=kind==='rock'?(polished?.24:.45):kind==='wood'?.28:.18;if(polished&&kind==='rock')t.uScale=t.vScale=1.4;cache.set(kind,t);}return t;};
- function replacement(old:Material|null,sculptedStone=false,woodRole=''):Material|null{
+ function replacement(old:Material|null,sculptedStone=false,woodRole='',templeFinish?:TempleStoneFinish):Material|null{
   if(!old)return old;
-  if('subMaterials' in old){(old as any).subMaterials=(old as any).subMaterials.map((m:Material|null)=>replacement(m,sculptedStone,woodRole));return old;}
+  if('subMaterials' in old){(old as any).subMaterials=(old as any).subMaterials.map((m:Material|null)=>replacement(m,sculptedStone,woodRole,templeFinish));return old;}
   const n=old.name.toLowerCase();if(/bay|water|shore-wash|flame|glow|halo|shadow|coal|glass|existing_vtt|ambient-life|painted-foliage/.test(n))return old;
   const category=sculptedStone?'sculpture':polished&&/earth-v6/.test(n)?'soil':/wood_|oak-v5/.test(n)?'wood':/iron|brass/.test(n)?'metal':/stone_floor|plaza|cell-floor/.test(n)?'paving':/stone_bahamut|limestone/.test(n)||n.startsWith('a1:dragon:')&&!/eye|mouth|dark|claw|horn/.test(n)?'limestone':/basalt|carved-cliff/.test(n)?'carved':/coastal-cliff/.test(n)?'rock':null;
   if(!category)return old;
@@ -37,11 +62,12 @@ export function upgradeRetreatMaterials(scene:Scene,stoneStage=0,polished=false,
   // the original camp's oak material on its legacy finish so canonical cell
   // furniture is not recoloured as a side effect of the imported-room pass.
   const woodFinish=round2&&category==='wood'&&/^wood_/.test(n)?/endgrain/.test(n)?'endgrain':/winch|timber|roof|dock-post|cliff-rail|cargo/.test(woodRole)?'structural':'planks':'';
-  const sourceTexture=(old as any).diffuseTexture??(old as any).albedoTexture,cacheKey=category+(category==='paving'?':'+(sourceTexture?.name??'limestone'):'')+(woodFinish?':'+woodFinish:'');let p=library.get(cacheKey);if(p)return p;
-  const kind=category==='wood'?'wood':category==='metal'?'metal':'rock';p=new PBRMaterial('retreat:pbr:'+category+(woodFinish?':'+woodFinish:''),scene);p.metallic=1;p.roughness=woodFinish==='planks'?.93:woodFinish==='structural'?.98:1;p.metallicTexture=tex(kind,'orm');p.bumpTexture=tex(kind,'normal');p.useRoughnessFromMetallicTextureAlpha=false;p.useRoughnessFromMetallicTextureGreen=true;p.useMetallnessFromMetallicTextureBlue=true;p.useAmbientOcclusionFromMetallicTextureRed=true;p.maxSimultaneousLights=4;p.environmentIntensity=round2&&category==='sculpture'?.32:.45;
+  const sourceTexture=(old as any).diffuseTexture??(old as any).albedoTexture,finish=templeFinish??woodFinish,cacheKey=category+(category==='paving'?':'+(sourceTexture?.name??'limestone'):'')+(finish?':'+finish:'');let p=library.get(cacheKey);if(p)return p;
+  const kind=category==='wood'?'wood':category==='metal'?'metal':'rock';p=new PBRMaterial('retreat:pbr:'+category+(finish?':'+finish:''),scene);p.metallic=templeFinish?0:1;p.roughness=woodFinish==='planks'?.93:woodFinish==='structural'?.98:1;p.metallicTexture=tex(kind,'orm');p.bumpTexture=tex(kind,'normal');p.useRoughnessFromMetallicTextureAlpha=false;p.useRoughnessFromMetallicTextureGreen=true;p.useMetallnessFromMetallicTextureBlue=true;p.useAmbientOcclusionFromMetallicTextureRed=true;p.maxSimultaneousLights=4;p.environmentIntensity=round2&&category==='sculpture'?.32:.45;
   const naturalStone=category==='rock'||category==='carved';
   const color=woodFinish?({planks:'#b28f67',endgrain:'#927052',structural:'#a3815e'} as Record<string,string>)[woodFinish]!:round2&&category==='sculpture'?'#b7ae97':basalt&&naturalStone?(category==='carved'?(polished?'#b2b8af':'#bdc0c3'):(polished?'#aab4ad':'#b6bcc1')):({rock:'#85918e',carved:'#a1aba3',paving:polished?'#b9b6a7':'#d0cabc',wood:'#b99672',metal:'#565c5d',limestone:'#d4d3c4',sculpture:'#ddd3b9',soil:'#bbbba1'} as Record<string,string>)[category]!;p.albedoColor=Color3.FromHexString(color);p.emissiveColor=p.albedoColor.scale(category==='paving'?(polished?.006:.025):.012);
   if(category==='soil'){p.metallic=0;p.roughness=.98;p.metallicTexture=null;p.bumpTexture=null;}
+  if(templeFinish){p.albedoColor=Color3.FromHexString(templeStoneColors[templeFinish]);p.emissiveColor=Color3.Black();}
   // Sculptures need fine stone relief; a paving pattern across the face masks
   // its anatomy. Keep the shared normal/roughness maps and warm mineral tint.
   p.albedoTexture=category==='metal'||category==='sculpture'?null:basalt&&naturalStone?basalt:woodFinish?albedo.wood??sourceTexture??null:sourceTexture??albedo[category==='carved'?'rock':category as keyof typeof albedo]??null;p.backFaceCulling=false;p.twoSidedLighting=consistentBackfaces;p.metadata={provenance:'VTT_AMBIENCE',phase:4,category,stoneStage:basalt&&naturalStone?1:0,...round2?{woodFinish:woodFinish||null,visualRound2:true}:{}};library.set(cacheKey,p);return p;
@@ -70,17 +96,31 @@ export function upgradeRetreatMaterials(scene:Scene,stoneStage=0,polished=false,
   const templeStone=mesh.metadata?.retreatAuthoredRevision==='V3'||round2&&mesh.metadata?.retreatZone==='a5';
   const sculpted=templeStone&&(/CANON_Bahamut_Kind_Elder|CANON_Canary_V3_|CANON_Column_/.test(mesh.name)||round2&&/CANON_Bahamut_Pedestal/.test(mesh.name));
   const role=mesh.metadata?.gltf?.extras?.role??mesh.parent?.metadata?.gltf?.extras?.role??'';
-  const old=mesh.material,next=replacement(old,sculpted,role);if(next!==old){mesh.material=next;assigned++;}
+  let templeFinish:TempleStoneFinish|undefined;
+  if(round2&&sculpted&&mesh.metadata?.retreatZone==='a5'){
+   if(mesh.name.startsWith('CANON_Column_'))templeFinish='column';
+   else if(mesh.name.startsWith('CANON_Canary_V3_'))templeFinish='canary';
+   else if(mesh.name.startsWith('CANON_Bahamut_Pedestal'))templeFinish='pedestal';
+   else templeFinish='elder';
+  }
+  const old=mesh.material,next=replacement(old,sculpted,role,templeFinish);if(next!==old){mesh.material=next;assigned++;}
   if(round2&&sculpted&&mesh instanceof Mesh&&!mesh.metadata?.retreatRound2FineStone){
    const sourceUV=mesh.getVerticesData(VertexBuffer.UVKind);
    if(sourceUV){mesh.makeGeometryUnique();const uv=new Float32Array(sourceUV.length);for(let i=0;i<uv.length;i++)uv[i]=sourceUV[i]!*4;mesh.setVerticesData(VertexBuffer.UVKind,uv);mesh.removeVerticesData(VertexBuffer.TangentKind);mesh.metadata={...mesh.metadata,retreatRound2FineStone:true};}
   }
+  if(templeFinish==='column'&&mesh instanceof Mesh)weatherTempleColumn(mesh);
   // Native A1 organic stones already carry seam-split per-face UVs. Choosing
   // a different projection from each vertex normal destroys that mapping on
   // curved roofs/outcrops and produces the visible grey striped ribbons.
   const preserveNativeRockUV=round2&&mesh.name.startsWith('a1:')||round3&&/^(P3_Organic_Forest_Ground_|G2_Path_.*_R3)/.test(mesh.name);
   if(basalt&&mesh instanceof Mesh&&!mesh.metadata?.stoneStage&&(next?.metadata?.category==='rock'||next?.metadata?.category==='carved')&&!preserveNativeRockUV){worldSurfaceUV(mesh,3.3);mesh.removeVerticesData(VertexBuffer.TangentKind);}
   const low=mesh.metadata?.preferDistantMaterial?islandBackdrop(next):distant(next);if(low!==next)assignments.push({mesh,high:next,low});
+  const torchSlots = mesh.metadata?.retreatTorchLightSlots;
+  if (typeof torchSlots === 'number') for (const material of [next, low]) {
+   if (material instanceof PBRMaterial || material instanceof StandardMaterial) {
+    material.maxSimultaneousLights = Math.max(material.maxSimultaneousLights, torchSlots);
+   }
+  }
  }
  if(polished)for(const mesh of scene.meshes)if(mesh instanceof Mesh&&['rock','carved'].includes(mesh.material?.metadata?.category)){const record=refineMineralSurface(mesh);if(record)mineralRecords.push(record);}
  let detail:boolean|null=null;const stats={materials:library.size,normalMaps:normals.size,roughnessMetallicMaps:orms.size,assignedMeshes:assigned,albedoImagesReused:!basalt,stoneStage,sharedBasaltTextures:basalt?1:0,distantMaterialLod:true,mineralPolish:polished,consistentBackfaces,mineralMeshes:mineralRecords.length,albedoRepeatScale:polished?.34:1,normalRepeatScale:polished?1.4:1,round2,woodFinishes:[...library.keys()].filter(k=>k.startsWith('wood:')),fineSculptureGrain:round2,quality:'initializing'};

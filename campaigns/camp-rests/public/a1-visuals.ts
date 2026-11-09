@@ -27,6 +27,7 @@ import { campMaterialRelief, campClothSurface, campFoamTexture, createCampDetail
 import { CampFire } from './camp-fire.js';
 import { createCampLife } from './camp-life.js';
 import { CampShadows, createCampCoals, createCampSurfaceEffects, includeCampActors } from './camp-surface-effects.js';
+import { createTorchFlame, torchMotion } from '../../../engine/client/torch-flame.js';
 
 const darkness: Record<CampRestPhase, number> = { arrival: .12, dusk: .65, night: .95, dawn: .4, finalization: .12 };
 const worldCell = (col: number, row: number) => new Vector3((col + .5) * A1_TILE_METERS, 0, (row + .5) * A1_TILE_METERS);
@@ -34,8 +35,9 @@ const key = (col: number, row: number) => `${col},${row}`;
 
 /** CANON: six unequal excavated cave cells carved into a continuous mountain cliff, an elongated plaza,
  * the Astalagan statue, four beds and eight hammocks. Surface dressing is VTT_AMBIENCE. */
-export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition,options:{pauseInvisibleSea?:boolean;courtyardSpread?:boolean}={}): CampVisuals {
+export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition,options:{pauseInvisibleSea?:boolean;courtyardSpread?:boolean;retreatTorchMounts?:boolean;cullShadowCasters?:boolean;updateFog?:(density:number)=>void}={}): CampVisuals {
   const root = new TransformNode(`camp-visuals:${definition.id}`, scene);
+  const motionPreference = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
   scene.imageProcessingConfiguration.exposure = 1.18;
   scene.imageProcessingConfiguration.contrast = 1.14;
   root.metadata = { content: 'CANON', source: 'Los Dragones de la Isla de las Tempestades, A1', cells: 6, beds: 4, hammocks: 8, openEntrances: 6, statue: 'Astalagan', plazaFire: true, layout: 'official-map' };
@@ -92,7 +94,7 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition,
   [M.wood,M.darkWood].forEach(m=>campMaterialRelief(scene,m,'timber'));
   [M.linen,M.blue,M.red,M.green].forEach(m=>campMaterialRelief(scene,m,'cloth'));
   [M.linen,M.blue,M.red,M.green].forEach(m=>{m.backFaceCulling=false;m.twoSidedLighting=true;});
-  M.glow.emissiveColor = Color3.FromHexString('#ffcf79'); M.flame.emissiveColor = Color3.FromHexString('#ff7b25'); M.halo.emissiveColor = Color3.FromHexString('#ffc56b');
+  M.glow.emissiveColor = Color3.FromHexString('#ffd78a'); M.flame.emissiveColor = Color3.FromHexString('#ff872b'); M.halo.emissiveColor = Color3.FromHexString('#ffc56b');
   const plazaMaterials = [M.plaza, M.plazaWarm, M.plazaCool, M.plazaMoss];
   const cellMaterials = [M.cellFloor, M.cellWarm, M.cellCool, M.cellDark];
   const readableMaterials = [...plazaMaterials, M.carved, M.cliff, ...cellMaterials, M.limestone, M.earth, M.ashlar, M.wood, M.darkWood, M.linen, M.blue, M.red, M.green, M.metal, M.brass, M.paper, M.pottery, M.soil];
@@ -163,7 +165,26 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition,
   function plantCard(x: number, y: number, z: number, width: number, height: number, kind: number, angle: number, tilt = 0, material = foliage) { const mesh = add(MeshBuilder.CreatePlane('a1:plant-card', { width, height }, scene), new Vector3(x, y, z), material); const u = (kind % 2) * .5, v = kind < 2 ? .5 : 0; mesh.setVerticesData('uv', [u, v, u + .5, v, u + .5, v + .5, u, v + .5]); mesh.rotation.set(tilt, angle, 0); return mesh; }
   function shrub(x: number, z: number, size: number, seed: number, y = 0) { const material = foliageVariants[Math.abs(seed) % foliageVariants.length]!; for (let layer = 0; layer < 3; layer++) plantCard(x + Math.sin(seed + layer) * size * .12, y + size * .44, z + Math.cos(seed + layer) * size * .1, size * 1.65, size, Math.abs(seed + layer) % 4, seed + layer * Math.PI / 3, 0, material); plantCard(x, y + size * .22, z, size * 1.5, size * .85, 3, seed, -Math.PI * .32, material); }
   function grassTuft(x: number, z: number, size: number, seed: number, y = 0) { const material = foliageVariants[(Math.abs(seed) + 1) % foliageVariants.length]!; for (let card = 0; card < 3; card++) plantCard(x, y + size * .36, z, size * (.44 + card * .08), size, 1 + card % 3, seed + card * Math.PI / 3, 0, material); }
-  function flame(name: string, x: number, y: number, z: number, scale = 1) { const previous = bucket; bucket = flameMeshes; const mesh = sphere(name, x, y, z, .18 * scale, .34 * scale, .18 * scale, M.flame, 7); mesh.metadata = { baseX: .18 * scale, baseY: .34 * scale, baseZ: .18 * scale, phase: x * .3 + z * .7 }; bucket = previous; return mesh; }
+  function flame(name: string, x: number, y: number, z: number, scale = 1) {
+    const previous = bucket;
+    bucket = flameMeshes;
+    const retreatTorch = Boolean(options.retreatTorchMounts && /:room-\d+:torch-flame$/.test(name));
+    let mesh: Mesh;
+    if (retreatTorch) {
+      mesh = createTorchFlame(scene, name);
+      mesh.position.set(x, y, z);
+      mesh.scaling.set(.18 * scale, .34 * scale, .18 * scale);
+      mesh.parent = root;
+      bucket.push(mesh);
+    } else mesh = sphere(name, x, y, z, .18 * scale, .34 * scale, .18 * scale, M.flame, 7);
+    if (!retreatTorch && options.retreatTorchMounts && /:room-\d+:candle$|statue-votive-flame/.test(name)) {
+      // Scale the flame from the wick, so the base stays seated during a pulse.
+      mesh.bakeTransformIntoVertices(Matrix.Translation(0, .5, 0));
+    }
+    mesh.metadata = { baseX: .18 * scale, baseY: .34 * scale, baseZ: .18 * scale, phase: x * .3 + z * .7 };
+    bucket = previous;
+    return mesh;
+  }
 
   box('a1:ledge-base', 36, -.42, 17.2, 312, .8, 19.5, M.cliff);
   box('a1:cliff-plinth', 36, -4.8, 13.4, 312, 9.4, 28, M.cliff);
@@ -333,12 +354,16 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition,
   ];
   for (const [index,pillar] of mountainPillars.entries()) {
     const previous=bucket;bucket=[];
+    // Retreat-only: ease the irregular dividing rocks back from the interior
+    // furniture, keeping their original seeds, height and cave silhouette.
+    const innerRetreat=Boolean(options.retreatTorchMounts&&index>0&&index<6);
+    const eastRetreat=Boolean(options.retreatTorchMounts&&index===6);
     for(let layer=0;layer<3;layer++)for(let piece=0;piece<4;piece++){
       const dz=(piece-1.5)*pillar.d/4;
       const carvedPiece=(layer+piece)%3===0?organicBoulder:rock;
-      carvedPiece('a1:mountain-bedrock-stratum',pillar.x+Math.sin(pillar.seed+layer)*.08,pillar.h*(layer+.5)/3,pillar.z+dz,pillar.w*1.2,pillar.h*.45,pillar.d*.36,pillar.seed+layer*13+piece*7,M.cliff);
+      carvedPiece('a1:mountain-bedrock-stratum',pillar.x+Math.sin(pillar.seed+layer)*.08,pillar.h*(layer+.5)/3,pillar.z+dz,pillar.w*(innerRetreat?.86:eastRetreat?.84:1.2),pillar.h*.45,pillar.d*.36,pillar.seed+layer*13+piece*7,M.cliff);
     }
-    organicBoulder('a1:mountain-buttress-front', pillar.x, 2.2, pillar.z + pillar.d * .42, pillar.w * .95, 4.4, 2.6, pillar.seed, M.cliff);
+    organicBoulder('a1:mountain-buttress-front', pillar.x, 2.2, pillar.z + pillar.d * .42, pillar.w * (innerRetreat?.76:eastRetreat?.72:.95), 4.4, 2.6, pillar.seed, M.cliff);
     for(let plant=0;plant<5;plant++)shrub(pillar.x+Math.sin(plant+pillar.seed)*pillar.w*.25,pillar.z+(plant-2)*pillar.d*.17,.6+(plant%3)*.25,pillar.seed+plant,pillar.h-.4);
     // Each cutaway needs only one foliage material; atlas quadrants retain
     // species variation without four separate foliage draws per partition.
@@ -388,6 +413,7 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition,
     const roomFloors = mergeDecoration(scene, root, roomFloorParts, `a1:room-${room.id}:lit-floor`, true); litRoomSurfaces.push(...roomFloors); bucket = roomStatics;
     const roomKeys = new Set(room.cells.map(cell => key(cell.col, cell.row)));
     const entry = worldCell(room.entry.col, room.entry.row);
+    const entranceSides:Mesh[]=[];
     const directions = [{ dc: 0, dr: -1, normal: new Vector3(0, 0, -1), face: 0 }, { dc: -1, dr: 0, normal: new Vector3(-1, 0, 0), face: 1 }, { dc: 1, dr: 0, normal: new Vector3(1, 0, 0), face: 2 }, { dc: 0, dr: 1, normal: new Vector3(0, 0, 1), face: 3 }];
     for (const direction of directions) {
       const upper: Mesh[] = [];
@@ -396,7 +422,7 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition,
         if (roomCell.col === room.entry.col && roomCell.row === room.entry.row && direction.dr === 1) continue;
         const p = worldCell(roomCell.col, roomCell.row), x = p.x + direction.dc * .75, z = p.z + direction.dr * .75;
         const horizontal = direction.dr !== 0, width = horizontal ? 1.6 : .46, depth = horizontal ? .46 : 1.6;
-        const previous = bucket; bucket = upper;
+        const previous = bucket; bucket = options.retreatTorchMounts&&roomCell.row>=room.entry.row-1&&direction.dc!==0 ? entranceSides : upper;
         // Natural rough-hewn cave bedrock walls
         const segment = rock('a1:cave-hewn-wall', x, 1.65, z, width, 3.25, depth, room.id*70+roomCell.col*7+roomCell.row, M.carved);
         box('a1:cave-solid-backing',x,1.6,z,width*.99,3.2,depth*.99,M.carved);
@@ -417,6 +443,10 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition,
         const group = mergeDecoration(scene, root, upper, `a1:room-${room.id}:face-${direction.face}`);
         if (direction.face === 3) facades.set(room.id, group); else walls.push({ roomId: room.id, meshes: group, normal: direction.normal, center });
       }
+    }
+    if(entranceSides.length){
+      const portal=mergeDecoration(scene,root,entranceSides,`a1:room-${room.id}:face-3:portal-sides`);
+      facades.set(room.id,[...(facades.get(room.id)??[]),...portal]);
     }
     const roofParts: Mesh[] = [], previousBucket = bucket; bucket = roofParts;
     const roofCells = room.cells.filter(roomCell => roomCell.col !== room.entry.col || roomCell.row !== room.entry.row);
@@ -458,11 +488,33 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition,
     }
     for (let step = 0; step < 3; step++) { const stone = rock('a1:worn-threshold', entry.x + Math.sin(room.id + step) * .07, .075, entry.z + .25 + step * .54, 1.22, .09, .5, room.id * 5 + step, M.plaza); stone.rotation.y = Math.sin(room.id * 3 + step) * .06; }
     furnishRoom(room, roomStatics);
-    const torchX = room.id%2?Math.max(...xs)+.43:Math.min(...xs)-.43, torchZ = (Math.min(...zs)+Math.max(...zs))*.5;
-    const bracket = box('a1:torch-bracket', torchX, 1.72, torchZ, .12, .12, .62, M.metal); bracket.rotation.y = Math.PI/2;bracket.rotation.x = -.18;
-    cylinder('a1:torch-handle', torchX, 1.82, torchZ + .18, .72, .11, M.darkWood, 8).rotation.x = -.28;
-    box('a1:torch-wrap', torchX, 2.08, torchZ + .09, .26, .34, .26, M.linen); flame(`a1:room-${room.id}:torch-flame`, torchX, 2.35, torchZ + .03, 1.05);
-    const torchLight = new PointLight(`a1:room-${room.id}:torch-light`, new Vector3(torchX, 2.3, torchZ), scene); torchLight.diffuse = Color3.FromHexString('#ffc078'); torchLight.range = 7.5;torchLight.renderPriority=85; torchLight.metadata = { roomId: room.id };
+    const side = room.id % 2 ? 1 : -1;
+    const edgeX = side > 0 ? Math.max(...xs) : Math.min(...xs);
+    let torchX = edgeX + side * .43;
+    let torchZ = center.z;
+    if (options.retreatTorchMounts) {
+      const edgeRows = zs.filter((_, index) => xs[index] === edgeX);
+      torchZ = edgeRows.reduce((nearest, z) => Math.abs(z - center.z) < Math.abs(nearest - center.z) ? z : nearest, edgeRows[0]!);
+      const wallX = edgeX + side * .52;
+      torchX = wallX - side * .36;
+      box('a1:torch-backplate', wallX, 1.72, torchZ, .09, .31, .16, M.metal);
+      box('a1:torch-bracket', wallX - side * .14, 1.72, torchZ, .30, .075, .07, M.metal);
+      cylinder('a1:torch-handle', wallX - side * .23, 1.85, torchZ, .68, .10, M.darkWood, 8).rotation.z = side * .31;
+      cylinder('a1:torch-collar', torchX, 2.12, torchZ, .14, .18, M.metal, 8);
+      flame(`a1:room-${room.id}:torch-flame`, torchX, 2.18, torchZ, .92);
+    } else {
+      const bracket = box('a1:torch-bracket', torchX, 1.72, torchZ, .12, .12, .62, M.metal);
+      bracket.rotation.y = Math.PI / 2;
+      bracket.rotation.x = -.18;
+      cylinder('a1:torch-handle', torchX, 1.82, torchZ + .18, .72, .11, M.darkWood, 8).rotation.x = -.28;
+      box('a1:torch-wrap', torchX, 2.08, torchZ + .09, .26, .34, .26, M.linen);
+      flame(`a1:room-${room.id}:torch-flame`, torchX, 2.35, torchZ + .03, 1.05);
+    }
+    const torchLight = new PointLight(`a1:room-${room.id}:torch-light`, new Vector3(torchX, 2.30, torchZ), scene);
+    torchLight.diffuse = Color3.FromHexString('#ffc078');
+    torchLight.range = options.retreatTorchMounts ? 5.8 : 7.5;
+    torchLight.renderPriority = 85;
+    torchLight.metadata = { roomId: room.id };
     // One furniture mesh per cell, with material submeshes. Closed interiors
     // can be culled entirely, and the torch cannot reach another cell's props.
     if(roomStatics.some(mesh=>mesh.isVerticesDataPresent('color')))for(const mesh of roomStatics)if(!mesh.isVerticesDataPresent('color'))mesh.setVerticesData('color',new Float32Array(mesh.getTotalVertices()*4).fill(1));
@@ -492,8 +544,9 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition,
     cylinder('a1:desk-candle-1', x - .12, .98, z, .22, .09, M.linen, 8);
     cylinder('a1:desk-candle-2', x + .12, .95, z, .16, .08, M.linen, 8);
     detail.bowl(new Vector3(x-.12,.86,z),.085,M.brass);detail.bowl(new Vector3(x+.12,.86,z),.07,M.brass);
-    flame(`a1:room-${roomId}:candle`, x - .12, 1.14, z, .34);
-    const light = new PointLight(`a1:room-${roomId}:candle-light`, new Vector3(x, 1.3, z), scene);
+    flame(`a1:room-${roomId}:candle`, x - .12, options.retreatTorchMounts ? 1.09 : 1.14, z, .34);
+    const light = new PointLight(`a1:room-${roomId}:candle-light`,
+      new Vector3(options.retreatTorchMounts ? x - .12 : x, options.retreatTorchMounts ? 1.14 : 1.3, z), scene);
     light.diffuse = Color3.FromHexString('#ffd39a'); light.range = 4.1; light.metadata = { roomId };
     candleLights.push(light);
   }
@@ -506,8 +559,8 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition,
       const p = worldCell(item.cell.col, item.cell.row);
       // Bed frames and desk trims exceed a half-cell near the carved walls.
       // Inset the actual object, preserving its authoritative interaction cell.
-      const halfX=item.kind==='bed'?.71:item.kind==='desk'?.67:.38;
-      const inset=Math.max(0,halfX+.28-.75);
+      const halfX=item.kind==='bed'?.71:item.kind==='desk'||item.kind==='tools'?.67:.38;
+      const inset=Math.max(0,halfX+(options.retreatTorchMounts?.55:.28)-.75);
       if(!footprint.has(key(item.cell.col-1,item.cell.row)))p.x+=inset;
       if(!footprint.has(key(item.cell.col+1,item.cell.row)))p.x-=inset;
       const point = definition.camp!.interactionPoints.find(point => point.kind === 'bed' && point.objectCell?.col === room.objectCell.col && point.objectCell.row === room.objectCell.row)!;
@@ -578,7 +631,7 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition,
     }
     // Perimeter anchors use the cave footprint; the entrance neck is excluded.
     const cells=room.cells.filter(c=>c.row<11),x0=Math.min(...cells.map(c=>c.col))*1.5,x1=(Math.max(...cells.map(c=>c.col))+1)*1.5,z0=Math.min(...cells.map(c=>c.row))*1.5,z1=(Math.max(...cells.map(c=>c.row))+1)*1.5;
-    const rear=z0+.52,front=z1-.85;
+    const rear=z0+(options.retreatTorchMounts?.82:.52),front=z1-.85;
     if(room.role==='free'){
       shelfUnit('a1:free-linen-shelf',x1-2.25,rear,1.15,3);
       for(let i=0;i<4;i++)box('a1:free-folded-linen',x1-2.65+i*.26,.55+(i%2)*.5,rear+.08,.2,.17,.3,i%2?M.blue:M.linen);
@@ -621,7 +674,7 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition,
   shadow(statue.x,statue.z,2.1,1.8);
   for(let i=0;i<5;i++){const a=Math.PI*.12+i*Math.PI*.19,x=statue.x+Math.cos(a)*1.35,z=statue.z+Math.sin(a)*1.35;
     detail.bowl(new Vector3(x,.17,z),.15,M.brass);cylinder('a1:astalagan-votive',x,.3,z,.28,.12,M.linen,8);
-    const wick=flame('a1:statue-votive-flame',x,.48,z,.32);wick.metadata={...wick.metadata,independentLamp:true};
+    const wick=flame('a1:statue-votive-flame',x,options.retreatTorchMounts?.44:.48,z,.32);wick.metadata={...wick.metadata,independentLamp:true};
   }
   const votiveLight=new PointLight('a1:statue-votive-light',statue.add(new Vector3(0,.7,1.2)),scene);votiveLight.diffuse=Color3.FromHexString('#ffc98c');votiveLight.range=4.2;votiveLight.renderPriority=86;
   const wickParts=flameMeshes.filter(m=>m.metadata?.independentLamp);
@@ -695,10 +748,10 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition,
       gradient.addColorStop(0, center); gradient.addColorStop(1, edge); context.fillStyle = gradient; context.fillRect(0, 0, 64, 64); texture.update(); return texture;
     };
     const softParticle = particleTexture('a1:soft-particle-vfx', 'rgba(255,255,255,.95)', 'rgba(255,255,255,0)');
-    const smokeParticle = particleTexture('a1:smoke-particle-vfx', 'rgba(105,98,88,.55)', 'rgba(68,72,75,0)');
+    const smokeParticle = particleTexture('a1:smoke-particle-vfx', 'rgba(125,115,102,.62)', 'rgba(68,72,75,0)');
     const foamParticle = particleTexture('a1:foam-particle-vfx', 'rgba(255,255,255,1)', 'rgba(210,235,255,0)');
 
-    const smoke = new ParticleSystem('a1:fire-smoke-vfx', 72, scene); smoke.particleTexture = smokeParticle; smoke.emitter = new Vector3(fire.x, 1.05, fire.z); smoke.minEmitBox = new Vector3(-.22, 0, -.22); smoke.maxEmitBox = new Vector3(.22, .15, .22); smoke.color1 = new Color4(.42, .39, .35, .34); smoke.color2 = new Color4(.27, .3, .32, .22); smoke.colorDead = new Color4(.18, .2, .22, 0); smoke.minSize = .35; smoke.maxSize = 1.3; smoke.minLifeTime = 1.8; smoke.maxLifeTime = 3.8; smoke.emitRate = 12; smoke.direction1 = new Vector3(-.16, .7, -.08); smoke.direction2 = new Vector3(.22, 1.15, .15); smoke.gravity = new Vector3(.03, .055, 0); smoke.updateSpeed = .018; smoke.blendMode = ParticleSystem.BLENDMODE_STANDARD; smoke.start(); vfxSystems.push(smoke);
+    const smoke = new ParticleSystem('a1:fire-smoke-vfx', 88, scene); smoke.particleTexture = smokeParticle; smoke.emitter = new Vector3(fire.x, 1.05, fire.z); smoke.minEmitBox = new Vector3(-.22, 0, -.22); smoke.maxEmitBox = new Vector3(.22, .18, .22); smoke.color1 = new Color4(.48, .44, .39, .38); smoke.color2 = new Color4(.32, .35, .37, .24); smoke.colorDead = new Color4(.18, .2, .22, 0); smoke.minSize = .38; smoke.maxSize = 1.45; smoke.minLifeTime = 1.9; smoke.maxLifeTime = 4.1; smoke.emitRate = 14; smoke.minAngularSpeed = -.4; smoke.maxAngularSpeed = .4; smoke.direction1 = new Vector3(-.18, .75, -.10); smoke.direction2 = new Vector3(.24, 1.25, .16); smoke.gravity = new Vector3(.04, .065, 0); smoke.updateSpeed = .02; smoke.blendMode = ParticleSystem.BLENDMODE_STANDARD; smoke.start(); vfxSystems.push(smoke);
     const embers = new ParticleSystem('a1:fire-embers-vfx', 48, scene); embers.particleTexture = softParticle; embers.emitter = new Vector3(fire.x, .72, fire.z); embers.minEmitBox = new Vector3(-.3, 0, -.3); embers.maxEmitBox = new Vector3(.3, .2, .3); embers.color1 = new Color4(1, .54, .16, .9); embers.color2 = new Color4(1, .82, .35, .7); embers.colorDead = new Color4(.65, .16, .04, 0); embers.minSize = .025; embers.maxSize = .075; embers.minLifeTime = .65; embers.maxLifeTime = 1.7; embers.emitRate = 8; embers.direction1 = new Vector3(-.18, .55, -.12); embers.direction2 = new Vector3(.18, 1.25, .12); embers.gravity = new Vector3(.08, .1, 0); embers.updateSpeed = .022; embers.blendMode = ParticleSystem.BLENDMODE_ADD; embers.start(); vfxSystems.push(embers);
     const steam = new ParticleSystem('a1:kettle-steam-vfx', 24, scene); steam.particleTexture = softParticle; steam.emitter = new Vector3(tripodX, 1.05, fire.z); steam.minEmitBox = new Vector3(-.06, 0, -.06); steam.maxEmitBox = new Vector3(.06, .06, .06); steam.color1 = new Color4(1, 1, 1, .4); steam.color2 = new Color4(.88, .9, .92, .18); steam.colorDead = new Color4(.9, .9, .9, 0); steam.minSize = .06; steam.maxSize = .3; steam.minLifeTime = .8; steam.maxLifeTime = 1.6; steam.emitRate = 5; steam.direction1 = new Vector3(-.03, .35, -.03); steam.direction2 = new Vector3(.05, .6, .05); steam.updateSpeed = .016; steam.start(); vfxSystems.push(steam);
     const wind = new ParticleSystem('a1:coastal-wind-vfx', 96, scene); wind.particleTexture = softParticle; wind.emitter = new Vector3(36, 2.6, 16); wind.minEmitBox = new Vector3(-38, -.8, -14); wind.maxEmitBox = new Vector3(38, 4.8, 12); wind.color1 = new Color4(.78, .83, .78, .1); wind.color2 = new Color4(.72, .76, .7, .04); wind.colorDead = new Color4(.8, .85, .8, 0); wind.minSize = .015; wind.maxSize = .045; wind.minLifeTime = 4; wind.maxLifeTime = 8; wind.emitRate = 8; wind.direction1 = new Vector3(.65, -.02, .06); wind.direction2 = new Vector3(1.35, .08, .22); wind.updateSpeed = .02; wind.start(); vfxSystems.push(wind);
@@ -729,7 +782,7 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition,
   const lighting = createRestLighting(scene, definition.id);
   const coastFill = new PointLight('a1:coastal-rim-light', new Vector3(36, 9, 34), scene); coastFill.diffuse = Color3.FromHexString('#89aabc'); coastFill.specular = Color3.FromHexString('#718d9e'); coastFill.range = 64; coastFill.includedOnlyMeshes = [...ridge,...bedrockPartitions.flatMap(p=>p.meshes)];
   scene.getLightByName('terrain-ambient')?.setEnabled(false); for (const light of scene.lights) if (light.name.startsWith(`light:${definition.id}-`)) light.setEnabled(false);
-  const shadowCache=new CampShadows(scene,lighting.sun,typeof matchMedia==='function'&&matchMedia('(pointer: coarse), (max-width:850px)').matches),climate=createCampSurfaceEffects(scene,definition),life=createCampLife(scene,root,'a1',72,33);
+  const shadowCache=new CampShadows(scene,lighting.sun,typeof matchMedia==='function'&&matchMedia('(pointer: coarse), (max-width:850px)').matches,undefined,false,options.cullShadowCasters),climate=createCampSurfaceEffects(scene,definition),life=createCampLife(scene,root,'a1',72,33);
   if (typeof window !== 'undefined' && window.matchMedia('(pointer: fine) and (min-width: 851px)').matches) {
     const geometry = [...merged, ...ridge,...bedrockPartitions.flatMap(p=>p.meshes), ...litRoomSurfaces, ...walls.flatMap(wall => wall.meshes), ...facades.values(), ...roofs.values()].flat().filter((mesh, index, all) => all.indexOf(mesh) === index);
     for (const mesh of geometry) mesh.receiveShadows = true;
@@ -754,16 +807,21 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition,
     lighting.ambient.groundColor = Color3.FromHexString(dark > .7 ? '#1b3043' : '#625b4e');
     coastFill.intensity = .11 + dark * .34;
     backdrop.update(time,dark,seaState(environment,.35));
+    const actorMeshes=scene.meshes.filter(m=>m.metadata?.nativeBillboard);
     fireLights.forEach((light, index) => {
       const roomId = Number(light.metadata?.roomId ?? 0);
-      includeCampActors(light,m=>{const p=m.getAbsolutePosition(),r=A1_ROOMS.find(r=>r.cells.some(c=>c.col===Math.floor(p.x/1.5)&&c.row===Math.floor(p.z/1.5)));return roomId?r?.id===roomId:!r;},scene);
-      light.intensity = !lamps||(roomId && roomId !== activeRoom) ? 0 : (.78 + dark * 2.55 + Math.sin(time * 9.2 + index * 2.1) * .11 + Math.sin(time * 14.7 + index) * .045)*(roomId?1:fireLevel.flame);
+      includeCampActors(light,m=>{const p=m.getAbsolutePosition(),r=A1_ROOMS.find(r=>r.cells.some(c=>c.col===Math.floor(p.x/1.5)&&c.row===Math.floor(p.z/1.5)));return roomId?r?.id===roomId:!r;},scene,actorMeshes);
+      const level = roomId && options.retreatTorchMounts ? .65 + dark * 1.16 : .78 + dark * 2.55;
+      const flicker = roomId && options.retreatTorchMounts
+        ? torchMotion(time, roomId, Boolean(motionPreference?.matches)).pulse * 1.1
+        : Math.sin(time * 9.8 + index * 2.1) * .13 + Math.sin(time * 16.2 + index) * .055;
+      light.intensity = !lamps||(roomId && roomId !== activeRoom) ? 0 : (level + flicker)*(roomId?1:fireLevel.flame);
     });
-    includeCampActors(votiveLight,m=>Vector3.Distance(m.getAbsolutePosition(),statue)<4.2,scene);
+    includeCampActors(votiveLight,m=>Vector3.Distance(m.getAbsolutePosition(),statue)<4.2,scene,actorMeshes);
     votiveLight.intensity=votivesLit?.72+Math.sin(time*8)*.035:0;
     candleLights.forEach((light, index) => {
       const roomId = Number(light.metadata?.roomId ?? 0);
-      includeCampActors(light,m=>{const p=m.getAbsolutePosition(),r=A1_ROOMS.find(r=>r.cells.some(c=>c.col===Math.floor(p.x/1.5)&&c.row===Math.floor(p.z/1.5)));return roomId?r?.id===roomId:!r;},scene);
+      includeCampActors(light,m=>{const p=m.getAbsolutePosition(),r=A1_ROOMS.find(r=>r.cells.some(c=>c.col===Math.floor(p.x/1.5)&&c.row===Math.floor(p.z/1.5)));return roomId?r?.id===roomId:!r;},scene,actorMeshes);
       light.intensity = !lamps||roomId !== activeRoom ? 0 : .14 + dark * .44 + Math.sin(time * 7.1 + index) * .026;
     });
     flameMeshes.forEach((mesh, index) => {
@@ -774,10 +832,17 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition,
       // horizontal scale animated their spacing around it, making them dance
       // away from the candles. Keep X/Z fixed; only a tiny vertical flicker.
       if(mesh.metadata?.independentLamp){mesh.scaling.set(1,1+Math.sin(time*6.1)*.008,1);return;}
-      const pulse = 1 + Math.sin(time * 10.4 + phaseOffset) * .11 + Math.sin(time * 17.3 + index) * .035;
+      if (options.retreatTorchMounts && /:room-\d+:torch-flame$/.test(mesh.name)) {
+        const motion = torchMotion(time, roomId, Boolean(motionPreference?.matches));
+        mesh.scaling.set(baseX * motion.width, baseY * motion.height, baseZ * motion.width);
+        mesh.rotation.z = motion.sway;
+        return;
+      }
+      const pulse = 1 + Math.sin(time * 11.2 + phaseOffset) * .12 + Math.sin(time * 18.7 + index) * .04;
       mesh.scaling.x = baseX * pulse;
-      mesh.scaling.y = baseY * (1 + Math.sin(time * 8.2 + phaseOffset) * .16);
+      mesh.scaling.y = baseY * (1 + Math.sin(time * 8.8 + phaseOffset) * .18 + Math.sin(time * 15.3 + index) * .05);
       mesh.scaling.z = baseZ * (2 - pulse);
+      mesh.rotation.z = Math.sin(time * 6.2 + phaseOffset) * .06;
     });
     const materialLift = .04 + day * .065;
     for(const [roomId,meshes] of roomInteriors)for(const mesh of meshes)mesh.isVisible=roomId===activeRoom;
@@ -797,7 +862,10 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition,
       if(!lamps&&/fire-smoke|fire-embers|kettle-steam/.test(system.name)&&system.getActiveCount())system.reset();
     });
     scene.clearColor.set(.035 + day * .19, .065 + day * .26, .11 + day * .32, 1);
-    scene.fogMode = 2;scene.fogDensity=(climateState?.fogDensity??0)*.018;scene.fogColor=Color3.FromHexString(dark>.7?'#29404d':'#9caeab');
+    const fogDensity=climateState?.fogDensity??0;
+    scene.fogDensity=fogDensity*.018;scene.fogColor=Color3.FromHexString(dark>.7?'#29404d':'#9caeab');
+    if(options.updateFog)options.updateFog(fogDensity);
+    else scene.fogMode=2;
     const camera = scene.activeCamera;
     for (const [roomId, meshes] of facades) {
       const reveal = roomId === activeRoom ? 1 : -1;

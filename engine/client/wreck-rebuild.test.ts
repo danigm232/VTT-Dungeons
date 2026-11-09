@@ -1,14 +1,16 @@
 import { describe,it,expect,afterEach } from 'vitest';
-import { NullEngine,Scene } from '@babylonjs/core';
+import { DirectionalLight,Matrix,NullEngine,Scene,Vector3 } from '@babylonjs/core';
 import { buildTerrain3D } from './terrain3d.js';
 import { buildShipTorch,buildShipPropVisual } from './ship-props3d.js';
 import { WRECK_STRUCTURE as S,WRECK_CABINS,wreckListHeight,wreckBeamAt,wreckHullPlan,planArea } from '../shared/wreck-structure.js';
-import { wreckRuntimeScenes } from '../../campaigns/stormwreck-isle/public/wreck-runtime.js';
+import { wreckPorts, wreckRuntimeScenes } from '../../campaigns/stormwreck-isle/public/wreck-runtime.js';
 import { terrainTile,surfaceHeight } from '../shared/terrain.js';
 import type { PublicProp } from '../shared/protocol.js';
 import { buildHarpyNest,nestWalkDistance } from './wreck-nest.js';
 import { buildDragonRemains } from './wreck-dragon-bones.js';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
+import { Mesh } from '@babylonjs/core/Meshes/mesh.js';
+import { sliceWreckWaterline, wreckSideBreachEnd } from './wreck-water-contact.js';
 
 const engines:NullEngine[]=[];
 afterEach(()=>engines.splice(0).forEach(e=>e.dispose()));
@@ -31,15 +33,48 @@ describe('reconstrucción estructural del pecio',()=>{
   });
   it('cierra C8/C9, conserva la entrada y aplica acabados sin añadir luz artificial',()=>{
     const scene=makeScene(),view=buildTerrain3D(scene,terrain,{shipDeck:true,batchTiles:true});
-    for(const surface of ['lower-deck','hold-air'])expect(view.structures.some(m=>m.metadata?.kind==='interior-floor-closure'&&m.metadata.deckSurfaceId===surface)).toBe(true);
+    for(const surface of ['lower-deck','hold-air']){
+      const parts=view.structures.filter(m=>m.metadata?.deckSurfaceId===surface);
+      expect(parts.some(m=>m.metadata?.kind==='interior-floor-closure')).toBe(true);
+      expect(parts.some(m=>m.metadata?.kind==='interior-lining'&&m.metadata.cutSide===0)).toBe(true);
+      for(const side of [-1,1])expect(parts.some(m=>m.metadata?.kind==='interior-cut-grain'&&m.metadata.cutSide===side)).toBe(true);
+    }
     expect(view.structures.filter(m=>m.metadata?.kind==='stair-bottom').length).toBe(2);
     expect(view.deckDetails.some(m=>m.metadata?.kind==='stern-breach-reveal')).toBe(true);
+    expect(view.structures.some(m=>m.metadata?.kind==='grounding-endgrain')).toBe(true);
+    const skeletal=scene.getMeshByName('dragon-remains:distant-skeletons')!;
+    const p=skeletal.getVerticesData('position')!;
+    const cradle=skeletal.subMeshes[0]!,foremast=skeletal.subMeshes[1]!;
+    const entrance=wreckPorts.find(port=>port.id==='P16')!.to.cell;
+    const entranceZ=(entrance.row+.5)*S.tileMeters;
+    const positions=(start:number,count:number)=>Array.from({length:count},(_,i)=>p.slice((start+i)*3,(start+i+1)*3));
+    const support=positions(cradle.verticesStart,cradle.verticesCount);
+    expect(support.some(([x,y,z])=>Math.abs(x!-S.origin.x-wreckSideBreachEnd)<.4&&Math.abs(y!-S.seaHeight)<.36&&z!>entranceZ+3)).toBe(true);
+    expect(support.every(([,y,z])=>y!<0&&z!>entranceZ+2)).toBe(true);
+    expect(positions(foremast.verticesStart,foremast.verticesCount).every(([x])=>x!>S.origin.x+S.bowX)).toBe(true);
+    const reef=scene.getMeshByName('wreck:reef:impact-reef-stern')!,wash=scene.getMeshByName('reef-wash:impact-reef-stern')!;
+    if(!(reef instanceof Mesh))throw new Error('La prueba requiere la malla del arrecife.');
+    const contour=sliceWreckWaterline(reef).flat(),ribbon=wash.getVerticesData('position')!;
+    expect(contour.length).toBeGreaterThan(12);
+    for(let i=0;i<ribbon.length;i+=6){
+      expect(contour.some(({x,z})=>Math.hypot(x-ribbon[i]!,z-ribbon[i+2]!)<.027)).toBe(true);
+    }
     const finishes=scene.materials.filter(m=>m.name.startsWith('wreck-finish:')) as StandardMaterial[];
     expect(finishes.length).toBeGreaterThan(10);expect(finishes.every(m=>m.lightmapTexture&&m.useLightmapAsShadowmap&&m.emissiveColor.equalsFloats(0,0,0))).toBe(true);
     expect(scene.getMeshByName('terrain-batch:lower-deck:wet-wood')?.getVerticesData('uv2')).toBeTruthy();
     expect(view.deckDetails.filter(m=>m.metadata?.kind==='weather-decal').length).toBe(5);
     expect(scene.imageProcessingConfiguration.colorCurvesEnabled).toBe(true);
     expect(scene.lights.filter(l=>l.name.startsWith('light:')).every(l=>l.intensity===0)).toBe(true);
+    const sun=scene.getLightByName('ship-key-light') as DirectionalLight;
+    const reference=new DirectionalLight('reference-projection',sun.direction,scene);
+    const casters=view.structures.slice(0,12),actual=Matrix.Identity(),expected=Matrix.Identity();
+    for(const x of [20,20,27]){
+      const lightView=Matrix.LookAtLH(new Vector3(x,60,-15),Vector3.Zero(),Vector3.Up());
+      reference.setShadowProjectionMatrix(expected,lightView,casters);
+      sun.setShadowProjectionMatrix(actual,lightView,casters);
+      expect(actual.equals(expected)).toBe(true);
+    }
+    reference.dispose();
   });
   it('reduce proporciones sin cambiar la casilla y integra los camarotes bajo C2 y C3',()=>{
     expect(S.length).toBe(61.5);expect(S.tileMeters).toBe(1.5);

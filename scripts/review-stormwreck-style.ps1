@@ -1,7 +1,7 @@
 param([switch]$Build)
 $ErrorActionPreference='Stop'
 $reviewRoot=Split-Path -Parent $PSScriptRoot
-$reviewBuild='runtime/stormwreck-style-skull-20261102'
+$reviewBuild='runtime/stormwreck-zone-finish-20261105'
 $previousStyle=$env:DUNGEONS_STYLE_SAMPLE
 $previousServer=$env:DUNGEONS_SERVER_BUILD
 $previousWeb=$env:DUNGEONS_WEB_DIR
@@ -18,7 +18,7 @@ try {
  $env:DUNGEONS_SERVER_BUILD="$reviewBuild/server"
  $env:DUNGEONS_WEB_DIR=Join-Path $reviewRoot "$reviewBuild/web"
  $env:DUNGEONS_CAMPAIGN='stormwreck-isle'
- Write-Host 'Revision del acabado y craneo. Partida temporal, separada de tu mesa habitual.'
+ Write-Host 'Retiro y Pecio: acabado por zonas del 05/11/2026. Partida temporal de revision.'
  Write-Host 'Se mostraran los enlaces DM, jugador y proyector. Escribe quit para cerrar.'
  node scripts/review-session.mjs
 } finally {
