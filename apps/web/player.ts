@@ -644,20 +644,21 @@ socket.on('world:snapshot', (snapshot: WorldSnapshot) => {
   const previousCombatantId = lastSnapshot?.combat.currentId;
   const characterId = privateState?.characterId ?? null;
   const combatEndedNotice = combatWasActive && !snapshot.combat.active ? snapshot.combat.lastEvent?.text : undefined;
-  if (lastSnapshot && sceneTransitionKey(snapshot) !== sceneTransitionKey(lastSnapshot)) {
-    stop();
-    optimisticFacing = null;
-    clearCameraTouchContacts();
-    readyEpoch = -1;
-    sceneLoadRecovery.reset();
-    if (snapshot.sceneId !== lastSnapshot.sceneId) {
-      document.body.classList.add('scene-transitioning');
+  const isFirstSnapshot = !lastSnapshot;
+  const isSceneChange = Boolean(lastSnapshot && sceneTransitionKey(snapshot) !== sceneTransitionKey(lastSnapshot));
+  if (isFirstSnapshot || isSceneChange) {
+    if (isSceneChange) {
+      stop();
+      optimisticFacing = null;
+      clearCameraTouchContacts();
+      readyEpoch = -1;
+      sceneLoadRecovery.reset();
     }
-    if (characterId && characterId === lastSnapshotCharacterId) {
-      skillTransition.show(sceneTransitionKey(snapshot), snapshot.scene.title,
-        selectSkillActor(campaign, snapshot, lastSnapshot, characterId),
-        { dc: campaign.skillTransition?.dc, modifiers: privateState?.skillModifiers });
-    }
+    document.body.classList.add('scene-transitioning');
+    const targetCharacterId = characterId ?? localStorage.getItem(characterStorageKey) ?? campaign.roster[0]?.id;
+    skillTransition.show(sceneTransitionKey(snapshot), snapshot.scene.title,
+      selectSkillActor(campaign, snapshot, lastSnapshot ?? snapshot, targetCharacterId ?? ''),
+      { dc: campaign.skillTransition?.dc, modifiers: privateState?.skillModifiers });
   }
   lastSnapshot = snapshot;
   lastSnapshotCharacterId = characterId;
@@ -700,7 +701,7 @@ socket.on('player:private', (next: PlayerPrivate) => {
   if (previousCharacter !== next.characterId) optimisticFacing = null;
   if (!next.characterId) {
     stop();
-    skillTransition.reset();
+    if (previousCharacter) skillTransition.reset();
     backpack.reset();
     world.setLocalPlayer(null);
     world.setContextInteractionTarget(null);
@@ -711,6 +712,9 @@ socket.on('player:private', (next: PlayerPrivate) => {
     return;
   }
   localStorage.setItem(characterStorageKey, next.characterId);
+  if (skillTransition.open && lastSnapshot) {
+    skillTransition.updateActor(selectSkillActor(campaign, lastSnapshot, lastSnapshot, next.characterId));
+  }
   $('join').hidden = true;
   $('hud').hidden = false;
   initializeJoystick();

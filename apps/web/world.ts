@@ -292,7 +292,8 @@ export class WorldRenderer {
 
   constructor(private host: HTMLElement, private campaign: PublicCampaignDefinition, private options: WorldRendererOptions = {}) {
     this.options.gridStyle = normalizeGridStyle(this.options.gridStyle);
-    const screen = document.createElement('div');
+    if (this.options.cameraRole !== 'player') {
+      const screen = document.createElement('div');
     screen.className = 'world-loading-screen';
     screen.setAttribute('role', 'status');
     screen.setAttribute('aria-live', 'polite');
@@ -340,6 +341,7 @@ export class WorldRenderer {
     this.loadingContinueBtn = continueBtn;
     this.loadingHint = hint;
     this.loadingStatus = screen as any;
+    }
     this.ready = this.initialize();
     // El tamaño del canvas debe actualizarse después de que el navegador haya
     // terminado de resolver el grid/flex de las ventanas del DM. Hacerlo en el
@@ -674,7 +676,7 @@ export class WorldRenderer {
   resetConnection() { this.stopVisualPreview(); this.stopMirrorEffect(); this.areaEffects.clear(); this.retiringTokens.clear(); this.connectionGeneration++; this.requestGeneration++; this.accepted = { epoch: -1, revision: -1 }; this.lastCombatEventId = null; this.clearSharedCameraOrientations(); }
 
   showLoading(sceneTitle?: string, message = 'Preparando escenario…') {
-    if (!this.loadingScreen) return;
+    if (!this.loadingScreen || this.options.cameraRole === 'player') return;
     if (sceneTitle && this.loadingTitle) this.loadingTitle.textContent = sceneTitle;
     if (this.loadingMessage) this.loadingMessage.textContent = message;
     if (this.loadingBarFill) this.loadingBarFill.classList.remove('ready');
@@ -687,9 +689,13 @@ export class WorldRenderer {
     }
   }
   async waitForVisualsReadyAndContinue(): Promise<void> {
+    if (!this.loadingScreen || this.options.cameraRole === 'player') {
+      this.hideLoading();
+      return;
+    }
     if (this.loadingMessage) this.loadingMessage.textContent = '¡Escenario cargado y listo!';
     if (this.loadingBarFill) this.loadingBarFill.classList.add('ready');
-    if (!this.loadingScreen || !this.loadingContinueBtn || typeof window === 'undefined' || this.options.requireContinue === false || (window as any).__VITEST__) {
+    if (!this.loadingContinueBtn || typeof window === 'undefined' || this.options.requireContinue === false || (window as any).__VITEST__) {
       this.hideLoading();
       return;
     }
@@ -716,7 +722,7 @@ export class WorldRenderer {
     });
   }
   hideLoading() {
-    if (!this.loadingScreen) return;
+    if (!this.loadingScreen || this.options.cameraRole === 'player') return;
     this.loadingScreen.classList.add('world-loading-fade-out');
     if (typeof document !== 'undefined' && document.body) {
       document.body.classList.remove('scene-transitioning');
@@ -1356,6 +1362,7 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     
     this.restoreCameraOrientation(definition.id);
     if (definition.id === 'dragon-rest') {
+      if (this.terrainView?.camera) this.terrainView.camera.maxZ = 500;
       const retreatScene=this.terrainScene;
       try {
         const { createRetreatGlobalVisuals, conformRetreatGrid } = await import('../../campaigns/stormwreck-isle/public/retreat-global-visuals.js');
@@ -3066,6 +3073,8 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     // Prepare camera, painted actors, scenery and overlays on one animation tick.
     const nativeScene = this.d8Scene ?? this.terrainScene;
     if (nativeScene && this.terrainEngine) {
+      nativeScene.metadata = nativeScene.metadata ?? {};
+      nativeScene.metadata.characterPositions = this.snapshot?.entities?.map(e => this.interpolatedWorldPosition(e)) ?? [];
       this.terrainEngine.beginFrame(); nativeScene.render(); this.terrainEngine.endFrame();
     }
   }

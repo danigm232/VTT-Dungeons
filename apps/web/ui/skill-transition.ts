@@ -14,6 +14,7 @@ import { SkillD20 } from './skill-d20';
 import { skillRunningGround } from '../../../engine/client/skill-running-ground';
 import {drawSkillGroundShadow,drawSkillPropShadow,skillPropFootprints} from './skill-scene-shadows';
 import {perceptionGuest,withPerceptionVariant} from './skill-perception-variants';
+import { getSkillLore, type SkillLoreCategory } from './skill-lore';
 import './skill-transition.css';
 
 type Frame = ReturnType<SkillMicroScenePlayback['frame']>;
@@ -68,6 +69,9 @@ export class SkillTransitionScreen {
   private previousPaint = '';
   private startedAt = 0;
   private sound: ReturnType<typeof preparePerformanceSound>;
+  private loreCategory: SkillLoreCategory = 'habilidad';
+  private loreTimer = 0;
+  private readonly loreTabs: HTMLButtonElement[];
 
   constructor(private readonly loadImage: SkillImageLoader, private readonly options: { onContinue?: () => void; random?: () => number; reducedMotion?: () => boolean } = {}) {
     const template = document.createElement('template');
@@ -84,6 +88,13 @@ export class SkillTransitionScreen {
     this.runningGround.src = floorPlate;
     this.continueButton = get('#skillContinue'); this.ctx = get<HTMLCanvasElement>('canvas').getContext('2d');
     this.propSprites = new SkillPropSprites(loadImage);
+    this.loreTabs = Array.from(dialog.querySelectorAll<HTMLButtonElement>('.skill-lore-tab'));
+    for (const tab of this.loreTabs) {
+      tab.addEventListener('click', () => {
+        const cat = tab.dataset.category as SkillLoreCategory;
+        if (cat) this.setLoreCategory(cat, true);
+      });
+    }
     this.die.addEventListener('click', () => this.roll());
     this.continueButton.addEventListener('click', () => {
       if (this.continueButton.disabled) return;
@@ -91,10 +102,21 @@ export class SkillTransitionScreen {
       else this.reset();
     });
     dialog.addEventListener('cancel', event => event.preventDefault());
+    dialog.addEventListener('keydown', event => {
+      if ((event.key === 'Enter' || event.key === ' ') && !this.continueButton.disabled && this.dialog.open) {
+        event.preventDefault();
+        this.continueButton.click();
+      }
+    });
   }
 
   get open() { return this.dialog.open; }
   private get reduceMotion() { return this.options.reducedMotion?.() ?? this.reduced.matches; }
+
+  updateActor(actor: SkillActor | undefined) {
+    if (!this.active || !actor) return;
+    this.active.sprite = new SkillSceneSprite(actor, skillSceneRoles(this.active.playback.scene), this.loadImage);
+  }
 
   show(key: string, destination: string, actor: SkillActor | undefined,
     options: { dc?: number; modifiers?: Readonly<Record<string, number>>; scene?: SkillMicroScene; variant?:string } = {}) {
@@ -116,7 +138,9 @@ export class SkillTransitionScreen {
     this.title.textContent = scene.name;
     this.destination.textContent = destination;
     this.ability.textContent = `${skillAbilities[scene.ability]} · CD ${this.active.playback.dc}`;
-    this.description.textContent = scene.description;
+    this.loreCategory = 'habilidad';
+    this.updateLoreContent(scene.id, false);
+    this.startLoreRotation(scene.id);
     this.result.textContent = '';
     this.result.dataset.visible='false';
     this.result.removeAttribute('data-outcome');
@@ -128,6 +152,47 @@ export class SkillTransitionScreen {
     this.title.focus();
     cancelAnimationFrame(this.animation);
     this.tick(performance.now());
+  }
+
+  private updateLoreContent(skillId: string, animate = true) {
+    const lore = getSkillLore(skillId);
+    const text = lore[this.loreCategory];
+    for (const tab of this.loreTabs) {
+      const active = tab.dataset.category === this.loreCategory;
+      tab.classList.toggle('active', active);
+      tab.setAttribute('aria-selected', String(active));
+    }
+    if (animate) {
+      this.description.classList.add('fading');
+      window.setTimeout(() => {
+        this.description.textContent = text;
+        this.description.classList.remove('fading');
+      }, 150);
+    } else {
+      this.description.textContent = text;
+      this.description.classList.remove('fading');
+    }
+  }
+
+  setLoreCategory(category: SkillLoreCategory, userInitiated = false) {
+    if (!this.active) return;
+    this.loreCategory = category;
+    this.updateLoreContent(this.active.playback.scene.id, true);
+    if (userInitiated) {
+      this.startLoreRotation(this.active.playback.scene.id, 12000);
+    }
+  }
+
+  private startLoreRotation(skillId: string, delay = 6500) {
+    window.clearTimeout(this.loreTimer);
+    this.loreTimer = window.setTimeout(() => {
+      if (!this.active || this.active.playback.scene.id !== skillId || !this.dialog.open) return;
+      const order: SkillLoreCategory[] = ['habilidad', 'historia', 'monstruos'];
+      const currentIndex = order.indexOf(this.loreCategory);
+      const nextCategory = order[(currentIndex + 1) % order.length]!;
+      this.setLoreCategory(nextCategory, false);
+      this.startLoreRotation(skillId, 6500);
+    }, delay);
   }
 
   setLoading(message: string, key = this.active?.key) {
@@ -143,6 +208,7 @@ export class SkillTransitionScreen {
   }
 
   reset() {
+    window.clearTimeout(this.loreTimer);
     cancelAnimationFrame(this.animation);
     this.active = undefined;
     this.sound?.close(); this.sound = undefined;

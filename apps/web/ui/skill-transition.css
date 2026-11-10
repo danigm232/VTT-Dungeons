@@ -135,12 +135,55 @@ dialog.skill-transition {
 
 .skill-summary { top:70%; width:min(94%,58rem); text-shadow: 0 2px 8px #07191c, 0 2px 4px #07191c; }
 .skill-transition .skill-caption { color: #f2e4c7; font: italic 500 clamp(.95rem,3dvh,1.5rem)/1.18 Georgia, 'Times New Roman', serif; }
-.skill-summary .skill-rule { width: min(35vw, 14.7rem); margin:.35rem auto; }
+.skill-summary .skill-rule { width: min(35vw, 14.7rem); margin:.32rem auto .35rem; }
+.skill-lore-tabs {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.2rem auto 0.4rem;
+  pointer-events: auto;
+}
+.skill-lore-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 28px !important;
+  padding: 0.2rem 0.68rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(223, 181, 114, 0.32);
+  background: rgba(14, 34, 38, 0.72);
+  color: #d8cbb2;
+  font: 600 clamp(0.7rem, 1.7dvh, 0.79rem)/1.2 system-ui, sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.skill-lore-tab:hover {
+  background: rgba(30, 58, 62, 0.88);
+  color: #fff1cb;
+  border-color: rgba(245, 206, 139, 0.6);
+}
+.skill-lore-tab.active {
+  background: linear-gradient(180deg, #304e4c, #1a3233);
+  color: #fae4b5;
+  border-color: #e5bd83;
+  box-shadow: 0 0 10px rgba(229, 189, 131, 0.28);
+}
+.skill-lore-tab .skill-lore-icon {
+  font-size: 0.88em;
+}
 .skill-transition .skill-description {
   margin: 0 auto;
-  max-width: 64ch;
+  max-width: 66ch;
+  min-height: 3em;
   font: 480 clamp(.74rem, 1.8dvh, .91rem)/1.45 system-ui, sans-serif;
   color: #d8e3d9;
+  transition: opacity 0.22s ease-out;
+}
+.skill-transition .skill-description.fading {
+  opacity: 0;
 }
 .skill-next {
   pointer-events:none;

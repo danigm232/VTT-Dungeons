@@ -13,17 +13,19 @@ type Frame = Animations[string]['frames'][number];
 export type SkillActor = { asset: PublicCampaignDefinition['tokens'][string]; animations: Animations };
 export type SkillImageLoader = (url: string) => Promise<{ image: CanvasImageSource; width: number; height: number }>;
 
-export function selectSkillActor(campaign: PublicCampaignDefinition, current: WorldSnapshot, previous: WorldSnapshot, characterId: string): SkillActor | undefined {
-  const roster = campaign.roster.find(character => character.id === characterId);
-  const tokenId = current.entities.find(entity => entity.id === characterId)?.tokenId
-    ?? previous.entities.find(entity => entity.id === characterId)?.tokenId ?? roster?.tokenId
-    ?? current.entities.find(entity => entity.kind === 'player')?.tokenId;
+export function selectSkillActor(campaign: PublicCampaignDefinition, current: WorldSnapshot, previous: WorldSnapshot, characterId?: string): SkillActor | undefined {
+  const roster = characterId ? campaign.roster.find(character => character.id === characterId) : undefined;
+  const tokenId = (characterId ? (current.entities.find(entity => entity.id === characterId)?.tokenId
+    ?? previous.entities.find(entity => entity.id === characterId)?.tokenId ?? roster?.tokenId) : undefined)
+    ?? current.entities.find(entity => entity.kind === 'player')?.tokenId
+    ?? campaign.roster[0]?.tokenId
+    ?? Object.keys(campaign.tokens)[0];
   if (!tokenId) return undefined;
-  const source = current.tokenAssets.tokens[tokenId] ? current : previous;
-  const incoming = source.tokenAssets.tokens[tokenId], local = campaign.tokens[tokenId];
+  const source = current.tokenAssets?.tokens?.[tokenId] ? current : previous;
+  const incoming = source?.tokenAssets?.tokens?.[tokenId], local = campaign.tokens[tokenId];
   const asset = incoming ?? local;
   if (!asset) return undefined;
-  const supplied = source.tokenAssets.tokenAnimations[tokenId] ?? {};
+  const supplied = source?.tokenAssets?.tokenAnimations?.[tokenId] ?? {};
   const animations = !incoming ? campaign.tokenAnimations[tokenId] ?? supplied
     : incoming.url === local?.url ? mergeDirectionalArt(campaign.tokenAnimations[tokenId] ?? {}, supplied) : supplied;
   return { asset, animations };

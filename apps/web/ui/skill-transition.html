@@ -49,7 +49,18 @@
     <div class="skill-summary">
       <p id="skillCaption" class="skill-caption" aria-live="polite"></p>
       <span class="skill-rule" aria-hidden="true"><i></i></span>
-      <p id="skillDescription" class="skill-description"></p>
+      <div class="skill-lore-tabs" role="tablist" aria-label="Consejos y trasfondo">
+        <button type="button" class="skill-lore-tab active" data-category="habilidad" role="tab" aria-selected="true">
+          <span class="skill-lore-icon">⚔</span> <span class="skill-lore-label">Habilidad</span>
+        </button>
+        <button type="button" class="skill-lore-tab" data-category="historia" role="tab" aria-selected="false">
+          <span class="skill-lore-icon">📜</span> <span class="skill-lore-label">Historia</span>
+        </button>
+        <button type="button" class="skill-lore-tab" data-category="monstruos" role="tab" aria-selected="false">
+          <span class="skill-lore-icon">🐉</span> <span class="skill-lore-label">Monstruos</span>
+        </button>
+      </div>
+      <p id="skillDescription" class="skill-description" aria-live="polite"></p>
     </div>
     <footer class="skill-next"><small id="skillStatus" role="status"></small><button id="skillContinue" type="button" disabled>Continuar <span aria-hidden="true">›</span></button></footer>
   </div>
