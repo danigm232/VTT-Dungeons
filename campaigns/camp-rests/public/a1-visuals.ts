@@ -35,7 +35,7 @@ const key = (col: number, row: number) => `${col},${row}`;
 
 /** CANON: six unequal excavated cave cells carved into a continuous mountain cliff, an elongated plaza,
  * the Astalagan statue, four beds and eight hammocks. Surface dressing is VTT_AMBIENCE. */
-export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition,options:{pauseInvisibleSea?:boolean;courtyardSpread?:boolean;retreatTorchMounts?:boolean;cullShadowCasters?:boolean;updateFog?:(density:number)=>void}={}): CampVisuals {
+export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition,options:{pauseInvisibleSea?:boolean;omitCellRoofs?:boolean;courtyardSpread?:boolean;retreatTorchMounts?:boolean;cullShadowCasters?:boolean;updateFog?:(density:number)=>void}={}): CampVisuals {
   const root = new TransformNode(`camp-visuals:${definition.id}`, scene);
   const motionPreference = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
   scene.imageProcessingConfiguration.exposure = 1.18;
@@ -473,12 +473,14 @@ export function createA1Visuals(scene: Scene, definition: PublicSceneDefinition,
     boundary.forEach(([x,y,z],i)=>{skirtPositions.push(x,y,z,x,-.33,z);skirtUV.push(i*.3,1,i*.3,0);const n=i*2,next=((i+1)%boundary.length)*2;skirtIndices.push(n,n+1,next,next,n+1,next+1);});
     VertexData.ComputeNormals(skirtPositions,skirtIndices,skirtNormals);
     const roofSkirt=new Mesh('a1:cave-roof-seal',scene),roofSkirtData=new VertexData();Object.assign(roofSkirtData,{positions:skirtPositions,indices:skirtIndices,normals:skirtNormals,uvs:skirtUV});roofSkirtData.applyToMesh(roofSkirt);add(roofSkirt,new Vector3(roofCenterX,3.3,roofCenterZ),M.cliff);worldSurfaceUV(roofSkirt,3.2);
+    if (!options.omitCellRoofs) {
     for (let outcrop = 0; outcrop < 6; outcrop++) {
       const angle = room.id * 1.7 + outcrop * 2.1;
       const oz=Math.cos(angle)*roofDepth*.3,ox=Math.sin(angle)*roofWidth*.28;
       organicBoulder(`a1:room-${room.id}:roof-outcrop`,roofCenterX+ox,3.65+(roofDepth*.5-oz)/roofDepth*2.3,roofCenterZ+oz,2.6+(outcrop%2)*1.2,.95+outcrop*.08,1.9+((room.id+outcrop)%2)*.8,room.id*151+outcrop,M.cliff);
       const plantY=3.5+(roofDepth*.5-oz)/roofDepth*2.3;
       for(let side=0;side<3;side++)plantCard(roofCenterX+ox+.5,plantY+.3,roofCenterZ+oz,1.2,.8,outcrop%4,room.id+side*Math.PI/3,0,foliageSage);
+    }
     }
     roofs.set(room.id, mergeDecoration(scene, root, roofParts, `a1:room-${room.id}:mountain-roof`));
     bucket = previousBucket;

@@ -1263,6 +1263,7 @@ export function installRetreatBeachPresentation(
     lanternLight.specular = Color3.FromHexString('#663d19');
     lanternLight.range = 8.5;
     lanternLight.intensity = 0.0;
+    lanternLight.setEnabled(false);
     addedLights.push(lanternLight);
     stats.lanternInstalled = true;
   }
@@ -2123,6 +2124,7 @@ export function installRetreatBeachPresentation(
         trailLanternLight.diffuse = Color3.FromHexString('#ff9e42');
         trailLanternLight.range = 9.0;
         trailLanternLight.intensity = 0.0;
+        trailLanternLight.setEnabled(false);
         addedLights.push(trailLanternLight);
       }
     }
@@ -2306,17 +2308,37 @@ export function installRetreatBeachPresentation(
     if (plazaFireMesh) {
       plazaFireMesh.visibility = 1.0;
     }
+    if (lanternLight && !lanternLight.isDisposed()) {
+      lanternLight.intensity = isNight ? 1.05 + Math.sin(time * 6.2) * 0.05 : 0.0;
+      lanternLight.setEnabled(lanternLight.intensity > 0.01);
+    }
+    for (const l of addedLights) {
+      if (!l.isDisposed() && l !== lanternLight) {
+        l.intensity = isNight ? 0.95 + Math.sin(time * 5.7) * 0.04 : 0.0;
+        l.setEnabled(l.intensity > 0.01);
+      }
+    }
     const plazaFireLight = scene.getLightByName('a1:plaza-fire-light') as PointLight | null;
-    if (plazaFireLight && !isNight) {
-      plazaFireLight.intensity = 0.92 + Math.sin(time * 9.2) * 0.08;
+    if (plazaFireLight) {
+      if (!isNight) {
+        plazaFireLight.intensity = 0.92 + Math.sin(time * 9.2) * 0.08;
+        plazaFireLight.setEnabled(true);
+      } else {
+        plazaFireLight.setEnabled(plazaFireLight.intensity > 0.01);
+      }
     }
     const votiveFlameMesh = scene.getMeshByName('a1:statue-votive-flame');
     if (votiveFlameMesh) {
       votiveFlameMesh.visibility = 1.0;
     }
     const votiveLight = scene.getLightByName('a1:statue-votive-light') as PointLight | null;
-    if (votiveLight && !isNight) {
-      votiveLight.intensity = 0.48 + Math.sin(time * 7.5) * 0.03;
+    if (votiveLight) {
+      if (!isNight) {
+        votiveLight.intensity = 0.48 + Math.sin(time * 7.5) * 0.03;
+        votiveLight.setEnabled(true);
+      } else {
+        votiveLight.setEnabled(votiveLight.intensity > 0.01);
+      }
     }
     if (activeRoomId >= 1 && activeRoomId <= 6) {
       const torchFlame = scene.getMeshByName(`a1:room-${activeRoomId}:torch-flame`);
@@ -2326,10 +2348,12 @@ export function installRetreatBeachPresentation(
       const torchLight = scene.getLightByName(`a1:room-${activeRoomId}:torch-light`) as PointLight | null;
       if (torchLight && !isNight) {
         torchLight.intensity = 1.18 + Math.sin(time * 8.4 + activeRoomId) * 0.08;
+        torchLight.setEnabled(true);
       }
       const candleLight = scene.getLightByName(`a1:room-${activeRoomId}:candle-light`) as PointLight | null;
       if (candleLight && !isNight) {
         candleLight.intensity = 0.52 + Math.sin(time * 6.8 + activeRoomId) * 0.03;
+        candleLight.setEnabled(true);
       }
     }
 

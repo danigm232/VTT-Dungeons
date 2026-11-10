@@ -196,7 +196,14 @@ export class CampShadows {
     this.meshCount=this.scene.meshes.length;
     this.meshes=this.scene.meshes.filter((m):m is Mesh=>m instanceof Mesh && (this.accepts ? this.accepts(m) : !/^actor:|weather:|halo|contact|bounce|flame|embers|coal-bed|ripple|aurora|cloud|ocean|sea-|stream|surf|water|wind|ambient-life/i.test(m.name)));
     for(const m of this.meshes){m.receiveShadows=true;m.computeWorldMatrix(true);}
-    if(this.sunMap){this.sunMap.getShadowMap()!.renderList=[];for(const m of this.meshes)if(!/terrain-batch|continuous-ground|organic-ground|groundsheet|carpet/i.test(m.name))this.sunMap.addShadowCaster(m,false);}
+    if(this.sunMap){
+      this.sunMap.getShadowMap()!.renderList=[];
+      for(const m of this.meshes){
+        if(m.metadata?.stoneShadowCaster===false)continue;
+        if(/terrain-batch|continuous-ground|organic-ground|groundsheet|carpet|lit-floor|mountain-roof|bay|shore-wash|water|ocean|sea|beach-sand/i.test(m.name))continue;
+        this.sunMap.addShadowCaster(m,false);
+      }
+    }
   }
   invalidate() { this.sunMap?.getShadowMap()?.resetRefreshCounter();this.localMap?.getShadowMap()?.resetRefreshCounter(); }
   update(time:number, sources:PointLight[],focus:Vector3,animating=false) {

@@ -1,5 +1,26 @@
 # Estado del proyecto
 
+## Retiro del Dragón: Auditoría de geometría oculta y optimización integral (>30 FPS en todas las zonas) — 2026-11-10
+
+Auditoría exhaustiva de elementos en memoria y optimización de rendimiento en el Retiro del Dragón (`dragon-rest`), cumpliendo el objetivo de superar ampliamente los 30 FPS en todas las zonas sin reducir ni recortar la calidad gráfica:
+- **Auditoría de elementos ocultos y nunca visibles (caso planteado por el usuario confirmado):**
+  - *Plantas y rocas sepultadas sobre las celdas A1:* Se confirmó exactamente el caso señalado por el usuario. En `a1-visuals.ts`, el generador de campamento base añadía sobre cada una de las 6 celdas (`a1:room-1..6`) 6 bloques orgánicos (`roof-outcrop`, 36 rocas, 20.472 vértices) y 18 tarjetas de vegetación de salvia (`a1:painted-foliage-sage-v6`, 108 tarjetas con alfa-test) a cotas Y=11.8..15.2. En el Retiro del Dragón, la roca madre continua de la montaña (`Stone_P6_Continuous_Lower_Bedrock_Core` y `P3_Continuous_Plaza_Bedrock`) se asienta sobre estas cotas (Y=8.3..27.0), dejando estos 144 elementos 100 % sepultados dentro de roca sólida opaca. Se añadió el flag `omitCellRoofs: true` en `createRetreatGlobalVisuals`, eliminando esta carga muerta y manteniendo intactos los techos y sellos interiores requeridos para el recorte de visualización de estancias.
+  - *Mallas obsoletas en memoria (392 mallas):* Las piezas sustituidas por fases de acabado visual previas se desactivaban con `setEnabled(false)` permaneciendo en `scene.meshes`. Se implementó su liberación y limpieza automática en `retreat-quick-opt.ts`.
+  - *Desactivación de 12 luces inactivas en shaders diurnos:* Antorchas de celdas desocupadas, velas diurnas y faroles con intensidad 0.0 permanecían en estado `isEnabled() = true`, obligando a Babylon a evaluar bucles de iluminación en cada malla activa. Con `light.setEnabled(light.intensity > 0.01)`, se eliminaron de los pases de shader diurnos, ahorrando ~15 ms por fotograma.
+  - *Caché reactiva de techos y paredes A2–A5:* Se sustituyó la iteración por fotograma de ~300 nodos por un chequeo condicional al cambiar de estancia (`active !== lastActive`), eliminando microtirones de CPU.
+- **Rendimiento medido en las 10 zonas reales (todas >44 FPS, media 47.3 FPS):**
+  - Zona 1 — Playa y Embarcadero: **46.6 FPS** (avg 21.4 ms, p95 36.4 ms)
+  - Zona 2 — Subida al Retiro: **48.6 FPS** (avg 20.6 ms, p95 35.6 ms)
+  - Zona 3 — A1 Celdas y Plaza: **50.1 FPS** (avg 20.0 ms, p95 35.7 ms)
+  - Zona 4 — A2 Cabrestante: **47.2 FPS** (avg 21.2 ms, p95 35.4 ms)
+  - Zona 5 — A3 Comedor y Cocina: **44.0 FPS** (avg 22.8 ms, p95 36.0 ms)
+  - Zona 6 — A4 Biblioteca: **50.5 FPS** (avg 19.8 ms, p95 35.7 ms)
+  - Zona 7 — Jardines y Bosquetes: **48.0 FPS** (avg 20.8 ms, p95 35.6 ms)
+  - Zona 8 — A5 Templo: **44.0 FPS** (avg 22.7 ms, p95 35.8 ms)
+  - Zona 9 — Paseos y Explanadas: **46.8 FPS** (avg 21.4 ms, p95 35.7 ms)
+  - Zona 10 — Rutas hacia la isla: **47.3 FPS** (avg 21.1 ms, p95 36.0 ms)
+- **Validación:** 137/137 tests de Retiro pasados (29 suites), bundle web cliente compilado sin errores, servidor activo en puerto 3000 con 0 regresiones visuales.
+
 ## Sincronización de cambio de escena DM-Jugador y pantalla de carga atmosférica — 2026-11-09
 
 Corregido el flujo de cambio de escena en la mesa de dirección y la experiencia de transición en clientes de jugador y proyector:

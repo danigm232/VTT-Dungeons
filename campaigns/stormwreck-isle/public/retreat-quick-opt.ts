@@ -52,12 +52,13 @@ export function indexRetreatView(scene:Scene){
   let count=0;
   for(let i=0;i<candidates.length;i++){
    const mesh=candidates.data[i]!;
+   if(!mesh.isEnabled()||!mesh.isVisible||mesh.visibility<=0)continue;
    const source=mesh as Mesh,sector=owners.get(source);
    if(!sector||!mesh.isWorldMatrixFrozen||mesh.alwaysSelectAsActiveMesh||mesh.actionManager||source.hasInstances||source.hasThinInstances){
     visible[count++]=mesh;
     continue;
    }
-   if(sector.visible&&mesh.isVisible&&mesh.visibility>0&&mesh.isEnabled())visible[count++]=mesh;
+   if(sector.visible)visible[count++]=mesh;
   }
   visible.length=count;
   result.length=count;
@@ -83,7 +84,7 @@ export function releaseReplacedRetreatBackdrops(scene:Scene,owned:Mesh[]){
  // R3 replaces these complete visual owners. Release their GPU/CPU geometry
  // only after the new trees exist; keep all files and any live fallback.
  if(scene.meshes.some(m=>m.isEnabled()&&m.name.startsWith('R3_Tree_')&&m.metadata?.retreatVisualRevision===6)){
-  const retired=scene.meshes.filter(m=>/^(P5_Refined_Existing_Pine_|G2_Forest_Reused_Pine_|SAL2_Reused_Pine_|SAL2R_Grove_Pine_|V2_Garden_)/.test(m.name)&&!m.isEnabled()&&m.getTotalVertices()>0).sort((a,b)=>Number(b instanceof InstancedMesh)-Number(a instanceof InstancedMesh));
+  const retired=scene.meshes.filter(m=>/^(P5_Refined_Existing_Pine_|G2_Forest_Reused_Pine_|SAL2_Reused_Pine_|SAL2R_Grove_Pine_|V2_Garden_|VTT_Forest_Quiet_Pine_|CANON_Chain_Link_|Finish_A5_(Abacus_Bearing|Timber_Seat)_|G2_Path_island-|R2_Pleamar_Low_Soil_Shoulder|SAL4_Scenic_Low_Cove_Continuation|a1:static:|a1:ridge:continuation|a1:room-\d+:mountain-roof)/.test(m.name)&&!m.isEnabled()&&m.getTotalVertices()>0).sort((a,b)=>Number(b instanceof InstancedMesh)-Number(a instanceof InstancedMesh));
   for(const mesh of retired){
    if(mesh.getChildMeshes(false).length||mesh instanceof Mesh&&mesh.instances.length)continue;
    const geometry=mesh instanceof Mesh?mesh.geometry:null,shared=geometry?.meshes.some(m=>m!==mesh&&!m.isDisposed()),bytes=shared?0:Object.values(geometry?.getVertexBuffers()??{}).reduce((n,b)=>{const d=b.getData();return n+(Array.isArray(d)?d.length*4:d?.byteLength??0);},0)+(geometry?.getIndices()?.length??0)*4;

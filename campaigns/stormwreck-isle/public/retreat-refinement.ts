@@ -162,7 +162,7 @@ export async function installRetreatRefinement(scene:Scene,requested=manifest.av
  if(phase>=8)for(const m of scene.meshes){
   if(m.infiniteDistance||!m.isEnabled()||!m.getTotalVertices()||m.metadata?.retreatDynamic||/bay|shore-wash|weather:|actor:|flame|glow|mist|smoke|ambient-life/.test(m.name))continue;
   let dynamic=false;for(let n:any=m;n;n=n.parent){const e=extras(n);if(/door|pallet|chain|lift/.test(e.role??'')||/Pallet|Chain|Winch_Crank|Hinged/.test(n.name)){dynamic=true;break;}}
-  if(!dynamic&&(m.metadata?.retreatZone||m.metadata?.refinementPhase||m.name.startsWith('a1:static:'))){m.freezeWorldMatrix();frozen++;}
+  if(!dynamic&&(m.metadata?.retreatZone||m.metadata?.refinementPhase||m.metadata?.retreatVisualRevision||m.metadata?.permanentBackdrop||m.metadata?.decorativeOnly||m.metadata?.content==='VTT_AMBIENCE'||/^(a1:|R3_|Stone_|Finish_|Scenic_|beach-|jetty-|P\d_)/.test(m.name))){m.freezeWorldMatrix();frozen++;}
  }
  // Static vegetation, floors and ropes have no cutaway state. O1 restores its
  // own changes before this update; only architectural candidates need a pass.

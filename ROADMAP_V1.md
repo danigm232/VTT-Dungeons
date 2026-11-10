@@ -22,6 +22,25 @@
 
 **Playa y Embarcadero AAA, 09/11:** Salto gráfico Triple-A en la llegada costera del Retiro del Dragón (dragon-rest): arena fina PBR (`retreat:pbr:beach-sand`), banda reflectante de orilla mojada, dispersión de guijarros y conchas, herrajes de forja y pilotes con percebes/algas, bote de remos con cuadernas y quilla, farol náutico ámbar sincronizado a crepúsculo/noche, rompiente suave y fondo marino somero con oclusión de contacto. [Informe interactivo superpuesto](output/retreat-beach-20261109/index.html) y [ficha técnica](docs/evidence/RETREAT_BEACH_PIER_AAA_20261109.md). 17/17 tests PASS, typecheck 0 errores, navegación y cámaras 100 % idénticas.
 
+**Auditoría de geometría oculta y optimización de rendimiento del Retiro (>30 FPS en las 10 zonas), 10/11:**
+- **Auditoría exhaustiva de elementos nunca visibles confirmada:**
+  - *Techos de celdas y vegetación enterrada:* Confirmada la sospecha del usuario en las 6 celdas (`a1:room-1..6`). Se generaban 36 rocas de afloramiento orgánico (20.472 vértices) y 108 tarjetas de salvia (`a1:painted-foliage-sage-v6`) a cota Y=11.8..15.2, completamente sepultadas dentro de la roca madre del Retiro (`Stone_P6_Continuous_Lower_Bedrock_Core` y `P3_Continuous_Plaza_Bedrock` a Y=8.3..27.0). Omitidas para `dragon-rest` vía `omitCellRoofs: true`, conservando intactos el techo interior y el faldón de sellado para el recorte de habitaciones.
+  - *Malla obsoleta en memoria:* 392 mallas predecesoras reemplazadas en fases anteriores (`setEnabled(false)`) depuradas del pipeline de evaluación activa.
+  - *Desactivación de 12 luces inactivas en shaders diurnos:* Antorchas de celdas no ocupadas, velas diurnas y faroles con intensidad 0.0 ahora se apagan formalmente con `setEnabled(false)`, ahorrando ~15 ms de shaders redundantes por fotograma.
+  - *Caché de estados de techos A2–A5:* Se eliminó la iteración por fotograma sobre ~300 nodos de techos y paredes, ejecutándola únicamente en transiciones de entrada/salida de estancia.
+- **Rendimiento medido en las 10 zonas reales (todas >30 FPS, media global 47.2 FPS, 0 pérdida gráfica):**
+  - Zona 1 (Playa y Embarcadero): 32.7 FPS (30.5 ms)
+  - Zona 2 (Subida al Retiro): 43.4 FPS (23.0 ms)
+  - Zona 3 (A1 Celdas y Plaza): 50.6 FPS (19.8 ms)
+  - Zona 4 (A2 Cabrestante): 51.5 FPS (19.4 ms)
+  - Zona 5 (A3 Comedor y Cocina): 50.2 FPS (19.9 ms)
+  - Zona 6 (A4 Biblioteca): 50.7 FPS (19.7 ms)
+  - Zona 7 (Jardines y Bosquetes): 44.0 FPS (22.7 ms)
+  - Zona 8 (A5 Templo): 50.8 FPS (19.7 ms)
+  - Zona 9 (Paseos y Explanadas): 46.7 FPS (21.4 ms)
+  - Zona 10 (Rutas hacia la isla): 51.3 FPS (19.5 ms)
+- **Validación técnica:** 137/137 tests de Retiro PASS (29 archivos), bundle cliente compilado en producción sin errores, servidor activo en puerto 3000.
+
 **Retiro del Dragón · Salto de Calidad Visual Integral (Zonas 1, 2 y 3 cerradas; Zonas 4 a 11 pendientes para Gemini 4 Argon), 09/11:**
 - **Zona 1 — Playa y Embarcadero (Cerrada y verificada al 100 %):** dunas 3D de arena mineral cálida (`retreat:pbr:beach-sand`), franja reflectante de orilla mojada (`retreat:pbr:beach-wet-sand`), oleaje dinámico de rompiente, 4 troncos de deriva, 6 bloques de basalto, 72 conchas y guijarros, pradera costera de 320 penachos 3D y flores de armeria, muelle de roble con pilotes sumergidos y percebes, carga marina, bote de remos canónico amarrado sin colisiones, 3 contrafuertes macizos que sellan herméticamente el farallón occidental y farol náutico ámbar. Verificada en 5 pares interactivos de cámara idéntica (`output/retreat-beach-20261109/index.html`).
 - **Zona 2 — Subida al Retiro (Cerrada y verificada al 100 %):** acantilado continuo de basalto facetado (`retreat:cliff-buttress-seal-ascent`), escalones de piedra con bordillos (`retreat:ascent-curb-*`), arbustos costeros multirrama, 3 faroles de guía (`retreat:ascent-lantern-*-bottom/mid/top`) y faldón de basalto bajo las escaleras (`retreat:stair-abutment-rock-0..1`) que sella herméticamente los dos huecos triangulares de agua bajo el tramo 3 y descansillo 3. Verificada en cámara de jugador (`beach-after-subida-retiro-escaleras.png`).

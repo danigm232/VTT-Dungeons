@@ -67,7 +67,7 @@ export function createRetreatGlobalVisuals(scene:Scene,options:{refinementPhase?
  const beforeLights=new Set(scene.lights),beforeParticles=new Set(scene.particleSystems);
  const definition=campRestsPublicCampaign.scenes.find(s=>s.id==='camp-a1-rooms')!;
  const base=createA1Visuals(scene,definition,{
-  pauseInvisibleSea:true,courtyardSpread:revisionStage>=6,retreatTorchMounts:revisionStage>=6,cullShadowCasters:true,
+  pauseInvisibleSea:true,omitCellRoofs:true,courtyardSpread:revisionStage>=6,retreatTorchMounts:revisionStage>=6,cullShadowCasters:true,
   updateFog:density=>{
    // Assign the final mode once. Switching exponential → linear every
    // rainy frame invalidates the scene's material defines twice.
@@ -180,6 +180,7 @@ export function createRetreatGlobalVisuals(scene:Scene,options:{refinementPhase?
   const y=Math.max(...(hits??[]).filter(h=>h.hit&&h.pickedPoint).map(h=>h.pickedPoint!.y));const result=Number.isFinite(y)?y+.055:p.y+.055;if(heightCache.size>4096)heightCache.clear();heightCache.set(cacheKey,result);return result;
  };
  const stablePropOpacity=new WeakSet<AbstractMesh>();
+  let lastActive: string | null | undefined = undefined;
  const restorePropOpacity=(mesh:AbstractMesh)=>{
   if(!originalVisibility.has(mesh))originalVisibility.set(mesh,mesh.visibility);
   stablePropOpacity.add(mesh);
@@ -216,9 +217,12 @@ export function createRetreatGlobalVisuals(scene:Scene,options:{refinementPhase?
   const active=candidate&&(!focusSurfaceId||focusSurfaceId===candidate)?candidate:null;
   // Canonical roofs read in exterior views and lift automatically when their
   // space is occupied. This presentation choice never removes a collider.
-   for(const roof of roofs){const exterior=roof.metadata?.retreatRoofZone!==active;roof.setEnabled(exterior);for(const mesh of authoredChildren(roof)){mesh.isVisible=exterior;mesh.visibility=exterior?1:0;}}
-   for(const wall of walls){wall.setEnabled(true);if(wall instanceof AbstractMesh)wall.isVisible=true;for(const mesh of authoredChildren(wall))mesh.isVisible=true;}
-   for(const {node,owner} of fixtures){const show=owner.isEnabled()&&(!(owner instanceof Mesh)||owner.isVisible);node.setEnabled(show);if(node instanceof Mesh)node.isVisible=show;for(const mesh of authoredChildren(node))mesh.isVisible=show;}
+   if(active !== lastActive){
+    lastActive = active;
+    for(const roof of roofs){const exterior=roof.metadata?.retreatRoofZone!==active;roof.setEnabled(exterior);for(const mesh of authoredChildren(roof)){mesh.isVisible=exterior;mesh.visibility=exterior?1:0;}}
+    for(const wall of walls){wall.setEnabled(true);if(wall instanceof AbstractMesh)wall.isVisible=true;for(const mesh of authoredChildren(wall))mesh.isVisible=true;}
+    for(const {node,owner} of fixtures){const show=owner.isEnabled()&&(!(owner instanceof Mesh)||owner.isVisible);node.setEnabled(show);if(node instanceof Mesh)node.isVisible=show;for(const mesh of authoredChildren(node))mesh.isVisible=show;}
+   }
   // Furniture keeps its physical collision footprint. Only the piece in front of
   // the current character fades; this affects presentation, never movement.
   for(const node of props){
