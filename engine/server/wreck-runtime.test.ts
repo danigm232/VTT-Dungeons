@@ -728,6 +728,7 @@ describe('M4 · secuencia del Pecio', () => {
     expect(Math.abs(boarding.from.cell.col - rowboat.cell.col) + Math.abs(boarding.from.cell.row - rowboat.cell.row)).toBe(1);
     Object.assign(mike, { sceneId: outward.from.mapId, surfaceId: outward.from.surfaceId, cell: { ...outward.from.cell } });
     expect(state.traversePort('mike', outward.id, 'forward', true)).toBe('MOVED');
+    if (mike.step) finishStep(state);
     expect(state.progress['wreck.boat-arrived']).toBe(true);
     expect(mike).toMatchObject({ sceneId: 'wreck-ship', surfaceId: 'sea' });
     expect(mike.cell).toEqual(rowboat.cell);
@@ -756,6 +757,7 @@ describe('M4 · secuencia del Pecio', () => {
     const arrival = (stormwreckBundle.ports ?? []).find(port => port.id === 'travel-pecio-boat')!;
     Object.assign(swimmerActor, { sceneId: arrival.from.mapId, surfaceId: arrival.from.surfaceId, cell: { ...arrival.from.cell } });
     expect(swimmer.traversePort('mike', arrival.id, 'forward', true)).toBe('MOVED');
+    if (swimmerActor.step) finishStep(swimmer);
     const breachEntry = wreckPorts.find(port => port.id === 'P16')!.from;
     const sternApproach = { col: breachEntry.cell.col - 1, row: breachEntry.cell.row };
     expect(swimmerActor.cell).toEqual(rowboat.cell);

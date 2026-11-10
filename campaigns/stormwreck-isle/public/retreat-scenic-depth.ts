@@ -6,6 +6,7 @@ import {StandardMaterial} from '@babylonjs/core/Materials/standardMaterial.js';
 import {Color3} from '@babylonjs/core/Maths/math.color.js';
 import {Vector3} from '@babylonjs/core/Maths/math.vector.js';
 import type {ArcRotateCamera} from '@babylonjs/core/Cameras/arcRotateCamera.js';
+import {organicStone} from '../../../engine/client/diorama-kit.js';
 
 /**
  * Presentation membership for the existing scene, three foreground rocks and four
@@ -52,8 +53,8 @@ export function installRetreatScenicDepth(scene: Scene): ScenicDepthController {
 
   // Material silueta distante (atmósfera / perspectiva aérea)
   const distantMat = new StandardMaterial('scenic:distant-cliffs', scene);
-  distantMat.diffuseColor = new Color3(0.42, 0.49, 0.54);
-  distantMat.emissiveColor = new Color3(0.22, 0.27, 0.31);
+  distantMat.diffuseColor = new Color3(0.40, 0.47, 0.53);
+  distantMat.emissiveColor = new Color3(0.18, 0.23, 0.28);
   distantMat.specularColor = Color3.Black();
 
   let foregroundMat: StandardMaterial | null = null;
@@ -71,12 +72,13 @@ export function installRetreatScenicDepth(scene: Scene): ScenicDepthController {
     for(const rock of importedForeground){rock.isPickable=false;rock.checkCollisions=false;rock.receiveShadows=true;rock.metadata={...rock.metadata,tokenOccluder:true,scenicLayer:1,content:'VTT_AMBIENCE'};foregroundMeshes.push(rock);}
   }else{
   foregroundMat = new StandardMaterial('scenic:foreground-framing', scene);
-  foregroundMat.diffuseColor = new Color3(0.15, 0.18, 0.16);
-  foregroundMat.specularColor = new Color3(0.04, 0.04, 0.04);
-  foregroundMat.alpha = 0.88;
+  foregroundMat.diffuseColor = new Color3(0.18, 0.22, 0.20);
+  foregroundMat.specularColor = new Color3(0.05, 0.06, 0.05);
+  foregroundMat.specularPower = 32;
+  foregroundMat.alpha = 0.94;
 
   // Corona rocosa y ramas en el flanco suroeste (entrada del camino de la playa)
-  const fgRock1 = MeshBuilder.CreateBox('FG_Rock_SW_Overhang', {width: 4.5, height: 6.0, depth: 3.5}, scene);
+  const fgRock1 = organicStone(scene, 'FG_Rock_SW_Overhang', 4.5, 6.0, 3.5, 3.14);
   fgRock1.position.set(12, 4.0, 126);
   fgRock1.rotation.set(0.15, 0.4, -0.1);
   fgRock1.material = foregroundMat;
@@ -87,7 +89,7 @@ export function installRetreatScenicDepth(scene: Scene): ScenicDepthController {
   foregroundMeshes.push(fgRock1);
 
   // Rocas salientes en el borde inferior cerca de la cámara del puerto
-  const fgRock2 = MeshBuilder.CreateBox('FG_Rock_Harbor_Flank', {width: 5.0, height: 3.2, depth: 4.0}, scene);
+  const fgRock2 = organicStone(scene, 'FG_Rock_Harbor_Flank', 5.0, 3.2, 4.0, 7.82);
   fgRock2.position.set(32, 1.2, 128);
   fgRock2.rotation.set(-0.1, -0.3, 0.05);
   fgRock2.material = foregroundMat;
@@ -97,7 +99,7 @@ export function installRetreatScenicDepth(scene: Scene): ScenicDepthController {
   foregroundMeshes.push(fgRock2);
 
   // Saliente rocoso alto en el flanco este frente a la cámara
-  const fgRock3 = MeshBuilder.CreateBox('FG_Rock_East_Overhang', {width: 4.0, height: 8.0, depth: 4.0}, scene);
+  const fgRock3 = organicStone(scene, 'FG_Rock_East_Overhang', 4.0, 8.0, 4.0, 11.45);
   fgRock3.position.set(168, 12.0, 92);
   fgRock3.rotation.set(0.05, 0.8, -0.15);
   fgRock3.material = foregroundMat;
@@ -198,16 +200,19 @@ export function installRetreatScenicDepth(scene: Scene): ScenicDepthController {
       if (characterPos) {
         const dist = Vector3.Distance(characterPos, fg.getAbsolutePosition());
         if (dist < 14) {
-          fg.visibility = Math.max(0.15, (dist - 5) / 9);
+          // Atenuación Hermite suave entre 0.42 y 0.94 para oclusión parcial diorama sin perder presencia ni ocultar totalmente al personaje
+          const t = Math.max(0, Math.min(1, (dist - 4.5) / 8.5));
+          const smooth = t * t * (3 - 2 * t);
+          fg.visibility = 0.42 + 0.52 * smooth;
         } else {
-          fg.visibility = 0.88;
+          fg.visibility = 0.94;
         }
       }
     }
 
     // Perspectiva aérea sutil: modular color emissive de los picos lejanos con la luz ambiental
     const dayFactor = Math.max(0.2, Math.min(1.0, (scene.clearColor.r - 0.03) / 0.18));
-    distantMat.emissiveColor.set(0.22 * dayFactor, 0.27 * dayFactor, 0.31 * dayFactor);
+    distantMat.emissiveColor.set(0.18 * dayFactor, 0.23 * dayFactor, 0.28 * dayFactor);
   }
 
   function setLayerVisible(layer: number, visible: boolean) {

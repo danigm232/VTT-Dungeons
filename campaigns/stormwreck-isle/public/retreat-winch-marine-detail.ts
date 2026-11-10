@@ -15,7 +15,7 @@ import {RETREAT_WINCH_SEA_ROCKS} from './retreat-winch-sea-rocks.js';
 export function installRetreatWinchMarineDetail(scene:Scene,sea:Mesh,rock:Mesh){
  const foamMaterial=scene.getMaterialByName('a1:shore-wash-v2');if(!foamMaterial)return null;
  const makeMaterial=(name:string,color:string)=>{const m=new StandardMaterial(name,scene);m.diffuseColor=Color3.FromHexString(color);m.specularColor=Color3.FromHexString('#202722');m.backFaceCulling=false;return m;};
- const shellMaterial=makeMaterial('retreat:a2-marine-shell','#a8aa93'),algaeMaterial=makeMaterial('retreat:a2-marine-algae','#526947');
+ const shellMaterial=makeMaterial('retreat:a2-marine-shell','#888a7c'),algaeMaterial=makeMaterial('retreat:a2-marine-algae','#526947');
  type Buffer={positions:number[];indices:number[];normals:number[]};
  const shells:Buffer={positions:[],indices:[],normals:[]},algae:Buffer={positions:[],indices:[],normals:[]};
  function tri(b:Buffer,a:Vector3,c:Vector3,d:Vector3){const n=Vector3.Cross(c.subtract(a),d.subtract(a)).normalize();const k=b.positions.length/3;for(const p of [a,c,d]){b.positions.push(p.x,p.y,p.z);b.normals.push(n.x,n.y,n.z);}b.indices.push(k,k+1,k+2);}
@@ -46,12 +46,12 @@ export function installRetreatWinchMarineDetail(scene:Scene,sea:Mesh,rock:Mesh){
  const positions:number[]=[],indices:number[]=[],normals:number[]=[],colors:number[]=[],uvs:number[]=[];
  for(const [i,s] of samples.entries()){
   const r=.43,base=i*5;positions.push(s.x,0,s.z,s.x-r,0,s.z-r,s.x+r,0,s.z-r,s.x+r,0,s.z+r,s.x-r,0,s.z+r);
-  indices.push(base,base+2,base+1,base,base+3,base+2,base,base+4,base+3,base,base+1,base+4);for(let k=0;k<5;k++){normals.push(0,1,0);colors.push(.9,.96,.95,0);uvs.push(k===2||k===3?1:0,k>=3?1:0);}
+  indices.push(base,base+2,base+1,base,base+3,base+2,base,base+4,base+3,base,base+1,base+4);for(let k=0;k<5;k++){normals.push(0,1,0);colors.push(.92,.97,.96,0);uvs.push(k===2||k===3?1:0,k>=3?1:0);}
  }
  const wash=new Mesh('retreat:a2-rock-contact-foam',scene),data=new VertexData();Object.assign(data,{positions,indices,normals,colors,uvs});data.applyToMesh(wash,true);wash.material=foamMaterial;wash.hasVertexAlpha=true;wash.alphaIndex=2;wash.isPickable=false;wash.checkCollisions=false;wash.metadata={content:'VTT_AMBIENCE',decorativeOnly:true,tokenOccluder:false,retreatDynamic:true,stoneShadowCaster:false};
  const visible=createCoastalAnimationVisibility(scene,[wash],false);let version=-1;
  function update(time:number){const next=sea.metadata?.coastalGeometryVersion??0;if(next===version||!visible())return;version=next;const water=sea.getVerticesData('position');if(!water)return;
-  for(const [i,s] of samples.entries()){const y=typeof s.sample==='number'?s.sample:s.sample(water),pulse=.5+.5*Math.sin(time*1.3+s.phase),alpha=.18+.35*pulse;for(let k=0;k<5;k++){positions[(i*5+k)*3+1]=y+.045;colors[(i*5+k)*4+3]=k===0?alpha:0;}}
+  for(const [i,s] of samples.entries()){const y=typeof s.sample==='number'?s.sample:s.sample(water),pulse=.5+.5*Math.sin(time*1.3+s.phase),alpha=.24+.44*pulse;for(let k=0;k<5;k++){positions[(i*5+k)*3+1]=y+.045;colors[(i*5+k)*4+3]=k===0?alpha:0;}}
   wash.updateVerticesData('position',positions);wash.updateVerticesData('color',colors);
  }
  return {meshes:[shell,kelp,wash],update,stats:{shellTriangles:shells.indices.length/3,algaeTriangles:algae.indices.length/3,foamPatches:samples.length,materials:2,reusedFoam:true}};

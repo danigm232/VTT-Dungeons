@@ -388,10 +388,6 @@ export function buildTerrain3D(scene: Scene, terrain: TerrainDefinition, options
     for (const tile of surface.tiles) {
     // Navigation retains the sea cells, but one continuous ocean renders them.
     if (rebuilt && ['sea','lower-water','hold-water'].includes(surface.id)) {
-      if(surface.id==='sea'&&!contextSurfaces.has(surface.id)) {
-        const address={surfaceId:surface.id,cell:tile.cell},p=[[0,0],[1,0],[1,1],[0,1]].map(([u,v])=>corner(address,u!,v!,.12));
-        for(let i=0;i<4;i++)addGridSegment(surface.id,[p[i]!,p[(i+1)%4]!],tile.materialId);
-      }
       continue;
     }
     const address = { surfaceId: surface.id, cell: tile.cell };

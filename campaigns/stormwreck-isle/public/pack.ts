@@ -59,6 +59,42 @@ const mariaDaggerDirections = {
   'attack-nw': artAtlasCycle('maria_dagger_w_nw_4x2.png', 1, 10)
 };
 
+
+const mariaTorchDirections = {
+  'torch-walk-n': artAtlasCycle('maria_walk_sw_n_sheet.png', 1, 8),
+  'torch-walk-ne': artAtlasCycle('maria_walk_w_nw_sheet.png', 1, 8, true),
+  'torch-walk-e': artAtlasCycle('maria_walk_w_nw_sheet.png', 0, 8, true),
+  'torch-walk-se': artAtlasCycle('maria_walk_sw_n_sheet.png', 0, 8, true),
+  'torch-walk-s': artCycle('trinity', 'maria_caminar', 4, 8),
+  'torch-walk-sw': artAtlasCycle('maria_walk_sw_n_sheet.png', 0, 8),
+  'torch-walk-w': artAtlasCycle('maria_walk_w_nw_sheet.png', 0, 8),
+  'torch-walk-nw': artAtlasCycle('maria_walk_w_nw_sheet.png', 1, 8),
+
+  'torch-run-n': artAtlasCycle('maria_run_sw_n_sheet.png', 1, 10),
+  'torch-run-ne': artAtlasCycle('maria_run_w_nw_sheet.png', 1, 10, true),
+  'torch-run-e': artAtlasCycle('maria_run_w_nw_sheet.png', 0, 10, true),
+  'torch-run-se': artAtlasCycle('maria_run_sw_n_sheet.png', 0, 10, true),
+  'torch-run-s': artCycle('trinity', 'maria_correr', 4, 10),
+  'torch-run-sw': artAtlasCycle('maria_run_sw_n_sheet.png', 0, 10),
+  'torch-run-w': artAtlasCycle('maria_run_w_nw_sheet.png', 0, 10),
+  'torch-run-nw': artAtlasCycle('maria_run_w_nw_sheet.png', 1, 10),
+
+  'torch-idle-n': artAtlasCycle('maria_walk_sw_n_sheet.png', 1, 1),
+  'torch-idle-ne': artAtlasCycle('maria_walk_w_nw_sheet.png', 1, 1, true),
+  'torch-idle-e': artAtlasCycle('maria_walk_w_nw_sheet.png', 0, 1, true),
+  'torch-idle-se': artAtlasCycle('maria_walk_sw_n_sheet.png', 0, 1, true),
+  'torch-idle-s': artCycle('trinity', 'maria_idle', 4, 4),
+  'torch-idle-sw': artAtlasCycle('maria_walk_sw_n_sheet.png', 0, 1),
+  'torch-idle-w': artAtlasCycle('maria_walk_w_nw_sheet.png', 0, 1),
+  'torch-idle-nw': artAtlasCycle('maria_walk_w_nw_sheet.png', 1, 1),
+
+  'torch-draw': artCycle('trinity', 'maria_interactuar', 4, 8),
+  'extraer-antorcha': artCycle('trinity', 'maria_interactuar', 4, 8),
+  'torch-stow': artCycle('trinity', 'maria_sigilo', 4, 8),
+  'guardar-antorcha': artCycle('trinity', 'maria_sigilo', 4, 8),
+  'use-torch': artCycle('trinity', 'maria_interactuar', 4, 8)
+};
+
 const grid = { cols: 32, rows: 21, tileSize: 48, originX: 0, originY: 8, width: 1536, height: 1024 };
 const objectGrid = { cols: 12, rows: 9, tileSize: 48, originX: 0, originY: 0, width: 576, height: 432 };
 const deckWalkable = without(cells([
@@ -125,6 +161,7 @@ const definition: PublicCampaignDefinition = {
       ready: artCycle('trinity', 'maria_combate_idle', 3, 4),
       running: artCycle('trinity', 'maria_correr', 4, 10),
       ...mariaWalkDirections, ...mariaRunDirections,
+      ...mariaTorchDirections,
       attack: artCycle('trinity', 'maria_ataque_daga', 5, 10), ...mariaDaggerDirections,
       'attack-arrow': artCycle('trinity', 'maria_disparo_arco', 6, 10),
       'attack-arrow-mirrored': artCycle('trinity', 'maria_disparo_arco', 6, 10, true),
@@ -142,9 +179,25 @@ const definition: PublicCampaignDefinition = {
       defeated: { frames: ['/art/m3/trinity/maria_12_inconsciente.png'], fps: 1 }
     },
     zombie: {
-      idle: artCycle('zombie', 'zombie1_idle', 3, 3), moving: artCycle('zombie', 'zombie1_caminar', 4, 6),
-      attack: artCycle('zombie', 'zombie1_ataque', 4, 8), hit: { frames: ['/art/m3/zombie/zombie1_hit_01.png'], fps: 6 },
-      defeated: { frames: ['/art/m3/zombie/zombie1_muerto.png'], fps: 1 }
+      idle: { frames: ['/art/m3/zombie/zombie1_idle_01.png', '/art/m3/zombie/zombie1_idle_02.png', '/art/m3/zombie/zombie1_idle_03.png', '/art/m3/zombie/zombie1_tambaleo.png'], fps: 3 },
+      'combat-idle': { frames: ['/art/m3/zombie/zombie1_acecho.png', '/art/m3/zombie/zombie1_amenaza.png', '/art/m3/zombie/zombie1_pausa.png', '/art/m3/zombie/zombie1_acecho.png'], fps: 4 },
+      moving: artCycle('zombie', 'zombie1_caminar', 4, 6),
+      running: artCycle('zombie', 'zombie1_moverse_rapido', 4, 8),
+      attack: artCycle('zombie', 'zombie1_ataque', 4, 8),
+      'attack-secondary': artCycle('zombie', 'zombie1_ataque2', 4, 8),
+      'attack-bite': artCycle('zombie', 'zombie1_ataque2', 4, 8),
+      grapple: artCycle('zombie', 'zombie1_agarrar', 4, 6),
+      entangle: artCycle('zombie', 'zombie1_agarrar', 4, 6),
+      hit: { frames: ['/art/m3/zombie/zombie1_hit_01.png', '/art/m3/zombie/zombie1_hit_02.png', '/art/m3/zombie/zombie1_herido.png', '/art/m3/zombie/zombie1_hit_01.png'], fps: 8 },
+      'hit-physical': { frames: ['/art/m3/zombie/zombie1_hit_01.png', '/art/m3/zombie/zombie1_hit_02.png', '/art/m3/zombie/zombie1_herido.png', '/art/m3/zombie/zombie1_hit_01.png'], fps: 8 },
+      'hit-fire': { frames: ['/art/m3/zombie/zombie1_hit_01.png', '/art/m3/zombie/zombie1_herido.png', '/art/m3/zombie/zombie1_hit_02.png', '/art/m3/zombie/zombie1_herido.png'], fps: 8 },
+      'hit-arcane': { frames: ['/art/m3/zombie/zombie1_hit_02.png', '/art/m3/zombie/zombie1_herido.png', '/art/m3/zombie/zombie1_hit_01.png', '/art/m3/zombie/zombie1_herido.png'], fps: 8 },
+      fall: { frames: ['/art/m3/zombie/zombie1_levantarse_04.png', '/art/m3/zombie/zombie1_levantarse_03.png', '/art/m3/zombie/zombie1_levantarse_02.png', '/art/m3/zombie/zombie1_levantarse_01.png'], fps: 7 },
+      prone: { frames: ['/art/m3/zombie/zombie1_arrastrarse_01.png', '/art/m3/zombie/zombie1_arrastrarse_02.png', '/art/m3/zombie/zombie1_arrastrarse_03.png', '/art/m3/zombie/zombie1_arrastrarse_02.png'], fps: 3 },
+      crawl: artCycle('zombie', 'zombie1_arrastrarse', 4, 5),
+      stand: artCycle('zombie', 'zombie1_levantarse', 4, 6),
+      flee: { frames: ['/art/m3/zombie/zombie1_herido.png', '/art/m3/zombie/zombie1_tambaleo.png', '/art/m3/zombie/zombie1_caminar_02.png', '/art/m3/zombie/zombie1_caminar_04.png'], fps: 6 },
+      defeated: { frames: ['/art/m3/zombie/zombie1_hit_02.png', '/art/m3/zombie/zombie1_levantarse_02.png', '/art/m3/zombie/zombie1_arrastrarse_01.png', '/art/m3/zombie/zombie1_muerto.png'], fps: 4 }
     },
     harpy: {
       idle: artCycle('harpy', 'harpia_idle_suelo', 3, 4), moving: artCycle('harpy', 'harpia_caminar', 4, 7),

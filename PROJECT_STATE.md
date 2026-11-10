@@ -1,5 +1,70 @@
 # Estado del proyecto
 
+## Sincronización de cambio de escena DM-Jugador y pantalla de carga atmosférica — 2026-11-09
+
+Corregido el flujo de cambio de escena en la mesa de dirección y la experiencia de transición en clientes de jugador y proyector:
+- **Cambio de escena sincronizado para DM y jugadores**: al seleccionar una escena en la consola del DM (`$('scene')`), se despacha el comando canónico `{ type: 'scene', sceneId }`, actualizando el estado de partida en el servidor (`this.state.changeScene`), trasladando a todos los aventureros a los puntos de aparición correspondientes de la nueva escena, reseteando previews privadas del DM y emitiendo los snapshots sincronizados a todos los sockets conectados (jugadores, proyector y DM).
+- **Acción explícita para vistas previas privadas**: si el DM se encuentra explorando privadamente otra planta o acceso (`tableSceneId !== sceneId`), se incorpora el botón y opción de menú contextual «Trasladar partida y jugadores a esta escena».
+- **Pantalla de carga completa con compuerta de preparación visual y botón de entrada**: implementada la pantalla de carga atmosférica inmersiva (`.world-loading-screen`) a pantalla completa (`position: fixed; inset: 0; z-index: 99999;`). Incorpora doble aro místico con giro en direcciones opuestas (`world-loading-ring` y `world-loading-ring-inner`), glifo rúnico central palpitante (`⚔`), barra de progreso animada con destello dorado (`world-loading-bar-fill`) y mensajes de estado dinámicos.
+  - **Bloqueo hasta carga visual 100 % completa**: el motor espera asíncronamente a que Babylon compile todos los materiales, shaders e iluminación (`whenReadyAsync()`), a que los modelos GLTF/GLB del Retiro y campamentos finalicen (`retreatVisuals.ready`) y a que las texturas estén en memoria de vídeo antes de permitir la entrada.
+  - **Botón «⚔ CONTINUAR ⚔» interactivo**: hasta que todo lo visual no está 100 % preparado, no se puede entrar ni interactuar con el mapa. Cuando finaliza la carga, la barra se completa en verde, se ilumina el botón de confirmación de entrada («⚔ CONTINUAR AL ESCENARIO ⚔») con atajos por teclado (Espacio / Enter) y, al pulsarlo, la pantalla se desvanece de forma suave y cinematográfica (350 ms) desvelando el mapa táctico sin tirones ni texturas a medio cargar.
+- **Validación**: 8/8 tests PASS en `engine/server/dm-scene-change.test.ts` y `engine/client/world-scene-loading.test.ts`, 70/70 tests en `engine/server/game.test.ts`, compilación de producción de Vite y verificación de tipos TypeScript cliente y servidor con 0 errores.
+
+## Pecio Rosa de los Vientos: telón escénico 2.5D y auditoría triple — 2026-11-09
+
+Integrado el telón escénico RPG 2.5D en el arco cilíndrico exterior del motor 3D (`engine/client/wreck-scenic-depth.ts`) reutilizando los recursos autorizados (`scenic-rpg-backdrop-clean.jpg`):
+- **Alineación Artística 2.5D:** Flanco izquierdo con acantilados de basalto y cementerio de pecios naufragados lejanos; flanco derecho con horizonte infinito y bruma marina baja; cenit con firmamento estrellado.
+- **Auditoría Triple Aprobada:**
+  1. *Ángulo Táctico Canónico 2.5D (beta 65°):* Proyección vertical confinada al tercio superior `[0.340, 0.939]` sin ocluir cubiertas C1–C9, dragón Clyssavar ni miniaturas. UVs continuas sin costura.
+  2. *Órbita Lateral Panorámica (yaw ±30°):* Mantención en frustum sin cortes en bordes (`edgeAlpha` suave en extremos `-78°` y `+48°`). Modulación de luz día/noche dinámica (`1.00` a `0.51`).
+  3. *Cenital Empinado (beta 80°) y Cabinas Interiores:* Ocultación instantánea de los 6 meshes en interiores (`wreckInterior = true`), restauración al salir a cubierta. Presupuesto de 1.269 vértices (<1.500) a 60 FPS garantizados.
+- **Validación Completa:** 124/124 tests de Pecio pasados (16 archivos), 194/194 tests de Retiro pasados (36 archivos), compilación Vite de producción y TypeScript cliente/servidor con 0 errores. [Dossier y auditoría](output/stormwreck-zone-finish-20261104/scenic-variants.html).
+
+## Retiro del Dragón: Salto de Calidad Visual Integral (Zonas 1, 2 y 3 cerradas; Zonas 4 a 11 pendientes para Gemini 4 Argon) — 2026-11-09
+
+Completadas, auditadas y verificadas visual y técnicamente las primeras tres zonas del Retiro del Dragón dentro de la misión de Salto de Calidad Visual Integral 2.5D:
+- **Zona 1 — Playa y Embarcadero (100 % completada y verificada):**
+  - Arena mineral cálida PBR (`retreat:pbr:beach-sand`) y franja reflectante de orilla mojada (`retreat:pbr:beach-wet-sand`).
+  - Dunas 3D, oleaje dinámico animado de resaca marina, 4 troncos de deriva, 6 bloques de basalto y 72 conchas y guijarros.
+  - Pradera costera con 320 penachos 3D y flores de armeria marítima con contorno orgánico difuminado.
+  - Muelle de roble con 8 pilotes sumergidos y colonias de percebes, pernos de forja, carga marina y cabo adujado.
+  - Bote de remos canónico amarrado sin colisión, con cuadernas curvas de roble, bancadas y remos de madera con palas talladas.
+  - Farallón de basalto sellado herméticamente con 3 contrafuertes masivos y sendero con barandilla y faroles náuticos ámbar.
+- **Zona 2 — Subida al Retiro (100 % completada y verificada):**
+  - Acantilado continuo de basalto facetado (`retreat:cliff-buttress-seal-ascent`), escalones de piedra con bordillos (`retreat:ascent-curb-*`) y arbustos costeros multirrama.
+  - Tres faroles de guía en sendero (`retreat:ascent-lantern-*-bottom/mid/top`).
+  - Faldón de basalto bajo escaleras (`retreat:stair-abutment-rock-0..1` vía `buildUnderStairBasaltSkirt`) que sella herméticamente los dos huecos triangulares de agua bajo el tramo 3 y descansillo 3.
+- **Zona 3 — A1: Celdas y Plaza (100 % completada y verificada):**
+  - Paños plegados flotantes (`a1:bench-folded-cloth`) corregidos y asentados sobre los bancos de madera canónicos.
+  - Tiras planas de tierra de versiones antiguas retiradas del paseo sur, dejando limpias las 14 jardineras de piedra R3.
+  - Hoguera central (`a1:plaza-fire`) y velas votivas de Astalagan (`a1:statue-votive-flame`) encendidas cálidamente de día y noche.
+  - Seis portales tallados con umbrales de piedra rústica (`retreat:a1-portal-threshold-1..6`), plintos biselados y dinteles de roble envejecido con pletinas de forja (`retreat:a1-portal-lintel-1..6`).
+  - Bordillo de piedra occidental (`retreat:a1-west-plaza-curb`) y farol de entrada.
+  - Recorte interior de celdas verificado (celda de Myla, taller, antorchas y mobiliario visibles).
+- **Zonas pendientes reservadas en roadmap para ejecución con Gemini 4 Argon:**
+  - Zona 4 — A2: Cabrestante
+  - Zona 5 — A3: Comedor y Cocina
+  - Zona 6 — A4: Biblioteca
+  - Zona 7 — Jardines y Bosquetes
+  - Zona 8 — A5: Templo
+  - Zona 9 — Paseos y Explanadas
+  - Zona 10 — Rutas hacia el Resto de la Isla
+  - Zona 11 — Entorno Global
+- **Validación técnica:** 9 vistas comparativas interactivas con cámara 100 % idéntica en `output/retreat-beach-20261109/index.html`, 5/5 unit tests PASS, compilación TypeScript client sin errores (`tsc -p tsconfig.client.json --noEmit`).
+
+## Retiro del Dragón: Playa y Embarcadero AAA — 2026-11-09
+
+Salto de calidad gráfica Triple-A en la zona costera de desembarco del Retiro del Dragón (`dragon-rest`):
+- **Arena PBR y dunas 3D**: sustitución de baldosas calcáreas de plaza (`a1:plaza-v6`) por superficie 3D ondulada de dunas de arena mineral cálida (`retreat:pbr:beach-sand`, albedo `#c2b196`, rugosidad 0.92) que desciende suavemente hacia el agua.
+- **Orilla de arena mojada reflectante**: banda continua a lo largo del arco de pleamar/bajamar con material saturado (`retreat:pbr:beach-wet-sand`, rugosidad 0.22) que refleja cielo y sol.
+- **Dispersión costera y restos marinos**: 4 troncos de madera de deriva erosionados por el mar, 6 grandes bloques de basalto costero y 72 guijarros y conchas marinas.
+- **Pradera costera y pinar 3D volumétrico**: 180 matas de gramíneas costeras y racimos de armeria marítima con contorno plumoso orgánico difuminado, eliminando los bordes rectilíneos artificiales.
+- **Carpintería marina y pilotes del muelle**: entablado de roble macizo con 28 pernos de forja, 8 pilotes sumergidos con colonias de percebes, cajas de víveres, barril de ron y adujas de cáñamo.
+- **Bote de remos amarrado sin colisión**: reubicado libre de maderas del muelle, con 3 cuadernas vistas de roble, 2 bancadas, 2 remos de madera con palas talladas y cabo de proa amarrado.
+- **Farallón de acantilado sellado**: 3 contrafuertes masivos de basalto volcánico que cierran herméticamente el enorme vacío en la montaña tras el sendero de subida a Pleamar, con faldón de rompiente marina al pie.
+- **Sendero con hitos y faroles**: 5 postes guía de madera con barandilla de cabo de cáñamo a lo largo del risco, escalones de piedra rústica y faroles náuticos ámbar dinámicos que se encienden al anochecer con parpadeo orgánico.
+- **Verificación y paridad**: 5 comparativas interactivas con cámara 100 % idéntica (`cameraDelta = 0.000000`), 17/17 tests PASS en 4 suites de pruebas, TypeScript client/server 0 errores. [Informe interactivo](output/retreat-beach-20261109/index.html) · [Ficha técnica de evidencia](docs/evidence/RETREAT_BEACH_PIER_AAA_20261109.md).
+
 ## Antorchas del Retiro: llama y parpadeo — 2026-11-09
 
 Terminadas las cinco antorchas de la fachada y las seis de las celdas del Retiro, conservando el trabajo recibido de Antigravity, sus posiciones y luces. Llama con forma y degradado compartidos, movimiento reducido y luz sincronizada. Compilación instalada y mesa Stormwreck iniciada en el puerto 3000; se conserva la compilación anterior. [Comparaciones superpuestas y animación](output/retreat-torches-20261108/index.html) · [registro y límites](docs/evidence/FIRE_SMOKE_LIGHTING_IMPROVEMENT_20261108.md#5-cierre-localizado-antorchas-del-retiro--09112026).

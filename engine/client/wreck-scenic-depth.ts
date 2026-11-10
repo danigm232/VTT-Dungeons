@@ -3,6 +3,7 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder.js';
 import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData.js';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
 import { ShaderMaterial } from '@babylonjs/core/Materials/shaderMaterial.js';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture.js';
 import { Color3 } from '@babylonjs/core/Maths/math.color.js';
 import { Vector3, Matrix } from '@babylonjs/core/Maths/math.vector.js';
 import { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera.js';
@@ -27,7 +28,7 @@ export function wreckScenicFrame(camera: ArcRotateCamera) {
   const forward = new Vector3(-Math.cos(camera.alpha), 0, -Math.sin(camera.alpha));
   const right = new Vector3(forward.z, 0, -forward.x);
   const up = new Vector3(forward.x * Math.sin(tilt), Math.cos(tilt), forward.z * Math.sin(tilt));
-  const facingExterior = Math.cos(camera.alpha - WRECK_CAMERA_BASE_ALPHA) > Math.cos(radians(52));
+  const facingExterior = Math.cos(camera.alpha - WRECK_CAMERA_BASE_ALPHA) > Math.cos(radians(68));
   return { halfHeight, halfWidth, tilt, forward, right, up, facingExterior };
 }
 
@@ -38,7 +39,7 @@ export function buildWreckScenicDepth(scene: Scene): Mesh[] {
   // Angular volcanic crests and cliffs replace the regular cones. The coast
   // tapers towards the seaward edge; no land ring, invented buildings or loot.
   function ribbon(name: string, radius: number, start: number, end: number, layer: number, tint: string, mist = false) {
-    const positions: number[] = [], indices: number[] = [], colors: number[] = [];
+    const positions: number[] = [], indices: number[] = [], colors: number[] = [], uvs: number[] = [];
     const segments = 96, rows = mist ? 4 : 3;
     for (let i = 0; i <= segments; i++) {
       // Preserve the authored panorama relative to the boat-side front. This
@@ -50,13 +51,14 @@ export function buildWreckScenicDepth(scene: Scene): Mesh[] {
       const edgeAlpha = clamp(Math.min(t, 1 - t) * 16, 0, 1);
       for (let row = 0; row < rows; row++) {
         const y = mist ? [.34, .47, .59, .70][row]!
-          : row === 0 ? .34 : row === 1 ? .55 : .57 + ridge;
+          : row === 0 ? .34 : row === 1 ? .55 : .64 + ridge;
         // Profile height is immutable; the camera-dependent vertical shear
         // belongs to a matrix, not a vertex-buffer upload on every orbit frame.
         positions.push(S.origin.x + Math.sin(angle) * radius, y, S.origin.z + Math.cos(angle) * radius);
-        const alpha = (mist ? [0, .30, .14, 0][row]! : row === 0 ? 0 : .86) * edgeAlpha;
+        const alpha = (mist ? [0, .30, .14, 0][row]! : row === 0 ? 0 : layer === 0 ? .94 : .35) * edgeAlpha;
         const shade = mist ? 1 : row === 2 ? 1.06 : .91;
         colors.push(shade, shade, shade, alpha);
+        uvs.push(t, row / (rows - 1));
       }
       if (i < segments) for (let row = 0; row < rows - 1; row++) {
         const a = i * rows + row, b = a + rows;
@@ -65,13 +67,27 @@ export function buildWreckScenicDepth(scene: Scene): Mesh[] {
     }
     const normals: number[] = []; VertexData.ComputeNormals(positions, indices, normals);
     const mesh = new Mesh(name, scene), data = new VertexData();
-    Object.assign(data, { positions, indices, colors, normals }); data.applyToMesh(mesh);
+    Object.assign(data, { positions, indices, colors, normals, uvs }); data.applyToMesh(mesh);
     mesh.hasVertexAlpha = true;
     const material = new StandardMaterial(`${name}:material`, scene);
     material.disableLighting = true; material.emissiveColor = Color3.FromHexString(tint);
     material.diffuseColor = Color3.Black(); material.specularColor = Color3.Black();
     material.backFaceCulling = false; material.disableDepthWrite = true;
-    material.fogEnabled = false; mesh.material = material;
+    material.fogEnabled = false;
+    if (layer === 0) {
+      const tex = new Texture('/art/ship/scenic-rpg-backdrop-clean.jpg', scene, false, true, Texture.TRILINEAR_SAMPLINGMODE);
+      tex.wrapU = Texture.CLAMP_ADDRESSMODE; tex.wrapV = Texture.CLAMP_ADDRESSMODE;
+      material.emissiveTexture = tex;
+    } else if (mist) {
+      const tex = new Texture('/art/ship/scenic-horizon-mist-art.png', scene, false, true, Texture.TRILINEAR_SAMPLINGMODE);
+      tex.wrapU = Texture.CLAMP_ADDRESSMODE; tex.wrapV = Texture.CLAMP_ADDRESSMODE;
+      material.opacityTexture = tex;
+    } else if (layer === 1) {
+      const tex = new Texture('/art/ship/scenic-volcanic-ridges-art.png', scene, false, true, Texture.TRILINEAR_SAMPLINGMODE);
+      tex.wrapU = Texture.CLAMP_ADDRESSMODE; tex.wrapV = Texture.CLAMP_ADDRESSMODE;
+      material.opacityTexture = tex;
+    }
+    mesh.material = material;
     // Render behind the transparent ocean (index 0), but depth-test against
     // the opaque ship and actors. Water then dissolves into this horizon.
     mesh.alphaIndex = -20 + layer;
@@ -79,10 +95,10 @@ export function buildWreckScenicDepth(scene: Scene): Mesh[] {
       kind: mist ? 'horizon-mist' : 'distant-island-ridge', baseTint: tint };
     ribbons.push({ mesh, material }); meshes.push(mesh);
   }
-  ribbon('wreck:scenic:far-volcanic-crest', 420, -62, 38, 0, '#607579');
-  ribbon('wreck:scenic:middle-island-ridge', 350, -57, 34, 1, '#4b6368');
-  ribbon('wreck:scenic:near-coastal-cliffs', 285, -52, 30, 2, '#3c555c');
-  ribbon('wreck:scenic:horizon-mist', 265, -110, 50, 3, '#74908f', true);
+  ribbon('wreck:scenic:far-volcanic-crest', 420, -78, 48, 0, '#ffffff');
+  ribbon('wreck:scenic:middle-island-ridge', 350, -72, 44, 1, '#4b6368');
+  ribbon('wreck:scenic:near-coastal-cliffs', 285, -65, 38, 2, '#3c555c');
+  ribbon('wreck:scenic:horizon-mist', 265, -125, 65, 3, '#74908f', true);
 
   // Analytic soft reef silhouettes at the extreme foreground. This needs no
   // global depth-of-field pass, blurry ship, texture or extra render target.
@@ -132,7 +148,7 @@ export function buildWreckScenicDepth(scene: Scene): Mesh[] {
       return;
     }
     const target = camera.target;
-    const exterior = scene.metadata?.wreckInterior !== true && Math.cos(camera.alpha - WRECK_CAMERA_BASE_ALPHA)>Math.cos(radians(52));
+    const exterior = scene.metadata?.wreckInterior !== true && Math.cos(camera.alpha - WRECK_CAMERA_BASE_ALPHA)>Math.cos(radians(68));
     if(ocean instanceof ShaderMaterial)ocean.setFloat('scenicHorizon',exterior?1:0);
     for (const mesh of meshes) mesh.isVisible = exterior;
     if (!exterior) return;

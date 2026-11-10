@@ -403,7 +403,8 @@ function installWorkspaceScrolling(desk: HTMLElement) {
   }, { capture: true, passive: false });
 }
 function installWorkspaceDock() {
-  const dock = document.querySelector<HTMLElement>('.dm-dock')!;
+  const dock = document.querySelector<HTMLElement>('.dm-dock');
+  if (!dock) return;
   const sensor = document.createElement('div'); sensor.className = 'dm-dock-sensor'; sensor.setAttribute('aria-hidden', 'true'); document.body.append(sensor);
   let timer = 0;
   const hide = () => { if (!dock.matches(':hover, :focus-within')) dock.classList.remove('is-visible'); };
@@ -736,7 +737,7 @@ async function beginDm(password?: string) {
   if (!response.ok) { showLogin(password === undefined ? 'Esta mesa requiere clave de DM.' : 'Clave incorrecta.'); return; }
   csrfToken = (await response.json()).csrfToken;
   try {
-    campaign = await loadCampaign(); syncAnimationAuditAvailability(); populateCampaign(); ($('showGrid') as HTMLInputElement).checked = dmUiPreferences.showGrid; ($('shareCameraOrientation') as HTMLInputElement).checked = dmUiPreferences.shareCameraOrientation; syncDmGridSettings(); world = new WorldRenderer($('dmMap'), campaign, { cameraRole: 'dm', persistCameraPreferences: true, showGrid: dmUiPreferences.showGrid, gridStyle: dmUiPreferences.gridStyle }); world.setMapClick(onMapClick);world.setDmMapInteraction({canPan:()=>!selectedMapEntityId&&!selectedId&&!draft&&!armedDmCombatPoint,singleClick:()=>Boolean(draft||armedDmCombatPoint),context:openDmMapContext});await loadInfo();
+    campaign = await loadCampaign(); syncAnimationAuditAvailability(); populateCampaign(); ($('showGrid') as HTMLInputElement).checked = dmUiPreferences.showGrid; ($('shareCameraOrientation') as HTMLInputElement).checked = dmUiPreferences.shareCameraOrientation; syncDmGridSettings(); world = new WorldRenderer($('dmMap'), campaign, { cameraRole: 'dm', persistCameraPreferences: true, showGrid: dmUiPreferences.showGrid, gridStyle: dmUiPreferences.gridStyle }); (window as any).world = world; world.setMapClick(onMapClick);world.setDmMapInteraction({canPan:()=>!selectedMapEntityId&&!selectedId&&!draft&&!armedDmCombatPoint,singleClick:()=>Boolean(draft||armedDmCombatPoint),context:openDmMapContext});await loadInfo();
     world.setCameraTiltChangeHandler(() => { updateCameraOrbitControls(); publishCameraOrientation(); });
     world.setCameraFrameChangeHandler(() => publishCameraOrientation());
     mapTargets = new DmMapTargets($('dmMap'));
@@ -767,6 +768,9 @@ function render(current: DmState) {
   $('dockRequests').textContent = String(pendingCount);
   $('interacciones').classList.toggle('has-attention', pendingCount > 0);
   renderConnectionStatus();
+  const isPrivatePreview = Boolean(current.tableSceneId && current.tableSceneId !== current.sceneId);
+  const moveToCurrentScene = $('moveToCurrentScene') as HTMLButtonElement | null;
+  if (moveToCurrentScene) moveToCurrentScene.hidden = !isPrivatePreview;
   selectCurrentScene(current.sceneId); ($('camera') as HTMLSelectElement).value = current.camera.mode; renderFocus(current); updateCameraOrbitControls(current.sceneId);
   $('storm').textContent = current.environment.storm ? 'ϟ Detener' : 'ϟ Activar';
   $('storm').setAttribute('aria-pressed', String(current.environment.storm));
@@ -1250,6 +1254,7 @@ function openDmMapContext(hit:DmMapHit,x:number,y:number){
   if(port){const to=port.from.mapId===sceneId&&port.from.surfaceId===hit.surfaceId?port.to:port.from;add('Explorar al otro lado del acceso',()=>to.mapId===sceneId?world?.exploreDmCell(to.cell,to.surfaceId):browseDmScene(to.mapId,to.cell,to.surfaceId));}
   if(selectedId){const object=state.objects.find(o=>o.id===selectedId);if(object)add('Acciones del objeto',()=>{rosetteSource='objects';const anchor=projectDmObject(object.id);if(anchor)objectRosette?.show(object.label,anchor,()=>projectDmObject(object.id));});}
   if(actor||selectedId)add('Deseleccionar · volver a arrastrar',()=>{selectedMapEntityId=null;selectedDmActor=null;selectedId=null;world?.setSelectedEntity(null);clearDraft();objectRosette?.close();if(state)renderObjects(state);});
+  if(state.tableSceneId&&state.tableSceneId!==state.sceneId)add('Trasladar partida y jugadores a esta escena',()=>command({type:'scene',sceneId:state!.sceneId}));
   if(state.gameUndo.canUndo)add('Deshacer último cambio',()=>command({type:'game:undo'}));
   mapContextMenu.show(actor?.label??'Cámara del DM',x,y,actions);
 }
@@ -1773,8 +1778,11 @@ $('scene').onchange = () => {
     campInteractionMode = false; world?.setCampInteractionHighlights(false);
     const campPointDialog = $('campPointDialog') as HTMLDialogElement; if (campPointDialog.open) campPointDialog.close(); campPointSceneId = null;
     const sceneId = ($('scene') as HTMLSelectElement).value;
-    browseDmScene(sceneId);
+    command({ type: 'scene', sceneId });
   };
+$('moveToCurrentScene').onclick = () => {
+  if (state) command({ type: 'scene', sceneId: state.sceneId });
+};
 ($('campInteractionToggle') as HTMLButtonElement).onclick = () => {
   const isCamp = Boolean(currentScene()?.camp);
   if (!isCamp) return;

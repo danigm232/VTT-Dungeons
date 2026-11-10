@@ -19,7 +19,7 @@ export function buildWreckAgeDetails(scene:Scene,terrain:TerrainDefinition,hull?
   const mat=(name:string,color:string)=>{const m=new StandardMaterial(`wreck-age:${name}`,scene);
     m.diffuseColor=Color3.FromHexString(color);m.specularColor=Color3.FromHexString('#111918');m.backFaceCulling=false;return m;};
   const twig=mat('basket-twigs','#574432'),
-    blackwood=mat('rotten-wood','#74644b'),growth=mat('salt-growth','#7e8066'),algae=mat('algae','#334738');
+    blackwood=mat('rotten-wood','#423a32'),growth=mat('salt-growth','#9ea396'),algae=mat('algae','#334738');
   blackwood.diffuseTexture=hull??null;
   const add=(m:Mesh,surface:string,kind:string,material:StandardMaterial)=>{
     m.material=material;m.isPickable=false;m.receiveShadows=true;m.metadata={visualOnly:true,deckSurfaceId:surface,kind};

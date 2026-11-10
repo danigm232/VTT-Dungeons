@@ -75,9 +75,9 @@ function glassBox(side:Side,wall:Bounds,h:Aperture){
 function reflectionStrips(mesh:Mesh,side:Side,wall:Bounds,h:Aperture){
  const middle=side==='south'?(wall.z0+wall.z1)/2:(wall.x0+wall.x1)/2;
  const positions:number[]=[],normals:number[]=[],indices:number[]=[];
- for(const face of [-1,1])for(const offset of [.24,.49]){
+ for(const face of [-1,1])for(const [offset,width] of [[.24,.036],[.50,.018]] as const){
   const u=h.start+offset,y=h.bottom+.17,z=middle+face*.014;
-  const points=[[u,y],[u+.035,y],[u+.19,y+.69],[u+.155,y+.69]];
+  const points=[[u,y],[u+width,y],[u+.16+width,y+.69],[u+.16,y+.69]];
   const start=positions.length/3;
   for(const [across,height] of points){
    positions.push(...side==='south'?[across!,height!,z]:[z,height!,across!]);
@@ -96,13 +96,13 @@ export function installRetreatWinchHouse(scene:Scene){
  const trim=scene.materials.find(m=>/^Wood_Endgrain(?:\.\d+)?$/.test(m.name))??wood;
  if(walls.some(w=>!w)||!wood||!trim)return {meshes:[] as Mesh[],records:[],sync:()=>{},installed:false};
  const glass=new StandardMaterial('retreat:winch-window-glass',scene);
- glass.diffuseColor=Color3.FromHexString('#78989d');glass.specularColor=Color3.FromHexString('#b4d1d6');glass.specularPower=128;
+ glass.diffuseColor=Color3.FromHexString('#78989d');glass.specularColor=Color3.FromHexString('#627d82');glass.specularPower=96;
  glass.emissiveColor=Color3.FromHexString('#213e49');glass.alpha=.68;glass.backFaceCulling=false;
  glass.emissiveFresnelParameters=new FresnelParameters();glass.emissiveFresnelParameters.leftColor=Color3.FromHexString('#879fa5');glass.emissiveFresnelParameters.rightColor=Color3.FromHexString('#263d42');glass.emissiveFresnelParameters.power=3;
  glass.metadata={content:'VTT_AMBIENCE',description:'Shared glazed panes with lighting and view-dependent sky-coloured glint'};
  const glint=new StandardMaterial('retreat:winch-window-glass-reflection',scene);
- glint.diffuseColor=Color3.FromHexString('#b7d3d2');glint.emissiveColor=Color3.FromHexString('#48636a');
- glint.specularColor=Color3.Black();glint.alpha=.26;glint.backFaceCulling=false;
+ glint.diffuseColor=Color3.FromHexString('#9ebbc0');glint.emissiveColor=Color3.FromHexString('#334a50');
+ glint.specularColor=Color3.Black();glint.alpha=.16;glint.backFaceCulling=false;
  glint.metadata={content:'VTT_AMBIENCE',description:'Subtle stylized sky highlight; no additional reflection render pass'};
  const meshes:Mesh[]=[],owners:{owner:Mesh;parts:Mesh[]}[]=[],records:any[]=[];
  for(const wall of walls as Mesh[]){

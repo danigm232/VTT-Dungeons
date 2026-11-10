@@ -84,7 +84,7 @@ export function buildWreckOcean(scene: Scene, terrain: TerrainDefinition, reefTe
       float entry=exp(-pow((ship.x+32.0)/3.3,4.)-pow(ship.y/2.1,4.));
       // Keep near and mid-distance formations sitting in the sea even at
       // shallow pitch. Only distant water can dissolve into the skyline.
-      float horizon=1.-scenicHorizon*smoothstep(73.,185.,length(ship))*smoothstep(.34,.81,reflectionClip.y/reflectionClip.w);
+      float horizon=1.-scenicHorizon*smoothstep(20.,55.,length(ship))*smoothstep(.30,.76,reflectionClip.y/reflectionClip.w);
       float alpha=(1.-entry*.73)*horizon;if(alpha<.002)discard;
       vec2 warp=vec2(noise(uv*.043+drift),noise(uv*.061-drift))*7.;
       float n=noise((uv+warp)*.11+drift)*.56+noise((uv-warp)*.29-drift)*.28+noise(uv*.022)*.16;
@@ -94,12 +94,17 @@ export function buildWreckOcean(scene: Scene, terrain: TerrainDefinition, reefTe
       vec3 color=mix(deep,teal,smoothstep(.12,.85,n));
       // The same blocked reef footprints inform water colour: submerged
       // shelves merge the stacks into a coastal formation, not isolated balls.
-      color=mix(color,vec3(.07,.29,.27),shallows(uv)*.45);
+      float reefShoal=shallows(uv);
+      color=mix(color,vec3(.085,.365,.345),reefShoal*.55);
+      float caustic1=sin(uv.x*2.8+sin(uv.y*3.2+time*1.4)+time*.9);
+      float caustic2=sin(uv.y*2.6+cos(uv.x*3.4-time*1.2)-time*.8);
+      float caustics=pow(max(0.,(caustic1+caustic2)*.5),3.5)*reefShoal;
+      color+=vec3(.18,.38,.36)*caustics*.38;
       float hullDistance=max(0.,abs(ship.y)-wetBeam);
       float hullShade=(1.-smoothstep(0.,2.7,hullDistance))*smoothstep(-31.8,-29.,ship.x)*(1.-smoothstep(29.5,31.8,ship.x));
       color*=1.-hullShade*.23;
       // Broken travelling crests, not a checkerboard of crossing sine peaks.
-      color+=vec3(.16,.29,.29)*pow(max(0.,swell),15.)*smoothstep(.44,.8,broken)*.33;
+      color+=vec3(.88,.96,.95)*pow(max(0.,swell),7.)*smoothstep(.28,.76,broken)*.72;
       vec3 normal=normalize(vec3(-.05*cos(uv.x*.24+uv.y*.19+time*.75),1.,-.045*cos(uv.y*.71-uv.x*.37-time*.93)));
       vec3 view=normalize(eye-p);float fresnel=pow(1.-max(0.,dot(normal,view)),4.);
       color=mix(color,vec3(.17,.29,.31),fresnel*.42);
@@ -130,15 +135,18 @@ export function buildWreckOcean(scene: Scene, terrain: TerrainDefinition, reefTe
     void main(){vUV=uv;at=position.xz;vec3 p=position;p.y+=wreckWave(at,time);gl_Position=worldViewProjection*vec4(p,1.);}`,
     fragmentSource:`precision highp float;varying vec2 vUV;varying vec2 at;uniform float time;uniform float lightLevel;
     void main(){
-      float d=vUV.x, surge=.52+.24*sin(at.x*.7-at.y*.8-time*1.15);
-      float turbulence=sin(at.x*4.1+at.y*5.7+time*.8)+.55*sin(at.x*12.7-at.y*8.2-time*1.4);
-      float broken=smoothstep(-.46,1.15,turbulence);
-      float lip=1.-smoothstep(.04,.25,d);
-      float crest=1.-smoothstep(.02,.20,abs(d-surge));
-      float flecks=smoothstep(.6,1.35,turbulence)*sin(d*3.14159)*(1.-d)*.24;
-      float froth=(crest*.52+flecks)*broken;
-      float alpha=(lip*.31+froth)*vUV.y;
-      gl_FragColor=vec4(mix(vec3(.045,.14,.15),vec3(.64,.77,.73),froth/max(.001,lip*.31+froth))*lightLevel,alpha);
+      float d=vUV.x, surge=.50+.28*sin(at.x*.65-at.y*.75-time*1.25);
+      float turb1=sin(at.x*5.2+at.y*6.4+time*.95), turb2=sin(at.x*14.3-at.y*9.8-time*1.6), turb3=sin(at.x*29.1+at.y*23.4+time*2.3);
+      float turbulence=turb1+.48*turb2+.25*turb3;
+      float broken=smoothstep(-.52,1.05,turbulence);
+      float lip=1.-smoothstep(.02,.32,d);
+      float crest=(1.-smoothstep(.015,.26,abs(d-surge)))*broken;
+      float flecks=smoothstep(.45,1.4,turbulence)*sin(d*3.14159)*(1.-d*.75)*.42;
+      float froth=clamp(crest*.75+flecks+lip*.45,0.,1.)*(broken*.75+.25);
+      vec3 waterContact=vec3(.08,.26,.29), pureFoam=vec3(.92,.98,.96);
+      vec3 foamColor=mix(waterContact,pureFoam,smoothstep(.05,.42,froth+lip*.5));
+      float alpha=clamp((lip*.88+froth*.75)*vUV.y,0.,1.)*(1.-smoothstep(.78,1.,d));
+      gl_FragColor=vec4(foamColor*lightLevel,alpha);
     }`},
     {attributes:['position','uv'],uniforms:['worldViewProjection','time','lightLevel'],needAlphaBlending:true});
   foamMat.setFloat('lightLevel',1);foamMat.backFaceCulling=false;
@@ -154,7 +162,7 @@ export function buildWreckOcean(scene: Scene, terrain: TerrainDefinition, reefTe
       const next=xs[i+1];
       return next===undefined?[x]:Array.from({length:Math.ceil(next-x)},(_,n)=>x+(next-x)*n/Math.ceil(next-x));
     }).map(x=>({x:S.origin.x+x,z:S.origin.z+side*wreckWaterlineBeam(wreckBeamAt(x),side)}));
-    foam(`wreck-wake:${side}`,[side<0?path.reverse():path],side>0?.96:.72,.82);
+    foam(`wreck-wake:${side}`,[side<0?path.reverse():path],side>0?1.45:1.15,.92);
   }
   const stoneMat=new StandardMaterial('wreck-reef-strata',scene);
   stoneMat.diffuseColor=Color3.FromHexString('#a8b3a6');stoneMat.diffuseTexture=reefTexture??null;
@@ -195,7 +203,7 @@ export function buildWreckOcean(scene: Scene, terrain: TerrainDefinition, reefTe
     }rock.setVerticesData('position',p);
     const normals:number[]=[];VertexData.ComputeNormals(p,rock.getIndices()!,normals);rock.setVerticesData('normal',normals);
     rock.receiveShadows=true;rock.isPickable=false;rock.metadata={visualOnly:true,kind:'reef-rock-obstacle',deckSurfaceId:'sea'};meshes.push(rock);
-    foam(`reef-wash:${id}`,sliceWreckWaterline(rock),grounded?1.28:.75,grounded?1.05:.82);
+    foam(`reef-wash:${id}`,sliceWreckWaterline(rock),grounded?1.65:1.20,grounded?1.05:.92);
   }
   // Deep supporting reef intersects the damaged stern below the waterline.
   // It cannot create an invisible above-water obstacle in navigable sea.
@@ -241,7 +249,7 @@ export function buildWreckOcean(scene: Scene, terrain: TerrainDefinition, reefTe
   const bones=[...buildDragonRemains(scene,terrain),...buildDistantDragonBones(scene)];
   for(const m of bones){
     const paths=sliceWreckWaterline(m).filter(path=>path.length>=5);
-    foam(`bone-wash:${m.name}`,paths,.34,.67);
+    foam(`bone-wash:${m.name}`,paths,.85,.90);
   }
   scene.onBeforeRenderObservable.add(()=>{
     const t=performance.now()/1000;
@@ -250,6 +258,44 @@ export function buildWreckOcean(scene: Scene, terrain: TerrainDefinition, reefTe
       if(scene.activeCamera)waterMat.setVector3('eye',scene.activeCamera.globalPosition);
     }
     if(foamMeshes.some(draws))foamMat.setFloat('time',t);
+  });
+    const driftMat = new StandardMaterial('wreck-drifting-plank', scene);
+  driftMat.diffuseColor = Color3.FromHexString('#504738');
+  driftMat.specularColor = Color3.FromHexString('#101413');
+  driftMat.specularPower = 16;
+  const driftPlanks = [
+    { x: S.origin.x + 14.5, z: S.origin.z + 18.2, l: 2.2, w: 0.24, seed: 0.9 },
+    { x: S.origin.x + 2.5, z: S.origin.z + 16.5, l: 1.8, w: 0.22, seed: 1.7 },
+    { x: S.origin.x - 12.0, z: S.origin.z + 17.8, l: 2.4, w: 0.26, seed: 2.4 },
+    { x: S.origin.x - 22.5, z: S.origin.z + 15.2, l: 1.9, w: 0.21, seed: 3.1 },
+    { x: S.origin.x - 28.0, z: S.origin.z + 12.8, l: 2.6, w: 0.28, seed: 4.0 },
+    { x: S.origin.x + 24.0, z: S.origin.z + 20.5, l: 1.6, w: 0.20, seed: 5.2 },
+    { x: S.origin.x + 32.5, z: S.origin.z + 9.5, l: 2.1, w: 0.25, seed: 6.1 },
+    { x: S.origin.x + 28.0, z: S.origin.z - 11.2, l: 1.7, w: 0.22, seed: 7.3 },
+    { x: S.origin.x + 11.5, z: S.origin.z - 17.5, l: 2.5, w: 0.27, seed: 8.0 },
+    { x: S.origin.x - 6.5, z: S.origin.z - 18.0, l: 2.0, w: 0.23, seed: 9.2 },
+    { x: S.origin.x - 21.0, z: S.origin.z - 16.5, l: 2.3, w: 0.25, seed: 1.5 },
+    { x: S.origin.x - 33.5, z: S.origin.z - 6.8, l: 1.8, w: 0.21, seed: 2.9 }
+  ];
+  driftPlanks.forEach((dp, idx) => {
+    const plank = MeshBuilder.CreateBox(`wreck:ocean-drift-plank:${idx}`, { width: dp.l, height: 0.08, depth: dp.w }, scene);
+    plank.position.set(dp.x, S.seaHeight + 0.03, dp.z);
+    plank.rotation.y = dp.seed;
+    plank.material = driftMat;
+    plank.isPickable = false;
+    plank.receiveShadows = true;
+    plank.metadata = { visualOnly: true, kind: 'floating-drift-plank', deckSurfaceId: 'sea', originX: dp.x, originZ: dp.z, baseAngle: dp.seed };
+    meshes.push(plank);
+    scene.onBeforeRenderObservable.add(() => {
+      if (!draws(plank)) return;
+      const t = performance.now() / 1000;
+      plank.position.x = dp.x + Math.sin(t * 0.18 + dp.seed) * 1.5;
+      plank.position.z = dp.z + Math.cos(t * 0.14 + dp.seed * 1.2) * 1.1;
+      plank.position.y = S.seaHeight + 0.03 + Math.sin(t * 1.15 + dp.seed) * 0.08 + Math.cos(t * 1.45 + dp.seed) * 0.04;
+      plank.rotation.z = Math.sin(t * 1.05 + dp.seed) * 0.12;
+      plank.rotation.x = Math.cos(t * 0.95 + dp.seed) * 0.09;
+      plank.rotation.y = dp.seed + Math.sin(t * 0.12 + dp.seed) * 0.28;
+    });
   });
   meshes.push(...bones,...buildWreckScenicDepth(scene));
   if(typeof window!=='undefined'){

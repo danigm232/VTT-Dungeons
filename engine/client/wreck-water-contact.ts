@@ -28,7 +28,13 @@ export function wreckWaterlineBeam(beam: number, side: number) {
 
 /** Identical phase and displacement for the sea and its overlays. */
 export const wreckWaveGLSL = `float wreckWave(vec2 point, float time) {
-  return .035*sin(point.x*.08+point.y*.06+time*.75)+.012*sin(point.y*.11-point.x*.07-time*.93);
+  float w1 = sin(point.x * .075 + point.y * .058 + time * .82);
+  float w2 = sin(point.y * .105 - point.x * .068 - time * 1.02);
+  float w3 = sin((point.x + point.y) * .135 + time * 1.38);
+  float swell = (w1 * .65 + (1.0 - abs(w1)) * .35) * .175;
+  float cross = (w2 * .68 + (1.0 - abs(w2)) * .32) * .085;
+  float chop = w3 * .035;
+  return swell + cross + chop;
 }`;
 
 export const wreckBeamGLSL = `float wreckBeam(float x){

@@ -75,6 +75,7 @@ export function stormwreckZoneFamily(sceneId: string, mesh: MeshIdentity, materi
    const role=meta.gltf?.extras?.role??'';
    return /structural|dark-oak/.test(n)||/winch-frame|timber|roof|dock-post|cliff-rail/.test(role)?'oak-structure':'oak';
   }
+  if(/retreat:pbr:beach-sand|beach_walkable-floor|floor-shore/i.test(id+' '+n))return null;
   if(/retreat:pbr:paving|a1:plaza|stone_floor/.test(n))return 'paving';
   if(/retreat:pbr:limestone|a1:limestone/.test(n))return 'limestone';
   return stormwreckSampleFamily(sceneId,mesh,materialName);

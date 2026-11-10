@@ -31,6 +31,7 @@ import {installRetreatWinchJunction} from './retreat-winch-junction.js';
 import {installRetreatExpeditionSeams} from './retreat-expedition-seams.js';
 import {installRetreatWinchSeaRocks} from './retreat-winch-sea-rocks.js';
 import {installRetreatWinchMarineDetail} from './retreat-winch-marine-detail.js';
+import {installRetreatBeachPresentation} from './retreat-beach-presentation.js';
 
 const phaseUrls={1:new URL('./art/retreat-modules/retreat_refinement_p1_runtime.glb',import.meta.url).href,2:new URL('./art/retreat-modules/retreat_refinement_p2_runtime.glb',import.meta.url).href,3:new URL('./art/retreat-modules/retreat_refinement_p3_runtime.glb',import.meta.url).href,5:new URL('./art/retreat-modules/retreat_refinement_p5_runtime.glb',import.meta.url).href,6:new URL('./art/retreat-modules/retreat_refinement_p6_runtime.glb',import.meta.url).href,7:new URL('./art/retreat-modules/retreat_refinement_p7_runtime.glb',import.meta.url).href,8:new URL('./art/retreat-modules/retreat_refinement_p8_runtime.glb',import.meta.url).href};
 const stoneUrls={2:new URL('./art/retreat-modules/retreat_stone_s2_runtime.glb',import.meta.url).href,3:new URL('./art/retreat-modules/retreat_stone_s3_runtime.glb',import.meta.url).href};
@@ -154,6 +155,9 @@ export async function installRetreatRefinement(scene:Scene,requested=manifest.av
  // unrelated cell correction; its source and review remain available.
  const marineDetail=(import.meta as ImportMeta & {env:{DEV:boolean}}).env.DEV&&sea instanceof Mesh&&outcrops instanceof Mesh?installRetreatWinchMarineDetail(scene,sea,outcrops):null;
  if(marineDetail)meshes.push(...marineDetail.meshes);
+ const disableBeach=(scene.metadata as any)?.disableBeachPresentation===true||(typeof window!=='undefined'&&new URLSearchParams(window.location?.search??'').get('pass')==='before');
+ const beach=expanded&&phase>=8&&revisionStage>=6&&!disableBeach?installRetreatBeachPresentation(scene,sea instanceof Mesh?sea:null,revisionStage):null;
+ if(beach)meshes.push(...beach.meshes);
  let frozen=0;
  if(phase>=8)for(const m of scene.meshes){
   if(m.infiniteDistance||!m.isEnabled()||!m.getTotalVertices()||m.metadata?.retreatDynamic||/bay|shore-wash|weather:|actor:|flame|glow|mist|smoke|ambient-life/.test(m.name))continue;
@@ -170,6 +174,7 @@ export async function installRetreatRefinement(scene:Scene,requested=manifest.av
   lighting?.update(point);
   coast?.update(time);
   marineDetail?.update(time);
+   beach?.update(time, interior);
   // The existing ocean animation used to pass over the 25 cm landing and the
   // forest pad. Preserve its offshore swells while keeping the harbor below shore.
   if(phase>=2&&phase<7)keepRetreatLandingDry(scene.getMeshByName('a1:bay-background') as Mesh|null);
@@ -179,5 +184,5 @@ export async function installRetreatRefinement(scene:Scene,requested=manifest.av
   // they belong to the occupied room's front, not its permanent side rock.
   for(const {mesh,interior:zone} of cellJambs)mesh.isVisible=interior!==zone;
  }
- return {phase,stoneStage,meshes,scenicDepth,update,updateFixtures:torches?.update,syncWinchHouse:winchHouse?.sync,stats:{phase,stoneStage,polishStage,stoneMeshes,quickOptimization,geography,island:island?.stats??null,finishing:finishing?.stats??null,departures:departures?.stats??null,environment:environment?.stats??null,visualRevisions:visualRevisions?.stats??null,winchSeaRocks:winchSeaRocks?{installed:winchSeaRocks.installed,retired:winchSeaRocks.retired}:null,winchHouse:winchHouse?{installed:winchHouse.installed,records:winchHouse.records}:null,occlusionShells:{additionalMeshes:localShells.additionalMeshes,records:localShells.records},addedMeshes:meshes.length,scenicDepth:scenicDepth?.stats??null,materialStats:materialController?.stats??null,lighting:lighting?.stats??null,coast:coast?.stats??null,frozenMatrices:frozen}};
+ return {phase,stoneStage,meshes,scenicDepth,update,updateFixtures:torches?.update,syncWinchHouse:winchHouse?.sync,stats:{phase,stoneStage,polishStage,stoneMeshes,quickOptimization,geography,island:island?.stats??null,finishing:finishing?.stats??null,departures:departures?.stats??null,environment:environment?.stats??null,visualRevisions:visualRevisions?.stats??null,winchSeaRocks:winchSeaRocks?{installed:winchSeaRocks.installed,retired:winchSeaRocks.retired}:null,winchHouse:winchHouse?{installed:winchHouse.installed,records:winchHouse.records}:null,occlusionShells:{additionalMeshes:localShells.additionalMeshes,records:localShells.records},addedMeshes:meshes.length,scenicDepth:scenicDepth?.stats??null,materialStats:materialController?.stats??null,lighting:lighting?.stats??null,coast:coast?.stats??null,beach:beach?.stats??null,frozenMatrices:frozen}};
 }

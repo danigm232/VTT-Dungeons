@@ -3,7 +3,7 @@
 .condition-row { padding: .7rem 0; border-bottom: 1px solid #a6ada31e; }
 .condition-row:last-child { border-bottom: 0; }
 .condition-row-title { display: flex; align-items: center; gap: .6rem; }
-.condition-glyph { display: inline-grid; place-items: center; width: 1.6rem; height: 1.6rem; flex: 0 0 auto; border: 1px solid var(--condition-color); color: var(--condition-color); background: #152026; border-radius: 50%; font: 600 1rem/1 Georgia, serif; }
+.condition-glyph { display: inline-grid; place-items: center; width: 1.6rem; height: 1.6rem; flex: 0 0 auto; border: 1.5px solid var(--condition-color); color: var(--condition-color); background: #0e181e; border-radius: 50%; font: 700 1rem/1 Georgia, serif; text-shadow: 0 1px 2px #000; box-shadow: 0 1px 3px #000a; }
 .condition-origin { font-size: .8rem; color: #d5c29e; margin: .4rem 0; }
 .condition-note { font-size: .8rem; line-height: 1.5; color: #b5c2c0; margin: .45rem 0; }
 .condition-strip { display: flex; flex-wrap: wrap; gap: .35rem; }
@@ -12,10 +12,10 @@
 .condition-name-icons { margin: .25rem 0 .5rem; }
 .identity .condition-name-icons { margin: 0; max-width: 250px; }
 .condition-name-icons .condition-chip { min-height: 25px; padding: .12rem .3rem; border-color: #afbaae30; background: #101c20; font-size: .68rem; }
-.condition-name-icons .condition-glyph { width: 1.05rem; height: 1.05rem; font-size: .7rem; }
+.condition-name-icons .condition-glyph { width: 1.05rem; height: 1.05rem; font-size: .72rem; border-width: 1.5px; }
 .initiative-state-strip { gap: .18rem; }
 .initiative-state-strip .condition-chip { min-height: 16px; padding: 0; border: 0; background: transparent; }
-.initiative-state-strip .condition-glyph { width: 1rem; height: 1rem; font-size: .65rem; }
+.initiative-state-strip .condition-glyph { width: 1rem; height: 1rem; font-size: .68rem; border-width: 1.5px; box-shadow: 0 1px 3px #000c; }
 .initiative-state-strip .condition-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 @media (max-width: 600px) { .identity .condition-name-icons .condition-label { display: none; } .identity .condition-name-icons { max-width: 120px; } }
 .condition-chip { display: inline-flex; align-items: center; gap: .4rem; padding: .3rem .5rem; min-height: 34px; border-radius: 8px; border: 1px solid #9caeab55; background: #122026; color: #deddd3; font-size: .8rem; }

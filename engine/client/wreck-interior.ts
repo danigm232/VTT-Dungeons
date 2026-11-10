@@ -25,7 +25,7 @@ export function buildWreckInterior(scene: Scene, hullTexture?: BaseTexture, terr
   if(hullTexture)wornTimberRelief(scene,timber);
   const worn = timber.clone('wreck-interior:exposed-grain'); worn.diffuseColor = Color3.FromHexString('#bcad87');
   const algae = new StandardMaterial('wreck-interior:algae', scene);
-  algae.diffuseColor = Color3.FromHexString('#42573b'); algae.specularColor = Color3.Black();
+  algae.diffuseColor = Color3.FromHexString('#324e37'); algae.specularColor = Color3.FromHexString('#142118');
   const at = (x: number, y: number, z: number) => new Vector3(S.origin.x+x,y,S.origin.z+z);
   const add = (m: Mesh, surface: string, kind: string, batched=true, cutSide=0) => {
     m.isPickable=false;m.receiveShadows=true;m.metadata={visualOnly:true,deckSurfaceId:surface,kind,cutSide};

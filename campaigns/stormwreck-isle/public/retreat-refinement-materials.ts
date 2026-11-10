@@ -82,6 +82,9 @@ export function upgradeRetreatMaterials(scene:Scene,stoneStage=0,polished=false,
   const low=distant(high);if(!(low instanceof StandardMaterial))return low;
   if(!islandLow){
    islandLow=low.clone('retreat:island-shared-low')!;islandLow.maxSimultaneousLights=2;
+   islandLow.diffuseColor=low.diffuseColor.scale(0.86);
+   islandLow.emissiveColor=new Color3(0.04,0.065,0.08);
+   islandLow.specularColor=new Color3(0.02,0.025,0.03);
    // Keep the same cached GPU albedo image. Only the large backdrop's sampler
    // wrapper reduces grazing-angle anisotropy; original stone stays at 8x.
    if(low.diffuseTexture instanceof Texture){islandLow.diffuseTexture=low.diffuseTexture.clone();islandLow.diffuseTexture.name='retreat:island-shared-albedo-sampler';islandLow.diffuseTexture.anisotropicFilteringLevel=1;}

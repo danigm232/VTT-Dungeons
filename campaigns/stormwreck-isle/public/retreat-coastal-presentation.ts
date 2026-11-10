@@ -10,7 +10,7 @@ const clamp=(v:number,a:number,b:number)=>Math.max(a,Math.min(b,v));
 /** Lowest dry shores plus one native water-cell margin; offshore swells remain.
  * A feathered ceiling avoids painting the low clearing and tree roots blue. */
 export function retreatShoreCeiling(x:number,z:number){
- const d=Math.hypot(Math.max(-10-x,0,x-43),Math.max(80-z,0,z-140));
+ const d=Math.hypot(Math.max(-24-x,0,x-43),Math.max(80-z,0,z-140));
  if(d>=9)return Infinity;const t=d/9;return .08+6*t*t*(3-2*t);
 }
 const dryCache=new WeakMap<Mesh,{world:import('@babylonjs/core/Maths/math.vector.js').Matrix;version:number;caps:[number,number][]}>();
@@ -35,10 +35,14 @@ export function installRetreatBoatBuoyancy(scene:Scene,sea:Mesh,jetty=false){
  if(jetty)rig.position.z=119.4;
  const oars:TransformNode[]=[];
  if(jetty)for(const side of [0,1]){
-  const pivot=new TransformNode('retreat:rowing-oar-'+side,scene);pivot.parent=rig;pivot.position.set(side===0?-.38:.38,.43,-.2);
-  for(const part of parts.filter(m=>new RegExp('Oar_(Shaft|Blade)_'+side+'$').test(m.name)))part.setParent(pivot,true);
-  // Existing oars are stored fore/aft; rotate the pair out through the oarlocks.
-  pivot.rotation.y=side===0?Math.PI/2:-Math.PI/2;oars.push(pivot);
+  const pivot=new TransformNode('retreat:rowing-oar-'+side,scene);pivot.parent=rig;pivot.position.set(side===0?-.72:.72,.655,-.15);
+  for(const part of parts.filter(m=>new RegExp('Oar_(Shaft|Blade)_'+side+'$').test(m.name))){
+   part.setParent(pivot,false);part.rotationQuaternion=null;part.rotation.set(0,0,0);
+   if(part.name.includes('Shaft')){part.scaling.set(1,1,.82);part.position.set(0,0,.32);}
+   else{part.scaling.set(1,1,1);part.position.set(0,0,1.22);}
+  }
+  // Place oars on top of the gunwale oarlocks with blades extending outward over the water.
+  pivot.rotation.y=side===0?-Math.PI/2:Math.PI/2;pivot.rotation.x=.14;oars.push(pivot);
  }
  const original=scene.getMeshByName('P2_VTT_Functional_Mooring');original?.setEnabled(false);
  const fixed=jetty?new Vector3(21.2,.82,117.1):new Vector3(17.55,.88,115.35),endLocal=new Vector3(0,.62,-1.7),end=new Vector3(),path=Array.from({length:9},()=>new Vector3());
@@ -49,7 +53,7 @@ export function installRetreatBoatBuoyancy(scene:Scene,sea:Mesh,jetty=false){
   if(version===lastVersion&&!departure)return;lastVersion=version;
   const x=departure?.boat.x??20.25,z=departure?.boat.z??(jetty?119.4:117);rig.position.x=x;rig.position.z=z;
   const center=retreatWaterHeight(sea,x,z),target=retreatBoatPose(center,retreatWaterHeight(sea,x,z-1.35),retreatWaterHeight(sea,x,z+1.35),retreatWaterHeight(sea,x-.6,z),retreatWaterHeight(sea,x+.6,z));
-  for(const [side,pivot]of oars.entries()){pivot.rotation.y=(side===0?1:-1)*(Math.PI/2+(departure?.rowing?Math.sin(departure.stroke)*.52:0));pivot.rotation.x=departure?.rowing?Math.cos(departure.stroke)*.17:0;}
+  for(const [side,pivot]of oars.entries()){pivot.rotation.y=(side===0?-1:1)*(Math.PI/2+(departure?.rowing?Math.sin(departure.stroke)*.52:0));pivot.rotation.x=departure?.rowing?Math.cos(departure.stroke)*.17:.14;}
   const alpha=Number.isFinite(lastTime)?1-Math.exp(-clamp(time-lastTime,0,.25)/.08):1;lastTime=time;
   rig.position.y+=(target.height-rig.position.y)*alpha;rig.rotation.x+=(target.pitch-rig.rotation.x)*alpha;rig.rotation.z+=(target.roll-rig.rotation.z)*alpha;rig.computeWorldMatrix(true);
   Vector3.TransformCoordinatesToRef(endLocal,rig.getWorldMatrix(),end);

@@ -28,7 +28,7 @@ Los chats del **Retiro**, **Pecio**, **Espejo** y **campamentos** incorporan los
 | --- | --- | --- |
 | D8 Cena | [Encargo](design/D8_DINNER_EXECUTION_PROMPT.md) y [C01–C60](design/D8_DINNER_LITERAL_CHECKLIST_20261021.md) | E0=VIS-1; E1/E2/E3 desarrollan VIS-2/3/4; E4/E5=VIS-5; E6=VIS-6 |
 | D8 Espejo | [Evidencia inmersiva](evidence/D8_MIRROR_IMMERSIVE_20261021.md) | Conservar cueva, bruma, salida y luz local implementadas; revisar material/escala/contraste al recibir un encargo de refinado |
-| Retiro | [Roadmap técnico vigente](audits/RETREAT_TECHNICAL_ROADMAP_20261023.md) y [referencias aprobadas](design/RETREAT_VISUAL_REFERENCES_20261025.md) | Adoptar familias coherentes en la subfase autorizada; no deshacer ampliaciones/geografía ni reabrir Q1.1/Q1.2/Q1.3a |
+| Retiro | [Roadmap técnico vigente](audits/RETREAT_TECHNICAL_ROADMAP_20261023.md) y [referencias aprobadas](design/RETREAT_VISUAL_REFERENCES_20261025.md) | Zonas 1, 2 y 3 cerradas y verificadas al 100 % (09/11). Zonas 4 a 11 en cola para Gemini 4 Argon. Conservar ampliaciones, funciones y contratos canónicos. |
 | Pecio | [Roadmap M0–M7](../ROADMAP_V1.md), M5 de recursos y M7 físico | Acabado por familia/estado sobre C1–C9; no cambiar casco, compartimentos, rutas o botín por otra referencia |
 | Campamentos | Evidencia/ficha local al iniciar | Revalidar sprites, apoyos, clima y referencias ya elegidas; esta auditoría no declara revisados sus cinco mapas |
 

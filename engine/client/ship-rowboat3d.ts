@@ -157,14 +157,17 @@ export function buildShipRowboat(scene: Scene, woodTexture?: BaseTexture): Trans
     void main(){
       float front=.46+.19*sin(at.x*2.1+at.y*2.9-time*1.7);
       float broken=smoothstep(-.42,1.2,sin(at.x*13.+at.y*8.-time)+.4*sin(at.x*7.-at.y*18.));
-      float dark=(1.-smoothstep(.15,.62,v.x))*.25;
-      float crest=(1.-smoothstep(.03,.23,abs(v.x-front)))*broken*.54;
-      gl_FragColor=vec4(mix(vec3(.04,.13,.15),vec3(.64,.77,.76),crest/max(.001,crest+dark))*lightLevel,(crest+dark)*v.y);
+      float lip=(1.-smoothstep(.02,.28,v.x));
+      float crest=(1.-smoothstep(.025,.22,abs(v.x-front)))*broken*.68;
+      float froth=clamp(lip*.62+crest,0.,1.);
+      vec3 foamColor=mix(vec3(.08,.26,.29),vec3(.92,.98,.96),smoothstep(.08,.42,froth));
+      float alpha=clamp((lip*.88+crest*.75)*v.y,0.,1.);
+      gl_FragColor=vec4(foamColor*lightLevel,alpha);
     }`},{attributes:['position','uv'],uniforms:['world','viewProjection','time','lightLevel'],needAlphaBlending:true});
   wash.setFloat('lightLevel',1);
   wash.backFaceCulling=false;
   const paths=sliceWreckWaterline(hull,-rowboatWaterDraft/root.scaling.y);
-  const waves=buildWreckWaterContact(scene,'rowboat:travelling-wave-wash',paths,.68,.96,.14)!;
+  const waves=buildWreckWaterContact(scene,'rowboat:travelling-wave-wash',paths,.95,.96,.14)!;
   // Bounds stay in boat space while the shader holds the strip at the sea
   // surface instead of inheriting the boat's vertical bob.
   const washPositions=waves.getVerticesData('position')!;

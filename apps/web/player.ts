@@ -429,6 +429,7 @@ const socketAuth = () => ({ role: 'player', sessionToken, protocolVersion: PROTO
 // initial chooser packet from arriving before its renderer is ready.
 const socket = io({ autoConnect: false, auth: socketAuth() });
 const world = new WorldRenderer($('world'), campaign, { cameraRole: 'player', showStairMarker: false, showGrid: playerDisplaySettings.showGrid, showReachable: playerDisplaySettings.showMovementHints, persistCameraPreferences: true, cameraPreferenceNamespace: 'player', followSharedCameraOrientation: true });
+(window as any).world = world;
 const gameClockOverlay = new GameClockOverlay($('world'), 'right');
 let privateState: PlayerPrivate | null = null;
 const playerConditionsPanel = new ConditionPanel();
@@ -632,6 +633,9 @@ socket.on('world:snapshot', (snapshot: WorldSnapshot) => {
     optimisticFacing = null;
     clearCameraTouchContacts();
     readyEpoch = -1;
+    if (snapshot.sceneId !== lastSnapshot.sceneId) {
+      document.body.classList.add('scene-transitioning');
+    }
   }
   lastSnapshot = snapshot;
   if (optimisticFacing && snapshot.entities.some(entity => entity.id === privateState?.characterId && entity.facing === optimisticFacing)) optimisticFacing = null;
@@ -1935,6 +1939,7 @@ async function prepareSnapshot(snapshot: WorldSnapshot) {
   try {
     const installed = await world.applySnapshot(snapshot);
     if (!installed) return;
+    document.body.classList.remove('scene-transitioning');
     sceneLoadRecovery.reset();
     updatePlayerCameraControls(snapshot.sceneId);
     if (socket.connected && readyEpoch !== snapshot.sceneEpoch && lastSnapshot?.sceneEpoch === snapshot.sceneEpoch) {
@@ -1942,6 +1947,7 @@ async function prepareSnapshot(snapshot: WorldSnapshot) {
       socket.emit('scene:ready', { runtimeEpoch, sceneEpoch: snapshot.sceneEpoch });
     }
   } catch (error) {
+    document.body.classList.remove('scene-transitioning');
     if (!socket.connected || lastSnapshot?.runtimeEpoch !== runtimeEpoch) return;
     if (sceneLoadRecovery.failed(() => {
       if (socket.connected && lastSnapshot?.runtimeEpoch === runtimeEpoch) void prepareSnapshot(lastSnapshot);

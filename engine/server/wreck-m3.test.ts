@@ -55,11 +55,11 @@ describe('M3 · criaturas en el barco continuo', () => {
     const saved = restored.captureDurable();
     expect(saved.characters).toEqual(characters);
     expect(saved.scenes).toEqual(scenes);
-    expect(saved.npcs).toHaveLength(25);
+    expect(saved.npcs).toHaveLength(26);
     expect(saved.npcs?.filter(npc => (stormwreckBundle.privateActors ?? []).some(actor => actor.id === npc.id))
       .every(npc => !npc.visible)).toBe(true);
     expect(saved.npcs?.filter(npc => npc.sceneId === 'wreck-ship')).toHaveLength(10);
-    expect(saved.npcs?.filter(npc => npc.sceneId === 'dragon-rest')).toHaveLength(15);
+    expect(saved.npcs?.filter(npc => npc.sceneId === 'dragon-rest')).toHaveLength(16);
   });
 
   it('conserva condiciones de canto y parálisis en el guardado privado', () => {

@@ -362,7 +362,7 @@ html[data-dm-text-size="large"] body { font-size: clamp(17px,1vw,19px); }
 #mapWindow .object-row b, #mapWindow .object-row span { width: 100%; min-width: 0; overflow-wrap: anywhere; }
 #mapWindow .object-row button { min-height: 34px; padding: 5px 9px; font-size: .8rem; }
 #mapWindow #objects:empty { display: none; }
-#dmMap { grid-column: 1; grid-row: 2; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; border: 1px solid #46656c; border-radius: 12px; background: #06151c; }
+#dmMap { position: relative; grid-column: 1; grid-row: 2; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; border: 1px solid #46656c; border-radius: 12px; background: #06151c; }
 
 /* Consola táctica */
 .combatant { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 9px; align-items: center; padding: 11px 0; border-top: 1px solid #314b51; }

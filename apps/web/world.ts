@@ -91,7 +91,7 @@ import { wreckCameraFront } from '../../engine/shared/wreck-camera-profile';
 type TokenView = { root: Container; body: Container; defeatOverlay?: Graphics; occlusionMask: Graphics; occlusionMaskKey?: string; ghost: Sprite; displayedState: string | null; stateStartedAt: number; blendStartedAt: number; ring: Graphics; sprite: Sprite; health: Graphics; states: ConditionEffectView; entity: PublicEntity; phase: number; animationState: string | null; animationFacing?: Facing; animationStartedAt: number; animationUntil: number; frameUrl: string | null };
 type MapObject = PublicProp | DmObject;
 type PropView = { root: Container; sprite: Sprite | null; variantUrl: string | null };
-type WorldRendererOptions = { stormwreckVisualSample?: boolean; retreatRevisionStage?: number; retreatPolishStage?: number; retreatDepartureStage?: number; retreatFinishStage?: number; retreatIslandStage?: number; retreatExpansion?: boolean; cameraRole?: 'player' | 'dm' | 'projector'; showGrid?: boolean; gridStyle?: GridStyle; showReachable?: boolean; persistCameraPreferences?: boolean; cameraPreferenceNamespace?: string; followSharedCameraOrientation?: boolean; showStairMarker?: boolean; conditionPoseTokens?: readonly string[]; combatInitiativePosition?:InitiativePosition };
+type WorldRendererOptions = { stormwreckVisualSample?: boolean; retreatRevisionStage?: number; retreatPolishStage?: number; retreatDepartureStage?: number; retreatFinishStage?: number; retreatIslandStage?: number; retreatExpansion?: boolean; cameraRole?: 'player' | 'dm' | 'projector'; showGrid?: boolean; gridStyle?: GridStyle; showReachable?: boolean; persistCameraPreferences?: boolean; cameraPreferenceNamespace?: string; followSharedCameraOrientation?: boolean; showStairMarker?: boolean; conditionPoseTokens?: readonly string[]; combatInitiativePosition?:InitiativePosition; requireContinue?: boolean; };
 type TokenOcclusionCacheEntry = { checkedAt: number; blocked: boolean[]; shape: string; point: { x: number; y: number; z: number }; camera: { x: number; y: number; z: number } };
 const TERRAIN_CAMERA_INITIAL_ALPHA = -Math.PI / 4;
 const CAMERA_ZOOM_MIN = 0.4;
@@ -280,15 +280,66 @@ export class WorldRenderer {
   private selectedObject: DmObject | null = null;
   private previewObject: DmObject | null = null;
   private previewValid = true;
+  private loadingScreen: HTMLElement | null = null;
+  private loadingTitle: HTMLElement | null = null;
+  private loadingMessage: HTMLElement | null = null;
+  private loadingSpinner: HTMLElement | null = null;
+  private loadingBarFill: HTMLElement | null = null;
+  private loadingContinueBtn: HTMLButtonElement | null = null;
+  private loadingHint: HTMLElement | null = null;
   private loadingStatus: HTMLDivElement | null = null;
   private loadingGeneration = 0;
 
   constructor(private host: HTMLElement, private campaign: PublicCampaignDefinition, private options: WorldRendererOptions = {}) {
     this.options.gridStyle = normalizeGridStyle(this.options.gridStyle);
-    const status = document.createElement('div');
-    status.className = 'world-loading-status'; status.setAttribute('role', 'status');
-    status.textContent = 'Preparando escenario…';
-    this.host.append(status); this.loadingStatus = status;
+    const screen = document.createElement('div');
+    screen.className = 'world-loading-screen';
+    screen.setAttribute('role', 'status');
+    screen.setAttribute('aria-live', 'polite');
+    const card = document.createElement('div');
+    card.className = 'world-loading-card';
+    const eyebrow = document.createElement('p');
+    eyebrow.className = 'world-loading-eyebrow';
+    eyebrow.textContent = 'D&D IMMERSIVE ENGINE';
+    const title = document.createElement('h2');
+    title.className = 'world-loading-title';
+    title.textContent = 'Preparando escenario';
+    const spinner = document.createElement('div');
+    spinner.className = 'world-loading-spinner';
+    spinner.setAttribute('aria-hidden', 'true');
+    spinner.innerHTML = '<span class="world-loading-ring"></span><span class="world-loading-ring-inner"></span><span class="world-loading-rune">⚔</span>';
+    const barTrack = document.createElement('div');
+    barTrack.className = 'world-loading-bar-track';
+    const barFill = document.createElement('div');
+    barFill.className = 'world-loading-bar-fill';
+    barTrack.append(barFill);
+    const message = document.createElement('p');
+    message.className = 'world-loading-message';
+    message.textContent = 'Cargando recursos y mapa…';
+    const continueBtn = document.createElement('button');
+    continueBtn.type = 'button';
+    continueBtn.className = 'world-loading-continue';
+    continueBtn.innerHTML = '<span>⚔</span> CONTINUAR <span>⚔</span>';
+    continueBtn.hidden = true;
+    const hint = document.createElement('small');
+    hint.className = 'world-loading-hint';
+    hint.textContent = 'Pulsa Continuar, Espacio o Enter para entrar';
+    hint.hidden = true;
+    card.append(eyebrow, title, spinner, barTrack, message, continueBtn, hint);
+    screen.append(card);
+    if (typeof document !== 'undefined' && document.body) {
+      document.body.appendChild(screen);
+    } else {
+      this.host.append(screen);
+    }
+    this.loadingScreen = screen;
+    this.loadingTitle = title;
+    this.loadingMessage = message;
+    this.loadingSpinner = spinner;
+    this.loadingBarFill = barFill;
+    this.loadingContinueBtn = continueBtn;
+    this.loadingHint = hint;
+    this.loadingStatus = screen as any;
     this.ready = this.initialize();
     // El tamaño del canvas debe actualizarse después de que el navegador haya
     // terminado de resolver el grid/flex de las ventanas del DM. Hacerlo en el
@@ -411,8 +462,8 @@ export class WorldRenderer {
     });
     let renderError:string|null=null;
     this.app.ticker.add(ticker => {
-      try{this.animate(ticker.deltaMS);if(renderError&&this.loadingStatus)this.loadingStatus.hidden=true;renderError=null;}
-      catch(error){const message=String(error);if(renderError!==message)console.error('World frame failed',error);renderError=message;if(this.loadingStatus){this.loadingStatus.hidden=false;this.loadingStatus.textContent='No se puede representar el escenario. Recarga la página.';}}
+      try{this.animate(ticker.deltaMS);if(renderError)this.hideLoading();renderError=null;}
+      catch(error){const message=String(error);if(renderError!==message)console.error('World frame failed',error);renderError=message;this.showLoading(undefined,'No se puede representar el escenario. Recarga la página.');}
     });
   }
 
@@ -622,17 +673,84 @@ export class WorldRenderer {
   }
   resetConnection() { this.stopVisualPreview(); this.stopMirrorEffect(); this.areaEffects.clear(); this.retiringTokens.clear(); this.connectionGeneration++; this.requestGeneration++; this.accepted = { epoch: -1, revision: -1 }; this.lastCombatEventId = null; this.clearSharedCameraOrientations(); }
 
+  showLoading(sceneTitle?: string, message = 'Preparando escenario…') {
+    if (!this.loadingScreen) return;
+    if (sceneTitle && this.loadingTitle) this.loadingTitle.textContent = sceneTitle;
+    if (this.loadingMessage) this.loadingMessage.textContent = message;
+    if (this.loadingBarFill) this.loadingBarFill.classList.remove('ready');
+    if (this.loadingContinueBtn) this.loadingContinueBtn.hidden = true;
+    if (this.loadingHint) this.loadingHint.hidden = true;
+    this.loadingScreen.classList.remove('world-loading-fade-out');
+    this.loadingScreen.hidden = false;
+    if (typeof document !== 'undefined' && document.body) {
+      document.body.classList.add('scene-transitioning');
+    }
+  }
+  async waitForVisualsReadyAndContinue(): Promise<void> {
+    if (this.loadingMessage) this.loadingMessage.textContent = '¡Escenario cargado y listo!';
+    if (this.loadingBarFill) this.loadingBarFill.classList.add('ready');
+    if (!this.loadingScreen || !this.loadingContinueBtn || typeof window === 'undefined' || this.options.requireContinue === false || (window as any).__VITEST__) {
+      this.hideLoading();
+      return;
+    }
+    this.loadingContinueBtn.hidden = false;
+    if (this.loadingHint) this.loadingHint.hidden = false;
+    try { this.loadingContinueBtn.focus(); } catch {}
+    await new Promise<void>(resolve => {
+      let done = false;
+      const onContinue = () => {
+        if (done) return;
+        done = true;
+        if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') window.removeEventListener('keydown', onKey);
+        this.hideLoading();
+        resolve();
+      };
+      const onKey = (event: KeyboardEvent) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onContinue();
+        };
+      };
+      this.loadingContinueBtn!.onclick = onContinue;
+      if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') window.addEventListener('keydown', onKey);
+    });
+  }
+  hideLoading() {
+    if (!this.loadingScreen) return;
+    this.loadingScreen.classList.add('world-loading-fade-out');
+    if (typeof document !== 'undefined' && document.body) {
+      document.body.classList.remove('scene-transitioning');
+    }
+    window.setTimeout(() => {
+      if (this.loadingScreen?.classList.contains('world-loading-fade-out')) {
+        this.loadingScreen.hidden = true;
+        if (this.loadingContinueBtn) this.loadingContinueBtn.hidden = true;
+        if (this.loadingHint) this.loadingHint.hidden = true;
+      }
+    }, 400);
+  }
+
   async applySnapshot(snapshot: WorldSnapshot): Promise<boolean> {
     const loading = this.installedSceneId !== snapshot.sceneId;
-    const generation = ++this.loadingGeneration;
-    if (loading && this.loadingStatus) { this.loadingStatus.hidden = false; this.loadingStatus.textContent = 'Preparando escenario…'; }
+    this.loadingGeneration = (this.loadingGeneration || 0) + 1;
+    const generation = this.loadingGeneration;
+    if (loading) {
+      const destinationTitle = this.campaign.scenes.find(scene => scene.id === snapshot.sceneId)?.title ?? snapshot.sceneId;
+      this.showLoading(destinationTitle, 'Preparando escenario…');
+    }
     try {
       const applied = await this.applyRenderedSnapshot(snapshot);
-      if (applied && generation === this.loadingGeneration && this.loadingStatus) this.loadingStatus.hidden = true;
+      if (applied && generation === this.loadingGeneration) {
+        if (loading) {
+          await this.waitForVisualsReadyAndContinue();
+        } else {
+          this.hideLoading();
+        }
+      }
       return applied;
     } catch (error) {
-      if (generation === this.loadingGeneration && this.loadingStatus) {
-        this.loadingStatus.hidden = false; this.loadingStatus.textContent = 'No se ha podido cargar el escenario. Reintentando…';
+      if (generation === this.loadingGeneration) {
+        this.showLoading(undefined, 'No se ha podido cargar el escenario. Reintentando…');
       }
       throw error;
     }
@@ -1062,7 +1180,7 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     for (const texture of this.matteTextures.values()) texture.destroy(true); this.matteTextures.clear(); this.matteChecked.clear(); this.host.replaceChildren();
   }
 
-  private installTerrain(definition: PublicSceneDefinition) {
+  private async installTerrain(definition: PublicSceneDefinition) {
     this.shipTorches.clear();
     this.d8Grid?.dispose(); this.d8Grid = null; this.d8GridStyle = null; this.d8GridSegments = []; this.d8GridLuminance = [];
     this.host.style.backgroundImage = '';
@@ -1239,24 +1357,35 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     this.restoreCameraOrientation(definition.id);
     if (definition.id === 'dragon-rest') {
       const retreatScene=this.terrainScene;
-      void import('../../campaigns/stormwreck-isle/public/retreat-global-visuals.js').then(({createRetreatGlobalVisuals,conformRetreatGrid})=>{
-        if(this.campVisualGeneration!==campVisualGeneration||this.terrainScene!==retreatScene)return;
-        this.retreatVisuals=createRetreatGlobalVisuals(retreatScene,{expanded:this.options.retreatExpansion,islandStage:this.options.retreatIslandStage,finishStage:this.options.retreatFinishStage,departureStage:this.options.retreatDepartureStage,polishStage:this.options.retreatPolishStage,revisionStage:this.options.retreatRevisionStage});
-        this.renderTerrainProps(this.snapshot?.props??[]);
-        void this.retreatVisuals.ready.then(()=>{
-          if(this.campVisualGeneration===campVisualGeneration&&this.terrainScene===retreatScene&&this.terrainView)conformRetreatGrid(retreatScene,this.terrainView);
-        }).catch(error=>console.error('Retiro: carga incompleta',error));
-      }).catch(error=>console.error('Retiro: no se pudo iniciar la escena',error));
-    }
-      if (definition.camp) {
-        const campScene = this.terrainScene;
-        void import('../../campaigns/camp-rests/public/visuals.js').then(({ createCampVisuals }) => {
-          if (this.campVisualGeneration === campVisualGeneration && this.terrainScene === campScene && this.sceneId === definition.id) {
-            this.campVisuals = createCampVisuals(campScene, definition);
-            if (this.campInteractionHighlights) this.campVisuals?.setInteractionHighlights(this.campInteractionHighlights);
+      try {
+        const { createRetreatGlobalVisuals, conformRetreatGrid } = await import('../../campaigns/stormwreck-isle/public/retreat-global-visuals.js');
+        if (this.campVisualGeneration === campVisualGeneration && this.terrainScene === retreatScene) {
+          this.retreatVisuals = createRetreatGlobalVisuals(retreatScene, { expanded: this.options.retreatExpansion, islandStage: this.options.retreatIslandStage, finishStage: this.options.retreatFinishStage, departureStage: this.options.retreatDepartureStage, polishStage: this.options.retreatPolishStage, revisionStage: this.options.retreatRevisionStage });
+          this.renderTerrainProps(this.snapshot?.props ?? []);
+          await this.retreatVisuals.ready;
+          if (this.campVisualGeneration === campVisualGeneration && this.terrainScene === retreatScene && this.terrainView) {
+            conformRetreatGrid(retreatScene, this.terrainView);
           }
-        }).catch(error => console.error('No se pudieron cargar los efectos del campamento', error));
+        }
+      } catch (error) {
+        console.error('Retiro: error en carga visual', error);
       }
+    }
+    if (definition.camp) {
+      const campScene = this.terrainScene;
+      try {
+        const { createCampVisuals } = await import('../../campaigns/camp-rests/public/visuals.js');
+        if (this.campVisualGeneration === campVisualGeneration && this.terrainScene === campScene && this.sceneId === definition.id) {
+          this.campVisuals = createCampVisuals(campScene, definition);
+          if (this.campInteractionHighlights) this.campVisuals?.setInteractionHighlights(this.campInteractionHighlights);
+        }
+      } catch (error) {
+        console.error('No se pudieron cargar los efectos del campamento', error);
+      }
+    }
+    if (this.terrainScene) {
+      await this.terrainScene.whenReadyAsync();
+    }
     this.terrainCanvas.hidden = false; this.background.visible = false; this.terrainEngine!.resize();
   }
 
@@ -1372,8 +1501,9 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     this.stormwreckObjectFinish = null;
     if (definition.renderer === 'babylon-d8') {
       if (!await this.installD8Renderer(definition, connection, request)) return false;
+      if (this.d8Scene) await this.d8Scene.whenReadyAsync();
     }
-    else this.installTerrain(definition);
+    else await this.installTerrain(definition);
     if (connection !== this.connectionGeneration || request !== this.requestGeneration) return false;
     this.sceneBillboards?.dispose(); this.campActivityVisuals?.dispose(); this.campActivityVisuals = null;
     const billboardScene = this.d8Scene ?? this.terrainScene;
@@ -1819,6 +1949,9 @@ const started = performance.now(), tick = () => { if (!stillActive() || slash.de
     if (this.terrainScene) {
       this.terrainScene.fogMode=BabylonScene.FOGMODE_LINEAR;
       this.terrainScene.fogColor.copyFrom(Color3.FromHexString(hold?'#12343c':'#233b43'));
+      const skyDay = Color3.FromHexString('#253d47'), skyNight = Color3.FromHexString('#0a151b');
+      const skyBase = hold ? Color3.FromHexString('#040a0e') : (weather?.storm ? Color3.FromHexString('#1a2930') : Color3.Lerp(skyNight, skyDay, Math.max(0, Math.min(1, sunlight.ambient))));
+      this.terrainScene.clearColor.set(skyBase.r, skyBase.g, skyBase.b, 1);
       if(this.terrainView){const range=wreckFogRange(this.terrainView.camera.radius,Math.max(climate.fogDensity,weather?.storm?weather.stormIntensity:0),hold);
         this.terrainScene.fogStart=range.start;this.terrainScene.fogEnd=range.end;}
     }

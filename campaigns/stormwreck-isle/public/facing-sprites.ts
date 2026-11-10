@@ -47,7 +47,13 @@ export function stormwreckFacingSprites(tokenId: string, existing: Animations = 
     const direction = directions[index]!;
     return [
       [`idle-${direction}`, clip], [`idle-standing-${direction}`, clip], [`combat-idle-${direction}`, clip],
-      [`direction-${direction}`, existing[`direction-${direction}`] ?? (direction === 's' ? existing.moving : undefined) ?? clip]
+      [`direction-${direction}`, existing[`direction-${direction}`] ?? (direction === 's' ? existing.moving : undefined) ?? clip],
+      [`torch-walk-${direction}`, clip],
+      [`torch-run-${direction}`, { ...clip, fps: 2 }],
+      [`torch-idle-${direction}`, clip],
+      ['torch-draw', clip], ['extraer-antorcha', clip],
+      ['torch-stow', clip], ['guardar-antorcha', clip],
+      ['use-torch', clip]
     ];
   }));
 }

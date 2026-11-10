@@ -4360,7 +4360,8 @@ export class GameServer {
     if (!change.ok) { this.broadcastPrivateFor(character.id); return; }
     this.state.revision++; this.state.stateRevision++; this.persistence?.markDirty();
     this.rememberUndo(`${character.label}: ${parsed.data.action} · mochila`, before);
-    this.emitBasicActionAnimation(character.id, 'use-object');
+    const anim = parsed.data.action === 'light' ? 'extraer-antorcha' : parsed.data.action === 'extinguish' ? 'guardar-antorcha' : 'use-object';
+    this.emitBasicActionAnimation(character.id, anim as any);
     this.broadcastSnapshot(); this.broadcastPrivateFor(character.id); this.broadcastDmState();
   }
 
@@ -4871,6 +4872,7 @@ export class GameServer {
     if (command.type === 'combat:basic') this.emitBasicActionAnimation(command.attackerId, command.action);
     if (command.type === 'combat:declare' && result.code === 'GUIDED_RESOLUTION') this.emitGuidedCombatSound(command.attackerId, command.actionId);
     if (command.type === 'scene') {
+      socket.data.previewSceneId = null;
       for (const connected of this.io.sockets.sockets.values()) connected.data.sceneReadyEpoch = -1;
     }
     if (command.type === 'audio' || command.type === 'audio:select' || command.type === 'audio:mix' || command.type === 'sfx:loop' || command.type === 'environment' || command.type === 'scene' || command.type === 'view:focus') this.io.emit('audio:state', { ...this.state.audio, runtimeEpoch: this.state.runtimeEpoch });
@@ -4945,11 +4947,13 @@ export class GameServer {
     return false;
   }
 
-  private emitBasicActionAnimation(entityId: string, action: BasicCombatAction) {
-    this.io.emit('scene:animation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, entityId, state: basicCombatActionAnimationStates[action], durationMs: action === 'dash' ? 900 : 700 });
+  private emitBasicActionAnimation(entityId: string, action: BasicCombatAction | 'extraer-antorcha' | 'guardar-antorcha') {
+    const animState = action === 'extraer-antorcha' ? 'extraer-antorcha' : action === 'guardar-antorcha' ? 'guardar-antorcha' : basicCombatActionAnimationStates[action as BasicCombatAction];
+    this.io.emit('scene:animation', { runtimeEpoch: this.state.runtimeEpoch, sceneEpoch: this.state.sceneEpoch, entityId, state: animState, durationMs: action === 'dash' ? 900 : 700 });
     if (action === 'dash') this.emitMovementSfx(entityId, 900);
     else if (action === 'magic') this.emitProjectorSfx('d8-night-sfx-spell-arcane');
-    else if (action === 'hide' || action === 'use-object') this.emitProjectorSfx('d8-night-sfx-world-leather-pack');
+    else if (action === 'extraer-antorcha') this.emitProjectorSfx('pixabay-magic-fire');
+    else if (action === 'guardar-antorcha' || action === 'hide' || action === 'use-object') this.emitProjectorSfx('d8-night-sfx-world-leather-pack');
     else if (action === 'study') this.emitProjectorSfx('d8-night-sfx-world-book-open');
   }
 
