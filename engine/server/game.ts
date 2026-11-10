@@ -1904,6 +1904,7 @@ export class GameState {
 
   playerPrivate(token: string, notice?: string): PlayerPrivate {
     const character = this.characterForSession(token);
+    const skillModifiers = character ? this.campaign.characters[character.id]?.skillModifiers : undefined;
     const sceneCheck=character&&this.interactions.find(request=>request.status==='pending'&&request.characterId===character.id&&request.kind==='proximity-check');
     notice??=sceneCheck?`${sceneCheck.skill} CD ${sceneCheck.dc}: pasas junto a ${sceneCheck.targetLabel}. Tira el dado físico e introduce el total en el panel; el DM lo confirma.`:undefined;
     const canAct = Boolean(character && character.hp > 0 && !this.conditionsFor(character.id).some(condition => condition === 'inconsciente' || condition === 'paralizada'));
@@ -1938,6 +1939,7 @@ export class GameState {
     return {
       runtimeEpoch: this.runtimeEpoch,
       characterId: character?.id ?? null, label: character?.label ?? null, hp: character?.hp ?? null, maxHp: character?.maxHp ?? null,
+      ...(skillModifiers ? { skillModifiers: { ...skillModifiers } } : {}),
       inventory: character ? [...character.inventory] : [], sheet: character?.sheet ? structuredClone(character.sheet) : null,
       conditions: character ? [...this.conditionsFor(character.id)] : [], conditionSources: character ? structuredClone(this.conditionSourcesFor(character.id)) : [], resources: character ? structuredClone(character.combat.resources) : {}, concentration: character ? structuredClone(this.concentration[character.id] ?? null) : null, deathSaves: character ? { ...character.deathSaves } : null,
       canInteract: Boolean(nearbyInteraction), nearbyInteraction: nearbyInteraction?.label ?? null,

@@ -1,0 +1,48 @@
+{
+  "cleric-objects": {
+    "file": "7e70ea86-02a7-4d71-bb32-5e942eb4790f"
+  },
+  "wizard-objects": {
+    "file": "e9b74ced-bcf9-4f6d-9e06-becf235a9ea6"
+  },
+  "rogue-objects": {
+    "file": "d3008ec4-3aba-46ce-9768-21558aceae31"
+  },
+  "cleric-motion": {
+    "file": "95c93be6-d88e-467f-bb6d-79917ce86191"
+  },
+  "wizard-motion": {
+    "file": "fcbf6d9a-3507-47e3-90c9-ad997b1e2e71"
+  },
+  "rogue-motion": {
+    "file": "911f9886-7c8c-4267-aa34-15bb7dedb829"
+  },
+  "environment": {
+    "cols": 4,
+    "rows": 4,
+    "file": "0fe5d6ee-79b2-462a-ac28-ee8bbaee9063"
+  },
+  "people": {
+    "file": "077f73a6-3400-493f-9f03-505ced1a1479"
+  },
+  "horse": {
+    "file": "145b4ca3-af48-4414-8c2a-09bd92cf0beb",
+    "rows": 3,
+    "cols": 4
+  },
+  "handshake": {
+    "cols": 6,
+    "file": "b519b368-74b5-4de8-b35b-0cdfd9fc9f8d",
+    "rows": 3
+  },
+  "medicine-pair": {
+    "file": "1ec88ba4-d318-4199-ace6-1031309a7586",
+    "rows": 3,
+    "cols": 6
+  },
+  "animal-reach": {
+    "cols": 6,
+    "file": "27288e40-1c47-407e-82d1-5f9d5fd4b90f",
+    "rows": 3
+  }
+}

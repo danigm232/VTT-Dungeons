@@ -83,11 +83,13 @@ Los archivos bajo `docs/archive/`, `docs/audits/archive/` y `docs/ROADMAP_V1_REV
 | Línea | Situación que se conserva | Cómo continuar |
 | --- | --- | --- |
 | Juego funcional | Mesas, campañas, movimiento, estados y sistemas existentes | Cada bloque deja una candidata jugable. Corregir incidencias reproducibles del alcance sin mezclar una remodelación no encargada. |
+| Pantallas de transición, revisión numerada del 07/11 | Candidata `dev/skill-transition`, 18 habilidades y visor autónomo. | Desenlaces ampliados, sombras y apoyos, dado centrado abajo y resultado temporal bajo el título. Percepción con ocho visitantes y Supervivencia con pezuñas de jabalí. Conserva la corrección del parpadeo, caída de Acrobacias y suelo continuo de Atletismo. [Revisión vigente y recursos](docs/design/SKILL_ANIMATION_NARRATIVE_20261107.md); [validación de la candidata](docs/evidence/PLAYER_SKILL_TRANSITIONS_20261106.md). Revisión artística del usuario pendiente. |
 | Dirección visual común | Biblioteca moderna y auditoría VA-01–VA-18 documentadas; no equivalen a arte implementado | Aplicar sus criterios al siguiente bloque gráfico autorizado. |
 | Prioridad visual: Retiro del Dragón y Pecio Rosa de los Vientos | Acabado por zonas integrado en la candidata del 05/11. Se conservan revisión 19 del Retiro y contratos M5/M7 del Pecio. | Revisar las comparativas y la candidata. Registrar los ajustes artísticos observados y las pruebas físicas en su ficha. [Entrega del 05/11](docs/evidence/STORMWRECK_ZONE_FINISH_20261105.md). |
 | Cena de D8, pendiente posterior | Encargo E0–E6/C01–C60 preparado; conserva toda su lista | Retomar cuando corresponda; deja de ser el primer piloto por la elección del usuario. |
 | Retiro/Pecio/Espejo/campamentos | Avances, ampliaciones y pruebas locales se conservan | Los chats que ya trabajan en ellos siguen su ficha vigente e incorporan criterios visuales donde corresponda; no abandonan su tarea para rehacer Cena. |
 | Cierre por escena | Aceptación visual, física y rendimiento tienen estados separados | Validar lo pendiente según el anexo local. No subir de versión por completar documentos o acumular tests. |
+| Transiciones del jugador | 18 viñetas con presentación a pantalla completa, secuencias de sprites, objetos articulados y visor HTML autónomo | [Integración, recursos y verificación](docs/evidence/PLAYER_SKILL_TRANSITIONS_20261106.md). |
 
 **Recorrido del acabado visual:** base actual → muestra coherente → extensión de materiales/muebles/vegetación → profundidad e iluminación completas → ambiente/estados/audio → candidata, comparativas y aceptación. La muestra ya incluye luz inicial. Cada etapa conserva el VTT funcional y los mapas vigentes.
 

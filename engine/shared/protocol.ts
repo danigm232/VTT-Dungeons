@@ -218,6 +218,8 @@ export interface CharacterSheetView {
 }
 
 export interface PlayerPrivate {
+  /** Totales explícitos de habilidad de la ficha de campaña, para la práctica local. */
+  skillModifiers?: Readonly<Record<string, number>>;
   sceneCheck?: Pick<InteractionRequest,'id'|'skill'|'dc'|'targetLabel'|'playerTotal'>;
   stealth?: boolean;
   blessing?: {label:string;expiresGameSeconds:number;advice:string};

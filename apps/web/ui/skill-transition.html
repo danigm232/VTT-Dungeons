@@ -1,0 +1,56 @@
+<dialog id="skillTransition" class="skill-transition" aria-labelledby="skillTitle" aria-describedby="skillDescription">
+  <div class="skill-screen">
+    <div class="skill-stage" aria-hidden="true">
+      <img class="skill-plate" alt="" draggable="false">
+      <canvas width="1280" height="720"></canvas>
+    </div>
+    <header class="skill-heading">
+      <p class="skill-destination" id="skillDestination"></p>
+      <p id="skillAbility" class="skill-ability"></p>
+      <h2 id="skillTitle" tabindex="-1"></h2>
+      <p id="skillResult" class="skill-result" role="status" data-visible="false"></p>
+      <span class="skill-rule" aria-hidden="true"><i></i></span>
+    </header>
+    <div class="skill-action">
+      <button id="skillDie" class="skill-die" type="button" aria-label="Lanzar d20 de práctica" title="Lanzar d20 de práctica">
+        <svg viewBox="0 0 220 220" fill="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="skillOrbit" x1=".05" y1=".85" x2=".95" y2=".12" gradientUnits="objectBoundingBox">
+              <stop stop-color="#cf832c" stop-opacity=".06"/><stop offset=".23" stop-color="#f7ba65"/><stop offset=".55" stop-color="#bb782f" stop-opacity=".2"/><stop offset=".86" stop-color="#ffe4a2"/><stop offset="1" stop-color="#cd8843" stop-opacity=".06"/>
+            </linearGradient>
+            <linearGradient id="skillMetal" x1="0" y1="0" x2=".7" y2="1" gradientUnits="objectBoundingBox">
+              <stop stop-color="#fff1b3"/><stop offset=".4" stop-color="#efb85f"/><stop offset="1" stop-color="#b97029"/>
+            </linearGradient>
+            <linearGradient id="skillGem" x1="0" y1="0" x2=".2" y2="1" gradientUnits="objectBoundingBox">
+              <stop stop-color="#a46c36"/><stop offset=".5" stop-color="#4a311b"/><stop offset="1" stop-color="#221b18"/>
+            </linearGradient>
+            <radialGradient id="skillHalo"><stop stop-color="#f2b255" stop-opacity=".24"/><stop offset="1" stop-color="#c78c42" stop-opacity="0"/></radialGradient>
+          </defs>
+          <circle cx="110" cy="110" r="105" fill="url(#skillHalo)"/>
+          <g class="skill-orbit">
+            <circle cx="110" cy="110" r="98" stroke="url(#skillOrbit)" stroke-width="1.1" stroke-dasharray="200 110 158 148" transform="rotate(-101 110 110)"/>
+            <path d="M105 12h14m-7-5v10M26 161h7m-3.5-3.5v7" stroke="#f0bd73" stroke-width=".85"/>
+            <g fill="#edb970" opacity=".62"><circle cx="48" cy="80" r=".9"/><circle cx="165" cy="33" r=".8"/><circle cx="155" cy="175" r="1"/><circle cx="77" cy="197" r="1"/><circle cx="177" cy="147" r=".65"/><circle cx="44" cy="140" r=".65"/></g>
+          </g>
+          <g class="skill-die-core" stroke="url(#skillMetal)" stroke-width="1.65" stroke-linejoin="round">
+            <path d="M110 53 163 83 163 142 110 173 57 142 57 83Z" fill="url(#skillGem)"/>
+            <path d="M110 53 163 83 110 72 57 83Z" fill="#b6834a" fill-opacity=".52"/>
+            <path d="M110 72 143 133 77 133Z" fill="#34291b" fill-opacity=".84"/>
+            <path d="M57 83 77 133 57 142 77 133 110 173 143 133 163 142 143 133 163 83M110 53v19"/>
+            <g class="skill-facets" fill="#dca455" stroke="none" text-anchor="middle">
+              <text x="80" y="101" transform="rotate(-52 80 101)">7</text><text x="141" y="101" transform="rotate(49 141 101)">13</text>
+              <text x="110" y="153">3</text><text x="66" y="129" transform="rotate(-69 66 129)">5</text><text x="154" y="129" transform="rotate(69 154 129)">2</text>
+            </g>
+            <text id="skillDieFace" class="skill-die-value" x="110" y="123" text-anchor="middle" stroke="none">20</text>
+          </g>
+        </svg>
+      </button>
+    </div>
+    <div class="skill-summary">
+      <p id="skillCaption" class="skill-caption" aria-live="polite"></p>
+      <span class="skill-rule" aria-hidden="true"><i></i></span>
+      <p id="skillDescription" class="skill-description"></p>
+    </div>
+    <footer class="skill-next"><small id="skillStatus" role="status"></small><button id="skillContinue" type="button" disabled>Continuar <span aria-hidden="true">›</span></button></footer>
+  </div>
+</dialog>

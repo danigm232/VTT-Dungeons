@@ -1,5 +1,5 @@
 import type { PublicCampaignDefinition, PublicSceneDefinition } from '../shared/campaign.js';
-import { explorationBasicActionCatalogue, type ExplorationAction, type ExplorationBasicAction } from '../shared/protocol.js';
+import { explorationBasicActionCatalogue, type ExplorationAction, type ExplorationBasicAction, type PlayerPrivate } from '../shared/protocol.js';
 import { cellKey, footprintFor } from '../shared/geometry.js';
 import { validatePublicCampaign } from '../shared/campaign.js';
 import { adventureDefinitionSchema, type AdventureDefinition } from '../shared/adventure.js';
@@ -29,7 +29,7 @@ export type CombatActionSeed = {
 export type RuleTraits = { sneakAttackDice?: string; brave?: boolean; poisonResilience?: boolean; darkvisionMeters?: number; magicResistance?: boolean; flightMeters?: number };
 export type CombatProfile = { armorClass: number; speedMeters: number; maxHp: number; initiativeBonus?: number; spellAttackBonus?: number; spellSaveDc?: number; attacks: CombatActionSeed[]; startsVisible?: boolean; startsInCombat?: boolean; identityId?: string; traits?: string[]; ruleTraits?: RuleTraits; damageResistances?: string[]; damageImmunities?: string[]; conditionImmunities?: Array<'envenenada' | 'apresada' | 'agarrada' | 'derribada' | 'asustada' | 'inconsciente' | 'oculta' | 'invisible' | 'restringida' | 'hechizada' | 'paralizada'> };
 export type ExplorationActionSeed = ExplorationAction;
-export type CharacterPrivateSeed = { maxHp: number; initialHp?: number; inventory: string[]; sheet?: CharacterSheet; combatResources?: Record<string, CombatResourceSeed>; combat?: Omit<CombatProfile, 'maxHp'>; explorationActions?: ExplorationActionSeed[]; explorationBasics?: ExplorationBasicAction[] };
+export type CharacterPrivateSeed = { maxHp: number; initialHp?: number; inventory: string[]; sheet?: CharacterSheet; skillModifiers?: PlayerPrivate['skillModifiers']; combatResources?: Record<string, CombatResourceSeed>; combat?: Omit<CombatProfile, 'maxHp'>; explorationActions?: ExplorationActionSeed[]; explorationBasics?: ExplorationBasicAction[] };
 export type CreatureSheet = {
   armorClass: number;
   speedMeters: number;
