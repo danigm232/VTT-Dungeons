@@ -1,0 +1,45 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+OK node: Floor_AftCabins
+OK node: Floor_ForeCabins
+OK node: StairStringers
+OK node: Frames_AftUpper
+OK node: Frames_ForeUpper
+OK node: BreachP13Coaming
+OK collision on: Floor_AftCabins
+OK collision on: Floor_ForeCabins
+OK RoofCutout cutaway + multi-deck grid + upper entity hiding verified
+OK node: Hull_Upper_Aft_Port
+OK node: Hull_Upper_Aft_Front
+OK node: Hull_Upper_Fore_Port
+OK node: Hull_Upper_Fore_Front
+OK node: Bulwark_Waist_Port
+OK node: Bulwark_Waist_Front
+OK node: GunwaleColliders
+OK node: BowBeakhead
+OK node: Bowsprit
+OK node: RudderBlade
+OK node: SternGallery
+OK node: C2_BrowBalustrade
+OK node: C3_BrowBalustrade
+OK node: SeabedTerrain
+OK node: Chain_C2
+OK node: HullStrakes_Front
+OK node: HullLowerColliders
+OK node: Stairs_C1_C8
+OK node: Stairs_C8_C9
+OK node: HullInner_Aft_Port
+OK node: HullInner_Fore_Port
+OK node: InteriorWall_Stern_C4
+OK node: InteriorWall_Stern_C5
+OK node: SideBoardingLadder
+OK node: Chainwales_Port
+OK node: Chainwales_Front
+OK node: SternBreachSplinters
+OK node: BowForepeakWall_Fore
+OK node: BreachP13Coaming_C8
+OK node: HullLowerStanchions_C8
+OK node: HullHoldStanchions_C9
+OK OccluderInstance3D count: 11
+OK HullStrakes ShaderMaterial PBR maps attached
+OK Floor_AftCabins StandardMaterial3D PBR maps attached

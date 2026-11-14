@@ -22,7 +22,11 @@ OneDrive_1_12-9-2026/
 /output/camera-2-5d/isolated-d8-saves/
 /.codex-remote-attachments/
 /output/
-/prototypes/
+/prototypes/*
+!/prototypes/godot-pecio/
+/prototypes/godot-pecio/.godot/
+!/prototypes/godot-retiro/
+/prototypes/godot-retiro/.godot/
 
 __pycache__/
 *.pyc

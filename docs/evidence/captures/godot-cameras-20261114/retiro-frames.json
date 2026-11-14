@@ -1,0 +1,38 @@
+[
+	{
+		"focus": "(106.0, 10.0, 90.0)",
+		"pitch": 25.0,
+		"projection": 1,
+		"role": "player",
+		"shot": "player-25",
+		"yaw": 0.0,
+		"zoom": 14.0
+	},
+	{
+		"focus": "(106.0, 10.0, 90.0)",
+		"pitch": 5.0,
+		"projection": 1,
+		"role": "player",
+		"shot": "player-5",
+		"yaw": 15.0,
+		"zoom": 14.0
+	},
+	{
+		"focus": "(122.0, 19.0, 58.0)",
+		"pitch": 10.0,
+		"projection": 1,
+		"role": "dm",
+		"shot": "dm-interior",
+		"yaw": 0.0,
+		"zoom": 14.0
+	},
+	{
+		"focus": "(106.0, 10.0, 90.0)",
+		"pitch": 12.6999998092651,
+		"projection": 1,
+		"role": "dm",
+		"shot": "dm-controls",
+		"yaw": -15.0,
+		"zoom": 14.0
+	}
+]

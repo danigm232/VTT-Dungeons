@@ -1,5 +1,7 @@
 # Roadmap maestro del proyecto VTT
 
+**Cámaras Godot, 14/11/2026:** aplicada la política 2.5D a Pecio, Retiro y sus escenas conectadas: ortográfica, giro relativo ±30°, inclinación continua 5–25° con F/R y dos dedos, zoom conservado al cruzar interiores, movimiento estable, modos de seguimiento y navegación privada DM con colocación contextual. Validación y límites en [la ficha de cámaras](docs/evidence/GODOT_CAMERAS_20261114.md). Compartir encuadre es una previsualización local; sincronización entre dispositivos y guardado de campaña siguen pendientes. Publicación de cámaras separada del trabajo paralelo de cargas.
+
 **Plan único de ejecución para todos los chats. Consolidación: 01/11/2026.** Aquí se decide prioridad, orden, categorías, referencias y siguiente entrega. Los demás documentos aportan contratos locales, criterios, coordinación o evidencia; no eligen una segunda cola de trabajo. Reorganizar documentos no cambia la aceptación del juego.
 
 **Ahora:** Retiro del Dragón y Pecio Rosa de los Vientos, prioridades confirmadas el 04/11. La [candidata jugable del 05/11](docs/evidence/STORMWRECK_ZONE_FINISH_20261105.md) amplía materiales, muebles y paisaje por zonas, ajusta el recorte de escaleras y comprueba luz y clima. [Cuarenta comparativas reales](output/stormwreck-zone-finish-20261104/index.html). Revisar el acabado con el usuario y completar la validación física y el balance de audio en mesa según las fichas locales. Cena de D8 va después.

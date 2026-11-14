@@ -1,0 +1,164 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+==================================================
+AUTOMATED VERIFICATION: RETIRO DEL DRAGÓN LAYOUT
+==================================================
+
+--- 1. Cuadrícula y Escala Canónica ---
+  [PASS] Cuadrícula global: 112 columnas x 80 filas
+  [PASS] Métrica canónica de casilla: 1.5m (5 pies)
+  [PASS] Ancho total del mapa: 168.0m
+  [PASS] Profundidad total del mapa: 120.0m
+
+--- 2. Cotas de Elevación Canónicas ---
+  [PASS] Cota orilla y desembarco: 0.25m
+  [PASS] Cota Plaza y Celdas A1: 9.0m
+  [PASS] Cota Terraza Cabrestante A2: 15.0m
+  [PASS] Cota plataforma baja cabrestante: 0.24m
+  [PASS] Cota Comedor y Cocina A3: 18.0m
+  [PASS] Cota Biblioteca A4: 18.0m
+  [PASS] Cota Templo de Bahamut A5: 27.0m
+
+--- 3. 11 Zonas Canónicas ---
+  [PASS] Total de zonas canónicas definidas: 11
+  [PASS] Zona registrada: Z1_BEACH (Playa y Embarcadero)
+  [PASS] Límites bounding box válidos en Z1_BEACH
+  [PASS] Rango de cotas válido en Z1_BEACH
+  [PASS] Zona registrada: Z2_ASCENT (Subida al Retiro)
+  [PASS] Límites bounding box válidos en Z2_ASCENT
+  [PASS] Rango de cotas válido en Z2_ASCENT
+  [PASS] Zona registrada: Z3_A1_PLAZA (A1: Celdas y Plaza Central)
+  [PASS] Límites bounding box válidos en Z3_A1_PLAZA
+  [PASS] Rango de cotas válido en Z3_A1_PLAZA
+  [PASS] Zona registrada: Z4_A2_WINCH (A2: Cabrestante y Almacén Marino)
+  [PASS] Límites bounding box válidos en Z4_A2_WINCH
+  [PASS] Rango de cotas válido en Z4_A2_WINCH
+  [PASS] Zona registrada: Z5_A3_DINING (A3: Comedor y Cocina Excavados)
+  [PASS] Límites bounding box válidos en Z5_A3_DINING
+  [PASS] Rango de cotas válido en Z5_A3_DINING
+  [PASS] Zona registrada: Z6_A4_LIBRARY (A4: Biblioteca del Retiro (Scriptorium))
+  [PASS] Límites bounding box válidos en Z6_A4_LIBRARY
+  [PASS] Rango de cotas válido en Z6_A4_LIBRARY
+  [PASS] Zona registrada: Z7_GARDENS (Jardines y Bosquetes)
+  [PASS] Límites bounding box válidos en Z7_GARDENS
+  [PASS] Rango de cotas válido en Z7_GARDENS
+  [PASS] Zona registrada: Z8_A5_TEMPLE (A5: Templo de Bahamut)
+  [PASS] Límites bounding box válidos en Z8_A5_TEMPLE
+  [PASS] Rango de cotas válido en Z8_A5_TEMPLE
+  [PASS] Zona registrada: Z9_UPPER_WALKWAY (Paseos y Explanadas)
+  [PASS] Límites bounding box válidos en Z9_UPPER_WALKWAY
+  [PASS] Rango de cotas válido en Z9_UPPER_WALKWAY
+  [PASS] Zona registrada: Z10_ISLAND_ROUTES (Rutas hacia el Resto de la Isla)
+  [PASS] Límites bounding box válidos en Z10_ISLAND_ROUTES
+  [PASS] Rango de cotas válido en Z10_ISLAND_ROUTES
+  [PASS] Zona registrada: Z11_GLOBAL_ENV (Entorno Global)
+  [PASS] Límites bounding box válidos en Z11_GLOBAL_ENV
+  [PASS] Rango de cotas válido en Z11_GLOBAL_ENV
+
+--- 4. 13 Superficies Canónicas ---
+  [PASS] Total de superficies registradas: 13
+  [PASS] Superficie canónica: beach
+  [PASS] Superficie canónica: a1
+  [PASS] Superficie canónica: cliff
+  [PASS] Superficie canónica: a2
+  [PASS] Superficie canónica: upper
+  [PASS] Superficie canónica: a3
+  [PASS] Superficie canónica: a4
+  [PASS] Superficie canónica: a5
+  [PASS] Superficie canónica: pleamar
+  [PASS] Superficie canónica: observatorio
+  [PASS] Superficie canónica: island-pleamar-low
+  [PASS] Superficie canónica: island-pleamar-high
+  [PASS] Superficie canónica: island-observatory
+
+--- 5. 6 Celdas Excavadas de A1 ---
+  [PASS] Total de celdas excavadas: 6
+  [PASS] Celda 1 (Habitación libre) configurada
+  [PASS] Celda 2 (Celda de Tarak) configurada
+  [PASS] Celda 3 (Celda de Varnoth) configurada
+  [PASS] Celda 4 (Celda de Myla (Taller)) configurada
+  [PASS] Celda 5 (Celda de kobolds oeste) configurada
+  [PASS] Celda 6 (Celda de kobolds este) configurada
+  [PASS] Canon de camas en celdas: 4 camas individuales (encontradas: 4)
+  [PASS] Canon de hamacas en celdas: 8 hamacas para kobolds (encontradas: 8)
+
+--- 6. 16 Landmarks Canónicos ---
+  [PASS] Total de landmarks registrados: 16
+  [PASS] Landmark presente: spawn (Llegada de los Aventureros)
+  [PASS] Alineación celda->mundo en landmark spawn
+  [PASS] Landmark presente: boat (Bote de remos amarrado)
+  [PASS] Alineación celda->mundo en landmark boat
+  [PASS] Landmark presente: pleamar (Sendero de Pleamar)
+  [PASS] Alineación celda->mundo en landmark pleamar
+  [PASS] Landmark presente: observatorio (Sendero al Observatorio)
+  [PASS] Alineación celda->mundo en landmark observatorio
+  [PASS] Landmark presente: a2-door (Puerta del Cabrestante)
+  [PASS] Alineación celda->mundo en landmark a2-door
+  [PASS] Landmark presente: winch (Mecanismo del Cabrestante)
+  [PASS] Alineación celda->mundo en landmark winch
+  [PASS] Landmark presente: community (Mesa Comunal (Comedor A3))
+  [PASS] Alineación celda->mundo en landmark community
+  [PASS] Landmark presente: library (Estanterías de la Biblioteca A4)
+  [PASS] Alineación celda->mundo en landmark library
+  [PASS] Landmark presente: a4-door (Puerta de la Biblioteca)
+  [PASS] Alineación celda->mundo en landmark a4-door
+  [PASS] Landmark presente: temple (Templo de Bahamut A5)
+  [PASS] Alineación celda->mundo en landmark temple
+  [PASS] Landmark presente: runara (Runara (Líder del claustro))
+  [PASS] Alineación celda->mundo en landmark runara
+  [PASS] Landmark presente: tarak (Tarak (Monje herborista))
+  [PASS] Alineación celda->mundo en landmark tarak
+  [PASS] Landmark presente: varnoth (Varnoth (Comandante retirada))
+  [PASS] Alineación celda->mundo en landmark varnoth
+  [PASS] Landmark presente: myla (Myla (Erudita y artesana))
+  [PASS] Alineación celda->mundo en landmark myla
+  [PASS] Landmark presente: kobold-west (Kobolds oeste (Ruk y cuadrilla))
+  [PASS] Alineación celda->mundo en landmark kobold-west
+  [PASS] Landmark presente: kobold-east (Kobolds este (Meepo y aprendices))
+  [PASS] Alineación celda->mundo en landmark kobold-east
+
+--- 7. Funciones de Conversión Espacial ---
+  [PASS] Ida y vuelta de coordenadas: celda [16, 74] -> mundo -> celda [16, 74]
+  [PASS] Detección de zona correcta en spawn: Z1_BEACH
+  [PASS] Detección de zona correcta en A1 plaza: Z3_A1_PLAZA
+  [PASS] Detección de zona correcta en templo: Z8_A5_TEMPLE
+
+--- 8. Preajustes de Cámara Táctica 2.5D ---
+  [PASS] Total de preajustes de cámara: 8
+  [PASS] Preajuste de cámara verificado: overview
+  [PASS] Preajuste de cámara verificado: beach
+  [PASS] Preajuste de cámara verificado: a1
+  [PASS] Preajuste de cámara verificado: a2
+  [PASS] Preajuste de cámara verificado: a3
+  [PASS] Preajuste de cámara verificado: a4
+  [PASS] Preajuste de cámara verificado: a5
+  [PASS] Preajuste de cámara verificado: caves
+
+--- 9. Instanciación de Escena main.tscn ---
+  [PASS] Carga de res://scenes/main.tscn exitosa
+  [PASS] Instanciación de nodo raíz Main exitosa
+  [PASS] RetreatLayoutBuilder presente en escena
+  [PASS] PlayerToken presente en escena
+  [PASS] TacticalCamera presente en escena
+  [PASS] TacticalGridOverlay presente en escena
+  [PASS] Elemento de layout instanciado: OceanPlane
+  [PASS] Elemento de layout instanciado: Surfaces
+  [PASS] Elemento de layout instanciado: A1_Cells
+  [PASS] Elemento de layout instanciado: A2_WinchAssembly
+  [PASS] Elemento de layout instanciado: A3_DiningHall
+  [PASS] Elemento de layout instanciado: A4_Library
+  [PASS] Elemento de layout instanciado: A5_Temple
+  [PASS] Elemento de layout instanciado: Staircases
+  [PASS] Elemento de layout instanciado: Landmarks
+  [PASS] Elemento de layout instanciado: SafetyColliders
+  [PASS] Elemento de layout instanciado: LushPlanters
+  [PASS] Elemento de layout instanciado: LushMountainForest
+  [PASS] Elemento de layout instanciado: WinchLeverAssembly
+  [PASS] Elemento de layout instanciado: WinchSeaRocks
+  [PASS] toggle_winch_lever() cambia winch_is_lowered
+  [PASS] toggle_winch_lever() restaura winch_is_lowered
+Reporte de pruebas guardado en: C:/Users/User/Desktop/Dungeons/output/godot-cameras-20261114/publish/prototypes/godot-retiro/../../output/godot-retiro-layout-20261114/layout-tests.json
+
+==================================================
+RESULTADO FINAL: 136 PASS / 0 FAIL
+==================================================

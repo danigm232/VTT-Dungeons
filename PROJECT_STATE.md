@@ -1,5 +1,9 @@
 # Estado del proyecto
 
+## Cámaras 2.5D en Godot — 14/11/2026
+
+Aplicadas en Pecio, Retiro y tres escenas conectadas. Q/E ±30°, F/R y dos dedos para 5–25° continuo, interior 10° / exterior 25° sin cambiar zoom, preferencias por escena/rol, WASD/joystick estable, modos de seguimiento, protección de encuadre sin autozoom y navegación/traslado contextual DM. [Implementación, pruebas actuales, capturas y alcance publicado](docs/evidence/GODOT_CAMERAS_20261114.md). Compartir cámara incluye inclinación y zoom en la vista local de proyector; no acredita sincronización entre dispositivos.
+
 ## Retiro del Dragón: Auditoría de geometría oculta y optimización integral (>30 FPS en todas las zonas) — 2026-11-10
 
 Auditoría exhaustiva de elementos en memoria y optimización de rendimiento en el Retiro del Dragón (`dragon-rest`), cumpliendo el objetivo de superar ampliamente los 30 FPS en todas las zonas sin reducir ni recortar la calidad gráfica:
