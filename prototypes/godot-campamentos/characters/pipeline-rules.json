@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "idPattern": "^[a-z][a-z0-9-]{1,63}$",
+  "kinds": [
+    "character",
+    "variant",
+    "animation",
+    "equipment",
+    "overlay",
+    "binding"
+  ],
+  "minimumNewMovementFrames": 8,
+  "campaignFramePolicies": {
+    "stormwreck-isle": {
+      "minimumDistinctCycleFrames": 6,
+      "targetDistinctCycleFrames": 8,
+      "moreThanEightAllowed": true,
+      "authority": "Explicit user instruction 2026-11-18; static holds are not locomotion cycles; playback fps is independent"
+    }
+  },
+  "requiredByKind": {
+    "character": [
+      "id",
+      "name",
+      "kind",
+      "anatomy",
+      "source",
+      "equipmentSlots",
+      "embeddedSlots",
+      "safeAnimations"
+    ],
+    "variant": [
+      "id",
+      "name",
+      "kind",
+      "base",
+      "anatomy",
+      "equipment"
+    ],
+    "animation": [
+      "id",
+      "kind",
+      "anatomy",
+      "frames",
+      "fps",
+      "pivot",
+      "compatibility"
+    ],
+    "equipment": [
+      "id",
+      "name",
+      "kind",
+      "slot",
+      "anchor",
+      "anatomies",
+      "scaleRelativeToHeight",
+      "drawOrder",
+      "compatibility"
+    ],
+    "overlay": [
+      "id",
+      "name",
+      "kind",
+      "implementation",
+      "priority",
+      "parameters",
+      "zone"
+    ],
+    "binding": [
+      "id",
+      "name",
+      "kind",
+      "implementation",
+      "priority",
+      "anchorsByAnatomy",
+      "layers"
+    ]
+  },
+  "allowedLayers": [
+    "rear",
+    "front"
+  ],
+  "stages": [
+    "definition",
+    "reuse-search",
+    "template",
+    "production",
+    "technical-validation",
+    "visual-review",
+    "candidate-integration",
+    "user-acceptance"
+  ],
+  "productionGate": "blocking errors prevent all imports; promotion additionally requires review evidence matching the current definition digest",
+  "sourcePolicy": "originals preserved; never infer separable armor from a flattened body; embedded slot replacement requires a reviewed mask",
+  "legacyPolicy": "preserve existing runtime. Initial anchor seeds are not approved anatomy and do not certify all legacy equipment/poses."
+}

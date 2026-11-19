@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "visualStyle": "existing painted D&D character art; coherent map lighting",
+  "orientation": "camera-relative eight directions where authored",
+  "scale": "character_stature.json or explicit source setting; never pose-envelope normalisation",
+  "pivot": [
+    0.5,
+    0.5
+  ],
+  "states": [
+    "poisoned",
+    "petrified",
+    "frosted",
+    "burned",
+    "cursed",
+    "invisible"
+  ],
+  "dependencies": [],
+  "review": {
+    "visual": "pending-character-fit",
+    "userAcceptance": "pending",
+    "replaces": "rejected-geometric-candidate",
+    "evidence": [],
+    "deferredByUser": "2026-11-16: no crear objetos de vestir ahora; fase posterior"
+  },
+  "kind": "equipment",
+  "id": "leather-armor",
+  "name": "Coraza de cuero",
+  "slot": "armor",
+  "anchor": "torso",
+  "geometry": "armor",
+  "anatomies": [
+    "humanoid-tall",
+    "humanoid-small",
+    "humanoid-dwarf"
+  ],
+  "scaleRelativeToHeight": [
+    0.7,
+    0.66,
+    0.42
+  ],
+  "drawOrder": "front",
+  "animationBehavior": "follow corrected anatomical anchors every rendered frame",
+  "occludesEmbedded": [],
+  "materials": {
+    "base": "#76503b",
+    "roughness": 0.72
+  },
+  "compatibility": {
+    "requiresFreeSlot": true,
+    "unsupportedBehavior": "reject with reason; never silently stack on baked equipment"
+  },
+  "productionPlan": {
+    "method": "new painted modular layer matching existing character references",
+    "geometryCandidate": "rejected; never use as visual acceptance evidence",
+    "expectedOriginal": "art/cuirass-v2.png",
+    "layout": {
+      "columns": 4,
+      "rows": 2,
+      "directions": [
+        "n",
+        "ne",
+        "e",
+        "se",
+        "s",
+        "sw",
+        "w",
+        "nw"
+      ]
+    },
+    "pivot": "anatomical attachment; per-character fitted dimensions",
+    "status": "generated; awaiting fitted review"
+  },
+  "source": {
+    "kind": "directional-atlas",
+    "file": "art/cuirass-v2.png",
+    "columns": 4,
+    "rows": 2,
+    "directions": [
+      "n",
+      "ne",
+      "e",
+      "se",
+      "s",
+      "sw",
+      "w",
+      "nw"
+    ]
+  },
+  "rendering": "painted-sprite-layer",
+  "heightRelativeToCharacter": 0.36,
+  "provenance": {
+    "method": "built-in ImageGen, targeted revision",
+    "original": "C:/Users/User/.codex/generated_images/01a0b95d-1b97-75b2-9ce4-b7d86fc18e3c/exec-6d97cae4-7c86-435d-af9e-8e89a15ed5ce.png",
+    "rejectedAttempt": "C:/Users/User/.codex/generated_images/01a0b95d-1b97-75b2-9ce4-b7d86fc18e3c/exec-3cac747c-8e95-4057-9283-6299753533ad.png",
+    "rejection": "Over-shaped chest did not match intended unisex garment",
+    "description": "Eight-view painted unisex leather cuirass; one gently convex chest panel, no mannequin/body; revised cut and transparent openings."
+  },
+  "productionEnabled": false
+}

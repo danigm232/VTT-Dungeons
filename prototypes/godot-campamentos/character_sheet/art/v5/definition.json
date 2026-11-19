@@ -1,0 +1,21 @@
+{
+  "id": "sheet-illuminated-v5",
+  "category": "interface-presentation",
+  "reference": "Guía comparativa de personaje fantástico · DESPUÉS and details 1–12",
+  "scope": "Native UI materials and semantic pictograms; never body, clothing, equipment or a new animation",
+  "reuse": ["v2/*-portrait.png", "v2/*-stage.png", "v2/ornate-panel.png", "v4/ornaments.png", "v4/ribbons.png", "live_actor_view.gd"],
+  "characters": [
+    {"definition": "characters/definitions/characters/mike.json", "anatomy": "humanoid-tall"},
+    {"definition": "characters/definitions/characters/mia.json", "anatomy": "humanoid-dwarf"},
+    {"definition": "characters/definitions/characters/maria.json", "anatomy": "humanoid-small"}
+  ],
+  "viewportMask": {"kind": "arched-window", "appliesTo": "UI preview only", "sourcePixels": "unchanged", "feet": "real sprite visible bounds", "equipment": "read-only mirror of the existing token"},
+  "plannedAssets": {
+    "paper.png": "quiet layered parchment material, no letters or interface",
+    "action-icons.png": "twelve interface pictograms in four columns and three rows",
+    "ink-places.png": "six transparent sepia drawings, three columns and two rows",
+    "arch-frame.png": "transparent ornamental arch rim, no character or equipment"
+  },
+  "compatibility": "All source render components remain authoritative. No equipment is stacked over baked equipment and no actor definition is replaced.",
+  "review": {"technical": "pending", "visual": "pending", "userAcceptance": "pending"}
+}

@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "kind": "character",
+  "id": "sw-runara",
+  "name": "Runara · forma humana",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "heightMeters": 1.65,
+  "heightBasis": "visual staging estimate consistent with PDF size category; not an asserted canonical individual height",
+  "aliases": [
+    "runara",
+    "npc-runara"
+  ],
+  "source": {
+    "kind": "individual-frames",
+    "files": [
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/runara/idle-01.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/runara/idle-02.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/runara/idle-03.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/runara/idle-04.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/runara/idle-05.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/runara/idle-06.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/runara/idle-07.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/runara/idle-08.png"
+    ],
+    "fps": 2.5,
+    "animation": "idle",
+    "directions": [
+      "se"
+    ],
+    "minimumDistinctFrames": 8,
+    "baseFile": "campaigns/stormwreck-isle/public/art/characters/base-v1/runara.png",
+    "preserveCanvas": true,
+    "referenceHeightPixels": 463,
+    "pivot": [
+      0.5,
+      0.9794238683127572
+    ]
+  },
+  "embeddedSlots": [
+    "clothing"
+  ],
+  "equipmentSlots": [],
+  "safeAnimations": [
+    "idle"
+  ],
+  "frameOverrides": {},
+  "states": [
+    "poisoned",
+    "petrified",
+    "frosted",
+    "burned",
+    "cursed",
+    "invisible"
+  ],
+  "visualStyle": "painted inked fantasy VTT character; clear material planes and adult proportions; coherent with existing Stormwreck heroes",
+  "orientation": "one complete base pose, three-quarter front, slightly elevated camera; not an eight-direction animation",
+  "scale": "calibrate standing body, not total wings/tail envelope",
+  "pivot": "ground support, relative visible bounds; fitted after artwork exists",
+  "dependencies": [],
+  "mechanicalReference": {
+    "pdf": "OneDrive_1_12-9-2026/Aventura Los Dragones de la Isla de las Tempestades.pdf",
+    "pdfSha256": "26a700407a3878f27428755e40fdb8d8a933a9bbd2aeaa9461e33fc6fae2fc69",
+    "pages": [
+      8,
+      41
+    ]
+  },
+  "production": {
+    "stage": "generated-and-technically-extracted",
+    "expectedFile": "campaigns/stormwreck-isle/public/art/characters/base-v1/runara-idle8.png",
+    "method": "built-in ImageGen; one isolated full-body asset per call",
+    "brief": "elderly human woman, weathered brown skin, kind hazel eyes, white hair in a braid, plain ivory monastic robe; no weapons or visible dragon parts",
+    "background": "true RGBA transparency",
+    "margin": "all anatomy inside canvas with clear gutter; no collage",
+    "referenceStyle": [
+      "campaigns/stormwreck-isle/public/art/m3/trinity/maria_base.png",
+      "prototypes/godot-pecio/assets/tokens/wizard-rest-v1.png"
+    ],
+    "designInterpretation": "Features not specified in the adventure are an art proposal, not added rules or lore",
+    "idleAtlas": {
+      "columns": 4,
+      "rows": 2,
+      "order": "left-to-right then next row",
+      "count": 8,
+      "action": "idle",
+      "direction": "se",
+      "mustKeep": [
+        "identity",
+        "anatomy",
+        "body proportions",
+        "scale",
+        "foot support",
+        "transparent gutters"
+      ]
+    },
+    "promptFile": "output/stormwreck-characters-20261117/runara-idle8.prompt.txt",
+    "original": "campaigns/stormwreck-isle/public/art/characters/base-v1/originals/runara-idle8.png",
+    "originalSha256": "c028ff79ee38e0d62f2a6d55f29140d690fa3468887fc2975451bad1b8b5dd6e",
+    "importReport": "output/stormwreck-characters-20261117/imports/runara.json"
+  },
+  "limitations": [
+    "Eight distinct idle phases in one base view. Other directions and actions are not yet claimed.",
+    "New clothing/equipment swapping is deferred; outfit belongs to this base illustration."
+  ],
+  "review": {
+    "technical": "atlas-extraction-passed; native test pending",
+    "visual": "pending",
+    "userAcceptance": "pending",
+    "evidence": []
+  }
+}

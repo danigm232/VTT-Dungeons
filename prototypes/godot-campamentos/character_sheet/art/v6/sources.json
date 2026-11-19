@@ -1,0 +1,108 @@
+{
+  "date": "2026-11-17",
+  "revision": 6,
+  "scope": "Audit and corrections of existing native character sheet; no new bitmap, actor, equipment or animation.",
+  "assets": [],
+  "fonts": [],
+  "code_resources": [
+    {
+      "id": "RPG-SHEET-V6-CODE-1",
+      "owner": "character_sheet.gd",
+      "owner_sha256": "95d86ed3bfc3debdd200c560cf3038d0af16ac3fe578357ff28f66c67435ec92"
+    },
+    {
+      "id": "RPG-SHEET-V6-CODE-2",
+      "owner": "sheet_model.gd",
+      "owner_sha256": "1a88bba155f9665aee34a0eea1d3611dbb2802b4e697252afeaf0f8ee6667f1f"
+    },
+    {
+      "id": "RPG-SHEET-V6-CODE-3",
+      "owner": "summary_composer.gd",
+      "owner_sha256": "ae59f7cc50d86dbe1b2bcff732b4afc2250db4a7771d1ebaa85752a0d1a22f9e"
+    },
+    {
+      "id": "RPG-SHEET-V6-CODE-4",
+      "owner": "illuminated_materials.gd",
+      "owner_sha256": "f02aafe519847d85dc6aad178b5e27d5ef43f9980be673e987b0765b5f7c2ec5"
+    },
+    {
+      "id": "RPG-SHEET-V6-CODE-5",
+      "owner": "test_character_sheet.gd",
+      "owner_sha256": "f8fd7806a8452e1818788607b611918f228921c1a513fdbcc49413a60acc294f"
+    },
+    {
+      "id": "RPG-SHEET-V6-CODE-6",
+      "owner": "capture_v6.gd",
+      "owner_sha256": "bc001d952b1422c686fa2fc495513c8f979d06a2b2c01cc99b3144e75f021133"
+    }
+  ],
+  "reused_art": "art/v5/sources.json plus V1–V4 registered resources",
+  "findings": [
+    {
+      "id": "SHEET-AUD-01",
+      "owner": "character_sheet.gd",
+      "before": "An open action detail kept old resource/availability fields",
+      "candidate": "Revalidate from the authoritative snapshot while preserving detail scroll and focus"
+    },
+    {
+      "id": "SHEET-AUD-02",
+      "owner": "character_sheet.gd",
+      "before": "Detail from the previous actor could remain visible",
+      "candidate": "Discard the old detail on actor switch"
+    },
+    {
+      "id": "SHEET-AUD-03",
+      "owner": "sheet_model.gd",
+      "before": "A personal target masked the registered area radius",
+      "candidate": "Personal areas display their radius from the shared targeting geometry"
+    },
+    {
+      "id": "SHEET-AUD-04",
+      "owner": "character_sheet.gd",
+      "before": "Short repertoire used 763 px and a second full feature panel",
+      "candidate": "One overview row, compact spell cards, readable trait buttons in the same panel"
+    },
+    {
+      "id": "SHEET-AUD-05",
+      "owner": "character_sheet.gd",
+      "before": "Missing detailed saves were treated as confirmed",
+      "candidate": "Same confirmed/base distinction as the Summary"
+    },
+    {
+      "id": "SHEET-AUD-06",
+      "owner": "character_sheet.gd",
+      "before": "Inventory always used the maximum window height",
+      "candidate": "Small bags adapt with enough useful height for take/store controls; large bags retain available height"
+    },
+    {
+      "id": "SHEET-AUD-07",
+      "owner": "illuminated_materials.gd",
+      "before": "Selected tab had low visual distinction",
+      "candidate": "Native selected state and a gold underline/pendant"
+    },
+    {
+      "id": "SHEET-AUD-08",
+      "owner": "sheet_model.gd",
+      "before": "Condition identifiers could appear in English",
+      "candidate": "Consistent Spanish display, mechanical identifiers unchanged"
+    },
+    {
+      "id": "SHEET-AUD-09",
+      "owner": "character_sheet.gd",
+      "before": "Detail panel alpha .22 and centre offset by 22 px",
+      "candidate": "Opaque parchment (alpha 1), local input veil, host-relative centre and contact shadow; existing paper/frame reused"
+    }
+  ],
+  "pipeline": {
+    "newCharacterAssets": false,
+    "bodyMasksChanged": false,
+    "equipmentOrAnatomyChanged": false,
+    "reuse": "Existing definitions, sprites, preview mask and materials retained; current validation is in the audit output"
+  },
+  "review": {
+    "technical": "See current validation.json",
+    "visual": "Native captures reviewed",
+    "userAcceptance": "pending",
+    "physicalDevices": "not tested"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "id": "replace-with-unique-id",
+  "name": "Nombre",
+  "anatomy": "choose-existing-profile",
+  "dependencies": [],
+  "review": {
+    "visual": "pending",
+    "userAcceptance": "pending",
+    "evidence": []
+  },
+  "instructions": "Create draft, search reuse, complete source/style/scale fields, adopt only after validation. Technical success is not artistic acceptance.",
+  "kind": "equipment",
+  "slot": "main_hand",
+  "anchor": "hand_right",
+  "anatomies": [],
+  "scaleRelativeToHeight": [
+    0.2,
+    0.4,
+    0.1
+  ],
+  "pivot": [
+    0.5,
+    0.5
+  ],
+  "drawOrder": "front",
+  "source": null,
+  "compatibility": {
+    "requiresFreeSlot": true
+  },
+  "productionEnabled": false
+}

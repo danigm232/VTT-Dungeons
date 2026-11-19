@@ -1,0 +1,482 @@
+{
+  "date": "2026-11-17",
+  "authoring": "Built-in image_gen; original project-bound material assets, not screenshots or lettering baked into a UI",
+  "references": [
+    "User attachment: Imagen de ChatGPT 16 nov 2026, 12_49_24-1.png — artistic direction only",
+    "User attachment: Imagen de ChatGPT 16 nov 2026, 12_49_28-2.png — structure only; the current explicit specification chooses Resumen/Combate/Conjuros/Historia",
+    "User attachment: Guía comparativa de personaje fantástico · DESPUÉS and twelve detail improvements; appearance only"
+  ],
+  "assets": [
+    {
+      "id": "RPG-SHEET-PARCHMENT-01",
+      "file": "art/manuscript-frame.png",
+      "original": "exec-63508edc-8bef-45a1-ad2e-392fc61dbe1e.png",
+      "prompt": "Create a production game UI MATERIAL asset, not a mockup, no text, no characters, no buttons, no statistics. Landscape 1536x1024. A single rectangular medieval illuminated manuscript parchment panel with an elaborate hand-painted carved walnut outer frame, aged brass filigree corners, fine engraved oak leaves and small gold rivets. Outer wood border about 70 pixels, inner gold bevel about 18 pixels; straight calm edges between the ornate corners, suitable for nine-slice scaling without stretching corner ornaments. Center 80% is clean warm ivory cream parchment (#EAD5AC/#F4E5C8), fine subtle fibres, very faint watercolor foxing near edges, flat even illumination, high readability. Frame dark walnut #493023 with antique gold #B68A42 sculptural highlights, not shiny modern. Faithful high quality fantasy RPG illustrated UI, hand-painted manuscript like the user's Mia reference, generous decorative corners and delicate double inset borders. Perfectly front-facing orthographic flat rectangular asset, fully fills canvas. Zero letters, glyphs, runes, numbers, labels, icons or watermarks. No drop shadows outside canvas. This is one reusable panel surface, NOT a screenshot or whole character sheet.",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "6a0a824200a95547bd4e6481e32332335a9034e7747498b42d58201f764da8c6"
+    },
+    {
+      "id": "RPG-SHEET-ALCOVE-01",
+      "file": "art/empty-alcove.png",
+      "original": "exec-742b1d00-79f5-4bcb-8761-acdc4ff94b02.png",
+      "prompt": "Production RPG character-sheet background asset, portrait 2:3 composition. A hand-painted medieval stone alcove with a rounded arch, dark warm grey limestone blocks, a simple plain muted blue hanging banner in the upper center, two small warm sconces on side walls, a broad low stone plinth at bottom. Empty center must remain dark, calm, unobstructed to display an actual pixel-art game character rendered separately in front. Fine antique brass frame follows the arch with understated engraved leaf details. The art style is Fantasy RPG Illustrated UI / medieval illuminated manuscript, detailed painterly surfaces with discrete ink lines, warm antique gold and walnut, same quality as ornate hand-painted parchment character sheets. Frontal orthographic symmetric view, no perspective tilt. NO person, NO creature, NO statue, NO silhouette, NO letters, NO numbers, NO emblems, NO runes, no UI labels. No inventory. Entire image is only the reusable EMPTY alcove artwork; not a mockup. Leave at least central 65% width and 70% height available for the character overlay.",
+      "width": 1024,
+      "height": 1536,
+      "sha256": "01f26a1efcb0fea7ed018c5c9bf321083b63209d0d566d4008a6f2781e3d0470"
+    },
+    {
+      "id": "RPG-SHEET-RIBBON-01",
+      "file": "art/leather-ribbon.png",
+      "original": "exec-c0e52810-82c8-492b-a685-c897b5c20320.png",
+      "prompt": "A production game UI asset, one single horizontal title ribbon, landscape ultra wide 3:1 aspect ratio. Medieval illuminated-manuscript fantasy RPG illustrated interface, hand-painted, realistic material depth without modern gloss. Dark oxblood burgundy worn leather inset on carved dark walnut, antique brass double bevel edge, small decorative leaf filigree and brass rivets ONLY at the far left and right ends. The central 80% is calm dark burgundy leather with very fine subtle grain, blank to place readable ivory text at runtime. Rectangular with slightly clipped medieval corners. Entire ribbon fills the canvas, seen straight on orthographically. No background scene, no parchment, no characters, no emblems, absolutely no letters, text, numbers, runes or icons. Crisp exquisite painterly detail at the two ends, quiet center. Intended as a reusable nine-slice title-band component for the user's ornate parchment character sheet, NOT a complete mockup.",
+      "width": 2172,
+      "height": 724,
+      "sha256": "8256e90d9da0d5952619270219dcb5b39d9415b280bb0ef2aeca3e985608c0af"
+    },
+    {
+      "id": "RPG-SHEET-ICONS-01",
+      "file": "art/engraved-icons.png",
+      "original": "exec-e95ca55c-4e9a-45f4-bf0d-a8b594d73456.png",
+      "prompt": "Production fantasy RPG UI ICON ATLAS, exactly TWELVE distinct icons in a perfectly regular 4-column by 3-row grid, equally sized cells, each illustration centered in its cell with generous 18% transparent padding. No text, no numbers, no labels, no letters, no cell outlines or background. Transparent background. Entire canvas aspect ratio 4:3. Style: hand-drawn medieval engraved manuscript icon illustrations, dark walnut-brown ink hatching, aged brass and subtle ochre watercolor fill; richly crafted and readable silhouettes, consistent stroke/detail scale and materials, NOT minimalist modern outline symbols and NOT glossy 3D emoji. Intended to be placed on a warm parchment character sheet. Row 1 left to right: anatomical heraldic HEART, medieval SHIELD, WINGED LEATHER BOOT, medieval HOURGLASS. Row 2 left to right: eight-point COMPASS STAR, TWO CROSSED SWORDS, open leather-bound BOOK, small magical FLAME with two subtle sparks. Row 3 left to right: rolled PARCHMENT SCROLL, faceted D20 ICOSAHEDRON with BLANK faces no numerals, engraved OPEN EYE, armored GAUNTLET FIST. Keep every icon fully inside its one cell. No extra icons, no pedestal, no shadows cast across cells. Same illustrated quality as ornate walnut-and-brass illuminated manuscript game interfaces.",
+      "layout": "4 columns, 3 rows, normalized cell bounds; trim transparent padding at runtime; discard alpha below 32/255 to avoid colour fringes",
+      "width": 1448,
+      "height": 1086,
+      "sha256": "7b7943c53d0002c8d23f317615f3974959d808182c87e3afc94580721905e72e"
+    },
+    {
+      "id": "RPG-SHEET-V2-MIA-PORTRAIT",
+      "file": "art/v2/mia-portrait.png",
+      "original": "exec-a694fe85-5881-4ed4-b203-59abb285dcc5.png",
+      "reference": "res://assets/tokens/cleric.png",
+      "prompt": "Transform the supplied game character reference into a square head-and-shoulders profile portrait for an illustrated medieval RPG character sheet. Preserve THIS actual character's identity: stout dwarf, swept-back vivid auburn hair, long thick braided red beard, stern warm expression, heavy silver-and-black plate armour with aged gold fittings and white tabard. Do not turn the dwarf into the female character from an unrelated UI example. Detailed hand-painted ink and watercolor illustration, warm parchment/antique brass palette, expressive readable face at thumbnail size. Face in three-quarter view looking slightly right, upper torso fills canvas, plain muted dark teal background. No text, no letters, no frame, no weapons crossing the face. Match the supplied armour and hair; this is a profile painting, not a replacement world sprite.",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "3fd3e124d32a4f4a76eab0630ea739a8b83bda6864dae74c70be393f15414707"
+    },
+    {
+      "id": "RPG-SHEET-V2-MARIA-PORTRAIT",
+      "file": "art/v2/maria-portrait.png",
+      "original": "exec-85935f9d-83fe-4641-8fb7-beeb7aabb1c7.png",
+      "reference": "res://assets/tokens/rogue-maria-v1.png",
+      "prompt": "Transform the supplied character reference into a square head-and-shoulders profile portrait for an illustrated medieval RPG character sheet. Preserve Trinity's identity from this exact reference: young adult female halfling rogue, tousled short dark curls, light freckled skin, alert dark eyes, white wool/fur collar, cream cloth and dark brown leather straps and light armour. Determined, wry expression. Hand-painted ink and delicate watercolor with warm antique manuscript palette, excellent readable face at thumbnail size. Three-quarter view looking slightly left, upper torso fills canvas, plain muted charcoal-olive background. No text, no letters, no frame, no generic elf ears, no invented jewellery. Preserve the supplied face, haircut, clothing and proportions; profile painting only, not a replacement game sprite.",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "cba52672f0545492f1f46791a15f497cec038b1c83e13737221db4765f501cfc"
+    },
+    {
+      "id": "RPG-SHEET-V2-MIKE-PORTRAIT",
+      "file": "art/v2/mike-portrait.png",
+      "original": "exec-bd0a705c-66ec-474a-b3d1-904aa7c7a560.png",
+      "reference": "res://assets/tokens/wizard.png",
+      "prompt": "Transform the supplied game character reference into a square head-and-shoulders profile portrait for an illustrated medieval RPG character sheet. Preserve Mike's actual visual identity from the supplied reference: slender youthful adult high elf, pale skin, long straight pale blond hair, pointed ears, blue eyes, royal blue wizard robes with intricate gold edging, high collar and brown leather straps. Quiet scholarly expression. Hand-painted ink and refined watercolor, warm antique illuminated-manuscript finish, clear expressive face at thumbnail size. Three-quarter view looking slightly right, upper torso fills canvas, plain muted deep blue background. No text, letters, frame, beard, hat or new staff across face. Preserve the character's clothing and identity; this portrait does not replace the world sprite.",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "e6d32196eaf2dc001ae9688928ca215fdc62f133f7e4293910cac49b5431244b"
+    },
+    {
+      "id": "RPG-SHEET-V2-MIA-STAGE",
+      "file": "art/v2/mia-stage.png",
+      "original": "exec-f4dbecd5-2f6f-46ed-ac2a-2667c068f354.png",
+      "prompt": "Production background asset for an RPG character-sheet display, portrait 2:3. EMPTY dwarven chapel alcove, warm carved grey stone, sober white-and-blue hanging cloth, two small candle braziers at the side edges. Foreground: a clearly visible broad circular carved limestone platform, entire platform fully inside image, its top surface at 82% of image height. Dark calm empty central space from 25% to 76% height, to overlay the ACTUAL game sprite later. Dwarf cleric and soldier theme, restrained sun and shield carvings only as decorative visual echoes of the existing character's equipment. Refined hand-painted illuminated-manuscript illustration, old brass details, cream/amber light, quiet navy backdrop. Front view, symmetric architectural framing, no camera tilt, no character, no silhouette, no text or writing, no UI controls. No inventory, weapons, loot or named lore. This is a decorative character-display scene, not a new game map. The central floor/plinth is unobstructed. Leave space above each side brazier for native animated sparks.",
+      "width": 1024,
+      "height": 1536,
+      "sha256": "1def606d13f7256d180d970e62e4d782cb213aacd38155a337ee52af007a5e0c"
+    },
+    {
+      "id": "RPG-SHEET-V2-MARIA-STAGE",
+      "file": "art/v2/maria-stage.png",
+      "original": "exec-f2589eb6-937e-49b6-afe9-50fdebe60f2f.png",
+      "prompt": "Production background asset for an RPG character-sheet display, portrait 2:3. EMPTY old fantasy-city backstreet alcove evoking a halfling rogue's criminal background and journey to a coastal city: weathered warm stone arch, dark timber shutters, distant muted blue rooftops, a small lantern on the far left, a few climbing ivy leaves at the outer edges. Foreground: a low broad circular cobblestone platform, fully visible inside canvas, its top surface at 82% image height. Calm dark empty central space from 25% to 76% height for an actual small game sprite overlaid later. Detailed hand-painted ink and watercolor medieval manuscript illustration, aged brass, umber and moss green, soft dusk atmosphere. Frontal view, no tilt. NO person, silhouette, text, lettering, UI controls, treasure, loot, bags or weapons. Decorative character vignette only; do not depict a new canonical place or plot event. Leave uncluttered space for subtle native drifting leaves and a lantern flicker.",
+      "width": 1024,
+      "height": 1536,
+      "sha256": "b8bf79c24ff909a4afb220235bdeddabe9f04c6782eeabb920c257aa9604f812"
+    },
+    {
+      "id": "RPG-SHEET-V2-MIKE-STAGE",
+      "file": "art/v2/mike-stage.png",
+      "original": "exec-5e796416-c339-49ee-a022-483468ed07c0.png",
+      "prompt": "Production background asset for an RPG character-sheet display, portrait 2:3. EMPTY scholarly high-elf wizard's library alcove: elegant curved pale stone columns, bookshelves at the extreme sides, deep blue cloth behind, a high arched window with muted moon-blue light, a few small brass astronomical ornaments above the arch. Foreground: a broad circular blue-grey stone platform with restrained geometric brass inlay, fully visible inside canvas, top surface at 82% image height. Calm empty central space from 25% to 76% height for the ACTUAL game sprite to be overlaid in the engine. Refined hand-painted medieval illuminated-manuscript UI art, dark ink, watercolor, antique brass, scholarly blue palette, frontal symmetric view. NO person, creature, silhouette, letters, numbers, runes, writing or UI controls. Books spines have no text. Decorative character vignette rather than a canonical new map. Leave space above the platform for subtle native animated blue motes.",
+      "width": 1024,
+      "height": 1536,
+      "sha256": "67bb9d3e0d24bf8738f113295d4b073ac6cb88b4188cd18a3e3dab42dbe5145d"
+    },
+    {
+      "id": "RPG-SHEET-V2-ORNATE-PANEL",
+      "file": "art/v2/ornate-panel.png",
+      "original": "exec-bff632b2-401d-4d64-8619-015817979efb.png",
+      "prompt": "A production reusable medieval fantasy RPG UI PANEL MATERIAL, landscape 3:2, front-facing orthographic, no text or controls. Warm clean ivory parchment center, antique gold and aged brass carved frame, rich but restrained oak-leaf filigree at all FOUR corners, double inset gold bevel, tiny leaf flourishes halfway along the sides. The corners must be crisply illustrated and make a substantial frame, not a thin line. Border occupies about 9% on all four sides; central 80% is quiet readable ivory paper with subtle fibers. Same hand-painted illuminated-manuscript style as an ornate parchment character sheet, walnut backing visible only in the thin outer rim, no red fill. Straight simple middle strips suitable for nine-slice scaling; corner ornaments stay inside the square corner zones. NO letters, labels, numbers, symbols, characters, background scene or watermark. This is ONE panel texture to be used by native controls.",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "635ac38c1efef83781948b9715ff11858734889f7a7ba926da136ddcfa0bcdde"
+    },
+    {
+      "id": "RPG-SHEET-V2-ICONS",
+      "file": "art/v2/icons-v2.png",
+      "original": "exec-b7c6360b-fcf6-4fc6-9b6d-0b59690335d2.png",
+      "layout": "6 columns by 4 rows, normalized cell bounds; runtime alpha cutoff 32/255; original alpha retained",
+      "prompt": "Production fantasy RPG interface ICON ATLAS: exactly TWENTY-FOUR richly illustrated medieval manuscript icons in a perfectly aligned 6-column by 4-row regular grid, canvas aspect ratio 3:2, each one centered with 18% transparent cell padding. Transparent background, no letters, numbers, labels, grid lines or UI panels. Consistent fine dark walnut ink hatching with antique brass, muted watercolor cream, red and blue details. Recognizable silhouettes at 32 pixels, detailed hand-painted RPG engravings, not modern minimal line icons or emoji. Row 1 left to right: leather BACKPACK; GOLD COINS; red healing POTION; steel MACE; HAND AXE; SHORT BOW. Row 2: DAGGER; blue FROST CRYSTAL; healing CROSS; blessing RADIANT STAR; magical WAND; open SPELLBOOK. Row 3: feather QUILL; stealth HOODED MASK; THIEF KEY; embroidered CLERIC HOLY SYMBOL; scholarly WIZARD HAT; SOLDIER HELMET. Row 4: articulated CHAINMAIL; leather GLOVES; burning TORCH; brass LANTERN; SHIELD; hourglass. Keep every illustration fully inside its single cell, aligned uniformly. No shadows crossing cells, no additional objects, no characters. Same illuminated-manuscript visual family as gold-and-walnut parchment character sheets.",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "57c236a5cb2be67cc44c01771b1aa4242441af82ebe6c66f888ca787179e51ee"
+    },
+    {
+      "id": "RPG-SHEET-V4-STAT-PLATE",
+      "file": "art/v4/stat-plate.png",
+      "original": "exec-00f5e564-aab1-4861-b5cf-7ec5578156a5.png",
+      "owner": "illuminated_materials.gd / sheet_widgets.gd",
+      "prompt": "Production reusable fantasy RPG UI material asset, a SINGLE wide horizontal 3:1 stat cartouche, no UI mockup. Hand-painted medieval illuminated manuscript, aged cream parchment #EAD5AC #F4E5C8 with fine watercolor fibres, carved dark walnut #493023 underneath, aged brass #B68A42 relief bevel, selective sculpted acanthus leaves at the far corners only. A restrained octagonal silhouette, corners clipped organically, 80% of interior blank and calm for real native text and icons. Border about 7% of image height, quiet straight middle strips suitable for nine-slice scaling. Gold is worn and painterly, not glossy. Transparent outside the single cartouche, no shadow beyond 3% margin. Completely frontal. No letters, numbers, text, runes, icons, characters or scene. Exquisite fantasy character-sheet component with material volume and clean reading area; not merely a thin golden rectangle.",
+      "width": 2172,
+      "height": 724,
+      "sha256": "fcee8c8948033d43194ca2f13980ca780d4e51db4ff394819b268c02210d8c9e"
+    },
+    {
+      "id": "RPG-SHEET-V4-ORNAMENTS",
+      "file": "art/v4/ornaments.png",
+      "original": "exec-d71fe3f7-f3b8-4dfd-8d87-99df6638e578.png",
+      "owner": "illuminated_materials.gd / presentation.gd",
+      "layout": "3 columns x 2 rows; runtime alpha cutoff 32/255 and trimmed regions; portrait center stays transparent",
+      "prompt": "Production fantasy RPG UI ORNAMENT ATLAS, exactly SIX ornaments in regular 3 columns x 2 rows, transparent background, centered equal square cells with generous 12% transparent padding, canvas aspect 3:2. Rich hand-painted medieval manuscript, carved walnut and sculpted antique brass with tiny ivory highlights and subtle moss-green watercolor leaves, fine warm ink outlines. Row1 left-right: ornate CIRCULAR PORTRAIT RING with fully transparent center; substantial HERALDIC SHIELD with blank calm parchment face for a native armor-class number; HEXAGONAL MODIFIER MEDALLION with blank parchment center for a native number. Row2 left-right: elegant ACANTHUS CORNER FLOURISH; small horizontal LEAF AND DIAMOND SEPARATOR; an ornamental OPEN BOOK and QUILL vignette on subtle cream watercolor. The first ring must have alpha-zero center, not a portrait. All ornaments independent, completely within their cells, same metal and wood family. NO letters, numerals, writing, runes, portraits, people, whole UI, stats or screenshot.",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "c33e1ea46a874b9d7f2135c1c515d119bcb3855182dea2aea40288589a76e4f6"
+    },
+    {
+      "id": "RPG-SHEET-V4-ILLUSTRATED-ICONS",
+      "file": "art/v4/illustrated-icons.png",
+      "original": "exec-844175c3-2242-4dc9-937f-fc35f71a2e9e.png",
+      "owner": "illuminated_materials.gd",
+      "layout": "5 columns x 3 rows; fifteen keyed regions; runtime alpha cutoff 32/255 and mipmaps",
+      "prompt": "Production illustrated fantasy RPG UI ICON ATLAS, exactly FIFTEEN individual icons in a regular 5-column x 3-row grid, transparent background, every icon centered with 18% clear padding, canvas 5:3 aspect. Readable broad silhouettes at 32px, rich hand-painted illuminated-manuscript gold/ochre with dark brown engraved ink and restrained watercolor shadows, no tiny noisy hatching, no glossy neon. Row1 left-right: heraldic HEART; medieval SHIELD; WINGED LEATHER BOOT; HOURGLASS; EIGHT POINT COMPASS STAR. Row2: strong GAUNTLET FIST; open agile HAND; open leather-bound BOOK; watchful EYE; curled PARCHMENT SCROLL. Row3: FEATHER QUILL; warm magical FLAME; blue ARCANE ORB in brass setting; blank-face D20; green LEAF SPRIG. Equal cell sizes, no illustration crosses cell boundaries. No letters, numbers, labels, cell borders, characters, background scene or whole interface. Family: hand-painted medieval parchment character sheet with carved walnut and aged brass.",
+      "width": 1619,
+      "height": 971,
+      "sha256": "20b2298522833c2d64ef5bc4faa0b5565fa780006ad236b66fca2ec27a3fde90"
+    },
+    {
+      "id": "RPG-SHEET-V4-RIBBONS",
+      "file": "art/v4/ribbons.png",
+      "original": "exec-1450c92f-9b65-46d4-88e7-2e3663d87b07.png",
+      "owner": "illuminated_materials.gd / sheet_widgets.gd",
+      "layout": "1 column x 3 rows; individual nine-slice material regions with preserved ends",
+      "prompt": "Production fantasy RPG UI TITLE RIBBON ATLAS: THREE separate long horizontal blank ribbons stacked in a regular single-column three-row grid. Each ribbon has aspect about 5:1; canvas overall aspect 5:3. Transparent space around each ribbon, no shared background. Same hand-painted medieval illuminated manuscript family, aged brass, carved walnut, burgundy and cream. Top row: burgundy embossed leather title cartouche with curved clipped ends and selective brass leaf relief. Middle row: ivory rolled parchment title strip with a thin walnut backing and delicate brown ink scrollwork at the far ends. Bottom row: dark walnut title bar with narrow aged brass inlay and a subtle burgundy leather central inset, restrained heraldic leaf tips. Centers 75% blank and quiet to place native text later. Suitable for nine-slice stretching along calm horizontal middle, do not decorate the center. Materials painterly and artisanal with soft relief. NO text, letters, numbers, runes, labels, icons, people, background scene or complete UI.",
+      "width": 1619,
+      "height": 971,
+      "sha256": "a9882bf8a59760ee30242fc3ff4de5f730aa0058084b5e8fa11f129ab90ba1f6"
+    },
+    {
+      "id": "RPG-SHEET-V4-LANDSCAPE",
+      "file": "art/v4/landscape.png",
+      "original": "exec-67de9715-7e2c-4423-97a3-d6aa9f8ef830.png",
+      "owner": "sheet_widgets.gd / summary_composer.gd",
+      "prompt": "One production fantasy RPG character-sheet decorative illustration, panoramic landscape 3:1, transparent background. A delicate sepia brown ink and muted watercolor vignette of distant layered mountains, a small medieval coastal keep on a rocky promontory, a few cypresses and oak leaves at the outer edges. Fine engraved pen lines, restrained cream ochre, grey-blue and forest green washes. Hand-painted medieval illuminated-manuscript illustration, calm and refined, not a map or a new canonical location. Lower edge and sky fade softly into transparent paper, no rectangular border, no frame. Intended as a small secondary illustration in a parchment character-sheet footer, so clear silhouette, quiet low contrast, no foreground clutter. NO text, lettering, labels, runes, characters, loot, UI controls or whole character sheet.",
+      "width": 2172,
+      "height": 724,
+      "sha256": "2719573ecaa89b81b8ce5697bdb105e03a027882d1ae39125b7b270ac98196b8"
+    },
+    {
+      "id": "RPG-SHEET-V5-ACTION-ICONS",
+      "file": "art/v5/action-icons.png",
+      "original": "exec-904172c0-8adb-4dcb-b91c-5eba4eca0d15.png",
+      "prompt": "Production game UI asset atlas, twelve small hand-painted fantasy RPG semantic pictograms, no lettering or numbers. Transparent background. Exactly 4 equal columns by 3 equal rows, each isolated centered with generous transparent margin, no grid lines, no outer sheet frame. Consistent sophisticated medieval illuminated manuscript style, dark chestnut outlines, antique brass edge highlights, jewel colored luminous centers; silhouettes crisp and recognizable at 28 pixels. Row1 left to right: 1 single short sword with steel blade, 2 three blue violet magical missiles flying together, 3 TWO open hands projecting orange flames (burning hands), 4 a BLUE magical shield energy barrier. Row2: 5 a golden mystical eye with blue arcane rings (detect magic), 6 white-gold sacred divine flame, 7 two clasped helping hands, 8 agile figure dodging a sweeping arc. Row3: 9 a boot stepping away from crossed blades (disengage), 10 winged running boots (dash), 11 hooded face in shadow (hide), 12 a crystalline blue focus with orbiting fine gold rings (concentration). No square tile backgrounds, only the pictograms with fine dark/brass outline. Painted illustration, not emoji, not vector, not flat generic interface.",
+      "scope": "UI material/pictogram; no equipable sprite layer",
+      "review": {
+        "technical": "pending",
+        "visual": "candidate",
+        "userAcceptance": "pending"
+      },
+      "width": 1448,
+      "height": 1086,
+      "sha256": "bb7f4e6b86fdd296c4f6762e9b4060271cf6d155fbba081319dca15502e6b107"
+    },
+    {
+      "id": "RPG-SHEET-V5-PAPER",
+      "file": "art/v5/paper.png",
+      "original": "exec-b346cf2f-6db6-400a-a780-bea7967ad5c1.png",
+      "prompt": "A reusable production game UI material swatch, landscape 3:2 pale antique parchment paper, medieval hand-made vellum. Entire image only the blank paper surface, edge to edge. No UI, NO text, no border frame, no objects or drawings. Quiet creamy ivory central writing region with delicate visible uneven fibers, organic golden tan variation, tiny diffuse foxing flecks mostly toward perimeter, subtly darker warm corners with shallow soft inner age shadow. Subtle raking ambient illumination from upper left, smooth luminous writing areas. Sophisticated hand-painted fantasy RPG adventure manuscript surface, natural material variation and tactile paper grain, low contrast and clean enough to render dark brown text over any area. Never dark stains or torn black edges. No modern gradients, no repeated pattern.",
+      "scope": "UI material/pictogram; no equipable sprite layer",
+      "review": {
+        "technical": "pending",
+        "visual": "candidate",
+        "userAcceptance": "pending"
+      },
+      "width": 1536,
+      "height": 1024,
+      "sha256": "b248c1258bedf854fb5bb82dfe59f28aa5d06b97244edb9f774d8e5d1a5b753e"
+    },
+    {
+      "id": "RPG-SHEET-V5-INK-PLACES",
+      "file": "art/v5/ink-places.png",
+      "original": "exec-e7c957a5-675e-4aa9-80ac-e2ae9888e1d9.png",
+      "prompt": "Edit this exact 3 by 2 illustration atlas. Keep all six brown ink drawings, their positions, linework, proportions and the atlas layout exactly unchanged. REMOVE ALL WHITE AND CREAM PAPER BACKING, including faint white haze between fine lines, so that the background is genuinely transparent alpha=0. Only the brown sepia ink marks should remain, with naturally antialiased semitransparent brown strokes. No rectangular patches of white, no paper texture. The result is a transparent ink decal atlas that will be laid onto a different parchment material.",
+      "scope": "UI material/pictogram; no equipable sprite layer",
+      "review": {
+        "technical": "pending",
+        "visual": "candidate",
+        "userAcceptance": "pending"
+      },
+      "width": 2172,
+      "height": 724,
+      "sha256": "2000661918e2895d91d62ec06353dea2777e6f2b815b1ca3a9c66f8a60588190"
+    },
+    {
+      "id": "RPG-SHEET-V5-ARCH-FRAME",
+      "file": "art/v5/arch-frame.png",
+      "original": "exec-b470676d-3a5e-4695-83c8-1ddbde468fc3.png",
+      "prompt": "One isolated transparent production game UI ornamental arch FRAME RIM only, vertical 2:3 aspect ratio. Empty broad arched doorway cutout with genuinely transparent opening and transparent outside upper corners. No scenery, no paper backing, no dark interior fill, no character. Round Romanesque arch, thin carved dark chestnut wooden pilasters with antique brass climbing acanthus leaves, restrained gold bevels, heraldic little central finial at top and small base corner details. The inner opening should occupy x=10%..90%, upper curved opening apex y=8%, semicircle spring line y=29%, straight sides to y=93%. Bottom edge a thin low stone-and-brass sill at y=94%..99%, no protruding platform. Graceful thin frame about 7% image width; most of the image is transparent opening. Hand-painted high-end medieval illuminated manuscript RPG UI, warm aged brass with tactile imperfect edges, subtle contact shadows along inside rim. Render straight frontal, symmetrical, clean alpha, no perspective tilt, no letters, no text or logos.",
+      "scope": "UI material/pictogram; no equipable sprite layer",
+      "review": {
+        "technical": "pending",
+        "visual": "candidate",
+        "userAcceptance": "pending"
+      },
+      "width": 1024,
+      "height": 1536,
+      "sha256": "57ca531acc2a11376a2f95e391b686dff40d70fcb70e118d36bad9baa210a5d2"
+    }
+  ],
+  "icons": {
+    "owner": "skin.gd",
+    "provenance": "12 original generated medieval engravings in one atlas; original code-native silhouettes retained solely as a missing-asset fallback; no external art pack",
+    "keys": [
+      "heart",
+      "shield",
+      "speed",
+      "initiative",
+      "star",
+      "sword",
+      "book",
+      "magic",
+      "history",
+      "die",
+      "eye",
+      "hand"
+    ],
+    "note": "12 keyed atlas regions; ability and tab roles reuse the same illustrated family"
+  },
+  "extensions": [
+    "art/v2/sources.json",
+    "art/v3/sources.json",
+    "art/v4/sources.json"
+  ],
+  "fonts": "Cinzel 600 and Crimson Pro 500, bundled variable fonts under SIL OFL 1.1; provenance and licenses in art/v2/sources.json",
+  "status": "Implemented and internally reviewed; user artistic acceptance remains separate",
+  "font_resources": [
+    {
+      "family": "Cinzel",
+      "file": "fonts/Cinzel.ttf",
+      "weight": 600,
+      "license": "SIL Open Font License 1.1",
+      "license_file": "fonts/Cinzel-OFL.txt",
+      "source": "https://github.com/google/fonts/tree/main/ofl/cinzel",
+      "bytes": 125468,
+      "sha256": "f4d83d34d1f6c741193e4acf4b3dff9531e5a67b6aa65228d00a7db72a4e0f34",
+      "license_sha256": "f2b3029aba64c378bf0963b62945eee15e564fe4330b934c8f2eb058282b5e83"
+    },
+    {
+      "family": "Crimson Pro",
+      "file": "fonts/CrimsonPro.ttf",
+      "weight": 500,
+      "license": "SIL Open Font License 1.1",
+      "license_file": "fonts/CrimsonPro-OFL.txt",
+      "source": "https://github.com/google/fonts/tree/main/ofl/crimsonpro",
+      "bytes": 246324,
+      "sha256": "16aa9fb7300a93637da51fac03a071b2ff08b6bbf65f99c794c25f040b58af6a",
+      "license_sha256": "1820869bd5baa1c2d88fa87c89eea532cf9442d841008acab720654b7f82823d"
+    }
+  ],
+  "code_resources": [
+    {
+      "id": "RPG-SHEET-V3-WIDGETS",
+      "owner": "sheet_widgets.gd",
+      "derivation": "Original native Godot linework, not a raster UI screenshot",
+      "components": [
+        "selective ink corners",
+        "shaped leather ribbon reusing art/leather-ribbon.png",
+        "heraldic modifier badges",
+        "armor shield",
+        "gold/ink semantic pictograms",
+        "mountain and small-fortress footer drawing"
+      ],
+      "palette": [
+        "#EAD5AC",
+        "#F4E5C8",
+        "#493023",
+        "#B68A42",
+        "#642F32",
+        "#30251C"
+      ],
+      "status": "Integrated candidate; user artistic acceptance pending",
+      "owner_sha256": "7e40fbe3ad20b3e5eca3e830219a8fce1d510882b1da5e6b3a7b107c7aeb2e5b"
+    },
+    {
+      "id": "RPG-SHEET-V3-TYPOGRAPHY",
+      "owner": "sheet_widgets.gd",
+      "derivation": "Existing bundled Crimson Pro variable font; 700 for proper-case character name, 650 editorial headings, 500 body",
+      "license": "fonts/CrimsonPro-OFL.txt",
+      "status": "Integrated; no font binary modified",
+      "owner_sha256": "7e40fbe3ad20b3e5eca3e830219a8fce1d510882b1da5e6b3a7b107c7aeb2e5b"
+    },
+    {
+      "id": "RPG-SHEET-V3-COMPOSITION",
+      "owner": "summary_composer.gd",
+      "derivation": "Native containers, local lists and real actor/render/action data; independent backpack restored by current explicit request",
+      "target": "1600x900 and 1280x720; all three lower summary blocks visible without general scrolling",
+      "status": "Requires current native capture and geometry tests, not historical results",
+      "owner_sha256": "ae59f7cc50d86dbe1b2bcff732b4afc2250db4a7771d1ebaa85752a0d1a22f9e"
+    },
+    {
+      "id": "RPG-SHEET-V4-PAINT-ADAPTER",
+      "owner": "illuminated_materials.gd",
+      "derivation": "Atlas extraction, nine-slice presentation, illustrated competency seals and slot markers; original PNGs preserved unchanged",
+      "owner_sha256": "f02aafe519847d85dc6aad178b5e27d5ef43f9980be673e987b0765b5f7c2ec5"
+    },
+    {
+      "id": "RPG-SHEET-V4-SHARED-INVENTORY",
+      "owner": "character_sheet.gd",
+      "derivation": "Same native BackpackPanel instance and InventoryBridge, restyled/reparented for the tab, restored for standalone; no second inventory database",
+      "owner_sha256": "95d86ed3bfc3debdd200c560cf3038d0af16ac3fe578357ff28f66c67435ec92"
+    },
+    {
+      "id": "RPG-SHEET-V5-CODE-1",
+      "owner": "action_icons.gd",
+      "owner_sha256": "e241b44d34fa44c1353aa8bc8c337a1edc12264a609858fc84115ba4a7674ce4",
+      "scope": "native UI presentation and read-only data adapter"
+    },
+    {
+      "id": "RPG-SHEET-V5-CODE-2",
+      "owner": "arched_preview.gdshader",
+      "owner_sha256": "44717062f0dbae46fae2c20387787ef46a498b6f38ce0db5933561fdc830248c",
+      "scope": "native UI presentation and read-only data adapter"
+    },
+    {
+      "id": "RPG-SHEET-V5-CODE-3",
+      "owner": "character_sheet.gd",
+      "owner_sha256": "95d86ed3bfc3debdd200c560cf3038d0af16ac3fe578357ff28f66c67435ec92",
+      "scope": "native UI presentation and read-only data adapter"
+    },
+    {
+      "id": "RPG-SHEET-V5-CODE-4",
+      "owner": "summary_composer.gd",
+      "owner_sha256": "ae59f7cc50d86dbe1b2bcff732b4afc2250db4a7771d1ebaa85752a0d1a22f9e",
+      "scope": "native UI presentation and read-only data adapter"
+    },
+    {
+      "id": "RPG-SHEET-V5-CODE-5",
+      "owner": "sheet_model.gd",
+      "owner_sha256": "1a88bba155f9665aee34a0eea1d3611dbb2802b4e697252afeaf0f8ee6667f1f",
+      "scope": "native UI presentation and read-only data adapter"
+    },
+    {
+      "id": "RPG-SHEET-V5-CODE-6",
+      "owner": "sheet_widgets.gd",
+      "owner_sha256": "7e40fbe3ad20b3e5eca3e830219a8fce1d510882b1da5e6b3a7b107c7aeb2e5b",
+      "scope": "native UI presentation and read-only data adapter"
+    },
+    {
+      "id": "RPG-SHEET-V5-CODE-7",
+      "owner": "presentation.gd",
+      "owner_sha256": "bad7fb4ff10c628054db1411506fde17b019d705e41e3c06f2276e7f54557dbe",
+      "scope": "native UI presentation and read-only data adapter"
+    },
+    {
+      "id": "RPG-SHEET-V5-CODE-8",
+      "owner": "live_actor_view.gd",
+      "owner_sha256": "e81ee788dbdb95e73837161ceaa5a44bb9f1402a753633d88bb3d6a38844c4b3",
+      "scope": "native UI presentation and read-only data adapter"
+    },
+    {
+      "id": "RPG-SHEET-V5-CODE-9",
+      "owner": "illuminated_materials.gd",
+      "owner_sha256": "f02aafe519847d85dc6aad178b5e27d5ef43f9980be673e987b0765b5f7c2ec5",
+      "scope": "native UI presentation and read-only data adapter"
+    },
+    {
+      "id": "RPG-SHEET-V6-CODE-1",
+      "owner": "character_sheet.gd",
+      "owner_sha256": "95d86ed3bfc3debdd200c560cf3038d0af16ac3fe578357ff28f66c67435ec92"
+    },
+    {
+      "id": "RPG-SHEET-V6-CODE-2",
+      "owner": "sheet_model.gd",
+      "owner_sha256": "1a88bba155f9665aee34a0eea1d3611dbb2802b4e697252afeaf0f8ee6667f1f"
+    },
+    {
+      "id": "RPG-SHEET-V6-CODE-3",
+      "owner": "summary_composer.gd",
+      "owner_sha256": "ae59f7cc50d86dbe1b2bcff732b4afc2250db4a7771d1ebaa85752a0d1a22f9e"
+    },
+    {
+      "id": "RPG-SHEET-V6-CODE-4",
+      "owner": "illuminated_materials.gd",
+      "owner_sha256": "f02aafe519847d85dc6aad178b5e27d5ef43f9980be673e987b0765b5f7c2ec5"
+    },
+    {
+      "id": "RPG-SHEET-V6-CODE-5",
+      "owner": "test_character_sheet.gd",
+      "owner_sha256": "f8fd7806a8452e1818788607b611918f228921c1a513fdbcc49413a60acc294f"
+    },
+    {
+      "id": "RPG-SHEET-V6-CODE-6",
+      "owner": "capture_v6.gd",
+      "owner_sha256": "bc001d952b1422c686fa2fc495513c8f979d06a2b2c01cc99b3144e75f021133"
+    }
+  ],
+  "current_revision": 6,
+  "activePass": "V6 · audit, current action details, registered radius, compact spells and usable adaptive inventory",
+  "audit": [
+    {
+      "id": "SHEET-AUD-01",
+      "owner": "character_sheet.gd",
+      "before": "An open action detail kept old resource/availability fields",
+      "candidate": "Revalidate from the authoritative snapshot while preserving detail scroll and focus"
+    },
+    {
+      "id": "SHEET-AUD-02",
+      "owner": "character_sheet.gd",
+      "before": "Detail from the previous actor could remain visible",
+      "candidate": "Discard the old detail on actor switch"
+    },
+    {
+      "id": "SHEET-AUD-03",
+      "owner": "sheet_model.gd",
+      "before": "A personal target masked the registered area radius",
+      "candidate": "Personal areas display their radius from the shared targeting geometry"
+    },
+    {
+      "id": "SHEET-AUD-04",
+      "owner": "character_sheet.gd",
+      "before": "Short repertoire used 763 px and a second full feature panel",
+      "candidate": "One overview row, compact spell cards, readable trait buttons in the same panel"
+    },
+    {
+      "id": "SHEET-AUD-05",
+      "owner": "character_sheet.gd",
+      "before": "Missing detailed saves were treated as confirmed",
+      "candidate": "Same confirmed/base distinction as the Summary"
+    },
+    {
+      "id": "SHEET-AUD-06",
+      "owner": "character_sheet.gd",
+      "before": "Inventory always used the maximum window height",
+      "candidate": "Small bags adapt with enough useful height for take/store controls; large bags retain available height"
+    },
+    {
+      "id": "SHEET-AUD-07",
+      "owner": "illuminated_materials.gd",
+      "before": "Selected tab had low visual distinction",
+      "candidate": "Native selected state and a gold underline/pendant"
+    },
+    {
+      "id": "SHEET-AUD-08",
+      "owner": "sheet_model.gd",
+      "before": "Condition identifiers could appear in English",
+      "candidate": "Consistent Spanish display, mechanical identifiers unchanged"
+    },
+    {
+      "id": "SHEET-AUD-09",
+      "owner": "character_sheet.gd",
+      "before": "Detail panel alpha .22 and centre offset by 22 px",
+      "candidate": "Opaque parchment (alpha 1), local input veil, host-relative centre and contact shadow; existing paper/frame reused"
+    }
+  ]
+}

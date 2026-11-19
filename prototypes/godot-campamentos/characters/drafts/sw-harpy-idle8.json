@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "id": "sw-harpy-idle8",
+  "kind": "animation",
+  "name": "Arpía · reposo ocho fases",
+  "campaign": "stormwreck-isle",
+  "anatomy": "winged",
+  "character": "harpy",
+  "action": "idle",
+  "direction": "s",
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/harpy/idle-01.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/harpy/idle-02.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/harpy/idle-03.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/harpy/idle-04.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/harpy/idle-05.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/harpy/idle-06.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/harpy/idle-07.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/harpy/idle-08.png"
+  ],
+  "fps": 2.5,
+  "loop": true,
+  "pivot": [
+    0.5,
+    0.9711538461538461
+  ],
+  "referenceHeight": 112,
+  "minimumDistinctFrames": 8,
+  "compatibility": {
+    "anatomies": [
+      "winged"
+    ],
+    "equipment": false,
+    "overlays": true
+  },
+  "dependencies": [],
+  "events": [],
+  "initialFrame": 0,
+  "transition": "preserve existing support and scale",
+  "production": {
+    "method": "reuse-existing-authored-idle-row",
+    "original": "prototypes/godot-shared/sprites/baked/harpy-utility.png",
+    "originalSha256": "92e6b189ced66c02f665d3ec0e00b8c8c2851fb6d4ef520a118eb56f0fc454a3",
+    "atlas": "harpy-utility",
+    "indices": [
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63
+    ],
+    "operation": "Exact metadata rectangle extraction, no generation, repainting or per-frame scale changes"
+  },
+  "review": {
+    "technical": "eight distinct pixel hashes verified",
+    "visual": "eight-phase row reviewed: same individual and front view, slow idle movement; native continuous playback pending",
+    "userAcceptance": "pending",
+    "evidence": [
+      "output/stormwreck-characters-20261117/reused-idle-contact.png"
+    ]
+  },
+  "limitations": [
+    "One authored front-facing idle cycle. Existing other directions remain intact.",
+    "The two harpy encounter actors retain one shared appearance with existing runtime variants."
+  ]
+}

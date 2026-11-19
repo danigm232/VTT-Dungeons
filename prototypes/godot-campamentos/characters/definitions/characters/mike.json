@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "visualStyle": "existing painted D&D character art; coherent map lighting",
+  "orientation": "camera-relative eight directions where authored",
+  "scale": "character_stature.json or explicit source setting; never pose-envelope normalisation",
+  "pivot": "logical feet; preserve source frame floor offset",
+  "states": [
+    "poisoned",
+    "petrified",
+    "frosted",
+    "burned",
+    "cursed",
+    "invisible"
+  ],
+  "dependencies": [],
+  "review": {
+    "visual": "pending",
+    "userAcceptance": "pending",
+    "evidence": []
+  },
+  "kind": "character",
+  "id": "mike",
+  "name": "Mike",
+  "anatomy": "humanoid-tall",
+  "source": {
+    "kind": "legacy-profile",
+    "key": "wizard"
+  },
+  "aliases": [
+    "wizard",
+    "Mike",
+    "Mago"
+  ],
+  "statureRef": "wizard",
+  "embeddedSlots": [
+    "clothing",
+    "off_hand"
+  ],
+  "equipmentSlots": [
+    "head",
+    "armor",
+    "main_hand",
+    "off_hand",
+    "back",
+    "waist"
+  ],
+  "safeAnimations": [
+    "idle",
+    "walk",
+    "run",
+    "combat_idle",
+    "attack",
+    "spell"
+  ],
+  "limitations": [
+    "Robes are baked. Replacing clothing requires an authored replacement mask; optional outer armour is separate."
+  ],
+  "compatibility": "legacy body preserved; modular candidate",
+  "frameOverrides": {},
+  "equipmentPoseOverrides": {
+    "attack": "attack_unarmed"
+  },
+  "bindingFit": {
+    "torsoHalfWidth": 0.15
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "id": "sw-zombie-3-idle8",
+  "kind": "animation",
+  "name": "Zombi marinero 3 · reposo ocho fases",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "character": "zombie-3",
+  "action": "idle",
+  "direction": "s",
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/zombie-3/idle-01.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/zombie-3/idle-02.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/zombie-3/idle-03.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/zombie-3/idle-04.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/zombie-3/idle-05.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/zombie-3/idle-06.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/zombie-3/idle-07.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/zombie-3/idle-08.png"
+  ],
+  "fps": 2.5,
+  "loop": true,
+  "pivot": [
+    0.5,
+    0.935064935064935
+  ],
+  "referenceHeight": 135,
+  "minimumDistinctFrames": 8,
+  "compatibility": {
+    "anatomies": [
+      "humanoid-tall"
+    ],
+    "equipment": false,
+    "overlays": true
+  },
+  "dependencies": [],
+  "events": [],
+  "initialFrame": 0,
+  "transition": "preserve existing support and scale",
+  "production": {
+    "method": "reuse-existing-authored-idle-row",
+    "original": "prototypes/godot-shared/sprites/baked/zombie-3-reactions.png",
+    "originalSha256": "29d4950d6631e534b19a1df5b4091281bf3708b61d8df236200a0815e56acf8c",
+    "atlas": "zombie-3-reactions",
+    "indices": [
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63
+    ],
+    "operation": "Exact atlas rectangle extraction; translated stance registration; one shared symmetric crop; no repainting or per-phase scaling",
+    "supportRegistration": "output/stormwreck-characters-20261117/zombie-3-support-registration.json"
+  },
+  "review": {
+    "technical": "eight distinct frames; support registered; native verification pending",
+    "visual": "eight-phase row reviewed: same individual and front view, slow idle movement; native continuous playback pending",
+    "userAcceptance": "pending",
+    "evidence": [
+      "output/stormwreck-characters-20261117/reused-idle-contact.png",
+      "output/stormwreck-characters-20261117/zombie-3-support-registration.json",
+      "output/stormwreck-characters-20261117/zombie-3-support-registration.json"
+    ]
+  },
+  "limitations": [
+    "One authored front-facing idle cycle. Existing other directions remain intact.",
+    "The two harpy encounter actors retain one shared appearance with existing runtime variants."
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "id": "replace-with-unique-id",
+  "name": "Nombre",
+  "anatomy": "choose-existing-profile",
+  "dependencies": [],
+  "review": {
+    "visual": "pending",
+    "userAcceptance": "pending",
+    "evidence": []
+  },
+  "instructions": "Create draft, search reuse, complete source/style/scale fields, adopt only after validation. Technical success is not artistic acceptance.",
+  "kind": "overlay",
+  "implementation": "silhouette-shader",
+  "priority": 45,
+  "parameters": {
+    "intensity": {
+      "min": 0,
+      "max": 1,
+      "default": 0.75
+    }
+  },
+  "zone": "current frame alpha",
+  "anchors": [],
+  "compatibility": {
+    "anatomies": "all",
+    "animated": true
+  },
+  "activation": "explicit visual or rules adapter; never grant mechanics",
+  "shaderEffect": "poisoned"
+}

@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-zombie-2-walk-detail",
+  "character": "zombie-2",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "walk",
+  "direction": "se",
+  "fps": 10,
+  "loop": true,
+  "compatibility": {
+    "preservesAppearance": true,
+    "overlay": "Current frame alpha. Physical binding alignment pending."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zombie-2-walk-detail/35af3e097daa/01.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zombie-2-walk-detail/35af3e097daa/02.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zombie-2-walk-detail/35af3e097daa/03.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zombie-2-walk-detail/35af3e097daa/04.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zombie-2-walk-detail/35af3e097daa/05.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zombie-2-walk-detail/35af3e097daa/06.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zombie-2-walk-detail/35af3e097daa/07.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zombie-2-walk-detail/35af3e097daa/08.png"
+  ],
+  "production": {
+    "method": "ImageGen, project artwork as identity reference, full-size cell extraction",
+    "reference": "campaigns/stormwreck-isle/public/art/m3/zombie/zombie2_base.png",
+    "minimumVisibleStandingPixels": 225,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-zombie-2-walk-detail-35af3e097daa.png",
+    "originalSha256": "35af3e097daabddff747a03117289be38b5c11cee5a7b006adfa4356fcaae5f0",
+    "importReport": "output/stormwreck-motion-detail/sw-zombie-2-walk-detail-35af3e097daa.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 406,
+  "pivot": [
+    0.5,
+    0.921443736730361
+  ]
+}

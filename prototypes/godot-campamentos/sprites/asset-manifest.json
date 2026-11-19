@@ -1,0 +1,340 @@
+{
+  "date": "2026-11-15",
+  "minimumMovementFrames": 8,
+  "originalsPreserved": true,
+  "assets": [
+    {
+      "id": "cleric-actions",
+      "file": "baked/cleric-actions.png",
+      "sha256": "9705f7e13d8ccecd73e579b1e447413579165167d3cb3ed65c5664880918a713",
+      "bytes": 1930846,
+      "width": 1664,
+      "height": 1664,
+      "frames": 64
+    },
+    {
+      "id": "cleric-attack",
+      "file": "baked/cleric-attack.png",
+      "sha256": "d571118b19aa3049cfd02ed0b7a851515ef02477b88f60a7548e9a80a664bee4",
+      "bytes": 1771154,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "cleric-run",
+      "file": "baked/cleric-run.png",
+      "sha256": "732305a9d0f4e98a89c31fa875467fb6cd30d5478bb1f1e58f2bdd082b9062b5",
+      "bytes": 2376656,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "cleric-torch",
+      "file": "baked/cleric-torch.png",
+      "sha256": "5c0e67d291b9c642a621409b868b2d993b862f0267f533e6ed822cdf449f699c",
+      "bytes": 1732893,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "cleric-walk",
+      "file": "baked/cleric-walk.png",
+      "sha256": "3eb951e1254e87dd9ab159a4ed3cfc178d08e08d36007a53c819ec65a70a2f48",
+      "bytes": 2039658,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "harpy-claws",
+      "file": "baked/harpy-claws.png",
+      "sha256": "cd04ce965c2af8ae988c3c58530d529c9c1e5f0311c91c87be6cf31f0ee07497",
+      "bytes": 2099860,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "harpy-club",
+      "file": "baked/harpy-club.png",
+      "sha256": "2119bec5c06ef32cbac86236369886839549de1419e0157ea551b6db42ece6b6",
+      "bytes": 1923674,
+      "width": 1664,
+      "height": 1664,
+      "frames": 64
+    },
+    {
+      "id": "harpy-flight",
+      "file": "baked/harpy-flight.png",
+      "sha256": "dc5738e2bb76e8d467c84cf334acea84b7832a1eb6d1d4d808a99829b531696f",
+      "bytes": 1900596,
+      "width": 1664,
+      "height": 1664,
+      "frames": 64
+    },
+    {
+      "id": "harpy-utility",
+      "file": "baked/harpy-utility.png",
+      "sha256": "92e6b189ced66c02f665d3ec0e00b8c8c2851fb6d4ef520a118eb56f0fc454a3",
+      "bytes": 1656890,
+      "width": 1664,
+      "height": 1664,
+      "frames": 64
+    },
+    {
+      "id": "harpy-walk",
+      "file": "baked/harpy-walk.png",
+      "sha256": "588d9b77980a9556eb7960e20879d9a2d6f267aa679cfcd49e7a5a86123b281f",
+      "bytes": 1819354,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "rogue-actions",
+      "file": "baked/rogue-actions.png",
+      "sha256": "33a443eb98805de0fb08e7272a35ce341f6c6b7608f0ba5841980081d9ef82f5",
+      "bytes": 1608734,
+      "width": 1664,
+      "height": 1664,
+      "frames": 64
+    },
+    {
+      "id": "rogue-attack",
+      "file": "baked/rogue-attack.png",
+      "sha256": "cbe6029f229deee11f831dc49c05917de879b465b4abccab69c7e477694c7103",
+      "bytes": 1445692,
+      "width": 1920,
+      "height": 1920,
+      "frames": 64
+    },
+    {
+      "id": "rogue-run",
+      "file": "baked/rogue-run.png",
+      "sha256": "fc331c47df114adf6d93a6e1ac9265500899b0d3d90a7a6acacae39693c19e1c",
+      "bytes": 1292617,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "rogue-torch",
+      "file": "baked/rogue-torch.png",
+      "sha256": "2677f659d7703119956d2f5ade9a7239de0a675b99cb9fadbc676d1de052abf3",
+      "bytes": 1418768,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "silverfarben-actions",
+      "file": "baked/silverfarben-actions.png",
+      "sha256": "6c30d75c142788cbce39cec7f172acc0654ee0565ddcc2f74fdec5fc9d27e224",
+      "bytes": 1630482,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "silverfarben-attack",
+      "file": "baked/silverfarben-attack.png",
+      "sha256": "6c5d42817fdea3a4f068ac94498e70c501016593e74b53632aa771ba6ba59c66",
+      "bytes": 1872526,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "silverfarben-run",
+      "file": "baked/silverfarben-run.png",
+      "sha256": "9cbd03df599bfd89bbfa100d0d0a4512338ce2023e2587303b385431d6374c4c",
+      "bytes": 1349962,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "silverfarben-unarmed",
+      "file": "baked/silverfarben-unarmed.png",
+      "sha256": "8c054aa99a081d8cc4d42dc631c2dec9a42a4efd00636c632ac8341d8ee19ef0",
+      "bytes": 1828153,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "wizard-actions",
+      "file": "baked/wizard-actions.png",
+      "sha256": "38364f8dd313df630d9dd19c7045b85e96fccb342a5d06d433be0518b9c4c26a",
+      "bytes": 1660359,
+      "width": 1792,
+      "height": 1792,
+      "frames": 64
+    },
+    {
+      "id": "wizard-attack",
+      "file": "baked/wizard-attack.png",
+      "sha256": "432a10a5d3f00d768bb1a3456b63454521328dfdc9b23122b5dab2f915b4f2ed",
+      "bytes": 1471511,
+      "width": 1664,
+      "height": 1664,
+      "frames": 64
+    },
+    {
+      "id": "wizard-run",
+      "file": "baked/wizard-run.png",
+      "sha256": "4d9451cd2218f2ce5bc9f5b9431008499825a1aa80ebb62867af892d8a7bd293",
+      "bytes": 2126596,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "wizard-torch",
+      "file": "baked/wizard-torch.png",
+      "sha256": "37e7ecd5c08ab361a86eba428f9e36982e786c66eea453734efb64877705f289",
+      "bytes": 1556394,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "wizard-walk",
+      "file": "baked/wizard-walk.png",
+      "sha256": "4b38888a99b24185f32db9712e90fd5c7fa64731aee2c84abd8970543dea2a12",
+      "bytes": 1739542,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "zombie-2-attack",
+      "file": "baked/zombie-2-attack.png",
+      "sha256": "ef964c2ecc63ed690cde64469fcacc970de96b3c916f4acce8fe0e027ec3fb7f",
+      "bytes": 1188680,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "zombie-2-reactions",
+      "file": "baked/zombie-2-reactions.png",
+      "sha256": "bff4df667552f71dfd94c48ac2ae7bc048a9baab52be04a503386cf943a71808",
+      "bytes": 1018282,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "zombie-2-walk",
+      "file": "baked/zombie-2-walk.png",
+      "sha256": "1c28e4cd6258991f01fb268a6d2b3f06ccd1cbe8bc0eab8d51672df96e478c88",
+      "bytes": 1148856,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "zombie-3-attack",
+      "file": "baked/zombie-3-attack.png",
+      "sha256": "c5b117a7f9c15671784974a0023d20e58f2fdfa6222c91a3e8bf1ce0a1936ea7",
+      "bytes": 1369669,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "zombie-3-reactions",
+      "file": "baked/zombie-3-reactions.png",
+      "sha256": "29d4950d6631e534b19a1df5b4091281bf3708b61d8df236200a0815e56acf8c",
+      "bytes": 1502646,
+      "width": 1792,
+      "height": 1792,
+      "frames": 64
+    },
+    {
+      "id": "zombie-3-walk",
+      "file": "baked/zombie-3-walk.png",
+      "sha256": "6b050d5fefd91c809d893c458a3d0e57eef7fac4ab7f9d3f55eb34fc8c4acf39",
+      "bytes": 1612448,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "zombie-4-attack",
+      "file": "baked/zombie-4-attack.png",
+      "sha256": "048afb266eeb1a60169969750c9a077efb88abd6a916cc69f288f8128d7242e1",
+      "bytes": 1450056,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "zombie-4-reactions",
+      "file": "baked/zombie-4-reactions.png",
+      "sha256": "3672ecc5c9862eba27b168db071958a8ac6a97daab1f07a59ae9763e385c6c6d",
+      "bytes": 1404943,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "zombie-4-walk",
+      "file": "baked/zombie-4-walk.png",
+      "sha256": "38eccbf52c5d0df9e9502c58f9bfae336e5e45b71af172d56dd59bb26067a648",
+      "bytes": 1458870,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "zombie-actions",
+      "file": "baked/zombie-actions.png",
+      "sha256": "2d8684bdda046c7459ee2b78fb7119f819880a93357f4b9793273a5800b537cb",
+      "bytes": 1734698,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "zombie-attack",
+      "file": "baked/zombie-attack.png",
+      "sha256": "5efd832d5759a4b79192360bd02b139dee9318f51f41d4677ebf4b3b31779e07",
+      "bytes": 1576304,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "zombie-reactions",
+      "file": "baked/zombie-reactions.png",
+      "sha256": "78e3a9823f86d42c1da637fbc2c3d3b0b8527107412ac0986e67628557c3fc7f",
+      "bytes": 1364696,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "zombie-run",
+      "file": "baked/zombie-run.png",
+      "sha256": "6de13be0809ce283373004b6bfaac453a4b5cdbb3b4d11615fc255039a9d9c7c",
+      "bytes": 1585616,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    },
+    {
+      "id": "zombie-walk",
+      "file": "baked/zombie-walk.png",
+      "sha256": "43d05f1fceee52c2131d1e0e1e258baba5a38f3a5d8b7c938e089745cbf5b095",
+      "bytes": 1676121,
+      "width": 1536,
+      "height": 1536,
+      "frames": 64
+    }
+  ]
+}

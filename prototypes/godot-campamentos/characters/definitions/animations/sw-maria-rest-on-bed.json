@@ -1,0 +1,62 @@
+{
+  "id": "sw-maria-rest-on-bed",
+  "version": 1,
+  "kind": "animation",
+  "campaign": "stormwreck-isle",
+  "character": "maria",
+  "anatomy": "humanoid-small",
+  "action": "rest_on_prop",
+  "direction": "s",
+  "poseKind": "hold",
+  "fps": 1,
+  "loop": true,
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/rest-poses-v1/maria-rest.png"
+  ],
+  "compatibility": {
+    "anchor": "head at pillow; head-to-sole axis fixed in world",
+    "embeddedSlotsRetained": true,
+    "overlays": "body mesh shared by condition material",
+    "rendering": "closed reclining bust with painted face and collar registration"
+  },
+  "production": {
+    "method": "ImageGen, upright image-space head-to-sole axis and lossless alpha crop",
+    "reference": "prototypes/godot-campamentos/assets/tokens/animations/seated/rogue-seated.png",
+    "original": "campaigns/stormwreck-isle/public/art/characters/rest-poses-v1/originals/maria.png",
+    "originalSHA256": "c48d9c97477c6162594785906545815c60b2bcf3707c0a4cfc559d1391af6a46",
+    "derivedSHA256": "7568f292bca9f71875871893ce19f7beebc9e2e1d6297cd20c37630ed310a52a"
+  },
+  "review": {
+    "technical": "pending",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "pivot": [
+    0.4959839357429719,
+    0.13974950560316415
+  ],
+  "soleContact": [
+    0.5,
+    0.991430454845089
+  ],
+  "restBlanket": {
+    "base": "#584a62",
+    "trim": "#918078",
+    "bands": 1
+  },
+  "restVolume": {
+    "head": 0.17,
+    "chest": 0.188,
+    "hips": 0.137,
+    "calves": 0.108,
+    "boots": 0.125
+  },
+  "restSculpt": {
+    "eyes": 0.147,
+    "nose": [0.502, 0.165],
+    "jaw": 0.207,
+    "faceHalfWidth": 0.197,
+    "recline": 18
+  },
+  "referenceHeight": 1511
+}

@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "kind": "character",
+  "id": "sw-minn",
+  "name": "Minn",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-winged-small",
+  "heightMeters": 0.87,
+  "heightBasis": "visual staging estimate consistent with PDF size category; not an asserted canonical individual height",
+  "aliases": [
+    "minn"
+  ],
+  "source": {
+    "kind": "individual-frames",
+    "files": [
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/minn/idle-01.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/minn/idle-02.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/minn/idle-03.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/minn/idle-04.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/minn/idle-05.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/minn/idle-06.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/minn/idle-07.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/minn/idle-08.png"
+    ],
+    "fps": 2.5,
+    "animation": "idle",
+    "directions": [
+      "se"
+    ],
+    "minimumDistinctFrames": 8,
+    "baseFile": "campaigns/stormwreck-isle/public/art/characters/base-v1/minn.png",
+    "preserveCanvas": true,
+    "referenceHeightPixels": 413,
+    "pivot": [
+      0.5,
+      0.9769585253456221
+    ]
+  },
+  "embeddedSlots": [
+    "clothing"
+  ],
+  "equipmentSlots": [],
+  "safeAnimations": [
+    "idle"
+  ],
+  "frameOverrides": {},
+  "states": [
+    "poisoned",
+    "petrified",
+    "frosted",
+    "burned",
+    "cursed",
+    "invisible"
+  ],
+  "visualStyle": "painted inked fantasy VTT character; clear material planes and adult proportions; coherent with existing Stormwreck heroes",
+  "orientation": "Eight idle phases in one authored base view (se); no other views or locomotion claimed",
+  "scale": "calibrate standing body, not total wings/tail envelope",
+  "pivot": "ground support, relative visible bounds; fitted after artwork exists",
+  "dependencies": [],
+  "mechanicalReference": {
+    "pdf": "OneDrive_1_12-9-2026/Aventura Los Dragones de la Isla de las Tempestades.pdf",
+    "pdfSha256": "26a700407a3878f27428755e40fdb8d8a933a9bbd2aeaa9461e33fc6fae2fc69",
+    "pages": [
+      31
+    ]
+  },
+  "production": {
+    "stage": "generated-and-technically-extracted",
+    "expectedFile": "campaigns/stormwreck-isle/public/art/characters/base-v1/minn-idle8.png",
+    "method": "built-in ImageGen; one isolated full-body asset per call",
+    "brief": "male winged red kobold, long snout painted blue, healthy leathery wings, slimmer brother of Myla; distinct horn silhouette from Mek",
+    "background": "true RGBA transparency",
+    "margin": "all anatomy inside canvas with clear gutter; no collage",
+    "referenceStyle": [
+      "campaigns/stormwreck-isle/public/art/m3/trinity/maria_base.png",
+      "prototypes/godot-pecio/assets/tokens/wizard-rest-v1.png"
+    ],
+    "designInterpretation": "Features not specified in the adventure are an art proposal, not added rules or lore",
+    "idleAtlas": {
+      "columns": 4,
+      "rows": 2,
+      "order": "left-to-right then next row",
+      "count": 8,
+      "action": "idle",
+      "direction": "se",
+      "mustKeep": [
+        "identity",
+        "anatomy",
+        "body proportions",
+        "scale",
+        "foot support",
+        "transparent gutters"
+      ]
+    },
+    "promptFile": "output/stormwreck-characters-20261117/minn-idle8.prompt.txt",
+    "original": "campaigns/stormwreck-isle/public/art/characters/base-v1/originals/minn-idle8.png",
+    "originalSha256": "10aaafb3d6ed484f14fa15baaad564ef33f77e000fb6a9f66b565268358c0d84",
+    "importReport": "output/stormwreck-characters-20261117/imports/minn.json"
+  },
+  "limitations": [
+    "Eight distinct idle phases in one base view. Other directions and actions are not yet claimed.",
+    "New clothing/equipment swapping is deferred; outfit belongs to this base illustration."
+  ],
+  "review": {
+    "technical": "atlas-extraction-passed; native test pending",
+    "visual": "internally reviewed: complete isolated phases, stable identity and anatomy; live-loop and user acceptance tracked separately",
+    "userAcceptance": "pending",
+    "evidence": [
+      "output/stormwreck-characters-20261117/imports/minn.json",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/originals/minn-idle8.png"
+    ]
+  }
+}
