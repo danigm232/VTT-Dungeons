@@ -55,6 +55,7 @@ import {createStormwreckObjectFinish} from '../../engine/client/stormwreck-objec
 
 declare const __STORMWRECK_STYLE_SAMPLE__: boolean;
 import { installPlayerLocomotion, locomotionEpoch } from '../../engine/client/player-locomotion';
+import { installCharacterMotion } from '../../engine/client/character-motion';
 import { installSilverfarbenVisuals } from '../../campaigns/one-shot/public/silverfarben-visuals';
 import { directedTokenState, sameAnimationAction, tokenAnimationFrame, tokenAnimationRole } from '../../engine/client/token-animation-playback';
 import type { CampVisuals } from '../../campaigns/camp-rests/public/visuals.js';
@@ -774,6 +775,7 @@ export class WorldRenderer {
     installStormwreckFacingSprites(this.campaign);
     installPlayerLocomotion(this.campaign);
     installSilverfarbenVisuals(this.campaign);
+    installCharacterMotion(this.campaign);
     // Only the runtime can reveal or remove a NPC. Stage actors are spawn definitions.
     const renderEntities = snapshot.entities;
     if (this.sceneId !== snapshot.sceneId) { this.cameraZoom = 1; this.cameraBaseZoom = 1; this.cameraOffset = { x: 0, y: 0 }; this.terrainCameraOffset = { x: 0, y: 0, z: 0 }; this.cameraFocusScreenPoint = null; this.cameraFocusWorldPoint = null; this.cameraInitialized = false; }

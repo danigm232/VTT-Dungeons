@@ -13,7 +13,8 @@ export const zombieCombatProfile: CombatProfile = {
     { id: 'zombie-bite', label: 'Desgarrar · mordisco · +3 · 1d4+1 perforante', attackBonus: 3, damageDice: '1d4', damageBonus: 1,
       damageType: 'perforante', range: { kind: 'melee', normalMeters: 1.5 }, animationType: 'melee', soundId: 'stormwreck-sfx-undead-cry' },
     { id: 'zombie-grapple', label: 'Presa · agarre marino · alcance 1,5 m', attackBonus: 3, damageDice: '1d1', damageBonus: 0,
-      damageType: 'contundente', range: { kind: 'melee', normalMeters: 1.5 }, animationType: 'melee', soundId: 'stormwreck-sfx-zombie-groan-02' }
+      damageType: 'contundente', range: { kind: 'melee', normalMeters: 1.5 }, animationType: 'melee', soundId: 'stormwreck-sfx-zombie-groan-02',
+      resolution: 'guided', targeting: 'creature', guidance: 'El DM confirma la presa y resuelve la prueba o salvación de la ficha usada. Este agarre no inflige el daño de marcador ni aplica automáticamente una condición.' }
   ],
   traits: ['Fortaleza de no muerto: si queda a 0 PG, el DM resuelve la salvación de Constitución CD 5 + daño recibido; si supera la tirada, se levanta con 1 PG.'],
   ruleTraits: { darkvisionMeters: 18 }, damageImmunities: ['veneno'], conditionImmunities: ['envenenada']
@@ -47,11 +48,11 @@ const actor = (id: string, label: string, tokenId: string, sceneId: string, surf
 
 export const wreckM3Actors: PrivateActorDefinition[] = [
   actor('c4-zombie-1', 'Marinero ahogado · C4 I', 'zombie', 'wreck-ship', 'main', -12, -3, zombie, '#718f7d'),
-  actor('c4-zombie-2', 'Marinero ahogado · C4 II', 'zombie', 'wreck-ship', 'main', -9, -4.5, zombie, '#718f7d'),
-  actor('c4-zombie-3', 'Marinero ahogado · C4 III', 'zombie', 'wreck-ship', 'main', -13.5, -1.5, zombie, '#718f7d'),
-  actor('c8-zombie-1', 'Marinero ahogado · C8 I', 'zombie', 'wreck-ship', 'lower-deck', -16.5, -6, zombie, '#718f7d'),
-  actor('c8-zombie-2', 'Marinero ahogado · C8 II', 'zombie', 'wreck-ship', 'lower-deck', -13.5, 5, zombie, '#718f7d'),
-  actor('c8-zombie-3', 'Marinero ahogado · C8 III', 'zombie', 'wreck-ship', 'lower-deck', 19.5, 4, zombie, '#718f7d'),
+  actor('c4-zombie-2', 'Marinero ahogado · C4 II', 'zombie-2', 'wreck-ship', 'main', -9, -4.5, zombie, '#718f7d'),
+  actor('c4-zombie-3', 'Marinero ahogado · C4 III', 'zombie-3', 'wreck-ship', 'main', -13.5, -1.5, zombie, '#718f7d'),
+  actor('c8-zombie-1', 'Marinero ahogado · C8 I', 'zombie-4', 'wreck-ship', 'lower-deck', -16.5, -6, zombie, '#718f7d'),
+  actor('c8-zombie-2', 'Marinero ahogado · C8 II', 'zombie-2', 'wreck-ship', 'lower-deck', -13.5, 5, zombie, '#718f7d'),
+  actor('c8-zombie-3', 'Marinero ahogado · C8 III', 'zombie-3', 'wreck-ship', 'lower-deck', 19.5, 4, zombie, '#718f7d'),
   actor('c8-ghoul', 'Gul de la cubierta inferior', 'ghoul', 'wreck-ship', 'lower-deck', 8, -1.5, ghoul, '#c7d8dc'),
   // Both stay hidden until the DM stages the return. The resident's starting
   // address is the crow's nest; the level-2 reinforcement waits by the C2
@@ -66,6 +67,6 @@ export const retreatOpeningZombies: PrivateActorDefinition[] = [
   [-45,42],[-45,39],[-48,37]
 ].map(([x,z], index) => ({
   id: `retreat-beach-zombie-${index + 1}`, label: `Marinero ahogado · playa ${index + 1}`,
-  tokenId: 'zombie', color: '#718f7d', sceneId: 'dragon-rest', surfaceId: 'beach',
+  tokenId: index === 0 ? 'zombie' : 'zombie-'+(index+1), color: '#718f7d', sceneId: 'dragon-rest', surfaceId: 'beach',
   cell: retreatCellAtMeters('beach',x!,z!), profile: zombieCombatProfile
 }));

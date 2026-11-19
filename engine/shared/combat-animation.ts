@@ -5,6 +5,10 @@ import type { PublicCampaignDefinition } from './campaign.js';
 export function combatActionVisualState(action: Pick<CombatAction, 'id' | 'magical' | 'animationType'>, type: AttackAnimationType = action.animationType ?? (action.magical ? 'magicalProjectile' : 'melee')) {
   if (/(^|-)light-torch$|(^|-)encender-antorcha$/.test(action.id)) return 'use-torch';
   if (action.id === 'entangle') return 'entangle';
+  if (action.id === 'zombie-bite') return 'attack-bite';
+  if (action.id === 'zombie-grapple') return 'grapple';
+  if (action.id === 'harpy-club') return 'attack-club';
+  if (action.id === 'harpy-song') return 'song';
   if (action.id === 'fog-cloud') return 'spell-fog';
   if (action.id === 'feather-fall') return 'spell-feather';
   if (/(^|-)unarmed($|-)/.test(action.id)) return 'attack-unarmed';
@@ -17,6 +21,8 @@ export function combatActionVisualState(action: Pick<CombatAction, 'id' | 'magic
 /** Semantic clips keep older campaigns working while D8 supplies bespoke art. */
 export function combatVisualFallbackState(state:string):string|null {
   if(state==='use-torch')return 'interact';
+  if(state==='attack-bite'||state==='attack-club'||state==='grapple')return 'attack';
+  if(state==='song')return 'spell';
   if(state==='help'||state==='influence')return 'interact';
   if(state==='spell-fog'||state==='spell-feather')return 'spell';
   if(state==='hit-physical'||state==='hit-fire'||state==='hit-arcane')return 'hit';

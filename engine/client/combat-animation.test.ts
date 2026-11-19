@@ -24,4 +24,8 @@ describe('combat body-animation routing', () => {
     expect(combatActionVisualState({ id: 'thrown-dagger', animationType: 'thrownWeapon' })).toBe('attack-throw');
     expect(combatActionVisualState({ id: 'fire-bolt', magical: true, animationType: 'fireProjectile' })).toBe('spell');
   });
+  it('routes NPC campaign actions to their separate authored poses',()=>{
+    for(const [id,state]of [['zombie-bite','attack-bite'],['zombie-grapple','grapple'],['harpy-club','attack-club'],['harpy-song','song']])expect(combatActionVisualState({id:id!,animationType:'melee'})).toBe(state);
+    expect(combatActionVisualState({id:'harpy-claws',animationType:'melee'})).toBe('attack');
+  });
 });

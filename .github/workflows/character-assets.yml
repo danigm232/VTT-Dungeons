@@ -1,0 +1,18 @@
+name: Character asset pipeline
+on:
+  pull_request:
+    paths: ['prototypes/godot-shared/characters/**', 'prototypes/godot-shared/sprites/**', 'scripts/character-pipeline.mjs', 'scripts/test-character-pipeline.mjs', '.github/workflows/character-assets.yml']
+  push:
+    paths: ['prototypes/godot-shared/characters/**', 'prototypes/godot-shared/sprites/**', 'scripts/character-pipeline.mjs', 'scripts/test-character-pipeline.mjs', '.github/workflows/character-assets.yml']
+permissions:
+  contents: read
+jobs:
+  definitions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node scripts/character-pipeline.mjs validate
+      - run: node --test scripts/test-character-pipeline.mjs

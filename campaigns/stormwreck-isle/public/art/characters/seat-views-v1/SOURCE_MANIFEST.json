@@ -1,0 +1,207 @@
+{
+  "reference": "prototypes/godot-campamentos/assets/tokens/animations/seated/rogue-seated.png",
+  "original": "campaigns/stormwreck-isle/public/art/characters/seat-views-v1/originals/trinity-seat-sheet.png",
+  "originalSHA256": "d72be31a477aefd8822613d7a33c15ae629bd08f449ffce8ec16b82231f8ed66",
+  "standingReferencePx": 510,
+  "visualAudit": [
+    "VA-01",
+    "VA-03",
+    "VA-10",
+    "REF-01"
+  ],
+  "acceptance": "pending user review",
+  "views": [
+    {
+      "id": "sw-maria-seat-s",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-maria-seat-s.json",
+      "derived": "campaigns/stormwreck-isle/public/art/characters/seat-views-v1/trinity-seated-s.png",
+      "sha256": "448c33d8bbb71a76435793cac4db5d2dfd9123c159963a820bfa58b9de35c9ab",
+      "cell": [
+        0,
+        0,
+        443,
+        443
+      ],
+      "visiblePixels": [
+        186,
+        403
+      ],
+      "pelvis": [
+        0.5,
+        0.6093366093366094
+      ],
+      "soleContact": [
+        0.5,
+        0.9852579852579852
+      ]
+    },
+    {
+      "id": "sw-maria-seat-se",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-maria-seat-se.json",
+      "derived": "campaigns/stormwreck-isle/public/art/characters/seat-views-v1/trinity-seated-se.png",
+      "sha256": "ce0b886a8640a5bac02d6b67df5b67ae2c60d12f46c5f56e3feefdeccad22c7c",
+      "cell": [
+        443,
+        0,
+        887,
+        443
+      ],
+      "visiblePixels": [
+        202,
+        409
+      ],
+      "pelvis": [
+        0.49029126213592233,
+        0.6222760290556901
+      ],
+      "soleContact": [
+        0.3932038834951456,
+        0.9733656174334141
+      ]
+    },
+    {
+      "id": "sw-maria-seat-e",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-maria-seat-e.json",
+      "derived": "campaigns/stormwreck-isle/public/art/characters/seat-views-v1/trinity-seated-e.png",
+      "sha256": "08b5ef315abaed695475d0fb14b25b8ce3a78ba3d3ffdf8ef81c76c39ea14439",
+      "cell": [
+        887,
+        0,
+        1330,
+        443
+      ],
+      "visiblePixels": [
+        200,
+        400
+      ],
+      "pelvis": [
+        0.25,
+        0.7103960396039604
+      ],
+      "soleContact": [
+        0.7401960784313726,
+        0.9678217821782178
+      ]
+    },
+    {
+      "id": "sw-maria-seat-ne",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-maria-seat-ne.json",
+      "derived": "campaigns/stormwreck-isle/public/art/characters/seat-views-v1/trinity-seated-ne.png",
+      "sha256": "a32a1120ff15cfdc21659c70aa5084b5a2946535bf44f168c4716bdb2cf4da04",
+      "cell": [
+        1330,
+        0,
+        1774,
+        443
+      ],
+      "visiblePixels": [
+        211,
+        391
+      ],
+      "pelvis": [
+        0.22790697674418606,
+        0.7113924050632912
+      ],
+      "soleContact": [
+        0.7069767441860465,
+        0.9620253164556962
+      ]
+    },
+    {
+      "id": "sw-maria-seat-n",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-maria-seat-n.json",
+      "derived": "campaigns/stormwreck-isle/public/art/characters/seat-views-v1/trinity-seated-n.png",
+      "sha256": "aa2f97c848a9663d5ca3ea94c9bdecb9d8b2c2d4313b95fbb28973cbfe9850ee",
+      "cell": [
+        0,
+        443,
+        443,
+        887
+      ],
+      "visiblePixels": [
+        182,
+        385
+      ],
+      "pelvis": [
+        0.4946236559139785,
+        0.6915167095115681
+      ],
+      "soleContact": [
+        0.4946236559139785,
+        0.9794344473007712
+      ]
+    },
+    {
+      "id": "sw-maria-seat-nw",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-maria-seat-nw.json",
+      "derived": "campaigns/stormwreck-isle/public/art/characters/seat-views-v1/trinity-seated-nw.png",
+      "sha256": "721bbdde5165ee0758cf0725f92135383859ac0bd137f982199bbd8cb484b898",
+      "cell": [
+        443,
+        443,
+        887,
+        887
+      ],
+      "visiblePixels": [
+        206,
+        392
+      ],
+      "pelvis": [
+        0.7142857142857143,
+        0.7095959595959596
+      ],
+      "soleContact": [
+        0.3,
+        0.9696969696969697
+      ]
+    },
+    {
+      "id": "sw-maria-seat-w",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-maria-seat-w.json",
+      "derived": "campaigns/stormwreck-isle/public/art/characters/seat-views-v1/trinity-seated-w.png",
+      "sha256": "811c62d03b3c1bcac8213c3efbcacb6aefe84d2372bae986a69b05c3ac211907",
+      "cell": [
+        887,
+        443,
+        1330,
+        887
+      ],
+      "visiblePixels": [
+        202,
+        403
+      ],
+      "pelvis": [
+        0.7427184466019418,
+        0.7027027027027027
+      ],
+      "soleContact": [
+        0.2524271844660194,
+        0.9606879606879607
+      ]
+    },
+    {
+      "id": "sw-maria-seat-sw",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-maria-seat-sw.json",
+      "derived": "campaigns/stormwreck-isle/public/art/characters/seat-views-v1/trinity-seated-sw.png",
+      "sha256": "40ace7f8d6eb98b7c67f4f63dd2110315fd55b35d983bda8f5da3e9492de1b9c",
+      "cell": [
+        1330,
+        443,
+        1774,
+        887
+      ],
+      "visiblePixels": [
+        215,
+        407
+      ],
+      "pelvis": [
+        0.5251141552511416,
+        0.6301703163017032
+      ],
+      "soleContact": [
+        0.3470319634703196,
+        0.9635036496350365
+      ]
+    }
+  ]
+}

@@ -1,0 +1,142 @@
+{
+  "original": "campaigns/stormwreck-isle/public/art/characters/party-seat-views-v1/mia/originals/seat-sheet.png",
+  "originalSHA256": "091be7b999417843e0ca49c74a31629a51610db5097c97569c5661e69fee2349",
+  "views": [
+    {
+      "id": "sw-mia-seat-s",
+      "file": "campaigns/stormwreck-isle/public/art/characters/party-seat-views-v1/mia/seat-s.png",
+      "sha256": "9fd746e17451ed40bf2f86eb211c3f2aa9ca608ca6db9d542e6aeccce5862fef",
+      "pelvis": [
+        0.5,
+        0.6220095693779905
+      ],
+      "soles": [
+        0.5038461538461538,
+        0.9808612440191388
+      ],
+      "visiblePixels": [
+        256,
+        414
+      ]
+    },
+    {
+      "id": "sw-mia-seat-se",
+      "file": "campaigns/stormwreck-isle/public/art/characters/party-seat-views-v1/mia/seat-se.png",
+      "sha256": "c5be65f3c8c86b903a0b53af9b29fe8569f5acca15ea300e075e918ca5f2edee",
+      "pelvis": [
+        0.4232081911262799,
+        0.6611374407582938
+      ],
+      "soles": [
+        0.6245733788395904,
+        0.9739336492890995
+      ],
+      "visiblePixels": [
+        289,
+        418
+      ]
+    },
+    {
+      "id": "sw-mia-seat-e",
+      "file": "campaigns/stormwreck-isle/public/art/characters/party-seat-views-v1/mia/seat-e.png",
+      "sha256": "994e635b4be65dcb2965bf50ff35a8f8c75ffab123c07ba9f32740b52f086518",
+      "pelvis": [
+        0.3062730627306273,
+        0.7296650717703349
+      ],
+      "soles": [
+        0.7822878228782287,
+        0.9593301435406698
+      ],
+      "visiblePixels": [
+        267,
+        414
+      ]
+    },
+    {
+      "id": "sw-mia-seat-ne",
+      "file": "campaigns/stormwreck-isle/public/art/characters/party-seat-views-v1/mia/seat-ne.png",
+      "sha256": "196fd1b5e8f9a9af6b0c0bc9e9504b5a956ec74145fec1bdc93249b76ea35519",
+      "pelvis": [
+        0.29577464788732394,
+        0.7432762836185819
+      ],
+      "soles": [
+        0.6373239436619719,
+        0.9706601466992665
+      ],
+      "visiblePixels": [
+        280,
+        405
+      ]
+    },
+    {
+      "id": "sw-mia-seat-n",
+      "file": "campaigns/stormwreck-isle/public/art/characters/party-seat-views-v1/mia/seat-n.png",
+      "sha256": "5cc463de89b90728fc852ab2e472bc02d68e123c62685fa49060ebc140214121",
+      "pelvis": [
+        0.5,
+        0.7396593673965937
+      ],
+      "soles": [
+        0.4847328244274809,
+        0.9732360097323601
+      ],
+      "visiblePixels": [
+        258,
+        407
+      ]
+    },
+    {
+      "id": "sw-mia-seat-nw",
+      "file": "campaigns/stormwreck-isle/public/art/characters/party-seat-views-v1/mia/seat-nw.png",
+      "sha256": "68029d3d349df377c1d3dcd1b2c984a8f214f22a44e4ff7565f43111938e41d3",
+      "pelvis": [
+        0.7829181494661922,
+        0.7668269230769231
+      ],
+      "soles": [
+        0.4626334519572954,
+        0.9567307692307693
+      ],
+      "visiblePixels": [
+        277,
+        412
+      ]
+    },
+    {
+      "id": "sw-mia-seat-w",
+      "file": "campaigns/stormwreck-isle/public/art/characters/party-seat-views-v1/mia/seat-w.png",
+      "sha256": "8abb8c5b4da8eff4779f4d348dee03c4438d1467d96cfb1d0d86a17da8b2ec64",
+      "pelvis": [
+        0.7732342007434945,
+        0.7494033412887828
+      ],
+      "soles": [
+        0.20446096654275092,
+        0.9737470167064439
+      ],
+      "visiblePixels": [
+        265,
+        415
+      ]
+    },
+    {
+      "id": "sw-mia-seat-sw",
+      "file": "campaigns/stormwreck-isle/public/art/characters/party-seat-views-v1/mia/seat-sw.png",
+      "sha256": "827345cde9390b50a4a9a41c16290203d64910ab7b68d41aed77d280bf152cb3",
+      "pelvis": [
+        0.6127946127946128,
+        0.6904761904761905
+      ],
+      "soles": [
+        0.4107744107744108,
+        0.9666666666666667
+      ],
+      "visiblePixels": [
+        293,
+        416
+      ]
+    }
+  ]
+}

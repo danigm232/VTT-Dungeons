@@ -21,7 +21,7 @@ sobre el ahorro de espacio.
 | `output/` | Capturas, galerías, informes y compilaciones de auditoría. Se conservan las capturas enlazadas y todos los resultados recientes. |
 | `backups/` | Hitos recuperables. El registro de mantenimiento está en `backups/maintenance-reports/`. |
 | `tmp/` | Pruebas y herramientas locales. Solo se retiran compilaciones reconocidas, registros antiguos y el instalador de Node identificado si Node ya está instalado. |
-| `prototypes/` | Fuentes de prototipos y trabajos de Blender. Se conservan. |
+| `prototypes/` | Fuentes de prototipos y trabajos de Blender. Se conservan. **Godot activo:** `godot-pecio/` y `godot-retiro/`, con escenas, scripts, texturas, archivos `.import` e importaciones `.godot`. |
 | `Imagenes VTT/`, `OneDrive_1_12-9-2026/`, `Reglamento/` | Material original y referencias del usuario. Se conservan. |
 | `.git/`, `node_modules/` | Historial y dependencias. Se conservan. |
 
@@ -60,8 +60,16 @@ siete días. No se ejecuta automáticamente al iniciar ni actualizar la mesa.
 
 - Las compilaciones antiguas se identifican por su estructura de cliente o
   servidor, no únicamente por llamarse «viejas» o estar en una carpeta temporal.
+- Se conservan las carpetas utilizadas literalmente por los lanzadores y las
+  herramientas actuales. Un proyecto `project.godot`, un script `.gd`, una escena
+  `.tscn`, un recurso `.tres` o una fuente Blender protege toda la candidata
+  que lo contiene, incluso dentro de `tmp/` o `runtime/`.
+- Se pueden retirar perfiles **aislados** `chrome-*` de auditoría dentro de
+  `tmp/` si tienen estructura de perfil reconocible, están fuera del plazo
+  protegido y ningún proceso los utiliza. No se inspeccionan ni limpian los
+  perfiles personales de Chrome o Edge.
 - Las capturas antiguas de áreas de auditoría reconocidas solo se retiran si no tienen referencias literales en
-  documentación, galerías, scripts o datos de revisión. Se mantienen nombres
+  documentación, galerías, scripts, fuentes de Babylon/Godot o datos de revisión. Se mantienen nombres
   ambiguos, carpetas de originales/arte y coincidencias conservadoras por nombre de archivo. Los scripts que
   generaban capturas históricas podrán regenerarlas cuando se vuelvan a usar.
 - Los resultados numéricos y los informes históricos se conservan. Sus menciones
@@ -85,3 +93,21 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/maintain-workspa
 
 Estas comprobaciones validan el mantenimiento, no sustituyen las pruebas de la
 mesa, los mapas o los dispositivos físicos.
+
+## Abrir y desarrollar cada motor
+
+- **Babylon web:** `INICIAR.cmd`; fuentes en `apps/`, `engine/` y `campaigns/`;
+  aplicación instalada en `dist/` y guardados en `data/`.
+- **Godot nativo:** `JUGAR-GODOT.cmd`; proyectos editables en
+  `prototypes/godot-pecio/project.godot` y
+  `prototypes/godot-retiro/project.godot`. Los dos atajos `ABRIR-…-GODOT.cmd`
+  siguen disponibles. Sus avances y límites están en `PROJECT_STATE.md`.
+- **Pruebas y arte original:** no mover carpetas históricas de `prototypes/`
+  ni materiales de `tmp/` por su nombre: hay importaciones entre herramientas
+  y fuentes reutilizadas. Las compilaciones y perfiles temporales se tratan
+  aparte de esos originales.
+
+El mantenimiento reutiliza el inventario de cada área durante la propuesta,
+evitando recorrer varias veces todas sus carpetas. Antes de cada eliminación
+vuelve a comprobar el destino real y sus archivos; el inventario no permite
+saltarse las protecciones.

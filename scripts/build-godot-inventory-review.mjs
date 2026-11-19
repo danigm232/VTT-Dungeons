@@ -1,0 +1,15 @@
+import {readFile,writeFile,access} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {resolve,join} from 'node:path';
+import {visualComparison,visualComparisonAssets} from './lib/visual-comparison.mjs';
+const destination=resolve(import.meta.dirname,'../output/godot-inventory-20261115');
+const ids=['mia','maria','mike'];
+const hashes=[];
+for(const folder of ['iteration-1','panel'])for(const id of ids){const file=`${folder}/${id}.png`;const data=await readFile(join(destination,file));hashes.push({file,sha256:createHash('sha256').update(data).digest('hex')});}
+await writeFile(join(destination,'capture-originals.json'),JSON.stringify(hashes,null,2)+'\n');
+let integrated='';
+try{await access(join(destination,'pecio/maria.png'));integrated='<h2>Integración en el Pecio</h2><img src="pecio/maria.png" alt="Mochila integrada en la escena actual del Pecio">';}catch{}
+const comparisons=ids.map(id=>visualComparison({before:`iteration-1/${id}.png`,after:`panel/${id}.png`,title:`${id}: primera candidata → revisión final de casillas y botones`,width:1600,height:900})).join('');
+const gallery=[['backpack_take','Sacar objetos'],['backpack_store','Guardar objetos'],['torch_walk','Antorcha en ocho direcciones']].map(([id,title])=>`<h2>${title}</h2><img src="panel/${id}.png" alt="${title}: Mia, Trinity y Mike">`).join('');
+await writeFile(join(destination,'index.html'),`<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Mochila RPG · Godot</title><style>body{max-width:1440px;margin:30px auto;padding:20px;background:#0b1517;color:#e5dbbf;font:16px/1.6 system-ui}h1,h2{color:#e4bc72}img{width:100%;height:auto}a{color:#8fd6df}p{max-width:1000px}</style><h1>Mochila RPG en Godot · 15/11/2026</h1><p>Cuadrícula de objetos, búsqueda, categorías, personaje y equipo. Las acciones de sacar y guardar se preparan con la ventana abierta y comienzan al cerrarla. 101 iconos y 144 poses para los tres héroes actuales.</p>${integrated}<h2>Revisión del panel real en el motor</h2><p>Capturas del componente GDScript real, renderizado en Godot 4.7.2 Forward+ a 1600×900, con la misma ficha, inventario, textura de personaje, fondo y tamaño de ventana. La comparación recoge la primera candidata de esta implementación y su revisión final; no se presenta como la interfaz anterior del usuario. Pulsa sobre cada imagen para alternar sin moverla.</p>${comparisons}<h2>Inspección de sprites importados</h2><p>Originales preservados. Se muestran las texturas que utiliza Godot después del importador. Orden por filas: Mia, Trinity y Mike. En antorchas se muestra el primer paso de cada uno de los ocho ciclos; el juego reproduce cuatro pasos por dirección.</p>${gallery}<p><a href="capture-originals.json">Originales y hashes de las capturas comparadas</a> · <a href="../../prototypes/godot-shared/inventory/asset-manifest.json">Manifiesto de los recursos</a> · <a href="../../docs/evidence/GODOT_INVENTORY_RPG_20261115.md">Implementación y pruebas</a></p>${visualComparisonAssets()}</html>`);
+console.log(join(destination,'index.html'));

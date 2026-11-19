@@ -103,3 +103,13 @@ Propuesta de grid por defecto: 18 % de opacidad, gris salvia `#A6ADA1`, línea d
 **Límites literales de las láminas:** orientan color, textura, construcción y ambiente. El generador sugiere detalles que no son instrucciones geométricas: los paneles de puerta del Retiro no se convierten en bancos por su dibujo; remaches/refuerzos/vegetación/cielo del concepto no autorizan objetos, reparaciones o nuevas zonas. Mandan los IDs, plantas y estados reales. No se sustituye un mapa por estas imágenes ni se incorporan como textura panorámica jugable.
 
 El 02/11 se construyen las primeras muestras reales de materiales A3/umbral y cubierta/C4, más la familia de piedra continua compartida del Retiro y la finalización autorizada del cráneo. [Resultado, valores e IDs](../evidence/STORMWRECK_STYLE_SKULL_20261102.md), [capturas reales](../../output/stormwreck-style-sample-20261101/index.html), acceso `REVISAR-ACABADO.cmd`. Conservan geometría/UV/funciones, salvo la mejora del cráneo dentro de su huella. Muebles y vegetación no han sido remodelados. Las resoluciones reales y parámetros usados están registrados; la aceptación de la muestra y su extensión sigue pendiente. Aprobar un concepto no equivale a aprobar ejecución, rendimiento, dispositivos o parecido completo.
+
+## 10. Tipografía común y letreros de salida de mapa — 18/11/2026
+
+Regla permanente para todo el juego (Pecio, Retiro del Dragón, Campamentos y futuras escenas):
+- **Tipografía:**
+  - **Metamorphous** (`res://assets/ui/fonts/Metamorphous-Regular.ttf`): títulos, nombres de destinos y letreros.
+  - **Almendra** (`res://assets/ui/fonts/Almendra-Regular.ttf` / `Bold` / `Italic`): textos narrativos, diálogos y botones.
+- **Salidas de mapa (`MapExit` + `MapTransition`):**
+  - Al llegar el jugador a una salida (`MapExit._on_body_entered`), **no carga el siguiente mapa de forma automática e inmediata**, sino que abre el **letrero ilustrado de destino** (`MapExitSignOverlay`) con el nombre del destino en `Metamorphous`, texto narrativo y botones en `Almendra`, y confirmación/cancelación (`Continuar [T]` / `Permanecer aquí [Esc]`).
+  - Todas las salidas de mapa incorporan un **letrero físico en escena (`SignpostProp`)** acorde a las tres piezas gráficas de madera/dragón (`sign_dragon_post.png`, `sign_dragon_plaque.png`, `sign_hanging_ropes.png`) colocadas en el lateral del camino o embarcadero con el destino rotulado en `Metamorphous`.

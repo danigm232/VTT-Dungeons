@@ -247,10 +247,7 @@ export function buildWreckOcean(scene: Scene, terrain: TerrainDefinition, reefTe
     const shell=driftwood.clone(`wreck-distant-hull:${index}`);shell.backFaceCulling=false;shell.diffuseColor=Color3.FromHexString('#484c40');hull.material=shell;hull.isPickable=false;hull.metadata={visualOnly:true,kind:'distant-wreck',deckSurfaceId:'sea'};meshes.push(hull);
   }
   const bones=[...buildDragonRemains(scene,terrain),...buildDistantDragonBones(scene)];
-  for(const m of bones){
-    const paths=sliceWreckWaterline(m).filter(path=>path.length>=5);
-    foam(`bone-wash:${m.name}`,paths,.85,.90);
-  }
+  meshes.push(...bones);
   scene.onBeforeRenderObservable.add(()=>{
     const t=performance.now()/1000;
     if(draws(water)){

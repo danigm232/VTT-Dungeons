@@ -39,16 +39,19 @@ function Get-MaintenancePath([string]$Root, [string]$Target) {
     return $resolved
 }
 
-function Get-MaintenanceTree([string]$Target) {
-    $pending = [Collections.Generic.Stack[string]]::new()
+function Get-MaintenanceTree([string]$Target, [switch]$SkipLinks) {
+    $pending = [Collections.Generic.Stack[IO.FileSystemInfo]]::new()
     $items = [Collections.Generic.List[object]]::new()
-    $pending.Push($Target)
+    $pending.Push((Get-Item -LiteralPath $Target -Force))
     while ($pending.Count) {
-        $item = Get-Item -LiteralPath $pending.Pop() -Force
-        if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'La carpeta contiene un enlace; se conserva completa.' }
+        $item = $pending.Pop()
+        if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+            if ($SkipLinks) { continue }
+            throw 'La carpeta contiene un enlace; se conserva completa.'
+        }
         $items.Add($item)
-        if ($item.PSIsContainer) {
-            foreach ($child in Get-ChildItem -LiteralPath $item.FullName -Force) { $pending.Push($child.FullName) }
+        if ($item -is [IO.DirectoryInfo]) {
+            foreach ($child in $item.EnumerateFileSystemInfos()) { $pending.Push($child) }
         }
     }
     return $items.ToArray()
@@ -73,6 +76,13 @@ function Test-MaintenanceTarget($Context, [string]$Target) {
         }
     }
     if ($relative.StartsWith('backups/maintenance-reports/', [StringComparison]::OrdinalIgnoreCase)) { throw 'Los registros de mantenimiento se conservan.' }
+    if ($Context.PSObject.Properties['ProtectedPaths']) {
+        foreach ($reference in $Context.ProtectedPaths) {
+            if ($relative -eq $reference -or $relative.StartsWith($reference + '/', [StringComparison]::OrdinalIgnoreCase) -or $reference.StartsWith($relative + '/', [StringComparison]::OrdinalIgnoreCase)) {
+                throw 'Es una ruta utilizada por un lanzador o herramienta vigente; se conserva.'
+            }
+        }
+    }
     foreach ($tracked in $Context.Tracked) {
         if ($tracked -eq $relative -or $tracked.StartsWith($relative + '/', [StringComparison]::OrdinalIgnoreCase)) { throw 'Contiene archivos versionados; se conserva.' }
     }
@@ -80,11 +90,30 @@ function Test-MaintenanceTarget($Context, [string]$Target) {
         if ($command.Contains($targetPath.ToLowerInvariant()) -or $command.Contains($relative.Replace('/', '\').ToLowerInvariant())) { throw 'Un proceso abierto hace referencia a este destino.' }
     }
     $tree = @(Get-MaintenanceTree $targetPath)
+    if (@($tree | Where-Object { $_ -is [IO.FileInfo] -and ($_.Name -eq 'project.godot' -or $_.Extension -in @('.gd', '.tscn', '.tres', '.blend', '.blend1')) }).Count) {
+        throw 'Contiene un proyecto Godot, escenas, scripts o fuentes de Blender; se conserva completo.'
+    }
     foreach ($item in $tree) {
         if ($item.CreationTimeUtc -ge $Context.Cutoff -or $item.LastWriteTimeUtc -ge $Context.Cutoff) { throw 'Contiene material creado o modificado en los ultimos siete dias (o el plazo elegido).' }
     }
-    $files = @($tree | Where-Object { -not $_.PSIsContainer })
+    $files = @($tree | Where-Object { $_ -is [IO.FileInfo] })
     return [pscustomobject]@{ Path = $targetPath; Relative = $relative; Files = $files; Bytes = (Get-MaintenanceTotal $files 'Length') }
+}
+
+function Get-MaintenanceProtectedPaths([string]$Root) {
+    $paths = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    $entrypoints = @((Get-ChildItem -LiteralPath $Root -Filter '*.cmd' -File))
+    $entrypoints += @(Get-ChildItem -LiteralPath (Join-Path $Root 'scripts') -File | Where-Object { $_.Extension -in @('.ps1', '.mjs', '.ts') })
+    foreach ($file in $entrypoints) {
+        $content = [IO.File]::ReadAllText($file.FullName).Replace('\', '/')
+        $content = $content.Replace('//', '/')
+        foreach ($match in [regex]::Matches($content, '(?i)(?:runtime|output|tmp)/[a-z0-9][a-z0-9_.-]*')) { [void]$paths.Add($match.Value) }
+        foreach ($match in [regex]::Matches($content, '(?i)[''"](?:runtime|output|tmp)[''"]\s*,\s*[''"]([a-z0-9][a-z0-9_.-]*)[''"]')) {
+            $area = [regex]::Match($match.Value, '(?i)runtime|output|tmp').Value
+            [void]$paths.Add($area + '/' + $match.Groups[1].Value)
+        }
+    }
+    return ,$paths
 }
 
 function Add-MaintenanceImageReferences([string]$Content, $Names) {
@@ -94,17 +123,22 @@ function Add-MaintenanceImageReferences([string]$Content, $Names) {
     foreach ($match in [regex]::Matches($Content, '(?i)\.(?:png|jpe?g|webp|gif)(?![a-z])')) {
         $start = $Content.LastIndexOfAny($separators, $match.Index) + 1
         $token = $Content.Substring($start, $match.Index + $match.Length - $start)
-        [void]$Names.Add([IO.Path]::GetFileName([Uri]::UnescapeDataString($token).Replace('/', '\')))
+        # Source tests can deliberately contain Windows-invalid path tokens.
+        # Splitting the textual reference avoids treating it as a filesystem path.
+        $decoded = [Uri]::UnescapeDataString($token).Replace('/', '\')
+        [void]$Names.Add(($decoded -split '\\')[-1])
     }
 }
 
-function Get-MaintenanceImageReferences([string]$Root) {
+function Get-MaintenanceImageReferences([string]$Root, $OutputTree = $null) {
     $names = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-    foreach ($area in @('docs', 'scripts', 'output')) {
+    foreach ($area in @('docs', 'scripts', 'output', 'apps', 'engine', 'campaigns', 'prototypes')) {
         if (-not (Test-Path -LiteralPath (Join-Path $Root $area))) { continue }
-        foreach ($file in Get-ChildItem -LiteralPath (Join-Path $Root $area) -File -Recurse -Force) {
-            if ($file.Extension -notin @('.md', '.html', '.json', '.ts', '.mjs', '.js', '.ps1', '.svg', '.css')) { continue }
-            if ($file.FullName -match '[\\/]node_modules[\\/]|[\\/]assets[\\/]') { continue }
+        $areaTree = if ($area -eq 'output' -and $null -ne $OutputTree) { $OutputTree } else { Get-MaintenanceTree (Join-Path $Root $area) -SkipLinks }
+        foreach ($file in $areaTree) {
+            if ($file -isnot [IO.FileInfo]) { continue }
+            if ($file.Extension -notin @('.md', '.html', '.json', '.ts', '.mjs', '.js', '.ps1', '.svg', '.css', '.gd', '.tscn', '.tres', '.godot', '.gdshader')) { continue }
+            if ($file.FullName -match '[\\/]node_modules[\\/]|[\\/]assets[\\/]|[\\/]\.godot[\\/]') { continue }
             $content = [IO.File]::ReadAllText($file.FullName)
             Add-MaintenanceImageReferences $content $names
         }
@@ -117,6 +151,12 @@ function Get-MaintenanceImageReferences([string]$Root) {
 
 function New-MaintenancePlan($Context) {
     $candidates = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::OrdinalIgnoreCase)
+    $areaTrees = @{}
+    $runtime = Join-Path $Context.Root 'runtime'
+    $keepRollback = @()
+    if (Test-Path -LiteralPath $runtime) {
+        $keepRollback = @(Get-ChildItem -LiteralPath $runtime -Directory | Where-Object { $_.Name -like 'previous-build-*' } | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 2 -ExpandProperty FullName)
+    }
     $backups = Join-Path $Context.Root 'backups'
     # Historical intermediate copies only. Accepted milestones, the newest full
     # Pecio copy and later patch archives are intentionally outside this list.
@@ -145,28 +185,36 @@ function New-MaintenancePlan($Context) {
             if (Test-Path -LiteralPath $target) { $candidates[$target] = 'Respaldo intermedio sustituido; hitos y copia completa r32 conservados.' }
         }
     }
-    foreach ($area in @('output', 'tmp')) {
+    foreach ($area in @('output', 'tmp', 'runtime')) {
         $base = Join-Path $Context.Root $area
         if (-not (Test-Path -LiteralPath $base)) { continue }
-        foreach ($file in Get-ChildItem -LiteralPath $base -Filter 'dm.html' -File -Recurse -Force) {
+        $areaTrees[$area] = @(Get-MaintenanceTree $base -SkipLinks)
+        foreach ($file in $areaTrees[$area] | Where-Object { $_ -is [IO.FileInfo] -and $_.Name -eq 'dm.html' }) {
             if ($file.FullName -notmatch '[\\/]apps[\\/]web[\\/]dm\.html$') { continue }
             $build = Split-Path (Split-Path (Split-Path $file.FullName -Parent) -Parent) -Parent
+            if (@($keepRollback | Where-Object { $build.StartsWith($_ + '\', [StringComparison]::OrdinalIgnoreCase) }).Count) { continue }
             if ((Test-Path -LiteralPath (Join-Path $build 'assets')) -and ([IO.File]::ReadAllText($file.FullName) -match 'assets/[^"'']+\.js')) {
                 $candidates[$build] = 'Cliente compilado antiguo; reconstruible desde las fuentes.'
             }
         }
-        foreach ($file in Get-ChildItem -LiteralPath $base -Filter 'index.js' -File -Recurse -Force) {
+        foreach ($file in $areaTrees[$area] | Where-Object { $_ -is [IO.FileInfo] -and $_.Name -eq 'index.js' }) {
             if ($file.FullName -match '[\\/]apps[\\/]server[\\/]index\.js$') {
                 $build = Split-Path (Split-Path (Split-Path $file.FullName -Parent) -Parent) -Parent
+                if (@($keepRollback | Where-Object { $build.StartsWith($_ + '\', [StringComparison]::OrdinalIgnoreCase) }).Count) { continue }
                 $candidates[$build] = 'Servidor compilado de pruebas; reconstruible desde las fuentes.'
             }
         }
-        foreach ($dir in Get-ChildItem -LiteralPath $base -Directory -Recurse -Force | Where-Object { $_.Name -in @('vite-cache', '.vite') }) {
+        foreach ($dir in $areaTrees[$area] | Where-Object { $_ -is [IO.DirectoryInfo] -and $_.Name -in @('vite-cache', '.vite') }) {
             $candidates[$dir.FullName] = 'Cache de compilacion regenerable.'
         }
     }
     $tmp = Join-Path $Context.Root 'tmp'
     if (Test-Path -LiteralPath $tmp) {
+        foreach ($dir in $areaTrees['tmp'] | Where-Object { $_ -is [IO.DirectoryInfo] -and $_.Name -like 'chrome-*' }) {
+            if ((Test-Path -LiteralPath (Join-Path $dir.FullName 'Local State')) -and (Test-Path -LiteralPath (Join-Path $dir.FullName 'Default/Preferences'))) {
+                $candidates[$dir.FullName] = 'Perfil de navegador aislado de auditoria, antiguo y sin procesos que lo usen.'
+            }
+        }
         foreach ($dir in Get-ChildItem -LiteralPath $tmp -Directory | Where-Object { $_.Name -like 'roadmap-m7-candidate-*' -or $_.Name -eq 'conditions-preview' }) {
             $candidates[$dir.FullName] = 'Candidata o visor aislado antiguo; copia de trabajo desechable.'
         }
@@ -175,20 +223,17 @@ function New-MaintenancePlan($Context) {
             $candidates[$file.FullName] = 'Registro temporal o instalador de Node ya instalado.'
         }
     }
-    $runtime = Join-Path $Context.Root 'runtime'
     if (Test-Path -LiteralPath $runtime) {
-        $rollbacks = @(Get-ChildItem -LiteralPath $runtime -Directory | Where-Object { $_.Name -like 'previous-build-*' } | Sort-Object LastWriteTimeUtc -Descending)
-        $keepRollback = @($rollbacks | Select-Object -First 2 -ExpandProperty FullName)
         foreach ($dir in Get-ChildItem -LiteralPath $runtime -Directory) {
             if (($dir.Name -like 'prepared-*' -or $dir.Name -like 'previous-build-*') -and $dir.FullName -notin $keepRollback) {
                 $candidates[$dir.FullName] = 'Preparacion antigua o rollback excedente; se conservan los dos mas recientes.'
             }
         }
     }
-    $references = Get-MaintenanceImageReferences $Context.Root
+    $references = Get-MaintenanceImageReferences $Context.Root $areaTrees['output']
     $output = Join-Path $Context.Root 'output'
     if (Test-Path -LiteralPath $output) {
-        foreach ($file in Get-ChildItem -LiteralPath $output -File -Recurse -Force) {
+        foreach ($file in $areaTrees['output'] | Where-Object { $_ -is [IO.FileInfo] }) {
             $capturePath = $file.FullName.Substring($output.Length + 1).Replace('\', '/')
             $captureArea = ($capturePath -split '/')[0]
             $reviewArea = $captureArea -match '(audit|review|camera|climate|weather|closeout|correction|spatial|polish|inventory|^camps-|^pecio-|^stormwreck-|^d8-v\d)'
@@ -239,7 +284,7 @@ $taskRoot = (Resolve-Path -LiteralPath $WorkspaceRoot).ProviderPath.TrimEnd('\',
 if (-not (Test-Path -LiteralPath (Join-Path $taskRoot 'package.json'))) { throw 'No se reconoce la carpeta del proyecto.' }
 $taskTracked = @(& git -c "safe.directory=$($taskRoot.Replace('\','/'))" -C $taskRoot ls-files | Where-Object { $_ -match '^(backups|output|runtime|tmp)/' })
 if ($LASTEXITCODE -ne 0) { throw 'No se pudo comprobar Git. Limpieza cancelada.' }
-$taskContext = [pscustomobject]@{ Root = $taskRoot; Cutoff = (Get-Date).Date.AddDays(-$KeepDays).ToUniversalTime(); Tracked = $taskTracked; Processes = @(Get-MaintenanceProcesses); PreserveBuildsWithLiveServers = $true; Journal = $null }
+$taskContext = [pscustomobject]@{ Root = $taskRoot; Cutoff = (Get-Date).Date.AddDays(-$KeepDays).ToUniversalTime(); Tracked = $taskTracked; Processes = @(Get-MaintenanceProcesses); PreserveBuildsWithLiveServers = $true; ProtectedPaths = (Get-MaintenanceProtectedPaths $taskRoot); Journal = $null }
 Write-Host ('Revisando residuos. Se conserva todo lo creado o modificado desde {0:dd/MM/yyyy}.' -f $taskContext.Cutoff.ToLocalTime())
 $taskPlan = New-MaintenancePlan $taskContext
 $taskReportDirectory = Join-Path $taskRoot ('backups/maintenance-reports/' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))

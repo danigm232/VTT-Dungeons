@@ -1,0 +1,57 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+==================================================
+AUTOMATED VERIFICATION: CABIN DOORS ALIGNMENT
+==================================================
+
+--- Verifying DoorC4 (Camarote del Capitán (C4)) ---
+  Position: (-13.5, 0.0, -5.2) (Expected: (-13.5, 0.0, -5.2))
+  swing_side: -1.0 (Expected: -1.0)
+  hinge_side: -1.0 (Expected: -1.0)
+  DoorFrameAssembly: OK (children count: 9)
+  DoorLeafHinge: OK
+  Initial (Closed) Leaf Rotation: (0.0, 0.0, 0.0)
+  Calculated Open Rotation: -90.0 deg
+  After toggle_door(): is_open = true, leaf rot = -90.0
+  After toggle back: is_open = false, leaf rot = 0.0
+  DoorStaticBody: OK
+
+--- Verifying DoorC5 (Cocina de a Bordo (C5)) ---
+  Position: (-13.5, 0.0, 1.8) (Expected: (-13.5, 0.0, 1.8))
+  swing_side: -1.0 (Expected: -1.0)
+  hinge_side: 1.0 (Expected: 1.0)
+  DoorFrameAssembly: OK (children count: 9)
+  DoorLeafHinge: OK
+  Initial (Closed) Leaf Rotation: (0.0, 0.0, 0.0)
+  Calculated Open Rotation: 90.0 deg
+  After toggle_door(): is_open = true, leaf rot = 90.0
+  After toggle back: is_open = false, leaf rot = 0.0
+  DoorStaticBody: OK
+
+--- Verifying DoorC6 (Camarote de Tripulación (C6)) ---
+  Position: (13.5, 0.0, -1.8) (Expected: (13.5, 0.0, -1.8))
+  swing_side: 1.0 (Expected: 1.0)
+  hinge_side: -1.0 (Expected: -1.0)
+  DoorFrameAssembly: OK (children count: 9)
+  DoorLeafHinge: OK
+  Initial (Closed) Leaf Rotation: (0.0, 0.0, 0.0)
+  Calculated Open Rotation: 90.0 deg
+  After toggle_door(): is_open = true, leaf rot = 90.0
+  After toggle back: is_open = false, leaf rot = 0.0
+  DoorStaticBody: OK
+
+--- Verifying DoorC7 (Comedor de Proa (C7)) ---
+  Position: (13.5, 0.0, 1.8) (Expected: (13.5, 0.0, 1.8))
+  swing_side: 1.0 (Expected: 1.0)
+  hinge_side: 1.0 (Expected: 1.0)
+  DoorFrameAssembly: OK (children count: 9)
+  DoorLeafHinge: OK
+  Initial (Closed) Leaf Rotation: (0.0, 0.0, 0.0)
+  Calculated Open Rotation: -90.0 deg
+  After toggle_door(): is_open = true, leaf rot = -90.0
+  After toggle back: is_open = false, leaf rot = 0.0
+  DoorStaticBody: OK
+  Keymap (T=Interact, E=Orbit+45, V=Torch): OK
+
+==================================================
+RESULT: ALL 4 CABIN DOORS VERIFIED AND PROPERLY ALIGNED!

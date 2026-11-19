@@ -1,0 +1,68 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+==================================================
+VERIFICATION: MAP EXITS & SCENIC TRANSITION PATHS
+==================================================
+  [PASS] Autoload MapTransition disponible en /root/MapTransition
+  [PASS] Carga de escena principal res://scenes/main.tscn
+  [PASS] Escena actual activa: Main
+  [PASS] Exactamente 5 MapExit registrados en Main (actual: 5)
+  [PASS] Destino existente para pleamar-low -> res://scenes/pleamar_coves.tscn
+  [PASS] Indicador de salida oculto por defecto en pleamar-low
+  [PASS] Destino existente para pleamar-high -> res://scenes/pleamar_coves.tscn
+  [PASS] Indicador de salida oculto por defecto en pleamar-high
+  [PASS] Destino existente para observatory-inland -> res://scenes/observatory_approach.tscn
+  [PASS] Indicador de salida oculto por defecto en observatory-inland
+  [PASS] Destino existente para observatory-coast -> res://scenes/observatory_approach.tscn
+  [PASS] Indicador de salida oculto por defecto en observatory-coast
+  [PASS] Destino existente para boat-pecio -> res://scenes/pecio_cove_arrival.tscn
+  [PASS] Indicador de salida oculto por defecto en boat-pecio
+  [PASS] MapExit presente: pleamar-low
+  [PASS] Destino correcto en pleamar-low
+  [PASS] MapExit presente: pleamar-high
+  [PASS] Destino correcto en pleamar-high
+  [PASS] MapExit presente: observatory-inland
+  [PASS] Destino correcto en observatory-inland
+  [PASS] MapExit presente: observatory-coast
+  [PASS] Destino correcto en observatory-coast
+  [PASS] MapExit presente: boat-pecio
+  [PASS] Destino correcto en boat-pecio
+  [PASS] Marcador de retorno presente: Spawn_from_pleamar_low
+  [PASS] Marcador de retorno presente: Spawn_from_pleamar_high
+  [PASS] Marcador de retorno presente: Spawn_from_obs_inland
+  [PASS] Marcador de retorno presente: Spawn_from_obs_coast
+  [PASS] Marcador de retorno presente: Spawn_from_retreat_boat
+  [PASS] Suelo transitable con colision en pleamar-low punto (12.1, 0.57, 93.5)
+  [PASS] Suelo transitable con colision en pleamar-low punto (8.6, 0.55, 97.2)
+  [PASS] Suelo transitable con colision en pleamar-low punto (5.6, 0.54, 99.2)
+  [PASS] Suelo transitable con colision en pleamar-high punto (11.9, 21.24, 43.3)
+  [PASS] Suelo transitable con colision en pleamar-high punto (7.2, 21.1, 41.45)
+  [PASS] Suelo transitable con colision en pleamar-high punto (4.3, 20.95, 40.65)
+  [PASS] Suelo transitable con colision en observatory-inland punto (119.8, 37.05, 14.8)
+  [PASS] Suelo transitable con colision en observatory-inland punto (117.5, 37.22, 12.8)
+  [PASS] Suelo transitable con colision en observatory-inland punto (115.6, 37.35, 9.8)
+  [PASS] Suelo transitable con colision en observatory-coast punto (160.4, 32.76, 25.45)
+  [PASS] Suelo transitable con colision en observatory-coast punto (162.3, 32.88, 24.0)
+  [PASS] Suelo transitable con colision en observatory-coast punto (164.6, 32.98, 22.4)
+  [PASS] Resaltado DM hace visible indicador de salida
+  [PASS] Al desactivar resaltado DM el indicador vuelve a ocultarse
+  [PASS] Salida bloqueada por DM impide transicion accidental
+  [PASS] PlayerToken activo en Main antes de transicionar
+  [PASS] Inicio de transicion real Main -> pleamar_coves.tscn
+  [PASS] Cambio efectivo de escena a PleamarCoves
+  [PASS] Spawn_from_pleamar_low y PlayerToken presentes en destino
+  [PASS] Protagonista aparece sobre la continuacion logica del camino
+  [PASS] Orientacion coherente al entrar en Cuevas de Pleamar (facing=sw)
+  [PASS] PleamarCoves posee 2 salidas bidireccionales de retorno (actual: 2)
+  [PASS] Salida de retorno back-pleamar-low presente en PleamarCoves
+  [PASS] Inicio de retorno bidireccional PleamarCoves -> Main
+  [PASS] Retorno completado a Main
+  [PASS] Protagonista reaparece exactamente en Spawn_from_pleamar_low
+  [PASS] Orientacion coherente al regresar al Retiro (facing=ne)
+  [PASS] Carga limpia de observatory_approach.tscn
+  [PASS] ObservatoryApproach operativo con 2 retornos
+  [PASS] Carga limpia de pecio_cove_arrival.tscn
+  [PASS] PecioCoveArrival operativo con salida de regreso en bote
+==================================================
+RESULTS: 60 PASSED, 0 FAILED
+==================================================

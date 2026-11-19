@@ -1,0 +1,294 @@
+# Retiro del Dragón en Godot — Auditoría y Traslado por Capas, 14/11/2026
+
+## Encargo y Alcance
+
+**Encargo activo del usuario:**
+> «1 Concepto y Diseño (Layout) del mapa del retiro del dragon.
+> mira lo que hemos hecho en babylon y traslademoslo aqui en godot»
+> «En babylon, la estructura o el mapa del retiro del dragon era un poco diferente, estaba construido mas ampliado, etc. podriamos copiar la estructura dle mapa en godot?»
+
+Se traslada integralmente a **Godot Engine 4.7.2 (Vulkan Forward+)** la estructura ampliada de **El Retiro del Dragón (`dragon-rest`)** procedente de Babylon.js (`R3`, expansión de superficies, `retreat-modules/*.glb` y texturas pintadas), manteniendo la cuadrícula táctica de 1.5 m, cotas canónicas, las 11 zonas, 13 superficies ampliadas (**1.599 casillas reales** en `retreat-terrain-v2.json`), los 3 paquetes `.glb` esculpidos con recorte táctico (*cutaway*) en A2/A3/A4, las 6 celdas excavadas de A1, los 16 landmarks y los 8 preajustes de cámara 2.5D.
+
+Base del prototipo: `prototypes/godot-retiro/`, motor Godot 4.7.2 Forward+, ventana táctica 1600×900.
+
+---
+
+## Capa 1: Concepto y Diseño (Layout) y Traslado Estructural Ampliado
+
+### 1. Exportación desde Babylon y Paquetes Godot-Ready (`scripts/export-retreat-godot-bundle.mjs`)
+- **Terreno ampliado (`prototypes/godot-retiro/assets/data/retreat-terrain-v2.json`):** 13 superficies con un total de **1.599 casillas**:
+  - `beach`: 223 · `a1`: 410 · `cliff`: 48 · `a2`: 15 · `upper`: 442 · `a3`: 61 · `a4`: 113 · `a5`: 87 · `pleamar`: 18 · `observatorio`: 20 · `island-pleamar-low`: 30 · `island-pleamar-high`: 50 · `island-observatory`: 82.
+- **Módulos 3D esculpidos (`prototypes/godot-retiro/assets/retreat-modules/`):**
+  - `retreat_architecture_canon.glb` (91 nodos, 258.681 triángulos, 26,86 MB): contexto A1, orilla/embarcadero, conexiones, A2, A3, A4, A5, acabados P1/P2/P5/E1 y senderos V4 con recorte táctico (*cutaway*) de techos y muros frontales/laterales en A2/A3/A4.
+  - `retreat_geography_stone.glb` (33 nodos, 129.969 triángulos, 11,30 MB): orografía costera S3/P3, crestas montañosas recortadas a `Z <= 49.2`, extensiones SAL1–SAL4 y senderos R2/R3.
+  - `retreat_landscape_r3.glb` (17 nodos, 1.330.769 triángulos, 74,84 MB): paisaje forestal superior, praderas, pinos y acantilados integrados.
+- **Texturas copiadas (`prototypes/godot-retiro/assets/textures/`):** 18 archivos incluyendo `a1-plaza-v6.png`, `a1-cell-v6.png`, `a1-cliff-rugged-v8.png`, `basalt-coastal-albedo-v1.webp`, `coastal-rock.png`, `foliage-atlas.png` (con recorte alfa para enredaderas y jardineras), `oak-v4.webp`, `limestone-v3.webp`, `ashlar-v4.webp`, `earth.webp`, `linen-v4.webp`, `wool-v4.webp`, `bay-v3.png` y mapas normales `rock-normal-v1.png`, `wood-normal-v1.png`, `metal-normal-v1.png`.
+
+### 2. Cuadrícula y Escala Canónica
+- **Métrica táctica:** Cuadrícula de 1.5 metros por casilla (estándar 5 pies de D&D 5e).
+- **Dimensiones globales:** 112 columnas × 80 filas = **168.0 m × 120.0 m** de mapa táctico continuo.
+- **Origen y traslación:** Coordenadas de origen `[72.0, 72.0]` y traslación canónica de A1 en `[72.0, 9.0, 72.0]`.
+
+### 3. Jerarquía de Cotas de Elevación Canónicas
+| Elemento / Zona | Cota canónica (Y) | Función táctica y física |
+| --- | --- | --- |
+| Manto oceánico | 0.00 m | Nivel del mar circundante |
+| Plataforma baja cabrestante (mar) | 0.24 m | Recogida de mercancías en cota de flotación |
+| Playa y Embarcadero (Z1) | 0.25 m | Desembarco del bote y orilla arenosa |
+| Sendero de Pleamar (Z10) | 0.25 m – 0.59 m | Ruta costera suroeste hacia cuevas marinas |
+| Plaza Central y Celdas A1 (Z3) | 9.00 m | Terraza baja del monasterio y claustro |
+| Terraza Cabrestante A2 (Z4) | 15.00 m | Plataforma alta del almacén logístico |
+| Comedor y Cocina A3 (Z5) | 18.00 m | Caverna comunal excavada en la montaña |
+| Biblioteca del Retiro A4 (Z6) | 18.00 m | Scriptorium y archivo monástico |
+| Paseo Superior y Cornisas (Z9) | 15.00 m – 27.00 m | Comunicación horizontal A2–A3–A4–A5 |
+| Templo de Bahamut A5 (Z8) | 27.00 m | Santuario sagrado al aire libre en la cumbre |
+| Sendero del Observatorio (Z10) | 18.00 m – 37.00 m | Ascensión oriental hacia las altas cumbres |
+
+---
+
+### 4. Las 11 Zonas Canónicas del Retiro
+1. **Zona 1 — Playa y Embarcadero (Z1_BEACH):** Cols 12..48, Rows 61..76 (18.0..73.5m, 91.5..115.5m). Muelle de roble, pilotes, bote de remos amarrado (`boat`), punto de desembarco de los aventureros (`spawn`), dunas de arena cálida mineral PBR y rompientes de basalto.
+2. **Zona 2 — Subida al Retiro (Z2_ASCENT):** Cols 40..48, Rows 61..68. Escalera de tres tramos tallada en la roca viva con bordillos de piedra, descansillos y faroles náuticos ámbar (salto de cota 0.25m → 9.0m).
+3. **Zona 3 — A1: Celdas y Plaza Central (Z3_A1_PLAZA):** Cols 49..94, Rows 51..65 (73.5..142.5m, 76.5..99.0m, cota Y=9.0m). Plaza central con hoguera comunitaria, bancos con paños plegados, estatua de Astalagan con velas votivas y 6 celdas desiguales excavadas al norte.
+4. **Zona 4 — A2: Cabrestante y Almacén Marino (Z4_A2_WINCH):** Cols 103..108, Rows 43..46 (154.5..163.5m, 64.5..70.5m, cota Y=15.0m). Caseta de madera (4.5m × 4.0m), torno, eje, tambor, cable y plataforma de carga con recorrido vertical 0.24m ↔ 15.0m.
+5. **Zona 5 — A3: Comedor y Cocina Excavados (Z5_A3_DINING):** Cols 76..85, Rows 34..43 (114.0..129.0m, 51.0..66.0m, cota Y=18.0m). Mesa comunal larga con bancos, silla de respaldo alto y pasillo interior hacia la cocina con fogón y despensa.
+6. **Zona 6 — A4: Biblioteca del Retiro (Z6_A4_LIBRARY):** Cols 62..73, Rows 35..43 (93.0..111.0m, 52.5..66.0m, cota Y=18.0m). Puerta de roble exterior, scriptorium interior, 20 estanterías murales y 3 exentas con pergaminos y códices, mesas de estudio y atriles.
+7. **Zona 7 — Jardines y Bosquetes (Z7_GARDENS):** Cols 45..62, Rows 42..50 (67.5..94.5m, 63.0..76.5m, cotas Y=12.0m..18.0m). Terrazas ajardinadas con 14 jardineras de piedra, flores de armeria, matas de salvia y bosquetes de pinos marítimos y olivos.
+8. **Zona 8 — A5: Templo de Bahamut (Z8_A5_TEMPLE):** Cols 23..32, Rows 42..50 (34.5..49.5m, 63.0..76.5m, cota Y=27.0m). Plataforma sagrada de caliza clara, estatua monumental de Bahamut, 4 columnas acanaladas perimetrales, estanque sagrado y 7 perchas para los canarios dorados de Bahamut.
+9. **Zona 9 — Paseos y Explanadas (Z9_UPPER_WALKWAY):** Cols 33..102, Rows 43..45 (49.5..154.5m, 64.5..69.0m, cotas Y=15.0m..27.0m). Cornisa superior rocosa con paseo pavimentado articulando el tránsito horizontal y miradores oceánicos.
+10. **Zona 10 — Rutas hacia el Resto de la Isla (Z10_ISLAND_ROUTES):** Sendero de Pleamar (Cols 2..11, Rows 74..75, Y=0.25..0.59m) hacia cuevas y pecios, y Sendero del Observatorio (Cols 80..107, Rows 10..42, Y=18.0..37.0m).
+11. **Zona 11 — Entorno Global (Z11_GLOBAL_ENV):** Bounding global 168m × 120m, manto oceánico somero, farallón de basalto continuo y telón escénico 2.5D.
+
+---
+
+### 5. Las 6 Celdas de Peregrinos de A1 (Canon Oficial)
+| Celda | Rol canónico | Entrada global (Col, Row) | Posición mundial (X, Y, Z) | Mobiliario canónico |
+| --- | --- | --- | --- | --- |
+| Celda 1 | Habitación libre | (54, 57) | 81.75m, 9.0m, 86.25m | 1 Cama, 1 mesita, 1 escritorio, 1 silla |
+| Celda 2 | Tarak (Herborista) | (60, 57) | 90.75m, 9.0m, 86.25m | 1 Cama, 1 mesita, 1 escritorio, 1 silla |
+| Celda 3 | Varnoth (Comandante) | (67, 57) | 101.25m, 9.0m, 86.25m | 1 Cama, 1 mesita, 1 escritorio, 1 silla |
+| Celda 4 | Myla (Erudita/Taller) | (74, 57) | 111.75m, 9.0m, 86.25m | 1 Cama, 1 mesita, 1 escritorio, 1 silla, herramientas |
+| Celda 5 | Kobolds oeste (Ruk) | (81, 57) | 122.25m, 9.0m, 86.25m | 4 Hamacas para kobolds |
+| Celda 6 | Kobolds este (Meepo) | (87, 57) | 131.25m, 9.0m, 86.25m | 4 Hamacas para kobolds |
+
+*Total verificado:* 4 camas individuales y 8 hamacas canónicas exactas.
+
+---
+
+### 6. Registro de los 16 Landmarks Canónicos
+| ID | Superficie | Casilla (Col, Row) | Posición Mundial (X, Y, Z) | Descripción |
+| --- | --- | --- | --- | --- |
+| `spawn` | beach | [16, 74] | (24.75, 0.25, 111.75) | Llegada de los Aventureros |
+| `boat` | beach | [13, 75] | (20.25, 0.25, 113.25) | Bote de remos amarrado |
+| `pleamar` | pleamar | [3, 74] | (5.25, 0.25, 111.75) | Sendero de Pleamar |
+| `observatorio` | observatorio | [93, 33] | (140.25, 18.00, 50.25) | Sendero al Observatorio |
+| `a2-door` | a2 | [105, 45] | (158.25, 15.00, 68.25) | Puerta del Cabrestante |
+| `winch` | a2 | [107, 45] | (161.25, 15.00, 68.25) | Torno del Cabrestante |
+| `community` | a3 | [79, 40] | (119.25, 18.00, 60.75) | Mesa Comunal (Comedor A3) |
+| `library` | a4 | [68, 39] | (102.75, 18.00, 59.25) | Estanterías de la Biblioteca |
+| `a4-door` | a4 | [68, 42] | (102.75, 18.00, 63.75) | Puerta de la Biblioteca |
+| `temple` | a5 | [27, 43] | (41.25, 27.00, 65.25) | Templo de Bahamut |
+| `runara` | a5 | [29, 43] | (44.25, 27.00, 65.25) | Runara (Líder del claustro) |
+| `tarak` | a1 | [59, 57] | (89.25, 9.00, 86.25) | Tarak (Monje herborista) |
+| `varnoth` | a1 | [66, 57] | (99.75, 9.00, 86.25) | Varnoth (Comandante retirada) |
+| `myla` | a1 | [74, 57] | (111.75, 9.00, 86.25) | Myla (Erudita y artesana) |
+| `kobold-west` | a1 | [81, 57] | (122.25, 9.00, 86.25) | Kobolds oeste (Ruk y cuadrilla) |
+| `kobold-east` | a1 | [87, 57] | (131.25, 9.00, 86.25) | Kobolds este (Meepo y aprendices) |
+
+---
+
+### 7. Preajustes de Cámara Táctica 2.5D
+Paridad con la geometría ampliada en `RETREAT_ZONE_VIEWS` / `CAMERA_PRESETS`:
+- `overview`: Objetivo `(88.0, 14.0, 74.0)`, `ortho_half = 46.0`, Pitch 27°, Yaw 0°.
+- `beach`: Objetivo `(17.5, 1.5, 108.0)`, `ortho_half = 18.0`, Pitch 25°, Yaw 0°.
+- `a1`: Objetivo `(106.0, 9.5, 89.0)`, `ortho_half = 38.0`, Pitch 25°, Yaw 0°.
+- `a2`: Objetivo `(160.0, 15.0, 67.5)`, `ortho_half = 9.0`, Pitch 25°, Yaw 0°.
+- `a3`: Objetivo `(122.0, 18.5, 58.0)`, `ortho_half = 9.5`, Pitch 26°, Yaw 0°.
+- `a4`: Objetivo `(99.0, 18.5, 58.0)`, `ortho_half = 10.5`, Pitch 26°, Yaw 0°.
+- `a5`: Objetivo `(41.5, 27.5, 68.5)`, `ortho_half = 9.5`, Pitch 24°, Yaw 0°.
+- `caves`: Objetivo `(109.0, 19.0, 58.5)`, `ortho_half = 24.0`, Pitch 27°, Yaw 0°.
+
+---
+
+## Verificación, Pruebas Automatizadas y Capturas Forward+
+
+1. **Suite automatizada headless (`test_retreat_layout.gd` en Godot 4.7.2 tras la última edición):**
+   - **Pruebas superadas:** **129 / 129 PASS (100 %)**
+   - **Fallos:** **0 FAIL**
+   - **Reporte generado:** `output/godot-retiro-layout-20261114/layout-tests.json`
+2. **Inspección visual Forward+ (5 encuadres en ventana 1600×900 sobre Vulkan GeForce MX350):**
+   - `output/godot-retiro-layout-20261114/retiro-overview.png`
+   - `output/godot-retiro-layout-20261114/retiro-beach.png`
+   - `output/godot-retiro-layout-20261114/retiro-a1.png`
+   - `output/godot-retiro-layout-20261114/retiro-caves.png`
+   - `output/godot-retiro-layout-20261114/retiro-a5.png`
+
+### Ejecución Local
+- Desde la raíz de Dungeons, `ABRIR-RETIRO-GODOT.cmd` abre el escenario interactivo en Godot 4 Forward+.
+- Controles:
+  - **WASD:** Desplazamiento táctico del clérigo.
+  - **Q / E:** Rotación orbital de cámara en pasos de 45°.
+  - **Rueda del ratón:** Zoom 2.5D continuo.
+  - **Clic derecho / central:** Arrastre panorámico por el mapa.
+  - **Espacio / Tecla F:** Recentrar la cámara sobre el aventurero.
+  - **Teclas 1..6 y 0:** Salto instantáneo entre preajustes canónicos de zona (Playa, A1, A2, A3, A4, A5, Vista General).
+
+## Cámara actualizada — 14/11/2026
+
+La cámara vigente y sus nuevas pruebas se registran en [Cámaras Godot](GODOT_CAMERAS_20261114.md). Esta actualización sustituye los valores de cámara anteriores de esta ficha y conserva el mapa, arte y contratos existentes.
+
+---
+
+## Zona Z1 · Playa y Embarcadero en Godot (Pasos 1–7) — 18/11/2026
+
+Reconstrucción por pasos (`1.1`–`6.6`) y refinamiento de carteles empalados y sombreado (**Paso 7**) en `prototypes/godot-retiro/` siguiendo la dirección visual costera y manteniendo intacta la topografía, las cotas canónicas, las escaleras hacia Z2 y el resto de zonas. Informe visual interactivo paso a paso (clic = avanzar `Base -> Paso 1 -> Paso 2 -> Paso 3 -> Paso 4 -> Paso 5 -> Paso 6 -> Paso 7`, más teclado y ampliación, `1280x720` Vulkan Forward+ modo `PROYECTOR`) y vistas de `Jugador (F1)` y `DM (F2)`: [retreat-beach-final-20261118/index.html](../../output/retreat-beach-final-20261118/index.html).
+
+### Registro de cambios visuales, shaders, salidas y mecánica (ID, propietario, cambio y VA)
+
+| ID / Bloque | Archivo propietario | Estado previo | Candidata implementada (Pasos 1–7) | VA / Criterio |
+| --- | --- | --- | --- | --- |
+| `PleamarCoveBeach`, `PleamarFarWestSpurCliff`, `SeaArchCrag_7..10`, `CovePost_0..7`, `CovePathFlagstone_0..6` | `prototypes/godot-retiro/scripts/retreat_layout_builder.gd` | Losa cuadrada costera, talud abrupto en banda oeste y corte antes del borde occidental | Costa basáltica facetada continua ampliada al oeste (`x_min = -28.0`), playa curvilínea de arena irregular con oclusión en vértices al pie de cantil/muelle, promontorios volcánicos y sendero costero continuo hasta `(-25.8, 0.96, 82.0)` | VA-04, VA-07, VA-13, VA-15 |
+| `RicketyWoodenPier`, `CoastalRowboat` (`BoatBobPivot`) | `prototypes/godot-retiro/scripts/retreat_layout_builder.gd` | Muelle comercial ancho y bote genérico sin acceso marítimo diferenciado | Embarcadero desvencijado con tablones envejecidos, pilotes, cuerdas/cajas y gran bote de remos (`4.60m`) amarrado; enlace marítimo secundario `from_pleamar_sea` hacia `pleamar_coves.tscn` | VA-05, VA-06, VA-07 |
+| `SignpostProp` (`SignpostMainPost`, `SignpostPost_L/R`, `SignpostGallowsPost`, `SignpostBoardBack`, `SignpostAnchor_*`, `SignpostTitle`, `SignpostTitleBack`), `PleamarB1ExteriorThreshold` | `map_exit.gd`, `route_destination_controller.gd`, `vtt_ui_theme.gd`, `map_transition_manager.gd`, `retreat_layout_builder.gd` | Carteles 2D sobre disco gris que rotaban hacia la cámara en `_process()` y flotaban o mostraban bordes blancos | Postes 3D de roble (`oak-v4.webp` sin aviso PNG) **empalados a `-0.55m` bajo tierra**, con montículo de suelo/contacto, tableros 3D traseros con sombra (`cast_shadow = ON`), recorte del margen inferior en `hanging_ropes` y orientación fija (`sign_yaw_deg`) inmóvil al mover u orbitar la cámara; alternativa por collado (`from_pleamar_high`), restricción por marea alta y umbral exterior de Pleamar | VA-07, VA-14, VA-18 |
+| `DirectionalLight3D`, `Environment_1`, `lights_and_shadows`, `ocean_shader`, `SeabedPlane`, `MM_SubmergedKelp`, `CoastalSunbeams`, `_add_ground_contact_shadow` | `main.tscn`, `pleamar_coves.tscn`, `observatory_approach.tscn`, `pecio_cove_arrival.tscn`, `project.godot`, `retreat_layout_builder.gd` | Sombras direccionales de 2 splits (`shadow_normal_bias = 1.15`), rocas/pinos de Z1 sin sombra (`OFF`), ambiente lavado (`0.66`), mar con halos cian | PSSM 4 splits (`directional_shadow_mode = 2`, `shadow_bias = 0.016`, `shadow_normal_bias = 0.25`, `shadow_blur = 1.35`, `soft_shadow_filter_quality = 2`), sol oblicuo (`-34°, -52°`, `1.50`) frente a ambiente pizarra (`0.46`), sombras activas en `MM_CoastalPine*`, `MM_TrailRocks`, `HeadlandBasaltButtress_*`, `SeaArchCrag_*`, `PleamarBayBackCliff_*`, troncos, cajas, creel y carteles, más decal de contacto en arena seca (`_eval_cove_beach_sample`), agua Atlántica con espuma orgánica y algas | VA-02, VA-11, VA-12, VA-15 |
+| `MM_CoastalPineTrunks`, `MM_CoastalPineCrowns`, `MM_CoastalGrasses`, `MM_CoastalHeather`, `MM_CoastalFerns`, `MM_ExposedPineRoots`, `CoastalHerbPlots`, `MM_ShorePebbles`, `WeatheredDriftwood_0..2`, `ShoreMooringStake_*`, `CoastalCrabCreel` | `retreat_layout_builder.gd` | Coníferas uniformes y arbustos escasos/saturados | 13 coníferas variadas en tamaño/copa, matas mediterráneas agrupadas en márgenes, hierbas/brezo/helechos, raíces de pino expuestas, 2 parcelas de hierbas, guijarros, madera lavada y arena central (`x=8..24.5, z=98..109`) despejada para combate | VA-02, VA-08, VA-09 |
+| `Safe_Beach_West`, `Safe_Beach_South`, `PleamarCoveBeach_col`, `MAREA EN LA COSTA (Z1)`, `LoadingSession.state()` | `retreat_layout_builder.gd`, `vtt_dm_hud.gd`, `loading_session.gd`, `test_map_exits.gd` | Colisiones extendidas sobre el mar y sin control DM/persistencia de marea | Colisión costera recortada a tierra firme (`cy_avg >= -0.02`), puntos separados de embarque/salida terrestre (`22.2 m`), panel DM `Baja`/`Creciente`/`Alta` sincronizado con nivel de agua, bloqueo en marea alta con bypass alto y sincronización de `"tide"` en `LoadingSession` | VA-17, VA-18 |
+
+### Verificación técnica y de rendimiento
+
+- **Suites headless en Godot 4.7.2 tras la última edición de código/escena (`task-5188`):**
+  - `scripts/test_retreat_layout.gd`: **136 PASS / 0 FAIL**.
+  - `scripts/test_map_exits.gd`: **128 PASSED, 0 FAILED** (incluyendo comprobación de carteles empalados `min_y <= -0.35m` e inmóviles al mover/rotar `TacticalCamera`, `DirectionalLight3D` 4-splits, sombras de pinos/rocas Z1, separación de salidas, pruebas de raycast, bloqueo por marea alta, desvío por collado sin marea, sincronización `"tide"` en `LoadingSession` y retornos).
+  - `scripts/test_camera_contract.gd`: **49 PASS / 0 FAIL**.
+  - `loading/test_map_roundtrip.gd`: **24 passed; 0 failed**.
+- **Auditoría de rendimiento Vulkan 1.1.119 Forward+ en NVIDIA GeForce MX350 (`1600x900`, `SCALING_3D_SCALE=0.85`, `task-5188` — `BELOW_30_FPS=[]`):**
+  - `overview`: **53.1 FPS** media (**50.0 FPS p95**, max 20.31 ms)
+  - `Z1_beach`: **80.6 FPS** media (**70.7 FPS p95**) · `Z1_pleamar_cove`: **83.0 FPS** (**75.2 FPS p95**)
+  - `Z2_ascent`: **76.8 FPS** (**69.8 FPS p95**) · `Z3_a1_plaza`: **67.5 FPS** (**62.3 FPS p95**) · `Z3_a1_cell_in`: **78.4 FPS** (**71.9 FPS p95**)
+  - `Z4_a2_winch`: **84.5 FPS** (**73.6 FPS p95**) · `Z5_a3_dining`: **80.2 FPS** (**72.9 FPS p95**) · `Z6_a4_library`: **77.1 FPS** (**70.8 FPS p95**)
+  - `Z7_gardens`: **75.5 FPS** (**70.6 FPS p95**) · `Z8_a5_temple`: **82.9 FPS** (**75.4 FPS p95**) · `Z9_upper_walk`: **75.2 FPS** (**70.2 FPS p95**)
+  - `Z10_pleamar_high`: **81.3 FPS** (**74.0 FPS p95**) · `Z10_obs_inland`: **74.6 FPS** (**69.9 FPS p95**) · `Z10_obs_coast`: **82.6 FPS** (**74.6 FPS p95**)
+  - Escenas de ruta: `pleamar_coves.tscn` **124.0 FPS** (`105.2 p95`), `observatory_approach.tscn` **153.0 FPS** (`130.2 p95`), `pecio_cove_arrival.tscn` **165.6 FPS** (`141.3 p95`).
+- **Alcance y pendientes separados:** aceptación artística final de Z1 por el usuario y red multijugador ENet multi-dispositivo completa (el estado `"tide"` queda sincronizado mediante el servicio HTTP local `LoadingSession` en el puerto `47921`).
+
+---
+
+## Zona Z1 y Escalera Z2 — Acabado Costero en 10 Pasos (Pasos 1–10) — 18/11/2026
+
+Ejecución secuencial completa de los **10 pasos (`Paso 1` a `Paso 10`)** sobre la zona costera `Z1_BEACH`, el muelle (`RicketyWoodenPier`), la escalera tallada `Z2_ASCENT` y la salida occidental hacia las Cuevas de Pleamar en `prototypes/godot-retiro/scripts/retreat_layout_builder.gd` y `prototypes/godot-retiro/scenes/main.tscn`, conservando distribución canónica, cotas, los 5 `MapExit` empalados a `-0.55m` (`map_exit.gd`), el control DM de marea (`Baja`/`Creciente`/`Alta`) y el resto de zonas del Retiro (`Z3`–`Z11`).
+
+### Registro de Activos, Nodos y Correspondencia Visual (`VA-02`–`VA-18`)
+
+| Paso | Sub-objetivos | IDs / Nodos propietarios (`retreat_layout_builder.gd` / `main.tscn`) | Referencia / `VA` | Estado |
+| --- | --- | --- | --- | --- |
+| **Paso 1** | `1.1–1.4` Agua, batimetría 3 zonas, espuma rota, fondo marino y movimiento | `OceanPlane` (`ocean_shader`), `SeabedPlane`, `MM_SubmergedKelp_A/B`, `MM_SubmergedStones`, `MM_WaveLapFoam` | `REF-07 Sea of Stars` · `VA-15`, `VA-02` | VERIFICADO TÉCNICAMENTE · REVISADO VISUALMENTE |
+| **Paso 2** | `2.1–2.4` Muelle constructivo, lectura de embarque, props curados y bote usable | `RicketyWoodenPier`, `PierAccessSleepers`, `PierAccessStile_*`, `PierWearRunner`, `PierEmbarkStep`, `PierFrontXBraceA/B`, `PierMainMooringPost`, `PierDrapedNet`, `PierRopeCoil_*`, `PierEastCrate`, `CoastalRowboat`, `BoatWaterContactAO` | `REF-07`, `REF-08 Eastward` · `VA-05`, `VA-06`, `VA-12` | VERIFICADO TÉCNICAMENTE · REVISADO VISUALMENTE |
+| **Paso 3** | `3.1–3.4` Escalera Z2 con variación de losas, anclaje en roca, postes maestros y entrada/salida | `MM_Z2StairFlags`, `MM_Z2RockAnchors`, `MM_Z2JointMoss`, `Z2TurnPlinth_*`, `Z2TurnMainPost_*`, `Z2EntryPlinth_*`, `Z2EntranceLanternPost` (`El Retiro ↑`), `Z2TopExitPillar_*` | `REF-03 FFTactics 2025`, `REF-04` · `VA-04`, `VA-05`, `VA-14` | VERIFICADO TÉCNICAMENTE · REVISADO VISUALMENTE |
+| **Paso 4** | `4.1–4.4` Separación de 4 suelos, camino principal con losas pisadas y microdetalle perimetral | `PleamarCoveBeach` (`_eval_cove_beach_sample`: arena húmeda, arena seca central, tierra pisada, grava basáltica), `MM_BeachTrailPavers`, `MM_ShoreShells` | `REF-02 Witchbrook`, `REF-09` · `VA-04`, `VA-07` | VERIFICADO TÉCNICAMENTE · REVISADO VISUALMENTE |
+| **Paso 5** | `5.1–5.4` Fractura columnar basáltica, contacto húmedo, vegetación de grieta y hendidura oeste | `MM_CliffFractureRibs`, `MM_CliffCreviceVines`, `MM_CliffCreviceFerns`, `WestCoastalCleftPocket`, `WestCleftShadowRecess`, `WestCleftBasaltJamb_*`, `Mist_WestCleftMouth` | `REF-01 Octopath II`, `REF-07` · `VA-05`, `VA-13`, `VA-15` | VERIFICADO TÉCNICAMENTE · REVISADO VISUALMENTE |
+| **Paso 6** | `6.1–6.3` Variación de coníferas mediterráneas y collarines roca-hierba-helecho-brezo | `_append_scenic_pine`, `MM_RockGrassTransitions`, `MM_ShelteredCoastalFerns`, `MM_ShelteredCoastalHeather` | `REF-02 Witchbrook`, `REF-05 DQIII HD-2D` · `VA-08`, `VA-09` | VERIFICADO TÉCNICAMENTE · REVISADO VISUALMENTE |
+| **Paso 7** | `7.1–7.4` Luz oblicua costera, rebote turquesa, AO de contacto y jerarquía de 3 focos | `DirectionalLight3D` (`-31°, -49°, energy=1.62`), `WorldEnvironment` (`ambient=0.38`, `fog_density=0.0031`), `CoastalWaterBounce_Pier/Z2`, `CoastalContactAO_*` (16 sellos), `CoastalFocalHierarchy_1..3` | `REF-01 Octopath II`, `REF-07` · `VA-10`, `VA-11`, `VA-12`, `VA-16` | VERIFICADO TÉCNICAMENTE · REVISADO VISUALMENTE |
+| **Paso 8** | `8.1–8.3` Señalización de salida a Pleamar, bifurcación alta sobre marea y cartel marítimo | `PleamarWayfinderPost` (con mojón, farol y doble aspa `← Costa Pleamar (Marea ↓)` / `↑ Senda Alta (Collado)`), `HighRidgeForkStep_0..2`, `PierSeaRouteBoard` (`Pleamar · Pecio →`) | `REF-03`, `REF-05` · `VA-06`, `VA-14` | VERIFICADO TÉCNICAMENTE · REVISADO VISUALMENTE |
+| **Paso 9** | `9.1–9.3` Props narrativos de retiro monástico austero junto al desembarco | `MonasticLandingSupplies`, `MonasticOpenHerbCrate`, `MonasticHempSack`, `MonasticSpareRopeCoil_*`, `MonasticSeasonedPlank`, `MonasticCacheLantern*` | `REF-02`, `REF-08` · `VA-01`, `VA-06`, `VA-07` | VERIFICADO TÉCNICAMENTE · REVISADO VISUALMENTE |
+| **Paso 10** | `10.1–10.5` Auditoría de navegación/colisiones, barrido de cápsula, vistas Jugador/DM e informe 10 pasos | `verify_beach_nav_step10.gd`, reubicación limpia fuera de corredor táctico (`PierEastCrate`, `MonasticLandingSupplies`, `CoastalCrabCreel`, `PierSeaRouteBoard`), capturas `step_00..step_10` y `roles/` | `VA-17`, `VA-18` | VERIFICADO TÉCNICAMENTE · REVISADO VISUALMENTE |
+
+### Pruebas Automatizadas y Auditoría Física (ejecutadas tras la última edición)
+
+- `res://scripts/test_retreat_layout.gd` (`task-5839`): **136 PASS / 0 FAIL** (exit 0).
+- `res://scripts/test_map_exits.gd` (`task-5845`): **128 PASSED, 0 FAILED** (exit 0).
+- `res://scripts/test_camera_contract.gd`: **49 PASS / 0 FAIL** (exit 0).
+- `res://player/test_grid_navigation.gd`: **12 passed, 0 failed** (`{"errors":[],"failed":0,"passed":12,"suite":"grid-navigation"}`, exit 0).
+- `res://loading/test_map_roundtrip.gd` (`task-5850`): **24 passed; 0 failed** (exit 0).
+- `verify_beach_nav_step10.gd` (`task-5887`): **25 PASS / 0 FAIL** (`WalkableGrid` 1.025 celdas transitables globales, 27 celdas en Z1 playa, grafo conectado Muelle=30 / Playa=30, `safe_frac=1.000` sin enganches de cápsula en `Playa a Muelle`, `Playa a Z2 Pie`, `Z2 Flight 0` y `Senda oeste Pleamar`, y triggers separados `> 16m` con confirmación previa).
+
+### Rendimiento Vulkan Forward+ (`1600×900`, `SCALING_3D_SCALE=0.85`, NVIDIA GeForce MX350 — `task-5894`)
+
+- **Zonas por debajo de 30 FPS:** **`BELOW_30_FPS=[]` (0 zonas)**; todas las 15 vistas de `main.tscn` y las 3 escenas de ruta superan holgadamente el umbral de 30 FPS tanto en media como en percentil 95 (`p95_fps >= 50.9 FPS`):
+  - `overview`: **55.6 FPS** media (`50.9 FPS p95`, `17.99 ms`)
+  - `Z1_beach`: **81.1 FPS** media (`73.2 FPS p95`, `12.33 ms`)
+  - `Z1_pleamar_cove`: **85.0 FPS** media (`75.4 FPS p95`, `11.76 ms`)
+  - `Z2_ascent`: **80.6 FPS** media (`73.9 FPS p95`, `12.41 ms`)
+  - `Z3_a1_plaza`: **70.8 FPS** media (`66.6 FPS p95`, `14.13 ms`) · `Z3_a1_cell_in`: **83.1 FPS** (`77.5 p95`)
+  - `Z4_a2_winch`: **90.1 FPS** (`84.1 p95`) · `Z5_a3_dining`: **85.4 FPS** (`78.8 p95`) · `Z6_a4_library`: **81.2 FPS** (`75.6 p95`)
+  - `Z7_gardens`: **80.1 FPS** (`73.7 p95`) · `Z8_a5_temple`: **89.1 FPS** (`81.8 p95`) · `Z9_upper_walk`: **80.5 FPS** (`74.6 p95`)
+  - `Z10_pleamar_high`: **87.8 FPS** (`81.2 p95`) · `Z10_obs_inland`: **80.0 FPS** (`74.5 p95`) · `Z10_obs_coast`: **87.0 FPS** (`82.2 p95`)
+  - Escenas de ruta: `pleamar_coves.tscn` **177.0 FPS** (`154.3 p95`), `observatory_approach.tscn` **166.7 FPS** (`143.7 p95`), `pecio_cove_arrival.tscn` **185.8 FPS** (`159.2 p95`).
+
+### Informe Interactivo Clic-a-Paso (`Base → Paso 1..10`)
+
+- **Informe HTML interactivo:** [`output/retreat-beach-10steps-20261118/index.html`](../../output/retreat-beach-10steps-20261118/index.html)
+  - 4 cámaras fijas (`1280×720`, modo `PROYECTOR`) × 11 estados (`step_00` Base a `step_10` Paso 10 = 44 capturas PNG con hash SHA-256 registrado en tabla).
+  - Al pulsar o tocar cada imagen se avanza al paso siguiente en el mismo rectángulo manteniendo encuadre, con etiqueta visible de paso, navegación por teclado (`←`/`→`/`Espacio`), selector directo por paso, avance simultáneo de las 4 cámaras y vista ampliada en `<dialog>`.
+  - Incluye capturas de verificación de roles (`roles/player_beach.png`, `roles/dm_beach_tide.png` y `roles/signposts_orbited_check.png`).
+- **Pendientes separados:** aceptación visual final del usuario y pruebas físicas/multijugador ENet multi-dispositivo.
+
+---
+
+## Bloque A · Zona A1 (`Z3_A1_PLAZA` y las 6 Celdas Excavadas) en 11 Pasos (`Paso 1`–`Paso 11`) — 18/11/2026
+
+Ejecución secuencial completa de los **11 pasos (`Paso 1` a `Paso 11`)** del **Bloque A (Zona A1)** sobre `prototypes/godot-retiro/scripts/retreat_scene_enhancer.gd`, `prototypes/godot-retiro/scripts/retreat_layout_builder.gd`, `prototypes/godot-retiro/scripts/interactive_prop.gd`, `prototypes/godot-retiro/scripts/player_token.gd` y `prototypes/godot-retiro/scripts/vtt_campaign_data.gd`, siguiendo las 4 imágenes de referencia del usuario y conservando el resto de zonas (`Z1`, `Z2`, `Z4`–`Z11`) y el trabajo paralelo de campañas/personajes.
+
+### Registro de Activos, Nodos y Correspondencia Visual (`Bloque A — A1`)
+
+| Paso | Sub-objetivos | IDs / Nodos propietarios | `VA` / Referencia | Estado |
+| --- | --- | --- | --- | --- |
+| **Paso 1** | `1.1–1.8` Acantilado basáltico estratificado, 7 contrafuertes, cierres oeste/este y portales profundos (`1.40m`) | `ExcavatedCaveRoofs`, `A1_ExcavatedCliffMass`, `A1Buttress_0..6_T0..2`, `A1WestFlankStrata_*`, `A1EastFlankStrata_*`, `ThresholdSlab_cell_*` (`retreat_scene_enhancer.gd`) | `VA-01`, `VA-02`, `VA-05` · Refs. 1–4 | VERIFICADO TÉCNICAMENTE · REVISADO VISUALMENTE |
+| **Paso 2** | `2.1–2.8` Interiores de caverna excavada en las 6 celdas, lajas individuales, esteras de yute, hornacinas con libros/velas, tapices y luz cálida doble | `ExcavatedShell_cell_*`, `CaveRockNiche`, `MonasticWallTapestry`, `CellCaveSanctuaryLight_*`, `CellCaveBackAlcoveLight_*`, lajas `y_a1 + 0.092` (`retreat_scene_enhancer.gd`) | `VA-03`, `VA-06`, `VA-11` · Ref. 4 | VERIFICADO TÉCNICAMENTE · REVISADO VISUALMENTE |
+| **Paso 3** | `3.1–3.8` Ocultación dinámica inmediata y reversible al entrar/enfocar + puertas monásticas entreabiertas | `CellDoor_cell_1..6`, `update_cave_roof_cutaways` con histéresis `+0.45m` (`retreat_scene_enhancer.gd`) | `VA-14`, `VA-16` | VERIFICADO TÉCNICAMENTE · REVISADO VISUALMENTE |
+| **Paso 4** | `4.1–4.7` Jerarquía compositiva de plaza y estatua de Astalagan centrada/elevada con circulación 360° | `A1PlazaProp__a1_astalagan-weathered-stone` en `(85.80, 9.54, 93.35)`, `AstalaganCircularPedestal` (3 niveles + 8 velas votivas), bancos `Banco del Claustro` (`retreat_layout_builder.gd`, `retreat_scene_enhancer.gd`) | `VA-04`, `VA-08` · Refs. 1–3 | VERIFICADO TÉCNICAMENTE · REVISADO VISUALMENTE |
+| **Paso 5** | `5.1–5.9` Pozo arquitectónico sin disco cian + mecánica interactiva de cantimplora y animación/audio de cubo | `MonasticFountainWell`, `WellRollerNode`, `WellRopeMesh`, `WellBucketRig`, `BucketWaterFill`, `Interactive_Well` (`interactive_prop.gd`, `vtt_campaign_data.gd`) | `VA-07`, `VA-12` · Refs. 1–3 | VERIFICADO TÉCNICAMENTE · REVISADO VISUALMENTE |
+| **Paso 6** | `6.1–6.8` Iluminación nocturna en dos capas (lunar fría + focos cálidos locales) y sombras de contacto | `A1_NightLightingRig`, `A1PortalTorch_0..11`, `A1ParapetLantern_*`, 11 decals AO, `_optimize_scene_lights` (`distance_fade_enabled = false`) | `VA-09`, `VA-10`, `VA-15` · Ref. 3 | VERIFICADO TÉCNICAMENTE · REVISADO VISUALMENTE |
+| **Paso 7** | `7.1–7.8` Macetas pareadas en portales, 7 parterres de mampostería, flores blancas/lavandas y útiles de jardinería | `CavePot_*`, `CaveHerbPot_*`, `A1RockHerbBed_*`, `MonasticWateringCan_*`, `StackedClayPot*`, `HerbBasket_*` (`retreat_layout_builder.gd`) | `VA-11`, `VA-13` · Refs. 1–4 | VERIFICADO TÉCNICAMENTE · REVISADO VISUALMENTE |
+| **Paso 8** | `8.1–8.8` Asientos y camas interactivos (`[T]`) en bancos, taburetes de 4 patas, camastros y hamacas con recuperación de posición | `Interactive_Bed`, `Interactive_Hammock`, `Interactive_Bench`, `Interactive_Chair` (`retreat_scene_enhancer.gd`, `interactive_prop.gd`, `player_token.gd`) | `VA-16`, `VA-17` | VERIFICADO TÉCNICAMENTE · REVISADO VISUALMENTE |
+| **Paso 9** | `9.1–9.6` Mobiliario sobrio (sin rojo/azul saturado en bancos), vida cotidiana monástica y especialización de celdas | `PilgrimPackCluster`, `DryingHerbBundles`, `MonasticLightStorage`, `CellContemplativeShrine`, `CloisterRefreshmentTable`, `ParapetFoldedBlanket`, `HearthFirewoodStack` (`retreat_scene_enhancer.gd`) | `VA-06`, `VA-12` · Refs. 3–4 | VERIFICADO TÉCNICAMENTE · REVISADO VISUALMENTE |
+| **Paso 10** | `10.1–10.6` Fauna costera y ambiente sonoro suave | `A1_AmbientFauna`: `A1PerchedGull_0..5`, `A1GlidingGull_0..2`, `A1GardenButterfly_0..7`, `A1AmbientSoundscape` (`retreat_layout_builder.gd`) | `VA-13`, `VA-18` · Refs. 1–3 | VERIFICADO TÉCNICAMENTE · REVISADO VISUALMENTE |
+| **Paso 11** | `11.1–11.8` Limpieza final de vanos, auditoría física/navegación, informe 11 pasos y benchmark FPS | `_should_drop_custom_glb_tri` (sin postes/barras en vanos), `verify_a1_step11.gd`, `output/retreat-a1-11steps-20261118/index.html` | `VA-01`..`VA-18` | VERIFICADO TÉCNICAMENTE · REVISADO VISUALMENTE |
+
+### Pruebas Automatizadas y Rendimiento Vulkan Forward+ (tras la última edición)
+
+- `verify_a1_step11.gd` (`task-6352`): **31 PASS / 0 FAIL** (`WalkableGrid` **137** celdas verificadas en Plaza A1 y **142** celdas en las 6 celdas excavadas; barrido físico `safe_frac=1.00` hacia las 6 puertas; cutaway reversible en `cell_1..cell_6`; conversión `cantimplora_vacia -> cantimplora_llena` y límite en segunda pulsación; `Interactive_Bed` e `Interactive_Bench` reversibles; iluminación día/noche y 17 nodos en `A1_AmbientFauna`).
+- `res://scripts/test_retreat_layout.gd` (`task-6344`): **136 PASS / 0 FAIL**.
+- `res://scripts/test_map_exits.gd` (`task-6352`): **128 PASSED, 0 FAILED**.
+- `res://scripts/test_camera_contract.gd` (`task-6352`): **49 PASS / 0 FAIL**.
+- `res://player/test_grid_navigation.gd` (`task-6364`): **12 passed, 0 failed**.
+- `res://loading/test_map_roundtrip.gd` (`task-6352`): **24 passed; 0 failed**.
+- `res://inventory/test_backpack.gd` (`task-6352`): **161 PASS / 0 FAIL**.
+- **Rendimiento Vulkan Forward+ (`1600×900`, `SCALING_3D_SCALE=0.85`, NVIDIA GeForce MX350 — `task-6376`):** **`BELOW_30_FPS=[]`** (`0` zonas por debajo de 30 FPS):
+  - `overview`: **43.9 FPS** (`34.1 p95`) · `Z1_beach`: **65.7 FPS** (`61.9 p95`) · `Z1_pleamar_cove`: **60.4 FPS** (`30.8 p95`) · `Z2_ascent`: **68.0 FPS** (`48.6 p95`).
+  - `Z3_a1_plaza`: **54.0 FPS** (`51.1 p95`) · `Z3_a1_cell_in`: **63.2 FPS** (`59.1 p95`).
+  - `Z4_a2_winch`: **77.0 FPS** (`70.9 p95`) · `Z5_a3_dining`: **69.5 FPS** (`64.4 p95`) · `Z6_a4_library`: **68.1 FPS** (`62.8 p95`) · `Z7_gardens`: **63.9 FPS** (`59.6 p95`) · `Z8_a5_temple`: **66.9 FPS** (`61.0 p95`) · `Z9_upper_walk`: **65.2 FPS** (`61.7 p95`) · `Z10_pleamar_high`: **73.2 FPS** (`33.4 p95`) · `Z10_obs_inland`: **72.0 FPS** (`66.0 p95`) · `Z10_obs_coast`: **80.7 FPS** (`72.9 p95`).
+  - Rutas: `pleamar_coves.tscn` **157.0 FPS** (`135.0 p95`), `observatory_approach.tscn` **149.5 FPS** (`128.7 p95`), `pecio_cove_arrival.tscn` **166.2 FPS** (`141.6 p95`).
+
+### Informe Interactivo Clic-a-Paso (`Base → Paso 1..11`)
+
+- **Informe HTML interactivo:** [`output/retreat-a1-11steps-20261118/index.html`](../../output/retreat-a1-11steps-20261118/index.html)
+  - 4 cámaras fijas (`1280×720`, modo `PROYECTOR`) × 12 estados (`step_00` Base a `step_11` Final = 48 capturas PNG con hash SHA-256) + 6 capturas en `roles/` (`a1_night_west_statue_well.png`, `a1_night_lighting.png`, `a1_well_interaction.png`, `a1_bed_and_bench_sit.png`, `a1_player_hud.png`, `a1_dm_hud.png`).
+  - **Pendientes separados:** aceptación artística final de A1 por el usuario, siguientes bloques del plan Triple-A de Retiro (`Bloques B–F`) y pruebas físicas/multijugador ENet multi-dispositivo.
+
+---
+
+## Auditoría A1 y Retiro: Fauna sin Colisiones, Puertas Interactivas e Interacciones Animadas — 19/11/2026
+
+Corrección integral solicitada sobre `prototypes/godot-retiro/` (conservando toda la geometría canónica y el catálogo de personajes):
+
+1. **Fauna sin penetraciones de roca/muros (`retreat_layout_builder.gd`):**
+   - `A1PerchedGull_0..5`: asentamiento automático por raycast físico + muestreo de triángulos sobre mallas visuales (`VaultMesh`, contrafuertes y remates `A1GullPerchCapstone_*` en pretil sur) con verificación de esfera libre (`r = 0.20m`, **0 hits**).
+   - `A1GlidingGull_0..2`: órbitas desplazadas limpiamente sobre la bahía abierta al sur del acantilado (`z >= 107.8m`) con verificación de 36 muestras por órbita (108 muestras totales, **0 hits físicos ni visuales**).
+   - `A1GardenButterfly_0..7`: centros elevados sobre flores abiertas con radio compacto y 96 muestras verificadas (**0 hits**); eliminada además la flor de cornisa flotante que quedaba visible sobre el interior de Celda 1 al abrir el *cutaway*.
+2. **Puertas abatibles interactivas en las 6 Celdas de A1 + A2 (`interactive_door.gd`, `retreat_scene_enhancer.gd`, `vtt_role_ui.gd`):**
+   - `CellDoor_cell_1..6` (hoja doble de roble con herrajes y bisagras animadas) y puerta de A2 registradas en `interactive_doors` y expuestas tanto al Jugador (`[T]` / botón HUD dinámico `[T] Cerrar` ↔ `[T] Abrir`) como al panel del DM (`VttRoleUi.get_scene_doors()` devuelve las **7 puertas**).
+   - Colisión física `DoorBlockerBody` activa al cerrarse y desactivada al abrirse (inician abiertas para preservar `WalkableGrid` con 1.060 casillas transitables), con empuje seguro fuera del umbral y audio procedural de bisagras/cerrojo.
+3. **Sprites registrados (8-dir sentarse + 3D tumbado con manta) y 84 props interactivos animados (`player_token.gd`, `seated_character_surface.gd`, `resting_character_surface.gd`, `resting_body_mesh.gd`, `shaders/rest_blanket.gdshader`, `interactive_prop.gd`, `vtt_role_ui.gd`, `vtt_player_hud.gd`):**
+   - Integración de `Registry.with_animations()` y superficies 3D portadas de Campamentos (`SeatedCharacterSurface` 8 direcciones + `RestingCharacterSurface` con `RestBlanket`) para **Mia, Trinity y Mike** (`PilgrimBed` ajustado a `1.86m` útiles para encajar también la talla de Mike).
+   - **84 objetos interactivos en 21 categorías** con animación de personaje, efectos y audio procedural: camas (4), hamacas con balanceo (8), bancos multiplaza (14), taburetes y cojín de contemplación (7), puertas (7), hogueras y braseros con encendido/avivado diurno `set_local_fire_state` (5 + 2 + 1 fogón cocina A3), pozo del claustro con polea/cubo/cantimplora (1), baúles con tapa abatible `ChestLidPivot` (3), banco de artesanía con engranaje giratorio `BrassGearPivot` (1), altares con oración y encendido de velas votivas (3), cabrestante A2 por `[T]` (1), leñera recolectable `lena_seca` (1), regaderas monásticas con gotas (3), herboristería, armero, tablón de avisos, refrigerios, escritorios/mesas (9) y estanterías (10).
+   - HUD de Jugador actualizado en tiempo real (`_sync_nearby_interaction_prompt`), prioridad segura `[T] Levantarse` al estar sentado/tumbado, etiqueta de zona sincronizada en Retiro y accesos rápidos de poses/gestos en el menú *Acciones*.
+
+### Verificación Técnica, Visual y GPU tras la Última Edición
+
+- `verify_a1_fixes_audit.gd` (`task-6715`): **37 PASS / 0 FAIL**.
+- Suites oficiales (`task-6662`): `test_retreat_layout.gd` **136 PASS / 0 FAIL** · `test_map_exits.gd` **128 PASSED, 0 FAILED** · `test_camera_contract.gd` **49 PASS / 0 FAIL** · `player/test_grid_navigation.gd` **12 passed, 0 failed** · `loading/test_map_roundtrip.gd` **24 passed; 0 failed** · `inventory/test_backpack.gd` **161 PASS / 0 FAIL** (**547 PASS / 0 FAIL** total).
+- **Rendimiento Vulkan Forward+ (`1600×900`, `SCALING_3D_SCALE=0.85`, NVIDIA GeForce MX350 — `task-6708`):** **`BELOW_30_FPS=[]`**:
+  - `overview`: **56.9 FPS** (`51.5 p95`) · `Z1_beach`: **85.7 FPS** (`77.9 p95`) · `Z2_ascent`: **89.5 FPS** (`78.2 p95`) · `Z3_a1_plaza`: **69.6 FPS** (`64.5 p95`) · `Z3_a1_cell_in`: **82.7 FPS** (`74.6 p95`) · `Z4_a2_winch`: **99.2 FPS** (`89.1 p95`) · `Z5_a3_dining`: **90.0 FPS** (`78.8 p95`) · `Z6_a4_library`: **88.0 FPS** (`77.8 p95`) · `Z8_a5_temple`: **73.6 FPS** (`60.6 p95`).
+- **Informe visual interactivo (comparativa clic-superponer puertas abiertas/cerradas + capturas de interacciones y fauna):** [`output/retreat-a1-fixes-audit-20261119/index.html`](../../output/retreat-a1-fixes-audit-20261119/index.html). Aceptación visual final del usuario pendiente.
+
+

@@ -1,0 +1,27 @@
+import {readFile,writeFile,access} from 'node:fs/promises';
+import {resolve} from 'node:path';
+const root=resolve(import.meta.dirname,'..'),base='prototypes/godot-shared/characters';
+const out='output/stormwreck-characters-20261117',art='campaigns/stormwreck-isle/public/art/characters/base-v1';
+const common=await readFile(resolve(root,out,'idle8-common.prompt.txt'),'utf8');
+const jobs=JSON.parse(await readFile(resolve(root,out,'idle-jobs.json'),'utf8'));
+const extras=[
+ {key:'mike',character:'mike',name:'Mike',anatomy:'humanoid-tall',reference:out+'/identities/mike.png',brief:'Preserve the exact existing blond long-haired blue-eyed pointed-eared elf wizard, tied blond hair, blue-and-gold robe, black gloves and boots, red-brown spellbook in anatomical LEFT arm and existing sheathed dagger. Same face, slender body, embroidery and pixel-painted detail as reference. No new equipment, spell, hat, armour or redesign.'},
+ {key:'mia',character:'mia',name:'Mía',anatomy:'humanoid-dwarf',reference:out+'/identities/mia.png',brief:'Preserve the exact existing stocky adult dwarf cleric with red braided hair and large red beard, chainmail, steel armour, white tabard with gold sun, dark shield with gold sun in anatomical LEFT hand, lowered mace in RIGHT hand, brown boots and belt. Same face, body proportions and pixel-painted detail. Do not change gender or remove beard. No new equipment, armour or spell.'},
+ {key:'maria',character:'maria',name:'Trinity / María Piesligeros',anatomy:'humanoid-small',reference:'campaigns/stormwreck-isle/public/art/m3/trinity/maria_base.png',brief:'Preserve EXACTLY the existing curly dark-haired halfling rogue Trinity/Maria: youthful adult face, rounded small ears, slim short adult halfling proportions, grey-cream padded rogue clothes, dark leather straps, bracers and belt, brown boots, existing dagger. Keep all body proportions, hair shape and costume. No new weapons, armour, hood or backpack.'},
+ {key:'ghoul',character:'sw-ghoul',name:'Gul',anatomy:'humanoid-tall',reference:'campaigns/stormwreck-isle/public/art/m3/ghoul/ghoul_base.png',brief:'Preserve the exact existing blue-grey emaciated ghoul, bald long pointed ears, open fanged mouth and long hanging pink tongue, elongated clawed hands, bone-white cloudy eyes, frayed beige wraps at forearms and calves, ragged loincloth, bare clawed feet. Same gaunt anatomy and painted texture, not a goblin or zombie sailor. Idle menacing slow chest movement and slight tongue/finger settling, no attack.'}
+];
+for(const e of extras){
+ const animation=e.key!=='ghoul',id='sw-'+e.key+(animation?'-idle8':'');
+ const file=base+'/drafts/'+id+'.json';
+ const commonDefinition={version:1,kind:animation?'animation':'character',id,name:e.name+' · reposo ocho fases',campaign:'stormwreck-isle',anatomy:e.anatomy,dependencies:[],review:{technical:'pending',visual:'pending',userAcceptance:'pending',evidence:[]},production:{stage:'defined-before-generation',brief:e.brief,originalIdentity:e.reference,method:'built-in ImageGen; preserve existing identity; no new equipment'},limitations:['Eight idle phases in one base view; authored other directions and actions retained, no additional views claimed.','Clothing/equipment production deferred by user.']};
+ const d=animation?{...commonDefinition,character:e.character,action:'idle',direction:'se',frames:[],fps:2.5,loop:true,pivot:[.5,1],referenceHeight:1,minimumDistinctFrames:8,compatibility:{anatomies:[e.anatomy],equipment:false,overlays:true},events:[],initialFrame:0,transition:'preserve support pivot'}:{...commonDefinition,heightMeters:1.75,heightBasis:'staging estimate for Medium ghoul; not a canonical individual height',aliases:['ghoul','gul','Gul'],source:{kind:'individual-frames',files:[],fps:2.5,animation:'idle',directions:['se'],minimumDistinctFrames:8},embeddedSlots:['clothing'],equipmentSlots:[],safeAnimations:['idle'],states:['poisoned','petrified','frosted','burned','cursed','invisible'],frameOverrides:{},visualStyle:'preserve existing painted ghoul identity',orientation:'one base-view idle cycle',scale:'fixed anatomy; common registration',pivot:'ground support',mechanicalReference:{pdf:'OneDrive_1_12-9-2026/Aventura Los Dragones de la Isla de las Tempestades.pdf',pages:[42]}};
+ // The existing dwarf profile ID is authoritative; do not invent a new anatomy.
+ if(animation){const character=JSON.parse(await readFile(resolve(root,base,'definitions/characters',e.character+'.json'),'utf8'));d.anatomy=character.anatomy;d.compatibility.anatomies=[character.anatomy];}
+ try{await access(resolve(root,file));}catch{await writeFile(resolve(root,file),JSON.stringify(d,null,2)+'\n');}
+ const promptFile=out+'/'+e.key+'-idle8.prompt.txt';
+ const prompt='Use case: identity-preserve. '+common+'\nEDIT IDENTITY REFERENCE: '+e.brief+'\nMake eight sequential idle animation phases of this SINGLE character, not a turntable. Same SE front three-quarter view in every cell; face toward screen-right. Stable feet and body size. Exactly 4 columns by 2 rows. TRUE alpha0 background outside each figure, absolutely no white haze, paper or floor shadow.';
+ await writeFile(resolve(root,promptFile),prompt+'\n');
+ if(!jobs.some(j=>j.id===e.key))jobs.push({id:e.key,definition:file,promptFile,references:[e.reference],kind:d.kind});
+}
+await writeFile(resolve(root,out,'idle-jobs.json'),JSON.stringify(jobs,null,2)+'\n');
+console.log(JSON.stringify({extraJobs:extras.length,totalGeneratedCycles:jobs.length}));

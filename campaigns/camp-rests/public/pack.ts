@@ -18,48 +18,35 @@ type Scenario = {
 const key = (cell: Cell) => `${cell.col},${cell.row}`;
 const point = (id: string, label: string, kind: PointKind, cell: Cell, objectCell: Cell, description: string, ownerCharacterId?: string): Point => ({ id, label, kind, cell, objectCell, description, ...(ownerCharacterId ? { ownerCharacterId } : {}) });
 const rect = (cell: Cell, c0: number, c1: number, r0: number, r1: number) => cell.col >= c0 && cell.col <= c1 && cell.row >= r0 && cell.row <= r1;
-// Keep each tent entrance toward its scene's default camera side. The orbit is
-// intentionally limited to ±30°, so rotating individual tents toward the fire
-// left half of their doors facing away from every normal player view.
-const tentFacing = (prefix: string) => prefix === 'forest' ? -1 : 1;
-const characterTents = (prefix: string, centers: Cell[]) => {
-  const owners = [
-    { id: 'mike', name: 'Mike', chest: 'Ropa, componentes y pergaminos de estudio.', item: 'Atril plegable y libro de conjuros; equipo personal de estudio, sin alterar conjuros ni espacios.' },
-    { id: 'mia', name: 'Mia', chest: 'Manto de viaje, yesca y un pequeño estuche de suministros.', item: 'Símbolo sagrado y rincón de oración; uso narrativo, sin conceder curación ni beneficios.' },
-    { id: 'maria', name: 'Trinity', chest: 'Ropa ligera y pertenencias personales.', item: 'Estuche de ganzúas y banco de mantenimiento; permite revisar herramientas, sin resolver pruebas automáticamente.' }
-  ];
-  return {
-    blocked: centers.flatMap((center, index) => {
-      const owner = owners[index]!;
-      const facing = tentFacing(prefix);
-      const walls = [] as Array<{ cell: Cell; id: string }>;
-      for (let row = -2; row <= 2; row++) for (let col = -2; col <= 2; col++) {
-        if (Math.abs(row) !== 2 && Math.abs(col) !== 2 || row === 2 * facing && col === 0) continue;
-        walls.push({ cell: { col: center.col + col, row: center.row + row }, id: `${prefix}-tent-${owner.id}-wall-${col}-${row}` });
-      }
-      walls.push({ cell: { col: center.col + 1, row: center.row }, id: `${prefix}-chest-${owner.id}` });
-      walls.push({ cell: { col: center.col - 1, row: center.row }, id: `${prefix}-kit-${owner.id}` });
-      return walls;
-    }),
-    points: centers.flatMap((center, index): Point[] => {
-      const owner = owners[index]!;
-      const facing = tentFacing(prefix);
-      return [
-        point(`${prefix}-tent-${owner.id}`, `Tienda amplia · ${owner.name}`, 'tent', { col: center.col, row: center.row + 2 * facing }, center,
-          'Interior transitable de 4,5 × 4,5 m, con sitio para el grupo y su equipo.', owner.id),
-        point(`${prefix}-bed-${owner.id}`, `Lecho · ${owner.name}`, 'bed', center, { col: center.col, row: center.row - facing }, 'Saco, manta y almohada dentro de la tienda.', owner.id),
-        point(`${prefix}-chest-${owner.id}`, `Baúl personal · ${owner.name}`, 'chest', center, { col: center.col + 1, row: center.row },
-          `Baúl individual con ${owner.chest}`, owner.id),
-        point(`${prefix}-kit-${owner.id}`, `Equipo de ${owner.name}`, 'personal', center, { col: center.col - 1, row: center.row }, owner.item, owner.id)
-      ];
-    })
-  };
+type BivouacSpot = { bed: Cell; pack: Cell; kit: Cell };
+const BIVOUAC_OWNER_LORE = [
+  { id: 'mike', name: 'Mike', packDesc: 'Mochila de cuero gastado con mudas dobladas, bolsa de componentes y rollo de pergaminos.', kitDesc: 'Libro de conjuros abierto y bolsa de componentes junto al petate; notas arcanas, sin alterar espacios.' },
+  { id: 'mia', name: 'Mia', packDesc: 'Mochila robusta con manto de viaje, yesquero y estuche de curación.', kitDesc: 'Símbolo sagrado de bronce y pequeña estera de oración; uso narrativo, sin curación automática.' },
+  { id: 'maria', name: 'Trinity', packDesc: 'Mochila compacta de lona oscura con cuerda fina y pertenencias de viaje.', kitDesc: 'Estuche enrollable de herramientas, ganzúas y piedra de afilar; permite revisar equipo, sin resolver tiradas.' }
+] as const;
+const campEquipmentPoints = (
+  prefix: string,
+  spots: Record<'mike' | 'mia' | 'maria', BivouacSpot>,
+  shelter?: { cell: Cell; objectCell: Cell; label: string; description: string }
+): Point[] => {
+  const pts: Point[] = BIVOUAC_OWNER_LORE.flatMap(owner => {
+    const sp = spots[owner.id];
+    return [
+      point(`${prefix}-bed-${owner.id}`, `Petate · ${owner.name}`, 'bed', sp.bed, sp.bed,
+        `Petate extendido, manta de lana y almohada de viaje de ${owner.name}.`, owner.id),
+      point(`${prefix}-chest-${owner.id}`, `Mochila · ${owner.name}`, 'chest', sp.bed, sp.pack,
+        owner.packDesc, owner.id),
+      point(`${prefix}-kit-${owner.id}`, `Objetos personales · ${owner.name}`, 'personal', sp.bed, sp.kit,
+        owner.kitDesc, owner.id)
+    ];
+  });
+  if (shelter) pts.unshift(point(`${prefix}-tent-mia`, shelter.label, 'tent', shelter.cell, shelter.objectCell, shelter.description, 'mia'));
+  return pts;
 };
 const ellipse = (cell: Cell, cols: number, rows: number, rx: number, rz: number, margin = 0) => {
   const x = (cell.col + .5 - cols / 2) / rx, z = (cell.row + .5 - rows / 2) / rz;
   return x * x + z * z <= 1 - margin;
 };
-
 const rooms: Scenario = {
   id: 'camp-a1-rooms', title: '01 · Habitaciones A1', profile: 'rooms', canonStatus: 'canon',
   safetyNotice: 'Representación independiente de las seis habitaciones A1. No carga ni reproduce el resto del monasterio.',
@@ -86,101 +73,114 @@ const rooms: Scenario = {
 
 const forest: Scenario = {
   id: 'camp-forest-pleamar', title: '02 · Bosque camino a Pleamar', profile: 'forest', canonStatus: 'vtt-ambience',
-  safetyNotice: 'Composición VTT_AMBIENCE: el campamento no es un lugar canónicamente seguro. El DM decide si se puede descansar.',
+  safetyNotice: 'Composición VTT_AMBIENCE: claro provisional en el camino a Pleamar. El DM decide si es seguro descansar.',
   cols: 24, rows: 22, materialId: 'moss', background: '/art/camp-rests/marker.svg',
   walkable: cell => ellipse(cell, 24, 22, 11.2, 10.2, .04),
   materialAt: cell => {
     if (forestStreamWater(cell)) return 'water';
     const isNorthTrail = cell.col >= 11 && cell.col <= 13 && cell.row >= 2 && cell.row <= 9;
-    const isClearing = Math.hypot(cell.col - 12, cell.row - 11) <= 2.8;
-    const isEastBranch = cell.row >= 7 && cell.row <= 9 && cell.col >= 13 && cell.col <= 17;
-    const isSouthBranch = cell.col >= 11 && cell.col <= 13 && cell.row >= 12 && cell.row <= 16;
-    if (isNorthTrail || isClearing || isEastBranch || isSouthBranch) return 'earth';
+    const isClearing = Math.hypot(cell.col - 11.8, cell.row - 10.8) <= 3.1;
+    const isRestNook = Math.hypot(cell.col - 10, cell.row - 8.2) <= 2.3 || (cell.col >= 13 && cell.col <= 16 && cell.row >= 11 && cell.row <= 13);
+    const isSouthTrail = cell.col >= 11 && cell.col <= 13 && cell.row >= 12 && cell.row <= 17;
+    if (isNorthTrail || isClearing || isRestNook || isSouthTrail) return 'earth';
     return 'moss';
   },
   water: Array.from({ length: 16 }, (_, i) => [-1, 0, 1].map(offset => ({ col: forestStreamColumn(i + 3) + offset, row: i + 3 }))).flat(),
   blocked: [
-    ...[[2,2],[5,2],[9,2],[14,2],[19,2],[21,5],[21,9],[21,15],[19,19],[15,20],[8,20],[5,18],[5,14],[4,8]].map(([col,row], i) => ({ cell: { col: col!, row: row! }, id: `forest-tree-${i + 1}` })),
-    ...characterTents('forest', [{ col: 7, row: 7 }, { col: 17, row: 7 }, { col: 12, row: 16 }]).blocked,
+    ...[[2,2],[5,2],[8,7],[12,7],[16,3],[20,4],[21,9],[20,15],[18,19],[14,20],[8,19],[5,17],[5,14],[4,8]].map(([col,row], i) => ({ cell: { col: col!, row: row! }, id: `forest-tree-${i + 1}` })),
     { cell: { col: 12, row: 11 }, id: 'forest-fire' },
-    { cell: { col: 9, row: 14 }, id: 'forest-seat-a' }, { cell: { col: 15, row: 14 }, id: 'forest-seat-b' }
+    { cell: { col: 10, row: 12 }, id: 'forest-seat-a' }, { cell: { col: 14, row: 10 }, id: 'forest-seat-b' }
   ],
   points: [
-    ...characterTents('forest', [{ col: 7, row: 7 }, { col: 17, row: 7 }, { col: 12, row: 16 }]).points,
-    point('forest-fire-point', 'Hoguera del claro', 'fire', { col: 12, row: 12 }, { col: 12, row: 11 }, 'Hoguera baja, rodeada de piedras.'),
-    point('forest-seat-a-point', 'Tronco junto al fuego', 'seat', { col: 8, row: 14 }, { col: 9, row: 14 }, 'Asiento de tronco.'),
-    point('forest-seat-b-point', 'Asiento del claro', 'seat', { col: 16, row: 14 }, { col: 15, row: 14 }, 'Asiento de madera húmeda.'),
-    point('forest-guard-point', 'Puesto de guardia · sendero', 'guard', { col: 12, row: 3 }, { col: 12, row: 2 }, 'Vigila el camino hacia Pleamar.')
-  ], spawns: [{ col: 12, row: 12 }, { col: 10, row: 12 }, { col: 14, row: 12 }, { col: 11, row: 10 }, { col: 13, row: 10 }],
-  ambience: [{ id: 'ground-mist', kind: 'mist', density: .68 }, { id: 'forest-canopy', kind: 'leaves', density: .8 }]
+    ...campEquipmentPoints('forest', {
+      mia: { bed: { col: 9, row: 8 }, pack: { col: 8, row: 8 }, kit: { col: 9, row: 9 } },
+      mike: { bed: { col: 11, row: 8 }, pack: { col: 12, row: 8 }, kit: { col: 11, row: 9 } },
+      maria: { bed: { col: 15, row: 12 }, pack: { col: 16, row: 12 }, kit: { col: 14, row: 13 } }
+    }, { cell: { col: 10, row: 9 }, objectCell: { col: 10, row: 8 }, label: 'Lona tensada entre árboles', description: 'Toldo ligero de lona cruda (3 × 2,6 m) tensado con cuerdas entre dos troncos sobre los petates.' }),
+    point('forest-fire-point', 'Hoguera del claro', 'fire', { col: 12, row: 12 }, { col: 12, row: 11 }, 'Hoguera baja cercada de piedras con olla de hierro y reserva de leña.'),
+    point('forest-seat-a-point', 'Tronco caído', 'seat', { col: 10, row: 13 }, { col: 10, row: 12 }, 'Tronco húmedo con musgo usado como asiento junto al fuego.'),
+    point('forest-seat-b-point', 'Piedra plana del claro', 'seat', { col: 14, row: 11 }, { col: 14, row: 10 }, 'Roca ancha semienterrada frente a las brasas.'),
+    point('forest-guard-point', 'Puesto de vigilancia · sendero', 'guard', { col: 12, row: 4 }, { col: 12, row: 3 }, 'Claro con buena visual hacia la senda de Pleamar; farol portátil en la roca.')
+  ], spawns: [{ col: 13, row: 12 }, { col: 10, row: 10 }, { col: 14, row: 12 }, { col: 11, row: 12 }, { col: 13, row: 10 }],
+  ambience: [{ id: 'ground-mist', kind: 'mist', density: .58 }, { id: 'forest-canopy', kind: 'leaves', density: .82 }]
 };
 
 const beach: Scenario = {
   id: 'camp-wreck-beach', title: '03 · Playa del pecio', profile: 'wreck-beach', canonStatus: 'vtt-ambience',
-  safetyNotice: 'Composición VTT_AMBIENCE separada del pecio C1–C9. No implica seguridad; el DM decide si el grupo puede descansar.',
+  safetyNotice: 'Composición VTT_AMBIENCE separada del pecio C1–C9. Refugio provisional por encima de la pleamar; decide el DM.',
   cols: 25, rows: 22, materialId: 'sand', background: '/art/camp-rests/marker.svg',
-  walkable: cell => cell.row >= 2 && cell.row <= 17 && ellipse(cell, 25, 22, 12.2, 9.3, .02),
+  walkable: cell => cell.row >= 2 && cell.row <= 16 && ellipse(cell, 25, 22, 12.2, 9.3, .02),
+  materialAt: cell => cell.row >= 13 ? 'sand-wet' : 'sand',
   blocked: [
-    ...[[2,3],[4,4],[20,3],[22,6],[3,16],[21,16],[6,6],[19,7]].map(([col,row], i) => ({ cell: { col: col!, row: row! }, id: `beach-rock-${i + 1}` })),
-    ...characterTents('beach', [{ col: 6, row: 11 }, { col: 18, row: 11 }, { col: 12, row: 5 }]).blocked,
-    { cell: { col: 12, row: 10 }, id: 'beach-fire' },
-    { cell: { col: 3, row: 6 }, id: 'beach-boat' }, { cell: { col: 9, row: 9 }, id: 'beach-seat' }
+    ...[[2,3],[5,4],[9,6],[13,6],[17,7],[21,5],[22,10],[19,14],[7,13],[3,15],[20,16]].map(([col,row], i) => ({ cell: { col: col!, row: row! }, id: `beach-rock-${i + 1}` })),
+    { cell: { col: 13, row: 9 }, id: 'beach-fire' },
+    { cell: { col: 4, row: 13 }, id: 'beach-boat' }, { cell: { col: 11, row: 10 }, id: 'beach-seat' }
   ],
   points: [
-    ...characterTents('beach', [{ col: 6, row: 11 }, { col: 18, row: 11 }, { col: 12, row: 5 }]).points,
-    point('beach-fire-point', 'Hoguera entre rocas', 'fire', { col: 12, row: 9 }, { col: 12, row: 10 }, 'Hoguera hundida en un abrigo de piedra.'),
-    point('beach-seat-point', 'Asiento de deriva', 'seat', { col: 10, row: 8 }, { col: 9, row: 9 }, 'Tronco de naufragio usado como banco.'),
-    point('beach-boat-point', 'Bote varado', 'guard', { col: 5, row: 6 }, { col: 3, row: 6 }, 'Bote inutilizado por la marea; sin transición al pecio.'),
-    point('beach-guard-point', 'Puesto de guardia · costa', 'guard', { col: 12, row: 2 }, { col: 12, row: 2 }, 'Vigila la rompiente y los accesos entre rocas.')
-  ], spawns: [{ col: 12, row: 11 }, { col: 10, row: 11 }, { col: 14, row: 11 }, { col: 11, row: 8 }, { col: 13, row: 8 }],
-  ambience: [{ id: 'surf-zone', kind: 'waves', density: .9 }, { id: 'coastal-haze', kind: 'mist', density: .32 }]
+    ...campEquipmentPoints('beach', {
+      mia: { bed: { col: 10, row: 8 }, pack: { col: 9, row: 8 }, kit: { col: 10, row: 9 } },
+      mike: { bed: { col: 12, row: 7 }, pack: { col: 12, row: 6 }, kit: { col: 13, row: 7 } },
+      maria: { bed: { col: 15, row: 9 }, pack: { col: 16, row: 8 }, kit: { col: 15, row: 10 } }
+    }, { cell: { col: 11, row: 8 }, objectCell: { col: 11, row: 7 }, label: 'Lona paraviento costera', description: 'Lona corta y baja sujeta entre rocas y maderos contra el viento del mar.' }),
+    point('beach-fire-point', 'Hoguera entre rocas', 'fire', { col: 13, row: 10 }, { col: 13, row: 9 }, 'Fuego hundido en arena seca al abrigo de las rocas costeras.'),
+    point('beach-seat-point', 'Madero de deriva', 'seat', { col: 11, row: 11 }, { col: 11, row: 10 }, 'Tronco blanqueado por la sal usado como asiento.'),
+    point('beach-boat-point', 'Bote varado', 'guard', { col: 6, row: 12 }, { col: 4, row: 13 }, 'Bote astillado varado en la franja húmeda; sin transición al pecio.'),
+    point('beach-guard-point', 'Puesto de guardia · rompiente', 'guard', { col: 17, row: 12 }, { col: 18, row: 13 }, 'Roca costera con vista abierta sobre la rompiente y los accesos.')
+  ], spawns: [{ col: 14, row: 10 }, { col: 11, row: 9 }, { col: 15, row: 11 }, { col: 12, row: 10 }, { col: 14, row: 8 }],
+  ambience: [{ id: 'surf-zone', kind: 'waves', density: .9 }, { id: 'coastal-haze', kind: 'mist', density: .30 }]
 };
 
 const cliffs: Scenario = {
   id: 'camp-cliffs-observatory', title: '04 · Acantilados del Observatorio', profile: 'cliff-observatory', canonStatus: 'vtt-ambience',
-  safetyNotice: 'Meseta VTT_AMBIENCE previa al observatorio. No es un lugar canónico de descanso seguro; decide el DM.',
+  safetyNotice: 'Meseta VTT_AMBIENCE previa al observatorio. Vivac austero y expuesto; decide el DM.',
   cols: 25, rows: 22, materialId: 'basalt', background: '/art/camp-rests/marker.svg',
   walkable: cell => rect(cell, 2, 22, 2, 18) && ellipse(cell, 25, 22, 12, 9.6, .04),
   blocked: [
     ...[[4,4],[20,5],[5,16],[19,16]].map(([col,row], i) => ({ cell: { col: col!, row: row! }, id: `basalt-pillar-${i + 1}` })),
-    ...[[8,5],[17,7],[8,15],[17,14]].map(([col,row], i) => ({ cell: { col: col!, row: row! }, id: `arcane-crystal-${i + 1}` })),
-    ...characterTents('cliff', [{ col: 7, row: 10 }, { col: 18, row: 10 }, { col: 12, row: 5 }]).blocked,
+    ...[[7,5],[18,7],[7,15],[18,14]].map(([col,row], i) => ({ cell: { col: col!, row: row! }, id: `arcane-crystal-${i + 1}` })),
+    ...[[9,7],[10,7],[13,7],[8,9],[16,9]].map(([col,row], i) => ({ cell: { col: col!, row: row! }, id: `cliff-windbreak-${i + 1}` })),
     { cell: { col: 12, row: 10 }, id: 'cliff-fire' },
-    { cell: { col: 3, row: 12 }, id: 'cliff-seat-a' }, { cell: { col: 15, row: 12 }, id: 'cliff-seat-b' }
+    { cell: { col: 11, row: 11 }, id: 'cliff-seat-a' }, { cell: { col: 14, row: 9 }, id: 'cliff-seat-b' }
   ],
   points: [
-    ...characterTents('cliff', [{ col: 7, row: 10 }, { col: 18, row: 10 }, { col: 12, row: 5 }]).points,
-    point('cliff-fire-point', 'Hoguera protegida', 'fire', { col: 12, row: 9 }, { col: 12, row: 10 }, 'Brasero bajo entre muros de basalto.'),
-    point('cliff-seat-a-point', 'Asiento de piedra oeste', 'seat', { col: 4, row: 12 }, { col: 3, row: 12 }, 'Piedra plana orientada a los cristales.'),
-    point('cliff-seat-b-point', 'Asiento de piedra este', 'seat', { col: 15, row: 13 }, { col: 15, row: 12 }, 'Piedra plana junto a la senda.'),
-    point('cliff-guard-point', 'Puesto de guardia · cornisa', 'guard', { col: 12, row: 2 }, { col: 12, row: 2 }, 'Atalaya de cara a la costa.')
-  ], spawns: [{ col: 12, row: 12 }, { col: 10, row: 12 }, { col: 14, row: 12 }, { col: 11, row: 8 }, { col: 13, row: 8 }],
-  ambience: [{ id: 'cliff-wind-mist', kind: 'mist', density: .24 }, { id: 'cliff-embers', kind: 'embers', density: .28 }]
+    ...campEquipmentPoints('cliff', {
+      mia: { bed: { col: 9, row: 9 }, pack: { col: 9, row: 8 }, kit: { col: 10, row: 9 } },
+      mike: { bed: { col: 11, row: 8 }, pack: { col: 12, row: 7 }, kit: { col: 11, row: 9 } },
+      maria: { bed: { col: 14, row: 11 }, pack: { col: 15, row: 11 }, kit: { col: 13, row: 12 } }
+    }, { cell: { col: 10, row: 9 }, objectCell: { col: 10, row: 8 }, label: 'Lona baja lastrada con rocas', description: 'Toldo muy bajo amarrado con cuerdas y piedras de anclaje contra el vendaval.' }),
+    point('cliff-fire-point', 'Hoguera protegida', 'fire', { col: 12, row: 11 }, { col: 12, row: 10 }, 'Brasa recogida tras los bloques de basalto, con olla y poca leña.'),
+    point('cliff-seat-a-point', 'Laja de basalto oeste', 'seat', { col: 10, row: 12 }, { col: 11, row: 11 }, 'Piedra plana natural al resguardo del viento.'),
+    point('cliff-seat-b-point', 'Piedra plana este', 'seat', { col: 15, row: 9 }, { col: 14, row: 9 }, 'Laja oscura junto al rescoldo.'),
+    point('cliff-guard-point', 'Cornisa del acantilado', 'guard', { col: 12, row: 3 }, { col: 12, row: 2 }, 'Saliente natural de basalto hacia el mar y las auroras.')
+  ], spawns: [{ col: 13, row: 11 }, { col: 10, row: 11 }, { col: 15, row: 10 }, { col: 11, row: 12 }, { col: 14, row: 12 }],
+  ambience: [{ id: 'cliff-wind-mist', kind: 'mist', density: .26 }, { id: 'cliff-embers', kind: 'embers', density: .25 }]
 };
 
 const cove: Scenario = {
   id: 'camp-coastal-refuge', title: '05 · Refugio costero de Pleamar', profile: 'coastal-refuge', canonStatus: 'vtt-ambience',
-  safetyNotice: 'Refugio opcional de VTT_AMBIENCE. No es B6 y no elimina los peligros canónicos de las cuevas; decide el DM.',
+  safetyNotice: 'Refugio natural bajo bóveda rocosa. Sin lonas; las pozas de marea y los peligros de la costa siguen vigentes.',
   cols: 25, rows: 22, materialId: 'cave-rock', background: '/art/camp-rests/marker.svg',
   walkable: cell => ellipse(cell, 25, 22, 11.7, 9.4, .03),
-  materialAt: cell => [[4,7],[5,7],[4,8],[19,8],[20,8],[20,9],[9,16],[10,16]].some(([col,row]) => cell.col === col && cell.row === row) ? 'water' : 'cave-rock',
+  materialAt: cell => [[4,7],[5,7],[4,8],[19,8],[20,8],[20,9],[9,16],[10,16]].some(([col,row]) => cell.col === col && cell.row === row) ? 'water' : (cell.row >= 5 && cell.row <= 9 && cell.col >= 8 && cell.col <= 16 ? 'stone' : 'cave-rock'),
   water: [{ col: 4, row: 7 }, { col: 5, row: 7 }, { col: 4, row: 8 }, { col: 19, row: 8 }, { col: 20, row: 8 }, { col: 20, row: 9 }, { col: 9, row: 16 }, { col: 10, row: 16 }],
   blocked: [
-    ...[[2,3],[5,3],[20,3],[22,6],[3,16],[21,16],[6,6],[18,5]].map(([col,row], i) => ({ cell: { col: col!, row: row! }, id: `cove-rock-${i + 1}` })),
-    ...characterTents('cove', [{ col: 7, row: 11 }, { col: 18, row: 11 }, { col: 12, row: 5 }]).blocked,
-    { cell: { col: 12, row: 12 }, id: 'cove-fire' },
-    { cell: { col: 3, row: 12 }, id: 'cove-seat-a' }, { cell: { col: 15, row: 12 }, id: 'cove-seat-b' }
+    ...[[2,3],[5,3],[20,3],[22,6],[3,16],[21,16],[6,6],[18,5],[8,4],[17,4]].map(([col,row], i) => ({ cell: { col: col!, row: row! }, id: `cove-rock-${i + 1}` })),
+    { cell: { col: 12, row: 10 }, id: 'cove-fire' },
+    { cell: { col: 10, row: 10 }, id: 'cove-seat-a' }, { cell: { col: 14, row: 11 }, id: 'cove-seat-b' }
   ],
   points: [
-    ...characterTents('cove', [{ col: 7, row: 11 }, { col: 18, row: 11 }, { col: 12, row: 5 }]).points,
-    point('cove-fire-point', 'Hoguera · centro del refugio', 'fire', { col: 12, row: 11 }, { col: 12, row: 12 }, 'Hoguera pequeña con salida de humo al exterior.'),
-    point('cove-seat-a-point', 'Asiento junto a la poza oeste', 'seat', { col: 4, row: 13 }, { col: 3, row: 12 }, 'Piedra seca junto a una poza somera.'),
-    point('cove-seat-b-point', 'Asiento junto a la poza este', 'seat', { col: 15, row: 13 }, { col: 15, row: 12 }, 'Piedra lisa al abrigo del viento.'),
-    point('cove-guard-point', 'Puesto de guardia · boca marina', 'guard', { col: 12, row: 2 }, { col: 12, row: 2 }, 'Vigila la entrada y la marea.')
-  ], spawns: [{ col: 12, row: 11 }, { col: 10, row: 11 }, { col: 14, row: 11 }, { col: 11, row: 9 }, { col: 13, row: 9 }],
+    ...campEquipmentPoints('cove', {
+      mia: { bed: { col: 9, row: 6 }, pack: { col: 8, row: 5 }, kit: { col: 9, row: 7 } },
+      mike: { bed: { col: 12, row: 6 }, pack: { col: 12, row: 5 }, kit: { col: 11, row: 7 } },
+      maria: { bed: { col: 15, row: 7 }, pack: { col: 16, row: 6 }, kit: { col: 14, row: 8 } }
+    }),
+    point('cove-fire-point', 'Hoguera junto a la boca', 'fire', { col: 12, row: 11 }, { col: 12, row: 10 }, 'Fuego contenido en depresión de roca con tiro de humo hacia el mar.'),
+    point('cove-seat-a-point', 'Roca lisa interior', 'seat', { col: 10, row: 11 }, { col: 10, row: 10 }, 'Bloque seco de piedra junto a la zona elevada.'),
+    point('cove-seat-b-point', 'Piedra cerca de la entrada', 'seat', { col: 14, row: 12 }, { col: 14, row: 11 }, 'Piedra plana seca al abrigo de la bóveda.'),
+    point('cove-guard-point', 'Boca marina del refugio', 'guard', { col: 12, row: 14 }, { col: 13, row: 15 }, 'Vigilancia frente al oleaje de la entrada y las pozas.')
+  ], spawns: [{ col: 13, row: 11 }, { col: 10, row: 12 }, { col: 14, row: 9 }, { col: 11, row: 11 }, { col: 11, row: 9 }],
   ambience: [{ id: 'cove-water', kind: 'waves', density: .36 }, { id: 'cove-mist', kind: 'mist', density: .25 }]
 };
-
 function terrainFor(spec: Scenario): TerrainDefinition {
   const blockedByCell = new Map((spec.blocked ?? []).map(item => [key(item.cell), item.id]));
   const water = new Set((spec.water ?? []).map(key));

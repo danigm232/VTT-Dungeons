@@ -15,3 +15,7 @@ Leer `docs/design/VISUAL_ART_DIRECTION.md` y `docs/VISUAL_ROADMAP.md`. Consultar
 - Las capturas comerciales son material de estudio con atribución, no recursos del juego ni activos declarados libres. Registrar procedencia de originales y derivados propios/reutilizados.
 
 No ejecutar por defecto todo el roadmap visual durante una tarea de red, guardado o corrección funcional. No cambiar automáticamente de modelo, usar subagentes o publicar en GitHub sin autorización que lo cubra. Una actualización de documentos no equivale a implementación gráfica o despliegue.
+
+## Recursos de personajes: pipeline obligatorio
+
+Por encargo explícito del usuario del 16/11/2026, cualquier creación o modificación de personaje, criatura, sprite, atlas, pose, animación, anatomía, ropa, armadura, arma, objeto equipable, máscara, overlay o material asociado debe seguir `docs/CHARACTER_ASSET_PIPELINE.md`. Consultar definición/anatomía y buscar reutilización antes de producir. Crear o actualizar la definición, conservar originales, validar técnicamente, revisar visualmente la candidata y registrar compatibilidades/excepciones antes de integrar. Usar las herramientas del pipeline; no generar sprites deprisa saltándose ese proceso. Los errores bloqueantes impiden la importación/promoción. No superponer equipo nuevo sobre equipo pintado sin reemplazo declarado. No dar por acabada infraestructura que no se haya ejecutado; estado efectivo en `docs/evidence/CHARACTER_MODULAR_20261116.md`.

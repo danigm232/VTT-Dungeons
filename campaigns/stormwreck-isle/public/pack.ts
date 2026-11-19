@@ -4,6 +4,7 @@ import { wreckRuntimeScenes } from './wreck-runtime.js';
 import { dragonRestScene } from './retreat-runtime.js';
 import { stormwreckFacingSprites } from './facing-sprites.js';
 import { installPlayerLocomotion } from '../../../engine/client/player-locomotion.js';
+import { installCharacterMotion } from '../../../engine/client/character-motion.js';
 import { installCombatVisualFallbacks } from '../../../engine/shared/combat-animation.js';
 
 const cells = (ranges: Array<[row: number, first: number, last: number]>): Cell[] => {
@@ -381,5 +382,11 @@ export const publicCampaignDefinition = validatePublicCampaign({
     sceneProfiles: { ...(campRestsPublicCampaign.audio.sceneProfiles ?? {}), ...(definition.audio.sceneProfiles ?? {}) }
   }
 } satisfies PublicCampaignDefinition);
+// Reuse authored sailor appearances without adding any actor or encounter.
+for(const variant of [2,3,4]){
+  publicCampaignDefinition.tokens[`zombie-${variant}`]={...publicCampaignDefinition.tokens.zombie!,url:`/art/m3/zombie/zombie${variant}_base.png`};
+  publicCampaignDefinition.tokenAnimations[`zombie-${variant}`]={};
+}
 installPlayerLocomotion(publicCampaignDefinition);
+installCharacterMotion(publicCampaignDefinition);
 installCombatVisualFallbacks(publicCampaignDefinition);

@@ -56,6 +56,31 @@ try {
     New-Item -ItemType Directory -Path (Join-Path $fixtureRoot 'runtime/prepared-empty') -Force | Out-Null
     Set-OldTree 'runtime/prepared-empty'
     Assert-True ((Test-MaintenanceTarget $context (Join-Path $fixtureRoot 'runtime/prepared-empty')).Bytes -eq 0) 'An empty stale directory must be handled safely.'
+    Write-Fixture 'runtime/prepared-godot/project.godot' | Out-Null
+    Set-OldTree 'runtime/prepared-godot'
+    Assert-Refused { Test-MaintenanceTarget $context (Join-Path $fixtureRoot 'runtime/prepared-godot') } 'Even an old temporary Godot project must survive.'
+    Write-Fixture 'tmp/godot-source/scripts/player.gd' | Out-Null
+    Set-OldTree 'tmp/godot-source'
+    Assert-Refused { Test-MaintenanceTarget $context (Join-Path $fixtureRoot 'tmp/godot-source') } 'Godot sources must survive even without a project marker.'
+    Add-Build 'launcher-build'
+    $context | Add-Member -NotePropertyName ProtectedPaths -NotePropertyValue @('output/launcher-build')
+    Assert-Refused { Test-MaintenanceTarget $context (Join-Path $fixtureRoot 'output/launcher-build') } 'Launcher-referenced folders must survive.'
+    Write-Fixture 'scripts/open-review.mjs' "const build = path.join(root, 'runtime', 'live-build');" | Out-Null
+    Write-Fixture 'OPEN.cmd' 'node runtime\current-build\server.js' | Out-Null
+    $protectedPaths = Get-MaintenanceProtectedPaths $fixtureRoot
+    Assert-True ($protectedPaths.Contains('runtime/live-build')) 'Paths composed in launch scripts must be protected.'
+    Assert-True ($protectedPaths.Contains('runtime/current-build')) 'Windows launcher paths must be protected.'
+    $imageNames = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    Add-MaintenanceImageReferences ('bad|token.png /art/keep.webp /art/%00invalid.png') $imageNames
+    Assert-True ($imageNames.Contains('keep.webp')) 'Malformed path tokens in source tests must not stop reference scanning.'
+    Write-Fixture 'tmp/profile-audit/chrome-stale/Local State' '{}' | Out-Null
+    Write-Fixture 'tmp/profile-audit/chrome-stale/Default/Preferences' '{}' | Out-Null
+    Set-OldTree 'tmp/profile-audit'
+    foreach ($version in 1..3) {
+        Write-Fixture "runtime/previous-build-$version/server/apps/server/index.js" | Out-Null
+        Set-OldTree "runtime/previous-build-$version"
+        (Get-Item -LiteralPath (Join-Path $fixtureRoot "runtime/previous-build-$version")).LastWriteTimeUtc = [DateTime]::UtcNow.AddDays(-20 + $version)
+    }
     $linked = Join-Path $fixtureRoot 'output/junction'
     New-Item -ItemType Junction -Path $linked -Target (Join-Path $fixtureRoot 'campaigns') | Out-Null
     Assert-Refused { Get-MaintenancePath $fixtureRoot $linked } 'Junctions must not be traversed.'
@@ -67,6 +92,8 @@ try {
     Write-Fixture 'docs/evidence.md' '![keep](../output/a1-review/keep.png)' | Out-Null
     Write-Fixture 'output/a1-review/absolute.png' | Out-Null
     Write-Fixture 'docs/absolute.json' ('{"capture":"' + (Join-Path $fixtureRoot 'output/a1-review/absolute.png').Replace('\', '/') + '"}') | Out-Null
+    Write-Fixture 'output/a1-review/godot-used.png' | Out-Null
+    Write-Fixture 'prototypes/godot-pecio/scripts/resource.gd' 'const art = preload("../../../../output/a1-review/godot-used.png")' | Out-Null
     Write-Fixture 'output/imagegen/original.png' | Out-Null
     Write-Fixture 'output/a1-review/sources/reference.png' | Out-Null
     Set-OldTree 'output/a1-review'
@@ -74,9 +101,15 @@ try {
     $plan = New-MaintenancePlan $context
     $paths = @($plan.Candidates | ForEach-Object { $_.Relative })
     Assert-True ($paths -contains 'output/stale') 'The dry run should find old compiled builds.'
+    Assert-True ($paths -contains 'tmp/profile-audit/chrome-stale') 'Isolated, old browser profiles should be recognized.'
+    Assert-True ($paths -notcontains 'runtime/prepared-godot') 'The plan must preserve Godot projects.'
+    Assert-True ($paths -notcontains 'output/launcher-build') 'The plan must preserve launcher targets.'
+    Assert-True ($paths -contains 'runtime/previous-build-1') 'An old surplus rollback should be eligible.'
+    Assert-True (@($paths | Where-Object { $_ -match '^runtime/previous-build-[23](/|$)' }).Count -eq 0) 'The newest two rollbacks and their compiled descendants must survive.'
     Assert-True ($paths -contains 'output/a1-review/loose.png') 'The dry run should find old unreferenced captures.'
     Assert-True ($paths -notcontains 'output/a1-review/keep.png') 'Documentation-linked captures must survive.'
     Assert-True ($paths -notcontains 'output/a1-review/absolute.png') 'Absolute image references must survive.'
+    Assert-True ($paths -notcontains 'output/a1-review/godot-used.png') 'Images referenced from Godot source must survive.'
     Assert-True ($paths -notcontains 'output/imagegen/original.png') 'Generated original artwork must not be mistaken for a screenshot.'
     Assert-True ($paths -notcontains 'output/a1-review/sources/reference.png') 'Source material inside a review must survive.'
     Assert-True ($paths -notcontains 'output/recent') 'Recent builds must not be planned.'

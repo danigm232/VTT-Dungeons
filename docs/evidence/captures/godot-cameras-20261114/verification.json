@@ -1,0 +1,101 @@
+{
+  "date": "2026-11-14",
+  "engine": "4.7.2.stable.official.ed1daf0bf",
+  "tests": [
+    {
+      "project": "godot-pecio",
+      "test": "test_camera_contract",
+      "result": "PASS",
+      "log_sha256": "1942710211012c7279b0a114bbf80dad8e092ee9f4782aed48936e721e48b2dd"
+    },
+    {
+      "project": "godot-pecio",
+      "test": "test_vtt_interfaces",
+      "result": "PASS",
+      "log_sha256": "457c954d8a8fc227162afbea33794e442c423979b2de4b4b0cc3c4d826e5c443"
+    },
+    {
+      "project": "godot-pecio",
+      "test": "test_babylon_camera_parity",
+      "result": "PASS",
+      "log_sha256": "28f9c3584dcb084f7a438aa0edbd04fa6de8f690903e73d56fcb9fe23571961d"
+    },
+    {
+      "project": "godot-pecio",
+      "test": "test_character_animations",
+      "result": "PASS",
+      "log_sha256": "e1a777a3a5e9d7ac0e1ca24d3aaafac135cd8de80f650a5a048bea037cbab94f"
+    },
+    {
+      "project": "godot-pecio",
+      "test": "test_doors_alignment",
+      "result": "PASS",
+      "log_sha256": "1f20c2ac6424cf3e080b49013b0011b32c4949ead3a3812150c7fb7bd6a6fb3b"
+    },
+    {
+      "project": "godot-pecio",
+      "test": "test_pecio_integrity",
+      "result": "PASS",
+      "log_sha256": "e4ca748713ccf792e7cfcb1d07924ae608f670c2ac0823b65312ce098716dbbd"
+    },
+    {
+      "project": "godot-retiro",
+      "test": "test_camera_contract",
+      "result": "PASS",
+      "log_sha256": "1942710211012c7279b0a114bbf80dad8e092ee9f4782aed48936e721e48b2dd"
+    },
+    {
+      "project": "godot-retiro",
+      "test": "test_retreat_layout",
+      "result": "PASS",
+      "log_sha256": "9f471bd5a7397def230d8a985b8c88c7cb43d0f9fefdf2a4302c28d1d50f0817"
+    },
+    {
+      "project": "godot-retiro",
+      "test": "test_map_exits",
+      "result": "PASS",
+      "log_sha256": "a3558d80e0668be9dafb2b4d4658e3120c87f9a29214a5214e56dc1b6b477974"
+    }
+  ],
+  "camera_base_sha256": "eb8a3d4e33748f56877a32c0a63bcbcfd0730540adcd9c09739ce4dc8bba7b6c",
+  "camera_bases_identical": true,
+  "captures": [
+    {
+      "file": "pecio-dm-controls.png",
+      "sha256": "5a70d3ee17d3aa686bbb0bcddcef15c39a81a8a6764fa3e201b8d5a3c06329c4"
+    },
+    {
+      "file": "pecio-dm-interior.png",
+      "sha256": "e57ee081f8701f2cf82784e07d27b2f238ea926db979bfff7887755296891f20"
+    },
+    {
+      "file": "pecio-player-25.png",
+      "sha256": "c7b7817d49ad3b695211c1598ff9c0d7dd79d5455696849269a78fa57cfb071e"
+    },
+    {
+      "file": "pecio-player-5.png",
+      "sha256": "1fb31204862431eb2bec6ca1898717f33e61bad281bd810a59af4a1fc7828288"
+    },
+    {
+      "file": "retiro-dm-controls.png",
+      "sha256": "949791b63657a77a3864cd101df12ed6b60dc79e4b3cc5030c96094a8483acb0"
+    },
+    {
+      "file": "retiro-dm-interior.png",
+      "sha256": "030934065146c89037497979ae018d022ef3d35a6b1894b80e450795dff9fbbd"
+    },
+    {
+      "file": "retiro-player-25.png",
+      "sha256": "5a385ba4e425114f6be3683c8acedd5751254d2fcd36cd7e12f0ca996cdfbd82"
+    },
+    {
+      "file": "retiro-player-5.png",
+      "sha256": "87110ff73736619f5c8b7f8da3318f7291688589a56c9c5a24e094fe4b11a73c"
+    }
+  ],
+  "limitations": [
+    "local role preview only; campaign networking not implemented",
+    "physical mobile/projector tests pending",
+    "parallel loading-screen feature excluded from publication"
+  ]
+}

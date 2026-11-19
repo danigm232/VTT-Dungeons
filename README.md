@@ -16,6 +16,21 @@ Los encargos iniciales para sus sesiones separadas de Codex son [Dani / D0](docs
 
 ## Ejecutar en Windows
 
+**Accesos principales:**
+
+| Quiero abrir… | Archivo en la raíz |
+| --- | --- |
+| VTT web Babylon, con mesa LAN para móviles y proyector | `INICIAR.cmd` |
+| Pecio o Retiro nativos de Godot, con selector de rol | `JUGAR-GODOT.cmd` |
+| Visor de las pantallas de habilidades de Godot | `PROBAR-CARGAS-GODOT.cmd` |
+| Revisión y limpieza de residuos antiguos | `MANTENIMIENTO.cmd` |
+
+Los proyectos editables de Godot están en `prototypes/godot-pecio/` y
+`prototypes/godot-retiro/`; sus funciones locales y los pendientes de integración
+con la mesa web se detallan en [PROJECT_STATE.md](PROJECT_STATE.md). El
+[mapa de carpetas](docs/WORKSPACE_MAINTENANCE.md) identifica las fuentes,
+guardados y archivos temporales de ambos motores.
+
 **Actualización Retiro/Pecio del 02/11 instalada en el puerto 3000.** El arranque normal incluye el acabado y el cráneo terminado. Los informes de materiales/cráneo e iluminación permiten pulsar la imagen para alternar antes/después y ampliarla. **Revisión aislada opcional:** abre `REVISAR-ACABADO.cmd` para probar materiales ilustrados y el cráneo terminado en una partida temporal, en otro puerto. La consola muestra los enlaces DM/jugador/proyector del PC; escribe `quit` para cerrarla. No sustituye la mesa habitual. [Capturas y resultado](output/stormwreck-style-sample-20261101/index.html), [alcance y pruebas](docs/evidence/STORMWRECK_STYLE_SKULL_20261102.md). Si falta su compilación la prepara automáticamente; para reconstruirla expresamente: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/review-stormwreck-style.ps1 -Build`.
 
 Para ordenar los archivos de trabajo y retirar residuos antiguos, abre

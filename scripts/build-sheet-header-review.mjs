@@ -1,0 +1,17 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {visualComparison,visualComparisonAssets} from './lib/visual-comparison.mjs';
+const out='output/godot-sheet-header-20261117';
+const hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+const images=['before-mia.png','after-mia.png','before-mike.png','after-mike.png','compact-mia.png','damaged-mia.png'];
+const artRoot='prototypes/godot-shared/character_sheet/';
+const sourcesPath=path.join(artRoot,'art/v7/sources.json');
+const sources=JSON.parse(fs.readFileSync(sourcesPath));
+sources.assets[0].sha256=hash(path.join(artRoot,'art/v7/royal-controls.png'));
+sources.code_resources=['character_sheet.gd','header_finish.gd','hp_finish.gd','presentation.gd'].map(owner=>({owner,sha256:hash(path.join(artRoot,owner))}));
+fs.writeFileSync(sourcesPath,JSON.stringify(sources,null,2));
+fs.writeFileSync(path.join(out,'originals.json'),JSON.stringify(images.map(file=>({file,width:fs.readFileSync(path.join(out,file)).readUInt32BE(16),height:fs.readFileSync(path.join(out,file)).readUInt32BE(20),sha256:hash(path.join(out,file))})),null,2));
+const pairs=['mia','mike'].map(id=>visualComparison({before:`before-${id}.png`,after:`after-${id}.png`,title:`${id==='mia'?'Mia':'Mike'} · cabecera y puntos de golpe`,width:1600,height:900})).join('');
+fs.writeFileSync(path.join(out,'index.html'),`<!doctype html><html lang="es"><meta charset="utf-8"><title>Cabecera y vida · Godot</title><style>body{background:#142126;color:#f6e4bd;font:17px/1.5 system-ui;margin:30px auto;max-width:1500px;padding:0 20px}a{color:#edc780}h1{font-family:Georgia}img{max-width:100%}summary{cursor:pointer}</style><h1>Cabecera y puntos de golpe</h1><p>Candidata integrada en Godot · 17/11/2026. Dos bloques: vida; retrato, identidad y pestañas. Valores y reglas existentes. La aprobación artística sigue pendiente.</p><p>Comparación a 1600 × 900, misma escena, cámara inicial, hora, clima y personaje. Las fases de reposo, agua y corazón pueden variar. Pulsa o usa Enter para alternar; Ampliar permite revisar el detalle.</p>${pairs}<details><summary>Comprobación a 1366 × 768</summary><img src="compact-mia.png" alt="Ficha compacta"></details><details><summary>Vida parcial y puntos temporales · estado de prueba diferente</summary><img src="damaged-mia.png" alt="Mia con 4 de 11 puntos y 3 temporales"></details><p>Arte: un atlas de controles generado con image_gen; retratos existentes reutilizados. Corazón: seis texturas derivadas por escala con pausa entre latidos. No son seis dibujos independientes. <a href="../../../prototypes/godot-shared/character_sheet/art/v7/sources.json">Original y prompt</a> · <a href="originals.json">Capturas y hashes</a></p>${visualComparisonAssets()}</html>`);
+console.log('Header review built.');
