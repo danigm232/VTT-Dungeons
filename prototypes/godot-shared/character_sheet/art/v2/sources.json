@@ -1,0 +1,64 @@
+{
+  "date": "2026-11-16",
+  "tool": "Built-in image_gen",
+  "purpose": "Second user-requested character-sheet revision; decorative UI assets and profile paintings, not new rules, world maps or canonical lore",
+  "assets": [
+    {
+      "id": "RPG-SHEET-V2-MIA-PORTRAIT",
+      "file": "art/v2/mia-portrait.png",
+      "original": "exec-a694fe85-5881-4ed4-b203-59abb285dcc5.png",
+      "reference": "res://assets/tokens/cleric.png",
+      "prompt": "Transform the supplied game character reference into a square head-and-shoulders profile portrait for an illustrated medieval RPG character sheet. Preserve THIS actual character's identity: stout dwarf, swept-back vivid auburn hair, long thick braided red beard, stern warm expression, heavy silver-and-black plate armour with aged gold fittings and white tabard. Do not turn the dwarf into the female character from an unrelated UI example. Detailed hand-painted ink and watercolor illustration, warm parchment/antique brass palette, expressive readable face at thumbnail size. Face in three-quarter view looking slightly right, upper torso fills canvas, plain muted dark teal background. No text, no letters, no frame, no weapons crossing the face. Match the supplied armour and hair; this is a profile painting, not a replacement world sprite."
+    },
+    {
+      "id": "RPG-SHEET-V2-MARIA-PORTRAIT",
+      "file": "art/v2/maria-portrait.png",
+      "original": "exec-85935f9d-83fe-4641-8fb7-beeb7aabb1c7.png",
+      "reference": "res://assets/tokens/rogue-maria-v1.png",
+      "prompt": "Transform the supplied character reference into a square head-and-shoulders profile portrait for an illustrated medieval RPG character sheet. Preserve Trinity's identity from this exact reference: young adult female halfling rogue, tousled short dark curls, light freckled skin, alert dark eyes, white wool/fur collar, cream cloth and dark brown leather straps and light armour. Determined, wry expression. Hand-painted ink and delicate watercolor with warm antique manuscript palette, excellent readable face at thumbnail size. Three-quarter view looking slightly left, upper torso fills canvas, plain muted charcoal-olive background. No text, no letters, no frame, no generic elf ears, no invented jewellery. Preserve the supplied face, haircut, clothing and proportions; profile painting only, not a replacement game sprite."
+    },
+    {
+      "id": "RPG-SHEET-V2-MIKE-PORTRAIT",
+      "file": "art/v2/mike-portrait.png",
+      "original": "exec-bd0a705c-66ec-474a-b3d1-904aa7c7a560.png",
+      "reference": "res://assets/tokens/wizard.png",
+      "prompt": "Transform the supplied game character reference into a square head-and-shoulders profile portrait for an illustrated medieval RPG character sheet. Preserve Mike's actual visual identity from the supplied reference: slender youthful adult high elf, pale skin, long straight pale blond hair, pointed ears, blue eyes, royal blue wizard robes with intricate gold edging, high collar and brown leather straps. Quiet scholarly expression. Hand-painted ink and refined watercolor, warm antique illuminated-manuscript finish, clear expressive face at thumbnail size. Three-quarter view looking slightly right, upper torso fills canvas, plain muted deep blue background. No text, letters, frame, beard, hat or new staff across face. Preserve the character's clothing and identity; this portrait does not replace the world sprite."
+    },
+    {
+      "id": "RPG-SHEET-V2-MIA-STAGE",
+      "file": "art/v2/mia-stage.png",
+      "original": "exec-f4dbecd5-2f6f-46ed-ac2a-2667c068f354.png",
+      "prompt": "Production background asset for an RPG character-sheet display, portrait 2:3. EMPTY dwarven chapel alcove, warm carved grey stone, sober white-and-blue hanging cloth, two small candle braziers at the side edges. Foreground: a clearly visible broad circular carved limestone platform, entire platform fully inside image, its top surface at 82% of image height. Dark calm empty central space from 25% to 76% height, to overlay the ACTUAL game sprite later. Dwarf cleric and soldier theme, restrained sun and shield carvings only as decorative visual echoes of the existing character's equipment. Refined hand-painted illuminated-manuscript illustration, old brass details, cream/amber light, quiet navy backdrop. Front view, symmetric architectural framing, no camera tilt, no character, no silhouette, no text or writing, no UI controls. No inventory, weapons, loot or named lore. This is a decorative character-display scene, not a new game map. The central floor/plinth is unobstructed. Leave space above each side brazier for native animated sparks."
+    },
+    {
+      "id": "RPG-SHEET-V2-MARIA-STAGE",
+      "file": "art/v2/maria-stage.png",
+      "original": "exec-f2589eb6-937e-49b6-afe9-50fdebe60f2f.png",
+      "prompt": "Production background asset for an RPG character-sheet display, portrait 2:3. EMPTY old fantasy-city backstreet alcove evoking a halfling rogue's criminal background and journey to a coastal city: weathered warm stone arch, dark timber shutters, distant muted blue rooftops, a small lantern on the far left, a few climbing ivy leaves at the outer edges. Foreground: a low broad circular cobblestone platform, fully visible inside canvas, its top surface at 82% image height. Calm dark empty central space from 25% to 76% height for an actual small game sprite overlaid later. Detailed hand-painted ink and watercolor medieval manuscript illustration, aged brass, umber and moss green, soft dusk atmosphere. Frontal view, no tilt. NO person, silhouette, text, lettering, UI controls, treasure, loot, bags or weapons. Decorative character vignette only; do not depict a new canonical place or plot event. Leave uncluttered space for subtle native drifting leaves and a lantern flicker."
+    },
+    {
+      "id": "RPG-SHEET-V2-MIKE-STAGE",
+      "file": "art/v2/mike-stage.png",
+      "original": "exec-5e796416-c339-49ee-a022-483468ed07c0.png",
+      "prompt": "Production background asset for an RPG character-sheet display, portrait 2:3. EMPTY scholarly high-elf wizard's library alcove: elegant curved pale stone columns, bookshelves at the extreme sides, deep blue cloth behind, a high arched window with muted moon-blue light, a few small brass astronomical ornaments above the arch. Foreground: a broad circular blue-grey stone platform with restrained geometric brass inlay, fully visible inside canvas, top surface at 82% image height. Calm empty central space from 25% to 76% height for the ACTUAL game sprite to be overlaid in the engine. Refined hand-painted medieval illuminated-manuscript UI art, dark ink, watercolor, antique brass, scholarly blue palette, frontal symmetric view. NO person, creature, silhouette, letters, numbers, runes, writing or UI controls. Books spines have no text. Decorative character vignette rather than a canonical new map. Leave space above the platform for subtle native animated blue motes."
+    },
+    {
+      "id": "RPG-SHEET-V2-ORNATE-PANEL",
+      "file": "art/v2/ornate-panel.png",
+      "original": "exec-bff632b2-401d-4d64-8619-015817979efb.png",
+      "prompt": "A production reusable medieval fantasy RPG UI PANEL MATERIAL, landscape 3:2, front-facing orthographic, no text or controls. Warm clean ivory parchment center, antique gold and aged brass carved frame, rich but restrained oak-leaf filigree at all FOUR corners, double inset gold bevel, tiny leaf flourishes halfway along the sides. The corners must be crisply illustrated and make a substantial frame, not a thin line. Border occupies about 9% on all four sides; central 80% is quiet readable ivory paper with subtle fibers. Same hand-painted illuminated-manuscript style as an ornate parchment character sheet, walnut backing visible only in the thin outer rim, no red fill. Straight simple middle strips suitable for nine-slice scaling; corner ornaments stay inside the square corner zones. NO letters, labels, numbers, symbols, characters, background scene or watermark. This is ONE panel texture to be used by native controls."
+    },
+    {
+      "id": "RPG-SHEET-V2-ICONS",
+      "file": "art/v2/icons-v2.png",
+      "original": "exec-b7c6360b-fcf6-4fc6-9b6d-0b59690335d2.png",
+      "layout": "6 columns by 4 rows, normalized cell bounds; runtime alpha cutoff 32/255; original alpha retained",
+      "prompt": "Production fantasy RPG interface ICON ATLAS: exactly TWENTY-FOUR richly illustrated medieval manuscript icons in a perfectly aligned 6-column by 4-row regular grid, canvas aspect ratio 3:2, each one centered with 18% transparent cell padding. Transparent background, no letters, numbers, labels, grid lines or UI panels. Consistent fine dark walnut ink hatching with antique brass, muted watercolor cream, red and blue details. Recognizable silhouettes at 32 pixels, detailed hand-painted RPG engravings, not modern minimal line icons or emoji. Row 1 left to right: leather BACKPACK; GOLD COINS; red healing POTION; steel MACE; HAND AXE; SHORT BOW. Row 2: DAGGER; blue FROST CRYSTAL; healing CROSS; blessing RADIANT STAR; magical WAND; open SPELLBOOK. Row 3: feather QUILL; stealth HOODED MASK; THIEF KEY; embroidered CLERIC HOLY SYMBOL; scholarly WIZARD HAT; SOLDIER HELMET. Row 4: articulated CHAINMAIL; leather GLOVES; burning TORCH; brass LANTERN; SHIELD; hourglass. Keep every illustration fully inside its single cell, aligned uniformly. No shadows crossing cells, no additional objects, no characters. Same illuminated-manuscript visual family as gold-and-walnut parchment character sheets."
+    }
+  ],
+  "fonts": [
+    {"family":"Cinzel","file":"fonts/Cinzel.ttf","weight":600,"license":"SIL Open Font License 1.1","license_file":"fonts/Cinzel-OFL.txt","source":"https://github.com/google/fonts/tree/main/ofl/cinzel"},
+    {"family":"Crimson Pro","file":"fonts/CrimsonPro.ttf","weight":500,"license":"SIL Open Font License 1.1","license_file":"fonts/CrimsonPro-OFL.txt","source":"https://github.com/google/fonts/tree/main/ofl/crimsonpro"}
+  ],
+  "acceptance": "Assets integrated and internally reviewed in the current candidate; user artistic acceptance remains separate. Narrative motifs are decorative UI interpretations of existing identity, not canonical additions."
+}

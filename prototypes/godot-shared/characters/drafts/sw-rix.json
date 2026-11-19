@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "kind": "character",
+  "id": "sw-rix",
+  "name": "Rix",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "heightMeters": 0.8,
+  "heightBasis": "visual staging estimate consistent with PDF size category; not an asserted canonical individual height",
+  "aliases": [
+    "rix"
+  ],
+  "source": {
+    "kind": "individual-frames",
+    "files": [
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/rix/idle-01.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/rix/idle-02.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/rix/idle-03.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/rix/idle-04.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/rix/idle-05.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/rix/idle-06.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/rix/idle-07.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/rix/idle-08.png"
+    ],
+    "fps": 2.5,
+    "animation": "idle",
+    "directions": [
+      "se"
+    ],
+    "minimumDistinctFrames": 8,
+    "baseFile": "campaigns/stormwreck-isle/public/art/characters/base-v1/rix.png",
+    "preserveCanvas": true,
+    "referenceHeightPixels": 409,
+    "pivot": [
+      0.5,
+      0.976905311778291
+    ]
+  },
+  "embeddedSlots": [
+    "clothing"
+  ],
+  "equipmentSlots": [],
+  "safeAnimations": [
+    "idle"
+  ],
+  "frameOverrides": {},
+  "states": [
+    "poisoned",
+    "petrified",
+    "frosted",
+    "burned",
+    "cursed",
+    "invisible"
+  ],
+  "visualStyle": "painted inked fantasy VTT character; clear material planes and adult proportions; coherent with existing Stormwreck heroes",
+  "orientation": "Eight idle phases in one authored base view (se); no other views or locomotion claimed",
+  "scale": "calibrate standing body, not total wings/tail envelope",
+  "pivot": "ground support, relative visible bounds; fitted after artwork exists",
+  "dependencies": [],
+  "mechanicalReference": {
+    "pdf": "OneDrive_1_12-9-2026/Aventura Los Dragones de la Isla de las Tempestades.pdf",
+    "pdfSha256": "26a700407a3878f27428755e40fdb8d8a933a9bbd2aeaa9461e33fc6fae2fc69",
+    "pages": [
+      9
+    ]
+  },
+  "production": {
+    "stage": "generated-and-technically-extracted",
+    "expectedFile": "campaigns/stormwreck-isle/public/art/characters/base-v1/rix-idle8.png",
+    "method": "built-in ImageGen; one isolated full-body asset per call",
+    "brief": "devout friendly kobold temple assistant, simple clean ivory sash and humble cloth; decorative symbol is an art interpretation",
+    "background": "true RGBA transparency",
+    "margin": "all anatomy inside canvas with clear gutter; no collage",
+    "referenceStyle": [
+      "campaigns/stormwreck-isle/public/art/m3/trinity/maria_base.png",
+      "prototypes/godot-pecio/assets/tokens/wizard-rest-v1.png"
+    ],
+    "designInterpretation": "Features not specified in the adventure are an art proposal, not added rules or lore",
+    "idleAtlas": {
+      "columns": 4,
+      "rows": 2,
+      "order": "left-to-right then next row",
+      "count": 8,
+      "action": "idle",
+      "direction": "se",
+      "mustKeep": [
+        "identity",
+        "anatomy",
+        "body proportions",
+        "scale",
+        "foot support",
+        "transparent gutters"
+      ]
+    },
+    "promptFile": "output/stormwreck-characters-20261117/rix-idle8.prompt.txt",
+    "original": "campaigns/stormwreck-isle/public/art/characters/base-v1/originals/rix-idle8.png",
+    "originalSha256": "83d198792537d224669eee76c00ba47f32d3cb9292c82708edc4adc0b492bc94",
+    "importReport": "output/stormwreck-characters-20261117/imports/rix.json"
+  },
+  "limitations": [
+    "Eight distinct idle phases in one base view. Other directions and actions are not yet claimed.",
+    "New clothing/equipment swapping is deferred; outfit belongs to this base illustration."
+  ],
+  "review": {
+    "technical": "atlas-extraction-passed; native test pending",
+    "visual": "internally reviewed: complete isolated phases, stable identity and anatomy; live-loop and user acceptance tracked separately",
+    "userAcceptance": "pending",
+    "evidence": [
+      "output/stormwreck-characters-20261117/imports/rix.json",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/originals/rix-idle8.png"
+    ]
+  }
+}

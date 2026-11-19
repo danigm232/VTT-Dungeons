@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "visualStyle": "existing painted D&D character art; coherent map lighting",
+  "orientation": "camera-relative eight directions where authored",
+  "scale": "character_stature.json or explicit source setting; never pose-envelope normalisation",
+  "pivot": "logical feet; preserve source frame floor offset",
+  "states": [
+    "poisoned",
+    "petrified",
+    "frosted",
+    "burned",
+    "cursed",
+    "invisible"
+  ],
+  "dependencies": [
+    "mike",
+    "traveller-pack",
+    "belt-pouch"
+  ],
+  "review": {
+    "visual": "pending",
+    "userAcceptance": "pending",
+    "evidence": [],
+    "deferredByUser": "Vestimenta para una fase posterior"
+  },
+  "kind": "variant",
+  "id": "mike-traveller",
+  "name": "Mike · viajero",
+  "base": "mike",
+  "anatomy": "humanoid-tall",
+  "equipment": {
+    "back": "traveller-pack",
+    "waist": "belt-pouch"
+  },
+  "description": "Actual visual variant using the same character body plus compatible backpack and belt pouch; no new combat profile or inventory grant.",
+  "deferred": true
+}

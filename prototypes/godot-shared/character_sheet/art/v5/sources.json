@@ -1,0 +1,132 @@
+{
+  "date": "2026-11-17",
+  "authoring": "Built-in image_gen",
+  "reference": "User infographic Guía comparativa de personaje fantástico, DESPUÉS and details 1–12. Visual specification only, not character data.",
+  "assets": [
+    {
+      "id": "RPG-SHEET-V5-ACTION-ICONS",
+      "file": "art/v5/action-icons.png",
+      "original": "exec-904172c0-8adb-4dcb-b91c-5eba4eca0d15.png",
+      "prompt": "Production game UI asset atlas, twelve small hand-painted fantasy RPG semantic pictograms, no lettering or numbers. Transparent background. Exactly 4 equal columns by 3 equal rows, each isolated centered with generous transparent margin, no grid lines, no outer sheet frame. Consistent sophisticated medieval illuminated manuscript style, dark chestnut outlines, antique brass edge highlights, jewel colored luminous centers; silhouettes crisp and recognizable at 28 pixels. Row1 left to right: 1 single short sword with steel blade, 2 three blue violet magical missiles flying together, 3 TWO open hands projecting orange flames (burning hands), 4 a BLUE magical shield energy barrier. Row2: 5 a golden mystical eye with blue arcane rings (detect magic), 6 white-gold sacred divine flame, 7 two clasped helping hands, 8 agile figure dodging a sweeping arc. Row3: 9 a boot stepping away from crossed blades (disengage), 10 winged running boots (dash), 11 hooded face in shadow (hide), 12 a crystalline blue focus with orbiting fine gold rings (concentration). No square tile backgrounds, only the pictograms with fine dark/brass outline. Painted illustration, not emoji, not vector, not flat generic interface.",
+      "scope": "UI material/pictogram; no equipable sprite layer",
+      "review": {
+        "technical": "pending",
+        "visual": "candidate",
+        "userAcceptance": "pending"
+      },
+      "width": 1448,
+      "height": 1086,
+      "sha256": "bb7f4e6b86fdd296c4f6762e9b4060271cf6d155fbba081319dca15502e6b107"
+    },
+    {
+      "id": "RPG-SHEET-V5-PAPER",
+      "file": "art/v5/paper.png",
+      "original": "exec-b346cf2f-6db6-400a-a780-bea7967ad5c1.png",
+      "prompt": "A reusable production game UI material swatch, landscape 3:2 pale antique parchment paper, medieval hand-made vellum. Entire image only the blank paper surface, edge to edge. No UI, NO text, no border frame, no objects or drawings. Quiet creamy ivory central writing region with delicate visible uneven fibers, organic golden tan variation, tiny diffuse foxing flecks mostly toward perimeter, subtly darker warm corners with shallow soft inner age shadow. Subtle raking ambient illumination from upper left, smooth luminous writing areas. Sophisticated hand-painted fantasy RPG adventure manuscript surface, natural material variation and tactile paper grain, low contrast and clean enough to render dark brown text over any area. Never dark stains or torn black edges. No modern gradients, no repeated pattern.",
+      "scope": "UI material/pictogram; no equipable sprite layer",
+      "review": {
+        "technical": "pending",
+        "visual": "candidate",
+        "userAcceptance": "pending"
+      },
+      "width": 1536,
+      "height": 1024,
+      "sha256": "b248c1258bedf854fb5bb82dfe59f28aa5d06b97244edb9f774d8e5d1a5b753e"
+    },
+    {
+      "id": "RPG-SHEET-V5-INK-PLACES",
+      "file": "art/v5/ink-places.png",
+      "original": "exec-e7c957a5-675e-4aa9-80ac-e2ae9888e1d9.png",
+      "prompt": "Edit this exact 3 by 2 illustration atlas. Keep all six brown ink drawings, their positions, linework, proportions and the atlas layout exactly unchanged. REMOVE ALL WHITE AND CREAM PAPER BACKING, including faint white haze between fine lines, so that the background is genuinely transparent alpha=0. Only the brown sepia ink marks should remain, with naturally antialiased semitransparent brown strokes. No rectangular patches of white, no paper texture. The result is a transparent ink decal atlas that will be laid onto a different parchment material.",
+      "scope": "UI material/pictogram; no equipable sprite layer",
+      "review": {
+        "technical": "pending",
+        "visual": "candidate",
+        "userAcceptance": "pending"
+      },
+      "width": 2172,
+      "height": 724,
+      "sha256": "2000661918e2895d91d62ec06353dea2777e6f2b815b1ca3a9c66f8a60588190"
+    },
+    {
+      "id": "RPG-SHEET-V5-ARCH-FRAME",
+      "file": "art/v5/arch-frame.png",
+      "original": "exec-b470676d-3a5e-4695-83c8-1ddbde468fc3.png",
+      "prompt": "One isolated transparent production game UI ornamental arch FRAME RIM only, vertical 2:3 aspect ratio. Empty broad arched doorway cutout with genuinely transparent opening and transparent outside upper corners. No scenery, no paper backing, no dark interior fill, no character. Round Romanesque arch, thin carved dark chestnut wooden pilasters with antique brass climbing acanthus leaves, restrained gold bevels, heraldic little central finial at top and small base corner details. The inner opening should occupy x=10%..90%, upper curved opening apex y=8%, semicircle spring line y=29%, straight sides to y=93%. Bottom edge a thin low stone-and-brass sill at y=94%..99%, no protruding platform. Graceful thin frame about 7% image width; most of the image is transparent opening. Hand-painted high-end medieval illuminated manuscript RPG UI, warm aged brass with tactile imperfect edges, subtle contact shadows along inside rim. Render straight frontal, symmetrical, clean alpha, no perspective tilt, no letters, no text or logos.",
+      "scope": "UI material/pictogram; no equipable sprite layer",
+      "review": {
+        "technical": "pending",
+        "visual": "candidate",
+        "userAcceptance": "pending"
+      },
+      "width": 1024,
+      "height": 1536,
+      "sha256": "57ca531acc2a11376a2f95e391b686dff40d70fcb70e118d36bad9baa210a5d2"
+    }
+  ],
+  "iterations": [
+    {
+      "file": "output/godot-character-sheet-v5-20261117/iterations/ink-white-backing.png",
+      "original": "exec-e81cbe5f-4c6f-4638-8ef5-73a341eeea86.png",
+      "reason": "Rejected white/cream backing; edited with image_gen to real transparent ink decals."
+    }
+  ],
+  "characterPipeline": "Existing Mike/Mia/Maria definitions, anatomy, atlas and read-only renderer reused. New mask is a window over the whole UI viewport, not a body/equipment replacement. See definition.json; no character-library promotion.",
+  "fonts": [],
+  "code_resources": [
+    {
+      "id": "RPG-SHEET-V5-CODE-1",
+      "owner": "action_icons.gd",
+      "owner_sha256": "e241b44d34fa44c1353aa8bc8c337a1edc12264a609858fc84115ba4a7674ce4",
+      "scope": "native UI presentation and read-only data adapter"
+    },
+    {
+      "id": "RPG-SHEET-V5-CODE-2",
+      "owner": "arched_preview.gdshader",
+      "owner_sha256": "44717062f0dbae46fae2c20387787ef46a498b6f38ce0db5933561fdc830248c",
+      "scope": "native UI presentation and read-only data adapter"
+    },
+    {
+      "id": "RPG-SHEET-V5-CODE-3",
+      "owner": "character_sheet.gd",
+      "owner_sha256": "28a2342a33feab9b9f76c499c4d222a20a6c7c76b4fd44939c75eb07ab8bf456",
+      "scope": "native UI presentation and read-only data adapter"
+    },
+    {
+      "id": "RPG-SHEET-V5-CODE-4",
+      "owner": "summary_composer.gd",
+      "owner_sha256": "43d06ddebfc471900e21a1c9f11bdbee760b30edea6516a607d16b87982021a8",
+      "scope": "native UI presentation and read-only data adapter"
+    },
+    {
+      "id": "RPG-SHEET-V5-CODE-5",
+      "owner": "sheet_model.gd",
+      "owner_sha256": "966471563d84351f199c135d5e6e91be5fb93e72c33bcb4cf4046cc6df965494",
+      "scope": "native UI presentation and read-only data adapter"
+    },
+    {
+      "id": "RPG-SHEET-V5-CODE-6",
+      "owner": "sheet_widgets.gd",
+      "owner_sha256": "7e40fbe3ad20b3e5eca3e830219a8fce1d510882b1da5e6b3a7b107c7aeb2e5b",
+      "scope": "native UI presentation and read-only data adapter"
+    },
+    {
+      "id": "RPG-SHEET-V5-CODE-7",
+      "owner": "presentation.gd",
+      "owner_sha256": "bad7fb4ff10c628054db1411506fde17b019d705e41e3c06f2276e7f54557dbe",
+      "scope": "native UI presentation and read-only data adapter"
+    },
+    {
+      "id": "RPG-SHEET-V5-CODE-8",
+      "owner": "live_actor_view.gd",
+      "owner_sha256": "e81ee788dbdb95e73837161ceaa5a44bb9f1402a753633d88bb3d6a38844c4b3",
+      "scope": "native UI presentation and read-only data adapter"
+    },
+    {
+      "id": "RPG-SHEET-V5-CODE-9",
+      "owner": "illuminated_materials.gd",
+      "owner_sha256": "53be789b198f003a159bf597be44e921cbf85681c4dcd74c1230002b310d61b2",
+      "scope": "native UI presentation and read-only data adapter"
+    }
+  ]
+}

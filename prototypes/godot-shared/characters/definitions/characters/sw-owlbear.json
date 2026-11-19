@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "kind": "character",
+  "id": "sw-owlbear",
+  "name": "Oso lechuza",
+  "campaign": "stormwreck-isle",
+  "anatomy": "quadruped",
+  "heightMeters": 2,
+  "heightBasis": "visual staging estimate consistent with PDF size category; not an asserted canonical individual height",
+  "aliases": [
+    "owlbear"
+  ],
+  "source": {
+    "kind": "individual-frames",
+    "files": [
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/owlbear/idle-01.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/owlbear/idle-02.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/owlbear/idle-03.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/owlbear/idle-04.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/owlbear/idle-05.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/owlbear/idle-06.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/owlbear/idle-07.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/owlbear/idle-08.png"
+    ],
+    "fps": 2.5,
+    "animation": "idle",
+    "directions": [
+      "se"
+    ],
+    "minimumDistinctFrames": 8,
+    "baseFile": "campaigns/stormwreck-isle/public/art/characters/base-v1/owlbear.png",
+    "preserveCanvas": true,
+    "referenceHeightPixels": 405,
+    "pivot": [
+      0.5,
+      0.9768518518518519
+    ]
+  },
+  "embeddedSlots": [],
+  "equipmentSlots": [],
+  "safeAnimations": [
+    "idle"
+  ],
+  "frameOverrides": {},
+  "states": [
+    "poisoned",
+    "petrified",
+    "frosted",
+    "burned",
+    "cursed",
+    "invisible"
+  ],
+  "visualStyle": "painted inked fantasy VTT character; clear material planes and adult proportions; coherent with existing Stormwreck heroes",
+  "orientation": "Eight idle phases in one authored base view (se); no other views or locomotion claimed",
+  "scale": "calibrate standing body, not total wings/tail envelope",
+  "pivot": "ground support, relative visible bounds; fitted after artwork exists",
+  "dependencies": [],
+  "mechanicalReference": {
+    "pdf": "OneDrive_1_12-9-2026/Aventura Los Dragones de la Isla de las Tempestades.pdf",
+    "pdfSha256": "26a700407a3878f27428755e40fdb8d8a933a9bbd2aeaa9461e33fc6fae2fc69",
+    "pages": [
+      14,
+      46
+    ]
+  },
+  "production": {
+    "stage": "generated-and-technically-extracted",
+    "expectedFile": "campaigns/stormwreck-isle/public/art/characters/base-v1/owlbear-idle8.png",
+    "method": "built-in ImageGen; one isolated full-body asset per call",
+    "brief": "large powerful bear body, owl head and hooked beak, dark brown fur with PURPLE feathers, small WOODEN WHISTLE on a cord round neck; four paws, no armour",
+    "background": "true RGBA transparency",
+    "margin": "all anatomy inside canvas with clear gutter; no collage",
+    "referenceStyle": [
+      "campaigns/stormwreck-isle/public/art/m3/trinity/maria_base.png",
+      "prototypes/godot-pecio/assets/tokens/wizard-rest-v1.png"
+    ],
+    "designInterpretation": "Features not specified in the adventure are an art proposal, not added rules or lore",
+    "idleAtlas": {
+      "columns": 4,
+      "rows": 2,
+      "order": "left-to-right then next row",
+      "count": 8,
+      "action": "idle",
+      "direction": "se",
+      "mustKeep": [
+        "identity",
+        "anatomy",
+        "body proportions",
+        "scale",
+        "foot support",
+        "transparent gutters"
+      ]
+    },
+    "promptFile": "output/stormwreck-characters-20261117/owlbear-revision-idle8.prompt.txt",
+    "original": "campaigns/stormwreck-isle/public/art/characters/base-v1/originals/owlbear-idle8.png",
+    "originalSha256": "566fa91dae289e069c28730de4401ba0e214dcae977c21e77e9f41f4ddca20e3",
+    "importReport": "output/stormwreck-characters-20261117/imports/owlbear.json"
+  },
+  "limitations": [
+    "Eight distinct idle phases in one base view. Other directions and actions are not yet claimed.",
+    "New clothing/equipment swapping is deferred; outfit belongs to this base illustration."
+  ],
+  "review": {
+    "technical": "atlas-extraction-passed; native test pending",
+    "visual": "internally reviewed: complete isolated phases, stable identity and anatomy; live-loop and user acceptance tracked separately",
+    "userAcceptance": "pending",
+    "evidence": [
+      "output/stormwreck-characters-20261117/imports/owlbear.json",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/originals/owlbear-idle8.png"
+    ]
+  }
+}

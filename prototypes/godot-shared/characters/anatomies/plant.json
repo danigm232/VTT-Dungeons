@@ -1,0 +1,36 @@
+{
+  "id": "plant",
+  "kind": "anatomy",
+  "version": 1,
+  "coordinates": "normalised visible frame bounds; x right, y down; original and mirrored frames share source-space coordinates",
+  "anchors": {
+    "crown": [
+      0.5,
+      0.18
+    ],
+    "stem": [
+      0.5,
+      0.5
+    ],
+    "root": [
+      0.5,
+      0.98
+    ],
+    "branch_left": [
+      0.2,
+      0.45
+    ],
+    "branch_right": [
+      0.8,
+      0.45
+    ]
+  },
+  "requiredAnchors": [
+    "crown",
+    "stem",
+    "root"
+  ],
+  "slots": [],
+  "frameOverrides": {},
+  "status": "seed; per-frame corrections require visual review"
+}

@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "visualStyle": "existing painted D&D character art; coherent map lighting",
+  "orientation": "camera-relative eight directions where authored",
+  "scale": "character_stature.json or explicit source setting; never pose-envelope normalisation",
+  "pivot": "logical feet; preserve source frame floor offset",
+  "states": [
+    "poisoned",
+    "petrified",
+    "frosted",
+    "burned",
+    "cursed",
+    "invisible"
+  ],
+  "dependencies": [],
+  "review": {
+    "technical": "pending current run",
+    "visual": "sample review pending",
+    "userAcceptance": "pending",
+    "evidence": []
+  },
+  "kind": "character",
+  "id": "zombie-4",
+  "name": "Zombi marinero 4",
+  "anatomy": "humanoid-tall",
+  "source": {
+    "kind": "legacy-profile",
+    "key": "zombie-4"
+  },
+  "aliases": [
+    "zombie-4"
+  ],
+  "statureRef": "zombie",
+  "embeddedSlots": [
+    "clothing"
+  ],
+  "equipmentSlots": [],
+  "safeAnimations": [
+    "idle",
+    "walk",
+    "run",
+    "attack"
+  ],
+  "limitations": [
+    "Compatibility adapter: existing animations are retained; anatomical seeds are editable and are not approved equipment fitting.",
+    "No newly authored animation or clothing is implied."
+  ],
+  "compatibility": "legacy body preserved; modular candidate",
+  "frameOverrides": {},
+  "equipmentPoseOverrides": {},
+  "migration": {
+    "body": "reused",
+    "overlays": "current-frame alpha adapter",
+    "equipment": "deferred by user; no slots enabled"
+  }
+}

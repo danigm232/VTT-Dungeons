@@ -1,0 +1,45 @@
+{
+  "date": "2026-11-17",
+  "revision": 7,
+  "scope": "Two local UI blocks: HP plaque; profile framing, identity and navigation. No replacement actor, equipment, portrait bitmap or world material.",
+  "assets": [
+    {
+      "id": "RPG-SHEET-V7-ROYAL-CONTROLS",
+      "file": "royal-controls.png",
+      "original": "C:/Users/User/.codex/generated_images/01a0ba48-018e-7ab0-906f-bf93c62e0c94/exec-73e1e6e6-40bd-42f0-bb01-a000f717f590.png",
+      "authoring": "Built-in image_gen",
+      "prompt": "Use case: stylized-concept. Asset type: production 2D fantasy RPG UI sprite atlas, NOT a screenshot, NO LETTERING. Create a precisely aligned 2 by 2 atlas on a truly transparent canvas, four equal cells. Each component centered within its cell, with at least 6% transparent padding. Fine hand-painted gold filigree, strong readable large forms, deep shadows and warm highlights, parchment, burgundy leather, like a premium illuminated medieval character sheet. Top-left: a wide horizontal health plaque, aspect ratio 3.4:1, thick sculpted bevelled gold border, elegant chamfered corners, tiny restrained leaf flourishes. Interior dark oxblood red leather, softly lit richer ruby center and near-black shaded edges. Completely EMPTY inside: no heart, no text, no bar. Top-right: a wide horizontal name cartouche, aspect ratio 3.4:1, warm ivory parchment with a sculpted polished golden frame and restrained curled leaf corners, generously empty light writing area. Bottom-left: a wide horizontal tab/button, aspect ratio 3.4:1, very dark walnut/brown leather inset, polished gold bevel border, simple chamfered corners, modest tiny flourishes. Empty, no icon or text. Bottom-right: ONE large symmetrical convex GOLD HEART emblem, a simple plump heart silhouette with a golden raised rim, warm amber shadow and bright cream-gold highlight; smooth clean gold interior, no filigree inside, no wings or gems. All four objects orthographic front view, crisp painterly detail, absolutely no letters/numbers, no background sheet, no labels, no extra items. Matching coherent gold materials. Transparent background.",
+      "layout": "2x2; alpha bounds trimmed at runtime in header_finish.gd; HP/name/tab/heart",
+      "reference": "User Guía comparativa de personaje fantástico.png and exact HP crop; VA-01, VA-03, VA-14, VA-18",
+      "acceptance": "Candidate; awaiting user visual review",
+      "sha256": "fd824f02a3f0a2eaa3ba1c9d953119edb032d7d2e2e7583e184db3f2b7e4e8a3"
+    }
+  ],
+  "reused": [
+    "v2/mia-portrait.png",
+    "v2/mike-portrait.png",
+    "v2/maria-portrait.png",
+    "v4/ornaments.png",
+    "Existing semantic icons and Crimson Pro font"
+  ],
+  "heartAnimation": "Six runtime-scaled cached frames of the gold UI emblem, not independently drawn anatomy frames. 1.25 s cycle, 120 ms frame progression followed by rest.",
+  "compatibility": "UI-only, mouse-ignore decorations, existing native tab buttons and authoritative HP Range. No character pipeline asset promotion.",
+  "code_resources": [
+    {
+      "owner": "character_sheet.gd",
+      "sha256": "52dd750940120c12c1e90a382b1c02c9e9d2e8e05afb570634bb02237ff1f43a"
+    },
+    {
+      "owner": "header_finish.gd",
+      "sha256": "b791ee5dce0d6eca7b6448c6e817c26866e6273b4d7f453a06f461f2488cf3cb"
+    },
+    {
+      "owner": "hp_finish.gd",
+      "sha256": "d532040126cc5315123e3120e1319159c16cbae443a041b943b73803cb0733f6"
+    },
+    {
+      "owner": "presentation.gd",
+      "sha256": "a2122e402e22c2b7cd8ba5a01d696cdfa4ea9c4216a77bf45fee679d18d5c147"
+    }
+  ]
+}

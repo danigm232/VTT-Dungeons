@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "visualStyle": "existing painted D&D character art; coherent map lighting",
+  "orientation": "camera-relative eight directions where authored",
+  "scale": "character_stature.json or explicit source setting; never pose-envelope normalisation",
+  "pivot": "logical feet; preserve source frame floor offset",
+  "states": [
+    "poisoned",
+    "petrified",
+    "frosted",
+    "burned",
+    "cursed",
+    "invisible"
+  ],
+  "dependencies": [],
+  "review": {
+    "visual": "pending",
+    "userAcceptance": "pending",
+    "evidence": []
+  },
+  "kind": "overlay",
+  "id": "stunned",
+  "name": "Aturdido",
+  "implementation": "silhouette-shader",
+  "mechanicalCondition": "aturdida",
+  "zone": "anatomical head anchor within current alpha silhouette",
+  "priority": 45,
+  "parameters": {
+    "intensity": {
+      "min": 0,
+      "max": 1,
+      "default": 0.75
+    }
+  },
+  "anchors": [],
+  "compatibility": {
+    "anatomies": "all",
+    "animated": true,
+    "reducedMotion": true
+  },
+  "activation": "explicit visual state, or linked existing mechanical condition; visual-only effects do not create a game rule"
+}

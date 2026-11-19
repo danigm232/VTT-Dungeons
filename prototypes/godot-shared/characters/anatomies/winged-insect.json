@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "id": "winged-insect",
+  "kind": "anatomy",
+  "coordinates": "normalised visible image bounds; x right/y down; seed anchors require per-frame review",
+  "anchors": {
+    "head": [
+      0.5,
+      0.26
+    ],
+    "torso": [
+      0.5,
+      0.5
+    ],
+    "proboscis": [
+      0.5,
+      0.76
+    ],
+    "wing_left": [
+      0.15,
+      0.34
+    ],
+    "wing_right": [
+      0.85,
+      0.34
+    ],
+    "leg_1": [
+      0.28,
+      0.6
+    ],
+    "leg_2": [
+      0.3,
+      0.73
+    ],
+    "leg_3": [
+      0.36,
+      0.87
+    ],
+    "leg_4": [
+      0.72,
+      0.6
+    ],
+    "leg_5": [
+      0.7,
+      0.73
+    ],
+    "leg_6": [
+      0.64,
+      0.87
+    ],
+    "root": [
+      0.5,
+      0.98
+    ]
+  },
+  "requiredAnchors": [
+    "head",
+    "torso",
+    "proboscis",
+    "wing_left",
+    "wing_right",
+    "leg_1",
+    "leg_2",
+    "leg_3",
+    "leg_4",
+    "leg_5",
+    "leg_6",
+    "root"
+  ],
+  "slots": [],
+  "frameOverrides": {},
+  "status": "seed; one base pose, no directional animation inferred"
+}

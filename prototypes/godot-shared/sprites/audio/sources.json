@@ -1,0 +1,8 @@
+{
+  "date": "2026-11-16",
+  "method": "Reuse existing campaign audio; no synthesis or external download",
+  "cues": [
+    {"id":"harpy-song","file":"harpy-song.ogg","source":"campaigns/stormwreck-isle/public/audio/stormwreck/sfx/d8-night-sfx-magic-ominous.ogg","purpose":"Existing campaign cue labelled Canto de arpía; one cue when the confirmed action starts"},
+    {"id":"zombie-groan","file":"zombie-groan.wav","source":"campaigns/stormwreck-isle/public/audio/stormwreck/sfx/stormwreck-sfx-zombie-groan-01.wav","purpose":"Existing drowned sailor groan for slam, bite and grapple"}
+  ]
+}

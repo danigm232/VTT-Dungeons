@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "visualStyle": "existing painted D&D character art; coherent map lighting",
+  "orientation": "camera-relative eight directions where authored",
+  "scale": "character_stature.json or explicit source setting; never pose-envelope normalisation",
+  "pivot": [
+    0.5,
+    0.5
+  ],
+  "states": [
+    "poisoned",
+    "petrified",
+    "frosted",
+    "burned",
+    "cursed",
+    "invisible"
+  ],
+  "dependencies": [],
+  "review": {
+    "visual": "pending",
+    "userAcceptance": "pending",
+    "evidence": [],
+    "deferredByUser": "2026-11-16: no crear objetos de vestir ahora; fase posterior"
+  },
+  "kind": "equipment",
+  "id": "round-shield",
+  "name": "Escudo redondo",
+  "slot": "off_hand",
+  "anchor": "hand_left",
+  "geometry": "shield",
+  "anatomies": [
+    "humanoid-tall",
+    "humanoid-small",
+    "humanoid-dwarf"
+  ],
+  "scaleRelativeToHeight": [
+    0.43,
+    0.43,
+    0.18
+  ],
+  "drawOrder": "front",
+  "animationBehavior": "follow corrected anatomical anchors every rendered frame",
+  "occludesEmbedded": [],
+  "materials": {
+    "base": "#8c969c",
+    "roughness": 0.72
+  },
+  "compatibility": {
+    "requiresFreeSlot": true,
+    "unsupportedBehavior": "reject with reason; never silently stack on baked equipment"
+  },
+  "productionEnabled": false
+}

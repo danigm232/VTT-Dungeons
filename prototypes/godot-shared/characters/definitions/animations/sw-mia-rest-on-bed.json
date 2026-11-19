@@ -1,0 +1,63 @@
+{
+  "id": "sw-mia-rest-on-bed",
+  "version": 1,
+  "kind": "animation",
+  "campaign": "stormwreck-isle",
+  "character": "mia",
+  "anatomy": "humanoid-dwarf",
+  "action": "rest_on_prop",
+  "direction": "s",
+  "poseKind": "hold",
+  "fps": 1,
+  "loop": true,
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/rest-poses-v1/mia-rest.png"
+  ],
+  "compatibility": {
+    "anchor": "head at pillow; head-to-sole axis fixed in world",
+    "embeddedSlotsRetained": true,
+    "overlays": "body mesh shared by condition material",
+    "rendering": "closed reclining bust with painted face and braided beard registration"
+  },
+  "production": {
+    "method": "ImageGen, upright image-space head-to-sole axis and lossless alpha crop",
+    "reference": "prototypes/godot-campamentos/assets/tokens/animations/seated/cleric-seated.png",
+    "original": "campaigns/stormwreck-isle/public/art/characters/rest-poses-v1/originals/mia.png",
+    "originalSHA256": "7ca32383915b5825587dde4fa9f6ddc3f34a838e65271cd3a67e69775a0b6f1e",
+    "derivedSHA256": "876a3b0a51b71710e7e9f0ab6964f081c7fe6bd07bb253e8d5585cefe595e302"
+  },
+  "review": {
+    "technical": "pending",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "pivot": [
+    0.5039370078740157,
+    0.12450592885375494
+  ],
+  "soleContact": [
+    0.5055118110236221,
+    0.9901185770750988
+  ],
+  "restVolume": {
+    "head": 0.16,
+    "chest": 0.19,
+    "hips": 0.14,
+    "calves": 0.105,
+    "boots": 0.12
+  },
+  "restSculpt": {
+    "eyes": 0.134,
+    "nose": [0.515, 0.15],
+    "jaw": 0.188,
+    "faceHalfWidth": 0.145,
+    "recline": 16,
+    "beardEnd": 0.347
+  },
+  "restBlanket": {
+    "base": "#765041",
+    "trim": "#b28d55",
+    "bands": 2
+  },
+  "referenceHeight": 1512
+}
