@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "visualStyle": "existing painted D&D character art; coherent map lighting",
+  "orientation": "camera-relative eight directions where authored",
+  "scale": "character_stature.json or explicit source setting; never pose-envelope normalisation",
+  "pivot": "logical feet; preserve source frame floor offset",
+  "states": [
+    "poisoned",
+    "petrified",
+    "frosted",
+    "burned",
+    "cursed",
+    "invisible"
+  ],
+  "dependencies": [],
+  "review": {
+    "visual": "pending",
+    "userAcceptance": "pending",
+    "evidence": []
+  },
+  "kind": "character",
+  "id": "anteros",
+  "name": "Anteros",
+  "anatomy": "humanoid-tall",
+  "source": {
+    "kind": "legacy-profile",
+    "key": "anteros"
+  },
+  "aliases": [
+    "Anteros",
+    "anteros-temple"
+  ],
+  "statureRef": "anteros",
+  "embeddedSlots": [
+    "clothing",
+    "back"
+  ],
+  "equipmentSlots": [
+    "head",
+    "armor",
+    "main_hand",
+    "off_hand",
+    "waist"
+  ],
+  "safeAnimations": [
+    "idle",
+    "walk",
+    "run",
+    "combat_idle",
+    "attack_unarmed"
+  ],
+  "limitations": [
+    "Cape is baked. Back-slot replacement is blocked without a reviewed mask. Authored attacks containing a different weapon require an explicit replacement pose/mask."
+  ],
+  "compatibility": "legacy body preserved; modular candidate",
+  "frameOverrides": {
+    "idle:s:0": {
+      "hand_right": [
+        0.72,
+        0.3
+      ],
+      "hand_left": [
+        0.4,
+        0.51
+      ]
+    }
+  },
+  "equipmentPoseOverrides": {
+    "attack": "attack_unarmed"
+  },
+  "equipmentFit": {
+    "leather-armor": {
+      "offset": [
+        0,
+        0.055
+      ],
+      "scale": 1
+    }
+  },
+  "occludedEquipmentViews": {
+    "armor": [
+      "n",
+      "ne",
+      "nw"
+    ]
+  },
+  "bindingFit": {
+    "torsoHalfWidth": 0.145
+  }
+}

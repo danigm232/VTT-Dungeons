@@ -1,0 +1,335 @@
+[gd_scene load_steps=30 format=3]
+
+[ext_resource type="Script" path="res://scripts/main_controller.gd" id="1_ctrl"]
+[ext_resource type="Script" path="res://scripts/hull_builder.gd" id="2_hull"]
+[ext_resource type="PackedScene" path="res://scenes/player_token.tscn" id="3_tok"]
+[ext_resource type="Texture2D" path="res://assets/tokens/rogue-maria-v1.png" id="4_rogue"]
+[ext_resource type="Shader" path="res://shaders/ocean_water.gdshader" id="5_water"]
+[ext_resource type="Script" path="res://scripts/reef_builder.gd" id="6_reef"]
+[ext_resource type="Script" path="res://scripts/dragon_bones_builder.gd" id="7_bones"]
+[ext_resource type="Script" path="res://scripts/tactical_camera.gd" id="8_cam"]
+[ext_resource type="Script" path="res://scripts/interiors_builder.gd" id="9_int"]
+[ext_resource type="Script" path="res://scripts/roof_cutout_controller.gd" id="10_roof"]
+[ext_resource type="Script" path="res://scripts/deck_dressing_builder.gd" id="11_dress"]
+[ext_resource type="Script" path="res://scripts/tactical_grid_overlay.gd" id="12_grid"]
+[ext_resource type="Texture2D" path="res://assets/tokens/wizard-rest-v1.png" id="13_wiz"]
+[ext_resource type="Script" path="res://scripts/rigging_builder.gd" id="14_rig"]
+[ext_resource type="Script" path="res://scripts/vfx_manager.gd" id="15_vfx"]
+[ext_resource type="Texture2D" path="res://assets/tokens/harpy-rest-v1.png" id="16_harpy"]
+[ext_resource type="Texture2D" path="res://assets/tokens/zombie-rest-v1.png" id="17_zombie"]
+[ext_resource type="Script" path="res://scripts/ship_vessel.gd" id="18_vessel"]
+[ext_resource type="Script" path="res://scripts/inventory_manager.gd" id="19_inv"]
+[ext_resource type="Script" path="res://scripts/interactive_door.gd" id="20_door"]
+[ext_resource type="Script" path="res://scripts/interactive_transition.gd" id="21_trans"]
+[ext_resource type="Script" path="res://scripts/interactive_pickup.gd" id="22_pickup"]
+[ext_resource type="Script" path="res://scripts/ship_construction.gd" id="23_construction"]
+[ext_resource type="Script" path="res://scripts/ship_environment.gd" id="24_environment"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
+sky_top_color = Color(0.22, 0.40, 0.52, 1)
+sky_horizon_color = Color(0.66, 0.74, 0.78, 1)
+ground_bottom_color = Color(0.10, 0.16, 0.20, 1)
+ground_horizon_color = Color(0.45, 0.54, 0.60, 1)
+
+[sub_resource type="Sky" id="Sky_1"]
+sky_material = SubResource("ProceduralSkyMaterial_1")
+
+[sub_resource type="Environment" id="Environment_1"]
+background_mode = 2
+sky = SubResource("Sky_1")
+ambient_light_source = 2
+ambient_light_color = Color(0.34, 0.40, 0.46, 1)
+ambient_light_energy = 0.55
+tonemap_mode = 3
+tonemap_exposure = 1.02
+ssr_enabled = true
+ssao_enabled = true
+ssao_radius = 1.25
+ssao_intensity = 1.65
+ssao_power = 1.5
+ssao_detail = 0.5
+ssao_horizon = 0.06
+sdfgi_enabled = false
+glow_enabled = true
+glow_intensity = 0.5
+glow_strength = 0.9
+glow_bloom = 0.10
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.003
+volumetric_fog_albedo = Color(0.55, 0.68, 0.78, 1)
+volumetric_fog_emission = Color(0.02, 0.04, 0.06, 1)
+volumetric_fog_emission_energy = 0.3
+volumetric_fog_length = 60.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ocean"]
+render_priority = 0
+shader = ExtResource("5_water")
+shader_parameter/albedo_shallow = Color(0.11, 0.34, 0.35, 0.92)
+shader_parameter/albedo_deep = Color(0.035, 0.115, 0.155, 0.98)
+shader_parameter/foam_color = Color(0.92, 0.97, 0.96, 1.0)
+shader_parameter/foam_distance = 1.65
+shader_parameter/wave_amplitude = 0.30
+shader_parameter/wave_speed = 1.15
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_ocean"]
+size = Vector2(280, 240)
+subdivide_width = 250
+subdivide_depth = 215
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_ctrl")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_1")
+
+[node name="ShipEnvironment" type="Node3D" parent="."]
+script = ExtResource("24_environment")
+
+[node name="SunLight" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.707107, -0.454519, 0.541675, 0, 0.766044, 0.642788, -0.707107, -0.454519, 0.541675, 0, 40, 0)
+light_color = Color(1, 0.94, 0.84, 1)
+light_energy = 1.75
+light_volumetric_fog_energy = 1.2
+shadow_enabled = true
+shadow_bias = 0.02
+shadow_normal_bias = 0.85
+shadow_blur = 1.2
+shadow_opacity = 0.90
+directional_shadow_mode = 2
+directional_shadow_split_1 = 0.12
+directional_shadow_split_2 = 0.28
+directional_shadow_split_3 = 0.60
+directional_shadow_blend_splits = true
+directional_shadow_max_distance = 65.0
+
+[node name="TacticalCamera" type="Camera3D" parent="." node_paths=PackedStringArray("target")]
+transform = Transform3D(1, 0, 0, 0, 0.819152, 0.573576, 0, -0.573576, 0.819152, 0, 24, 34)
+fov = 42.0
+script = ExtResource("8_cam")
+target = NodePath("ShipVessel/PlayerToken")
+
+[node name="InventoryManager" type="CanvasLayer" parent="."]
+script = ExtResource("19_inv")
+
+[node name="OceanWater" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -3.05, 0)
+cast_shadow = 0
+mesh = SubResource("PlaneMesh_ocean")
+surface_material_override/0 = SubResource("ShaderMaterial_ocean")
+
+[node name="Reefs" type="Node3D" parent="."]
+script = ExtResource("6_reef")
+
+[node name="DragonBones" type="Node3D" parent="."]
+script = ExtResource("7_bones")
+
+[node name="ShipVessel" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.986286, -0.165048, 0, 0.165048, 0.986286, 0, 0, 0)
+script = ExtResource("18_vessel")
+list_angle = 9.5
+trim_angle = 1.2
+
+[node name="ShipHull" type="Node3D" parent="ShipVessel"]
+script = ExtResource("2_hull")
+
+[node name="Rigging" type="Node3D" parent="ShipVessel"]
+script = ExtResource("14_rig")
+
+[node name="Vfx" type="Node3D" parent="ShipVessel"]
+script = ExtResource("15_vfx")
+
+[node name="Interiors" type="Node3D" parent="ShipVessel"]
+script = ExtResource("9_int")
+
+[node name="RoofCutout" type="Node3D" parent="ShipVessel" node_paths=PackedStringArray("hull_builder")]
+script = ExtResource("10_roof")
+hull_builder = NodePath("../ShipHull")
+
+[node name="DeckDressing" type="Node3D" parent="ShipVessel"]
+script = ExtResource("11_dress")
+
+[node name="TacticalGrid" type="Node3D" parent="ShipVessel"]
+script = ExtResource("12_grid")
+
+[node name="ShipConstruction" type="Node3D" parent="ShipVessel"]
+script = ExtResource("23_construction")
+
+[node name="PlayerToken" parent="ShipVessel" instance=ExtResource("3_tok")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 0.1, 1.2)
+token_name = "Cleric"
+target_height = 1.65
+is_active_player = true
+
+[node name="RogueToken" parent="ShipVessel" instance=ExtResource("3_tok")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.0, 0.1, 2.2)
+token_name = "Rogue"
+token_texture = ExtResource("4_rogue")
+target_height = 1.75
+is_active_player = false
+
+[node name="WizardToken" parent="ShipVessel" instance=ExtResource("3_tok")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16.5, 3.1, -1.5)
+token_name = "Wizard"
+token_texture = ExtResource("13_wiz")
+target_height = 1.95
+is_active_player = false
+
+[node name="HarpyToken" parent="ShipVessel" instance=ExtResource("3_tok")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.85, 15.12, -1.05)
+token_name = "Harpy"
+token_texture = ExtResource("16_harpy")
+target_height = 2.2
+is_npc = true
+is_active_player = false
+
+[node name="ZombieToken" parent="ShipVessel" instance=ExtResource("3_tok")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.0, -3.1, 1.5)
+token_name = "Zombie"
+token_texture = ExtResource("17_zombie")
+target_height = 1.95
+is_npc = true
+is_active_player = false
+
+[node name="DoorC4" type="Node3D" parent="ShipVessel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, 0, -1.8)
+script = ExtResource("20_door")
+door_id = "c4-barred-door"
+door_title = "Camarote del Capitán (C4)"
+swing_side = -1.0
+hinge_side = -1.0
+
+[node name="DoorC5" type="Node3D" parent="ShipVessel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, 0, 5.2)
+script = ExtResource("20_door")
+door_id = "c5-door"
+door_title = "Cocina de a Bordo (C5)"
+swing_side = -1.0
+hinge_side = 1.0
+
+[node name="DoorC6" type="Node3D" parent="ShipVessel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, -1.8)
+script = ExtResource("20_door")
+door_id = "c6-door"
+door_title = "Camarote de Tripulación (C6)"
+swing_side = 1.0
+hinge_side = -1.0
+
+[node name="DoorC7" type="Node3D" parent="ShipVessel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, 5.2)
+script = ExtResource("20_door")
+door_id = "c7-door"
+door_title = "Comedor de Proa (C7)"
+swing_side = 1.0
+hinge_side = 1.0
+
+[node name="LadderCofa" type="Node3D" parent="ShipVessel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9, 0.1, 0.0)
+script = ExtResource("21_trans")
+prompt_label = "Trepar a la Cofa (+15 m)"
+destination = Vector3(1.45, 15.12, 0.55)
+transition_mode = "climb"
+
+[node name="CofaExit" type="Node3D" parent="ShipVessel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.45, 15.12, 0.55)
+script = ExtResource("21_trans")
+prompt_label = "Descender a Cubierta Principal"
+destination = Vector3(0.9, 0.1, 0.0)
+transition_mode = "climb"
+
+[node name="LadderBoardShip_Stbd" type="Node3D" parent="ShipVessel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.0, -1.7, 10.7)
+script = ExtResource("21_trans")
+prompt_label = "Subir al Pecio por la Escala"
+destination = Vector3(3.0, 0.15, 8.5)
+transition_mode = "climb"
+visual_marker = false
+trigger_radius = 2.1
+require_water_or_below_y = -1.1
+
+[node name="PickupTorchC1" type="Node3D" parent="ShipVessel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.2, 0.25, -1.6)
+script = ExtResource("22_pickup")
+pickup_id = "torch"
+item_name = "Antorcha de brea"
+amount = 1
+glow_color = Color(1, 0.7, 0.2, 1)
+
+[node name="PickupCompassC4" type="Node3D" parent="ShipVessel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.7, 0.90, -2.35)
+script = ExtResource("22_pickup")
+pickup_id = "compass"
+item_name = "Brújula náutica (C4)"
+amount = 1
+glow_color = Color(0.9, 0.8, 0.3, 1)
+
+[node name="PickupCartographerC4" type="Node3D" parent="ShipVessel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.1, 0.88, -2.85)
+script = ExtResource("22_pickup")
+pickup_id = "cartographer_tools"
+item_name = "Herramientas de cartógrafo (C4)"
+amount = 1
+glow_color = Color(0.85, 0.72, 0.32, 1)
+
+[node name="PickupTorchC4" type="Node3D" parent="ShipVessel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15.2, 0.3, -3.6)
+script = ExtResource("22_pickup")
+pickup_id = "torch"
+item_name = "Antorcha apagada (C4)"
+amount = 1
+glow_color = Color(1, 0.7, 0.2, 1)
+
+[node name="PickupDaggerC4" type="Node3D" parent="ShipVessel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.2, 0.22, -2.1)
+script = ExtResource("22_pickup")
+pickup_id = "dagger"
+item_name = "Daga de plata (C4)"
+amount = 1
+glow_color = Color(0.75, 0.88, 0.98, 1)
+
+[node name="PickupGoldC4" type="Node3D" parent="ShipVessel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.2, 0.42, -5.8)
+script = ExtResource("22_pickup")
+pickup_id = "gold"
+item_name = "Bolsa con 50 po"
+amount = 50
+glow_color = Color(1, 0.85, 0.25, 1)
+
+[node name="PickupPotionC5" type="Node3D" parent="ShipVessel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.8, 0.96, 6.4)
+script = ExtResource("22_pickup")
+pickup_id = "potion"
+item_name = "Poción de Curación"
+amount = 1
+glow_color = Color(0.95, 0.25, 0.35, 1)
+
+[node name="PickupStashC6" type="Node3D" parent="ShipVessel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18.6, 0.14, -2.6)
+script = ExtResource("22_pickup")
+pickup_id = "stash"
+item_name = "Alijo Secreto con 200 po"
+amount = 200
+glow_color = Color(1, 0.9, 0.4, 1)
+
+[node name="PickupTorchC7" type="Node3D" parent="ShipVessel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15.2, 0.3, 3.8)
+script = ExtResource("22_pickup")
+pickup_id = "torch"
+item_name = "Antorcha apagada (C7)"
+amount = 1
+glow_color = Color(1, 0.7, 0.2, 1)
+
+[node name="PickupHoldChestC9" type="Node3D" parent="ShipVessel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.5, -6.1, -3.2)
+script = ExtResource("22_pickup")
+pickup_id = "hold_chest"
+item_name = "Cofre Sumergido de C9"
+amount = 1
+glow_color = Color(0.2, 0.8, 0.9, 1)
+
+[node name="PickupGemsCofa" type="Node3D" parent="ShipVessel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.88, 15.16, -1.46)
+script = ExtResource("22_pickup")
+pickup_id = "gems"
+item_name = "Tesoro del Nido de la Arpía"
+amount = 4
+glow_color = Color(0.68, 0.56, 0.28, 1)

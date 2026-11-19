@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "id": "cephalopod",
+  "kind": "anatomy",
+  "coordinates": "normalised visible image bounds; x right/y down; seed anchors require per-frame review",
+  "anchors": {
+    "head": [
+      0.5,
+      0.23
+    ],
+    "torso": [
+      0.5,
+      0.4
+    ],
+    "mantle": [
+      0.5,
+      0.28
+    ],
+    "root": [
+      0.5,
+      0.98
+    ],
+    "arm_1": [
+      0.12,
+      0.64
+    ],
+    "arm_2": [
+      0.2,
+      0.82
+    ],
+    "arm_3": [
+      0.35,
+      0.94
+    ],
+    "arm_4": [
+      0.48,
+      0.98
+    ],
+    "arm_5": [
+      0.62,
+      0.94
+    ],
+    "arm_6": [
+      0.77,
+      0.82
+    ],
+    "arm_7": [
+      0.88,
+      0.64
+    ],
+    "arm_8": [
+      0.82,
+      0.44
+    ]
+  },
+  "requiredAnchors": [
+    "head",
+    "torso",
+    "mantle",
+    "root",
+    "arm_1",
+    "arm_2",
+    "arm_3",
+    "arm_4",
+    "arm_5",
+    "arm_6",
+    "arm_7",
+    "arm_8"
+  ],
+  "slots": [],
+  "frameOverrides": {},
+  "status": "seed; one base pose, no directional animation inferred"
+}

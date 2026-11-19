@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-mike-seat-n",
+  "campaign": "stormwreck-isle",
+  "character": "mike",
+  "anatomy": "humanoid-tall",
+  "action": "sit_on_prop",
+  "direction": "n",
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/party-seat-views-v1/mike/seat-n.png"
+  ],
+  "poseKind": "hold",
+  "fps": 1,
+  "loop": true,
+  "compatibility": {
+    "anchor": "pelvis at seat surface; boot midpoint registered below pelvis",
+    "embeddedSlotsRetained": true
+  },
+  "production": {
+    "method": "ImageGen reference sheet and lossless cell crop",
+    "reference": "prototypes/godot-campamentos/assets/tokens/animations/seated/wizard-seated.png",
+    "original": "campaigns/stormwreck-isle/public/art/characters/party-seat-views-v1/mike/originals/seat-sheet.png"
+  },
+  "review": {
+    "technical": "pending",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "pivot": [
+    0.4823529411764706,
+    0.5980861244019139
+  ],
+  "soleContact": [
+    0.4980392156862745,
+    0.9880382775119617
+  ],
+  "referenceHeight": 530
+}

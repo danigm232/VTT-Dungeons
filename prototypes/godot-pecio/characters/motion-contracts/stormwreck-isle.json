@@ -1,0 +1,1828 @@
+{
+  "version": 1,
+  "date": "2026-11-18",
+  "campaign": "stormwreck-isle",
+  "scope": "37 existing appearance definitions; movement planning and import constraints. D8 and modular equipment deferred.",
+  "source": {
+    "pdf": "OneDrive_1_12-9-2026/Aventura Los Dragones de la Isla de las Tempestades.pdf",
+    "sha256": "26a700407a3878f27428755e40fdb8d8a933a9bbd2aeaa9461e33fc6fae2fc69",
+    "pages": [
+      8,
+      9,
+      14,
+      15,
+      18,
+      19,
+      20,
+      21,
+      31,
+      34,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48
+    ]
+  },
+  "policy": {
+    "minimumDistinctCycleFrames": 6,
+    "targetDistinctCycleFrames": 8,
+    "moreThanEightAllowed": true,
+    "staticHoldsAreNotCycles": true,
+    "frameCountIsNotPlaybackFps": true,
+    "renderFpsIsIndependent": true,
+    "frameBudgetValuesAreArtTuningRecommendations": true,
+    "contextualMovement": "No dedicated speed does not automatically forbid swimming/climbing/jumping; rules and terrain decide. No natural flight/burrow unless declared.",
+    "dash": "Action/economy from rules; visual faster gait, not another speed statistic.",
+    "grantedMovement": "Spell/form/DM override requires explicit source; never infer capability from a fallback clip or wings.",
+    "directionCoverage": "Eight logical bearings for free movement; authored views audited separately; no mirrored asymmetry or fake front/back.",
+    "staticTurn": "Facing can change without displacement; standing reference and root remain stable."
+  },
+  "frameBudgets": {
+    "idle": {
+      "minimum": 6,
+      "target": 8,
+      "recommended": [
+        6,
+        8
+      ],
+      "fps": [
+        2,
+        4
+      ]
+    },
+    "walk": {
+      "minimum": 6,
+      "target": 8,
+      "recommended": [
+        8,
+        10
+      ],
+      "fps": [
+        8,
+        12
+      ]
+    },
+    "dash": {
+      "minimum": 6,
+      "target": 8,
+      "recommended": [
+        8,
+        12
+      ],
+      "fps": [
+        12,
+        18
+      ]
+    },
+    "zombie_walk": {
+      "minimum": 6,
+      "target": 8,
+      "recommended": [
+        6,
+        8
+      ],
+      "fps": [
+        6,
+        10
+      ]
+    },
+    "root_shuffle": {
+      "minimum": 6,
+      "target": 8,
+      "recommended": [
+        6,
+        8
+      ],
+      "fps": [
+        3,
+        6
+      ]
+    },
+    "climb": {
+      "minimum": 6,
+      "target": 8,
+      "recommended": [
+        8,
+        12
+      ],
+      "fps": [
+        6,
+        10
+      ]
+    },
+    "crawl": {
+      "minimum": 6,
+      "target": 8,
+      "recommended": [
+        8,
+        12
+      ],
+      "fps": [
+        6,
+        10
+      ]
+    },
+    "swim": {
+      "minimum": 6,
+      "target": 8,
+      "recommended": [
+        8,
+        12
+      ],
+      "fps": [
+        8,
+        12
+      ]
+    },
+    "fly": {
+      "minimum": 6,
+      "target": 8,
+      "recommended": [
+        8,
+        12
+      ],
+      "fps": [
+        10,
+        16
+      ]
+    },
+    "stirge_fly": {
+      "minimum": 6,
+      "target": 8,
+      "recommended": [
+        8,
+        12
+      ],
+      "fps": [
+        16,
+        24
+      ]
+    },
+    "jump": {
+      "minimum": 6,
+      "target": 8,
+      "recommended": [
+        8,
+        12
+      ],
+      "fps": [
+        12,
+        18
+      ]
+    },
+    "attack": {
+      "minimum": 6,
+      "target": 8,
+      "recommended": [
+        8,
+        12
+      ],
+      "fps": [
+        10,
+        18
+      ]
+    },
+    "transition": {
+      "minimum": 6,
+      "target": 8,
+      "recommended": [
+        6,
+        10
+      ],
+      "fps": [
+        8,
+        14
+      ]
+    },
+    "hold": {
+      "minimum": 1,
+      "target": 1,
+      "recommended": [
+        1,
+        3
+      ],
+      "fps": [
+        1,
+        4
+      ]
+    }
+  },
+  "profiles": {
+    "hero-wizard": {
+      "label": "Mike · mago",
+      "innateSpeedsMeters": {
+        "walk": 9
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "walk",
+        "dash",
+        "stealth",
+        "crawl",
+        "fall",
+        "prone",
+        "stand",
+        "hit",
+        "defeated"
+      ],
+      "contextualCycles": [
+        "jump",
+        "climb",
+        "swim",
+        "sit",
+        "rest",
+        "interact",
+        "help",
+        "dodge",
+        "disengage",
+        "ready",
+        "spell_arcane",
+        "attack_shortsword",
+        "backpack_take",
+        "backpack_store",
+        "torch"
+      ],
+      "notes": [
+        "Ficha inicial: 9 m, FUE 10, espada corta y conjuros. Las reglas vigentes aplican modificadores; ser mago no concede vuelo."
+      ]
+    },
+    "hero-cleric": {
+      "label": "Mía · clérigo",
+      "innateSpeedsMeters": {
+        "walk": 7.5
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "walk",
+        "dash",
+        "stealth",
+        "crawl",
+        "fall",
+        "prone",
+        "stand",
+        "hit",
+        "defeated"
+      ],
+      "contextualCycles": [
+        "jump",
+        "climb",
+        "swim",
+        "sit",
+        "rest",
+        "interact",
+        "help",
+        "dodge",
+        "disengage",
+        "ready",
+        "spell_divine",
+        "shield_guard",
+        "attack_mace",
+        "throw_handaxe",
+        "backpack_take",
+        "backpack_store",
+        "torch"
+      ],
+      "notes": [
+        "Ficha inicial: 7,5 m, FUE 14, maza, hacha de mano, escudo y magia divina. Paso con peso/armadura conservando estatura; sin vuelo implícito."
+      ]
+    },
+    "hero-rogue": {
+      "label": "Trinity / María · pícaro",
+      "innateSpeedsMeters": {
+        "walk": 7.5
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "walk",
+        "dash",
+        "stealth",
+        "crawl",
+        "fall",
+        "prone",
+        "stand",
+        "hit",
+        "defeated"
+      ],
+      "contextualCycles": [
+        "jump",
+        "climb",
+        "swim",
+        "sit",
+        "rest",
+        "interact",
+        "help",
+        "dodge",
+        "disengage",
+        "ready",
+        "attack_dagger",
+        "throw_dagger",
+        "attack_bow",
+        "attack_unarmed",
+        "pick_lock",
+        "backpack_take",
+        "backpack_store",
+        "torch"
+      ],
+      "notes": [
+        "Trinity y María son una identidad; alternancia de brazos/piernas en trepar, nadar y arrastrarse."
+      ]
+    },
+    "runara-human": {
+      "label": "Runara humana",
+      "innateSpeedsMeters": {
+        "walk": 12
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "walk",
+        "greet",
+        "speak",
+        "meditate",
+        "fall",
+        "prone",
+        "stand",
+        "hit"
+      ],
+      "contextualCycles": [
+        "swim",
+        "form_change",
+        "form_retained_flight"
+      ],
+      "notes": [
+        "PDF p41 conserva el perfil al cambiar de forma. El vuelo/nado heredados de su forma dragón se documentan aparte; no dibujar alas humanas ni borrar capacidades mecánicas."
+      ]
+    },
+    "tarak": {
+      "label": "Tarak",
+      "innateSpeedsMeters": {
+        "walk": 9
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "walk",
+        "dash",
+        "stealth",
+        "crawl",
+        "fall",
+        "prone",
+        "stand",
+        "hit",
+        "defeated"
+      ],
+      "contextualCycles": [
+        "jump",
+        "climb",
+        "swim",
+        "sit",
+        "meditate",
+        "garden",
+        "medicine",
+        "interact",
+        "attack_dagger",
+        "throw_dagger"
+      ],
+      "notes": [
+        "La daga solo aparece si está armado; no crear arma modular en esta entrega."
+      ]
+    },
+    "varnoth": {
+      "label": "Varnoth",
+      "innateSpeedsMeters": {
+        "walk": 9
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "walk",
+        "dash",
+        "stealth",
+        "crawl",
+        "fall",
+        "prone",
+        "stand",
+        "hit",
+        "defeated"
+      ],
+      "contextualCycles": [
+        "jump",
+        "climb",
+        "swim",
+        "sit",
+        "meditate",
+        "masonry",
+        "interact",
+        "attack_shortsword"
+      ],
+      "notes": [
+        "Prótesis DERECHA y ojo ciego IZQUIERDO: no invertir la imagen para fabricar otra vista. La prótesis no reduce la velocidad de la ficha."
+      ]
+    },
+    "kobold-ground": {
+      "label": "Kobolds terrestres",
+      "innateSpeedsMeters": {
+        "walk": 9
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "walk",
+        "dash",
+        "stealth",
+        "crawl",
+        "fall",
+        "prone",
+        "stand",
+        "hit",
+        "defeated"
+      ],
+      "contextualCycles": [
+        "jump",
+        "climb",
+        "swim",
+        "sit",
+        "interact",
+        "attack_dagger",
+        "throw_dagger",
+        "attack_sling",
+        "work"
+      ],
+      "notes": [
+        "Paso pequeño con cola como contrapeso; tareas de trabajo según papel narrativo, no poderes nuevos."
+      ]
+    },
+    "myla": {
+      "label": "Myla · manitas con alas perdidas/dañadas",
+      "innateSpeedsMeters": {
+        "walk": 9
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "walk",
+        "dash",
+        "stealth",
+        "crawl",
+        "fall",
+        "prone",
+        "stand",
+        "hit",
+        "defeated"
+      ],
+      "contextualCycles": [
+        "jump",
+        "climb",
+        "swim",
+        "tinker",
+        "interact",
+        "attack_dagger",
+        "throw_dagger",
+        "alchemical_flame",
+        "detect_magic"
+      ],
+      "notes": [
+        "Excepción narrativa: pp9/31 describen pérdida/daño de alas; el perfil genérico p44 ofrece vuelo 3 m. Producción terrestre por defecto; discrepancia registrada, sin modificar las reglas de la partida."
+      ]
+    },
+    "kobold-winged": {
+      "label": "Kobolds alados, Mek y Minn",
+      "innateSpeedsMeters": {
+        "walk": 9,
+        "fly": 9
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "walk",
+        "dash",
+        "stealth",
+        "crawl",
+        "fall",
+        "prone",
+        "stand",
+        "hit",
+        "defeated",
+        "takeoff",
+        "fly",
+        "flight_turn",
+        "land"
+      ],
+      "contextualCycles": [
+        "jump",
+        "climb",
+        "swim",
+        "interact",
+        "attack_dagger",
+        "throw_dagger",
+        "drop_rock"
+      ],
+      "notes": [
+        "Volar no equivale a hover mecánico. Caída por estado se resuelve en reglas."
+      ]
+    },
+    "zombie": {
+      "label": "Zombis marineros",
+      "innateSpeedsMeters": {
+        "walk": 6
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "walk",
+        "dash",
+        "crawl",
+        "fall",
+        "prone",
+        "stand",
+        "hit",
+        "slam",
+        "fortitude",
+        "defeated"
+      ],
+      "contextualCycles": [
+        "jump",
+        "climb",
+        "wade",
+        "submerged_walk",
+        "grapple",
+        "swim"
+      ],
+      "notes": [
+        "Dash es avance apresurado y torpe, no sprint atlético. Sin vuelo/excavación naturales. No necesita respirar ni dormir; no usar descanso dormido por defecto. El mordisco de variante conserva su regla propia y no sustituye Golpe del PDF.",
+        "Nadar es contextual si las reglas/escena lo permiten; no recibe velocidad especial de nado. Vadear y caminar sumergido son alternativas visuales, no una prohibición universal de nadar."
+      ]
+    },
+    "ghoul": {
+      "label": "Gul",
+      "innateSpeedsMeters": {
+        "walk": 9
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "walk",
+        "dash",
+        "stalk",
+        "crawl",
+        "fall",
+        "prone",
+        "stand",
+        "hit",
+        "claw",
+        "bite",
+        "defeated"
+      ],
+      "contextualCycles": [
+        "jump",
+        "climb",
+        "swim"
+      ],
+      "notes": [
+        "Marcha depredadora distinta del zombi; las garras y el mordisco son acciones distintas."
+      ]
+    },
+    "harpy": {
+      "label": "Arpías",
+      "innateSpeedsMeters": {
+        "walk": 6,
+        "fly": 12
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "walk",
+        "dash",
+        "takeoff",
+        "fly",
+        "flight_turn",
+        "land",
+        "song",
+        "claw",
+        "club",
+        "hit",
+        "fall",
+        "prone",
+        "stand",
+        "defeated"
+      ],
+      "contextualCycles": [
+        "jump",
+        "climb",
+        "swim",
+        "crawl"
+      ],
+      "notes": [
+        "Dos actores independientes pueden compartir arte. Multiataque: garras y después garrote; canto sostenido separable de vuelo/percha."
+      ]
+    },
+    "fungus-adult": {
+      "label": "Micónido adulto",
+      "innateSpeedsMeters": {
+        "walk": 6
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "walk",
+        "dash",
+        "fall",
+        "prone",
+        "stand",
+        "hit",
+        "punch",
+        "spores_rapport",
+        "spores_distress",
+        "spores_pacifying",
+        "defeated"
+      ],
+      "contextualCycles": [
+        "interact",
+        "cultivate",
+        "meld"
+      ],
+      "notes": [
+        "Marcha fibrosa con apoyos de raíces; esporas de auxilio son una reacción visual, no otro ataque."
+      ]
+    },
+    "fungus-sprout": {
+      "label": "Brote micónido",
+      "innateSpeedsMeters": {
+        "walk": 3
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "walk",
+        "dash",
+        "fall",
+        "prone",
+        "stand",
+        "hit",
+        "punch",
+        "spores_rapport",
+        "spores_distress",
+        "defeated"
+      ],
+      "contextualCycles": [
+        "interact",
+        "cultivate",
+        "meld"
+      ],
+      "notes": [
+        "No heredar esporas pacificadoras del adulto."
+      ]
+    },
+    "sinensa": {
+      "label": "Sinensa",
+      "innateSpeedsMeters": {
+        "walk": 9
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "walk",
+        "dash",
+        "fall",
+        "prone",
+        "stand",
+        "hit",
+        "punch",
+        "spores_hallucinogenic",
+        "spores_rapport",
+        "spores_distress",
+        "defeated"
+      ],
+      "contextualCycles": [
+        "meld",
+        "comatose",
+        "recovery"
+      ],
+      "notes": [
+        "Coma/enfermedad inicial de la escena son estados reversibles. Base sana; no son su anatomía permanente."
+      ]
+    },
+    "violet-fungus": {
+      "label": "Hongo violeta",
+      "innateSpeedsMeters": {
+        "walk": 1.5
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "root_shuffle",
+        "dash",
+        "false_appearance",
+        "tentacle_touch",
+        "hit",
+        "collapse",
+        "defeated"
+      ],
+      "contextualCycles": [
+        "tilt_prone",
+        "recover_upright"
+      ],
+      "notes": [
+        "Cuatro tentáculos; traslado por raíces. Sin piernas humanas, carrera atlética ni vuelo. False appearance necesita inmovilidad, no idle vistoso."
+      ]
+    },
+    "spore-octopus": {
+      "label": "Pulpo siervo espora",
+      "innateSpeedsMeters": {
+        "walk": 1.5,
+        "swim": 15
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "ground_drag",
+        "swim",
+        "swim_turn",
+        "tentacle_slam",
+        "hit",
+        "collapse",
+        "defeated"
+      ],
+      "contextualCycles": [
+        "beached",
+        "recover_water"
+      ],
+      "notes": [
+        "Ocho brazos. El PDF sustituye agarre/inmovilización por golpes: no heredar apresar, tinta o camuflaje del pulpo vivo."
+      ]
+    },
+    "fire-snake": {
+      "label": "Serpiente de fuego",
+      "innateSpeedsMeters": {
+        "walk": 9
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "slither",
+        "dash",
+        "coil",
+        "bite",
+        "tail_strike",
+        "hit",
+        "collapse",
+        "defeated"
+      ],
+      "contextualCycles": [
+        "jump"
+      ],
+      "notes": [
+        "No patas, alas ni brazos. Estela de calor ligada al cuerpo; fuego natural pertenece al aspecto base."
+      ]
+    },
+    "fume-drake": {
+      "label": "Draco de humo",
+      "innateSpeedsMeters": {
+        "walk": 9,
+        "fly": 9
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "ground_glide",
+        "takeoff",
+        "fly",
+        "flight_turn",
+        "land",
+        "bite",
+        "breath",
+        "hit",
+        "death_burst"
+      ],
+      "contextualCycles": [],
+      "notes": [
+        "El perfil tiene velocidad terrestre aunque carece de patas: deslizamiento bajo, sin inventar piernas. Núcleo y estelas translúcidas requieren máscaras distintas."
+      ]
+    },
+    "stirge": {
+      "label": "Estirge",
+      "innateSpeedsMeters": {
+        "walk": 3,
+        "fly": 12
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "scuttle",
+        "takeoff",
+        "fly",
+        "flight_turn",
+        "land",
+        "attach",
+        "feed",
+        "detach",
+        "hit",
+        "fall",
+        "defeated"
+      ],
+      "contextualCycles": [],
+      "notes": [
+        "Seis patas y probóscide. Alimentarse adherida es un modo con anclaje al anfitrión, no repetir una estocada."
+      ]
+    },
+    "owlbear": {
+      "label": "Oso lechuza",
+      "innateSpeedsMeters": {
+        "walk": 12
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "walk",
+        "dash",
+        "turn",
+        "rear",
+        "claw",
+        "beak",
+        "hit",
+        "fall",
+        "prone",
+        "stand",
+        "defeated"
+      ],
+      "contextualCycles": [
+        "jump",
+        "climb",
+        "swim",
+        "sniff",
+        "rest"
+      ],
+      "notes": [
+        "Plumas no conceden vuelo. Locomoción cuadrúpeda pesada; amenaza puede erguirse sin cambiar su estatura de referencia."
+      ]
+    },
+    "bronze-wyrmling": {
+      "label": "Aidron",
+      "innateSpeedsMeters": {
+        "walk": 9,
+        "swim": 9,
+        "fly": 18
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "walk",
+        "dash",
+        "takeoff",
+        "fly",
+        "flight_turn",
+        "land",
+        "swim",
+        "bite",
+        "breath_lightning",
+        "breath_repulsion",
+        "hit",
+        "fall",
+        "prone",
+        "stand",
+        "defeated"
+      ],
+      "contextualCycles": [
+        "jump",
+        "climb",
+        "bound_struggle"
+      ],
+      "notes": [
+        "Cría Mediana; no copiar proporciones adultas. Cadenas de escena: cobertura/anclajes y reducción de velocidad desde reglas."
+      ]
+    },
+    "blue-wyrmling": {
+      "label": "Chispa Fulminante",
+      "innateSpeedsMeters": {
+        "walk": 9,
+        "burrow": 4.5,
+        "fly": 18
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "walk",
+        "dash",
+        "takeoff",
+        "fly",
+        "flight_turn",
+        "land",
+        "burrow_enter",
+        "burrow",
+        "burrow_exit",
+        "bite",
+        "breath_lightning",
+        "hit",
+        "fall",
+        "prone",
+        "stand",
+        "defeated"
+      ],
+      "contextualCycles": [
+        "jump",
+        "climb",
+        "swim"
+      ],
+      "notes": [
+        "Excavar exige terreno permitido; la animación no atraviesa roca/edificios por sí sola. Sin nado especial inventado."
+      ]
+    },
+    "bronze-adult": {
+      "label": "Runara dragona",
+      "innateSpeedsMeters": {
+        "walk": 12,
+        "swim": 12,
+        "fly": 24
+      },
+      "baseCycles": [
+        "idle",
+        "turn",
+        "start",
+        "stop",
+        "walk",
+        "dash",
+        "takeoff",
+        "fly",
+        "flight_turn",
+        "land",
+        "swim",
+        "bite",
+        "claw",
+        "breath_lightning",
+        "breath_repulsion",
+        "hit",
+        "fall",
+        "prone",
+        "stand",
+        "defeated"
+      ],
+      "contextualCycles": [
+        "jump",
+        "climb",
+        "form_change"
+      ],
+      "notes": [
+        "Forma de la misma Runara; tamaño Enorme, cuello/alas/cola con apoyos propios."
+      ]
+    }
+  },
+  "characters": {
+    "harpy": {
+      "name": "Arpía",
+      "anatomy": "winged",
+      "profile": "harpy",
+      "aliases": [
+        "harpy",
+        "harpia",
+        "Arpía"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        39
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied",
+      "encounterActorIds": [
+        "upper-harpy-1",
+        "upper-harpy-2"
+      ]
+    },
+    "maria": {
+      "name": "Trinity · María Pies Ligeros",
+      "anatomy": "humanoid-small",
+      "profile": "hero-rogue",
+      "aliases": [
+        "maria",
+        "Trinity",
+        "María Pies Ligeros",
+        "Maria Piesligeros"
+      ],
+      "formOf": null,
+      "sourcePages": [],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied",
+      "sheetReference": {
+        "file": "OneDrive_1_12-9-2026/Personajes/Maria Pies ligeros.pdf",
+        "sha256": "98341dec4cf769b24a239f7f67c7245d96184ac41146cfada8828b05a35ecc1b",
+        "page": 1,
+        "method": "Full-page Poppler rendering visually inspected; embedded image extraction alone is incomplete",
+        "initialSheetSpeedMeters": 7.5,
+        "strength": 8
+      }
+    },
+    "mia": {
+      "name": "Mía",
+      "anatomy": "humanoid-dwarf",
+      "profile": "hero-cleric",
+      "aliases": [
+        "Mia",
+        "Mía",
+        "cleric"
+      ],
+      "formOf": null,
+      "sourcePages": [],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied",
+      "sheetReference": {
+        "file": "OneDrive_1_12-9-2026/Personajes/Mia Enano Clérigo.pdf",
+        "sha256": "3f0ebefaa8700977ba5c352f4bc0867757b84b2e27da608cd00b1180f1277739",
+        "page": 1,
+        "method": "Full-page Poppler rendering visually inspected; embedded image extraction alone is incomplete",
+        "initialSheetSpeedMeters": 7.5,
+        "strength": 14
+      }
+    },
+    "mike": {
+      "name": "Mike",
+      "anatomy": "humanoid-tall",
+      "profile": "hero-wizard",
+      "aliases": [
+        "wizard",
+        "Mike",
+        "Mago"
+      ],
+      "formOf": null,
+      "sourcePages": [],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied",
+      "sheetReference": {
+        "file": "OneDrive_1_12-9-2026/Personajes/Mike Mago Erudito.pdf",
+        "sha256": "3ae78b9f76ea52f607f281cb0caef6244dc6eb6464ff5dd6279c6161cda2356e",
+        "page": 1,
+        "method": "Full-page Poppler rendering visually inspected; embedded image extraction alone is incomplete",
+        "initialSheetSpeedMeters": 9,
+        "strength": 10
+      }
+    },
+    "sw-agga": {
+      "name": "Agga",
+      "anatomy": "reptilian-small",
+      "profile": "kobold-ground",
+      "aliases": [
+        "agga"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        8
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-aidron": {
+      "name": "Aidron",
+      "anatomy": "dragon-quadruped",
+      "profile": "bronze-wyrmling",
+      "aliases": [
+        "aidron"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        28,
+        34,
+        41
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [
+        "lightning"
+      ],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-blepp": {
+      "name": "Blepp",
+      "anatomy": "reptilian-small",
+      "profile": "kobold-ground",
+      "aliases": [
+        "blepp"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        8
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-fire-snake": {
+      "name": "Serpiente de fuego",
+      "anatomy": "serpentine",
+      "profile": "fire-snake",
+      "aliases": [
+        "fire-snake"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        20,
+        47
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [
+        "fire"
+      ],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-frub": {
+      "name": "Frub",
+      "anatomy": "reptilian-small",
+      "profile": "kobold-ground",
+      "aliases": [
+        "frub"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        8
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-fume-drake": {
+      "name": "Draco de humo",
+      "anatomy": "limbless-winged",
+      "profile": "fume-drake",
+      "aliases": [
+        "fume-drake"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        14,
+        20,
+        39
+      ],
+      "conditionImmunities": [
+        "poisoned"
+      ],
+      "damageImmunities": [
+        "fire",
+        "poison"
+      ],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-ghoul": {
+      "name": "Gul · reposo ocho fases",
+      "anatomy": "humanoid-tall",
+      "profile": "ghoul",
+      "aliases": [
+        "ghoul",
+        "gul",
+        "Gul"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        42
+      ],
+      "conditionImmunities": [
+        "exhaustion",
+        "poisoned",
+        "charmed"
+      ],
+      "damageImmunities": [
+        "poison"
+      ],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-kilnip": {
+      "name": "Kilnip",
+      "anatomy": "reptilian-small",
+      "profile": "kobold-ground",
+      "aliases": [
+        "kilnip"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        9
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-kobold": {
+      "name": "Kobold renegado",
+      "anatomy": "reptilian-small",
+      "profile": "kobold-ground",
+      "aliases": [
+        "kobold"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        14,
+        15,
+        43
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-laylee": {
+      "name": "Laylee",
+      "anatomy": "reptilian-small",
+      "profile": "kobold-ground",
+      "aliases": [
+        "laylee"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        9
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-mek": {
+      "name": "Mek",
+      "anatomy": "reptilian-winged-small",
+      "profile": "kobold-winged",
+      "aliases": [
+        "mek"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        31
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-minn": {
+      "name": "Minn",
+      "anatomy": "reptilian-winged-small",
+      "profile": "kobold-winged",
+      "aliases": [
+        "minn"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        31
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-mumpo": {
+      "name": "Mumpo",
+      "anatomy": "reptilian-small",
+      "profile": "kobold-ground",
+      "aliases": [
+        "mumpo"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        9
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-myconid-adult": {
+      "name": "Micónido adulto",
+      "anatomy": "fungal-biped",
+      "profile": "fungus-adult",
+      "aliases": [
+        "myconid-adult",
+        "Hipsiz",
+        "Rugoso",
+        "Agric",
+        "Omphalo",
+        "Craterel",
+        "Pleuro",
+        "Subrufus",
+        "Virosa",
+        "Auranta",
+        "Enoc"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        19,
+        20,
+        45
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-myconid-sprout": {
+      "name": "Brote micónido",
+      "anatomy": "fungal-biped",
+      "profile": "fungus-sprout",
+      "aliases": [
+        "myconid-sprout",
+        "Molen",
+        "Kraz",
+        "Bispo",
+        "Valup",
+        "Popple"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        19,
+        44,
+        45
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-myla": {
+      "name": "Myla",
+      "anatomy": "reptilian-winged-small",
+      "profile": "myla",
+      "aliases": [
+        "myla"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        9,
+        44
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied",
+      "flightException": {
+        "genericStatblockMeters": 3,
+        "productionDefault": "grounded",
+        "reason": "Narrative wing damage/loss on PDF pp9/31 conflicts with generic tinkerer flight p44; do not grant flight from anatomy; DM/rules exception remains explicit."
+      }
+    },
+    "sw-owlbear": {
+      "name": "Oso lechuza",
+      "anatomy": "quadruped",
+      "profile": "owlbear",
+      "aliases": [
+        "owlbear"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        14,
+        46
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-rix": {
+      "name": "Rix",
+      "anatomy": "reptilian-small",
+      "profile": "kobold-ground",
+      "aliases": [
+        "rix"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        9
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-runara-dragon": {
+      "name": "Runara · dragona de bronce",
+      "anatomy": "dragon-quadruped",
+      "profile": "bronze-adult",
+      "aliases": [
+        "runara-dragon"
+      ],
+      "formOf": "sw-runara",
+      "sourcePages": [
+        8,
+        41
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [
+        "lightning"
+      ],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-runara": {
+      "name": "Runara · forma humana",
+      "anatomy": "humanoid-tall",
+      "profile": "runara-human",
+      "aliases": [
+        "runara",
+        "npc-runara"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        8,
+        41
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [
+        "lightning"
+      ],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied",
+      "formRetainedSpeedsMeters": {
+        "swim": 12,
+        "fly": 24
+      }
+    },
+    "sw-sinensa": {
+      "name": "Sinensa",
+      "anatomy": "fungal-biped",
+      "profile": "sinensa",
+      "aliases": [
+        "sinensa"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        20,
+        21,
+        45
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-sparkrender": {
+      "name": "Chispa Fulminante",
+      "anatomy": "dragon-quadruped",
+      "profile": "blue-wyrmling",
+      "aliases": [
+        "sparkrender"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        28,
+        32,
+        33,
+        40
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [
+        "lightning"
+      ],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-spore-octopus": {
+      "name": "Pulpo siervo espora",
+      "anatomy": "cephalopod",
+      "profile": "spore-octopus",
+      "aliases": [
+        "spore-octopus"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        18,
+        46
+      ],
+      "conditionImmunities": [
+        "frightened",
+        "blinded",
+        "charmed",
+        "paralysed"
+      ],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-stirge": {
+      "name": "Estirge",
+      "anatomy": "winged-insect",
+      "profile": "stirge",
+      "aliases": [
+        "stirge"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        19,
+        31,
+        42
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-tarak": {
+      "name": "Tarak",
+      "anatomy": "humanoid-tall",
+      "profile": "tarak",
+      "aliases": [
+        "tarak",
+        "npc-tarak"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        9,
+        47
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-varnoth": {
+      "name": "Varnoth Wender",
+      "anatomy": "humanoid-tall",
+      "profile": "varnoth",
+      "aliases": [
+        "varnoth",
+        "npc-varnoth"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        9,
+        48
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-violet-fungus": {
+      "name": "Hongo violeta",
+      "anatomy": "plant",
+      "profile": "violet-fungus",
+      "aliases": [
+        "violet-fungus"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        19,
+        43
+      ],
+      "conditionImmunities": [
+        "frightened",
+        "blinded",
+        "deafened"
+      ],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-winged-kobold": {
+      "name": "Kobold alado",
+      "anatomy": "reptilian-winged-small",
+      "profile": "kobold-winged",
+      "aliases": [
+        "winged-kobold"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        15,
+        44
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "sw-zark": {
+      "name": "Zark",
+      "anatomy": "reptilian-small",
+      "profile": "kobold-ground",
+      "aliases": [
+        "zark"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        9
+      ],
+      "conditionImmunities": [],
+      "damageImmunities": [],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "zombie-2": {
+      "name": "Zombi marinero 2",
+      "anatomy": "humanoid-tall",
+      "profile": "zombie",
+      "aliases": [
+        "zombie-2"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        48
+      ],
+      "conditionImmunities": [
+        "poisoned"
+      ],
+      "damageImmunities": [
+        "poison"
+      ],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "zombie-3": {
+      "name": "Zombi marinero 3",
+      "anatomy": "humanoid-tall",
+      "profile": "zombie",
+      "aliases": [
+        "zombie-3"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        48
+      ],
+      "conditionImmunities": [
+        "poisoned"
+      ],
+      "damageImmunities": [
+        "poison"
+      ],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "zombie-4": {
+      "name": "Zombi marinero 4",
+      "anatomy": "humanoid-tall",
+      "profile": "zombie",
+      "aliases": [
+        "zombie-4"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        48
+      ],
+      "conditionImmunities": [
+        "poisoned"
+      ],
+      "damageImmunities": [
+        "poison"
+      ],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    },
+    "zombie": {
+      "name": "Zombi marinero",
+      "anatomy": "humanoid-tall",
+      "profile": "zombie",
+      "aliases": [
+        "zombie",
+        "zombie-1"
+      ],
+      "formOf": null,
+      "sourcePages": [
+        48
+      ],
+      "conditionImmunities": [
+        "poisoned"
+      ],
+      "damageImmunities": [
+        "poison"
+      ],
+      "presentationStatus": "movement contract only; current clips separately inventoried; no new animation implied"
+    }
+  },
+  "overlayPreparation": {
+    "status": "Contract and gap audit, not authored masks or accepted visual finish",
+    "frameIdentity": [
+      "characterId",
+      "actionId",
+      "viewDirection",
+      "frameIndex",
+      "sourceFrameHash",
+      "worldFacing",
+      "flipH"
+    ],
+    "geometry": [
+      "standingReferenceHeight",
+      "stableVisualPivot",
+      "bodyAlpha",
+      "bodyLocalAnchors",
+      "groundContact",
+      "frameVisibility",
+      "frontRearOrder"
+    ],
+    "proposedMasks": [
+      "body_core",
+      "head",
+      "limbs",
+      "wings",
+      "tail",
+      "tentacles",
+      "prosthesis",
+      "translucent_wisps"
+    ],
+    "perFrameReview": [
+      "relative anatomical coordinates in current visible bounds",
+      "hidden-anchor visibility",
+      "left/right remain anatomical sides",
+      "foot/root contact phase",
+      "overlay follows actual texture and pose, not a static rectangle"
+    ],
+    "anatomyExtras": {
+      "plant": [
+        "tentacle_1",
+        "tentacle_2",
+        "tentacle_3",
+        "tentacle_4"
+      ],
+      "quadruped": [
+        "root"
+      ],
+      "dragon-quadruped": [
+        "root"
+      ],
+      "humanoid-tall": [
+        "prosthesis_right_below_knee_for_varnoth_only"
+      ]
+    },
+    "eventTracks": [
+      "left_contact",
+      "right_contact",
+      "front_left_contact",
+      "front_right_contact",
+      "hind_left_contact",
+      "hind_right_contact",
+      "takeoff",
+      "touchdown",
+      "attack_release",
+      "attach_host",
+      "detach_host"
+    ],
+    "mechanicalAuthority": "Rules supply effective movement, actions, condition duration and immunity; cosmetic preview never applies mechanical conditions.",
+    "conditionResponses": {
+      "poisoned": "Keep permitted locomotion; localized material, optional weakened gesture.",
+      "petrified": "Freeze current pose/material; movement and falling only as resolved by rules.",
+      "paralysed": "Hold body pose; freeze feet/root motion; rules decide falling.",
+      "restrained": "No root displacement if effective speed is zero; optional local struggle and cause-specific binding.",
+      "grappled": "Follow resolved speed/host; not automatically prone.",
+      "prone": "Anatomy-specific fallen pose/crawl; sprite bounds do not redefine standing height.",
+      "unconscious": "Collapse/hold appropriate to anatomy; aerial fall and ground contact resolved by rules.",
+      "incapacitated": "Read canMove/canAct from rules; do not assume every incapacitating effect sets speed to zero.",
+      "stunned": "Read resolved rules; no universal frozen-body shortcut across editions.",
+      "charmed": "Preserve identity and allowed motion; no automatic dancing or stopping.",
+      "frightened": "Visual tension; route restrictions remain in rules.",
+      "blinded": "Head/face treatment only if meaningful anatomy and not immune.",
+      "deafened": "No generic humanoid-ear icon on deafness-immune/sensory-incompatible bodies.",
+      "invisible": "Body/equipment alpha and perception handled together; anchors retained.",
+      "hidden": "Stealth posture only where appropriate; distinct from invisibility.",
+      "exhaustion": "Intensity from actual level; not a separate painted body for each level."
+    },
+    "compositing": [
+      "Pose selection before overlay placement",
+      "Body shaders use current frame alpha/zone masks",
+      "Physical bindings use per-frame anchors and front/rear layers",
+      "Freeze or reduce motion independently from effect time",
+      "Removal restores original material and animation phase",
+      "Condition icons remain below the name in the character UI",
+      "Custom burned/frosted/cursed treatments do not create official conditions"
+    ]
+  },
+  "excluded": [
+    "D8 appearances",
+    "dead ancient dragons as live actors",
+    "dragon statues as living monsters",
+    "unselected pregenerated player characters",
+    "new clothing/armour/equipment assets"
+  ],
+  "review": {
+    "technical": "Contract coverage and anatomy-seed gap audit passed; listed warnings are unreviewed/missing future overlay anchors, not completed fitting.",
+    "visual": "No new sprites or overlays authored by this contract",
+    "userAcceptance": "planning requested; no new art acceptance inferred",
+    "evidence": [
+      "output/stormwreck-motion-20261118/motion-audit.json",
+      "output/stormwreck-motion-20261118/native-motion-inventory.json",
+      "output/stormwreck-motion-20261118/pipeline-tests.tap"
+    ]
+  }
+}

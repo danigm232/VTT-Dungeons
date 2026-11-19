@@ -5,6 +5,45 @@ const DIRECTIONS := ["n", "ne", "e", "se", "s", "sw", "w", "nw"]
 const ACTIONS := ["run", "stealth", "climb", "swim", "crawl", "jump", "attack", "spell"]
 static var _data: Dictionary = {}
 static var _textures: Dictionary = {}
+static var _prewarmed_images: Dictionary = {}
+
+static func collect_cpu_images(keys: Array, manifest_data: Dictionary, global_sprites_dir: String) -> Dictionary:
+	var atlases: Dictionary = manifest_data.get("atlases", {})
+	var ids: Array[String] = []
+	for raw_hero in keys:
+		var hero := str(raw_hero)
+		if hero.begins_with("zombie"):
+			for sfx in ["walk", "run", "attack", "reactions"]:
+				var zid: String = hero + "-" + str(sfx)
+				if atlases.has(zid) and zid not in ids:
+					ids.append(zid)
+		elif hero == "harpy":
+			for hid in ["harpy-walk", "harpy-claws", "harpy-club", "harpy-flight", "harpy-utility"]:
+				if atlases.has(hid) and hid not in ids:
+					ids.append(hid)
+		for sfx in ["walk", "run", "torch", "actions", "attack", "unarmed"]:
+			var aid: String = hero + "-" + str(sfx)
+			if atlases.has(aid) and aid not in ids:
+				ids.append(aid)
+	var out: Dictionary = {}
+	for atlas_id in ids:
+		if _textures.has(atlas_id) or _prewarmed_images.has(atlas_id):
+			continue
+		var spec: Dictionary = atlases[atlas_id]
+		var abs_path := global_sprites_dir.path_join(str(spec.get("file", "")))
+		if not FileAccess.file_exists(abs_path):
+			continue
+		var image := Image.load_from_file(abs_path)
+		if image != null and not image.is_empty():
+			image.fix_alpha_edges()
+			image.generate_mipmaps()
+			out[atlas_id] = image
+	return out
+
+static func apply_cpu_images(images: Dictionary) -> void:
+	for atlas_id in images:
+		if not _textures.has(atlas_id):
+			_prewarmed_images[atlas_id] = images[atlas_id]
 
 static func _manifest() -> Dictionary:
 	if _data.is_empty() and FileAccess.file_exists("res://sprites/frames.json"):
@@ -15,11 +54,15 @@ static func _row(atlas_id: String, row: int, fps: float, loop: bool) -> Dictiona
 	var spec: Dictionary = _manifest().get("atlases", {}).get(atlas_id, {})
 	if spec.is_empty(): return {}
 	if not _textures.has(atlas_id):
-		var image := Image.load_from_file(ProjectSettings.globalize_path("res://sprites/" + spec.file))
-		if image == null: return {}
-		# Neutralise invisible RGB before filtering transparent atlas borders.
-		image.fix_alpha_edges()
-		image.generate_mipmaps()
+		var image: Image = _prewarmed_images.get(atlas_id, null)
+		if image == null:
+			image = Image.load_from_file(ProjectSettings.globalize_path("res://sprites/" + spec.file))
+			if image == null: return {}
+			# Neutralise invisible RGB before filtering transparent atlas borders.
+			image.fix_alpha_edges()
+			image.generate_mipmaps()
+		else:
+			_prewarmed_images.erase(atlas_id)
 		_textures[atlas_id] = ImageTexture.create_from_image(image)
 	var frames: Array = []
 	for entry in spec.frames.slice(row * 8, row * 8 + 8):

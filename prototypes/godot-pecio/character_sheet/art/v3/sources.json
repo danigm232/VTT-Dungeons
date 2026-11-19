@@ -1,0 +1,13 @@
+{
+  "date": "2026-11-16",
+  "purpose": "Third character-sheet revision: continuous parchment, selective ornament, editorial hierarchy and 16:9 composition",
+  "assets": [],
+  "fonts": [],
+  "code_resources": [
+    {"id":"RPG-SHEET-V3-WIDGETS","owner":"sheet_widgets.gd","derivation":"Original native Godot linework, not a raster UI screenshot","components":["selective ink corners","shaped leather ribbon reusing art/leather-ribbon.png","heraldic modifier badges","armor shield","gold/ink semantic pictograms","mountain and small-fortress footer drawing"],"palette":["#EAD5AC","#F4E5C8","#493023","#B68A42","#642F32","#30251C"],"status":"Integrated candidate; user artistic acceptance pending"},
+    {"id":"RPG-SHEET-V3-TYPOGRAPHY","owner":"sheet_widgets.gd","derivation":"Existing bundled Crimson Pro variable font; 700 for proper-case character name, 650 editorial headings, 500 body","license":"fonts/CrimsonPro-OFL.txt","status":"Integrated; no font binary modified"},
+    {"id":"RPG-SHEET-V3-COMPOSITION","owner":"summary_composer.gd","derivation":"Native containers, local lists and real actor/render/action data; independent backpack restored by current explicit request","target":"1600x900 and 1280x720; all three lower summary blocks visible without general scrolling","status":"Requires current native capture and geometry tests, not historical results"}
+  ],
+  "reference":"User-provided artistic character-sheet reference, used for study only; original captured Mia is the exact before comparison",
+  "reuse":"All existing portraits, three empty stages, actual sprite/idle/equipment/state renderer and original parchment/wood frame retained. No commercial game artwork copied into the project. No map, collision, character identity or rules added."
+}

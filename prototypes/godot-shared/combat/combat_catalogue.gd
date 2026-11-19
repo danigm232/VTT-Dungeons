@@ -3,6 +3,7 @@ const Targeting = preload("res://combat/action_targeting.gd")
 static var data: Dictionary={}
 static var textures: Dictionary={}
 static var baked: Dictionary={}
+static var _prewarmed_images: Dictionary={}
 const BASIC := {"dash":"Correr","disengage":"Destrabarse","dodge":"Esquivar","help":"Ayudar","hide":"Esconderse","ready":"Preparar","search":"Buscar","study":"Estudiar","influence":"Influir","use-object":"Usar objeto","improvise":"Improvisar"}
 
 static func load_data() -> Dictionary:
@@ -84,6 +85,55 @@ static func icon(id: String) -> Texture2D:
 	textures[key]=ImageTexture.create_from_image(image)
 	return textures[key]
 
+static func collect_cpu_images(keys: Array, combat_data: Dictionary, baked_map: Dictionary, res_root_abs: String) -> Dictionary:
+	var frames_root: Dictionary = combat_data.get("frames", {})
+	var target_tokens: Array = []
+	for k in keys:
+		if k == "rogue": target_tokens.append(["rogue", ["help","influence","hit-physical","hit-fire","hit-arcane","disengage","use-torch"]])
+		elif k == "silverfarben": target_tokens.append(["silverfarben-hotel", []])
+		elif k == "anteros": target_tokens.append(["anteros", []])
+	var images: Dictionary = {}
+	var out: Dictionary = {}
+	var iso_script = preload("res://scripts/character_sprite_catalog.gd")
+	for pair in target_tokens:
+		var states: Dictionary = frames_root.get(pair[0], {})
+		var only_states: Array = pair[1]
+		for state in states:
+			if not only_states.is_empty() and state not in only_states: continue
+			for f in states[state].get("frames", []):
+				var key := frame_key(f)
+				if textures.has(key) or _prewarmed_images.has(key) or out.has(key): continue
+				if baked_map.has(key):
+					var b_abs: String = res_root_abs.path_join(str(baked_map[key]).trim_prefix("res://"))
+					if FileAccess.file_exists(b_abs):
+						var prep := Image.load_from_file(b_abs)
+						if prep != null and not prep.is_empty():
+							prep.generate_mipmaps()
+							out[key] = prep
+						continue
+				var path: String = f.url
+				var p_abs: String = res_root_abs.path_join(path.trim_prefix("res://"))
+				if not images.has(path):
+					images[path] = Image.load_from_file(p_abs) if FileAccess.file_exists(p_abs) else null
+				var image: Image = images[path]
+				if image == null or image.is_empty(): continue
+				var crop := Rect2i(int(f.get("x",0)),int(f.get("y",0)),int(f.get("width",image.get_width())),int(f.get("height",image.get_height())))
+				var isolated: Image = image.get_region(crop)
+				if f.has("alphaSeeds") and not f.alphaSeeds.is_empty():
+					var seed: Array = f.alphaSeeds[0]
+					isolated = iso_script._isolate_rgba_crop(image, crop, Vector2i(int(seed[0]), int(seed[1])))
+				var bounds := isolated.get_used_rect()
+				if bounds.size.x < 1 or bounds.size.y < 1: continue
+				var trimmed: Image = isolated.get_region(bounds)
+				trimmed.generate_mipmaps()
+				out[key] = trimmed
+	return out
+
+static func apply_cpu_images(imgs: Dictionary) -> void:
+	for k in imgs:
+		if not textures.has(k):
+			_prewarmed_images[k] = imgs[k]
+
 static func sprite_profile(token_id: String,only_states: Array=[]) -> Dictionary:
 	var states: Dictionary=load_data().get("frames",{}).get(token_id,{})
 	var result := {"dir_idle":{},"dir_walk":{},"dir_run":{},"dir_attack":{},"clips":{},"sneak_fx":[]}
@@ -96,6 +146,12 @@ static func sprite_profile(token_id: String,only_states: Array=[]) -> Dictionary
 		for f in entry.get("frames",[]):
 			var key:=frame_key(f)
 			if textures.has(key):
+				frames.append({"tex":textures[key],"height_scale":float(f.get("logicalHeight",92.0))/92.0,"flip_h":entry.get("flipX",false)}); continue
+			if _prewarmed_images.has(key):
+				var pre_img: Image = _prewarmed_images[key]
+				_prewarmed_images.erase(key)
+				if not pre_img.has_mipmaps(): pre_img.generate_mipmaps()
+				textures[key] = ImageTexture.create_from_image(pre_img)
 				frames.append({"tex":textures[key],"height_scale":float(f.get("logicalHeight",92.0))/92.0,"flip_h":entry.get("flipX",false)}); continue
 			var path: String=f.url
 			if baked.has(key) and FileAccess.file_exists(str(baked[key])):

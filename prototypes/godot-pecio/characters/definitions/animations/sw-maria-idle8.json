@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-maria-idle8",
+  "name": "Trinity / María Piesligeros · reposo ocho fases",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-small",
+  "dependencies": [],
+  "review": {
+    "technical": "atlas-extraction-passed; native test pending",
+    "visual": "internally reviewed: complete isolated phases, stable identity and anatomy; live-loop and user acceptance tracked separately",
+    "userAcceptance": "pending",
+    "evidence": [
+      "output/stormwreck-characters-20261117/imports/maria.json",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/originals/maria-idle8.png"
+    ]
+  },
+  "production": {
+    "stage": "generated-and-technically-extracted",
+    "brief": "Preserve EXACTLY the existing curly dark-haired halfling rogue Trinity/Maria: youthful adult face, rounded small ears, slim short adult halfling proportions, grey-cream padded rogue clothes, dark leather straps, bracers and belt, brown boots, existing dagger. Keep all body proportions, hair shape and costume. No new weapons, armour, hood or backpack.",
+    "originalIdentity": "campaigns/stormwreck-isle/public/art/m3/trinity/maria_base.png",
+    "method": "built-in ImageGen; preserve existing identity; no new equipment",
+    "promptFile": "output/stormwreck-characters-20261117/maria-idle8.prompt.txt",
+    "original": "campaigns/stormwreck-isle/public/art/characters/base-v1/originals/maria-idle8.png",
+    "originalSha256": "dee25b484df1afea2b19dd5b95f559879deecdf14393811bec8726c5f4623dc7",
+    "importReport": "output/stormwreck-characters-20261117/imports/maria.json"
+  },
+  "limitations": [
+    "Eight idle phases in one base view; authored other directions and actions retained, no additional views claimed.",
+    "Clothing/equipment production deferred by user."
+  ],
+  "character": "maria",
+  "action": "idle",
+  "direction": "se",
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/maria/idle-01.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/maria/idle-02.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/maria/idle-03.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/maria/idle-04.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/maria/idle-05.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/maria/idle-06.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/maria/idle-07.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/maria/idle-08.png"
+  ],
+  "fps": 2.5,
+  "loop": true,
+  "pivot": [
+    0.5,
+    0.9765807962529274
+  ],
+  "referenceHeight": 404,
+  "minimumDistinctFrames": 8,
+  "compatibility": {
+    "anatomies": [
+      "humanoid-small"
+    ],
+    "equipment": false,
+    "overlays": true
+  },
+  "events": [],
+  "initialFrame": 0,
+  "transition": "preserve support pivot",
+  "orientation": "Eight idle phases in one authored base view (se); no other views or locomotion claimed"
+}

@@ -1,0 +1,176 @@
+{
+  "version": 1,
+  "visualStyle": "existing painted D&D character art; coherent map lighting",
+  "orientation": "camera-relative eight directions where authored",
+  "scale": "character_stature.json or explicit source setting; never pose-envelope normalisation",
+  "pivot": "logical feet; preserve source frame floor offset",
+  "states": [
+    "poisoned",
+    "petrified",
+    "frosted",
+    "burned",
+    "cursed",
+    "invisible"
+  ],
+  "dependencies": [],
+  "review": {
+    "visual": "pending",
+    "userAcceptance": "pending",
+    "evidence": []
+  },
+  "kind": "character",
+  "id": "cow",
+  "name": "Vaca de Margaret",
+  "anatomy": "quadruped",
+  "source": {
+    "kind": "individual-frames",
+    "files": [
+      "campaigns/one-shot/public/art/tokens/Ben, Margaret, Vaca, Carnicero/Vaca/vaca_base.png",
+      "campaigns/one-shot/public/art/tokens/Ben, Margaret, Vaca, Carnicero/Vaca/vaca_idle_01.png",
+      "campaigns/one-shot/public/art/tokens/Ben, Margaret, Vaca, Carnicero/Vaca/vaca_idle_02.png"
+    ],
+    "animation": "idle",
+    "fps": 3
+  },
+  "aliases": [
+    "Vaca",
+    "Cow"
+  ],
+  "heightMeters": 1.35,
+  "embeddedSlots": [],
+  "equipmentSlots": [
+    "back",
+    "waist"
+  ],
+  "safeAnimations": [
+    "idle"
+  ],
+  "limitations": [
+    "First modular sample uses existing idle poses. The four historical walking frames remain legacy; no new locomotion cycle is falsely declared as eight frames."
+  ],
+  "compatibility": "legacy body preserved; modular candidate",
+  "frameOverrides": {
+    "idle:s:0": {
+      "head": [
+        0.22,
+        0.21
+      ],
+      "torso": [
+        0.55,
+        0.46
+      ],
+      "back": [
+        0.65,
+        0.32
+      ],
+      "waist": [
+        0.7,
+        0.5
+      ],
+      "foot_front_left": [
+        0.3,
+        0.92
+      ],
+      "foot_front_right": [
+        0.48,
+        0.96
+      ],
+      "foot_hind_left": [
+        0.77,
+        0.88
+      ],
+      "foot_hind_right": [
+        0.89,
+        0.87
+      ],
+      "tail": [
+        0.93,
+        0.56
+      ]
+    },
+    "idle:s:1": {
+      "head": [
+        0.22,
+        0.21
+      ],
+      "torso": [
+        0.55,
+        0.46
+      ],
+      "back": [
+        0.65,
+        0.32
+      ],
+      "waist": [
+        0.7,
+        0.5
+      ],
+      "foot_front_left": [
+        0.3,
+        0.92
+      ],
+      "foot_front_right": [
+        0.48,
+        0.96
+      ],
+      "foot_hind_left": [
+        0.77,
+        0.88
+      ],
+      "foot_hind_right": [
+        0.89,
+        0.87
+      ],
+      "tail": [
+        0.93,
+        0.56
+      ]
+    },
+    "idle:s:2": {
+      "head": [
+        0.22,
+        0.21
+      ],
+      "torso": [
+        0.55,
+        0.46
+      ],
+      "back": [
+        0.65,
+        0.32
+      ],
+      "waist": [
+        0.7,
+        0.5
+      ],
+      "foot_front_left": [
+        0.3,
+        0.92
+      ],
+      "foot_front_right": [
+        0.48,
+        0.96
+      ],
+      "foot_hind_left": [
+        0.77,
+        0.88
+      ],
+      "foot_hind_right": [
+        0.89,
+        0.87
+      ],
+      "tail": [
+        0.93,
+        0.56
+      ]
+    }
+  },
+  "bindingFit": {
+    "torsoHalfWidth": 0.22
+  },
+  "anchorReview": {
+    "scope": "three existing front-three-quarter idle frames",
+    "method": "manual visible-source fit",
+    "acceptance": "internal sample review; user pending"
+  }
+}

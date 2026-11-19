@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "visualStyle": "existing painted D&D character art; coherent map lighting",
+  "orientation": "camera-relative eight directions where authored",
+  "scale": "character_stature.json or explicit source setting; never pose-envelope normalisation",
+  "pivot": [
+    0.5,
+    0.6
+  ],
+  "states": [
+    "poisoned",
+    "petrified",
+    "frosted",
+    "burned",
+    "cursed",
+    "invisible"
+  ],
+  "dependencies": [],
+  "review": {
+    "visual": "pending-character-fit",
+    "userAcceptance": "pending",
+    "replaces": "rejected-geometric-candidate",
+    "evidence": [],
+    "deferredByUser": "2026-11-16: no crear objetos de vestir ahora; fase posterior"
+  },
+  "kind": "equipment",
+  "id": "steel-helmet",
+  "name": "Yelmo de acero",
+  "slot": "head",
+  "anchor": "head",
+  "geometry": "helmet",
+  "anatomies": [
+    "humanoid-tall",
+    "humanoid-small",
+    "humanoid-dwarf"
+  ],
+  "scaleRelativeToHeight": [
+    0.22,
+    0.24,
+    0.2
+  ],
+  "drawOrder": "front",
+  "animationBehavior": "follow corrected anatomical anchors every rendered frame",
+  "occludesEmbedded": [],
+  "materials": {
+    "base": "#8c969c",
+    "roughness": 0.72
+  },
+  "compatibility": {
+    "requiresFreeSlot": true,
+    "unsupportedBehavior": "reject with reason; never silently stack on baked equipment"
+  },
+  "productionPlan": {
+    "method": "new painted modular layer matching existing character references",
+    "geometryCandidate": "rejected; never use as visual acceptance evidence",
+    "expectedOriginal": "art/helmet-v2.png",
+    "layout": {
+      "columns": 4,
+      "rows": 2,
+      "directions": [
+        "n",
+        "ne",
+        "e",
+        "se",
+        "s",
+        "sw",
+        "w",
+        "nw"
+      ]
+    },
+    "pivot": "anatomical attachment; per-character fitted dimensions",
+    "status": "generated; awaiting fitted review"
+  },
+  "source": {
+    "kind": "directional-atlas",
+    "file": "art/helmet-v2.png",
+    "columns": 4,
+    "rows": 2,
+    "directions": [
+      "n",
+      "ne",
+      "e",
+      "se",
+      "s",
+      "sw",
+      "w",
+      "nw"
+    ]
+  },
+  "rendering": "painted-sprite-layer",
+  "heightRelativeToCharacter": 0.2,
+  "provenance": {
+    "method": "built-in ImageGen",
+    "original": "C:/Users/User/.codex/generated_images/01a0b95d-1b97-75b2-9ce4-b7d86fc18e3c/exec-d1751036-08be-4b33-be6c-6b9b7beadabf.png",
+    "references": [
+      "prototypes/godot-pecio/assets/tokens/wizard-rest-v1.png",
+      "campaigns/one-shot/public/art/tokens/Anteros/anteros_base.png"
+    ],
+    "description": "Eight orthographic views, 4x2 transparent atlas, rounded open-face steel sallet, painted outline matching original characters; no head, face, hair, cone or block geometry."
+  },
+  "productionEnabled": false
+}

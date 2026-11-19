@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "visualStyle": "existing painted D&D character art; coherent map lighting",
+  "orientation": "camera-relative eight directions where authored",
+  "scale": "character_stature.json or explicit source setting; never pose-envelope normalisation",
+  "pivot": [
+    0.5,
+    0.5
+  ],
+  "states": [
+    "poisoned",
+    "petrified",
+    "frosted",
+    "burned",
+    "cursed",
+    "invisible"
+  ],
+  "dependencies": [],
+  "review": {
+    "visual": "pending-character-fit",
+    "userAcceptance": "pending",
+    "evidence": [],
+    "deferredByUser": "2026-11-16: no crear objetos de vestir ahora; fase posterior"
+  },
+  "kind": "equipment",
+  "id": "traveller-pack",
+  "name": "Mochila de viaje",
+  "slot": "back",
+  "anchor": "back",
+  "geometry": "backpack",
+  "anatomies": [
+    "humanoid-tall",
+    "humanoid-small",
+    "humanoid-dwarf",
+    "quadruped"
+  ],
+  "scaleRelativeToHeight": [
+    0.36,
+    0.38,
+    0.24
+  ],
+  "drawOrder": "rear",
+  "animationBehavior": "follow corrected anatomical anchors every rendered frame",
+  "occludesEmbedded": [],
+  "materials": {
+    "base": "#76503b",
+    "roughness": 0.72
+  },
+  "compatibility": {
+    "requiresFreeSlot": true,
+    "unsupportedBehavior": "reject with reason; never silently stack on baked equipment"
+  },
+  "productionPlan": {
+    "method": "painted directional layer",
+    "sourceStyle": "existing Mike and Anteros illustrations",
+    "expectedOriginal": "art/backpack-v2.png",
+    "layout": {
+      "columns": 4,
+      "rows": 2,
+      "directions": [
+        "n",
+        "ne",
+        "e",
+        "se",
+        "s",
+        "sw",
+        "w",
+        "nw"
+      ]
+    },
+    "status": "defined before generation"
+  },
+  "rendering": "painted-sprite-layer",
+  "heightRelativeToCharacter": 0.39,
+  "source": {
+    "kind": "directional-atlas",
+    "file": "art/backpack-v2.png",
+    "columns": 4,
+    "rows": 2,
+    "directions": [
+      "n",
+      "ne",
+      "e",
+      "se",
+      "s",
+      "sw",
+      "w",
+      "nw"
+    ]
+  },
+  "viewRemap": {
+    "sw": {
+      "source": "se",
+      "flip": true
+    }
+  },
+  "provenance": {
+    "method": "built-in ImageGen",
+    "original": "C:/Users/User/.codex/generated_images/01a0b95d-1b97-75b2-9ce4-b7d86fc18e3c/exec-63d7e04a-de5d-4455-854c-3d26b43a9b12.png",
+    "prompt": "art/backpack-v2.prompt.txt",
+    "derivation": "Southwest uses mirrored southeast for correct wearer-facing straps"
+  },
+  "productionEnabled": false
+}

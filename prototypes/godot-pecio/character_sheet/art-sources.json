@@ -1,0 +1,66 @@
+{
+  "date": "2026-11-17",
+  "authoring": "Built-in image_gen; original project-bound material assets, not screenshots or lettering baked into a UI",
+  "references": [
+    "User attachment: Imagen de ChatGPT 16 nov 2026, 12_49_24-1.png — artistic direction only",
+    "User attachment: Imagen de ChatGPT 16 nov 2026, 12_49_28-2.png — structure only; the current explicit specification chooses Resumen/Combate/Conjuros/Historia",
+    "User attachment: Guía comparativa de personaje fantástico · DESPUÉS and twelve detail improvements; appearance only"
+  ],
+  "assets": [
+    {
+      "id": "RPG-SHEET-PARCHMENT-01",
+      "file": "art/manuscript-frame.png",
+      "original": "exec-63508edc-8bef-45a1-ad2e-392fc61dbe1e.png",
+      "prompt": "Create a production game UI MATERIAL asset, not a mockup, no text, no characters, no buttons, no statistics. Landscape 1536x1024. A single rectangular medieval illuminated manuscript parchment panel with an elaborate hand-painted carved walnut outer frame, aged brass filigree corners, fine engraved oak leaves and small gold rivets. Outer wood border about 70 pixels, inner gold bevel about 18 pixels; straight calm edges between the ornate corners, suitable for nine-slice scaling without stretching corner ornaments. Center 80% is clean warm ivory cream parchment (#EAD5AC/#F4E5C8), fine subtle fibres, very faint watercolor foxing near edges, flat even illumination, high readability. Frame dark walnut #493023 with antique gold #B68A42 sculptural highlights, not shiny modern. Faithful high quality fantasy RPG illustrated UI, hand-painted manuscript like the user's Mia reference, generous decorative corners and delicate double inset borders. Perfectly front-facing orthographic flat rectangular asset, fully fills canvas. Zero letters, glyphs, runes, numbers, labels, icons or watermarks. No drop shadows outside canvas. This is one reusable panel surface, NOT a screenshot or whole character sheet."
+    },
+    {
+      "id": "RPG-SHEET-ALCOVE-01",
+      "file": "art/empty-alcove.png",
+      "original": "exec-742b1d00-79f5-4bcb-8761-acdc4ff94b02.png",
+      "prompt": "Production RPG character-sheet background asset, portrait 2:3 composition. A hand-painted medieval stone alcove with a rounded arch, dark warm grey limestone blocks, a simple plain muted blue hanging banner in the upper center, two small warm sconces on side walls, a broad low stone plinth at bottom. Empty center must remain dark, calm, unobstructed to display an actual pixel-art game character rendered separately in front. Fine antique brass frame follows the arch with understated engraved leaf details. The art style is Fantasy RPG Illustrated UI / medieval illuminated manuscript, detailed painterly surfaces with discrete ink lines, warm antique gold and walnut, same quality as ornate hand-painted parchment character sheets. Frontal orthographic symmetric view, no perspective tilt. NO person, NO creature, NO statue, NO silhouette, NO letters, NO numbers, NO emblems, NO runes, no UI labels. No inventory. Entire image is only the reusable EMPTY alcove artwork; not a mockup. Leave at least central 65% width and 70% height available for the character overlay."
+    },
+    {
+      "id": "RPG-SHEET-RIBBON-01",
+      "file": "art/leather-ribbon.png",
+      "original": "exec-c0e52810-82c8-492b-a685-c897b5c20320.png",
+      "prompt": "A production game UI asset, one single horizontal title ribbon, landscape ultra wide 3:1 aspect ratio. Medieval illuminated-manuscript fantasy RPG illustrated interface, hand-painted, realistic material depth without modern gloss. Dark oxblood burgundy worn leather inset on carved dark walnut, antique brass double bevel edge, small decorative leaf filigree and brass rivets ONLY at the far left and right ends. The central 80% is calm dark burgundy leather with very fine subtle grain, blank to place readable ivory text at runtime. Rectangular with slightly clipped medieval corners. Entire ribbon fills the canvas, seen straight on orthographically. No background scene, no parchment, no characters, no emblems, absolutely no letters, text, numbers, runes or icons. Crisp exquisite painterly detail at the two ends, quiet center. Intended as a reusable nine-slice title-band component for the user's ornate parchment character sheet, NOT a complete mockup."
+    },
+    {
+      "id": "RPG-SHEET-ICONS-01",
+      "file": "art/engraved-icons.png",
+      "original": "exec-e95ca55c-4e9a-45f4-bf0d-a8b594d73456.png",
+      "prompt": "Production fantasy RPG UI ICON ATLAS, exactly TWELVE distinct icons in a perfectly regular 4-column by 3-row grid, equally sized cells, each illustration centered in its cell with generous 18% transparent padding. No text, no numbers, no labels, no letters, no cell outlines or background. Transparent background. Entire canvas aspect ratio 4:3. Style: hand-drawn medieval engraved manuscript icon illustrations, dark walnut-brown ink hatching, aged brass and subtle ochre watercolor fill; richly crafted and readable silhouettes, consistent stroke/detail scale and materials, NOT minimalist modern outline symbols and NOT glossy 3D emoji. Intended to be placed on a warm parchment character sheet. Row 1 left to right: anatomical heraldic HEART, medieval SHIELD, WINGED LEATHER BOOT, medieval HOURGLASS. Row 2 left to right: eight-point COMPASS STAR, TWO CROSSED SWORDS, open leather-bound BOOK, small magical FLAME with two subtle sparks. Row 3 left to right: rolled PARCHMENT SCROLL, faceted D20 ICOSAHEDRON with BLANK faces no numerals, engraved OPEN EYE, armored GAUNTLET FIST. Keep every icon fully inside its one cell. No extra icons, no pedestal, no shadows cast across cells. Same illustrated quality as ornate walnut-and-brass illuminated manuscript game interfaces.",
+      "layout": "4 columns, 3 rows, normalized cell bounds; trim transparent padding at runtime; discard alpha below 32/255 to avoid colour fringes"
+    }
+  ],
+  "icons": {
+    "owner": "skin.gd",
+    "provenance": "12 original generated medieval engravings in one atlas; original code-native silhouettes retained solely as a missing-asset fallback; no external art pack",
+    "keys": [
+      "heart",
+      "shield",
+      "speed",
+      "initiative",
+      "star",
+      "sword",
+      "book",
+      "magic",
+      "history",
+      "die",
+      "eye",
+      "hand"
+    ],
+    "note": "12 keyed atlas regions; ability and tab roles reuse the same illustrated family"
+  },
+  "extensions": [
+    "art/v2/sources.json",
+    "art/v3/sources.json",
+    "art/v4/sources.json",
+    "art/v5/sources.json",
+    "art/v6/sources.json"
+  ],
+  "fonts": "Cinzel 600 and Crimson Pro 500, bundled variable fonts under SIL OFL 1.1; provenance and licenses in art/v2/sources.json",
+  "status": "Implemented and internally reviewed; user artistic acceptance remains separate",
+  "activePass": "V6 · audit, current action details, registered radius, compact spells and usable adaptive inventory",
+  "current_revision": 6
+}

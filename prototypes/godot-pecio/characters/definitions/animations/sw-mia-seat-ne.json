@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-mia-seat-ne",
+  "campaign": "stormwreck-isle",
+  "character": "mia",
+  "anatomy": "humanoid-dwarf",
+  "action": "sit_on_prop",
+  "direction": "ne",
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/party-seat-views-v1/mia/seat-ne.png"
+  ],
+  "poseKind": "hold",
+  "fps": 1,
+  "loop": true,
+  "compatibility": {
+    "anchor": "pelvis at seat surface; boot midpoint registered below pelvis",
+    "embeddedSlotsRetained": true
+  },
+  "production": {
+    "method": "ImageGen reference sheet and lossless cell crop",
+    "reference": "prototypes/godot-campamentos/assets/tokens/animations/seated/cleric-seated.png",
+    "original": "campaigns/stormwreck-isle/public/art/characters/party-seat-views-v1/mia/originals/seat-sheet.png"
+  },
+  "review": {
+    "technical": "pending",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "pivot": [
+    0.29577464788732394,
+    0.7432762836185819
+  ],
+  "soleContact": [
+    0.6373239436619719,
+    0.9706601466992665
+  ],
+  "referenceHeight": 530
+}

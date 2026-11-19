@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "id": "limbless-winged",
+  "kind": "anatomy",
+  "coordinates": "normalised visible image bounds; x right/y down; seed anchors require per-frame review",
+  "anchors": {
+    "head": [
+      0.38,
+      0.28
+    ],
+    "torso": [
+      0.5,
+      0.5
+    ],
+    "wing_left": [
+      0.13,
+      0.29
+    ],
+    "wing_right": [
+      0.86,
+      0.29
+    ],
+    "tail_root": [
+      0.63,
+      0.66
+    ],
+    "tail_tip": [
+      0.83,
+      0.88
+    ],
+    "root": [
+      0.5,
+      0.98
+    ]
+  },
+  "requiredAnchors": [
+    "head",
+    "torso",
+    "wing_left",
+    "wing_right",
+    "tail_root",
+    "tail_tip",
+    "root"
+  ],
+  "slots": [],
+  "frameOverrides": {},
+  "status": "seed; one base pose, no directional animation inferred"
+}

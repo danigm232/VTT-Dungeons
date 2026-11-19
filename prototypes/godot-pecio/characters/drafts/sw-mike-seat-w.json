@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-mike-seat-w",
+  "campaign": "stormwreck-isle",
+  "character": "mike",
+  "anatomy": "humanoid-tall",
+  "action": "sit_on_prop",
+  "direction": "w",
+  "frames": [],
+  "poseKind": "hold",
+  "fps": 1,
+  "loop": true,
+  "compatibility": {
+    "anchor": "pelvis at seat surface; boot midpoint registered below pelvis",
+    "embeddedSlotsRetained": true
+  },
+  "production": {
+    "method": "ImageGen reference sheet and lossless cell crop",
+    "reference": "prototypes/godot-campamentos/assets/tokens/animations/seated/wizard-seated.png"
+  },
+  "review": {
+    "technical": "pending",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  }
+}

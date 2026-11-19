@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "kind": "character",
+  "id": "sw-winged-kobold",
+  "name": "Kobold alado",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-winged-small",
+  "heightMeters": 0.9,
+  "heightBasis": "visual staging estimate consistent with PDF size category; not an asserted canonical individual height",
+  "aliases": [
+    "winged-kobold"
+  ],
+  "source": {
+    "kind": "individual-frames",
+    "files": [
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/winged-kobold/idle-01.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/winged-kobold/idle-02.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/winged-kobold/idle-03.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/winged-kobold/idle-04.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/winged-kobold/idle-05.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/winged-kobold/idle-06.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/winged-kobold/idle-07.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/winged-kobold/idle-08.png"
+    ],
+    "fps": 2.5,
+    "animation": "idle",
+    "directions": [
+      "se"
+    ],
+    "minimumDistinctFrames": 8,
+    "baseFile": "campaigns/stormwreck-isle/public/art/characters/base-v1/winged-kobold.png",
+    "preserveCanvas": true,
+    "referenceHeightPixels": 407,
+    "pivot": [
+      0.5,
+      0.9766355140186916
+    ]
+  },
+  "embeddedSlots": [
+    "clothing"
+  ],
+  "equipmentSlots": [],
+  "safeAnimations": [
+    "idle"
+  ],
+  "frameOverrides": {},
+  "states": [
+    "poisoned",
+    "petrified",
+    "frosted",
+    "burned",
+    "cursed",
+    "invisible"
+  ],
+  "visualStyle": "painted inked fantasy VTT character; clear material planes and adult proportions; coherent with existing Stormwreck heroes",
+  "orientation": "Eight idle phases in one authored base view (se); no other views or locomotion claimed",
+  "scale": "calibrate standing body, not total wings/tail envelope",
+  "pivot": "ground support, relative visible bounds; fitted after artwork exists",
+  "dependencies": [],
+  "mechanicalReference": {
+    "pdf": "OneDrive_1_12-9-2026/Aventura Los Dragones de la Isla de las Tempestades.pdf",
+    "pdfSha256": "26a700407a3878f27428755e40fdb8d8a933a9bbd2aeaa9461e33fc6fae2fc69",
+    "pages": [
+      15,
+      44
+    ]
+  },
+  "production": {
+    "stage": "generated-and-technically-extracted",
+    "expectedFile": "campaigns/stormwreck-isle/public/art/characters/base-v1/winged-kobold-idle8.png",
+    "method": "built-in ImageGen; one isolated full-body asset per call",
+    "brief": "small reptilian kobold with two arms, two legs, a tail and a separate pair of leathery wings; rough cloth and a simple belt; no blue snout paint",
+    "background": "true RGBA transparency",
+    "margin": "all anatomy inside canvas with clear gutter; no collage",
+    "referenceStyle": [
+      "campaigns/stormwreck-isle/public/art/m3/trinity/maria_base.png",
+      "prototypes/godot-pecio/assets/tokens/wizard-rest-v1.png"
+    ],
+    "designInterpretation": "Features not specified in the adventure are an art proposal, not added rules or lore",
+    "idleAtlas": {
+      "columns": 4,
+      "rows": 2,
+      "order": "left-to-right then next row",
+      "count": 8,
+      "action": "idle",
+      "direction": "se",
+      "mustKeep": [
+        "identity",
+        "anatomy",
+        "body proportions",
+        "scale",
+        "foot support",
+        "transparent gutters"
+      ]
+    },
+    "promptFile": "output/stormwreck-characters-20261117/winged-kobold-alpha-fix.prompt.txt",
+    "original": "campaigns/stormwreck-isle/public/art/characters/base-v1/originals/winged-kobold-idle8-32b02dfcfd.png",
+    "originalSha256": "32b02dfcfdbf03eabc595fa50a630545a3fc89d2449f0ab218c5551b95e6ff91",
+    "importReport": "output/stormwreck-characters-20261117/imports/winged-kobold.json"
+  },
+  "limitations": [
+    "Eight distinct idle phases in one base view. Other directions and actions are not yet claimed.",
+    "New clothing/equipment swapping is deferred; outfit belongs to this base illustration."
+  ],
+  "review": {
+    "technical": "atlas-extraction-passed; native test pending",
+    "visual": "internally reviewed: complete isolated phases, stable identity and anatomy; live-loop and user acceptance tracked separately",
+    "userAcceptance": "pending",
+    "evidence": [
+      "output/stormwreck-characters-20261117/imports/winged-kobold.json",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/originals/winged-kobold-idle8-32b02dfcfd.png"
+    ]
+  }
+}

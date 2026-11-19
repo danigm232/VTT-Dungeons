@@ -1,0 +1,118 @@
+{
+  "version": 1,
+  "kind": "character",
+  "id": "sw-myconid-sprout",
+  "name": "Brote micónido",
+  "campaign": "stormwreck-isle",
+  "anatomy": "fungal-biped",
+  "heightMeters": 0.75,
+  "heightBasis": "visual staging estimate consistent with PDF size category; not an asserted canonical individual height",
+  "aliases": [
+    "myconid-sprout",
+    "Molen",
+    "Kraz",
+    "Bispo",
+    "Valup",
+    "Popple"
+  ],
+  "source": {
+    "kind": "individual-frames",
+    "files": [
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/myconid-sprout/idle-01.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/myconid-sprout/idle-02.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/myconid-sprout/idle-03.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/myconid-sprout/idle-04.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/myconid-sprout/idle-05.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/myconid-sprout/idle-06.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/myconid-sprout/idle-07.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/myconid-sprout/idle-08.png"
+    ],
+    "fps": 2.5,
+    "animation": "idle",
+    "directions": [
+      "se"
+    ],
+    "minimumDistinctFrames": 8,
+    "baseFile": "campaigns/stormwreck-isle/public/art/characters/base-v1/myconid-sprout.png",
+    "preserveCanvas": true,
+    "referenceHeightPixels": 334,
+    "pivot": [
+      0.5,
+      0.9734748010610079
+    ]
+  },
+  "embeddedSlots": [],
+  "equipmentSlots": [],
+  "safeAnimations": [
+    "idle"
+  ],
+  "frameOverrides": {},
+  "states": [
+    "poisoned",
+    "petrified",
+    "frosted",
+    "burned",
+    "cursed",
+    "invisible"
+  ],
+  "visualStyle": "painted inked fantasy VTT character; clear material planes and adult proportions; coherent with existing Stormwreck heroes",
+  "orientation": "Eight idle phases in one authored base view (se); no other views or locomotion claimed",
+  "scale": "calibrate standing body, not total wings/tail envelope",
+  "pivot": "ground support, relative visible bounds; fitted after artwork exists",
+  "dependencies": [],
+  "mechanicalReference": {
+    "pdf": "OneDrive_1_12-9-2026/Aventura Los Dragones de la Isla de las Tempestades.pdf",
+    "pdfSha256": "26a700407a3878f27428755e40fdb8d8a933a9bbd2aeaa9461e33fc6fae2fc69",
+    "pages": [
+      19,
+      44,
+      45
+    ]
+  },
+  "production": {
+    "stage": "generated-and-technically-extracted",
+    "expectedFile": "campaigns/stormwreck-isle/public/art/characters/base-v1/myconid-sprout-idle8.png",
+    "method": "built-in ImageGen; one isolated full-body asset per call",
+    "brief": "small young walking fungus, squat purple porous mushroom cap and short pink-brown stem limbs; distinctly smaller/younger than adult, no clothes",
+    "background": "true RGBA transparency",
+    "margin": "all anatomy inside canvas with clear gutter; no collage",
+    "referenceStyle": [
+      "campaigns/stormwreck-isle/public/art/m3/trinity/maria_base.png",
+      "prototypes/godot-pecio/assets/tokens/wizard-rest-v1.png"
+    ],
+    "designInterpretation": "Features not specified in the adventure are an art proposal, not added rules or lore",
+    "idleAtlas": {
+      "columns": 4,
+      "rows": 2,
+      "order": "left-to-right then next row",
+      "count": 8,
+      "action": "idle",
+      "direction": "se",
+      "mustKeep": [
+        "identity",
+        "anatomy",
+        "body proportions",
+        "scale",
+        "foot support",
+        "transparent gutters"
+      ]
+    },
+    "promptFile": "output/stormwreck-characters-20261117/myconid-sprout-idle8.transparent.prompt.txt",
+    "original": "campaigns/stormwreck-isle/public/art/characters/base-v1/originals/myconid-sprout-idle8.png",
+    "originalSha256": "5783b0a2a210847cbdf5aa1469cb1616661ad5a13b033237bbe37f4223282d81",
+    "importReport": "output/stormwreck-characters-20261117/imports/myconid-sprout.json"
+  },
+  "limitations": [
+    "Eight distinct idle phases in one base view. Other directions and actions are not yet claimed.",
+    "New clothing/equipment swapping is deferred; outfit belongs to this base illustration."
+  ],
+  "review": {
+    "technical": "atlas-extraction-passed; native test pending",
+    "visual": "internally reviewed: complete isolated phases, stable identity and anatomy; live-loop and user acceptance tracked separately",
+    "userAcceptance": "pending",
+    "evidence": [
+      "output/stormwreck-characters-20261117/imports/myconid-sprout.json",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/originals/myconid-sprout-idle8.png"
+    ]
+  }
+}

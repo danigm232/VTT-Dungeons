@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "kind": "character",
+  "id": "sw-fume-drake",
+  "name": "Draco de humo",
+  "campaign": "stormwreck-isle",
+  "anatomy": "limbless-winged",
+  "heightMeters": 0.9,
+  "heightBasis": "visual staging estimate consistent with PDF size category; not an asserted canonical individual height",
+  "aliases": [
+    "fume-drake"
+  ],
+  "source": {
+    "kind": "individual-frames",
+    "files": [
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/fume-drake/idle-01.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/fume-drake/idle-02.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/fume-drake/idle-03.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/fume-drake/idle-04.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/fume-drake/idle-05.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/fume-drake/idle-06.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/fume-drake/idle-07.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/fume-drake/idle-08.png"
+    ],
+    "fps": 2.5,
+    "animation": "idle",
+    "directions": [
+      "se"
+    ],
+    "minimumDistinctFrames": 8,
+    "baseFile": "campaigns/stormwreck-isle/public/art/characters/base-v1/fume-drake.png",
+    "preserveCanvas": true,
+    "referenceHeightPixels": 385,
+    "pivot": [
+      0.5,
+      0.9764705882352941
+    ]
+  },
+  "embeddedSlots": [],
+  "equipmentSlots": [],
+  "safeAnimations": [
+    "idle"
+  ],
+  "frameOverrides": {},
+  "states": [
+    "poisoned",
+    "petrified",
+    "frosted",
+    "burned",
+    "cursed",
+    "invisible"
+  ],
+  "visualStyle": "painted inked fantasy VTT character; clear material planes and adult proportions; coherent with existing Stormwreck heroes",
+  "orientation": "Eight idle phases in one authored base view (se); no other views or locomotion claimed",
+  "scale": "calibrate standing body, not total wings/tail envelope",
+  "pivot": "ground support, relative visible bounds; fitted after artwork exists",
+  "dependencies": [],
+  "mechanicalReference": {
+    "pdf": "OneDrive_1_12-9-2026/Aventura Los Dragones de la Isla de las Tempestades.pdf",
+    "pdfSha256": "26a700407a3878f27428755e40fdb8d8a933a9bbd2aeaa9461e33fc6fae2fc69",
+    "pages": [
+      14,
+      20,
+      39
+    ]
+  },
+  "production": {
+    "stage": "generated-and-technically-extracted",
+    "expectedFile": "campaigns/stormwreck-isle/public/art/characters/base-v1/fume-drake-idle8.png",
+    "method": "built-in ImageGen; one isolated full-body asset per call",
+    "brief": "small draconic elemental made of dense GREENISH SMOKE, dragon head, smoky wings and long curling tail; absolutely NO LEGS or arms; readable opaque core with translucent wisps",
+    "background": "true RGBA transparency",
+    "margin": "all anatomy inside canvas with clear gutter; no collage",
+    "referenceStyle": [
+      "campaigns/stormwreck-isle/public/art/m3/trinity/maria_base.png",
+      "prototypes/godot-pecio/assets/tokens/wizard-rest-v1.png"
+    ],
+    "designInterpretation": "Features not specified in the adventure are an art proposal, not added rules or lore",
+    "idleAtlas": {
+      "columns": 4,
+      "rows": 2,
+      "order": "left-to-right then next row",
+      "count": 8,
+      "action": "idle",
+      "direction": "se",
+      "mustKeep": [
+        "identity",
+        "anatomy",
+        "body proportions",
+        "scale",
+        "foot support",
+        "transparent gutters"
+      ]
+    },
+    "promptFile": "output/stormwreck-characters-20261117/fume-drake-idle8.prompt.txt",
+    "original": "campaigns/stormwreck-isle/public/art/characters/base-v1/originals/fume-drake-idle8.png",
+    "originalSha256": "bc656d634aac37fe5ab3551d805b1c033edb0558d4ff6a190bdf7e7580c927c8",
+    "importReport": "output/stormwreck-characters-20261117/imports/fume-drake.json"
+  },
+  "limitations": [
+    "Eight distinct idle phases in one base view. Other directions and actions are not yet claimed.",
+    "New clothing/equipment swapping is deferred; outfit belongs to this base illustration."
+  ],
+  "review": {
+    "technical": "atlas-extraction-passed; native test pending",
+    "visual": "internally reviewed: complete isolated phases, stable identity and anatomy; live-loop and user acceptance tracked separately",
+    "userAcceptance": "pending",
+    "evidence": [
+      "output/stormwreck-characters-20261117/imports/fume-drake.json",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/originals/fume-drake-idle8.png"
+    ]
+  }
+}
