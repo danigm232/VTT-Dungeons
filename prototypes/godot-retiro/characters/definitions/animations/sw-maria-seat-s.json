@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "campaign": "stormwreck-isle",
+  "id": "sw-maria-seat-s",
+  "character": "maria",
+  "anatomy": "humanoid-small",
+  "action": "sit_on_prop",
+  "direction": "s",
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/seat-views-v1/trinity-seated-s.png"
+  ],
+  "poseKind": "hold",
+  "fps": 1,
+  "loop": true,
+  "compatibility": {
+    "anchor": "pelvis at seat surface",
+    "embeddedSlotsRetained": true,
+    "contact": "only a defined seat anchor",
+    "overlays": "current texture alpha; binding anchors pending"
+  },
+  "production": {
+    "method": "ImageGen and lossless crop",
+    "reference": "prototypes/godot-campamentos/assets/tokens/animations/seated/rogue-seated.png",
+    "original": "campaigns/stormwreck-isle/public/art/characters/seat-views-v1/originals/trinity-seat-sheet.png"
+  },
+  "review": {
+    "technical": "pending",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "pivot": [
+    0.5,
+    0.6093366093366094
+  ],
+  "referenceHeight": 510,
+  "soleContact": [
+    0.5,
+    0.9852579852579852
+  ]
+}

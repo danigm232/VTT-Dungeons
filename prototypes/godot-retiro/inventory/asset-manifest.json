@@ -1,0 +1,534 @@
+{
+  "date": "2026-11-15",
+  "icons": 101,
+  "heroes": 3,
+  "poses": 144,
+  "assets": [
+    {
+      "file": "art/cleric-backpack-torch-v1.png",
+      "sha256": "4ad009842d9d8ee02118b168915b64eee4703fa77a2714609de1c02fcf4d48a7",
+      "bytes": 2199206,
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "file": "art/rogue-backpack-torch-v1.png",
+      "sha256": "2825a10ffd222fb573b345b3223466c495b7f56e03951038eb2073de1188a9f2",
+      "bytes": 3800361,
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "file": "art/wizard-backpack-torch-v1.png",
+      "sha256": "8e7b045e172a58a69912714cb4fa8f9cc2d3852faf163bec6c08cdfabd8a1a9c",
+      "bytes": 2113548,
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "file": "icons/amulet.svg",
+      "sha256": "aa1ab70f17f0b79cbc8411b17d2110042deb030fe4320c939da7beb12bb99df2",
+      "bytes": 630
+    },
+    {
+      "file": "icons/antidote.svg",
+      "sha256": "6eaf4322513b8748af87a1321347bbcc81b8b7b2eea926ceae8dfe8835d90647",
+      "bytes": 648
+    },
+    {
+      "file": "icons/arrows.svg",
+      "sha256": "88a68206be87c2937c1101fc3d56baf33ce6c9f4b917050167d53592f46cc5d0",
+      "bytes": 578
+    },
+    {
+      "file": "icons/backpack.svg",
+      "sha256": "2cbff4bd229b7489a67d0a496f8bb9363252ed9001d7dd78812ca40f9fcb2e52",
+      "bytes": 678
+    },
+    {
+      "file": "icons/bandage.svg",
+      "sha256": "d0cc5da12b54f61f5891028f0796ee7e6d02fbb63644afa7ecca9367ce2878d2",
+      "bytes": 642
+    },
+    {
+      "file": "icons/bedroll.svg",
+      "sha256": "d0cc5da12b54f61f5891028f0796ee7e6d02fbb63644afa7ecca9367ce2878d2",
+      "bytes": 642
+    },
+    {
+      "file": "icons/belt.svg",
+      "sha256": "ba2a6a3d22a734d731175f7962abb542928777d80a71dc1274d92b2294967f92",
+      "bytes": 588
+    },
+    {
+      "file": "icons/book.svg",
+      "sha256": "67d2ecdb65f79ed5a17cb7e6e2bc603ba5bccbe0761d851ee86e31a0095e7f44",
+      "bytes": 628
+    },
+    {
+      "file": "icons/boots.svg",
+      "sha256": "9d35e2253a1d98237f217a753c1e21b86053e1ea849ca9689a7e574a916b314c",
+      "bytes": 626
+    },
+    {
+      "file": "icons/bottle.svg",
+      "sha256": "af8b587675495eff7bde9faaad54e463b3e4e68a95a49e292e71c86e9aa889c2",
+      "bytes": 606
+    },
+    {
+      "file": "icons/chainmail.svg",
+      "sha256": "2626a0c5c8f00bdb915ba58aa99b683ef41677306541b0f84a498efa5f6aac85",
+      "bytes": 662
+    },
+    {
+      "file": "icons/check.svg",
+      "sha256": "afab6f4c1480bababcb6104caad7e1f6d49f1b62c7e46eef24e157f298bc0f7d",
+      "bytes": 548
+    },
+    {
+      "file": "icons/chest.svg",
+      "sha256": "5658bc0e78eaeef4448534f37800dc846be8347a0c09ae5b9acb2bbfc9d018d2",
+      "bytes": 654
+    },
+    {
+      "file": "icons/cloak.svg",
+      "sha256": "9238bd0268fc0957b542b71317f56a0a81c3f357b77147ecc9da77d42a31ed9d",
+      "bytes": 616
+    },
+    {
+      "file": "icons/close.svg",
+      "sha256": "aed18bdd8acbe7636b63fd98fc5f4819f77fe82b78f084e8a94734cb7f34ded4",
+      "bytes": 560
+    },
+    {
+      "file": "icons/coin.svg",
+      "sha256": "5413fcec57b40fb35f4348b681e6dab0cfcfd8a13f348222afabbeca4384de37",
+      "bytes": 650
+    },
+    {
+      "file": "icons/compass.svg",
+      "sha256": "bc476f90210f6ec92d1d1edb5c1816a45f44820201b80f4176b6e5a2aa0cb80b",
+      "bytes": 638
+    },
+    {
+      "file": "icons/components.svg",
+      "sha256": "b0bbddeedb145b4aa67e553e34c6d8c9a6d35930706ce10187249aa50fa865a0",
+      "bytes": 698
+    },
+    {
+      "file": "icons/copper.svg",
+      "sha256": "5413fcec57b40fb35f4348b681e6dab0cfcfd8a13f348222afabbeca4384de37",
+      "bytes": 650
+    },
+    {
+      "file": "icons/crossbow.svg",
+      "sha256": "9e63ca9449ddb4baafbea8de94421de82de8949f4865d38bb62485c9db08a392",
+      "bytes": 660
+    },
+    {
+      "file": "icons/crowbar.svg",
+      "sha256": "9fb362e4d65610ee4cb04e75acfae1a928662f3961857b5e5cff1b19463b373d",
+      "bytes": 592
+    },
+    {
+      "file": "icons/dagger.svg",
+      "sha256": "709fbd62b15bd79c8f3839289627fa3d51cba6630c855ea93aa4ba7e087abb84",
+      "bytes": 602
+    },
+    {
+      "file": "icons/diamond.svg",
+      "sha256": "0406f52a8301faf5f73bd82b8840e150afaa41b5b4011866ad845110d30cffef",
+      "bytes": 610
+    },
+    {
+      "file": "icons/edit.svg",
+      "sha256": "eb85f530472b40e21ca837a211bbad0126f5ad265c82080fced605287adc252b",
+      "bytes": 612
+    },
+    {
+      "file": "icons/electrum.svg",
+      "sha256": "5413fcec57b40fb35f4348b681e6dab0cfcfd8a13f348222afabbeca4384de37",
+      "bytes": 650
+    },
+    {
+      "file": "icons/emerald.svg",
+      "sha256": "c26baa7f5486e4d8d97c9bee2734b805d9eb62c33a372e5ef70739b9dfef036f",
+      "bytes": 610
+    },
+    {
+      "file": "icons/empty.svg",
+      "sha256": "2cbff4bd229b7489a67d0a496f8bb9363252ed9001d7dd78812ca40f9fcb2e52",
+      "bytes": 678
+    },
+    {
+      "file": "icons/equipped.svg",
+      "sha256": "afab6f4c1480bababcb6104caad7e1f6d49f1b62c7e46eef24e157f298bc0f7d",
+      "bytes": 548
+    },
+    {
+      "file": "icons/feather.svg",
+      "sha256": "002d70fdcc668f589355407766399498294a0d164a97896b2ff6f3614a7835ed",
+      "bytes": 646
+    },
+    {
+      "file": "icons/fish.svg",
+      "sha256": "e5eef122a80338e12bce5eaa9e576b83ee0bfb0cf7ed312f694a06d32c8406de",
+      "bytes": 652
+    },
+    {
+      "file": "icons/flute.svg",
+      "sha256": "ef2b55ff9ade2fa32d53041b2a4c5d3e18d900f135440833fb78f3c98b53af90",
+      "bytes": 620
+    },
+    {
+      "file": "icons/food.svg",
+      "sha256": "c9e30c32ebb9b7228abc1f67183fdc33c83260becfe4943d24ec03b47d8ad75f",
+      "bytes": 612
+    },
+    {
+      "file": "icons/gem.svg",
+      "sha256": "0406f52a8301faf5f73bd82b8840e150afaa41b5b4011866ad845110d30cffef",
+      "bytes": 610
+    },
+    {
+      "file": "icons/gem_blue.svg",
+      "sha256": "52e18b50f3f7a431904b9008a28ed5fd6ee2c241a5fbef49b410da10cea68cf0",
+      "bytes": 610
+    },
+    {
+      "file": "icons/gem_green.svg",
+      "sha256": "c26baa7f5486e4d8d97c9bee2734b805d9eb62c33a372e5ef70739b9dfef036f",
+      "bytes": 610
+    },
+    {
+      "file": "icons/gem_red.svg",
+      "sha256": "119f692119a1170eba6bb0212f47d91d6b0710df24d0f269063273880054fde7",
+      "bytes": 610
+    },
+    {
+      "file": "icons/gloves.svg",
+      "sha256": "24e048a9c6c0cc2959556c7c2eeb3742e65975e8673ec74cc76bcce0da8bcbb6",
+      "bytes": 652
+    },
+    {
+      "file": "icons/gold.svg",
+      "sha256": "a3fca8906b1aa7bab7ab97f9e3f57cc86d555758322bfd17175334935dedbc0d",
+      "bytes": 690
+    },
+    {
+      "file": "icons/gold_key.svg",
+      "sha256": "340c3e2666e7fa28cb2c57e0d250e5bab4d705e704c7620e27dda68763608ade",
+      "bytes": 638
+    },
+    {
+      "file": "icons/hammer.svg",
+      "sha256": "a8251794e40548dcf16e78a8f4cade1a4a62ae0357d27f76566fa7d8bb71d1e0",
+      "bytes": 602
+    },
+    {
+      "file": "icons/handaxe.svg",
+      "sha256": "ac879b0d41a0de928ec86e972f3dc70a83a0c8996aa690a064d342ada4351b2b",
+      "bytes": 604
+    },
+    {
+      "file": "icons/health.svg",
+      "sha256": "5b8bebb358a05ff9aaa5505af4fa06125c10810172e77e28fc79598538785666",
+      "bytes": 594
+    },
+    {
+      "file": "icons/heart.svg",
+      "sha256": "5b8bebb358a05ff9aaa5505af4fa06125c10810172e77e28fc79598538785666",
+      "bytes": 594
+    },
+    {
+      "file": "icons/helmet.svg",
+      "sha256": "287f89bdf79cbc4716f40e7bc1c41b80b0024de6688d3f3ea7bb16d04b6a35b6",
+      "bytes": 658
+    },
+    {
+      "file": "icons/holy_water.svg",
+      "sha256": "af8b587675495eff7bde9faaad54e463b3e4e68a95a49e292e71c86e9aa889c2",
+      "bytes": 606
+    },
+    {
+      "file": "icons/hourglass.svg",
+      "sha256": "2eebd9b271b59ac754487588267ff7f8879b673cb68a9d67daca72e4ff9fbff0",
+      "bytes": 618
+    },
+    {
+      "file": "icons/ink.svg",
+      "sha256": "63c77f1a7030b986c24e7c3472ba95504bc7128fbbef78ad128c5f59e9930e7c",
+      "bytes": 606
+    },
+    {
+      "file": "icons/iron_key.svg",
+      "sha256": "340c3e2666e7fa28cb2c57e0d250e5bab4d705e704c7620e27dda68763608ade",
+      "bytes": 638
+    },
+    {
+      "file": "icons/key.svg",
+      "sha256": "340c3e2666e7fa28cb2c57e0d250e5bab4d705e704c7620e27dda68763608ade",
+      "bytes": 638
+    },
+    {
+      "file": "icons/lantern.svg",
+      "sha256": "93d3f3d829b22cf3278b902c5b16639d5b7e58f037356c952e97ba4e7e624a26",
+      "bytes": 654
+    },
+    {
+      "file": "icons/leather.svg",
+      "sha256": "ba9a0e27e34c00eb6b8b6f9f88c0b6d30f29bf406e07585e0007fab58d7c24f8",
+      "bytes": 650
+    },
+    {
+      "file": "icons/letter.svg",
+      "sha256": "2f64ae07dd3cd27a360044f18d7544eca060aabcf26288fa38de6e0a583d3ed5",
+      "bytes": 690
+    },
+    {
+      "file": "icons/lock.svg",
+      "sha256": "314c1868c9df433ecbb7b51b44af9dab49100de5395bf7b55fe4bc27fc2b26ee",
+      "bytes": 612
+    },
+    {
+      "file": "icons/lute.svg",
+      "sha256": "a53ebb75ee0dca5bf7d3af2880f7e5d2559673bf92da066ee4caeebf9d816fa0",
+      "bytes": 660
+    },
+    {
+      "file": "icons/mace.svg",
+      "sha256": "7143a67e13ca1911d906a99cd181ad5558c331148540cd7853b0c80a3c0a7539",
+      "bytes": 608
+    },
+    {
+      "file": "icons/magic_key.svg",
+      "sha256": "340c3e2666e7fa28cb2c57e0d250e5bab4d705e704c7620e27dda68763608ade",
+      "bytes": 638
+    },
+    {
+      "file": "icons/map.svg",
+      "sha256": "d10e55ea87aac60790f25753e0e5837603680ab86c429f762642b2b513b0bffa",
+      "bytes": 620
+    },
+    {
+      "file": "icons/oil.svg",
+      "sha256": "af8b587675495eff7bde9faaad54e463b3e4e68a95a49e292e71c86e9aa889c2",
+      "bytes": 606
+    },
+    {
+      "file": "icons/other.svg",
+      "sha256": "384a66b2cbeb3198b7d32c4067a693692d4b7adcf5e3877393160f606124b8a5",
+      "bytes": 616
+    },
+    {
+      "file": "icons/pickaxe.svg",
+      "sha256": "a4af2862512a164595cc10c53955ed2ae3d0f390d5970ceb0dcc5ce305495a53",
+      "bytes": 598
+    },
+    {
+      "file": "icons/pitons.svg",
+      "sha256": "cd6cc64434dcea3fa2045cac134ae08f3a427f66e364ac528f0081db39ed9862",
+      "bytes": 596
+    },
+    {
+      "file": "icons/platinum.svg",
+      "sha256": "67efdb50472786c02490b934affa18233b81bf2c830366fec15362619ad4ad0a",
+      "bytes": 650
+    },
+    {
+      "file": "icons/plus.svg",
+      "sha256": "7b932aa5c96ace35963e2b98d2185455a8bf4771df6adb93183881e512426c6b",
+      "bytes": 552
+    },
+    {
+      "file": "icons/poison.svg",
+      "sha256": "6eaf4322513b8748af87a1321347bbcc81b8b7b2eea926ceae8dfe8835d90647",
+      "bytes": 648
+    },
+    {
+      "file": "icons/potion.svg",
+      "sha256": "998edab9a981d1246ee737245d682fa213dfec25722f964f24af560ff3e12700",
+      "bytes": 648
+    },
+    {
+      "file": "icons/potion_blue.svg",
+      "sha256": "df6aecb8f4ab1886cb12995347db55bfc2b49b38f88e1c9cbe9245f727b49995",
+      "bytes": 648
+    },
+    {
+      "file": "icons/potion_green.svg",
+      "sha256": "b2696df9a5fa1083df7faec47621f5108816cbc6e987c4180ca2055e070d5101",
+      "bytes": 648
+    },
+    {
+      "file": "icons/potion_purple.svg",
+      "sha256": "6eaf4322513b8748af87a1321347bbcc81b8b7b2eea926ceae8dfe8835d90647",
+      "bytes": 648
+    },
+    {
+      "file": "icons/pouch.svg",
+      "sha256": "27dd45a32eaa2fcb25d346f0c2e4041790cca9f4e822af68cdc730478a03fe86",
+      "bytes": 628
+    },
+    {
+      "file": "icons/quest.svg",
+      "sha256": "4c57910a80566c8306f604fffa5bb9f471a1360f1d36c1b87e5926057ab5d757",
+      "bytes": 578
+    },
+    {
+      "file": "icons/quiver.svg",
+      "sha256": "d02e8473ee76b1734bc8e1c40b46d572544986679573fccb9bb5745a70e1086e",
+      "bytes": 614
+    },
+    {
+      "file": "icons/rations.svg",
+      "sha256": "ceb543c80e55652db67d067b95d6fb863e9ab704ccc084b053b72093a9d26a2f",
+      "bytes": 612
+    },
+    {
+      "file": "icons/ring.svg",
+      "sha256": "d59feff0664cca1df8ef3ca9d235786d5a031a9a3c3111dc4184361b33dc27e6",
+      "bytes": 638
+    },
+    {
+      "file": "icons/robe.svg",
+      "sha256": "abdfcc2fa110405a773d86e79b2b948393f9383d10675a2b44080d77e327e5c3",
+      "bytes": 650
+    },
+    {
+      "file": "icons/rope.svg",
+      "sha256": "56eabe01c8aab4231d4081030900484e540ff7429821a679ecce3574cc80cc64",
+      "bytes": 632
+    },
+    {
+      "file": "icons/ruby.svg",
+      "sha256": "119f692119a1170eba6bb0212f47d91d6b0710df24d0f269063273880054fde7",
+      "bytes": 610
+    },
+    {
+      "file": "icons/sapphire.svg",
+      "sha256": "0406f52a8301faf5f73bd82b8840e150afaa41b5b4011866ad845110d30cffef",
+      "bytes": 610
+    },
+    {
+      "file": "icons/scroll.svg",
+      "sha256": "2f64ae07dd3cd27a360044f18d7544eca060aabcf26288fa38de6e0a583d3ed5",
+      "bytes": 690
+    },
+    {
+      "file": "icons/search.svg",
+      "sha256": "9567706044b0ddde85c8908d31a15c396ee0d09ed0915b40986764c78352eea9",
+      "bytes": 602
+    },
+    {
+      "file": "icons/shield.svg",
+      "sha256": "3c0924f4755f2e327f1dcba38fced2613f33153dd69e64a833137e71cde9cd94",
+      "bytes": 636
+    },
+    {
+      "file": "icons/shortbow.svg",
+      "sha256": "b0048e8506554af6bfdce699080fc5f258f07d6962d531bb9a4b291be92000a1",
+      "bytes": 614
+    },
+    {
+      "file": "icons/shovel.svg",
+      "sha256": "901b1e0d04fb5036655011eaa5bcd3683556b0bfbb315c4f63ff250cebaf3ba4",
+      "bytes": 616
+    },
+    {
+      "file": "icons/silver.svg",
+      "sha256": "67efdb50472786c02490b934affa18233b81bf2c830366fec15362619ad4ad0a",
+      "bytes": 650
+    },
+    {
+      "file": "icons/skull.svg",
+      "sha256": "b0688d2f5dc35824c5067e9af57119d44e6ecaae40296d6f70a352e000650a5c",
+      "bytes": 684
+    },
+    {
+      "file": "icons/spear.svg",
+      "sha256": "02fb856dee7ac1530dc2c386515292a9694626c3b89c7d2e21fd24ba850a7689",
+      "bytes": 578
+    },
+    {
+      "file": "icons/spellbook.svg",
+      "sha256": "67d2ecdb65f79ed5a17cb7e6e2bc603ba5bccbe0761d851ee86e31a0095e7f44",
+      "bytes": 628
+    },
+    {
+      "file": "icons/staff.svg",
+      "sha256": "cd32376af843e9d14dde7539ed33c1e04857fbe3fd78f678ff5c2101fe1d05d1",
+      "bytes": 608
+    },
+    {
+      "file": "icons/store.svg",
+      "sha256": "daece7aa8d979273c6c731b32f192bac3b2813b8a0ffb708d2fb5f19fc221bb3",
+      "bytes": 586
+    },
+    {
+      "file": "icons/supply.svg",
+      "sha256": "27dd45a32eaa2fcb25d346f0c2e4041790cca9f4e822af68cdc730478a03fe86",
+      "bytes": 628
+    },
+    {
+      "file": "icons/sword.svg",
+      "sha256": "c11133402c8ed2a59d4a839f37b23e9f73bc1d6bfa48a9aefe9bdc17408e9d76",
+      "bytes": 604
+    },
+    {
+      "file": "icons/take.svg",
+      "sha256": "c7d37954d7df3651b2091f0573a27349ffa1a76de5c22d3e1d765bde85698953",
+      "bytes": 586
+    },
+    {
+      "file": "icons/tent.svg",
+      "sha256": "4e8dd077485fd91221fb4d1a40986e978b365e616b386a1b4de6ebc89a7d2347",
+      "bytes": 592
+    },
+    {
+      "file": "icons/tent_peg.svg",
+      "sha256": "cd6cc64434dcea3fa2045cac134ae08f3a427f66e364ac528f0081db39ed9862",
+      "bytes": 596
+    },
+    {
+      "file": "icons/tinderbox.svg",
+      "sha256": "6cc9ba97599dab145f490e8beec6e228f1a36fa10daf689e45fadcb90f0228ec",
+      "bytes": 634
+    },
+    {
+      "file": "icons/tools.svg",
+      "sha256": "d28bb5f04b4635236c97000465259ebb4f1ae3d61504a1e4b24503da9ef64c17",
+      "bytes": 656
+    },
+    {
+      "file": "icons/torch.svg",
+      "sha256": "841d4d2d8fe414411ac5a90f78ff335a0b8555b65b8f8ed05a0a0b2b5e08245c",
+      "bytes": 646
+    },
+    {
+      "file": "icons/torch_off.svg",
+      "sha256": "841d4d2d8fe414411ac5a90f78ff335a0b8555b65b8f8ed05a0a0b2b5e08245c",
+      "bytes": 646
+    },
+    {
+      "file": "icons/undo.svg",
+      "sha256": "8aa417981c7801b4feab155db1ce72aa57d99515e2e82b537a5fa10e2a2766e9",
+      "bytes": 602
+    },
+    {
+      "file": "icons/wand.svg",
+      "sha256": "6d2169bb135aedeedf01bf2aab1649b5a66749f82937e07780a16b68e44922c6",
+      "bytes": 638
+    },
+    {
+      "file": "icons/waterskin.svg",
+      "sha256": "1a2613dfb2f5c1298f23c9c8abf3f9ce008fb9c515c72b3a57bc7fd64bedd53c",
+      "bytes": 600
+    },
+    {
+      "file": "icons/weight.svg",
+      "sha256": "75b20c723e222f328a71b933deb080a12a52c31a928b18280c5ca9e4b2990d81",
+      "bytes": 598
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "kind": "character",
+  "id": "sw-ghoul",
+  "name": "Gul · reposo ocho fases",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "dependencies": [],
+  "review": {
+    "technical": "alpha fringe cleaned; targeted native verification pending",
+    "visual": "internally reviewed: complete isolated phases, stable identity and anatomy; live-loop and user acceptance tracked separately",
+    "userAcceptance": "pending",
+    "evidence": [
+      "output/stormwreck-characters-20261117/imports/ghoul.json",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/originals/ghoul-idle8-079f05fe45.png"
+    ]
+  },
+  "production": {
+    "stage": "generated-and-technically-extracted",
+    "brief": "Preserve the exact existing blue-grey emaciated ghoul, bald long pointed ears, open fanged mouth and long hanging pink tongue, elongated clawed hands, bone-white cloudy eyes, frayed beige wraps at forearms and calves, ragged loincloth, bare clawed feet. Same gaunt anatomy and painted texture, not a goblin or zombie sailor. Idle menacing slow chest movement and slight tongue/finger settling, no attack.",
+    "originalIdentity": "campaigns/stormwreck-isle/public/art/m3/ghoul/ghoul_base.png",
+    "method": "built-in ImageGen; preserve existing identity; no new equipment",
+    "promptFile": "output/stormwreck-characters-20261117/ghoul-gutters.prompt.txt",
+    "original": "campaigns/stormwreck-isle/public/art/characters/base-v1/originals/ghoul-idle8-079f05fe45.png",
+    "originalSha256": "079f05fe4519e9cc324ea845794d932a7347df142c1a820d12ae3db22a9b49e4",
+    "importReport": "output/stormwreck-characters-20261117/imports/ghoul.json",
+    "alphaMatteReport": "output/stormwreck-characters-20261117/ghoul-alpha-matte.json"
+  },
+  "limitations": [
+    "Eight idle phases in one base view; authored other directions and actions retained, no additional views claimed.",
+    "Clothing/equipment production deferred by user."
+  ],
+  "heightMeters": 1.75,
+  "heightBasis": "staging estimate for Medium ghoul; not a canonical individual height",
+  "aliases": [
+    "ghoul",
+    "gul",
+    "Gul"
+  ],
+  "source": {
+    "kind": "individual-frames",
+    "files": [
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/ghoul/idle-01.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/ghoul/idle-02.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/ghoul/idle-03.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/ghoul/idle-04.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/ghoul/idle-05.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/ghoul/idle-06.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/ghoul/idle-07.png",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/ghoul/idle-08.png"
+    ],
+    "fps": 2.5,
+    "animation": "idle",
+    "directions": [
+      "se"
+    ],
+    "minimumDistinctFrames": 8,
+    "preserveCanvas": true,
+    "referenceHeightPixels": 332,
+    "pivot": [
+      0.5,
+      0.9726027397260274
+    ]
+  },
+  "embeddedSlots": [
+    "clothing"
+  ],
+  "equipmentSlots": [],
+  "safeAnimations": [
+    "idle"
+  ],
+  "states": [
+    "poisoned",
+    "petrified",
+    "frosted",
+    "burned",
+    "cursed",
+    "invisible"
+  ],
+  "frameOverrides": {},
+  "visualStyle": "preserve existing painted ghoul identity",
+  "orientation": "Eight idle phases in one authored base view (se); no other views or locomotion claimed",
+  "scale": "fixed anatomy; common registration",
+  "pivot": "ground support",
+  "mechanicalReference": {
+    "pdf": "OneDrive_1_12-9-2026/Aventura Los Dragones de la Isla de las Tempestades.pdf",
+    "pages": [
+      42
+    ]
+  }
+}

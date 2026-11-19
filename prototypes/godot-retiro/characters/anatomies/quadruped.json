@@ -1,0 +1,83 @@
+{
+  "id": "quadruped",
+  "kind": "anatomy",
+  "version": 1,
+  "coordinates": "normalised visible frame bounds; x right, y down; original and mirrored frames share source-space coordinates",
+  "anchors": {
+    "head": [
+      0.83,
+      0.22
+    ],
+    "neck": [
+      0.7,
+      0.32
+    ],
+    "torso": [
+      0.5,
+      0.4
+    ],
+    "back": [
+      0.43,
+      0.23
+    ],
+    "waist": [
+      0.32,
+      0.48
+    ],
+    "hip": [
+      0.23,
+      0.5
+    ],
+    "knee_front_left": [
+      0.72,
+      0.72
+    ],
+    "knee_front_right": [
+      0.65,
+      0.72
+    ],
+    "knee_hind_left": [
+      0.22,
+      0.72
+    ],
+    "knee_hind_right": [
+      0.3,
+      0.72
+    ],
+    "foot_front_left": [
+      0.75,
+      0.97
+    ],
+    "foot_front_right": [
+      0.65,
+      0.97
+    ],
+    "foot_hind_left": [
+      0.2,
+      0.97
+    ],
+    "foot_hind_right": [
+      0.3,
+      0.97
+    ],
+    "tail": [
+      0.11,
+      0.4
+    ]
+  },
+  "requiredAnchors": [
+    "head",
+    "torso",
+    "back",
+    "foot_front_left",
+    "foot_front_right",
+    "foot_hind_left",
+    "foot_hind_right"
+  ],
+  "slots": [
+    "back",
+    "waist"
+  ],
+  "frameOverrides": {},
+  "status": "seed; per-frame corrections require visual review"
+}

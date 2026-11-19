@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-harpy-fly-detail",
+  "character": "harpy",
+  "campaign": "stormwreck-isle",
+  "anatomy": "winged",
+  "action": "fly",
+  "direction": "se",
+  "fps": 12,
+  "loop": true,
+  "compatibility": {
+    "preservesAppearance": true,
+    "overlay": "current frame alpha; review anatomical anchors before enabling physical bindings"
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-fly-detail/b6a3b8018133/01.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-fly-detail/b6a3b8018133/02.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-fly-detail/b6a3b8018133/03.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-fly-detail/b6a3b8018133/04.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-fly-detail/b6a3b8018133/05.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-fly-detail/b6a3b8018133/06.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-fly-detail/b6a3b8018133/07.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-fly-detail/b6a3b8018133/08.png"
+  ],
+  "production": {
+    "method": "original illustration from project appearance reference; 4 columns by 2 rows, native-resolution extraction",
+    "reference": "campaigns/stormwreck-isle/public/art/m3/harpy/harpia_base.png",
+    "minimumVisibleStandingPixels": 225,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-harpy-fly-detail-b6a3b8018133.png",
+    "originalSha256": "b6a3b80181333e16fcaa276aef5f693157de73ae836898adae9d42f0fe46dfaa",
+    "importReport": "output/stormwreck-motion-detail/sw-harpy-fly-detail-b6a3b8018133.json",
+    "promptFile": "output/stormwreck-motion-detail/harpy-fly-retry.prompt.txt"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "Native crop reviewed for identity and silhouette; render and motion review pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 344,
+  "pivot": [
+    0.5,
+    0.8728070175438597
+  ]
+}

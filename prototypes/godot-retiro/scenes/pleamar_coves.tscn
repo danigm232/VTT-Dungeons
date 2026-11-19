@@ -1,0 +1,77 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/route_destination_controller.gd" id="1_ctrl"]
+[ext_resource type="PackedScene" path="res://scenes/player_token.tscn" id="2_player"]
+[ext_resource type="Script" path="res://scripts/tactical_camera.gd" id="3_cam"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
+sky_top_color = Color(0.24, 0.45, 0.62, 1)
+sky_horizon_color = Color(0.72, 0.78, 0.82, 1)
+ground_bottom_color = Color(0.12, 0.18, 0.22, 1)
+ground_horizon_color = Color(0.50, 0.58, 0.64, 1)
+
+[sub_resource type="Sky" id="Sky_1"]
+sky_material = SubResource("ProceduralSkyMaterial_1")
+
+[sub_resource type="Environment" id="Environment_1"]
+background_mode = 2
+sky = SubResource("Sky_1")
+ambient_light_source = 2
+ambient_light_color = Color(0.23, 0.32, 0.43, 1)
+ambient_light_energy = 0.48
+tonemap_mode = 3
+tonemap_exposure = 1.05
+
+[node name="PleamarCoves" type="Node3D"]
+script = ExtResource("1_ctrl")
+scene_kind = "pleamar_coves"
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_1")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.71934, 0.39844, -0.569031, 0, 0.819152, 0.573576, 0.694658, -0.412596, 0.589249, 0, 38, 0)
+light_color = Color(1, 0.92, 0.79, 1)
+light_energy = 1.44
+shadow_enabled = true
+shadow_bias = 0.018
+shadow_normal_bias = 0.28
+shadow_blur = 1.35
+directional_shadow_mode = 2
+directional_shadow_split_1 = 0.14
+directional_shadow_split_2 = 0.34
+directional_shadow_split_3 = 0.60
+directional_shadow_blend_splits = true
+directional_shadow_max_distance = 110.0
+
+[node name="PlayerToken" parent="." node_paths=PackedStringArray("camera") instance=ExtResource("2_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0.6, 8)
+token_name = "Mia"
+is_active_player = true
+ring_color = Color(0.95, 0.78, 0.32, 0.88)
+camera = NodePath("../TacticalCamera")
+
+[node name="RogueToken" parent="." node_paths=PackedStringArray("camera") instance=ExtResource("2_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0.6, 10)
+token_name = "Trinity"
+is_active_player = false
+ring_color = Color(0.35, 0.85, 0.65, 0.88)
+camera = NodePath("../TacticalCamera")
+
+[node name="WizardToken" parent="." node_paths=PackedStringArray("camera") instance=ExtResource("2_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0.6, 11)
+token_name = "Mike"
+is_active_player = false
+ring_color = Color(0.42, 0.68, 0.98, 0.88)
+camera = NodePath("../TacticalCamera")
+
+[node name="TacticalCamera" type="Camera3D" parent="." node_paths=PackedStringArray("target")]
+transform = Transform3D(1, 0, 0, 0, 0.788011, 0.615661, 0, -0.615661, 0.788011, 4, 24, 30)
+current = true
+fov = 45.0
+far = 500.0
+script = ExtResource("3_cam")
+target = NodePath("../PlayerToken")
+default_distance = 24.0
+min_distance = 6.0
+max_distance = 90.0

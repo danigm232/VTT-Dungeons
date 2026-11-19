@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "basis": "Campaign visual calibration, not an individual height asserted by a rulebook. Original character sheets leave height to the player; see sheet-height audit evidence.",
+  "profiles": {
+    "rogue": {"meters":1.05,"size":"Small","status":"visual estimate","source":"campaigns/stormwreck-isle/public/pack.ts:tokens.rogue","legacy":[1.95,1.75,1.06]},
+    "cleric": {"meters":1.3,"size":"Medium","status":"visual estimate","source":"campaigns/stormwreck-isle/public/pack.ts:tokens.cleric","legacy":[1.95,1.65,1.32]},
+    "wizard": {"meters":1.8,"size":"Medium","status":"visual estimate","source":"campaigns/stormwreck-isle/public/pack.ts:tokens.wizard","legacy":[1.95,1.82]},
+    "silverfarben": {"meters":1.37,"size":"Medium","status":"existing D8 visual estimate","source":"campaigns/one-shot/public/pack.ts:tokens.silverfarben-hotel","legacy":[1.95]},
+    "anteros": {"meters":2.1,"size":"Medium","status":"existing native visual estimate; no exact height verified","source":"godot-shared/combat/combat_controller.gd:add_anteros","legacy":[1.95]},
+    "zombie": {"meters":1.8,"size":"Medium","status":"visual estimate","source":"campaigns/stormwreck-isle/public/pack.ts:tokens.zombie","legacy":[1.95]},
+    "harpy": {"meters":1.7,"size":"Medium","status":"visual estimate; wings excluded from stature","source":"campaigns/stormwreck-isle/public/pack.ts:tokens.harpy","legacy":[1.95,2.2]}
+  }
+}

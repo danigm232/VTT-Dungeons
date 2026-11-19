@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-mia-idle8",
+  "name": "Mía · reposo ocho fases",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-dwarf",
+  "dependencies": [],
+  "review": {
+    "technical": "atlas-extraction-passed; native test pending",
+    "visual": "internally reviewed: complete isolated phases, stable identity and anatomy; live-loop and user acceptance tracked separately",
+    "userAcceptance": "pending",
+    "evidence": [
+      "output/stormwreck-characters-20261117/imports/mia.json",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/originals/mia-idle8-0196b393be.png"
+    ]
+  },
+  "production": {
+    "stage": "generated-and-technically-extracted",
+    "brief": "Preserve the exact existing stocky adult dwarf cleric with red braided hair and large red beard, chainmail, steel armour, white tabard with gold sun, dark shield with gold sun in anatomical LEFT hand, lowered mace in RIGHT hand, brown boots and belt. Same face, body proportions and pixel-painted detail. Do not change gender or remove beard. No new equipment, armour or spell.",
+    "originalIdentity": "output/stormwreck-characters-20261117/identities/mia.png",
+    "method": "built-in ImageGen; preserve existing identity; no new equipment",
+    "promptFile": "output/stormwreck-characters-20261117/mia-final-fix.prompt.txt",
+    "original": "campaigns/stormwreck-isle/public/art/characters/base-v1/originals/mia-idle8-0196b393be.png",
+    "originalSha256": "0196b393beb34593224b13adde52ba2c84d51cfbc276f0b06fb02a34a6a5cc68",
+    "importReport": "output/stormwreck-characters-20261117/imports/mia.json"
+  },
+  "limitations": [
+    "Eight idle phases in one base view; authored other directions and actions retained, no additional views claimed.",
+    "Clothing/equipment production deferred by user."
+  ],
+  "character": "mia",
+  "action": "idle",
+  "direction": "se",
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/mia/idle-01.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/mia/idle-02.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/mia/idle-03.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/mia/idle-04.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/mia/idle-05.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/mia/idle-06.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/mia/idle-07.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/mia/idle-08.png"
+  ],
+  "fps": 2.5,
+  "loop": true,
+  "pivot": [
+    0.5,
+    0.9763593380614657
+  ],
+  "referenceHeight": 399,
+  "minimumDistinctFrames": 8,
+  "compatibility": {
+    "anatomies": [
+      "humanoid-dwarf"
+    ],
+    "equipment": false,
+    "overlays": true
+  },
+  "events": [],
+  "initialFrame": 0,
+  "transition": "preserve support pivot",
+  "orientation": "Eight idle phases in one authored base view (se); no other views or locomotion claimed"
+}

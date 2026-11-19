@@ -1,0 +1,29 @@
+{
+  "id": "sw-maria-rest-on-bed",
+  "version": 1,
+  "kind": "animation",
+  "campaign": "stormwreck-isle",
+  "character": "maria",
+  "anatomy": "humanoid-small",
+  "action": "rest_on_prop",
+  "direction": "s",
+  "poseKind": "hold",
+  "fps": 1,
+  "loop": true,
+  "frames": [],
+  "compatibility": {
+    "anchor": "head at pillow; head-to-sole axis fixed in world",
+    "embeddedSlotsRetained": true,
+    "overlays": "body mesh shared by condition material",
+    "rendering": "authored true overhead projection"
+  },
+  "production": {
+    "method": "ImageGen, upright image-space head-to-sole axis and lossless alpha crop",
+    "reference": "prototypes/godot-campamentos/assets/tokens/animations/seated/rogue-seated.png"
+  },
+  "review": {
+    "technical": "pending",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  }
+}

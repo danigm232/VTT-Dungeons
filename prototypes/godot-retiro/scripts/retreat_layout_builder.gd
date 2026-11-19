@@ -1,0 +1,6480 @@
+@tool
+class_name RetreatLayoutBuilder
+extends Node3D
+
+# ==============================================================================
+# CONSTRUCTOR DEL LAYOUT ESPACIAL 2.5D AMPLIADO DEL RETIRO DEL DRAGÓN
+# Paridad con Babylon.js (R3 + Expansion + Stone S3 + SAL1-4 + Forest/Temple):
+# - 13 superficies transitables ampliadas (1.599 casillas en retreat-terrain-v2.json)
+# - Módulos .glb esculpidos de Babylon (A1-A5, montaña volcánica, acantilados,
+#   bosquete del embarcadero, explanada de expedición, 86 árboles y jardineras)
+# - Recorte táctico (cutaway) en A2/A3/A4 para interiores legibles
+# - 6 celdas excavadas de A1, hoguera, estatua de Astalagan y 16 landmarks
+# ==============================================================================
+
+const Structure = preload("res://scripts/retreat_structure.gd")
+const MapExitScript = preload("res://scripts/map_exit.gd")
+const SceneEnhancer = preload("res://scripts/retreat_scene_enhancer.gd")
+const OcclusionCtrl = preload("res://scripts/object_occlusion_controller.gd")
+const InteractiveDoorScript = preload("res://scripts/interactive_door.gd")
+
+const TERRAIN_JSON_PATH := "res://assets/data/retreat-terrain-v2.json"
+const GLOBAL_LAYOUT_JSON_PATH := "res://assets/data/global-layout.json"
+
+const GLB_ARCH_PATH := "res://assets/retreat-modules/retreat_architecture_canon.glb"
+const GLB_GEO_PATH := "res://assets/retreat-modules/retreat_geography_stone.glb"
+const GLB_R3_PATH := "res://assets/retreat-modules/retreat_landscape_r3.glb"
+
+var _tex_cache: Dictionary = {}
+
+# Materiales PBR / ilustrados compartidos
+var mat_beach: StandardMaterial3D
+var mat_wet_sand: StandardMaterial3D
+var mat_plaza: StandardMaterial3D
+var mat_cell_floor: StandardMaterial3D
+var mat_rock: StandardMaterial3D
+var mat_rock_carved: StandardMaterial3D
+var mat_rock_dark: StandardMaterial3D
+var mat_wood: StandardMaterial3D
+var mat_wood_dark: StandardMaterial3D
+var mat_upper: StandardMaterial3D
+var mat_trail: StandardMaterial3D
+var mat_sacred: StandardMaterial3D
+var mat_column: StandardMaterial3D
+var mat_ocean: Material
+var mat_pool_water: Material
+var mat_marker: StandardMaterial3D
+var mat_bronze: StandardMaterial3D
+var mat_platinum: StandardMaterial3D
+var mat_gold: StandardMaterial3D
+var mat_foliage_pine: StandardMaterial3D
+var mat_foliage_olive: StandardMaterial3D
+var mat_flame: StandardMaterial3D
+var mat_cloth_blue: StandardMaterial3D
+var mat_cloth_warm: StandardMaterial3D
+var mat_books: StandardMaterial3D
+var mat_iron: StandardMaterial3D
+
+var _mat_paving_glb: StandardMaterial3D
+var _mat_rock_glb: StandardMaterial3D
+var _mat_carved_glb: StandardMaterial3D
+var _mat_earth_glb: StandardMaterial3D
+var _mat_wood_glb: StandardMaterial3D
+var _mat_dark_wood_glb: StandardMaterial3D
+var _mat_limestone_glb: StandardMaterial3D
+var _mat_sculpture_glb: StandardMaterial3D
+var _mat_metal_glb: StandardMaterial3D
+var _mat_brass_glb: StandardMaterial3D
+var _mat_pottery_glb: StandardMaterial3D
+var _mat_linen_glb: StandardMaterial3D
+var _mat_blue_cloth_glb: StandardMaterial3D
+var _mat_red_cloth_glb: StandardMaterial3D
+var _mat_flower_glb: StandardMaterial3D
+var _mat_herb_glb: StandardMaterial3D
+var _mat_foliage_v6_glb: StandardMaterial3D
+var _mat_foliage_sage_glb: StandardMaterial3D
+var _mat_foliage_dark_glb: StandardMaterial3D
+var _mat_foliage_flower_glb: StandardMaterial3D
+var _mat_water_glb: Material
+var _mat_forest_earth_glb: StandardMaterial3D
+var _mat_astalagan_glb: StandardMaterial3D
+
+var winch_lever_pivot: Node3D
+var winch_pallet_rig: Node3D
+var winch_cable_mesh: MeshInstance3D
+var winch_is_lowered: bool = false
+var _winch_blend: float = 0.0
+var _cave_roof_entries: Array[Dictionary] = []
+var _cave_roofs_force_open: bool = false
+var _time_of_day: String = "day"
+var _flame_time: float = 0.0
+var _flame_entries: Array[Dictionary] = []
+var _flame_lights: Array[Dictionary] = []
+var _night_glb_nodes: Array[Node3D] = []
+var _boat_bob_node: Node3D
+var _boat_base_pos: Vector3 = Vector3.ZERO
+var _boat_base_rot: Vector3 = Vector3.ZERO
+var _boat_time: float = 0.0
+var _coastal_sunbeams_node: Node3D = null
+var _cove_sun_patch_light: OmniLight3D = null
+var _ocean_plane_node: MeshInstance3D = null
+var _a1_fauna_root: Node3D = null
+var _perched_gulls: Array[Dictionary] = []
+var _gliding_gulls: Array[Dictionary] = []
+var _garden_butterflies: Array[Dictionary] = []
+var _a5_canaries: Array[Dictionary] = []
+var _fauna_time: float = 0.0
+var _a1_ambient_player: AudioStreamPlayer = null
+var _a1_ambient_phase: float = 0.0
+var _prebuild_finished: bool = false
+
+func _ready() -> void:
+	add_to_group("time_of_day_listener")
+	if not _prebuild_finished:
+		build_layout()
+	else:
+		call_deferred("_settle_a1_fauna_clear_of_rocks")
+		if is_instance_valid(_a1_ambient_player) and _a1_ambient_player.is_inside_tree() and not _a1_ambient_player.playing:
+			_a1_ambient_player.play()
+	set_time_of_day(_time_of_day)
+	var mt := get_node_or_null("/root/MapTransition")
+	if mt:
+		if mt.has_signal("tide_state_changed"):
+			var cb := Callable(self, "_on_tide_state_changed")
+			if not mt.is_connected("tide_state_changed", cb):
+				mt.connect("tide_state_changed", cb)
+		_on_tide_state_changed(str(mt.get("tide_state")))
+
+func _on_tide_state_changed(new_tide: String) -> void:
+	if is_instance_valid(_ocean_plane_node):
+		var offset_y := 0.0
+		match new_tide:
+			"rising":
+				offset_y = 0.20
+			"high":
+				offset_y = 0.46
+		_ocean_plane_node.position.y = Structure.ELEV_SEA + offset_y
+
+func _process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
+	var target_blend := 1.0 if winch_is_lowered else 0.0
+	if not is_equal_approx(_winch_blend, target_blend):
+		_winch_blend = move_toward(_winch_blend, target_blend, delta * 0.85)
+		_apply_winch_visual_state(_winch_blend)
+	if not _cave_roof_entries.is_empty() and not _cave_roofs_force_open:
+		SceneEnhancer.update_cave_roof_cutaways(self, _cave_roof_entries)
+	_animate_night_flames(delta)
+	if is_instance_valid(_boat_bob_node):
+		_boat_time += delta
+		_boat_bob_node.position = _boat_base_pos + Vector3(0.0, sin(_boat_time * 1.45) * 0.024, 0.0)
+		_boat_bob_node.rotation = _boat_base_rot + Vector3(cos(_boat_time * 1.15) * 0.014, 0.0, sin(_boat_time * 1.75) * 0.020)
+	_animate_a1_fauna_and_sound(delta)
+	OcclusionCtrl.update(self, delta)
+
+func register_flame_fx(flame_node: Node3D, light_node: Light3D = null, is_cluster: bool = false) -> void:
+	if is_instance_valid(flame_node):
+		var exists := false
+		for entry in _flame_entries:
+			if entry.get("node") == flame_node:
+				exists = true
+				break
+		if not exists:
+			_flame_entries.append({
+				"node": flame_node,
+				"base_pos": flame_node.position,
+				"base_scale": flame_node.scale,
+				"phase": float(_flame_entries.size()) * 1.37 + flame_node.position.x * 0.31 + flame_node.position.z * 0.19,
+				"is_cluster": is_cluster
+			})
+	if is_instance_valid(light_node):
+		var l_exists := false
+		for le in _flame_lights:
+			if le.get("light") == light_node:
+				l_exists = true
+				break
+		if not l_exists:
+			_flame_lights.append({
+				"light": light_node,
+				"base_energy": light_node.light_energy,
+				"phase": float(_flame_lights.size()) * 1.71
+			})
+
+func _collect_flame_nodes_recursive(root_node: Node) -> void:
+	if root_node is MeshInstance3D:
+		var mi := root_node as MeshInstance3D
+		var low := mi.name.to_lower()
+		var is_mat_flame := (mi.material_override == mat_flame)
+		if is_mat_flame or "flame" in low or "ember" in low or "hearthfire" in low:
+			register_flame_fx(mi, null, "cluster" in low or "campfire" in low)
+	for child in root_node.get_children():
+		_collect_flame_nodes_recursive(child)
+
+func _node_or_parent_meta(node: Node, key: String, default_val: Variant) -> Variant:
+	var cur: Node = node
+	for _depth in range(4):
+		if not is_instance_valid(cur):
+			break
+		if cur.has_meta(key):
+			return cur.get_meta(key)
+		cur = cur.get_parent()
+	return default_val
+
+func set_local_fire_fuel(fire_root: Node3D, fuel: float) -> void:
+	if not is_instance_valid(fire_root):
+		return
+	fire_root.set_meta("stoked_boost", clampf(fuel, 0.75, 1.55))
+
+func set_local_fire_state(fire_root: Node3D, lit: bool, fuel: float = 1.0, create_light_if_missing: bool = true) -> void:
+	if not is_instance_valid(fire_root):
+		return
+	var clamped_fuel := clampf(fuel, 0.75, 1.55)
+	fire_root.set_meta("manually_lit", lit)
+	fire_root.set_meta("manually_extinguished", not lit)
+	fire_root.set_meta("stoked_boost", clamped_fuel)
+	var has_light := false
+	var nodes_to_check: Array[Node] = [fire_root]
+	nodes_to_check.append_array(fire_root.find_children("*", "Node3D", true, false))
+	for child in nodes_to_check:
+		if child is OmniLight3D:
+			has_light = true
+			var ol := child as OmniLight3D
+			ol.visible = lit
+			var found_reg := false
+			for le in _flame_lights:
+				if le.get("light") == ol:
+					ol.light_energy = float(le.get("base_energy", 1.8)) * clamped_fuel if lit else 0.0
+					found_reg = true
+					break
+			if not found_reg:
+				register_flame_fx(null, ol, false)
+				ol.light_energy = ol.light_energy * clamped_fuel if lit else 0.0
+		elif child is MeshInstance3D:
+			var mi := child as MeshInstance3D
+			var low := mi.name.to_lower()
+			if mi.is_in_group("night_flame") or mi.material_override == mat_flame or "flame" in low or "ember" in low:
+				mi.visible = lit
+				register_flame_fx(mi, null, "cluster" in low or "hearth" in low)
+	if lit and not has_light and create_light_if_missing:
+		var live_l := OmniLight3D.new()
+		live_l.name = "StokedFireLight"
+		live_l.position = Vector3(0.0, 1.15, 0.0)
+		live_l.light_color = Color(1.0, 0.62, 0.24)
+		live_l.light_energy = 2.10 * clamped_fuel
+		live_l.omni_range = 10.5
+		live_l.shadow_enabled = false
+		fire_root.add_child(live_l)
+		register_flame_fx(null, live_l, false)
+
+func set_time_of_day(time_id: String) -> void:
+	var norm := time_id.strip_edges().to_lower()
+	if not (norm in ["day", "dusk", "night"]):
+		norm = "day"
+	_time_of_day = norm
+	var fires_lit := (_time_of_day in ["night", "dusk"])
+	var energy_mult := 1.0 if _time_of_day == "night" else (0.72 if _time_of_day == "dusk" else 0.0)
+	for entry in _flame_entries:
+		var fn: Node3D = entry.get("node")
+		if is_instance_valid(fn):
+			var manual := bool(_node_or_parent_meta(fn, "manually_lit", false))
+			var manual_off := bool(_node_or_parent_meta(fn, "manually_extinguished", false))
+			fn.visible = (fires_lit or manual) and not manual_off
+	for le in _flame_lights:
+		var ln: Light3D = le.get("light")
+		if is_instance_valid(ln):
+			var manual := bool(_node_or_parent_meta(ln, "manually_lit", false))
+			var manual_off := bool(_node_or_parent_meta(ln, "manually_extinguished", false))
+			var lit_now := (fires_lit or manual) and not manual_off
+			ln.visible = lit_now
+			var boost := float(_node_or_parent_meta(ln, "stoked_boost", 1.0))
+			var e_mult := maxf(energy_mult, 0.85 if manual else 0.0)
+			ln.light_energy = float(le.get("base_energy", 1.5)) * e_mult * boost if lit_now else 0.0
+	for gn in _night_glb_nodes:
+		if is_instance_valid(gn):
+			gn.visible = fires_lit
+	if is_instance_valid(_coastal_sunbeams_node):
+		_coastal_sunbeams_node.visible = (_time_of_day != "night")
+	if is_instance_valid(_cove_sun_patch_light):
+		_cove_sun_patch_light.visible = (_time_of_day != "night")
+		_cove_sun_patch_light.light_energy = 0.90 if _time_of_day == "day" else 0.42
+	_apply_atmosphere_lighting(_time_of_day)
+
+func get_time_of_day() -> String:
+	return _time_of_day
+
+func _apply_atmosphere_lighting(mode: String) -> void:
+	var parent := get_parent()
+	if not parent:
+		return
+	var sun := parent.get_node_or_null("DirectionalLight3D") as DirectionalLight3D
+	var env_node := parent.get_node_or_null("WorldEnvironment") as WorldEnvironment
+	if sun:
+		match mode:
+			"night":
+				sun.light_color = Color(0.42, 0.56, 0.84)
+				sun.light_energy = 0.34
+				sun.rotation_degrees = Vector3(-42.0, -34.0, 0.0)
+			"dusk":
+				sun.light_color = Color(0.98, 0.68, 0.46)
+				sun.light_energy = 1.04
+				sun.rotation_degrees = Vector3(-24.0, -48.0, 0.0)
+			_:
+				sun.light_color = Color(1.0, 0.91, 0.77)
+				sun.light_energy = 1.62
+				sun.rotation_degrees = Vector3(-31.0, -49.0, 0.0)
+	if env_node and env_node.environment:
+		var env := env_node.environment
+		match mode:
+			"night":
+				env.ambient_light_color = Color(0.14, 0.21, 0.34)
+				env.ambient_light_energy = 0.28
+			"dusk":
+				env.ambient_light_color = Color(0.48, 0.38, 0.34)
+				env.ambient_light_energy = 0.48
+			_:
+				env.ambient_light_color = Color(0.21, 0.32, 0.44)
+				env.ambient_light_energy = 0.38
+
+func _animate_night_flames(delta: float) -> void:
+	_flame_time += delta
+	var e_base_mult := 1.0 if _time_of_day == "night" else (0.72 if _time_of_day == "dusk" else 0.85)
+	for entry in _flame_entries:
+		var fn: Node3D = entry.get("node")
+		if not is_instance_valid(fn) or not fn.visible:
+			continue
+		var phase: float = float(entry.get("phase", 0.0))
+		var base_s: Vector3 = entry.get("base_scale", Vector3.ONE)
+		var base_p: Vector3 = entry.get("base_pos", Vector3.ZERO)
+		var boost := float(_node_or_parent_meta(fn, "stoked_boost", 1.0))
+		var w1 := sin(_flame_time * 5.8 + phase)
+		var w2 := sin(_flame_time * 9.3 + phase * 2.17)
+		var w3 := cos(_flame_time * 4.1 + phase * 0.7)
+		var sy := (1.0 + 0.09 * w1 + 0.05 * w2) * boost
+		var sxz := (1.0 - 0.04 * w1 + 0.03 * w3) * lerpf(1.0, boost, 0.45)
+		fn.scale = Vector3(base_s.x * sxz, base_s.y * sy, base_s.z * sxz)
+		fn.position = base_p + Vector3(w3 * 0.008, (sy - 1.0) * 0.025, w2 * 0.007)
+		fn.rotation.z = w1 * 0.05
+	for le in _flame_lights:
+		var ln: Light3D = le.get("light")
+		if not is_instance_valid(ln) or not ln.visible:
+			continue
+		var lp: float = float(le.get("phase", 0.0))
+		var boost := float(_node_or_parent_meta(ln, "stoked_boost", 1.0))
+		var base_e: float = float(le.get("base_energy", 1.5)) * e_base_mult * boost
+		# 6.4 Parpadeo orgánico muy suave y desfasado (sin efecto estroboscópico)
+		var pulse := 0.93 + 0.07 * sin(_flame_time * 4.7 + lp) + 0.04 * cos(_flame_time * 8.3 + lp * 1.63)
+		ln.light_energy = base_e * pulse
+
+func set_all_cave_roofs_open(open: bool) -> void:
+	_cave_roofs_force_open = open
+	for entry in _cave_roof_entries:
+		var roof_node: Node3D = entry.get("node", null)
+		if is_instance_valid(roof_node):
+			roof_node.visible = not open
+
+func toggle_winch_lever() -> bool:
+	winch_is_lowered = not winch_is_lowered
+	return winch_is_lowered
+
+func _apply_winch_visual_state(t: float) -> void:
+	if winch_lever_pivot:
+		winch_lever_pivot.rotation_degrees.x = lerpf(-22.0, 34.0, t)
+	var pallet_y := lerpf(12.2, 0.55, t)
+	if winch_pallet_rig:
+		winch_pallet_rig.position.y = pallet_y
+	if winch_cable_mesh:
+		var top_y := 16.55
+		var span := maxf(0.4, top_y - (pallet_y + 0.35))
+		winch_cable_mesh.scale.y = span
+		winch_cable_mesh.position.y = pallet_y + 0.35 + span * 0.5
+
+func _load_tex(file_name: String) -> Texture2D:
+	if _tex_cache.has(file_name):
+		return _tex_cache[file_name]
+	var res_path := "res://assets/textures/" + file_name
+	if not FileAccess.file_exists(res_path):
+		return null
+	var bytes := FileAccess.get_file_as_bytes(res_path)
+	if bytes.is_empty():
+		return null
+	var img := Image.new()
+	var err := OK
+	if bytes.size() >= 4 and bytes[0] == 0x89 and bytes[1] == 0x50 and bytes[2] == 0x4E and bytes[3] == 0x47:
+		err = img.load_png_from_buffer(bytes)
+	elif bytes.size() >= 3 and bytes[0] == 0xFF and bytes[1] == 0xD8 and bytes[2] == 0xFF:
+		err = img.load_jpg_from_buffer(bytes)
+	elif bytes.size() >= 4 and bytes[0] == 0x52 and bytes[1] == 0x49 and bytes[2] == 0x46 and bytes[3] == 0x46:
+		err = img.load_webp_from_buffer(bytes)
+	else:
+		img = Image.load_from_file(ProjectSettings.globalize_path(res_path))
+		err = OK if img and not img.is_empty() else ERR_CANT_OPEN
+	if err != OK or img.is_empty():
+		return null
+	if img.get_width() > 1024 or img.get_height() > 1024:
+		img.resize(mini(img.get_width(), 1024), mini(img.get_height(), 1024), Image.INTERPOLATE_BILINEAR)
+	if not img.has_mipmaps():
+		img.generate_mipmaps()
+	var tex := ImageTexture.create_from_image(img)
+	_tex_cache[file_name] = tex
+	return tex
+
+func _init_materials() -> void:
+	if mat_beach != null:
+		return
+
+	var tex_plaza := _load_tex("a1-plaza-v6.png")
+	var tex_cell := _load_tex("a1-cell-v6.png")
+	var tex_basalt := _load_tex("basalt-coastal-albedo-v1.webp")
+	var tex_cliff := _load_tex("a1-cliff-rugged-v8.jpg")
+	var tex_coastal_rock := _load_tex("coastal-rock.png")
+	var tex_oak := _load_tex("oak-v4.webp")
+	var tex_limestone := _load_tex("limestone-v3.webp")
+	var tex_ashlar := _load_tex("ashlar-v4.webp")
+	var tex_earth := _load_tex("earth.webp")
+	var tex_wool := _load_tex("wool-v4.webp")
+	var tex_linen := _load_tex("linen-v4.webp")
+	var tex_foliage := _load_tex("foliage-atlas.png")
+	var norm_rock := _load_tex("rock-normal-v1.png")
+	var norm_wood := _load_tex("wood-normal-v1.png")
+
+	mat_beach = _make_textured_mat(Color("#dfd0ab"), 0.90, 0.0, tex_earth, 0.22, true, norm_rock, 0.24)
+	mat_wet_sand = _make_textured_mat(Color("#9c896a"), 0.22, 0.04, tex_earth, 0.24, true, norm_rock, 0.18)
+	mat_plaza = _make_textured_mat(Color("#d4cbb8"), 0.82, 0.0, tex_plaza, 0.30, true, norm_rock, 0.45)
+	mat_cell_floor = _make_textured_mat(Color("#c4bba8"), 0.84, 0.0, tex_cell, 0.36, true, norm_rock, 0.48)
+	mat_rock = _make_textured_mat(Color("#88948e"), 0.86, 0.0, tex_basalt if tex_basalt else tex_cliff, 0.16, true, norm_rock, 0.68)
+	mat_rock_carved = _make_textured_mat(Color("#9ea79d"), 0.84, 0.0, tex_coastal_rock if tex_coastal_rock else tex_cliff, 0.26, true, norm_rock, 0.65)
+	mat_rock_dark = _make_textured_mat(Color("#66706b"), 0.90, 0.0, tex_basalt if tex_basalt else tex_cliff, 0.16, true, norm_rock, 0.70)
+	mat_wood = _make_textured_mat(Color("#bf9a70"), 0.72, 0.0, tex_oak, 0.50, true, norm_wood, 0.55)
+	mat_wood_dark = _make_textured_mat(Color("#7c5b3b"), 0.80, 0.0, tex_oak, 0.50, true, norm_wood, 0.58)
+	mat_upper = _make_textured_mat(Color("#cac0ab"), 0.82, 0.0, tex_ashlar if tex_ashlar else tex_plaza, 0.32, true, norm_rock, 0.48)
+	mat_trail = _make_textured_mat(Color("#c4b89f"), 0.88, 0.0, tex_earth, 0.28, true, norm_rock, 0.38)
+	mat_sacred = _make_textured_mat(Color("#e3dfd5"), 0.68, 0.03, tex_limestone, 0.35, true, norm_rock, 0.42)
+	mat_column = _make_textured_mat(Color("#cfc6b1"), 0.74, 0.02, tex_limestone, 0.35, true, norm_rock, 0.45)
+
+	var ocean_shader := Shader.new()
+	ocean_shader.code = """
+shader_type spatial;
+render_mode blend_mix, depth_draw_never, cull_disabled, specular_schlick_ggx;
+
+uniform sampler2D depth_tex : hint_depth_texture, filter_linear_mipmap;
+uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap, repeat_enable;
+uniform vec4 shallow_color : source_color = vec4(0.115, 0.56, 0.57, 0.16);
+uniform vec4 mid_color : source_color = vec4(0.042, 0.30, 0.38, 0.72);
+uniform vec4 deep_color : source_color = vec4(0.015, 0.115, 0.20, 0.96);
+uniform vec4 foam_color : source_color = vec4(0.93, 0.96, 0.97, 0.95);
+uniform float water_depth_range = 4.2;
+uniform float foam_range = 0.65;
+uniform float wave_speed = 0.032;
+uniform float wave_scale = 0.092;
+uniform float wave_amp = 0.032;
+uniform float alpha_scale = 1.0;
+
+varying vec3 world_pos;
+varying float wave_crest;
+
+void vertex() {
+	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	wave_crest = 0.0;
+	if (wave_amp > 0.001) {
+		float w1 = sin(world_pos.x * 0.26 + world_pos.z * 0.18 + TIME * 1.05);
+		float w2 = cos(world_pos.x * 0.19 - world_pos.z * 0.34 + TIME * 0.85);
+		float h = (w1 * 0.56 + w2 * 0.44) * wave_amp;
+		VERTEX.y += h;
+		wave_crest = clamp((w1 + w2) * 0.5 + 0.5, 0.0, 1.0);
+	}
+}
+
+void fragment() {
+	float raw_depth = texture(depth_tex, SCREEN_UV).x;
+	vec3 ndc = vec3(SCREEN_UV * 2.0 - 1.0, raw_depth);
+	vec4 view_p = INV_PROJECTION_MATRIX * vec4(ndc, 1.0);
+	view_p.xyz /= view_p.w;
+	vec4 world_behind = INV_VIEW_MATRIX * vec4(view_p.xyz, 1.0);
+	float v_depth = max(0.0, world_pos.y - world_behind.y);
+	float ray_depth = max(0.0, VERTEX.z - view_p.z);
+	float water_depth = mix(v_depth, ray_depth * 0.48, 0.22);
+	if (raw_depth < 0.0001) {
+		water_depth = water_depth_range;
+	}
+
+	vec2 uv1 = world_pos.xz * wave_scale + vec2(TIME * wave_speed, TIME * wave_speed * 0.58);
+	vec2 r_xz = vec2(0.80 * world_pos.x - 0.60 * world_pos.z, 0.60 * world_pos.x + 0.80 * world_pos.z);
+	vec2 uv2 = r_xz * (wave_scale * 1.47) + vec2(-TIME * wave_speed * 0.72, TIME * wave_speed * 0.84);
+	vec3 n1 = texture(normal_tex, uv1).xyz * 2.0 - 1.0;
+	vec3 n2 = texture(normal_tex, uv2).xyz * 2.0 - 1.0;
+	float ch1 = cos(world_pos.x * 1.15 + world_pos.z * 0.85 + TIME * 1.35);
+	float ch2 = cos(r_xz.x * 1.75 - r_xz.y * 1.45 - TIME * 1.15);
+	vec3 n_mix = normalize(vec3((n1.xy + n2.xy) * 0.24 + vec2(ch1 * 0.075 + ch2 * 0.055, ch1 * 0.055 - ch2 * 0.065), 1.0));
+	NORMAL_MAP = vec3(n_mix.x * 0.5 + 0.5, n_mix.y * 0.5 + 0.5, 1.0);
+	NORMAL_MAP_DEPTH = 0.56;
+
+	float ndotv = clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0);
+	float fresnel = pow(1.0 - ndotv, 3.6);
+
+	// Espuma orgánica quebrada no uniforme para evitar franjas artificiales o patrón continuo
+	float lacy_a = clamp(0.5 + (n1.x - n2.y) * 0.72 + ch1 * 0.16, 0.0, 1.0);
+	float lacy_b = clamp(0.5 + (n1.y + n2.x) * 0.72 - ch2 * 0.14, 0.0, 1.0);
+	float lacy_lace = clamp(lacy_a * 0.60 + lacy_b * 0.40, 0.0, 1.0);
+	float patch_var = clamp(0.5 + 0.5 * sin(world_pos.x * 0.47 - world_pos.z * 0.34 + n1.x * 2.6) * cos(world_pos.x * 0.29 + world_pos.z * 0.53), 0.0, 1.0);
+	float local_foam_range = foam_range * (0.42 + 0.92 * patch_var);
+
+	float surf_line = sin(water_depth * 9.5 - TIME * 1.45 + lacy_a * 4.6) * 0.5 + 0.5;
+	float shore_band = (1.0 - smoothstep(0.015, local_foam_range, water_depth));
+	float rock_break = smoothstep(0.24, 0.74, lacy_a * 0.7 + patch_var * 0.3);
+	float shore_foam = smoothstep(0.32, 0.68, shore_band * rock_break * (0.42 + 0.58 * surf_line) * (0.35 + 1.25 * lacy_lace));
+	float ripple_band = exp(-pow((water_depth - (0.38 + 0.16 * patch_var)) * 4.8, 2.0)) * smoothstep(0.52, 0.88, lacy_lace * 0.68 + surf_line * 0.32) * 0.42;
+	float crest_glint_foam = smoothstep(0.82, 0.98, lacy_lace * 0.50 + wave_crest * 0.48) * smoothstep(0.35, 1.6, water_depth) * 0.15;
+	float foam_mask = clamp(shore_foam + ripple_band + crest_glint_foam, 0.0, 1.0);
+
+	// 3 bandas cromáticas nítidas: orilla turquesa translúcida -> media azul verdosa -> exterior marino profundo
+	float t_mid = smoothstep(0.08, 1.05, water_depth);
+	float t_deep = smoothstep(1.10, water_depth_range, water_depth);
+	vec3 water_tint = mix(shallow_color.rgb, mid_color.rgb, t_mid);
+	water_tint = mix(water_tint, deep_color.rgb, t_deep);
+
+	// Sutil cáustica/brillo en agua somera sobre arena y piedras sumergidas
+	float caustic = smoothstep(0.76, 0.98, 0.5 + 0.5 * (n1.x * n2.y - n1.y * n2.x)) * (1.0 - smoothstep(0.25, 1.45, water_depth)) * 0.12;
+	water_tint += vec3(0.08, 0.16, 0.15) * caustic;
+
+	vec3 sky_refl = mix(vec3(0.24, 0.40, 0.49), vec3(0.58, 0.70, 0.78), fresnel);
+	vec3 water_col = mix(water_tint, sky_refl, fresnel * 0.34);
+
+	ALBEDO = mix(water_col, foam_color.rgb, foam_mask * 0.86);
+	float base_alpha = mix(shallow_color.a, mid_color.a, smoothstep(0.06, 0.92, water_depth));
+	base_alpha = mix(base_alpha, deep_color.a, smoothstep(1.05, water_depth_range, water_depth));
+	ALPHA = clamp(base_alpha + foam_mask * 0.42, 0.12, 0.97) * alpha_scale;
+	ROUGHNESS = mix(0.08, 0.64, foam_mask);
+	METALLIC = 0.04;
+	SPECULAR = 0.60;
+}
+"""
+	var ocean_smat := ShaderMaterial.new()
+	ocean_smat.shader = ocean_shader
+	if norm_rock:
+		ocean_smat.set_shader_parameter("normal_tex", norm_rock)
+	mat_ocean = ocean_smat
+
+	var pool_smat := StandardMaterial3D.new()
+	pool_smat.albedo_color = Color(0.16, 0.50, 0.56, 0.82)
+	if norm_rock:
+		pool_smat.normal_enabled = true
+		pool_smat.normal_texture = norm_rock
+		pool_smat.normal_scale = 0.22
+	pool_smat.roughness = 0.08
+	pool_smat.metallic = 0.06
+	pool_smat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat_pool_water = pool_smat
+
+	mat_marker = StandardMaterial3D.new()
+	mat_marker.albedo_color = Color(0.92, 0.74, 0.30, 0.62)
+	mat_marker.emission_enabled = true
+	mat_marker.emission = Color(0.92, 0.72, 0.28)
+	mat_marker.emission_energy_multiplier = 0.42
+	mat_marker.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+
+	mat_bronze = _make_mat(Color("#9a7448"), 0.36, 0.72)
+	mat_platinum = _make_mat(Color("#d8dde6"), 0.28, 0.75)
+	mat_gold = StandardMaterial3D.new()
+	mat_gold.albedo_color = Color("#f0be42")
+	mat_gold.metallic = 0.7
+	mat_gold.roughness = 0.32
+	mat_gold.emission_enabled = true
+	mat_gold.emission = Color("#d89a1c")
+	mat_gold.emission_energy_multiplier = 0.35
+
+	mat_foliage_pine = _make_mat(Color("#2b452c"), 0.86, 0.0)
+	mat_foliage_pine.backlight_enabled = true
+	mat_foliage_pine.backlight = Color(0.08, 0.14, 0.06)
+	mat_foliage_olive = _make_mat(Color("#4c613b"), 0.84, 0.0)
+	mat_foliage_olive.backlight_enabled = true
+	mat_foliage_olive.backlight = Color(0.10, 0.16, 0.07)
+
+	mat_flame = StandardMaterial3D.new()
+	mat_flame.albedo_color = Color(1.0, 0.62, 0.18)
+	mat_flame.emission_enabled = true
+	mat_flame.emission = Color(1.0, 0.48, 0.10)
+	mat_flame.emission_energy_multiplier = 2.8
+
+	mat_cloth_blue = _make_textured_mat(Color("#4f6982"), 0.92, 0.0, tex_wool, 0.65, true)
+	mat_cloth_warm = _make_textured_mat(Color("#a46452"), 0.92, 0.0, tex_linen, 0.65, true)
+	mat_books = _make_mat(Color("#7a3c2e"), 0.85, 0.05)
+	mat_iron = _make_mat(Color("#3b4144"), 0.45, 0.75)
+
+	# Materiales específicos para mallas importadas de Babylon (.glb)
+	# Conservan vertex_color_use_as_albedo para mostrar AO/musgo/desgaste originales.
+	_mat_rock_glb = _make_glb_mat(Color("#acb7b0"), 0.86, 0.0, tex_basalt if tex_basalt else tex_cliff, 0.14, norm_rock, true, 0.68)
+	_mat_carved_glb = _make_glb_mat(Color("#b9c0b7"), 0.82, 0.0, tex_coastal_rock if tex_coastal_rock else tex_basalt, 0.18, norm_rock, true, 0.65)
+	_mat_paving_glb = _make_glb_mat(Color("#d4cdbe"), 0.82, 0.0, tex_plaza if tex_plaza else tex_ashlar, 0.28, norm_rock, true, 0.50)
+	_mat_earth_glb = _make_glb_mat(Color("#beb99c"), 0.90, 0.0, tex_earth, 0.26, null, true)
+	_mat_forest_earth_glb = _make_glb_mat(Color("#4d633b"), 0.90, 0.0, tex_earth, 0.22, null, true)
+	_mat_forest_earth_glb.backlight_enabled = true
+	_mat_forest_earth_glb.backlight = Color(0.08, 0.13, 0.05)
+	_mat_wood_glb = _make_glb_mat(Color("#c6a074"), 0.76, 0.0, tex_oak, 0.52, norm_wood, true, 0.55)
+	_mat_dark_wood_glb = _make_glb_mat(Color("#8c6a48"), 0.80, 0.0, tex_oak, 0.52, null, true)
+	_mat_limestone_glb = _make_glb_mat(Color("#bbb49f"), 0.80, 0.0, tex_limestone, 0.36, norm_rock, true, 0.48)
+	_mat_sculpture_glb = _make_glb_mat(Color("#d2cab6"), 0.78, 0.04, tex_limestone, 0.28, norm_rock, true, 0.45)
+	_mat_astalagan_glb = _make_glb_mat(Color("#ccc6b8"), 0.52, 0.24, tex_limestone, 0.28, norm_rock, true, 0.58)
+	_mat_metal_glb = _make_glb_mat(Color("#545a5c"), 0.46, 0.72, null, 1.0, null, true)
+	_mat_brass_glb = _make_glb_mat(Color("#be8842"), 0.32, 0.72, null, 1.0, null, true)
+	_mat_pottery_glb = _make_glb_mat(Color("#b66d4b"), 0.78, 0.0, null, 1.0, null, true)
+	_mat_linen_glb = _make_glb_mat(Color("#eadcc7"), 0.90, 0.0, tex_linen, 0.65, null, true, 0.50, true)
+	_mat_blue_cloth_glb = _make_glb_mat(Color("#6886a0"), 0.90, 0.0, tex_linen, 0.65, null, true, 0.50, true)
+	_mat_red_cloth_glb = _make_glb_mat(Color("#b66959"), 0.90, 0.0, tex_wool, 0.65, null, true, 0.50, true)
+	_mat_flower_glb = _make_glb_mat(Color("#e8cf72"), 0.78, 0.0, null, 1.0, null, true)
+	_mat_herb_glb = _make_glb_mat(Color("#4a6439"), 0.86, 0.0, null, 1.0, null, true)
+	_mat_herb_glb.backlight_enabled = true
+	_mat_herb_glb.backlight = Color(0.09, 0.14, 0.06)
+	_mat_foliage_v6_glb = _make_foliage_cutout_mat(Color("#748a5c"), tex_foliage)
+	_mat_foliage_sage_glb = _make_foliage_cutout_mat(Color("#697f59"), tex_foliage)
+	_mat_foliage_dark_glb = _make_foliage_cutout_mat(Color("#425937"), tex_foliage)
+	_mat_foliage_flower_glb = _make_foliage_cutout_mat(Color("#e8d69a"), tex_foliage)
+
+	var water_glb_smat := (mat_ocean as ShaderMaterial).duplicate() as ShaderMaterial
+	water_glb_smat.set_shader_parameter("wave_amp", 0.0)
+	water_glb_smat.set_shader_parameter("alpha_scale", 0.18)
+	_mat_water_glb = water_glb_smat
+
+func _make_mat(col: Color, rough: float, metal: float) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = col
+	m.roughness = rough
+	m.metallic = metal
+	return m
+
+func _make_textured_mat(col: Color, rough: float, metal: float, tex: Texture2D, world_scale: float, use_triplanar: bool, norm_tex: Texture2D = null, norm_strength: float = 0.45) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = col
+	m.roughness = rough
+	m.metallic = metal
+	if tex:
+		m.albedo_texture = tex
+		if use_triplanar:
+			m.uv1_triplanar = true
+			m.uv1_world_triplanar = true
+			m.uv1_triplanar_sharpness = 2.0
+		m.uv1_scale = Vector3(world_scale, world_scale, world_scale)
+	if norm_tex:
+		m.normal_enabled = true
+		m.normal_texture = norm_tex
+		m.normal_scale = norm_strength
+	return m
+
+func _make_glb_mat(col: Color, rough: float, metal: float, tex: Texture2D, world_scale: float, norm_tex: Texture2D, use_vertex_color: bool, norm_strength: float = 0.50, _allow_two_sided: bool = true) -> StandardMaterial3D:
+	var m := _make_textured_mat(col, rough, metal, tex, world_scale, true, norm_tex, norm_strength)
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.vertex_color_use_as_albedo = use_vertex_color
+	return m
+
+func _make_foliage_cutout_mat(col: Color, tex: Texture2D) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = col
+	m.roughness = 0.82
+	m.metallic = 0.0
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.vertex_color_use_as_albedo = true
+	m.backlight_enabled = true
+	m.backlight = Color(0.28, 0.52, 0.18)
+	if tex:
+		m.albedo_texture = tex
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+		m.alpha_scissor_threshold = 0.35
+	return m
+
+func build_layout() -> void:
+	if has_node("Surfaces") or _prebuild_finished:
+		return
+	OcclusionCtrl.clear_registry()
+	_init_materials()
+	# Conservamos el nombre "RetreatLayoutBuilder" para que MainController
+	# y VttRoleUi detecten correctamente la escena del Retiro del Dragón.
+
+	var global_data: Dictionary = _load_json_dict(GLOBAL_LAYOUT_JSON_PATH)
+	var terrain_data: Dictionary = _load_json_dict(TERRAIN_JSON_PATH)
+
+	_build_ocean()
+	_build_surfaces(terrain_data)
+	_build_safety_colliders()
+	_build_coastal_pier_and_beach()
+	_build_a1_cells()
+	_build_a1_plaza_details()
+	_build_a2_winch_house(global_data)
+	_build_a3_dining_hall(global_data)
+	_build_a4_library(global_data)
+	_build_a5_temple(global_data)
+	_build_staircases()
+	_build_babylon_glb_modules()
+	SceneEnhancer.build_rooms_and_plaza_furniture(self)
+	_cave_roof_entries = SceneEnhancer.build_cave_roofs_and_archways(self)
+	_build_lush_planters_and_gardens()
+	_build_lush_mountain_forest(terrain_data)
+	SceneEnhancer.build_vibrant_grass_and_planters(self, terrain_data)
+	_build_a1_ambient_fauna_and_sound()
+	_build_landmarks()
+	_build_scenic_transition_paths()
+	_finalize_lights()
+	_prebuild_finished = true
+
+func _finalize_lights() -> void:
+	_collect_flame_nodes_recursive(self)
+	_optimize_scene_lights(self)
+	# Mantener luces interiores suaves de caverna separadas de las llamas nocturnas
+	for fire_light in _flame_lights:
+		var fl: Light3D = fire_light.get("light")
+		if is_instance_valid(fl):
+			fl.visible = (_time_of_day in ["night", "dusk"])
+
+func build_layout_async(tree: SceneTree, progress_cb: Callable = Callable()) -> void:
+	if has_node("Surfaces") or _prebuild_finished:
+		return
+	OcclusionCtrl.clear_registry()
+	_init_materials()
+	if progress_cb.is_valid(): progress_cb.call(0.10)
+	await tree.process_frame
+	var global_data: Dictionary = _load_json_dict(GLOBAL_LAYOUT_JSON_PATH)
+	var terrain_data: Dictionary = _load_json_dict(TERRAIN_JSON_PATH)
+	_build_ocean()
+	_build_surfaces(terrain_data)
+	_build_safety_colliders()
+	_build_coastal_pier_and_beach()
+	if progress_cb.is_valid(): progress_cb.call(0.16)
+	await tree.process_frame
+	_build_a1_cells()
+	_build_a1_plaza_details()
+	_build_a2_winch_house(global_data)
+	_build_a3_dining_hall(global_data)
+	_build_a4_library(global_data)
+	_build_a5_temple(global_data)
+	_build_staircases()
+	if progress_cb.is_valid(): progress_cb.call(0.25)
+	await tree.process_frame
+
+	var geo_root := Node3D.new()
+	geo_root.name = "BabylonGeography"
+	add_child(geo_root)
+	await _load_glb_bundle_async(GLB_GEO_PATH, geo_root, {}, tree)
+	if progress_cb.is_valid(): progress_cb.call(0.45)
+	await tree.process_frame
+
+	var r3_root := Node3D.new()
+	r3_root.name = "BabylonLandscapeR3"
+	add_child(r3_root)
+	await _load_glb_bundle_async(GLB_R3_PATH, r3_root, {}, tree)
+	if progress_cb.is_valid(): progress_cb.call(0.70)
+	await tree.process_frame
+
+	var misc_root := Node3D.new()
+	misc_root.name = "BabylonArchitecture"
+	add_child(misc_root)
+	var zone_targets := {
+		"A2": get_node_or_null("A2_WinchAssembly"),
+		"A2Fin": get_node_or_null("A2_WinchAssembly"),
+		"A3": get_node_or_null("A3_DiningHall"),
+		"A3Fin": get_node_or_null("A3_DiningHall"),
+		"A4": get_node_or_null("A4_Library"),
+		"A4Fin": get_node_or_null("A4_Library"),
+		"A5": get_node_or_null("A5_Temple"),
+		"A5Fin": get_node_or_null("A5_Temple"),
+		"A1Room": get_node_or_null("A1_Cells"),
+		"A1Bedrock": get_node_or_null("A1_Cells"),
+		"A1PlazaProp": get_node_or_null("A1_PlazaDetails"),
+		"Shore": get_node_or_null("Staircases"),
+		"Conn": get_node_or_null("Staircases")
+	}
+	await _load_glb_bundle_async(GLB_ARCH_PATH, misc_root, zone_targets, tree)
+	if progress_cb.is_valid(): progress_cb.call(0.88)
+	await tree.process_frame
+
+	SceneEnhancer.build_rooms_and_plaza_furniture(self)
+	_cave_roof_entries = SceneEnhancer.build_cave_roofs_and_archways(self)
+	_build_lush_planters_and_gardens()
+	_build_lush_mountain_forest(terrain_data)
+	SceneEnhancer.build_vibrant_grass_and_planters(self, terrain_data)
+	_build_a1_ambient_fauna_and_sound()
+	_build_landmarks()
+	_build_scenic_transition_paths()
+	_finalize_lights()
+	_prebuild_finished = true
+	if progress_cb.is_valid(): progress_cb.call(1.0)
+
+func _optimize_scene_lights(node: Node) -> void:
+	if node is OmniLight3D or node is SpotLight3D:
+		var l3 := node as Light3D
+		l3.shadow_enabled = false
+		# TacticalCamera ortogonal sitúa global_position a 240m del foco; desactivar distance_fade evita que Godot apague las luces puntuales
+		l3.distance_fade_enabled = false
+	for child in node.get_children():
+		_optimize_scene_lights(child)
+
+func _load_json_dict(res_path: String) -> Dictionary:
+	if not FileAccess.file_exists(res_path):
+		return {}
+	var txt := FileAccess.get_file_as_string(res_path)
+	if txt.is_empty():
+		return {}
+	var parsed = JSON.parse_string(txt)
+	return parsed if parsed is Dictionary else {}
+
+# 1. Manto oceánico circundante a cota 0.0m
+func _build_ocean() -> void:
+	var ocean_mesh := PlaneMesh.new()
+	ocean_mesh.size = Vector2(900.0, 800.0)
+	ocean_mesh.subdivide_width = 24
+	ocean_mesh.subdivide_depth = 20
+	var inst := MeshInstance3D.new()
+	inst.name = "OceanPlane"
+	inst.mesh = ocean_mesh
+	inst.material_override = mat_ocean
+	inst.position = Vector3(84.0, Structure.ELEV_SEA, 68.0)
+	inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(inst)
+	_ocean_plane_node = inst
+
+	# Fondo marino con relieve sutil y grano natural bajo aguas medias y profundas
+	var seabed_mesh := PlaneMesh.new()
+	seabed_mesh.size = Vector2(900.0, 800.0)
+	var seabed := MeshInstance3D.new()
+	seabed.name = "SeabedPlane"
+	seabed.mesh = seabed_mesh
+	var tex_seabed := _load_tex("basalt-coastal-albedo-v1.webp")
+	if not tex_seabed:
+		tex_seabed = _load_tex("earth.webp")
+	seabed.material_override = _make_textured_mat(Color("#15353c"), 0.96, 0.0, tex_seabed, 0.08, false)
+	seabed.position = Vector3(84.0, -3.4, 68.0)
+	seabed.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(seabed)
+
+# 2. Las 13 superficies ampliadas (1.599 casillas) con colisión trimesh exacta
+func _build_surfaces(terrain_data: Dictionary) -> void:
+	var surfaces_node := Node3D.new()
+	surfaces_node.name = "Surfaces"
+	add_child(surfaces_node)
+
+	var surf_array: Array = terrain_data.get("surfaces", [])
+	if surf_array.is_empty():
+		_build_fallback_surfaces(surfaces_node)
+		return
+
+	var id_to_node := {
+		"beach": "Surface_Beach",
+		"a1": "Surface_A1_Plaza",
+		"cliff": "Surface_Cliff",
+		"a2": "Surface_A2_WinchDeck",
+		"upper": "Surface_UpperWalkway",
+		"a3": "Surface_A3_DiningFloor",
+		"a4": "Surface_A4_LibraryFloor",
+		"a5": "Surface_A5_TemplePlatform",
+		"pleamar": "Surface_PleamarTrail",
+		"observatorio": "Surface_ObservatoryTrail",
+		"island-pleamar-low": "Surface_IslandPleamarLow",
+		"island-pleamar-high": "Surface_IslandPleamarHigh",
+		"island-observatory": "Surface_IslandObservatory"
+	}
+
+	var id_to_mat := {
+		"beach": mat_beach,
+		"a1": mat_plaza,
+		"cliff": mat_rock_carved,
+		"a2": mat_wood,
+		"upper": mat_upper,
+		"a3": mat_cell_floor,
+		"a4": mat_cell_floor,
+		"a5": mat_sacred,
+		"pleamar": mat_trail,
+		"observatorio": mat_trail,
+		"island-pleamar-low": mat_beach,
+		"island-pleamar-high": mat_rock,
+		"island-observatory": mat_trail
+	}
+
+	# Nota: Las superficies ya cubiertas visualmente por losas .glb esculpidas
+	# reciben un desplazamiento mínimo de -0.05m y faldón corto de 0.12m para evitar
+	# z-fighting o muros salientes sobre los acantilados de Babylon, manteniendo la colisión.
+	var covered_by_glb := ["a1", "cliff", "a2", "a3", "a4", "a5", "upper", "observatorio", "island-observatory"]
+
+	for surf in surf_array:
+		var sid: String = str(surf.get("id", ""))
+		var tiles: Array = surf.get("tiles", [])
+		if sid.is_empty() or tiles.is_empty():
+			continue
+		var node_name: String = id_to_node.get(sid, "Surface_" + sid)
+		var mat: Material = id_to_mat.get(sid, mat_upper)
+		var is_sea_level := sid in ["beach", "pleamar", "island-pleamar-low"]
+		var is_covered := sid in covered_by_glb
+		var skin_offset := -0.02 if is_covered else 0.0
+		var skirt_drop := 0.14 if is_covered else (0.55 if is_sea_level else 0.32)
+		var min_skirt_y := -1.2 if is_sea_level else -9999.0
+		_build_tiled_surface_mesh(surfaces_node, node_name, tiles, mat, skirt_drop, min_skirt_y, skin_offset)
+
+func _build_tiled_surface_mesh(parent: Node, node_name: String, tiles: Array, mat: Material, skirt_drop: float, min_skirt_y: float, skin_offset: float = 0.0) -> void:
+	var t := Structure.TILE_METERS
+	var tile_map: Dictionary = {}
+	for entry in tiles:
+		var cell: Dictionary = entry.get("cell", {})
+		var col: int = int(cell.get("col", 0))
+		var row: int = int(cell.get("row", 0))
+		tile_map[Vector2i(col, row)] = entry.get("corners", [0.0, 0.0, 0.0, 0.0])
+
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+
+	for entry in tiles:
+		var cell: Dictionary = entry.get("cell", {})
+		var col: int = int(cell.get("col", 0))
+		var row: int = int(cell.get("row", 0))
+		var c: Array = entry.get("corners", [0.0, 0.0, 0.0, 0.0])
+		var max_cy := maxf(maxf(float(c[0]), float(c[1])), maxf(float(c[2]), float(c[3])))
+		var is_sw_cove_override := (
+			(node_name == "Surface_Beach" and ((col <= 21 and row >= 66) or (col >= 22 and row >= 68 and max_cy < 0.06)))
+			or (node_name in ["Surface_PleamarTrail", "Surface_IslandPleamarLow"] and col <= 11 and row >= 55)
+		)
+		var is_obs_flicker_override := (
+			(node_name == "Surface_UpperWalkway" and col >= 89 and row <= 42)
+			or (node_name == "Surface_ObservatoryTrail" and col >= 92 and col <= 95 and row >= 32 and row <= 43)
+		)
+		var tile_offset := -4.2 if is_sw_cove_override else (-0.28 if is_obs_flicker_override else (-0.18 if (node_name == "Surface_PleamarTrail" and row >= 55) else skin_offset))
+		var y00 := float(c[0]) + tile_offset
+		var y10 := float(c[1]) + tile_offset
+		var y11 := float(c[2]) + tile_offset
+		var y01 := float(c[3]) + tile_offset
+
+		var x0 := float(col) * t
+		var x1 := float(col + 1) * t
+		var z0 := float(row) * t
+		var z1 := float(row + 1) * t
+
+		var p00 := Vector3(x0, y00, z0)
+		var p10 := Vector3(x1, y10, z0)
+		var p11 := Vector3(x1, y11, z1)
+		var p01 := Vector3(x0, y01, z1)
+
+		st.set_uv(Vector2(x0 * 0.25, z0 * 0.25)); st.add_vertex(p00)
+		st.set_uv(Vector2(x1 * 0.25, z0 * 0.25)); st.add_vertex(p10)
+		st.set_uv(Vector2(x1 * 0.25, z1 * 0.25)); st.add_vertex(p11)
+
+		st.set_uv(Vector2(x0 * 0.25, z0 * 0.25)); st.add_vertex(p00)
+		st.set_uv(Vector2(x1 * 0.25, z1 * 0.25)); st.add_vertex(p11)
+		st.set_uv(Vector2(x0 * 0.25, z1 * 0.25)); st.add_vertex(p01)
+
+		var k_n := Vector2i(col, row - 1)
+		if not tile_map.has(k_n):
+			var b00 := Vector3(x0, minf(min_skirt_y, y00 - skirt_drop) if min_skirt_y > -9000.0 else (y00 - skirt_drop), z0)
+			var b10 := Vector3(x1, minf(min_skirt_y, y10 - skirt_drop) if min_skirt_y > -9000.0 else (y10 - skirt_drop), z0)
+			_add_quad_uv(st, p10, p00, b00, b10)
+		else:
+			var nc: Array = tile_map[k_n]
+			if float(nc[3]) + skin_offset < y00 - 0.05 or float(nc[2]) + skin_offset < y10 - 0.05:
+				_add_quad_uv(st, p10, p00, Vector3(x0, float(nc[3]) + skin_offset, z0), Vector3(x1, float(nc[2]) + skin_offset, z0))
+
+		var k_s := Vector2i(col, row + 1)
+		if not tile_map.has(k_s):
+			var b01 := Vector3(x0, minf(min_skirt_y, y01 - skirt_drop) if min_skirt_y > -9000.0 else (y01 - skirt_drop), z1)
+			var b11 := Vector3(x1, minf(min_skirt_y, y11 - skirt_drop) if min_skirt_y > -9000.0 else (y11 - skirt_drop), z1)
+			_add_quad_uv(st, p01, p11, b11, b01)
+		else:
+			var sc: Array = tile_map[k_s]
+			if float(sc[0]) + skin_offset < y01 - 0.05 or float(sc[1]) + skin_offset < y11 - 0.05:
+				_add_quad_uv(st, p01, p11, Vector3(x1, float(sc[1]) + skin_offset, z1), Vector3(x0, float(sc[0]) + skin_offset, z1))
+
+		var k_e := Vector2i(col + 1, row)
+		if not tile_map.has(k_e):
+			var b10e := Vector3(x1, minf(min_skirt_y, y10 - skirt_drop) if min_skirt_y > -9000.0 else (y10 - skirt_drop), z0)
+			var b11e := Vector3(x1, minf(min_skirt_y, y11 - skirt_drop) if min_skirt_y > -9000.0 else (y11 - skirt_drop), z1)
+			_add_quad_uv(st, p11, p10, b10e, b11e)
+		else:
+			var ec: Array = tile_map[k_e]
+			if float(ec[0]) + skin_offset < y10 - 0.05 or float(ec[3]) + skin_offset < y11 - 0.05:
+				_add_quad_uv(st, p11, p10, Vector3(x1, float(ec[0]) + skin_offset, z0), Vector3(x1, float(ec[3]) + skin_offset, z1))
+
+		var k_w := Vector2i(col - 1, row)
+		if not tile_map.has(k_w):
+			var b00w := Vector3(x0, minf(min_skirt_y, y00 - skirt_drop) if min_skirt_y > -9000.0 else (y00 - skirt_drop), z0)
+			var b01w := Vector3(x0, minf(min_skirt_y, y01 - skirt_drop) if min_skirt_y > -9000.0 else (y01 - skirt_drop), z1)
+			_add_quad_uv(st, p00, p01, b01w, b00w)
+		else:
+			var wc: Array = tile_map[k_w]
+			if float(wc[1]) + skin_offset < y00 - 0.05 or float(wc[2]) + skin_offset < y01 - 0.05:
+				_add_quad_uv(st, p00, p01, Vector3(x0, float(wc[2]) + skin_offset, z1), Vector3(x0, float(wc[1]) + skin_offset, z0))
+
+	st.generate_normals()
+	var array_mesh := st.commit()
+	var inst := MeshInstance3D.new()
+	inst.name = node_name
+	inst.mesh = array_mesh
+	inst.material_override = mat
+	if node_name == "Surface_IslandPleamarLow":
+		inst.transparency = 1.0
+		inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(inst)
+	if not (node_name in ["Surface_Beach", "Surface_A5_TemplePlatform", "Surface_A2_WinchDeck"]):
+		inst.create_trimesh_collision()
+
+static func _add_quad_uv(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3) -> void:
+	st.set_uv(Vector2(0, 0)); st.add_vertex(a)
+	st.set_uv(Vector2(1, 0)); st.add_vertex(b)
+	st.set_uv(Vector2(1, 1)); st.add_vertex(c)
+	st.set_uv(Vector2(0, 0)); st.add_vertex(a)
+	st.set_uv(Vector2(1, 1)); st.add_vertex(c)
+	st.set_uv(Vector2(0, 1)); st.add_vertex(d)
+
+func _build_fallback_surfaces(surfaces_node: Node3D) -> void:
+	var z1: Dictionary = Structure.ZONES["Z1_BEACH"]
+	_create_surface_slab(surfaces_node, "Surface_Beach", Vector3((z1["bounds_x"].x + z1["bounds_x"].y) * 0.5, 0.25, (z1["bounds_z"].x + z1["bounds_z"].y) * 0.5), Vector3(z1["bounds_x"].y - z1["bounds_x"].x, 0.5, z1["bounds_z"].y - z1["bounds_z"].x), mat_beach)
+	var z3: Dictionary = Structure.ZONES["Z3_A1_PLAZA"]
+	_create_surface_slab(surfaces_node, "Surface_A1_Plaza", Vector3((z3["bounds_x"].x + z3["bounds_x"].y) * 0.5, Structure.ELEV_A1_PLAZA, (z3["bounds_z"].x + z3["bounds_z"].y) * 0.5), Vector3(z3["bounds_x"].y - z3["bounds_x"].x, 1.0, z3["bounds_z"].y - z3["bounds_z"].x), mat_plaza)
+
+func _create_catenary_rope(parent: Node3D, node_name: String, a: Vector3, b: Vector3, sag: float, radius: float, segs: int, mat: Material) -> void:
+	var n_segs := maxi(2, segs)
+	var pts: Array[Vector3] = []
+	for i in range(n_segs + 1):
+		var t := float(i) / float(n_segs)
+		var p := a.lerp(b, t)
+		p.y -= 4.0 * sag * t * (1.0 - t)
+		pts.append(p)
+	for i in range(n_segs):
+		var p0 := pts[i]
+		var p1 := pts[i + 1]
+		var seg_vec := p1 - p0
+		var seg_len := seg_vec.length()
+		if seg_len < 0.01:
+			continue
+		var seg := _create_cylinder(parent, "%s_%d" % [node_name, i], (p0 + p1) * 0.5, radius, seg_len + radius * 0.6, mat)
+		var dir := seg_vec / seg_len
+		var ref_up := Vector3.FORWARD if absf(dir.y) > 0.92 else Vector3.UP
+		seg.look_at_from_position((p0 + p1) * 0.5, (p0 + p1) * 0.5 + ref_up, dir)
+		seg.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+func _build_canonical_large_rowboat(parent: Node3D, boat_pos: Vector3, yaw_rad: float, mat_hull: Material, mat_inner: Material, mat_trim: Material, mat_iron_m: Material, mat_rope: Material) -> Node3D:
+	# Gran bote de remos canónico (~4.60 m eslora x ~1.68 m manga): casco hueco con cuadernas, bancadas y remos
+	var boat_root := Node3D.new()
+	boat_root.name = "CoastalRowboat"
+	boat_root.position = boat_pos
+	boat_root.rotation.y = yaw_rad
+	parent.add_child(boat_root)
+
+	var bob_pivot := Node3D.new()
+	bob_pivot.name = "BoatBobPivot"
+	boat_root.add_child(bob_pivot)
+	_boat_bob_node = bob_pivot
+	_boat_base_pos = Vector3.ZERO
+	_boat_base_rot = Vector3.ZERO
+
+	var half_len := 2.30
+	var max_half_beam := 0.84
+	var wall_thick := 0.065
+	var n_len := 14
+	var n_half_prof := 5
+
+	var outer_rings: Array = []
+	var inner_rings: Array = []
+	for ix in range(n_len + 1):
+		var u := lerpf(-1.0, 1.0, float(ix) / float(n_len)) # -1 = popa, +1 = proa
+		var lx := u * half_len
+		# Manga redondeada al centro, espejo estrecho en popa (0.34) y proa afilada (0.04)
+		var beam_env: float
+		if u >= 0.0:
+			beam_env = maxf(0.04, pow(cos(u * PI * 0.5), 0.78))
+		else:
+			beam_env = maxf(0.32, pow(cos(u * PI * 0.38), 0.85))
+		var hb := max_half_beam * beam_env
+		var sheer_y := 0.56 + 0.14 * pow(maxf(0.0, u), 1.8) + 0.08 * pow(maxf(0.0, -u), 1.8)
+		var keel_y := -0.14 + 0.06 * pow(absf(u), 2.4)
+
+		var o_pts: Array[Vector3] = []
+		var o_cols: Array[Color] = []
+		var i_pts: Array[Vector3] = []
+		var i_cols: Array[Color] = []
+		for side in range(-n_half_prof, n_half_prof + 1):
+			var s_sign := signf(float(side))
+			var v := absf(float(side)) / float(n_half_prof) # 0 = quilla, 1 = regala
+			var flare := pow(v, 0.62)
+			var y_frac := pow(v, 1.38)
+			var py := lerpf(keel_y, sheer_y, y_frac)
+			var pz := s_sign * hb * flare
+			var plank_step := 0.015 if (int(v * 4.0) % 2 == 1 and v > 0.15 and v < 0.96) else 0.0
+			var pz_out := pz + s_sign * plank_step
+			o_pts.append(Vector3(lx, py, pz_out))
+			var c_out := Color("#544335").lerp(Color("#a88b6d"), smoothstep(0.18, 0.88, v))
+			o_cols.append(c_out)
+
+			var in_pz := s_sign * maxf(0.0, absf(pz) - wall_thick * (0.45 + 0.55 * v))
+			var in_py := py + (wall_thick * 0.85 if v < 0.92 else 0.0)
+			i_pts.append(Vector3(clampf(lx, -half_len + wall_thick * 1.4, half_len - wall_thick * 1.6), minf(sheer_y - 0.01, in_py), in_pz))
+			var c_in := Color("#624d3b").lerp(Color("#967a5c"), smoothstep(0.2, 0.95, v))
+			i_cols.append(c_in)
+
+		outer_rings.append({"pts": o_pts, "cols": o_cols, "x": lx})
+		inner_rings.append({"pts": i_pts, "cols": i_cols, "x": lx})
+
+	var st_hull := SurfaceTool.new()
+	st_hull.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st_hull.set_smooth_group(-1)
+	var prof_cnt := n_half_prof * 2
+	for ix in range(n_len):
+		var oa: Array = outer_rings[ix]["pts"]
+		var ob: Array = outer_rings[ix + 1]["pts"]
+		var oca: Array = outer_rings[ix]["cols"]
+		var ocb: Array = outer_rings[ix + 1]["cols"]
+		var ia: Array = inner_rings[ix]["pts"]
+		var ib: Array = inner_rings[ix + 1]["pts"]
+		var ica: Array = inner_rings[ix]["cols"]
+		var icb: Array = inner_rings[ix + 1]["cols"]
+		for j in range(prof_cnt):
+			# Casco exterior (babor j=0 -> quilla -> estribor j=prof_cnt) con normales hacia fuera
+			_emit_quad_st(
+				st_hull,
+				oa[j], ob[j], ob[j + 1], oa[j + 1],
+				oca[j], ocb[j], ocb[j + 1], oca[j + 1],
+				Vector2(float(ix) * 0.25, float(j) * 0.12),
+				Vector2(float(ix + 1) * 0.25, float(j) * 0.12),
+				Vector2(float(ix + 1) * 0.25, float(j + 1) * 0.12),
+				Vector2(float(ix) * 0.25, float(j + 1) * 0.12)
+			)
+			# Forro interior del casco con normales hacia el hueco del bote
+			_emit_quad_st(
+				st_hull,
+				ia[j], ia[j + 1], ib[j + 1], ib[j],
+				ica[j], ica[j + 1], icb[j + 1], icb[j],
+				Vector2(float(ix) * 0.25, float(j) * 0.12),
+				Vector2(float(ix) * 0.25, float(j + 1) * 0.12),
+				Vector2(float(ix + 1) * 0.25, float(j + 1) * 0.12),
+				Vector2(float(ix + 1) * 0.25, float(j) * 0.12)
+			)
+		# Borde superior de regala (babor y estribor) uniendo casco exterior e interior
+		_emit_quad_st(
+			st_hull,
+			oa[0], ia[0], ib[0], ob[0],
+			oca[0], ica[0], icb[0], ocb[0],
+			Vector2(float(ix) * 0.25, 0.0), Vector2(float(ix) * 0.25, 0.1),
+			Vector2(float(ix + 1) * 0.25, 0.1), Vector2(float(ix + 1) * 0.25, 0.0)
+		)
+		_emit_quad_st(
+			st_hull,
+			ia[prof_cnt], oa[prof_cnt], ob[prof_cnt], ib[prof_cnt],
+			ica[prof_cnt], oca[prof_cnt], ocb[prof_cnt], icb[prof_cnt],
+			Vector2(float(ix) * 0.25, 0.0), Vector2(float(ix) * 0.25, 0.1),
+			Vector2(float(ix + 1) * 0.25, 0.1), Vector2(float(ix + 1) * 0.25, 0.0)
+		)
+
+	# Espejo de popa macizo (ix = 0) cerrando el casco en la parte trasera
+	var t_out: Array = outer_rings[0]["pts"]
+	var t_in: Array = inner_rings[0]["pts"]
+	for j in range(prof_cnt):
+		var kc := Color("#6a533f")
+		_emit_quad_st(
+			st_hull,
+			t_out[j], t_out[j + 1], t_in[j + 1], t_in[j],
+			kc, kc, kc.lightened(0.08), kc.lightened(0.08),
+			Vector2(0, 0), Vector2(0.2, 0), Vector2(0.2, 0.2), Vector2(0, 0.2)
+		)
+
+	st_hull.generate_normals()
+	var hull_inst := MeshInstance3D.new()
+	hull_inst.name = "BoatHullMesh"
+	hull_inst.mesh = st_hull.commit()
+	hull_inst.material_override = mat_hull
+	hull_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	bob_pivot.add_child(hull_inst)
+
+	# Quilla exterior, roda de proa y tablazón de fondo interior
+	_create_box_prop(bob_pivot, "BoatKeelBeam", Vector3(0.0, -0.15, 0.0), Vector3(half_len * 1.94, 0.08, 0.10), mat_trim)
+	var stem := _create_box_prop(bob_pivot, "BoatBowStempost", Vector3(half_len - 0.02, 0.34, 0.0), Vector3(0.10, 0.72, 0.10), mat_trim)
+	stem.rotation.z = -0.26
+	for fb_v in [-0.14, 0.0, 0.14]:
+		var fb_z := float(fb_v)
+		_create_box_prop(bob_pivot, "BoatFloorboard_%d" % int((fb_z + 0.2) * 10), Vector3(-0.08, -0.02, fb_z), Vector3(3.15, 0.035, 0.12), mat_inner)
+
+	# Cuadernas transversales interiores
+	for r_i in range(6):
+		var rx := lerpf(-1.55, 1.45, float(r_i) / 5.0)
+		var rib_w := max_half_beam * cos((rx / half_len) * 1.08) * 1.42
+		_create_box_prop(bob_pivot, "BoatFloorRib_%d" % r_i, Vector3(rx, -0.04, 0.0), Vector3(0.06, 0.06, rib_w), mat_trim)
+
+	# Tres bancadas robustas de boga + banco de popa + triángulo de proa para 4-6 viajeros
+	for th_v in [-1.05, 0.0, 0.95]:
+		var th_x := float(th_v)
+		var th_span := max_half_beam * cos((th_x / half_len) * 1.05) * 1.82
+		_create_box_prop(bob_pivot, "BoatThwart_%d" % int((th_x + 2.0) * 10), Vector3(th_x, 0.38, 0.0), Vector3(0.32, 0.055, th_span), mat_hull)
+	_create_box_prop(bob_pivot, "BoatSternSeat", Vector3(-1.95, 0.40, 0.0), Vector3(0.42, 0.055, 0.76), mat_hull)
+	_create_box_prop(bob_pivot, "BoatBowDeck", Vector3(1.85, 0.44, 0.0), Vector3(0.45, 0.05, 0.54), mat_hull)
+
+	# Toletes de hierro en la regala y dos remos largos listos sobre las bancadas
+	for ox_v in [-0.35, 0.55]:
+		var ox := float(ox_v)
+		for oz_v in [-1.0, 1.0]:
+			var oz := float(oz_v)
+			var z_pos: float = oz * max_half_beam * cos((ox / half_len) * 1.05) * 0.94
+			_create_cylinder(bob_pivot, "BoatOarlock_%d_%s" % [int((ox + 1.0) * 10), "S" if oz > 0.0 else "P"], Vector3(ox, 0.62, z_pos), 0.022, 0.14, mat_iron_m)
+	for oar_idx in range(2):
+		var o_sign := -1.0 if oar_idx == 0 else 1.0
+		var oar_grp := Node3D.new()
+		oar_grp.name = "BoatOar_%d" % oar_idx
+		oar_grp.position = Vector3(-0.15 + float(oar_idx) * 0.18, 0.44, o_sign * 0.24)
+		oar_grp.rotation = Vector3(0.0, 0.08 * o_sign, 0.04)
+		bob_pivot.add_child(oar_grp)
+		var loom := _create_cylinder(oar_grp, "OarShaft", Vector3.ZERO, 0.025, 2.75, mat_trim)
+		loom.rotation.z = PI * 0.5
+		_create_box_prop(oar_grp, "OarBlade", Vector3(-1.12, 0.0, 0.0), Vector3(0.72, 0.024, 0.14), mat_hull)
+
+	# Sombra ovalada de contacto del casco sobre la lámina de agua (evita que el bote flote)
+	var hull_ao := MeshInstance3D.new()
+	hull_ao.name = "BoatWaterContactAO"
+	var ao_q := PlaneMesh.new()
+	ao_q.size = Vector2(5.10, 2.10)
+	hull_ao.mesh = ao_q
+	hull_ao.position = Vector3(0.0, -0.095, 0.0)
+	hull_ao.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var ao_shader := Shader.new()
+	ao_shader.code = """
+shader_type spatial;
+render_mode blend_mix, depth_draw_never, unshaded, cull_disabled;
+void fragment() {
+	vec2 p = (UV - vec2(0.5)) * vec2(2.0, 2.0);
+	float d = length(vec2(p.x * 0.92, p.y * 1.15));
+	float m = 1.0 - smoothstep(0.32, 0.98, d);
+	ALBEDO = vec3(0.012, 0.035, 0.048);
+	ALPHA = m * 0.62;
+}
+"""
+	var ao_mat := ShaderMaterial.new()
+	ao_mat.shader = ao_shader
+	hull_ao.material_override = ao_mat
+	boat_root.add_child(hull_ao)
+
+	# Colisión estática sólida alrededor del casco (evita que los jugadores atraviesen el bote)
+	SceneEnhancer.add_box_collider(boat_root, Vector3(0.0, 0.30, 0.0), Vector3(4.35, 0.85, 1.56), 0.0)
+	_create_cylinder(bob_pivot, "BoatMooringCleatBow", Vector3(half_len - 0.18, 0.66, 0.0), 0.035, 0.14, mat_iron_m)
+	_create_cylinder(bob_pivot, "BoatMooringCleatStern", Vector3(-half_len + 0.16, 0.60, -0.18), 0.035, 0.14, mat_iron_m)
+	for child in bob_pivot.get_children():
+		if child is MeshInstance3D and not ("Hull" in child.name):
+			(child as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		elif child.name.begins_with("BoatOar_"):
+			for oc in child.get_children():
+				if oc is MeshInstance3D:
+					(oc as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return boat_root
+
+# 2B. Embarcadero artesanal desvencijado Z1, gran bote de remos amarrado y elementos marítimos
+func _build_coastal_pier_and_beach() -> void:
+	var pier_node := Node3D.new()
+	pier_node.name = "Z1_Rowboat_Pier"
+	add_child(pier_node)
+
+	var tex_oak_p := _load_tex("oak-v4.webp")
+	var tex_linen_p := _load_tex("linen-v4.webp")
+	var norm_wood_p := _load_tex("wood-normal-v1.png")
+	var mat_pier_a := _make_textured_mat(Color("#8c7760"), 0.86, 0.0, tex_oak_p, 0.48, true, norm_wood_p, 0.65)
+	var mat_pier_b := _make_textured_mat(Color("#73614e"), 0.88, 0.0, tex_oak_p, 0.48, true, norm_wood_p, 0.68)
+	var mat_pier_wet := _make_textured_mat(Color("#544638"), 0.90, 0.0, tex_oak_p, 0.48, true, norm_wood_p, 0.72)
+	var mat_boat_hull := _make_textured_mat(Color.WHITE, 0.82, 0.0, tex_oak_p, 0.55, true, norm_wood_p, 0.62)
+	mat_boat_hull.vertex_color_use_as_albedo = true
+	mat_boat_hull.vertex_color_is_srgb = true
+	mat_boat_hull.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var mat_hemp := _make_textured_mat(Color("#a78a5d"), 0.90, 0.0, tex_linen_p if tex_linen_p else tex_oak_p, 0.65, true, norm_wood_p, 0.45)
+
+	var pier_rng := RandomNumberGenerator.new()
+	pier_rng.seed = 20261118
+
+	var wharf := Node3D.new()
+	wharf.name = "RicketyWoodenPier"
+	pier_node.add_child(wharf)
+
+	# Troncos durmientes asentados en la grava de la orilla (z=110.2) y vigas portantes bajo la cubierta
+	for sz_v in [110.15, 110.55]:
+		var sz_shore := float(sz_v)
+		var sill := _create_box_prop(wharf, "PierShoreSill_%.2f" % sz_shore, Vector3(21.7, 0.41, sz_shore), Vector3(6.8, 0.16, 0.22), mat_pier_wet)
+		sill.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	for sx_v in [18.9, 21.7, 24.5]:
+		var sx := float(sx_v)
+		var joist := _create_box_prop(wharf, "PierStringer_%.1f" % sx, Vector3(sx, 0.34, 112.2), Vector3(0.18, 0.20, 4.15), mat_pier_wet)
+		joist.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	for cz_v in [111.2, 112.7, 114.0]:
+		var cz := float(cz_v)
+		_create_box_prop(wharf, "PierCrossBeam_%.1f" % cz, Vector3(21.7, 0.23, cz), Vector3(6.6, 0.18, 0.20), mat_pier_wet)
+
+	# Tablones envejecidos e irregulares (ligera torsión, grietas entre tablas y variación de longitud)
+	var plank_count := 16
+	for pi in range(plank_count):
+		var px := lerpf(18.62, 24.78, float(pi) / float(plank_count - 1))
+		var p_len := 3.92 + pier_rng.randf_range(-0.14, 0.16)
+		var p_z := 112.18 + pier_rng.randf_range(-0.08, 0.08)
+		var p_y := 0.495 + pier_rng.randf_range(-0.011, 0.011)
+		var p_mat := mat_pier_a if pi % 3 == 0 else (mat_pier_b if pi % 3 == 1 else mat_pier_wet)
+		var plank := _create_box_prop(wharf, "PierAgedPlank_%d" % pi, Vector3(px, p_y, p_z), Vector3(0.36, 0.065, p_len), p_mat)
+		plank.rotation = Vector3(pier_rng.randf_range(-0.015, 0.015), pier_rng.randf_range(-0.022, 0.022), pier_rng.randf_range(-0.016, 0.016))
+		plank.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	# Acceso desde la playa (umbral con durmientes y postes bajos que delimitan la entrada al muelle)
+	for ax_i in range(4):
+		var ax := lerpf(19.8, 23.6, float(ax_i) / 3.0)
+		var app_sl := _create_box_prop(wharf, "PierAccessSleeper_%d" % ax_i, Vector3(ax, 0.488, 109.96 + sin(float(ax_i)) * 0.04), Vector3(0.88, 0.045, 0.34), mat_pier_wet)
+		app_sl.rotation.y = pier_rng.randf_range(-0.04, 0.04)
+		app_sl.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	for st_side_x in [18.65, 24.85]:
+		var stile := _create_cylinder(wharf, "PierAccessStile_%.1f" % st_side_x, Vector3(st_side_x, 0.82, 110.22), 0.11, 1.15, mat_pier_wet)
+		stile.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		_create_cylinder(wharf, "PierAccessStileCap_%.1f" % st_side_x, Vector3(st_side_x, 1.40, 110.22), 0.125, 0.07, mat_iron)
+
+	# Pasillo central de desgaste hacia el embarque + reborde de amarre al sur y oeste
+	for ri in range(6):
+		var r_z := lerpf(110.55, 113.75, float(ri) / 5.0)
+		var runner := _create_box_prop(wharf, "PierWearRunner_%d" % ri, Vector3(22.15 + sin(float(ri) * 1.1) * 0.08, 0.532, r_z), Vector3(2.35, 0.018, 0.42), mat_pier_a)
+		runner.rotation.y = pier_rng.randf_range(-0.018, 0.018)
+	var rub_rail := _create_box_prop(wharf, "PierMooringRubRailW", Vector3(18.66, 0.555, 112.15), Vector3(0.14, 0.07, 3.85), mat_pier_wet)
+	rub_rail.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	# Traviesa frontal de borde irregular en el frente sur
+	_create_box_prop(wharf, "PierFrontTrimBeam", Vector3(21.65, 0.44, 114.18), Vector3(6.45, 0.12, 0.14), mat_pier_wet)
+
+	# Prolongación frontal sutil de embarque (peldaño bajo frente al bote, y=0.33)
+	for sb_i in range(7):
+		var sbx := lerpf(21.10, 24.55, float(sb_i) / 6.0)
+		var sbp := _create_box_prop(wharf, "PierEmbarkStepPlank_%d" % sb_i, Vector3(sbx, 0.345 + pier_rng.randf_range(-0.006, 0.006), 114.42 + pier_rng.randf_range(-0.02, 0.02)), Vector3(0.46, 0.055, 0.48), mat_pier_wet if sb_i % 2 == 0 else mat_pier_b)
+		sbp.rotation.y = pier_rng.randf_range(-0.02, 0.02)
+		sbp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	_create_box_prop(wharf, "PierEmbarkStringer", Vector3(22.82, 0.27, 114.45), Vector3(3.65, 0.11, 0.22), mat_pier_wet)
+	SceneEnhancer.add_box_collider(wharf, Vector3(22.82, 0.04, 114.42), Vector3(3.65, 0.58, 0.44))
+
+	# Enlace lateral estrecho y ligeramente inclinado entre el muelle y el arranque empedrado de las escaleras Z2
+	for ei in range(6):
+		var ex := lerpf(25.15, 27.35, float(ei) / 5.0)
+		var ey := lerpf(0.46, 0.33, float(ei) / 5.0) + pier_rng.randf_range(-0.008, 0.008)
+		var ep := _create_box_prop(wharf, "PierEastLinkPlank_%d" % ei, Vector3(ex, ey, 111.15 + pier_rng.randf_range(-0.05, 0.05)), Vector3(0.38, 0.06, 1.85), mat_pier_b if ei % 2 == 0 else mat_pier_a)
+		ep.rotation = Vector3(0.0, pier_rng.randf_range(-0.02, 0.02), -0.055)
+		ep.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	SceneEnhancer.add_box_collider(wharf, Vector3(21.7, 0.22, 112.15), Vector3(6.6, 0.62, 4.1))
+	SceneEnhancer.add_box_collider(wharf, Vector3(26.2, 0.14, 111.15), Vector3(2.5, 0.56, 1.9))
+
+	# Pilotes gruesos de roble hincados en el fondo con inclinación natural y riostras diagonales
+	var piling_specs := [
+		[Vector3(18.65, 0.05, 114.10), 2.85, 0.18, Vector2(0.03, -0.04)],
+		[Vector3(20.65, -0.10, 114.18), 2.55, 0.17, Vector2(-0.02, 0.03)],
+		[Vector3(22.75, -0.15, 114.12), 2.45, 0.17, Vector2(0.04, 0.02)],
+		[Vector3(24.75, -0.02, 114.08), 2.75, 0.18, Vector2(-0.03, -0.03)],
+		[Vector3(18.62, -0.82, 112.25), 2.25, 0.16, Vector2(0.02, -0.02)],
+		[Vector3(21.70, -0.82, 112.30), 2.25, 0.16, Vector2(-0.02, 0.01)],
+		[Vector3(24.80, -0.82, 112.20), 2.25, 0.16, Vector2(0.02, 0.03)],
+		[Vector3(18.65, -0.15, 110.35), 2.35, 0.16, Vector2(0.0, -0.02)],
+		[Vector3(24.85, -0.15, 110.35), 2.35, 0.16, Vector2(0.0, 0.02)],
+		# Dos pilotes exteriores de amarre ("duques de alba") donde queda amarrado el gran bote de remos
+		[Vector3(20.45, -0.20, 115.05), 2.40, 0.17, Vector2(-0.04, 0.03)],
+		[Vector3(25.15, -0.18, 115.15), 2.42, 0.17, Vector2(0.03, -0.02)],
+	]
+	for p_spec in piling_specs:
+		var p_pos: Vector3 = p_spec[0]
+		var p_h: float = float(p_spec[1])
+		var p_r: float = float(p_spec[2])
+		var p_tilt: Vector2 = p_spec[3]
+		var pil := _create_cylinder(wharf, "PierOakPiling", p_pos, p_r, p_h, mat_pier_b)
+		pil.rotation = Vector3(p_tilt.x, 0.0, p_tilt.y)
+		pil.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		# Collar inferior oscurecido por la humedad y marea
+		var wet_collar := _create_cylinder(wharf, "PierPilingWetBand", Vector3(p_pos.x, -0.15, p_pos.z), p_r + 0.015, 0.85, mat_pier_wet)
+		wet_collar.rotation = pil.rotation
+		wet_collar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		if p_pos.y + p_h * 0.5 > 0.55:
+			SceneEnhancer.add_cyl_collider(wharf, Vector3(p_pos.x, 0.72, p_pos.z), p_r + 0.04, 1.35)
+
+	# Riostras diagonales y travesaños cruzados entre pilotes bajo la cubierta
+	for bx_v in [18.85, 21.7, 24.55]:
+		var bx := float(bx_v)
+		var brace := _create_box_prop(wharf, "PierDiagBrace_%.1f" % bx, Vector3(bx, -0.05, 113.2), Vector3(0.11, 0.12, 2.25), mat_pier_wet)
+		brace.rotation.x = 0.42
+	for x_span in [[18.65, 20.65], [22.75, 24.75]]:
+		var mid_x := (float(x_span[0]) + float(x_span[1])) * 0.5
+		var c1 := _create_box_prop(wharf, "PierFrontXBraceA_%.1f" % mid_x, Vector3(mid_x, -0.10, 114.12), Vector3(2.25, 0.09, 0.09), mat_pier_wet)
+		c1.rotation.z = 0.34
+		var c2 := _create_box_prop(wharf, "PierFrontXBraceB_%.1f" % mid_x, Vector3(mid_x, -0.10, 114.12), Vector3(2.25, 0.09, 0.09), mat_pier_wet)
+		c2.rotation.z = -0.34
+
+	# Cuerda gruesa colgando en catenaria entre pilotes frontales (amarre típico del muelle)
+	_create_catenary_rope(wharf, "PierFrontRopeW", Vector3(18.65, 1.05, 114.10), Vector3(20.65, 0.92, 114.18), 0.24, 0.030, 8, mat_hemp)
+	_create_catenary_rope(wharf, "PierDolphinRope", Vector3(18.65, 0.95, 114.10), Vector3(20.45, 0.78, 115.05), 0.20, 0.028, 7, mat_hemp)
+
+	# Farol colgante rústico en brazo de madera en la esquina oeste del muelle
+	var lantern_arm := _create_box_prop(pier_node, "JettyLanternArm", Vector3(18.92, 1.56, 114.10), Vector3(0.58, 0.11, 0.11), mat_pier_wet)
+	lantern_arm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	var lantern_brace := _create_box_prop(pier_node, "JettyLanternBrace", Vector3(18.80, 1.42, 114.10), Vector3(0.36, 0.08, 0.08), mat_pier_wet)
+	lantern_brace.rotation.z = 0.72
+	var l_anchor := Vector3(19.14, 1.24, 114.10)
+	_create_cylinder(pier_node, "JettyLanternCollar", l_anchor - Vector3(0.0, 0.18, 0.0), 0.12, 0.05, mat_iron)
+	_create_cylinder(pier_node, "JettyLanternCap", l_anchor + Vector3(0.0, 0.18, 0.0), 0.14, 0.06, mat_bronze)
+	_create_cylinder(pier_node, "JettyLanternFinial", l_anchor + Vector3(0.0, 0.25, 0.0), 0.035, 0.09, mat_bronze)
+	for cx in [-0.09, 0.09]:
+		for cz in [-0.09, 0.09]:
+			_create_box_prop(pier_node, "JettyLanternRib", l_anchor + Vector3(cx, 0.0, cz), Vector3(0.022, 0.30, 0.022), mat_iron)
+	var lantern := _create_box_prop(pier_node, "JettyLantern", l_anchor, Vector3(0.16, 0.24, 0.16), mat_flame)
+	lantern.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var pier_light := OmniLight3D.new()
+	pier_light.name = "JettyLanternLight"
+	pier_light.position = l_anchor + Vector3(0.0, 0.10, 0.0)
+	pier_light.light_color = Color(1.0, 0.72, 0.34)
+	pier_light.light_energy = 1.75
+	pier_light.omni_range = 12.0
+	pier_node.add_child(pier_light)
+	register_flame_fx(lantern, pier_light, false)
+
+	# 2.4 Gran bote de remos canónico amarrado con separación creíble y amarres tensos
+	var boat_pos := Vector3(23.0, 0.12, 115.58)
+	var boat_yaw := 0.14
+	_build_canonical_large_rowboat(pier_node, boat_pos, boat_yaw, mat_boat_hull, mat_pier_wet, mat_pier_b, mat_iron, mat_hemp)
+	var bow_world := boat_pos + Basis(Vector3.UP, boat_yaw) * Vector3(2.12, 0.66, 0.0)
+	var stern_world := boat_pos + Basis(Vector3.UP, boat_yaw) * Vector3(-2.14, 0.60, -0.18)
+	_create_catenary_rope(wharf, "BoatBowMooringLine", Vector3(25.15, 0.85, 115.15), bow_world, 0.07, 0.026, 6, mat_hemp)
+	_create_catenary_rope(wharf, "BoatSternMooringLine", Vector3(20.95, 0.86, 113.96), stern_world, 0.09, 0.026, 6, mat_hemp)
+
+	# 2.3 Props curados del muelle: 1 poste de amarre claro, 1 barril con aros, 2 cajas ordenadas, 1 rollo de cuerda y 1 red
+	var hero_post := _create_cylinder(wharf, "PierMainMooringPost", Vector3(20.95, 0.78, 113.96), 0.135, 0.76, mat_pier_wet)
+	hero_post.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	_create_cylinder(wharf, "PierMainMooringCollar", Vector3(20.95, 1.02, 113.96), 0.145, 0.06, mat_iron)
+	for wrap_y in [0.84, 0.89]:
+		var wrap_t := MeshInstance3D.new()
+		var wt_m := TorusMesh.new()
+		wt_m.inner_radius = 0.125
+		wt_m.outer_radius = 0.165
+		wrap_t.mesh = wt_m
+		wrap_t.material_override = mat_hemp
+		wrap_t.position = Vector3(20.95, float(wrap_y), 113.96)
+		wharf.add_child(wrap_t)
+	SceneEnhancer.add_cyl_collider(wharf, Vector3(20.95, 0.78, 113.96), 0.18, 0.90)
+
+	# 1 único barril reforzado con aros de hierro en el lateral oeste (zona de carga despejada)
+	var b_pos := Vector3(19.35, 0.80, 112.92)
+	var main_barrel := _create_cylinder(wharf, "PierWestBarrel", b_pos, 0.25, 0.62, mat_pier_a)
+	main_barrel.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	_create_cylinder(wharf, "PierBarrelHoopTop", b_pos + Vector3(0.0, 0.20, 0.0), 0.258, 0.045, mat_iron)
+	_create_cylinder(wharf, "PierBarrelHoopBot", b_pos - Vector3(0.0, 0.20, 0.0), 0.258, 0.045, mat_iron)
+	SceneEnhancer.add_cyl_collider(wharf, b_pos, 0.27, 0.72)
+
+	# 2 cajas de carga (1 en margen norte junto al acceso muelle, 1 caja menor junto al borde oeste) sin invadir la vía Z2<->muelle
+	var east_crate := _create_box_prop(wharf, "PierEastCrate", Vector3(24.15, 0.62, 107.25), Vector3(0.64, 0.42, 0.52), mat_pier_a)
+	east_crate.rotation.y = 0.22
+	east_crate.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	_create_box_prop(wharf, "PierEastCrateStrap", Vector3(24.15, 0.835, 107.25), Vector3(0.65, 0.025, 0.10), mat_iron).rotation.y = 0.22
+	SceneEnhancer.add_box_collider(wharf, Vector3(24.15, 0.62, 107.25), Vector3(0.66, 0.58, 0.54), 0.22)
+	var west_small_box := _create_box_prop(wharf, "PierSmallBox", Vector3(19.22, 0.67, 111.75), Vector3(0.44, 0.34, 0.40), mat_pier_b)
+	west_small_box.rotation.y = 0.16
+	west_small_box.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	SceneEnhancer.add_box_collider(wharf, Vector3(19.22, 0.67, 111.75), Vector3(0.46, 0.42, 0.42), 0.16)
+
+	# 1 único rollo de cuerda bien formado junto a la zona de embarque
+	for coil_layer in [[0.14, 0.29, 0.538], [0.09, 0.21, 0.578]]:
+		var rope_ring := MeshInstance3D.new()
+		var rt := TorusMesh.new()
+		rt.inner_radius = float(coil_layer[0])
+		rt.outer_radius = float(coil_layer[1])
+		rope_ring.name = "PierMooringRopeCoil"
+		rope_ring.mesh = rt
+		rope_ring.material_override = mat_hemp
+		rope_ring.position = Vector3(23.90, float(coil_layer[2]), 113.72)
+		rope_ring.scale = Vector3(1.0, 0.42, 1.0)
+		pier_node.add_child(rope_ring)
+
+	# 1 red de pesca anudada colgando desde el pilote sureste con flotadores de corcho
+	var net_grp := Node3D.new()
+	net_grp.name = "PierDrapedNet"
+	wharf.add_child(net_grp)
+	for ni in range(7):
+		var nx_p := 24.25 + float(ni) * 0.14
+		var sag_y := 0.54 - 0.46 * sin((float(ni) / 6.0) * PI * 0.85)
+		var strand := _create_box_prop(net_grp, "NetStrandV_%d" % ni, Vector3(nx_p, sag_y, 114.22 + sin(float(ni)) * 0.04), Vector3(0.032, 0.88, 0.025), mat_hemp)
+		strand.rotation = Vector3(-0.18, 0.0, sin(float(ni) * 0.9) * 0.12)
+		strand.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	for nj in range(4):
+		var ny_p := 0.48 - float(nj) * 0.20
+		var cross_h := _create_box_prop(net_grp, "NetStrandH_%d" % nj, Vector3(24.66, ny_p, 114.26 + float(nj) * 0.025), Vector3(0.92 - float(nj) * 0.12, 0.028, 0.025), mat_hemp)
+		cross_h.rotation.z = -0.06 * float(nj)
+		cross_h.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	for fl_x in [24.34, 24.68, 24.98]:
+		var fl_y := 0.49 - absf(fl_x - 24.66) * 0.08
+		_create_cylinder(net_grp, "NetCorkFloat_%.2f" % fl_x, Vector3(fl_x, fl_y, 114.25), 0.045, 0.08, mat_pier_a).rotation.z = PI * 0.5
+
+	# Grupos asimétricos de guijarros y madera varada sobre la playa ampliada (orilla moldeada en PleamarCoveBeach)
+	# Lajas costeras desgastadas semienterradas que enlazan el borde del muelle con el sendero a Pleamar
+	var sleeper_mesh := SceneEnhancer.make_basalt_outcrop_mesh(83)
+	var sleeper_specs := [
+		[Vector3(23.8, 0.495, 109.30), -0.22, Vector3(1.20, 0.10, 0.90)],
+		[Vector3(22.1, 0.505, 108.60), 0.35, Vector3(1.05, 0.10, 0.82)],
+		[Vector3(20.4, 0.518, 107.40), -0.58, Vector3(1.15, 0.10, 0.86)],
+		[Vector3(18.9, 0.525, 106.05), 0.18, Vector3(1.00, 0.10, 0.78)],
+	]
+	for si_idx in range(sleeper_specs.size()):
+		var slp: Array = sleeper_specs[si_idx]
+		var st_slab := MeshInstance3D.new()
+		st_slab.name = "PierWestSleeper_%d" % si_idx
+		st_slab.mesh = sleeper_mesh
+		st_slab.material_override = mat_rock_dark if si_idx % 2 == 0 else mat_rock
+		st_slab.position = slp[0]
+		st_slab.rotation.y = float(slp[1])
+		st_slab.scale = slp[2]
+		st_slab.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		pier_node.add_child(st_slab)
+	var driftwood_specs := [
+		[Vector3(13.2, 0.52, 94.8), 0.11, 2.2, 0.36],
+		[Vector3(12.9, 0.52, 94.3), 0.09, 1.8, 0.52],
+		[Vector3(13.5, 0.62, 94.5), 0.085, 1.7, 0.22],
+	]
+	for di in range(driftwood_specs.size()):
+		var ds: Array = driftwood_specs[di]
+		var dw := _create_cylinder(pier_node, "BeachDriftwood_%d" % di, ds[0], float(ds[1]), float(ds[2]), mat_wood_dark)
+		dw.rotation.z = PI * 0.5
+		dw.rotation.y = float(ds[3])
+		SceneEnhancer.add_box_collider(pier_node, ds[0], Vector3(float(ds[2]), float(ds[1]) * 2.2, float(ds[1]) * 2.2), float(ds[3]))
+	var beach_stone_mesh := SceneEnhancer.make_basalt_outcrop_mesh(77)
+	for si in range(7):
+		var sx := 27.6 + float(si) * 2.4 + sin(float(si) * 1.9) * 0.65
+		var sz := 110.2 + cos(float(si) * 2.3) * 0.75
+		var st_inst := MeshInstance3D.new()
+		st_inst.name = "BeachPebbleCluster_%d" % si
+		st_inst.mesh = beach_stone_mesh
+		st_inst.material_override = mat_rock_dark if si % 2 == 0 else mat_rock
+		st_inst.position = Vector3(sx, 0.14, sz)
+		st_inst.scale = Vector3(0.48 + float(si % 3) * 0.18, 0.24, 0.42 + float(si % 2) * 0.20)
+		st_inst.rotation.y = float(si) * 1.1
+		pier_node.add_child(st_inst)
+
+# 3. Las 6 Celdas de A1 como excavaciones en la roca viva (la malla tallada llega en A1Bedrock/A1Room)
+func _build_a1_cells() -> void:
+	var cells_node := Node3D.new()
+	cells_node.name = "A1_Cells"
+	add_child(cells_node)
+
+	var cell_bounds := {
+		1: Rect2i(51, 55, 5, 5),
+		2: Rect2i(58, 51, 4, 9),
+		3: Rect2i(64, 53, 6, 7),
+		4: Rect2i(72, 52, 6, 8),
+		5: Rect2i(80, 51, 3, 9),
+		6: Rect2i(85, 52, 6, 8)
+	}
+
+	var t := Structure.TILE_METERS
+
+	for room in Structure.A1_ROOMS:
+		var rid: int = int(room["id"])
+		var room_node := Node3D.new()
+		room_node.name = "Cell_" + str(rid) + "_" + room["role"]
+		cells_node.add_child(room_node)
+
+		var rect: Rect2i = cell_bounds.get(rid, Rect2i(51, 55, 5, 4))
+		var x0 := float(rect.position.x) * t
+		var x1 := float(rect.position.x + rect.size.x) * t
+		var z0 := float(rect.position.y) * t
+		var z1 := float(rect.position.y + rect.size.y) * t
+		var cx := (x0 + x1) * 0.5
+		var cz := (z0 + z1) * 0.5
+		var w := x1 - x0
+		var y_base := Structure.ELEV_A1_PLAZA
+
+		# Suelo auxiliar oculto (el suelo tallado real llega en A1Room__a1:cell-floor*)
+		var floor_box := _create_box_prop(room_node, "Floor", Vector3(cx, y_base + 0.01, cz), Vector3(w, 0.04, z1 - z0), mat_cell_floor)
+		floor_box.visible = false
+
+		#Luz cálida de antorcha y vela dentro de la celda excavada
+		var cell_light := OmniLight3D.new()
+		cell_light.name = "CellTorchLight_%d" % rid
+		cell_light.position = Vector3(cx, y_base + 2.35, cz - 0.6)
+		cell_light.light_color = Color(1.0, 0.74, 0.42)
+		cell_light.light_energy = 2.65
+		cell_light.omni_range = 10.5
+		room_node.add_child(cell_light)
+
+# 3B. Plaza A1: Hoguera central + Ancla estatua de Astalagan
+func _build_a1_plaza_details() -> void:
+	var plaza_node := Node3D.new()
+	plaza_node.name = "A1_PlazaDetails"
+	add_child(plaza_node)
+
+	var y := Structure.ELEV_A1_PLAZA
+
+	var fire_pos := Structure.cell_to_world(72, 62, y)
+	var camp_node := Node3D.new()
+	camp_node.name = "A1_Campfire"
+	camp_node.position = fire_pos
+	plaza_node.add_child(camp_node)
+	SceneEnhancer.add_cyl_collider(camp_node, Vector3(0.0, 0.45, 0.0), 0.58, 1.0)
+	SceneEnhancer.tag_camera_occluder(camp_node)
+
+	var cf_flame := _create_cylinder(camp_node, "CampfireFlame", Vector3(0, 0.38, 0), 0.20, 0.48, mat_flame)
+
+	var fire_light := OmniLight3D.new()
+	fire_light.name = "CampfireLight"
+	fire_light.position = Vector3(0, 1.65, 0)
+	fire_light.light_color = Color(1.0, 0.58, 0.22)
+	fire_light.light_energy = 3.1
+	fire_light.omni_range = 17.5
+	camp_node.add_child(fire_light)
+	register_flame_fx(cf_flame, fire_light, true)
+
+	# 4.1–4.7 Ancla y posición noble de la estatua de Astalagan presidiendo el eje oeste-central de la plaza (circulación 360° libre)
+	var statue_node := Node3D.new()
+	statue_node.name = "A1_Dragon_Statue"
+	statue_node.position = Vector3(85.80, y, 93.35)
+	plaza_node.add_child(statue_node)
+
+	var statue_light := OmniLight3D.new()
+	statue_light.name = "AstalaganVotiveLight"
+	statue_light.position = Vector3(0, 2.4, 0.6)
+	statue_light.light_color = Color(1.0, 0.78, 0.42)
+	statue_light.light_energy = 1.65
+	statue_light.omni_range = 9.0
+	statue_node.add_child(statue_light)
+
+# 4..8. Edificios, Cabrestante con palanca legible y vista al mar, y contenedores .glb
+func _build_a2_winch_house(_global_data: Dictionary) -> void:
+	var a2_node := Node3D.new()
+	a2_node.name = "A2_WinchAssembly"
+	add_child(a2_node)
+
+	var y := Structure.ELEV_A2_WINCH
+	var l := OmniLight3D.new()
+	l.name = "A2_WinchLight"
+	l.position = Vector3(160.8, y + 2.4, 67.4)
+	l.light_color = Color(1.0, 0.76, 0.44)
+	l.light_energy = 1.85
+	l.omni_range = 12.0
+	a2_node.add_child(l)
+
+	var sea_light := OmniLight3D.new()
+	sea_light.name = "A2_SeaViewLight"
+	sea_light.position = Vector3(161.2, 5.5, 72.5)
+	sea_light.light_color = Color(0.86, 0.94, 1.0)
+	sea_light.light_energy = 1.45
+	sea_light.omni_range = 18.0
+	a2_node.add_child(sea_light)
+
+	# Conjunto destacado e interactivo de la Palanca de Retención del Cabrestante [Tecla E]
+	var lever_asm := Node3D.new()
+	lever_asm.name = "WinchLeverAssembly"
+	lever_asm.position = Vector3(160.07, y, 67.62)
+	a2_node.add_child(lever_asm)
+	SceneEnhancer.add_box_collider(lever_asm, Vector3(0.0, 0.45, 0.0), Vector3(0.52, 0.90, 0.62))
+	SceneEnhancer.tag_camera_occluder(lever_asm)
+
+	_create_box_prop(lever_asm, "LeverPedestal", Vector3(0.0, 0.16, 0.0), Vector3(0.46, 0.32, 0.56), mat_iron)
+	_create_box_prop(lever_asm, "LeverHousing", Vector3(0.0, 0.36, 0.0), Vector3(0.28, 0.24, 0.36), mat_bronze)
+
+	winch_lever_pivot = Node3D.new()
+	winch_lever_pivot.name = "WinchLeverArm"
+	winch_lever_pivot.position = Vector3(0.0, 0.44, 0.0)
+	winch_lever_pivot.rotation_degrees.x = -22.0
+	lever_asm.add_child(winch_lever_pivot)
+
+	var rod := _create_cylinder(winch_lever_pivot, "LeverRod", Vector3(0.0, 0.62, 0.0), 0.048, 1.24, mat_bronze)
+	rod.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	var grip_mat := _make_mat(Color("#a83828"), 0.48, 0.15)
+	_create_cylinder(winch_lever_pivot, "LeverGrip", Vector3(0.0, 1.22, 0.0), 0.078, 0.34, grip_mat)
+	_create_cylinder(winch_lever_pivot, "LeverPommel", Vector3(0.0, 1.42, 0.0), 0.092, 0.09, mat_gold)
+
+	var lever_lbl := Label3D.new()
+	lever_lbl.name = "WinchLeverLabel"
+	lever_lbl.text = "Palanca [G]"
+	lever_lbl.font_size = 18
+	lever_lbl.pixel_size = 0.015
+	lever_lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	lever_lbl.position = Vector3(-0.38, 2.32, -0.35)
+	lever_lbl.modulate = Color(1.0, 0.90, 0.56)
+	lever_lbl.visible = false
+	lever_asm.add_child(lever_lbl)
+	SceneEnhancer._attach_interactive_prop(lever_asm, "winch", "Palanca del cabrestante", "[T] Accionar palanca del cabrestante", Vector3.ZERO, "e", "Accionas la palanca de bronce y el cabrestante pone en marcha el montacargas del acantilado.")
+
+	# Plataforma animada + cable conectado al agua abajo cuando se acciona la palanca
+	winch_pallet_rig = Node3D.new()
+	winch_pallet_rig.name = "WinchLivePallet"
+	winch_pallet_rig.position = Vector3(163.2, 12.2, 72.1)
+	a2_node.add_child(winch_pallet_rig)
+
+	_create_box_prop(winch_pallet_rig, "LivePalletDeck", Vector3(0.0, 0.0, 0.0), Vector3(1.95, 0.16, 1.55), mat_wood)
+	_create_box_prop(winch_pallet_rig, "LivePalletCrateA", Vector3(-0.32, 0.36, 0.08), Vector3(0.68, 0.56, 0.68), mat_wood_dark)
+	_create_cylinder(winch_pallet_rig, "LivePalletBarrel", Vector3(0.42, 0.34, -0.10), 0.24, 0.54, mat_bronze)
+
+	winch_cable_mesh = _create_cylinder(a2_node, "WinchLiveCable", Vector3(163.2, 14.4, 72.1), 0.036, 1.0, mat_iron)
+	# Pescante de roble ampliado hacia el mar, polea de hierro y pertrechos dentro del nuevo almacén (+50% superficie)
+	var crane_beam := _create_box_prop(a2_node, "WinchCraneJib", Vector3(163.2, 17.65, 69.85), Vector3(0.36, 0.38, 4.95), mat_wood_dark)
+	crane_beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	var crane_brace := _create_box_prop(a2_node, "WinchCraneBrace", Vector3(163.2, 16.82, 69.05), Vector3(0.26, 0.26, 2.35), mat_wood)
+	crane_brace.rotation.x = 0.58
+	var pulley := _create_cylinder(a2_node, "WinchPulleyWheel", Vector3(163.2, 17.42, 72.1), 0.24, 0.16, mat_iron)
+	pulley.rotation.z = PI * 0.5
+	_create_box_prop(a2_node, "WinchDeckCrate", Vector3(157.8, y + 0.34, 64.5), Vector3(0.76, 0.68, 0.76), mat_wood_dark)
+	SceneEnhancer.add_box_collider(a2_node, Vector3(157.8, y + 0.38, 64.5), Vector3(0.80, 0.76, 0.80))
+	_create_cylinder(a2_node, "WinchDeckBarrel", Vector3(158.85, y + 0.38, 64.35), 0.28, 0.76, mat_wood)
+	SceneEnhancer.add_cyl_collider(a2_node, Vector3(158.85, y + 0.42, 64.35), 0.32, 0.84)
+
+	# Estructura ampliada (+50%) de la Casa del Cabrestante: basamento de piedra, muros, puerta de roble, ventana y tejado desmontable
+	var wh := Node3D.new()
+	wh.name = "A2_WinchHouseStructure"
+	a2_node.add_child(wh)
+	# Cubierta y cimentación pétrea expandida (x=154.5..166.5, z=62.6..71.2)
+	_create_box_prop(wh, "WinchExpandedDeck", Vector3(160.5, y - 0.14, 66.9), Vector3(12.0, 0.28, 8.6), mat_wood_dark)
+	_create_box_prop(wh, "WinchStonePlinth", Vector3(160.5, y * 0.5 - 0.55, 66.9), Vector3(11.6, y - 0.55, 8.0), mat_rock_carved)
+	for px in [155.1, 160.5, 165.8]:
+		_create_box_prop(wh, "WinchNorthPillar", Vector3(px, y + 1.85, 63.05), Vector3(0.38, 3.7, 0.38), mat_wood_dark)
+		_create_box_prop(wh, "WinchSouthPillar", Vector3(px, y + 1.85, 70.65), Vector3(0.38, 3.7, 0.38), mat_wood_dark)
+	# Muro Norte completo (y=15..18.7) con zócalo de mampostería + paño de entramado
+	_create_box_prop(wh, "WinchWallNorthBase", Vector3(160.5, y + 0.55, 63.05), Vector3(11.2, 1.10, 0.42), mat_rock_carved)
+	_create_box_prop(wh, "WinchWallNorthTimber", Vector3(160.5, y + 2.38, 63.05), Vector3(11.2, 2.58, 0.32), mat_wood)
+	SceneEnhancer.add_box_collider(wh, Vector3(160.5, y + 1.8, 63.05), Vector3(11.3, 3.6, 0.52))
+	# Muro Este con gran vano/ventana marina hacia la grúa y el océano
+	_create_box_prop(wh, "WinchWallEastBase", Vector3(165.85, y + 0.55, 66.85), Vector3(0.42, 1.10, 7.6), mat_rock_carved)
+	_create_box_prop(wh, "WinchWallEastN", Vector3(165.85, y + 2.38, 64.2), Vector3(0.32, 2.58, 2.3), mat_wood)
+	_create_box_prop(wh, "WinchWallEastS", Vector3(165.85, y + 2.38, 69.5), Vector3(0.32, 2.58, 2.3), mat_wood)
+	_create_box_prop(wh, "WinchWallEastHeader", Vector3(165.85, y + 3.25, 66.85), Vector3(0.34, 0.84, 3.2), mat_wood_dark)
+	SceneEnhancer.add_box_collider(wh, Vector3(165.85, y + 1.8, 66.85), Vector3(0.52, 3.6, 7.8))
+	# Muro Sur con arcada de salida a la grúa y paso abierto hacia EastStairs (x=154.5..156.6 libre)
+	_create_box_prop(wh, "WinchWallSouthBase", Vector3(161.2, y + 0.52, 70.65), Vector3(9.4, 1.04, 0.42), mat_rock_carved)
+	_create_box_prop(wh, "WinchWallSouthW", Vector3(158.8, y + 2.35, 70.65), Vector3(4.2, 2.62, 0.32), mat_wood)
+	_create_box_prop(wh, "WinchWallSouthHeader", Vector3(163.2, y + 3.25, 70.65), Vector3(5.4, 0.84, 0.34), mat_wood_dark)
+	SceneEnhancer.add_box_collider(wh, Vector3(161.2, y + 1.8, 70.65), Vector3(9.5, 3.6, 0.52))
+	# Muro Oeste con puerta de roble amplia (z=66.1..69.0 abierta para el paso desde Upper->A2)
+	_create_box_prop(wh, "WinchWallWestN", Vector3(155.15, y + 1.8, 64.55), Vector3(0.40, 3.6, 2.9), mat_rock_carved)
+	_create_box_prop(wh, "WinchWallWestS", Vector3(155.15, y + 1.8, 69.85), Vector3(0.40, 3.6, 1.6), mat_rock_carved)
+	_create_box_prop(wh, "WinchDoorFrameN", Vector3(155.15, y + 1.5, 66.08), Vector3(0.48, 3.0, 0.24), mat_wood_dark)
+	_create_box_prop(wh, "WinchDoorFrameS", Vector3(155.15, y + 1.5, 69.02), Vector3(0.48, 3.0, 0.24), mat_wood_dark)
+	_create_box_prop(wh, "WinchDoorLintel", Vector3(155.15, y + 3.12, 67.55), Vector3(0.50, 0.65, 3.4), mat_wood_dark)
+	# Puerta doble de roble interactiva de la Casa del Cabrestante (A2), abierta al inicio para paso libre desde el Paseo Superior
+	var a2_door := InteractiveDoorScript.new()
+	a2_door.name = "Door_A2_Winch"
+	a2_door.door_id = "a2_winch"
+	a2_door.door_title = "Puerta del Cabrestante (A2)"
+	a2_door.is_open = true
+	a2_door.open_angle_rad = 1.30
+	a2_door.interact_radius = 2.85
+	a2_door.position = Vector3(155.15, y, 67.55)
+	a2_door.rotation.y = -PI * 0.5
+	wh.add_child(a2_door)
+	var a2_leaf_w := 1.33
+	var a2_leaf_h := 2.74
+	var a2_left_piv := Node3D.new()
+	a2_left_piv.name = "LeftLeafPivot"
+	a2_left_piv.position = Vector3(-1.35, 0.0, 0.0)
+	a2_door.add_child(a2_left_piv)
+	var a2_right_piv := Node3D.new()
+	a2_right_piv.name = "RightLeafPivot"
+	a2_right_piv.position = Vector3(1.35, 0.0, 0.0)
+	a2_door.add_child(a2_right_piv)
+	for leaf_cfg in [[a2_left_piv, 1.0, "Left"], [a2_right_piv, -1.0, "Right"]]:
+		var piv: Node3D = leaf_cfg[0]
+		var sgn: float = float(leaf_cfg[1])
+		var tag: String = str(leaf_cfg[2])
+		var cx_l := sgn * (a2_leaf_w * 0.5)
+		var panel := _create_box_prop(piv, "WinchOakLeaf_%s" % tag, Vector3(cx_l, a2_leaf_h * 0.5, 0.0), Vector3(a2_leaf_w, a2_leaf_h, 0.11), mat_wood)
+		panel.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		for band_y in [0.46, 1.38, 2.28]:
+			_create_box_prop(piv, "WinchStrap_%s_%d" % [tag, int(band_y * 10.0)], Vector3(cx_l, band_y, 0.0), Vector3(a2_leaf_w - 0.08, 0.085, 0.14), mat_iron)
+		_create_cylinder(piv, "WinchRing_%s" % tag, Vector3(sgn * (a2_leaf_w - 0.22), 1.24, 0.08), 0.065, 0.05, mat_bronze)
+		_create_cylinder(piv, "WinchRingIn_%s" % tag, Vector3(sgn * (a2_leaf_w - 0.22), 1.24, -0.08), 0.065, 0.05, mat_bronze)
+	var a2_blocker_body := StaticBody3D.new()
+	a2_blocker_body.name = "DoorBlockerBody"
+	a2_door.add_child(a2_blocker_body)
+	var a2_blocker_col := CollisionShape3D.new()
+	var a2_blocker_box := BoxShape3D.new()
+	a2_blocker_box.size = Vector3(2.72, 2.75, 0.36)
+	a2_blocker_col.shape = a2_blocker_box
+	a2_blocker_col.position = Vector3(0.0, 1.38, 0.0)
+	a2_blocker_body.add_child(a2_blocker_col)
+	a2_door.left_pivot = a2_left_piv
+	a2_door.right_pivot = a2_right_piv
+	a2_door.blocker_shape = a2_blocker_col
+	a2_door.set_open(true, false)
+	SceneEnhancer.add_box_collider(wh, Vector3(155.15, y + 1.8, 64.55), Vector3(0.52, 3.6, 2.95))
+	SceneEnhancer.add_box_collider(wh, Vector3(155.15, y + 1.8, 69.85), Vector3(0.52, 3.6, 1.65))
+	# Farol nocturno junto a la puerta del cabrestante
+	_create_box_prop(wh, "WinchDoorLanternArm", Vector3(154.82, y + 2.35, 66.08), Vector3(0.32, 0.08, 0.08), mat_iron)
+	var wh_flame := _create_cylinder(wh, "WinchDoorLanternFlame", Vector3(154.72, y + 2.24, 66.08), 0.07, 0.16, mat_flame)
+	wh_flame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var wh_light := OmniLight3D.new()
+	wh_light.name = "WinchDoorLanternLight"
+	wh_light.position = Vector3(154.65, y + 2.30, 66.08)
+	wh_light.light_color = Color(1.0, 0.66, 0.28)
+	wh_light.light_energy = 1.55
+	wh_light.omni_range = 8.5
+	wh.add_child(wh_light)
+	register_flame_fx(wh_flame, wh_light, false)
+
+	# Tejado a dos aguas completamente en madera texturizada y vigas de roble (en nodo A2_WinchRoof para recorte al entrar)
+	var wh_roof := Node3D.new()
+	wh_roof.name = "A2_WinchRoof"
+	a2_node.add_child(wh_roof)
+	for side_z in [-1.0, 1.0]:
+		var slope := _create_box_prop(wh_roof, "WinchRoofSlope_%s" % ("N" if side_z < 0.0 else "S"), Vector3(160.5, y + 4.25, 66.85 + side_z * 2.18), Vector3(12.2, 0.24, 4.95), mat_wood)
+		slope.rotation.x = side_z * 0.36
+		slope.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		for rx_b in [155.2, 157.8, 160.5, 163.2, 165.8]:
+			var batten := _create_box_prop(wh_roof, "WinchRoofRafter_%d_%s" % [int(rx_b), "N" if side_z < 0.0 else "S"], Vector3(rx_b, y + 4.35, 66.85 + side_z * 2.18), Vector3(0.22, 0.12, 5.05), mat_wood_dark)
+			batten.rotation.x = side_z * 0.36
+	_create_box_prop(wh_roof, "WinchRoofRidge", Vector3(160.5, y + 5.12, 66.85), Vector3(12.40, 0.34, 0.42), mat_wood_dark)
+	_create_box_prop(wh_roof, "WinchGableWest", Vector3(155.15, y + 3.65, 66.85), Vector3(0.32, 0.72, 4.6), mat_wood)
+	_create_box_prop(wh_roof, "WinchGableEast", Vector3(165.85, y + 3.65, 66.85), Vector3(0.32, 0.72, 4.6), mat_wood)
+
+	_apply_winch_visual_state(0.0)
+
+	# 7 escollos marinos esculpidos en basalto (espuma generada por profundidad real en OceanPlane)
+	var sea_rocks_node := Node3D.new()
+	sea_rocks_node.name = "WinchSeaRocks"
+	a2_node.add_child(sea_rocks_node)
+
+	var rocks_spec := [
+		[164.6, 0.25, 74.8, 3.3, 3.2, 2.5, 0.18],
+		[167.0, 0.50, 77.5, 4.2, 4.5, 3.6, -0.34],
+		[163.8, 0.00, 81.3, 2.3, 2.3, 2.5, 0.68],
+		[166.9, 0.50, 84.7, 5.0, 4.4, 3.3, 0.21],
+		[163.1, -0.10, 90.2, 3.1, 2.8, 2.8, -0.56],
+		[168.0, 0.40, 93.2, 3.9, 4.0, 3.7, 0.50],
+		[163.8, -0.10, 97.6, 3.0, 2.4, 2.8, -0.22]
+	]
+	for idx in range(rocks_spec.size()):
+		var sp: Array = rocks_spec[idx]
+		var top_y := float(sp[1]) + float(sp[4]) * 0.24
+		var rock_h := top_y + 1.85
+		var r_wrap := Node3D.new()
+		r_wrap.name = "SeaOutcropWrap_%d" % idx
+		r_wrap.position = Vector3(float(sp[0]), -1.85, float(sp[2]))
+		r_wrap.rotation.y = float(sp[6])
+		sea_rocks_node.add_child(r_wrap)
+		var r_inst := MeshInstance3D.new()
+		r_inst.name = "SeaOutcrop_%d" % idx
+		r_inst.mesh = SceneEnhancer.make_basalt_outcrop_mesh(110 + idx * 13)
+		r_inst.material_override = _mat_carved_glb if idx % 2 == 0 else _mat_rock_glb
+		r_inst.scale = Vector3(float(sp[3]) * 0.85, rock_h, float(sp[5]) * 0.85)
+		r_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		r_wrap.add_child(r_inst)
+		SceneEnhancer.add_cyl_collider(r_wrap, Vector3(0.0, rock_h * 0.5, 0.0), minf(float(sp[3]), float(sp[5])) * 0.34, rock_h)
+		SceneEnhancer.tag_camera_occluder(r_wrap)
+
+func _build_a3_dining_hall(_global_data: Dictionary) -> void:
+	var a3_node := Node3D.new()
+	a3_node.name = "A3_DiningHall"
+	add_child(a3_node)
+	var y := Structure.ELEV_A3_DINING
+	var hearth_light := OmniLight3D.new()
+	hearth_light.name = "KitchenHearthLight"
+	hearth_light.position = Vector3(115.2, y + 1.5, 52.0)
+	hearth_light.light_color = Color(1.0, 0.56, 0.20)
+	hearth_light.light_energy = 2.15
+	hearth_light.omni_range = 12.0
+	a3_node.add_child(hearth_light)
+
+	var dining_light := OmniLight3D.new()
+	dining_light.name = "DiningLampLight"
+	dining_light.position = Vector3(122.5, y + 2.4, 59.2)
+	dining_light.light_color = Color(1.0, 0.76, 0.42)
+	dining_light.light_energy = 1.8
+	dining_light.omni_range = 14.0
+	a3_node.add_child(dining_light)
+
+func _build_a4_library(_global_data: Dictionary) -> void:
+	var a4_node := Node3D.new()
+	a4_node.name = "A4_Library"
+	add_child(a4_node)
+	var y := Structure.ELEV_A4_LIBRARY
+	var study_light := OmniLight3D.new()
+	study_light.name = "LibraryStudyLight"
+	study_light.position = Vector3(101.0, y + 2.3, 57.8)
+	study_light.light_color = Color(1.0, 0.78, 0.44)
+	study_light.light_energy = 1.9
+	study_light.omni_range = 16.0
+	a4_node.add_child(study_light)
+
+func _build_a5_temple(_global_data: Dictionary) -> void:
+	var a5_node := Node3D.new()
+	a5_node.name = "A5_Temple"
+	add_child(a5_node)
+	var y := Structure.ELEV_A5_TEMPLE
+	var temple_light := OmniLight3D.new()
+	temple_light.name = "TempleSanctuaryLight"
+	temple_light.position = Vector3(40.5, y + 5.6, 69.5)
+	temple_light.light_color = Color(1.0, 0.88, 0.68)
+	temple_light.light_energy = 2.4
+	temple_light.omni_range = 24.0
+	a5_node.add_child(temple_light)
+	# Iluminación arquitectónica cenital sobre los frontones y la bóveda de piedra volcánica
+	for v_lt in [
+		[Vector3(48.8, y + 6.4, 69.5), Color(1.0, 0.80, 0.48), 2.1, 18.0],
+		[Vector3(32.2, y + 6.4, 69.5), Color(0.78, 0.86, 1.0), 1.6, 16.0],
+		[Vector3(51.2, y + 9.2, 69.5), Color(1.0, 0.78, 0.46), 2.2, 20.0],
+		[Vector3(40.5, y + 11.4, 73.5), Color(0.84, 0.90, 1.0), 1.9, 22.0],
+	]:
+		var pl := OmniLight3D.new()
+		pl.name = "ParthenonVaultGlow"
+		pl.position = v_lt[0]
+		pl.light_color = v_lt[1]
+		pl.light_energy = v_lt[2]
+		pl.omni_range = v_lt[3]
+		a5_node.add_child(pl)
+
+	# 4 braseros ceremoniales de bronce en las esquinas ampliadas de la plataforma sagrada de Bahamut
+	var brazier_pts := [
+		Vector3(33.9, y, 64.1), Vector3(47.1, y, 64.1),
+		Vector3(33.9, y, 74.9), Vector3(47.1, y, 74.9),
+	]
+	for bi in range(brazier_pts.size()):
+		var bp: Vector3 = brazier_pts[bi]
+		var br := Node3D.new()
+		br.name = "TempleBrazier_%d" % bi
+		br.position = bp
+		a5_node.add_child(br)
+		_create_cylinder(br, "BrazierBase", Vector3(0.0, 0.10, 0.0), 0.34, 0.20, mat_rock_carved)
+		_create_cylinder(br, "BrazierStem", Vector3(0.0, 0.42, 0.0), 0.14, 0.56, mat_bronze)
+		_create_cylinder(br, "BrazierBowl", Vector3(0.0, 0.78, 0.0), 0.32, 0.22, mat_bronze)
+		_create_cylinder(br, "BrazierEmbers", Vector3(0.0, 0.90, 0.0), 0.22, 0.08, mat_flame)
+		var f_core := _create_cylinder(br, "BrazierFlame", Vector3(0.0, 1.06, 0.0), 0.12, 0.28, mat_flame)
+		f_core.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var bl := OmniLight3D.new()
+		bl.position = Vector3(0.0, 1.35, 0.0)
+		bl.light_color = Color(1.0, 0.64, 0.24)
+		bl.light_energy = 1.45
+		bl.omni_range = 10.5
+		br.add_child(bl)
+		register_flame_fx(f_core, bl, false)
+		SceneEnhancer.add_cyl_collider(br, Vector3(0.0, 0.55, 0.0), 0.36, 1.10)
+		SceneEnhancer.tag_camera_occluder(br)
+		SceneEnhancer._attach_interactive_prop(br, "fire", "Brasero de Bahamut", "[T] Avivar brasero sagrado", Vector3.ZERO, "n", "Las brasas sagradas del templo de Bahamut cobran un resplandor dorado.")
+
+	# Ampliación monumental (+25% superficie) en piedra volcánica texturizada, más alta y con solo 4 columnas
+	var parthenon := Node3D.new()
+	parthenon.name = "TempleParthenonExpansion"
+	a5_node.add_child(parthenon)
+	var t_basalt := _load_tex("basalt-coastal-albedo-v1.webp")
+	var t_volc_trim := _load_tex("coastal-rock.png")
+	var t_volc_norm := _load_tex("rock-normal-v1.png")
+	var mat_volc_stone := _make_textured_mat(Color("#444852"), 0.82, 0.09, t_basalt, 0.34, true, t_volc_norm, 0.90)
+	var mat_volc_carved := _make_textured_mat(Color("#666b75"), 0.76, 0.10, t_volc_trim if t_volc_trim else t_basalt, 0.38, true, t_volc_norm, 0.88)
+	var mat_volc_roof := _make_textured_mat(Color("#30343c"), 0.80, 0.11, t_basalt, 0.32, true, t_volc_norm, 0.90)
+
+	# Estilóbato ampliado en piedra volcánica tallada bajo el pavimento del altar (evita z-fighting)
+	_create_box_prop(parthenon, "TempleStylobateDeck", Vector3(40.5, y - 0.20, 69.5), Vector3(18.6, 0.32, 16.0), mat_volc_carved)
+	_create_box_prop(parthenon, "TempleCrepidomaMid", Vector3(40.5, y - 0.56, 69.5), Vector3(19.2, 0.42, 16.6), mat_volc_stone)
+	_create_box_prop(parthenon, "TemplePlinthCliff", Vector3(40.5, y - 5.2, 69.5), Vector3(18.2, 9.0, 15.6), mat_volc_roof)
+	_create_box_prop(parthenon, "ParthenonRimN", Vector3(40.5, y - 0.01, 62.15), Vector3(18.6, 0.14, 1.3), mat_volc_carved)
+	_create_box_prop(parthenon, "ParthenonRimS", Vector3(40.5, y - 0.01, 76.25), Vector3(18.6, 0.14, 2.5), mat_volc_carved)
+	_create_box_prop(parthenon, "ParthenonRimW", Vector3(32.15, y - 0.01, 69.5), Vector3(1.9, 0.14, 15.2), mat_volc_carved)
+
+	# Solo 4 columnas monumentales de piedra volcánica más altas (7.6m) en las 4 esquinas del santuario
+	var col_height := 7.6
+	var col_top_y := y + col_height
+	var col_positions: Array[Vector3] = [
+		Vector3(32.3, y, 62.55),
+		Vector3(32.3, y, 76.45),
+		Vector3(48.7, y, 62.55),
+		Vector3(48.7, y, 76.45),
+	]
+	for ci in range(col_positions.size()):
+		var cp: Vector3 = col_positions[ci]
+		_create_box_prop(parthenon, "ParthenonColBaseLow_%d" % ci, cp + Vector3(0.0, 0.22, 0.0), Vector3(1.42, 0.44, 1.42), mat_volc_stone)
+		_create_box_prop(parthenon, "ParthenonColPlinth_%d" % ci, cp + Vector3(0.0, 0.56, 0.0), Vector3(1.16, 0.28, 1.16), mat_volc_carved)
+		var shaft := _create_cylinder(parthenon, "ParthenonColShaft_%d" % ci, cp + Vector3(0.0, col_height * 0.5, 0.0), 0.46, col_height - 0.80, mat_volc_carved)
+		shaft.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		# Anillos tallados de tambor volcánico y equino + ábaco dórico esculpido
+		for ring_y in [2.2, 4.4, 6.55]:
+			_create_cylinder(parthenon, "ParthenonColCollar_%d_%d" % [ci, int(ring_y * 10.0)], cp + Vector3(0.0, ring_y, 0.0), 0.52, 0.16, mat_volc_stone)
+		_create_box_prop(parthenon, "ParthenonColAbacus_%d" % ci, cp + Vector3(0.0, col_height - 0.24, 0.0), Vector3(1.36, 0.48, 1.36), mat_volc_carved)
+		# Apliques de alabastro cálido iluminando las 4 columnas (llama nocturna + halo cálido permanente)
+		var inward_x := 0.58 if cp.x < 40.5 else -0.58
+		_create_box_prop(parthenon, "PillarSconceMount_%d" % ci, cp + Vector3(inward_x, 3.35, 0.0), Vector3(0.24, 0.36, 0.22), mat_bronze)
+		var p_flm := _create_cylinder(parthenon, "PillarSconceFlame_%d" % ci, cp + Vector3(inward_x * 1.15, 3.65, 0.0), 0.09, 0.24, mat_flame)
+		var p_lt := OmniLight3D.new()
+		p_lt.name = "ParthenonPillarLight_%d" % ci
+		p_lt.position = cp + Vector3(inward_x * 1.35, 4.15, 0.0)
+		p_lt.light_color = Color(1.0, 0.68, 0.30)
+		p_lt.light_energy = 1.65
+		p_lt.omni_range = 10.0
+		parthenon.add_child(p_lt)
+		register_flame_fx(p_flm, p_lt, false)
+		SceneEnhancer.add_cyl_collider(parthenon, cp + Vector3(0.0, 1.6, 0.0), 0.66, 3.2)
+		SceneEnhancer.tag_camera_occluder(shaft)
+
+	# Entablamento masivo de basalto volcánico, friso con triglifos y metopas talladas
+	for cz_beam in [62.55, 76.45]:
+		_create_box_prop(parthenon, "ArchitraveNS_%d" % int(cz_beam), Vector3(40.5, col_top_y + 0.40, cz_beam), Vector3(17.8, 0.80, 1.15), mat_volc_carved)
+		_create_box_prop(parthenon, "CorniceNS_%d" % int(cz_beam), Vector3(40.5, col_top_y + 1.02, cz_beam), Vector3(18.6, 0.36, 1.48), mat_volc_stone)
+		for tx in range(7):
+			var tri_x := lerpf(32.8, 48.2, float(tx) / 6.0)
+			_create_box_prop(parthenon, "TriglyphNS_%d_%d" % [int(cz_beam), tx], Vector3(tri_x, col_top_y + 0.48, cz_beam + (-0.62 if cz_beam < 69.5 else 0.62)), Vector3(0.54, 0.64, 0.16), mat_volc_stone)
+	for cx_beam in [32.3, 48.7]:
+		_create_box_prop(parthenon, "ArchitraveEW_%d" % int(cx_beam), Vector3(cx_beam, col_top_y + 0.40, 69.5), Vector3(1.15, 0.80, 15.2), mat_volc_carved)
+		_create_box_prop(parthenon, "CorniceEW_%d" % int(cx_beam), Vector3(cx_beam, col_top_y + 1.02, 69.5), Vector3(1.48, 0.36, 16.0), mat_volc_stone)
+		for tz in range(6):
+			var tri_z := lerpf(63.4, 75.6, float(tz) / 5.0)
+			_create_box_prop(parthenon, "TriglyphEW_%d_%d" % [int(cx_beam), tz], Vector3(cx_beam + (-0.62 if cx_beam < 40.5 else 0.62), col_top_y + 0.48, tri_z), Vector3(0.16, 0.64, 0.54), mat_volc_stone)
+
+	# Frontones triangulares escalonados más altos (6 niveles) con tímpano y relieve dracónico en bronce
+	for step_i in range(6):
+		var frac := float(step_i) / 5.0
+		var span_z := lerpf(15.6, 1.8, frac)
+		var tier_y := col_top_y + 1.38 + float(step_i) * 0.44
+		for px_ped in [32.15, 48.85]:
+			_create_box_prop(parthenon, "PedimentStep_%d_%d" % [int(px_ped), step_i], Vector3(px_ped, tier_y, 69.5), Vector3(0.95, 0.44, span_z), mat_volc_stone)
+		_create_box_prop(parthenon, "PedimentRelieve_%d" % step_i, Vector3(49.36, tier_y, 69.5), Vector3(0.24, 0.30, maxf(1.0, span_z - 1.3)), mat_gold if step_i == 3 else (mat_bronze if step_i == 2 else mat_volc_carved))
+	# Medallón solar de Bahamut en el tímpano este
+	_create_cylinder(parthenon, "PedimentSunburst", Vector3(49.45, col_top_y + 2.35, 69.5), 0.72, 0.22, mat_gold).rotation.z = PI * 0.5
+
+	# Faldones de cubierta volcánica texturizada + tejas acanaladas de basalto y cumbrera esculpida
+	for side_z in [-1.0, 1.0]:
+		var roof_wing := _create_box_prop(parthenon, "ParthenonRoofWing_%s" % ("N" if side_z < 0.0 else "S"), Vector3(40.5, col_top_y + 2.52, 69.5 + side_z * 4.15), Vector3(18.8, 0.30, 9.25), mat_volc_roof)
+		roof_wing.rotation.x = side_z * 0.30
+		roof_wing.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		SceneEnhancer.tag_camera_occluder(roof_wing)
+	_create_box_prop(parthenon, "ParthenonRidgeBeam", Vector3(40.5, col_top_y + 3.92, 69.5), Vector3(19.2, 0.42, 0.68), mat_volc_carved)
+	for rib_x in [33.2, 35.6, 38.0, 40.5, 43.0, 45.4, 47.8]:
+		for side_z in [-1.0, 1.0]:
+			var rib := _create_box_prop(parthenon, "RoofRib_%d_%s" % [int(rib_x), "N" if side_z < 0 else "S"], Vector3(rib_x, col_top_y + 2.66, 69.5 + side_z * 4.15), Vector3(0.24, 0.16, 9.35), mat_volc_stone)
+			rib.rotation.x = side_z * 0.30
+	for fin_pos in [
+		Vector3(31.8, col_top_y + 4.38, 69.5), Vector3(49.2, col_top_y + 4.38, 69.5),
+		Vector3(31.8, col_top_y + 1.48, 61.6), Vector3(31.8, col_top_y + 1.48, 77.4),
+		Vector3(49.2, col_top_y + 1.48, 61.6), Vector3(49.2, col_top_y + 1.48, 77.4)
+	]:
+		_create_cylinder(parthenon, "ParthenonAcroterion", fin_pos, 0.24, 0.92, mat_bronze)
+
+	# Incensarios y ofrendas junto al ara de Bahamut
+	for cx in [-1.15, 1.15]:
+		_create_cylinder(a5_node, "AltarCenserPedestal", Vector3(40.5 + cx, y + 0.24, 69.85), 0.14, 0.48, mat_bronze)
+		_create_cylinder(a5_node, "AltarCenserBowl", Vector3(40.5 + cx, y + 0.52, 69.85), 0.18, 0.12, mat_gold)
+		SceneEnhancer.add_cyl_collider(a5_node, Vector3(40.5 + cx, y + 0.32, 69.85), 0.20, 0.64)
+	var altar_anchor := Node3D.new()
+	altar_anchor.name = "BahamutAltarAnchor"
+	altar_anchor.position = Vector3(40.5, y, 69.85)
+	a5_node.add_child(altar_anchor)
+	var altar_ip := SceneEnhancer._attach_interactive_prop(altar_anchor, "shrine", "Altar de Bahamut", "[T] Orar en el Altar de Bahamut", Vector3.ZERO, "n", "El resplandor dorado del santuario de Bahamut envuelve al grupo en una serenidad protectora.")
+	if altar_ip:
+		altar_ip.interact_radius = 3.1
+
+	# 7 canarios dorados de Bahamut posados en el altar y los pilares del santuario
+	_a5_canaries.clear()
+	var canary_specs := [
+		[Vector3(39.05, y + 1.32, 66.05), 0.45],
+		[Vector3(41.95, y + 1.32, 66.05), -0.45],
+		[Vector3(40.50, y + 4.92, 67.15), 0.05],
+		[Vector3(37.45, y + 1.18, 64.25), 0.28],
+		[Vector3(43.55, y + 1.18, 64.25), -0.28],
+		[Vector3(35.15, y + 1.12, 71.10), 1.15],
+		[Vector3(45.85, y + 1.12, 71.10), -1.15],
+	]
+	for csi in range(canary_specs.size()):
+		var cs: Array = canary_specs[csi]
+		var canary_node: Node3D = SceneEnhancer.build_sanctuary_canary(a5_node, cs[0], float(cs[1]), mat_gold)
+		if is_instance_valid(canary_node):
+			_a5_canaries.append({
+				"root": canary_node,
+				"head": canary_node.get_node_or_null("HeadPivot"),
+				"base_y": float((cs[0] as Vector3).y),
+				"phase": float(csi) * 1.47 + 0.35
+			})
+
+	# Contrafuertes de basalto esculpido que sellan la oquedad negra bajo A5 y la rampa oeste
+	var buttress_node := Node3D.new()
+	buttress_node.name = "Retreat_WestCliffButtress"
+	a5_node.add_child(buttress_node)
+	var b_mesh := SceneEnhancer.make_basalt_outcrop_mesh(313)
+	var buttress_specs := [
+		[Vector3(49.2, 11.0, 67.2), Vector3(4.8, 13.8, 5.2), 0.24],
+		[Vector3(50.6, 9.8, 70.8), Vector3(4.4, 14.4, 5.4), -0.42],
+		[Vector3(48.1, 13.5, 65.1), Vector3(3.8, 11.4, 4.2), 0.85],
+		[Vector3(49.8, 10.4, 73.2), Vector3(4.0, 12.6, 4.5), 1.32],
+		[Vector3(53.4, 0.5, 70.4), Vector3(6.8, 19.6, 6.4), 0.62],
+		[Vector3(57.6, -0.5, 71.8), Vector3(7.2, 18.8, 6.2), -0.35],
+		[Vector3(61.8, -0.5, 72.4), Vector3(6.6, 17.6, 5.8), 0.94],
+		[Vector3(55.5, 1.0, 66.8), Vector3(6.2, 19.2, 5.4), 1.48],
+		[Vector3(64.5, -0.8, 73.2), Vector3(5.8, 15.8, 5.4), -0.82],
+	]
+	for bsi in range(buttress_specs.size()):
+		var bsp: Array = buttress_specs[bsi]
+		var b_sc: Vector3 = bsp[1]
+		var b_wrap := Node3D.new()
+		b_wrap.name = "WestCliffButtressWrap_%d" % bsi
+		b_wrap.position = bsp[0]
+		b_wrap.rotation.y = float(bsp[2])
+		buttress_node.add_child(b_wrap)
+		var bi_inst := MeshInstance3D.new()
+		bi_inst.name = "WestCliffButtress_%d" % bsi
+		bi_inst.mesh = b_mesh
+		bi_inst.material_override = _mat_carved_glb if bsi % 2 == 0 else _mat_rock_glb
+		bi_inst.scale = b_sc
+		bi_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		b_wrap.add_child(bi_inst)
+		SceneEnhancer.add_cyl_collider(b_wrap, Vector3(0.0, b_sc.y * 0.45, 0.0), minf(b_sc.x, b_sc.z) * 0.36, b_sc.y)
+		SceneEnhancer.tag_camera_occluder(b_wrap)
+
+func _build_staircases() -> void:
+	var stairs_node := Node3D.new()
+	stairs_node.name = "Staircases"
+	add_child(stairs_node)
+
+	# 1. Puente ampliado Paseo Superior <-> Templo A5 (5.6m ancho) con pasamanos de cuerda en ambos bordes
+	_build_rustic_bridge_with_ropes(stairs_node, Vector3(76.6, 18.0, 66.0), Vector3(49.8, 27.0, 66.0), 5.6)
+
+	# 2. Escaleras rústicas talladas a mano sobre los dos tramos de montaña (reemplazan el suelo negro y conectan sin bloqueos)
+	_build_rustic_stone_flight(stairs_node, "RusticStair_A5North", Vector3(52.35, 27.0, 64.5), Vector3(52.35, 34.7, 48.2), 2.75, 22)
+	_build_rustic_stone_flight(stairs_node, "RusticStair_A5RidgeW", Vector3(49.5, 34.7, 44.2), Vector3(15.2, 21.3, 44.2), 2.35, 34)
+	_build_rustic_stone_flight(stairs_node, "RusticStair_ObsBase", Vector3(140.25, 18.0, 51.6), Vector3(140.25, 23.0, 44.2), 2.25, 12)
+	_build_rustic_stone_flight(stairs_node, "RusticStair_ObsTurn", Vector3(140.25, 23.0, 44.2), Vector3(145.5, 23.05, 44.2), 2.25, 6)
+	_build_rustic_stone_flight(stairs_node, "RusticStair_ObsNorth", Vector3(145.5, 23.05, 43.2), Vector3(145.5, 36.98, 21.8), 2.85, 28)
+	_build_rustic_stone_flight(stairs_node, "RusticStair_ObsCrown", Vector3(145.5, 36.98, 20.2), Vector3(123.0, 36.98, 20.2), 2.85, 14)
+	_build_rustic_stone_flight(stairs_node, "RusticStair_ObsCoast", Vector3(160.5, 29.95, 33.8), Vector3(160.5, 32.55, 28.4), 2.55, 8)
+
+	# 3. Sendero terroso limpio hacia el Observatorio (elevado +4cm sobre R3Grass para evitar z-fighting)
+	var obs_approach := _create_box_prop(stairs_node, "ObsCleanApproachPath", Vector3(140.4, 18.038, 57.0), Vector3(2.40, 0.044, 15.2), mat_trail)
+	obs_approach.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+	# 3.4 Paso 3: Artesanía, contacto rocoso, musgo en juntas, postes en giros y umbral de entrada Z2
+	_build_z2_stair_craftsmanship(stairs_node)
+
+func _build_z2_stair_craftsmanship(parent: Node3D) -> void:
+	var z2_node := Node3D.new()
+	z2_node.name = "Z2_StairCraftsmanship"
+	parent.add_child(z2_node)
+
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 202611183
+	var norm_rock := _load_tex("rock-normal-v1.png")
+	var tex_stone := _load_tex("ashlar-v4.webp")
+	if not tex_stone:
+		tex_stone = _load_tex("a1-plaza-v6.png")
+	var tex_basalt := _load_tex("basalt-coastal-albedo-v1.webp")
+
+	var mat_slab := _make_textured_mat(Color("#e8dec8"), 0.88, 0.02, tex_stone, 0.34, true, norm_rock, 0.35)
+	mat_slab.vertex_color_use_as_albedo = true
+	mat_slab.vertex_color_is_srgb = true
+	var mat_curb := _make_textured_mat(Color("#dde2e6"), 0.88, 0.02, tex_basalt, 0.22, true, norm_rock, 0.62)
+	mat_curb.vertex_color_use_as_albedo = true
+	mat_curb.vertex_color_is_srgb = true
+	var moss_mat := _make_mat(Color.WHITE, 0.90, 0.0)
+	moss_mat.vertex_color_use_as_albedo = true
+	moss_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	# 3.1 Peldaños y descansillos variados: losas planas de arenisca desgastada y transición al pie
+	var flat_flag_mesh := BoxMesh.new()
+	flat_flag_mesh.size = Vector3(1.0, 1.0, 1.0)
+	var flag_xf: Array[Transform3D] = []
+	var flag_col: Array[Color] = []
+	var flag_tones: Array[Color] = [
+		Color("#ddd0b4"), Color("#cabaa0"), Color("#b8a88e"), Color("#a69880"), Color("#e2d6bc")
+	]
+	var landing_specs := [
+		Vector4(36.0, 1.505, 108.0, 2.5),
+		Vector4(46.5, 4.005, 105.0, 2.5),
+		Vector4(57.0, 6.505, 102.0, 2.5)
+	]
+	for ld in landing_specs:
+		var lx: float = ld.x
+		var ly: float = ld.y
+		var lz: float = ld.z
+		for row in range(5):
+			for col in range(2):
+				var fx := lx + (-0.58 if col == 0 else 0.58) + rng.randf_range(-0.18, 0.18)
+				var fz := lz + lerpf(-2.15, 2.15, float(row) / 4.0) + rng.randf_range(-0.14, 0.14)
+				var scx := rng.randf_range(0.68, 0.98)
+				var scz := rng.randf_range(0.62, 0.96)
+				var fb := Basis.from_euler(Vector3(0.0, rng.randf_range(-0.14, 0.14), 0.0)).scaled(Vector3(scx, 0.022, scz))
+				flag_xf.append(Transform3D(fb, Vector3(fx, ly + 0.008, fz)))
+				var tone := flag_tones[rng.randi() % flag_tones.size()]
+				if rng.randf() < 0.35:
+					tone = tone.darkened(0.08)
+				flag_col.append(tone)
+
+	# Lajas de transición en el enlace muelle -> pie de escalera Z2 (x=27.2..29.6)
+	for app_i in range(6):
+		var ax := lerpf(27.35, 29.45, float(app_i) / 5.0)
+		var az := 109.5 + rng.randf_range(-0.78, 0.78)
+		var ay := lerpf(0.275, 0.265, float(app_i) / 5.0)
+		var ab := Basis.from_euler(Vector3(0.0, rng.randf_range(-0.28, 0.28), 0.0)).scaled(Vector3(rng.randf_range(0.72, 1.02), 0.045, rng.randf_range(0.64, 0.90)))
+		flag_xf.append(Transform3D(ab, Vector3(ax, ay, az)))
+		flag_col.append(flag_tones[rng.randi() % flag_tones.size()].darkened(0.10))
+
+	# Tramos de subida Z2
+	var flight_specs := [
+		[Vector3(29.5, 0.25, 109.5), Vector3(35.0, 1.505, 109.5), 11],
+		[Vector3(37.5, 1.505, 106.5), Vector3(45.2, 4.005, 106.5), 14],
+		[Vector3(48.0, 4.005, 103.5), Vector3(55.7, 6.505, 103.5), 14],
+		[Vector3(58.5, 6.505, 100.5), Vector3(66.2, 9.005, 100.5), 14]
+	]
+	var mm_flags := _make_multimesh_batch("MM_Z2StairFlags", flat_flag_mesh, mat_slab, flag_xf, flag_col)
+	mm_flags.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	z2_node.add_child(mm_flags)
+
+	# 3.2 Contacto natural con la roca: sillares de anclaje en la base y musgo en juntas
+	var slab_mesh := SceneEnhancer.make_basalt_outcrop_mesh(137)
+	var anchor_xf: Array[Transform3D] = []
+	var anchor_col: Array[Color] = []
+	var anchor_tones: Array[Color] = [Color("#cfd6dc"), Color("#b8c0c6"), Color("#dce2e6"), Color("#a4acb3")]
+	var moss_xf: Array[Transform3D] = []
+	var moss_col: Array[Color] = []
+	var moss_tones: Array[Color] = [Color("#395125"), Color("#4b6330"), Color("#5c6d36"), Color("#2c3f1d")]
+
+	for fl in flight_specs:
+		var fa: Vector3 = fl[0]
+		var fb: Vector3 = fl[1]
+		var steps: int = int(fl[2])
+		for si in range(steps):
+			var t := float(si) / float(maxi(1, steps - 1))
+			var sp := fa.lerp(fb, t)
+			for side in [-1.0, 1.0]:
+				# Piedras de encaje mordiendo el bordillo bajo la barandilla sin taparla
+				if rng.randf() < 0.72:
+					var rk_sc := Vector3(rng.randf_range(0.50, 0.92), rng.randf_range(0.32, 0.56), rng.randf_range(0.42, 0.78))
+					var rpos := sp + Vector3(rng.randf_range(-0.16, 0.16), -0.32, side * rng.randf_range(1.75, 2.15))
+					var rb := Basis.from_euler(Vector3(rng.randf_range(-0.10, 0.10), rng.randf_range(0.0, TAU), rng.randf_range(-0.10, 0.10))).scaled(rk_sc)
+					anchor_xf.append(Transform3D(rb, rpos))
+					anchor_col.append(anchor_tones[rng.randi() % anchor_tones.size()])
+				# Musgo y matojos bajos en las juntas piedra-acantilado
+				if rng.randf() < 0.65:
+					var msc := rng.randf_range(0.50, 0.92)
+					var mpos := sp + Vector3(rng.randf_range(-0.18, 0.18), -0.02, side * rng.randf_range(1.58, 1.92))
+					var mb := Basis.from_euler(Vector3(rng.randf_range(-0.10, 0.10), rng.randf_range(0.0, TAU), rng.randf_range(-0.10, 0.10))).scaled(Vector3(msc * 1.1, msc * 0.72, msc * 1.1))
+					moss_xf.append(Transform3D(mb, mpos))
+					moss_col.append(moss_tones[rng.randi() % moss_tones.size()])
+
+	# Refuerzos mayores incrustados bajo el borde norte y escarpe marino de Z2 (anclados sin tapar cuerdas)
+	var cliff_wedge_pts := [
+		Vector4(31.8, -0.15, 106.4, 1.45), Vector4(34.6, 0.35, 105.6, 1.55),
+		Vector4(39.8, 1.15, 103.6, 1.75), Vector4(43.6, 2.35, 103.4, 1.65),
+		Vector4(50.2, 3.65, 100.6, 1.75), Vector4(54.4, 5.05, 100.2, 1.65),
+		Vector4(33.8, -0.05, 111.9, 1.65), Vector4(41.2, 1.55, 109.1, 1.75),
+		Vector4(51.6, 4.05, 106.1, 1.80)
+	]
+	for cw in cliff_wedge_pts:
+		var cbas := Basis.from_euler(Vector3(rng.randf_range(-0.1, 0.1), rng.randf_range(0.0, TAU), rng.randf_range(-0.1, 0.1))).scaled(Vector3(cw.w, cw.w * 0.76, cw.w * 0.85))
+		anchor_xf.append(Transform3D(cbas, Vector3(cw.x, cw.y, cw.z)))
+		anchor_col.append(anchor_tones[rng.randi() % anchor_tones.size()].darkened(0.10))
+
+	if not anchor_xf.is_empty():
+		var mm_anch := _make_multimesh_batch("MM_Z2RockAnchors", slab_mesh, mat_curb, anchor_xf, anchor_col)
+		mm_anch.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		z2_node.add_child(mm_anch)
+	if not moss_xf.is_empty():
+		var mm_moss := _make_multimesh_batch("MM_Z2JointMoss", SceneEnhancer.make_fern_cluster_mesh(), moss_mat, moss_xf, moss_col)
+		mm_moss.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		z2_node.add_child(mm_moss)
+
+	# 3.3 Postes principales tallados y plintos de piedra en los cambios de dirección de descansillos
+	var turn_posts := [
+		[Vector3(34.55, 1.48, 111.15), -0.04],
+		[Vector3(37.45, 1.50, 108.15), 0.03],
+		[Vector3(37.35, 1.50, 104.85), -0.02],
+		[Vector3(45.05, 3.98, 108.15), 0.04],
+		[Vector3(47.95, 4.00, 105.15), -0.03],
+		[Vector3(47.85, 4.00, 101.85), 0.02],
+		[Vector3(55.55, 6.48, 105.15), -0.04],
+		[Vector3(58.45, 6.50, 102.15), 0.03]
+	]
+	for tpi in range(turn_posts.size()):
+		var tp: Vector3 = turn_posts[tpi][0]
+		var lean: float = float(turn_posts[tpi][1])
+		var plinth := _create_box_prop(z2_node, "Z2TurnPlinth_%d" % tpi, tp + Vector3(0.0, 0.14, 0.0), Vector3(0.44, 0.34, 0.44), mat_rock_carved)
+		plinth.rotation.y = lean * 2.5
+		plinth.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		var post := _create_cylinder(z2_node, "Z2TurnMainPost_%d" % tpi, tp + Vector3(0.0, 0.72, 0.0), 0.105, 1.06, mat_wood_dark)
+		post.rotation = Vector3(lean, 0.0, lean * 0.7)
+		post.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		_create_cylinder(z2_node, "Z2TurnPostCap_%d" % tpi, tp + Vector3(0.0, 1.25, 0.0), 0.12, 0.06, mat_iron)
+		SceneEnhancer.add_cyl_collider(z2_node, tp + Vector3(0.0, 0.65, 0.0), 0.22, 1.30)
+
+	# 3.4 Umbral inequívoco de entrada/salida entre playa Z1 <-> subida al Retiro (y llegada superior a A1)
+	var gate_n := Vector3(28.75, 0.28, 107.65)
+	var gate_s := Vector3(29.10, 0.25, 111.20)
+	for gp_idx in range(2):
+		var gpos: Vector3 = gate_n if gp_idx == 0 else gate_s
+		var gpl := _create_box_prop(z2_node, "Z2EntryPlinth_%d" % gp_idx, gpos + Vector3(0.0, 0.24, 0.0), Vector3(0.62, 0.52, 0.62), mat_rock_carved)
+		gpl.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		_create_box_prop(z2_node, "Z2EntryCapStone_%d" % gp_idx, gpos + Vector3(0.0, 0.54, 0.0), Vector3(0.68, 0.10, 0.68), mat_rock)
+		_add_ground_contact_shadow(z2_node, "Z2EntryPlinthShadow_%d" % gp_idx, Vector3(gpos.x, gpos.y + 0.02, gpos.z), Vector2(1.15, 1.15), 0.44)
+		SceneEnhancer.add_box_collider(z2_node, gpos + Vector3(0.0, 0.45, 0.0), Vector3(0.66, 0.95, 0.66))
+
+	# Poste farol de entrada al sendero superior (norte del arranque de Flight 0)
+	var lp_base := gate_n + Vector3(0.0, 0.58, 0.0)
+	var entry_post := _create_cylinder(z2_node, "Z2EntranceLanternPost", lp_base + Vector3(0.0, 0.85, 0.0), 0.095, 1.75, mat_wood_dark)
+	entry_post.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	var entry_arm := _create_box_prop(z2_node, "Z2EntranceLanternArm", lp_base + Vector3(0.28, 1.62, 0.22), Vector3(0.56, 0.09, 0.09), mat_wood_dark)
+	entry_arm.rotation.y = -0.68
+	entry_arm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	var l_pos := lp_base + Vector3(0.42, 1.38, 0.34)
+	_create_cylinder(z2_node, "Z2EntranceLanternCap", l_pos + Vector3(0.0, 0.16, 0.0), 0.13, 0.06, mat_iron)
+	var z2_lantern := _create_box_prop(z2_node, "Z2EntranceLanternFlame", l_pos, Vector3(0.15, 0.22, 0.15), mat_flame)
+	z2_lantern.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var z2_light := OmniLight3D.new()
+	z2_light.name = "Z2EntranceLanternLight"
+	z2_light.position = l_pos
+	z2_light.light_color = Color(1.0, 0.74, 0.36)
+	z2_light.light_energy = 1.65
+	z2_light.omni_range = 10.5
+	z2_node.add_child(z2_light)
+	register_flame_fx(z2_lantern, z2_light, false)
+
+	# Placa tallada orientativa "Subida al Retiro" en el poste de entrada (sin tapar paso)
+	var sign_board := _create_box_prop(z2_node, "Z2EntryRouteBoard", lp_base + Vector3(0.08, 1.18, 0.12), Vector3(0.68, 0.22, 0.055), mat_wood)
+	sign_board.rotation.y = -0.35
+	var z2_txt := Label3D.new()
+	z2_txt.text = "El Retiro ↑"
+	z2_txt.font_size = 24
+	z2_txt.pixel_size = 0.0046
+	z2_txt.modulate = Color("#efe1c2")
+	z2_txt.outline_size = 4
+	z2_txt.outline_modulate = Color("#24170c")
+	z2_txt.position = Vector3(0.0, 0.0, 0.032)
+	sign_board.add_child(z2_txt)
+
+	# Pilares de coronación en la llegada superior a Plaza A1 (x=66.4, y=9.0, z=98.6 y 102.2)
+	for top_z in [98.65, 102.35]:
+		var t_pos := Vector3(66.4, 9.0, float(top_z))
+		var t_pillar := _create_box_prop(z2_node, "Z2TopExitPillar_%.1f" % float(top_z), t_pos + Vector3(0.0, 0.65, 0.0), Vector3(0.54, 1.32, 0.54), mat_rock_carved)
+		t_pillar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		_create_box_prop(z2_node, "Z2TopExitCap_%.1f" % float(top_z), t_pos + Vector3(0.0, 1.36, 0.0), Vector3(0.64, 0.12, 0.64), mat_rock)
+		SceneEnhancer.add_box_collider(z2_node, t_pos + Vector3(0.0, 0.65, 0.0), Vector3(0.58, 1.35, 0.58))
+
+func _build_rustic_bridge_with_ropes(parent: Node3D, a: Vector3, b: Vector3, width: float) -> void:
+	var br := Node3D.new()
+	br.name = "A5_WidenedBridge"
+	parent.add_child(br)
+	var dir := b - a
+	var flat_len := Vector2(dir.x, dir.z).length()
+	var steps := 30
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 445102
+	var step_len := flat_len / float(steps) + 0.14
+	for i in range(steps + 1):
+		var t := float(i) / float(steps)
+		var pos := a.lerp(b, t)
+		var jitter_w := width + rng.randf_range(-0.08, 0.10)
+		var tread := _create_box_prop(br, "BridgeTread_%d" % i, pos + Vector3(0.0, -0.14, 0.0), Vector3(step_len, 0.28, jitter_w), mat_rock_carved if i % 2 == 0 else mat_upper)
+		tread.rotation.y = rng.randf_range(-0.015, 0.015)
+		tread.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		if i % 3 == 0:
+			_create_box_prop(br, "BridgeSupportUnder_%d" % i, pos + Vector3(0.0, -0.55, 0.0), Vector3(step_len * 0.9, 0.72, width * 0.86), mat_rock_dark)
+
+	# Postes de roble y doble cuerda lateral de seguridad (en el borde norte deja paso abierto en x=50..54 hacia escalera montaña)
+	var mat_rope := _make_mat(Color("#a88b5b"), 0.88, 0.0)
+	var post_count := 12
+	var half_w := width * 0.5 - 0.12
+	for side_z in [-1.0, 1.0]:
+		var end_b := b if side_z > 0.0 else Vector3(54.2, lerpf(a.y, b.y, (a.x - 54.2) / maxf(0.01, a.x - b.x)), b.z)
+		var seg_posts := post_count if side_z > 0.0 else 10
+		var prev_pt := Vector3.ZERO
+		var has_prev := false
+		for pi in range(seg_posts + 1):
+			var pt_f := float(pi) / float(seg_posts)
+			var base_p := a.lerp(end_b, pt_f) + Vector3(0.0, 0.0, side_z * half_w)
+			var post := _create_box_prop(br, "BridgePost_%s_%d" % ["N" if side_z < 0.0 else "S", pi], base_p + Vector3(0.0, 0.56, 0.0), Vector3(0.18, 1.18, 0.18), mat_wood_dark)
+			post.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+			var top_pt := base_p + Vector3(0.0, 1.04, 0.0)
+			var mid_pt := base_p + Vector3(0.0, 0.58, 0.0)
+			if has_prev:
+				for tier_pair in [[prev_pt, top_pt, "Top"], [prev_pt - Vector3(0.0, 0.46, 0.0), mid_pt, "Mid"]]:
+					var rp_a: Vector3 = tier_pair[0]
+					var rp_b: Vector3 = tier_pair[1]
+					var span := rp_b - rp_a
+					var rope := _create_cylinder(br, "BridgeRope_%s_%s_%d" % ["N" if side_z < 0.0 else "S", tier_pair[2], pi], (rp_a + rp_b) * 0.5, 0.036, span.length() + 0.04, mat_rope)
+					rope.look_at_from_position((rp_a + rp_b) * 0.5, rp_b, Vector3.UP)
+					rope.rotate_object_local(Vector3.RIGHT, PI * 0.5)
+			prev_pt = top_pt
+			has_prev = true
+		# Barandilla física inclinada en el borde para no caer del puente
+		var edge_a := a + Vector3(0.0, 0.9, side_z * (half_w + 0.08))
+		var edge_b := end_b + Vector3(0.0, 0.9, side_z * (half_w + 0.08))
+		var mid_r := (edge_a + edge_b) * 0.5
+		var span_3d := edge_a.distance_to(edge_b)
+		var rail_sb := StaticBody3D.new()
+		rail_sb.name = "BridgeSafetyRail_%s" % ("N" if side_z < 0.0 else "S")
+		br.add_child(rail_sb)
+		rail_sb.look_at_from_position(mid_r, edge_b, Vector3.UP)
+		var rail_col := CollisionShape3D.new()
+		var rail_box := BoxShape3D.new()
+		rail_box.size = Vector3(0.32, 2.8, span_3d + 0.25)
+		rail_col.shape = rail_box
+		rail_sb.add_child(rail_col)
+
+func _build_rustic_stone_flight(parent: Node3D, flight_name: String, a: Vector3, b: Vector3, width: float, step_count: int) -> void:
+	var fl := Node3D.new()
+	fl.name = flight_name
+	parent.add_child(fl)
+	var delta_v := b - a
+	var horiz := Vector3(delta_v.x, 0.0, delta_v.z)
+	var yaw := atan2(horiz.x, horiz.z)
+	var step_depth := maxf(0.45, horiz.length() / float(maxi(1, step_count)) + 0.14)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = flight_name.hash()
+	for i in range(step_count + 1):
+		var t := float(i) / float(maxi(1, step_count))
+		var p := a.lerp(b, t)
+		var tread_w := width + rng.randf_range(-0.10, 0.14)
+		var tread := _create_box_prop(fl, "Step_%d" % i, p + Vector3(0.0, -0.07, 0.0), Vector3(tread_w, 0.22, step_depth), mat_rock_carved if i % 2 == 0 else mat_trail)
+		tread.rotation.y = yaw + rng.randf_range(-0.04, 0.04)
+		tread.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		# Piedras irregulares de bordillo rural a cada lado del escalón
+		if i % 2 == 0:
+			for s_x_v in [-1.0, 1.0]:
+				var s_x: float = float(s_x_v)
+				var side_vec: Vector3 = Vector3(cos(yaw), 0.0, -sin(yaw)) * (s_x * (width * 0.5 + 0.14))
+				var curb := _create_box_prop(fl, "Curb_%d_%s" % [i, "L" if s_x < 0.0 else "R"], p + side_vec + Vector3(0.0, 0.06, 0.0), Vector3(0.32, 0.30, step_depth * 1.15), mat_rock_dark)
+				curb.rotation.y = yaw + rng.randf_range(-0.06, 0.06)
+
+# 8A. Losas y rampas convexas invisibles de seguridad para garantizar cero caídas en todo el mapa
+func _build_safety_colliders() -> void:
+	var safe_node := Node3D.new()
+	safe_node.name = "SafetyColliders"
+	add_child(safe_node)
+
+	var slabs := [
+		["Safe_Beach_West", Vector3(17.5, -0.135, 104.5), Vector3(21.0, 0.80, 11.0)],
+		["Safe_Beach_South", Vector3(24.0, -0.135, 110.1), Vector3(15.0, 0.80, 3.0)],
+		["Safe_Pier_Deck", Vector3(21.8, 0.12, 112.1), Vector3(6.8, 0.74, 4.2)],
+		["Safe_Pier_EastLink", Vector3(26.2, 0.06, 111.2), Vector3(2.8, 0.70, 2.2)],
+		["Safe_Z2_Landing0", Vector3(36.0, 1.105, 108.0), Vector3(3.2, 0.80, 6.2)],
+		["Safe_Z2_Landing1", Vector3(46.5, 3.605, 105.0), Vector3(3.2, 0.80, 6.2)],
+		["Safe_Z2_Landing2", Vector3(57.0, 6.105, 102.0), Vector3(3.2, 0.80, 6.2)],
+		["Safe_A1_Landing", Vector3(69.8, 8.615, 96.0), Vector3(8.0, 0.80, 9.2)],
+		["Safe_A1_PlazaAndCaves", Vector3(107.2, 8.615, 86.2), Vector3(67.5, 0.80, 23.0)],
+		["Safe_East_Cliff_Foot", Vector3(148.0, 8.615, 92.6), Vector3(14.5, 0.80, 5.2)],
+		["Safe_A2_WinchDeck", Vector3(160.5, 14.605, 66.9), Vector3(12.2, 0.80, 8.6)],
+		["Safe_Upper_And_A3A4", Vector3(109.15, 17.605, 60.9), Vector3(72.3, 0.80, 23.8)],
+		["Safe_Upper_ObsApproach", Vector3(140.5, 17.605, 57.0), Vector3(14.0, 0.80, 15.5)],
+		["Safe_A5_Temple", Vector3(40.5, 26.605, 69.5), Vector3(18.8, 0.80, 16.2)]
+	]
+	for s in slabs:
+		var m := _create_surface_slab(safe_node, s[0], s[1], s[2], mat_plaza)
+		m.visible = false
+
+	# Rampas inclinadas continuas exactas entre rellanos, terrazas y escaleras de montaña
+	_add_safety_ramp(safe_node, "Safe_Ramp_Z2_Flight0", Vector3(29.5, 0.25, 109.5), Vector3(35.0, 1.505, 109.5), 3.4)
+	_add_safety_ramp(safe_node, "Safe_Ramp_Z2_Flight1", Vector3(37.5, 1.505, 106.5), Vector3(45.2, 4.005, 106.5), 3.4)
+	_add_safety_ramp(safe_node, "Safe_Ramp_Z2_Flight2", Vector3(48.0, 4.005, 103.5), Vector3(55.7, 6.505, 103.5), 3.4)
+	_add_safety_ramp(safe_node, "Safe_Ramp_Z2_Flight3", Vector3(58.5, 6.505, 100.5), Vector3(66.2, 9.005, 100.5), 3.4)
+	_add_safety_ramp(safe_node, "Safe_Ramp_A5_Upper", Vector3(49.8, 27.005, 66.0), Vector3(76.6, 18.005, 66.0), 5.6)
+	_add_safety_ramp(safe_node, "Safe_Ramp_A5_Mount_N", Vector3(52.35, 27.005, 65.5), Vector3(52.35, 34.72, 48.2), 2.8)
+	_add_safety_ramp(safe_node, "Safe_Ramp_A5_Mount_Corner", Vector3(52.35, 34.72, 48.2), Vector3(49.5, 34.72, 44.2), 2.8)
+	_add_safety_ramp(safe_node, "Safe_Ramp_A5_Mount_W", Vector3(49.5, 34.72, 44.2), Vector3(15.2, 21.30, 44.2), 2.4)
+	_add_safety_ramp(safe_node, "Safe_Ramp_Obs_Base", Vector3(140.25, 18.02, 52.4), Vector3(140.25, 23.02, 45.35), 2.4)
+	_add_safety_ramp(safe_node, "Safe_Ramp_Obs_Turn", Vector3(140.25, 23.02, 44.05), Vector3(145.5, 23.05, 44.05), 2.4)
+	_add_safety_ramp(safe_node, "Safe_Ramp_Obs_North", Vector3(145.5, 23.05, 43.2), Vector3(145.5, 37.00, 21.8), 2.9)
+	_add_safety_ramp(safe_node, "Safe_Ramp_Obs_Crown", Vector3(145.5, 37.00, 20.2), Vector3(123.0, 37.00, 20.2), 2.9)
+	_add_safety_ramp(safe_node, "Safe_Ramp_Obs_Coast", Vector3(160.5, 29.95, 33.8), Vector3(160.5, 32.55, 28.4), 2.6)
+	_add_safety_ramp(safe_node, "Safe_Ramp_Upper_A2", Vector3(145.0, 18.005, 67.5), Vector3(154.7, 15.005, 67.5), 4.6)
+	_add_safety_ramp(safe_node, "Safe_Ramp_Cliff_East", Vector3(154.5, 9.005, 92.25), Vector3(154.5, 15.005, 72.0), 4.2)
+
+	# Guardarraíles de seguridad perimetrales en bordes de acantilado abiertos (A2, Plaza Sur, Paseo Superior, A5)
+	var edge_barriers := [
+		# A2 Terraza del cabrestante ampliada (x=154.5..166.5, z=62.6..71.2; abre x=154.5 z=65.9..69.1 y EastStairs x=153.1..155.9 z=70)
+		["Safe_Edge_A2_North", Vector3(160.5, 16.2, 62.65), Vector3(12.2, 2.8, 0.45)],
+		["Safe_Edge_A2_East", Vector3(166.35, 16.2, 66.9), Vector3(0.45, 2.8, 8.6)],
+		["Safe_Edge_A2_South", Vector3(161.4, 16.2, 71.05), Vector3(10.0, 2.8, 0.45)],
+		["Safe_Edge_A2_NW", Vector3(154.6, 16.2, 64.1), Vector3(1.2, 2.8, 3.0)],
+		# Plaza A1 Sur y aterrizaje Z2/Este (deja abiertas escaleras Z2 x=66 z=99..102 y EastStairs x=153.1..155.9 z=92..95)
+		["Safe_Edge_Plaza_West", Vector3(69.8, 10.2, 102.2), Vector3(8.2, 2.8, 0.55)],
+		["Safe_Edge_Plaza_Landing_NW", Vector3(66.0, 10.2, 95.1), Vector3(0.55, 2.8, 7.6)],
+		["Safe_Edge_Plaza_Landing_Step", Vector3(73.4, 10.2, 99.6), Vector3(0.55, 2.8, 5.4)],
+		["Safe_Edge_Plaza_East_1", Vector3(138.0, 10.2, 97.1), Vector3(7.4, 2.8, 0.55)],
+		["Safe_Edge_Plaza_East_Step", Vector3(141.4, 10.2, 96.2), Vector3(0.55, 2.8, 2.2)],
+		["Safe_Edge_Plaza_East_2", Vector3(147.2, 10.2, 95.25), Vector3(11.8, 2.8, 0.55)],
+		["Safe_Edge_Plaza_East_Corner", Vector3(155.8, 10.2, 93.8), Vector3(0.55, 2.8, 3.2)],
+		# Paseo Superior borde sur (deja abiertas escaleras a A5 z=63.2..68.8 y a A2 z=65.9..69.0)
+		["Safe_Edge_Upper_SW_H", Vector3(75.1, 19.2, 72.70), Vector3(3.4, 2.8, 0.55)],
+		["Safe_Edge_Upper_SW_V", Vector3(73.6, 19.2, 70.8), Vector3(0.55, 2.8, 3.9)],
+		["Safe_Edge_Upper_East", Vector3(140.2, 19.2, 72.70), Vector3(10.6, 2.8, 0.55)],
+		["Safe_Edge_Upper_SE_Turn", Vector3(145.45, 19.2, 70.95), Vector3(0.55, 2.8, 3.8)],
+		# Templo A5 ampliado (x=31.2..49.8, z=61.5..77.5; deja abierta subida puente Upper->A5 en x=49.8 z=63.2..68.8 y subida norte z=61.5 x=51..54)
+		["Safe_Edge_A5_North_W", Vector3(40.5, 28.2, 61.55), Vector3(18.6, 2.8, 0.55)],
+		["Safe_Edge_A5_South", Vector3(40.5, 28.2, 77.45), Vector3(18.6, 2.8, 0.55)],
+		["Safe_Edge_A5_West", Vector3(31.25, 28.2, 69.5), Vector3(0.55, 2.8, 16.2)],
+		["Safe_Edge_A5_East_S", Vector3(49.8, 28.2, 73.1), Vector3(0.55, 2.8, 8.6)],
+		["Safe_Edge_A5_East_N", Vector3(49.8, 28.2, 62.35), Vector3(0.55, 2.8, 1.7)]
+	]
+	for eb in edge_barriers:
+		var sb := SceneEnhancer.add_box_collider(safe_node, eb[1], eb[2])
+		sb.name = eb[0]
+
+func _add_safety_ramp(parent: Node, ramp_name: String, a: Vector3, b: Vector3, width: float) -> void:
+	var mid := (a + b) * 0.5
+	var dir := b - a
+	var length := dir.length()
+	if length < 0.05:
+		return
+	var sb := StaticBody3D.new()
+	sb.name = ramp_name
+	parent.add_child(sb)
+	sb.look_at_from_position(mid, b, Vector3.UP)
+	sb.translate_object_local(Vector3(0.0, -0.22, 0.0))
+	var col := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(width, 0.44, length + 0.6)
+	col.shape = box
+	sb.add_child(col)
+
+# 8B. Carga de los 3 paquetes .glb canónicos de Babylon ya orientados en espacio Godot (+Z)
+func _build_babylon_glb_modules() -> void:
+	var geo_root := Node3D.new()
+	geo_root.name = "BabylonGeography"
+	add_child(geo_root)
+	_load_glb_bundle(GLB_GEO_PATH, geo_root, {})
+
+	var r3_root := Node3D.new()
+	r3_root.name = "BabylonLandscapeR3"
+	add_child(r3_root)
+	_load_glb_bundle(GLB_R3_PATH, r3_root, {})
+
+	var misc_root := Node3D.new()
+	misc_root.name = "BabylonArchitecture"
+	add_child(misc_root)
+
+	var zone_targets := {
+		"A2": get_node_or_null("A2_WinchAssembly"),
+		"A2Fin": get_node_or_null("A2_WinchAssembly"),
+		"A3": get_node_or_null("A3_DiningHall"),
+		"A3Fin": get_node_or_null("A3_DiningHall"),
+		"A4": get_node_or_null("A4_Library"),
+		"A4Fin": get_node_or_null("A4_Library"),
+		"A5": get_node_or_null("A5_Temple"),
+		"A5Fin": get_node_or_null("A5_Temple"),
+		"A1Room": get_node_or_null("A1_Cells"),
+		"A1Bedrock": get_node_or_null("A1_Cells"),
+		"A1PlazaProp": get_node_or_null("A1_PlazaDetails"),
+		"Shore": get_node_or_null("Staircases"),
+		"Conn": get_node_or_null("Staircases")
+	}
+	_load_glb_bundle(GLB_ARCH_PATH, misc_root, zone_targets)
+
+func _parse_glb_bundle(res_path: String) -> Node:
+	if not FileAccess.file_exists(res_path):
+		push_warning("Missing GLB bundle: " + res_path)
+		return null
+	var bytes := FileAccess.get_file_as_bytes(res_path)
+	if bytes.is_empty():
+		return null
+	var doc := GLTFDocument.new()
+	var state := GLTFState.new()
+	var err := doc.append_from_buffer(bytes, "", state)
+	if err != OK:
+		push_warning("GLTF append failed (%d): %s" % [err, res_path])
+		return null
+	return doc.generate_scene(state)
+
+func _process_babylon_mesh(m_inst: MeshInstance3D, default_parent: Node3D, prefix_targets: Dictionary) -> void:
+	var old_parent := m_inst.get_parent()
+	if old_parent:
+		old_parent.remove_child(m_inst)
+	m_inst.owner = null
+	if _should_skip_babylon_mesh(m_inst.name):
+		m_inst.queue_free()
+		return
+
+	var target_parent: Node3D = default_parent
+	var parts := m_inst.name.split("__", false, 1)
+	if parts.size() >= 1 and prefix_targets.has(parts[0]) and prefix_targets[parts[0]] != null:
+		target_parent = prefix_targets[parts[0]]
+
+	_trim_babylon_mesh_extremities(m_inst)
+	# 4.2 Elevar y centrar la escultura de Astalagan sobre su nuevo pedestal circular escalonado en (85.80, 9.54, 93.35)
+	if "astalagan-weathered-stone" in m_inst.name.to_lower():
+		var ast_pivot := Vector3(86.25, 9.00, 92.38)
+		var ast_target := Vector3(85.80, 9.54, 93.35)
+		var ast_scale := Vector3(1.16, 1.20, 1.16)
+		m_inst.scale = ast_scale
+		m_inst.position = ast_target - Vector3(ast_pivot.x * ast_scale.x, ast_pivot.y * ast_scale.y, ast_pivot.z * ast_scale.z)
+	_apply_babylon_material(m_inst)
+	if m_inst.name.to_lower().begins_with("a1bedrock__"):
+		# Evitar que los peñascos divisorios proyecten sombra negra opaca sobre las camas interiores cuando el techo está abierto
+		m_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	if "cell-floor" in m_inst.name.to_lower():
+		# Bajar 6cm el suelo original de Babylon para que su antiguo bordillo de z=86.05m quede oculto bajo las lajas nuevas de cada celda
+		m_inst.position.y -= 0.06
+	var m_low := m_inst.name.to_lower()
+	if "flame" in m_low or "embers" in m_low or "fire-core" in m_low or "coal-heat" in m_low:
+		_night_glb_nodes.append(m_inst)
+	if _is_walkable_glb_mesh(m_inst.name) or _should_collide_glb_mesh(m_inst.name):
+		_create_babylon_mesh_collision(m_inst)
+		if _is_camera_occluder_glb_mesh(m_inst.name):
+			m_inst.add_to_group("camera_occluder")
+	target_parent.add_child(m_inst)
+
+func _load_glb_bundle(res_path: String, default_parent: Node3D, prefix_targets: Dictionary) -> void:
+	var scene_root := _parse_glb_bundle(res_path)
+	if not scene_root:
+		return
+	var meshes: Array[MeshInstance3D] = []
+	_collect_mesh_instances(scene_root, meshes)
+	for m_inst in meshes:
+		_process_babylon_mesh(m_inst, default_parent, prefix_targets)
+	scene_root.queue_free()
+
+func _load_glb_bundle_async(res_path: String, default_parent: Node3D, prefix_targets: Dictionary, tree: SceneTree) -> void:
+	var scene_root := _parse_glb_bundle(res_path)
+	if not scene_root:
+		return
+	var meshes: Array[MeshInstance3D] = []
+	_collect_mesh_instances(scene_root, meshes)
+	var slice_start := Time.get_ticks_msec()
+	for m_inst in meshes:
+		_process_babylon_mesh(m_inst, default_parent, prefix_targets)
+		if Time.get_ticks_msec() - slice_start >= 140:
+			await tree.process_frame
+			slice_start = Time.get_ticks_msec()
+	scene_root.queue_free()
+
+func _is_in_smooth_stair_zone(p: Vector3) -> bool:
+	# Interiores transitables de peldaños de Z2, Upper_A5, Upper_A2 y EastStairs (conservando muros/bordillos laterales)
+	if p.x >= 29.4 and p.x <= 35.2 and p.z >= 108.1 and p.z <= 110.9 and p.y >= 0.05 and p.y <= 1.75:
+		return true
+	if p.x >= 37.2 and p.x <= 45.6 and p.z >= 105.1 and p.z <= 107.9 and p.y >= 1.25 and p.y <= 4.25:
+		return true
+	if p.x >= 47.7 and p.x <= 56.1 and p.z >= 102.1 and p.z <= 104.9 and p.y >= 3.75 and p.y <= 6.75:
+		return true
+	if p.x >= 58.2 and p.x <= 66.6 and p.z >= 99.1 and p.z <= 101.9 and p.y >= 6.25 and p.y <= 9.25:
+		return true
+	if p.x >= 49.3 and p.x <= 76.8 and p.z >= 64.65 and p.z <= 67.35 and p.y >= 17.65 and p.y <= 27.30:
+		return true
+	if p.x >= 145.0 and p.x <= 154.8 and p.z >= 66.15 and p.z <= 68.85 and p.y >= 14.65 and p.y <= 18.25:
+		return true
+	if p.x >= 153.25 and p.x <= 155.75 and p.z >= 71.7 and p.z <= 92.6 and p.y >= 8.75 and p.y <= 15.25:
+		return true
+	return false
+
+func _create_babylon_mesh_collision(m_inst: MeshInstance3D) -> void:
+	if m_inst.mesh == null or m_inst.mesh.get_surface_count() == 0:
+		return
+	var low := m_inst.name.to_lower()
+	if not (low.begins_with("shore__a1_plaza") or low.begins_with("conn__a1_plaza")):
+		m_inst.create_trimesh_collision()
+		return
+	var mesh := m_inst.mesh
+	var faces := PackedVector3Array()
+	var xf := m_inst.transform
+	for s in range(mesh.get_surface_count()):
+		var arrays := mesh.surface_get_arrays(s)
+		if arrays.is_empty():
+			continue
+		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+		var count := indices.size() if indices.size() >= 3 else verts.size()
+		for i in range(0, count - 2, 3):
+			var v0 := verts[indices[i] if indices.size() >= 3 else i]
+			var v1 := verts[indices[i + 1] if indices.size() >= 3 else i + 1]
+			var v2 := verts[indices[i + 2] if indices.size() >= 3 else i + 2]
+			var w0 := xf * v0
+			var w1 := xf * v1
+			var w2 := xf * v2
+			var c := (w0 + w1 + w2) / 3.0
+			if _is_in_smooth_stair_zone(c):
+				# Omitir peldaños y contrahuellas dentadas donde ya existe rampa lisa Safe_Ramp_*
+				continue
+			faces.append(v0)
+			faces.append(v1)
+			faces.append(v2)
+	if faces.is_empty():
+		return
+	var sb := StaticBody3D.new()
+	sb.name = "%s_col" % m_inst.name
+	var cs := CollisionShape3D.new()
+	var shape := ConcavePolygonShape3D.new()
+	shape.set_faces(faces)
+	cs.shape = shape
+	sb.add_child(cs)
+	m_inst.add_child(sb)
+
+func _should_drop_babylon_tri(v0: Vector3, v1: Vector3, v2: Vector3, touches_sw: bool, is_sal: bool, is_foliage_sw: bool, touches_ne: bool, touches_c6: bool, trim_stair_fences: bool) -> bool:
+	if touches_sw:
+		for v in [v0, v1, v2]:
+			if v.x < 17.6 and v.z > 72.0 and v.y < 9.2:
+				return true
+			if v.x < 18.6 and v.z > 98.0 and v.z < 106.8 and v.y > 1.35 and v.y < 6.5:
+				return true
+			if is_foliage_sw and v.x < 20.2 and v.z > 84.0 and v.y < 10.6:
+				return true
+			if is_sal and v.x < 28.8 and v.z > 74.0 and v.y < 15.0:
+				return true
+			if is_sal and v.x < 57.2 and v.z > 70.0 and v.z < 96.0 and v.y < 14.2:
+				return true
+	if touches_ne:
+		for v in [v0, v1, v2]:
+			if v.x > 158.5 and v.z < 27.3 and v.y > 31.8:
+				return true
+	if touches_c6:
+		for v in [v0, v1, v2]:
+			if v.x > 128.2 and v.x < 135.0 and v.z > 78.0 and v.z < 86.8 and v.y > 9.12 and v.y < 14.5:
+				return true
+	if trim_stair_fences:
+		for v in [v0, v1, v2]:
+			# 1. Barrera N-S cruzando Paseo Superior Oeste (x=76.45)
+			if v.x > 76.35 and v.x < 76.56 and v.z > 67.55 and v.z < 72.58 and v.y > 17.8 and v.y < 19.3:
+				return true
+			# 2. Barrera N-S cruzando Paseo Superior Este (x=135.05)
+			if v.x > 134.94 and v.x < 135.16 and v.z > 67.35 and v.z < 72.58 and v.y > 17.8 and v.y < 19.3:
+				return true
+			# 3. Cuerda/poste atravesado arriba de escalera Upper -> A2 (x=145.4)
+			if v.x > 145.30 and v.x < 145.52 and v.z > 66.02 and v.z < 68.92 and v.y > 17.5 and v.y < 19.3:
+				return true
+			# 4. Cuerda/poste atravesado en cruce EastStairs / A2 / Upper (x=154.44..154.72)
+			if v.x > 154.35 and v.x < 154.75 and v.z > 65.90 and v.z < 69.85 and v.y > 14.7 and v.y < 17.6:
+				return true
+			# 5. Poste/cuerda atravesado arriba de escalera Z2 Tramo 3 (x=66.1)
+			if v.x > 66.00 and v.x < 66.22 and v.z > 100.35 and v.z < 101.98 and v.y > 8.8 and v.y < 10.2:
+				return true
+			# 6. Poste/cuerda atravesado arriba de escalera Upper -> A5 (x=49.46)
+			if v.x > 49.30 and v.x < 49.65 and v.z > 64.45 and v.z < 67.55 and v.y > 26.8 and v.y < 28.6:
+				return true
+			# 7. Cuerdas transversales que bloquean subida norte desde A5 (z=63.8..64.75 y z=57.3..58.6)
+			if v.x > 50.80 and v.x < 54.05 and v.z > 63.85 and v.z < 64.75 and v.y > 26.8 and v.y < 28.5:
+				return true
+			if v.x > 51.12 and v.x < 53.88 and v.z > 57.30 and v.z < 58.60 and v.y > 29.0 and v.y < 31.2:
+				return true
+			# 8. Cuerda transversal bloqueando boca del sendero al Observatorio (z=49.1..49.85) y giro z=44.8..47.6
+			if v.x > 139.46 and v.x < 141.05 and v.z > 49.05 and v.z < 49.90 and v.y > 18.2 and v.y < 19.6:
+				return true
+			if v.x > 139.65 and v.x < 143.95 and v.z > 44.80 and v.z < 47.60 and v.y > 19.5 and v.y < 24.5:
+				return true
+			# 9. Antiguas barandillas estrechas del puente Upper <-> A5 (sustituidas por el puente ancho con doble cuerda)
+			if v.x > 49.70 and v.x < 76.50 and v.z > 64.15 and v.z < 67.65 and v.y > 17.8 and v.y < 28.6:
+				return true
+	return false
+
+const A1_CELL_INNER_BOXES: Array[Rect2] = [
+	Rect2(76.75, 76.2, 7.80, 11.6),
+	Rect2(85.55, 76.2, 9.10, 11.6),
+	Rect2(95.75, 76.2, 10.20, 11.6),
+	Rect2(107.05, 76.2, 10.20, 11.6),
+	Rect2(118.25, 76.2, 7.85, 11.6),
+	Rect2(127.15, 76.2, 9.10, 11.6),
+]
+const A1_DOOR_XS: Array[float] = [81.75, 90.75, 101.25, 111.75, 122.25, 131.25]
+
+static func _aabb_intersects(a: AABB, min_x: float, min_y: float, min_z: float, max_x: float, max_y: float, max_z: float) -> bool:
+	return a.end.x >= min_x and a.position.x <= max_x and a.end.y >= min_y and a.position.y <= max_y and a.end.z >= min_z and a.position.z <= max_z
+
+func _should_run_custom_trim_for_mesh(aabb: AABB, low: String) -> bool:
+	if (low == "r3land__a1_dark-oak-v5" or low == "v4__a1_plaza-v6" or low == "v4__wood_oiled_used" or low == "r3land__a1_oak-v5") and _aabb_intersects(aabb, 78.5, 17.8, 62.6, 134.0, 20.6, 65.65):
+		return true
+	if low == "v4__a1_plaza-v6" and _aabb_intersects(aabb, 49.2, 17.8, 64.1, 76.8, 27.6, 67.8):
+		return true
+	if low.begins_with("a4__basalt_carved") or low.begins_with("a3__basalt_carved"):
+		if aabb.position.z < 64.85:
+			return true
+		if low.begins_with("a3__basalt_carved") and aabb.end.x >= 115.5 and aabb.position.x <= 119.3 and aabb.end.y > 18.10:
+			return true
+	if low.begins_with("a2__basalt_carved") and aabb.end.x >= 155.0 and aabb.end.y > 14.92:
+		return true
+	if low == "r3paths__a1_plaza-v6":
+		if _aabb_intersects(aabb, 14.5, -1000.0, 43.0, 54.5, 1000.0, 64.7) or _aabb_intersects(aabb, 139.0, -1000.0, 20.0, 147.6, 1000.0, 49.8) or _aabb_intersects(aabb, 158.5, -1000.0, 27.0, 162.5, 1000.0, 35.0):
+			return true
+	if low == "a5__stone_bahamut_quiet_limestone" and aabb.end.y > 27.15 and (aabb.position.x < 36.5 or aabb.end.x > 44.5):
+		return true
+	if (low == "r3land__a1_dark-oak-v5" or low == "r3land__a1_oak-v5") and _aabb_intersects(aabb, 16.5, -1000.0, 109.5, 28.5, 1.5, 1000.0):
+		return true
+	if (low == "shore__a1_coastal-cliff-v10" or low == "stones3__stonecontact_a1_coastal-cliff-v10" or low == "p3terrain__a1_coastal-cliff-v10") and _aabb_intersects(aabb, 18.0, -1000.0, 112.0, 27.2, 0.70, 1000.0):
+		return true
+	if low == "conn__a1_coastal-cliff-v10" and aabb.end.z > 105.0 and aabb.position.y < 0.10:
+		return true
+	if low == "geo14__a1_coastal-cliff-v10" and aabb.position.x < 42.0 and aabb.end.z > 110.5 and aabb.position.y < 0.35:
+		return true
+	if low == "conn__a1_plaza-v6" or low == "shore__a1_plaza-v6":
+		return true
+	if (low == "r3land__a1_earth-v6" or low == "conn__a1_earth-v6") and _aabb_intersects(aabb, 139.0, 17.7, 49.5, 143.0, 1000.0, 64.8):
+		return true
+	if low == "conn__a1_earth-v6" and aabb.position.x < 29.0 and aabb.end.z > 106.0 and aabb.position.y < 1.2:
+		return true
+	var is_a1_cliff_piece := (
+		(low.begins_with("a1room__") or low.begins_with("p1__") or low.begins_with("a1fin__") or low.begins_with("v4__") or low.begins_with("a1bedrock__") or low.begins_with("a1ctx__") or low.begins_with("p3terrain__") or low.begins_with("stones3__") or low.begins_with("r3land__") or low.begins_with("p5__") or low.begins_with("conn__") or low.begins_with("shore__"))
+		and ("carved-cliff" in low or "coastal-cliff" in low or "earth" in low or "wood" in low or "oak" in low or "rope" in low or "plaza" in low or "limestone" in low)
+	)
+	if is_a1_cliff_piece:
+		if low.begins_with("a1room__") and aabb.end.y >= 11.20:
+			return true
+		if _aabb_intersects(aabb, 75.8, 8.92, 76.2, 137.2, 17.62, 90.6):
+			return true
+	return false
+
+func _should_drop_custom_glb_tri(v0: Vector3, v1: Vector3, v2: Vector3, low: String) -> bool:
+	# Eliminar bancos/apliques/tablas exteriores soterrados frente a A4/A3 (se reconstruyen limpios en Paseo Superior)
+	if low == "r3land__a1_dark-oak-v5" or low == "v4__a1_plaza-v6" or low == "v4__wood_oiled_used" or low == "r3land__a1_oak-v5":
+		for v in [v0, v1, v2]:
+			if v.x >= 78.5 and v.x <= 134.0 and v.z >= 62.6 and v.z <= 65.65 and v.y >= 17.8 and v.y <= 20.6:
+				return true
+			if low == "v4__a1_plaza-v6" and v.x >= 49.2 and v.x <= 76.8 and v.z >= 64.1 and v.z <= 67.8 and v.y >= 17.8 and v.y <= 27.6:
+				return true
+	# Eliminar muros estrechos y tabiques interiores anteriores de A4 y A3 (y liberar el arco x=115.6..119.2 en A3)
+	if low.begins_with("a4__basalt_carved") or low.begins_with("a3__basalt_carved"):
+		for v in [v0, v1, v2]:
+			if v.z < 64.85:
+				return true
+			if low.begins_with("a3__basalt_carved") and v.x >= 115.5 and v.x <= 119.3 and v.y > 18.10:
+				return true
+	# Recortar espolón rocoso que invadía el suelo interior de la casa ampliada del cabrestante A2
+	if low.begins_with("a2__basalt_carved"):
+		for v in [v0, v1, v2]:
+			if v.x >= 155.0 and v.y > 14.92:
+				return true
+	# Ocultar rampas negras de R3Paths__a1_plaza-v6 en los tramos de montaña sustituidos por peldaños tallados
+	if low == "r3paths__a1_plaza-v6":
+		for v in [v0, v1, v2]:
+			if v.x >= 50.5 and v.x <= 54.5 and v.z >= 47.4 and v.z <= 64.7:
+				return true
+			if v.x >= 14.5 and v.x <= 50.5 and v.z >= 43.0 and v.z <= 46.0:
+				return true
+			if v.x >= 139.0 and v.x <= 147.6 and v.z >= 20.0 and v.z <= 49.8:
+				return true
+			if v.x >= 158.5 and v.x <= 162.5 and v.z >= 27.0 and v.z <= 35.0:
+				return true
+	# Retirar columnas interiores originales del templo A5 para dejar exclusivamente las 4 columnas volcánicas
+	if low == "a5__stone_bahamut_quiet_limestone":
+		for v in [v0, v1, v2]:
+			if v.y > 27.15 and (v.x < 36.5 or v.x > 44.5):
+				return true
+	# Retirar antiguo espigón comercial y peñascos/losas cuadradas en la dársena del muelle Z1 y Z2
+	if low == "r3land__a1_dark-oak-v5" or low == "r3land__a1_oak-v5":
+		for v in [v0, v1, v2]:
+			if v.x >= 16.5 and v.x <= 28.5 and v.z >= 109.5 and v.y <= 1.5:
+				return true
+	if low == "shore__a1_coastal-cliff-v10" or low == "stones3__stonecontact_a1_coastal-cliff-v10" or low == "p3terrain__a1_coastal-cliff-v10":
+		for v in [v0, v1, v2]:
+			if v.x >= 18.0 and v.x <= 27.2 and v.z >= 112.0 and v.y < 0.70:
+				return true
+	if low == "conn__a1_coastal-cliff-v10":
+		for v in [v0, v1, v2]:
+			if v.z > 105.0 and v.y < 0.10:
+				return true
+	if low == "geo14__a1_coastal-cliff-v10":
+		for v in [v0, v1, v2]:
+			if v.x < 42.0 and v.z > 110.5 and v.y < 0.35:
+				return true
+	if low == "conn__a1_plaza-v6":
+		for v in [v0, v1, v2]:
+			if v.x < 28.6 or v.z > 112.0 or v.z < 107.2 or v.y < 0.05:
+				return true
+	if low == "shore__a1_plaza-v6":
+		for v in [v0, v1, v2]:
+			if v.x < 29.4 or v.z > 112.0:
+				return true
+	# Limpiar parches sueltos de tierra en la senda al Observatorio para evitar z-fighting y el parche cuadrado en arena Z1
+	if low == "r3land__a1_earth-v6" or low == "conn__a1_earth-v6":
+		for v in [v0, v1, v2]:
+			if v.x >= 139.0 and v.x <= 143.0 and v.z >= 49.5 and v.z <= 64.8 and v.y >= 17.7:
+				return true
+			if low == "conn__a1_earth-v6" and v.x < 29.0 and v.z > 106.0 and v.y < 1.2:
+				return true
+	# 1.7 Eliminar dientes almenados ortogonales, tabiques interiores atravesados, techos estáticos de Babylon sobre celdas y marcos H frontales fijos
+	var is_a1_cliff_piece := (
+		(low.begins_with("a1room__") or low.begins_with("p1__") or low.begins_with("a1fin__") or low.begins_with("v4__") or low.begins_with("a1bedrock__") or low.begins_with("a1ctx__") or low.begins_with("p3terrain__") or low.begins_with("stones3__") or low.begins_with("r3land__") or low.begins_with("p5__") or low.begins_with("conn__") or low.begins_with("shore__"))
+		and ("carved-cliff" in low or "coastal-cliff" in low or "earth" in low or "wood" in low or "oak" in low or "rope" in low or "plaza" in low or "limestone" in low)
+	)
+	if is_a1_cliff_piece:
+		var tri_min_x := minf(v0.x, minf(v1.x, v2.x))
+		var tri_max_x := maxf(v0.x, maxf(v1.x, v2.x))
+		var tri_min_y := minf(v0.y, minf(v1.y, v2.y))
+		var tri_max_y := maxf(v0.y, maxf(v1.y, v2.y))
+		var tri_min_z := minf(v0.z, minf(v1.z, v2.z))
+		var tri_max_z := maxf(v0.z, maxf(v1.z, v2.z))
+		if low.begins_with("a1room__") and tri_max_y >= 11.20:
+			return true
+		if tri_max_x < 75.8 or tri_min_x > 137.2 or tri_max_z < 76.2 or tri_min_z > 90.6 or tri_max_y < 8.92 or tri_min_y > 17.62:
+			return false
+		var tri_mid := (v0 + v1 + v2) / 3.0
+		var sample_pts := [v0, v1, v2, tri_mid, (v0 + v1) * 0.5, (v1 + v2) * 0.5, (v2 + v0) * 0.5]
+		var is_floor_mat := ("plaza" in low or "limestone" in low)
+		var min_front_y := 9.05 if is_floor_mat else 8.92
+		var check_front := (low.begins_with("a1room__") or low.begins_with("p1__") or low.begins_with("a1fin__") or low.begins_with("v4__") or low.begins_with("a1ctx__") or low.begins_with("r3land__") or low.begins_with("p5__") or low.begins_with("conn__") or low.begins_with("shore__"))
+		for v in sample_pts:
+			# Frente de celdas y antiguo umbral z=85.2..90.4 (x=75.8..137.2): elimina el antiguo bordillo/barra de z=86.25 y los postes/cuerdas en los vanos
+			if check_front and v.x >= 75.8 and v.x <= 137.2 and v.z >= 85.15 and v.z <= 90.4 and v.y >= min_front_y and v.y <= 14.5:
+				return true
+			# Despejar el interior habitable y el cielo de cada celda (y=9.05..17.62) de bloques o techos estáticos que impidan ver la cama al abrir CaveRoof
+			if v.y >= 9.05 and v.y <= 17.62:
+				for cb in A1_CELL_INNER_BOXES:
+					if cb.has_point(Vector2(v.x, v.z)):
+						return true
+			# Despejar cualquier barra o dintel antiguo atravesado en los 6 vanos de puerta (z=84.0..90.6)
+			if v.z >= 84.0 and v.z <= 90.6 and v.y >= 9.05 and v.y <= 14.0:
+				for dx_door in A1_DOOR_XS:
+					if absf(v.x - dx_door) <= 1.85:
+						return true
+	return false
+
+func _trim_babylon_mesh_extremities(m_inst: MeshInstance3D) -> void:
+	if not m_inst.mesh or not (m_inst.mesh is ArrayMesh):
+		return
+	var low := m_inst.name.to_lower()
+	var check_sw := (
+		low.begins_with("sal4__") or low.begins_with("sal1__") or low.begins_with("geo14__")
+		or low.begins_with("p3terrain__") or low.begins_with("r3paths__") or low.begins_with("r3land__")
+		or low.begins_with("conn__") or low.begins_with("p5__") or low.begins_with("v4__")
+	)
+	var check_ne_fence := (
+		low == "v4__wood_oiled_used" or low == "v4__hemp_rope_used"
+		or low == "r3land__a1_oak-v5" or low == "r3land__r3_rope"
+	)
+	var check_c6_cavity := (
+		not low.begins_with("a1room__") and (
+			"cliff" in low or "earth" in low or "bark" in low or "pine" in low or "olive" in low
+			or low.begins_with("a1bedrock__") or low.begins_with("p3terrain__") or low.begins_with("r3land__")
+			or low.begins_with("stones3__") or low.begins_with("a1ctx__") or low.begins_with("conn__")
+		)
+	)
+	var check_custom_trim := (
+		low == "r3land__a1_dark-oak-v5" or low == "v4__a1_plaza-v6"
+		or low == "v4__wood_oiled_used" or low == "r3land__a1_oak-v5"
+		or low.begins_with("a4__basalt_carved") or low.begins_with("a3__basalt_carved")
+		or low.begins_with("a2__basalt_carved")
+		or low == "r3paths__a1_plaza-v6" or low == "r3land__a1_earth-v6" or low == "conn__a1_earth-v6"
+		or low == "a5__stone_bahamut_quiet_limestone" or low == "shore__a1_coastal-cliff-v10"
+		or low == "conn__a1_plaza-v6" or low == "shore__a1_plaza-v6" or low == "geo14__a1_coastal-cliff-v10" or low == "conn__a1_coastal-cliff-v10"
+		or low == "stones3__stonecontact_a1_coastal-cliff-v10" or low == "p3terrain__a1_coastal-cliff-v10"
+		or ((low.begins_with("a1room__") or low.begins_with("p1__") or low.begins_with("a1fin__") or low.begins_with("v4__") or low.begins_with("a1bedrock__") or low.begins_with("a1ctx__") or low.begins_with("p3terrain__") or low.begins_with("stones3__") or low.begins_with("r3land__") or low.begins_with("p5__") or low.begins_with("conn__") or low.begins_with("shore__")) and ("carved-cliff" in low or "coastal-cliff" in low or "earth" in low or "wood" in low or "oak" in low or "rope" in low or "plaza" in low or "limestone" in low))
+	)
+	if not check_sw and not check_ne_fence and not check_c6_cavity and not check_custom_trim:
+		return
+
+	var is_sal := low.begins_with("sal4__") or low.begins_with("sal1__")
+	var is_foliage_sw := ("pine" in low or "foliage" in low or "bark" in low or "olive" in low)
+	var sw_max_x := 27.5 if is_sal else (20.4 if (is_foliage_sw or "oak" in low) else 17.6)
+	var xf := m_inst.transform
+	var aabb := xf * m_inst.get_aabb()
+	var touches_sw := check_sw and (aabb.position.x < sw_max_x and aabb.end.z > 72.0 and aabb.position.y < 10.6)
+	var touches_ne := check_ne_fence and (aabb.end.x > 158.5 and aabb.position.z < 27.3 and aabb.end.y > 31.8)
+	var touches_c6 := check_c6_cavity and (aabb.end.x > 128.0 and aabb.position.x < 135.2 and aabb.end.z > 77.8 and aabb.position.z < 87.0 and aabb.end.y > 9.12)
+	var trim_stair_fences := check_ne_fence
+	var run_custom := check_custom_trim and _should_run_custom_trim_for_mesh(aabb, low)
+	if not touches_sw and not touches_ne and not touches_c6 and not trim_stair_fences and not run_custom:
+		return
+
+	var src_mesh := m_inst.mesh as ArrayMesh
+	var new_mesh := ArrayMesh.new()
+	var modified := false
+
+	for s in range(src_mesh.get_surface_count()):
+		var arrays := src_mesh.surface_get_arrays(s)
+		if arrays.is_empty():
+			continue
+		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+		var mat: Material = src_mesh.surface_get_material(s)
+		if indices.size() >= 3:
+			var kept_idx := PackedInt32Array()
+			var tri_count := indices.size() / 3
+			for t_i in range(tri_count):
+				var i0 := indices[t_i * 3]
+				var i1 := indices[t_i * 3 + 1]
+				var i2 := indices[t_i * 3 + 2]
+				var w0 := xf * verts[i0]
+				var w1 := xf * verts[i1]
+				var w2 := xf * verts[i2]
+				if _should_drop_babylon_tri(w0, w1, w2, touches_sw, is_sal, is_foliage_sw, touches_ne, touches_c6, trim_stair_fences) or (run_custom and _should_drop_custom_glb_tri(w0, w1, w2, low)):
+					modified = true
+				else:
+					kept_idx.append(i0)
+					kept_idx.append(i1)
+					kept_idx.append(i2)
+			if kept_idx.size() >= 3:
+				arrays[Mesh.ARRAY_INDEX] = kept_idx
+				new_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+				new_mesh.surface_set_material(new_mesh.get_surface_count() - 1, mat)
+		elif verts.size() >= 3:
+			# Algunas superficies .glb vienen sin buffer ARRAY_INDEX; filtrar sus triángulos directamente
+			var kept_v := PackedVector3Array()
+			var src_n: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL] if arrays[Mesh.ARRAY_NORMAL] != null else PackedVector3Array()
+			var src_t: PackedFloat32Array = arrays[Mesh.ARRAY_TANGENT] if arrays[Mesh.ARRAY_TANGENT] != null else PackedFloat32Array()
+			var src_c: PackedColorArray = arrays[Mesh.ARRAY_COLOR] if arrays[Mesh.ARRAY_COLOR] != null else PackedColorArray()
+			var src_uv: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV] if arrays[Mesh.ARRAY_TEX_UV] != null else PackedVector2Array()
+			var src_uv2: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV2] if arrays[Mesh.ARRAY_TEX_UV2] != null else PackedVector2Array()
+			var dst_n := PackedVector3Array()
+			var dst_t := PackedFloat32Array()
+			var dst_c := PackedColorArray()
+			var dst_uv := PackedVector2Array()
+			var dst_uv2 := PackedVector2Array()
+			var tri_count := verts.size() / 3
+			for t_i in range(tri_count):
+				var b_i := t_i * 3
+				var w0 := xf * verts[b_i]
+				var w1 := xf * verts[b_i + 1]
+				var w2 := xf * verts[b_i + 2]
+				if _should_drop_babylon_tri(w0, w1, w2, touches_sw, is_sal, is_foliage_sw, touches_ne, touches_c6, trim_stair_fences) or (run_custom and _should_drop_custom_glb_tri(w0, w1, w2, low)):
+					modified = true
+					continue
+				for k in range(3):
+					var vi := b_i + k
+					kept_v.append(verts[vi])
+					if vi < src_n.size(): dst_n.append(src_n[vi])
+					if vi * 4 + 3 < src_t.size():
+						dst_t.append(src_t[vi * 4]); dst_t.append(src_t[vi * 4 + 1]); dst_t.append(src_t[vi * 4 + 2]); dst_t.append(src_t[vi * 4 + 3])
+					if vi < src_c.size(): dst_c.append(src_c[vi])
+					if vi < src_uv.size(): dst_uv.append(src_uv[vi])
+					if vi < src_uv2.size(): dst_uv2.append(src_uv2[vi])
+			if kept_v.size() >= 3:
+				var out_arr := []
+				out_arr.resize(Mesh.ARRAY_MAX)
+				out_arr[Mesh.ARRAY_VERTEX] = kept_v
+				if dst_n.size() == kept_v.size(): out_arr[Mesh.ARRAY_NORMAL] = dst_n
+				if dst_t.size() == kept_v.size() * 4: out_arr[Mesh.ARRAY_TANGENT] = dst_t
+				if dst_c.size() == kept_v.size(): out_arr[Mesh.ARRAY_COLOR] = dst_c
+				if dst_uv.size() == kept_v.size(): out_arr[Mesh.ARRAY_TEX_UV] = dst_uv
+				if dst_uv2.size() == kept_v.size(): out_arr[Mesh.ARRAY_TEX_UV2] = dst_uv2
+				new_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, out_arr)
+				new_mesh.surface_set_material(new_mesh.get_surface_count() - 1, mat)
+
+	if modified:
+		m_inst.mesh = new_mesh
+
+func _should_skip_babylon_mesh(mesh_name: String) -> bool:
+	var low := mesh_name.to_lower()
+	# Ocultar mobiliario antiguo fusionado en bloque de A1Room, A1PlazaProp, A1Ctx, A3 y A4
+	# (reemplazado por mobiliario 3D detallado en retreat_scene_enhancer.gd).
+	if low.begins_with("a1room__") or low.begins_with("a1fin__"):
+		return true
+	if low.begins_with("p1__") and "carved-cliff" in low:
+		return true
+	if low.begins_with("v4__") and ("carved-cliff" in low or "garden-soil" in low or "v2_leaves" in low or "v4_flowers" in low):
+		return true
+	if low.begins_with("a1plazaprop__"):
+		if "astalagan" in low:
+			return false
+		return true
+	if low.begins_with("a3__") or low.begins_with("a3fin__") or low.begins_with("a4__") or low.begins_with("a4fin__"):
+		if "basalt_carved" in low or "carved-cliff" in low or "stone_floor" in low:
+			return false
+		return true
+	if low.begins_with("a1ctx__"):
+		for prop_kw in ["oak-v5", "dark-oak-v5", "linen-v5", "blue-cloth-v5", "red-cloth-v5", "iron-v5", "brass-v5", "pottery-v5", "lamp-glow", "warm-bounce", "contact-shadow"]:
+			if prop_kw in low:
+				return true
+	# Ocultar la antigua losa cuadrada de pleamar-low importada de Babylon (rehecha desde cero)
+	if low in [
+		"r3paths__a1_earth-v6",
+		"r3shoulder__a1_earth-v6",
+		"sal4__a1_painted-foliage-v6",
+		"v5coast__v2_leaves",
+		"v5coast__v5_dry_grass",
+		"v5coast__v4_flowers",
+		"r3land__r3_lamp",
+		"a5__wood_endgrain",
+		"a2__wood_oiled_used",
+		"a2__wood_endgrain",
+		"a2__hemp_rope_used",
+		"a2__iron_blackened",
+		"a2__stone_floor_worn",
+		"p2__a1_dark-oak-v5"
+	] or low.begins_with("r2ext__"):
+		return true
+	return false
+
+func _is_walkable_glb_mesh(mesh_name: String) -> bool:
+	var low := mesh_name.to_lower()
+	if "foliage" in low or "flower" in low or "herb" in low or "water" in low or "pine" in low or "flame" in low or "planter" in low or "rope" in low or "lavender" in low or "bush" in low or "shrub" in low or "fern" in low:
+		return false
+	if "plaza" in low or "stone_floor" in low or "cell-floor" in low or "jetty_deck" in low:
+		return true
+	if ("earth" in low or "coastal-cliff" in low or "carved-cliff" in low) and (
+		low.begins_with("shore__") or low.begins_with("conn__") or low.begins_with("r3paths__")
+	):
+		return true
+	return false
+
+func _should_collide_glb_mesh(mesh_name: String) -> bool:
+	var low := mesh_name.to_lower()
+	# Safe_A5_Temple ya cubre el suelo del templo A5; las losas A5__Stone_Floor_* a y=26.94 bloqueaban el deslizamiento.
+	if low.begins_with("a5__stone_floor"):
+		return false
+	for non_solid_kw in [
+		"foliage", "flower", "herb", "water", "bay", "pine", "flame", "lamp",
+		"embers", "fire-core", "coal-heat", "contact-shadow", "warm-bounce",
+		"fire-glow", "ash", "grass", "moss", "meadow", "vine", "ivy",
+		"lavender", "bush", "shrub", "fern", "reed", "sage", "hedge",
+		"planter", "pebble", "rubble", "linen", "paper", "rug", "cloth"
+	]:
+		if non_solid_kw in low:
+			return false
+	# Evitar mallas puramente de horizonte o faldas lejanas fuera de la zona jugable
+	for horizon_pfx in ["geo", "g2_", "v5coast", "sal", "p3terrain", "r3shoulder", "r3paths__"]:
+		if low.begins_with(horizon_pfx):
+			return false
+	for active_pfx in [
+		"a1room__", "a1bedrock__", "a1plazaprop__", "a1ctx__",
+		"a2__", "a2fin__", "a3__", "a3fin__", "a4__", "a4fin__",
+		"a5__", "a5fin__", "shore__", "conn__", "v4__", "r3land__"
+	]:
+		if low.begins_with(active_pfx):
+			return true
+	return false
+
+func _is_camera_occluder_glb_mesh(mesh_name: String) -> bool:
+	var low := mesh_name.to_lower()
+	if _is_walkable_glb_mesh(mesh_name):
+		return false
+	for huge_shell in ["a1room__", "a1bedrock__", "a1ctx__", "a3__", "a4__", "shore__", "conn__"]:
+		if low.begins_with(huge_shell):
+			return false
+	if low.begins_with("a1plazaprop__") or low.begins_with("a5__") or low.begins_with("a5fin__"):
+		return true
+	if low.begins_with("a2__") or low.begins_with("a2fin__") or low.begins_with("v4__"):
+		return true
+	if low.begins_with("r3land__") and ("bark" in low or "oak" in low or "rope" in low):
+		return true
+	return false
+
+func _should_cast_babylon_shadow(node_low: String, n: String) -> bool:
+	if node_low.begins_with("r3land__") or node_low.begins_with("r3shoulder__") or node_low.begins_with("r3paths__"):
+		return false
+	for skip_kw in [
+		"foliage", "flower", "herb", "water", "bay", "flame", "lamp", "embers", "fire-core", "coal-heat",
+		"contact-shadow", "warm-bounce", "fire-glow", "planter", "vine", "ivy", "grass", "moss", "meadow",
+		"book", "scroll", "bottle", "plate", "cup", "bowl", "jar", "candle", "pottery", "lantern",
+		"chain", "iron", "rail", "crate", "barrel", "bed", "hammock", "cushion", "linen", "paper", "rug", "cloth", "rope", "pebble", "rubble",
+		"bookshelf", "shelf", "table", "chair", "bench", "desk", "cabinet", "cauldron", "kettle", "stool"
+	]:
+		if skip_kw in n or skip_kw in node_low:
+			return false
+	return true
+
+func _collect_mesh_instances(node: Node, out: Array[MeshInstance3D]) -> void:
+	if node is MeshInstance3D:
+		out.append(node)
+	for c in node.get_children():
+		_collect_mesh_instances(c, out)
+
+func _apply_babylon_material(m_inst: MeshInstance3D) -> void:
+	if not m_inst.mesh or m_inst.mesh.get_surface_count() == 0:
+		return
+	var orig_mat: Material = m_inst.mesh.surface_get_material(0)
+	var mat_name := ""
+	if orig_mat and not orig_mat.resource_name.is_empty():
+		mat_name = orig_mat.resource_name
+	elif m_inst.name.contains("__"):
+		mat_name = m_inst.name.split("__", false, 1)[1]
+
+	var n := mat_name.to_lower()
+	var node_low := m_inst.name.to_lower()
+
+	m_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if _should_cast_babylon_shadow(node_low, n) else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+	# Preservar vertex colors en materiales originales no reemplazados; usar CULL_DISABLED para evitar triángulos huecos en acantilados de Babylon
+	if orig_mat is BaseMaterial3D:
+		var bm := orig_mat as BaseMaterial3D
+		bm.cull_mode = BaseMaterial3D.CULL_DISABLED
+		bm.vertex_color_use_as_albedo = true
+
+	if "coastal_water" in n or "bay" in n:
+		m_inst.material_override = _mat_water_glb
+		m_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		return
+
+	if "flame" in n or "lamp" in n or "embers" in n or "fire-core" in n or "coal-heat" in n:
+		if orig_mat is BaseMaterial3D:
+			var bm := orig_mat as BaseMaterial3D
+			bm.emission_enabled = true
+			bm.emission_energy_multiplier = 2.4
+		m_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		return
+
+	if "contact-shadow" in n or "warm-bounce" in n or "fire-glow" in n:
+		m_inst.visible = false
+		return
+
+	# Follaje y enredaderas pintadas de A1 con atlas y recorte alfa
+	if "painted-foliage-sage" in n:
+		m_inst.material_override = _mat_foliage_sage_glb
+		m_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		return
+	if "painted-foliage-dark" in n:
+		m_inst.material_override = _mat_foliage_dark_glb
+		m_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		return
+	if "painted-foliage-flower" in n:
+		m_inst.material_override = _mat_foliage_flower_glb
+		m_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		return
+	if "painted-foliage" in n:
+		m_inst.material_override = _mat_foliage_v6_glb
+		m_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		return
+
+	if "a1_extension_small_flowers" in n or "herb_blossoms" in n:
+		m_inst.material_override = _mat_flower_glb
+		return
+	if "a1_extension_herbs" in n or "refinement_cliff_herbs" in n:
+		m_inst.material_override = _mat_herb_glb
+		return
+
+	if "astalagan" in n:
+		m_inst.material_override = _mat_astalagan_glb
+		return
+
+	# A5 Escultura de Bahamut, pedestal, canarios y columnas
+	if node_low.begins_with("a5__") and ("stone_bahamut" in n or "limestone" in n):
+		m_inst.material_override = _mat_sculpture_glb
+		return
+
+	if "cell-floor" in n:
+		m_inst.material_override = mat_cell_floor
+		return
+
+	if "plaza" in n or "stone_floor" in n:
+		m_inst.material_override = _mat_paving_glb
+		return
+
+	if "meadow_base" in n or (("earth" in n) and (node_low.begins_with("sal1__") or node_low.begins_with("sal2__") or node_low.begins_with("sal2r__") or node_low.begins_with("sal3__"))):
+		m_inst.material_override = _mat_forest_earth_glb
+		return
+
+	if "earth" in n or "garden-soil" in n:
+		m_inst.material_override = _mat_earth_glb
+		return
+
+	if "carved-cliff" in n or "basalt" in n:
+		m_inst.material_override = _mat_carved_glb
+		return
+
+	if "coastal-cliff" in n or "stonecontact" in n:
+		m_inst.material_override = _mat_rock_glb
+		return
+
+	if "limestone" in n:
+		m_inst.material_override = _mat_limestone_glb
+		return
+
+	if "blue-cloth" in n:
+		m_inst.material_override = _mat_blue_cloth_glb
+		return
+	if "red-cloth" in n:
+		m_inst.material_override = _mat_red_cloth_glb
+		return
+	if "green-cloth" in n:
+		m_inst.material_override = _mat_foliage_sage_glb
+		return
+	if "linen" in n or "paper" in n:
+		m_inst.material_override = _mat_linen_glb
+		return
+	if "brass" in n:
+		m_inst.material_override = _mat_brass_glb
+		return
+	if "pottery" in n:
+		m_inst.material_override = _mat_pottery_glb
+		return
+
+	if "dark-oak" in n or "wood_endgrain" in n:
+		m_inst.material_override = _mat_dark_wood_glb
+		return
+
+	if "oak" in n or "wood_oiled" in n:
+		m_inst.material_override = _mat_wood_glb
+		return
+
+	if "iron" in n:
+		m_inst.material_override = _mat_metal_glb
+		return
+
+	# Follaje, césped y árboles de Babylon mejorados con tonos vivos, clorofila cálida y backlight
+	if "r3_grass" in n or "v2_garden_turf" in n or "v2_grass" in n or "v5_dry_grass" in n:
+		m_inst.material_override = _mat_forest_earth_glb
+		return
+	if "r3_pine_sun" in n or "v2_leaves" in n or "refinement_garden_leaf" in n:
+		m_inst.material_override = mat_foliage_olive
+		return
+	if "r3_pine_dark" in n:
+		m_inst.material_override = mat_foliage_pine
+		return
+	if "r3_olive" in n or "r3_sage" in n:
+		m_inst.material_override = _mat_herb_glb
+		return
+	if "r3_" in n or "foliage" in n or "v2_" in n or "v4_" in n or "v5_" in n or "refinement_" in n:
+		if orig_mat is BaseMaterial3D:
+			var fbm := orig_mat as BaseMaterial3D
+			fbm.backlight_enabled = true
+			fbm.backlight = Color(0.09, 0.14, 0.06)
+			fbm.roughness = minf(fbm.roughness, 0.86)
+		return
+
+# 8C. Macetas, jardineras y entradas de cuevas rebosantes de vegetación y flores mediterráneas
+func _build_lush_planters_and_gardens() -> void:
+	var planters_node := Node3D.new()
+	planters_node.name = "LushPlanters"
+	add_child(planters_node)
+
+	var shrub_xf: Array[Transform3D] = []
+	var shrub_col: Array[Color] = []
+	var ivy_xf: Array[Transform3D] = []
+	var flower_xf: Array[Transform3D] = []
+	var flower_col: Array[Color] = []
+
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 987654
+
+	var green_palette: Array[Color] = [
+		Color("#3f5434"), Color("#4d613c"), Color("#5b6e47"), Color("#677652"), Color("#475939")
+	]
+	var flower_palette: Array[Color] = [
+		Color("#f8f5ec"), Color("#f2ece0"), Color("#9a7bc8"), Color("#896bb8"), Color("#e5d57e"), Color("#d8869a"), Color("#f6f2e6")
+	]
+
+	var add_planter_cluster := func(center: Vector3, span_x: float, count: int, with_ivy: bool) -> void:
+		for i in range(count):
+			var ox := rng.randf_range(-span_x * 0.45, span_x * 0.45)
+			var oz := rng.randf_range(-0.22, 0.22)
+			var sc := rng.randf_range(0.45, 0.76)
+			var b := Basis.from_euler(Vector3(rng.randf_range(-0.14, 0.14), rng.randf_range(0.0, TAU), rng.randf_range(-0.14, 0.14)))
+			b = b.scaled(Vector3(sc * 1.10, sc * 1.00, sc * 1.10))
+			shrub_xf.append(Transform3D(b, center + Vector3(ox, 0.04, oz)))
+			shrub_col.append(green_palette[rng.randi() % green_palette.size()])
+
+			for _fl in range(2):
+				if rng.randf() < 0.80:
+					var fc: Color = flower_palette[rng.randi() % flower_palette.size()]
+					var fsc := rng.randf_range(0.22, 0.36)
+					var fb := Basis.from_euler(Vector3(0.0, rng.randf_range(0.0, TAU), 0.0)).scaled(Vector3(fsc, fsc, fsc))
+					flower_xf.append(Transform3D(fb, center + Vector3(ox + rng.randf_range(-0.15, 0.15), sc * 0.40 + 0.06, oz + rng.randf_range(-0.14, 0.14))))
+					flower_col.append(fc)
+
+		if with_ivy:
+			var strand_count := maxi(4, int(round(span_x * 3.0)))
+			for j in range(strand_count):
+				var ix := lerpf(-span_x * 0.45, span_x * 0.45, float(j) / float(maxi(1, strand_count - 1))) + rng.randf_range(-0.06, 0.06)
+				var drop := rng.randf_range(0.50, 0.92)
+				var ib := Basis.from_euler(Vector3(0.04, rng.randf_range(-0.18, 0.18), rng.randf_range(-0.08, 0.08)))
+				ib = ib.scaled(Vector3(0.42, drop, 0.36))
+				ivy_xf.append(Transform3D(ib, center + Vector3(ix, -0.02, 0.24)))
+
+	# 1. Jardineras sólidas de piedra sobre el borde sur del Paseo Superior (sin flotar en el vacío)
+	for x_p in [78.0, 81.0, 84.0, 87.0, 90.0, 93.0, 96.0, 99.0, 102.0, 105.0, 108.0, 111.0, 114.0, 117.0, 120.0, 123.0, 126.0, 129.0, 132.0, 135.0, 138.0, 141.0, 143.8]:
+		var trough := _create_box_prop(planters_node, "UpperTrough_%d" % int(x_p), Vector3(x_p, 18.18, 71.88), Vector3(2.55, 0.42, 0.68), mat_rock_carved)
+		trough.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		add_planter_cluster.call(Vector3(x_p, 18.38, 71.88), 2.1, 12, true)
+	SceneEnhancer.add_box_collider(planters_node, Vector3(110.9, 18.45, 71.88), Vector3(68.2, 1.15, 0.72))
+
+	# Macetas de terracota pegadas al muro flanqueando solo los arcos de A4 y A3 (despejando el Paseo Superior)
+	for x_pot in [99.8, 105.8, 114.6, 120.2]:
+		var u_pot_pos := Vector3(x_pot, 18.0, 65.58)
+		var u_pot := _create_cylinder(planters_node, "UpperPot_%d" % int(x_pot * 10.0), u_pot_pos + Vector3(0.0, 0.24, 0.0), 0.30, 0.48, _mat_pottery_glb)
+		u_pot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		SceneEnhancer.add_cyl_collider(planters_node, u_pot_pos + Vector3(0.0, 0.38, 0.0), 0.33, 0.85)
+		add_planter_cluster.call(u_pot_pos + Vector3(0.0, 0.46, 0.0), 0.52, 8, false)
+
+	# 2. Jardineras del borde sur de la Plaza A1 (encajadas dentro de la barandilla/jardinera)
+	for x_a1 in [74.0, 76.5, 79.0, 81.5, 84.0, 86.5, 89.2, 92.0, 94.8, 97.5, 100.5, 103.5, 106.5, 109.5, 112.5, 115.5, 118.5, 121.5, 124.5, 127.5, 130.5, 133.5]:
+		add_planter_cluster.call(Vector3(x_a1, 9.30, 97.08), 2.2, 13, true)
+	SceneEnhancer.add_box_collider(planters_node, Vector3(103.8, 9.55, 97.08), Vector3(61.5, 1.30, 0.68))
+
+	# 3. Paso 7 (7.1–7.8): Jardín monástico sereno en A1 — ánforas, jardineras de piedra, hierbas medicinales, flor blanca sencilla, lavanda y útiles de cuidado (regadera, tiestos, cestos)
+	var a1_portal_xs := [81.75, 90.75, 101.25, 111.75, 122.25, 131.25]
+	for p_idx in range(a1_portal_xs.size()):
+		var px := float(a1_portal_xs[p_idx])
+		for side_s in [-1.0, 1.0]:
+			var pot_pos := Vector3(px + side_s * 1.95, Structure.ELEV_A1_PLAZA, 89.26)
+			var pot_h := 0.52 if side_s < 0.0 else 0.44
+			var pot_r := 0.31 if side_s < 0.0 else 0.27
+			var pot := _create_cylinder(planters_node, "CavePot_%d_%d" % [p_idx + 1, int(side_s)], pot_pos + Vector3(0.0, pot_h * 0.5, 0.0), pot_r, pot_h, _mat_pottery_glb)
+			pot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+			_create_cylinder(planters_node, "CavePotRim_%d_%d" % [p_idx + 1, int(side_s)], pot_pos + Vector3(0.0, pot_h - 0.03, 0.0), pot_r + 0.035, 0.06, _mat_pottery_glb)
+			SceneEnhancer.add_cyl_collider(planters_node, pot_pos + Vector3(0.0, 0.38, 0.0), pot_r + 0.04, 0.85)
+			add_planter_cluster.call(pot_pos + Vector3(0.0, pot_h, 0.0), 0.58, 11, true)
+			# Segundo tiesto bajo de barro con hierbas medicinales junto a la maceta principal (ref. Imagen 2)
+			var sub_pos := pot_pos + Vector3(side_s * 0.48, 0.0, 0.12)
+			_create_cylinder(planters_node, "CaveHerbPot_%d_%d" % [p_idx + 1, int(side_s)], sub_pos + Vector3(0.0, 0.16, 0.0), 0.21, 0.32, _mat_pottery_glb)
+			add_planter_cluster.call(sub_pos + Vector3(0.0, 0.31, 0.0), 0.40, 7, false)
+
+	# 7.2 y 7.7 Jardineras bajas de mampostería monástica junto a la roca entre portales y vegetación colgante en cornisas entre celdas (sin flotar sobre interiores al abrir cutaway)
+	for trough_x in [78.0, 86.2, 95.3, 106.5, 117.8, 126.6, 135.2]:
+		var tr_pos := Vector3(float(trough_x), Structure.ELEV_A1_PLAZA, 89.08)
+		_create_box_prop(planters_node, "A1RockHerbBed_%d" % int(trough_x), tr_pos + Vector3(0.0, 0.16, 0.0), Vector3(1.55, 0.32, 0.56), mat_rock_carved)
+		add_planter_cluster.call(tr_pos + Vector3(0.0, 0.32, 0.0), 1.38, 14, true)
+		# Vegetación colgante solo sobre los contrafuertes macizos entre celdas (nunca sobre el vano/interior de Celda 1 o Celda 6)
+		if float(trough_x) > 84.0 and float(trough_x) < 128.0:
+			add_planter_cluster.call(Vector3(float(trough_x), 12.15, 88.55), 1.45, 9, true)
+
+	# 7.8 Detalles de cuidado monástico (regadera de cobre/hierro interactiva, tiestos apilados, cesto de mimbre con salvia y útiles junto a Celda 2 de Tarak y jardín oeste)
+	for care_x in [79.1, 93.4, 115.6]:
+		var c_base := Vector3(float(care_x), Structure.ELEV_A1_PLAZA, 89.36)
+		var care_node := Node3D.new()
+		care_node.name = "MonasticGardenCare_%d" % int(care_x)
+		care_node.position = c_base
+		planters_node.add_child(care_node)
+		# Regadera monástica (cuerpo cilíndrico + pico inclinado + asa)
+		_create_cylinder(care_node, "MonasticWateringCan_%d" % int(care_x), Vector3(0.0, 0.17, 0.0), 0.14, 0.34, mat_bronze if int(care_x) == 93 else mat_iron)
+		var spout := _create_cylinder(care_node, "WateringSpout_%d" % int(care_x), Vector3(0.18, 0.22, 0.04), 0.024, 0.28, mat_bronze if int(care_x) == 93 else mat_iron)
+		spout.rotation.z = -0.78
+		_create_box_prop(care_node, "WateringHandle_%d" % int(care_x), Vector3(-0.14, 0.22, 0.0), Vector3(0.04, 0.22, 0.04), mat_iron)
+		# Tiestos de terracota apilados y cesto bajo de mimbre con hierbas recién cortadas
+		_create_cylinder(care_node, "StackedClayPotA_%d" % int(care_x), Vector3(-0.34, 0.12, 0.08), 0.16, 0.24, _mat_pottery_glb)
+		_create_cylinder(care_node, "StackedClayPotB_%d" % int(care_x), Vector3(-0.34, 0.26, 0.08), 0.14, 0.20, _mat_pottery_glb)
+		_create_cylinder(care_node, "HerbBasket_%d" % int(care_x), Vector3(0.36, 0.10, 0.10), 0.22, 0.20, mat_wood)
+		add_planter_cluster.call(c_base + Vector3(0.36, 0.20, 0.10), 0.34, 5, false)
+		var w_ip := SceneEnhancer._attach_interactive_prop(care_node, "watering", "Regadera monástica", "[T] Regar hierbas y flores del claustro")
+		if w_ip:
+			w_ip.interact_radius = 2.15
+
+	# 4. Jardineras apoyadas en tierra firme de Z2_ASCENT, terraza de los Jardines Z7 y terraza de A2 (sin flotar en el acantilado)
+	for z2_pos in [
+		Vector3(64.8, 9.02, 97.8), Vector3(71.0, 9.02, 90.8),
+		Vector3(77.5, 18.02, 58.0), Vector3(80.2, 18.02, 56.2), Vector3(81.8, 18.02, 59.8)
+	]:
+		_create_box_prop(planters_node, "GardenPlanterBase_%d_%d" % [int(z2_pos.x), int(z2_pos.z)], z2_pos + Vector3(0.0, 0.14, 0.0), Vector3(1.9, 0.30, 0.68), mat_rock_carved)
+		add_planter_cluster.call(z2_pos + Vector3(0.0, 0.28, 0.0), 1.65, 10, false)
+
+	var planter_foliage_mat := _make_mat(Color.WHITE, 0.90, 0.0)
+	planter_foliage_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	planter_foliage_mat.backlight_enabled = true
+	planter_foliage_mat.backlight = Color(0.09, 0.14, 0.06)
+	var planter_ivy_mat := _make_mat(Color("#3e5434"), 0.90, 0.0)
+	planter_ivy_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	planter_ivy_mat.backlight_enabled = true
+	planter_ivy_mat.backlight = Color(0.08, 0.13, 0.05)
+	var planter_flower_mat := _make_mat(Color.WHITE, 0.72, 0.0)
+	planter_flower_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	planters_node.add_child(_make_multimesh_batch("MM_PlanterFoliage", SceneEnhancer.make_botanical_shrub_mesh(), planter_foliage_mat, shrub_xf, shrub_col))
+	planters_node.add_child(_make_multimesh_batch("MM_PlanterIvy", SceneEnhancer.make_hanging_ivy_mesh(), planter_ivy_mat, ivy_xf, []))
+	planters_node.add_child(_make_multimesh_batch("MM_PlanterFlowers", SceneEnhancer.make_blossom_cluster_mesh(), planter_flower_mat, flower_xf, flower_col))
+	SceneEnhancer.merge_static_children_by_material(planters_node)
+
+# 8D. Bosque frondoso en la montaña mediante MultiMeshInstance3D sobre puntos muestreados
+func _build_lush_mountain_forest(terrain_data: Dictionary) -> void:
+	var forest_node := Node3D.new()
+	forest_node.name = "LushMountainForest"
+	add_child(forest_node)
+
+	var forest_pts: Array = terrain_data.get("forest_points", [])
+	var under_pts: Array = terrain_data.get("understory_points", [])
+	if forest_pts.is_empty():
+		return
+
+	var trunk_xf: Array[Transform3D] = []
+	var crown_low_xf: Array[Transform3D] = []
+	var crown_mid_xf: Array[Transform3D] = []
+	var crown_high_xf: Array[Transform3D] = []
+	var oak_xf: Array[Transform3D] = []
+	var pine_col_a: Array[Color] = []
+	var pine_col_b: Array[Color] = []
+	var pine_col_c: Array[Color] = []
+	var oak_col: Array[Color] = []
+
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20261114
+
+	var pine_greens: Array[Color] = [
+		Color("#29402b"), Color("#354d35"), Color("#41593e"), Color("#4b6446")
+	]
+	var oak_greens: Array[Color] = [
+		Color("#435636"), Color("#50633e"), Color("#5d6e47"), Color("#3a4a30")
+	]
+	var pleamar_high_clear_pts := [
+		Vector2(21.6, 50.2), Vector2(18.6, 48.2), Vector2(15.6, 46.2), Vector2(13.2, 44.5),
+		Vector2(11.9, 43.3), Vector2(9.8, 42.0), Vector2(7.2, 41.5), Vector2(4.3, 40.7), Vector2(1.9, 38.4)
+	]
+
+	for pt in forest_pts:
+		var pos := Vector3(float(pt.get("x", 0.0)), float(pt.get("y", 20.0)) - 0.18, float(pt.get("z", 0.0)))
+		if pos.x < 18.0 and pos.z > 84.0 and pos.y < 9.0:
+			continue
+		var blocks_pleamar_high := false
+		for cp in pleamar_high_clear_pts:
+			if Vector2(pos.x, pos.z).distance_to(cp) < 3.9:
+				blocks_pleamar_high = true
+				break
+		if blocks_pleamar_high:
+			continue
+		var sc := float(pt.get("s", 1.0))
+		var kind := str(pt.get("k", "pine"))
+		var yaw := rng.randf_range(0.0, TAU)
+		var lean_x := rng.randf_range(-0.04, 0.04)
+		var lean_z := rng.randf_range(-0.04, 0.04)
+		var base_b := Basis.from_euler(Vector3(lean_x, yaw, lean_z))
+
+		if kind == "pine":
+			var th := 3.6 * sc
+			trunk_xf.append(Transform3D(base_b.scaled(Vector3(0.20 * sc, th, 0.20 * sc)), pos + Vector3(0.0, th * 0.5, 0.0)))
+			var tone: Color = pine_greens[rng.randi() % pine_greens.size()]
+			crown_low_xf.append(Transform3D(base_b.scaled(Vector3(1.58 * sc, 1.85 * sc, 1.58 * sc)), pos + Vector3(0.0, 2.55 * sc, 0.0)))
+			pine_col_a.append(tone)
+			crown_mid_xf.append(Transform3D(base_b.rotated(Vector3.UP, 0.72).scaled(Vector3(1.22 * sc, 1.75 * sc, 1.22 * sc)), pos + Vector3(0.0, 3.75 * sc, 0.0)))
+			pine_col_b.append(tone.lightened(0.05))
+			crown_high_xf.append(Transform3D(base_b.rotated(Vector3.UP, 1.44).scaled(Vector3(0.84 * sc, 1.55 * sc, 0.84 * sc)), pos + Vector3(0.0, 4.85 * sc, 0.0)))
+			pine_col_c.append(tone.lightened(0.10))
+		elif kind == "cypress":
+			var th := 4.4 * sc
+			trunk_xf.append(Transform3D(base_b.scaled(Vector3(0.18 * sc, th, 0.18 * sc)), pos + Vector3(0.0, th * 0.5, 0.0)))
+			var ctone: Color = pine_greens[0].lightened(rng.randf_range(0.0, 0.06))
+			crown_low_xf.append(Transform3D(base_b.scaled(Vector3(0.95 * sc, 2.75 * sc, 0.95 * sc)), pos + Vector3(0.0, 2.75 * sc, 0.0)))
+			pine_col_a.append(ctone)
+			crown_mid_xf.append(Transform3D(base_b.rotated(Vector3.UP, 0.45).scaled(Vector3(0.72 * sc, 2.55 * sc, 0.72 * sc)), pos + Vector3(0.0, 4.35 * sc, 0.0)))
+			pine_col_b.append(ctone.lightened(0.05))
+		else:
+			var th := 2.6 * sc
+			trunk_xf.append(Transform3D(base_b.scaled(Vector3(0.24 * sc, th, 0.24 * sc)), pos + Vector3(0.0, th * 0.5, 0.0)))
+			var otone: Color = oak_greens[rng.randi() % oak_greens.size()]
+			oak_xf.append(Transform3D(base_b.scaled(Vector3(1.85 * sc, 1.50 * sc, 1.80 * sc)), pos + Vector3(0.0, 3.05 * sc, 0.0)))
+			oak_col.append(otone)
+			oak_xf.append(Transform3D(base_b.rotated(Vector3.UP, 1.1).scaled(Vector3(1.32 * sc, 1.25 * sc, 1.28 * sc)), pos + Vector3(0.35 * sc, 3.60 * sc, -0.28 * sc)))
+			oak_col.append(otone.lightened(0.06))
+
+	var bush_xf: Array[Transform3D] = []
+	var bush_col: Array[Color] = []
+	var fl_xf: Array[Transform3D] = []
+	var fl_col: Array[Color] = []
+	var flower_colors: Array[Color] = [Color("#cdb460"), Color("#8e74b8"), Color("#dfd6ba")]
+
+	for u in under_pts:
+		var upos := Vector3(float(u.get("x", 0.0)), float(u.get("y", 20.0)) - 0.08, float(u.get("z", 0.0)))
+		if upos.x < 18.0 and upos.z > 84.0 and upos.y < 9.0:
+			continue
+		var blocks_under := false
+		for cp in pleamar_high_clear_pts:
+			if Vector2(upos.x, upos.z).distance_to(cp) < 3.9:
+				blocks_under = true
+				break
+		if blocks_under:
+			continue
+		var usc := float(u.get("s", 1.0))
+		var ub := Basis.from_euler(Vector3(0.0, rng.randf_range(0.0, TAU), 0.0)).scaled(Vector3(1.12 * usc, 1.02 * usc, 1.12 * usc))
+		bush_xf.append(Transform3D(ub, upos + Vector3(0.0, 0.04, 0.0)))
+		bush_col.append(oak_greens[rng.randi() % oak_greens.size()].darkened(0.05))
+		if int(u.get("f", 0)) == 1:
+			var fb := Basis.from_euler(Vector3(0.0, rng.randf_range(0.0, TAU), 0.0)).scaled(Vector3(0.32 * usc, 0.32 * usc, 0.32 * usc))
+			fl_xf.append(Transform3D(fb, upos + Vector3(rng.randf_range(-0.22, 0.22), 0.36 * usc, rng.randf_range(-0.22, 0.22))))
+			fl_col.append(flower_colors[rng.randi() % flower_colors.size()])
+
+	var cone_mesh := _make_pine_tier_mesh()
+	var crown_mat := OcclusionCtrl.make_canopy_dissolve_material(Color.WHITE, 0.90, Color(0.09, 0.14, 0.06), true)
+	var fl_mat := _make_mat(Color.WHITE, 0.74, 0.0)
+	fl_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	var trunk_mesh := CylinderMesh.new()
+	trunk_mesh.top_radius = 0.45
+	trunk_mesh.bottom_radius = 0.72
+	trunk_mesh.height = 1.0
+	trunk_mesh.radial_segments = 7
+
+	forest_node.add_child(_make_multimesh_batch("MM_ForestTrunks", trunk_mesh, mat_wood_dark, trunk_xf, []))
+	if not trunk_xf.is_empty():
+		var trunk_body := StaticBody3D.new()
+		trunk_body.name = "ForestTrunkColliders"
+		forest_node.add_child(trunk_body)
+		for xf in trunk_xf:
+			var sc_t: Vector3 = xf.basis.get_scale()
+			var c_col := CollisionShape3D.new()
+			var c_shp := CylinderShape3D.new()
+			c_shp.radius = maxf(0.18, maxf(sc_t.x, sc_t.z) * 0.68)
+			c_shp.height = maxf(1.2, sc_t.y)
+			c_col.shape = c_shp
+			c_col.position = xf.origin
+			trunk_body.add_child(c_col)
+	forest_node.add_child(_make_multimesh_batch("MM_PineCrownLow", cone_mesh, crown_mat, crown_low_xf, pine_col_a))
+	forest_node.add_child(_make_multimesh_batch("MM_PineCrownMid", cone_mesh, crown_mat, crown_mid_xf, pine_col_b))
+	forest_node.add_child(_make_multimesh_batch("MM_PineCrownHigh", cone_mesh, crown_mat, crown_high_xf, pine_col_c))
+	forest_node.add_child(_make_multimesh_batch("MM_OakCanopies", _make_bush_mesh(), crown_mat, oak_xf, oak_col))
+	forest_node.add_child(_make_multimesh_batch("MM_UnderstoryBushes", SceneEnhancer.make_botanical_shrub_mesh(), crown_mat, bush_xf, bush_col))
+	forest_node.add_child(_make_multimesh_batch("MM_ForestFlowers", SceneEnhancer.make_blossom_cluster_mesh(), fl_mat, fl_xf, fl_col))
+
+func _make_pine_tier_mesh() -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var boughs := 18
+	var apex := Vector3(0.0, 0.56, 0.0)
+	var mid_ring: Array[Vector3] = []
+	var skirt_ring: Array[Vector3] = []
+	for i in range(boughs):
+		var ang := float(i) / float(boughs) * TAU
+		var is_lobe := (i % 2 == 0)
+		var mid_rad := 0.58 if is_lobe else 0.44
+		var mid_y := 0.06 if is_lobe else 0.12
+		mid_ring.append(Vector3(cos(ang) * mid_rad, mid_y, sin(ang) * mid_rad))
+		var rad := 1.06 if is_lobe else 0.72
+		var drop := -0.52 if is_lobe else -0.40
+		skirt_ring.append(Vector3(cos(ang + 0.08) * rad, drop, sin(ang + 0.08) * rad))
+	var center_bottom := Vector3(0.0, -0.32, 0.0)
+	var col_apex := Color(1.16, 1.20, 1.04)
+	var col_mid := Color(1.0, 1.02, 0.96)
+	var col_tip := Color(0.84, 0.88, 0.80)
+	var col_under := Color(0.58, 0.62, 0.56)
+	for i in range(boughs):
+		var next_i := (i + 1) % boughs
+		var m1 := mid_ring[i]
+		var m2 := mid_ring[next_i]
+		var p1 := skirt_ring[i]
+		var p2 := skirt_ring[next_i]
+		st.set_color(col_apex); st.add_vertex(apex)
+		st.set_color(col_mid); st.add_vertex(m1)
+		st.set_color(col_mid); st.add_vertex(m2)
+
+		st.set_color(col_mid); st.add_vertex(m1)
+		st.set_color(col_tip); st.add_vertex(p1)
+		st.set_color(col_tip); st.add_vertex(p2)
+
+		st.set_color(col_mid); st.add_vertex(m1)
+		st.set_color(col_tip); st.add_vertex(p2)
+		st.set_color(col_mid); st.add_vertex(m2)
+
+		st.set_color(col_under); st.add_vertex(center_bottom)
+		st.set_color(col_under); st.add_vertex(p2)
+		st.set_color(col_under); st.add_vertex(p1)
+	st.generate_normals()
+	return st.commit()
+
+func _make_bush_mesh() -> Mesh:
+	return SceneEnhancer.make_lush_canopy_cluster_mesh()
+
+func _make_flower_mesh() -> Mesh:
+	var s := SphereMesh.new()
+	s.radius = 0.5
+	s.height = 0.8
+	s.radial_segments = 7
+	s.rings = 4
+	return s
+
+func _build_single_multimesh_node(batch_name: String, mesh_res: Mesh, mat: Material, transforms: Array[Transform3D], colors: Array[Color], use_colors: bool, shadow_mode: GeometryInstance3D.ShadowCastingSetting) -> MultiMeshInstance3D:
+	var mmi := MultiMeshInstance3D.new()
+	mmi.name = batch_name
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = use_colors
+	mm.mesh = mesh_res
+	mm.instance_count = transforms.size()
+	for i in range(transforms.size()):
+		mm.set_instance_transform(i, transforms[i])
+		if use_colors and i < colors.size():
+			mm.set_instance_color(i, colors[i])
+	mmi.multimesh = mm
+	mmi.material_override = mat
+	mmi.cast_shadow = shadow_mode
+	return mmi
+
+func _make_multimesh_batch(batch_name: String, mesh_res: Mesh, mat: Material, transforms: Array[Transform3D], colors: Array[Color]) -> MultiMeshInstance3D:
+	var use_colors := not colors.is_empty()
+	var resolved_mat: Material = mat
+	if use_colors and mat is BaseMaterial3D:
+		var colored_mat := (mat as BaseMaterial3D).duplicate() as BaseMaterial3D
+		colored_mat.vertex_color_use_as_albedo = true
+		colored_mat.vertex_color_is_srgb = true
+		resolved_mat = colored_mat
+	var shadow_mode := GeometryInstance3D.SHADOW_CASTING_SETTING_ON if (
+		"CrownLow" in batch_name
+		or "Oak" in batch_name
+		or "CoastalPine" in batch_name
+		or "TrailRocks" in batch_name
+		or "TrailTrunks" in batch_name
+	) else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+	if transforms.size() > 140:
+		var min_x := INF
+		var max_x := -INF
+		var min_z := INF
+		var max_z := -INF
+		for xf in transforms:
+			min_x = minf(min_x, xf.origin.x)
+			max_x = maxf(max_x, xf.origin.x)
+			min_z = minf(min_z, xf.origin.z)
+			max_z = maxf(max_z, xf.origin.z)
+		var span_x := maxf(0.01, max_x - min_x)
+		var span_z := maxf(0.01, max_z - min_z)
+		if span_x > 36.0 or span_z > 36.0:
+			const GX := 4
+			const GZ := 3
+			var cell_xfs: Array = []
+			var cell_cols: Array = []
+			for _ci in range(GX * GZ):
+				var arr_xf: Array[Transform3D] = []
+				var arr_col: Array[Color] = []
+				cell_xfs.append(arr_xf)
+				cell_cols.append(arr_col)
+			for i in range(transforms.size()):
+				var xf := transforms[i]
+				var gx := clampi(int(((xf.origin.x - min_x) / span_x) * float(GX)), 0, GX - 1)
+				var gz := clampi(int(((xf.origin.z - min_z) / span_z) * float(GZ)), 0, GZ - 1)
+				var idx := gz * GX + gx
+				(cell_xfs[idx] as Array[Transform3D]).append(xf)
+				if use_colors and i < colors.size():
+					(cell_cols[idx] as Array[Color]).append(colors[i])
+			var primary_mmi: MultiMeshInstance3D = null
+			var chunk_idx := 1
+			for bi in range(GX * GZ):
+				var bxfs: Array[Transform3D] = cell_xfs[bi]
+				if bxfs.is_empty():
+					continue
+				var bcols: Array[Color] = cell_cols[bi]
+				if primary_mmi == null:
+					primary_mmi = _build_single_multimesh_node(batch_name, mesh_res, resolved_mat, bxfs, bcols, use_colors, shadow_mode)
+				else:
+					var child_mmi := _build_single_multimesh_node("%s_chunk_%d" % [batch_name, chunk_idx], mesh_res, resolved_mat, bxfs, bcols, use_colors, shadow_mode)
+					primary_mmi.add_child(child_mmi)
+					chunk_idx += 1
+			if primary_mmi != null:
+				return primary_mmi
+
+	return _build_single_multimesh_node(batch_name, mesh_res, resolved_mat, transforms, colors, use_colors, shadow_mode)
+
+# 9. Marcadores de los 16 Landmarks canónicos
+func _build_landmarks() -> void:
+	var landmarks_node := Node3D.new()
+	landmarks_node.name = "Landmarks"
+	add_child(landmarks_node)
+
+	for lm_id in Structure.LANDMARKS.keys():
+		var lm: Dictionary = Structure.LANDMARKS[lm_id]
+		var world_pos: Vector3 = lm["world_pos"]
+
+		var marker := Node3D.new()
+		marker.name = "Marker_" + lm_id
+		marker.position = world_pos
+		landmarks_node.add_child(marker)
+
+		var mesh_inst := MeshInstance3D.new()
+		var sphere := SphereMesh.new()
+		sphere.radius = 0.095
+		sphere.height = 0.19
+		mesh_inst.mesh = sphere
+		mesh_inst.material_override = mat_marker
+		mesh_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mesh_inst.position = Vector3(0, 0.35, 0)
+		marker.add_child(mesh_inst)
+
+		var label := Label3D.new()
+		label.text = lm["label"]
+		label.font_size = 13
+		label.pixel_size = 0.011
+		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		label.position = Vector3(0, 1.05, 0)
+		label.modulate = Color(1.0, 0.94, 0.78, 0.78)
+		marker.add_child(label)
+		mesh_inst.visible = false
+		label.visible = false
+
+# 9B. Paso 10: Fauna y ambiente costero-monástico en A1 (gaviotas posadas con idle sutil, aves planeando, mariposas en flores y paisaje sonoro suave)
+func _build_a1_ambient_fauna_and_sound() -> void:
+	_a1_fauna_root = Node3D.new()
+	_a1_fauna_root.name = "A1_AmbientFauna"
+	add_child(_a1_fauna_root)
+	_perched_gulls.clear()
+	_gliding_gulls.clear()
+	_garden_butterflies.clear()
+
+	var mat_gull_white := _make_mat(Color("#f6f4ee"), 0.72, 0.0)
+	var mat_gull_wing := _make_mat(Color("#8c97a4"), 0.76, 0.0)
+	var mat_gull_tip := _make_mat(Color("#2a2f36"), 0.80, 0.0)
+	var mat_gull_beak := _make_mat(Color("#e8aa38"), 0.55, 0.0)
+	var mat_gull_leg := _make_mat(Color("#d48632"), 0.65, 0.0)
+
+	# 10.1 & 10.2 Gaviotas posadas en 6 remates de sillar reales del pretil sur (100% apoyadas sobre piedra sólida, nunca flotando ni atravesando rocas)
+	var parapet_perch_xs := [74.20, 77.60, 93.20, 112.80, 125.40, 133.40]
+	for ppx in parapet_perch_xs:
+		# Remate de sillar limpio sobre el pretil sur (despejado de macetas y arbustos, cota superior y=10.36)
+		var cap := _create_box_prop(_a1_fauna_root, "A1GullPerchCapstone_%d" % int(ppx * 10.0), Vector3(float(ppx), 9.65, 96.92), Vector3(0.62, 1.30, 0.62), mat_column)
+		cap.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		_create_box_prop(_a1_fauna_root, "A1GullPerchCapTrim_%d" % int(ppx * 10.0), Vector3(float(ppx), 10.32, 96.92), Vector3(0.70, 0.08, 0.70), mat_column)
+	var perched_specs := [
+		[Vector3(74.20, 10.365, 96.92), 0.52, 1.00, false],
+		[Vector3(77.60, 10.365, 96.92), 0.36, 0.96, false],
+		[Vector3(93.20, 10.365, 96.92), -0.28, 0.98, false],
+		[Vector3(112.80, 10.365, 96.92), 0.34, 0.98, false],
+		[Vector3(125.40, 10.365, 96.92), -0.38, 0.96, false],
+		[Vector3(133.40, 10.365, 96.92), -0.46, 1.00, false],
+	]
+	for pi in range(perched_specs.size()):
+		var ps: Array = perched_specs[pi]
+		var g_node := _create_perched_seagull_node("A1PerchedGull_%d" % pi, ps[0], float(ps[1]), float(ps[2]), mat_gull_white, mat_gull_wing, mat_gull_tip, mat_gull_beak, mat_gull_leg)
+		_a1_fauna_root.add_child(g_node)
+		_perched_gulls.append({
+			"root": g_node,
+			"body": g_node.get_node_or_null("BodyPivot"),
+			"head": g_node.get_node_or_null("BodyPivot/HeadPivot"),
+			"base_yaw": float(ps[1]),
+			"phase": float(pi) * 1.73 + 0.4,
+			"raycast_settle": bool(ps[3]),
+		})
+
+	# 10.3 Gaviotas planeando alto y despejado sobre la bahía abierta (y >= 13.8, z >= 107.4; cero solape visual ni físico con acantilado o pretil)
+	var glide_specs := [
+		[Vector3(84.6, 13.85, 107.40), 4.6, 1.55, 0.34, 0.35, 1.06],
+		[Vector3(98.4, 14.95, 108.80), 5.2, 1.65, 0.31, 1.15, 1.00],
+		[Vector3(116.4, 14.20, 107.60), 4.8, 1.60, 0.29, 2.25, 1.04],
+	]
+	for gi in range(glide_specs.size()):
+		var gs: Array = glide_specs[gi]
+		var gl_node := _create_gliding_seagull_node("A1GlidingGull_%d" % gi, gs[0], float(gs[5]), mat_gull_white, mat_gull_wing, mat_gull_tip, mat_gull_beak)
+		_a1_fauna_root.add_child(gl_node)
+		_gliding_gulls.append({
+			"node": gl_node,
+			"wing_l": gl_node.get_node_or_null("WingL"),
+			"wing_r": gl_node.get_node_or_null("WingR"),
+			"center": gs[0],
+			"rx": float(gs[1]),
+			"rz": float(gs[2]),
+			"speed": float(gs[3]),
+			"phase": float(gs[4])
+		})
+
+	# 10.5 Mariposas muy sutiles revoloteando despejadas por encima de las flores blancas y lavandas de las jardineras de A1
+	var mat_bfly_cream := _make_mat(Color("#f7ebd2"), 0.55, 0.0)
+	mat_bfly_cream.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var mat_bfly_lav := _make_mat(Color("#d8c2f0"), 0.55, 0.0)
+	mat_bfly_lav.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var bfly_centers := [
+		Vector3(82.4, 10.42, 96.34),
+		Vector3(87.6, 10.44, 96.32),
+		Vector3(95.3, 9.96, 90.46),
+		Vector3(97.8, 10.42, 96.34),
+		Vector3(106.5, 9.96, 90.46),
+		Vector3(110.5, 10.42, 96.34),
+		Vector3(117.8, 9.96, 90.46),
+		Vector3(121.4, 10.42, 96.34),
+	]
+	for bi in range(bfly_centers.size()):
+		var bf_node := Node3D.new()
+		bf_node.name = "A1GardenButterfly_%d" % bi
+		bf_node.position = bfly_centers[bi]
+		_a1_fauna_root.add_child(bf_node)
+		var b_mat := mat_bfly_cream if bi % 2 == 0 else mat_bfly_lav
+		var wl := _create_box_prop(bf_node, "WingL", Vector3(-0.045, 0.0, 0.0), Vector3(0.085, 0.008, 0.095), b_mat)
+		var wr := _create_box_prop(bf_node, "WingR", Vector3(0.045, 0.0, 0.0), Vector3(0.085, 0.008, 0.095), b_mat)
+		wl.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		wr.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_garden_butterflies.append({
+			"node": bf_node,
+			"wl": wl,
+			"wr": wr,
+			"center": bfly_centers[bi],
+			"phase": float(bi) * 1.41
+		})
+
+	# 10.4 Paisaje sonoro ambiental suave de costa y retiro (activo con driver de audio real)
+	if DisplayServer.get_name() != "headless" and AudioServer.get_driver_name() != "Dummy":
+		_a1_ambient_player = AudioStreamPlayer.new()
+		_a1_ambient_player.name = "A1AmbientSoundscape"
+		var gen := AudioStreamGenerator.new()
+		gen.mix_rate = 22050.0
+		gen.buffer_length = 0.25
+		_a1_ambient_player.stream = gen
+		_a1_ambient_player.volume_db = -21.0
+		_a1_fauna_root.add_child(_a1_ambient_player)
+		if _a1_ambient_player.is_inside_tree():
+			_a1_ambient_player.play()
+
+	_animate_a1_fauna_and_sound(0.0)
+	call_deferred("_settle_a1_fauna_clear_of_rocks")
+
+func _collect_a1_rock_meshes() -> Array[Dictionary]:
+	var rocks: Array[Dictionary] = []
+	for child in find_children("*", "MeshInstance3D", true, false):
+		var mi := child as MeshInstance3D
+		if not is_instance_valid(mi) or mi.mesh == null or not mi.visible:
+			continue
+		if _a1_fauna_root and _a1_fauna_root.is_ancestor_of(mi):
+			continue
+		var low := mi.name.to_lower()
+		var p_low := mi.get_parent().name.to_lower() if mi.get_parent() else ""
+		if "vault" in low or "crag" in low or "buttress" in low or "cliff" in low or "rock" in low or "strata" in low or "caveroof" in p_low or "a1_" in p_low:
+			var aabb := mi.global_transform * mi.mesh.get_aabb()
+			if aabb.end.x >= 70.0 and aabb.position.x <= 145.0 and aabb.end.z >= 74.0 and aabb.position.z <= 116.0:
+				rocks.append({"mi": mi, "aabb": aabb, "faces": PackedVector3Array()})
+	return rocks
+
+func _sample_highest_visual_rock_y(x: float, z: float, y_top: float, y_bot: float, rock_meshes: Array) -> float:
+	var best_y := -INF
+	var seg_a := Vector3(x, y_top, z)
+	var seg_b := Vector3(x, y_bot, z)
+	for entry in rock_meshes:
+		var aabb: AABB = entry["aabb"]
+		if x < aabb.position.x - 0.15 or x > aabb.end.x + 0.15 or z < aabb.position.z - 0.15 or z > aabb.end.z + 0.15:
+			continue
+		var mi: MeshInstance3D = entry["mi"]
+		var faces: PackedVector3Array = entry["faces"]
+		if faces.is_empty():
+			faces = mi.mesh.get_faces()
+			entry["faces"] = faces
+		var la := mi.to_local(seg_a)
+		var lb := mi.to_local(seg_b)
+		for i in range(0, faces.size(), 3):
+			var hit = Geometry3D.segment_intersects_triangle(la, lb, faces[i], faces[i + 1], faces[i + 2])
+			if hit != null:
+				var wy := mi.to_global(hit).y
+				if wy > best_y:
+					best_y = wy
+	return best_y
+
+func _point_inside_visual_rock(pt: Vector3, pad: float, rock_meshes: Array) -> bool:
+	for entry in rock_meshes:
+		var aabb: AABB = (entry["aabb"] as AABB).grow(pad)
+		if not aabb.has_point(pt):
+			continue
+		var top_y := _sample_highest_visual_rock_y(pt.x, pt.z, aabb.end.y + 0.5, aabb.position.y - 0.5, [entry])
+		if top_y != -INF and pt.y <= top_y + pad and pt.y >= aabb.position.y - pad:
+			return true
+	return false
+
+func _settle_a1_fauna_clear_of_rocks() -> void:
+	if not is_inside_tree() or not get_world_3d():
+		return
+	var space := get_world_3d().direct_space_state
+	if space == null:
+		return
+	var rock_meshes := _collect_a1_rock_meshes()
+	var sphere := SphereShape3D.new()
+	sphere.radius = 0.24
+	var q_shape := PhysicsShapeQueryParameters3D.new()
+	q_shape.shape = sphere
+	q_shape.collide_with_areas = false
+	q_shape.collide_with_bodies = true
+
+	# 1) Asentar gaviotas posadas de acantilado exactamente sobre la superficie superior (física Y visual) sin penetrar ningún sólido
+	for pg in _perched_gulls:
+		var root_g: Node3D = pg.get("root")
+		if not is_instance_valid(root_g):
+			continue
+		var pos := root_g.global_position
+		if bool(pg.get("raycast_settle", false)):
+			var best_surf_y := -INF
+			var ray := PhysicsRayQueryParameters3D.create(Vector3(pos.x, 21.0, pos.z), Vector3(pos.x, 10.5, pos.z))
+			ray.collide_with_areas = false
+			var hit := space.intersect_ray(ray)
+			if not hit.is_empty():
+				best_surf_y = maxf(best_surf_y, float(hit.position.y))
+			# Muestrear huella completa de patas (centro y 4 puntos a +-0.16m) sobre las mallas de roca visual
+			for off in [Vector2.ZERO, Vector2(-0.16, 0.0), Vector2(0.16, 0.0), Vector2(0.0, -0.16), Vector2(0.0, 0.16)]:
+				var vy := _sample_highest_visual_rock_y(pos.x + off.x, pos.z + off.y, 21.0, 10.5, rock_meshes)
+				if vy != -INF:
+					best_surf_y = maxf(best_surf_y, vy)
+			if best_surf_y != -INF:
+				pos.y = best_surf_y + 0.015
+			else:
+				pos.y = 14.20
+		# Garantizar 0 intersecciones físicas en el cuerpo de la gaviota
+		for _step in range(20):
+			q_shape.transform = Transform3D(Basis.IDENTITY, pos + Vector3(0.0, 0.28, 0.0))
+			if space.intersect_shape(q_shape, 1).is_empty():
+				break
+			pos.y += 0.14
+		root_g.global_position = pos
+
+	# 2) Garantizar 0 intersecciones (físicas Y mallas visuales) en los 360° de la órbita de cada gaviota planeando
+	var glide_sphere := SphereShape3D.new()
+	glide_sphere.radius = 0.55
+	q_shape.shape = glide_sphere
+	for gg in _gliding_gulls:
+		var c: Vector3 = gg.get("center", Vector3.ZERO)
+		var rx: float = float(gg.get("rx", 4.0))
+		var rz: float = float(gg.get("rz", 1.5))
+		for _tries in range(18):
+			var blocked := false
+			for s_i in range(24):
+				var ang := float(s_i) / 24.0 * TAU
+				var pt := c + Vector3(cos(ang) * rx, sin(ang * 1.5) * 0.28, sin(ang) * rz)
+				q_shape.transform = Transform3D(Basis.IDENTITY, pt)
+				if not space.intersect_shape(q_shape, 1).is_empty() or _point_inside_visual_rock(pt, 0.55, rock_meshes):
+					blocked = true
+					break
+			if not blocked:
+				break
+			c.z += 0.85
+			c.y += 0.45
+		gg["center"] = c
+
+	# 3) Garantizar 0 intersecciones en las mariposas de jardín (comprobando el volumen completo de vuelo)
+	var bfly_sphere := SphereShape3D.new()
+	bfly_sphere.radius = 0.14
+	q_shape.shape = bfly_sphere
+	for bf in _garden_butterflies:
+		var bc: Vector3 = bf.get("center", Vector3.ZERO)
+		for _tries in range(16):
+			var blocked := false
+			for s_i in range(16):
+				var ang := float(s_i) / 16.0 * TAU
+				var pt := bc + Vector3(sin(ang) * 0.22, absf(cos(ang * 1.7)) * 0.12, cos(ang * 0.8) * 0.14)
+				q_shape.transform = Transform3D(Basis.IDENTITY, pt)
+				if not space.intersect_shape(q_shape, 1).is_empty() or _point_inside_visual_rock(pt, 0.14, rock_meshes):
+					blocked = true
+					break
+			if not blocked:
+				break
+			bc.z += 0.24 if bc.z < 93.0 else -0.24
+			bc.y += 0.08
+		bf["center"] = bc
+	_animate_a1_fauna_and_sound(0.0)
+
+func _create_perched_seagull_node(g_name: String, pos: Vector3, yaw: float, sc: float, mat_white: Material, mat_wing: Material, mat_tip: Material, mat_beak: Material, mat_leg: Material) -> Node3D:
+	var g := Node3D.new()
+	g.name = g_name
+	g.position = pos
+	g.rotation.y = yaw
+	g.scale = Vector3.ONE * sc
+	# Patas finas posadas sobre la roca o pretil
+	for lx in [-0.055, 0.055]:
+		_create_cylinder(g, "Leg", Vector3(lx, 0.09, 0.0), 0.014, 0.18, mat_leg)
+		_create_box_prop(g, "Foot", Vector3(lx, 0.01, 0.03), Vector3(0.036, 0.014, 0.065), mat_leg)
+	var body_piv := Node3D.new()
+	body_piv.name = "BodyPivot"
+	body_piv.position = Vector3(0.0, 0.22, 0.0)
+	g.add_child(body_piv)
+	var torso := _create_box_prop(body_piv, "Torso", Vector3(0.0, 0.0, 0.0), Vector3(0.22, 0.20, 0.42), mat_white)
+	torso.rotation.x = -0.14
+	var breast := _create_cylinder(body_piv, "Breast", Vector3(0.0, 0.03, 0.14), 0.105, 0.18, mat_white)
+	breast.rotation.x = 0.35
+	# Dorso y alas plegadas grises con puntas primarias oscuras
+	for side_v in [-1.0, 1.0]:
+		var side := float(side_v)
+		var fw := _create_box_prop(body_piv, "FoldedWing", Vector3(side * 0.095, 0.03, -0.04), Vector3(0.065, 0.13, 0.38), mat_wing)
+		fw.rotation = Vector3(-0.18, -side * 0.08, side * 0.12)
+		var tip := _create_box_prop(body_piv, "WingTip", Vector3(side * 0.06, -0.01, -0.26), Vector3(0.05, 0.06, 0.16), mat_tip)
+		tip.rotation.x = -0.20
+	var tail := _create_box_prop(body_piv, "Tail", Vector3(0.0, -0.02, -0.27), Vector3(0.13, 0.035, 0.16), mat_white)
+	tail.rotation.x = -0.16
+	# Cabeza con pivote para animación sutil de observación (10.2)
+	var head_piv := Node3D.new()
+	head_piv.name = "HeadPivot"
+	head_piv.position = Vector3(0.0, 0.15, 0.15)
+	body_piv.add_child(head_piv)
+	_create_cylinder(head_piv, "Neck", Vector3(0.0, -0.02, 0.0), 0.068, 0.12, mat_white)
+	_create_box_prop(head_piv, "Head", Vector3(0.0, 0.05, 0.02), Vector3(0.13, 0.12, 0.15), mat_white)
+	var beak := _create_box_prop(head_piv, "Beak", Vector3(0.0, 0.04, 0.13), Vector3(0.042, 0.042, 0.12), mat_beak)
+	beak.rotation.x = 0.12
+	return g
+
+func _create_gliding_seagull_node(g_name: String, pos: Vector3, sc: float, mat_white: Material, mat_wing: Material, mat_tip: Material, mat_beak: Material) -> Node3D:
+	var g := Node3D.new()
+	g.name = g_name
+	g.position = pos
+	g.scale = Vector3.ONE * sc
+	_create_box_prop(g, "Body", Vector3.ZERO, Vector3(0.20, 0.15, 0.52), mat_white)
+	_create_box_prop(g, "Head", Vector3(0.0, 0.04, 0.28), Vector3(0.13, 0.12, 0.16), mat_white)
+	_create_box_prop(g, "Beak", Vector3(0.0, 0.03, 0.39), Vector3(0.04, 0.04, 0.11), mat_beak)
+	_create_box_prop(g, "Tail", Vector3(0.0, 0.01, -0.32), Vector3(0.22, 0.03, 0.18), mat_white)
+	for side_v in [-1.0, 1.0]:
+		var side := float(side_v)
+		var w_piv := Node3D.new()
+		w_piv.name = "WingL" if side < 0.0 else "WingR"
+		w_piv.position = Vector3(side * 0.08, 0.03, 0.04)
+		g.add_child(w_piv)
+		var inner_w := _create_box_prop(w_piv, "InnerWing", Vector3(side * 0.28, 0.06, -0.02), Vector3(0.56, 0.035, 0.24), mat_wing)
+		inner_w.rotation.z = -side * 0.22
+		var outer_w := _create_box_prop(w_piv, "OuterWing", Vector3(side * 0.72, 0.08, -0.08), Vector3(0.42, 0.03, 0.18), mat_tip)
+		outer_w.rotation = Vector3(0.0, -side * 0.18, side * 0.14)
+	return g
+
+func _animate_a1_fauna_and_sound(delta: float) -> void:
+	_fauna_time += delta
+	# 10.2 Animación sutil de giro de cabeza y respiración en gaviotas posadas
+	for pg in _perched_gulls:
+		var head: Node3D = pg.get("head")
+		var body: Node3D = pg.get("body")
+		var ph: float = float(pg.get("phase", 0.0))
+		if is_instance_valid(head):
+			var look_wave := sin(_fauna_time * 1.15 + ph) + 0.35 * sin(_fauna_time * 2.7 + ph * 1.4)
+			head.rotation.y = clampf(look_wave * 0.32, -0.45, 0.45)
+			head.rotation.x = cos(_fauna_time * 0.85 + ph) * 0.07
+		if is_instance_valid(body):
+			body.rotation.x = sin(_fauna_time * 1.9 + ph) * 0.025
+	# Canarios dorados de Bahamut en A5 (picoteo y giro de cabeza sereno)
+	for cn in _a5_canaries:
+		var c_head: Node3D = cn.get("head")
+		var c_root: Node3D = cn.get("root")
+		var c_ph: float = float(cn.get("phase", 0.0))
+		if is_instance_valid(c_head):
+			c_head.rotation.y = sin(_fauna_time * 1.65 + c_ph) * 0.38
+			c_head.rotation.x = 0.08 * sin(_fauna_time * 3.2 + c_ph * 1.3)
+		if is_instance_valid(c_root):
+			c_root.position.y = float(cn.get("base_y", c_root.position.y)) + maxf(0.0, sin(_fauna_time * 2.6 + c_ph) - 0.82) * 0.14
+	# 10.3 Vuelo lento en arco suave de las gaviotas costeras
+	for gg in _gliding_gulls:
+		var gn: Node3D = gg.get("node")
+		if not is_instance_valid(gn):
+			continue
+		var c: Vector3 = gg.get("center", Vector3.ZERO)
+		var rx: float = float(gg.get("rx", 3.5))
+		var rz: float = float(gg.get("rz", 1.2))
+		var spd: float = float(gg.get("speed", 0.32))
+		var ph: float = float(gg.get("phase", 0.0))
+		var ang := _fauna_time * spd + ph
+		var pos := c + Vector3(cos(ang) * rx, sin(ang * 1.5) * 0.28, sin(ang) * rz)
+		var vel := Vector3(-sin(ang) * rx, 0.0, cos(ang) * rz).normalized()
+		gn.position = pos
+		if vel.length_squared() > 0.01:
+			gn.rotation.y = atan2(vel.x, vel.z)
+		gn.rotation.z = -cos(ang) * 0.16
+		var wl: Node3D = gg.get("wing_l")
+		var wr: Node3D = gg.get("wing_r")
+		var flap := sin(_fauna_time * 2.4 + ph) * 0.12
+		if is_instance_valid(wl):
+			wl.rotation.z = flap
+		if is_instance_valid(wr):
+			wr.rotation.z = -flap
+	# 10.5 Aleteo suave de mariposas sobre las flores de la plaza (radio compacto libre de roca y muros)
+	for bf in _garden_butterflies:
+		var bn: Node3D = bf.get("node")
+		if not is_instance_valid(bn):
+			continue
+		var bc: Vector3 = bf.get("center", Vector3.ZERO)
+		var ph: float = float(bf.get("phase", 0.0))
+		var t_b := _fauna_time * 1.35 + ph
+		bn.position = bc + Vector3(sin(t_b) * 0.22, absf(cos(t_b * 1.7)) * 0.12, cos(t_b * 0.8) * 0.14)
+		bn.rotation.y = sin(t_b * 0.9) * 0.8
+		var wing_ang := sin(_fauna_time * 14.0 + ph) * 0.58
+		var wl: Node3D = bf.get("wl")
+		var wr: Node3D = bf.get("wr")
+		if is_instance_valid(wl):
+			wl.rotation.z = wing_ang
+		if is_instance_valid(wr):
+			wr.rotation.z = -wing_ang
+	# 10.4 Alimentar suavemente el generador de brisa marina y rumor costero
+	if is_instance_valid(_a1_ambient_player) and _a1_ambient_player.playing:
+		var pb := _a1_ambient_player.get_stream_playback() as AudioStreamGeneratorPlayback
+		if pb:
+			var avail := pb.get_frames_available()
+			var dt := 1.0 / 22050.0
+			for _i in range(mini(avail, 512)):
+				_a1_ambient_phase += dt
+				var surf_env := 0.55 + 0.45 * sin(_a1_ambient_phase * 0.42)
+				var breeze := (sin(_a1_ambient_phase * 142.0 + sin(_a1_ambient_phase * 3.1) * 4.0) * 0.35 + cos(_a1_ambient_phase * 218.0) * 0.25) * surf_env * 0.045
+				pb.push_frame(Vector2(breeze, breeze))
+
+# Auxiliares de geometría
+func _create_surface_slab(parent: Node, slab_name: String, pos: Vector3, size: Vector3, mat: Material) -> MeshInstance3D:
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	var inst := MeshInstance3D.new()
+	inst.name = slab_name
+	inst.mesh = mesh
+	inst.material_override = mat
+	inst.position = pos
+
+	var sb := StaticBody3D.new()
+	sb.name = slab_name + "_StaticBody"
+	var col := CollisionShape3D.new()
+	var box_shape := BoxShape3D.new()
+	box_shape.size = size
+	col.shape = box_shape
+	sb.add_child(col)
+	inst.add_child(sb)
+
+	parent.add_child(inst)
+	return inst
+
+func _create_box_prop(parent: Node, prop_name: String, pos: Vector3, size: Vector3, mat: Material) -> MeshInstance3D:
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	var inst := MeshInstance3D.new()
+	inst.name = prop_name
+	inst.mesh = mesh
+	inst.material_override = mat
+	inst.position = pos
+	parent.add_child(inst)
+	return inst
+
+func _create_cylinder(parent: Node, prop_name: String, pos: Vector3, radius: float, height: float, mat: Material) -> MeshInstance3D:
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = radius
+	mesh.bottom_radius = radius
+	mesh.height = height
+	mesh.radial_segments = 12
+	var inst := MeshInstance3D.new()
+	inst.name = prop_name
+	inst.mesh = mesh
+	inst.material_override = mat
+	inst.position = pos
+	parent.add_child(inst)
+	return inst
+
+# ==============================================================================
+# 10. CAMINOS SCÉNICOS DE TRANSICIÓN ENTRE MAPAS Y SALIDAS (MapExit + Spawns)
+# ==============================================================================
+func _build_scenic_transition_paths() -> void:
+	var root := Node3D.new()
+	root.name = "MapTransitionPaths"
+	add_child(root)
+
+	# Compartir batches MultiMesh ligeros para bordes, rocas y arboledas de cierre
+	var trail_rocks_xf: Array[Transform3D] = []
+	var trail_rocks_col: Array[Color] = []
+	var trail_bushes_xf: Array[Transform3D] = []
+	var trail_bushes_col: Array[Color] = []
+	var trail_trunks_xf: Array[Transform3D] = []
+	var trail_pine_a_xf: Array[Transform3D] = []
+	var trail_pine_a_col: Array[Color] = []
+	var trail_pine_b_xf: Array[Transform3D] = []
+	var trail_pine_b_col: Array[Color] = []
+	var trail_pine_c_xf: Array[Transform3D] = []
+	var trail_pine_c_col: Array[Color] = []
+
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20261115
+
+	var routes := [
+		{
+			"id": "pleamar-low",
+			"name": "Sendero Costero a Aproximación de Pleamar",
+			"target_scene": "res://scenes/pleamar_coves.tscn",
+			"target_spawn": "from_pleamar_low",
+			"facing": "sw",
+			"return_spawn": "from_pleamar_low",
+			"return_pos": Vector3(10.8, 0.55, 99.6),
+			"return_facing": "ne",
+			"exit_pos": Vector3(5.6, 0.54, 98.4),
+			"exit_radius": 1.95,
+			"base_width": 2.35,
+			"skirt_depth": 0.12,
+			"tight_skirt": true,
+			"sandy_merge": true,
+			"ridge_height": 1.60,
+			"start_tint": Color("#b49a76"),
+			"tread_tint": Color("#9d8160"),
+			"edge_tint": Color("#baa07d"),
+			"mist": true,
+			"pts": [
+				Vector3(20.5, 0.48, 106.8), Vector3(17.2, 0.49, 104.6), Vector3(14.0, 0.51, 102.7),
+				Vector3(10.8, 0.52, 100.8), Vector3(8.2, 0.53, 99.3), Vector3(5.6, 0.54, 97.7),
+				Vector3(1.8, 0.55, 95.6), Vector3(-2.0, 0.57, 93.6), Vector3(-6.0, 0.62, 91.6),
+				Vector3(-10.6, 0.68, 89.6), Vector3(-15.5, 0.74, 87.6), Vector3(-20.5, 0.85, 84.8),
+				Vector3(-25.8, 0.96, 82.0)
+			]
+		},
+		{
+			"id": "pleamar-high",
+			"name": "Senda Alta hacia el Collado de Pleamar",
+			"target_scene": "res://scenes/pleamar_coves.tscn",
+			"target_spawn": "from_pleamar_high",
+			"facing": "nw",
+			"return_spawn": "from_pleamar_high",
+			"return_pos": Vector3(9.8, 21.25, 42.0),
+			"return_facing": "se",
+			"exit_pos": Vector3(4.3, 20.95, 40.65),
+			"exit_radius": 1.95,
+			"base_width": 2.45,
+			"skirt_depth": 0.35,
+			"tight_skirt": true,
+			"ridge_height": 2.1,
+			"start_tint": Color("#b49a76"),
+			"tread_tint": Color("#ab9474"),
+			"edge_tint": Color("#6d6654"),
+			"mist": false,
+			"pts": [
+				Vector3(21.6, 21.25, 50.2), Vector3(18.6, 21.25, 48.2),
+				Vector3(15.6, 21.25, 46.2), Vector3(13.2, 21.25, 44.5), Vector3(11.9, 21.24, 43.33),
+				Vector3(10.92, 21.22, 42.59), Vector3(9.82, 21.18, 41.99), Vector3(8.58, 21.14, 41.60),
+				Vector3(7.22, 21.10, 41.46), Vector3(5.80, 21.02, 41.20), Vector3(4.28, 20.95, 40.66),
+				Vector3(2.92, 20.72, 39.61), Vector3(1.85, 20.38, 38.40), Vector3(0.40, 19.85, 36.60),
+				Vector3(-2.2, 19.10, 34.0), Vector3(-5.8, 18.20, 31.2), Vector3(-9.8, 17.30, 28.4)
+			]
+		},
+		{
+			"id": "observatory-inland",
+			"name": "Paso Norte hacia el Observatorio",
+			"target_scene": "res://scenes/observatory_approach.tscn",
+			"target_spawn": "from_obs_inland",
+			"facing": "nw",
+			"return_spawn": "from_obs_inland",
+			"return_pos": Vector3(118.8, 37.05, 13.9),
+			"return_facing": "se",
+			"exit_pos": Vector3(115.6, 37.35, 9.8),
+			"exit_radius": 1.95,
+			"base_width": 2.35,
+			"skirt_depth": 0.32,
+			"tight_skirt": true,
+			"ridge_height": 2.3,
+			"start_tint": Color("#b49064"),
+			"tread_tint": Color("#ad8c64"),
+			"edge_tint": Color("#636b4a"),
+			"mist": false,
+			"pts": [
+				Vector3(123.0, 36.88, 18.0), Vector3(121.8, 36.95, 16.8), Vector3(120.75, 37.0, 15.75),
+				Vector3(119.8, 37.05, 14.8), Vector3(118.8, 37.12, 13.9), Vector3(117.5, 37.22, 12.8),
+				Vector3(116.5, 37.30, 11.5), Vector3(115.6, 37.35, 9.8), Vector3(114.6, 37.55, 6.8),
+				Vector3(114.8, 37.82, 3.2), Vector3(116.5, 38.12, -0.5), Vector3(119.8, 38.45, -3.8)
+			]
+		},
+		{
+			"id": "observatory-coast",
+			"name": "Cornisa Oriental al Observatorio",
+			"target_scene": "res://scenes/observatory_approach.tscn",
+			"target_spawn": "from_obs_coast",
+			"facing": "ne",
+			"return_spawn": "from_obs_coast",
+			"return_pos": Vector3(161.2, 32.75, 24.8),
+			"return_facing": "sw",
+			"exit_pos": Vector3(164.6, 32.98, 22.4),
+			"exit_radius": 1.95,
+			"base_width": 2.25,
+			"skirt_depth": 0.28,
+			"tight_skirt": true,
+			"ridge_height": 1.85,
+			"start_tint": Color("#b8966c"),
+			"tread_tint": Color("#ae8e68"),
+			"edge_tint": Color("#6d6856"),
+			"mist": false,
+			"pts": [
+				Vector3(160.5, 32.35, 28.4), Vector3(160.5, 32.66, 26.8), Vector3(160.4, 32.76, 25.45),
+				Vector3(161.3, 32.82, 24.7), Vector3(162.3, 32.88, 24.0), Vector3(163.5, 32.93, 23.2),
+				Vector3(164.6, 32.98, 22.4), Vector3(163.2, 33.12, 19.6), Vector3(160.5, 33.30, 16.2),
+				Vector3(157.0, 33.52, 12.4), Vector3(153.5, 33.78, 8.2)
+			]
+		}
+	]
+
+	# Construir cala costera natural y arco de roca marina para pleamar-low (rehecho desde cero)
+	_build_pleamar_low_coastal_cove(root, rng, trail_rocks_xf, trail_rocks_col, trail_bushes_xf, trail_bushes_col, trail_trunks_xf, trail_pine_a_xf, trail_pine_a_col, trail_pine_b_xf, trail_pine_b_col, trail_pine_c_xf, trail_pine_c_col)
+
+	for route in routes:
+		var rid: String = str(route["id"])
+		var smoothed: Array[Vector3] = _chaikin_smooth_3d(route["pts"], 1)
+		_create_trail_ribbon_mesh(root, rid, smoothed, route, rng)
+		_create_trail_colliders(root, rid, smoothed, route["exit_pos"], float(route["base_width"]))
+		_populate_trail_framing(root, smoothed, route, rng, trail_rocks_xf, trail_rocks_col, trail_bushes_xf, trail_bushes_col, trail_trunks_xf, trail_pine_a_xf, trail_pine_a_col, trail_pine_b_xf, trail_pine_b_col, trail_pine_c_xf, trail_pine_c_col)
+
+		if bool(route.get("mist", false)):
+			_create_coastal_mist(root, "Mist_" + rid, Vector3(-9.5, 1.05, 89.8))
+
+		# Marcador de aparicion al regresar por este camino
+		var sp := Marker3D.new()
+		sp.name = "Spawn_" + str(route["return_spawn"])
+		sp.position = route["return_pos"]
+		sp.set_meta("spawn_facing", str(route["return_facing"]))
+		root.add_child(sp)
+
+		# Zona de activacion MapExit integrada en el tramo de curva oculto
+		var exit_node := MapExitScript.new()
+		exit_node.name = "Exit_" + rid.capitalize().replace("-", "_")
+		exit_node.exit_id = rid
+		exit_node.display_name = str(route["name"])
+		exit_node.destination_label = "Cuevas de Pleamar" if rid.begins_with("pleamar") else "Aproximación al Observatorio"
+		match rid:
+			"pleamar-low":
+				exit_node.signpost_style = "dragon_post"
+				exit_node.sign_short_title = "Cuevas de Pleamar"
+				exit_node.sign_subtitle = "Sendero costero occidental rumbo a la cala exterior de aproximación a Pleamar (antes de B1). Transitable con marea baja; con marea alta conviene usar la senda alta del collado."
+				exit_node.sign_offset = Vector3(2.8, 0.0, -0.4)
+				exit_node.sign_yaw_deg = -10.0
+				exit_node.primary_button_text = "Seguir sendero costero (marea baja) [T]"
+				exit_node.extra_routes = [{
+					"label": "Aproximación a Pleamar (Senda Alta)",
+					"button_text": "Tomar senda alta del collado (sin marea) [M]",
+					"scene_path": "res://scenes/pleamar_coves.tscn",
+					"spawn_id": "from_pleamar_high",
+					"facing": "nw",
+					"mode": "trail"
+				}]
+			"pleamar-high":
+				exit_node.signpost_style = "dragon_post"
+				exit_node.sign_short_title = "Collado de Pleamar"
+				exit_node.sign_subtitle = "Camino elevado entre pinos y riscos hasta la aproximación exterior de las cuevas de Pleamar (no depende de la marea)."
+			"observatory-inland":
+				exit_node.signpost_style = "dragon_post"
+				exit_node.sign_short_title = "Al Observatorio"
+				exit_node.sign_subtitle = "Senda septentrional excavada en basalto hacia el Observatorio."
+			"observatory-coast":
+				exit_node.signpost_style = "dragon_post"
+				exit_node.sign_short_title = "Observatorio (Este)"
+				exit_node.sign_subtitle = "Cornisa oriental sobre los acantilados rumbo al Observatorio."
+		exit_node.target_scene_path = str(route["target_scene"])
+		exit_node.target_spawn_id = str(route["target_spawn"])
+		exit_node.entry_facing = str(route["facing"])
+		exit_node.transition_mode = "trail"
+		exit_node.trigger_radius = float(route["exit_radius"])
+		exit_node.trigger_height = 3.2
+		exit_node.auto_trigger = false
+		exit_node.prompt_before_travel = true
+		exit_node.reversible = true
+		exit_node.position = route["exit_pos"]
+		var exit_dir: Vector3 = (smoothed[mini(6, smoothed.size() - 1)] - smoothed[0]).normalized()
+		exit_node.path_direction = Vector3(exit_dir.x, 0.0, exit_dir.z)
+		root.add_child(exit_node)
+
+	# Respaldo orografico NO y N para que la camara tactica no muestre borde recto del terreno
+	_build_horizon_backdrop_shoulders(root, rng, trail_rocks_xf, trail_rocks_col, trail_bushes_xf, trail_bushes_col, trail_trunks_xf, trail_pine_a_xf, trail_pine_a_col, trail_pine_b_xf, trail_pine_b_col, trail_pine_c_xf, trail_pine_c_col)
+
+	# 5a conexion: Bote en el embarcadero (Z1 -> El Pecio / Pleamar por mar) con letrero interactivo y [T]/[M]
+	var boat_spawn := Marker3D.new()
+	boat_spawn.name = "Spawn_from_retreat_boat"
+	boat_spawn.position = Vector3(21.2, 0.52, 111.4)
+	boat_spawn.set_meta("spawn_facing", "n")
+	root.add_child(boat_spawn)
+
+	var boat_exit := MapExitScript.new()
+	boat_exit.name = "Exit_Boat_Pecio"
+	boat_exit.exit_id = "boat-pecio"
+	boat_exit.display_name = "Embarcadero · Bote de remos"
+	boat_exit.destination_label = "Travesía en bote"
+	boat_exit.signpost_style = "hanging_ropes"
+	boat_exit.sign_short_title = "Bote · Mar"
+	boat_exit.sign_subtitle = "Un gran bote de remos aguarda amarrado junto al muelle. Elige si zarpar hacia El Pecio o rodear la costa hacia la aproximación de Pleamar."
+	boat_exit.sign_offset = Vector3(-4.5, 0.0, -3.7)
+	boat_exit.sign_yaw_deg = -10.0
+	boat_exit.target_scene_path = "res://scenes/pecio_cove_arrival.tscn"
+	boat_exit.target_spawn_id = "from_retreat_boat"
+	boat_exit.entry_facing = "s"
+	boat_exit.transition_mode = "boat"
+	boat_exit.trigger_radius = 2.5
+	boat_exit.trigger_height = 3.2
+	boat_exit.auto_trigger = false
+	boat_exit.prompt_before_travel = true
+	boat_exit.reversible = true
+	boat_exit.primary_button_text = "Zarpar hacia El Pecio [T]"
+	boat_exit.interaction_hint = "[T] Zarpar a El Pecio · [M] Pleamar por mar"
+	boat_exit.extra_routes = [{
+		"label": "Aproximación a Pleamar (por mar)",
+		"button_text": "Navegar a Pleamar (por mar) [M]",
+		"scene_path": "res://scenes/pleamar_coves.tscn",
+		"spawn_id": "from_pleamar_sea",
+		"facing": "sw",
+		"mode": "boat"
+	}]
+	boat_exit.path_direction = Vector3(0.0, 0.0, 1.0)
+	boat_exit.position = Vector3(22.2, 0.55, 113.2)
+	root.add_child(boat_exit)
+
+	# Emitir lotes MultiMesh de todo el enmarcado natural
+	var tex_basalt_trail := _load_tex("basalt-coastal-albedo-v1.webp")
+	var tex_cliff_trail := _load_tex("a1-cliff-rugged-v8.jpg")
+	var norm_rock_trail := _load_tex("rock-normal-v1.png")
+	var rock_mesh := SceneEnhancer.make_basalt_outcrop_mesh(71)
+	var rock_mat := _make_textured_mat(Color("#e8ecf0"), 0.88, 0.02, tex_basalt_trail if tex_basalt_trail else tex_cliff_trail, 0.26, true, norm_rock_trail, 0.74)
+	rock_mat.vertex_color_use_as_albedo = true
+	rock_mat.vertex_color_is_srgb = false
+	if not trail_rocks_xf.is_empty():
+		root.add_child(_make_multimesh_batch("MM_TrailRocks", rock_mesh, rock_mat, trail_rocks_xf, trail_rocks_col))
+		var tr_rock_body := StaticBody3D.new()
+		tr_rock_body.name = "TrailRockColliders"
+		root.add_child(tr_rock_body)
+		for rxf in trail_rocks_xf:
+			var rs: Vector3 = rxf.basis.get_scale()
+			if maxf(rs.x, rs.z) < 0.70:
+				continue
+			var rcol := CollisionShape3D.new()
+			var rshp := SphereShape3D.new()
+			rshp.radius = clampf(minf(rs.x, rs.z) * 0.45, 0.26, 1.35)
+			rcol.shape = rshp
+			rcol.position = rxf.origin + Vector3(0.0, rshp.radius * 0.35, 0.0)
+			tr_rock_body.add_child(rcol)
+
+	var bush_mesh := SceneEnhancer.make_botanical_shrub_mesh()
+	var bush_mat := OcclusionCtrl.make_canopy_dissolve_material(Color.WHITE, 0.88, Color(0.09, 0.14, 0.06), true)
+	if not trail_bushes_xf.is_empty():
+		root.add_child(_make_multimesh_batch("MM_TrailBushes", bush_mesh, bush_mat, trail_bushes_xf, trail_bushes_col))
+
+	if not trail_trunks_xf.is_empty():
+		var cone_mesh := _make_pine_tier_mesh()
+		var crown_mat := OcclusionCtrl.make_canopy_dissolve_material(Color.WHITE, 0.90, Color(0.09, 0.14, 0.06), true)
+		var trunk_mesh := CylinderMesh.new()
+		trunk_mesh.top_radius = 0.45
+		trunk_mesh.bottom_radius = 0.72
+		trunk_mesh.height = 1.0
+		trunk_mesh.radial_segments = 7
+		root.add_child(_make_multimesh_batch("MM_TrailTrunks", trunk_mesh, mat_wood_dark, trail_trunks_xf, []))
+		var tr_trunk_body := StaticBody3D.new()
+		tr_trunk_body.name = "TrailTrunkColliders"
+		root.add_child(tr_trunk_body)
+		for txf in trail_trunks_xf:
+			var ts: Vector3 = txf.basis.get_scale()
+			var tcol := CollisionShape3D.new()
+			var tshp := CylinderShape3D.new()
+			tshp.radius = maxf(0.18, maxf(ts.x, ts.z) * 0.68)
+			tshp.height = maxf(1.2, ts.y)
+			tcol.shape = tshp
+			tcol.position = txf.origin
+			tr_trunk_body.add_child(tcol)
+		root.add_child(_make_multimesh_batch("MM_TrailCrownLow", cone_mesh, crown_mat, trail_pine_a_xf, trail_pine_a_col))
+		root.add_child(_make_multimesh_batch("MM_TrailCrownMid", cone_mesh, crown_mat, trail_pine_b_xf, trail_pine_b_col))
+		root.add_child(_make_multimesh_batch("MM_TrailCrownHigh", cone_mesh, crown_mat, trail_pine_c_xf, trail_pine_c_col))
+
+func _chaikin_smooth_3d(pts: Array, iterations: int = 1) -> Array[Vector3]:
+	var current: Array[Vector3] = []
+	for p in pts:
+		current.append(p as Vector3)
+	for _it in range(iterations):
+		if current.size() < 3:
+			break
+		var next: Array[Vector3] = [current[0]]
+		for i in range(current.size() - 1):
+			var a := current[i]
+			var b := current[i + 1]
+			next.append(a.lerp(b, 0.25))
+			next.append(a.lerp(b, 0.75))
+		next.append(current[current.size() - 1])
+		current = next
+	return current
+
+func _create_trail_ribbon_mesh(parent: Node, route_id: String, pts: Array[Vector3], cfg: Dictionary, rng: RandomNumberGenerator) -> void:
+	if pts.size() < 2:
+		return
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+
+	var base_w := float(cfg["base_width"])
+	var skirt := float(cfg["skirt_depth"])
+	var start_col: Color = cfg.get("start_tint", cfg["tread_tint"])
+	var tread_col: Color = cfg["tread_tint"]
+	var edge_col: Color = cfg["edge_tint"]
+	var sandy_merge := bool(cfg.get("sandy_merge", false))
+	var rock_col := Color("#4e4d49")
+	var sand_skirt_col := Color("#9d8564")
+
+	var rings: Array[Dictionary] = []
+	for i in range(pts.size()):
+		var p := pts[i]
+		var fwd: Vector3
+		if i == 0:
+			fwd = pts[1] - pts[0]
+		elif i == pts.size() - 1:
+			fwd = pts[i] - pts[i - 1]
+		else:
+			fwd = pts[i + 1] - pts[i - 1]
+		fwd.y = 0.0
+		if fwd.length_squared() < 0.0001:
+			fwd = Vector3.FORWARD
+		fwd = fwd.normalized()
+		var right := Vector3(-fwd.z, 0.0, fwd.x)
+
+		# Fundido progresivo (feathering) en los primeros tramos para igualar anchura y color del suelo previo
+		var tight_skirt := bool(cfg.get("tight_skirt", false))
+		var route_prog := float(i) / maxf(1.0, float(pts.size() - 1))
+		var blend_t := clampf(float(i) / (4.5 if sandy_merge else 7.0), 0.0, 1.0)
+		var w_jitter := 1.0 + (0.08 * sin(float(i) * 1.35) + rng.randf_range(-0.03, 0.03)) * blend_t
+		var entry_w_mult := lerpf(1.24 if sandy_merge else 0.92, 1.0, blend_t)
+		var half_w := base_w * 0.5 * w_jitter * entry_w_mult
+		var outer_w := half_w + lerpf(0.32 if sandy_merge else 0.10, 0.30 if sandy_merge else (0.24 if tight_skirt else 0.56), blend_t)
+		var skirt_span := 0.32 if sandy_merge else (0.22 if tight_skirt else 0.85)
+		var c_noise := rng.randf_range(-0.025, 0.025) * blend_t
+
+		var cur_tread: Color = start_col.lerp(tread_col, blend_t)
+		var cur_edge: Color = (sand_skirt_col if sandy_merge else start_col.darkened(0.05)).lerp(edge_col, blend_t)
+		var cur_skirt: Color = sand_skirt_col.lerp(rock_col, smoothstep(0.68, 0.94, route_prog)) if sandy_merge else rock_col
+		var center_lift := lerpf(-0.024 if sandy_merge else 0.002, 0.022 if sandy_merge else 0.018, smoothstep(0.18, 0.45, route_prog) if sandy_merge else blend_t)
+		var tread_lift := lerpf(-0.028 if sandy_merge else 0.001, 0.014 if sandy_merge else 0.005, smoothstep(0.18, 0.45, route_prog) if sandy_merge else blend_t)
+		var verge_drop := lerpf(0.030 if sandy_merge else 0.005, 0.018 if sandy_merge else (0.035 if tight_skirt else 0.14), blend_t)
+		var skirt_drop_cur := lerpf(0.08, skirt, blend_t)
+
+		var l_skirt := p - right * (outer_w + skirt_span) - Vector3(0.0, skirt_drop_cur, 0.0)
+		var l_verge := p - right * outer_w - Vector3(0.0, verge_drop, 0.0)
+		var l_tread := p - right * half_w + Vector3(0.0, tread_lift, 0.0)
+		var center := p + Vector3(0.0, center_lift, 0.0)
+		var r_tread := p + right * half_w + Vector3(0.0, tread_lift, 0.0)
+		var r_verge := p + right * outer_w - Vector3(0.0, verge_drop, 0.0)
+		var r_skirt := p + right * (outer_w + skirt_span) - Vector3(0.0, skirt_drop_cur, 0.0)
+
+		rings.append({
+			"pts": [l_skirt, l_verge, l_tread, center, r_tread, r_verge, r_skirt],
+			"cols": [
+				cur_skirt,
+				cur_edge.darkened(0.03 + c_noise),
+				cur_tread.darkened(0.03 + c_noise),
+				cur_tread.lightened(0.03 + c_noise),
+				cur_tread.darkened(0.03 - c_noise),
+				cur_edge.darkened(0.03 - c_noise),
+				cur_skirt
+			],
+			"u": float(i) * 0.45
+		})
+
+	var vs := [0.0, 0.18, 0.34, 0.5, 0.66, 0.82, 1.0]
+	for i in range(rings.size() - 1):
+		var a := rings[i]
+		var b := rings[i + 1]
+		var pa: Array = a["pts"]
+		var pb: Array = b["pts"]
+		var ca: Array = a["cols"]
+		var cb: Array = b["cols"]
+		var ua := float(a["u"])
+		var ub := float(b["u"])
+		for s in range(6):
+			_emit_quad_st(st, pa[s], pa[s + 1], pb[s + 1], pb[s], ca[s], ca[s + 1], cb[s + 1], cb[s], Vector2(ua, vs[s]), Vector2(ua, vs[s + 1]), Vector2(ub, vs[s + 1]), Vector2(ub, vs[s]))
+
+	st.generate_normals()
+	var inst := MeshInstance3D.new()
+	inst.name = "TrailMesh_" + route_id
+	if route_id == "pleamar-low":
+		# La senda costera de pleamar-low se integra orgánicamente en la malla continua PleamarCoveBeach
+		inst.visible = false
+	inst.mesh = st.commit()
+	var trail_mat := StandardMaterial3D.new()
+	trail_mat.vertex_color_use_as_albedo = true
+	trail_mat.vertex_color_is_srgb = true
+	trail_mat.roughness = 0.90
+	trail_mat.metallic = 0.02
+	if mat_trail and mat_trail.albedo_texture:
+		trail_mat.albedo_texture = mat_trail.albedo_texture
+		trail_mat.uv1_scale = Vector3(0.42, 0.42, 0.42)
+	inst.material_override = trail_mat
+	inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	parent.add_child(inst)
+
+func _emit_quad_st(st: SurfaceTool, p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, c0: Color, c1: Color, c2: Color, c3: Color, uv0: Vector2, uv1: Vector2, uv2: Vector2, uv3: Vector2) -> void:
+	st.set_color(c0); st.set_uv(uv0); st.add_vertex(p0)
+	st.set_color(c3); st.set_uv(uv3); st.add_vertex(p3)
+	st.set_color(c2); st.set_uv(uv2); st.add_vertex(p2)
+	st.set_color(c0); st.set_uv(uv0); st.add_vertex(p0)
+	st.set_color(c2); st.set_uv(uv2); st.add_vertex(p2)
+	st.set_color(c1); st.set_uv(uv1); st.add_vertex(p1)
+
+func _create_trail_colliders(parent: Node, route_id: String, pts: Array[Vector3], exit_pos: Vector3, base_w: float) -> void:
+	var sb := StaticBody3D.new()
+	sb.name = "TrailCollision_" + route_id
+	parent.add_child(sb)
+	var stop_after_exit := false
+	for i in range(pts.size() - 1):
+		var a := pts[i]
+		var b := pts[i + 1]
+		var mid := (a + b) * 0.5
+		var seg := b - a
+		var horiz := Vector2(seg.x, seg.z).length()
+		if horiz < 0.05:
+			continue
+		var col := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = Vector3(base_w + 0.6, 1.4, seg.length() + 0.55)
+		col.shape = box
+		var yaw := atan2(seg.x, seg.z)
+		var pitch := -atan2(seg.y, horiz)
+		var xf := Transform3D(Basis.from_euler(Vector3(pitch, yaw, 0.0)), mid - Vector3(0.0, 0.70, 0.0))
+		col.transform = xf
+		sb.add_child(col)
+		if mid.distance_to(exit_pos) < 1.8:
+			stop_after_exit = true
+		elif stop_after_exit and mid.distance_to(exit_pos) > 3.6:
+			break
+
+static func _emit_quad_up_st(st: SurfaceTool, p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, c0: Color, c1: Color, c2: Color, c3: Color, uv0: Vector2, uv1: Vector2, uv2: Vector2, uv3: Vector2) -> void:
+	st.set_color(c0); st.set_uv(uv0); st.add_vertex(p0)
+	st.set_color(c1); st.set_uv(uv1); st.add_vertex(p1)
+	st.set_color(c2); st.set_uv(uv2); st.add_vertex(p2)
+	st.set_color(c0); st.set_uv(uv0); st.add_vertex(p0)
+	st.set_color(c2); st.set_uv(uv2); st.add_vertex(p2)
+	st.set_color(c3); st.set_uv(uv3); st.add_vertex(p3)
+
+func _eval_volcanic_cliff_y(x: float, z: float, center: Vector3, rx: float, rz: float, top_y: float, base_y: float, phase: float = 0.0) -> float:
+	var dx := (x - center.x) / maxf(0.1, rx)
+	var dz := (z - center.z) / maxf(0.1, rz)
+	var ang := atan2(dz, dx)
+	# Irregularidad angular multi-frecuencia para estribaciones de basalto fracturado
+	var spur := 1.0 + 0.22 * sin(ang * 3.0 + phase) + 0.14 * cos(ang * 5.0 - phase * 0.7) + 0.08 * sin(ang * 9.0 + phase * 1.4)
+	var d := sqrt(dx * dx + dz * dz) / spur
+	if d >= 1.0:
+		return base_y
+	var wall_profile := pow(1.0 - clampf(maxf(0.0, d - 0.28) / 0.72, 0.0, 1.0), 0.72)
+	var raw_h := lerpf(base_y, top_y, wall_profile)
+	# Terrazas escalonadas y fracturas angulares (evita campanas suaves artificiales)
+	var terrace := floorf(raw_h * 0.85) * 0.28
+	var ridge_noise := 0.55 * absf(sin(x * 0.52 + z * 0.36 + phase)) + 0.32 * cos(x * 1.05 - z * 0.84)
+	return clampf(lerpf(raw_h, raw_h + terrace * 0.45, 0.55) + ridge_noise * clampf(d * 1.35, 0.22, 1.0), base_y, top_y + 0.85)
+
+func _create_volcanic_headland_mound(parent: Node, hill_name: String, center: Vector3, rx: float, rz: float, top_y: float, base_y: float, mat: Material, phase: float = 0.0) -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_smooth_group(-1)
+	var rings := 12
+	var segs := 28
+
+	var col_crevice := Color("#31373f")
+	var col_basalt := Color("#828a94")
+	var col_ridge := Color("#c6cdd4")
+	var col_turf := Color("#667440")
+
+	var ring_pts: Array = []
+	for r in range(rings + 1):
+		var frac := float(r) / float(rings)
+		var base_ao := 1.0 - 0.34 * smoothstep(0.58, 1.0, frac)
+		var row_pts: Array[Vector3] = []
+		var row_cols: Array[Color] = []
+		for s in range(segs + 1):
+			var ang := (float(s) / float(segs)) * TAU
+			var radial_warp := 1.0 + 0.18 * sin(ang * 3.0 + phase) + 0.11 * cos(ang * 6.0 - phase * 0.5) + 0.07 * sin(ang * 10.0 + frac * 2.8)
+			var wx := center.x + cos(ang) * rx * frac * radial_warp
+			var wz := center.z + sin(ang) * rz * frac * radial_warp
+			var wy := base_y if r == rings else _eval_volcanic_cliff_y(wx, wz, center, rx, rz, top_y, base_y, phase)
+			row_pts.append(Vector3(wx, wy, wz))
+			var flute := 0.5 + 0.5 * sin(ang * 12.0 + phase + wy * 0.95)
+			var c := col_basalt.lerp(col_crevice, flute * 0.72)
+			c = c.lerp(col_ridge, clampf(smoothstep(0.6, top_y - 0.3, wy) * (1.0 - flute * 0.45) * 0.72, 0.0, 0.88))
+			var crown_mask := clampf(1.0 - frac * 1.9, 0.0, 1.0) * smoothstep(top_y - 1.5, top_y + 0.2, wy) * (0.45 + 0.55 * cos(wx * 0.55 - wz * 0.42))
+			c = c.lerp(col_turf, clampf(crown_mask * 0.74, 0.0, 0.74))
+			c = Color(c.r * base_ao, c.g * base_ao, c.b * base_ao, 1.0)
+			row_cols.append(c)
+		ring_pts.append({"pts": row_pts, "cols": row_cols})
+
+	for r in range(rings):
+		var a_row: Array = ring_pts[r]["pts"]
+		var b_row: Array = ring_pts[r + 1]["pts"]
+		var a_col: Array = ring_pts[r]["cols"]
+		var b_col: Array = ring_pts[r + 1]["cols"]
+		for s in range(segs):
+			var p0: Vector3 = a_row[s]
+			var p1: Vector3 = a_row[s + 1]
+			var p2: Vector3 = b_row[s + 1]
+			var p3: Vector3 = b_row[s]
+			_emit_quad_st(
+				st, p0, p1, p2, p3,
+				a_col[s], a_col[s + 1], b_col[s + 1], b_col[s],
+				Vector2(p0.x * 0.14, p0.z * 0.14),
+				Vector2(p1.x * 0.14, p1.z * 0.14),
+				Vector2(p2.x * 0.14, p2.z * 0.14),
+				Vector2(p3.x * 0.14, p3.z * 0.14)
+			)
+
+	st.generate_normals()
+	var inst := MeshInstance3D.new()
+	inst.name = hill_name
+	inst.mesh = st.commit()
+	inst.material_override = mat
+	inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	parent.add_child(inst)
+
+func _eval_cove_beach_sample(wx: float, wz: float) -> Dictionary:
+	var shore_noise := 0.55 * sin(wx * 0.42 + 0.6) + 0.28 * cos(wx * 0.89 - 0.3) + 0.16 * sin(wx * 1.45)
+	var south_shore := 111.35
+	if wx <= 1.0:
+		var w_dist := 1.0 - wx
+		south_shore = 99.2 - w_dist * 0.48 + shore_noise * 0.65
+	elif wx <= 21.5:
+		var t_cov := clampf((wx - 1.0) / 20.5, 0.0, 1.0)
+		south_shore = lerpf(99.2, 111.35, pow(sin(t_cov * PI * 0.5), 0.90)) + shore_noise * (1.0 - 0.65 * smoothstep(14.5, 21.5, wx))
+	elif wx <= 28.8:
+		south_shore = 111.35 + 0.25 * sin(wx * 0.58)
+	else:
+		south_shore = lerpf(111.35, 110.1, smoothstep(28.8, 34.0, wx)) + 0.36 * sin(wx * 0.65)
+
+	var north_shore := 82.0
+	if wx < -1.0:
+		north_shore = 81.2 + 0.42 * (wx + 1.0) + 0.35 * cos(wx * 0.55)
+	elif wx <= 16.0:
+		north_shore = 85.4 + 0.40 * sin(wx * 0.38)
+	else:
+		var t_bay := smoothstep(16.0, 34.5, wx)
+		north_shore = lerpf(85.4, 106.8, pow(t_bay, 0.86)) + 0.35 * sin(wx * 0.46)
+
+	var west_fade := smoothstep(-28.0, -25.2, wx)
+	var d_south := south_shore - wz
+	var d_north := wz - north_shore
+	var d_land := minf(d_south, d_north)
+	if d_land > -2.5 and wx < -25.2:
+		d_land = lerpf(-2.8, d_land, west_fade)
+
+	var trail_t := clampf((wx + 25.8) / 46.3, 0.0, 1.0)
+	var trail_z := lerpf(82.0, 106.8, pow(trail_t, 1.04)) - 0.95 * sin(trail_t * PI)
+	var trail_band := 1.0 - smoothstep(0.75, 2.55, absf(wz - trail_z))
+	var trail_fade := smoothstep(22.2, 18.0, wx) * smoothstep(-27.2, -22.5, wx)
+	var z2_t := clampf((wx - 19.8) / 9.2, 0.0, 1.0)
+	var z2_line_z := lerpf(106.8, 109.4, z2_t)
+	var z2_branch := (1.0 - smoothstep(0.65, 2.25, absf(wz - z2_line_z))) * smoothstep(18.2, 20.5, wx) * (1.0 - smoothstep(28.5, 30.2, wx))
+	var pier_branch := (1.0 - smoothstep(0.65, 2.25, absf(wx - 21.6))) * smoothstep(106.0, 107.8, wz) * (1.0 - smoothstep(110.2, 111.3, wz))
+	var pebble_mottle := 0.5 + 0.5 * sin(wx * 2.15 + wz * 1.75) * cos(wx * 1.35 - wz * 2.05)
+	var trail_blend := clampf(maxf(trail_band * trail_fade, maxf(z2_branch, pier_branch * 0.85)) * (0.85 + 0.15 * pebble_mottle), 0.0, 1.0)
+
+	var under_pier := smoothstep(17.8, 19.2, wx) * (1.0 - smoothstep(23.6, 25.4, wx)) * smoothstep(108.8, 110.2, wz)
+	var wy := 0.50
+	if d_land >= 1.9:
+		var dune := 0.024 * sin(wx * 0.31) * cos(wz * 0.34) + 0.020 * smoothstep(2.0, 8.5, d_land)
+		wy = 0.495 + dune - trail_blend * 0.024
+		wy = lerpf(wy, 0.455, under_pier)
+		if wx < 4.5:
+			wy += smoothstep(4.5, -25.8, wx) * 0.46
+	elif d_land >= 0.0:
+		var wt := smoothstep(0.0, 1.9, d_land)
+		var base_target := 0.495 + (smoothstep(4.5, -25.8, wx) * 0.46 if wx < 4.5 else 0.0)
+		wy = lerpf(0.03, base_target, wt)
+	else:
+		var shallow_t := smoothstep(0.0, -3.4, d_land)
+		var deep_t := smoothstep(-2.2, -5.8, d_land)
+		var shoal_bank := smoothstep(12.5, 19.0, wx) * (1.0 - smoothstep(28.5, 34.5, wx)) * smoothstep(110.5, 113.4, wz) * (1.0 - smoothstep(114.6, 116.5, wz))
+		var west_shoal := smoothstep(-15.0, -2.0, wx) * (1.0 - smoothstep(7.0, 14.0, wx)) * (1.0 - smoothstep(-0.2, -3.6, d_land))
+		var base_shallow := lerpf(0.02, -0.78 + shoal_bank * 0.24 + west_shoal * 0.16, shallow_t)
+		wy = lerpf(base_shallow, -3.55, deep_t)
+
+	var east_feather := smoothstep(23.2, 29.0, wx) * smoothstep(-0.6, 1.2, d_land)
+	wy -= east_feather * 0.23
+	var z2_bank := smoothstep(29.8, 35.5, wx) * smoothstep(106.5, 113.5, wz)
+	if z2_bank > 0.001:
+		wy = lerpf(wy, minf(wy, -1.85), z2_bank)
+	return {
+		"wy": wy,
+		"d_land": d_land,
+		"d_north": d_north,
+		"trail_blend": trail_blend,
+		"under_pier": under_pier,
+		"pebble_mottle": pebble_mottle
+	}
+
+func _build_pleamar_low_coastal_cove(parent: Node, rng: RandomNumberGenerator, rocks_xf: Array[Transform3D], rocks_col: Array[Color], bushes_xf: Array[Transform3D], bushes_col: Array[Color], trunks_xf: Array[Transform3D], pine_a_xf: Array[Transform3D], pine_a_col: Array[Color], pine_b_xf: Array[Transform3D], pine_b_col: Array[Color], pine_c_xf: Array[Transform3D], pine_c_col: Array[Color]) -> void:
+	var cove_node := Node3D.new()
+	cove_node.name = "PleamarCoastalCove"
+	parent.add_child(cove_node)
+
+	var tex_earth_beach := _load_tex("earth.webp")
+	var tex_basalt_cove := _load_tex("basalt-coastal-albedo-v1.webp")
+	var tex_cliff_cove := _load_tex("a1-cliff-rugged-v8.jpg")
+	var norm_rock_cove := _load_tex("rock-normal-v1.png")
+
+	# 1. Costa volcánica continua con arena irregular, grava húmeda y transición orgánica a muelle y escaleras Z2
+	var beach_mat := _make_textured_mat(Color.WHITE, 0.88, 0.02, tex_earth_beach if tex_earth_beach else tex_basalt_cove, 0.24, true, norm_rock_cove, 0.34)
+	beach_mat.vertex_color_use_as_albedo = true
+	beach_mat.vertex_color_is_srgb = true
+	beach_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	var st_beach := SurfaceTool.new()
+	st_beach.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var nx := 72
+	var nz := 44
+	var x_min := -28.0
+	var x_max := 42.0
+	var z_min := 74.0
+	var z_max := 124.0
+	var col_dry_sand := Color("#ede0c2")
+	var col_coarse_gravel := Color("#a99d88")
+	var col_trail_tread := Color("#785e46")
+	var col_apron_earth := Color("#838078")
+	var col_wet := Color("#4f4338")
+	var col_sandbar := Color("#8a8368")
+	var col_reef := Color("#2a5d5b")
+	var col_seabed := Color("#0f2830")
+
+	var grid_rows: Array = []
+	for iz in range(nz + 1):
+		var tz := float(iz) / float(nz)
+		var wz := lerpf(z_min, z_max, tz)
+		var row_pts: Array[Vector3] = []
+		var row_cols: Array[Color] = []
+		for ix in range(nx + 1):
+			var tx := float(ix) / float(nx)
+			var wx := lerpf(x_min, x_max, tx)
+			var smp := _eval_cove_beach_sample(wx, wz)
+			var wy: float = float(smp["wy"])
+			var d_land: float = float(smp["d_land"])
+			var d_north: float = float(smp["d_north"])
+			var trail_blend: float = float(smp["trail_blend"])
+			var under_pier: float = float(smp["under_pier"])
+			var pebble_mottle: float = float(smp["pebble_mottle"])
+
+			var c := col_dry_sand
+			var micro := 0.5 + 0.5 * sin(wx * 0.71 + cos(wz * 0.59) * 1.6) * cos(wz * 0.83 - wx * 0.31)
+			var cliff_grit := 1.0 - smoothstep(1.0, 4.6, d_north)
+			var pier_apron := smoothstep(16.0, 22.0, wx) * smoothstep(105.5, 110.2, wz) * (1.0 - smoothstep(29.8, 33.0, wx))
+			var gravel_w := clampf(micro * 0.34 + pebble_mottle * 0.24 + cliff_grit * 0.62, 0.0, 1.0)
+			var base_land_col := col_dry_sand.lerp(col_coarse_gravel, gravel_w).lerp(col_trail_tread, trail_blend * 0.86).lerp(col_apron_earth, pier_apron * 0.72)
+			var cliff_foot_ao := pow(1.0 - smoothstep(0.0, 2.8, d_north), 1.35) * smoothstep(-1.5, 1.5, d_land)
+			base_land_col = base_land_col.lerp(Color("#473d34"), cliff_foot_ao * 0.52)
+
+			if d_land >= 2.1:
+				c = base_land_col.lerp(Color("#362c24"), under_pier * 0.58)
+			elif d_land >= 0.0:
+				var wt := smoothstep(0.0, 2.1, d_land)
+				c = col_wet.lerp(base_land_col, wt)
+			else:
+				var shallow_t := smoothstep(0.0, -3.4, d_land)
+				var deep_t := smoothstep(-2.2, -5.8, d_land)
+				var sand_patch := clampf((0.5 + 0.5 * sin(wx * 0.44 + wz * 0.62) * cos(wx * 0.78 - wz * 0.36)) - 0.18, 0.0, 1.0) * (1.0 - smoothstep(-0.6, -4.2, d_land))
+				var col_kelp := Color("#273b17")
+				var kelp_mottle := clampf((0.5 + 0.5 * sin(wx * 0.62 - wz * 0.48 + cos(wx * 0.25)) * cos(wx * 0.94 + wz * 0.72) - 0.32) * 1.65, 0.0, 1.0) * smoothstep(-0.20, -0.85, d_land) * (1.0 - smoothstep(-2.4, -4.6, d_land))
+				c = col_wet.lerp(col_reef, shallow_t).lerp(col_sandbar, sand_patch * 0.72).lerp(col_kelp, kelp_mottle * 0.80).lerp(col_seabed, deep_t)
+
+			row_pts.append(Vector3(wx, wy, wz))
+			row_cols.append(c)
+		grid_rows.append({"pts": row_pts, "cols": row_cols})
+
+	for iz in range(nz):
+		var a_r: Array = grid_rows[iz]["pts"]
+		var b_r: Array = grid_rows[iz + 1]["pts"]
+		var a_c: Array = grid_rows[iz]["cols"]
+		var b_c: Array = grid_rows[iz + 1]["cols"]
+		for ix in range(nx):
+			var p0: Vector3 = a_r[ix]
+			var p1: Vector3 = a_r[ix + 1]
+			var p2: Vector3 = b_r[ix + 1]
+			var p3: Vector3 = b_r[ix]
+			_emit_quad_up_st(
+				st_beach, p0, p1, p2, p3,
+				a_c[ix], a_c[ix + 1], b_c[ix + 1], b_c[ix],
+				Vector2(p0.x * 0.24, p0.z * 0.24),
+				Vector2(p1.x * 0.24, p1.z * 0.24),
+				Vector2(p2.x * 0.24, p2.z * 0.24),
+				Vector2(p3.x * 0.24, p3.z * 0.24)
+			)
+
+	st_beach.generate_normals()
+	var beach_inst := MeshInstance3D.new()
+	beach_inst.name = "PleamarCoveBeach"
+	beach_inst.mesh = st_beach.commit()
+	beach_inst.material_override = beach_mat
+	beach_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	cove_node.add_child(beach_inst)
+	var beach_faces := PackedVector3Array()
+	var raw_faces := beach_inst.mesh.get_faces()
+	for fi in range(0, raw_faces.size(), 3):
+		var v0 := raw_faces[fi]
+		var v1 := raw_faces[fi + 1]
+		var v2 := raw_faces[fi + 2]
+		var cx := (v0.x + v1.x + v2.x) / 3.0
+		var cy_avg := (v0.y + v1.y + v2.y) / 3.0
+		if cx <= 27.6 and cy_avg >= -0.02:
+			beach_faces.append(v0)
+			beach_faces.append(v1)
+			beach_faces.append(v2)
+	if beach_faces.size() >= 3:
+		var beach_sb := StaticBody3D.new()
+		beach_sb.name = "PleamarCoveBeach_col"
+		var beach_cs := CollisionShape3D.new()
+		var beach_shape := ConcavePolygonShape3D.new()
+		beach_shape.set_faces(beach_faces)
+		beach_cs.shape = beach_shape
+		beach_sb.add_child(beach_cs)
+		beach_inst.add_child(beach_sb)
+
+	# 2. Promontorio costero volcánico esculpido en basalto fracturado y acantilado de fondo cerrando la bahía hacia Z2
+	var basalt_slate_mat := _make_glb_mat(Color("#b6bec6"), 0.86, 0.02, tex_basalt_cove if tex_basalt_cove else tex_cliff_cove, 0.22, norm_rock_cove, true, 0.88)
+	var basalt_dark_mat := _make_glb_mat(Color("#767e86"), 0.82, 0.03, tex_basalt_cove if tex_basalt_cove else tex_cliff_cove, 0.20, norm_rock_cove, true, 0.88)
+	var bluff_mat := _make_textured_mat(Color("#cad0d4"), 0.90, 0.03, tex_basalt_cove if tex_basalt_cove else tex_cliff_cove, 0.20, true, norm_rock_cove, 0.85)
+	bluff_mat.vertex_color_use_as_albedo = true
+	bluff_mat.vertex_color_is_srgb = true
+	bluff_mat.vertex_color_use_as_albedo = true
+	bluff_mat.vertex_color_is_srgb = true
+	bluff_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_create_volcanic_headland_mound(cove_node, "PleamarFarWestSpurCliff", Vector3(-18.8, 0.0, 77.6), 9.2, 7.6, 3.8, -3.8, bluff_mat, 2.3)
+	_create_volcanic_headland_mound(cove_node, "PleamarWestSpurCliff", Vector3(-7.2, 0.0, 81.2), 11.8, 9.2, 4.7, -3.8, bluff_mat, 0.6)
+	_create_volcanic_headland_mound(cove_node, "PleamarNorthCliffBluff", Vector3(5.8, 0.0, 86.2), 10.6, 7.6, 5.0, -3.8, bluff_mat, 1.9)
+	_create_volcanic_headland_mound(cove_node, "PleamarEastCliffShoulder", Vector3(14.8, 0.0, 87.2), 9.6, 7.0, 4.3, -3.8, bluff_mat, 3.2)
+	_create_volcanic_headland_mound(cove_node, "PleamarInletCliffWall", Vector3(22.2, 0.0, 82.0), 9.2, 8.2, 5.8, -3.8, bluff_mat, 4.4)
+	_create_volcanic_headland_mound(cove_node, "PleamarBayBackCliff_A", Vector3(26.5, 0.0, 74.2), 11.5, 9.5, 7.2, -3.8, bluff_mat, 2.7)
+	_create_volcanic_headland_mound(cove_node, "PleamarBayBackCliff_B", Vector3(36.8, 0.0, 79.2), 11.8, 10.2, 8.2, -3.8, bluff_mat, 5.1)
+	_create_volcanic_headland_mound(cove_node, "PleamarBayBackCliff_C", Vector3(44.8, 0.0, 85.8), 11.2, 10.5, 7.4, -3.8, bluff_mat, 1.4)
+	_build_volcanic_cliff_sculpt_and_cleft(cove_node, rng, basalt_slate_mat, basalt_dark_mat, tex_basalt_cove if tex_basalt_cove else tex_cliff_cove, norm_rock_cove)
+
+	# Contrafuertes de basalto erosionado integrando laderas, pie del promontorio y fondo de cala (familia basáltica coherente)
+	var buttress_mesh := SceneEnhancer.make_basalt_outcrop_mesh(193)
+	var headland_buttresses := [
+		{"pos": Vector3(-11.2, -0.45, 86.8), "sc": Vector3(3.4, 2.9, 2.8), "rot": Vector3(4.0, 22.0, -5.0)},
+		{"pos": Vector3(-5.2, -0.40, 89.2), "sc": Vector3(3.1, 2.8, 2.6), "rot": Vector3(-3.0, -18.0, 4.0)},
+		{"pos": Vector3(0.4, -0.40, 91.6), "sc": Vector3(3.2, 3.0, 2.7), "rot": Vector3(5.0, 38.0, -4.0)},
+		{"pos": Vector3(6.2, -0.35, 92.0), "sc": Vector3(3.5, 2.7, 2.8), "rot": Vector3(-4.0, 14.0, 5.0)},
+		{"pos": Vector3(11.4, -0.35, 91.6), "sc": Vector3(2.9, 2.5, 2.5), "rot": Vector3(6.0, -28.0, -4.0)},
+		{"pos": Vector3(16.8, -0.35, 92.8), "sc": Vector3(3.2, 2.8, 2.6), "rot": Vector3(-5.0, 46.0, 3.0)},
+		{"pos": Vector3(21.4, -0.50, 94.6), "sc": Vector3(3.4, 2.9, 3.0), "rot": Vector3(3.0, -34.0, -6.0)},
+		{"pos": Vector3(24.6, -0.80, 99.6), "sc": Vector3(3.6, 3.1, 3.1), "rot": Vector3(-6.0, 24.0, 4.0)},
+		{"pos": Vector3(4.8, 1.80, 89.2), "sc": Vector3(3.6, 2.6, 2.9), "rot": Vector3(8.0, -18.0, -6.0)},
+		{"pos": Vector3(10.6, 1.40, 88.8), "sc": Vector3(3.4, 2.5, 2.8), "rot": Vector3(-6.0, 32.0, 5.0)},
+		{"pos": Vector3(29.8, -0.40, 86.2), "sc": Vector3(4.4, 4.2, 3.8), "rot": Vector3(4.0, 18.0, -4.0)},
+		{"pos": Vector3(34.5, 0.20, 90.8), "sc": Vector3(4.2, 4.0, 3.6), "rot": Vector3(-5.0, -26.0, 6.0)},
+		{"pos": Vector3(25.4, -0.35, 86.8), "sc": Vector3(3.6, 3.2, 3.2), "rot": Vector3(3.0, -14.0, 5.0)},
+	]
+	for hbi in range(headland_buttresses.size()):
+		var hb: Dictionary = headland_buttresses[hbi]
+		var hb_inst := MeshInstance3D.new()
+		hb_inst.name = "HeadlandBasaltButtress_%d" % hbi
+		hb_inst.mesh = buttress_mesh
+		hb_inst.material_override = basalt_slate_mat if hbi % 2 == 0 else basalt_dark_mat
+		hb_inst.position = hb["pos"]
+		hb_inst.rotation_degrees = hb["rot"]
+		hb_inst.scale = hb["sc"]
+		hb_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		cove_node.add_child(hb_inst)
+
+	# 3. Paso costero entre farallones de basalto (cielo abierto hacia el oeste, sin túnel ni entrada artificial de gruta)
+	var arch_node := Node3D.new()
+	arch_node.name = "PleamarSeaArch"
+	cove_node.add_child(arch_node)
+	var arch_boulders := [
+		{"pos": Vector3(4.0, -0.45, 93.4), "sc": Vector3(2.6, 3.0, 2.3), "rot": Vector3(6.0, 18.0, -5.0), "mat": basalt_slate_mat},
+		{"pos": Vector3(1.6, -0.35, 92.6), "sc": Vector3(2.8, 3.2, 2.5), "rot": Vector3(-4.0, 34.0, 6.0), "mat": basalt_dark_mat},
+		{"pos": Vector3(-0.2, -0.55, 99.6), "sc": Vector3(2.8, 3.1, 2.5), "rot": Vector3(-6.0, -24.0, 8.0), "mat": basalt_slate_mat},
+		{"pos": Vector3(-3.8, -0.50, 97.4), "sc": Vector3(2.7, 2.7, 2.5), "rot": Vector3(8.0, 20.0, -7.0), "mat": basalt_dark_mat},
+		{"pos": Vector3(-7.8, -0.40, 89.2), "sc": Vector3(3.1, 3.4, 2.6), "rot": Vector3(5.0, -14.0, 4.0), "mat": basalt_slate_mat},
+		{"pos": Vector3(-9.2, -0.55, 94.8), "sc": Vector3(2.9, 2.6, 2.5), "rot": Vector3(-5.0, 28.0, -6.0), "mat": basalt_dark_mat},
+		{"pos": Vector3(-13.4, -0.50, 92.4), "sc": Vector3(3.2, 2.9, 2.7), "rot": Vector3(6.0, -32.0, 5.0), "mat": basalt_slate_mat},
+		{"pos": Vector3(-16.2, -0.40, 84.2), "sc": Vector3(2.8, 2.9, 2.4), "rot": Vector3(-4.0, 18.0, 5.0), "mat": basalt_dark_mat},
+		{"pos": Vector3(-18.6, -0.45, 89.8), "sc": Vector3(3.0, 2.5, 2.5), "rot": Vector3(5.0, -24.0, -4.0), "mat": basalt_slate_mat},
+		{"pos": Vector3(-22.4, -0.35, 80.6), "sc": Vector3(3.1, 2.8, 2.5), "rot": Vector3(-3.0, 32.0, 4.0), "mat": basalt_dark_mat},
+		{"pos": Vector3(-23.8, -0.45, 86.2), "sc": Vector3(2.9, 2.3, 2.4), "rot": Vector3(4.0, -18.0, -5.0), "mat": basalt_slate_mat},
+	]
+	for bi in range(arch_boulders.size()):
+		var bd: Dictionary = arch_boulders[bi]
+		var b_sc: Vector3 = bd["sc"]
+		var b_wrap := Node3D.new()
+		b_wrap.name = "SeaArchCragWrap_%d" % bi
+		b_wrap.position = bd["pos"]
+		b_wrap.rotation_degrees = bd["rot"]
+		arch_node.add_child(b_wrap)
+		var b_inst := MeshInstance3D.new()
+		b_inst.name = "SeaArchCrag_%d" % bi
+		b_inst.mesh = SceneEnhancer.make_basalt_outcrop_mesh(200 + bi * 11)
+		b_inst.material_override = bd["mat"]
+		b_inst.scale = b_sc
+		b_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		b_wrap.add_child(b_inst)
+		if bi in [0, 2, 4]:
+			SceneEnhancer.add_cyl_collider(b_wrap, Vector3(0.0, b_sc.y * 0.42, 0.0), minf(b_sc.x, b_sc.z) * 0.30, b_sc.y)
+		SceneEnhancer.tag_camera_occluder(b_wrap)
+
+	# Postes costeros con cabo náutico únicamente en el tramo estrecho hacia el oeste, marcando la continuidad fuera de mapa
+	var mat_cove_rope := _make_mat(Color("#9e8462"), 0.92, 0.0)
+	var post_coords := [
+		Vector3(5.2, 0.54, 99.6), Vector3(2.0, 0.54, 97.8), Vector3(-1.8, 0.57, 95.6),
+		Vector3(-5.8, 0.62, 93.4), Vector3(-9.8, 0.67, 91.2), Vector3(-13.8, 0.73, 89.0),
+		Vector3(-18.2, 0.81, 86.4), Vector3(-22.6, 0.90, 83.8)
+	]
+	for pi in range(post_coords.size()):
+		var pp: Vector3 = post_coords[pi]
+		_create_cylinder(cove_node, "CovePost_%d" % pi, pp + Vector3(0.0, 0.42, 0.0), 0.075, 0.84, mat_wood_dark)
+		SceneEnhancer.add_cyl_collider(cove_node, pp + Vector3(0.0, 0.55, 0.0), 0.14, 1.2)
+		if pi < post_coords.size() - 1:
+			var np: Vector3 = post_coords[pi + 1]
+			var mid_p := (pp + np) * 0.5 + Vector3(0.0, 0.68, 0.0)
+			var rope := _create_box_prop(cove_node, "CoveRope_%d" % pi, mid_p, Vector3(0.042, 0.042, pp.distance_to(np)), mat_cove_rope)
+			rope.rotation.y = atan2(np.x - pp.x, np.z - pp.z)
+			SceneEnhancer.add_segment_barrier(cove_node, pp, np, 0.24, 1.55)
+	_build_step8_pleamar_wayfinding(cove_node, arch_node, rng)
+
+	# Matorral mediterráneo natural y rocas de escollera (coníferas variadas, hierbas, brezo y detalles en _build_coastal_vegetation_and_detail)
+	var bush_tones := [Color("#2e4422"), Color("#3b522a"), Color("#485d32")]
+	var rock_tones := [Color("#b8c0c8"), Color("#ced5dc"), Color("#9da5ae")]
+	var cliff_bush_xz := [
+		Vector2(3.4, 90.6), Vector2(0.2, 89.8), Vector2(3.2, 89.0),
+		Vector2(7.4, 88.8), Vector2(-2.6, 86.4), Vector2(14.8, 89.2),
+		Vector2(-8.6, 85.8), Vector2(-14.2, 84.4), Vector2(21.4, 92.4)
+	]
+	for cb in cliff_bush_xz:
+		var cy := maxf(
+			maxf(
+				_eval_volcanic_cliff_y(cb.x, cb.y, Vector3(5.8, 0.0, 86.2), 10.6, 7.6, 5.0, -3.8, 1.9),
+				_eval_volcanic_cliff_y(cb.x, cb.y, Vector3(-7.2, 0.0, 81.2), 11.8, 9.2, 4.7, -3.8, 0.6)
+			),
+			_eval_volcanic_cliff_y(cb.x, cb.y, Vector3(14.8, 0.0, 87.2), 9.6, 7.0, 4.3, -3.8, 3.2)
+		)
+		var cb_sc := rng.randf_range(0.78, 1.26)
+		var cbb := Basis.from_euler(Vector3(0.0, rng.randf_range(0.0, TAU), 0.0)).scaled(Vector3(cb_sc * 1.18, cb_sc * 0.90, cb_sc * 1.18))
+		bushes_xf.append(Transform3D(cbb, Vector3(cb.x, cy - 0.14, cb.y)))
+		bushes_col.append(bush_tones[rng.randi() % bush_tones.size()])
+	# Arbustos costeros únicamente en las lindes rocosas del pie de risco, dejando despejada la playa central para combate
+	for b_pt in [
+		Vector3(18.6, 1.4, 92.6), Vector3(19.8, 0.45, 96.2), Vector3(23.2, 0.44, 100.8),
+		Vector3(-4.6, 0.54, 88.4), Vector3(-11.4, 0.60, 87.0)
+	]:
+		var bsc := rng.randf_range(0.75, 1.18)
+		var bb := Basis.from_euler(Vector3(0.0, rng.randf_range(0.0, TAU), 0.0)).scaled(Vector3(bsc * 1.15, bsc * 0.90, bsc * 1.15))
+		bushes_xf.append(Transform3D(bb, b_pt))
+		bushes_col.append(bush_tones[rng.randi() % bush_tones.size()])
+	# Grupos asimétricos de rocas basálticas en la orilla, arrecifes bajo Z2, cala y costa oeste
+	var shore_rock_specs := [
+		[Vector3(17.4, 0.14, 111.0), Vector3(1.65, 0.68, 1.45)],
+		[Vector3(16.3, 0.10, 111.3), Vector3(0.95, 0.44, 0.90)],
+		[Vector3(11.6, 0.16, 109.6), Vector3(1.85, 0.76, 1.50)],
+		[Vector3(6.8, 0.13, 106.8), Vector3(1.45, 0.60, 1.35)],
+		[Vector3(5.6, 0.10, 105.9), Vector3(0.85, 0.42, 0.80)],
+		[Vector3(0.8, 0.14, 101.2), Vector3(1.75, 0.78, 1.55)],
+		[Vector3(-4.8, 0.08, 99.8), Vector3(2.10, 0.92, 1.75)],
+		[Vector3(-9.6, 0.06, 97.6), Vector3(2.35, 1.10, 1.85)],
+		[Vector3(-13.8, 0.04, 95.4), Vector3(2.20, 0.95, 1.80)],
+		[Vector3(19.8, 0.24, 94.2), Vector3(1.90, 0.92, 1.65)],
+		[Vector3(21.6, 0.16, 98.2), Vector3(1.55, 0.68, 1.40)],
+		[Vector3(24.4, 0.13, 103.2), Vector3(1.30, 0.56, 1.25)],
+		# Escolleras y afloramientos basálticos que enlazan la arena con el pie de la escalera Z2 sin cortes cuadrados
+		[Vector3(27.8, -0.25, 113.0), Vector3(2.40, 1.15, 2.00)],
+		[Vector3(30.4, -0.35, 112.6), Vector3(2.70, 1.30, 2.15)],
+		[Vector3(33.2, -0.45, 111.8), Vector3(2.90, 1.45, 2.25)],
+		[Vector3(35.8, -0.30, 112.4), Vector3(2.50, 1.25, 2.10)],
+		[Vector3(38.6, -0.45, 113.2), Vector3(2.80, 1.40, 2.20)],
+		[Vector3(29.2, 0.16, 106.4), Vector3(1.65, 0.68, 1.45)],
+		[Vector3(31.0, 0.22, 105.6), Vector3(1.45, 0.62, 1.30)],
+		# Ripio y lascas basálticas al pie de los contrafuertes del promontorio (detalles costeros sin invadir la playa abierta)
+		[Vector3(1.8, 0.36, 92.2), Vector3(0.85, 0.34, 0.78)],
+		[Vector3(3.6, 0.34, 92.8), Vector3(0.68, 0.28, 0.62)],
+		[Vector3(6.4, 0.34, 93.4), Vector3(0.92, 0.36, 0.80)],
+		[Vector3(9.4, 0.35, 93.2), Vector3(0.75, 0.30, 0.70)],
+		[Vector3(12.2, 0.36, 93.0), Vector3(0.88, 0.34, 0.76)],
+		[Vector3(15.6, 0.36, 93.8), Vector3(0.72, 0.28, 0.65)],
+		[Vector3(18.8, 0.34, 94.8), Vector3(0.82, 0.32, 0.72)],
+		[Vector3(14.2, 0.20, 110.2), Vector3(0.78, 0.28, 0.68)],
+		[Vector3(9.4, 0.18, 108.4), Vector3(0.70, 0.24, 0.62)],
+		[Vector3(3.2, 0.16, 103.6), Vector3(0.74, 0.26, 0.66)],
+		[Vector3(26.8, 0.20, 111.0), Vector3(0.90, 0.34, 0.78)],
+	]
+	for rs_spec in shore_rock_specs:
+		var r_sc: Vector3 = rs_spec[1]
+		var rb := Basis.from_euler(Vector3(rng.randf_range(-0.08, 0.08), rng.randf_range(0.0, TAU), rng.randf_range(-0.08, 0.08))).scaled(r_sc)
+		rocks_xf.append(Transform3D(rb, rs_spec[0]))
+		rocks_col.append(rock_tones[rng.randi() % rock_tones.size()])
+	# Lajas planas de granito desgastado marcando claramente la bifurcación muelle <-> escaleras Z2 <-> senda Pleamar
+	var step_mesh := BoxMesh.new()
+	step_mesh.size = Vector3(1.0, 1.0, 1.0)
+	var step_xf: Array[Transform3D] = []
+	var step_col: Array[Color] = []
+	var paver_tones: Array[Color] = [Color("#cfc2a8"), Color("#bbb099"), Color("#d6cab2"), Color("#a89d88")]
+	var step_coords: Array[Vector3] = [
+		Vector3(26.6, 0.44, 109.2), Vector3(24.6, 0.485, 108.6), Vector3(22.5, 0.495, 108.1),
+		Vector3(20.9, 0.502, 108.8), Vector3(19.6, 0.505, 106.5),
+		Vector3(16.6, 0.508, 104.2), Vector3(13.8, 0.515, 102.0), Vector3(9.6, 0.530, 99.2),
+		Vector3(6.2, 0.542, 97.4), Vector3(2.8, 0.555, 95.6), Vector3(-0.6, 0.575, 94.0),
+		Vector3(-3.8, 0.60, 92.6), Vector3(-7.0, 0.635, 91.0), Vector3(-10.2, 0.68, 89.6),
+		Vector3(-13.8, 0.73, 87.9), Vector3(-17.4, 0.79, 86.2), Vector3(-20.8, 0.85, 84.4)
+	]
+	for st_i in range(step_coords.size()):
+		var sc_pos: Vector3 = step_coords[st_i]
+		var sbas := Basis.from_euler(Vector3(rng.randf_range(-0.02, 0.02), rng.randf_range(0.0, TAU), rng.randf_range(-0.02, 0.02))).scaled(Vector3(rng.randf_range(0.88, 1.24), 0.036, rng.randf_range(0.68, 0.92)))
+		step_xf.append(Transform3D(sbas, sc_pos))
+		step_col.append(paver_tones[rng.randi() % paver_tones.size()])
+	var paver_mat := _make_textured_mat(Color.WHITE, 0.90, 0.02, tex_basalt_cove if tex_basalt_cove else tex_cliff_cove, 0.28, true, norm_rock_cove, 0.45)
+	paver_mat.vertex_color_use_as_albedo = true
+	paver_mat.vertex_color_is_srgb = true
+	var mm_pavers := _make_multimesh_batch("MM_BeachTrailPavers", step_mesh, paver_mat, step_xf, step_col)
+	mm_pavers.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	cove_node.add_child(mm_pavers)
+	_build_submerged_kelp_batch(cove_node, rng)
+	_build_coastal_sunbeams(cove_node)
+	_build_coastal_vegetation_and_detail(cove_node, rng)
+	_build_step6_vegetation_transitions(cove_node, rng)
+
+func _build_step8_pleamar_wayfinding(cove_node: Node3D, arch_node: Node3D, rng: RandomNumberGenerator) -> void:
+	# 8.1-8.3 Paso 8: Lectura exterior de salida a Pleamar, bifurcación costa vs senda alta y señal marítima en muelle
+	var norm_rock := _load_tex("rock-normal-v1.png")
+	var tex_stone := _load_tex("basalt-coastal-albedo-v1.webp")
+	var cairn_mat := _make_textured_mat(Color("#a8aeb4"), 0.88, 0.02, tex_stone, 0.24, true, norm_rock, 0.60)
+	var board_mat := _make_textured_mat(Color("#8c6844"), 0.86, 0.0, _load_tex("oak-v4.webp"), 0.35, true)
+
+	# 8.2 Hito principal de viaje en bifurcación exterior (lejos del centro del sendero x=5.6 z=97.7)
+	var beacon_pos := Vector3(4.15, 0.54, 95.35)
+	var cairn_mesh := SceneEnhancer.make_basalt_outcrop_mesh(311)
+	for ci in range(4):
+		var ang := float(ci) * 1.57 + 0.35
+		var cst := MeshInstance3D.new()
+		cst.name = "PleamarWayfinderCairnStone_%d" % ci
+		cst.mesh = cairn_mesh
+		cst.material_override = cairn_mat
+		cst.position = beacon_pos + Vector3(cos(ang) * 0.24, -0.04, sin(ang) * 0.24)
+		cst.rotation.y = rng.randf_range(0.0, TAU)
+		cst.scale = Vector3(0.42, 0.28, 0.38)
+		cst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		cove_node.add_child(cst)
+	_add_ground_contact_shadow(cove_node, "PleamarWayfinderShadow", Vector3(beacon_pos.x, 0.555, beacon_pos.z), Vector2(1.25, 1.25), 0.45)
+
+	var main_post := _create_cylinder(cove_node, "PleamarWayfinderPost", beacon_pos + Vector3(0.0, 1.02, 0.0), 0.09, 2.10, mat_wood_dark)
+	main_post.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	SceneEnhancer.add_cyl_collider(cove_node, beacon_pos + Vector3(0.0, 0.85, 0.0), 0.22, 1.85)
+
+	var arm := _create_box_prop(cove_node, "PleamarWayfinderArm", beacon_pos + Vector3(0.30, 1.94, 0.14), Vector3(0.58, 0.08, 0.08), mat_wood_dark)
+	arm.rotation.y = -0.45
+	arm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	var lan_p := beacon_pos + Vector3(0.46, 1.72, 0.22)
+	_create_cylinder(cove_node, "PleamarWayfinderCap", lan_p + Vector3(0.0, 0.15, 0.0), 0.12, 0.06, mat_iron)
+	var lan_flm := _create_box_prop(cove_node, "PleamarWayfinderLantern", lan_p, Vector3(0.14, 0.20, 0.14), mat_flame)
+	lan_flm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var way_lt := OmniLight3D.new()
+	way_lt.name = "PleamarWayfinderLight"
+	way_lt.position = lan_p
+	way_lt.light_color = Color(1.0, 0.74, 0.36)
+	way_lt.light_energy = 1.50
+	way_lt.omni_range = 9.5
+	cove_node.add_child(way_lt)
+	register_flame_fx(lan_flm, way_lt, false)
+
+	# 8.3 Dos tablillas de bifurcación: ruta costera (marea baja) vs senda alta (marea alta)
+	var low_blade := _create_box_prop(cove_node, "PleamarForkBladeCoast", beacon_pos + Vector3(-0.18, 1.48, 0.08), Vector3(0.76, 0.19, 0.045), board_mat)
+	low_blade.rotation.y = 0.42
+	low_blade.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	var lbl_coast := Label3D.new()
+	lbl_coast.text = "← Costa Pleamar (Marea ↓)"
+	lbl_coast.font_size = 20
+	lbl_coast.pixel_size = 0.0040
+	lbl_coast.modulate = Color("#f3e6c8")
+	lbl_coast.outline_size = 4
+	lbl_coast.outline_modulate = Color("#24170c")
+	lbl_coast.position = Vector3(0.0, 0.0, 0.026)
+	low_blade.add_child(lbl_coast)
+
+	var high_blade := _create_box_prop(cove_node, "PleamarForkBladeHigh", beacon_pos + Vector3(0.16, 1.72, -0.06), Vector3(0.72, 0.18, 0.045), board_mat)
+	high_blade.rotation.y = -0.32
+	high_blade.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	var lbl_high := Label3D.new()
+	lbl_high.text = "↑ Senda Alta (Collado)"
+	lbl_high.font_size = 20
+	lbl_high.pixel_size = 0.0040
+	lbl_high.modulate = Color("#f3e6c8")
+	lbl_high.outline_size = 4
+	lbl_high.outline_modulate = Color("#24170c")
+	lbl_high.position = Vector3(0.0, 0.0, 0.026)
+	high_blade.add_child(lbl_high)
+
+	# Peldaños bajos sugiriendo físicamente la subida de la senda alta tras la baliza (100% exteriores)
+	var fork_steps := [
+		Vector3(4.55, 0.60, 94.45),
+		Vector3(4.85, 0.78, 93.45),
+		Vector3(5.20, 1.02, 92.45)
+	]
+	for fsi in range(fork_steps.size()):
+		var fsp := _create_box_prop(cove_node, "HighRidgeForkStep_%d" % fsi, fork_steps[fsi], Vector3(1.12, 0.16, 0.68), cairn_mat)
+		fsp.rotation = Vector3(-0.18, -0.26, 0.04)
+		fsp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+
+	# Farol de arco costero exterior ligeramente adelantado hacia el paso oeste (y sentinel de borde norte)
+	var arch_lp := Vector3(1.2, 1.05, 94.2)
+	var arch_post := _create_cylinder(arch_node, "ArchGuideLanternPost", arch_lp, 0.075, 1.08, mat_wood_dark)
+	arch_post.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	var arch_flm := _create_box_prop(arch_node, "ArchGuideLantern", Vector3(1.2, 1.62, 94.2), Vector3(0.17, 0.22, 0.17), mat_flame)
+	arch_flm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	register_flame_fx(arch_flm, null, false)
+
+	# Señal marítima compacta fijada sobre el poste oeste de entrada al muelle (sin solapar 'Bote · Mar' ni flotar)
+	var pier_route_p := Vector3(18.65, 0.50, 110.22)
+	var pr_board := _create_box_prop(cove_node, "PierSeaRouteBoard", pier_route_p + Vector3(0.0, 0.72, 0.11), Vector3(0.62, 0.17, 0.045), board_mat)
+	pr_board.rotation.y = 0.06
+	var lbl_sea := Label3D.new()
+	lbl_sea.text = "Pleamar · Pecio →"
+	lbl_sea.font_size = 16
+	lbl_sea.pixel_size = 0.0036
+	lbl_sea.modulate = Color("#f3e6c8")
+	lbl_sea.outline_size = 4
+	lbl_sea.outline_modulate = Color("#24170c")
+	lbl_sea.position = Vector3(0.0, 0.0, 0.026)
+	pr_board.add_child(lbl_sea)
+
+	_build_step9_monastic_narrative_props(cove_node)
+
+func _build_step9_monastic_narrative_props(cove_node: Node3D) -> void:
+	# 9.1-9.3 Paso 9: Pocos props monásticos ordenados (uso reciente sereno del Retiro del Dragón, cero caos portuario)
+	var mono_node := Node3D.new()
+	mono_node.name = "MonasticLandingSupplies"
+	cove_node.add_child(mono_node)
+
+	var mat_crate := _make_textured_mat(Color("#8c6a47"), 0.86, 0.0, _load_tex("oak-v4.webp"), 0.38, true, _load_tex("wood-normal-v1.png"), 0.45)
+	var mat_sack := _make_textured_mat(Color("#cbb898"), 0.94, 0.0, _load_tex("linen-v4.webp"), 0.65, true)
+	var mat_cord := _make_textured_mat(Color("#9e8462"), 0.92, 0.0, _load_tex("linen-v4.webp"), 0.8, true)
+	var mat_herbs := _make_mat(Color("#47622d"), 0.88, 0.0)
+
+	# 1. Caja entreabierta ordenada con atados de hierbas/provisiones (margen norte, pasillo Z2<->muelle 100% libre)
+	var c_pos := Vector3(25.05, 0.58, 106.85)
+	var crate_base := _create_box_prop(mono_node, "MonasticOpenHerbCrate", c_pos, Vector3(0.72, 0.36, 0.52), mat_crate)
+	crate_base.rotation.y = -0.24
+	crate_base.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	var bundle_a := _create_box_prop(mono_node, "MonasticCrateClothPack", c_pos + Vector3(-0.14, 0.14, 0.0), Vector3(0.24, 0.14, 0.32), mat_cloth_blue)
+	bundle_a.rotation.y = -0.24
+	var bundle_b := _create_box_prop(mono_node, "MonasticCrateHerbBundle", c_pos + Vector3(0.14, 0.15, -0.02), Vector3(0.24, 0.13, 0.30), mat_herbs)
+	bundle_b.rotation = Vector3(0.05, -0.10, -0.06)
+	var crate_lid := _create_box_prop(mono_node, "MonasticOpenCrateLid", c_pos + Vector3(-0.08, 0.24, -0.18), Vector3(0.74, 0.045, 0.36), mat_crate)
+	crate_lid.rotation = Vector3(-0.42, -0.24, 0.0)
+	crate_lid.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+
+	# 2. Un saco de lino atado junto a la caja
+	var s_pos := Vector3(24.45, 0.56, 107.18)
+	var sack_body := _create_cylinder(mono_node, "MonasticHempSack", s_pos, 0.22, 0.38, mat_sack)
+	sack_body.scale = Vector3(1.0, 0.92, 0.84)
+	sack_body.rotation = Vector3(0.08, 0.32, -0.06)
+	sack_body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	var sack_neck := _create_cylinder(mono_node, "MonasticSackTie", s_pos + Vector3(0.02, 0.19, 0.01), 0.11, 0.07, mat_cord)
+	sack_neck.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+	# 3. Un cabo bien enrollado al pie del saco (listo para amarrar o reparar)
+	for cl_i in range(2):
+		var c_tor := MeshInstance3D.new()
+		var cm := TorusMesh.new()
+		cm.inner_radius = 0.12 - float(cl_i) * 0.03
+		cm.outer_radius = 0.23 - float(cl_i) * 0.04
+		c_tor.name = "MonasticSpareRopeCoil_%d" % cl_i
+		c_tor.mesh = cm
+		c_tor.material_override = mat_cord
+		c_tor.position = Vector3(24.72, 0.505 + float(cl_i) * 0.038, 107.62)
+		c_tor.scale = Vector3(1.0, 0.42, 1.0)
+		c_tor.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mono_node.add_child(c_tor)
+
+	# 4. Una tabla de madera suelta curada apoyada junto al margen rocoso (sin invadir paso)
+	var plank_p := Vector3(25.85, 0.56, 106.55)
+	var rest_stone := _create_box_prop(mono_node, "MonasticPlankSupportStone", plank_p + Vector3(0.0, -0.08, 0.0), Vector3(0.40, 0.12, 0.28), mat_rock_carved)
+	rest_stone.rotation.y = 0.40
+	var spare_plank := _create_box_prop(mono_node, "MonasticSeasonedPlank", plank_p, Vector3(0.24, 0.048, 1.28), mat_wood)
+	spare_plank.rotation = Vector3(0.08, 0.38, -0.04)
+	spare_plank.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+
+	# 5. Un farol austero de hierro asentado serenamente junto al cajón de hierbas
+	var l_p := Vector3(25.26, 0.86, 106.74)
+	_create_cylinder(mono_node, "MonasticCacheLanternBase", l_p - Vector3(0.0, 0.09, 0.0), 0.09, 0.04, mat_iron)
+	_create_cylinder(mono_node, "MonasticCacheLanternCap", l_p + Vector3(0.0, 0.11, 0.0), 0.10, 0.045, mat_iron)
+	var m_lan := _create_box_prop(mono_node, "MonasticCacheLanternFlame", l_p, Vector3(0.11, 0.16, 0.11), mat_flame)
+	m_lan.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	register_flame_fx(m_lan, null, false)
+
+	# Sombras de contacto AO y colisión compacta en margen norte (sin obstruir Z2<->muelle)
+	_add_ground_contact_shadow(mono_node, "MonasticSuppliesAO", Vector3(24.90, 0.465, 107.02), Vector2(1.90, 1.40), 0.44)
+	_add_ground_contact_shadow(mono_node, "MonasticPlankAO", Vector3(25.85, 0.455, 106.55), Vector2(0.55, 1.45), 0.38)
+	SceneEnhancer.add_box_collider(mono_node, Vector3(24.95, 0.65, 106.95), Vector3(1.50, 0.78, 1.05), -0.18)
+
+func _build_step6_vegetation_transitions(cove_node: Node3D, rng: RandomNumberGenerator) -> void:
+	# 6.1-6.3 Paso 6: Variación de coníferas, transición orgánica roca-hierba en grietas/zonas protegidas y visibilidad táctica abierta
+	var cr_mmi := cove_node.get_node_or_null("MM_CoastalPineCrowns") as MultiMeshInstance3D
+	var tr_mmi := cove_node.get_node_or_null("MM_CoastalPineTrunks") as MultiMeshInstance3D
+	var pine_tones: Array[Color] = [
+		Color("#253c25"), Color("#334c2f"), Color("#435a38"), Color("#2c452d"), Color("#3c5131")
+	]
+	if tr_mmi:
+		var t_list: Array[MultiMeshInstance3D] = [tr_mmi]
+		for ch in tr_mmi.get_children():
+			if ch is MultiMeshInstance3D:
+				t_list.append(ch as MultiMeshInstance3D)
+		for tm_node in t_list:
+			if tm_node.multimesh == null:
+				continue
+			var t_mm := tm_node.multimesh
+			for ti in range(t_mm.instance_count):
+				var xf := t_mm.get_instance_transform(ti)
+				var h_var := rng.randf_range(0.76, 1.38)
+				var lean := Basis.from_euler(Vector3(rng.randf_range(-0.10, 0.08), rng.randf_range(-0.3, 0.3), rng.randf_range(-0.12, 0.12)))
+				var new_b := lean * xf.basis.scaled(Vector3(1.0, h_var, 1.0))
+				t_mm.set_instance_transform(ti, Transform3D(new_b, xf.origin))
+	if cr_mmi:
+		var c_list: Array[MultiMeshInstance3D] = [cr_mmi]
+		for ch in cr_mmi.get_children():
+			if ch is MultiMeshInstance3D:
+				c_list.append(ch as MultiMeshInstance3D)
+		for cm_node in c_list:
+			if cm_node.multimesh == null:
+				continue
+			var c_mm := cm_node.multimesh
+			for ci in range(c_mm.instance_count):
+				var xf := c_mm.get_instance_transform(ci)
+				var w_sc := rng.randf_range(0.76, 1.28)
+				var h_sc := rng.randf_range(0.78, 1.44)
+				var skew := Basis.from_euler(Vector3(rng.randf_range(-0.11, 0.11), rng.randf_range(0.0, TAU), rng.randf_range(-0.13, 0.13))).scaled(Vector3(w_sc, h_sc, w_sc))
+				var col_orig: Color = c_mm.get_instance_color(ci) if c_mm.use_colors else pine_tones[ci % pine_tones.size()]
+				c_mm.set_instance_transform(ci, Transform3D(xf.basis * skew, xf.origin + Vector3(rng.randf_range(-0.20, 0.20), (h_sc - 1.0) * 0.28, rng.randf_range(-0.20, 0.20))))
+				if c_mm.use_colors:
+					c_mm.set_instance_color(ci, col_orig.lerp(pine_tones[rng.randi() % pine_tones.size()], 0.65))
+
+	# 6.2 Transiciones naturales roca <-> hierba <-> matorral en huecos protegidos (sin obstruir la playa táctica)
+	var rock_grass_anchors := [
+		Vector2(-10.2, 87.2), Vector2(-7.8, 88.8), Vector2(-4.4, 90.0), Vector2(-0.8, 91.6),
+		Vector2(2.6, 92.2), Vector2(5.4, 92.0), Vector2(8.8, 92.4), Vector2(12.2, 92.6),
+		Vector2(15.2, 93.4), Vector2(18.2, 94.0), Vector2(20.6, 96.4), Vector2(22.8, 99.6),
+		Vector2(24.6, 102.8), Vector2(1.4, 98.4), Vector2(-3.2, 95.8), Vector2(-7.4, 93.6),
+		Vector2(4.2, 88.0), Vector2(-5.4, 83.8), Vector2(10.8, 88.6), Vector2(15.2, 88.8),
+		Vector2(26.8, 105.6), Vector2(29.8, 104.2)
+	]
+	var tuft_xf: Array[Transform3D] = []
+	var tuft_col: Array[Color] = []
+	var fern_xf: Array[Transform3D] = []
+	var fern_col: Array[Color] = []
+	var bloom_xf: Array[Transform3D] = []
+	var bloom_col: Array[Color] = []
+
+	var grass_palette: Array[Color] = [
+		Color("#3f542b"), Color("#4d6335"), Color("#5b713f"), Color("#344723"), Color("#6b7946")
+	]
+	var fern_palette: Array[Color] = [
+		Color("#2e4621"), Color("#3a5429"), Color("#476233")
+	]
+	var bloom_palette: Array[Color] = [
+		Color("#7b5b8c"), Color("#8e6c9e"), Color("#6d4e7d"), Color("#9a79a8")
+	]
+
+	for rg_v in rock_grass_anchors:
+		var rg: Vector2 = rg_v
+		var cliff_h := _eval_cove_headland_height(rg.x, rg.y)
+		var sand_h := float(_eval_cove_beach_sample(rg.x, rg.y)["wy"])
+		var base_y := maxf(sand_h, cliff_h - 0.10) if cliff_h > 0.25 else sand_h
+		if base_y < 0.28:
+			continue
+		for t_i in range(4):
+			var ox := rng.randf_range(-0.95, 0.95)
+			var oz := rng.randf_range(-0.75, 0.75)
+			var tsc := rng.randf_range(0.68, 1.32)
+			var tb := Basis.from_euler(Vector3(rng.randf_range(-0.10, 0.10), rng.randf_range(0.0, TAU), rng.randf_range(-0.10, 0.10))).scaled(Vector3(tsc, tsc * rng.randf_range(0.72, 1.18), tsc))
+			tuft_xf.append(Transform3D(tb, Vector3(rg.x + ox, base_y - 0.02, rg.y + oz)))
+			tuft_col.append(grass_palette[rng.randi() % grass_palette.size()])
+		if rng.randf() < 0.72:
+			var fsc := rng.randf_range(0.75, 1.25)
+			var fb := Basis.from_euler(Vector3(rng.randf_range(-0.08, 0.08), rng.randf_range(0.0, TAU), rng.randf_range(-0.08, 0.08))).scaled(Vector3(fsc, fsc * 0.92, fsc))
+			fern_xf.append(Transform3D(fb, Vector3(rg.x + rng.randf_range(-0.55, 0.55), base_y - 0.02, rg.y + rng.randf_range(-0.45, 0.45))))
+			fern_col.append(fern_palette[rng.randi() % fern_palette.size()])
+		if rng.randf() < 0.48:
+			var bsc := rng.randf_range(0.56, 0.88)
+			var bb := Basis.from_euler(Vector3(0.0, rng.randf_range(0.0, TAU), 0.0)).scaled(Vector3(bsc, bsc * 0.85, bsc))
+			bloom_xf.append(Transform3D(bb, Vector3(rg.x + rng.randf_range(-0.45, 0.45), base_y + 0.08, rg.y + rng.randf_range(-0.45, 0.45))))
+			bloom_col.append(bloom_palette[rng.randi() % bloom_palette.size()])
+
+	var grass_mat := _make_mat(Color.WHITE, 0.90, 0.0)
+	grass_mat.vertex_color_use_as_albedo = true
+	grass_mat.vertex_color_is_srgb = true
+	grass_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	grass_mat.backlight_enabled = true
+	grass_mat.backlight = Color(0.08, 0.13, 0.05)
+
+	if not tuft_xf.is_empty():
+		var mm_tuft := _make_multimesh_batch("MM_RockGrassTransitions", SceneEnhancer.make_grass_tuft_mesh(), grass_mat, tuft_xf, tuft_col)
+		mm_tuft.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		cove_node.add_child(mm_tuft)
+	if not fern_xf.is_empty():
+		var mm_ferns := _make_multimesh_batch("MM_ShelteredCoastalFerns", SceneEnhancer.make_fern_cluster_mesh(), grass_mat, fern_xf, fern_col)
+		mm_ferns.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		cove_node.add_child(mm_ferns)
+	if not bloom_xf.is_empty():
+		var b_mat := _make_mat(Color.WHITE, 0.86, 0.0)
+		b_mat.vertex_color_use_as_albedo = true
+		b_mat.vertex_color_is_srgb = true
+		b_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		var mm_blooms := _make_multimesh_batch("MM_ShelteredCoastalHeather", SceneEnhancer.make_blossom_cluster_mesh(), b_mat, bloom_xf, bloom_col)
+		mm_blooms.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		cove_node.add_child(mm_blooms)
+
+func _build_volcanic_cliff_sculpt_and_cleft(cove_node: Node3D, rng: RandomNumberGenerator, basalt_slate_mat: Material, basalt_dark_mat: Material, tex_basalt: Texture2D, norm_rock: Texture2D) -> void:
+	# 5.1-5.4 Paso 5: Fracturas columnares, contraste geológico, enredaderas en grietas y boca/grieta húmeda oeste
+	var rib_mat := _make_textured_mat(Color.WHITE, 0.88, 0.03, tex_basalt, 0.22, true, norm_rock, 0.88)
+	rib_mat.vertex_color_use_as_albedo = true
+	rib_mat.vertex_color_is_srgb = true
+
+	var rib_xf: Array[Transform3D] = []
+	var rib_col: Array[Color] = []
+	var rib_tones: Array[Color] = [
+		Color("#aeb6be"), Color("#9da39a"), Color("#b8b2a4"), Color("#7c848a"), Color("#7d8968")
+	]
+	# Costillas verticales y espolones angulosos rompiendo las masas cónicas de los acantilados
+	var cliff_anchors := [
+		Vector2(-15.5, 81.2), Vector2(-11.8, 84.0), Vector2(-6.5, 84.8), Vector2(-1.8, 86.4),
+		Vector2(2.6, 88.2), Vector2(6.8, 89.0), Vector2(11.6, 89.2), Vector2(15.6, 88.8),
+		Vector2(20.2, 85.4), Vector2(24.6, 80.2), Vector2(28.4, 78.8), Vector2(33.2, 82.0),
+		Vector2(38.6, 84.2), Vector2(43.2, 87.6)
+	]
+	for cai in range(cliff_anchors.size()):
+		var ca: Vector2 = cliff_anchors[cai]
+		for sub in range(4):
+			var px: float = ca.x + rng.randf_range(-2.6, 2.6)
+			var pz: float = ca.y + rng.randf_range(-1.8, 2.1)
+			var base_y: float = _eval_cove_headland_height(px, pz)
+			if base_y < -0.8:
+				base_y = 0.05
+			var sc := Vector3(rng.randf_range(1.25, 2.35), rng.randf_range(2.6, 5.2), rng.randf_range(0.95, 1.85))
+			var tilt_x := rng.randf_range(-0.22, 0.28)
+			var tilt_z := rng.randf_range(-0.26, 0.26)
+			var rb := Basis.from_euler(Vector3(tilt_x, rng.randf_range(0.0, TAU), tilt_z)).scaled(sc)
+			rib_xf.append(Transform3D(rb, Vector3(px, base_y - sc.y * 0.44, pz)))
+			var col := rib_tones[rng.randi() % rib_tones.size()]
+			if pz > 88.5 or base_y < 1.1:
+				col = col.darkened(0.24)
+			elif sub == 0:
+				col = col.lerp(Color("#697954"), 0.35)
+			rib_col.append(col)
+
+	# Escarpe húmedo oscuro en zonas de salpicadura y juntas bajas de piedra
+	var wet_skirt_pts := [
+		Vector3(18.6, -0.35, 93.8), Vector3(22.2, -0.35, 97.6), Vector3(24.8, -0.35, 102.2),
+		Vector3(-9.2, -0.25, 96.4), Vector3(-4.6, -0.25, 98.4), Vector3(1.2, -0.25, 100.4),
+		Vector3(28.4, -0.40, 111.8), Vector3(31.8, -0.45, 111.2), Vector3(35.6, -0.40, 111.6)
+	]
+	for wsp_v in wet_skirt_pts:
+		var wsp: Vector3 = wsp_v
+		var sb := Basis.from_euler(Vector3(rng.randf_range(-0.1, 0.1), rng.randf_range(0.0, TAU), rng.randf_range(-0.1, 0.1))).scaled(Vector3(rng.randf_range(1.4, 2.2), rng.randf_range(0.75, 1.25), rng.randf_range(1.3, 1.9)))
+		rib_xf.append(Transform3D(sb, wsp))
+		rib_col.append(Color("#545c63"))
+
+	var rib_mesh := SceneEnhancer.make_basalt_outcrop_mesh(211)
+	var mm_ribs := _make_multimesh_batch("MM_CliffFractureRibs", rib_mesh, rib_mat, rib_xf, rib_col)
+	mm_ribs.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	cove_node.add_child(mm_ribs)
+
+	# 5.3 Contacto vivo roca-vegetación: enredaderas y helechos incrustados en grietas de acantilado
+	var ivy_xf: Array[Transform3D] = []
+	var fern_xf: Array[Transform3D] = []
+	var fern_col: Array[Color] = []
+	var fern_tones: Array[Color] = [Color("#365026"), Color("#486230"), Color("#567039"), Color("#2a3f1d")]
+	var cleft_spots := [
+		Vector2(-9.6, 86.2), Vector2(-6.2, 87.2), Vector2(-1.4, 88.2), Vector2(3.2, 89.2),
+		Vector2(6.8, 89.8), Vector2(10.4, 89.4), Vector2(14.8, 89.6), Vector2(18.6, 88.8),
+		Vector2(21.4, 86.2), Vector2(25.2, 82.4), Vector2(30.4, 85.4), Vector2(34.8, 88.2)
+	]
+	for cs_v in cleft_spots:
+		var cs: Vector2 = cs_v
+		var cy: float = maxf(1.25, _eval_cove_headland_height(cs.x, cs.y))
+		for iv in range(2):
+			var isc := rng.randf_range(0.85, 1.45)
+			var ib := Basis.from_euler(Vector3(0.08, rng.randf_range(-0.6, 0.6), rng.randf_range(-0.12, 0.12))).scaled(Vector3(isc, isc * 1.25, isc))
+			ivy_xf.append(Transform3D(ib, Vector3(cs.x + rng.randf_range(-1.1, 1.1), cy - rng.randf_range(0.15, 0.85), cs.y + 0.65)))
+		for fn in range(2):
+			var fsc := rng.randf_range(0.75, 1.25)
+			var fb := Basis.from_euler(Vector3(0.14, rng.randf_range(0.0, TAU), rng.randf_range(-0.1, 0.1))).scaled(Vector3(fsc, fsc * 0.9, fsc))
+			fern_xf.append(Transform3D(fb, Vector3(cs.x + rng.randf_range(-0.9, 0.9), cy - 0.12, cs.y + 0.35)))
+			fern_col.append(fern_tones[rng.randi() % fern_tones.size()])
+
+	if not ivy_xf.is_empty():
+		var ivy_mat := _make_mat(Color("#38502c"), 0.88, 0.0)
+		ivy_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		ivy_mat.backlight_enabled = true
+		ivy_mat.backlight = Color(0.08, 0.13, 0.05)
+		var mm_ivy := _make_multimesh_batch("MM_CliffCreviceVines", SceneEnhancer.make_hanging_ivy_mesh(), ivy_mat, ivy_xf, [])
+		mm_ivy.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		cove_node.add_child(mm_ivy)
+	if not fern_xf.is_empty():
+		var cf_mat := _make_mat(Color.WHITE, 0.88, 0.0)
+		cf_mat.vertex_color_use_as_albedo = true
+		cf_mat.vertex_color_is_srgb = true
+		cf_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		var mm_cf := _make_multimesh_batch("MM_CliffCreviceFerns", SceneEnhancer.make_fern_cluster_mesh(), cf_mat, fern_xf, fern_col)
+		mm_cf.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		cove_node.add_child(mm_cf)
+
+	# 5.4 Refuerzo de grieta/boca costera oeste (-9.5, 1.05, 89.8): jambas basálticas oscuras, fondo sombrío y vapor húmedo
+	var cleft_node := Node3D.new()
+	cleft_node.name = "WestCoastalCleftPocket"
+	cove_node.add_child(cleft_node)
+	var recess_mat := _make_textured_mat(Color("#23292e"), 0.95, 0.0, tex_basalt, 0.25, true, norm_rock, 0.80)
+	var recess := _create_box_prop(cleft_node, "WestCleftShadowRecess", Vector3(-9.4, 1.55, 85.4), Vector3(4.2, 3.2, 1.6), recess_mat)
+	recess.rotation.y = 0.28
+	recess.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	var cleft_jamb_mesh := SceneEnhancer.make_basalt_outcrop_mesh(241)
+	for ji in range(4):
+		var jx: float = [-11.8, -10.5, -7.8, -6.2][ji]
+		var jz: float = [85.8, 86.6, 86.2, 87.2][ji]
+		var j_sc := Vector3(1.65, 3.4 + float(ji % 2) * 0.9, 1.55)
+		var jb := MeshInstance3D.new()
+		jb.name = "WestCleftBasaltJamb_%d" % ji
+		jb.mesh = cleft_jamb_mesh
+		jb.material_override = basalt_dark_mat if ji % 2 == 0 else basalt_slate_mat
+		jb.position = Vector3(jx, -0.35, jz)
+		jb.rotation_degrees = Vector3(6.0, float(ji) * 42.0, -10.0 if jx < -9.2 else 11.0)
+		jb.scale = j_sc
+		jb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		cleft_node.add_child(jb)
+	_create_coastal_mist(cleft_node, "Mist_WestCleftMouth", Vector3(-9.2, 1.05, 87.8))
+	_create_coastal_mist(cleft_node, "Mist_WestPathHorizon", Vector3(-18.5, 1.20, 84.0))
+
+func _build_submerged_kelp_batch(parent: Node3D, rng: RandomNumberGenerator) -> void:
+	# 1.3 Algas sumergidas orgánicas, piedras subacuáticas y golpes de ola localizados sin patrón repetido
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var col_root := Color("#0e1908")
+	var col_mid := Color("#203311")
+	var col_tip := Color("#3a4416")
+	var frond_angles := [0.12, 0.92, 1.85, 2.78, 3.72, 4.65, 5.50]
+	for fi in range(frond_angles.size()):
+		var yaw: float = float(frond_angles[fi]) + (0.24 if fi % 2 == 0 else -0.18)
+		var dx := cos(yaw)
+		var dz := sin(yaw)
+		var sx := -dz
+		var sz := dx
+		var len_f := 0.56 + 0.22 * float((fi * 2 + 1) % 3)
+		var bend := 0.16 * (1.0 if fi % 2 == 0 else -1.0)
+		var w0 := 0.048
+		var w1 := 0.082
+		var w2 := 0.024
+		var p0 := Vector3(dx * 0.03 - sx * w0, 0.01, dz * 0.03 - sz * w0)
+		var p1 := Vector3(dx * 0.03 + sx * w0, 0.01, dz * 0.03 + sz * w0)
+		var m_c := Vector3(dx * len_f * 0.48 + sx * bend, 0.085, dz * len_f * 0.48 + sz * bend)
+		var p2 := m_c + Vector3(sx * w1, 0.0, sz * w1)
+		var p3 := m_c - Vector3(sx * w1, 0.0, sz * w1)
+		var t_c := Vector3(dx * len_f - sx * bend * 0.45, 0.030, dz * len_f - sz * bend * 0.45)
+		var p4 := t_c + Vector3(sx * w2, 0.0, sz * w2)
+		var p5 := t_c - Vector3(sx * w2, 0.0, sz * w2)
+		_emit_quad_up_st(st, p0, p1, p2, p3, col_root, col_root, col_mid, col_mid, Vector2.ZERO, Vector2.RIGHT, Vector2(1, 0.5), Vector2(0, 0.5))
+		_emit_quad_up_st(st, p3, p2, p4, p5, col_mid, col_mid, col_tip, col_tip, Vector2(0, 0.5), Vector2(1, 0.5), Vector2.ONE, Vector2.DOWN)
+	st.generate_normals()
+
+	var kelp_shader := Shader.new()
+	kelp_shader.code = """
+shader_type spatial;
+render_mode cull_disabled, specular_disabled;
+
+varying vec3 wpos;
+varying vec4 vcol;
+
+void vertex() {
+	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	vcol = COLOR;
+	float tip = clamp(length(VERTEX.xz) * 1.45, 0.0, 1.0);
+	VERTEX.x += sin(TIME * 1.10 + wpos.z * 0.65 + wpos.x * 0.45) * 0.055 * tip;
+	VERTEX.z += cos(TIME * 0.92 + wpos.x * 0.55) * 0.048 * tip;
+}
+
+void fragment() {
+	ALBEDO = mix(vcol.rgb, vec3(0.03, 0.14, 0.13), 0.30);
+	ROUGHNESS = 0.92;
+	METALLIC = 0.0;
+}
+"""
+	var kelp_mat := ShaderMaterial.new()
+	kelp_mat.shader = kelp_shader
+
+	var kelp_xf: Array[Transform3D] = []
+	var kelp_col: Array[Color] = []
+	var anchors := [
+		Vector2(18.2, 113.8), Vector2(19.5, 114.6), Vector2(21.1, 115.2), Vector2(23.8, 114.4),
+		Vector2(25.4, 115.3), Vector2(26.6, 114.2), Vector2(17.1, 114.8), Vector2(18.8, 116.5),
+		Vector2(21.8, 116.3), Vector2(24.9, 116.6), Vector2(28.2, 114.6), Vector2(30.6, 115.4),
+		Vector2(32.5, 114.4), Vector2(34.2, 115.2), Vector2(15.2, 114.1), Vector2(13.2, 112.4),
+		Vector2(10.2, 110.8), Vector2(7.2, 108.6), Vector2(4.4, 106.4), Vector2(1.4, 103.8),
+		Vector2(-2.2, 101.8), Vector2(-6.2, 100.2), Vector2(-10.4, 98.0), Vector2(21.2, 95.2)
+	]
+	var tones: Array[Color] = [
+		Color(0.86, 0.94, 0.72), Color(1.00, 0.92, 0.68), Color(0.70, 0.84, 0.60), Color(0.94, 0.76, 0.56)
+	]
+	for ai in range(anchors.size()):
+		var a2: Vector2 = anchors[ai]
+		var sub_n := 4 if ai < 14 else 2
+		for sub in range(sub_n):
+			var wx := a2.x + rng.randf_range(-0.95, 0.95)
+			var wz := a2.y + rng.randf_range(-0.85, 0.85)
+			var sy: float = float(_eval_cove_beach_sample(wx, wz)["wy"])
+			if sy > -0.14 or sy < -2.6:
+				continue
+			var ksc := rng.randf_range(0.55, 1.32)
+			var kb := Basis.from_euler(Vector3(rng.randf_range(-0.08, 0.08), rng.randf_range(0.0, TAU), rng.randf_range(-0.08, 0.08))).scaled(Vector3(ksc, rng.randf_range(0.75, 1.25), ksc))
+			kelp_xf.append(Transform3D(kb, Vector3(wx, sy + 0.02, wz)))
+			kelp_col.append(tones[rng.randi() % tones.size()])
+	var mm_kelp := _make_multimesh_batch("MM_SubmergedKelp", st.commit(), kelp_mat, kelp_xf, kelp_col)
+	mm_kelp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(mm_kelp)
+
+	# Piedras sumergidas visibles sobre los bancos de arena en aguas someras (concentradas junto al muelle y escollera)
+	var stone_xf: Array[Transform3D] = []
+	var stone_col: Array[Color] = []
+	var stone_tones: Array[Color] = [Color("#3b4946"), Color("#2c3736"), Color("#4b4c3f"), Color("#253132")]
+	var stone_zones := [
+		Vector4(16.0, 27.5, 111.5, 116.0),
+		Vector4(27.5, 36.0, 111.5, 115.6),
+		Vector4(3.0, 15.8, 104.5, 112.8),
+		Vector4(-12.0, 3.0, 96.5, 104.8)
+	]
+	for zi in range(stone_zones.size()):
+		var zbox: Vector4 = stone_zones[zi]
+		var count := 22 if zi == 0 else (14 if zi == 1 else 11)
+		for si in range(count):
+			var wx := rng.randf_range(zbox.x, zbox.y)
+			var wz := rng.randf_range(zbox.z, zbox.w)
+			var sy: float = float(_eval_cove_beach_sample(wx, wz)["wy"])
+			if sy > -0.10 or sy < -1.85:
+				continue
+			var sc := Vector3(rng.randf_range(0.32, 0.92), rng.randf_range(0.14, 0.34), rng.randf_range(0.28, 0.84))
+			var sb := Basis.from_euler(Vector3(rng.randf_range(-0.10, 0.10), rng.randf_range(0.0, TAU), rng.randf_range(-0.10, 0.10))).scaled(sc)
+			stone_xf.append(Transform3D(sb, Vector3(wx, sy + sc.y * 0.18, wz)))
+			stone_col.append(stone_tones[rng.randi() % stone_tones.size()])
+	if not stone_xf.is_empty():
+		var stone_mesh := SceneEnhancer.make_basalt_outcrop_mesh(91)
+		var stone_mat := _make_mat(Color.WHITE, 0.82, 0.0)
+		stone_mat.vertex_color_use_as_albedo = true
+		var mm_stones := _make_multimesh_batch("MM_SubmergedStones", stone_mesh, stone_mat, stone_xf, stone_col)
+		mm_stones.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		parent.add_child(mm_stones)
+
+	# Delicados anillos de espuma en la base real de los pilotes del muelle (sin discos en mar abierto)
+	var lap_st := SurfaceTool.new()
+	lap_st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var ring_segs := 24
+	for ri in range(ring_segs):
+		var a0 := float(ri) / float(ring_segs) * TAU
+		var a1 := float(ri + 1) / float(ring_segs) * TAU
+		var r_in0 := 0.22 + 0.04 * sin(a0 * 3.0 + 0.6)
+		var r_in1 := 0.22 + 0.04 * sin(a1 * 3.0 + 0.6)
+		var r_out0 := 0.56 + 0.09 * cos(a0 * 2.0 - 0.5)
+		var r_out1 := 0.56 + 0.09 * cos(a1 * 2.0 - 0.5)
+		var q0 := Vector3(cos(a0) * r_in0, 0.0, sin(a0) * r_in0)
+		var q1 := Vector3(cos(a0) * r_out0, 0.0, sin(a0) * r_out0)
+		var q2 := Vector3(cos(a1) * r_out1, 0.0, sin(a1) * r_out1)
+		var q3 := Vector3(cos(a1) * r_in1, 0.0, sin(a1) * r_in1)
+		_emit_quad_up_st(lap_st, q0, q1, q2, q3, Color.WHITE, Color.WHITE, Color.WHITE, Color.WHITE, Vector2(0.0, float(ri) / float(ring_segs)), Vector2(1.0, float(ri) / float(ring_segs)), Vector2(1.0, float(ri + 1) / float(ring_segs)), Vector2(0.0, float(ri + 1) / float(ring_segs)))
+	var lap_shader := Shader.new()
+	lap_shader.code = """
+shader_type spatial;
+render_mode blend_mix, depth_draw_never, cull_disabled, specular_disabled;
+
+varying vec2 l_uv;
+varying vec3 wpos;
+varying float phase_seed;
+
+void vertex() {
+	l_uv = UV;
+	phase_seed = INSTANCE_CUSTOM.x;
+	float pulse = sin(TIME * 1.45 + phase_seed * 6.2831);
+	VERTEX.xz *= 1.0 + pulse * 0.045;
+	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+}
+
+void fragment() {
+	float radial = pow(sin(clamp(l_uv.x, 0.0, 1.0) * 3.14159265), 1.6);
+	float arc = sin(l_uv.y * 18.8495 + phase_seed * 7.1 + TIME * 0.55) * 0.5 + 0.5;
+	float arc2 = cos(l_uv.y * 50.2654 - TIME * 0.42 + wpos.x * 2.8 + wpos.z * 2.4) * 0.5 + 0.5;
+	float lace = smoothstep(0.42, 0.68, arc * 0.52 + arc2 * 0.48);
+	float pulse_a = 0.72 + 0.28 * sin(TIME * 1.45 + phase_seed * 6.2831);
+	ALBEDO = vec3(0.92, 0.96, 0.98);
+	ALPHA = clamp(radial * lace * pulse_a * 0.48, 0.0, 0.52);
+	ROUGHNESS = 0.65;
+	METALLIC = 0.0;
+}
+"""
+	var lap_mat := ShaderMaterial.new()
+	lap_mat.shader = lap_shader
+	var lap_specs := [
+		[Vector3(18.65, 0.0, 114.10), 0.78], [Vector3(20.65, 0.0, 114.18), 0.72],
+		[Vector3(22.75, 0.0, 114.12), 0.72], [Vector3(24.75, 0.0, 114.08), 0.78],
+		[Vector3(20.45, 0.0, 115.05), 0.76], [Vector3(25.15, 0.0, 115.15), 0.76]
+	]
+	var lap_mm := MultiMesh.new()
+	lap_mm.transform_format = MultiMesh.TRANSFORM_3D
+	lap_mm.use_custom_data = true
+	lap_mm.mesh = lap_st.commit()
+	lap_mm.instance_count = lap_specs.size()
+	var origin_off := _ocean_plane_node.position if is_instance_valid(_ocean_plane_node) else Vector3(0.0, Structure.ELEV_SEA, 0.0)
+	for li in range(lap_specs.size()):
+		var lp: Vector3 = lap_specs[li][0]
+		var lrad: float = float(lap_specs[li][1])
+		var lb := Basis.from_euler(Vector3(0.0, rng.randf_range(0.0, TAU), 0.0)).scaled(Vector3(lrad, 1.0, lrad * rng.randf_range(0.84, 1.16)))
+		lap_mm.set_instance_transform(li, Transform3D(lb, Vector3(lp.x - origin_off.x, 0.016, lp.z - origin_off.z)))
+		lap_mm.set_instance_custom_data(li, Color(rng.randf(), rng.randf(), 0.0, 0.0))
+	var mm_laps := MultiMeshInstance3D.new()
+	mm_laps.name = "MM_WaveLapFoam"
+	mm_laps.multimesh = lap_mm
+	mm_laps.material_override = lap_mat
+	mm_laps.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	if is_instance_valid(_ocean_plane_node):
+		_ocean_plane_node.add_child(mm_laps)
+	else:
+		parent.add_child(mm_laps)
+
+func _build_coastal_sunbeams(parent: Node3D) -> void:
+	# 4.5 Iluminación costera de claros de sol localizados entre nubes (SpotLight3D suaves + finos haces en altura sin bordes en el suelo)
+	var beams := Node3D.new()
+	beams.name = "CoastalSunbeams"
+	parent.add_child(beams)
+	_coastal_sunbeams_node = beams
+
+	var beam_shader := Shader.new()
+	beam_shader.code = """
+shader_type spatial;
+render_mode blend_add, depth_draw_never, cull_disabled, unshaded, world_vertex_coords;
+
+uniform vec4 beam_color : source_color = vec4(1.0, 0.90, 0.70, 0.045);
+
+varying vec3 wpos;
+void vertex() {
+	wpos = VERTEX;
+}
+void fragment() {
+	float horiz = pow(sin(UV.x * 3.14159265), 2.4);
+	float vfade = smoothstep(3.2, 7.8, wpos.y) * smoothstep(18.0, 11.5, wpos.y);
+	ALBEDO = beam_color.rgb;
+	ALPHA = horiz * vfade * beam_color.a;
+}
+"""
+	var beam_mat := ShaderMaterial.new()
+	beam_mat.shader = beam_shader
+	var qm := QuadMesh.new()
+	qm.size = Vector2(5.6, 13.5)
+	var shaft_specs := [
+		Vector3(12.5, 9.8, 100.5),
+		Vector3(21.5, 9.8, 109.5),
+		Vector3(3.5, 9.8, 95.0)
+	]
+	for si in range(shaft_specs.size()):
+		var b_inst := MeshInstance3D.new()
+		b_inst.name = "SunShaft_%d" % si
+		b_inst.mesh = qm
+		b_inst.material_override = beam_mat
+		b_inst.position = shaft_specs[si]
+		b_inst.rotation_degrees = Vector3(14.0, -22.0, -24.0)
+		b_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		beams.add_child(b_inst)
+
+	var spot_specs := [
+		# 7.4 Jerarquía focal 1-2-3: 1) Muelle y bote, 2) Arranque escalera Z2, 3) Salida costera a Pleamar
+		{"pos": Vector3(22.5, 14.0, 117.5), "target": Vector3(22.0, 0.45, 112.8), "energy": 1.65, "angle": 25.0, "range": 32.0, "col": Color(1.0, 0.90, 0.70)},
+		{"pos": Vector3(31.2, 13.5, 114.2), "target": Vector3(29.8, 0.65, 109.2), "energy": 1.18, "angle": 22.0, "range": 28.0, "col": Color(1.0, 0.87, 0.65)},
+		{"pos": Vector3(5.2, 12.8, 103.5), "target": Vector3(4.2, 0.55, 97.6), "energy": 0.96, "angle": 23.0, "range": 28.0, "col": Color(0.96, 0.89, 0.74)}
+	]
+	for pi in range(spot_specs.size()):
+		var sp_cfg: Dictionary = spot_specs[pi]
+		var sp := SpotLight3D.new()
+		sp.name = "CoveSunSpot_%d" % pi
+		sp.light_color = sp_cfg["col"]
+		sp.light_energy = float(sp_cfg["energy"])
+		sp.spot_range = float(sp_cfg["range"])
+		sp.spot_angle = float(sp_cfg["angle"])
+		sp.spot_angle_attenuation = 1.65
+		sp.spot_attenuation = 1.25
+		sp.shadow_enabled = false
+		beams.add_child(sp)
+		sp.look_at_from_position(sp_cfg["pos"], sp_cfg["target"], Vector3.UP)
+
+	var sun_patch := OmniLight3D.new()
+	sun_patch.name = "CoveSunPatchLight"
+	sun_patch.position = Vector3(17.5, 14.5, 104.5)
+	sun_patch.omni_range = 24.0
+	sun_patch.omni_attenuation = 1.75
+	sun_patch.light_color = Color(1.0, 0.88, 0.66)
+	sun_patch.light_energy = 0.44
+	sun_patch.shadow_enabled = false
+	beams.add_child(sun_patch)
+	_cove_sun_patch_light = sun_patch
+
+	# 7.3 Luz sutil de rebote marino azul-turquesa sobre bajos del muelle y escollera Z2
+	for bounce_spec in [
+		["CoastalWaterBounce_Pier", Vector3(21.8, 0.32, 114.2), 12.5, 0.36],
+		["CoastalWaterBounce_Z2", Vector3(31.8, 0.42, 111.4), 12.0, 0.30]
+	]:
+		var b_lt := OmniLight3D.new()
+		b_lt.name = str(bounce_spec[0])
+		b_lt.position = bounce_spec[1]
+		b_lt.omni_range = float(bounce_spec[2])
+		b_lt.omni_attenuation = 1.60
+		b_lt.light_color = Color(0.24, 0.66, 0.76)
+		b_lt.light_energy = float(bounce_spec[3])
+		b_lt.shadow_enabled = false
+		beams.add_child(b_lt)
+
+	# 7.2 Sombras de contacto AO en bases de rocas costeras, postes, arranque Z2 y matorrales
+	var ao_contacts := [
+		[Vector3(18.65, 0.42, 110.22), Vector2(0.95, 0.95)],
+		[Vector3(24.85, 0.42, 110.22), Vector2(0.95, 0.95)],
+		[Vector3(21.70, 0.45, 109.98), Vector2(4.60, 1.05)],
+		[Vector3(17.4, 0.30, 111.0), Vector2(2.3, 2.0)],
+		[Vector3(11.6, 0.32, 109.6), Vector2(2.4, 2.1)],
+		[Vector3(6.8, 0.28, 106.8), Vector2(2.0, 1.8)],
+		[Vector3(0.8, 0.28, 101.2), Vector2(2.3, 2.0)],
+		[Vector3(19.8, 0.50, 94.2), Vector2(2.4, 2.1)],
+		[Vector3(21.6, 0.46, 98.2), Vector2(2.1, 1.9)],
+		[Vector3(24.4, 0.42, 103.2), Vector2(1.9, 1.7)],
+		[Vector3(29.5, 0.27, 109.5), Vector2(2.2, 3.2)],
+		[Vector3(5.2, 0.55, 99.6), Vector2(0.65, 0.65)],
+		[Vector3(2.0, 0.55, 97.8), Vector2(0.65, 0.65)],
+		[Vector3(-1.8, 0.58, 95.6), Vector2(0.65, 0.65)],
+		[Vector3(18.6, 0.53, 92.6), Vector2(1.6, 1.6)],
+		[Vector3(23.2, 0.47, 100.8), Vector2(1.5, 1.5)]
+	]
+	for ai in range(ao_contacts.size()):
+		var ac: Array = ao_contacts[ai]
+		var ap: Vector3 = ac[0]
+		var gy: float = float(_eval_cove_beach_sample(ap.x, ap.z)["wy"])
+		_add_ground_contact_shadow(beams, "CoastalContactAO_%d" % ai, Vector3(ap.x, maxf(ap.y - 0.14, gy + 0.015), ap.z), ac[1], 0.46)
+
+func _eval_cove_headland_height(px: float, pz: float) -> float:
+	var h := -3.8
+	h = maxf(h, _eval_volcanic_cliff_y(px, pz, Vector3(-18.8, 0.0, 77.6), 9.2, 7.6, 3.8, -3.8, 2.3))
+	h = maxf(h, _eval_volcanic_cliff_y(px, pz, Vector3(-7.2, 0.0, 81.2), 11.8, 9.2, 4.7, -3.8, 0.6))
+	h = maxf(h, _eval_volcanic_cliff_y(px, pz, Vector3(5.8, 0.0, 86.2), 10.6, 7.6, 5.0, -3.8, 1.9))
+	h = maxf(h, _eval_volcanic_cliff_y(px, pz, Vector3(14.8, 0.0, 87.2), 9.6, 7.0, 4.3, -3.8, 3.2))
+	h = maxf(h, _eval_volcanic_cliff_y(px, pz, Vector3(22.2, 0.0, 82.0), 9.2, 8.2, 5.8, -3.8, 4.4))
+	h = maxf(h, _eval_volcanic_cliff_y(px, pz, Vector3(26.5, 0.0, 74.2), 11.5, 9.5, 7.2, -3.8, 2.7))
+	h = maxf(h, _eval_volcanic_cliff_y(px, pz, Vector3(36.8, 0.0, 79.2), 11.8, 10.2, 8.2, -3.8, 5.1))
+	h = maxf(h, _eval_volcanic_cliff_y(px, pz, Vector3(44.8, 0.0, 85.8), 11.2, 10.5, 7.4, -3.8, 1.4))
+	return h
+
+func _make_coastal_pine_bough_mesh() -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var boughs := 16
+	var apex := Vector3(0.06, 0.60, -0.04)
+	var mid_ring: Array[Vector3] = []
+	var skirt_ring: Array[Vector3] = []
+	for i in range(boughs):
+		var ang := float(i) / float(boughs) * TAU
+		var asym := 1.0 + 0.24 * sin(ang * 3.0 + 0.7) + 0.14 * cos(ang * 5.0 - 0.4)
+		var is_lobe := (i % 2 == 0)
+		var mid_rad := (0.62 if is_lobe else 0.44) * asym
+		var mid_y := (0.04 if is_lobe else 0.13) + 0.04 * sin(ang * 2.0)
+		mid_ring.append(Vector3(cos(ang) * mid_rad, mid_y, sin(ang) * mid_rad))
+		var rad := (1.14 if is_lobe else 0.72) * asym
+		var drop := (-0.54 if is_lobe else -0.36) - 0.08 * cos(ang * 3.0)
+		skirt_ring.append(Vector3(cos(ang + 0.12) * rad, drop, sin(ang + 0.12) * rad))
+	var center_bottom := Vector3(0.0, -0.30, 0.0)
+	var col_apex := Color(1.06, 1.12, 0.94)
+	var col_mid := Color(0.88, 0.92, 0.80)
+	var col_tip := Color(0.72, 0.78, 0.66)
+	var col_under := Color(0.42, 0.48, 0.38)
+	for i in range(boughs):
+		var next_i := (i + 1) % boughs
+		var m1 := mid_ring[i]
+		var m2 := mid_ring[next_i]
+		var p1 := skirt_ring[i]
+		var p2 := skirt_ring[next_i]
+		st.set_color(col_apex); st.add_vertex(apex)
+		st.set_color(col_mid); st.add_vertex(m1)
+		st.set_color(col_mid); st.add_vertex(m2)
+		st.set_color(col_mid); st.add_vertex(m1)
+		st.set_color(col_tip); st.add_vertex(p1)
+		st.set_color(col_tip); st.add_vertex(p2)
+		st.set_color(col_mid); st.add_vertex(m1)
+		st.set_color(col_tip); st.add_vertex(p2)
+		st.set_color(col_mid); st.add_vertex(m2)
+		st.set_color(col_under); st.add_vertex(center_bottom)
+		st.set_color(col_under); st.add_vertex(p2)
+		st.set_color(col_under); st.add_vertex(p1)
+	st.generate_normals()
+	return st.commit()
+
+func _make_gnarled_root_mesh() -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var prongs := 4
+	var c_base := Color("#54402f")
+	var c_tip := Color("#3a2b1e")
+	for pi in range(prongs):
+		var ang := (float(pi) / float(prongs)) * TAU + float(pi) * 0.42
+		var dir := Vector3(cos(ang), 0.0, sin(ang))
+		var right := Vector3(-dir.z, 0.0, dir.x)
+		var l_len := 0.85 + 0.25 * float(pi % 2)
+		var p0 := Vector3(0.0, 0.14, 0.0) - right * 0.10
+		var p1 := Vector3(0.0, 0.14, 0.0) + right * 0.10
+		var pm_l := dir * (l_len * 0.52) + right * 0.07 + Vector3(0.0, 0.07, 0.0)
+		var pm_r := dir * (l_len * 0.52) - right * 0.07 + Vector3(0.0, 0.07, 0.0)
+		var pt := dir * l_len + right * (0.08 * sin(float(pi) * 2.1)) + Vector3(0.0, -0.08, 0.0)
+		_emit_quad_up_st(st, p0, p1, pm_l, pm_r, c_base, c_base, c_base.lerp(c_tip, 0.5), c_base.lerp(c_tip, 0.5), Vector2.ZERO, Vector2.RIGHT, Vector2(1, 0.5), Vector2(0, 0.5))
+		st.set_color(c_base.lerp(c_tip, 0.5)); st.add_vertex(pm_r)
+		st.set_color(c_base.lerp(c_tip, 0.5)); st.add_vertex(pm_l)
+		st.set_color(c_tip); st.add_vertex(pt)
+	st.generate_normals()
+	return st.commit()
+
+func _build_coastal_vegetation_and_detail(cove_node: Node3D, rng: RandomNumberGenerator) -> void:
+	# 5.1 Coníferas costeras variadas (tamaño, inclinación marina, copa asimétrica y distribución orgánica)
+	var pine_mesh := _make_coastal_pine_bough_mesh()
+	var crown_mat := OcclusionCtrl.make_canopy_dissolve_material(Color.WHITE, 0.90, Color(0.07, 0.11, 0.05), true)
+	var pine_trunks_xf: Array[Transform3D] = []
+	var pine_crowns_xf: Array[Transform3D] = []
+	var pine_crowns_col: Array[Color] = []
+	var pine_specs := [
+		{"xz": Vector2(-9.8, 80.4), "sc": 0.78, "lean": Vector2(0.09, -0.06), "tiers": 3},
+		{"xz": Vector2(-6.2, 80.2), "sc": 1.12, "lean": Vector2(0.06, -0.04), "tiers": 4},
+		{"xz": Vector2(-3.2, 81.8), "sc": 0.92, "lean": Vector2(-0.04, 0.07), "tiers": 3},
+		{"xz": Vector2(1.4, 87.2), "sc": 1.05, "lean": Vector2(0.07, 0.03), "tiers": 3},
+		{"xz": Vector2(3.8, 85.4), "sc": 1.38, "lean": Vector2(0.05, -0.05), "tiers": 4},
+		{"xz": Vector2(6.6, 86.0), "sc": 1.24, "lean": Vector2(-0.06, 0.04), "tiers": 4},
+		{"xz": Vector2(9.2, 87.4), "sc": 0.84, "lean": Vector2(0.08, 0.05), "tiers": 3},
+		{"xz": Vector2(13.8, 86.2), "sc": 0.72, "lean": Vector2(0.11, -0.04), "tiers": 3},
+		{"xz": Vector2(16.4, 87.4), "sc": 0.96, "lean": Vector2(0.04, 0.06), "tiers": 3},
+		{"xz": Vector2(21.2, 81.6), "sc": 1.28, "lean": Vector2(-0.05, -0.04), "tiers": 4},
+		{"xz": Vector2(25.6, 75.2), "sc": 1.36, "lean": Vector2(0.06, 0.02), "tiers": 4},
+		{"xz": Vector2(35.5, 79.4), "sc": 1.18, "lean": Vector2(-0.04, 0.06), "tiers": 3},
+		{"xz": Vector2(41.8, 84.6), "sc": 0.94, "lean": Vector2(0.05, -0.07), "tiers": 3}
+	]
+	var pine_tones: Array[Color] = [Color("#243b1e"), Color("#304b24"), Color("#3e582a"), Color("#2c4221")]
+	for ps in pine_specs:
+		var px: float = ps["xz"].x
+		var pz: float = ps["xz"].y
+		var py := _eval_cove_headland_height(px, pz)
+		if py < 0.8:
+			continue
+		var psc: float = float(ps["sc"])
+		var lean: Vector2 = ps["lean"]
+		var tiers: int = int(ps["tiers"])
+		var base_b := Basis.from_euler(Vector3(lean.x, rng.randf_range(0.0, TAU), lean.y))
+		var trunk_h := (3.2 + 0.55 * float(tiers - 3)) * psc
+		var base_pos := Vector3(px, py - 0.36, pz)
+		pine_trunks_xf.append(Transform3D(base_b.scaled(Vector3(0.20 * psc, trunk_h, 0.20 * psc)), base_pos + Vector3(0.0, trunk_h * 0.48, 0.0)))
+		var p_tone: Color = pine_tones[rng.randi() % pine_tones.size()]
+		for ti in range(tiers):
+			var frac := float(ti) / float(maxi(1, tiers - 1))
+			var rad_sc := lerpf(1.68, 0.72, frac) * psc * rng.randf_range(0.92, 1.12)
+			var h_sc := lerpf(1.78, 1.42, frac) * psc
+			var y_off := lerpf(2.15, 4.95, frac) * psc
+			var b_tier := base_b.rotated(Vector3.UP, float(ti) * 1.15 + rng.randf_range(-0.2, 0.2)).scaled(Vector3(rad_sc, h_sc, rad_sc * rng.randf_range(0.88, 1.14)))
+			pine_crowns_xf.append(Transform3D(b_tier, base_pos + Vector3(lean.x * y_off * 0.4, y_off, lean.y * y_off * 0.4)))
+			pine_crowns_col.append(p_tone.lightened(frac * 0.14))
+
+	if not pine_trunks_xf.is_empty():
+		var tr_mesh := CylinderMesh.new()
+		tr_mesh.top_radius = 0.42; tr_mesh.bottom_radius = 0.76; tr_mesh.height = 1.0; tr_mesh.radial_segments = 7
+		var mm_tr := _make_multimesh_batch("MM_CoastalPineTrunks", tr_mesh, mat_wood_dark, pine_trunks_xf, [])
+		cove_node.add_child(mm_tr)
+	if not pine_crowns_xf.is_empty():
+		var mm_cr := _make_multimesh_batch("MM_CoastalPineCrowns", pine_mesh, crown_mat, pine_crowns_xf, pine_crowns_col)
+		cove_node.add_child(mm_cr)
+
+	# 5.2 Hierbas costeras, brezo violáceo mediterráneo, helechos de sombra y raíces sobre afloramientos
+	var grass_xf: Array[Transform3D] = []
+	var grass_col: Array[Color] = []
+	var grass_tones: Array[Color] = [Color("#54622e"), Color("#677038"), Color("#445526"), Color("#757640")]
+	var grass_anchors := [
+		Vector3(3.4, 1.1, 91.6), Vector3(5.8, 1.3, 91.8), Vector3(8.8, 1.1, 91.8), Vector3(11.6, 0.9, 91.8),
+		Vector3(14.5, 0.9, 92.4), Vector3(17.4, 0.8, 93.4), Vector3(-1.4, 1.2, 90.2), Vector3(-5.8, 1.1, 88.2),
+		Vector3(-10.8, 1.0, 86.2), Vector3(-15.5, 0.9, 83.6), Vector3(-20.4, 1.0, 81.8),
+		Vector3(2.2, 0.56, 97.6), Vector3(-1.2, 0.58, 95.8), Vector3(-5.0, 0.62, 93.8), Vector3(-9.2, 0.68, 91.6),
+		Vector3(-13.4, 0.74, 89.4), Vector3(-17.8, 0.82, 86.8), Vector3(26.5, 0.42, 107.6), Vector3(28.2, 0.48, 106.2),
+		Vector3(24.6, 0.46, 102.6), Vector3(22.4, 0.52, 99.0), Vector3(20.6, 0.54, 96.4)
+	]
+	for ga in grass_anchors:
+		var g_pos: Vector3 = ga
+		var gy := maxf(g_pos.y, _eval_cove_headland_height(g_pos.x, g_pos.z) - 0.08)
+		if g_pos.z > 92.2 and g_pos.x > 0.0 and g_pos.x < 19.0:
+			gy = g_pos.y
+		for k in range(4):
+			var off := Vector3(rng.randf_range(-0.95, 0.95), -0.02, rng.randf_range(-0.85, 0.85))
+			var gs := rng.randf_range(0.80, 1.38)
+			var gb := Basis.from_euler(Vector3(rng.randf_range(-0.12, 0.12), rng.randf_range(0.0, TAU), rng.randf_range(-0.12, 0.12))).scaled(Vector3(gs, gs * rng.randf_range(0.75, 1.22), gs))
+			grass_xf.append(Transform3D(gb, Vector3(g_pos.x, gy, g_pos.z) + off))
+			grass_col.append(grass_tones[rng.randi() % grass_tones.size()])
+	cove_node.add_child(_make_multimesh_batch("MM_CoastalGrasses", SceneEnhancer.make_grass_tuft_mesh(), crown_mat, grass_xf, grass_col))
+
+	var heather_xf: Array[Transform3D] = []
+	var heather_col: Array[Color] = []
+	var heather_tones: Array[Color] = [Color("#7a5588"), Color("#8e699a"), Color("#6d4c78"), Color("#998438")]
+	var heather_spots := [
+		Vector2(2.6, 90.8), Vector2(4.6, 90.2), Vector2(7.8, 90.4), Vector2(11.0, 90.6), Vector2(14.8, 90.2),
+		Vector2(-1.8, 89.2), Vector2(-6.2, 87.6), Vector2(-11.2, 85.8), Vector2(-15.6, 84.0),
+		Vector2(5.4, 87.8), Vector2(8.4, 87.6), Vector2(17.8, 93.2), Vector2(20.4, 95.4), Vector2(29.8, 93.8),
+		Vector2(30.4, 105.2), Vector2(33.2, 104.2)
+	]
+	for hs in heather_spots:
+		var hy := maxf(0.58, _eval_cove_headland_height(hs.x, hs.y) + 0.08)
+		for k in range(3):
+			var off := Vector3(rng.randf_range(-0.75, 0.75), rng.randf_range(0.02, 0.14), rng.randf_range(-0.65, 0.65))
+			var hsc := rng.randf_range(1.45, 2.25)
+			var hb := Basis.from_euler(Vector3(0.0, rng.randf_range(0.0, TAU), 0.0)).scaled(Vector3(hsc, hsc * 0.90, hsc))
+			heather_xf.append(Transform3D(hb, Vector3(hs.x + off.x, hy + off.y, hs.y + off.z)))
+			heather_col.append(heather_tones[rng.randi() % heather_tones.size()])
+	var fl_mat := _make_mat(Color.WHITE, 0.88, 0.0)
+	fl_mat.vertex_color_use_as_albedo = true
+	cove_node.add_child(_make_multimesh_batch("MM_CoastalHeather", SceneEnhancer.make_blossom_cluster_mesh(), fl_mat, heather_xf, heather_col))
+
+	var fern_xf: Array[Transform3D] = []
+	var fern_col: Array[Color] = []
+	var fern_tones: Array[Color] = [Color("#2b421f"), Color("#375028"), Color("#435d31")]
+	for fs in [Vector2(3.8, 87.8), Vector2(6.4, 87.2), Vector2(-3.2, 84.2), Vector2(-7.8, 83.4), Vector2(14.0, 88.2), Vector2(21.2, 84.8), Vector2(27.8, 81.2)]:
+		var fy := maxf(0.65, _eval_cove_headland_height(fs.x, fs.y) - 0.05)
+		for k in range(3):
+			var off := Vector3(rng.randf_range(-0.9, 0.9), 0.0, rng.randf_range(-0.9, 0.9))
+			var fsc := rng.randf_range(0.85, 1.35)
+			fern_xf.append(Transform3D(Basis.from_euler(Vector3(0.0, rng.randf_range(0.0, TAU), 0.0)).scaled(Vector3(fsc, fsc, fsc)), Vector3(fs.x + off.x, fy, fs.y + off.z)))
+			fern_col.append(fern_tones[rng.randi() % fern_tones.size()])
+	cove_node.add_child(_make_multimesh_batch("MM_CoastalFerns", SceneEnhancer.make_fern_cluster_mesh(), crown_mat, fern_xf, fern_col))
+
+	var root_xf: Array[Transform3D] = []
+	var root_mat := _make_textured_mat(Color("#705740"), 0.90, 0.0, _load_tex("oak-v4.webp"), 0.55, true)
+	root_mat.vertex_color_use_as_albedo = true
+	for r_xz in [Vector2(4.0, 88.6), Vector2(6.8, 88.2), Vector2(1.4, 89.2), Vector2(-3.6, 84.6), Vector2(-6.4, 83.2), Vector2(13.8, 88.8), Vector2(8.8, 90.0), Vector2(3.2, 91.0)]:
+		var ry := _eval_cove_headland_height(r_xz.x, r_xz.y) + 0.06
+		var rsc := rng.randf_range(1.10, 1.65)
+		var rb := Basis.from_euler(Vector3(rng.randf_range(0.10, 0.28), rng.randf_range(0.0, TAU), rng.randf_range(-0.18, 0.18))).scaled(Vector3(rsc, rsc * 0.90, rsc))
+		root_xf.append(Transform3D(rb, Vector3(r_xz.x, ry, r_xz.y)))
+	cove_node.add_child(_make_multimesh_batch("MM_ExposedPineRoots", _make_gnarled_root_mesh(), root_mat, root_xf, []))
+
+	# Pequeñas parcelas cultivadas modestas en el resguardo norte junto al sendero inferior (sin invadir playa ni ruta)
+	var plots_node := Node3D.new()
+	plots_node.name = "CoastalHerbPlots"
+	cove_node.add_child(plots_node)
+	var mat_soil := _make_textured_mat(Color("#36281c"), 0.96, 0.0, _load_tex("earth.webp"), 0.65, true)
+	var basalt_border_mat := _make_textured_mat(Color("#697078"), 0.90, 0.02, _load_tex("basalt-coastal-albedo-v1.webp"), 0.30, true)
+	var herb_crop_mat := OcclusionCtrl.make_canopy_dissolve_material(Color("#47622d"), 0.88, Color(0.08, 0.14, 0.06), true)
+	var herb_bloom_mat := _make_mat(Color("#8c689c"), 0.88, 0.0)
+	var curb_mesh := SceneEnhancer.make_basalt_outcrop_mesh(39)
+	var plot_specs := [
+		{"pos": Vector3(16.6, 0.53, 94.8), "yaw": 0.28, "sz": Vector2(1.85, 1.15)},
+		{"pos": Vector3(19.6, 0.52, 96.4), "yaw": -0.22, "sz": Vector2(1.65, 1.10)}
+	]
+	for pi in range(plot_specs.size()):
+		var pc: Dictionary = plot_specs[pi]
+		var pl := Node3D.new()
+		pl.name = "HerbPlot_%d" % pi
+		pl.position = pc["pos"]
+		pl.rotation.y = float(pc["yaw"])
+		plots_node.add_child(pl)
+		var sz: Vector2 = pc["sz"]
+		_create_box_prop(pl, "SoilBed", Vector3(0.0, 0.03, 0.0), Vector3(sz.x, 0.08, sz.y), mat_soil)
+		_add_ground_contact_shadow(pl, "PlotContactShadow", Vector3(0.0, 0.008, 0.0), Vector2(sz.x + 0.55, sz.y + 0.55), 0.36)
+		for edge_pt in [
+			Vector3(-sz.x * 0.5, 0.06, -sz.y * 0.45), Vector3(0.0, 0.06, -sz.y * 0.52), Vector3(sz.x * 0.5, 0.06, -sz.y * 0.45),
+			Vector3(-sz.x * 0.5, 0.06, sz.y * 0.45), Vector3(0.0, 0.06, sz.y * 0.52), Vector3(sz.x * 0.5, 0.06, sz.y * 0.45)
+		]:
+			var stn := MeshInstance3D.new()
+			stn.mesh = curb_mesh; stn.material_override = basalt_border_mat
+			stn.position = edge_pt; stn.rotation.y = rng.randf_range(0.0, TAU)
+			stn.scale = Vector3(0.32, 0.14, 0.24)
+			stn.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+			pl.add_child(stn)
+		for hx in [-sz.x * 0.28, 0.0, sz.x * 0.28]:
+			for hz in [-sz.y * 0.20, sz.y * 0.20]:
+				var h_tuft := MeshInstance3D.new()
+				h_tuft.mesh = SceneEnhancer.make_grass_tuft_mesh()
+				h_tuft.material_override = herb_crop_mat
+				h_tuft.position = Vector3(hx + rng.randf_range(-0.06, 0.06), 0.06, hz)
+				h_tuft.scale = Vector3(0.75, 0.65, 0.75)
+				h_tuft.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				pl.add_child(h_tuft)
+		var bl := MeshInstance3D.new()
+		bl.mesh = SceneEnhancer.make_blossom_cluster_mesh()
+		bl.material_override = herb_bloom_mat
+		bl.position = Vector3(0.18, 0.10, -0.05)
+		bl.scale = Vector3(0.95, 0.95, 0.95)
+		bl.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		pl.add_child(bl)
+	var herb_crate := _create_box_prop(plots_node, "HermitHerbCrate", Vector3(18.0, 0.64, 95.3), Vector3(0.42, 0.28, 0.34), mat_wood_dark)
+	herb_crate.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	_add_ground_contact_shadow(plots_node, "HermitHerbCrateShadow", Vector3(18.0, 0.515, 95.3), Vector2(0.76, 0.66), 0.42)
+
+	# 5.3 Guijarros en la línea de marea, maderas erosionadas y detalles marítimos sutiles (sin invadir zona de combate)
+	var pebble_xf: Array[Transform3D] = []
+	var pebble_col: Array[Color] = []
+	var pebble_tones: Array[Color] = [Color("#535960"), Color("#40454a"), Color("#6d6255"), Color("#61676d")]
+	var pebble_bands := [
+		Vector2(17.8, 110.2), Vector2(15.2, 109.6), Vector2(12.2, 108.8), Vector2(9.2, 107.2),
+		Vector2(6.2, 104.8), Vector2(3.2, 102.2), Vector2(-0.5, 99.6), Vector2(-4.4, 97.6),
+		Vector2(25.4, 110.6), Vector2(27.2, 110.2), Vector2(19.6, 97.4), Vector2(22.6, 101.6),
+		Vector2(11.4, 96.4), Vector2(8.2, 95.6), Vector2(-9.6, 92.2), Vector2(-14.6, 89.6)
+	]
+	for pb in pebble_bands:
+		for k in range(6):
+			var off := Vector2(rng.randf_range(-1.35, 1.35), rng.randf_range(-0.95, 0.95))
+			var px: float = pb.x + off.x
+			var pz: float = pb.y + off.y
+			var sc := rng.randf_range(0.11, 0.28)
+			var py := 0.46 if pz < 107.0 else 0.34
+			if pz > 109.5 and px > 15.0 and px < 26.0:
+				py = 0.28
+			var pbas := Basis.from_euler(Vector3(rng.randf_range(-0.1, 0.1), rng.randf_range(0.0, TAU), rng.randf_range(-0.1, 0.1))).scaled(Vector3(sc * rng.randf_range(1.0, 1.5), sc * 0.42, sc))
+			pebble_xf.append(Transform3D(pbas, Vector3(px, py, pz)))
+			pebble_col.append(pebble_tones[rng.randi() % pebble_tones.size()])
+	var peb_mat := _make_textured_mat(Color.WHITE, 0.84, 0.02, _load_tex("basalt-coastal-albedo-v1.webp"), 0.4, true)
+	peb_mat.vertex_color_use_as_albedo = true
+	peb_mat.vertex_color_is_srgb = true
+	cove_node.add_child(_make_multimesh_batch("MM_ShorePebbles", SceneEnhancer.make_basalt_outcrop_mesh(83), peb_mat, pebble_xf, pebble_col))
+
+	# Microdetalles marítimos en márgenes (conchas/valvas en línea de resaca, dejando la arena central libre para combate)
+	var shell_xf: Array[Transform3D] = []
+	var shell_col: Array[Color] = []
+	var shell_tones: Array[Color] = [Color("#dfd6c2"), Color("#cfc2aa"), Color("#eae2d0"), Color("#b8ad99")]
+	var wrack_pts := [
+		Vector2(17.2, 109.8), Vector2(14.5, 109.2), Vector2(11.4, 108.1), Vector2(8.6, 106.2),
+		Vector2(5.2, 103.5), Vector2(1.8, 100.8), Vector2(-2.4, 98.4), Vector2(-6.5, 96.4),
+		Vector2(18.2, 94.8), Vector2(12.8, 93.8), Vector2(6.8, 93.6)
+	]
+	for wp_v in wrack_pts:
+		var wp: Vector2 = wp_v
+		for si in range(4):
+			var sx: float = wp.x + rng.randf_range(-0.95, 0.95)
+			var sz: float = wp.y + rng.randf_range(-0.45, 0.45)
+			var sy_s: float = float(_eval_cove_beach_sample(sx, sz)["wy"])
+			if sy_s < 0.08:
+				continue
+			var ssc := rng.randf_range(0.065, 0.13)
+			var sb := Basis.from_euler(Vector3(rng.randf_range(-0.18, 0.18), rng.randf_range(0.0, TAU), rng.randf_range(-0.18, 0.18))).scaled(Vector3(ssc * 1.35, ssc * 0.35, ssc))
+			shell_xf.append(Transform3D(sb, Vector3(sx, sy_s + 0.014, sz)))
+			shell_col.append(shell_tones[rng.randi() % shell_tones.size()])
+	if not shell_xf.is_empty():
+		var sh_mat := _make_mat(Color.WHITE, 0.78, 0.0)
+		sh_mat.vertex_color_use_as_albedo = true
+		sh_mat.vertex_color_is_srgb = true
+		var sh_mesh := BoxMesh.new()
+		sh_mesh.size = Vector3(1.0, 1.0, 1.0)
+		var mm_shells := _make_multimesh_batch("MM_ShoreShells", sh_mesh, sh_mat, shell_xf, shell_col)
+		mm_shells.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		cove_node.add_child(mm_shells)
+
+	# Maderas lavadas por la marea y detalles discretos de pesca cerca de escolleras (zona central libre)
+	var drift_specs := [
+		{"pos": Vector3(13.8, 0.36, 108.6), "rot": Vector3(0.04, 0.42, -0.06), "len": 1.35},
+		{"pos": Vector3(5.2, 0.40, 104.2), "rot": Vector3(-0.05, -0.68, 0.04), "len": 1.25},
+		{"pos": Vector3(11.6, 0.52, 95.8), "rot": Vector3(0.02, 0.24, 0.05), "len": 1.10}
+	]
+	for di in range(drift_specs.size()):
+		var ds: Dictionary = drift_specs[di]
+		var dw_p: Vector3 = ds["pos"]
+		var dw_ground: float = float(_eval_cove_beach_sample(dw_p.x, dw_p.z)["wy"])
+		var plank := _create_box_prop(cove_node, "WeatheredDriftwood_%d" % di, Vector3(dw_p.x, maxf(dw_p.y, dw_ground + 0.01), dw_p.z), Vector3(0.16, 0.07, float(ds["len"])), mat_wood_dark)
+		plank.rotation = ds["rot"]
+		plank.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		if dw_ground > 0.12:
+			var dw_sh := _add_ground_contact_shadow(cove_node, "DriftwoodShadow_%d" % di, Vector3(dw_p.x, dw_ground + 0.016, dw_p.z), Vector2(0.42, float(ds["len"]) + 0.35), 0.40)
+			dw_sh.rotation.y = ds["rot"].y
+	for st_x_v in [15.4, 16.0]:
+		var st_x: float = float(st_x_v)
+		var st_ground: float = float(_eval_cove_beach_sample(st_x, 109.6)["wy"])
+		var stake := _create_cylinder(cove_node, "ShoreMooringStake_%d" % int(st_x * 10), Vector3(st_x, st_ground + 0.14, 109.6), 0.065, 0.84, mat_wood_dark)
+		stake.rotation_degrees = Vector3(4.0, 0.0, -6.0)
+		stake.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		_add_ground_contact_shadow(cove_node, "ShoreStakeShadow_%d" % int(st_x * 10), Vector3(st_x, st_ground + 0.016, 109.6), Vector2(0.48, 0.44), 0.40)
+	var creel_ground: float = float(_eval_cove_beach_sample(26.15, 112.15)["wy"])
+	var creel := _create_box_prop(cove_node, "CoastalCrabCreel", Vector3(26.15, maxf(0.36, creel_ground + 0.16), 112.15), Vector3(0.54, 0.36, 0.42), mat_wood)
+	creel.rotation.y = 0.42
+	creel.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	var cr_sh := _add_ground_contact_shadow(cove_node, "CoastalCrabCreelShadow", Vector3(26.15, creel_ground + 0.016, 112.15), Vector2(0.95, 0.80), 0.40)
+	cr_sh.rotation.y = 0.42
+	for sh_spec in [
+		[Vector2(24.15, 107.25), Vector2(1.04, 0.90)],
+		[Vector2(19.22, 111.75), Vector2(0.76, 0.72)]
+	]:
+		var sxz: Vector2 = sh_spec[0]
+		var sy_ground: float = float(_eval_cove_beach_sample(sxz.x, sxz.y)["wy"])
+		_add_ground_contact_shadow(cove_node, "PierCargoContactShadow", Vector3(sxz.x, sy_ground + 0.016, sxz.y), sh_spec[1], 0.40)
+
+var _cached_contact_shadow_mat: StandardMaterial3D
+
+func _add_ground_contact_shadow(parent: Node, shadow_name: String, pos: Vector3, size_xz: Vector2, _alpha: float = 0.40) -> MeshInstance3D:
+	if _cached_contact_shadow_mat == null:
+		var grad := Gradient.new()
+		grad.set_color(0, Color(0.02, 0.03, 0.04, 1.0))
+		grad.set_color(1, Color(0.02, 0.03, 0.04, 0.0))
+		var rtex := GradientTexture2D.new()
+		rtex.gradient = grad
+		rtex.fill = GradientTexture2D.FILL_RADIAL
+		rtex.fill_from = Vector2(0.5, 0.5)
+		rtex.fill_to = Vector2(1.0, 0.5)
+		rtex.width = 64
+		rtex.height = 64
+		var cmat := StandardMaterial3D.new()
+		cmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		cmat.albedo_texture = rtex
+		cmat.albedo_color = Color(1.0, 1.0, 1.0, 0.40)
+		cmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		cmat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+		cmat.render_priority = 1
+		_cached_contact_shadow_mat = cmat
+	var inst := MeshInstance3D.new()
+	inst.name = shadow_name
+	var pm := PlaneMesh.new()
+	pm.size = size_xz
+	inst.mesh = pm
+	inst.material_override = _cached_contact_shadow_mat
+	inst.position = pos
+	inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(inst)
+	return inst
+
+func _populate_trail_framing(parent: Node, pts: Array[Vector3], cfg: Dictionary, rng: RandomNumberGenerator, rocks_xf: Array[Transform3D], rocks_col: Array[Color], bushes_xf: Array[Transform3D], bushes_col: Array[Color], trunks_xf: Array[Transform3D], pine_a_xf: Array[Transform3D], pine_a_col: Array[Color], pine_b_xf: Array[Transform3D], pine_b_col: Array[Color], pine_c_xf: Array[Transform3D], pine_c_col: Array[Color]) -> void:
+	var route_id := str(cfg.get("id", ""))
+	var half_w := float(cfg["base_width"]) * 0.5
+	var ridge_h := float(cfg["ridge_height"])
+	var is_high := float(pts[0].y) > 10.0
+	var is_obs_coast := (route_id == "observatory-coast")
+	var is_pleamar_low := (route_id == "pleamar-low")
+	var rock_tones := [Color("#68635a"), Color("#787166"), Color("#59554e")]
+	var bush_tones := [Color("#3e5c36"), Color("#4b6b40"), Color("#5c7c4b")]
+	var pine_tones := [Color("#2d4a31"), Color("#3b5c3b"), Color("#496d44")]
+
+	# Guardarraíl de postes de madera y cabo en el borde de acantilado de pleamar-high y observatory-coast
+	if route_id == "pleamar-high" or route_id == "observatory-coast":
+		var cliff_side := -1.0 if route_id == "pleamar-high" else 1.0
+		var start_post_i := 2 if route_id == "pleamar-high" else 5
+		var rail_offset := (half_w + 0.30) if route_id == "pleamar-high" else (half_w + 0.42)
+		var max_post_i := mini(pts.size() - 4, 20) if route_id == "pleamar-high" else mini(pts.size() - 4, 17)
+		var last_post := Vector3.ZERO
+		for i in range(start_post_i, max_post_i, 3):
+			var p := pts[i]
+			var fwd := (pts[i + 1] - pts[i - 1])
+			fwd.y = 0.0
+			if fwd.length_squared() < 0.001:
+				continue
+			fwd = fwd.normalized()
+			var right := Vector3(-fwd.z, 0.0, fwd.x)
+			var post_pos := p + right * (cliff_side * rail_offset)
+			_create_cylinder(parent, "CliffPost_%s_%d" % [route_id, i], post_pos + Vector3(0.0, 0.46, 0.0), 0.075, 0.92, mat_wood_dark)
+			SceneEnhancer.add_cyl_collider(parent, post_pos + Vector3(0.0, 0.55, 0.0), 0.14, 1.2)
+			if last_post != Vector3.ZERO:
+				var mid_r := (last_post + post_pos) * 0.5 + Vector3(0.0, 0.74, 0.0)
+				var r_seg := _create_box_prop(parent, "CliffRope_%s_%d" % [route_id, i], mid_r, Vector3(0.045, 0.045, last_post.distance_to(post_pos)), mat_wood)
+				r_seg.rotation.y = atan2(post_pos.x - last_post.x, post_pos.z - last_post.z)
+				SceneEnhancer.add_segment_barrier(parent, last_post, post_pos, 0.24, 1.55)
+			last_post = post_pos
+
+	for i in range(2, pts.size()):
+		var p := pts[i]
+		var fwd := (pts[i] - pts[i - 1])
+		fwd.y = 0.0
+		if fwd.length_squared() < 0.001:
+			continue
+		fwd = fwd.normalized()
+		var right := Vector3(-fwd.z, 0.0, fwd.x)
+
+		# Piedras irregulares de cuneta/deslinde y vegetación de borde
+		for side_v in [-1.0, 1.0]:
+			var side := float(side_v)
+			# En pleamar-low la playa sur queda abierta al mar y los primeros metros enlazan al muelle sin piedras en la arena
+			if is_pleamar_low and (side < 0.0 or i < 8):
+				continue
+			# En observatory-coast, NUNCA colocar objetos fuera del borde oriental del acantilado (x > 161.2)
+			if is_obs_coast and side > 0.0:
+				if rng.randf() < 0.65:
+					# Pretil bajo de piedra pegado al borde mismo del sendero (sobre roca firme)
+					var parapet_pos: Vector3 = p + right * (half_w + 0.22) + Vector3(0.0, 0.08, 0.0)
+					var pb := Basis.from_euler(Vector3(0.0, rng.randf_range(0.0, TAU), 0.0)).scaled(Vector3(0.65, 0.42, 0.75))
+					rocks_xf.append(Transform3D(pb, parapet_pos))
+					rocks_col.append(rock_tones[rng.randi() % rock_tones.size()])
+				continue
+
+			if rng.randf() < 0.78:
+				var dist := half_w + rng.randf_range(0.45, 1.15)
+				var rpos: Vector3 = p + right * (side * dist) + Vector3(0.0, rng.randf_range(-0.14, 0.08), 0.0)
+				if is_obs_coast and rpos.x > 161.2:
+					continue
+				var rock_clear := (half_w + 1.05) if is_obs_coast else (half_w + 0.72)
+				if _is_near_any_trail_pt(rpos, pts, rock_clear):
+					continue
+				var sx := rng.randf_range(0.55, 1.18)
+				var sy := rng.randf_range(0.38, 0.88) * (1.18 if i > pts.size() * 0.55 else 1.0)
+				var sz := rng.randf_range(0.55, 1.22)
+				var rb := Basis.from_euler(Vector3(rng.randf_range(-0.18, 0.18), rng.randf_range(0.0, TAU), rng.randf_range(-0.18, 0.18))).scaled(Vector3(sx, sy, sz))
+				rocks_xf.append(Transform3D(rb, rpos))
+				rocks_col.append(rock_tones[rng.randi() % rock_tones.size()])
+
+			if rng.randf() < 0.74:
+				var bdist := half_w + rng.randf_range(0.65, 1.65)
+				var bpos: Vector3 = p + right * (side * bdist) + Vector3(0.0, rng.randf_range(0.02, 0.18), 0.0)
+				if is_obs_coast and bpos.x > 160.6:
+					continue
+				if _is_near_any_trail_pt(bpos, pts, half_w + 0.55):
+					continue
+				var bsc := rng.randf_range(0.65, 1.15)
+				var bb := Basis.from_euler(Vector3(0.0, rng.randf_range(0.0, TAU), 0.0)).scaled(Vector3(bsc * 1.15, bsc * 0.76, bsc))
+				bushes_xf.append(Transform3D(bb, bpos))
+				bushes_col.append(bush_tones[rng.randi() % bush_tones.size()])
+
+		# A partir del tramo medio-final, ocultar el horizonte del camino tras arboles y taludes (sin invadir la entrada)
+		if not is_pleamar_low and not (route_id == "pleamar-high" and i < 7) and i >= int(float(pts.size()) * 0.42) and (i % 2 == 0 or i >= int(float(pts.size()) * 0.65)):
+			for side_v in [-1.0, 1.0]:
+				var side := float(side_v)
+				# En observatory-coast solo plantar en el lado interior de la montaña (side < 0.0 y x <= 159.5)
+				if is_obs_coast and side > 0.0:
+					continue
+				var tdist := half_w + rng.randf_range(2.2, 3.8)
+				var tpos: Vector3 = p + right * (side * tdist) - Vector3(0.0, 0.35, 0.0)
+				if is_obs_coast and tpos.x > 159.5:
+					continue
+				if _is_near_any_trail_pt(tpos, pts, half_w + 2.15):
+					continue
+				var tsc := rng.randf_range(0.95, 1.42)
+				_append_scenic_pine(tpos, tsc, rng, pine_tones, trunks_xf, pine_a_xf, pine_a_col, pine_b_xf, pine_b_col, pine_c_xf, pine_c_col)
+				if is_high and not is_obs_coast and i >= int(float(pts.size()) * 0.55):
+					var kpos: Vector3 = p + right * (side * (tdist + 0.8)) + Vector3(0.0, ridge_h * 0.30, 0.0)
+					if _is_near_any_trail_pt(kpos, pts, half_w + 1.8):
+						continue
+					var kb := Basis.from_euler(Vector3(0.0, rng.randf_range(0.0, TAU), 0.0)).scaled(Vector3(2.6, ridge_h * 1.35, 2.4))
+					rocks_xf.append(Transform3D(kb, kpos))
+					rocks_col.append(rock_tones[0])
+
+func _is_near_any_trail_pt(pos: Vector3, pts: Array[Vector3], min_dist: float) -> bool:
+	var min_d2 := min_dist * min_dist
+	for q in pts:
+		var dx := pos.x - q.x
+		var dz := pos.z - q.z
+		if dx * dx + dz * dz < min_d2:
+			return true
+	return false
+
+func _build_horizon_backdrop_shoulders(parent: Node, rng: RandomNumberGenerator, rocks_xf: Array[Transform3D], rocks_col: Array[Color], bushes_xf: Array[Transform3D], bushes_col: Array[Color], trunks_xf: Array[Transform3D], pine_a_xf: Array[Transform3D], pine_a_col: Array[Color], pine_b_xf: Array[Transform3D], pine_b_col: Array[Color], pine_c_xf: Array[Transform3D], pine_c_col: Array[Color]) -> void:
+	# Lomas organicas esculpidas que envuelven pleamar-high y observatorio (pleamar-low usa PleamarCoastalCove)
+	var pine_tones := [Color("#255c2b"), Color("#2e6b34"), Color("#38793d")]
+	var rock_tones := [Color("#625e56"), Color("#535049")]
+	var bush_tones := [Color("#366e2f"), Color("#45813b")]
+
+	var mound_mat := _make_mat(Color.WHITE, 0.90, 0.02)
+	mound_mat.vertex_color_use_as_albedo = true
+	mound_mat.vertex_color_is_srgb = true
+	mound_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	if mat_rock_carved and mat_rock_carved.albedo_texture:
+		mound_mat.albedo_texture = mat_rock_carved.albedo_texture
+		mound_mat.uv1_scale = Vector3(0.18, 0.18, 0.18)
+
+	var hills := [
+		{"name": "Shoulder_PleamarHigh", "center": Vector3(6.5, 0.0, 40.2), "rx": 14.5, "rz": 11.0, "top_y": 20.15, "base_y": -1.5},
+		{"name": "BackdropHill_NW", "center": Vector3(-8.5, 0.0, 26.5), "rx": 22.0, "rz": 24.0, "top_y": 19.8, "base_y": -1.5},
+		{"name": "Shoulder_N_ObsBoardwalk", "center": Vector3(128.5, 0.0, 20.5), "rx": 12.5, "rz": 9.0, "top_y": 36.4, "base_y": 18.0},
+		{"name": "BackdropHill_N_Obs", "center": Vector3(121.0, 0.0, -5.5), "rx": 25.0, "rz": 18.0, "top_y": 38.6, "base_y": -1.5},
+		{"name": "Ledge_NE_ObsCoast", "center": Vector3(161.2, 0.0, 22.8), "rx": 11.5, "rz": 12.0, "top_y": 32.72, "base_y": 10.0},
+		{"name": "BackdropHill_NE_Obs", "center": Vector3(153.0, 0.0, 7.5), "rx": 18.5, "rz": 18.5, "top_y": 35.8, "base_y": -1.5},
+	]
+	for h in hills:
+		_create_sculpted_hill_mound(parent, h["name"], h["center"], float(h["rx"]), float(h["rz"]), float(h["top_y"]), float(h["base_y"]), mound_mat, rng)
+
+	# Arboleda asentada directamente sobre la cota exacta de BackdropHill_NW (pleamar-high)
+	for _k in range(26):
+		var ang := rng.randf_range(0.0, TAU)
+		var rad := sqrt(rng.randf_range(0.05, 0.68))
+		var px := -8.5 + cos(ang) * 19.5 * rad
+		var pz := 26.5 + sin(ang) * 21.0 * rad
+		if px > 1.5 and pz > 34.5:
+			continue
+		var py := _eval_hill_y(px, pz, Vector3(-8.5, 0.0, 26.5), 22.0, 24.0, 19.8, -1.5)
+		if py < 13.5:
+			continue
+		_append_scenic_pine(Vector3(px, py - 0.42, pz), rng.randf_range(1.05, 1.52), rng, pine_tones, trunks_xf, pine_a_xf, pine_a_col, pine_b_xf, pine_b_col, pine_c_xf, pine_c_col)
+		if rng.randf() < 0.65:
+			var bb := Basis().scaled(Vector3(1.2, 0.85, 1.2))
+			bushes_xf.append(Transform3D(bb, Vector3(px + rng.randf_range(-1.2, 1.2), py + 0.12, pz + rng.randf_range(-1.2, 1.2))))
+			bushes_col.append(bush_tones[rng.randi() % bush_tones.size()])
+
+	# Arboleda asentada sobre BackdropHill_N_Obs y BackdropHill_NE_Obs (estrictamente en tierra firme, 0 árboles volando)
+	for _k in range(28):
+		var east := _k >= 16
+		var cx := 153.0 if east else 121.0
+		var cz := 7.5 if east else -5.5
+		var rx := 15.0 if east else 21.0
+		var rz := 15.0 if east else 14.5
+		var ty := 35.8 if east else 38.6
+		var ang := rng.randf_range(0.0, TAU)
+		var rad := sqrt(rng.randf_range(0.05, 0.58))
+		var px := cx + cos(ang) * rx * rad
+		var pz := cz + sin(ang) * rz * rad
+		# Prohibir cualquier árbol al este de x = 158.8 o sobre la traza misma del sendero
+		if east and (px > 158.8 or (px > 151.0 and pz > 10.5)):
+			continue
+		var py := _eval_hill_y(px, pz, Vector3(cx, 0.0, cz), 18.5 if east else 25.0, 18.5 if east else 18.0, ty, -1.5)
+		if py < ty - 3.8:
+			continue
+		_append_scenic_pine(Vector3(px, py - 0.45, pz), rng.randf_range(1.0, 1.45), rng, pine_tones, trunks_xf, pine_a_xf, pine_a_col, pine_b_xf, pine_b_col, pine_c_xf, pine_c_col)
+		if rng.randf() < 0.55:
+			var rb := Basis.from_euler(Vector3(0.0, rng.randf_range(0.0, TAU), 0.0)).scaled(Vector3(1.9, 1.2, 1.8))
+			rocks_xf.append(Transform3D(rb, Vector3(px + rng.randf_range(-1.3, 1.3), py + 0.05, pz + rng.randf_range(-1.3, 1.3))))
+			rocks_col.append(rock_tones[rng.randi() % rock_tones.size()])
+
+func _eval_hill_y(x: float, z: float, center: Vector3, rx: float, rz: float, top_y: float, base_y: float) -> float:
+	var dx := (x - center.x) / rx
+	var dz := (z - center.z) / rz
+	var d2 := dx * dx + dz * dz
+	if d2 >= 1.0:
+		return base_y
+	var eff_d2 := maxf(0.0, d2 - 0.16) / 0.84
+	var bell := pow(1.0 - eff_d2, 0.68)
+	var ripple := 0.55 * sin(x * 0.24) * cos(z * 0.21)
+	return clampf(lerpf(base_y, top_y, bell) + ripple * bell * eff_d2, base_y, top_y + 0.8)
+
+func _create_sculpted_hill_mound(parent: Node, hill_name: String, center: Vector3, rx: float, rz: float, top_y: float, base_y: float, mat: Material, _rng: RandomNumberGenerator) -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var rings := 10
+	var segs := 20
+	var is_rock_ledge := (hill_name == "Ledge_NE_ObsCoast" or hill_name == "Shoulder_N_ObsBoardwalk")
+	var col_top := Color("#6a706c") if is_rock_ledge else Color("#4c823d")
+	var col_mid := Color("#6e7670")
+	var col_base := Color("#545b57")
+
+	var ring_pts: Array = []
+	for r in range(rings + 1):
+		var frac := float(r) / float(rings)
+		var row_pts: Array[Vector3] = []
+		var row_cols: Array[Color] = []
+		for s in range(segs + 1):
+			var ang := (float(s) / float(segs)) * TAU
+			var radial_warp := 1.0 + 0.14 * sin(ang * 3.0 + center.x * 0.1) + 0.08 * cos(ang * 5.0)
+			var wx := center.x + cos(ang) * rx * frac * radial_warp
+			var wz := center.z + sin(ang) * rz * frac * radial_warp
+			var wy := _eval_hill_y(wx, wz, center, rx * radial_warp, rz * radial_warp, top_y, base_y)
+			row_pts.append(Vector3(wx, wy, wz))
+			var c := col_base.lerp(col_mid, clampf(frac * 1.4, 0.0, 1.0)).lerp(col_top, clampf(1.0 - frac * 1.3, 0.0, 1.0))
+			row_cols.append(c)
+		ring_pts.append({"pts": row_pts, "cols": row_cols})
+
+	for r in range(rings):
+		var a_row: Array = ring_pts[r]["pts"]
+		var b_row: Array = ring_pts[r + 1]["pts"]
+		var a_col: Array = ring_pts[r]["cols"]
+		var b_col: Array = ring_pts[r + 1]["cols"]
+		for s in range(segs):
+			var p0: Vector3 = a_row[s]
+			var p1: Vector3 = a_row[s + 1]
+			var p2: Vector3 = b_row[s + 1]
+			var p3: Vector3 = b_row[s]
+			_emit_quad_st(st, p0, p1, p2, p3, a_col[s], a_col[s + 1], b_col[s + 1], b_col[s], Vector2(p0.x * 0.1, p0.z * 0.1), Vector2(p1.x * 0.1, p1.z * 0.1), Vector2(p2.x * 0.1, p2.z * 0.1), Vector2(p3.x * 0.1, p3.z * 0.1))
+
+	st.generate_normals()
+	var inst := MeshInstance3D.new()
+	inst.name = hill_name
+	inst.mesh = st.commit()
+	inst.material_override = mat
+	inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if ("BayBackCliff" in hill_name) else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	parent.add_child(inst)
+
+func _append_scenic_pine(pos: Vector3, sc: float, rng: RandomNumberGenerator, tones: Array, trunks_xf: Array[Transform3D], pine_a_xf: Array[Transform3D], pine_a_col: Array[Color], pine_b_xf: Array[Transform3D], pine_b_col: Array[Color], pine_c_xf: Array[Transform3D], pine_c_col: Array[Color]) -> void:
+	var h_stretch := rng.randf_range(0.84, 1.30)
+	var w_stretch := rng.randf_range(0.86, 1.18)
+	var base_b := Basis.from_euler(Vector3(rng.randf_range(-0.08, 0.08), rng.randf_range(0.0, TAU), rng.randf_range(-0.09, 0.09)))
+	var th := 3.6 * sc * h_stretch
+	trunks_xf.append(Transform3D(base_b.scaled(Vector3(0.20 * sc * w_stretch, th, 0.20 * sc * w_stretch)), pos + Vector3(0.0, th * 0.5, 0.0)))
+	var tone: Color = tones[rng.randi() % tones.size()]
+	pine_a_xf.append(Transform3D(base_b.scaled(Vector3(1.58 * sc * w_stretch, 1.85 * sc * h_stretch, 1.58 * sc * w_stretch)), pos + Vector3(0.0, 2.55 * sc * h_stretch, 0.0)))
+	pine_a_col.append(tone)
+	pine_b_xf.append(Transform3D(base_b.rotated(Vector3.UP, 0.72).scaled(Vector3(1.22 * sc * w_stretch, 1.75 * sc * h_stretch, 1.22 * sc * w_stretch)), pos + Vector3(0.0, 3.75 * sc * h_stretch, 0.0)))
+	pine_b_col.append(tone.lightened(0.05))
+	pine_c_xf.append(Transform3D(base_b.rotated(Vector3.UP, 1.44).scaled(Vector3(0.84 * sc * w_stretch, 1.55 * sc * h_stretch, 0.84 * sc * w_stretch)), pos + Vector3(0.0, 4.85 * sc * h_stretch, 0.0)))
+	pine_c_col.append(tone.lightened(0.10))
+
+func _create_coastal_mist(parent: Node, mist_name: String, pos: Vector3) -> void:
+	var p := GPUParticles3D.new()
+	p.name = mist_name
+	p.position = pos
+	p.amount = 14
+	p.lifetime = 4.6
+	p.preprocess = 2.0
+	var pm := ParticleProcessMaterial.new()
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	pm.emission_box_extents = Vector3(4.5, 0.35, 3.2)
+	pm.direction = Vector3(0.4, 0.10, 0.12)
+	pm.spread = 28.0
+	pm.initial_velocity_min = 0.22
+	pm.initial_velocity_max = 0.55
+	pm.gravity = Vector3.ZERO
+	pm.scale_min = 1.8
+	pm.scale_max = 3.6
+	pm.color = Color(0.84, 0.91, 0.96, 0.16)
+	p.process_material = pm
+
+	var grad := Gradient.new()
+	grad.offsets = PackedFloat32Array([0.0, 0.45, 1.0])
+	grad.colors = PackedColorArray([Color(0.88, 0.94, 0.98, 0.48), Color(0.85, 0.92, 0.96, 0.18), Color(0.85, 0.92, 0.96, 0.0)])
+	var grad_tex := GradientTexture2D.new()
+	grad_tex.width = 64
+	grad_tex.height = 64
+	grad_tex.fill = GradientTexture2D.FILL_RADIAL
+	grad_tex.fill_from = Vector2(0.5, 0.5)
+	grad_tex.fill_to = Vector2(0.95, 0.5)
+	grad_tex.gradient = grad
+
+	var q := QuadMesh.new()
+	q.size = Vector2(2.6, 1.8)
+	var m := StandardMaterial3D.new()
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.albedo_texture = grad_tex
+	m.albedo_color = Color(1.0, 1.0, 1.0, 0.45)
+	m.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	p.draw_pass_1 = q
+	p.material_override = m
+	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(p)

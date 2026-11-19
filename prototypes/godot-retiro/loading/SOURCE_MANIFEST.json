@@ -1,0 +1,103 @@
+{
+  "exporter": "scripts/export-godot-skill-loading.ts",
+  "generatedAt": "2026-11-14T18:30:10.904Z",
+  "sources": [
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-wizard-v2.webp",
+      "sha256": "9c839667df024d1a572fdc24fb66f4d1dda43c5e5046a9fcc863af47758b2178"
+    },
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-handshake-v3.webp",
+      "sha256": "686ebe10986d0d89a182187d18a37f3e490c020c9e0747ab7d53b81b5b6b2692"
+    },
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-wizard-objects-v3.webp",
+      "sha256": "883935934d9c9a7b0b2d605f843f4c312380df6f206be28cb66e72dfff212454"
+    },
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-scroll-walk-v5.webp",
+      "sha256": "c59631c3bcc5a03360c704875117994ff32ecbf28f77ccea717204c27d03a66d"
+    },
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-animal-reach-v3.webp",
+      "sha256": "0e3760261e992736b00134451b15cae6b7f0d41ac8f84919d910e9d7f3ccbe16"
+    },
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-cleric-v2.webp",
+      "sha256": "ae416c8d5974914e4e99ecba609b6e0f7ba11c740075adbcd0e50502ef092ce4"
+    },
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-cleric-objects-v3.webp",
+      "sha256": "5a459bcabe90489eab2398a56d03e1bf08f686402e5315a8d7582133249ea87c"
+    },
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-rogue-v2.webp",
+      "sha256": "4287dacfeedca98e579a59039f6205bc0f88d1fe22b54aedca7a03d5fef13993"
+    },
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-rogue-objects-v3.webp",
+      "sha256": "1618dcea22a1ea618c1b615d5da8c5a4193fa7600dd48dbafe60cb1f65acb8e1"
+    },
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-environment-v3.webp",
+      "sha256": "913bcdbf3355b3199fdf59e8af4ac7b4530727c09705244965226a9a89a7572f"
+    },
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-people-v3.webp",
+      "sha256": "320f14608e5eff39b4f8c42681a983d6e6c2a890db5ee4edb09ad55783ff1457"
+    },
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-horse-v3.webp",
+      "sha256": "2744fd2289ca56addffcdb6943464473f63d59fcdf824c281a36edd82614b2c6"
+    },
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-npcs-v5.webp",
+      "sha256": "4cc9d8a4254727b37fb0d730f106e8f202b221fe6d4530197497946d2d8662fa"
+    },
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-creatures-v5.webp",
+      "sha256": "60d485ba5b0d10f6e434ea53240496933a1a32025c39de51c2335d83983ed26d"
+    },
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-tracks-v5.webp",
+      "sha256": "ea425fd8d6364e802088c1c549c41bf5ca92119a444cf62051b0fc9ba4ada6ef"
+    },
+    {
+      "source": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-props-v2.webp",
+      "sha256": "03d76d889e70cbe9606372acee4ac312e60e816240cd4e512946fc981417c16d"
+    }
+  ],
+  "notes": "Existing VTT art; alpha isolation, crop and atlas packing only. Original prompts and credits retained in docs/design/SKILL_ANIMATION_V5_PROMPTS_20261107.json."
+}

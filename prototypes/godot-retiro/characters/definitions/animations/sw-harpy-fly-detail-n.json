@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-harpy-fly-detail-n",
+  "character": "harpy",
+  "campaign": "stormwreck-isle",
+  "anatomy": "winged",
+  "action": "fly",
+  "direction": "n",
+  "fps": 12,
+  "loop": true,
+  "compatibility": {
+    "preservesAppearance": true,
+    "overlay": "Current frame alpha. Physical binding alignment pending."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-fly-detail-n/f0f3c72d326b/01.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-fly-detail-n/f0f3c72d326b/02.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-fly-detail-n/f0f3c72d326b/03.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-fly-detail-n/f0f3c72d326b/04.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-fly-detail-n/f0f3c72d326b/05.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-fly-detail-n/f0f3c72d326b/06.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-fly-detail-n/f0f3c72d326b/07.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-fly-detail-n/f0f3c72d326b/08.png"
+  ],
+  "production": {
+    "method": "ImageGen, project artwork as identity reference, full-size cell extraction",
+    "reference": "campaigns/stormwreck-isle/public/art/m3/harpy/harpia_base.png",
+    "minimumVisibleStandingPixels": 225,
+    "columnCutsByRow": [
+      [
+        0,
+        444,
+        883,
+        1335,
+        1774
+      ],
+      [
+        0,
+        444,
+        883,
+        1335,
+        1774
+      ]
+    ],
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-harpy-fly-detail-n-f0f3c72d326b.png",
+    "originalSha256": "f0f3c72d326b4fca6f6b49446211a96087fa25b19eb95b7df76e4e1fca3cc697",
+    "importReport": "output/stormwreck-motion-detail/sw-harpy-fly-detail-n-f0f3c72d326b.json",
+    "promptFile": "output/stormwreck-motion-detail/expansion/sw-harpy-fly-detail-n.prompt.txt"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "Source sheet reviewed for identity, opposing limb phases or wing beat, and full silhouette. Native comparison captured separately.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 316,
+  "pivot": [
+    0.5,
+    0.868421052631579
+  ]
+}

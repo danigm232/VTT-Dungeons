@@ -1,0 +1,65 @@
+{
+  "date": "2026-11-17",
+  "scope": "Extend the user-approved V7 UI materials to the rest of the existing sheet. No new bitmap or character asset.",
+  "reused_art": [
+    "art/v7/royal-controls.png",
+    "art/v5/arch-frame.png",
+    "art/v5/ink-places.png",
+    "existing semantic pictograms and portraits"
+  ],
+  "changes": [
+    {
+      "id": "SHEET-V8-PANELS",
+      "owner": "sheet_widgets.gd",
+      "before": "Fine noisy relief and mixed ribbons",
+      "candidate": "Shared gold/parchment panels and dark leather title bands",
+      "reference": "User comparison guide 2/3; VA-01/03/14"
+    },
+    {
+      "id": "SHEET-V8-STATS",
+      "owner": "character_sheet.gd",
+      "before": "Generic old stat plates",
+      "candidate": "Matching gold stat plates, larger icons and values",
+      "reference": "User guide 4"
+    },
+    {
+      "id": "SHEET-V8-ROWS",
+      "owner": "summary_composer.gd, sheet_widgets.gd",
+      "before": "Light dividers and unframed icons",
+      "candidate": "Alternating parchment rows, framed semantic icons, inset table heading and simpler readable modifier medals",
+      "reference": "User guide 5/7/8/9"
+    },
+    {
+      "id": "SHEET-V8-BAG",
+      "owner": "inventory/backpack_panel.gd",
+      "before": "Older slot plates",
+      "candidate": "Matching gold slots and red selected slot, existing item sources and operations",
+      "reference": "User guide 11"
+    }
+  ],
+  "character_scope": "Existing stage, platform, portrait, live actor and animations reused unchanged. No new character materials, anatomy, equipment, masks or asset promotion.",
+  "acceptance": "Candidate pending user artistic review; technical verification separately recorded.",
+  "owners": [
+    {
+      "file": "character_sheet/character_sheet.gd",
+      "sha256": "f5cff95f9d68db8b203a4fef32afa23f0ac4dfd9b04faf2db395235cd3235d16"
+    },
+    {
+      "file": "character_sheet/sheet_widgets.gd",
+      "sha256": "2e1f9a19005dc1630f59d1e5f0eb61ba215f4ae2d1b28892447734a08c208220"
+    },
+    {
+      "file": "character_sheet/summary_composer.gd",
+      "sha256": "36eda883dfae3232d7465f127bae1aaa404a6589c595be5b4b0b782284bfb297"
+    },
+    {
+      "file": "character_sheet/illuminated_materials.gd",
+      "sha256": "f0227dd1100a9a88c36ade7b7a46c1e4eca2dda104107608982c7178c8824faa"
+    },
+    {
+      "file": "inventory/backpack_panel.gd",
+      "sha256": "4a5aa6d00438f3a1e7ba18572f71e1845081cecf914cb134dfd87282742e9a66"
+    }
+  ],
+  "reused_v7_sha256": "fd824f02a3f0a2eaa3ba1c9d953119edb032d7d2e2e7583e184db3f2b7e4e8a3"
+}

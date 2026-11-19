@@ -1,0 +1,62 @@
+{
+  "id": "sw-mike-rest-on-bed",
+  "version": 1,
+  "kind": "animation",
+  "campaign": "stormwreck-isle",
+  "character": "mike",
+  "anatomy": "humanoid-tall",
+  "action": "rest_on_prop",
+  "direction": "s",
+  "poseKind": "hold",
+  "fps": 1,
+  "loop": true,
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/rest-poses-v1/mike-rest.png"
+  ],
+  "compatibility": {
+    "anchor": "head at pillow; head-to-sole axis fixed in world",
+    "embeddedSlotsRetained": true,
+    "overlays": "body mesh shared by condition material",
+    "rendering": "closed reclining bust with painted face and ear registration"
+  },
+  "production": {
+    "method": "ImageGen, upright image-space head-to-sole axis and lossless alpha crop",
+    "reference": "prototypes/godot-campamentos/assets/tokens/animations/seated/wizard-seated.png",
+    "original": "campaigns/stormwreck-isle/public/art/characters/rest-poses-v1/originals/mike.png",
+    "originalSHA256": "46ee277d67c98aa63f8e1ccbf7563ca93efb05133cb011427240ac3cb4ab771f",
+    "derivedSHA256": "21a0cd4797a5812380734c7d1ed2d4c22058dddc89901b9d161fcc8e9d04bd1f"
+  },
+  "review": {
+    "technical": "pending",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "pivot": [
+    0.5008319467554077,
+    0.10816191108161911
+  ],
+  "soleContact": [
+    0.49750415973377704,
+    0.9907100199071002
+  ],
+  "restBlanket": {
+    "base": "#354e65",
+    "trim": "#8b8b7a",
+    "bands": 1
+  },
+  "restVolume": {
+    "head": 0.125,
+    "chest": 0.149,
+    "hips": 0.105,
+    "calves": 0.081,
+    "boots": 0.095
+  },
+  "restSculpt": {
+    "eyes": 0.111,
+    "nose": [0.504, 0.132],
+    "jaw": 0.158,
+    "faceHalfWidth": 0.105,
+    "recline": 17
+  },
+  "referenceHeight": 1501
+}

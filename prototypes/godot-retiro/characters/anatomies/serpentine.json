@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "id": "serpentine",
+  "kind": "anatomy",
+  "coordinates": "normalised visible image bounds; x right/y down; seed anchors require per-frame review",
+  "anchors": {
+    "head": [
+      0.38,
+      0.18
+    ],
+    "neck": [
+      0.45,
+      0.32
+    ],
+    "torso": [
+      0.5,
+      0.56
+    ],
+    "tail_root": [
+      0.61,
+      0.7
+    ],
+    "tail_tip": [
+      0.86,
+      0.9
+    ],
+    "root": [
+      0.5,
+      0.98
+    ]
+  },
+  "requiredAnchors": [
+    "head",
+    "neck",
+    "torso",
+    "tail_root",
+    "tail_tip",
+    "root"
+  ],
+  "slots": [],
+  "frameOverrides": {},
+  "status": "seed; one base pose, no directional animation inferred"
+}

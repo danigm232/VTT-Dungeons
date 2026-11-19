@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "id": "reptilian-winged-small",
+  "kind": "anatomy",
+  "coordinates": "normalised visible image bounds; x right/y down; seed anchors require per-frame review",
+  "anchors": {
+    "head": [
+      0.5,
+      0.12
+    ],
+    "neck": [
+      0.5,
+      0.23
+    ],
+    "shoulder_left": [
+      0.33,
+      0.28
+    ],
+    "shoulder_right": [
+      0.67,
+      0.28
+    ],
+    "torso": [
+      0.5,
+      0.42
+    ],
+    "back": [
+      0.5,
+      0.39
+    ],
+    "elbow_left": [
+      0.27,
+      0.44
+    ],
+    "elbow_right": [
+      0.73,
+      0.44
+    ],
+    "hand_left": [
+      0.27,
+      0.59
+    ],
+    "hand_right": [
+      0.73,
+      0.59
+    ],
+    "waist": [
+      0.5,
+      0.58
+    ],
+    "hip": [
+      0.5,
+      0.65
+    ],
+    "knee_left": [
+      0.41,
+      0.78
+    ],
+    "knee_right": [
+      0.59,
+      0.78
+    ],
+    "ankle_left": [
+      0.39,
+      0.93
+    ],
+    "ankle_right": [
+      0.61,
+      0.93
+    ],
+    "foot_left": [
+      0.37,
+      0.99
+    ],
+    "foot_right": [
+      0.63,
+      0.99
+    ],
+    "tail_root": [
+      0.52,
+      0.72
+    ],
+    "tail_tip": [
+      0.9,
+      0.86
+    ],
+    "wing_left": [
+      0.16,
+      0.35
+    ],
+    "wing_right": [
+      0.84,
+      0.35
+    ]
+  },
+  "requiredAnchors": [
+    "head",
+    "torso",
+    "hand_right",
+    "hand_left",
+    "back",
+    "waist"
+  ],
+  "slots": [],
+  "frameOverrides": {},
+  "status": "seed; one base pose, no directional animation inferred"
+}

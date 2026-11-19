@@ -1,0 +1,33 @@
+{
+  "kind": "variant",
+  "version": 1,
+  "id": "mike-arcane-patina",
+  "name": "Mike · pátina arcana (muestra)",
+  "anatomy": "humanoid-tall",
+  "source": null,
+  "dependencies": [
+    "mike",
+    "cursed"
+  ],
+  "review": {
+    "visual": "pending",
+    "userAcceptance": "pending",
+    "evidence": []
+  },
+  "instructions": "Run character-pipeline create and reuse search; fill fields required by the selected category before importing.",
+  "reuseSearch": {
+    "required": true,
+    "command": "node scripts/character-pipeline.mjs reuse --query mike-arcane-patina"
+  },
+  "base": "mike",
+  "equipment": {},
+  "effects": {
+    "cursed": 0.65
+  },
+  "description": "Variante de inspección sin ropa nueva ni cambio mecánico. Reutiliza el mismo cuerpo y el material maldito.",
+  "production": {
+    "template": "templates/variant.json",
+    "reuseEvidence": "output/character-modular-20261116/variant-reuse-search.json",
+    "method": "composition of existing visual resources; no generated full-body sprite"
+  }
+}

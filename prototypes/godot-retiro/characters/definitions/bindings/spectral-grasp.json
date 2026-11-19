@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "visualStyle": "existing painted D&D character art; coherent map lighting",
+  "orientation": "camera-relative eight directions where authored",
+  "scale": "character_stature.json or explicit source setting; never pose-envelope normalisation",
+  "pivot": "logical feet; preserve source frame floor offset",
+  "states": [
+    "poisoned",
+    "petrified",
+    "frosted",
+    "burned",
+    "cursed",
+    "invisible"
+  ],
+  "dependencies": [],
+  "review": {
+    "visual": "pending",
+    "userAcceptance": "pending",
+    "evidence": []
+  },
+  "kind": "binding",
+  "id": "spectral-grasp",
+  "name": "Agarres espectrales",
+  "implementation": "anchored-procedural",
+  "mechanicalCondition": "restringida",
+  "priority": 80,
+  "parameters": {
+    "intensity": {
+      "min": 0,
+      "max": 1,
+      "default": 0.8
+    },
+    "coverage": {
+      "min": 0,
+      "max": 1,
+      "default": 0.7
+    }
+  },
+  "anchorsByAnatomy": {
+    "humanoid-tall": [
+      "torso",
+      "waist",
+      "hand_left",
+      "hand_right"
+    ],
+    "humanoid-small": [
+      "torso",
+      "waist",
+      "hand_left",
+      "hand_right"
+    ],
+    "humanoid-dwarf": [
+      "torso",
+      "waist",
+      "hand_left",
+      "hand_right"
+    ],
+    "winged": [
+      "torso",
+      "waist"
+    ],
+    "quadruped": [
+      "torso",
+      "foot_front_left",
+      "foot_hind_left"
+    ],
+    "plant": [
+      "stem",
+      "root"
+    ]
+  },
+  "layers": [
+    "rear",
+    "front"
+  ],
+  "activation": "chosen cause of restriction; does not apply or clear mechanical conditions itself"
+}

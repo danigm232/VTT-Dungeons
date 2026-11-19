@@ -1,0 +1,108 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/main_controller.gd" id="1_ctrl"]
+[ext_resource type="Script" path="res://scripts/retreat_layout_builder.gd" id="2_layout"]
+[ext_resource type="PackedScene" path="res://scenes/player_token.tscn" id="3_player"]
+[ext_resource type="Script" path="res://scripts/tactical_camera.gd" id="4_cam"]
+[ext_resource type="Script" path="res://scripts/tactical_grid_overlay.gd" id="5_grid"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
+sky_top_color = Color(0.14, 0.25, 0.37, 1)
+sky_horizon_color = Color(0.45, 0.55, 0.63, 1)
+ground_bottom_color = Color(0.07, 0.12, 0.17, 1)
+ground_horizon_color = Color(0.32, 0.42, 0.49, 1)
+
+[sub_resource type="Sky" id="Sky_1"]
+sky_material = SubResource("ProceduralSkyMaterial_1")
+
+[sub_resource type="Environment" id="Environment_1"]
+background_mode = 2
+sky = SubResource("Sky_1")
+ambient_light_source = 2
+ambient_light_color = Color(0.21, 0.32, 0.44, 1)
+ambient_light_energy = 0.38
+tonemap_mode = 3
+tonemap_exposure = 1.05
+ssao_enabled = false
+ssao_radius = 1.05
+ssao_intensity = 1.15
+ssao_power = 1.45
+glow_enabled = true
+glow_intensity = 0.24
+glow_bloom = 0.03
+fog_enabled = true
+fog_mode = 1
+fog_light_color = Color(0.41, 0.55, 0.66, 1)
+fog_light_energy = 0.82
+fog_density = 0.0031
+fog_sky_affect = 0.42
+fog_depth_begin = 26.0
+fog_depth_end = 200.0
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_ctrl")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_1")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.71934, 0.39844, -0.569031, 0, 0.819152, 0.573576, 0.694658, -0.412596, 0.589249, 0, 45, 0)
+light_color = Color(1, 0.91, 0.77, 1)
+light_energy = 1.62
+shadow_enabled = true
+shadow_bias = 0.014
+shadow_normal_bias = 0.16
+shadow_blur = 1.10
+directional_shadow_mode = 2
+directional_shadow_split_1 = 0.12
+directional_shadow_split_2 = 0.30
+directional_shadow_split_3 = 0.56
+directional_shadow_blend_splits = true
+directional_shadow_max_distance = 125.0
+
+[node name="RetreatLayoutBuilder" type="Node3D" parent="."]
+script = ExtResource("2_layout")
+
+[node name="TacticalGridOverlay" type="Node3D" parent="."]
+script = ExtResource("5_grid")
+
+[node name="PlayerToken" parent="." node_paths=PackedStringArray("camera") instance=ExtResource("3_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.75, 0.25, 111.75)
+token_name = "Mia"
+is_active_player = true
+ring_color = Color(0.95, 0.78, 0.32, 0.88)
+camera = NodePath("../TacticalCamera")
+
+[node name="RogueToken" parent="." node_paths=PackedStringArray("camera") instance=ExtResource("3_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.75, 0.25, 110.25)
+token_name = "Trinity"
+is_active_player = false
+ring_color = Color(0.35, 0.85, 0.65, 0.88)
+camera = NodePath("../TacticalCamera")
+
+[node name="WizardToken" parent="." node_paths=PackedStringArray("camera") instance=ExtResource("3_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 93.75, 9, 90.75)
+token_name = "Mike"
+is_active_player = false
+ring_color = Color(0.42, 0.68, 0.98, 0.88)
+camera = NodePath("../TacticalCamera")
+
+[node name="ZombieToken" parent="." node_paths=PackedStringArray("camera") instance=ExtResource("3_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.75, 0.25, 107.25)
+token_name = "Zombi"
+is_active_player = false
+is_npc = true
+has_carried_light = false
+ring_color = Color(0.88, 0.28, 0.25, 0.85)
+camera = NodePath("../TacticalCamera")
+
+[node name="TacticalCamera" type="Camera3D" parent="." node_paths=PackedStringArray("target")]
+transform = Transform3D(1, 0, 0, 0, 0.788011, 0.615661, 0, -0.615661, 0.788011, 84, 78.49, 145.11)
+current = true
+fov = 45.0
+far = 600.0
+script = ExtResource("4_cam")
+target = NodePath("../PlayerToken")
+default_distance = 24.0
+min_distance = 6.0
+max_distance = 160.0

@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-zombie-4-walk-detail",
+  "character": "zombie-4",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "walk",
+  "direction": "se",
+  "fps": 10,
+  "loop": true,
+  "compatibility": {
+    "preservesAppearance": true,
+    "overlay": "Current frame alpha. Physical binding alignment pending."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zombie-4-walk-detail/00f0e6d0ba1a/01.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zombie-4-walk-detail/00f0e6d0ba1a/02.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zombie-4-walk-detail/00f0e6d0ba1a/03.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zombie-4-walk-detail/00f0e6d0ba1a/04.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zombie-4-walk-detail/00f0e6d0ba1a/05.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zombie-4-walk-detail/00f0e6d0ba1a/06.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zombie-4-walk-detail/00f0e6d0ba1a/07.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zombie-4-walk-detail/00f0e6d0ba1a/08.png"
+  ],
+  "production": {
+    "method": "ImageGen, project artwork as identity reference, full-size cell extraction",
+    "reference": "campaigns/stormwreck-isle/public/art/m3/zombie/zombie4_base.png",
+    "minimumVisibleStandingPixels": 225,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-zombie-4-walk-detail-00f0e6d0ba1a.png",
+    "originalSha256": "00f0e6d0ba1a8b1f0311edaf24d636e3a58fbbd6ee0ab5841f50408f42805d6f",
+    "importReport": "output/stormwreck-motion-detail/sw-zombie-4-walk-detail-00f0e6d0ba1a.json",
+    "promptFile": "output/stormwreck-motion-detail/expansion/sw-zombie-4-walk-detail.prompt.txt"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "Source sheet reviewed for identity, opposing limb phases or wing beat, and full silhouette. Native comparison captured separately.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 412,
+  "pivot": [
+    0.5,
+    0.9356223175965666
+  ]
+}

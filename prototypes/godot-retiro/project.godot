@@ -1,0 +1,69 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; but it can also be edited by text.
+
+config_version=5
+
+[application]
+
+config/name="El Retiro del Dragón 2.5D"
+config/description="Prototipo 2.5D en Godot 4 del Retiro del Dragón (Stormwreck Isle - Dungeons VTT)"
+run/main_scene="res://loading/loading_boot.tscn"
+config/features=PackedStringArray("4.7", "Forward Plus")
+config/icon="res://assets/tokens/cleric.png"
+
+[autoload]
+
+MapTransition="*res://scripts/map_transition_manager.gd"
+SkillLoading="*res://loading/loading_coordinator.gd"
+
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=900
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[input]
+
+move_forward={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":87,"physical_keycode":0,"key_label":0,"unicode":119,"location":0,"echo":false,"script":null)
+]
+}
+move_backward={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":83,"physical_keycode":0,"key_label":0,"unicode":115,"location":0,"echo":false,"script":null)
+]
+}
+move_left={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":65,"physical_keycode":0,"key_label":0,"unicode":97,"location":0,"echo":false,"script":null)
+]
+}
+move_right={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":68,"physical_keycode":0,"key_label":0,"unicode":100,"location":0,"echo":false,"script":null)
+]
+}
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0
+scaling_3d/mode=1
+scaling_3d/scale=0.85
+anti_aliasing/quality/msaa_3d=0
+anti_aliasing/quality/screen_space_aa=1
+anti_aliasing/quality/use_debanding=true
+lights_and_shadows/directional_shadow/size=2048
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality=2
+lights_and_shadows/positional_shadow/atlas_size=512
+lights_and_shadows/positional_shadow/soft_shadow_filter_quality=0
+environment/ssao/quality=0
+environment/ssao/half_size=true
+environment/glow/upscale_mode=0
+occlusion_culling/use_occlusion_culling=true
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/character_workshop/plugin.cfg")

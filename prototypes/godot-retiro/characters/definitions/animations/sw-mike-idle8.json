@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-mike-idle8",
+  "name": "Mike · reposo ocho fases",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "dependencies": [],
+  "review": {
+    "technical": "atlas-extraction-passed; native test pending",
+    "visual": "internally reviewed: complete isolated phases, stable identity and anatomy; live-loop and user acceptance tracked separately",
+    "userAcceptance": "pending",
+    "evidence": [
+      "output/stormwreck-characters-20261117/imports/mike.json",
+      "campaigns/stormwreck-isle/public/art/characters/base-v1/originals/mike-idle8.png"
+    ]
+  },
+  "production": {
+    "stage": "generated-and-technically-extracted",
+    "brief": "Preserve the exact existing blond long-haired blue-eyed pointed-eared elf wizard, tied blond hair, blue-and-gold robe, black gloves and boots, red-brown spellbook in anatomical LEFT arm and existing sheathed dagger. Same face, slender body, embroidery and pixel-painted detail as reference. No new equipment, spell, hat, armour or redesign.",
+    "originalIdentity": "output/stormwreck-characters-20261117/identities/mike.png",
+    "method": "built-in ImageGen; preserve existing identity; no new equipment",
+    "promptFile": "output/stormwreck-characters-20261117/mike-idle8.prompt.txt",
+    "original": "campaigns/stormwreck-isle/public/art/characters/base-v1/originals/mike-idle8.png",
+    "originalSha256": "46d1d3772fed172177d8c7525b2a39e0ecfb064dc45bf8f9e8bab4d49269d28d",
+    "importReport": "output/stormwreck-characters-20261117/imports/mike.json"
+  },
+  "limitations": [
+    "Eight idle phases in one base view; authored other directions and actions retained, no additional views claimed.",
+    "Clothing/equipment production deferred by user."
+  ],
+  "character": "mike",
+  "action": "idle",
+  "direction": "se",
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/mike/idle-01.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/mike/idle-02.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/mike/idle-03.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/mike/idle-04.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/mike/idle-05.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/mike/idle-06.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/mike/idle-07.png",
+    "campaigns/stormwreck-isle/public/art/characters/base-v1/mike/idle-08.png"
+  ],
+  "fps": 2.5,
+  "loop": true,
+  "pivot": [
+    0.5,
+    0.9762470308788599
+  ],
+  "referenceHeight": 400,
+  "minimumDistinctFrames": 8,
+  "compatibility": {
+    "anatomies": [
+      "humanoid-tall"
+    ],
+    "equipment": false,
+    "overlays": true
+  },
+  "events": [],
+  "initialFrame": 0,
+  "transition": "preserve support pivot",
+  "orientation": "Eight idle phases in one authored base view (se); no other views or locomotion claimed"
+}
