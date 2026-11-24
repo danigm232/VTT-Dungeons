@@ -122,17 +122,7 @@ func _ready() -> void:
 		global_position = Structure.LANDMARKS["spawn"]["world_pos"]
 
 	var resolve_src: String = token_name if not token_name.is_empty() else String(name)
-	char_key = Catalog.resolve_character_key(resolve_src)
-	preload("res://sprites/character_stature.gd").apply(self,char_key)
-	anim_clips = Catalog.get_character_clips(char_key)
-	char_profile = anim_clips
-	var reg_def: Dictionary = Registry.character(resolve_src)
-	if reg_def.is_empty():
-		var alias_key := "mia" if char_key == "cleric" else ("mike" if char_key == "wizard" else ("maria" if char_key == "rogue" else char_key))
-		reg_def = Registry.character(alias_key)
-	if not reg_def.is_empty() and not Registry.data().get("animations", {}).is_empty():
-		char_profile = Registry.with_animations(char_profile.duplicate(true), reg_def)
-		anim_clips = char_profile
+	_load_character_profile(resolve_src)
 
 	setup_sprite_visuals()
 	build_contact_shadow()
@@ -146,6 +136,19 @@ func _ready() -> void:
 
 	current_zone = Structure.get_zone_at(global_position)
 	current_elevation = global_position.y
+
+func _load_character_profile(resolve_src: String) -> void:
+	char_key = Catalog.resolve_character_key(resolve_src)
+	preload("res://sprites/character_stature.gd").apply(self,char_key)
+	anim_clips = Catalog.get_character_clips(char_key)
+	char_profile = anim_clips
+	var reg_def: Dictionary = Registry.character(resolve_src)
+	if reg_def.is_empty():
+		var alias_key := "mia" if char_key == "cleric" else ("mike" if char_key == "wizard" else ("maria" if char_key == "rogue" else char_key))
+		reg_def = Registry.character(alias_key)
+	if not reg_def.is_empty() and not Registry.data().get("animations", {}).is_empty():
+		char_profile = Registry.with_animations(char_profile.duplicate(true), reg_def)
+		anim_clips = char_profile
 
 func setup_sprite_visuals() -> void:
 	if sprite:
@@ -1088,11 +1091,37 @@ func _apply_procedural_motion(delta: float, input_dir: Vector2, state: String) -
 		contact_shadow.visible = state not in ["sit_on_prop", "rest_on_prop"]
 		var alt_factor := clampf(1.0 - (jump_y / (jump_peak_height * 1.45)), 0.35, 1.0)
 		var state_shadow := 0.85 if state == "sit" else (1.25 if state in ["prone", "crawl", "defeated"] else 1.0)
-		contact_shadow.scale = Vector3(alt_factor * state_shadow, 1.0, alt_factor * state_shadow)
+		# La huella se adapta a la estatura canónica del actor (Trinity < Mia < Mike)
+		var stature_shadow := clampf(target_height * current_height_scale / 1.82, 0.62, 1.12)
+		if state in ["prone", "crawl", "defeated"]:
+			stature_shadow = clampf(target_height / 1.82, 0.7, 1.12)
+		var airborne := clampf(jump_y / maxf(jump_peak_height, 0.01), 0.0, 1.0)
+		if char_key == "harpy" and state in ["run", "fly"]:
+			airborne = 0.7
+		contact_shadow.scale = Vector3(alt_factor * state_shadow * stature_shadow, 1.0, alt_factor * state_shadow * stature_shadow)
+		var shadow_mat := contact_shadow.material_override as StandardMaterial3D
+		if shadow_mat:
+			# Cuanto más lejos del suelo, más tenue la sombra de contacto
+			shadow_mat.albedo_color.a = lerpf(1.0, 0.38, airborne)
 	if selection_ring:
+		var sitting_prop := state in ["sit_on_prop", "rest_on_prop"]
+		selection_ring.visible = is_active_player and not is_npc and not sitting_prop
 		var m := selection_ring.material_override as StandardMaterial3D
 		if m:
-			m.albedo_color.a = 0.0 if state in ["sit_on_prop", "rest_on_prop"] else (0.38 if is_stealth else ring_color.a)
+			m.albedo_color.a = 0.0 if sitting_prop else (0.28 if is_stealth else ring_color.a)
+			m.emission_enabled = not sitting_prop and not is_stealth
+			# Pulso lento del anillo (respeta el movimiento reducido y atenúa emisión en sigilo)
+			var loading_node := get_node_or_null("/root/SkillLoading")
+			var calm: bool = loading_node != null and bool(loading_node.get("reduced"))
+			var stealth_mul := 0.0 if (sitting_prop or is_stealth) else 1.0
+			if calm:
+				m.emission_energy_multiplier = 1.5 * stealth_mul
+				selection_ring.scale = Vector3.ONE
+			else:
+				var pulse := 0.5 + 0.5 * sin(float(Time.get_ticks_msec()) * 0.0028)
+				m.emission_energy_multiplier = lerpf(1.25, 1.85, pulse) * stealth_mul
+				var ring_scale := 1.0 + pulse * 0.025
+				selection_ring.scale = Vector3(ring_scale, 1.0, ring_scale)
 
 func active_prop_surface() -> MeshInstance3D:
 	if is_instance_valid(_rest_surface) and _rest_surface.visible:

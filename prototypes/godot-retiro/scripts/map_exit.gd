@@ -44,6 +44,7 @@ var _indicator_root: Node3D
 var _chevron_mesh: MeshInstance3D
 var _ring_mesh: MeshInstance3D
 var _signpost_root: Node3D
+var _sign_swing_pivot: Node3D
 var _sign_label_3d: Label3D
 var _suppressed_until_exit: bool = false
 var _dm_highlighted: bool = false
@@ -302,6 +303,8 @@ func _build_signpost_prop() -> void:
 	_signpost_root = Node3D.new()
 	_signpost_root.name = "SignpostProp"
 	add_child(_signpost_root)
+	if kind == "dragon_plaque":
+		call_deferred("_setup_hanging_sway", 1.44)
 
 	var dir_xz := Vector3(path_direction.x, 0.0, path_direction.z)
 	if dir_xz.length_squared() < 0.001:
@@ -528,3 +531,33 @@ func _find_active_party_actor() -> Node3D:
 			if tok and _is_active_actor(tok):
 				return tok
 	return null
+
+func _setup_hanging_sway(pivot_y: float) -> void:
+	if not is_instance_valid(_signpost_root) or not is_inside_tree():
+		return
+	if is_instance_valid(_sign_swing_pivot):
+		return
+	var parts: Array[Node3D] = []
+	for cname in ["SignpostBoardBack", "SignpostSprite", "SignpostTitle", "SignpostTitleBack"]:
+		var ch := _signpost_root.get_node_or_null(cname) as Node3D
+		if ch:
+			parts.append(ch)
+	if parts.is_empty():
+		return
+	_sign_swing_pivot = Node3D.new()
+	_sign_swing_pivot.name = "SignpostSwingPivot"
+	_sign_swing_pivot.position = Vector3(0.0, pivot_y, 0.0)
+	_signpost_root.add_child(_sign_swing_pivot)
+	for part in parts:
+		_signpost_root.remove_child(part)
+		part.position.y -= pivot_y
+		_sign_swing_pivot.add_child(part)
+	var loading_node := get_node_or_null("/root/SkillLoading")
+	if loading_node != null and bool(loading_node.get("reduced")):
+		return
+	var amp := 0.024
+	var half_period := 1.45 + fmod(absf(global_position.x * 0.13 + global_position.z * 0.09), 0.35)
+	_sign_swing_pivot.rotation.x = -amp * 0.65
+	var tw := _sign_swing_pivot.create_tween().set_loops()
+	tw.tween_property(_sign_swing_pivot, "rotation:x", amp, half_period).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_property(_sign_swing_pivot, "rotation:x", -amp, half_period).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)

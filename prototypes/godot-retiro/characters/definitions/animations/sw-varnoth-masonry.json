@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-varnoth-masonry",
+  "character": "sw-varnoth",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "retreat_masonry",
+  "direction": "s",
+  "fps": 6,
+  "loop": false,
+  "dependencies": [
+    "sw-varnoth"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "standing feet registered; isolated handheld props; one authored view"
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/01.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/02.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/03.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/04.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/05.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/06.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/07.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/08.png"
+  ],
+  "production": {
+    "method": "built-in ImageGen with existing character reference; native-size independent sprites",
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/varnoth.png",
+    "minimumVisibleStandingPixels": 235,
+    "prompt": "Game asset, identity-preserving illustration. Use the single attached project character as the exact identity and brushwork reference. Varnoth Wender, aging human retired soldier. Keep the short black hair, dark scarred skin, charcoal tunic, brown sash, milky blind LEFT eye and her prosthetic RIGHT lower leg of wood and metal on VIEWER LEFT in this nearly frontal view. Her left leg looks natural. Keep both distinct in all frames, never mirror. Produce one transparent RGBA game animation sheet at 1536 x 1024 or the highest available size in a 3:2 landscape aspect ratio. Exactly four equally spaced columns and two equally spaced rows, each cell one full-body drawing, read left to right on each row. No words, numbering, grid lines, floor, background, casting shadows, other characters, or panels. All eight cells strictly share one orthographic camera, body scale and view direction (match the attached facing, slight tactical elevation). Use the same eye level and vertical placement in all phases. Place each full-body silhouette at the center of its cell, keeping every hand, horn, wing, tail, clothing hem and foot at least 15 pixels inside its cell at this resolution. Shared foot baseline an equal distance from bottom of each row; character should fill about 79-83 percent of cell height. Strong readable silhouettes and finely painted cloth and skin without blown highlights. No graphic style shift or redesign. Eight visibly different phases of ONE grounded action in temporal order. Quiet temple maintenance: she examines a short wooden-handled mason's brush and a small sample of rough stone held at the waist. 1 looks down at the stone held in the left hand, 2 raises brush in right, 3 brushes the stone surface, 4 repeats pass, 5 checks the edge of the stone, 6 brushes this edge, 7 inspects the work, 8 returns to first pose. A modest grounded hand gesture, no combat pose, no wall or furniture in the sheet.",
+    "sourcePages": [
+      9,
+      11,
+      48
+    ],
+    "expectedPhases": 8,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-varnoth-masonry-77a446b803b1.png",
+    "originalSha256": "77a446b803b1e66b023eff6dad04254037a83f15043e9cae19409dacc3fb7154",
+    "importReport": "output/stormwreck-motion-detail/sw-varnoth-masonry-77a446b803b1.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "Source and native-size frame extraction reviewed; in-game staging awaiting capture",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 462,
+  "pivot": [
+    0.5,
+    0.9236641221374046
+  ]
+}

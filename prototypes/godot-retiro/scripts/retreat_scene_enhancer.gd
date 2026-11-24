@@ -12,6 +12,7 @@ extends RefCounted
 
 const Structure = preload("res://scripts/retreat_structure.gd")
 const InteractiveDoorScript = preload("res://scripts/interactive_door.gd")
+const UpperArch = preload("res://scripts/retreat_upper_architecture.gd")
 
 # ------------------------------------------------------------------------------
 # 1. TECHOS DE CUEVA EXCAVADOS Y OCULTACIÓN DINÁMICA AL ENTRAR
@@ -28,24 +29,16 @@ static func build_cave_roofs_and_archways(builder: Node3D) -> Array[Dictionary]:
 	var mat_rock_dark: Material = builder.get("mat_rock_dark")
 	var mat_stone_arch: Material = builder.get("_mat_limestone_glb") if builder.get("_mat_limestone_glb") else builder.get("mat_column")
 
-	var mat_moss_roof := StandardMaterial3D.new()
-	mat_moss_roof.vertex_color_use_as_albedo = true
-	mat_moss_roof.vertex_color_is_srgb = true
-	mat_moss_roof.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mat_moss_roof.roughness = 0.86
-	var tex_cliff: Texture2D = builder.call("_load_tex", "a1-cliff-rugged-v8.png")
-	if tex_cliff == null:
-		tex_cliff = builder.call("_load_tex", "coastal-rock.png")
-	var norm_rock: Texture2D = builder.call("_load_tex", "rock-normal-v1.png")
-	if tex_cliff:
-		mat_moss_roof.albedo_texture = tex_cliff
-		mat_moss_roof.uv1_triplanar = true
-		mat_moss_roof.uv1_world_triplanar = true
-		mat_moss_roof.uv1_scale = Vector3(0.34, 0.34, 0.34)
-	if norm_rock:
-		mat_moss_roof.normal_enabled = true
-		mat_moss_roof.normal_texture = norm_rock
-		mat_moss_roof.normal_scale = 0.92
+	# Fase 1.1: Material geológico de basalto volcánico estratificado (corrige extensión .jpg y unifica familia con A1/Z1)
+	var mat_moss_roof := UpperArch.create_geological_cliff_material(builder)
+	var mat_ashlar_upper := UpperArch.create_weathered_ashlar_material(builder, Color("#cbc3af"))
+	var mat_dark_basalt_upper := UpperArch.create_dark_basalt_slab_material(builder)
+	var plate_mesh_upper := UpperArch.make_angular_basalt_plate_mesh(811)
+
+	# Fase 0.2: Separar en grupos estructurales reconocibles A2, A3 y A4
+	var a2_layers := UpperArch.ensure_zone_layer_groups(builder.get_node_or_null("A2_WinchAssembly") as Node3D, "A2")
+	var a3_layers := UpperArch.ensure_zone_layer_groups(builder.get_node_or_null("A3_DiningHall") as Node3D, "A3")
+	var a4_layers := UpperArch.ensure_zone_layer_groups(builder.get_node_or_null("A4_Library") as Node3D, "A4")
 
 	var roof_entries: Array[Dictionary] = []
 	var strata_mesh := make_layered_cliff_crag_mesh(701)
@@ -108,13 +101,37 @@ static func build_cave_roofs_and_archways(builder: Node3D) -> Array[Dictionary]:
 			var sz := lerpf(2.6, 4.0, float(tier_i) / 2.0)
 			var bm := MeshInstance3D.new()
 			bm.name = "A1Buttress_%d_T%d" % [bi, tier_i]
-			bm.mesh = strata_mesh
-			bm.material_override = mat_moss_roof
-			bm.position = Vector3(bx + sin(float(bi * 3 + tier_i)) * 0.16, ty, tz)
-			bm.scale = Vector3(sx, sy, sz)
-			bm.rotation.y = float(bi % 2) * 0.28 - 0.14
+			if tier_i == 2:
+				# Tramo superior bajo la cornisa del Paseo Superior (z=75.8): losa estratificada facetada sin domo redondeado
+				bm.mesh = plate_mesh_upper
+				bm.material_override = mat_dark_basalt_upper
+				bm.position = Vector3(bx + sin(float(bi * 3 + tier_i)) * 0.25, ty + 0.65, tz)
+				bm.scale = Vector3(4.8, 2.2, 3.6)
+				bm.rotation_degrees = Vector3(7.0, float(bi % 3) * 14.0 - 14.0, -5.0)
+			else:
+				bm.mesh = strata_mesh
+				bm.material_override = mat_moss_roof
+				bm.position = Vector3(bx + sin(float(bi * 3 + tier_i)) * 0.16, ty, tz)
+				bm.scale = Vector3(sx, sy, sz)
+				bm.rotation.y = float(bi % 2) * 0.28 - 0.14
 			bm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 			a1_rock_shell.add_child(bm)
+
+	# Fase 6 (A1): Muro geológico trasero permanente sellando el abismo oscuro tras las 6 celdas al abrir CaveRoof (z<=75.55)
+	var a1_back_wall := _box(a1_rock_shell, Vector3(106.5, 13.45, 74.65), Vector3(62.4, 9.2, 1.85), mat_cliff)
+	a1_back_wall.name = "A1_PermanentBackCliffWall"
+	a1_back_wall.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	for bk_i in range(12):
+		var bk_x := lerpf(78.2, 135.0, float(bk_i) / 11.0)
+		var bk_slab := MeshInstance3D.new()
+		bk_slab.name = "A1_BackCliffStrata_%d" % bk_i
+		bk_slab.mesh = plate_mesh_upper
+		bk_slab.material_override = mat_dark_basalt_upper if bk_i % 2 == 0 else mat_moss_roof
+		bk_slab.position = Vector3(bk_x, 12.1 + float(bk_i % 3) * 0.45, 75.05 + sin(float(bk_i) * 1.4) * 0.22)
+		bk_slab.scale = Vector3(6.2, 5.4, 2.2)
+		bk_slab.rotation_degrees = Vector3(5.0, float(bk_i % 2) * 14.0 - 7.0, -3.0)
+		bk_slab.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		a1_rock_shell.add_child(bk_slab)
 
 	# 6 Celdas excavadas de A1 (cota suelo 9.0m, muros hasta 12.5m, roca superior hasta 17.8m conectando con Paseo Z9)
 	var a1_specs := [
@@ -138,24 +155,24 @@ static func build_cave_roofs_and_archways(builder: Node3D) -> Array[Dictionary]:
 		var door_x := float(sp["door_x"])
 
 		# 1.5 Bóveda pétrea estratificada que abraza la puerta y sube orgánicamente hasta la cornisa Z9 (17.6m)
-		var vault_mesh := _create_cave_vault_mesh(x0, x1, z0 - 2.6, z1, 12.35, 17.55, door_x, 2.5, rng, Color("#5c5a56"), Color("#45583a"))
+		var vault_mesh := UpperArch.build_stratified_cave_vault_mesh(x0, x1, z0 - 2.6, z1, 9.0, 12.35, 17.55, door_x, 2.5, 2.72, rng, Color("#c4cdca"), Color("#8ca26a"), false)
 		var v_inst := MeshInstance3D.new()
 		v_inst.name = "VaultMesh"
 		v_inst.mesh = vault_mesh
 		v_inst.material_override = mat_moss_roof
 		rnode.add_child(v_inst)
 
-		# Repisas anchas de roca estratificada sobre la bóveda (sin conos puntiagudos)
+		# Repisas angulosas anchas de basalto estratificado integradas en el talud entre A1 y Paseo Superior
 		for cr_i in range(2):
-			var cr_x := lerpf(x0 + 2.0, x1 - 2.0, float(cr_i))
-			var cr_z := lerpf(z0 + 1.8, z1 - 3.2, 0.35 + float(cr_i) * 0.35)
+			var cr_x := lerpf(x0 + 2.2, x1 - 2.2, float(cr_i))
+			var cr_z := lerpf(z0 + 1.8, z1 - 3.6, 0.30 + float(cr_i) * 0.38)
 			var cr_m := MeshInstance3D.new()
 			cr_m.name = "VaultStrataLedge_%d" % cr_i
-			cr_m.mesh = strata_mesh
-			cr_m.material_override = mat_moss_roof
-			cr_m.position = Vector3(cr_x, 12.2 + float(cr_i) * 0.8, cr_z)
-			cr_m.scale = Vector3(2.8, 1.85, 2.6)
-			cr_m.rotation.y = float(cr_i) * 0.35 - 0.15
+			cr_m.mesh = plate_mesh_upper
+			cr_m.material_override = mat_dark_basalt_upper if cr_i == 0 else mat_moss_roof
+			cr_m.position = Vector3(cr_x, 12.9 + float(cr_i) * 1.35, cr_z)
+			cr_m.scale = Vector3(4.9, 1.25, 2.8)
+			cr_m.rotation_degrees = Vector3(8.0, float(cr_i) * 12.0 - 6.0, -5.0)
 			rnode.add_child(cr_m)
 
 		# 1.4 & 1.6 Grosor real de acceso (pórtico de sillería empotrado en roca + paredes interiores excavadas + puerta doble interactiva)
@@ -184,148 +201,215 @@ static func build_cave_roofs_and_archways(builder: Node3D) -> Array[Dictionary]:
 	# Tabique este final de Celda 6
 	add_box_collider(builder, Vector3(136.8, 10.6, 82.55), Vector3(0.55, 3.2, 12.7))
 
-	# Bóveda de caverna para A4 Biblioteca ampliada (x=83.8..113.1, z=46.0..65.35, sin hueco negro al oeste)
-	var a4_floor := _box(builder, Vector3(98.5, 17.995, 57.6), Vector3(29.0, 0.04, 15.2), builder.get("mat_cell_floor"))
+	# ==========================================================================
+	# FASE 0 & FASE 1: A4 BIBLIOTECA Y A3 COMEDOR — MONTAÑA ESTRATIFICADA,
+	# PORTADAS EXCAVADAS REALES CON PUERTAS INTERACTIVAS, MUROS Y ESCALERA ESTE
+	# ==========================================================================
+	var mat_iron_fac: Material = builder.get("mat_iron")
+	var mat_flame_fac: Material = builder.get("mat_flame")
+	var mat_wood_fac: Material = builder.get("mat_wood")
+	var mat_wood_dark_fac: Material = builder.get("mat_wood_dark")
+	var mat_bronze_fac: Material = builder.get("mat_bronze")
+
+	# --- A4 Biblioteca / Scriptorium (x=83.8..113.1, z=45.6..65.35, suelo y=18.0m) ---
+	var a4_floor_parent: Node3D = a4_layers.get("Floor", builder)
+	var a4_floor := _box(a4_floor_parent, Vector3(98.5, 17.995, 57.6), Vector3(29.0, 0.04, 15.2), builder.get("mat_cell_floor"))
 	a4_floor.name = "A4_ExpandedStoneFloor"
 	var a4_shell := Node3D.new()
 	a4_shell.name = "A4_PermanentMountainShell"
 	builder.add_child(a4_shell)
-	var ridge_mesh_upper := make_basalt_outcrop_mesh(411)
-	# Contr強es rocosos irregulares que sellan el flanco oeste de A4 contra el jardín y la montaña (sin oquedad negra)
-	for wz in [50.0, 53.5, 57.2, 60.8, 64.2]:
-		var crw := MeshInstance3D.new()
-		crw.name = "A4WestCliffSeal_%d" % int(wz)
-		crw.mesh = ridge_mesh_upper
-		crw.material_override = mat_cliff
-		crw.position = Vector3(83.45 + sin(wz * 0.6) * 0.25, 17.4, wz)
-		crw.scale = Vector3(2.45, 6.2 + cos(wz * 0.4) * 1.1, 2.65)
-		crw.rotation.y = wz * 0.37
-		crw.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-		a4_shell.add_child(crw)
-		tag_camera_occluder(crw)
-	_box(a4_shell, Vector3(83.55, 20.6, 56.8), Vector3(0.95, 6.2, 14.4), mat_cliff)
-	_box(a4_shell, Vector3(98.5, 20.6, 49.65), Vector3(29.8, 6.4, 1.10), mat_cliff)
 
 	var a4_roof := Node3D.new()
 	a4_roof.name = "CaveRoof_a4_library"
 	roofs_root.add_child(a4_roof)
-	var a4_mesh := _create_cave_vault_mesh(83.6, 113.1, 46.0, 65.35, 20.85, 27.15, 102.75, 3.2, rng, Color("#5f6968"), Color("#496340"))
+	var a4_mesh := UpperArch.build_stratified_cave_vault_mesh(
+		83.6, 112.75, 45.6, 65.35, 18.0, 21.08, 27.65,
+		102.75, 2.96, 2.86, rng, Color("#c8d0cc"), Color("#8fa46d"), true
+	)
 	var a4_inst := MeshInstance3D.new()
 	a4_inst.name = "A4VaultMesh"
 	a4_inst.mesh = a4_mesh
 	a4_inst.material_override = mat_moss_roof
+	a4_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	a4_roof.add_child(a4_inst)
-	_build_cave_portal_trim(a4_roof, 102.75, 18.0, 65.28, 3.1, 2.75, mat_stone_arch, mat_rock_dark)
-	# Muros físicos perimetrales de la caverna A4 ampliada (x=83.8..113.0, z=49.8..65.2; puerta en x=101.1..104.4)
+
+	var a4_facade_parent: Node3D = a4_layers.get("Facade", a4_shell)
+	var a4_door := UpperArch.build_upper_excavated_portal(
+		builder, a4_facade_parent, a4_roof,
+		{
+			"id": "a4_library",
+			"door_id": "a4_library",
+			"door_title": "Puerta de la Biblioteca (A4)",
+			"style": "library_arch",
+			"door_x": 102.75,
+			"y0": 18.0,
+			"z_front": 65.28,
+			"clear_w": 2.84,
+			"clear_h": 2.86
+		},
+		mat_ashlar_upper, mat_cliff, mat_dark_basalt_upper,
+		mat_wood_fac, mat_wood_dark_fac, mat_iron_fac, mat_bronze_fac, mat_flame_fac, plate_mesh_upper
+	)
+	# Muros físicos perimetrales de la caverna A4 ampliada (x=83.8..113.0, z=49.8..65.2; puerta en x=101.2..104.3)
 	add_box_collider(builder, Vector3(98.5, 19.6, 49.7), Vector3(29.4, 3.4, 0.7))
 	add_box_collider(builder, Vector3(83.85, 19.6, 57.5), Vector3(0.75, 3.4, 15.6))
 	add_box_collider(builder, Vector3(92.45, 19.6, 65.2), Vector3(17.2, 3.4, 0.65))
 	add_box_collider(builder, Vector3(108.7, 19.6, 65.2), Vector3(8.6, 3.4, 0.65))
-	for rx_a4 in [88.4, 96.4, 106.8]:
-		var cr := MeshInstance3D.new()
-		cr.name = "A4RidgeCrag_%d" % int(rx_a4)
-		cr.mesh = ridge_mesh_upper
-		cr.material_override = mat_rock_dark
-		cr.position = Vector3(rx_a4, 21.8, 55.0)
-		cr.scale = Vector3(2.8, 2.4, 2.2)
-		cr.rotation.y = rx_a4 * 0.17
-		a4_roof.add_child(cr)
 
 	roof_entries.append({
 		"id": "a4_library",
 		"group": "a4",
 		"node": a4_roof,
+		"door": a4_door,
+		"extra_cutaway_nodes": [],
 		"rect": Rect2(83.8, 49.8, 29.2, 15.1),
-		"door_rect": Rect2(100.8, 64.2, 3.9, 2.2),
+		"door_rect": Rect2(100.8, 64.0, 3.9, 2.4),
 		"y_min": 16.5,
 		"y_max": 22.5
 	})
 
-	# Bóveda de caverna para A3 Comedor y Cocina ampliados (x=112.9..134.8, z=46.0..65.35)
-	var a3_floor := _box(builder, Vector3(123.75, 17.995, 57.3), Vector3(21.6, 0.04, 15.8), builder.get("mat_cell_floor"))
+	# --- A3 Comedor y Cocina (x=112.9..134.9, z=45.6..65.35, suelo y=18.0m) ---
+	var a3_floor_parent: Node3D = a3_layers.get("Floor", builder)
+	var a3_floor := _box(a3_floor_parent, Vector3(123.75, 17.995, 57.3), Vector3(21.6, 0.04, 15.8), builder.get("mat_cell_floor"))
 	a3_floor.name = "A3_ExpandedStoneFloor"
 	var a3_shell := Node3D.new()
 	a3_shell.name = "A3_PermanentMountainShell"
 	builder.add_child(a3_shell)
-	for ez in [49.8, 53.6, 57.4, 61.2, 64.2]:
-		var cre := MeshInstance3D.new()
-		cre.name = "A3EastCliffSeal_%d" % int(ez)
-		cre.mesh = ridge_mesh_upper
-		cre.material_override = mat_cliff
-		cre.position = Vector3(134.85 + cos(ez * 0.5) * 0.25, 17.4, ez)
-		cre.scale = Vector3(2.2, 6.0, 2.45)
-		cre.rotation.y = ez * 0.43
-		a3_shell.add_child(cre)
-	_box(a3_shell, Vector3(134.65, 20.6, 57.3), Vector3(1.0, 6.2, 16.0), mat_cliff)
-	_box(a3_shell, Vector3(123.75, 20.6, 49.15), Vector3(22.4, 6.4, 1.0), mat_cliff)
 
 	var a3_roof := Node3D.new()
 	a3_roof.name = "CaveRoof_a3_dining"
 	roofs_root.add_child(a3_roof)
-	var a3_mesh := _create_cave_vault_mesh(112.9, 134.8, 46.0, 65.35, 20.85, 27.15, 117.4, 3.2, rng, Color("#606a68"), Color("#4a6441"))
+	var a3_mesh := UpperArch.build_stratified_cave_vault_mesh(
+		112.9, 134.9, 45.6, 65.35, 18.0, 21.08, 27.65,
+		117.4, 2.96, 2.86, rng, Color("#c9d1cc"), Color("#91a66f"), true
+	)
 	var a3_inst := MeshInstance3D.new()
 	a3_inst.name = "A3VaultMesh"
 	a3_inst.mesh = a3_mesh
 	a3_inst.material_override = mat_moss_roof
+	a3_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	a3_roof.add_child(a3_inst)
-	_build_cave_portal_trim(a3_roof, 117.4, 18.0, 65.28, 3.1, 2.75, mat_stone_arch, mat_rock_dark)
+
+	var a3_facade_parent: Node3D = a3_layers.get("Facade", a3_shell)
+	var a3_door := UpperArch.build_upper_excavated_portal(
+		builder, a3_facade_parent, a3_roof,
+		{
+			"id": "a3_dining",
+			"door_id": "a3_dining",
+			"door_title": "Puerta del Comedor (A3)",
+			"style": "refectory_lintel",
+			"door_x": 117.4,
+			"y0": 18.0,
+			"z_front": 65.28,
+			"clear_w": 2.84,
+			"clear_h": 2.86
+		},
+		mat_ashlar_upper, mat_cliff, mat_dark_basalt_upper,
+		mat_wood_fac, mat_wood_dark_fac, mat_iron_fac, mat_bronze_fac, mat_flame_fac, plate_mesh_upper
+	)
 	# Tabique divisorio A4/A3 y muros perimetrales de caverna A3 ampliada (vano puerta en x=115.8..119.0)
 	add_box_collider(builder, Vector3(113.0, 19.6, 57.3), Vector3(0.65, 3.4, 15.6))
 	add_box_collider(builder, Vector3(123.75, 19.6, 49.3), Vector3(21.6, 3.4, 0.7))
 	add_box_collider(builder, Vector3(134.5, 19.6, 57.3), Vector3(0.65, 3.4, 15.6))
 	add_box_collider(builder, Vector3(114.4, 19.6, 65.2), Vector3(2.8, 3.4, 0.65))
 	add_box_collider(builder, Vector3(126.75, 19.6, 65.2), Vector3(15.5, 3.4, 0.65))
-	for rx_a3 in [117.0, 127.8]:
-		var cr3 := MeshInstance3D.new()
-		cr3.name = "A3RidgeCrag_%d" % int(rx_a3)
-		cr3.mesh = ridge_mesh_upper
-		cr3.material_override = mat_rock_dark
-		cr3.position = Vector3(rx_a3, 21.8, 55.2)
-		cr3.scale = Vector3(2.6, 2.3, 2.1)
-		cr3.rotation.y = rx_a3 * 0.21
-		a3_roof.add_child(cr3)
 
 	roof_entries.append({
 		"id": "a3_dining",
 		"group": "a3",
 		"node": a3_roof,
+		"door": a3_door,
+		"extra_cutaway_nodes": [],
 		"rect": Rect2(113.1, 49.3, 21.4, 15.6),
-		"door_rect": Rect2(115.4, 64.2, 4.0, 2.2),
+		"door_rect": Rect2(115.4, 64.0, 4.0, 2.4),
 		"y_min": 16.5,
 		"y_max": 22.5
 	})
 
-	# Tejado de la casa ampliada del cabrestante A2 (recorte al entrar al interior)
+	# Geología estratificada del talud superior, cornisa de apoyo del Paseo y vegetación en grietas
+	var InteriorsA3A4 := load("res://scripts/retreat_interiors_a3_a4.gd")
+	if InteriorsA3A4 != null:
+		InteriorsA3A4.build_a4_interior_architecture(builder, a4_layers, a4_roof)
+		InteriorsA3A4.build_a3_interior_architecture(builder, a3_layers, a3_roof)
+
+	var upper_geology_root := Node3D.new()
+	upper_geology_root.name = "UpperMountainGeology"
+	builder.add_child(upper_geology_root)
+	UpperArch.build_upper_mountain_geology(builder, upper_geology_root, a4_roof, a3_roof, mat_moss_roof, mat_ashlar_upper, mat_dark_basalt_upper)
+	UpperArch.build_paseo_facade_enrichment(
+		builder, a4_facade_parent, a4_roof, a3_facade_parent, a3_roof,
+		mat_ashlar_upper, mat_cliff, mat_wood_fac, mat_wood_dark_fac, mat_iron_fac
+	)
+
+	# Muros laterales con espesor/coronación (A4 oeste, A3 este) y escaleras este (Observatorio + descenso a A2)
+	var stairs_node := builder.get_node_or_null("Staircases") as Node3D
+	if stairs_node == null:
+		stairs_node = upper_geology_root
+	UpperArch.build_flank_walls_and_east_stairs(
+		builder, a4_shell, a3_shell, stairs_node,
+		mat_moss_roof, mat_ashlar_upper, mat_cliff, mat_dark_basalt_upper,
+		builder.get("mat_trail"), mat_iron_fac, mat_flame_fac, plate_mesh_upper
+	)
+	var a2_stair_craft := stairs_node.get_node_or_null("EastPaseoToA2StairCraft") as Node3D
+	if a2_stair_craft != null:
+		var WinchStairs := load("res://scripts/retreat_winch_and_stairs.gd")
+		if WinchStairs != null:
+			WinchStairs.build_paseo_to_a2_perimeter_ropes(builder, a2_stair_craft)
+
+	# Tejado y muros frontales recortables de la casa del cabrestante A2 (recorte limpio al entrar sin muros bloqueando la maquinaria)
 	var a2_roof_node := builder.get_node_or_null("A2_WinchAssembly/A2_WinchRoof") as Node3D
+	var a2_cutaway_walls := builder.get_node_or_null("A2_WinchAssembly/A2_WinchCutawayWalls") as Node3D
+	var a2_door_node := builder.get_node_or_null("A2_WinchAssembly/A2_WinchHouseStructure/Door_A2_Winch") as Node3D
 	if a2_roof_node != null:
+		var a2_extras: Array = []
+		if a2_cutaway_walls != null:
+			a2_extras.append(a2_cutaway_walls)
 		roof_entries.append({
 			"id": "a2_winch",
 			"group": "a2",
 			"node": a2_roof_node,
-			"rect": Rect2(154.8, 62.6, 11.8, 8.6),
-			"door_rect": Rect2(154.0, 65.8, 2.2, 3.6),
+			"door": a2_door_node,
+			"extra_cutaway_nodes": a2_extras,
+			"rect": Rect2(155.8, 62.6, 10.8, 8.6),
+			"door_rect": Rect2(154.9, 65.8, 2.4, 3.6),
 			"y_min": 14.0,
 			"y_max": 20.5
 		})
 
-	# Antorchas de pared ancladas limpiamente en la fachada exterior de A4/A3 (llamas solo de noche)
-	var mat_iron_fac: Material = builder.get("mat_iron")
-	var mat_flame_fac: Material = builder.get("mat_flame")
-	for torch_x in [97.8, 107.6, 114.2, 120.6]:
+	# Templo A5 (Fase 2): Cutaway independiente de cubierta + entablamento + frontones
+	# (conserva visibles columnas, muro trasero, hornacina, braseros, estatua y altar!)
+	var a5_roof_node := builder.find_child("TempleRoofCutawayGroup", true, false) as Node3D
+	if a5_roof_node != null:
+		roof_entries.append({
+			"id": "a5_temple",
+			"group": "a5",
+			"node": a5_roof_node,
+			"door": null,
+			"extra_cutaway_nodes": [],
+			"rect": Rect2(31.8, 62.0, 17.6, 15.0),
+			"door_rect": Rect2(48.6, 63.2, 2.2, 5.6),
+			"y_min": 25.5,
+			"y_max": 32.0
+		})
+
+	# Apliques secundarios de Paseo Superior sobre ménsulas de piedra entre portales (evita tramos oscuros entre A4, A3 y extremos)
+	for torch_x in [91.4, 109.8, 127.6]:
 		var sconce := Node3D.new()
 		sconce.name = "FacadeTorch_%d" % int(torch_x * 10.0)
-		sconce.position = Vector3(torch_x, 19.85, 65.56)
-		builder.add_child(sconce)
-		_box(sconce, Vector3(0.0, 0.0, -0.08), Vector3(0.16, 0.36, 0.08), mat_iron_fac)
-		_cyl(sconce, Vector3(0.0, 0.14, 0.06), 0.055, 0.38, builder.get("mat_wood_dark"))
-		var flm := _cyl(sconce, Vector3(0.0, 0.42, 0.06), 0.08, 0.24, mat_flame_fac)
+		sconce.position = Vector3(torch_x, 19.95, 65.62)
+		var host_roof: Node3D = a4_roof if torch_x < 113.0 else a3_roof
+		host_roof.add_child(sconce)
+		_box(sconce, Vector3(0.0, -0.05, -0.14), Vector3(0.32, 0.50, 0.22), mat_ashlar_upper)
+		_box(sconce, Vector3(0.0, 0.0, -0.02), Vector3(0.14, 0.34, 0.08), mat_iron_fac)
+		_cyl(sconce, Vector3(0.0, 0.14, 0.08), 0.05, 0.36, mat_wood_dark_fac)
+		var flm := _cyl(sconce, Vector3(0.0, 0.40, 0.08), 0.075, 0.22, mat_flame_fac)
 		flm.add_to_group("night_flame")
 		var tl := OmniLight3D.new()
 		tl.name = "FacadeTorchLight_%d" % int(torch_x * 10.0)
-		tl.position = Vector3(0.0, 0.50, 0.35)
-		tl.light_color = Color(1.0, 0.64, 0.26)
-		tl.light_energy = 1.45
-		tl.omni_range = 8.5
+		tl.position = Vector3(0.0, 0.48, 0.38)
+		tl.light_color = Color(1.0, 0.66, 0.28)
+		tl.light_energy = 1.40
+		tl.omni_range = 9.0
 		sconce.add_child(tl)
 		if builder.has_method("register_flame_fx"):
 			builder.register_flame_fx(flm, tl, false)
@@ -514,47 +598,33 @@ static func _build_excavated_cell_shell_and_portal(static_parent: Node3D, roof_p
 
 	# 1.5, 1.6, 2.2 y 2.3 Revestimiento interior de roca excavada, arcos de techo interior y hornacinas en la roca viva (sin cajas prismáticas grises)
 	var back_segs := 5
+	# Fase 6 (A1): Bloques estratificados angulosos integrados en el muro trasero y laterales (sin aspecto de "setas" redondas)
+	var cave_plate_mesh := UpperArch.make_angular_basalt_plate_mesh(int(x0 * 17.0) + 41)
 	for bi in range(back_segs):
 		var bx := lerpf(x0 + 0.90, x1 - 0.90, float(bi) / float(back_segs - 1))
-		var bz := z0 + 0.50 + sin(float(bi) * 1.9 + x0) * 0.25
+		var bz := z0 + 0.44 + sin(float(bi) * 1.9 + x0) * 0.18
 		var rk := MeshInstance3D.new()
-		rk.mesh = strata_mesh
+		rk.mesh = cave_plate_mesh
 		rk.material_override = mat_rock if bi % 2 == 0 else mat_dark
-		rk.position = Vector3(bx, y0, bz)
-		rk.scale = Vector3(1.55, 3.10 + float(bi % 2) * 0.25, 1.25)
-		rk.rotation.y = float(bi) * 0.42
+		rk.position = Vector3(bx, y0 - 0.12, bz)
+		rk.scale = Vector3(2.45, 3.35 + float(bi % 2) * 0.35, 1.35)
+		rk.rotation_degrees = Vector3(4.0, float(bi % 2) * 12.0 - 6.0, 0.0)
 		shell.add_child(rk)
-		# 2.3 Cornisa rocosa orgánica excavada al fondo (usando strata_mesh inclinado en lugar de caja rectangular)
-		var corbel := MeshInstance3D.new()
-		corbel.mesh = strata_mesh
-		corbel.material_override = mat_dark if bi % 2 == 0 else mat_rock
-		corbel.position = Vector3(bx, y0 + 2.55, bz + 0.55)
-		corbel.scale = Vector3(1.65, 0.85, 1.35)
-		corbel.rotation = Vector3(0.32, float(bi) * 0.35, 0.0)
-		shell.add_child(corbel)
 
-	# 2.2 Paredes laterales irregulares de roca excavada (Este y Oeste de cada celda) con arcos de techo orgánicos
+	# 2.2 Paredes laterales irregulares de roca estratificada (Este y Oeste de cada celda)
 	var side_segs := 5
 	for s_dir in [-1.0, 1.0]:
-		var sx_base := (x0 + 0.36) if s_dir < 0.0 else (x1 - 0.36)
+		var sx_base := (x0 + 0.34) if s_dir < 0.0 else (x1 - 0.34)
 		for si in range(side_segs):
 			var sz := lerpf(z0 + 1.30, z1 - 1.65, float(si) / float(side_segs - 1))
-			var inset := sin(float(si) * 2.1 + sx_base) * 0.22
+			var inset := sin(float(si) * 2.1 + sx_base) * 0.18
 			var srk := MeshInstance3D.new()
-			srk.mesh = strata_mesh
+			srk.mesh = cave_plate_mesh
 			srk.material_override = mat_rock if (si + int(s_dir > 0.0)) % 2 == 0 else mat_dark
-			srk.position = Vector3(sx_base - s_dir * inset, y0, sz)
-			srk.scale = Vector3(1.14, 3.08 + float(si % 2) * 0.22, 1.58)
-			srk.rotation.y = float(si) * 0.45 + s_dir * 0.3
+			srk.position = Vector3(sx_base - s_dir * inset, y0 - 0.10, sz)
+			srk.scale = Vector3(1.22, 3.25 + float(si % 2) * 0.28, 2.35)
+			srk.rotation_degrees = Vector3(0.0, 90.0 + float(si % 2) * 10.0 - 5.0, s_dir * 4.0)
 			shell.add_child(srk)
-			# 2.3 Costilla de bóveda lateral orgánica en roca tallada
-			var s_corbel := MeshInstance3D.new()
-			s_corbel.mesh = strata_mesh
-			s_corbel.material_override = mat_dark
-			s_corbel.position = Vector3(sx_base - s_dir * 0.36, y0 + 2.52, sz)
-			s_corbel.scale = Vector3(1.05, 0.78, 1.45)
-			s_corbel.rotation = Vector3(0.0, float(si) * 0.28, s_dir * 0.28)
-			shell.add_child(s_corbel)
 
 	# 2.5 Transición lumínica exterior-interior: 2 focos cálidos permanentes en cada celda (centro + alcoba trasera con cama y hornacina)
 	var inner_warm := OmniLight3D.new()
@@ -792,7 +862,17 @@ static func update_cave_roof_cutaways(builder: Node3D, roof_entries: Array[Dicti
 				should_open = true
 
 		entry["is_open"] = should_open
-		rnode.visible = not should_open
+		set_roof_entry_open(entry, should_open)
+
+static func set_roof_entry_open(entry: Dictionary, open: bool) -> void:
+	entry["is_open"] = open
+	var rnode: Node3D = entry.get("node")
+	if is_instance_valid(rnode):
+		rnode.visible = not open
+	var extras: Array = entry.get("extra_cutaway_nodes", [])
+	for ex in extras:
+		if ex is Node3D and is_instance_valid(ex):
+			(ex as Node3D).visible = not open
 
 # ------------------------------------------------------------------------------
 # 2. MOBILIARIO ARTESANAL DE LAS HABITACIONES (A1, A3, A4) Y DE LA PLAZA (A1)
@@ -948,28 +1028,41 @@ static func build_rooms_and_plaza_furniture(builder: Node3D) -> void:
 	# Suministros, barriles y tablón de avisos en la esquina suroeste junto a la llegada de la escalera (76.2, 9.0, 95.65)
 	_build_plaza_supply_corner(plaza_furn, Vector3(76.2, y_a1, 95.65), mat_oak, mat_dark_oak, mat_iron, mat_linen)
 
-	# --- C. REFUERZO DE MOBILIARIO EN A3 (COMEDOR/COCINA) Y A4 (BIBLIOTECA) ---
+	# --- C. INTERIORES DE A3 (COMEDOR/COCINA FASE 3) Y A4 (BIBLIOTECA/SCRIPTORIUM FASE 4) ---
 	var y_upper := Structure.ELEV_A3_DINING
 	var a3_furn := Node3D.new()
 	a3_furn.name = "A3_Refectory_Furniture"
 	furn_root.add_child(a3_furn)
-	_build_a3_banquet_and_hearth(a3_furn, y_upper, mat_oak, mat_dark_oak, mat_stone, mat_iron, mat_bronze, mat_pottery, mat_linen, mat_flame)
+	var InteriorsA3A4 := load("res://scripts/retreat_interiors_a3_a4.gd")
+	if InteriorsA3A4 != null:
+		InteriorsA3A4.build_a3_refectory_and_kitchen(builder, a3_furn, y_upper, mat_oak, mat_dark_oak, mat_stone, mat_iron, mat_bronze, mat_pottery, mat_linen, mat_flame)
+	else:
+		_build_a3_banquet_and_hearth(a3_furn, y_upper, mat_oak, mat_dark_oak, mat_stone, mat_iron, mat_bronze, mat_pottery, mat_linen, mat_flame)
 
 	var a4_furn := Node3D.new()
 	a4_furn.name = "A4_Scriptorium_Furniture"
 	furn_root.add_child(a4_furn)
-	_build_a4_scriptorium_details(a4_furn, y_upper, mat_dark_oak, mat_oak, mat_linen, mat_bronze, mat_gold, mat_flame, mat_rug_blue, mat_blanket_crimson, mat_blanket_sage)
+	if InteriorsA3A4 != null:
+		InteriorsA3A4.build_a4_library_and_scriptorium(builder, a4_furn, y_upper, mat_dark_oak, mat_oak, mat_linen, mat_bronze, mat_gold, mat_flame, mat_rug_blue, mat_blanket_crimson, mat_blanket_sage)
+	else:
+		_build_a4_scriptorium_details(a4_furn, y_upper, mat_dark_oak, mat_oak, mat_linen, mat_bronze, mat_gold, mat_flame, mat_rug_blue, mat_blanket_crimson, mat_blanket_sage)
 
-	# Consolidar mallas estáticas solo en A3 y A4; mantener A1_Cells_Furniture y A1_Plaza_Furniture por nodo para que cada celda reciba sus OmniLight3D sin límite de 8 luces por malla y el pozo pueda animarse
-	merge_static_children_by_material(a3_furn)
-	merge_static_children_by_material(a4_furn)
+	# Mantener A1/A3/A4 por mueble (libros/pergaminos/losas ya usan MultiMeshInstance3D) para no exceder el límite de 8 OmniLight3D por MeshInstance3D en Forward+ y preservar la iluminación cálida nocturna.
 
-	# Bancos exteriores limpios en Paseo Superior (frente a fachada de A4 y A3, sin solapar el muro rocoso)
+	# Fase 5: Paseo Superior, Jardines Z7, bancos con detalles monásticos y faroles de pedestal
 	var upper_furn := Node3D.new()
 	upper_furn.name = "UpperWalkway_Furniture"
 	furn_root.add_child(upper_furn)
-	for bx_up in [89.5, 108.5, 127.5]:
-		_build_interactive_bench(upper_furn, Vector3(bx_up, y_upper, 66.15), 0.0, mat_oak, mat_dark_oak, mat_stone, "s", "Banco del Paseo")
+	var upper_lanterns := Node3D.new()
+	upper_lanterns.name = "UpperWalkway_Lanterns"
+	furn_root.add_child(upper_lanterns)
+	for bx_up in [89.0, 108.6, 127.8]:
+		_build_interactive_bench(upper_furn, Vector3(float(bx_up), y_upper, 66.15), 0.0, mat_oak, mat_dark_oak, mat_stone, "s", "Banco del Paseo")
+	# Detalles discretos sobre/junto a los bancos para romper simetría (manta doblada y zurrón de viaje)
+	_box(upper_furn, Vector3(88.45, y_upper + 0.51, 66.15), Vector3(0.46, 0.07, 0.34), mat_blanket_ochre)
+	_box(upper_furn, Vector3(129.05, y_upper + 0.16, 66.22), Vector3(0.38, 0.32, 0.24), mat_dark_oak)
+	if InteriorsA3A4 != null:
+		InteriorsA3A4.build_paseo_and_z7_enhancements(builder, upper_furn, upper_lanterns)
 	merge_static_children_by_material(upper_furn)
 
 static func _build_pilgrim_bed(parent: Node3D, pos: Vector3, yaw: float, mat_frame: Material, mat_sheet: Material, mat_blanket: Material) -> void:
@@ -1868,8 +1961,8 @@ static func build_vibrant_grass_and_planters(builder: Node3D, terrain_data: Dict
 			if wx < 18.0 and wz > 85.0 and y_avg < 8.5:
 				continue
 
-			# En A1, A5 y Upper, concentrar el césped en Z7 Gardens y bordes verdes (nunca sobre el pavimento del templo A5 ni escaleras)
-			var is_garden_zone := (wx >= 72.0 and wx <= 85.8 and wz >= 54.0 and wz <= 64.8)
+			# En A1, A5 y Upper, concentrar el césped en Z7 Gardens (x<=83.2 para no invadir el muro oeste de A4) y bordes verdes (nunca sobre el pavimento del templo A5 ni escaleras)
+			var is_garden_zone := (wx >= 72.0 and wx <= 83.2 and wz >= 54.0 and wz <= 64.8)
 			var is_a5_stone := (sid == "a5" and wx >= 33.4 and wx <= 47.6 and wz >= 62.5 and wz <= 76.8)
 			var is_verge := is_garden_zone or (sid == "a5" and not is_a5_stone) or (sid == "a1" and (wz > 96.4 and wx >= 74.0 and wx <= 134.0))
 			if not is_verge:
@@ -1979,35 +2072,58 @@ static func make_fern_cluster_mesh() -> ArrayMesh:
 	return st.commit()
 
 static func make_lush_canopy_cluster_mesh() -> ArrayMesh:
-	# Reemplaza las esferas simples por una copa orgánica de 5 lóbulos con gradiente de luz solar
+	# Copa mediterránea pictórica de encina/olivo: 11 ramilletes poligonales facetados (smooth_group = -1)
+	# con asimetría orgánica y gradiente solar cálido-oliva (elimina aspecto de globo/chupa-chups liso)
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var lobes := [
-		{"pos": Vector3(0.0, 0.14, 0.0), "rx": 0.48, "ry": 0.42, "rz": 0.48},
-		{"pos": Vector3(0.24, -0.02, 0.16), "rx": 0.38, "ry": 0.34, "rz": 0.38},
-		{"pos": Vector3(-0.24, 0.0, 0.14), "rx": 0.38, "ry": 0.35, "rz": 0.36},
-		{"pos": Vector3(0.14, 0.02, -0.24), "rx": 0.36, "ry": 0.34, "rz": 0.38},
-		{"pos": Vector3(-0.18, -0.03, -0.20), "rx": 0.37, "ry": 0.32, "rz": 0.37},
+	st.set_smooth_group(-1)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 202611239
+
+	var tufts := [
+		{"pos": Vector3(0.02, 0.24, -0.02), "rx": 0.44, "ry": 0.30, "rz": 0.42, "tint": 1.08},
+		{"pos": Vector3(0.32, 0.08, 0.22), "rx": 0.36, "ry": 0.24, "rz": 0.34, "tint": 1.02},
+		{"pos": Vector3(-0.34, 0.11, 0.18), "rx": 0.38, "ry": 0.25, "rz": 0.34, "tint": 1.04},
+		{"pos": Vector3(0.24, 0.10, -0.32), "rx": 0.35, "ry": 0.25, "rz": 0.36, "tint": 1.00},
+		{"pos": Vector3(-0.26, 0.06, -0.28), "rx": 0.36, "ry": 0.24, "rz": 0.35, "tint": 0.96},
+		{"pos": Vector3(0.48, -0.08, -0.06), "rx": 0.30, "ry": 0.20, "rz": 0.28, "tint": 0.90},
+		{"pos": Vector3(-0.46, -0.10, -0.04), "rx": 0.32, "ry": 0.20, "rz": 0.30, "tint": 0.88},
+		{"pos": Vector3(0.06, -0.08, 0.46), "rx": 0.32, "ry": 0.19, "rz": 0.28, "tint": 0.92},
+		{"pos": Vector3(-0.08, -0.09, -0.46), "rx": 0.30, "ry": 0.20, "rz": 0.28, "tint": 0.86},
+		{"pos": Vector3(0.18, 0.36, 0.10), "rx": 0.28, "ry": 0.20, "rz": 0.26, "tint": 1.14},
+		{"pos": Vector3(-0.18, 0.34, -0.10), "rx": 0.26, "ry": 0.19, "rz": 0.26, "tint": 1.12},
 	]
-	var segs := 8
-	var rings := 4
-	for lb in lobes:
+	var segs := 6
+	var rings := 3
+	for lb in tufts:
 		var c: Vector3 = lb["pos"]
 		var rx := float(lb["rx"])
 		var ry := float(lb["ry"])
 		var rz := float(lb["rz"])
+		var tint := float(lb["tint"])
+		var ang_off := rng.randf_range(0.0, TAU)
+		var rad_j: Array[float] = []
+		for sj in range(segs):
+			rad_j.append(rng.randf_range(0.84, 1.18))
 		for r in range(rings):
 			var v0 := float(r) / float(rings) * PI
 			var v1 := float(r + 1) / float(rings) * PI
-			var col0 := Color(0.58, 0.68, 0.54).lerp(Color(1.0, 1.0, 0.90), clampf(cos(v0) * 0.5 + 0.5, 0.0, 1.0))
-			var col1 := Color(0.58, 0.68, 0.54).lerp(Color(1.0, 1.0, 0.90), clampf(cos(v1) * 0.5 + 0.5, 0.0, 1.0))
+			var t0 := clampf(cos(v0) * 0.5 + 0.5, 0.0, 1.0)
+			var t1 := clampf(cos(v1) * 0.5 + 0.5, 0.0, 1.0)
+			var col0 := Color(0.50, 0.60, 0.46).lerp(Color(1.06, 1.08, 0.88), t0) * tint
+			var col1 := Color(0.50, 0.60, 0.46).lerp(Color(1.06, 1.08, 0.88), t1) * tint
+			col0 = Color(clampf(col0.r, 0.32, 1.18), clampf(col0.g, 0.38, 1.22), clampf(col0.b, 0.30, 1.05))
+			col1 = Color(clampf(col1.r, 0.32, 1.18), clampf(col1.g, 0.38, 1.22), clampf(col1.b, 0.30, 1.05))
 			for s in range(segs):
-				var u0 := float(s) / float(segs) * TAU
-				var u1 := float(s + 1) / float(segs) * TAU
-				var p00 := c + Vector3(sin(v0) * cos(u0) * rx, cos(v0) * ry, sin(v0) * sin(u0) * rz)
-				var p10 := c + Vector3(sin(v0) * cos(u1) * rx, cos(v0) * ry, sin(v0) * sin(u1) * rz)
-				var p11 := c + Vector3(sin(v1) * cos(u1) * rx, cos(v1) * ry, sin(v1) * sin(u1) * rz)
-				var p01 := c + Vector3(sin(v1) * cos(u0) * rx, cos(v1) * ry, sin(v1) * sin(u0) * rz)
+				var ns := (s + 1) % segs
+				var u0 := ang_off + float(s) / float(segs) * TAU
+				var u1 := ang_off + float(s + 1) / float(segs) * TAU
+				var j0 := rad_j[s]
+				var j1 := rad_j[ns]
+				var p00 := c + Vector3(sin(v0) * cos(u0) * rx * j0, cos(v0) * ry, sin(v0) * sin(u0) * rz * j0)
+				var p10 := c + Vector3(sin(v0) * cos(u1) * rx * j1, cos(v0) * ry, sin(v0) * sin(u1) * rz * j1)
+				var p11 := c + Vector3(sin(v1) * cos(u1) * rx * j1, cos(v1) * ry, sin(v1) * sin(u1) * rz * j1)
+				var p01 := c + Vector3(sin(v1) * cos(u0) * rx * j0, cos(v1) * ry, sin(v1) * sin(u0) * rz * j0)
 				_emit_quad_cw(st, p00, p10, p11, p01, col0, col0, col1, col1)
 	st.generate_normals()
 	return st.commit()
@@ -2126,28 +2242,37 @@ static func make_blossom_cluster_mesh() -> ArrayMesh:
 	return st.commit()
 
 static func make_basalt_outcrop_mesh(seed_val: int = 17) -> ArrayMesh:
-	# Columna/promontorio escalonado de basalto volcánico multifacetado (sustituye esferas lisas en escollos y contrafuertes)
+	# Bloque estratificado de basalto volcánico multifacetado con planos nítidos (smooth_group = -1)
+	# y meseta superior erosionada (elimina los conos lisos y "huevos" en acantilados, cala y escollos)
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_smooth_group(-1)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_val
 	var sides := 7
 	var levels := [
-		{"y": 0.00, "r": 0.62, "col": Color(0.56, 0.60, 0.62)},
-		{"y": 0.36, "r": 0.56, "col": Color(0.68, 0.72, 0.73)},
-		{"y": 0.74, "r": 0.42, "col": Color(0.82, 0.84, 0.82)},
-		{"y": 1.00, "r": 0.20, "col": Color(0.94, 0.94, 0.88)},
+		{"y": 0.00, "r": 0.66, "col": Color(0.68, 0.72, 0.73)},
+		{"y": 0.34, "r": 0.62, "col": Color(0.77, 0.80, 0.80)},
+		{"y": 0.68, "r": 0.54, "col": Color(0.86, 0.88, 0.85)},
+		{"y": 0.94, "r": 0.42, "col": Color(0.95, 0.96, 0.91)},
 	]
+	var base_rad: Array[float] = []
+	for s in range(sides):
+		base_rad.append(rng.randf_range(0.80, 1.20))
+
 	var rings: Array[Array] = []
 	for li in range(levels.size()):
 		var ring: Array[Vector3] = []
 		var ly := float(levels[li]["y"])
 		var lr := float(levels[li]["r"])
+		var shear_x := float(li) * rng.randf_range(-0.025, 0.025)
+		var shear_z := float(li) * rng.randf_range(-0.025, 0.025)
 		for s in range(sides):
-			var ang := (float(s) / float(sides)) * TAU + float(li) * 0.14
-			var jitter := rng.randf_range(0.76, 1.24)
-			var yj := rng.randf_range(-0.06, 0.08) if li > 0 else 0.0
-			ring.append(Vector3(cos(ang) * lr * jitter, ly + yj, sin(ang) * lr * jitter))
+			var ang := (float(s) / float(sides)) * TAU + float(li) * 0.07
+			var jitter := base_rad[s] * rng.randf_range(0.92, 1.08)
+			var dip := -cos(ang) * 0.045 * float(li) / 3.0
+			var yj := (rng.randf_range(-0.03, 0.04) + dip) if li > 0 else 0.0
+			ring.append(Vector3(cos(ang) * lr * jitter + shear_x, ly + yj, sin(ang) * lr * jitter + shear_z))
 		rings.append(ring)
 
 	for li in range(levels.size() - 1):
@@ -2155,12 +2280,15 @@ static func make_basalt_outcrop_mesh(seed_val: int = 17) -> ArrayMesh:
 		var c1: Color = levels[li + 1]["col"]
 		for s in range(sides):
 			var ns := (s + 1) % sides
-			_emit_quad_cw(st, rings[li][ns], rings[li][s], rings[li + 1][s], rings[li + 1][ns], c0, c0, c1, c1)
+			var shade := rng.randf_range(-0.07, 0.08)
+			var fc0 := c0.lightened(shade) if shade >= 0.0 else c0.darkened(-shade)
+			var fc1 := c1.lightened(shade) if shade >= 0.0 else c1.darkened(-shade)
+			_emit_quad_cw(st, rings[li][ns], rings[li][s], rings[li + 1][s], rings[li + 1][ns], fc0, fc0, fc1, fc1)
 
-	# Tapa superior facetada irregular
+	# Meseta superior facetada irregular (sin pico cónico artificial)
 	var top_ring: Array = rings[rings.size() - 1]
-	var apex := Vector3(rng.randf_range(-0.08, 0.08), 1.10, rng.randf_range(-0.08, 0.08))
-	var c_top := Color(0.98, 0.97, 0.90)
+	var apex := Vector3(rng.randf_range(-0.06, 0.06), 1.00, rng.randf_range(-0.06, 0.06))
+	var c_top := Color(0.96, 0.96, 0.90)
 	for s in range(sides):
 		var ns := (s + 1) % sides
 		st.set_color(c_top); st.add_vertex(top_ring[ns])

@@ -44,6 +44,25 @@ func get_zone_zoom_limits(zone: String) -> Vector2:
 	if is_interior_zone(zone): return Vector2(6.0,36.0)
 	return Vector2(6.0,90.0)
 
+func get_player_max_distance(zone_id: String = "") -> float:
+	var z := zone_id if zone_id != "" else current_zone_id
+	if is_interior_zone(z):
+		return 30.0
+	var parent_node := get_parent()
+	if parent_node and parent_node.get("scene_kind") != null:
+		return 32.0
+	return 44.0
+
+func get_world_visual_bounds() -> Rect2:
+	var parent_node := get_parent()
+	if not parent_node:
+		return Rect2()
+	if parent_node.get("scene_kind") != null:
+		return Rect2(-264.0, -264.0, 528.0, 528.0)
+	if parent_node.find_child("RetreatLayoutBuilder", true, false) != null:
+		return Rect2(-340.0, -310.0, 848.0, 756.0)
+	return Rect2()
+
 func clamp_navigation_point(point: Vector3) -> Vector3:
 	var scene_root := get_tree().current_scene if get_tree() else null
 	if scene_root and scene_root.has_meta("map_bounds_xz"):
@@ -60,7 +79,8 @@ func apply_zone_preset(key: String,instant: bool = false) -> void:
 	is_following = false
 	target_focus = preset["target"]
 	if not is_overview: _apply_zone_boundary_transition(is_interior_zone(detect_wreck_zone(target_focus)),detect_wreck_zone(target_focus))
-	target_distance = clampf(float(preset["ortho_half"])/tan(deg_to_rad(fov*0.5)),min_distance,max_distance)
+	var zb := _effective_zoom_bounds(current_zone_id)
+	target_distance = clampf(float(preset["ortho_half"])/tan(deg_to_rad(fov*0.5)),zb.x,zb.y)
 	if instant:
 		focus_point = target_focus; current_distance = target_distance; current_pitch = target_pitch
 		update_camera_transform()

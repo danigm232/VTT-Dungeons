@@ -128,7 +128,7 @@ func _detect_scene_context() -> void:
 		grid_node = main_ctrl.find_child("TacticalGrid", true, false) as Node3D
 		if not grid_node:
 			grid_node = main_ctrl.find_child("TacticalGridOverlay", true, false) as Node3D
-		for nname in ["PlayerToken", "RogueToken", "WizardToken", "HarpyToken", "ZombieToken"]:
+		for nname in ["PlayerToken", "RogueToken", "WizardToken", "HarpyToken", "ZombieToken", "ZombieBeach2", "ZombieBeach3"]:
 			var tok := main_ctrl.find_child(nname, true, false) as Node3D
 			if tok:
 				tokens_by_node[nname] = tok
@@ -136,6 +136,13 @@ func _detect_scene_context() -> void:
 	meta = CampaignData.get_campaign_meta(is_retreat)
 	actors = CampaignData.create_default_actors()
 	enemies = CampaignData.create_default_enemies(is_retreat)
+	if tokens_by_node.has("ZombieBeach3"):
+		enemies = CampaignData.create_retreat_opening_enemies()
+		for enemy in enemies:
+			var token: Node3D = tokens_by_node.get(enemy.node_name)
+			if token:
+				token.set_meta("npc_reinforcement_visible", false)
+				_apply_enemy_visibility(token, false)
 	dm_requests = CampaignData.get_initial_dm_requests(is_retreat)
 	selected_enemy_id = enemies[0]["id"] if not enemies.is_empty() else ""
 	if not route_scene_kind.is_empty():
@@ -466,9 +473,19 @@ func toggle_enemy_revealed(enemy_id: String) -> void:
 			e["revealed"] = not bool(e["revealed"])
 			var tok: Node3D = tokens_by_node.get(e.get("node_name", ""), null)
 			if tok:
-				tok.visible = e["revealed"]
+				_apply_enemy_visibility(tok, bool(e["revealed"]))
 			refresh_all()
 			return
+
+func _apply_enemy_visibility(token: Node3D, shown: bool) -> void:
+	token.visible = shown
+	if token.has_meta("npc_reinforcement_visible"):
+		token.set_meta("npc_reinforcement_visible", shown)
+		var active := shown and not bool(token.get("is_defeated"))
+		token.set_physics_process(active)
+		var collider: CollisionShape3D = token.get("collision")
+		if collider:
+			collider.set_deferred("disabled", not active)
 
 func focus_enemy_token(enemy_id: String) -> void:
 	for e in enemies:
@@ -556,7 +573,7 @@ func _find_best_nearby_interactable() -> Dictionary:
 	var best_dist := 1e9
 	var candidates: Array = []
 	if get_tree():
-		for grp in ["interactive_doors", "interactive_props", "map_exits"]:
+		for grp in ["interactive_doors", "interactive_props", "map_exits", "retreat_residents"]:
 			for n in get_tree().get_nodes_in_group(grp):
 				if n is Node3D and not candidates.has(n):
 					candidates.append(n)

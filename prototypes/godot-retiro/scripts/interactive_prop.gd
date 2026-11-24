@@ -155,6 +155,10 @@ func get_interaction_prompt() -> String:
 			return "[T] Subir plataforma del cabrestante" if lowered else "[T] Bajar plataforma del cabrestante"
 	return interaction_hint
 
+func spin_workbench_gear() -> void:
+	if prop_kind == "workbench":
+		_gear_spin_timer = 2.6
+
 func interact() -> void:
 	var tok := _get_active_player()
 	if not is_instance_valid(tok):
@@ -179,7 +183,7 @@ func interact() -> void:
 			_face_prop(tok)
 			if tok.has_method("play_action_animation"):
 				tok.play_action_animation("interact", 0.72)
-			_gear_spin_timer = 2.6
+			spin_workbench_gear()
 			_play_prop_sound("metal")
 			_show_feedback("⚙ Engranaje en marcha", Color("#f2cf7c"))
 			var msg := toast_text if not toast_text.is_empty() else _WORKBENCH_NOTES[_lore_idx % _WORKBENCH_NOTES.size()]

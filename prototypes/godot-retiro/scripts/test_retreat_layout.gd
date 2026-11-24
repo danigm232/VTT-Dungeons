@@ -156,7 +156,41 @@ func _run_verification() -> void:
 				var restored_winch: bool = layout.toggle_winch_lever()
 				check(restored_winch == initial_winch, "toggle_winch_lever() restaura winch_is_lowered")
 
+			if cam:
+				await process_frame
+				cam.set_view_role("player")
+				cam.zoom_camera_step(300.0)
+				cam._process(0.1)
+				var wb: Rect2 = cam.get_world_visual_bounds()
+				check(wb.has_area(), "Retiro expone límites visuales de mundo")
+				check(cam.target_distance <= cam.get_player_max_distance(cam.current_zone_id) + 0.01, "Retiro acota zoom máximo de jugador")
+				cam.target_pitch = 5.0; cam.current_pitch = 5.0
+				cam.set_overview_mode(true); cam._process(0.1)
+				var ext: Vector2 = cam._view_xz_extents(cam.current_distance, cam.current_pitch, cam.current_yaw, cam._get_viewport_aspect())
+				check(cam.focus_point.x - ext.x >= wb.position.x - 0.1 and cam.focus_point.x + ext.x <= wb.end.x + 0.1, "Retiro overview X dentro de mundo")
+				check(cam.focus_point.z - ext.y >= wb.position.y - 0.1 and cam.focus_point.z + ext.y <= wb.end.y + 0.1, "Retiro overview Z dentro de mundo")
+
 			main_node.free()
+
+	for route_path in ["res://scenes/pleamar_coves.tscn", "res://scenes/observatory_approach.tscn", "res://scenes/pecio_cove_arrival.tscn"]:
+		var rpacked := ResourceLoader.load(route_path) as PackedScene
+		check(rpacked != null, "Ruta secundaria carga: " + route_path)
+		if rpacked:
+			var rinst := rpacked.instantiate()
+			root.add_child(rinst)
+			await process_frame
+			var rcam = rinst.find_child("TacticalCamera", true, false)
+			check(rcam != null, "TacticalCamera presente en " + route_path)
+			if rcam:
+				rcam.set_view_role("player")
+				rcam.zoom_camera_step(250.0)
+				rcam.target_pitch = 5.0; rcam.current_pitch = 5.0
+				rcam._process(0.1)
+				var rwb: Rect2 = rcam.get_world_visual_bounds()
+				var rext: Vector2 = rcam._view_xz_extents(rcam.current_distance, rcam.current_pitch, rcam.current_yaw, rcam._get_viewport_aspect())
+				check(rcam.target_distance <= rcam.get_player_max_distance(rcam.current_zone_id) + 0.01, "Zoom jugador acotado en " + route_path)
+				check(rcam.focus_point.z - rext.y >= rwb.position.y - 0.1 and rcam.focus_point.z + rext.y <= rwb.end.y + 0.1, "Borde Z dentro de océano en " + route_path)
+			rinst.free()
 
 	# 10. Resumen y Exportación de Métricas
 	var output_dir := ProjectSettings.globalize_path("res://../../output/godot-retiro-layout-20261114")

@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "id": "loading-audience",
+  "name": "Público de Interpretación (adaptador histórico)",
+  "anatomy": "humanoid-tall",
+  "dependencies": [],
+  "review": {
+    "visual": "reviewed native Mike success; 24 native phase captures available",
+    "userAcceptance": "pending",
+    "evidence": [
+      "output/performance-facing-20261119/index.html",
+      "tmp/performance-facing-tests.log"
+    ]
+  },
+  "instructions": "Create draft, search reuse, complete source/style/scale fields, adopt only after validation. Technical success is not artistic acceptance.",
+  "kind": "character",
+  "source": {
+    "kind": "legacy-profile",
+    "key": "loading/catalog.json:groups.npcs:row2"
+  },
+  "equipmentSlots": [],
+  "embeddedSlots": [
+    "clothing"
+  ],
+  "safeAnimations": [
+    "idle",
+    "applause",
+    "leave"
+  ],
+  "frameOverrides": {},
+  "visualStyle": "match existing campaign art",
+  "pivot": "feet",
+  "scale": "110 logical pixels; existing audience row reference height",
+  "reuseSearch": {
+    "required": true,
+    "command": "node scripts/character-pipeline.mjs reuse --query loading-audience"
+  },
+  "orientation": "Ambient faces performer left; applause source faces right and requires horizontal reflection",
+  "limitations": [
+    "Existing grouped human audience atlas; no separate equipment or new poses. Renderer-only orientation correction; no asset import or modular promotion."
+  ],
+  "compatibility": "legacy loading adapter; baked clothes preserved"
+}

@@ -1,5 +1,23 @@
 # Retiro del Dragón en Godot — Auditoría y Traslado por Capas, 14/11/2026
 
+## Habitantes del Retiro · 24/11/2026
+
+Canon consultado en el capítulo 1 de la aventura, pp. 7–12. La estructura y los niveles se contrastaron con el mapa de la p. 11. El guion corto, las posiciones y la distribución por franjas son decisiones de puesta en escena. El diálogo público de Runara conserva el secreto de su forma dracónica. Varnoth conserva su ojo izquierdo ciego y la prótesis derecha. Myla y Laylee trabajan con herramientas en tierra y Laylee evita el fuego alquímico.
+
+| Personaje o grupo | Puestos y recursos del juego |
+| --- | --- |
+| Runara | Primera bienvenida en A1, lectura y notas en A4 y meditación en A5. El saludo inicial se recuerda durante los cambios de mapa de la sesión. |
+| Tarak | Hierbas en A1 y presencia en el comedor de A3 al anochecer. El gesto usa el mismo sprig dibujado a lo largo de ocho poses. |
+| Varnoth | Mantenimiento de piedra en A5, biblioteca al anochecer y celda en A1 por la noche. |
+| Myla y Laylee | Ajuste de un engranaje y limpieza de herramientas en el taller. Myla sincroniza el fotograma de contacto con el giro del banco de trabajo. |
+| Rix | Reposo en la celda de día y ofrenda junto al altar cuando baja la luz. La ofrenda activa una emisión breve de incienso. |
+| Agga, Blepp, Frub, Kilnip, Mumpo y Zark | Celdas de día, puestos de plaza o comedor al anochecer. Cada uno conserva su apariencia, ciclo de reposo y líneas de conversación. |
+| Marineros ahogados | Tres variantes existentes en la playa. Se revelan desde la lista del DM y se activan sus colisiones y animaciones. |
+
+Cada estación toma el suelo y el espacio libre de las colisiones de la escena. El cambio de estación se espera hasta que el residente y su destino queden fuera de vista. Los gestos nuevos se pintaron con la herramienta integrada a partir de los diseños existentes. Las láminas de origen se conservan por hash y el importador extrae los ocho fotogramas a escala nativa, con apoyo de pies. Se selecciona una vista pintada por gesto. VA-03/06/10/13/16 y REF-01/03/08 guían la lectura, el contacto y la colocación. [Comparativas, originales y registro por ID](../../output/retreat-residents-20261124/index.html).
+
+Quedan los recorridos animados entre zonas, los otros ángulos y gestos de tareas como cocina, riego y descanso en hamacas. Quedan por secuenciar la segunda aparición de los zombis con Blepp y Tarak, el rescate de Runara y sus revelaciones, y el comercio de Myla y las entregas de misión. La candidata del Retiro se puede jugar localmente. La revisión artística en mesa sigue pendiente.
+
 ## Encargo y Alcance
 
 **Encargo activo del usuario:**
@@ -290,5 +308,53 @@ Corrección integral solicitada sobre `prototypes/godot-retiro/` (conservando to
 - **Rendimiento Vulkan Forward+ (`1600×900`, `SCALING_3D_SCALE=0.85`, NVIDIA GeForce MX350 — `task-6708`):** **`BELOW_30_FPS=[]`**:
   - `overview`: **56.9 FPS** (`51.5 p95`) · `Z1_beach`: **85.7 FPS** (`77.9 p95`) · `Z2_ascent`: **89.5 FPS** (`78.2 p95`) · `Z3_a1_plaza`: **69.6 FPS** (`64.5 p95`) · `Z3_a1_cell_in`: **82.7 FPS** (`74.6 p95`) · `Z4_a2_winch`: **99.2 FPS** (`89.1 p95`) · `Z5_a3_dining`: **90.0 FPS** (`78.8 p95`) · `Z6_a4_library`: **88.0 FPS** (`77.8 p95`) · `Z8_a5_temple`: **73.6 FPS** (`60.6 p95`).
 - **Informe visual interactivo (comparativa clic-superponer puertas abiertas/cerradas + capturas de interacciones y fauna):** [`output/retreat-a1-fixes-audit-20261119/index.html`](../../output/retreat-a1-fixes-audit-20261119/index.html). Aceptación visual final del usuario pendiente.
+
+---
+
+## Micromejoras visuales transversales y locales (atmósfera, AO de contacto y señales) — 19/11/2026
+
+- **Cambios en `prototypes/godot-retiro/`:**
+  - `scripts/retreat_layout_builder.gd`: `_apply_atmosphere_lighting()` actualiza `ProceduralSkyMaterial` y `env.fog_light_color` en `day`, `dusk` y `night`; `_get_contact_shadow_material()` cachea materiales radiales por alpha y `_build_interior_contact_ao()` coloca sellos de contacto bajo A5 (`ParthenonColBaseLow_*`, `TempleBrazier_*`), A3 (`A3TableAO_*`, `A3BenchAO_*`, `A3StoveAO`, `A3PrepIslandAO`, `A3BarrelAO_*`), A4 (`A4WallCaseAO_*`, `A4IslandCaseAO_*`, `A4MapTableAO`, `A4PedestalAO`, `A4DeskAO_*`, `A4StoolAO_*`) y plaza A1 (`A1PergolaTableAO`, `A1SupplyAO`).
+  - `scripts/player_token.gd`: escala `ContactShadow` a estatura canónica, atenúa sombra aérea (`1.0 → 0.38`), añade pulso orgánico a `SelectionRing` (respetando `SkillLoading.reduced`) y atenúa alpha (`0.28`) desactivando emisión en sigilo.
+  - `scripts/map_exit.gd`: `_setup_hanging_sway()` añade pivote superior `SignpostSwingPivot` (`±0.024 rad`) a `dragon_plaque` respetando `SkillLoading.reduced` sin alterar `SignpostProp.global_transform`.
+- **Verificación tras el último cambio (`task-1998`):** `test_retreat_layout.gd` **136 PASS / 0 FAIL**, `test_map_exits.gd` **128 PASSED, 0 FAILED**, `test_camera_contract.gd` **49 PASS / 0 FAIL**. Comparativas Forward+ `1440×810` en [`output/micro-visual-improvements-20261119/index.html`](../../output/micro-visual-improvements-20261119/index.html). Aceptación visual y pruebas físicas separadas.
+
+---
+
+## Segunda auditoría visual y plan de mejoras (Fases 0–7) — 24/11/2026
+
+Ejecución completa de las **8 fases (Fases 0 a 7)** solicitadas sobre `prototypes/godot-retiro/` tras la revisión de los 14 ángulos iniciales, conservando planta canónica, cotas, `WalkableGrid` (`1.044` casillas transitables), contratos de cámara/salidas, interacciones `[T]` y el trabajo paralelo del repositorio.
+
+### Matriz de cambios de arte, geometría y materiales
+
+| Fase | Objeto / Material ID | Archivo propietario | Recurso / valor anterior | Derivado / valor candidato | VA / Referencia | Aceptación |
+| --- | --- | --- | --- | --- | --- | --- |
+| **F1** | `A5_PromontoryMassif`, `A5_TempleFoundation`, `TempleButtress*` | `scripts/retreat_temple_and_cliffs.gd` | `TemplePlinthCliff` (prisma cúbico oscuro flotante) | Macizo volcánico 18×40 facetado (`y = -2,8..25,35 m`), 15 hombros basálticos, crepidoma de caliza y 7 contrafuertes funcionales | `VA-01`, `VA-02`, `VA-05` | Verificado técnicamente · Revisado visualmente · Usuario pendiente |
+| **F1** | `Retreat_WestCliffButtress` | `scripts/retreat_temple_and_cliffs.gd` | 9 pilares cónicos lisos verticales | 12 bancadas basálticas estratificadas facetadas ancladas a `y = -2,4 m` | `VA-02`, `VA-05` | Verificado técnicamente · Revisado visualmente · Usuario pendiente |
+| **F1** | `A5_WidenedBridge` | `scripts/retreat_winch_and_stairs.gd` | Escalones sueltos en diente de sierra | Viaducto de canto continuo (`2,04 m`), 4 pilares cimentados, 3 arcos con dovelas, descansillos, postes en plintos y 3 faroles | `VA-02`, `VA-05`, `VA-14` | Verificado técnicamente · Revisado visualmente · Usuario pendiente |
+| **F2** | `ParthenonColumn_0..3`, `TempleRearSanctuaryWall`, `TempleRoofCutawayGroup` | `scripts/retreat_temple_and_cliffs.gd`, `scripts/retreat_scene_enhancer.gd` | 4 cilindros lisos, 2 planos de tejado y disco `PedimentSunburst` | Columnas acanaladas con capiteles alados, muro trasero con hornacina, 9 hiladas de pizarra/imbrices/pares, tímpanos doble cara con relieve de Bahamut y cutaway independiente `"a5_temple"` | `VA-03`, `VA-04`, `VA-08` | Verificado técnicamente · Revisado visualmente · Usuario pendiente |
+| **F3** | `A5_SacredInterior` (pavimento, tapiz, estrado, altar, bancos, braseros, urnas, motas) | `scripts/retreat_temple_and_cliffs.gd`, `scripts/retreat_layout_builder.gd` | Plataforma lisa, sin jerarquía de altar y canarios flotantes | Pavimento octogonal, tapiz azul zafiro/oro, estrado + `BahamutOfferingAltar` `[T]`, 2 bancos `[T]`, 4 braseros con aro toroidal y carbón/brasas, urnas con laurel, 7 canarios asentados y motas `GPUParticles3D` | `VA-04`, `VA-06`, `VA-12` | Verificado técnicamente · Revisado visualmente · Usuario pendiente |
+| **F4** | `make_basalt_outcrop_mesh`, `MM_CliffFractureRibs`, `Z1Z2_CoastalGeologicalReefs` | `scripts/retreat_scene_enhancer.gd`, `scripts/retreat_layout_builder.gd`, `scripts/retreat_temple_and_cliffs.gd` | Conos lisos en rocas/escollos y borde recto sumergido en Z1/Z2 | Basalto multifacetado (`smooth_group = -1`) con meseta erosionada, costillas anchas sin cizalla y arrecifes escalonados en Z1/Z2 | `VA-01`, `VA-02`, `VA-05` | Verificado técnicamente · Revisado visualmente · Usuario pendiente |
+| **F4** | `UpperMountainGeology`, `buttress_specs` | `scripts/retreat_upper_architecture.gd` | Cavidades rectangulares negras y remates salientes sobre A4/A3 | Placas con faldón inferior ataludado, respaldo geológico y contrafuertes enrasados bajo la cornisa | `VA-02`, `VA-05` | Verificado técnicamente · Revisado visualmente · Usuario pendiente |
+| **F4/F7** | `ocean_shader` (`OceanPlane`) | `scripts/retreat_layout_builder.gd` | `ROUGHNESS = 0,08..0,64`, `SPECULAR = 0,60` (blanco quemado en `03`) | `ROUGHNESS = 0,42..0,78`, `SPECULAR = 0,09`, `METALLIC = 0,0`, `NORMAL_MAP_DEPTH = 0,36` | `VA-09`, `VA-15` | Verificado técnicamente · Revisado visualmente · Usuario pendiente |
+| **F5** | Bosque unificado, `Z7_TerracedSanctuaryGardens`, `PaseoOverlook*` | `scripts/retreat_layout_builder.gd`, `scripts/retreat_scene_enhancer.gd`, `scripts/retreat_temple_and_cliffs.gd` | Pinos cónicos y olivos esféricos Babylon (`~938K` tris), Z7 escaso y hilera continua de 21 jardineras en Z9 | Omisión de árboles cónicos Babylon, copas mediterráneas facetadas con raíces, 4 bancales Z7 con pila/pérgola/flora de repisas y 4 miradores abiertos en Z9 | `VA-11`, `VA-13`, `VA-18` | Verificado técnicamente · Revisado visualmente · Usuario pendiente |
+| **F6** | Pulido localizado A1, A2, A3 y A4 | `scripts/retreat_scene_enhancer.gd`, `scripts/retreat_winch_and_stairs.gd`, `scripts/retreat_interiors_a3_a4.gd`, `scripts/retreat_layout_builder.gd` | Abismo trasero y pilares seta en A1; grieta triangular/corte diagonal y estante vacío en A2; losa oscura plana y borde SW en A3; cuñas y cajitas repetitivas en A4 | Muro trasero permanente + estratos + 3 miradores sur en A1; pilar de esquina + transición orgánica NO + utillaje/cabo en A2; losas `MM_A3_KitchenSlateFlags`, `a4_mesh x1 = 112,75` y repisas variadas en A3; ceja continua + 6 remates eruditos distintos + lámparas en A4 | `VA-03`, `VA-06`, `VA-11`, `VA-12` | Verificado técnicamente · Revisado visualmente · Usuario pendiente |
+| **F7** | Atmósfera, exposición y sombras (`day`/`dusk`/`night`) | `scripts/retreat_layout_builder.gd`, `scenes/main.tscn` | `ambient_light_energy = 0,38..0,43`, `shadow_max_distance = 125 m` | `ambient_light_energy = 0,54` (día) / `0,50` (ocaso-noche), `tonemap_exposure = 1,02`, `shadow_max_distance = 155 m` | `VA-09`, `VA-10`, `VA-15` | Verificado técnicamente · Revisado visualmente · Usuario pendiente |
+
+### Separación de verificaciones (tras el último cambio)
+
+1. **Pruebas técnicas automatizadas (`task-2792`, todas `exit 0`):**
+   - `res://scripts/test_retreat_layout.gd`: **152 PASS / 0 FAIL** (`WalkableGrid`: `1.044` casillas transitables).
+   - `res://scripts/test_map_exits.gd`: **128 PASSED / 0 FAILED**.
+   - `res://scripts/test_camera_contract.gd`: **49 PASS / 0 FAIL**.
+   - `res://player/test_grid_navigation.gd`: **12 passed / 0 failed**.
+   - `res://loading/test_map_roundtrip.gd`: **24 passed / 0 failed**.
+   - **Total:** **365 / 365 PASS · 0 FAIL**.
+2. **Revisión visual e informe interactivo (`task-2774`, `1440×810` Vulkan Forward+ MX350):**
+   - **Informe Antes/Después clic-superponer (19 pares, `MISSING_ASSETS=0`, reutilizando `scripts/lib/visual-comparison.mjs`):** [`output/retreat-audit2-20261123/index.html`](../../output/retreat-audit2-20261123/index.html) y registro SHA-256 en [`output/retreat-audit2-20261123/records.json`](../../output/retreat-audit2-20261123/records.json).
+   - **Telemetría GPU registrada en Forward+ (`1440×810`, MX350):** `01` (`1.239` draws, `1,11M` prims), `09` (`1.709` draws, `1,72M` prims), `12` (`740` draws, `0,99M` prims), `14` (`5.755` draws, `2,44M` prims), `1.262 MB` VRAM (la cadencia de reloj de pared `~189 ms` en captura automatizada refleja limitación DWM de ventana en segundo plano; el perfilado de FPS interactivo en primer plano queda en validación física).
+3. **Aceptación del usuario:** pendiente de revisión directa de las 19 comparativas interactivas y prueba jugable.
+4. **Pruebas físicas / dispositivo y red:** pendientes en pantalla real en primer plano (FPS sostenido MX350), control táctil/teclado y sincronización multijugador ENet.
+
 
 

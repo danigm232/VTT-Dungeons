@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-runara-study",
+  "character": "sw-runara",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "retreat_study",
+  "direction": "se",
+  "fps": 6,
+  "loop": false,
+  "dependencies": [
+    "sw-runara"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "standing feet registered; isolated handheld props; one authored view"
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/01.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/02.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/03.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/04.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/05.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/06.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/07.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/08.png"
+  ],
+  "production": {
+    "method": "built-in ImageGen with existing character reference; native-size independent sprites",
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/runara.png",
+    "minimumVisibleStandingPixels": 235,
+    "prompt": "Game asset, identity-preserving illustration. Use the single attached project character as the exact identity and brushwork reference. Elderly monastery leader. Dark warm skin, the same long white braid, ivory plain monk's robe and rope belt from the reference. Produce one transparent RGBA game animation sheet at 1536 x 1024 or the highest available size in a 3:2 landscape aspect ratio. Exactly four equally spaced columns and two equally spaced rows, each cell one full-body drawing, read left to right on each row. No words, numbering, grid lines, floor, background, casting shadows, other characters, or panels. All eight cells strictly share one orthographic camera, body scale and view direction (match the attached facing, slight tactical elevation). Use the same eye level and vertical placement in all phases. Place each full-body silhouette at the center of its cell, keeping every hand, horn, wing, tail, clothing hem and foot at least 15 pixels inside its cell at this resolution. Shared foot baseline an equal distance from bottom of each row; character should fill about 79-83 percent of cell height. Strong readable silhouettes and finely painted cloth and skin without blown highlights. No graphic style shift or redesign. Eight visibly different phases of ONE grounded action in temporal order. A quiet reading and annotation loop: 1 holds a small open book at chest, 2 looks down, 3 right hand traces a line, 4 makes a small note with a quill, 5 pauses, 6 gently turns a page, 7 settles page with her right hand, 8 resumes reading. Book and quill are held in her hands and integrated into the drawing.",
+    "sourcePages": [
+      8,
+      10
+    ],
+    "expectedPhases": 8,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-runara-study-5708e96fe295.png",
+    "originalSha256": "5708e96fe295bd5ecdda534125be3db20e1be3f5e895fcb2d8aaa2baa5a3f734",
+    "importReport": "output/stormwreck-motion-detail/sw-runara-study-5708e96fe295.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 477,
+  "pivot": [
+    0.5,
+    0.9599236641221374
+  ]
+}

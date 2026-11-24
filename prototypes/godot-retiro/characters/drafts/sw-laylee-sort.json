@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-laylee-sort",
+  "character": "sw-laylee",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "retreat_sort",
+  "direction": "sw",
+  "fps": 6,
+  "loop": false,
+  "dependencies": [
+    "sw-laylee"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "standing feet registered; one authored view"
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/01.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/02.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/03.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/04.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/05.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/06.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/07.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/08.png"
+  ],
+  "production": {
+    "method": "built-in ImageGen with existing character reference; native-size independent sprites",
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/laylee.png",
+    "minimumVisibleStandingPixels": 235,
+    "prompt": "Game asset, identity-preserving illustration. The supplied project art is identity and style reference. The same small kobold from the project's Laylee reference. Preserve exact scales, horns, face, tail, design and colors of the attire. No wings. Make a single transparent RGBA animation sheet (3:2, target 1536 x 1024), exactly 4 equally spaced columns x 2 rows, each cell one whole separate full-body character. Read left to right then next row, no text, labels, lines, scenery, shadows, or panels. Leave at least 15 px of gutter clearance around each complete subject. Orthographic tactical fixed camera, same direction across all eight poses, identical head size, silhouette weight and feet baseline; draw the subject about 80 percent of each cell height, highest available native detail. Hand-painted inked game art that matches this character image. Laylee helps Myla with simple mechanical work: 1 hold a little brass fitting and cloth; 2 raises it; 3 examines it; 4 wipes the edge; 5 turns it; 6 wipes the other edge; 7 nods; 8 lowers it. Both feet planted, hands manipulate only these tools; no flames, sparks, chemicals or shelf.",
+    "sourcePages": [
+      9,
+      10
+    ],
+    "expectedPhases": 8,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-laylee-sort-6d70b6a59334.png",
+    "originalSha256": "6d70b6a59334cc752725e86e3e98f10fa739c719a7f046b87111cc4166f9e9d8",
+    "importReport": "output/stormwreck-motion-detail/sw-laylee-sort-6d70b6a59334.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 450,
+  "pivot": [
+    0.5,
+    0.9066666666666666
+  ]
+}

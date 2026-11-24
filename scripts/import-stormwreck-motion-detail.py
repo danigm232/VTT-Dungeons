@@ -27,6 +27,7 @@ if definition.get('id') != args.id or definition.get('kind') != 'animation' or d
     parser.error('The draft must be a matching Stormwreck animation')
 folder = root / 'campaigns/stormwreck-isle/public/art/characters/motion-detail-v1'
 evidence = root / 'output/stormwreck-motion-detail'
+evidence.mkdir(parents=True, exist_ok=True)
 data = args.image.read_bytes()
 revision = digest(data)[:12]
 original = folder / 'originals' / f'{args.id}-{revision}.png'
@@ -47,6 +48,7 @@ if len(row_cuts) != 2 or any(
 frames = []
 bounds = []
 horizontal_pivots = []
+stationary = definition['action'].startswith('retreat_')
 errors = []
 for index in range(8):
     col, row = index % 4, index // 4
@@ -73,7 +75,13 @@ for index in range(8):
     clean.paste(cell, mask=cell.getchannel('A').point(lambda a: 255 if a else 0))
     frames.append(clean)
     bounds.append(body)
-    horizontal_pivots.append(round((nominal_cuts[col] + nominal_cuts[col + 1]) / 2) - box[0])
+    if stationary:
+        # Register the sole pair rather than the hands and tail moving above it.
+        lower = body[3] - max(8, round((body[3] - body[1]) * .045))
+        feet = alpha.crop((0, lower, cell.width, body[3])).point(lambda a: 255 if a >= 32 else 0).getbbox()
+        horizontal_pivots.append(round((feet[0] + feet[2]) / 2))
+    else:
+        horizontal_pivots.append(round((nominal_cuts[col] + nominal_cuts[col + 1]) / 2) - box[0])
 
 hashes = [digest(im.tobytes()) for im in frames]
 if len(set(hashes)) != 8:
@@ -88,7 +96,7 @@ report = {
 if not errors:
     target = folder / args.id / revision
     target.mkdir(parents=True, exist_ok=True)
-    ground = definition['action'] == 'walk'
+    ground = definition['action'] == 'walk' or stationary
     common_base = round(median(b[3] for b in bounds))
     reference = args.reference_height or round(median(b[3] - b[1] for b in bounds))
     vertical_offsets = [common_base - body[3] if ground else 0 for body in bounds]
@@ -99,7 +107,7 @@ if not errors:
     width = half_width * 2
     paths = []
     for index, (im, offset) in enumerate(zip(frames, vertical_offsets)):
-        # Only ground gait shares the sole line. Flight keeps its authored
+        # Gait and stationary gestures share the sole line. Flight keeps its authored
         # vertical motion within each cell and uses a common virtual baseline.
         y = 6 + offset - top
         canvas = Image.new('RGBA', (width, height))

@@ -121,6 +121,21 @@ static func create_default_actors() -> Array[Dictionary]:
 		}
 	]
 
+static func create_retreat_opening_enemies() -> Array[Dictionary]:
+	var zombie: Dictionary = create_default_enemies(false)[1]
+	var names := ["ZombieToken", "ZombieBeach2", "ZombieBeach3"]
+	var roster: Array[Dictionary] = []
+	for i in range(names.size()):
+		var actor := zombie.duplicate(true)
+		actor.id = "zombie" if i == 0 else "zombie-%d" % (i + 1)
+		actor.node_name = names[i]
+		actor.name = "Marinero ahogado %d" % (i + 1)
+		actor.zone = "Playa · Llegada al Retiro"
+		actor.revealed = false
+		actor.summary = "Uno de los tres marineros de la orilla. El DM decide cuándo mostrar el encuentro."
+		roster.append(actor)
+	return roster
+
 static func create_default_enemies(is_retreat: bool) -> Array[Dictionary]:
 	if is_retreat:
 		return [

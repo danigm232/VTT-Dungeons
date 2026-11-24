@@ -8,6 +8,7 @@ extends Node3D
 
 const Structure = preload("res://scripts/retreat_structure.gd")
 const VttRoleUi = preload("res://scripts/vtt_role_ui.gd")
+const RetreatResidents = preload("res://scripts/retreat_residents.gd")
 
 @onready var player: Node = get_node_or_null("PlayerToken")
 @onready var camera: Node = get_node_or_null("TacticalCamera")
@@ -15,6 +16,7 @@ const VttRoleUi = preload("res://scripts/vtt_role_ui.gd")
 
 var party: Array[Node3D] = []
 var active_party_idx: int = 0
+var retreat_residents: Node3D
 
 var ui_layer: CanvasLayer
 var vtt_ui: VttRoleUi
@@ -62,6 +64,9 @@ func _ready() -> void:
 	vtt_ui.name = "VttRoleUi"
 	vtt_ui.configure_initial(initial_role, initial_projector_ready, true)
 	add_child(vtt_ui)
+	retreat_residents = RetreatResidents.new()
+	retreat_residents.name = "RetreatResidents"
+	add_child(retreat_residents)
 	if ui_layer:
 		ui_layer.visible = false
 
