@@ -361,25 +361,33 @@ func _append_plank_breach(st_oak: SurfaceTool, st_dark: SurfaceTool, hit_x: floa
 	var outward := Vector3(-side * d_beam, 0.10, side).normalized()
 	var up_v := Vector3(0.0, 1.0, 0.0)
 
-	var hole_w := clampf(rib_r * 1.45, 0.34, 0.72)
-	var hole_h := clampf(rib_r * 1.15, 0.26, 0.58)
+	var hole_w := clampf(rib_r * 1.60, 0.42, 0.88)
+	var hole_h := clampf(rib_r * 1.35, 0.34, 0.72)
 
-	# Grieta oscura de madera aplastada y sombra de contacto pegada al forro exterior
+	# 1. Grieta oscura de madera aplastada y cavidad desgarrada rodeando la perforación en el forro y la borda
 	for v_sign: float in [-1.0, 1.0]:
-		var seam_a := skin_pos - tan_x * (hole_w * 1.25) + up_v * (v_sign * hole_h) - outward * 0.02
-		var seam_b := skin_pos + tan_x * (hole_w * 1.25) + up_v * (v_sign * hole_h) - outward * 0.02
-		Geometry.beam(st_dark, seam_a, seam_b, 0.14, 0.10, 0.85)
+		var seam_a := skin_pos - tan_x * (hole_w * 1.45) + up_v * (v_sign * hole_h) - outward * 0.03
+		var seam_b := skin_pos + tan_x * (hole_w * 1.45) + up_v * (v_sign * hole_h) - outward * 0.03
+		Geometry.beam(st_dark, seam_a, seam_b, 0.18, 0.13, 0.88)
 	for h_sign: float in [-1.0, 1.0]:
-		var jamb_a := skin_pos + tan_x * (h_sign * hole_w * 0.92) - up_v * (hole_h * 0.95) - outward * 0.01
-		var jamb_b := skin_pos + tan_x * (h_sign * hole_w * 0.92) + up_v * (hole_h * 0.95) + outward * 0.05
-		Geometry.beam(st_dark, jamb_a, jamb_b, 0.12, 0.08, 0.75)
+		var jamb_a := skin_pos + tan_x * (h_sign * hole_w * 1.02) - up_v * (hole_h * 1.10) - outward * 0.02
+		var jamb_b := skin_pos + tan_x * (h_sign * hole_w * 1.02) + up_v * (hole_h * 1.10) + outward * 0.06
+		Geometry.beam(st_dark, jamb_a, jamb_b, 0.16, 0.11, 0.80)
+	# Grietas longitudinales propagándose por las tracas adyacentes
+	for cr_sign: float in [-1.0, 1.0]:
+		var cr0 := skin_pos + tan_x * (cr_sign * hole_w * 0.95) + up_v * (cr_sign * 0.18) + outward * 0.02
+		var cr1 := skin_pos + tan_x * (cr_sign * (hole_w * 2.25)) + up_v * (cr_sign * 0.30) + outward * 0.01
+		Geometry.beam(st_dark, cr0, cr1, 0.07, 0.05, 0.35)
 
-	# Tracas reales de roble resquebrajadas y levantadas hacia fuera a lo largo del tablón del casco
+	# 2. Tracas reales de roble resquebrajadas y levantadas hacia fuera y hacia dentro (cara exterior + interior visible desde C1)
 	var plank_configs := [
-		{"dx": -1.0, "dy":  0.52, "len": 0.92, "tilt":  0.22, "peel": 0.28, "w": 0.15},
-		{"dx":  1.0, "dy":  0.42, "len": 0.86, "tilt": -0.26, "peel": 0.24, "w": 0.14},
-		{"dx": -1.0, "dy": -0.38, "len": 0.96, "tilt": -0.18, "peel": 0.30, "w": 0.16},
-		{"dx":  1.0, "dy": -0.46, "len": 0.84, "tilt":  0.24, "peel": 0.22, "w": 0.14},
+		{"dx": -1.0, "dy":  0.62, "len": 1.15, "tilt":  0.24, "peel":  0.34, "w": 0.17},
+		{"dx":  1.0, "dy":  0.50, "len": 1.08, "tilt": -0.28, "peel":  0.30, "w": 0.16},
+		{"dx": -1.0, "dy": -0.34, "len": 1.18, "tilt": -0.20, "peel":  0.36, "w": 0.18},
+		{"dx":  1.0, "dy": -0.48, "len": 1.04, "tilt":  0.26, "peel":  0.28, "w": 0.16},
+		# Astillas empujadas hacia el interior de cubierta para que al mirar desde C1 se vea el desgarro real
+		{"dx": -0.85, "dy":  0.30, "len": 0.92, "tilt":  0.18, "peel": -0.40, "w": 0.15},
+		{"dx":  0.85, "dy": -0.22, "len": 0.90, "tilt": -0.22, "peel": -0.38, "w": 0.15},
 	]
 	for p_i in range(plank_configs.size()):
 		var pc: Dictionary = plank_configs[p_i]
@@ -388,10 +396,10 @@ func _append_plank_breach(st_oak: SurfaceTool, st_dark: SurfaceTool, hit_x: floa
 		var plen := float(pc["len"])
 		var tilt := float(pc["tilt"])
 		var peel := float(pc["peel"])
-		var jitter := sin(float(seed_idx * 5 + p_i * 3)) * 0.07
-		var pk0: Vector3 = skin_pos + tan_x * (dx * hole_w * 1.35) + up_v * (dy * hole_h + jitter) - outward * 0.02
-		var pk1: Vector3 = skin_pos + tan_x * (dx * (hole_w * 0.35 - plen * 0.28)) + up_v * (dy * hole_h + tilt * 0.38 + jitter) + outward * (peel + absf(jitter))
-		Geometry.beam(st_oak, pk0, pk1, float(pc["w"]), 0.045, 0.22)
+		var jitter := sin(float(seed_idx * 5 + p_i * 3)) * 0.08
+		var pk0: Vector3 = skin_pos + tan_x * (dx * hole_w * 1.42) + up_v * (dy * hole_h + jitter) - outward * 0.02
+		var pk1: Vector3 = skin_pos + tan_x * (dx * (hole_w * 0.30 - plen * 0.25)) + up_v * (dy * hole_h + tilt * 0.42 + jitter) + outward * (peel + signf(peel) * absf(jitter))
+		Geometry.beam(st_oak, pk0, pk1, float(pc["w"]), 0.052, 0.20)
 
 func build_bone_hull_breach_splinters() -> void:
 	# Impacto físico real de los huesos perforando el casco: tablones de roble levantados y
@@ -436,19 +444,25 @@ func build_bone_hull_breach_splinters() -> void:
 
 		var prev_p := _eval_rib_quad(r0, r1, r2, 0.0)
 		var prev_margin := absf(prev_p.z) - WreckStructure.get_beam_at(clampf(prev_p.x, WreckStructure.STERN_X, WreckStructure.BOW_X))
+		var hit_found := false
+		var closest_margin := 999.0
+		var closest_t := 0.5
 		for s in range(1, 29):
 			var t := float(s) / 28.0
 			var cur_p := _eval_rib_quad(r0, r1, r2, t)
 			var cur_beam := WreckStructure.get_beam_at(cur_p.x)
 			var cur_margin := absf(cur_p.z) - cur_beam
+			if cur_beam > 1.5 and absf(cur_margin) < closest_margin:
+				closest_margin = absf(cur_margin)
+				closest_t = t
 			if prev_margin > 0.0 and cur_margin <= 0.0 and cur_beam > 1.5:
 				var alpha := prev_margin / maxf(0.0001, prev_margin - cur_margin)
 				var t_hit := lerpf(float(s - 1) / 28.0, t, alpha)
 				var hit_p := _eval_rib_quad(r0, r1, r2, t_hit)
 				var side := 1.0 if hit_p.z >= 0.0 else -1.0
 				var deck_y := hit_p.y - WreckStructure.get_list_height(hit_p.z)
-				var wall_top := 2.95 if absf(hit_p.x) >= 13.5 else 0.62
-				if deck_y >= -3.0 and deck_y <= wall_top:
+				var wall_top := 4.15 if absf(hit_p.x) >= 13.5 else 1.55
+				if deck_y >= -3.2 and deck_y <= wall_top:
 					var rib_r := lerpf(rb, rt, t_hit)
 					var zone_key := "Hull"
 					if side > 0.0 and deck_y > 0.05:
@@ -457,11 +471,29 @@ func build_bone_hull_breach_splinters() -> void:
 						elif hit_p.x >= 13.5:
 							zone_key = "ForeFront"
 					var zd: Dictionary = zones[zone_key]
-					_append_plank_breach(zd["oak"], zd["dark"], hit_p.x, deck_y, side, rib_r, rib_idx)
+					_append_plank_breach(zd["oak"], zd["dark"], hit_p.x, clampf(deck_y, -2.8, wall_top - 0.15), side, rib_r, rib_idx)
 					zd["count"] = int(zd["count"]) + 1
+					hit_found = true
 				break
 			prev_p = cur_p
 			prev_margin = cur_margin
+		# También marcar desgarros en costillas que muerden/rozan el borde de la amurada (<= 0.55 m)
+		if not hit_found and closest_margin <= 0.55:
+			var cp := _eval_rib_quad(r0, r1, r2, closest_t)
+			var side_c := 1.0 if cp.z >= 0.0 else -1.0
+			var deck_yc := cp.y - WreckStructure.get_list_height(cp.z)
+			var wall_top_c := 4.15 if absf(cp.x) >= 13.5 else 1.55
+			if deck_yc >= -3.0 and deck_yc <= wall_top_c:
+				var rib_rc := lerpf(rb, rt, closest_t)
+				var zkc := "Hull"
+				if side_c > 0.0 and deck_yc > 0.05:
+					if cp.x >= -26.5 and cp.x <= -13.5:
+						zkc = "AftFront"
+					elif cp.x >= 13.5:
+						zkc = "ForeFront"
+				var zdc: Dictionary = zones[zkc]
+				_append_plank_breach(zdc["oak"], zdc["dark"], cp.x, clampf(deck_yc, -2.8, wall_top_c - 0.15), side_c, rib_rc, rib_idx + 40)
+				zdc["count"] = int(zdc["count"]) + 1
 
 	for zk: String in zones.keys():
 		var zd: Dictionary = zones[zk]

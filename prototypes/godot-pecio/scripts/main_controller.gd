@@ -23,6 +23,7 @@ var zombie_token: CharacterBody3D
 var party: Array[CharacterBody3D] = []
 var active_party_index: int = 0
 var vtt_ui: VttRoleUi
+var canon_ctrl: Node
 var _ui_capture_step: int = 0
 
 var capture_timer: float = 0.5
@@ -35,6 +36,8 @@ func _ready() -> void:
 	wizard_token = find_child("WizardToken") as CharacterBody3D
 	harpy_token = find_child("HarpyToken") as CharacterBody3D
 	zombie_token = find_child("ZombieToken") as CharacterBody3D
+
+	_spawn_canonical_pecio_creatures()
 
 	if player_token and rogue_token and wizard_token:
 		party = [player_token, rogue_token, wizard_token]
@@ -101,12 +104,59 @@ func _ready() -> void:
 	vtt_ui.configure_initial(initial_role, initial_projector_ready, enable_vtt_ui)
 	add_child(vtt_ui)
 
+	canon_ctrl = preload("res://scripts/pecio_canon_controller.gd").new()
+	canon_ctrl.name = "PecioCanonController"
+	add_child(canon_ctrl)
+	if vtt_ui:
+		vtt_ui.set("canon_ctrl", canon_ctrl)
+
 	# Según el PDF (pág. 23), en partida normal nueva la arpía comienza fuera cazando
 	if mode == "normal" and not has_audit_flag and DisplayServer.get_name() != "headless" and vtt_ui.world_state:
 		if not FileAccess.file_exists("user://pecio-world-state.v1.cfg"):
 			vtt_ui._apply_harpy_world_presence(false, false)
 
 	setup_view_mode()
+
+func _spawn_canonical_pecio_creatures() -> void:
+	if not ship_vessel:
+		return
+	var tok_scene := load("res://scenes/player_token.tscn") as PackedScene
+	var zombie_tex := load("res://assets/tokens/zombie-rest-v1.png") as Texture2D
+	var harpy_tex := load("res://assets/tokens/harpy-rest-v1.png") as Texture2D
+	if not tok_scene:
+		return
+	# Criaturas canónicas del PDF Cap. 3 (pp. 24-27): Zombis C4 (2 niv.1 + 1 niv.2), Gul C8, refuerzos C8 niv.2 y 2ª Arpía C2 niv.2
+	var specs := [
+		{"name": "ZombieC4_A",      "title": "Zombi C4 (1)",      "pos": Vector3(-19.5, 0.1, -3.4),  "tex": zombie_tex, "h": 1.92, "lvl": 1, "tint": Color(0.95, 1.0, 0.94), "codex": ""},
+		{"name": "ZombieC4_B",      "title": "Zombi C4 (2)",      "pos": Vector3(-23.2, 0.1, -2.9),  "tex": zombie_tex, "h": 1.88, "lvl": 1, "tint": Color(0.90, 0.96, 0.90), "codex": ""},
+		{"name": "ZombieC4_C_Lvl2", "title": "Zombi C4 (Niv.2)",  "pos": Vector3(-20.8, 0.1, -5.2),  "tex": zombie_tex, "h": 1.94, "lvl": 2, "tint": Color(0.86, 0.93, 0.88), "codex": ""},
+		{"name": "GhoulToken",      "title": "Gul de la Sentina", "pos": Vector3(-17.8, -3.1, -0.4), "tex": zombie_tex, "h": 1.76, "lvl": 1, "tint": Color(0.68, 0.92, 0.78), "codex": "ghoul"},
+		{"name": "ZombieC8_B_Lvl2", "title": "Zombi C8 (Niv.2)",  "pos": Vector3(-16.2, -3.1, 2.2),  "tex": zombie_tex, "h": 1.90, "lvl": 2, "tint": Color(0.88, 0.95, 0.90), "codex": ""},
+		{"name": "ZombieC8_C_Lvl2", "title": "Zombi C8 (3)",      "pos": Vector3(-12.2, -3.1, -1.6), "tex": zombie_tex, "h": 1.92, "lvl": 2, "tint": Color(0.86, 0.92, 0.88), "codex": ""},
+		{"name": "HarpyToken_C2",   "title": "Arpía C2 (Niv.2)",  "pos": Vector3(21.0, 3.65, -3.2),  "tex": harpy_tex,  "h": 2.15, "lvl": 2, "tint": Color(1.0, 0.92, 0.88), "codex": ""},
+	]
+	for sp in specs:
+		if ship_vessel.get_node_or_null(str(sp["name"])) != null:
+			continue
+		var tok := tok_scene.instantiate() as CharacterBody3D
+		tok.name = str(sp["name"])
+		tok.position = sp["pos"]
+		tok.set("token_name", str(sp["title"]))
+		tok.set("token_texture", sp["tex"])
+		tok.set("target_height", float(sp["h"]))
+		tok.set("is_npc", true)
+		tok.set("is_active_player", false)
+		tok.set_meta("min_party_level", int(sp["lvl"]))
+		tok.set_meta("adventure_present", int(sp["lvl"]) <= 1)
+		tok.set_meta("base_spawn_pos", sp["pos"])
+		if str(sp["codex"]) != "":
+			tok.set_meta("needs_codex_sprites", str(sp["codex"]))
+		ship_vessel.add_child(tok)
+		var spr := tok.get_node_or_null("Sprite3D") as Sprite3D
+		if spr:
+			spr.modulate = sp["tint"]
+		if int(sp["lvl"]) > 1:
+			tok.visible = false
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.is_pressed() and not event.is_echo() and not event.ctrl_pressed and not event.alt_pressed:

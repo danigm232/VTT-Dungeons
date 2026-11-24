@@ -31,6 +31,7 @@ var curve_ember_scale: CurveTexture
 
 var surface_emitters: Array[Dictionary] = []
 var zone_emitters: Array[Dictionary] = []
+var _lit_lantern_embers: Dictionary = {}
 var sim_time: float = 0.0
 
 var cached_refs := {}
@@ -153,8 +154,11 @@ func _process(delta: float) -> void:
 
 	for entry in zone_emitters:
 		var znode: GPUParticles3D = entry["node"]
-		znode.visible = _is_zone_active(entry["zone"])
-		znode.emitting = znode.visible
+		var active: bool = _is_zone_active(entry["zone"])
+		if bool(entry.get("is_lantern_ember", false)):
+			active = active and bool(_lit_lantern_embers.get(znode.name, false))
+		znode.visible = active
+		znode.emitting = active
 		znode.amount_ratio = 0.35 if gentle_effects else 1.0
 	if rain:
 		var roof_ref = cached_refs.get("roof")
@@ -162,6 +166,10 @@ func _process(delta: float) -> void:
 		rain.visible = weather_state in ["rain", "storm"] and not in_interior
 		rain.emitting = rain.visible
 		rain.amount_ratio = (0.95 if weather_state == "storm" else 0.55) * (0.30 if gentle_effects else 1.0)
+
+func set_lantern_ember_lit(ember_name: String, lit: bool) -> void:
+	_lit_lantern_embers[ember_name] = lit
+	_process(0.0)
 
 func set_time_lighting(time_of_day: String, weather: String = "clear") -> void:
 	# Modula el brillo y tinte de partículas unshaded para que jamás brillen como puntos blancos de noche
@@ -478,7 +486,12 @@ func _spawn_zone_emitter(zone_tag: String, cfg: Dictionary) -> void:
 	if zone_tag == "aft_cabins": zone_tag = "c4" if cfg["local_pos"].z < 0 else "c5"
 	if zone_tag == "fore_cabins": zone_tag = "c6" if cfg["local_pos"].z < 0 else "c7"
 	var particles := _build_particle_node(cfg, false)
-	zone_emitters.append({"node": particles, "zone": zone_tag})
+	var is_lan := bool(cfg.get("is_lantern_ember", false))
+	if is_lan:
+		_lit_lantern_embers[particles.name] = false
+		particles.visible = false
+		particles.emitting = false
+	zone_emitters.append({"node": particles, "zone": zone_tag, "is_lantern_ember": is_lan})
 
 func build_stern_reef_breakers_vfx() -> void:
 	var rock_impacts := [
@@ -531,26 +544,33 @@ func build_stern_reef_breakers_vfx() -> void:
 	})
 
 func build_breakers_bow_reef_vfx() -> void:
-	_spawn_world_breaker_emitter({
-		"name": "SeaSpray_BowReef",
-		"world_pos": Vector3(26.5, OceanWaves.SEA_LEVEL + 0.08, -11.5),
-		"box_extents": Vector3(3.8, 0.18, 2.2),
-		"direction": Vector3(-0.30, 1.0, 0.42),
-		"spread": 36.0,
-		"amount": 90,
-		"lifetime": 1.2,
-		"vel_min": 2.2,
-		"vel_max": 4.4,
-		"gravity": Vector3(0.0, -7.2, 0.0),
-		"scale_min": 0.42,
-		"scale_max": 0.88,
-		"quad_size": Vector2(0.70, 0.60),
-		"material": mat_particle_spray,
-		"color_ramp": ramp_spray,
-		"scale_curve": curve_spray_scale,
-		"base_ratio": 0.45,
-		"swell_gain": 0.70,
-	})
+	var bow_rocks := [
+		{"name": "SeaSpray_BowReef",       "pos": Vector3(26.5, OceanWaves.SEA_LEVEL + 0.08, -11.5), "ext": Vector3(3.8, 0.18, 2.2), "dir": Vector3(-0.30, 1.0, 0.42), "amt": 95},
+		{"name": "SeaSpray_BowReef_East",  "pos": Vector3(33.5, OceanWaves.SEA_LEVEL + 0.10, -8.5),  "ext": Vector3(2.8, 0.18, 1.8), "dir": Vector3(-0.40, 1.0, 0.35), "amt": 78},
+		{"name": "SeaSpray_PortReef_Mid",  "pos": Vector3(-16.0, OceanWaves.SEA_LEVEL + 0.08, -13.5),"ext": Vector3(3.4, 0.16, 1.6), "dir": Vector3(0.25, 0.95, 0.45), "amt": 72},
+		{"name": "SeaSpray_StbdOutcrop",   "pos": Vector3(26.5, OceanWaves.SEA_LEVEL + 0.10, 18.8),  "ext": Vector3(3.2, 0.18, 1.6), "dir": Vector3(-0.22, 1.0, -0.45),"amt": 80},
+	]
+	for br in bow_rocks:
+		_spawn_world_breaker_emitter({
+			"name": br["name"],
+			"world_pos": br["pos"],
+			"box_extents": br["ext"],
+			"direction": br["dir"],
+			"spread": 36.0,
+			"amount": int(br["amt"]),
+			"lifetime": 1.25,
+			"vel_min": 2.4,
+			"vel_max": 5.0,
+			"gravity": Vector3(0.0, -7.2, 0.0),
+			"scale_min": 0.44,
+			"scale_max": 0.96,
+			"quad_size": Vector2(0.76, 0.64),
+			"material": mat_particle_spray,
+			"color_ramp": ramp_spray,
+			"scale_curve": curve_spray_scale,
+			"base_ratio": 0.50,
+			"swell_gain": 0.82,
+		})
 
 func build_breakers_hull_starboard_vfx() -> void:
 	_spawn_world_breaker_emitter({
@@ -575,34 +595,51 @@ func build_breakers_hull_starboard_vfx() -> void:
 	})
 
 func build_breakers_dragon_ribs_vfx() -> void:
-	var rib_entries: Array[Vector2] = [
-		Vector2(-21.2, 14.3),
-		Vector2(-17.8, 14.1),
-		Vector2(-14.3, 13.4),
-		Vector2(-10.8, 12.6),
-		Vector2(-7.3, 11.7),
+	# Choque real de olas contra TODOS los huesos de dragón en flotación (estribor popa, babor popa, proa, ala y cráneo)
+	var rib_entries: Array[Dictionary] = [
+		# Costillas titánicas de estribor (popa y cintura)
+		{"pt": Vector2(-28.8, 14.8), "dir": Vector3(0.22, 1.05, -0.40), "amt": 40},
+		{"pt": Vector2(-24.8, 15.2), "dir": Vector3(0.22, 1.05, -0.38), "amt": 42},
+		{"pt": Vector2(-21.2, 14.3), "dir": Vector3(0.20, 1.00, -0.36), "amt": 38},
+		{"pt": Vector2(-17.8, 14.1), "dir": Vector3(0.20, 1.00, -0.36), "amt": 36},
+		{"pt": Vector2(-14.3, 13.4), "dir": Vector3(0.20, 0.98, -0.36), "amt": 34},
+		{"pt": Vector2(-10.8, 12.6), "dir": Vector3(0.20, 0.95, -0.36), "amt": 32},
+		{"pt": Vector2(-7.3,  11.7), "dir": Vector3(0.20, 0.95, -0.36), "amt": 30},
+		# Costillas de proa-babor y esqueleto del ala
+		{"pt": Vector2(18.5, -13.2), "dir": Vector3(-0.24, 1.00, 0.42), "amt": 36},
+		{"pt": Vector2(22.0, -13.6), "dir": Vector3(-0.24, 1.00, 0.42), "amt": 38},
+		{"pt": Vector2(25.5, -13.2), "dir": Vector3(-0.24, 1.00, 0.42), "amt": 38},
+		{"pt": Vector2(30.2, -13.8), "dir": Vector3(-0.28, 1.05, 0.40), "amt": 42},
+		# Costillas de proa-estribor mordiendo la amura
+		{"pt": Vector2(17.5, 11.4),  "dir": Vector3(-0.18, 0.98, -0.40), "amt": 34},
+		{"pt": Vector2(21.3, 10.6),  "dir": Vector3(-0.18, 0.98, -0.40), "amt": 34},
+		{"pt": Vector2(25.1,  9.2),  "dir": Vector3(-0.20, 0.98, -0.40), "amt": 32},
+		# Contracostillas de babor-popa y espinazo sumergido
+		{"pt": Vector2(-31.8, -10.8), "dir": Vector3(0.26, 0.98, 0.36), "amt": 34},
+		{"pt": Vector2(-39.5,  11.4), "dir": Vector3(0.28, 1.05, -0.32),"amt": 42},
 	]
 	for idx in range(rib_entries.size()):
-		var pt: Vector2 = rib_entries[idx]
+		var entry: Dictionary = rib_entries[idx]
+		var pt: Vector2 = entry["pt"]
 		_spawn_world_breaker_emitter({
 			"name": "SeaSpray_DragonRibs_%d" % idx,
-			"world_pos": Vector3(pt.x, OceanWaves.SEA_LEVEL + 0.06, pt.y),
-			"box_extents": Vector3(0.36, 0.10, 0.36),
-			"direction": Vector3(0.20, 0.95, -0.35),
-			"spread": 30.0,
-			"amount": 28,
-			"lifetime": 0.90,
-			"vel_min": 1.4,
-			"vel_max": 2.8,
-			"gravity": Vector3(0.0, -7.2, 0.0),
-			"scale_min": 0.28,
-			"scale_max": 0.58,
-			"quad_size": Vector2(0.52, 0.46),
+			"world_pos": Vector3(pt.x, OceanWaves.SEA_LEVEL + 0.08, pt.y),
+			"box_extents": Vector3(0.55, 0.14, 0.55),
+			"direction": entry["dir"],
+			"spread": 34.0,
+			"amount": int(entry["amt"]),
+			"lifetime": 1.02,
+			"vel_min": 1.8,
+			"vel_max": 3.8,
+			"gravity": Vector3(0.0, -7.4, 0.0),
+			"scale_min": 0.34,
+			"scale_max": 0.72,
+			"quad_size": Vector2(0.60, 0.52),
 			"material": mat_particle_spray,
 			"color_ramp": ramp_spray,
 			"scale_curve": curve_spray_scale,
-			"base_ratio": 0.42,
-			"swell_gain": 0.74,
+			"base_ratio": 0.48,
+			"swell_gain": 0.85,
 		})
 
 func build_rowboat_wake_vfx() -> void:
@@ -688,6 +725,7 @@ func build_lantern_embers_vfx() -> void:
 		_spawn_zone_emitter(lt["zone"], {
 			"name": lt["name"],
 			"local_pos": lt["pos"],
+			"is_lantern_ember": true,
 			"emission_shape": ParticleProcessMaterial.EMISSION_SHAPE_SPHERE,
 			"sphere_radius": 0.14,
 			"direction": Vector3(0.15, 1.0, -0.10),

@@ -74,9 +74,45 @@ func interact() -> void:
 	if nearby_player and nearby_player.has_method("play_action_animation"):
 		nearby_player.play_action_animation("interact")
 
-	var inv = get_tree().root.find_child("InventoryManager", true, false)
-	if inv:
-		inv.show_notification(inspection_message)
+	var canon := get_tree().root.find_child("PecioCanonController", true, false) if is_inside_tree() else null
+	var handled_by_canon := false
+	if canon:
+		if prop_id == "c4_chart" and canon.has_method("open_c4_desk_modal"):
+			canon.open_c4_desk_modal()
+			handled_by_canon = true
+		elif prop_id == "c5_skeleton" and canon.has_method("trigger_c5_crabs_scatter"):
+			canon.trigger_c5_crabs_scatter()
+			handled_by_canon = true
+		elif prop_id == "c6_needle_trap" and canon.has_method("open_c6_stash_modal"):
+			canon.open_c6_stash_modal()
+			handled_by_canon = true
+		elif prop_id.begins_with("c8_crate_") and canon.has_method("open_c8_crate_modal"):
+			canon.open_c8_crate_modal(prop_id)
+			handled_by_canon = true
+		elif prop_id == "c9_iron_chest" and canon.has_method("open_c9_chest_modal"):
+			canon.open_c9_chest_modal()
+			handled_by_canon = true
+		elif prop_id == "p01_mooring" and canon.has_method("toggle_rowboat_mooring"):
+			canon.toggle_rowboat_mooring()
+			handled_by_canon = true
+		elif prop_id == "c9_air_pocket":
+			if canon.has_method("_play_sfx"):
+				canon._play_sfx(preload("res://scripts/pecio_sfx_kit.gd").make_bubble_burst())
+			var ui_n := get_tree().root.find_child("VttRoleUi", true, false)
+			if ui_n and ui_n.has_method("notify_mesa"):
+				ui_n.notify_mesa("🫧 Bolsa de aire respirable (C9): recuperas el aliento bajo los tablones de la bodega.")
+			handled_by_canon = true
+		elif prop_id.begins_with("lantern:") and canon.has_method("toggle_lantern"):
+			canon.toggle_lantern(prop_id.trim_prefix("lantern:"))
+			var inv_l = get_tree().root.find_child("InventoryManager", true, false)
+			if inv_l and is_player_nearby:
+				inv_l.show_prompt("[T] " + prompt_text)
+			handled_by_canon = true
+
+	if not handled_by_canon:
+		var inv = get_tree().root.find_child("InventoryManager", true, false)
+		if inv:
+			inv.show_notification(inspection_message)
 
 	# Animación opcional del objeto (giro de timón, cabrestante, etc.)
 	if anim_type == "rotate_y" and target_node:

@@ -4,6 +4,7 @@ extends Node3D
 const WreckStructure = preload("res://scripts/wreck_structure.gd")
 const PbrMaterialKit = preload("res://scripts/pbr_material_kit.gd")
 const ShipGeometry = preload("res://scripts/ship_geometry.gd")
+const InteractiveProp = preload("res://scripts/interactive_prop.gd")
 
 # Sistema de Arboladura, Jarcia Náutica y Velamen Dinámico Triple-A (Fase AAA-2)
 # Mástil mayor de 23m, cofa (+15m), crucetas, vergas, obenques y velas rasgadas
@@ -296,14 +297,16 @@ func build_crows_nest(parent: Node3D, pos: Vector3) -> void:
 	crow_node.add_child(lantern_arm)
 
 	var lan_glass := MeshInstance3D.new()
+	lan_glass.name = "LanternGlass"
 	var lg_cyl := CylinderMesh.new()
 	lg_cyl.top_radius = 0.09; lg_cyl.bottom_radius = 0.07; lg_cyl.height = 0.22
 	lan_glass.mesh = lg_cyl
 	var mat_lan := StandardMaterial3D.new()
-	mat_lan.albedo_color = Color("#ffd592")
-	mat_lan.emission_enabled = true
+	mat_lan.albedo_color = Color(0.24, 0.28, 0.30, 0.48)
+	mat_lan.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat_lan.emission_enabled = false
 	mat_lan.emission = Color("#ffaa3c")
-	mat_lan.emission_energy_multiplier = 2.4
+	mat_lan.emission_energy_multiplier = 2.0
 	lan_glass.material_override = mat_lan
 	lan_glass.position = Vector3(0.76, 1.20, 0.0)
 	crow_node.add_child(lan_glass)
@@ -320,10 +323,23 @@ func build_crows_nest(parent: Node3D, pos: Vector3) -> void:
 	cofa_warm.name = "Cofa_LookoutLanternLight"
 	cofa_warm.position = Vector3(0.76, 1.15, 0.0)
 	cofa_warm.light_color = Color("#ffe0ad")
-	cofa_warm.light_energy = 0.78
+	cofa_warm.light_energy = 0.0
+	cofa_warm.set_meta("lantern_base_energy", 0.95)
+	cofa_warm.set_meta("lantern_lit", false)
+	cofa_warm.set_meta("lantern_glass", lan_glass)
 	cofa_warm.omni_range = 6.2
 	cofa_warm.shadow_enabled = false
 	crow_node.add_child(cofa_warm)
+
+	var prop_cofa_lan := InteractiveProp.new()
+	prop_cofa_lan.name = "Prop_Cofa_LookoutLanternLight"
+	prop_cofa_lan.prop_id = "lantern:Cofa_LookoutLanternLight"
+	prop_cofa_lan.prompt_text = "Encender farol de vigía"
+	prop_cofa_lan.inspection_message = "El farol de la cofa está apagado."
+	prop_cofa_lan.position = Vector3(0.76, 0.45, 0.0)
+	prop_cofa_lan.interaction_radius = 2.2
+	crow_node.add_child(prop_cofa_lan)
+	cofa_warm.set_meta("lantern_prop", prop_cofa_lan)
 
 	var cofa_sky := OmniLight3D.new()
 	cofa_sky.name = "Cofa_SkyFill"
@@ -439,26 +455,32 @@ func build_fallen_foremast() -> void:
 	fallen.create_trimesh_collision()
 
 func build_hanging_tattered_sails() -> void:
-	# Velamen roto y rasgado colgando de la verga mayor
+	# Velamen ampliado, asimétrico y desgarrado verticalmente colgando de ambas vergas sin colisionar
 	var sails_node = Node3D.new()
 	sails_node.name = "TatteredSails"
 	add_child(sails_node)
 
+	# PlaneMesh.size = Vector2(ancho_en_Z, alto_en_Y) tras rotation_degrees = Vector3(90, 90, 0)
+	# Verga mayor en y=11.5 (z:-7.7..6.8), verga superior en y=14.2 (z:-5.2..4.3), palo en z=-0.48
 	var sail_patches = [
-		{"pos": Vector3(0.35, 9.8, -4.5), "size": Vector2(4.5, 3.2), "rot": Vector3(0, 0, -5)},
-		{"pos": Vector3(0.35, 9.5, 3.8), "size": Vector2(4.8, 3.6), "rot": Vector3(0, 0, 8)},
-		{"pos": Vector3(0.35, 12.8, -2.0), "size": Vector2(3.2, 2.4), "rot": Vector3(0, 0, -3)}
+		{"pos": Vector3(0.35, 8.65, -4.65),  "size": Vector2(5.4, 5.5), "seed": 1.3},  # Mayor babor: más grande y larga
+		{"pos": Vector3(0.35, 9.55,  3.75),  "size": Vector2(4.7, 3.8), "seed": 4.7},  # Mayor estribor: más corta/asimétrica
+		{"pos": Vector3(0.35, 12.48, -2.55), "size": Vector2(4.2, 3.3), "seed": 8.9},  # Gavia babor amplia
+		{"pos": Vector3(0.35, 13.02,  2.15), "size": Vector2(3.1, 2.2), "seed": 12.4}, # Jirón asimétrico gavia estribor
 	]
 
 	for s in sail_patches:
 		var sail_mesh = PlaneMesh.new()
 		sail_mesh.size = s["size"]
-		sail_mesh.subdivide_width = 16
-		sail_mesh.subdivide_depth = 16
+		sail_mesh.subdivide_width = 20
+		sail_mesh.subdivide_depth = 20
+
+		var sail_mat := mat_sail_cloth.duplicate() as ShaderMaterial
+		sail_mat.set_shader_parameter("tear_seed", float(s["seed"]))
 
 		var sail_inst = MeshInstance3D.new()
 		sail_inst.mesh = sail_mesh
-		sail_inst.material_override = mat_sail_cloth
+		sail_inst.material_override = sail_mat
 		sail_inst.position = s["pos"]
 		sail_inst.name = "SailPatch_%d" % sails_node.get_child_count()
 		sail_inst.rotation_degrees = Vector3(90, 90, 0)

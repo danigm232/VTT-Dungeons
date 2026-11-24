@@ -45,7 +45,7 @@ var win_players: PanelContainer
 var players_list_box: VBoxContainer
 
 var win_encounter: PanelContainer
-var enemy_tabs_row: HBoxContainer
+var enemy_tabs_row: Container
 var enemy_body_box: VBoxContainer
 var _enemy_tab: String = "info" # "info", "pose", "sheet"
 
@@ -389,8 +389,10 @@ func _build_workspace_windows() -> void:
 
 	win_encounter = _create_window("PNJ y Amenazas de Escena", "encounter", right_col)
 	var enc_vb := win_encounter.find_child("WindowBody", true, false) as VBoxContainer
-	enemy_tabs_row = HBoxContainer.new()
-	enemy_tabs_row.add_theme_constant_override("separation", 6)
+	var etabs := HFlowContainer.new()
+	etabs.add_theme_constant_override("h_separation", 4)
+	etabs.add_theme_constant_override("v_separation", 4)
+	enemy_tabs_row = etabs
 	enc_vb.add_child(enemy_tabs_row)
 	enemy_body_box = VBoxContainer.new()
 	enemy_body_box.add_theme_constant_override("separation", 6)
@@ -814,6 +816,87 @@ func _rebuild_map_pop() -> void:
 				)
 				harpy_row.add_child(hb)
 
+				# Controles canónicos Cap. 3 (Nivel 1/2, Canon Estricto, Regreso/Resolución Arpía, Descanso, Epílogo, Faroles)
+				map_tools_pop_body.add_child(HSeparator.new())
+				map_tools_pop_body.add_child(ThemeKit.make_eyebrow("DIRECCIÓN CANÓNICA · CAPÍTULO 3 (PDF)"))
+
+				var lvl_row := HBoxContainer.new()
+				lvl_row.add_theme_constant_override("separation", 6)
+				map_tools_pop_body.add_child(lvl_row)
+				var lvl_lbl := ThemeKit.make_label("Nivel del grupo:", 12, ThemeKit.COL_INK)
+				lvl_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				lvl_row.add_child(lvl_lbl)
+				for lv in [1, 2]:
+					var lb := Button.new()
+					lb.name = "DmPartyLevelBtn_%d" % lv
+					lb.text = "Nivel %d" % lv
+					ThemeKit.style_button(lb, "primary" if ws.party_level == lv else "secondary", 6, 8, 4)
+					lb.pressed.connect(func():
+						ui.set_party_level(lv)
+						_rebuild_map_pop()
+					)
+					lvl_row.add_child(lb)
+
+				var strict_chk := CheckButton.new()
+				strict_chk.name = "DmStrictCanonToggle"
+				strict_chk.text = "Modo Canon Estricto (oculta extras VTT)"
+				strict_chk.button_pressed = ws.strict_canon_mode
+				strict_chk.toggled.connect(func(v: bool):
+					ui.set_strict_canon_mode(v)
+					_rebuild_map_pop()
+				)
+				map_tools_pop_body.add_child(strict_chk)
+
+				var hres_row := HBoxContainer.new()
+				hres_row.add_theme_constant_override("separation", 4)
+				map_tools_pop_body.add_child(hres_row)
+				for h_op in [["🦅 Regresa", "return"], ["🕊 Negociada", "negotiated"], ["🪶 Huye <50%", "fled"], ["⚔ Derrotada", "defeated"]]:
+					var hrb := Button.new()
+					hrb.text = h_op[0]
+					hrb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+					ThemeKit.style_button(hrb, "secondary", 6, 6, 3)
+					hrb.pressed.connect(func():
+						if h_op[1] == "return":
+							ui.trigger_harpy_return("Arbitraje del DM")
+						else:
+							ui.resolve_harpy(h_op[1])
+						_rebuild_map_pop()
+					)
+					hres_row.add_child(hrb)
+
+				var story_row := HBoxContainer.new()
+				story_row.add_theme_constant_override("separation", 6)
+				map_tools_pop_body.add_child(story_row)
+				var rest_b := Button.new()
+				rest_b.text = "⛺ Descanso a bordo"
+				rest_b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				ThemeKit.style_button(rest_b, "secondary", 6, 8, 4)
+				rest_b.pressed.connect(func(): ui.open_ship_rest_modal())
+				story_row.add_child(rest_b)
+
+				var epi_b := Button.new()
+				epi_b.text = "📖 Bitácora / Talismán"
+				epi_b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				ThemeKit.style_button(epi_b, "primary", 6, 8, 4)
+				epi_b.pressed.connect(func(): ui.open_logbook_and_talisman_modal())
+				story_row.add_child(epi_b)
+
+				var lan_row := HBoxContainer.new()
+				lan_row.add_theme_constant_override("separation", 6)
+				map_tools_pop_body.add_child(lan_row)
+				var lan_on := Button.new()
+				lan_on.text = "🔥 Encender faroles"
+				lan_on.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				ThemeKit.style_button(lan_on, "secondary", 6, 8, 4)
+				lan_on.pressed.connect(func(): ui.set_all_lanterns(true))
+				lan_row.add_child(lan_on)
+				var lan_off := Button.new()
+				lan_off.text = "💨 Apagar faroles"
+				lan_off.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				ThemeKit.style_button(lan_off, "secondary", 6, 8, 4)
+				lan_off.pressed.connect(func(): ui.set_all_lanterns(false))
+				lan_row.add_child(lan_off)
+
 func _rebuild_players_list() -> void:
 	var portraits: Array = []
 	for actor in ui.actors:
@@ -932,6 +1015,10 @@ func _rebuild_encounter_card() -> void:
 	var sum := ThemeKit.make_label(en.get("summary", ""), 11, ThemeKit.COL_MUTED)
 	sum.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	enemy_body_box.add_child(sum)
+	if bool(en.get("needs_codex_sprites", false)):
+		var sp_note := ThemeKit.make_label("🎨 Sprite provisional (pendiente importación de Codex).", 11, ThemeKit.COL_GOLD_BRIGHT)
+		sp_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		enemy_body_box.add_child(sp_note)
 
 	if not ui.is_retreat and ui.world_state:
 		if en["id"] == "zombie" and ui.world_state.c4_zombies_alerted:

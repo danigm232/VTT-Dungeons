@@ -242,11 +242,33 @@ func update_prompt() -> void:
 		var action_text = "Cerrar " if is_open else ("Retirar tranca y abrir " if (door_id == "c4-barred-door" and not has_bar_removed) else "Abrir ")
 		inv.show_prompt("[T] " + action_text + door_title)
 
+func force_unbar_and_open() -> void:
+	has_bar_removed = true
+	if door_bar_mesh:
+		door_bar_mesh.visible = false
+	if not is_open:
+		toggle_door()
+	else:
+		update_prompt()
+
+func interact_or_toggle() -> void:
+	if door_id == "c4-barred-door" and not is_open and not has_bar_removed and DisplayServer.get_name() != "headless":
+		var canon := get_tree().root.find_child("PecioCanonController", true, false)
+		if canon and canon.has_method("open_c4_barred_door_modal"):
+			canon.open_c4_barred_door_modal(self)
+			return
+	toggle_door()
+
 func toggle_door() -> void:
 	is_open = not is_open
 	if is_open and door_bar_mesh and not has_bar_removed:
 		has_bar_removed = true
 		door_bar_mesh.visible = false
+	var vtt_ui := get_tree().root.find_child("VttRoleUi", true, false) if is_inside_tree() else null
+	if vtt_ui and "world_state" in vtt_ui and vtt_ui.world_state:
+		if has_bar_removed and door_id == "c4-barred-door":
+			vtt_ui.world_state.mark_c4_door_unbarred()
+		vtt_ui.world_state.set_door_open(door_id, is_open)
 	update_door_state(false)
 	update_prompt()
 	emit_signal("door_state_changed", is_open)
@@ -274,5 +296,5 @@ func update_door_state(instant: bool) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if is_player_nearby and event is InputEventKey and event.is_pressed() and not event.is_echo() and not event.ctrl_pressed and not event.alt_pressed:
 		if event.keycode == KEY_T:
-			toggle_door()
+			interact_or_toggle()
 			get_viewport().set_input_as_handled()

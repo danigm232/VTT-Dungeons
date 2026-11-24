@@ -10,6 +10,7 @@ uniform float wind_speed : hint_range(0.2, 4.0) = 2.1;
 uniform float wind_amplitude : hint_range(0.02, 0.5) = 0.18;
 uniform float tear_flutter : hint_range(0.05, 1.0) = 0.35;
 uniform float rain_wetness = 0.0;
+uniform float tear_seed = 1.3;
 
 float hash21(vec2 p) {
 	vec3 q = fract(vec3(p.xyx) * 0.1031);
@@ -49,19 +50,27 @@ void vertex() {
 }
 
 void fragment() {
-	// Borde inferior rasgado orgánicamente (sin dientes triangulares regulares) + jirones colgantes
-	float macro_rip = fbm(vec2(UV.x * 4.2 + 1.3, 0.7)) * 0.36;
-	float strip_rip = vnoise(vec2(UV.x * 22.0, 3.1)) * 0.14;
-	float fray_threads = vnoise(vec2(UV.x * 84.0, UV.y * 6.0)) * 0.06;
+	// Desgarros VERTICALES profundos rasgados por el viento en tiras colgantes (Req. #8)
+	float s_off = tear_seed;
+	float macro_rip = fbm(vec2(UV.x * 3.8 + s_off, 0.7)) * 0.30;
+	float strip_rip = vnoise(vec2(UV.x * 16.0 + s_off * 1.7, 3.1)) * 0.18;
+	float fray_threads = vnoise(vec2(UV.x * 78.0 + s_off * 3.1, UV.y * 5.0)) * 0.07;
 	float bottom_cutoff = 0.58 + macro_rip + strip_rip + fray_threads;
 
-	// Desgarros laterales irregulares y agujeros orgánicos deformados con ruido
-	float side_fray = fbm(vec2(UV.y * 6.5, UV.x * 2.0 + 4.1)) * 0.11;
-	float hole_field = fbm(UV * vec2(5.4, 7.2) + vec2(2.1, 6.4));
-	float hole_mask = smoothstep(0.18, 0.78, UV.y) * smoothstep(0.08, 0.25, UV.x) * smoothstep(0.92, 0.75, UV.x);
-	bool torn_hole = (hole_field < 0.27) && (hole_mask > 0.35);
+	// Cortes verticales largos dividiendo el 55-75% inferior de la vela en jirones verticales orgánicos
+	float v_ribbon_wave = sin(UV.x * 23.0 + s_off * 2.1 + fbm(vec2(UV.x * 4.5 + s_off, UV.y * 2.4)) * 2.8);
+	float v_ribbon_wave2 = sin(UV.x * 11.5 - s_off * 1.3 + vnoise(vec2(UV.x * 6.0, UV.y * 3.2)) * 2.2);
+	float v_slit_height = 0.24 + vnoise(vec2(floor(UV.x * 8.0) + s_off, 2.7)) * 0.30;
+	float slit_width_factor = smoothstep(v_slit_height, 0.96, UV.y);
+	bool vertical_rip = (UV.y > v_slit_height) && (v_ribbon_wave > (0.72 - slit_width_factor * 0.44) || v_ribbon_wave2 > (0.82 - slit_width_factor * 0.32));
 
-	if (UV.y > bottom_cutoff || UV.x < side_fray * 0.65 || UV.x > (1.0 - side_fray * 0.65) || torn_hole) {
+	// Desgarros laterales irregulares y rasgaduras verticales alargadas interiores
+	float side_fray = fbm(vec2(UV.y * 6.5 + s_off, UV.x * 2.0 + 4.1)) * 0.12;
+	float hole_field = fbm(UV * vec2(8.5, 3.2) + vec2(2.1 + s_off, 6.4));
+	float hole_mask = smoothstep(0.16, 0.76, UV.y) * smoothstep(0.06, 0.22, UV.x) * smoothstep(0.94, 0.78, UV.x);
+	bool torn_hole = (hole_field < 0.29) && (hole_mask > 0.34);
+
+	if (UV.y > bottom_cutoff || vertical_rip || UV.x < side_fray * 0.65 || UV.x > (1.0 - side_fray * 0.65) || torn_hole) {
 		discard;
 	}
 

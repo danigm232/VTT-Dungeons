@@ -15,6 +15,7 @@ extends CharacterBody3D
 const CharacterSpriteCatalog = preload("res://scripts/character_sprite_catalog.gd")
 const OceanWaves = preload("res://scripts/ocean_waves.gd")
 const WreckStructure = preload("res://scripts/wreck_structure.gd")
+const PecioSfxKit = preload("res://scripts/pecio_sfx_kit.gd")
 
 @export var token_name: String = "Hero"
 @export var token_texture: Texture2D
@@ -39,6 +40,12 @@ var torch_flame_mesh: MeshInstance3D
 var contact_shadow: MeshInstance3D
 var selection_ring: MeshInstance3D
 var action_vfx_sprite: Sprite3D
+var wade_splash_particles: GPUParticles3D
+var wade_ripple_rings: Array[Dictionary] = []
+var wade_sfx_player: AudioStreamPlayer
+var _wade_ripple_cd: float = 0.0
+var _wade_sfx_cd: float = 0.0
+var _wade_ripple_idx: int = 0
 
 var char_key: String = "cleric"
 var char_profile: Dictionary = {}
@@ -105,6 +112,8 @@ func _ready() -> void:
 	build_contact_shadow()
 	build_selection_ring()
 	build_action_vfx()
+	if not is_npc:
+		_build_wading_splash_vfx()
 	if has_carried_light and not is_npc:
 		build_carried_lantern()
 
@@ -358,7 +367,7 @@ func _physics_process(delta: float) -> void:
 
 	in_open_ocean = (not inside_hull) and (global_position.y <= sea_y - 0.12)
 	var in_c9_submerged := inside_hull and (local_pos.y < -4.15)
-	in_shallow_water = inside_hull and (local_pos.y >= -3.95 and local_pos.y <= -2.95)
+	in_shallow_water = inside_hull and (local_pos.y >= -4.05 and local_pos.y <= -1.45)
 	in_water = in_open_ocean or in_c9_submerged
 
 	var input_dir := input_override
@@ -400,7 +409,7 @@ func _physics_process(delta: float) -> void:
 		elif in_water:
 			speed_mult = 0.72
 		elif in_shallow_water:
-			speed_mult = 0.78
+			speed_mult = 0.62 # Terreno difícil canónico en sentina inundada C8 (PDF p. 25)
 		elif is_stealth:
 			speed_mult = 0.62
 		elif is_sprinting:
@@ -471,6 +480,7 @@ func _physics_process(delta: float) -> void:
 			jump_timer = 0.0
 
 	_process_pose_visuals(delta, input_dir, desired_state)
+	_update_wading_splash_vfx(delta)
 
 func _process_pose_visuals(delta: float, input_dir: Vector2, desired_state: String) -> void:
 	if desired_state != current_anim or _needs_direction_refresh(desired_state):
@@ -890,6 +900,152 @@ func build_action_vfx() -> void:
 	action_vfx_sprite.render_priority = 12
 	action_vfx_sprite.visible = false
 	add_child(action_vfx_sprite)
+
+func _build_wading_splash_vfx() -> void:
+	wade_sfx_player = AudioStreamPlayer.new()
+	wade_sfx_player.name = "WadeSplashSfx"
+	wade_sfx_player.volume_db = -7.0
+	add_child(wade_sfx_player)
+
+	# Gotas de agua salpicando al caminar por la sentina inundada C8 (pre-creado para cero leaks)
+	wade_splash_particles = GPUParticles3D.new()
+	wade_splash_particles.name = "WadeSplashParticles"
+	wade_splash_particles.amount = 26
+	wade_splash_particles.lifetime = 0.52
+	wade_splash_particles.randomness = 0.55
+	wade_splash_particles.emitting = false
+	wade_splash_particles.visible = false
+	wade_splash_particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	wade_splash_particles.position = Vector3(0.0, 0.14, 0.0)
+
+	var pm := ParticleProcessMaterial.new()
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_RING
+	pm.emission_ring_radius = 0.28
+	pm.emission_ring_inner_radius = 0.12
+	pm.emission_ring_height = 0.06
+	pm.direction = Vector3(0.0, 1.0, 0.0)
+	pm.spread = 58.0
+	pm.initial_velocity_min = 0.9
+	pm.initial_velocity_max = 2.1
+	pm.gravity = Vector3(0.0, -7.8, 0.0)
+	pm.scale_min = 0.06
+	pm.scale_max = 0.14
+	pm.color = Color(0.76, 0.92, 0.94, 0.85)
+	wade_splash_particles.process_material = pm
+
+	var grad := Gradient.new()
+	grad.set_color(0, Color(0.88, 0.97, 0.98, 0.90))
+	grad.set_color(1, Color(0.65, 0.84, 0.86, 0.0))
+	var drop_tex := GradientTexture2D.new()
+	drop_tex.gradient = grad
+	drop_tex.fill = GradientTexture2D.FILL_RADIAL
+	drop_tex.fill_from = Vector2(0.5, 0.5)
+	drop_tex.fill_to = Vector2(1.0, 0.5)
+	drop_tex.width = 24
+	drop_tex.height = 24
+
+	var mat_drop := StandardMaterial3D.new()
+	mat_drop.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat_drop.albedo_texture = drop_tex
+	mat_drop.vertex_color_use_as_albedo = true
+	mat_drop.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat_drop.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	mat_drop.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	var q := QuadMesh.new()
+	q.size = Vector2(0.16, 0.16)
+	q.material = mat_drop
+	wade_splash_particles.draw_pass_1 = q
+	add_child(wade_splash_particles)
+
+	# 3 anillos concéntricos de ondas reutilizables en la superficie del agua
+	for ri in range(3):
+		var ring := MeshInstance3D.new()
+		ring.name = "WadeRippleRing_%d" % ri
+		var tor := TorusMesh.new()
+		tor.inner_radius = 0.34
+		tor.outer_radius = 0.40
+		tor.rings = 18
+		tor.ring_segments = 6
+		ring.mesh = tor
+		var rm := StandardMaterial3D.new()
+		rm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		rm.albedo_color = Color(0.76, 0.92, 0.92, 0.0)
+		rm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		rm.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+		rm.render_priority = 4
+		ring.material_override = rm
+		ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		ring.visible = false
+		ring.position = Vector3(0.0, 0.18, 0.0)
+		ring.scale = Vector3(0.5, 0.14, 0.5)
+		add_child(ring)
+		wade_ripple_rings.append({"node": ring, "mat": rm, "age": 99.0, "dur": 0.72, "max_scale": 2.4})
+
+func trigger_bilge_splash(heavy: bool = false) -> void:
+	if wade_splash_particles:
+		wade_splash_particles.visible = true
+		wade_splash_particles.emitting = true
+	if not wade_ripple_rings.is_empty():
+		var slot: Dictionary = wade_ripple_rings[_wade_ripple_idx % wade_ripple_rings.size()]
+		_wade_ripple_idx += 1
+		slot["age"] = 0.0
+		slot["dur"] = 0.95 if heavy else 0.70
+		slot["max_scale"] = 3.6 if heavy else 2.25
+		var rn: MeshInstance3D = slot["node"]
+		rn.visible = true
+		rn.scale = Vector3(0.55, 0.14, 0.55)
+	if wade_sfx_player and DisplayServer.get_name() != "headless":
+		wade_sfx_player.stream = PecioSfxKit.make_water_splash(heavy)
+		wade_sfx_player.play()
+
+func _update_wading_splash_vfx(delta: float) -> void:
+	if wade_ripple_rings.is_empty():
+		return
+	var horiz_speed := Vector2(velocity.x, velocity.z).length()
+	var wading_now := in_shallow_water and not in_boat and not is_transitioning and horiz_speed > 0.30
+
+	if wade_splash_particles:
+		if wading_now:
+			wade_splash_particles.visible = true
+			wade_splash_particles.emitting = true
+		elif wade_splash_particles.emitting:
+			wade_splash_particles.emitting = false
+			if not in_shallow_water:
+				wade_splash_particles.visible = false
+
+	_wade_ripple_cd = maxf(0.0, _wade_ripple_cd - delta)
+	_wade_sfx_cd = maxf(0.0, _wade_sfx_cd - delta)
+	if wading_now:
+		if _wade_ripple_cd <= 0.0:
+			_wade_ripple_cd = 0.28
+			var slot: Dictionary = wade_ripple_rings[_wade_ripple_idx % wade_ripple_rings.size()]
+			_wade_ripple_idx += 1
+			slot["age"] = 0.0
+			slot["dur"] = 0.72
+			slot["max_scale"] = 2.35
+			var rn: MeshInstance3D = slot["node"]
+			rn.visible = true
+			rn.scale = Vector3(0.45, 0.14, 0.45)
+		if _wade_sfx_cd <= 0.0:
+			_wade_sfx_cd = 0.42
+			if wade_sfx_player and DisplayServer.get_name() != "headless":
+				wade_sfx_player.stream = PecioSfxKit.make_water_splash(false)
+				wade_sfx_player.play()
+
+	for slot in wade_ripple_rings:
+		var age: float = float(slot["age"])
+		var dur: float = float(slot["dur"])
+		if age < dur:
+			age += delta
+			slot["age"] = age
+			var t := clampf(age / dur, 0.0, 1.0)
+			var rn: MeshInstance3D = slot["node"]
+			var rm: StandardMaterial3D = slot["mat"]
+			var sc := lerpf(0.45, float(slot["max_scale"]), t)
+			rn.scale = Vector3(sc, 0.14, sc)
+			rm.albedo_color.a = (1.0 - t) * 0.58
+			if t >= 1.0:
+				rn.visible = false
 
 func _update_carried_torch_flicker(delta: float) -> void:
 	if carried_light and is_torch_lit:

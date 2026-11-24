@@ -249,20 +249,20 @@ void fragment() {
 	float normalized_dist = contact_metric / max(0.3, foam_distance);
 	float organic_dist = normalized_dist + (fbm_mid - 0.5) * 0.44 + (fbm_fine - 0.5) * 0.18;
 
-	// 1) Collar roto e irregular en el contacto exacto (suave, sin artefactos triangulares en la línea de flotación)
-	float edge_aa = smoothstep(0.015, 0.14, ray_dist);
-	float lip_mask = 1.0 - smoothstep(0.04, 0.34, organic_dist);
-	float lip_erode = smoothstep(0.46, 0.78, fbm_fine * 0.52 + fbm_mid * 0.48);
-	float lip_core = (1.0 - smoothstep(0.02, 0.16, organic_dist)) * smoothstep(0.50, 0.78, fbm_fine * 0.58 + fbm_mid * 0.42);
-	float lip_foam = max(lip_mask * lip_erode, lip_core * 0.48) * edge_aa;
+	// 1) Collar roto e irregular en el contacto exacto con rocas del arrecife, casco y huesos de dragón
+	float edge_aa = smoothstep(0.012, 0.12, ray_dist);
+	float lip_mask = 1.0 - smoothstep(0.04, 0.42, organic_dist);
+	float lip_erode = smoothstep(0.40, 0.74, fbm_fine * 0.52 + fbm_mid * 0.48);
+	float lip_core = (1.0 - smoothstep(0.02, 0.22, organic_dist)) * smoothstep(0.42, 0.74, fbm_fine * 0.58 + fbm_mid * 0.42);
+	float lip_foam = max(lip_mask * lip_erode, lip_core * 0.68) * edge_aa;
 
-	// 2) Trenes de resaca/rompientes animados que marchan HACIA la roca/casco y se deshacen en encaje
-	float surf_zone = smoothstep(0.06, 0.28, normalized_dist) * (1.0 - smoothstep(0.68, 1.55, normalized_dist));
-	float surge_field = normalized_dist * 6.8 + TIME * 2.15 * wave_speed + fbm_mid * 3.6 + warp.x * 1.3;
-	float roller_wave = max(pow(max(0.0, sin(surge_field)), 3.5), pow(max(0.0, sin(surge_field * 0.62 + 2.1)), 4.5) * 0.68);
-	float wave_boost = 0.50 + 0.65 * crest_frag;
-	float lace_noise = smoothstep(0.42, 0.76, fbm_fine * 0.68 + fbm_mid * 0.32);
-	float roller_foam = roller_wave * surf_zone * lace_noise * wave_boost * 0.88 * edge_aa;
+	// 2) Trenes de resaca/rompientes animados que chocan HACIA rocas y huesos y estallan en encaje blanco
+	float surf_zone = smoothstep(0.05, 0.28, normalized_dist) * (1.0 - smoothstep(0.72, 1.65, normalized_dist));
+	float surge_field = normalized_dist * 6.8 + TIME * 2.25 * wave_speed + fbm_mid * 3.6 + warp.x * 1.3;
+	float roller_wave = max(pow(max(0.0, sin(surge_field)), 3.2), pow(max(0.0, sin(surge_field * 0.62 + 2.1)), 4.2) * 0.72);
+	float wave_boost = 0.62 + 0.72 * crest_frag;
+	float lace_noise = smoothstep(0.38, 0.74, fbm_fine * 0.68 + fbm_mid * 0.32);
+	float roller_foam = roller_wave * surf_zone * lace_noise * wave_boost * 1.02 * edge_aa;
 
 	// 3) Encaje espumoso y burbujas en la estela del reflujo junto al obstáculo
 	float trail_zone = (1.0 - smoothstep(0.14, 1.18, normalized_dist)) * smoothstep(0.04, 0.22, normalized_dist);

@@ -155,19 +155,101 @@ static func create_default_enemies(is_retreat: bool) -> Array[Dictionary]:
 			"color": Color("#b65c55"),
 			"revealed": true,
 			"traits": [
-				"Canto cautivador (Salvación Sabiduría CD 11; 90 m)",
-				"Vuelo 12 m entre jarcia y vergas"
+				"Canto cautivador (Salvación Sabiduría CD 11; 90 m · Turno 1 al regresar)",
+				"Vuelo 12 m entre jarcia y vergas; huye si pierde >50 % PG o se negocia"
 			],
 			"actions": [
 				"Multiataque: Garras (+3, 2d4+1 cortante) y Porra (+3, 1d4+1 contundente)",
-				"Canto cautivador (acción): atrae hacia el peligro de la borda"
+				"Canto cautivador (acción): atrae hacia el peligro de la borda o la cofa"
 			],
-			"summary": "Anida en la cofa C10 junto a gemas y monedas; canta para atraer a los aventureros hacia la escora."
+			"summary": "Anida en la cofa C10. Inicialmente está cazando y regresa al hallar el cofre de C9 o tras un descanso a bordo."
+		},
+		{
+			"id": "harpy_c2_lvl2",
+			"node_name": "HarpyToken_C2",
+			"name": "Segunda Arpía (Niv. 2)",
+			"zone": "C2 · Balista de Proa",
+			"hp": 38,
+			"hp_max": 38,
+			"ac": 11,
+			"speed": 6.0,
+			"initiative_bonus": 1,
+			"color": Color("#c86b52"),
+			"revealed": false,
+			"min_level": 2,
+			"traits": [
+				"Aparece en la balista de C2 si el grupo es de nivel 2",
+				"Rivalidad territorial explotable mediante negociación (p. 27)"
+			],
+			"actions": [
+				"Multiataque: Garras (+3, 2d4+1) y Porra (+3, 1d4+1)",
+				"Canto cautivador (SAV SAB CD 11)"
+			],
+			"summary": "Segunda arpía canónica de nivel 2 que aterriza junto a la balista oxidada de proa."
+		},
+		{
+			"id": "zombie_c4_a",
+			"node_name": "ZombieC4_A",
+			"name": "Zombi de C4 (1)",
+			"zone": "C4 · Camarote del Capitán",
+			"hp": 22,
+			"hp_max": 22,
+			"ac": 8,
+			"speed": 6.0,
+			"initiative_bonus": -2,
+			"color": Color("#6b8c6e"),
+			"revealed": true,
+			"traits": [
+				"Fortaleza de muerto viviente (Salv. CON CD 5 + daño)",
+				"Si cayó el timón o fallaron >1 intentos en DoorC4, espera tras la puerta golpeándola"
+			],
+			"actions": [
+				"Golpe · +3 · 1d6+1 contundente · 1.5 m"
+			],
+			"summary": "Marinero no muerto atrapado en el camarote del capitán C4 (PDF p. 24)."
+		},
+		{
+			"id": "zombie_c4_b",
+			"node_name": "ZombieC4_B",
+			"name": "Zombi de C4 (2)",
+			"zone": "C4 · Camarote del Capitán",
+			"hp": 22,
+			"hp_max": 22,
+			"ac": 8,
+			"speed": 6.0,
+			"initiative_bonus": -2,
+			"color": Color("#6b8c6e"),
+			"revealed": true,
+			"traits": [
+				"Fortaleza de muerto viviente (Salv. CON CD 5 + daño)",
+				"Vaga entre el camastro y los libros mojados salvo que haya sido alertado"
+			],
+			"actions": [
+				"Golpe · +3 · 1d6+1 contundente · 1.5 m"
+			],
+			"summary": "Segundo zombi canónico del camarote del capitán C4 (PDF p. 24)."
+		},
+		{
+			"id": "zombie_c4_c_lvl2",
+			"node_name": "ZombieC4_C_Lvl2",
+			"name": "Zombi de C4 (3 · Niv. 2)",
+			"zone": "C4 · Camarote del Capitán",
+			"hp": 22,
+			"hp_max": 22,
+			"ac": 8,
+			"speed": 6.0,
+			"initiative_bonus": -2,
+			"color": Color("#5d7f60"),
+			"revealed": false,
+			"min_level": 2,
+			"traits": ["Fortaleza de muerto viviente", "Refuerzo canónico de nivel 2 en C4"],
+			"actions": ["Golpe · +3 · 1d6+1 contundente · 1.5 m"],
+			"summary": "Tercer zombi en C4 para grupos de nivel 2 (PDF p. 24)."
 		},
 		{
 			"id": "zombie",
 			"node_name": "ZombieToken",
-			"name": "Zombi ahogado",
+			"name": "Zombi ahogado (C8)",
 			"zone": "C8 · Sentina Inundada",
 			"hp": 22,
 			"hp_max": 22,
@@ -183,7 +265,65 @@ static func create_default_enemies(is_retreat: bool) -> Array[Dictionary]:
 			"actions": [
 				"Golpe · +3 · 1d6+1 contundente · 1.5 m"
 			],
-			"summary": "Emerge entre el agua salobre de la sentina C8 cerca de la brecha de popa."
+			"summary": "Emerge entre el agua salobre de la sentina C8 junto al gul en popa (PDF p. 25)."
+		},
+		{
+			"id": "ghoul_c8",
+			"node_name": "GhoulToken",
+			"name": "Gul de la Sentina (C8)",
+			"zone": "C8 · Sentina Inundada",
+			"hp": 22,
+			"hp_max": 22,
+			"ac": 12,
+			"speed": 9.0,
+			"initiative_bonus": 2,
+			"color": Color("#5e8f7b"),
+			"revealed": true,
+			"needs_codex_sprites": true,
+			"traits": [
+				"Garras paralizantes (Salv. CON CD 10 o Paralizado 1 min; elfos inmunes)",
+				"Táctica canónica: aprovecha distracción en el agua de C8 para paralizar y arrastrar",
+				"Sprite provisional (pendiente importación oficial de Gul por Codex)"
+			],
+			"actions": [
+				"Garras · +4 · 2d4+2 cortante + Salv. CON CD 10 (Paralizado)",
+				"Mordisco · +2 · 2d6+2 perforante"
+			],
+			"summary": "Depredador no muerto en popa de C8 junto al zombi ahogado (PDF p. 25)."
+		},
+		{
+			"id": "zombie_c8_b_lvl2",
+			"node_name": "ZombieC8_B_Lvl2",
+			"name": "Zombi ahogado 2 (C8 · Niv. 2)",
+			"zone": "C8 · Sentina Inundada",
+			"hp": 22,
+			"hp_max": 22,
+			"ac": 8,
+			"speed": 6.0,
+			"initiative_bonus": -2,
+			"color": Color("#5c7d60"),
+			"revealed": false,
+			"min_level": 2,
+			"traits": ["Fortaleza de muerto viviente", "Refuerzo canónico de nivel 2 en C8"],
+			"actions": ["Golpe · +3 · 1d6+1 contundente · 1.5 m"],
+			"summary": "Zombi adicional en C8 para grupos de nivel 2 (PDF p. 25)."
+		},
+		{
+			"id": "zombie_c8_c_lvl2",
+			"node_name": "ZombieC8_C_Lvl2",
+			"name": "Zombi ahogado 3 (C8 · Niv. 2)",
+			"zone": "C8 · Sentina Inundada",
+			"hp": 22,
+			"hp_max": 22,
+			"ac": 8,
+			"speed": 6.0,
+			"initiative_bonus": -2,
+			"color": Color("#5c7d60"),
+			"revealed": false,
+			"min_level": 2,
+			"traits": ["Fortaleza de muerto viviente", "Refuerzo canónico de nivel 2 en C8"],
+			"actions": ["Golpe · +3 · 1d6+1 contundente · 1.5 m"],
+			"summary": "Tercer zombi en C8 para grupos de nivel 2 (PDF p. 25)."
 		}
 	]
 
