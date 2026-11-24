@@ -1,6 +1,6 @@
 extends Node
 const ThemeKit=preload("res://scripts/vtt_ui_theme.gd")
-const DEFAULTS:={"showGrid":true,"gridOpacity":.22,"gridThickness":1,"gridMode":"contrast","gridColor":"#c8cec3","gridRadius":50.0,"gridHeightOpacity":.3,"showMovementHints":true,"showSceneNotice":true,"sceneNoticeSeconds":8.0,"joystickOpacity":.72,"joystickX":.05,"joystickY":0.0,"joystickSize":2,"actionX":.99,"actionY":0.0,"actionSize":2,"initiativePosition":"top","identityMenuAlwaysOpen":false,"identityMenuSeconds":7.0,"sheetView":"summary","audioMuted":false,"reducedMotion":false}
+const DEFAULTS:={"showGrid":true,"gridOpacity":.22,"gridThickness":1,"gridMode":"contrast","gridColor":"#c8cec3","gridRadius":64.0,"gridHeightOpacity":.3,"showMovementHints":true,"showSceneNotice":true,"sceneNoticeSeconds":8.0,"joystickOpacity":.72,"joystickX":.05,"joystickY":0.0,"joystickSize":2,"actionX":.99,"actionY":0.0,"actionSize":2,"initiativePosition":"top","identityMenuAlwaysOpen":false,"identityMenuSeconds":7.0,"sheetView":"summary","audioMuted":false,"reducedMotion":false}
 const RANGES:={"gridOpacity":[.06,.7],"gridThickness":[1,3],"gridRadius":[10,100],"gridHeightOpacity":[.1,.7],"sceneNoticeSeconds":[3,25],"joystickOpacity":[.2,1],"joystickX":[0,1],"joystickY":[0,1],"joystickSize":[0,4],"actionX":[0,1],"actionY":[0,1],"actionSize":[0,4],"identityMenuSeconds":[3,30]}
 var ui
 var values: Dictionary=DEFAULTS.duplicate(true)
@@ -21,6 +21,12 @@ func setup(owner_ui) -> void:
 	var config:=ConfigFile.new()
 	if config.load(storage_path)==OK:
 		for key in ["player","dm"]: role_values[key]=normalize(config.get_value("display",key,{}))
+		if not config.get_value("migrations","gridRadius64",false):
+			role_values["player"]["gridRadius"]=maxf(float(role_values["player"].get("gridRadius",64.0)),64.0)
+			config.set_value("display","player",role_values["player"])
+			config.set_value("migrations","gridRadius64",true)
+			DirAccess.make_dir_recursive_absolute(storage_path.get_base_dir())
+			config.save(storage_path)
 	else:
 		var legacy:=ConfigFile.new()
 		if legacy.load("user://combat-ui.cfg")==OK: values.initiativePosition=legacy.get_value("ui","turn_line","top")

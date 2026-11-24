@@ -288,11 +288,62 @@ func _find_next_tilt_stop(angle: float, direction: int) -> float:
 func step_tilt(direction: int) -> void:
 	target_pitch = _find_next_tilt_stop(target_pitch, direction)
 
+func get_world_visual_bounds() -> Rect2:
+	return Rect2()
+
+func get_player_max_distance(zone_id: String = "") -> float:
+	var z := zone_id if zone_id != "" else current_zone_id
+	return minf(get_zone_zoom_limits(z).y, 36.0)
+
+func _view_xz_extents(dist: float, pitch_deg: float, yaw_deg: float, aspect: float) -> Vector2:
+	var tan_half_fov := maxf(0.1, tan(deg_to_rad(fov * 0.5)))
+	var half_h := maxf(0.5, dist * tan_half_fov)
+	var half_w := half_h * maxf(0.25, aspect)
+	var sin_p := maxf(0.08, sin(deg_to_rad(clampf(pitch_deg, CAMERA_MIN_TILT, CAMERA_MAX_TILT))))
+	var half_depth := half_h / sin_p
+	var yaw_rad := deg_to_rad(yaw_deg)
+	var ca := absf(cos(yaw_rad))
+	var sa := absf(sin(yaw_rad))
+	return Vector2(half_w * ca + half_depth * sa, half_w * sa + half_depth * ca)
+
+func _compute_world_fit_max_distance(world_rect: Rect2, pitch_deg: float, yaw_deg: float, aspect: float, floor_dist: float) -> float:
+	var unit_ext := _view_xz_extents(1.0, pitch_deg, yaw_deg, aspect)
+	var max_x := (world_rect.size.x * 0.5) / maxf(0.001, unit_ext.x)
+	var max_z := (world_rect.size.y * 0.5) / maxf(0.001, unit_ext.y)
+	return maxf(floor_dist, minf(max_x, max_z))
+
+func _effective_zoom_bounds(zone_id: String = "", pitch_deg: float = target_pitch, yaw_deg: float = target_yaw) -> Vector2:
+	var z_id := zone_id if zone_id != "" else current_zone_id
+	var bounds := get_zone_zoom_limits(z_id)
+	if camera_role == "player":
+		bounds.y = minf(bounds.y, get_player_max_distance(z_id))
+		var world_rect := get_world_visual_bounds()
+		if world_rect.has_area():
+			bounds.y = minf(bounds.y, _compute_world_fit_max_distance(world_rect, pitch_deg, yaw_deg, _get_viewport_aspect(), bounds.x))
+	bounds.y = maxf(bounds.x, bounds.y)
+	return bounds
+
+func _clamp_focus_to_world_bounds(point: Vector3, dist: float, pitch_deg: float, yaw_deg: float) -> Vector3:
+	if camera_role != "player":
+		return point
+	var world_rect := get_world_visual_bounds()
+	if not world_rect.has_area():
+		return point
+	var ext := _view_xz_extents(dist, pitch_deg, yaw_deg, _get_viewport_aspect())
+	var min_x := world_rect.position.x + ext.x
+	var max_x := world_rect.end.x - ext.x
+	var min_z := world_rect.position.y + ext.y
+	var max_z := world_rect.end.y - ext.y
+	var out := point
+	out.x = (world_rect.position.x + world_rect.size.x * 0.5) if min_x >= max_x else clampf(point.x, min_x, max_x)
+	out.z = (world_rect.position.y + world_rect.size.y * 0.5) if min_z >= max_z else clampf(point.z, min_z, max_z)
+	return out
+
 func zoom_camera_step(delta_dist: float) -> void:
 	is_overview = false
 	is_combat_group_mode = false
 	is_detail_mode = false
-	var bounds := get_zone_zoom_limits(current_zone_id)
+	var bounds := _effective_zoom_bounds(current_zone_id)
 	target_distance = clampf(target_distance + delta_dist, bounds.x, bounds.y)
 	user_zoom_ratio = clampf(target_distance / default_distance, 0.3, 3.0)
 
@@ -300,7 +351,7 @@ func zoom_camera_factor(factor: float) -> void:
 	is_overview = false
 	is_combat_group_mode = false
 	is_detail_mode = false
-	var bounds := get_zone_zoom_limits(current_zone_id)
+	var bounds := _effective_zoom_bounds(current_zone_id)
 	target_distance = clampf(target_distance * factor, bounds.x, bounds.y)
 	user_zoom_ratio = clampf(target_distance / default_distance, 0.3, 3.0)
 
@@ -324,7 +375,8 @@ func reset_camera_view() -> void:
 	is_combat_group_mode = false
 	is_detail_mode = false
 	is_following = true
-	target_distance = clampf(default_distance, get_zone_zoom_limits(current_zone_id).x, get_zone_zoom_limits(current_zone_id).y)
+	var r_bounds := _effective_zoom_bounds(current_zone_id)
+	target_distance = clampf(default_distance, r_bounds.x, r_bounds.y)
 	user_zoom_ratio = 1.0
 	_recompute_target_yaw()
 	if target:
@@ -349,11 +401,16 @@ func set_overview_mode(enable: bool) -> void:
 		room_front_offset = 0.0
 		_recompute_target_yaw()
 		var frame := calculate_wreck_overview_frame(target_yaw, target_pitch, _get_viewport_aspect())
-		target_focus = frame["target"]
-		target_distance = frame["distance"]
+		if camera_role == "player":
+			var p_bounds := _effective_zoom_bounds(current_zone_id)
+			target_distance = clampf(float(frame["distance"]), p_bounds.x, p_bounds.y)
+			target_focus = _clamp_focus_to_world_bounds(frame["target"], target_distance, target_pitch, target_yaw)
+		else:
+			target_focus = frame["target"]
+			target_distance = frame["distance"]
 	else:
 		is_following = true
-		var bounds := get_zone_zoom_limits(current_zone_id)
+		var bounds := _effective_zoom_bounds(current_zone_id)
 		target_distance = clampf(default_distance * user_zoom_ratio, bounds.x, bounds.y)
 		if target:
 			room_front_offset = wreck_camera_front_offset(current_zone_id)
@@ -585,8 +642,13 @@ func _process(delta: float) -> void:
 
 	if is_overview:
 		var ov := calculate_wreck_overview_frame(target_yaw, target_pitch, _get_viewport_aspect())
-		target_focus = ov["target"]
-		target_distance = ov["distance"]
+		if camera_role == "player":
+			var ov_bounds := _effective_zoom_bounds(current_zone_id)
+			target_distance = clampf(float(ov["distance"]), ov_bounds.x, ov_bounds.y)
+			target_focus = _clamp_focus_to_world_bounds(ov["target"], target_distance, target_pitch, target_yaw)
+		else:
+			target_focus = ov["target"]
+			target_distance = ov["distance"]
 	elif is_following and target:
 		var detected := detect_wreck_zone(target.global_position)
 		if current_zone_id == "exterior" or current_zone_id == "" or detected != current_zone_id:
@@ -606,13 +668,27 @@ func _process(delta: float) -> void:
 	var sp := _damp_scalar(current_pitch, target_pitch, _vel_pitch, dt, 0.16)
 	current_pitch = clampf(sp.x, CAMERA_MIN_TILT, CAMERA_MAX_TILT); _vel_pitch = sp.y
 
-	var sd := _damp_scalar(current_distance, target_distance, _vel_distance, dt, 0.16)
+	var desired_distance := target_distance
+	if camera_role == "player":
+		var live_bounds := _effective_zoom_bounds(current_zone_id, current_pitch, current_yaw)
+		var role_cap := minf(get_zone_zoom_limits(current_zone_id).y, get_player_max_distance(current_zone_id))
+		target_distance = clampf(target_distance, live_bounds.x, maxf(live_bounds.x, role_cap))
+		desired_distance = clampf(target_distance, live_bounds.x, live_bounds.y)
+	var sd := _damp_scalar(current_distance, desired_distance, _vel_distance, dt, 0.16)
 	current_distance = maxf(2.0, sd.x); _vel_distance = sd.y
+	if camera_role == "player":
+		var clamped_dist := clampf(current_distance, _effective_zoom_bounds(current_zone_id, current_pitch, current_yaw).x, _effective_zoom_bounds(current_zone_id, current_pitch, current_yaw).y)
+		if clamped_dist < current_distance:
+			current_distance = clamped_dist
+			_vel_distance = 0.0
+		target_focus = _clamp_focus_to_world_bounds(target_focus, desired_distance, target_pitch, target_yaw)
 
 	var fx := _damp_scalar(focus_point.x, target_focus.x, _vel_focus.x, dt, 0.20)
 	var fy := _damp_scalar(focus_point.y, target_focus.y, _vel_focus.y, dt, 0.20)
 	var fz := _damp_scalar(focus_point.z, target_focus.z, _vel_focus.z, dt, 0.20)
 	focus_point = Vector3(fx.x, fy.x, fz.x)
+	if camera_role == "player":
+		focus_point = _clamp_focus_to_world_bounds(focus_point, current_distance, current_pitch, current_yaw)
 	_vel_focus = Vector3(fx.y, fy.y, fz.y)
 
 	update_camera_transform()
@@ -703,7 +779,8 @@ func get_view_state() -> Dictionary:
 
 func apply_view_state(state: Dictionary, instant: bool = false) -> void:
 	target_focus = state.get("focus",target_focus)
-	target_distance = float(state.get("distance",target_distance))
+	var st_bounds := _effective_zoom_bounds(current_zone_id)
+	target_distance = clampf(float(state.get("distance",target_distance)), st_bounds.x, st_bounds.y)
 	target_pitch = clampf(float(state.get("pitch",target_pitch)),5.0,25.0)
 	orbit_step = clampf(float(state.get("orbit",orbit_step)),-2.0,2.0)
 	room_front_offset = float(state.get("front",0.0))
@@ -753,7 +830,8 @@ func _load_preferences() -> void:
 	target_pitch = clampf(float(config.get_value(section,"pitch",25.0)),5.0,25.0)
 	current_pitch = target_pitch
 	orbit_step = clampf(float(config.get_value(section,"orbit",0.0)),-2.0,2.0)
-	target_distance = clampf(float(config.get_value(section,"distance",default_distance)),min_distance,max_distance)
+	var pref_bounds := _effective_zoom_bounds(current_zone_id)
+	target_distance = clampf(float(config.get_value(section,"distance",default_distance)),pref_bounds.x,pref_bounds.y)
 	current_distance = target_distance
 	_last_inside_zone = bool(config.get_value(section,"inside",false))
 	_interior_initialized = true
@@ -810,7 +888,7 @@ func _handle_touch(event: InputEvent) -> bool:
 			_touch_axis = "zoom" if absf(span-_touch_start_span)>travel.length() else ("orbit" if absf(travel.x)>=absf(travel.y) else "tilt")
 		match _touch_axis:
 			"zoom":
-				var bounds := get_zone_zoom_limits(current_zone_id)
+				var bounds := _effective_zoom_bounds(current_zone_id)
 				target_distance = clampf(_touch_start_distance*_touch_start_span/span,bounds.x,bounds.y)
 				is_overview = false
 			"orbit":

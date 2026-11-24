@@ -3,7 +3,9 @@ const Finish=preload("res://character_sheet/header_finish.gd")
 static var sprites: Array[Texture2D]=[]
 class Backing extends Node2D:
 	func _draw() -> void:
-		Finish.Paint.nine(self,Finish.piece(0),Rect2(Vector2.ZERO,get_parent().size),Vector2(25,14),Vector2(.18,.26))
+		var rect=Rect2(Vector2.ZERO,get_parent().size)
+		Finish.Paint.drop_shadow(self,rect,7,3.0)
+		Finish.Paint.nine(self,Finish.piece(0),rect,Vector2(25,14),Vector2(.18,.26))
 class Heart extends TextureRect:
 	var frames: Array[Texture2D]=[]
 	var elapsed: float=0

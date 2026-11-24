@@ -1,13 +1,68 @@
 class_name TacticalGridOverlay
 extends "res://player/walkable_grid.gd"
+const Structure = preload("res://scripts/camp_structure.gd")
 var show_grid := true
 var outdoor_subtle_sage := false
 
 func build_for_scene(scene_def: Dictionary) -> void:
-	outdoor_subtle_sage = str(scene_def.get("id", "")) != "camp-a1-rooms"
+	var sid := str(scene_def.get("id", ""))
+	outdoor_subtle_sage = sid != "camp-a1-rooms"
 	var source: Array = []
+	var seen: Dictionary = {}
 	for cell in scene_def.get("walkable", []):
-		source.append(square(int(cell.col), int(cell.row)))
+		var k := Vector2i(int(cell.col), int(cell.row))
+		if not seen.has(k):
+			seen[k] = true
+			var sq := square(k.x, k.y)
+			if sid == "camp-forest-pleamar":
+				var wp := Vector3((float(k.x) + 0.5) * TILE, 0.0, (float(k.y) + 0.5) * TILE)
+				var is_w := str(cell.get("medium", "solid")) == "water" or str(cell.get("materialId", "")) == "water" or Structure.is_water_at(wp, scene_def)
+				if is_w and not Structure.is_on_forest_bridge(wp):
+					# Shallow creek is wadeable, but automatic pathfinding strongly prefers the dry footbridge (Paso 5.13)
+					sq["movement_cost"] = 5.0
+					sq["is_shallow_water"] = true
+			source.append(sq)
+	if sid == "camp-forest-pleamar":
+		# Extended tactical grid along curved North Pleamar road, South Pleamar road, and West bridge trail (#2, Paso 7)
+		for r_n in range(-24, 0):
+			var zn := (float(r_n) + 0.5) * TILE
+			var txn := 19.6
+			if zn >= -8.5:
+				txn = lerpf(19.6, 17.8, clampf((4.5 - zn) / 13.0, 0.0, 1.0))
+			elif zn >= -24.0:
+				txn = lerpf(17.8, 22.8, clampf((-8.5 - zn) / 15.5, 0.0, 1.0))
+			else:
+				txn = lerpf(22.8, 21.2, clampf((-24.0 - zn) / 24.0, 0.0, 1.0))
+			var cn := int(round(txn / TILE))
+			for dc in range(-1, 2):
+				var kn := Vector2i(cn + dc, r_n)
+				if not seen.has(kn):
+					seen[kn] = true
+					source.append(square(kn.x, kn.y))
+		var base_rows := int(scene_def.get("rows", 22))
+		for r_s in range(base_rows, base_rows + 24):
+			var zs := (float(r_s) + 0.5) * TILE
+			var txs := lerpf(20.6, 24.0, clampf((zs - 30.5) / 17.5, 0.0, 1.0)) if zs <= 48.0 else lerpf(24.0, 21.8, clampf((zs - 48.0) / 28.0, 0.0, 1.0))
+			var cs := int(round(txs / TILE))
+			for dc in range(-1, 2):
+				var ks := Vector2i(cs + dc, r_s)
+				if not seen.has(ks):
+					seen[ks] = true
+					source.append(square(ks.x, ks.y))
+		for c_w in range(-16, 3):
+			var xw := (float(c_w) + 0.5) * TILE
+			var bzw := 17.0 if xw >= -2.2 else (lerpf(17.5, 16.2, clampf((-2.2 - xw) / 13.3, 0.0, 1.0)) if xw >= -15.5 else lerpf(16.2, 19.2, clampf((-15.5 - xw) / 14.5, 0.0, 1.0)))
+			var rw_c := int(round(bzw / TILE))
+			for dr in range(-1, 2):
+				var kw := Vector2i(c_w, rw_c + dr)
+				if not seen.has(kw):
+					seen[kw] = true
+					var sq_w := square(kw.x, kw.y)
+					var wpw := Vector3((float(kw.x) + 0.5) * TILE, 0.0, (float(kw.y) + 0.5) * TILE)
+					if Structure.is_water_at(wpw, scene_def) and not Structure.is_on_forest_bridge(wpw):
+						sq_w["movement_cost"] = 5.0
+						sq_w["is_shallow_water"] = true
+					source.append(sq_w)
 	configure(source)
 
 func _rebuild(version: int) -> void:

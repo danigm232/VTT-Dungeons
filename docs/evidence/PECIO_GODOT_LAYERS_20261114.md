@@ -118,3 +118,11 @@ Se intentó comprobar la interacción en Chrome conectado. La URL loopback no re
 ## Cámara actualizada — 14/11/2026
 
 La cámara vigente y sus nuevas pruebas se registran en [Cámaras Godot](GODOT_CAMERAS_20261114.md). Esta actualización sustituye los valores de cámara anteriores de esta ficha y conserva el mapa, arte y contratos existentes.
+
+## Micromejoras visuales transversales y océano/bloom — 19/11/2026
+
+- **Cambios en `prototypes/godot-pecio/`:**
+  - `shaders/ocean_water.gdshader` + `scripts/ship_environment.gd`: añadidos `fresnel_sky_color`, `distant_color_tint` y `fresnel_strength` conducidos por hora (`day`/`dusk`/`night`) y clima (`overcast`), junto con `ground_bottom_color`.
+  - `scenes/main.tscn`: calibración inicial de `Environment_1` (`glow_intensity = 0.32`, `glow_strength = 0.85`, `glow_bloom = 0.045`).
+  - `scripts/player_token.gd` y `scripts/map_exit.gd`: sombra `ContactShadow` proporcionada a estatura y altura aérea, pulso + sigilo sin emisión saturada en `SelectionRing`, y balanceo pendular suave en `dragon_plaque` respetando `SkillLoading.reduced`.
+- **Verificación tras el último cambio (`task-1998`):** `test_ship_environment.gd` **2210 PASS / 0 FAIL**, `test_character_animations.gd` **EXIT=0**, `test_vtt_interfaces.gd` **57 PASS / 0 FAIL**, `test_camera_contract.gd` **49 PASS / 0 FAIL** (`test_pecio_integrity.gd` falla 8 comprobaciones previas de capas `Grid_C1..Grid_C10` ajenas a esta entrega). Capturas Forward+ `1440×810` en [`output/micro-visual-improvements-20261119/index.html`](../../output/micro-visual-improvements-20261119/index.html). Aceptación visual y pruebas físicas pendientes.

@@ -4,6 +4,10 @@ Encargo autorizado: [texto completo del usuario](CHARACTER_MODULAR_REQUEST_20261
 
 ## Estado actual del trabajo
 
+### Habitantes del Retiro — 24/11/2026
+
+El registro del Retiro usa las doce apariencias con reposo ya existentes. Se añadieron ocho clips de ocho fases para el saludo, estudio y meditación de Runara, herbolaria de Tarak, mantenimiento de Varnoth, taller de Myla y Laylee y ofrenda de Rix. El recorte registra las suelas, mantiene el PNG original por hash y conserva una vista pintada por gesto. Almacena poses, referencias y compatibilidades en `characters/definitions/animations/sw-*.json`. [Registro por recurso y capturas nativas](../../output/retreat-residents-20261124/index.html).
+
 ### Campamentos · postura tumbada con manta — 18/11/2026
 
 Las definiciones `sw-mia-rest-on-bed`, `sw-mike-rest-on-bed` y `sw-maria-rest-on-bed` declaran el relieve proporcional y los acabados de la manta. Se reutilizan los PNG y la textura de lana ya instalada. Godot extrae el contorno al cargar la pose. El cuerpo visible recibe luz y admite el overlay de estado. La tela se ajusta al ancho y longitud útil del lecho con una malla y un material propios. [Capturas nativas y registro por recurso](../../output/stormwreck-bed-rest/volume/index.html).

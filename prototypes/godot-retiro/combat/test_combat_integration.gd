@@ -67,19 +67,24 @@ func run() -> void:
 	combat.rules.submit(4,"aoife","integration-damage")
 	check(hero.action_anim_name=="spell" and combat.rules.actors["anteros-temple"].hp==67,"final resolution animates and applies damage once")
 	combat.rules.next_turn("aoife"); combat.rules.next_turn("anteros-temple")
+	var available_slots:=int(combat.rules.actors.aoife.resources["spell-slot-1"].current)
 	combat.choose_action("fog-cloud"); var point: Vector3=hero.global_position+hero.get_parent().global_basis*Vector3(1.5,0,0); combat.declare_target("",point)
 	check(combat.rules.pending.get("kind","")=="guided","fog requires DM confirmation")
 	combat.rules.submit(1,"aoife","integration-fog")
 	await process_frame
 	check(combat.visuals.clouds.has("aoife") and combat.visuals.clouds.aoife.get_child_count()==18,"fog uses transparent world sprites rather than an opaque square")
+	check(combat.rules.actors.aoife.resources["spell-slot-1"].current==available_slots-1,"resolved physical casting spends one shared slot")
 	ui.set_role("dm")
-	var save_path:=ProjectSettings.globalize_path("res://../../output/godot-combat-integration-"+("retiro" if ui.is_retreat else "pecio")+".save")
+	var save_path:="user://godot-combat-integration.save"
 	combat.save_local(save_path); var saved_position:=hero.position; hero.position+=Vector3(9,0,0)
 	combat.restore_local(save_path)
 	check(hero.position.is_equal_approx(saved_position) and combat.rules.effects.size()==1,"isolated save restores combat position and concentration")
 	combat.rules.end_concentration("aoife"); await process_frame
 	check(combat.visuals.clouds.is_empty(),"ending concentration removes actual fog nodes")
-	combat.rules.damage("anteros-temple",100,"radiante"); combat.rules._auto_end(); await process_frame
+	combat.rules.damage("anteros-temple",100,"radiante"); combat.rules._auto_end()
+	var limit:=Time.get_ticks_msec()+3500
+	while not combat.visuals.pools.has("anteros-temple") and Time.get_ticks_msec()<limit:
+		await process_frame
 	check(not combat.rules.active and enemy.is_visible_in_tree() and enemy.is_defeated,"last enemy ends combat and remains visible as a body")
 	check(combat.visuals.pools.has("anteros-temple") and not enemy.is_physics_processing(),"fallen body has overlay and no blocking live physics")
 	combat.rules.damage("aoife",4,"fuerza")

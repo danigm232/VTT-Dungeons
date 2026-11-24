@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-runara-meditate",
+  "character": "sw-runara",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "retreat_meditate",
+  "direction": "se",
+  "fps": 6,
+  "loop": false,
+  "dependencies": [
+    "sw-runara"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "standing feet registered; one authored view"
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/01.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/02.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/03.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/04.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/05.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/06.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/07.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/08.png"
+  ],
+  "production": {
+    "method": "built-in ImageGen with existing character reference; native-size independent sprites",
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/runara.png",
+    "minimumVisibleStandingPixels": 235,
+    "prompt": "Game asset, identity-preserving illustration. The supplied project art is identity and style reference. Elderly human appearance with warm brown skin, long white braid and humble ivory robe with rope belt. Use the exact character design in the supplied reference. Make a single transparent RGBA animation sheet (3:2, target 1536 x 1024), exactly 4 equally spaced columns x 2 rows, each cell one whole separate full-body character. Read left to right then next row, no text, labels, lines, scenery, shadows, or panels. Leave at least 15 px of gutter clearance around each complete subject. Orthographic tactical fixed camera, same direction across all eight poses, identical head size, silhouette weight and feet baseline; draw the subject about 80 percent of each cell height, highest available native detail. Hand-painted inked game art that matches this character image. Quiet standing prayer, small peaceful animation: 1 hands loosely at waist; 2 brings both hands together; 3 lifts hands to chest; 4 lowers chin with eyes almost closed; 5 still, gently bows a little more; 6 rises; 7 uncouples hands; 8 recovers the relaxed stance. Feet stable and full-length robe, no light magic or dragon shapes.",
+    "sourcePages": [
+      8,
+      11
+    ],
+    "expectedPhases": 8,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-runara-meditate-785c7d412c11.png",
+    "originalSha256": "785c7d412c114a063a019d93838a7a47ccde2e0f5a7d52d95c1411ba42540423",
+    "importReport": "output/stormwreck-motion-detail/sw-runara-meditate-785c7d412c11.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 450,
+  "pivot": [
+    0.5,
+    0.9141221374045801
+  ]
+}

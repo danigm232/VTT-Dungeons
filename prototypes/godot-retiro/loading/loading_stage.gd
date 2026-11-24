@@ -257,7 +257,10 @@ func _draw_prop(prop: Dictionary, motion: Dictionary, character: String) -> void
 		floating = art == "owl"
 		if art != "owl": pos = Vector2(prop.x + (83 * progress if success else 400 * progress), 202)
 	if not floating and not art.begins_with("tracks-"): _shadow(Vector2(pos.x, 202), 35 * motion.scale, motion.opacity)
-	_transform(pos, motion.tilt, Vector2(motion.facing, 1) * motion.scale)
+	# Applause frames face right; the audience stands to the musician's right.
+	# Mirror only this authored row, preserving ambient and departing poses.
+	var facing = -motion.facing if art == "audience" and success and phase not in ["ambient", "roll", "prepare"] else motion.facing
+	_transform(pos, motion.tilt, Vector2(facing, 1) * motion.scale)
 	var tint = Color(1, 1, 1, motion.opacity)
 	var cycle = int(clock * 3.8) % 4
 	var cue = float(motion.cue)

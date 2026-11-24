@@ -8,8 +8,8 @@ const IVORY=Color("#f4e5c8")
 static var images: Dictionary={}
 static var title_font: Font
 static var body_font: Font
-static var icon_atlas: Image
-static var item_atlas: Image
+const Native=preload("res://character_sheet/manuscript_controls.gd")
+const Symbols=preload("res://character_sheet/sheet_symbols.gd")
 const EXTRA_ICONS=["backpack","gold","potion","mace","handaxe","shortbow","dagger","frost","healing","bless","wand","spellbook","feather","stealth","key","holy","wizard","soldier","chainmail","gloves","torch","lantern","shield","hourglass"]
 static func texture(file: String) -> Texture2D:
 	if not images.has(file):
@@ -19,14 +19,14 @@ static func texture(file: String) -> Texture2D:
 static func font(heading: bool=false) -> Font:
 	if not title_font:
 		title_font=_bundled_font("Cinzel.ttf",600)
-		body_font=_bundled_font("CrimsonPro.ttf",500)
+		body_font=_bundled_font("CrimsonPro.ttf",460)
 	return title_font if heading else body_font
 static func _bundled_font(file: String,weight: int) -> Font:
 	var raw=FontFile.new(); raw.data=FileAccess.get_file_as_bytes("res://character_sheet/fonts/"+file)
-	var variation=FontVariation.new(); variation.base_font=raw; variation.variation_opentype={"wght":weight}
+	var variation=FontVariation.new(); variation.base_font=raw; variation.variation_opentype={0x77676874:weight}
 	return variation
 static func label(text: String,points: int=16,heading: bool=false,color: Color=INK) -> Label:
-	var l=Label.new(); l.text=text; l.add_theme_font_override("font",font(heading)); l.add_theme_font_size_override("font_size",points); l.add_theme_color_override("font_color",color); l.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	var l=Native.HintLabel.new(); l.text=text; l.add_theme_font_override("font",font(heading)); l.add_theme_font_size_override("font_size",points); l.add_theme_color_override("font_color",color); l.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	return l
 static func wrapped(text: String,points: int=15) -> Label:
 	var l=label(text,points); l.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; l.size_flags_horizontal=Control.SIZE_EXPAND_FILL
@@ -69,44 +69,9 @@ static func heading(parent: Node,text: String,icon_name: String="book") -> void:
 	var image=TextureRect.new(); image.texture=icon(icon_name); image.custom_minimum_size=Vector2(24,24); image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED; row.add_child(image)
 	var title=label(text,19,true,IVORY); title.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; title.size_flags_horizontal=Control.SIZE_EXPAND_FILL; row.add_child(title)
 static func icon(key: String) -> Texture2D:
-	if images.has(key): return images[key]
-	var extra=EXTRA_ICONS.find(key)
-	if extra>=0:
-		if not item_atlas: item_atlas=Image.load_from_file(ProjectSettings.globalize_path("res://character_sheet/art/v2/icons-v2.png"))
-		images[key]=_atlas_region(item_atlas,extra,6,4); return images[key]
-	var keys=["heart","shield","speed","initiative","star","sword","book","magic","history","die","eye","hand"]
-	var atlas_path=ProjectSettings.globalize_path("res://character_sheet/art/engraved-icons.png")
-	if FileAccess.file_exists(atlas_path):
-		if not icon_atlas: icon_atlas=Image.load_from_file(atlas_path)
-		var index=maxi(0,keys.find(key)); var column=index%4; var row=floori(float(index)/4)
-		var x0=roundi(float(icon_atlas.get_width())*column/4); var x1=roundi(float(icon_atlas.get_width())*(column+1)/4)
-		var y0=roundi(float(icon_atlas.get_height())*row/3); var y1=roundi(float(icon_atlas.get_height())*(row+1)/3)
-		var tile=icon_atlas.get_region(Rect2i(x0,y0,x1-x0,y1-y0))
-		# Remove barely transparent export colour fringes; keep the original atlas untouched.
-		for y in range(tile.get_height()):
-			for x in range(tile.get_width()):
-				if tile.get_pixel(x,y).a<.125: tile.set_pixel(x,y,Color.TRANSPARENT)
-		var used=tile.get_used_rect()
-		if used.has_area(): tile=tile.get_region(used)
-		tile.generate_mipmaps(); images[key]=ImageTexture.create_from_image(tile); return images[key]
-	var paths={
-		"heart":"M16 28C-5 15 6-4 16 7 26-4 37 15 16 28Z",
-		"shield":"M16 2 28 6v10c-1 6-7 11-12 14C11 27 5 22 4 16V6L16 2Zm0 5v18M9 12h14",
-		"speed":"m4 27 9-10-3-5 6-7 5 3-3 6 8 3-2 5-10-4m0 0 5-7M22 2l5 2",
-		"initiative":"M8 2h16M8 30h16M10 3c0 12 12 14 12 26M22 3C22 15 10 16 10 29M11 7h10m-10 18h10",
-		"star":"m16 2 4 9 10 1-8 7 2 11-8-6-8 6 2-11-8-7 10-1 4-9Z",
-		"sword":"m4 29 7-7m-6-5 10 10m-5-6L25 3l4-1-1 5-16 17",
-		"book":"M16 7C9 2 5 2 2 3v23c4-1 9 0 14 4 5-4 10-5 14-4V3c-5-1-9 0-14 4Zm0 0v23M6 9l6 2m-6 4 6 2m8-6 6-2m-6 8 6-2",
-		"magic":"m16 1 3 10 10 5-10 4-3 11-4-11-11-4 11-5 4-10Z",
-		"history":"M7 3h20l-2 5v20H5l2-5V3Zm-3 0h7m2 6h9m-9 5h9m-9 5h6",
-		"die":"m16 1 14 8v15l-14 7-14-7V9l14-8Zm0 0v30M2 9l14 7 14-7M2 24l14-8 14 8",
-		"eye":"M1 16c9-14 21-14 30 0-9 14-21 14-30 0Zm10 0a5 5 0 1 0 10 0 5 5 0 0 0-10 0",
-		"hand":"M6 29V15l-4-3 2-4 6 5V4l3-2 2 11 1-12h3l1 12 2-10h3v14l4-4 2 3-6 13H6Z"}
-	var path: String=paths.get(key,paths.star)
-	var svg='<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 32 32"><path d="'+path+'" fill="#b68a42" fill-opacity=".8" stroke="#65451e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-	var im=Image.new(); im.load_svg_from_string(svg); images[key]=ImageTexture.create_from_image(im); return images[key]
+	return Symbols.icon(key)
 static func has_icon(key: String) -> bool:
-	return key in EXTRA_ICONS or key in ["heart","speed","initiative","star","sword","book","magic","history","die","eye","hand"]
+	return Symbols.catalogue().has(key)
 static func _atlas_region(atlas: Image,index: int,columns: int,rows: int) -> Texture2D:
 	var column=index%columns; var row=floori(float(index)/columns)
 	var x0=roundi(float(atlas.get_width())*column/columns); var x1=roundi(float(atlas.get_width())*(column+1)/columns)
@@ -124,7 +89,7 @@ class FrameArt extends Node2D:
 	var border: int=16
 	var border_y: int=-1
 	var draw_center: bool=true
-	var file: String="manuscript-frame.png"
+	var file: String="foundation/binding.png"
 	var source_edge=Vector2(196,178)
 	func _draw() -> void:
 		var p=get_parent() as Control

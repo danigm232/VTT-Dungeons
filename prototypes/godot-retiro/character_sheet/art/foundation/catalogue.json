@@ -1,0 +1,881 @@
+{
+  "symbols": {
+    "heart": {
+      "source": "v4/illustrated-icons.png",
+      "bounds": [
+        38,
+        12,
+        328,
+        314
+      ],
+      "cell": 0,
+      "visible": [
+        7,
+        6,
+        89,
+        91
+      ]
+    },
+    "shield": {
+      "source": "v4/illustrated-icons.png",
+      "bounds": [
+        368,
+        13,
+        620,
+        316
+      ],
+      "cell": 1,
+      "visible": [
+        13,
+        7,
+        83,
+        91
+      ]
+    },
+    "speed": {
+      "source": "v4/illustrated-icons.png",
+      "bounds": [
+        654,
+        14,
+        961,
+        304
+      ],
+      "cell": 2,
+      "visible": [
+        4,
+        7,
+        90,
+        88
+      ]
+    },
+    "initiative": {
+      "source": "v4/illustrated-icons.png",
+      "bounds": [
+        1022,
+        18,
+        1255,
+        312
+      ],
+      "cell": 3,
+      "visible": [
+        15,
+        7,
+        81,
+        90
+      ]
+    },
+    "star": {
+      "source": "v4/illustrated-icons.png",
+      "bounds": [
+        1296,
+        13,
+        1607,
+        314
+      ],
+      "cell": 4,
+      "visible": [
+        5,
+        7,
+        91,
+        90
+      ]
+    },
+    "hand": {
+      "source": "v4/illustrated-icons.png",
+      "bounds": [
+        53,
+        339,
+        279,
+        613
+      ],
+      "cell": 5,
+      "visible": [
+        13,
+        6,
+        82,
+        90
+      ]
+    },
+    "dexterity": {
+      "source": "v4/illustrated-icons.png",
+      "bounds": [
+        335,
+        332,
+        595,
+        614
+      ],
+      "cell": 6,
+      "visible": [
+        9,
+        4,
+        89,
+        91
+      ]
+    },
+    "book": {
+      "source": "v4/illustrated-icons.png",
+      "bounds": [
+        627,
+        362,
+        966,
+        609
+      ],
+      "cell": 7,
+      "visible": [
+        7,
+        19,
+        90,
+        79
+      ]
+    },
+    "eye": {
+      "source": "v4/illustrated-icons.png",
+      "bounds": [
+        989,
+        337,
+        1271,
+        608
+      ],
+      "cell": 8,
+      "visible": [
+        5,
+        7,
+        91,
+        90
+      ]
+    },
+    "history": {
+      "source": "v4/illustrated-icons.png",
+      "bounds": [
+        1313,
+        342,
+        1573,
+        600
+      ],
+      "cell": 9,
+      "visible": [
+        8,
+        8,
+        90,
+        89
+      ]
+    },
+    "feather": {
+      "source": "v4/illustrated-icons.png",
+      "bounds": [
+        46,
+        636,
+        311,
+        928
+      ],
+      "cell": 10,
+      "visible": [
+        9,
+        5,
+        88,
+        92
+      ]
+    },
+    "magic": {
+      "source": "v4/illustrated-icons.png",
+      "bounds": [
+        355,
+        625,
+        588,
+        928
+      ],
+      "cell": 11,
+      "visible": [
+        15,
+        4,
+        81,
+        90
+      ]
+    },
+    "casting": {
+      "source": "v4/illustrated-icons.png",
+      "bounds": [
+        654,
+        639,
+        920,
+        910
+      ],
+      "cell": 12,
+      "visible": [
+        7,
+        7,
+        89,
+        91
+      ]
+    },
+    "die": {
+      "source": "v4/illustrated-icons.png",
+      "bounds": [
+        991,
+        635,
+        1241,
+        914
+      ],
+      "cell": 13,
+      "visible": [
+        11,
+        7,
+        85,
+        90
+      ]
+    },
+    "leaf": {
+      "source": "v4/illustrated-icons.png",
+      "bounds": [
+        1313,
+        632,
+        1588,
+        918
+      ],
+      "cell": 14,
+      "visible": [
+        7,
+        5,
+        91,
+        92
+      ]
+    },
+    "short-sword": {
+      "source": "v5/action-icons.png",
+      "bounds": [
+        60,
+        25,
+        342,
+        322
+      ],
+      "cell": 15,
+      "visible": [
+        7,
+        4,
+        91,
+        92
+      ]
+    },
+    "arcane-missiles": {
+      "source": "v5/action-icons.png",
+      "bounds": [
+        374,
+        36,
+        705,
+        327
+      ],
+      "cell": 16,
+      "visible": [
+        4,
+        11,
+        91,
+        87
+      ]
+    },
+    "burning-hands": {
+      "source": "v5/action-icons.png",
+      "bounds": [
+        725,
+        9,
+        1080,
+        344
+      ],
+      "cell": 17,
+      "visible": [
+        5,
+        8,
+        90,
+        88
+      ]
+    },
+    "arcane-barrier": {
+      "source": "v5/action-icons.png",
+      "bounds": [
+        1107,
+        16,
+        1420,
+        328
+      ],
+      "cell": 18,
+      "visible": [
+        5,
+        6,
+        91,
+        92
+      ]
+    },
+    "magic-detection": {
+      "source": "v5/action-icons.png",
+      "bounds": [
+        8,
+        339,
+        354,
+        670
+      ],
+      "cell": 19,
+      "visible": [
+        6,
+        8,
+        91,
+        89
+      ]
+    },
+    "sacred-flame": {
+      "source": "v5/action-icons.png",
+      "bounds": [
+        390,
+        343,
+        697,
+        671
+      ],
+      "cell": 20,
+      "visible": [
+        7,
+        4,
+        89,
+        92
+      ]
+    },
+    "help": {
+      "source": "v5/action-icons.png",
+      "bounds": [
+        712,
+        335,
+        1073,
+        669
+      ],
+      "cell": 21,
+      "visible": [
+        4,
+        9,
+        91,
+        89
+      ]
+    },
+    "dodge": {
+      "source": "v5/action-icons.png",
+      "bounds": [
+        1080,
+        349,
+        1441,
+        664
+      ],
+      "cell": 22,
+      "visible": [
+        5,
+        11,
+        91,
+        86
+      ]
+    },
+    "disengage": {
+      "source": "v5/action-icons.png",
+      "bounds": [
+        27,
+        702,
+        356,
+        1031
+      ],
+      "cell": 23,
+      "visible": [
+        4,
+        5,
+        91,
+        92
+      ]
+    },
+    "dash": {
+      "source": "v5/action-icons.png",
+      "bounds": [
+        369,
+        688,
+        710,
+        1024
+      ],
+      "cell": 24,
+      "visible": [
+        5,
+        5,
+        91,
+        90
+      ]
+    },
+    "hide": {
+      "source": "v5/action-icons.png",
+      "bounds": [
+        730,
+        703,
+        1082,
+        1035
+      ],
+      "cell": 25,
+      "visible": [
+        6,
+        9,
+        90,
+        88
+      ]
+    },
+    "concentration": {
+      "source": "v5/action-icons.png",
+      "bounds": [
+        1103,
+        680,
+        1429,
+        1035
+      ],
+      "cell": 26,
+      "visible": [
+        8,
+        5,
+        88,
+        92
+      ]
+    },
+    "backpack": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        14,
+        15,
+        264,
+        246
+      ],
+      "cell": 27,
+      "visible": [
+        6,
+        9,
+        89,
+        86
+      ]
+    },
+    "gold": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        294,
+        48,
+        523,
+        242
+      ],
+      "cell": 28,
+      "visible": [
+        7,
+        12,
+        91,
+        83
+      ]
+    },
+    "potion": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        565,
+        19,
+        751,
+        257
+      ],
+      "cell": 29,
+      "visible": [
+        15,
+        4,
+        81,
+        89
+      ]
+    },
+    "mace": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        805,
+        9,
+        1011,
+        254
+      ],
+      "cell": 30,
+      "visible": [
+        10,
+        4,
+        84,
+        92
+      ]
+    },
+    "handaxe": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        1043,
+        18,
+        1253,
+        255
+      ],
+      "cell": 31,
+      "visible": [
+        9,
+        4,
+        87,
+        92
+      ]
+    },
+    "shortbow": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        1331,
+        16,
+        1491,
+        261
+      ],
+      "cell": 32,
+      "visible": [
+        22,
+        4,
+        79,
+        92
+      ]
+    },
+    "dagger": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        61,
+        264,
+        241,
+        500
+      ],
+      "cell": 33,
+      "visible": [
+        14,
+        4,
+        81,
+        92
+      ]
+    },
+    "frost": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        293,
+        266,
+        492,
+        490
+      ],
+      "cell": 34,
+      "visible": [
+        10,
+        4,
+        86,
+        89
+      ]
+    },
+    "healing": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        550,
+        266,
+        744,
+        497
+      ],
+      "cell": 35,
+      "visible": [
+        12,
+        5,
+        85,
+        92
+      ]
+    },
+    "bless": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        785,
+        266,
+        999,
+        495
+      ],
+      "cell": 36,
+      "visible": [
+        7,
+        4,
+        89,
+        92
+      ]
+    },
+    "wand": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        1038,
+        263,
+        1236,
+        499
+      ],
+      "cell": 37,
+      "visible": [
+        9,
+        4,
+        83,
+        92
+      ]
+    },
+    "spellbook": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        1270,
+        288,
+        1524,
+        482
+      ],
+      "cell": 38,
+      "visible": [
+        7,
+        18,
+        89,
+        81
+      ]
+    },
+    "quill": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        38,
+        513,
+        249,
+        741
+      ],
+      "cell": 39,
+      "visible": [
+        8,
+        4,
+        89,
+        92
+      ]
+    },
+    "stealth": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        284,
+        512,
+        508,
+        752
+      ],
+      "cell": 40,
+      "visible": [
+        9,
+        5,
+        87,
+        89
+      ]
+    },
+    "key": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        537,
+        519,
+        733,
+        740
+      ],
+      "cell": 41,
+      "visible": [
+        8,
+        4,
+        86,
+        92
+      ]
+    },
+    "holy": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        781,
+        508,
+        1007,
+        739
+      ],
+      "cell": 42,
+      "visible": [
+        8,
+        7,
+        89,
+        90
+      ]
+    },
+    "wizard": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        1018,
+        510,
+        1259,
+        731
+      ],
+      "cell": 43,
+      "visible": [
+        4,
+        6,
+        90,
+        85
+      ]
+    },
+    "soldier": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        1294,
+        503,
+        1509,
+        738
+      ],
+      "cell": 44,
+      "visible": [
+        10,
+        6,
+        87,
+        90
+      ]
+    },
+    "chainmail": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        17,
+        757,
+        272,
+        1007
+      ],
+      "cell": 45,
+      "visible": [
+        6,
+        8,
+        90,
+        90
+      ]
+    },
+    "gloves": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        295,
+        766,
+        501,
+        1004
+      ],
+      "cell": 46,
+      "visible": [
+        12,
+        6,
+        85,
+        90
+      ]
+    },
+    "torch": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        566,
+        740,
+        722,
+        1010
+      ],
+      "cell": 47,
+      "visible": [
+        24,
+        4,
+        75,
+        92
+      ]
+    },
+    "lantern": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        809,
+        747,
+        968,
+        1009
+      ],
+      "cell": 48,
+      "visible": [
+        22,
+        4,
+        74,
+        89
+      ]
+    },
+    "heraldic-shield": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        1037,
+        748,
+        1237,
+        1009
+      ],
+      "cell": 49,
+      "visible": [
+        16,
+        8,
+        80,
+        91
+      ]
+    },
+    "hourglass": {
+      "source": "v2/icons-v2.png",
+      "bounds": [
+        1303,
+        755,
+        1475,
+        999
+      ],
+      "cell": 50,
+      "visible": [
+        19,
+        6,
+        78,
+        90
+      ]
+    },
+    "sword": {
+      "source": "engraved-icons.png",
+      "bounds": [
+        400,
+        383,
+        686,
+        685
+      ],
+      "cell": 51,
+      "visible": [
+        7,
+        4,
+        90,
+        92
+      ]
+    },
+    "throw-dagger": {
+      "source": "v2/icons-v2.png",
+      "derivedFrom": "dagger",
+      "treatment": "engraved motion trails",
+      "cell": 52,
+      "visible": [
+        10,
+        8,
+        84,
+        88
+      ]
+    },
+    "throw-handaxe": {
+      "source": "v2/icons-v2.png",
+      "derivedFrom": "handaxe",
+      "treatment": "engraved motion trails",
+      "cell": 53,
+      "visible": [
+        8,
+        9,
+        87,
+        89
+      ]
+    }
+  },
+  "sources": {
+    "v4/illustrated-icons.png": "20b2298522833c2d64ef5bc4faa0b5565fa780006ad236b66fca2ec27a3fde90",
+    "v5/action-icons.png": "bb7f4e6b86fdd296c4f6762e9b4060271cf6d155fbba081319dca15502e6b107",
+    "v2/icons-v2.png": "57c236a5cb2be67cc44c01771b1aa4242441af82ebe6c66f888ca787179e51ee",
+    "engraved-icons.png": "7b7943c53d0002c8d23f317615f3974959d808182c87e3afc94580721905e72e",
+    "manuscript-frame.png": "6a0a824200a95547bd4e6481e32332335a9034e7747498b42d58201f764da8c6",
+    "v7/royal-controls.png": "fd824f02a3f0a2eaa3ba1c9d953119edb032d7d2e2e7583e184db3f2b7e4e8a3",
+    "v5/paper.png": "b248c1258bedf854fb5bb82dfe59f28aa5d06b97244edb9f774d8e5d1a5b753e",
+    "v5/ink-places.png": "2000661918e2895d91d62ec06353dea2777e6f2b815b1ca3a9c66f8a60588190",
+    "v2/mia-stage.png": "1def606d13f7256d180d970e62e4d782cb213aacd38155a337ee52af007a5e0c"
+  },
+  "themes": [
+    "mountains",
+    "keep",
+    "ruins",
+    "forest",
+    "library",
+    "coast",
+    "temple"
+  ],
+  "scope": "UI, ornamental frames and printed scenery"
+}

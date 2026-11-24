@@ -18,10 +18,10 @@ func _ready() -> void:
 	viewport.scaling_3d_mode=Viewport.SCALING_3D_MODE_BILINEAR; viewport.scaling_3d_scale=1.0
 	stage=Node3D.new(); viewport.add_child(stage)
 	camera=Camera3D.new(); camera.projection=Camera3D.PROJECTION_ORTHOGONAL; camera.size=2.35; camera.position=Vector3(0,.98,5); camera.current=true; viewport.add_child(camera)
-	var light=DirectionalLight3D.new(); light.rotation_degrees=Vector3(-30,-25,0); light.light_energy=.8; viewport.add_child(light)
+	var light=DirectionalLight3D.new(); light.rotation_degrees=Vector3(-30,-25,0); light.light_energy=.74; viewport.add_child(light)
 	for side in [-1,1]:
-		var warm=OmniLight3D.new(); warm.position=Vector3(side*1.1,1.3,1); warm.light_color=Color("#ffd099"); warm.light_energy=.35; warm.omni_range=4; viewport.add_child(warm)
-	var env=WorldEnvironment.new(); var settings=Environment.new(); settings.background_mode=Environment.BG_CLEAR_COLOR; settings.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR; settings.ambient_light_color=Color("#fff1d5"); settings.ambient_light_energy=.7; env.environment=settings; viewport.add_child(env)
+		var warm=OmniLight3D.new(); warm.position=Vector3(side*1.1,1.3,1); warm.light_color=Color("#ffcf9a"); warm.light_energy=.28 if side<0 else .16; warm.omni_range=4; viewport.add_child(warm)
+	var env=WorldEnvironment.new(); var settings=Environment.new(); settings.background_mode=Environment.BG_CLEAR_COLOR; settings.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR; settings.ambient_light_color=Color("#fff8e9"); settings.ambient_light_energy=.63; env.environment=settings; viewport.add_child(env)
 func bind(body: Node3D) -> void:
 	if body==token: return
 	token=body

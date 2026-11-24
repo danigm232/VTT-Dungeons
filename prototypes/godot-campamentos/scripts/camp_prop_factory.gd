@@ -9,6 +9,42 @@ extends RefCounted
 const MatKit = preload("res://scripts/camp_material_kit.gd")
 const EnvKit = preload("res://scripts/camp_environment_kit.gd")
 
+static var _prop_ao_tex: Texture2D
+static var _prop_ao_mats: Dictionary = {}
+
+static func _add_prop_contact_ao(parent: Node3D, node_name: String, pos: Vector3, size_xz: Vector2, alpha: float = 0.34) -> void:
+	var key := int(round(clampf(alpha, 0.12, 0.65) * 50.0))
+	var mat: StandardMaterial3D = _prop_ao_mats.get(key) as StandardMaterial3D
+	if mat == null:
+		if _prop_ao_tex == null:
+			var sz := 64
+			var img := Image.create(sz, sz, false, Image.FORMAT_RGBA8)
+			for py in range(sz):
+				var vv := (float(py) + 0.5) / float(sz) - 0.5
+				for px in range(sz):
+					var uu := (float(px) + 0.5) / float(sz) - 0.5
+					var d := sqrt(uu * uu + vv * vv) / 0.45
+					var a := pow(clampf(1.0 - d, 0.0, 1.0), 1.85)
+					img.set_pixel(px, py, Color(0.02, 0.03, 0.035, a))
+			_prop_ao_tex = ImageTexture.create_from_image(img)
+		mat = StandardMaterial3D.new()
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.albedo_texture = _prop_ao_tex
+		mat.albedo_color = Color(1.0, 1.0, 1.0, float(key) / 50.0)
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+		mat.render_priority = 1
+		_prop_ao_mats[key] = mat
+	var mi := MeshInstance3D.new()
+	mi.name = node_name
+	var pm := PlaneMesh.new()
+	pm.size = size_xz
+	mi.mesh = pm
+	mi.material_override = mat
+	mi.position = pos
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(mi)
+
 static func _make_wrinkled_grid_mesh(
 	size_x: float,
 	size_z: float,
@@ -59,7 +95,69 @@ static func _make_wrinkled_grid_mesh(
 			var e_t: Vector3 = verts[nz][ix]; var f_t: Vector3 = verts[nz][ix + 1]
 			st.add_vertex(e_t); st.add_vertex(f_t); st.add_vertex(f_t + t_vec)
 			st.add_vertex(e_t); st.add_vertex(f_t + t_vec); st.add_vertex(e_t + t_vec)
+		for iz in range(nz):
+			var l0: Vector3 = verts[iz][0]; var l1: Vector3 = verts[iz + 1][0]
+			st.set_uv(Vector2(0, 0)); st.add_vertex(l0); st.add_vertex(l1); st.add_vertex(l1 + t_vec)
+			st.add_vertex(l0); st.add_vertex(l1 + t_vec); st.add_vertex(l0 + t_vec)
+			var r0: Vector3 = verts[iz][nx]; var r1: Vector3 = verts[iz + 1][nx]
+			st.set_uv(Vector2(1, 0)); st.add_vertex(r0); st.add_vertex(r0 + t_vec); st.add_vertex(r1 + t_vec)
+			st.add_vertex(r0); st.add_vertex(r1 + t_vec); st.add_vertex(r1)
 
+	st.generate_normals()
+	return st.commit()
+
+## Sculpted non-rectangular tarp mesh with scalloped tension edges (Paso 11.9),
+## radial corner tension folds (Paso 11.8), natural catenary sag (Paso 11.7) & 3D hem thickness.
+static func _make_sculpted_tarp_mesh(
+	nx: int,
+	nz: int,
+	point_fn: Callable,
+	double_face_thickness: float = 0.016
+) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var verts: Array = []
+	for iz in range(nz + 1):
+		var v := float(iz) / float(nz)
+		var row_arr: Array[Vector3] = []
+		for ix in range(nx + 1):
+			var u := float(ix) / float(nx)
+			row_arr.append(point_fn.call(u, v) as Vector3)
+		verts.append(row_arr)
+	for iz in range(nz):
+		for ix in range(nx):
+			var u0 := float(ix) / float(nx); var u1 := float(ix + 1) / float(nx)
+			var v0 := float(iz) / float(nz); var v1 := float(iz + 1) / float(nz)
+			var a: Vector3 = verts[iz][ix]
+			var b: Vector3 = verts[iz][ix + 1]
+			var c: Vector3 = verts[iz + 1][ix + 1]
+			var d: Vector3 = verts[iz + 1][ix]
+			st.set_uv(Vector2(u0, v0)); st.add_vertex(a)
+			st.set_uv(Vector2(u1, v0)); st.add_vertex(b)
+			st.set_uv(Vector2(u1, v1)); st.add_vertex(c)
+			st.set_uv(Vector2(u0, v0)); st.add_vertex(a)
+			st.set_uv(Vector2(u1, v1)); st.add_vertex(c)
+			st.set_uv(Vector2(u0, v1)); st.add_vertex(d)
+	if double_face_thickness > 0.001:
+		var t_vec := Vector3(0.0, -double_face_thickness, 0.0)
+		for ix in range(nx):
+			var a_t: Vector3 = verts[0][ix]; var b_t: Vector3 = verts[0][ix + 1]
+			st.set_uv(Vector2(float(ix) / float(nx), 0.0))
+			st.add_vertex(a_t); st.add_vertex(a_t + t_vec); st.add_vertex(b_t + t_vec)
+			st.add_vertex(a_t); st.add_vertex(b_t + t_vec); st.add_vertex(b_t)
+			var e_t: Vector3 = verts[nz][ix]; var f_t: Vector3 = verts[nz][ix + 1]
+			st.set_uv(Vector2(float(ix) / float(nx), 1.0))
+			st.add_vertex(e_t); st.add_vertex(f_t); st.add_vertex(f_t + t_vec)
+			st.add_vertex(e_t); st.add_vertex(f_t + t_vec); st.add_vertex(e_t + t_vec)
+		for iz in range(nz):
+			var l0: Vector3 = verts[iz][0]; var l1: Vector3 = verts[iz + 1][0]
+			st.set_uv(Vector2(0.0, float(iz) / float(nz)))
+			st.add_vertex(l0); st.add_vertex(l1); st.add_vertex(l1 + t_vec)
+			st.add_vertex(l0); st.add_vertex(l1 + t_vec); st.add_vertex(l0 + t_vec)
+			var r0: Vector3 = verts[iz][nx]; var r1: Vector3 = verts[iz + 1][nx]
+			st.set_uv(Vector2(1.0, float(iz) / float(nz)))
+			st.add_vertex(r0); st.add_vertex(r0 + t_vec); st.add_vertex(r1 + t_vec)
+			st.add_vertex(r0); st.add_vertex(r1 + t_vec); st.add_vertex(r1)
 	st.generate_normals()
 	return st.commit()
 
@@ -92,40 +190,48 @@ static func create_bedroll(
 	root.position = pos
 	root.rotation.y = yaw
 	parent.add_child(root)
+	_add_prop_contact_ao(root, "BedrollAO", Vector3(0.0, 0.004, 0.0), Vector2(1.08 * width_scale, 2.15 * len_scale), 0.34)
 
-	# Groundsheet canvas mat adapted to character stature, flush with earth
-	var ground_mesh := _make_wrinkled_grid_mesh(0.84 * width_scale, 1.92 * len_scale, 6, 10, func(u: float, v: float, _x: float, _z: float) -> float:
+	# Groundsheet canvas mat adapted to character stature, flush with earth + 3D physical thickness (Paso 13.5-13.7)
+	var ground_mesh := _make_wrinkled_grid_mesh(0.84 * width_scale, 1.92 * len_scale, 8, 12, func(u: float, v: float, _x: float, _z: float) -> float:
 		var edge := minf(minf(u, 1.0 - u), minf(v, 1.0 - v))
 		var rim := clampf(edge * 4.5, 0.0, 1.0)
-		return 0.008 + rim * 0.022 + sin(u * 9.0 + v * 7.0) * 0.007
-	)
+		var border_roll := (1.0 - smoothstep(0.0, 0.14, minf(u, 1.0 - u))) * 0.012
+		return 0.022 + rim * 0.024 + border_roll + sin(u * 9.0 + v * 7.0) * 0.008
+	, 0.024)
 	var gmat := MeshInstance3D.new()
+	gmat.name = "BedGroundsheet"
 	gmat.mesh = ground_mesh
 	gmat.material_override = mat_mat
 	root.add_child(gmat)
 
-	# Quilted wool pad + blanket adapted to race proportions
+	# Quilted wool pad + blanket adapted to race proportions with 3D physical thickness & folds
 	var prepared_node := Node3D.new()
 	prepared_node.name = "BedPrepared"
 	root.add_child(prepared_node)
 
-	var quilt_mesh := _make_wrinkled_grid_mesh(0.76 * width_scale, 1.72 * len_scale, 7, 12, func(u: float, v: float, _x: float, _z: float) -> float:
-		var crown := sin(clampf(u, 0.0, 1.0) * PI) * 0.055
-		var length_drop := sin(clampf(v, 0.0, 1.0) * PI) * 0.03
-		var wrinkle := sin(v * 14.0 + u * 5.0) * 0.012 + cos(u * 11.0 - v * 6.0) * 0.008
-		return 0.032 + crown + length_drop + wrinkle
-	)
+	var quilt_mesh := _make_wrinkled_grid_mesh(0.76 * width_scale, 1.72 * len_scale, 9, 14, func(u: float, v: float, _x: float, _z: float) -> float:
+		var crown := sin(clampf(u, 0.0, 1.0) * PI) * 0.062
+		var length_drop := sin(clampf(v, 0.0, 1.0) * PI) * 0.034
+		var fold_wave := sin(v * 15.0 + u * 6.0) * 0.015 + cos(u * 12.0 - v * 7.0) * 0.011
+		var side_tuck := sin(u * PI * 2.0) * 0.008 * sin(v * PI)
+		return 0.044 + crown + length_drop + fold_wave + side_tuck
+	, 0.036)
 	var blanket := MeshInstance3D.new()
+	blanket.name = "BedBlanket"
 	blanket.mesh = quilt_mesh
 	blanket.material_override = mat_blanket
 	blanket.position = Vector3(0.0, 0.0, 0.06 * len_scale)
 	prepared_node.add_child(blanket)
 
-	# Turned-down top collar cuff at head end (showing inner linen fold)
-	var fold_mesh := _make_wrinkled_grid_mesh(0.74 * width_scale, 0.34, 6, 4, func(u: float, v: float, _x: float, _z: float) -> float:
-		return 0.065 + sin(u * PI) * 0.035 + sin(v * PI) * 0.014
-	)
+	# Turned-down top collar cuff at head end (showing inner linen fold + 3D thickness)
+	var fold_mesh := _make_wrinkled_grid_mesh(0.74 * width_scale, 0.36, 7, 5, func(u: float, v: float, _x: float, _z: float) -> float:
+		var lip := sin(v * PI) * 0.022
+		var crease := sin(u * 11.0 + v * 4.0) * 0.007
+		return 0.078 + sin(u * PI) * 0.038 + lip + crease
+	, 0.026)
 	var fold := MeshInstance3D.new()
+	fold.name = "BedCollarFold"
 	fold.mesh = fold_mesh
 	fold.material_override = mat_lining
 	fold.position = Vector3(0.0, 0.01, -0.52 * len_scale)
@@ -247,6 +353,7 @@ static func create_backpack(
 	else:
 		root.scale = Vector3(0.80, 0.82, 0.82)
 	parent.add_child(root)
+	_add_prop_contact_ao(parent, "BackpackAO_" + pack_id, Vector3(pos.x, pos.y + 0.008, pos.z), Vector2(0.76 * root.scale.x, 0.62 * root.scale.z), 0.36)
 
 	if owner == "mike":
 		# Wizard leather scroll tube tied cleanly along pack flank
@@ -336,6 +443,7 @@ static func create_campfire_hearth_kit(
 ) -> Node3D:
 	# Core campfire flame, coals, crossed logs, light & suspended pot (shared fx)
 	var hearth := fx.build_campfire(parent, pos, true, true)
+	_add_prop_contact_ao(hearth, "CampfireRingAO", Vector3(0.0, 0.007, 0.0), Vector2(2.10, 2.10), 0.34)
 
 	# Surround hearth with 10 natural biome-matched irregular stones + supplies
 	var stone_col := Color("#6b706b")
@@ -443,16 +551,25 @@ static func create_canvas_shelter(
 	env_kit: EnvKit,
 	mat_rock: Material,
 	anchor_a: Vector3 = Vector3(-1.55, 0.0, -0.5),
-	anchor_b: Vector3 = Vector3(1.55, 0.0, 0.5)
+	anchor_b: Vector3 = Vector3(1.55, 0.0, 0.5),
+	fx: CampAtmosphereFx = null
 ) -> Dictionary:
 	# Strictly open-sided weathered canvas tarp adapted per biome (zero enclosed walls!)
-	var mat_canvas := MatKit.make_cloth_mat(
-		Color("#b3a78e") if variant == "forest" else (Color("#bfb59d") if variant == "wreck-beach" else Color("#7d796f")),
-		true, true
-	)
-	var mat_hem := MatKit.make_cloth_mat(Color("#777268"), true, true)
-	var mat_wood := MatKit.make_wood_mat(Color("#5b4129"), true)
-	var mat_rope := MatKit.make_cloth_mat(Color("#afa07b"), true, true)
+	var base_tarp_col := Color("#b5a07a") if variant == "forest" else (Color("#bfb59d") if variant == "wreck-beach" else Color("#7d796f"))
+	var mat_canvas: Material
+	if variant == "forest":
+		mat_canvas = MatKit.create_tarp_canvas_shader_material(base_tarp_col, Color("#6a583f"), true)
+	else:
+		var std_c := MatKit.make_textured_mat("linen.webp", base_tarp_col, 0.88, "cloth", Vector3(1.15, 1.15, 1.15), false, true)
+		std_c.cull_mode = BaseMaterial3D.CULL_DISABLED
+		mat_canvas = std_c
+	var mat_hem := MatKit.make_textured_mat("linen.webp", Color("#6a5b44"), 0.90, "cloth", Vector3(1.15, 1.15, 1.15), false, true)
+	mat_hem.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var mat_leather := MatKit.make_leather_mat(Color("#4c3422"), true)
+	var mat_brass := MatKit.make_bronze_mat(Color("#9e824c"))
+	var mat_wood := MatKit.make_wood_mat(Color("#543b24"), true)
+	var mat_rope := MatKit.make_cloth_mat(Color("#b19c70"), true, true)
+	var mat_sack := MatKit.make_textured_mat("linen.webp", Color("#9a8768"), 0.90, "cloth", Vector3(1.4, 1.4, 1.4), false, true)
 
 	var shelter := Node3D.new()
 	shelter.name = "CanvasShelter_%s" % variant
@@ -466,51 +583,197 @@ static func create_canvas_shelter(
 	shelter.add_child(roof_node)
 
 	# Multi-character realistic tarp sizing & headroom for Elf (1.82 m), Dwarf (1.32 m) & Halfling (1.06 m)
-	var span_x := 3.40 if variant == "forest" else (3.05 if variant == "wreck-beach" else 2.85)
-	var span_z := 2.80 if variant == "forest" else (2.15 if variant == "wreck-beach" else 2.05)
+	var span_x := 3.62 if variant == "forest" else (3.05 if variant == "wreck-beach" else 2.85)
+	var span_z := 2.82 if variant == "forest" else (2.15 if variant == "wreck-beach" else 2.05)
+	_add_prop_contact_ao(shelter, "ShelterCanopyAO", Vector3(0.0, 0.005, 0.0), Vector2(span_x * 1.04, span_z * 1.04), 0.34 if variant == "forest" else 0.24)
 	var capacity := 3 if variant == "forest" else 2
-	var corners: Array[Vector3] = []
+	var min_clear_h := 1.18
 
 	if variant == "forest":
-		# Overhead canopy tarp tied cleanly between two trunks (~2.08m apex so Elf can stand crouched, 3 heroes sit/sleep!)
-		var ridge_h := 2.08
-		var eave_h := 1.56
-		var tarp_mesh := _make_wrinkled_grid_mesh(span_x, span_z, 10, 10, func(u: float, v: float, _x: float, _z: float) -> float:
-			var dist_mid := absf(v - 0.5) * 2.0
-			var tent_slope := lerpf(ridge_h, eave_h, pow(dist_mid, 1.1))
-			var sag_x := -sin(u * PI) * 0.14 * (0.4 + dist_mid * 0.6)
-			var ripple := sin(u * 12.0 + v * 7.0) * 0.025
-			return tent_slope + sag_x + ripple
-		)
+		# Paso 11 + Altura despejada para Elfo alto Mike (1.80-1.92m con aura/gorro):
+		# cumbrera trasera alta (2.86m) descendiendo hacia el alero frontal (2.28m) sobre 4 postes
+		# y amarres firmes a los troncos traseros; conserva pendiente legible desde la cámara VTT sin roces de cabeza.
+		var rear_h := 2.86
+		var front_h := 2.28
+		var front_z := span_z * 0.42
+		var rear_z := -span_z * 0.48
+		var half_x := span_x * 0.48
+		min_clear_h = 2.14
+
+		var tarp_pt_fn := func(u: float, v: float) -> Vector3:
+			var raw_x := lerpf(-half_x, half_x, u)
+			var raw_z := lerpf(rear_z, front_z, v)
+			var mid_u := sin(u * PI)
+			var mid_v := sin(v * PI)
+			# Scalloped tension borders (Paso 11.9: edges pull inward between corner grommets, non-rectangular!)
+			var scallop_x := -signf(u - 0.5) * pow(absf(u - 0.5) * 2.0, 1.6) * mid_v * 0.14
+			var scallop_z := -signf(v - 0.5) * pow(absf(v - 0.5) * 2.0, 1.6) * mid_u * 0.10
+			var y_slope := lerpf(rear_h, front_h, v)
+			var catenary := -mid_u * (0.065 + 0.045 * mid_v)
+			# Radial tension wrinkles from all 4 corner tie points (Paso 11.8)
+			var tension_folds := 0.0
+			for c_uv: Vector2 in [Vector2(0.0, 0.0), Vector2(1.0, 0.0), Vector2(0.0, 1.0), Vector2(1.0, 1.0)]:
+				var du: float = u - c_uv.x
+				var dv: float = v - c_uv.y
+				var r: float = sqrt(du * du + dv * dv)
+				var ang: float = atan2(dv, du)
+				tension_folds += sin(ang * 14.0 + r * 9.0) * exp(-r * 3.6) * smoothstep(0.03, 0.18, r) * 0.024
+			var ripple := sin(u * 15.0 + v * 6.0) * 0.015 * mid_u + cos(v * 12.0 - u * 5.0) * 0.012 * mid_v
+			var corner_pin := pow(absf(u - 0.5) * 2.0, 2.4) * pow(absf(v - 0.5) * 2.0, 2.4) * 0.035
+			return Vector3(raw_x + scallop_x, y_slope + catenary + corner_pin + tension_folds + ripple, raw_z + scallop_z)
+
+		var tarp_mesh := _make_sculpted_tarp_mesh(18, 14, tarp_pt_fn, 0.016)
 		var tarp := MeshInstance3D.new()
+		tarp.name = "ShelterCanvasMesh"
 		tarp.mesh = tarp_mesh
 		tarp.material_override = mat_canvas
+		tarp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 		roof_node.add_child(tarp)
 
-		# Ridge hemp rope spanning cleanly to adjacent tree trunks + corner guy-lines to ground stakes
-		var ridge_p0 := Vector3(-span_x * 0.48, ridge_h, 0.0)
-		var ridge_p1 := Vector3(span_x * 0.48, ridge_h, 0.0)
-		_add_guy_rope(roof_node, ridge_p0, ridge_p1, mat_rope)
-		_add_guy_rope(shelter, ridge_p0, anchor_a + Vector3(0.0, 2.25, 0.0), mat_rope)
-		_add_guy_rope(shelter, ridge_p1, anchor_b + Vector3(0.0, 2.25, 0.0), mat_rope)
+		# Curved catenary stitched hem piping following all 4 scalloped edges
+		var hem_segs := 8
+		for s_i in range(hem_segs):
+			var t0 := float(s_i) / float(hem_segs)
+			var t1 := float(s_i + 1) / float(hem_segs)
+			_add_guy_rope(roof_node, tarp_pt_fn.call(t0, 1.0), tarp_pt_fn.call(t1, 1.0), mat_hem, 0.020)
+			_add_guy_rope(roof_node, tarp_pt_fn.call(t0, 0.0), tarp_pt_fn.call(t1, 0.0), mat_hem, 0.019)
+			_add_guy_rope(roof_node, tarp_pt_fn.call(0.0, t0), tarp_pt_fn.call(0.0, t1), mat_hem, 0.018)
+			_add_guy_rope(roof_node, tarp_pt_fn.call(1.0, t0), tarp_pt_fn.call(1.0, t1), mat_hem, 0.018)
 
-		corners = [
-			Vector3(-span_x * 0.48, eave_h, -span_z * 0.48),
-			Vector3(span_x * 0.48, eave_h, -span_z * 0.48),
-			Vector3(-span_x * 0.48, eave_h, span_z * 0.48),
-			Vector3(span_x * 0.48, eave_h, span_z * 0.48),
+		# 4 Corner coordinates + reinforced leather corner patches & brass grommet rings
+		var c_front_l: Vector3 = tarp_pt_fn.call(0.0, 1.0)
+		var c_front_r: Vector3 = tarp_pt_fn.call(1.0, 1.0)
+		var c_rear_l: Vector3 = tarp_pt_fn.call(0.0, 0.0)
+		var c_rear_r: Vector3 = tarp_pt_fn.call(1.0, 0.0)
+		var corner_pts: Array[Vector3] = [c_front_l, c_front_r, c_rear_l, c_rear_r]
+		for cp_i in range(corner_pts.size()):
+			var cpt: Vector3 = corner_pts[cp_i]
+			var patch := MeshInstance3D.new()
+			patch.name = "CornerPatch_%d" % cp_i
+			var pcm := CylinderMesh.new(); pcm.top_radius = 0.095; pcm.bottom_radius = 0.105; pcm.height = 0.024; pcm.radial_segments = 7
+			patch.mesh = pcm; patch.material_override = mat_leather
+			patch.position = cpt + Vector3(0.0, 0.005, 0.0)
+			roof_node.add_child(patch)
+
+			var grommet := MeshInstance3D.new()
+			grommet.name = "CornerGrommet_%d" % cp_i
+			var gtm := TorusMesh.new(); gtm.inner_radius = 0.026; gtm.outer_radius = 0.044; gtm.rings = 10; gtm.ring_segments = 6
+			grommet.mesh = gtm; grommet.material_override = mat_brass
+			grommet.position = cpt + Vector3(0.0, 0.012, 0.0)
+			roof_node.add_child(grommet)
+
+		# Two stout debarked front corner upright poles supporting front eave
+		for p_idx in range(2):
+			var c_top := c_front_l if p_idx == 0 else c_front_r
+			var pole_h := c_top.y + 0.22
+			var pole := MeshInstance3D.new()
+			pole.name = "FrontPole_%d" % p_idx
+			var plm := CylinderMesh.new(); plm.top_radius = 0.044; plm.bottom_radius = 0.060; plm.height = pole_h; plm.radial_segments = 8
+			pole.mesh = plm; pole.material_override = mat_wood
+			pole.position = Vector3(c_top.x, pole_h * 0.5 - 0.08, c_top.z)
+			pole.rotation.z = -0.035 if p_idx == 0 else 0.035
+			pole.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+			shelter.add_child(pole)
+			# Multi-turn hemp lashing collar binding canvas grommet to upright post
+			for turn_i in range(2):
+				var lashing := MeshInstance3D.new()
+				lashing.name = "FrontLashing_%d_%d" % [p_idx, turn_i]
+				var ltm := TorusMesh.new(); ltm.inner_radius = 0.044; ltm.outer_radius = 0.068; ltm.rings = 10
+				lashing.mesh = ltm; lashing.material_override = mat_rope
+				lashing.position = Vector3(c_top.x, c_top.y - 0.01 + float(turn_i) * 0.028, c_top.z)
+				shelter.add_child(lashing)
+
+		# Horizontal rustic ridgepole spanning tall rear ridge posts
+		var ridge_bar := MeshInstance3D.new()
+		ridge_bar.name = "RidgePole"
+		var rbm := CylinderMesh.new(); rbm.top_radius = 0.038; rbm.bottom_radius = 0.044; rbm.height = span_x + 0.38; rbm.radial_segments = 8
+		ridge_bar.mesh = rbm; ridge_bar.material_override = mat_wood
+		ridge_bar.position = Vector3(0.0, c_rear_l.y + 0.025, rear_z)
+		ridge_bar.rotation.z = PI * 0.5
+		ridge_bar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		shelter.add_child(ridge_bar)
+
+		# Two tall grounded rear corner support poles supporting the high rear ridge (Paso 11.3 & 11.4)
+		for rp_idx in range(2):
+			var r_top := c_rear_l if rp_idx == 0 else c_rear_r
+			var r_pole_h := r_top.y + 0.22
+			var r_pole := MeshInstance3D.new()
+			r_pole.name = "RearPole_%d" % rp_idx
+			var rplm := CylinderMesh.new(); rplm.top_radius = 0.042; rplm.bottom_radius = 0.058; rplm.height = r_pole_h; rplm.radial_segments = 8
+			r_pole.mesh = rplm; r_pole.material_override = mat_wood
+			r_pole.position = Vector3(r_top.x, r_pole_h * 0.5 - 0.08, r_top.z)
+			r_pole.rotation = Vector3(-0.025, 0.0, -0.03 if rp_idx == 0 else 0.03)
+			r_pole.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+			shelter.add_child(r_pole)
+
+			var r_lash := MeshInstance3D.new()
+			r_lash.name = "RearLashing_%d" % rp_idx
+			var rltm := TorusMesh.new(); rltm.inner_radius = 0.042; rltm.outer_radius = 0.066; rltm.rings = 10
+			r_lash.mesh = rltm; r_lash.material_override = mat_rope
+			r_lash.position = Vector3(r_top.x, r_top.y, r_top.z)
+			shelter.add_child(r_lash)
+
+		# Left upright projecting lantern hook arm + warm iron lantern (day OFF, dusk/night warm amber!)
+		var crook := MeshInstance3D.new()
+		var crm := CylinderMesh.new(); crm.top_radius = 0.024; crm.bottom_radius = 0.030; crm.height = 0.62; crm.radial_segments = 6
+		crook.mesh = crm; crook.material_override = mat_wood
+		crook.position = Vector3(c_front_l.x - 0.16, c_front_l.y + 0.14, front_z + 0.04)
+		crook.rotation = Vector3(0.0, 0.0, -1.18)
+		shelter.add_child(crook)
+		var hang_lan := create_portable_lantern(shelter, fx, Vector3(c_front_l.x - 0.42, c_front_l.y - 0.28, front_z + 0.06))
+		hang_lan.name = "ShelterHangingLantern"
+		_add_guy_rope(shelter, Vector3(c_front_l.x - 0.42, c_front_l.y + 0.04, front_z + 0.06), Vector3(c_front_l.x - 0.42, c_front_l.y - 0.02, front_z + 0.06), mat_rope, 0.014)
+
+		# Stout hemp ropes anchoring high rear corner posts/grommets to adjacent anchor tree trunks
+		var tree_tie_a := Vector3(clampf(anchor_a.x, -3.4, -half_x - 0.45), 2.48, clampf(anchor_a.z, rear_z - 1.6, rear_z - 0.3))
+		var tree_tie_b := Vector3(clampf(anchor_b.x, half_x + 0.45, 3.4), 2.48, clampf(anchor_b.z, rear_z - 1.6, rear_z - 0.3))
+		_add_guy_rope(shelter, c_rear_l, tree_tie_a, mat_rope, 0.016)
+		_add_guy_rope(shelter, c_rear_r, tree_tie_b, mat_rope, 0.016)
+		for ta in [tree_tie_a, tree_tie_b]:
+			var wrap := MeshInstance3D.new()
+			var wtm := TorusMesh.new(); wtm.inner_radius = 0.24; wtm.outer_radius = 0.275; wtm.rings = 12
+			wrap.mesh = wtm; wrap.material_override = mat_rope
+			wrap.position = Vector3(ta.x, ta.y, ta.z)
+			shelter.add_child(wrap)
+
+		# 4 diagonal guy-ropes pegged into thick angled wooden stakes driven into soil (Paso 11.5 & 11.6)
+		var stake_pairs := [
+			[c_front_l, Vector3(c_front_l.x - 0.76, 0.08, front_z + 0.70)],
+			[c_front_r, Vector3(c_front_r.x + 0.76, 0.08, front_z + 0.70)],
+			[c_rear_l, Vector3(c_rear_l.x - 0.62, 0.08, rear_z - 0.72)],
+			[c_rear_r, Vector3(c_rear_r.x + 0.62, 0.08, rear_z - 0.72)],
 		]
-		# Guy-lines + wooden stakes driven diagonally into forest soil
-		for c_i in range(corners.size()):
-			var c: Vector3 = corners[c_i]
-			var stake_pos := Vector3(c.x * 1.24, 0.0, c.z + (-0.65 if c.z < 0 else 0.65))
-			_add_guy_rope(shelter, c, stake_pos + Vector3(0, 0.08, 0), mat_rope)
+		for sp_i in range(stake_pairs.size()):
+			var sp: Array = stake_pairs[sp_i]
+			var c_pt: Vector3 = sp[0]
+			var s_pt: Vector3 = sp[1]
+			_add_guy_rope(shelter, c_pt, s_pt, mat_rope, 0.015)
 			var stake := MeshInstance3D.new()
-			var skm := CylinderMesh.new(); skm.top_radius = 0.022; skm.bottom_radius = 0.012; skm.height = 0.34; skm.radial_segments = 6
+			stake.name = "ShelterStake_%d" % sp_i
+			var skm := CylinderMesh.new(); skm.top_radius = 0.032; skm.bottom_radius = 0.014; skm.height = 0.42; skm.radial_segments = 7
 			stake.mesh = skm; stake.material_override = mat_wood
-			stake.position = stake_pos + Vector3(0, 0.12, 0)
-			stake.rotation = Vector3(-0.48 if c.z < 0 else 0.48, 0.0, -0.2 if c.x < 0 else 0.2)
+			stake.position = Vector3(s_pt.x, 0.10, s_pt.z)
+			stake.rotation = Vector3(-0.44 if s_pt.z < 0 else 0.44, 0.0, -0.24 if s_pt.x < 0 else 0.24)
 			shelter.add_child(stake)
+
+			var s_loop := MeshInstance3D.new()
+			s_loop.name = "StakeLoop_%d" % sp_i
+			var slm := TorusMesh.new(); slm.inner_radius = 0.026; slm.outer_radius = 0.044; slm.rings = 9
+			s_loop.mesh = slm; s_loop.material_override = mat_rope
+			s_loop.position = Vector3(s_pt.x, 0.09, s_pt.z)
+			shelter.add_child(s_loop)
+
+		# Small provisions sack & wicker basket nestled cleanly inside left corner of shelter
+		var sack := MeshInstance3D.new()
+		var skm2 := CylinderMesh.new(); skm2.top_radius = 0.13; skm2.bottom_radius = 0.22; skm2.height = 0.36; skm2.radial_segments = 8
+		sack.mesh = skm2; sack.material_override = mat_sack
+		sack.position = Vector3(-half_x + 0.34, 0.16, front_z - 0.34); sack.scale = Vector3(1.12, 1.0, 0.92)
+		shelter.add_child(sack)
+		var basket := MeshInstance3D.new()
+		var bkm := CylinderMesh.new(); bkm.top_radius = 0.19; bkm.bottom_radius = 0.14; bkm.height = 0.26; bkm.radial_segments = 9
+		basket.mesh = bkm; basket.material_override = MatKit.make_wood_mat(Color("#7a5c38"), true)
+		basket.position = Vector3(-half_x + 0.64, 0.13, rear_z + 0.56)
+		shelter.add_child(basket)
 
 	elif variant == "wreck-beach":
 		# Windbreak tarp pitched for 2 huddled coastal sleepers
@@ -568,22 +831,31 @@ static func create_canvas_shelter(
 			_add_guy_rope(shelter, a_pair[0], a_pair[1], mat_rope)
 			env_kit.spawn_rock(shelter, Vector3(a_pair[1].x, 0.09, a_pair[1].z), Vector3(0.36, 0.25, 0.34), float(a_i) * 1.2, mat_rock, a_i, "stratified")
 
-	return {"root": shelter, "roof": roof_node, "rect": Rect2(pos.x - 1.95, pos.z - 1.65, 3.9, 3.3), "capacity": capacity}
+	return {
+		"root": shelter,
+		"roof": roof_node,
+		"rect": Rect2(pos.x - 1.95, pos.z - 1.65, 3.9, 3.3),
+		"capacity": capacity,
+		"tarp_mat": mat_canvas,
+		"min_clear_height": min_clear_h,
+	}
 
-static func _add_guy_rope(parent: Node3D, from_pt: Vector3, to_pt: Vector3, mat: Material) -> void:
+static func _add_guy_rope(parent: Node3D, from_pt: Vector3, to_pt: Vector3, mat: Material, radius: float = 0.013) -> void:
 	var delta := to_pt - from_pt
 	var dist := delta.length()
-	if dist < 0.08:
+	if dist < 0.05:
 		return
 	var mid := (from_pt + to_pt) * 0.5
+	var y_ax := delta / dist
+	var ref := Vector3.UP if absf(y_ax.y) < 0.95 else Vector3.FORWARD
+	var x_ax := ref.cross(y_ax).normalized()
+	var z_ax := x_ax.cross(y_ax).normalized()
 	var seg := MeshInstance3D.new()
-	var cm := CylinderMesh.new(); cm.top_radius = 0.011; cm.bottom_radius = 0.011; cm.height = dist; cm.radial_segments = 5
+	var cm := CylinderMesh.new(); cm.top_radius = radius; cm.bottom_radius = radius; cm.height = dist; cm.radial_segments = 5
 	seg.mesh = cm; seg.material_override = mat
 	seg.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	seg.transform = Transform3D(Basis(x_ax, y_ax, z_ax), mid)
 	parent.add_child(seg)
-	seg.position = mid
-	seg.look_at_from_position(mid, to_pt, Vector3.UP if absf(delta.normalized().y) < 0.95 else Vector3.FORWARD)
-	seg.rotate_object_local(Vector3.RIGHT, PI * 0.5)
 
 static func create_natural_seat(
 	parent: Node3D,
@@ -606,36 +878,93 @@ static func create_natural_seat(
 
 	if variant == "forest":
 		seat_type = "fallen-log"
-		# Gnarled mossy fallen log (~2.20m long, seats up to 3 party members!)
+		# Paso 13 (13.1-13.4): Gnarled mossy fallen log embedded firmly into soil,
+		# sawn/split heartwood cut end-caps, worn flattened seating top & wedged chock stones!
 		seat_y = 0.36
 		slots_local = [Vector3(-0.62, seat_y, 0.0), Vector3(0.0, seat_y, 0.0), Vector3(0.62, seat_y, 0.0)]
 		var mat_bark := MatKit.make_wood_mat(Color("#543d2a"), true)
+		var mat_heartwood := MatKit.make_wood_mat(Color("#b58c5a"), true)
+		var mat_pith := MatKit.make_wood_mat(Color("#765332"), true)
+		var mat_worn_top := MatKit.make_wood_mat(Color("#7c5d3e"), true)
 		var mat_moss := MatKit.make_textured_mat("moss.jpg", Color("#4e7442"), 0.90, "rock", Vector3(1.2, 1.2, 1.2), true, true)
+		var mat_stone := MatKit.make_textured_mat("coastal-rock.png", Color("#666f62"), 0.88, "rock", Vector3(0.8, 0.8, 0.8), true, true)
+
 		var seg_a := MeshInstance3D.new()
-		var ca := CylinderMesh.new(); ca.top_radius = 0.21; ca.bottom_radius = 0.25; ca.height = 1.18; ca.radial_segments = 8
+		seg_a.name = "LogSegment_A"
+		var ca := CylinderMesh.new(); ca.top_radius = 0.215; ca.bottom_radius = 0.255; ca.height = 1.20; ca.radial_segments = 10
 		seg_a.mesh = ca; seg_a.material_override = mat_bark
-		seg_a.position = Vector3(-0.52, 0.19, 0.0); seg_a.rotation = Vector3(0.0, 0.06, PI * 0.5)
+		seg_a.position = Vector3(-0.52, 0.165, 0.0); seg_a.rotation = Vector3(0.0, 0.06, PI * 0.5)
 		sroot.add_child(seg_a)
 		support_meshes.append(seg_a)
 
 		var seg_b := MeshInstance3D.new()
-		var cb := CylinderMesh.new(); cb.top_radius = 0.18; cb.bottom_radius = 0.21; cb.height = 1.05; cb.radial_segments = 8
+		seg_b.name = "LogSegment_B"
+		var cb := CylinderMesh.new(); cb.top_radius = 0.185; cb.bottom_radius = 0.218; cb.height = 1.08; cb.radial_segments = 10
 		seg_b.mesh = cb; seg_b.material_override = mat_bark
-		seg_b.position = Vector3(0.50, 0.18, 0.03); seg_b.rotation = Vector3(0.0, -0.08, PI * 0.5)
+		seg_b.position = Vector3(0.50, 0.158, 0.03); seg_b.rotation = Vector3(0.0, -0.08, PI * 0.5)
 		sroot.add_child(seg_b)
 		support_meshes.append(seg_b)
+
+		# Sawn/chopped heartwood cut end-caps + darker inner core rings at both ends of each log segment (Paso 13.2)
+		var end_defs := [
+			[Vector3(-1.12, 0.165, -0.036), 0.242, 0.06],
+			[Vector3(0.08, 0.165, 0.036), 0.205, 0.06],
+			[Vector3(-0.04, 0.158, -0.013), 0.208, -0.08],
+			[Vector3(1.04, 0.158, 0.073), 0.176, -0.08],
+		]
+		for ed_i in range(end_defs.size()):
+			var ed: Array = end_defs[ed_i]
+			var e_pos: Vector3 = ed[0]
+			var e_rad: float = float(ed[1])
+			var e_yaw: float = float(ed[2])
+			var cap := MeshInstance3D.new()
+			cap.name = "LogCutEnd_%d" % ed_i
+			var cm := CylinderMesh.new(); cm.top_radius = e_rad; cm.bottom_radius = e_rad; cm.height = 0.022; cm.radial_segments = 10
+			cap.mesh = cm; cap.material_override = mat_heartwood
+			cap.position = e_pos; cap.rotation = Vector3(0.0, e_yaw, PI * 0.5)
+			sroot.add_child(cap)
+
+			var pith := MeshInstance3D.new()
+			pith.name = "LogCutCore_%d" % ed_i
+			var pm := CylinderMesh.new(); pm.top_radius = e_rad * 0.54; pm.bottom_radius = e_rad * 0.54; pm.height = 0.027; pm.radial_segments = 8
+			pith.mesh = pm; pith.material_override = mat_pith
+			pith.position = e_pos; pith.rotation = Vector3(0.0, e_yaw, PI * 0.5)
+			sroot.add_child(pith)
+
+		# Flattened worn upper seating surfaces along the log crowns (Paso 13.4)
+		for w_i in range(2):
+			var worn := MeshInstance3D.new()
+			worn.name = "LogWornSeatFlat_%d" % w_i
+			var wm := BoxMesh.new()
+			wm.size = Vector3(0.92 if w_i == 0 else 0.82, 0.028, 0.19)
+			worn.mesh = wm; worn.material_override = mat_worn_top
+			worn.position = Vector3(-0.52, 0.365, 0.0) if w_i == 0 else Vector3(0.50, 0.342, 0.03)
+			worn.rotation.y = 0.06 if w_i == 0 else -0.08
+			sroot.add_child(worn)
+			support_meshes.append(worn)
 
 		var snag := MeshInstance3D.new()
 		var snm := CylinderMesh.new(); snm.top_radius = 0.04; snm.bottom_radius = 0.08; snm.height = 0.34; snm.radial_segments = 6
 		snag.mesh = snm; snag.material_override = mat_bark
-		snag.position = Vector3(-0.82, 0.28, -0.14); snag.rotation = Vector3(-0.55, 0.2, 0.35)
+		snag.position = Vector3(-0.82, 0.25, -0.14); snag.rotation = Vector3(-0.55, 0.2, 0.35)
 		sroot.add_child(snag)
+
+		var knot := MeshInstance3D.new()
+		var knm := CylinderMesh.new(); knm.top_radius = 0.045; knm.bottom_radius = 0.072; knm.height = 0.22; knm.radial_segments = 6
+		knot.mesh = knm; knot.material_override = mat_bark
+		knot.position = Vector3(0.32, 0.20, 0.16); knot.rotation = Vector3(0.62, -0.25, -0.3)
+		sroot.add_child(knot)
+
+		# Wedged earth/stone chocks grounding the log seat into the clearing floor (Paso 13.3)
+		env_kit.spawn_rock(sroot, Vector3(-0.88, 0.04, 0.19), Vector3(0.24, 0.13, 0.20), 0.5, mat_stone, 0, "craggy")
+		env_kit.spawn_rock(sroot, Vector3(0.04, 0.04, -0.18), Vector3(0.26, 0.14, 0.22), 1.7, mat_stone, 1, "flat")
+		env_kit.spawn_rock(sroot, Vector3(0.76, 0.04, 0.20), Vector3(0.22, 0.12, 0.18), 2.6, mat_stone, 2, "craggy")
 
 		for m_i in range(2):
 			var moss_cap := MeshInstance3D.new()
 			var mcm := SphereMesh.new(); mcm.radius = 0.16; mcm.height = 0.10; mcm.radial_segments = 7; mcm.rings = 3
 			moss_cap.mesh = mcm; moss_cap.material_override = mat_moss
-			moss_cap.position = Vector3(-0.35 + float(m_i) * 0.55, 0.35, -0.05)
+			moss_cap.position = Vector3(-0.35 + float(m_i) * 0.55, 0.33, -0.10)
 			moss_cap.scale = Vector3(1.8, 0.45, 0.9)
 			sroot.add_child(moss_cap)
 
@@ -664,6 +993,14 @@ static func create_natural_seat(
 		var slab := env_kit.spawn_rock(sroot, Vector3(0.0, 0.15, 0.0), Vector3(1.36, 0.64, 0.76), 0.12, mat_slab, int(seed_v), "flat")
 		support_meshes.append(slab)
 		env_kit.spawn_rock(sroot, Vector3(0.48, 0.06, -0.22), Vector3(0.32, 0.24, 0.30), 1.4, mat_slab, int(seed_v) + 1, "craggy")
+
+	_add_prop_contact_ao(
+		sroot,
+		"NaturalSeatAO",
+		Vector3(0.0, 0.009, 0.0),
+		Vector2(2.65, 0.96) if variant in ["forest", "wreck-beach"] else Vector2(1.75, 1.15),
+		0.38
+	)
 
 	return {
 		"root": sroot,
@@ -727,8 +1064,9 @@ static func create_personal_kit(
 	kroot.position = pos
 	kroot.rotation.y = yaw
 	parent.add_child(kroot)
+	_add_prop_contact_ao(kroot, "PersonalKitAO", Vector3(0.0, 0.005, 0.0), Vector2(0.84, 0.72), 0.30)
 
-	var mat_leather := MatKit.make_textured_mat("oak-v4.webp", Color("#4e3422"), 0.72, "timber", Vector3(1.4, 1.4, 1.4), false, true)
+	var mat_leather := MatKit.make_leather_mat(Color("#4e3422"), true)
 	var mat_brass := MatKit.make_bronze_mat(Color("#a88948"))
 	var mat_steel := MatKit.make_bronze_mat(Color("#7c848c"))
 	var mat_paper := MatKit.make_cloth_mat(Color("#dfd4bc"), false, true)
@@ -851,6 +1189,7 @@ static func create_portable_lantern(
 	lroot.name = "PortableWatchLantern"
 	lroot.position = pos
 	parent.add_child(lroot)
+	_add_prop_contact_ao(lroot, "LanternAO", Vector3(0.0, 0.004, 0.0), Vector2(0.40, 0.40), 0.34)
 
 	var mat_iron := MatKit.make_bronze_mat(Color("#2f3338"))
 	var mat_brass := MatKit.make_bronze_mat(Color("#7f6940"))

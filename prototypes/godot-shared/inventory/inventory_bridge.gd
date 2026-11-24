@@ -126,6 +126,7 @@ func _play() -> void:
 				held[event.actor_id]=event.item_id
 			elif previous==str(event.item_id): held.erase(event.actor_id)
 		item["equipped"] = take
+		ui.refresh_all()
 		if item.has("visual_resource") and "combat_controller" in ui and ui.combat_controller:
 			var appearance=ui.combat_controller.get_node_or_null("CharacterAppearanceService")
 			var resource: Dictionary=preload("res://characters/registry.gd").data().equipment.get(str(item.visual_resource),{})
@@ -159,3 +160,101 @@ func add_item(id: String, quantity: int, label: String) -> void:
 			stock[id]["count"] += quantity
 		else:
 			stock[id] = {"name": label, "count": quantity, "desc": "Objeto registrado en esta mochila.", "equipped": false}
+
+func can_edit_stock() -> bool:
+	return ui.current_role=="dm"
+
+func transfer_item(key: String,recipient: String,quantity: int) -> bool:
+	if not can_edit_stock() or ui.inv_mgr or quantity<1: return false
+	var from=ui.selected_actor_id
+	if session.is_open: from=session.actor_id
+	if from==recipient or not _has_actor(recipient): return false
+	var source=items_for_actor(from)
+	var item: Dictionary=source.get(key,{})
+	var count=int(item.get("count",0))
+	if count<quantity: return false
+	if count==quantity and (actual_held(key) or desired_held(key)): return false
+	var destination=items_for_actor(recipient)
+	if not destination.has(key):
+		destination[key]=item.duplicate(true)
+		destination[key]["count"]=0
+		destination[key]["equipped"]=false
+	destination[key]["count"]+=quantity
+	item["count"]-=quantity
+	ui.refresh_all()
+	return true
+
+func consume_healing_item(key: String,amount: int) -> bool:
+	if ui.current_role not in ["player","dm"] or not ui.combat_controller: return false
+	var rules=ui.combat_controller.rules
+	# In combat the DM records the table's resolution and administers the turn cost.
+	if (rules.active and ui.current_role!="dm") or not rules.pending.is_empty(): return false
+	var source=items()
+	var item: Dictionary=source.get(key,{})
+	var healing=item.get("healing_range",[])
+	if not healing is Array or healing.size()!=2 or int(item.get("count",0))<1 or amount<int(healing[0]) or amount>int(healing[1]): return false
+	var actor_id=ui.selected_actor_id
+	if session.is_open: actor_id=session.actor_id
+	var actor: Dictionary=rules.actors.get(actor_id,{})
+	if actor.is_empty() or actor.get("dead",false) or int(actor.hp)>=int(actor.hp_max): return false
+	if ui.inv_mgr and int(item.count)==1:
+		for holder in held:
+			if holder!=actor_id and held[holder]==key: return false
+	item["count"]-=1
+	if int(item.count)==0:
+		if held.get(actor_id,"")==key: held.erase(actor_id)
+		item["equipped"]=false
+		if session.is_open: session.pending.erase(key)
+	ui.apply_hp_delta(actor_id,amount)
+	return true
+
+func _has_actor(actor_id: String) -> bool:
+	for actor in ui.actors:
+		if str(actor.id)==actor_id: return true
+	return false
+
+func export_state() -> Dictionary:
+	var lit: Dictionary={}
+	for actor in ui.actors:
+		var token=ui.tokens_by_node.get(actor.node_name)
+		if is_instance_valid(token): lit[str(actor.id)]=bool(token.get("is_torch_lit"))
+	return {
+		"scope":"group" if ui.inv_mgr else "personal",
+		"stock":ui.inv_mgr.items.duplicate(true) if ui.inv_mgr else personal_items.duplicate(true),
+		"held":held.duplicate(),
+		"torches":lit,
+	}
+
+func supports_state(state: Variant) -> bool:
+	if not state is Dictionary or state.get("scope","")!=("group" if ui.inv_mgr else "personal"): return false
+	var stock=state.get("stock")
+	if not stock is Dictionary or not state.get("held") is Dictionary or not state.get("torches") is Dictionary: return false
+	if ui.inv_mgr: return _valid_stock(stock)
+	for id in stock:
+		if not _has_actor(str(id)) or not _valid_stock(stock[id]): return false
+	return true
+
+func _valid_stock(stock: Variant) -> bool:
+	if not stock is Dictionary: return false
+	for key in stock:
+		var item=stock[key]
+		if not item is Dictionary or not item.get("name") is String or not item.get("count") is int or item.count<0: return false
+		var healing=item.get("healing_range",[])
+		if not healing is Array or (not healing.is_empty() and (healing.size()!=2 or not healing[0] is int or not healing[1] is int or healing[0]<=0 or healing[1]<healing[0])): return false
+	return true
+
+func restore_state(state: Dictionary) -> void:
+	if not supports_state(state): return
+	if session.is_open: session.discard(); finish()
+	playback.clear()
+	if ui.inv_mgr:
+		ui.inv_mgr.items.clear()
+		ui.inv_mgr.items.merge(state.stock.duplicate(true))
+		ui.inv_mgr.refresh_backpack_ui()
+	else:
+		personal_items=state.stock.duplicate(true)
+	held=state.held.duplicate()
+	for actor in ui.actors:
+		var token=ui.tokens_by_node.get(actor.node_name)
+		if is_instance_valid(token) and state.torches.has(str(actor.id)):
+			token.set_torch_mode(bool(state.torches[str(actor.id)]),false)

@@ -8,6 +8,7 @@ for(const name of ['pecio','retiro','campamentos']) {
  await cp(source,destination,{recursive:true,filter:p=>!p.endsWith('.uid')&&!p.endsWith('.import')});
  await cp(join(root,'prototypes/godot-shared/inventory/backpack_panel.gd'),join(root,'prototypes/godot-'+name,'inventory/backpack_panel.gd'));
  await cp(join(root,'prototypes/godot-shared/inventory/inventory_bridge.gd'),join(root,'prototypes/godot-'+name,'inventory/inventory_bridge.gd'));
+ await cp(join(root,'prototypes/godot-shared/combat/combat_controller.gd'),join(root,'prototypes/godot-'+name,'combat/combat_controller.gd'));
  await cp(join(root,'prototypes/godot-shared/dm_style/appearance.gd'),join(root,'prototypes/godot-'+name,'dm_style/appearance.gd'));
  console.log('Character sheet synced:',name);
 }

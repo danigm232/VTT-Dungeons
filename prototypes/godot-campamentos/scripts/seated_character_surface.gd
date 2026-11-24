@@ -13,7 +13,7 @@ func _ready() -> void:
 	mesh = _surface
 	material_override = _material
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_material.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
 	_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR

@@ -21,3 +21,23 @@ func _build_overview_envelope_points() -> void:
 	_overview_points.append(Vector3(33.2, -1.0, 0.0))
 	_overview_points.append(WRECK_MAST_TOP_POS)
 
+func get_player_max_distance(zone_id: String = "") -> float:
+	var z := zone_id if zone_id != "" else current_zone_id
+	match z:
+		"aft_c4_port", "aft_c5_stbd", "aft_c4_c5", "fore_c6_port", "fore_c7_stbd", "fore_c6_c7", "c4", "c5", "c6", "c7":
+			return 24.0
+		"c10", "crows_nest":
+			return 20.0
+		"lower_c8_bilge", "lower_c9_hold", "c8", "c9":
+			return 30.0
+		_:
+			return 36.0
+
+func get_world_visual_bounds() -> Rect2:
+	var parent_node := get_parent()
+	if not parent_node:
+		return Rect2()
+	if parent_node.find_child("OceanWater", true, false) != null or parent_node.find_child("ShipVessel", true, false) != null:
+		return Rect2(-128.0, -108.0, 256.0, 216.0)
+	return Rect2()
+

@@ -7,7 +7,7 @@ Canon consultado en el capítulo 1 de la aventura, pp. 7–12. La estructura y l
 | Personaje o grupo | Puestos y recursos del juego |
 | --- | --- |
 | Runara | Primera bienvenida en A1, lectura y notas en A4 y meditación en A5. El saludo inicial se recuerda durante los cambios de mapa de la sesión. |
-| Tarak | Hierbas en A1 y presencia en el comedor de A3 al anochecer. El gesto usa el mismo sprig dibujado a lo largo de ocho poses. |
+| Tarak | Hierbas en A1 y presencia en el comedor de A3 al anochecer. El gesto conserva la ramita dibujada a lo largo de ocho poses. |
 | Varnoth | Mantenimiento de piedra en A5, biblioteca al anochecer y celda en A1 por la noche. |
 | Myla y Laylee | Ajuste de un engranaje y limpieza de herramientas en el taller. Myla sincroniza el fotograma de contacto con el giro del banco de trabajo. |
 | Rix | Reposo en la celda de día y ofrenda junto al altar cuando baja la luz. La ofrenda activa una emisión breve de incienso. |

@@ -29,6 +29,7 @@ func register(source: Dictionary, actions: Array = [], profile: Dictionary = {})
 	a["kind"] = a.get("kind","player")
 	a["hp_max"] = int(a.get("hp_max",profile.get("maxHp",10)))
 	a["hp"] = int(a.get("hp",a.hp_max))
+	a["temp_hp"] = maxi(0,int(a.get("temp_hp",0)))
 	a["ac"] = int(a.get("ac",profile.get("armorClass",10)))
 	a["speed"] = float(a.get("speed",profile.get("speedMeters",9)))
 	a["actions"] = actions.duplicate(true)
@@ -431,6 +432,10 @@ func damage(id: String,amount: int,type: String,critical := false,knockout := fa
 	var a: Dictionary=actors[id]
 	if type in a.immunities: amount=0
 	elif type in a.resistances: amount=floori(amount/2.0)
+	var hit:=amount
+	var absorbed:=mini(amount,maxi(0,int(a.get("temp_hp",0))))
+	a.temp_hp=maxi(0,int(a.get("temp_hp",0))-absorbed)
+	amount-=absorbed
 	if amount>0 and a.hp==0 and not a.dead:
 		if a.stable: a.stable=false; a.death_success=0; a.death_failure=0
 		a.death_failure+=2 if critical else 1
@@ -446,8 +451,9 @@ func damage(id: String,amount: int,type: String,critical := false,knockout := fa
 				a.dead=false
 				followups.append({"kind":"fortitude","owner":id,"dc":5+amount,"label":"Fortaleza de no muerto · CON CD %d · d20 natural" % (5+amount),"committed":true})
 			a.defeat_style="blood"; add_condition(id,"inconsciente")
-	elif amount>0 and not str(a.concentration).is_empty():
-		followups.append({"kind":"concentration","owner":id,"dc":maxi(10,mini(30,floori(amount/2.0))),"label":"Concentración · CON CD %d" % maxi(10,mini(30,floori(amount/2.0))),"committed":true})
+	elif hit>0 and not str(a.concentration).is_empty():
+		var dc=maxi(10,mini(30,floori(hit/2.0)))
+		followups.append({"kind":"concentration","owner":id,"dc":dc,"label":"Concentración · CON CD %d" % dc,"committed":true})
 	changed.emit()
 
 func heal(id: String,amount: int) -> void:

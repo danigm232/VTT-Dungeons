@@ -7,7 +7,7 @@ var cells: Array=[]
 var chunks: Dictionary={}
 var material: ShaderMaterial
 var focus_position:=Vector3.ZERO
-var radius_meters:=50.0
+var radius_meters:=64.0
 var verified_cells: Array=[]
 var build_stats: Dictionary={}
 var revision:=0
@@ -214,6 +214,44 @@ func reachable(world: Vector3,budget: float) -> Dictionary:
 			if cost>budget+.01 or costs.has(other) and costs[other]<=cost: continue
 			costs[other]=cost; queue.append(other)
 	return costs
+
+func find_path(from_world: Vector3,to_world: Vector3) -> PackedVector3Array:
+	var start_l:=to_local(from_world); var goal_l:=to_local(to_world)
+	var start_i:=-1; var goal_i:=-1; var min_s:=3.0; var min_g:=3.0
+	for i in range(_centers.size()):
+		var ds:=Vector2(_centers[i].x-start_l.x,_centers[i].z-start_l.z).length()
+		if ds<min_s: min_s=ds; start_i=i
+		var dg:=Vector2(_centers[i].x-goal_l.x,_centers[i].z-goal_l.z).length()
+		if dg<min_g: min_g=dg; goal_i=i
+	if start_i<0 or goal_i<0: return PackedVector3Array()
+	if start_i==goal_i: return PackedVector3Array([to_global(_centers[goal_i])])
+	var dist: Dictionary={start_i:0.0}; var prev: Dictionary={}; var open: Array[int]=[start_i]
+	while not open.is_empty():
+		var best_pos:=0; var best_d: float=float(dist[open[0]])
+		for k in range(1,open.size()):
+			var dk: float=float(dist[open[k]])
+			if dk<best_d: best_d=dk; best_pos=k
+		var cur: int=open[best_pos]; open.remove_at(best_pos)
+		if cur==goal_i: break
+		for other in navigation.get(cur,[]):
+			var diff: Vector3=_centers[other]-_centers[cur]
+			var step_len:=Vector2(diff.x,diff.z).length()
+			var step_cost:=step_len*float(verified_cells[other].get("movement_cost",1.0))
+			var cand: float=float(dist[cur])+step_cost
+			if not dist.has(other) or cand<float(dist[other]):
+				dist[other]=cand; prev[other]=cur
+				if not open.has(other): open.append(other)
+	if not prev.has(goal_i): return PackedVector3Array()
+	var rev: Array[Vector3]=[]
+	var node:=goal_i
+	while node!=start_i:
+		rev.append(to_global(_centers[node]))
+		node=int(prev[node])
+	rev.append(to_global(_centers[start_i]))
+	rev.reverse()
+	var out:=PackedVector3Array()
+	for p in rev: out.append(p)
+	return out
 
 func update_movement_hints(world: Vector3,budget: float,enabled: bool) -> void:
 	if _hints: _hints.visible=enabled

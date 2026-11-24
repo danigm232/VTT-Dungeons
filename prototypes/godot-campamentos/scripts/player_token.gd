@@ -35,6 +35,8 @@ var torch_sparks: GPUParticles3D
 var contact_shadow: MeshInstance3D
 var selection_ring: MeshInstance3D
 var action_vfx_sprite: Sprite3D
+var _silhouette_sprite: Sprite3D
+var _silhouette_mat: ShaderMaterial
 var _seat_surface: MeshInstance3D
 var _seat_heading := Vector3.ZERO
 var _seat_feet := Vector3.ZERO
@@ -77,6 +79,24 @@ var is_prone: bool = false
 var is_defeated: bool = false
 var is_in_combat_stance: bool = false
 var in_water: bool = false
+var in_shallow_water: bool = false
+var in_deep_water: bool = false
+const WET_MAX_DISTANCE_M: float = 15.0
+
+var wetness_remaining_s: float = 0.0
+var _wetness_max_s: float = 150.0
+var wet_distance_remaining_m: float = 0.0
+var _was_in_water: bool = false
+var _footprint_step_dist: float = 0.0
+var _audio_step_dist: float = 0.0
+var _footprint_left: bool = false
+var _last_wet_world_pos: Vector3 = Vector3.INF
+var _splash_cooldown: float = 0.0
+var _splash_particles: GPUParticles3D = null
+var _wet_footprints: Array[Dictionary] = []
+
+static var _shared_footprint_tex: Texture2D = null
+static var _shared_silhouette_shader: Shader = null
 
 # Salto parabolico y micro-animaciones procedurales
 var is_jumping: bool = false
@@ -94,6 +114,11 @@ var current_height_scale: float = 1.0
 var current_floor_offset: float = 0.0
 
 # Antorcha viva
+const TORCH_ACTIVE_ENERGY: float = 3.85
+const TORCH_PASSIVE_ENERGY: float = 2.15
+const TORCH_OMNI_RANGE: float = 32.0
+const TORCH_OMNI_ATTENUATION: float = 0.56
+const TORCH_LIGHT_HEIGHT_M: float = 1.72
 var is_torch_lit: bool = false
 var flicker_time: float = 0.0
 
@@ -139,11 +164,13 @@ func setup_sprite_visuals() -> void:
 		sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
 		sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 		sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+		sprite.shaded = true
 		sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		sprite.render_priority = 10
 		if sprite.texture == null and token_texture:
 			sprite.texture = token_texture
 			_update_sprite_scale_from_tex(token_texture, 1.0)
+		_ensure_occluded_silhouette_sprite()
 
 	if collision:
 		# An instanced PackedScene shares subresources unless explicitly isolated.
@@ -166,7 +193,13 @@ func set_active(active: bool) -> void:
 		selection_ring.visible = is_active_player and not is_npc
 	if carried_light:
 		carried_light.visible = is_torch_lit
-		carried_light.light_energy = (2.6 if is_active_player else 1.4) if is_torch_lit else 0.0
+		if is_torch_lit:
+			carried_light.light_color = Color("#ffaa48")
+			carried_light.omni_range = TORCH_OMNI_RANGE
+			carried_light.omni_attenuation = TORCH_OMNI_ATTENUATION
+			carried_light.light_energy = TORCH_ACTIVE_ENERGY if is_active_player else TORCH_PASSIVE_ENERGY
+		else:
+			carried_light.light_energy = 0.0
 	_sync_torch_sparks()
 
 func set_torch_mode(lit: bool, animate: bool = true) -> void:
@@ -176,11 +209,11 @@ func set_torch_mode(lit: bool, animate: bool = true) -> void:
 	if carried_light:
 		carried_light.visible = is_torch_lit
 		if is_torch_lit:
-			carried_light.light_color = Color("#ff9a35")
-			carried_light.omni_range = 20.0
-			carried_light.omni_attenuation = 1.1
+			carried_light.light_color = Color("#ffaa48")
+			carried_light.omni_range = TORCH_OMNI_RANGE
+			carried_light.omni_attenuation = TORCH_OMNI_ATTENUATION
 			carried_light.shadow_enabled = false
-			carried_light.light_energy = 2.6 if is_active_player else 1.4
+			carried_light.light_energy = TORCH_ACTIVE_ENERGY if is_active_player else TORCH_PASSIVE_ENERGY
 		else:
 			carried_light.light_energy = 0.0
 	_sync_torch_sparks()
@@ -431,7 +464,11 @@ func _physics_process(delta: float) -> void:
 
 	var active_sid := Structure.get_active_scene_id()
 	var active_sdef := Structure.get_scene_def(active_sid)
-	in_water = Structure.is_water_at(global_position, active_sdef) or current_zone.get("id", "") == "ocean" or global_position.y <= -0.22
+	var above_forest_water := active_sid == "camp-forest-pleamar" and global_position.y >= 0.045
+	var shallow_w := (not above_forest_water) and Structure.is_shallow_water_at(global_position, active_sdef)
+	in_shallow_water = shallow_w
+	in_water = shallow_w or ((not above_forest_water) and Structure.is_water_at(global_position, active_sdef)) or current_zone.get("id", "") == "ocean" or (global_position.y <= -0.45)
+	in_deep_water = in_water and not shallow_w
 
 	var input_dir := input_override
 	var can_move := (_camera_allows_keyboard() and not is_npc) or input_override.length_squared() > 0.0001
@@ -540,6 +577,7 @@ func _physics_process(delta: float) -> void:
 			jump_timer = 0.0
 
 	var desired_state := _resolve_desired_state(input_dir)
+	_update_wetness_and_footprints(delta, input_dir)
 	_process_pose_visuals(delta, input_dir, desired_state)
 
 func _process_pose_visuals(delta: float, input_dir: Vector2, desired_state: String) -> void:
@@ -584,7 +622,7 @@ func _resolve_desired_state(input_dir: Vector2) -> String:
 		if get_meta("prop_pose", "") == "sit_on_prop" and not char_profile.get("dir_states", {}).get("sit_on_prop", {}).is_empty():
 			return "sit_on_prop"
 		return "sit"
-	if in_water:
+	if in_deep_water:
 		return "swim"
 	if is_stealth:
 		return "stealth"
@@ -725,6 +763,7 @@ func update_sprite_frame() -> void:
 	sprite.texture = tex
 	sprite.flip_h = active_clip_flip_h or bool(fdata.get("flip_h", false))
 	_update_sprite_scale_from_tex(tex, current_height_scale)
+	_sync_silhouette_texture(tex)
 
 func _update_sprite_scale_from_tex(tex: Texture2D, h_scale: float) -> void:
 	if not sprite or not tex:
@@ -732,6 +771,8 @@ func _update_sprite_scale_from_tex(tex: Texture2D, h_scale: float) -> void:
 	var th := float(tex.get_height())
 	if th > 0.0:
 		sprite.pixel_size = (target_height * h_scale) / th
+		if is_instance_valid(_silhouette_sprite):
+			_silhouette_sprite.pixel_size = sprite.pixel_size
 
 func _apply_procedural_motion(delta: float, input_dir: Vector2, state: String) -> void:
 	if not sprite:
@@ -839,16 +880,110 @@ func _apply_procedural_motion(delta: float, input_dir: Vector2, state: String) -
 	sprite.modulate = mod
 	_update_seat_surface(state)
 	_update_rest_surface(state)
+	if is_instance_valid(_silhouette_sprite):
+		_silhouette_sprite.position = sprite.position
+		_silhouette_sprite.rotation.z = sprite.rotation.z
+		_silhouette_sprite.scale = sprite.scale
+		_silhouette_sprite.flip_h = sprite.flip_h
+		_silhouette_sprite.visible = sprite.visible and visible
 
+	var surf_n := _resolve_floor_normal()
 	if contact_shadow:
 		contact_shadow.visible = state not in ["sit_on_prop", "rest_on_prop"]
+		contact_shadow.position.y = maxf(0.02, 0.042 - global_position.y) if in_shallow_water else 0.02
 		var alt_factor := clampf(1.0 - (jump_y / (jump_peak_height * 1.45)), 0.35, 1.0)
 		var state_shadow := 0.85 if state == "sit" else (1.25 if state in ["prone", "crawl", "defeated"] else 1.0)
-		contact_shadow.scale = Vector3(alt_factor * state_shadow, 1.0, alt_factor * state_shadow)
+		# La huella se adapta a la estatura canónica compensando race_scale ya aplicado en PlaneMesh
+		var mesh_race := 0.78 if char_key == "rogue" else (0.94 if char_key == "cleric" else 1.0)
+		var stature_shadow := clampf(target_height * current_height_scale / 1.82, 0.62, 1.12) / mesh_race
+		if state in ["prone", "crawl", "defeated"]:
+			stature_shadow = clampf(target_height / 1.82, 0.7, 1.12) / mesh_race
+		var airborne := clampf(jump_y / maxf(jump_peak_height, 0.01), 0.0, 1.0)
+		if char_key == "harpy" and state in ["run", "fly"]:
+			airborne = 0.7
+		var sh_sc := Vector3(alt_factor * state_shadow * stature_shadow, 1.0, alt_factor * state_shadow * stature_shadow)
+		_align_node_to_normal(contact_shadow, surf_n, sh_sc)
+		var shadow_mat := contact_shadow.material_override as StandardMaterial3D
+		if shadow_mat:
+			# Cuanto más lejos del suelo o dentro del río, más suave la sombra de contacto (Paso 16.5)
+			var water_atten := 0.44 if in_shallow_water else 1.0
+			shadow_mat.albedo_color.a = lerpf(1.0, 0.38, airborne) * water_atten
 	if selection_ring:
+		var sitting_prop := state in ["sit_on_prop", "rest_on_prop"]
+		selection_ring.visible = is_active_player and not is_npc and not sitting_prop
+		# Paso 5.12 & 16.10-16.12: adapt selection ring physically to water surface & local terrain/bridge slope normal
+		selection_ring.position.y = maxf(0.035, 0.048 - global_position.y) if in_shallow_water else 0.035
+		var ring_sc := Vector3.ONE
 		var m := selection_ring.material_override as StandardMaterial3D
 		if m:
-			m.albedo_color.a = 0.0 if state in ["sit_on_prop", "rest_on_prop"] else (0.38 if is_stealth else ring_color.a)
+			m.albedo_color.a = 0.0 if sitting_prop else (0.28 if is_stealth else ring_color.a)
+			m.emission_enabled = not sitting_prop and not is_stealth
+			# Pulso lento del anillo (respeta el movimiento reducido y atenúa emisión en sigilo)
+			var loading_node := get_node_or_null("/root/SkillLoading")
+			var calm: bool = loading_node != null and bool(loading_node.get("reduced"))
+			var stealth_mul := 0.0 if (sitting_prop or is_stealth) else 1.0
+			if calm:
+				m.emission_energy_multiplier = 1.5 * stealth_mul
+			else:
+				var pulse := 0.5 + 0.5 * sin(float(Time.get_ticks_msec()) * 0.0028)
+				m.emission_energy_multiplier = lerpf(1.25, 1.85, pulse) * stealth_mul
+				var rs := 1.0 + pulse * 0.025
+				ring_sc = Vector3(rs, 1.0, rs)
+		_align_node_to_normal(selection_ring, Vector3.UP if in_shallow_water else surf_n, ring_sc)
+
+func _resolve_floor_normal() -> Vector3:
+	if in_shallow_water:
+		return Vector3.UP
+	var raw_n := Vector3.UP
+	if is_on_floor():
+		var fn := get_floor_normal()
+		if fn.length_squared() > 0.25 and fn.y > 0.35:
+			raw_n = fn.normalized()
+	if raw_n.is_equal_approx(Vector3.UP):
+		var sr: Node = get_tree().current_scene if (get_tree() and get_tree().current_scene) else get_parent()
+		var ob: Node = null
+		if sr:
+			ob = sr.get_node_or_null("CampOutdoorBuilder")
+			if ob == null and "outdoor_builder" in sr:
+				ob = sr.get("outdoor_builder")
+		if is_instance_valid(ob) and ob.has_method("eval_ground_height"):
+			var eps := 0.28
+			var hx0 := float(ob.call("eval_ground_height", global_position.x - eps, global_position.z))
+			var hx1 := float(ob.call("eval_ground_height", global_position.x + eps, global_position.z))
+			var hz0 := float(ob.call("eval_ground_height", global_position.x, global_position.z - eps))
+			var hz1 := float(ob.call("eval_ground_height", global_position.x, global_position.z + eps))
+			raw_n = Vector3(hx0 - hx1, 2.0 * eps, hz0 - hz1).normalized()
+	return Vector3.UP.slerp(raw_n, 0.82).normalized()
+
+func _align_node_to_normal(node: Node3D, nrm: Vector3, sc: Vector3) -> void:
+	var y_ax := nrm.normalized() if nrm.length_squared() > 0.01 else Vector3.UP
+	var ref := Vector3.FORWARD if absf(y_ax.dot(Vector3.FORWARD)) < 0.92 else Vector3.RIGHT
+	var x_ax := y_ax.cross(ref).normalized()
+	var z_ax := x_ax.cross(y_ax).normalized()
+	node.basis = Basis(x_ax * sc.x, y_ax * sc.y, z_ax * sc.z)
+
+func get_current_footstep_surface() -> String:
+	if in_water or in_shallow_water:
+		return "water"
+	var sid := Structure.get_active_scene_id()
+	if sid == "camp-forest-pleamar" and Structure.is_on_forest_bridge(global_position):
+		return "wood"
+	var fmat := str(current_zone.get("floor_material", "")).to_lower()
+	if fmat.contains("wood") or fmat.contains("plank"):
+		return "wood"
+	return "earth"
+
+func _trigger_footstep_audio() -> void:
+	var sr: Node = get_tree().current_scene if (get_tree() and get_tree().current_scene) else get_parent()
+	if sr == null:
+		return
+	var am: Node = sr.get_node_or_null("CampAudioManager")
+	if am == null and "audio_mgr" in sr:
+		am = sr.get("audio_mgr")
+	if is_instance_valid(am) and am.has_method("play_footstep"):
+		var surf := get_current_footstep_surface()
+		var jitter := sin(float(Time.get_ticks_msec()) * 0.017 + global_position.x) * 0.06
+		am.call("play_footstep", surf, global_position, jitter)
 
 func active_prop_surface() -> MeshInstance3D:
 	if is_instance_valid(_rest_surface) and _rest_surface.visible:
@@ -973,8 +1108,8 @@ func build_action_vfx() -> void:
 func _update_carried_torch_flicker(delta: float) -> void:
 	if carried_light and is_torch_lit:
 		flicker_time += delta
-		var base_e := 2.6 if is_active_player else 1.4
-		var flicker := sin(flicker_time * 4.5) * 0.08 + cos(flicker_time * 7.2) * 0.04
+		var base_e := TORCH_ACTIVE_ENERGY if is_active_player else TORCH_PASSIVE_ENERGY
+		var flicker := sin(flicker_time * 4.5) * 0.11 + cos(flicker_time * 7.2) * 0.06
 		carried_light.light_energy = base_e + flicker
 
 func _sync_torch_sparks() -> void:
@@ -1052,17 +1187,18 @@ func build_selection_ring() -> void:
 func build_carried_lantern() -> void:
 	carried_light = OmniLight3D.new()
 	carried_light.name = "CarriedLantern"
-	carried_light.position = Vector3(0.25, 0.95, 0.15)
-	carried_light.light_color = Color("#ff9a35")
+	carried_light.position = Vector3(0.24, TORCH_LIGHT_HEIGHT_M, 0.16)
+	carried_light.light_color = Color("#ffaa48")
 	carried_light.light_energy = 0.0
-	carried_light.omni_range = 20.0
-	carried_light.omni_attenuation = 1.1
+	carried_light.omni_range = TORCH_OMNI_RANGE
+	carried_light.omni_attenuation = TORCH_OMNI_ATTENUATION
 	carried_light.shadow_enabled = false
 	carried_light.visible = false
 	add_child(carried_light)
 
 	torch_sparks = GPUParticles3D.new()
 	torch_sparks.name = "TorchSparks"
+	torch_sparks.position = Vector3(0.24, clampf(target_height * 0.62, 0.72, 1.32), 0.16)
 	torch_sparks.amount = 18
 	torch_sparks.lifetime = 0.85
 	torch_sparks.preprocess = 1.0
@@ -1108,7 +1244,7 @@ func build_carried_lantern() -> void:
 	q.size = Vector2(0.18, 0.18)
 	q.material = mat_sp
 	torch_sparks.draw_pass_1 = q
-	carried_light.add_child(torch_sparks)
+	add_child(torch_sparks)
 	_sync_torch_sparks()
 
 func _camera_allows_keyboard() -> bool:
@@ -1127,3 +1263,356 @@ func set_equipment_appearance(portrait_texture: Texture2D, animation_profile: Di
 	set_meta("appearance_portrait", portrait_texture)
 	_resolve_and_apply_clip("idle", facing_dir, true)
 	return true
+
+func _exit_tree() -> void:
+	for fp in _wet_footprints:
+		var m: Node3D = fp.get("mesh")
+		if is_instance_valid(m):
+			m.queue_free()
+	_wet_footprints.clear()
+
+static func _get_occluded_silhouette_shader() -> Shader:
+	if _shared_silhouette_shader != null:
+		return _shared_silhouette_shader
+	var s := Shader.new()
+	s.code = """
+shader_type spatial;
+render_mode unshaded, depth_test_disabled, depth_draw_never, blend_mix, cull_disabled;
+
+uniform sampler2D depth_tex : hint_depth_texture, filter_nearest;
+uniform sampler2D sprite_tex : source_color, filter_linear_mipmap;
+uniform vec4 fill_col : source_color = vec4(0.74, 0.84, 0.94, 0.22);
+uniform vec4 rim_col : source_color = vec4(0.96, 0.86, 0.56, 0.56);
+
+void fragment() {
+	vec4 texel = texture(sprite_tex, UV);
+	if (texel.a < 0.22) {
+		discard;
+	}
+	// Draw subtle silhouette ONLY when opaque scene geometry (tarp canopy, trees, rock) occludes this pixel
+	float scene_depth = texture(depth_tex, SCREEN_UV).r;
+	if (FRAGCOORD.z >= scene_depth - 0.00008) {
+		discard;
+	}
+	vec2 px = 2.0 / max(vec2(16.0), vec2(textureSize(sprite_tex, 0)));
+	float a_min = texel.a;
+	a_min = min(a_min, texture(sprite_tex, clamp(UV + vec2(px.x, 0.0), vec2(0.0), vec2(1.0))).a);
+	a_min = min(a_min, texture(sprite_tex, clamp(UV - vec2(px.x, 0.0), vec2(0.0), vec2(1.0))).a);
+	a_min = min(a_min, texture(sprite_tex, clamp(UV + vec2(0.0, px.y), vec2(0.0), vec2(1.0))).a);
+	a_min = min(a_min, texture(sprite_tex, clamp(UV - vec2(0.0, px.y), vec2(0.0), vec2(1.0))).a);
+	float is_edge = smoothstep(0.65, 0.12, a_min);
+	vec4 col = mix(fill_col, rim_col, is_edge);
+	ALBEDO = col.rgb;
+	ALPHA = col.a;
+}
+"""
+	_shared_silhouette_shader = s
+	return _shared_silhouette_shader
+
+func _ensure_occluded_silhouette_sprite() -> void:
+	if not sprite or is_instance_valid(_silhouette_sprite):
+		return
+	var sil := Sprite3D.new()
+	sil.name = "OccludedSilhouette"
+	sil.hframes = 1
+	sil.vframes = 1
+	sil.frame = 0
+	sil.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+	sil.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	sil.shaded = false
+	sil.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	sil.render_priority = 11
+	var sm := ShaderMaterial.new()
+	sm.shader = _get_occluded_silhouette_shader()
+	sil.material_override = sm
+	_silhouette_mat = sm
+	_silhouette_sprite = sil
+	add_child(sil)
+	if sprite.texture:
+		_sync_silhouette_texture(sprite.texture)
+		sil.pixel_size = sprite.pixel_size
+		sil.flip_h = sprite.flip_h
+		sil.position = sprite.position
+
+func _sync_silhouette_texture(tex: Texture2D) -> void:
+	if is_instance_valid(_silhouette_sprite) and tex:
+		_silhouette_sprite.texture = tex
+	if is_instance_valid(_silhouette_mat) and tex:
+		_silhouette_mat.set_shader_parameter("sprite_tex", tex)
+
+static func get_footprint_evaporation_profile(weather_id: String, phase_id: String) -> Dictionary:
+	var w := weather_id.to_lower()
+	var p := phase_id.to_lower()
+	var dry_rate := 1.0
+	var footprint_life_s := 140.0
+	if w in ["fog", "mist"]:
+		dry_rate = 0.68
+		footprint_life_s = 185.0
+	elif w in ["rain", "storm"]:
+		dry_rate = 0.72
+		footprint_life_s = 145.0
+	elif w == "snow":
+		dry_rate = 0.76
+		footprint_life_s = 175.0
+	else:
+		if p in ["day", "arrival"]:
+			dry_rate = 1.28
+			footprint_life_s = 72.0
+		elif p in ["dawn", "dusk"]:
+			dry_rate = 0.96
+			footprint_life_s = 135.0
+		else:
+			dry_rate = 0.78
+			footprint_life_s = 170.0
+	return {"dry_rate": dry_rate, "footprint_life_s": footprint_life_s}
+
+func _resolve_wet_climate() -> Dictionary:
+	var w := str(get_meta("weather_override", ""))
+	var p := str(get_meta("phase_override", ""))
+	if w.is_empty() or p.is_empty():
+		var sr := get_tree().current_scene if get_tree() else null
+		var fx_n: Node = sr.get_node_or_null("CampAtmosphereFx") if sr else null
+		if fx_n == null and sr and "fx" in sr:
+			fx_n = sr.get("fx")
+		if is_instance_valid(fx_n):
+			if w.is_empty():
+				w = str(fx_n.get("current_weather"))
+			if p.is_empty():
+				p = str(fx_n.get("current_phase"))
+	if w.is_empty():
+		w = "clear"
+	if p.is_empty():
+		p = "dusk"
+	return {"weather": w, "phase": p}
+
+func get_wetness_remaining() -> float:
+	return wetness_remaining_s
+
+func get_wet_footprint_count() -> int:
+	return _wet_footprints.size()
+
+static func _get_footprint_texture() -> Texture2D:
+	if _shared_footprint_tex != null:
+		return _shared_footprint_tex
+	var img := Image.create(32, 48, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	for py in range(48):
+		for px in range(32):
+			var u := (float(px) - 15.5) / 10.5
+			var v := (float(py) - 23.5) / 20.0
+			# Forefoot oval + heel oval connected by narrow instep
+			var fore := Vector2(u * 1.02, (v + 0.34) * 1.38).length()
+			var heel := Vector2(u * 1.18, (v - 0.56) * 1.85).length()
+			var bridge := maxf(absf(u * 1.55), absf(v) * 1.25)
+			var a := 0.0
+			if fore < 1.0:
+				a = maxf(a, clampf((1.0 - fore) * 2.4, 0.0, 1.0))
+			if heel < 1.0:
+				a = maxf(a, clampf((1.0 - heel) * 2.4, 0.0, 1.0))
+			if bridge < 0.72 and v > -0.25 and v < 0.45:
+				a = maxf(a, 0.72)
+			if a > 0.01:
+				img.set_pixel(px, py, Color(1.0, 1.0, 1.0, a * 0.90))
+	_shared_footprint_tex = ImageTexture.create_from_image(img)
+	return _shared_footprint_tex
+
+func _ensure_splash_particles() -> void:
+	if is_instance_valid(_splash_particles):
+		return
+	var gp := GPUParticles3D.new()
+	gp.name = "WaterSplashParticles"
+	gp.emitting = false
+	gp.one_shot = true
+	gp.amount = 18
+	gp.lifetime = 0.45
+	gp.explosiveness = 0.86
+	gp.fixed_fps = 30
+
+	var pm := ParticleProcessMaterial.new()
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_RING
+	pm.emission_ring_axis = Vector3(0.0, 1.0, 0.0)
+	pm.emission_ring_height = 0.05
+	pm.emission_ring_radius = 0.28
+	pm.emission_ring_inner_radius = 0.12
+	pm.direction = Vector3(0.0, 1.0, 0.0)
+	pm.spread = 52.0
+	pm.initial_velocity_min = 1.25
+	pm.initial_velocity_max = 2.65
+	pm.gravity = Vector3(0.0, -9.2, 0.0)
+	pm.scale_min = 0.06
+	pm.scale_max = 0.12
+	pm.color = Color(0.90, 0.96, 0.99, 0.92)
+	gp.process_material = pm
+
+	var sm := SphereMesh.new()
+	sm.radius = 0.075
+	sm.height = 0.14
+	sm.radial_segments = 6
+	sm.rings = 3
+	var mat := StandardMaterial3D.new()
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = Color(0.92, 0.97, 1.0, 0.90)
+	sm.material = mat
+	gp.draw_pass_1 = sm
+	add_child(gp)
+	_splash_particles = gp
+
+func _emit_water_splash(pos: Vector3, heavy: bool = false) -> void:
+	_ensure_splash_particles()
+	if is_instance_valid(_splash_particles):
+		_splash_particles.global_position = Vector3(pos.x, maxf(0.04, pos.y + 0.14), pos.z)
+		_splash_particles.amount = 22 if heavy else 14
+		_splash_particles.restart()
+		_splash_particles.emitting = true
+	var sr := get_tree().current_scene if get_tree() else null
+	if sr:
+		var ob := sr.get_node_or_null("OutdoorCamp")
+		if is_instance_valid(ob) and ob.has_method("push_water_ripple_at"):
+			ob.call("push_water_ripple_at", pos, 0.96 if heavy else 0.74)
+		# Expanding whitewater splash foam ring directly on the river surface
+		var ring_m := MeshInstance3D.new()
+		ring_m.name = "SplashRing"
+		var tm := TorusMesh.new()
+		tm.inner_radius = 0.18
+		tm.outer_radius = 0.25
+		tm.rings = 16
+		tm.ring_segments = 6
+		ring_m.mesh = tm
+		ring_m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var rmat := StandardMaterial3D.new()
+		rmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		rmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		rmat.albedo_color = Color(0.92, 0.97, 0.99, 0.82 if heavy else 0.62)
+		ring_m.material_override = rmat
+		var container: Node = sr.get_node_or_null("WetFootprints")
+		if container == null:
+			container = Node3D.new()
+			container.name = "WetFootprints"
+			sr.add_child(container)
+		container.add_child(ring_m)
+		ring_m.global_position = Vector3(pos.x, 0.055, pos.z)
+		ring_m.scale = Vector3(0.75, 0.18, 0.75)
+		if ring_m.is_inside_tree():
+			var tw := ring_m.create_tween()
+			tw.set_parallel(true)
+			tw.tween_property(ring_m, "scale", Vector3(2.4 if heavy else 1.85, 0.18, 2.4 if heavy else 1.85), 0.52).set_ease(Tween.EASE_OUT)
+			tw.tween_property(rmat, "albedo_color:a", 0.0, 0.52).set_ease(Tween.EASE_OUT)
+			tw.chain().tween_callback(ring_m.queue_free)
+		else:
+			ring_m.queue_free()
+
+func _spawn_wet_footprint(pos: Vector3, heading_xz: Vector2, wetness_ratio: float, max_life: float) -> void:
+	var root_parent: Node = get_tree().current_scene if (get_tree() and get_tree().current_scene) else get_parent()
+	if root_parent == null:
+		return
+	var container := root_parent.get_node_or_null("WetFootprints")
+	if container == null:
+		container = Node3D.new()
+		container.name = "WetFootprints"
+		root_parent.add_child(container)
+
+	_footprint_left = not _footprint_left
+	var lat := Vector2(-heading_xz.y, heading_xz.x) * (0.15 if _footprint_left else -0.15)
+	var fp_pos := Vector3(pos.x + lat.x, pos.y + 0.018, pos.z + lat.y)
+
+	var mi := MeshInstance3D.new()
+	mi.name = "WetFootprint"
+	var pm := PlaneMesh.new()
+	pm.size = Vector2(0.28, 0.42)
+	mi.mesh = pm
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+	var mat := StandardMaterial3D.new()
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	mat.render_priority = 1
+	mat.albedo_texture = _get_footprint_texture()
+	var w_clamped := clampf(wetness_ratio, 0.0, 1.0)
+	var init_a := clampf(0.04 + w_clamped * 0.80, 0.04, 0.84)
+	var tint := Color(0.24, 0.19, 0.15).lerp(Color(0.06, 0.048, 0.035), w_clamped)
+	mat.albedo_color = Color(tint.r, tint.g, tint.b, init_a)
+	mi.material_override = mat
+
+	container.add_child(mi)
+	mi.global_position = fp_pos
+	mi.rotation = Vector3(0.0, atan2(heading_xz.x, heading_xz.y), 0.0)
+	_wet_footprints.append({
+		"mesh": mi,
+		"mat": mat,
+		"age": 0.0,
+		"max_life": max_life,
+		"orig_alpha": init_a,
+	})
+	while _wet_footprints.size() > 140:
+		var old_fp: Dictionary = _wet_footprints.pop_front()
+		var om: Node3D = old_fp.get("mesh")
+		if is_instance_valid(om):
+			om.queue_free()
+
+func _update_wetness_and_footprints(delta: float, _input_dir: Vector2) -> void:
+	if _last_wet_world_pos == Vector3.INF:
+		_last_wet_world_pos = global_position
+	var delta_xz := Vector2(global_position.x - _last_wet_world_pos.x, global_position.z - _last_wet_world_pos.z)
+	var step_dist := delta_xz.length()
+	_last_wet_world_pos = global_position
+
+	_splash_cooldown = maxf(0.0, _splash_cooldown - delta)
+	var climate := _resolve_wet_climate()
+	var profile := get_footprint_evaporation_profile(str(climate["weather"]), str(climate["phase"]))
+	var dry_rate := float(profile["dry_rate"])
+	var fp_life := float(profile["footprint_life_s"])
+
+	if not is_npc and not has_meta("prop_seat_pos") and step_dist > 0.002 and step_dist < 4.0:
+		_audio_step_dist += step_dist
+		while _audio_step_dist >= 0.58:
+			_audio_step_dist -= 0.58
+			_trigger_footstep_audio()
+
+	if in_water:
+		var entered := not _was_in_water
+		wetness_remaining_s = _wetness_max_s
+		wet_distance_remaining_m = WET_MAX_DISTANCE_M
+		_footprint_step_dist = 0.0
+		if entered:
+			_emit_water_splash(global_position, true)
+			_trigger_footstep_audio()
+			_splash_cooldown = 0.34
+		elif step_dist > 0.012 and _splash_cooldown <= 0.0:
+			_emit_water_splash(global_position, false)
+			_splash_cooldown = 0.34
+	else:
+		if wetness_remaining_s > 0.0 and wet_distance_remaining_m > 0.0:
+			wetness_remaining_s = maxf(0.0, wetness_remaining_s - delta * dry_rate)
+			if step_dist > 0.002 and step_dist < 4.0:
+				_footprint_step_dist += step_dist
+				var heading := delta_xz / step_dist
+				while _footprint_step_dist >= 0.56 and wetness_remaining_s > 0.0 and wet_distance_remaining_m > 0.01:
+					_footprint_step_dist -= 0.56
+					var dist_ratio := clampf(wet_distance_remaining_m / WET_MAX_DISTANCE_M, 0.0, 1.0)
+					var time_ratio := clampf(wetness_remaining_s / _wetness_max_s, 0.0, 1.0)
+					var wet_intensity := pow(minf(dist_ratio, time_ratio), 1.35)
+					_spawn_wet_footprint(global_position, heading, wet_intensity, fp_life)
+					wet_distance_remaining_m = maxf(0.0, wet_distance_remaining_m - 0.56)
+		elif wet_distance_remaining_m <= 0.0:
+			wetness_remaining_s = maxf(0.0, wetness_remaining_s - delta * dry_rate)
+	_was_in_water = in_water
+
+	# Age and fade active wet footprints smoothly according to climate & time of day
+	var idx := _wet_footprints.size() - 1
+	while idx >= 0:
+		var fp := _wet_footprints[idx]
+		fp["age"] = float(fp["age"]) + delta
+		var max_l: float = maxf(1.0, float(fp["max_life"]))
+		if float(fp["age"]) >= max_l:
+			var m: Node3D = fp.get("mesh")
+			if is_instance_valid(m):
+				m.queue_free()
+			_wet_footprints.remove_at(idx)
+		else:
+			var rem := clampf(1.0 - (float(fp["age"]) / max_l), 0.0, 1.0)
+			var mat: StandardMaterial3D = fp.get("mat")
+			if is_instance_valid(mat):
+				mat.albedo_color.a = float(fp["orig_alpha"]) * (rem * rem)
+		idx -= 1

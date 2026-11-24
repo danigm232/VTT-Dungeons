@@ -21,6 +21,9 @@ static func snapshot(ui) -> Dictionary:
 	for key in ["hp","hp_max","temp_hp","ac","speed","conditions","resources","concentration","actions","saves","movement","action_used","bonus_used","reaction_used","ammunition","stance"]:
 		if runtime.has(key): a[key]=runtime[key].duplicate(true) if runtime[key] is Dictionary or runtime[key] is Array else runtime[key]
 	var level=int(a.get("level",sheet.get("level",1)))
+	a["base_ac"]=source.get("ac",a.get("ac",0))
+	a["base_speed"]=source.get("speed",a.get("speed",0))
+	a["combat_active"]=bool(ui.combat_controller and ui.combat_controller.rules.active)
 	a["proficiency_bonus"]=int(a.get("proficiency_bonus",sheet.get("proficiencyBonus",2+floori(float(level-1)/4))))
 	var legacy_identity=str(a.get("class_line",a.get("short_desc","")))
 	a["identity"]=legacy_identity
@@ -102,6 +105,25 @@ static func snapshot(ui) -> Dictionary:
 		if not a.casting.has("Ataque") and spell_attacks.size()==1: a.casting["Ataque"]=signed(int(spell_attacks.keys()[0]))
 		# No guessing of casting ability, preparation status or spell level from class names.
 	return a
+static func stat_explanation(actor: Dictionary,key: String) -> String:
+	match key:
+		"shield":
+			var baseline=int(actor.get("base_ac",actor.ac))
+			return "CA registrada %d. CA efectiva en mesa %d." % [baseline,int(actor.ac)]
+		"speed":
+			var text="Velocidad registrada %s m. Velocidad usada en mesa %s m." % [meters(float(actor.get("base_speed",actor.speed))),meters(float(actor.speed))]
+			if actor.get("combat_active",false) and actor.has("movement"):
+				text+=" Movimiento restante %s m." % meters(float(actor.movement))
+			return text
+		"initiative":
+			var total=int(actor.get("initiative_bonus",0))
+			var dex=actor.get("abilities",{}).get("DES",null)
+			if dex==null: return "Modificador de iniciativa registrado "+signed(total)+"."
+			var base=modifier(int(dex))
+			return "Iniciativa registrada %s. Modificador de Destreza %s.%s" % [signed(total),signed(base)," Diferencia registrada "+signed(total-base)+"." if total!=base else ""]
+		"star":
+			return "Bonificador de competencia %s a nivel %d. Se aplica en las pruebas donde consta competencia." % [signed(int(actor.proficiency_bonus)),int(actor.get("level",1))]
+	return ""
 static func normalized(value: String) -> String:
 	return value.to_lower().split("·")[0].strip_edges().replace("proyectil mágico","misil mágico")
 static func is_spell(action: Dictionary) -> bool:
@@ -181,6 +203,8 @@ static func action_fields(action: Dictionary,actor: Dictionary) -> Dictionary:
 		if int(action.get("attackCount",1))>1: effect=str(action.attackCount)+" × ("+effect+")"
 		effect+=" PG" if action.get("healing",false) else " "+str(action.get("damageType",""))
 	elif effect.is_empty(): effect=str(spell.get("detail",action.get("guidance",""))).split("·")[0].strip_edges()
+	if str(action.get("id",""))=="shield": effect="+5 a la CA (hasta sig. turno)"
+	elif str(action.get("id",""))=="detect-magic": effect="Detecta auras mágicas (ritual)"
 	if effect.is_empty(): effect="Concentración" if action.get("concentration",false) else "Efecto al DM"
 	var uses=""; var resource_data={}
 	if action.has("resource"):
@@ -199,6 +223,42 @@ static func action_fields(action: Dictionary,actor: Dictionary) -> Dictionary:
 	var duration=str(action.get("duration",spell.get("duration","Concentración" if action.get("concentration",false) else "")))
 	return {"name":str(action.get("label","Acción")).split("·")[0].strip_edges(),"type":kind,"range":distance,"duration":duration,"roll":roll,"roll_kind":roll_kind,"effect":effect.strip_edges(),"uses":uses,"resource":resource_data,"target_mode":target,"target":Catalogue.Targeting.label(action)}
 
+static func spell_metadata(spell: Dictionary,action: Dictionary={}) -> Dictionary:
+	const SPELL_LIBRARY={
+		"rayo de escarcha":{"level":0,"school":"Evocación","casting_time":"1 acción","range":"18 m","duration":"Instantánea","components":"V, S","concentration":false,"ritual":false,"effect":"Un haz gélido de luz azulada impacta a una criatura dentro del alcance. Si aciertas con un ataque de conjuro a distancia, inflige 1d8 de daño de frío y su velocidad se reduce en 3 m hasta el inicio de tu siguiente turno.","higher":"El daño aumenta en 1d8 al alcanzar nivel 5 (2d8), nivel 11 (3d8) y nivel 17 (4d8)."},
+		"misil mágico":{"level":1,"school":"Evocación","casting_time":"1 acción","range":"36 m","duration":"Instantánea","components":"V, S","concentration":false,"ritual":false,"effect":"Creas tres dardos brillantes de energía mágica que golpean automáticamente a una o varias criaturas visibles dentro del alcance. Cada dardo inflige 1d4+1 de daño de fuerza.","higher":"Por cada nivel de espacio de conjuro superior a 1, creas un dardo adicional."},
+		"manos ardientes":{"level":1,"school":"Evocación","casting_time":"1 acción","range":"Personal (cono de 4,5 m)","duration":"Instantánea","components":"V, S","concentration":false,"ritual":false,"effect":"Una lámina de llamas surge de tus dedos extendidos. Cada criatura en un cono de 4,5 m realiza una salvación de Destreza; sufre 3d6 de daño de fuego si falla o la mitad si tiene éxito.","higher":"El daño aumenta en 1d6 por cada nivel de espacio de conjuro por encima de 1."},
+		"escudo":{"level":1,"school":"Abjuración","casting_time":"1 reacción","range":"Personal","duration":"1 asalto","components":"V, S","concentration":false,"ritual":false,"effect":"Una barrera invisible de fuerza mágica aparece para protegerte. Hasta el inicio de tu siguiente turno ganas +5 a la CA (incluido contra el ataque desencadenante) y no sufres daño de Misil mágico.","higher":""},
+		"detectar magia":{"level":1,"school":"Adivinación","casting_time":"1 acción (o ritual +10 min)","range":"Personal (radio 9 m)","duration":"Concentración, hasta 10 min","components":"V, S","concentration":true,"ritual":true,"effect":"Percibes la presencia de magia a 9 m o menos de ti. Puedes usar tu acción para ver un aura tenue alrededor de cualquier criatura u objeto visible en el área que porte magia y conocer su escuela.","higher":""},
+		"llama sagrada":{"level":0,"school":"Evocación","casting_time":"1 acción","range":"18 m","duration":"Instantánea","components":"V, S","concentration":false,"ritual":false,"effect":"Un resplandor ardiente desciende sobre una criatura visible dentro del alcance. Debe superar una salvación de Destreza o sufrir 1d8 de daño radiante sin beneficio de cobertura.","higher":"El daño aumenta en 1d8 a nivel 5 (2d8), nivel 11 (3d8) y nivel 17 (4d8)."},
+		"palabra de curación":{"level":1,"school":"Abjuración","casting_time":"1 acción adicional","range":"18 m","duration":"Instantánea","components":"V","concentration":false,"ritual":false,"effect":"Una criatura de tu elección que puedas ver dentro del alcance recupera 2d4 + modificador de lanzamiento de puntos de golpe (reglas 2024).","higher":"La curación aumenta en 2d4 por cada nivel de espacio de conjuro superior a 1."},
+		"bendición":{"level":1,"school":"Encantamiento","casting_time":"1 acción","range":"9 m","duration":"Concentración, hasta 1 min","components":"V, S, M (agua bendita)","concentration":true,"ritual":false,"effect":"Bendices hasta tres criaturas de tu elección dentro del alcance. Mientras dure, añaden 1d4 a sus tiradas de ataque y tiradas de salvación.","higher":"Puedes elegir una criatura adicional por cada nivel de espacio de conjuro superior a 1."},
+		"escudo de fe":{"level":1,"school":"Abjuración","casting_time":"1 acción adicional","range":"18 m","duration":"Concentración, hasta 10 min","components":"V, S, M (pergamino con texto sagrado)","concentration":true,"ritual":false,"effect":"Un campo reluciente rodea a una criatura de tu elección dentro del alcance, otorgándole un bonificador de +2 a la CA durante la duración del conjuro.","higher":""},
+		"armadura de mago":{"level":1,"school":"Abjuración","casting_time":"1 acción","range":"Toque","duration":"8 horas","components":"V, S, M (trozo de cuero curado)","concentration":false,"ritual":false,"effect":"Tocas a una criatura voluntaria sin armadura y su CA base pasa a ser 13 + modificador de Destreza.","higher":""},
+		"onda atronadora":{"level":1,"school":"Evocación","casting_time":"1 acción","range":"Personal (cubo 4,5 m)","duration":"Instantánea","components":"V, S","concentration":false,"ritual":false,"effect":"Una oleada de fuerza atronadora obliga a una salvación de Constitución; 2d8 de daño de trueno y empuja 3 m si falla, o mitad de daño sin empujar si supera.","higher":"El daño aumenta en 1d8 por cada nivel de espacio superior a 1."},
+		"paso brumoso":{"level":2,"school":"Conjuración","casting_time":"1 acción adicional","range":"Personal","duration":"Instantánea","components":"V","concentration":false,"ritual":false,"effect":"Rodeado de neblina plateada, te teletransportas hasta 9 m a un espacio desocupado que puedas ver.","higher":""},
+		"curar heridas":{"level":1,"school":"Abjuración","casting_time":"1 acción","range":"Toque","duration":"Instantánea","components":"V, S","concentration":false,"ritual":false,"effect":"Una criatura a la que toques recupera 2d8 + modificador de lanzamiento puntos de golpe (reglas 2024).","higher":"La curación aumenta en 2d8 por cada nivel de espacio superior a 1."},
+		"saeta guía":{"level":1,"school":"Evocación","casting_time":"1 acción","range":"36 m","duration":"1 asalto","components":"V, S","concentration":false,"ritual":false,"effect":"Un destello de luz impacta con ataque de conjuro a distancia (4d6 radiante) y el siguiente ataque contra ese objetivo antes del final de tu próximo turno tiene ventaja.","higher":"El daño aumenta en 1d6 por cada nivel de espacio superior a 1."},
+		"arma espiritual":{"level":2,"school":"Evocación","casting_time":"1 acción adicional","range":"18 m","duration":"Concentración, hasta 1 min","components":"V, S","concentration":true,"ritual":false,"effect":"Creas un arma espectral flotante que realiza ataques de conjuro cuerpo a cuerpo infligiendo 1d8 + modificador de lanzamiento de daño de fuerza.","higher":"El daño aumenta en 1d8 por cada nivel de espacio superior a 2."}
+	}
+	var key=normalized(str(spell.get("name",action.get("label",""))))
+	var base: Dictionary=SPELL_LIBRARY.get(key,{}).duplicate(true)
+	var out: Dictionary={
+		"level":int(spell.get("level",base.get("level",-1))),
+		"school":str(spell.get("school",base.get("school",""))),
+		"casting_time":str(spell.get("casting_time",action.get("castingTime",base.get("casting_time","")))),
+		"range":str(spell.get("range",base.get("range",""))),
+		"duration":str(spell.get("duration",action.get("duration",base.get("duration","")))),
+		"components":str(spell.get("components",action.get("components",base.get("components","")))),
+		"concentration":bool(spell.get("concentration",action.get("concentration",base.get("concentration",false)))),
+		"ritual":bool(spell.get("ritual",base.get("ritual",false))) or str(action.get("castingTime","")).to_lower().contains("ritual") or str(spell.get("detail","")).to_lower().contains("ritual"),
+		"effect":str(spell.get("full_description",spell.get("description",base.get("effect",spell.get("detail",""))))),
+		"higher":str(spell.get("higher_levels",base.get("higher","")))
+	}
+	return out
+static func can_prepare_spells(actor: Dictionary) -> bool:
+	var id_text=(str(actor.get("identity",""))+" "+str(actor.get("class_line",""))).to_lower()
+	return id_text.contains("mag") or id_text.contains("clérig") or id_text.contains("clerig") or id_text.contains("druid") or id_text.contains("palad")
 static func spell_groups(actor: Dictionary) -> Dictionary:
 	var result={"Trucos":[],"Preparados":[],"Conocidos":[],"Repertorio":[]}
 	for original in actor.get("spells",[]):
@@ -207,6 +267,7 @@ static func spell_groups(actor: Dictionary) -> Dictionary:
 			if not str(candidate.get("id","")).is_empty() and str(candidate.get("id",""))==str(spell.get("action_id","")) or normalized(str(candidate.get("label","")))==normalized(str(spell.get("name",""))): action=candidate; break
 		# Same explicit cantrip IDs as the existing combat controller; no class-based inference.
 		var cantrip=spell.get("level",-1)==0 or action.get("kind","")=="cantrip" or action.get("id","") in ["fire-bolt","ray-of-frost","sacred-flame"]
+		if cantrip: spell["level"]=0
 		var slot=str(action.get("resource",{}).get("id",""))
 		if not spell.has("level") and slot.begins_with("spell-slot-"): spell["level"]=int(slot.trim_prefix("spell-slot-"))
 		var category="Trucos" if cantrip else "Preparados" if spell.get("prepared",false) else "Conocidos" if spell.get("known",false) else "Repertorio"
@@ -215,7 +276,7 @@ static func spell_groups(actor: Dictionary) -> Dictionary:
 static func feature_entries(actor: Dictionary) -> Array:
 	var result=[]; var seen={}
 	var legacy_categories={"Enana de las colinas":"Especie","Alto elfo":"Especie","Mediana piesligeros":"Especie","Lanzamiento de conjuros divinos":"Clase","Recuperación arcana":"Clase","Ataque furtivo":"Clase","Jerga de ladrones":"Clase"}
-	for group in [["species_features","Especie"],["class_features","Clase"],["subclass_features","Subclase"],["feats","Dotes"],["special_abilities","Capacidades"],["features","Rasgos"]]:
+	for group in [["species_features","Especie"],["class_features","Clase"],["subclass_features","Subclase"],["feats","Dotes"],["background_features","Trasfondo"],["special_abilities","Capacidades"],["features","Rasgos"]]:
 		for f in actor.get(group[0],[]):
 			var text=str(f.get("name",f.get("title","Rasgo"))) if f is Dictionary else str(f)
 			var desc=str(f.get("description",f.get("detail",""))) if f is Dictionary else text
@@ -229,5 +290,5 @@ static func feature_entries(actor: Dictionary) -> Array:
 			if category=="Rasgos":
 				for title in legacy_categories:
 					if text.begins_with(title): category=legacy_categories[title]; break
-			result.append({"name":text,"description":desc,"category":category})
+			result.append({"name":text,"description":desc,"category":category,"uses":str(f.get("uses_label","")) if f is Dictionary else ""})
 	return result

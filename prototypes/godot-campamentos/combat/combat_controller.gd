@@ -123,8 +123,8 @@ func _build() -> void:
 	_button(dm_tools,"Reacción",func(): reaction_menu())
 	_button(dm_tools,"Conocimiento",func(): knowledge_menu())
 	_button(dm_tools,"Ficha combate",func(): edit_combatant())
-	_button(dm_tools,"Guardar combate local",func(): save_local())
-	_button(dm_tools,"Cargar combate local",func(): restore_local())
+	_button(dm_tools,"Guardar mesa local",func(): save_local())
+	_button(dm_tools,"Cargar mesa local",func(): restore_local())
 	dm_tools.set_meta("dm_only",true)
 
 func _button(parent: Node,label: String,action: Callable) -> Button:
@@ -293,6 +293,7 @@ func edit_combatant(selected: String="") -> void:
 	who.item_selected.connect(func(index): edit_combatant(str(ids[index])))
 	var actor: Dictionary=rules.actors[selected]
 	var armor:=_number_field(list,"CA efectiva",actor.ac,0,50)
+	var temporary_hp:=_number_field(list,"PG temporales",actor.get("temp_hp",0),0,9999)
 	var movement:=_number_field(list,"Movimiento restante (m)",actor.movement,0,300)
 	movement.step=.1
 	var conditions:=LineEdit.new(); conditions.text=", ".join(actor.conditions); conditions.placeholder_text="Condiciones separadas por comas"; list.add_child(conditions)
@@ -303,6 +304,7 @@ func edit_combatant(selected: String="") -> void:
 	for id in actor.get("ammunition",{}): ammunition[id]=_number_field(list,"Munición · "+str(id),actor.ammunition[id],0,10000)
 	_button(list,"Aplicar resolución",func():
 		actor.ac=int(armor.value); actor.movement=float(movement.value)
+		actor.temp_hp=int(temporary_hp.value)
 		actor.conditions.clear()
 		for entry in conditions.text.split(","):
 			var value:=entry.strip_edges().to_lower()
@@ -798,12 +800,31 @@ func add_silverfarben() -> void:
 
 func save_local(path: String="user://combat-local.v1.save") -> void:
 	if ui.current_role!="dm": return
+	if ui.inventory_bridge and (ui.inventory_bridge.playing or not ui.inventory_bridge.playback.is_empty() or not ui.inventory_bridge.session.pending.is_empty()):
+		ui.notify_mesa("Termina las acciones preparadas de mochila antes de guardar.")
+		return
 	_sync_positions()
 	var state: Dictionary={"version":1,"scene":get_tree().current_scene.scene_file_path if get_tree().current_scene else "","actors":rules.actors,"order":rules.order,"active":rules.active,"initiative":rules.initiative_pending,"round":rules.round_number,"turn":rules.turn_index,"turn_serial":rules.turn_serial,"pending":rules.pending,"effects":rules.effects,"sequence":rules.sequence,"followups":rules.followups,"interrupted":rules.interrupted,"serial":rules.serial,"completed":rules.completed}
-	var file:=FileAccess.open(path,FileAccess.WRITE)
 	state["visual_queue"]=rules.visual_queue
 	state["character_appearance"]=get_node("CharacterAppearanceService").export_state()
-	if file: file.store_var(state,false); ui.notify_mesa("Combate local guardado · no es el guardado de campaña web")
+	if ui.inventory_bridge: state["inventory"]=ui.inventory_bridge.export_state()
+	var sheet_records: Dictionary={}
+	for actor in ui.actors:
+		var record: Dictionary={"ac":actor.get("ac",10),"speed":actor.get("speed",9)}
+		for key in ["history","motivations","personal_notes","class_line","subclass","rules_edition"]:
+			if actor.has(key): record[key]=str(actor[key])
+		for key in ["level","hp","hp_max","proficiency_bonus","initiative_bonus"]:
+			if actor.has(key): record[key]=int(actor[key])
+		for key in ["abilities","classes","features","spells","feats","skills","skill_proficiencies","spellcasting","level_history"]:
+			if actor.has(key): record[key]=actor[key].duplicate(true) if actor[key] is Dictionary or actor[key] is Array else actor[key]
+		sheet_records[str(actor.id)]=record
+	state["sheet_records"]=sheet_records
+	var file:=FileAccess.open(path,FileAccess.WRITE)
+	if file:
+		file.store_var(state,false)
+		if file.get_error()==OK: ui.notify_mesa("Mesa local guardada")
+		else: ui.notify_mesa("Error al escribir la mesa local")
+	else: ui.notify_mesa("No se pudo abrir el guardado local")
 
 func add_anteros() -> void:
 	if ui.current_role!="dm" or rules.actors.has("anteros-temple"): return
@@ -834,6 +855,9 @@ func _place_new_token(body: CharacterBody3D,origin: Node3D,spacing: float) -> bo
 
 func restore_local(path: String="user://combat-local.v1.save") -> void:
 	if ui.current_role!="dm": return
+	if ui.inventory_bridge and ui.inventory_bridge.playing:
+		ui.notify_mesa("Espera a que termine la animación de mochila antes de cargar.")
+		return
 	var file:=FileAccess.open(path,FileAccess.READ)
 	if not file or file.get_length()>4000000: return
 	var value=file.get_var(false)
@@ -841,6 +865,9 @@ func restore_local(path: String="user://combat-local.v1.save") -> void:
 	if get_tree().current_scene and value.get("scene","")!=get_tree().current_scene.scene_file_path: ui.notify_mesa("Ese combate pertenece a otra escena"); return
 	for id in value.actors:
 		if not rules.actors.has(id): ui.notify_mesa("Falta una ficha de esta sesión; no se ha restaurado"); return
+	if value.has("inventory") and (not ui.inventory_bridge or not ui.inventory_bridge.supports_state(value.inventory)):
+		ui.notify_mesa("El inventario guardado no corresponde a esta mesa.")
+		return
 	rules.actors=value.actors; rules.order.assign(value.order); rules.active=value.active; rules.initiative_pending=value.initiative; rules.round_number=value.round; rules.turn_index=value.turn; rules.turn_serial=value.turn_serial; rules.pending=value.pending; rules.effects.assign(value.effects); rules.sequence=value.sequence; rules.followups.assign(value.followups); rules.serial=value.serial; rules.completed=value.completed
 	rules.interrupted=value.get("interrupted",{})
 	rules.visual_queue.assign(value.get("visual_queue",[]))
@@ -848,4 +875,20 @@ func restore_local(path: String="user://combat-local.v1.save") -> void:
 		var body:=token(id)
 		if body: body.position=rules.actors[id].position; body.velocity=Vector3.ZERO
 	if value.has("character_appearance"): get_node("CharacterAppearanceService").restore_state(value.get("character_appearance",{}))
-	ui.refresh_all(); refresh(); ui.notify_mesa("Restaurado solo el estado local de combate")
+	if value.has("inventory"): ui.inventory_bridge.restore_state(value.inventory)
+	var records: Dictionary=value.get("sheet_records",{})
+	for actor in ui.actors:
+		var id=str(actor.id)
+		if not records.get(id) is Dictionary: continue
+		var record: Dictionary=records[id]
+		if record.get("ac") is int: actor.ac=record.ac
+		if record.get("speed") is float or record.get("speed") is int: actor.speed=record.speed
+		for key in ["history","motivations","personal_notes","class_line","subclass","rules_edition"]:
+			if record.has(key): actor[key]=str(record[key])
+			elif key in ["history","motivations","personal_notes","subclass","rules_edition"]: actor.erase(key)
+		for key in ["level","hp","hp_max","proficiency_bonus","initiative_bonus"]:
+			if record.has(key): actor[key]=int(record[key])
+		for key in ["abilities","classes","features","spells","feats","skills","skill_proficiencies","spellcasting","level_history"]:
+			if record.has(key): actor[key]=record[key].duplicate(true) if record[key] is Dictionary or record[key] is Array else record[key]
+			elif key in ["classes","feats","skill_proficiencies","spellcasting","level_history"]: actor.erase(key)
+	ui.refresh_all(); refresh(); ui.notify_mesa("Mesa local restaurada")

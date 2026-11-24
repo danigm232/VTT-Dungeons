@@ -15,13 +15,56 @@ func find_button(node: Node,text: String) -> Button:
 	return null
 func wait_layout() -> void:
 	for i in range(4): await process_frame
+func send_mouse(point: Vector2,button: MouseButton,pressed: bool) -> void:
+	var event=InputEventMouseButton.new()
+	event.position=point
+	event.button_index=button; event.pressed=pressed
+	if pressed and button==MOUSE_BUTTON_LEFT: event.button_mask=MOUSE_BUTTON_MASK_LEFT
+	root.push_input(event,true)
+func verify_scroll(ui,panel) -> void:
+	ui.selected_actor_id="mike"
+	var mage: Dictionary=ui.combat_controller.rules.actors.mike
+	var actions: Array=mage.actions.duplicate()
+	for index in range(40):
+		var sample: Dictionary=actions[0].duplicate(true)
+		sample.id="scroll-test-"+str(index)
+		mage.actions.append(sample)
+	ui.player_hud.open_modal("sheet"); panel.select_tab("combat"); await wait_layout()
+	var pane: ScrollContainer=panel.find_child("SheetCombatActions",true,false)
+	var bar=pane.get_v_scroll_bar()
+	var grab=bar.get_global_rect().position+Vector2(bar.size.x*.5,8)
+	var hover=InputEventMouseMotion.new()
+	hover.position=grab
+	root.push_input(hover,true); await process_frame
+	send_mouse(grab,MOUSE_BUTTON_LEFT,true); await process_frame
+	var drag=InputEventMouseMotion.new()
+	drag.position=grab+Vector2(0,80); drag.relative=Vector2(0,80); drag.button_mask=MOUSE_BUTTON_MASK_LEFT
+	root.push_input(drag,true); await process_frame
+	send_mouse(drag.position,MOUSE_BUTTON_LEFT,false); await process_frame
+	check(pane.scroll_vertical>0 and panel.scroll.scroll_vertical==0,"dragging the native combat scrollbar reaches later actions")
+	pane.scroll_vertical=0; await process_frame
+	send_mouse(pane.get_global_rect().get_center(),MOUSE_BUTTON_WHEEL_DOWN,true); await wait_layout()
+	check(pane.scroll_vertical>0 and panel.scroll.scroll_vertical==0,"mouse wheel is routed to the long list inside the sheet")
+	mage.actions=actions
+	ui.player_hud.close_modals()
 func _run() -> void:
 	root.size=Vector2i(1600,900); root.content_scale_size=Vector2i(1600,900)
 	var path="res://scenes/main.tscn" if FileAccess.file_exists("res://scenes/main.tscn") else "res://scenes/camp_a1_rooms.tscn"
 	var main=load(path).instantiate(); root.add_child(main)
+	current_scene=main
 	for i in range(12): await process_frame
 	var ui=main.find_child("VttRoleUi",true,false); ui.set_role("player"); ui.clock_running=false
+	if "--verify-restart" in OS.get_cmdline_user_args():
+		ui.set_role("dm"); ui.selected_actor_id="mia"
+		ui.combat_controller.restore_local("user://sheet-integral-audit.save")
+		var items=ui.inventory_bridge.items_for_actor("mia")
+		check(items.has("sheet_test_healing") and items.sheet_test_healing.count==(2 if ui.inv_mgr else 1),"full Godot restart restores inventory quantity")
+		check(ui.get_active_actor().ac==19 and ui.get_active_actor().get("history","")=="Crónica de prueba","full Godot restart restores sheet edits")
+		check(ui.combat_controller.rules.actors.mia.hp==9 and ui.get_active_token_node().get("is_torch_lit"),"full Godot restart restores health and equipped torch")
+		finish_report()
+		return
 	var hud=ui.player_hud; var panel=hud.sheet_modal
+	await verify_scroll(ui,panel)
 	var portraits=[]; var stages=[]
 	check(Art.font(true) is FontVariation and Art.font(false) is FontVariation,"bundled RPG typography independent of installed fonts")
 	check(Art.font(false).has_char(241) and Art.font(true).has_char(225),"Spanish accents supported by bundled fonts")
@@ -75,13 +118,20 @@ func _run() -> void:
 		for key in ["SummarySkills","SummaryMagic","SummaryTraits"]:
 			var section=panel.find_child(key,true,false)
 			check(section!=null and summary_bounds.encloses(section.get_global_rect()),"lower block visible without general scrolling "+id+" "+key)
-		check(panel.scroll.vertical_scroll_mode==ScrollContainer.SCROLL_MODE_DISABLED and panel.scroll.scroll_vertical==0,"desktop summary avoids global scrolling "+id)
+		var summary_bar=panel.scroll.get_v_scroll_bar()
+		check(summary_bar.max_value<=summary_bar.page and panel.scroll.scroll_vertical==0,"desktop summary avoids global scrolling "+id)
 		check(panel.find_child("SummarySaves",true,false).get_child_count()==6,"all six saves visible in summary "+id)
 		var fields=Model.action_fields(model.actions[0],model)
 		check(fields.has("target_mode") and fields.has("roll") and fields.has("effect") and fields.has("type"),"structured action columns from real data "+id)
+		var frame=panel.get_global_rect()
 		for value in ["combat","spells","inventory","history","edit","summary"]:
 			panel.select_tab(value); await wait_layout(); check(panel.tab==value,"navigation "+id+" "+value)
-		check(panel.find_children("SummarySkill_*","Button",true,false).size()==18,"all 18 skills "+id)
+			check(panel.get_global_rect().is_equal_approx(frame),"sheet frame stays fixed "+id+" "+value)
+		check(panel.find_children("SummarySkill_*","Button",true,false).size()==3,"summary showcases three whole skill rows "+id)
+		panel.select_tab("combat"); await wait_layout()
+		var skills=panel.find_child("SheetSkillsScroll",true,false)
+		check(skills.find_children("*","Button",true,false).size()==18,"all 18 skills remain in the detailed list "+id)
+		panel.select_tab("summary"); await wait_layout()
 		for button in panel.find_children("SummarySkill_*","Button",true,false):
 			check(not button.text.contains("?") and button.has_meta("proficiency_rank"),"skill rank represented independently of font glyph "+id+" "+str(button.name))
 	check(portraits[0]!=portraits[1] and portraits[1]!=portraits[2],"each player has a distinct portrait")
@@ -97,8 +147,9 @@ func _run() -> void:
 	check(rogue.spells.is_empty(),"no magic granted to rogue")
 	ui.selected_actor_id="mia"; panel.refresh_view(); await wait_layout()
 	check(Model.rank(panel.data,"Medicina",3)==-1,"unknown competence never invented from reference")
+	var sheet_frame=panel.get_global_rect()
 	panel.select_tab("history"); await wait_layout(); panel._layout(); await wait_layout()
-	check(panel.size.y<800,"short narrative shrinks the window instead of leaving blank full-screen space")
+	check(panel.get_global_rect().is_equal_approx(sheet_frame),"short narrative keeps the exterior frame stable")
 	panel.select_tab("summary"); await wait_layout()
 	var source=ui.get_active_actor(); var saved_identity=source.class_line
 	source["classes"]=[{"name":"Mago","level":2,"subclass":"Escuela de prueba"},{"name":"Clériga","level":1}]; source["species"]="Especie de prueba"; source["background"]="Trasfondo de prueba"
@@ -126,8 +177,27 @@ func _run() -> void:
 	rules.actors.mia.resources["spell-slot-1"].current=1; panel.detail.hide(); panel.refresh_view(); await wait_layout()
 	var unchanged=panel.actor_view; panel.refresh_view(); check(panel.actor_view==unchanged,"unchanged refresh keeps live view")
 	panel.select_tab("edit"); await wait_layout()
-	var spin=panel.find_child("SheetEdit_ac",true,false); spin.value=19; await wait_layout()
-	check(ui.get_active_actor().ac==19 and rules.actors.mia.ac==19,"AC edit shared with combat")
+	check(panel.find_child("SheetEdit_ac",true,false)==null,"player cannot edit the base AC")
+	var base_ac=int(source.ac)
+	rules.actors.mia.ac=base_ac+5
+	ui.set_role("dm"); ui.dm_hud.refresh(); await wait_layout()
+	ui.dm_hud.root.find_child("DmCharacterSheet_mia",true,false).pressed.emit()
+	panel.select_tab("edit"); await wait_layout()
+	var spin=panel.find_child("SheetEdit_ac",true,false)
+	check(int(spin.value)==base_ac,"narrative editor shows base AC while shield is active")
+	spin.value=19
+	check(source.ac==base_ac and rules.actors.mia.ac==base_ac+5,"draft does not change authoritative stats")
+	panel.find_child("SheetCancelEdits",true,false).pressed.emit()
+	check(int(spin.value)==base_ac,"cancel resets draft from registered actor")
+	spin.value=19
+	var notes=panel.find_children("*","TextEdit",true,false)
+	notes[0].text="Crónica de prueba"
+	notes[0].text_changed.emit()
+	panel.find_child("SheetSaveEdits",true,false).pressed.emit()
+	check(source.ac==19 and rules.actors.mia.ac==24,"DM edit updates base AC and preserves active shield modifier")
+	check(source.get("history","")=="Crónica de prueba","narrative edits use the same confirm")
+	rules.actors.mia.ac=19
+	hud.close_modals(); ui.set_role("player"); hud.open_modal("sheet")
 	panel.select_tab("summary"); await wait_layout()
 	panel.show_action(rules.action_for("mia","mace")); await wait_layout()
 	check(panel.detail.visible and panel.detail.get_global_rect().size.x<panel.size.x,"action details are readable overlay")
@@ -157,8 +227,22 @@ func _run() -> void:
 	for i in range(16):
 		var spell_action=old_actions[0].duplicate(true); spell_action.id="spell_stress_"+str(i); spell_action.label="Conjuro de prueba "+str(i); spell_action.magical=true; spell_action.kind="spell"; spell_action.resource={"id":"spell-slot-1","cost":1}; rules.actors.mia.actions.append(spell_action)
 	panel.select_tab("spells"); await wait_layout(); check(panel.data.spells.size()>=16,"many spells retained without four-spell truncation")
-	panel.select_tab("combat"); await wait_layout(); check(panel.scroll.get_v_scroll_bar().max_value>panel.scroll.size.y,"many actions scroll without truncation")
-	panel.select_tab("history"); await wait_layout(); check(panel.scroll.get_v_scroll_bar().max_value>panel.scroll.size.y,"long narrative scrolls without truncation")
+	var search=panel.find_children("*","LineEdit",true,false)[0]
+	search.text="conjuro de prueba 12"; search.text_changed.emit(search.text); await wait_layout()
+	check(find_button(panel,"Conjuro de prueba 12")!=null and find_button(panel,"Conjuro de prueba 13")==null,"spell search filters only matching visible actions")
+	var level_filter=panel.find_children("*","OptionButton",true,false)[0]
+	search.text=""; search.text_changed.emit(""); level_filter.select(1); level_filter.item_selected.emit(1); await wait_layout()
+	check(find_button(panel,"Llama sagrada")!=null and find_button(panel,"Conjuro de prueba 12")==null,"cantrip filtering uses registered legacy IDs")
+	level_filter.select(0); level_filter.item_selected.emit(0)
+	panel.select_tab("combat"); await wait_layout()
+	var action_pane=panel.find_child("SheetCombatActions",true,false) as ScrollContainer
+	var action_bar=action_pane.get_v_scroll_bar()
+	check(action_bar.max_value>action_bar.page,"many actions scroll within the combat column")
+	action_pane.scroll_vertical=100000; await wait_layout()
+	check(action_pane.scroll_vertical>0 and panel.scroll.scroll_vertical==0,"combat actions reach the bottom without moving the exterior")
+	panel.select_tab("history"); await wait_layout()
+	var chronicle=panel.find_child("SheetChronicle",true,false).get_v_scroll_bar()
+	check(chronicle.max_value>chronicle.page,"long narrative scrolls in its own column")
 	rules.actors.mia.actions=old_actions; ui.get_active_actor().features=old_features; rules.actors.mia.hp=original_hp
 	panel.select_tab("summary"); root.content_scale_size=Vector2i(1366,768); root.size=Vector2i(1366,768); await wait_layout(); panel._layout(); await wait_layout()
 	check(panel.get_global_rect().end.x<=1366 and panel.get_global_rect().end.y<=768,"1366x768 sheet stays in viewport")
@@ -167,6 +251,10 @@ func _run() -> void:
 	for navigation in panel.tabs.get_children():
 		check(panel.get_global_rect().encloses(navigation.get_global_rect()),"compact header keeps tab visible "+str(navigation.name))
 	check(panel.get_global_rect().end.y<=768 and panel.position.y>=0,"small desktop window keeps its safety margins")
+	var compact_frame=panel.get_global_rect()
+	for page in ["combat","spells","inventory","history","edit","summary"]:
+		panel.select_tab(page); await wait_layout()
+		check(panel.get_global_rect().is_equal_approx(compact_frame),"compact frame stays fixed "+page)
 	var small_bounds=panel.scroll.get_global_rect()
 	for key in ["SummarySkills","SummaryMagic","SummaryTraits"]:
 		check(small_bounds.encloses(panel.find_child(key,true,false).get_global_rect()),"small desktop bottom content fits "+key)
@@ -233,19 +321,166 @@ func _run() -> void:
 	check(Model.condition_text({"conditions":["poisoned","prone"]})=="Envenenado, Derribado","registered condition IDs have consistent Spanish presentation")
 	panel.detail.hide(); panel.select_tab("spells"); await wait_layout(); panel._layout(); await wait_layout()
 	root.size=Vector2i(1600,900); root.content_scale_size=Vector2i(1600,900); await wait_layout(); panel._layout(); await wait_layout()
-	var spell_footer=panel.find_child("CompactSpellTraits",true,false)
-	check(spell_footer!=null and panel.scroll.get_global_rect().encloses(spell_footer.get_global_rect()),"short spell repertoire and related traits fit together on desktop")
-	var trait_controls=spell_footer.find_children("*","Button",true,false); var readable_traits=trait_controls.size()==Model.feature_entries(panel.data).size()
-	for trait_button in trait_controls: readable_traits=readable_traits and trait_button.size.x>=90 and panel.scroll.get_global_rect().encloses(trait_button.get_global_rect())
-	check(readable_traits,"related trait buttons reserve readable text and icon width in a flow row")
+	var spell_reference=panel.find_child("SheetSpellReference",true,false)
+	check(spell_reference!=null and panel.scroll.get_global_rect().encloses(spell_reference.get_global_rect()),"spell detail stays inside the stable frame")
+	var spell_list=panel.find_child("SheetSpellList",true,false)
+	var spell_button=find_button(spell_list,"Detectar magia")
+	spell_button.pressed.emit(); await wait_layout()
+	check(panel.spell_selection==Model.normalized("Detectar magia") and find_button(spell_reference,"Consultar acción  ›")!=null,"spell selection updates the real action reference")
 	panel.select_tab("inventory"); await wait_layout(); panel._layout(); await wait_layout()
 	check(panel.scroll.get_global_rect().encloses(bag.take_button.get_global_rect()) and panel.scroll.get_global_rect().encloses(bag.store_button.get_global_rect()),"small inventory keeps take and store controls visible")
-	check(panel.size.y<790,"small inventory leaves more of the game visible")
+	check(panel.get_global_rect().is_equal_approx(sheet_frame),"inventory uses the same exterior as the other tabs")
+	var current_stock=bridge.items()
+	var inventory_snapshot=current_stock.duplicate(true)
+	for quantity in [4,20,50]:
+		current_stock.clear()
+		for index in range(quantity):
+			current_stock["test_"+str(index)]={"name":"Objeto de prueba "+str(index),"count":1}
+		bag.refresh_view(); await wait_layout()
+		var slots=bag.grid.find_children("*","Button",false,false)
+		check(slots.size()==quantity,"inventory renders all %d entries" % quantity)
+		slots[-1].grab_focus(); await wait_layout()
+		var focused=root.gui_get_focus_owner()
+		var last_key="test_"+str(quantity-1)
+		check(is_instance_valid(focused) and focused.get_meta("inventory_item","")==last_key and bag.item_scroll.get_global_rect().grow(1).encloses(focused.get_global_rect()),"keyboard focus reaches final inventory entry at %d items" % quantity)
+	current_stock.clear(); current_stock.merge(inventory_snapshot); bag.refresh_view()
+	root.size=Vector2i(1920,1080); root.content_scale_size=root.size
+	await wait_layout()
+	var wide_frame=panel.get_global_rect()
+	for page in ["summary","combat","spells","inventory","history","edit"]:
+		panel.select_tab(page); await wait_layout()
+		check(panel.get_global_rect().is_equal_approx(wide_frame),"wide frame stays fixed "+page)
 	panel.select_tab("spells"); await wait_layout()
 	var current_data=panel.data; panel.data=current_data.duplicate(true); panel.data.saves={}
 	var unknown_host=VBoxContainer.new(); panel._skills(unknown_host)
 	find_button(unknown_host,"FUE −1").pressed.emit(); await wait_layout()
 	check(panel.detail_body.get_child(1).text.contains("confirmar"),"unregistered detailed save never silently claims confirmed proficiency")
 	unknown_host.free(); panel.data=current_data; hud.close_modals()
+	ui.selected_actor_id="mia"
+	var potion=bridge.items_for_actor("mia")
+	potion["sheet_test_healing"]={"name":"Poción de prueba","count":3,"healing_range":[4,10],"healing_dice":"2d4+2"}
+	rules.actors.mia.hp=4
+	check(not bridge.consume_healing_item("sheet_test_healing",3) and potion.sheet_test_healing.count==3,"invalid physical roll preserves stock")
+	hud.open_modal("sheet"); panel.select_tab("inventory"); await wait_layout()
+	bag.selected_key="sheet_test_healing"; bag.refresh_view()
+	bag.consume_button.pressed.emit()
+	bag.operation_amount.value=5
+	find_button(bag.operation_row,"Confirmar").pressed.emit()
+	check(rules.actors.mia.hp==9 and potion.sheet_test_healing.count==2 and bag.detail_title.text.contains("×2"),"physical healing through the inventory controls updates rules and stock")
+	hud.close_modals()
+	check(not bridge.transfer_item("sheet_test_healing","mike",1),"player cannot transfer stock")
+	ui.set_role("dm")
+	if ui.inv_mgr:
+		check(not bridge.transfer_item("sheet_test_healing","mike",1),"group inventory stays a single reserve")
+	else:
+		check(bridge.transfer_item("sheet_test_healing","mike",1) and potion.sheet_test_healing.count==1 and bridge.items_for_actor("mike").sheet_test_healing.count==1,"authorized personal stock transfer preserves count across actors")
+	var saved_count=int(potion.sheet_test_healing.count)
+	var save_path="user://sheet-integral-audit.save"
+	ui.get_active_token_node().set_torch_mode(true,false)
+	ui.combat_controller.save_local(save_path)
+	check(FileAccess.file_exists(save_path),"shared DM checkpoint exists")
+	main.queue_free(); await wait_layout()
+	main=load(path).instantiate(); root.add_child(main); current_scene=main
+	for i in range(12): await process_frame
+	ui=main.find_child("VttRoleUi",true,false); ui.set_role("dm"); ui.selected_actor_id="mia"
+	ui.combat_controller.restore_local(save_path)
+	await wait_layout()
+	var restored=ui.inventory_bridge.items_for_actor("mia")
+	check(restored.has("sheet_test_healing") and restored.sheet_test_healing.count==saved_count,"reopened scene restores inventory from DM checkpoint")
+	check(ui.get_active_actor().ac==19 and ui.combat_controller.rules.actors.mia.ac==19 and ui.get_active_actor().get("history","")=="Crónica de prueba","reopened scene restores registered AC and written narrative")
+	check(ui.combat_controller.rules.actors.mia.hp==9 and ui.get_active_token_node().get("is_torch_lit"),"reopened scene restores current health and torch")
+	var restored_rules=ui.combat_controller.rules
+	restored_rules.actors.mia.temp_hp=3
+	restored_rules.damage("mia",2,"fuerza")
+	check(restored_rules.actors.mia.hp==9 and restored_rules.actors.mia.temp_hp==1,"temporary HP absorbs damage before current health")
+	restored_rules.damage("mia",3,"fuerza")
+	check(restored_rules.actors.mia.hp==7 and restored_rules.actors.mia.temp_hp==0,"remaining damage reaches current health")
+	ui.combat_controller.edit_combatant("mia")
+	var dialog=ui.combat_controller.dialog
+	var fields=dialog.find_children("*","SpinBox",true,false)
+	fields[1].value=4
+	fields[3].value=2
+	find_button(dialog,"Aplicar resolución").pressed.emit()
+	check(restored_rules.actors.mia.temp_hp==4 and restored_rules.actors.mia.resources["spell-slot-1"].current==2,"DM panel records temporary HP and restores spent slots")
+	# Phase 2 & 6 verification: Action Book, Spell Preparation, Level-Up Rules (Mike, Mia, Trinity, ASI, Multiclass, Undo & Persistence)
+	var LvlRules=preload("res://character_sheet/level_up_rules.gd")
+	ui.set_role("dm"); ui.selected_actor_id="mike"; ui.refresh_all()
+	hud=ui.player_hud; panel=hud.sheet_modal; hud.open_modal("sheet"); panel.select_tab("summary"); await wait_layout()
+	check(panel.level_button!=null and panel.level_button.text=="Nv. 1","header level pill is interactive button")
+	panel.open_action_book(); await wait_layout()
+	var book_search=panel.detail.find_child("ActionBookSearch",true,false) as LineEdit
+	check(book_search!=null and panel.detail.find_child("ActionBookList",true,false)!=null,"Action Book opens with search and catalog list")
+	book_search.text="escudo"; book_search.text_changed.emit("escudo"); await wait_layout()
+	check(panel.detail.find_child("BookEntry_act_shield",true,false)!=null,"Action Book filters actions from shared combat catalog")
+	panel.detail.hide()
+	# Interactive spell preparation toggle
+	panel.select_tab("spells"); await wait_layout()
+	var mm_btn=find_button(panel.find_child("SheetSpellList",true,false),"Misil mágico")
+	check(mm_btn!=null,"Magic Missile visible in spells tab")
+	mm_btn.pressed.emit(); await wait_layout()
+	var prep_btn=panel.find_child("PrepareSpellBtn",true,false) as Button
+	check(prep_btn!=null and not prep_btn.disabled,"leveled spell offers preparation toggle outside combat")
+	prep_btn.pressed.emit(); await wait_layout()
+	check(Model.spell_groups(panel.data).Preparados.size()>=1,"toggling preparation marks spell prepared")
+	# Level-Up: Mike 1 -> 2 -> 3 (Subclass) -> 4 (ASI +2 INT) + Multiclass + Anti-Double-Apply + Undo
+	var mike_actor: Dictionary=ui.get_active_actor()
+	var mike_rt: Dictionary=restored_rules.actors.mike
+	var bad_mike=LvlRules.propose(mike_actor,mike_rt,{"edition":"dnd-2024","class_id":"wizard","hp_method":"fixed"})
+	check(not bad_mike.valid and bad_mike.errors.size()>=2,"Mike level 1->2 rejects incomplete choices without auto-picking")
+	var prop_m2=LvlRules.propose(mike_actor,mike_rt,{"edition":"dnd-2024","class_id":"wizard","hp_method":"fixed","scholar_skill":"Arcanos","spells":["Armadura de mago","Onda atronadora"]})
+	check(prop_m2.valid and prop_m2.new_hp_max==13 and prop_m2.new_slots.get(1,0)==3,"Mike 1->2 proposal computes +5 HP and 3 level-1 slots")
+	var app_m2=LvlRules.apply(ui,"mike",prop_m2)
+	check(app_m2.ok and mike_actor.level==2 and mike_rt.hp_max==13 and mike_rt.resources["spell-slot-1"].max==3,"Mike 1->2 applies atomically to actor and combat rules")
+	var dup_m2=LvlRules.apply(ui,"mike",prop_m2)
+	check(not dup_m2.ok,"anti-double-apply prevents applying the same level-up twice")
+	var prop_m3=LvlRules.propose(mike_actor,mike_rt,{"edition":"dnd-2024","class_id":"wizard","hp_method":"fixed","subclass":"Evocador","spells":["Paso brumoso"]})
+	check(prop_m3.valid and prop_m3.new_slots.get(2,0)==2,"Mike 2->3 unlocks Evocador subclass and level-2 spell slots")
+	check(LvlRules.apply(ui,"mike",prop_m3).ok and mike_actor.level==3 and mike_rt.resources["spell-slot-2"].max==2,"Mike 2->3 applies subclass and level-2 slots")
+	var prop_m4=LvlRules.propose(mike_actor,mike_rt,{"edition":"dnd-2024","class_id":"wizard","hp_method":"fixed","asi_mode":"asi2","asi_primary":"INT","spells":[]})
+	check(prop_m4.valid and int(prop_m4.new_abilities.INT)==18 and prop_m4.new_cast_dc==14 and prop_m4.new_cast_atk==6,"Mike 3->4 ASI +2 INT recalculates spell DC 14 and attack +6")
+	check(LvlRules.apply(ui,"mike",prop_m4).ok and int(mike_actor.abilities.INT)==18,"Mike 3->4 applies ASI cleanly")
+	check(LvlRules.multiclass_check(mike_actor,"rogue").allowed and LvlRules.multiclass_check(mike_actor,"cleric").allowed,"Mike meets INT/DES/SAB >= 13 multiclass prerequisites")
+	# Mia 1 -> 2 (Hill Dwarf +1 HP/lvl + Channel Divinity)
+	var mia_actor: Dictionary={}
+	for a in ui.actors:
+		if a.id=="mia": mia_actor=a; break
+	var prop_mia2=LvlRules.propose(mia_actor,restored_rules.actors.mia,{"edition":"dnd-2024","class_id":"cleric","hp_method":"fixed","spells":["Curar heridas"]})
+	check(prop_mia2.valid and prop_mia2.hp_gain==8,"Mia 1->2 includes fixed 5 + 2 CON + 1 Hill Dwarf = +8 HP")
+	check(LvlRules.apply(ui,"mia",prop_mia2).ok and restored_rules.actors.mia.resources.has("channel-divinity"),"Mia 1->2 unlocks Channel Divinity resource and action")
+	# Trinity / Maria 1 -> 2 (D&D 2014 + Cunning Action + Multiclass prerequisite check)
+	var maria_actor: Dictionary={}
+	for a in ui.actors:
+		if a.id=="maria": maria_actor=a; break
+	check(not LvlRules.multiclass_check(maria_actor,"cleric").allowed and LvlRules.multiclass_check(maria_actor,"wizard").allowed,"Trinity multiclass blocks Cleric (SAB 10<13) and allows Wizard (INT 13>=13)")
+	var prop_tr2=LvlRules.propose(maria_actor,restored_rules.actors.maria,{"edition":"dnd-2014","class_id":"rogue","hp_method":"fixed"})
+	check(prop_tr2.valid and prop_tr2.hp_gain==6,"Trinity 1->2 computes fixed 5 + 1 CON = +6 HP")
+	check(LvlRules.apply(ui,"maria",prop_tr2).ok and restored_rules.action_for("maria","cunning-action").size()>0,"Trinity 1->2 unlocks Cunning Action in combat rules")
+	# Progression wizard UI opens & rollback restores original level 1 cleanly
+	panel.open_progression(); await wait_layout()
+	check(panel.detail.find_child("StartLevelUpWizard",true,false)!=null and panel.detail.find_child("UndoLevelUpBtn",true,false)!=null,"Progression modal offers Level-Up wizard and Undo rollback")
+	# Persistence check for level-up state
+	var lvl_save:="user://sheet-levelup-test.save"
+	ui.combat_controller.save_local(lvl_save)
+	check(LvlRules.undo_last(ui,"mike").ok and mike_actor.level==3,"Undo rollback restores Mike to previous level 3")
+	ui.combat_controller.restore_local(lvl_save)
+	check(mike_actor.level==4 and int(mike_actor.abilities.INT)==18 and str(mike_actor.get("subclass",""))=="Evocador","restore_local recovers leveled-up level, abilities, and subclass")
+	for _step in range(3): LvlRules.undo_last(ui,"mike")
+	LvlRules.undo_last(ui,"mia"); LvlRules.undo_last(ui,"maria")
+	check(mike_actor.level==1 and mia_actor.level==1 and maria_actor.level==1,"full rollback cleanly restores all three heroes to level 1")
+	# Inline editable Biography in Historia (works in Player role too!)
+	ui.set_role("player"); ui.selected_actor_id="mike"; hud.open_modal("sheet"); panel.select_tab("history"); await wait_layout()
+	var edit_bio=panel.find_child("HistoryEditBioBtn",true,false) as Button
+	check(edit_bio!=null,"Historia provides inline Edit Biography button for players")
+	edit_bio.pressed.emit(); await wait_layout()
+	var bio_field=panel.find_child("HistoryBioInput_history",true,false) as TextEdit
+	check(bio_field!=null,"inline Biography editor opens TextEdit inside Historia")
+	bio_field.text="Nacido en las altas torres de Lythariel, dedicado al estudio arcano."
+	panel.find_child("HistorySaveBioBtn",true,false).pressed.emit(); await wait_layout()
+	check(ui.get_active_actor().get("history","").contains("Lythariel") and not panel.bio_editing,"saving inline Biography persists text and returns to illuminated chronicle")
+	ui.get_active_actor().erase("history")
+	panel.detail.hide(); hud.close_modals()
+	finish_report()
+
+func finish_report() -> void:
 	var report={"passed":passed,"failed":failures.size(),"failures":failures}
 	print("CHARACTER SHEET TEST ",JSON.stringify(report)); quit(0 if failures.is_empty() else 1)

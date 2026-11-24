@@ -204,6 +204,17 @@ func _run() -> void:
 	await process_frame
 	check(tgrid.visible, "Returning from Projector to DM restores TacticalGrid")
 
+	# Cámara de jugador en Pecio acota zoom máximo y no se sale del océano incluso a 5 deg
+	ui.set_role("player")
+	await process_frame
+	cam.zoom_camera_step(200.0)
+	cam.target_pitch = 5.0; cam.current_pitch = 5.0
+	cam._process(0.1)
+	var pwb: Rect2 = cam.get_world_visual_bounds()
+	var pext: Vector2 = cam._view_xz_extents(cam.current_distance, cam.current_pitch, cam.current_yaw, cam._get_viewport_aspect())
+	check(pwb.has_area() and cam.target_distance <= cam.get_player_max_distance(cam.current_zone_id) + 0.01, "Pecio caps player max zoom")
+	check(cam.focus_point.z - pext.y >= pwb.position.y - 0.1 and cam.focus_point.z + pext.y <= pwb.end.y + 0.1, "Pecio player camera stays within OceanWater Z bounds")
+
 	print("VTT INTERFACES TESTS: ", passed, " PASS / ", failures.size(), " FAIL")
 	main.free()
 	quit(0 if failures.is_empty() else 1)

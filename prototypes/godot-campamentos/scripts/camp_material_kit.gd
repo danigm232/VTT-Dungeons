@@ -116,6 +116,84 @@ static func apply_weather_response(wetness: float, snow_cover: float) -> void:
 		smat.set_shader_parameter("wetness", wetness)
 		smat.set_shader_parameter("snow_cover", snow_cover)
 
+static var _organic_normal_cache: Dictionary = {}
+
+static func _hash_lattice(ix: int, iy: int, seed_k: int) -> float:
+	var n: int = (ix * 374761393 + iy * 668265263 + seed_k * 1442695041) & 0x7fffffff
+	n = ((n ^ (n >> 13)) * 1274126177) & 0x7fffffff
+	return float(n & 0xffff) / 65535.0
+
+static func _tile_value_noise(u: float, v: float, period_x: int, period_y: int, seed_k: int) -> float:
+	var fx := u * float(period_x)
+	var fy := v * float(period_y)
+	var x0 := int(floor(fx))
+	var y0 := int(floor(fy))
+	var tx := fx - float(x0)
+	var ty := fy - float(y0)
+	var sx := tx * tx * (3.0 - 2.0 * tx)
+	var sy := ty * ty * (3.0 - 2.0 * ty)
+	var wx0 := posmod(x0, period_x)
+	var wx1 := posmod(x0 + 1, period_x)
+	var wy0 := posmod(y0, period_y)
+	var wy1 := posmod(y0 + 1, period_y)
+	var c00 := _hash_lattice(wx0, wy0, seed_k)
+	var c10 := _hash_lattice(wx1, wy0, seed_k)
+	var c01 := _hash_lattice(wx0, wy1, seed_k)
+	var c11 := _hash_lattice(wx1, wy1, seed_k)
+	return lerpf(lerpf(c00, c10, sx), lerpf(c01, c11, sx), sy)
+
+static func make_organic_normal(kind: String, size: int = 128) -> Texture2D:
+	var cache_key := "%s_%d" % [kind, size]
+	if _organic_normal_cache.has(cache_key):
+		return _organic_normal_cache[cache_key] as Texture2D
+	var heights := PackedFloat32Array()
+	heights.resize(size * size)
+	for y in range(size):
+		var v := float(y) / float(size)
+		for x in range(size):
+			var u := float(x) / float(size)
+			var h := 0.0
+			match kind:
+				"cloth":
+					var fold := _tile_value_noise(u, v, 4, 4, 11) * 0.58 + _tile_value_noise(u, v, 10, 10, 23) * 0.32
+					var micro := _tile_value_noise(u, v, 32, 32, 29) * 0.10
+					var thread_u := cos(u * TAU * 80.0) * 0.5 + 0.5
+					var thread_v := cos(v * TAU * 80.0) * 0.5 + 0.5
+					h = (fold + micro) * 0.88 + lerpf(thread_u, thread_v, 0.5) * 0.12
+				"leather":
+					var p0 := _tile_value_noise(u, v, 8, 8, 31)
+					var p1 := _tile_value_noise(u, v, 18, 18, 47)
+					var p2 := _tile_value_noise(u, v, 36, 36, 71)
+					h = p0 * 0.45 + p1 * 0.33 + (1.0 - absf(p2 * 2.0 - 1.0)) * 0.22
+				"timber":
+					var g0 := _tile_value_noise(u, v, 6, 20, 83)
+					var g1 := _tile_value_noise(u, v, 12, 42, 97)
+					var crack := 1.0 - absf(_tile_value_noise(u, v, 8, 28, 113) * 2.0 - 1.0)
+					h = g0 * 0.52 + g1 * 0.30 + crack * 0.18
+				_:
+					var r0 := _tile_value_noise(u, v, 6, 6, 131)
+					var r1 := 1.0 - absf(_tile_value_noise(u, v, 14, 14, 149) * 2.0 - 1.0)
+					var r2 := _tile_value_noise(u, v, 28, 28, 167)
+					h = r0 * 0.46 + r1 * 0.34 + r2 * 0.20
+			heights[y * size + x] = h
+
+	var strength := 2.4 if kind == "rock" else (2.0 if kind == "timber" else (1.55 if kind == "leather" else 0.72))
+	var img := Image.create(size, size, true, Image.FORMAT_RGBA8)
+	for y in range(size):
+		var ym := posmod(y - 1, size)
+		var yp := posmod(y + 1, size)
+		for x in range(size):
+			var xm := posmod(x - 1, size)
+			var xp := posmod(x + 1, size)
+			var dx := (heights[y * size + xp] - heights[y * size + xm]) * strength
+			var dy := (heights[yp * size + x] - heights[ym * size + x]) * strength
+			var n := Vector3(-dx, -dy, 1.0).normalized()
+			img.set_pixel(x, y, Color(0.5 + n.x * 0.5, 0.5 + n.y * 0.5, 0.5 + n.z * 0.5, 1.0))
+	img.generate_mipmaps()
+	var tex := ImageTexture.create_from_image(img)
+	_organic_normal_cache[cache_key] = tex
+	return tex
+
 static func make_textured_mat(
 	tex_name: String,
 	tint: Color,
@@ -147,11 +225,11 @@ static func make_textured_mat(
 	elif normal_kind == "metal":
 		norm_tex = load_tex("metal-normal-v1.png")
 	if norm_tex == null and normal_kind != "":
-		norm_tex = make_procedural_normal(normal_kind)
+		norm_tex = make_organic_normal(normal_kind)
 	if norm_tex:
 		mat.normal_enabled = true
 		mat.normal_texture = norm_tex
-		mat.normal_scale = 0.45 if normal_kind != "cloth" else 0.25
+		mat.normal_scale = 0.46 if normal_kind in ["rock", "timber"] else (0.34 if normal_kind == "leather" else 0.22)
 
 	if exposed:
 		register_exposed(mat)
@@ -182,7 +260,7 @@ static func make_bronze_mat(tint: Color = Color("#6f5e48")) -> StandardMaterial3
 	return mat
 
 static func make_leather_mat(tint: Color = Color("#543926"), exposed: bool = true) -> StandardMaterial3D:
-	var mat := make_textured_mat("oak-v4.webp", tint, 0.54, "timber", Vector3(1.6, 1.6, 1.6), false, exposed)
+	var mat := make_textured_mat("oak-v4.webp", tint, 0.54, "leather", Vector3(1.6, 1.6, 1.6), false, exposed)
 	mat.specular_mode = BaseMaterial3D.SPECULAR_SCHLICK_GGX
 	mat.rim_enabled = true
 	mat.rim = 0.22
@@ -323,11 +401,11 @@ void fragment() {
 	return smat
 
 static func create_river_shader_material(
-	deep_color: Color = Color("#114554"),
-	shallow_color: Color = Color("#2e8286"),
-	foam_color: Color = Color("#dff5f8"),
-	flow_speed: float = 1.65,
-	wave_amp: float = 0.015,
+	deep_color: Color = Color("#13363e"),
+	shallow_color: Color = Color("#2f5f58"),
+	foam_color: Color = Color("#ddece8"),
+	flow_speed: float = 1.25,
+	wave_amp: float = 0.013,
 	exposed: bool = true
 ) -> ShaderMaterial:
 	var shader := Shader.new()
@@ -335,17 +413,21 @@ static func create_river_shader_material(
 shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_disabled, specular_schlick_ggx;
 
-uniform vec4 deep_col : source_color = vec4(0.07, 0.27, 0.33, 0.90);
-uniform vec4 shallow_col : source_color = vec4(0.18, 0.51, 0.53, 0.64);
-uniform vec4 foam_col : source_color = vec4(0.88, 0.96, 0.98, 1.0);
-uniform float flow_speed = 1.65;
-uniform float wave_amp = 0.015;
+uniform vec4 deep_col : source_color = vec4(0.06, 0.20, 0.24, 0.84);
+uniform vec4 shallow_col : source_color = vec4(0.18, 0.37, 0.34, 0.38);
+uniform vec4 foam_col : source_color = vec4(0.86, 0.93, 0.91, 1.0);
+uniform float flow_speed = 1.25;
+uniform float wave_amp = 0.013;
 uniform float flow_phase = 0.0;
 uniform float reduced_motion = 0.0;
 uniform float wetness = 0.0;
 uniform float snow_cover = 0.0;
+uniform float river_time = 0.0;
+uniform vec4 wake_pts[10];
+uniform vec4 mover_ripples[8];
 
 varying vec3 wpos;
+varying vec2 flow_uv;
 
 float hash21(vec2 p) {
 	p = fract(p * vec2(127.1, 311.7));
@@ -364,69 +446,137 @@ float vnoise(vec2 p) {
 	return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
 }
 
-float river_fbm(vec2 uv_flow, float t) {
-	float v = 0.0;
-	v += vnoise(uv_flow * vec2(3.6, 0.42) + vec2(0.0, -t * 1.0)) * 0.52;
-	v += vnoise(uv_flow * vec2(7.4, 0.88) + vec2(sin(uv_flow.y * 0.4 - t) * 0.25, -t * 1.38)) * 0.32;
-	v += vnoise(uv_flow * vec2(14.0, 1.75) + vec2(-0.18 * t, -t * 1.72)) * 0.16;
-	return v;
+// Dual-scale flow-aligned wave height in curved river UV space (zero longitudinal shear bands!)
+float river_waves_macro(vec2 fuv, vec2 wp, float t) {
+	// Scale 1: broad gentle current swells following the curved river channel (UV.y = arc meters)
+	vec2 p1 = vec2(fuv.x * 2.15, fuv.y * 0.68 - t * 0.62);
+	vec2 w1 = vec2(vnoise(p1 * 0.55 + vec2(1.7, 3.1)), vnoise(p1 * 0.55 + vec2(6.4, 2.2))) - 0.5;
+	vec2 p2 = vec2(fuv.x * 3.40 + w1.x * 0.75, fuv.y * 1.12 - t * 0.86 + w1.y * 0.75);
+	// Mix slight isotropic world-space noise so curves never show any repeating UV tile
+	float iso = vnoise(wp * 0.58 + vec2(w1.x * 0.6, -t * 0.34));
+	return vnoise(p1 + w1 * 0.55) * 0.42 + vnoise(p2) * 0.36 + iso * 0.22;
+}
+
+float river_waves_fine(vec2 fuv, vec2 wp, float t) {
+	// Scale 2: crisp rotated capillary wavelets moving downstream along curved flow
+	vec2 r1 = vec2(fuv.x * 5.2 + fuv.y * 0.85, fuv.y * 2.15 - t * 1.32);
+	vec2 r2 = vec2(fuv.x * -4.6 + fuv.y * 1.15, fuv.y * 2.65 - t * 1.68);
+	float fine_a = vnoise(r1);
+	float fine_b = vnoise(r2 + vec2(3.9, 1.4));
+	float micro = vnoise(wp * 3.85 + vec2(fine_a * 0.55, -t * 1.15));
+	return fine_a * 0.40 + fine_b * 0.35 + micro * 0.25;
 }
 
 void vertex() {
 	float t = reduced_motion > 0.5 ? flow_phase : (TIME + flow_phase);
 	float u_chan = clamp(UV.x, 0.0, 1.0);
 	float bank_profile = sin(u_chan * 3.14159265);
-	float swell = sin(UV.y * 2.1 - t * flow_speed * 2.2) * wave_amp;
-	swell += cos(UV.x * 8.0 + UV.y * 1.4 - t * flow_speed * 1.6) * (wave_amp * 0.55);
-	VERTEX.y += swell * bank_profile;
+	vec3 wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	float swell = sin(UV.y * 1.45 - t * flow_speed * 1.65 + u_chan * 2.4) * wave_amp;
+	swell += cos(UV.y * 2.35 - t * flow_speed * 1.25 - u_chan * 4.2) * (wave_amp * 0.45);
+	float wader_disp = 0.0;
+	for (int i = 0; i < 8; i++) {
+		vec4 mr = mover_ripples[i];
+		if (mr.w > 0.01) {
+			float d = length(wp.xz - mr.xy);
+			float age = max(0.0, river_time - mr.z);
+			wader_disp += sin(d * 10.5 - age * 11.0) * exp(-d * 1.15) * exp(-age * 1.4) * mr.w * 0.042;
+		}
+	}
+	VERTEX.y += (swell + wader_disp) * bank_profile;
 	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	flow_uv = UV;
 }
 
 void fragment() {
 	float t = reduced_motion > 0.5 ? flow_phase : (TIME + flow_phase);
-	float u_chan = clamp(UV.x, 0.0, 1.0);
-	float bank_dist = min(u_chan, 1.0 - u_chan);
-	float bank_profile = sin(u_chan * 3.14159265);
-	float local_vel = mix(0.48, 1.16, bank_profile);
+	float tf = t * flow_speed;
+	float u_chan = clamp(flow_uv.x, 0.0, 1.0);
+	float raw_bank = clamp(min(u_chan, 1.0 - u_chan) * 2.0, 0.0, 1.0);
 
-	vec2 flow_uv = vec2(u_chan, UV.y);
-	float n_main = river_fbm(flow_uv, t * flow_speed * local_vel);
-	float n_fast = river_fbm(flow_uv + vec2(0.37, 1.9), t * flow_speed * local_vel * 1.28);
+	// Two distinct wave scales (macro flow swells + fine sparkling capillary ripples)
+	float h_macro = river_waves_macro(flow_uv, wpos.xz, tf);
+	float h_fine = river_waves_fine(flow_uv, wpos.xz, tf);
+	float n_shore = vnoise(wpos.xz * 2.1 + vec2(0.4, -tf * 0.25)) * 0.65 + vnoise(wpos.xz * 5.2) * 0.35;
 
-	// Downstream normal perturbation for crisp sunlight & campfire glints
-	float eps = 0.035;
-	float nx = river_fbm(flow_uv + vec2(eps, 0.0), t * flow_speed * local_vel);
-	float ny = river_fbm(flow_uv + vec2(0.0, eps), t * flow_speed * local_vel);
-	vec2 slope = vec2((n_main - nx) * 2.8, (n_main - ny) * 2.1);
+	// Irregular organic shoreline transition (no straight ribbon borders)
+	float bank_dist = clamp(raw_bank + (n_shore - 0.5) * 0.32, 0.0, 1.0);
 
-	// Elongated directional current streaks flowing downstream in mid-channel
-	float streak_wave = sin(u_chan * 18.0 + n_main * 5.2) * 0.5 + 0.5;
-	float streak = smoothstep(0.68, 0.93, n_main * 0.65 + n_fast * 0.35) * smoothstep(0.32, 0.85, streak_wave);
-	streak *= smoothstep(0.06, 0.26, bank_dist);
+	// Dual-scale moving normal perturbation (finite differences in flow & world space)
+	float eps_u = 0.020;
+	float eps_v = 0.070;
+	float mx = river_waves_macro(flow_uv + vec2(eps_u, 0.0), wpos.xz + vec2(0.07, 0.0), tf);
+	float mz = river_waves_macro(flow_uv + vec2(0.0, eps_v), wpos.xz + vec2(0.0, 0.07), tf);
+	float fx = river_waves_fine(flow_uv + vec2(eps_u * 0.65, 0.0), wpos.xz + vec2(0.04, 0.0), tf);
+	float fz = river_waves_fine(flow_uv + vec2(0.0, eps_v * 0.65), wpos.xz + vec2(0.0, 0.04), tf);
+	vec2 slope = vec2((h_macro - mx) * 1.15 + (h_fine - fx) * 0.88, (h_macro - mz) * 1.15 + (h_fine - fz) * 0.88);
 
-	// Lacy bank foam & shallow riffle froth hugging both banks
-	float bank_wobble = (n_fast - 0.5) * 0.09;
-	float bank_foam = (1.0 - smoothstep(0.015, 0.145 + bank_wobble, bank_dist)) * smoothstep(0.36, 0.72, n_fast);
-	float ripple_ring = smoothstep(0.76, 0.95, n_fast) * (0.28 + 0.35 * sin(UV.y * 2.4 - t * flow_speed * 2.6));
+	// Localized non-repeating V-shaped obstacle wakes & eddies behind submerged rocks & bridge pilings
+	float wake_foam = 0.0;
+	for (int i = 0; i < 10; i++) {
+		vec4 wp = wake_pts[i];
+		if (wp.w > 0.01) {
+			vec2 dv = wpos.xz - wp.xy;
+			float rad = max(0.22, wp.z);
+			// Upstream cushion bow-wave + elongated lacy downstream V-plume
+			float upstream_ring = (1.0 - smoothstep(rad * 0.42, rad * 1.02, length(dv + vec2(0.0, rad * 0.25))));
+			vec2 ds = vec2(dv.x / (rad * (0.85 + max(0.0, dv.y) * 0.34)), (dv.y - rad * 0.52) / (rad * 1.85));
+			float d_plume = length(ds);
+			float break_n = vnoise(wpos.xz * 4.2 + vec2(float(i) * 2.3, -tf * 1.55)) * 0.55 + h_fine * 0.45;
+			float plume_m = (1.0 - smoothstep(0.22, 1.12, d_plume)) * smoothstep(0.50, 0.82, break_n);
+			float bow_m = upstream_ring * smoothstep(0.52, 0.84, h_fine * 0.65 + h_macro * 0.35);
+			wake_foam = max(wake_foam, max(plume_m * 0.82, bow_m * 0.72) * wp.w);
+			if (d_plume < 1.25) {
+				slope += vec2(dv.x, dv.y - rad * 0.3) * (1.0 - smoothstep(0.2, 1.25, d_plume)) * (break_n - 0.5) * 0.65 * wp.w;
+			}
+		}
+	}
 
-	float depth_mix = smoothstep(0.02, 0.32, bank_dist);
+	// Expanding concentric ripples & churned whitewater where heroes wade across creek
+	float wader_foam = 0.0;
+	for (int i = 0; i < 8; i++) {
+		vec4 mr = mover_ripples[i];
+		if (mr.w > 0.01) {
+			vec2 dv = wpos.xz - mr.xy;
+			float d = length(dv);
+			float age = max(0.0, river_time - mr.z);
+			float ring_r = 0.22 + age * 1.45;
+			float band = exp(-pow((d - ring_r) * 5.2, 2.0)) * exp(-age * 1.25);
+			float splash_core = (1.0 - smoothstep(0.18, 0.95, d)) * exp(-age * 2.2);
+			float ring_mod = smoothstep(0.32, 0.76, h_fine);
+			wader_foam = max(wader_foam, (band * 0.82 + splash_core * 0.66) * ring_mod * mr.w);
+			if (d > 0.04 && d < 2.8) {
+				slope += normalize(dv) * sin(d * 10.5 - age * 11.0) * exp(-d * 1.15) * exp(-age * 1.4) * mr.w * 0.56;
+			}
+		}
+	}
+
+	// Non-repeating sparse shore froth (only where current brushes bends) + crisp current glints
+	float shore_break = vnoise(wpos.xz * 1.8 + vec2(2.1, -tf * 0.42));
+	float bank_froth = (1.0 - smoothstep(0.02, 0.16, bank_dist)) * smoothstep(0.58, 0.84, h_fine * 0.55 + shore_break * 0.45);
+	float crest_glint = smoothstep(0.68, 0.88, h_macro * 0.46 + h_fine * 0.54) * smoothstep(0.16, 0.58, bank_dist) * 0.28;
+
+	// Shallow pebble-tinted edge -> deeper cool coastal-forest emerald-teal center
+	float depth_mix = smoothstep(0.08, 0.72, bank_dist);
 	vec3 water_col = mix(shallow_col.rgb, deep_col.rgb, depth_mix);
-	water_col = mix(water_col, shallow_col.rgb * 1.24, (n_main - 0.45) * 0.38);
+	water_col = mix(water_col, shallow_col.rgb * 1.24, (h_macro - 0.5) * 0.28 + (h_fine - 0.5) * 0.16);
 
-	float foam_mask = clamp(streak * 0.62 + bank_foam * 0.74 + max(0.0, ripple_ring) * 0.35, 0.0, 0.88);
+	float foam_mask = clamp(wake_foam * 0.82 + wader_foam * 0.95 + bank_froth * 0.36 + crest_glint, 0.0, 0.86);
 	water_col = mix(water_col, foam_col.rgb, foam_mask);
-	water_col = mix(water_col, foam_col.rgb * 0.9, snow_cover * 0.14);
+	water_col = mix(water_col, foam_col.rgb * 0.92, snow_cover * 0.16);
 
+	// Controlled grazing-angle Fresnel reflection (coherent across day/dusk/night)
 	float fresnel = pow(1.0 - clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0), 3.0);
-	water_col = mix(water_col, foam_col.rgb * 0.88, fresnel * 0.26);
+	water_col = mix(water_col, foam_col.rgb * 0.68, fresnel * 0.18 * (1.0 - foam_mask * 0.6));
 
-	float edge_fade = smoothstep(0.0, 0.045, bank_dist);
+	float edge_fade = smoothstep(0.0, 0.18, raw_bank);
 	ALBEDO = water_col;
-	METALLIC = 0.08;
-	ROUGHNESS = mix(0.07, 0.36, foam_mask + wetness * 0.05);
-	SPECULAR = 0.64;
-	NORMAL_MAP = vec3(clamp(0.5 + slope.x, 0.08, 0.92), clamp(0.5 + slope.y, 0.08, 0.92), 1.0);
-	ALPHA = clamp(mix(shallow_col.a, deep_col.a, depth_mix) + foam_mask * 0.16, 0.42, 0.86) * edge_fade;
+	METALLIC = mix(0.09, 0.02, foam_mask);
+	ROUGHNESS = mix(0.09, 0.42, foam_mask + wetness * 0.04);
+	SPECULAR = mix(0.64, 0.25, foam_mask);
+	NORMAL_MAP = vec3(clamp(0.5 + slope.x, 0.10, 0.90), clamp(0.5 + slope.y, 0.10, 0.90), 1.0);
+	NORMAL_MAP_DEPTH = 0.88;
+	ALPHA = clamp(mix(shallow_col.a, deep_col.a, depth_mix) + foam_mask * 0.28, 0.20, 0.84) * edge_fade;
 }
 """
 	var smat := ShaderMaterial.new()
@@ -438,6 +588,15 @@ void fragment() {
 	smat.set_shader_parameter("wave_amp", wave_amp)
 	smat.set_shader_parameter("flow_phase", 0.0)
 	smat.set_shader_parameter("reduced_motion", 0.0)
+	smat.set_shader_parameter("river_time", 0.0)
+	var wakes: Array[Vector4] = []
+	for _wi in range(10):
+		wakes.append(Vector4.ZERO)
+	smat.set_shader_parameter("wake_pts", wakes)
+	smat.set_shader_parameter("mover_ripples", [
+		Vector4.ZERO, Vector4.ZERO, Vector4.ZERO, Vector4.ZERO,
+		Vector4.ZERO, Vector4.ZERO, Vector4.ZERO, Vector4.ZERO
+	])
 	if exposed:
 		_exposed_shaders.append(smat)
 	return smat
@@ -673,11 +832,30 @@ uniform vec4 uv_rect = vec4(0.0, 0.0, 1.0, 1.0);
 uniform float hang = 0.0;
 uniform float wetness = 0.0;
 uniform float snow_cover = 0.0;
+uniform float canopy_volume_boost = 0.0;
+uniform float occlude_fade_enabled = 0.0;
+uniform vec3 cam_world_pos = vec3(0.0);
+uniform vec4 hero_occlude_pts[4];
 
 varying vec3 wpos;
+varying vec3 wnrm;
+varying float v_local_y;
+
+float bayer4(vec2 p) {
+	ivec2 ip = ivec2(mod(floor(p), 4.0));
+	int idx = ip.y * 4 + ip.x;
+	const float m[16] = float[16](
+		0.0/16.0,  8.0/16.0,  2.0/16.0, 10.0/16.0,
+		12.0/16.0, 4.0/16.0, 14.0/16.0,  6.0/16.0,
+		3.0/16.0, 11.0/16.0,  1.0/16.0,  9.0/16.0,
+		15.0/16.0, 7.0/16.0, 13.0/16.0,  5.0/16.0
+	);
+	return m[idx];
+}
 
 void vertex() {
 	vec3 wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	v_local_y = VERTEX.y;
 	// Lock ground/roots near bottom of active UV rect and sway upper fronds/crowns
 	float v_span = max(0.001, uv_rect.w - uv_rect.y);
 	float norm_v = clamp((UV.y - uv_rect.y) / v_span, 0.0, 1.0);
@@ -687,6 +865,7 @@ void vertex() {
 	VERTEX.x += (sway_a * 0.65 + sway_b * 0.35) * wind_strength * height_factor;
 	VERTEX.z += (sway_b * 0.55 - sway_a * 0.25) * wind_strength * 0.7 * height_factor;
 	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	wnrm = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 }
 
 void fragment() {
@@ -694,10 +873,57 @@ void fragment() {
 	if (alpha_cut > 0.5 && tex.a < 0.34) {
 		discard;
 	}
-	// Rich botanical light variation across clusters + sunlit warm top modulation
-	float leaf_var = 0.88 + 0.24 * sin(wpos.x * 1.3 + wpos.z * 1.1);
-	vec3 col = tex.rgb * tint_col.rgb * leaf_var;
-	col = mix(col, col * vec3(0.66, 0.72, 0.76), wetness * 0.78);
+
+	// Paso 10 (O2-scoped): progressive foliage transparency when canopy lies between camera & characters
+	if (occlude_fade_enabled > 0.5 && wpos.y > 0.88) {
+		float max_fade = 0.0;
+		for (int i = 0; i < 4; i++) {
+			vec4 hp = hero_occlude_pts[i];
+			if (hp.w > 0.01) {
+				vec3 seg = hp.xyz - cam_world_pos;
+				float seg_len = length(seg);
+				if (seg_len > 0.5) {
+					vec3 seg_dir = seg / seg_len;
+					vec3 rel = wpos - cam_world_pos;
+					float proj = dot(rel, seg_dir);
+					// Only fade foliage strictly IN FRONT of the hero toward the camera
+					if (proj > 1.2 && proj < seg_len - 0.15) {
+						vec3 closest = cam_world_pos + seg_dir * proj;
+						float perp_d = length(wpos - closest);
+						float cone_r = mix(1.05, 1.95, clamp(proj / seg_len, 0.0, 1.0));
+						float rad_fade = 1.0 - smoothstep(cone_r * 0.32, cone_r, perp_d);
+						float depth_fade = smoothstep(1.2, 2.8, proj) * smoothstep(seg_len - 0.10, seg_len - 0.95, proj);
+						max_fade = max(max_fade, rad_fade * depth_fade * hp.w);
+					}
+				}
+			}
+		}
+		if (max_fade > 0.02) {
+			float fade_amt = clamp(max_fade * 0.86, 0.0, 0.86);
+			if (bayer4(FRAGCOORD.xy) < fade_amt) {
+				discard;
+			}
+		}
+	}
+
+	// Rich botanical light variation across clusters + per-instance MultiMesh tint
+	float leaf_var = 0.88 + 0.18 * sin(wpos.x * 0.85 + wpos.z * 0.78 + sin(wpos.x * 0.32) * 1.4);
+	vec3 inst_col = COLOR.rgb;
+	vec3 col = tex.rgb * tint_col.rgb * inst_col * leaf_var;
+
+	// Paso 8 & Paso 23.2-23.3: cohesive 3D canopy volume with softened natural woodland greens
+	// (avoids individual lobe ball-shading & tones down overly bright yellow-green crown highlights)
+	if (canopy_volume_boost > 0.05) {
+		float up_lit = smoothstep(-0.45, 0.88, wnrm.y);
+		float crown_h = smoothstep(1.3, 5.2, v_local_y);
+		float dapple = 0.5 + 0.5 * sin(wpos.x * 1.55 + cos(wpos.z * 1.45) * 1.4 + wpos.y * 0.95);
+		vec3 sunlit_tint = col * vec3(1.12, 1.13, 1.01) + vec3(0.006, 0.009, 0.003);
+		vec3 deep_core = col * vec3(0.74, 0.80, 0.77);
+		float crown_mix = clamp(up_lit * 0.34 + crown_h * 0.48 + dapple * 0.22 - 0.06, 0.0, 1.0);
+		col = mix(col, mix(deep_core, sunlit_tint, crown_mix), canopy_volume_boost);
+	}
+
+	col = mix(col, col * vec3(0.68, 0.74, 0.78), wetness * 0.78);
 	col = mix(col, vec3(0.84, 0.88, 0.92), snow_cover * 0.45);
 
 	ALBEDO = col;
@@ -705,8 +931,8 @@ void fragment() {
 	SPECULAR = mix(0.32, 0.62, wetness);
 	METALLIC = 0.02;
 	NORMAL_MAP = texture(norm_tex, UV * uv_mult * 2.4).rgb;
-	NORMAL_MAP_DEPTH = 0.45;
-	BACKLIGHT = backlight_tint * 0.45 * (1.0 - snow_cover * 0.6);
+	NORMAL_MAP_DEPTH = 0.48;
+	BACKLIGHT = backlight_tint * mix(0.45, 0.68, canopy_volume_boost) * (1.0 - snow_cover * 0.6);
 }
 """
 	var smat := ShaderMaterial.new()
@@ -721,6 +947,316 @@ void fragment() {
 	smat.set_shader_parameter("alpha_cut", 1.0 if alpha_cut else 0.0)
 	smat.set_shader_parameter("uv_mult", uv_mult)
 	smat.set_shader_parameter("uv_rect", Vector4(uv_rect.position.x, uv_rect.position.y, uv_rect.end.x, uv_rect.end.y))
+	smat.set_shader_parameter("canopy_volume_boost", 0.0)
+	smat.set_shader_parameter("occlude_fade_enabled", 0.0)
+	smat.set_shader_parameter("cam_world_pos", Vector3.ZERO)
+	smat.set_shader_parameter("hero_occlude_pts", [Vector4.ZERO, Vector4.ZERO, Vector4.ZERO, Vector4.ZERO])
+	if exposed:
+		_exposed_shaders.append(smat)
+	return smat
+
+## Unified continuous layered woodland terrain shader used on BOTH walkable clearing
+## and outer forest skirt so dirt trails, moss turf, leaf litter, sediment bars and wet stream banks blend seamlessly.
+static func create_forest_terrain_shader_material(exposed: bool = true) -> ShaderMaterial:
+	var shader := Shader.new()
+	shader.code = """
+shader_type spatial;
+render_mode blend_mix, depth_draw_opaque, cull_back, specular_schlick_ggx;
+
+uniform sampler2D tex_turf : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D tex_dirt : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D tex_litter : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D norm_tex : hint_normal, filter_linear_mipmap, repeat_enable;
+uniform float wetness = 0.0;
+uniform float snow_cover = 0.0;
+
+varying vec3 wpos;
+
+float hash21(vec2 p) {
+	p = fract(p * vec2(127.1, 311.7));
+	p += dot(p, p + 34.56);
+	return fract(p.x * p.y);
+}
+
+float vnoise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash21(i), hash21(i + vec2(1.0, 0.0)), f.x),
+	           mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+
+float seg_dist(vec2 p, vec2 a, vec2 b) {
+	vec2 pa = p - a;
+	vec2 ba = b - a;
+	float h = clamp(dot(pa, ba) / max(0.0001, dot(ba, ba)), 0.0, 1.0);
+	return length(pa - ba * h);
+}
+
+void vertex() {
+	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+}
+
+void fragment() {
+	vec2 uv_a = wpos.xz * 0.22;
+	vec2 uv_rot = vec2(wpos.x * 0.82 - wpos.z * 0.57, wpos.x * 0.57 + wpos.z * 0.82) * 0.25;
+	vec2 uv_micro = wpos.xz * 0.72;
+	float n_macro = vnoise(wpos.xz * 0.13) * 0.58 + vnoise(wpos.xz * 0.34) * 0.42;
+	float n_detail = vnoise(wpos.xz * 1.12) * 0.56 + vnoise(wpos.xz * 2.95) * 0.44;
+	float n_pebble = vnoise(wpos.xz * 6.4);
+
+	// 1. Lush coastal woodland moss-turf (varied olive/emerald macro patches)
+	vec3 t_m1 = texture(tex_turf, uv_a).rgb;
+	vec3 t_m2 = texture(tex_turf, uv_rot * 1.35 + vec2(0.37, 0.61)).rgb;
+	vec3 turf_col = mix(t_m1, t_m2, 0.45) * mix(vec3(0.46, 0.67, 0.34), vec3(0.68, 0.86, 0.45), n_macro);
+
+	// 2. Fallen leaf litter, pine needles & rich woodland humus
+	vec3 litter_tex = mix(texture(tex_litter, uv_rot * 1.18).rgb, texture(tex_litter, uv_a * 1.65 + vec2(0.29, 0.53)).rgb, 0.44);
+	vec3 litter_col = litter_tex * mix(vec3(0.50, 0.39, 0.25), vec3(0.64, 0.50, 0.32), n_detail);
+
+	// 3. Dry compacted earth trail (warm inner wear track vs cooler loamy border)
+	vec3 dirt_base = mix(texture(tex_dirt, uv_rot).rgb, texture(tex_dirt, uv_a * 0.82 + vec2(0.41, 0.19)).rgb, 0.46);
+	vec3 dirt_outer = dirt_base * vec3(0.68, 0.56, 0.42);
+	vec3 dirt_worn = dirt_base * vec3(0.84, 0.70, 0.53);
+
+	// 4. Sandy-pebble fluvial sediment bars & small gravel micro-detail
+	vec3 sediment_col = dirt_base * mix(vec3(0.64, 0.59, 0.48), vec3(0.76, 0.71, 0.59), n_pebble);
+
+	// Organic central clearing + gentle meandering trails (bridge -> clearing -> curved Pleamar N/S route)
+	vec2 warp = vec2(n_detail - 0.5, vnoise(wpos.xz * 0.78 + vec2(4.2, 1.9)) - 0.5) * 2.15;
+	vec2 wp = wpos.xz + warp;
+	float d_clear = length((wp - vec2(17.8, 16.0)) * vec2(0.88, 1.08));
+	float m_clear = 1.0 - smoothstep(3.6, 7.8, d_clear);
+
+	// Curved west bridge path (slight organic meander outside bridge deck)
+	float d_west_a = seg_dist(wp, vec2(-30.0, 19.2), vec2(-15.5, 16.2));
+	float d_west_b = seg_dist(wp, vec2(-15.5, 16.2), vec2(-2.2, 17.5));
+	float d_bridge = seg_dist(wp, vec2(-2.2, 17.5), vec2(6.5, 17.0));
+	float d_bridge_in = seg_dist(wp, vec2(6.5, 17.0), vec2(15.5, 16.3));
+
+	// Curved northern road toward Pleamar (gentle S-bends breaking straight lines)
+	float d_north_a = seg_dist(wp, vec2(18.0, 13.8), vec2(19.6, 4.5));
+	float d_north_b = seg_dist(wp, vec2(19.6, 4.5), vec2(17.8, -8.5));
+	float d_north_c = seg_dist(wp, vec2(17.8, -8.5), vec2(22.8, -24.0));
+	float d_north_d = seg_dist(wp, vec2(22.8, -24.0), vec2(21.2, -48.0));
+	float d_north_e = seg_dist(wp, vec2(21.2, -48.0), vec2(26.0, -96.0));
+
+	// Curved southern road from camp
+	float d_south_a = seg_dist(wp, vec2(18.5, 19.2), vec2(20.6, 30.5));
+	float d_south_b = seg_dist(wp, vec2(20.6, 30.5), vec2(24.0, 48.0));
+	float d_south_c = seg_dist(wp, vec2(24.0, 48.0), vec2(21.8, 76.0));
+	float d_south_d = seg_dist(wp, vec2(21.8, 76.0), vec2(25.2, 116.0));
+
+	float d_w = min(min(d_west_a, d_west_b), min(d_bridge, d_bridge_in));
+	float d_n = min(min(d_north_a, d_north_b), min(d_north_c, min(d_north_d, d_north_e)));
+	float d_s = min(min(d_south_a, d_south_b), min(d_south_c, d_south_d));
+	float d_trail = min(d_w, min(d_n, d_s));
+
+	// Subtle organic trail width variation along the route
+	float width_mod = 0.84 + 0.34 * vnoise(wpos.xz * 0.21 + vec2(3.1, 7.4));
+	float m_trail_edge = 1.0 - smoothstep(0.95 * width_mod, 2.55 * width_mod, d_trail);
+	float m_trail_core = 1.0 - smoothstep(0.25 * width_mod, 1.18 * width_mod, d_trail);
+
+	float map_v_fade = smoothstep(0.0, 2.2, wpos.x) * smoothstep(0.0, 2.2, wpos.z) * (1.0 - smoothstep(30.8, 33.2, wpos.z));
+	float packed_dirt = clamp(max(max(m_clear, m_trail_edge), COLOR.r * 0.55 * map_v_fade) + (n_detail - 0.5) * 0.28, 0.0, 1.0);
+	packed_dirt = smoothstep(0.24, 0.80, packed_dirt);
+	float worn_core = clamp(max(m_trail_core * 0.85, (1.0 - smoothstep(1.8, 4.8, d_clear)) * 0.72), 0.0, 1.0);
+
+	// Litter & needle fringe concentrated around dirt transitions & wooded ground
+	float trail_fringe = smoothstep(1.2, 2.4, d_trail) * (1.0 - smoothstep(2.4, 4.6, d_trail));
+	float litter_w = clamp(smoothstep(0.42, 0.82, n_macro * 0.64 + n_detail * 0.36) * (1.0 - packed_dirt * 0.72) + trail_fringe * 0.42, 0.0, 0.88);
+	vec3 dirt_col = mix(dirt_outer, dirt_worn, worn_core);
+	// Sprinkle subtle tiny dry pebbles along trails & camp edges
+	dirt_col = mix(dirt_col, sediment_col * 0.94, smoothstep(0.72, 0.90, n_pebble) * 0.38);
+
+	vec3 ground = mix(turf_col, litter_col, litter_w * 0.62);
+	ground = mix(ground, dirt_col, packed_dirt);
+
+	// Irregular scalloped wet riverbank mud + natural inner-bend pebble/sand sediment bars
+	float bank_noise = (n_detail - 0.5) * 0.055 + (n_macro - 0.5) * 0.035;
+	float bank_wet = smoothstep(0.045, -0.095, wpos.y + bank_noise);
+	float damp_hollow = smoothstep(-0.015, -0.075, wpos.y) * (1.0 - packed_dirt * 0.6);
+	float sediment_bar = bank_wet * smoothstep(-0.18, -0.04, wpos.y) * smoothstep(0.42, 0.78, n_macro * 0.65 + n_pebble * 0.35);
+	vec3 wet_mud = ground * vec3(0.46, 0.48, 0.43);
+	ground = mix(ground, wet_mud, clamp(bank_wet * 0.82 + damp_hollow * 0.30, 0.0, 0.88));
+	ground = mix(ground, sediment_col * 0.68, sediment_bar * 0.58);
+
+	// Subtle organic canopy dapple variation across woodland floor
+	ground *= 0.88 + n_macro * 0.25;
+
+	// Weather modulation
+	ground = mix(ground, ground * vec3(0.68, 0.72, 0.76), wetness * 0.82);
+	ground = mix(ground, vec3(0.82, 0.87, 0.91), snow_cover * clamp(0.42 + n_detail * 0.28 - packed_dirt * 0.16, 0.14, 0.60));
+
+	float base_r = mix(0.91, 0.82, packed_dirt);
+	base_r = mix(base_r, 0.94, litter_w * 0.35);
+	base_r = mix(base_r, 0.30, clamp(bank_wet * 0.82 + damp_hollow * 0.25, 0.0, 0.92));
+	float wet_r = mix(base_r, max(0.18, base_r * 0.38), wetness);
+	ROUGHNESS = mix(wet_r, 0.84, snow_cover * 0.65);
+	METALLIC = 0.03;
+	vec3 n_macro_map = texture(norm_tex, uv_rot * 1.45).rgb;
+	vec3 n_micro_map = texture(norm_tex, uv_micro * 1.85).rgb;
+	NORMAL_MAP = mix(n_macro_map, n_micro_map, 0.32 + packed_dirt * 0.18);
+	NORMAL_MAP_DEPTH = mix(0.46, 0.62, packed_dirt + bank_wet * 0.25);
+	ALBEDO = ground;
+}
+"""
+	var smat := ShaderMaterial.new()
+	smat.shader = shader
+	var t_turf := load_tex("moss.jpg")
+	var t_dirt := load_tex("path.jpg")
+	var t_lit := load_tex("earth.webp")
+	var nrm := load_tex("rock-normal-v1.png")
+	if t_turf: smat.set_shader_parameter("tex_turf", t_turf)
+	if t_dirt: smat.set_shader_parameter("tex_dirt", t_dirt)
+	if t_lit: smat.set_shader_parameter("tex_litter", t_lit)
+	if nrm: smat.set_shader_parameter("norm_tex", nrm)
+	if exposed:
+		_exposed_shaders.append(smat)
+	return smat
+
+## Weathered woven canvas tarp shader (Paso 11.10 & 11.13):
+## - Visible warp/weft thread weave, stitched panel seams, edge wear/stains, roughness variation (0.78..0.95)
+## - Warm fabric subsurface backlight from sun & campfire
+## - Gentle local dither peek window (max 42%) strictly over an occluded character's torso while keeping
+##   the tarp permanently visible and steady (User Rule #8 + OccludedSilhouette).
+static func create_tarp_canvas_shader_material(
+	base_tint: Color = Color("#b29d78"),
+	hem_tint: Color = Color("#6e5b42"),
+	exposed: bool = true
+) -> ShaderMaterial:
+	var shader := Shader.new()
+	shader.code = """
+shader_type spatial;
+render_mode blend_mix, depth_draw_opaque, cull_disabled, specular_schlick_ggx;
+
+uniform sampler2D linen_tex : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D cloth_norm : hint_normal, filter_linear_mipmap, repeat_enable;
+uniform vec4 base_col : source_color = vec4(0.70, 0.62, 0.47, 1.0);
+uniform vec4 edge_col : source_color = vec4(0.43, 0.36, 0.26, 1.0);
+uniform float wetness = 0.0;
+uniform float snow_cover = 0.0;
+uniform float occlude_fade_enabled = 0.0;
+uniform vec3 cam_world_pos = vec3(0.0);
+uniform vec4 hero_occlude_pts[4];
+
+varying vec3 wpos;
+
+float hash21(vec2 p) {
+	p = fract(p * vec2(127.1, 311.7));
+	p += dot(p, p + 34.56);
+	return fract(p.x * p.y);
+}
+
+float vnoise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash21(i), hash21(i + vec2(1.0, 0.0)), f.x),
+	           mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+
+float bayer4(vec2 p) {
+	ivec2 ip = ivec2(mod(floor(p), 4.0));
+	int idx = ip.y * 4 + ip.x;
+	const float m[16] = float[16](
+		0.0/16.0,  8.0/16.0,  2.0/16.0, 10.0/16.0,
+		12.0/16.0, 4.0/16.0, 14.0/16.0,  6.0/16.0,
+		3.0/16.0, 11.0/16.0,  1.0/16.0,  9.0/16.0,
+		15.0/16.0, 7.0/16.0, 13.0/16.0,  5.0/16.0
+	);
+	return m[idx];
+}
+
+void vertex() {
+	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+}
+
+void fragment() {
+	// Gentle local see-through dither window ONLY where tarp directly blocks camera->hero line of sight
+	// Tarp remains permanently visible & camera never changes (User Rule #8 + Paso 11.13)
+	if (occlude_fade_enabled > 0.5) {
+		float max_peek = 0.0;
+		for (int i = 0; i < 4; i++) {
+			vec4 hp = hero_occlude_pts[i];
+			if (hp.w > 0.01) {
+				vec3 seg = hp.xyz - cam_world_pos;
+				float seg_len = length(seg);
+				if (seg_len > 0.5) {
+					vec3 seg_dir = seg / seg_len;
+					vec3 rel = wpos - cam_world_pos;
+					float proj = dot(rel, seg_dir);
+					if (proj > 0.8 && proj < seg_len - 0.05) {
+						vec3 closest = cam_world_pos + seg_dir * proj;
+						float perp_d = length(wpos - closest);
+						float rad = 0.72;
+						float r_fade = 1.0 - smoothstep(rad * 0.25, rad, perp_d);
+						max_peek = max(max_peek, r_fade * hp.w);
+					}
+				}
+			}
+		}
+		if (max_peek > 0.04) {
+			float peek_amt = clamp(max_peek * 0.42, 0.0, 0.42);
+			if (bayer4(FRAGCOORD.xy) < peek_amt) {
+				discard;
+			}
+		}
+	}
+
+	vec2 uv_weave = UV * 3.2;
+	vec3 tex_col = texture(linen_tex, uv_weave).rgb;
+
+	// Visible fine warp/weft thread relief
+	float warp = sin(UV.x * 260.0) * 0.5 + 0.5;
+	float weft = sin(UV.y * 240.0) * 0.5 + 0.5;
+	float weave_grain = mix(0.93, 1.07, (warp * 0.52 + weft * 0.48));
+
+	// Stitched longitudinal canvas panel seams at u = 0.33 and u = 0.67
+	float seam_1 = 1.0 - smoothstep(0.0, 0.011, abs(UV.x - 0.333));
+	float seam_2 = 1.0 - smoothstep(0.0, 0.011, abs(UV.x - 0.667));
+	float stitch_dash = step(0.35, fract(UV.y * 46.0));
+	float seam_mask = max(seam_1, seam_2);
+
+	// Weathering: sun-bleached ridge crown + damp/stained hem borders & corner tension patches
+	float n_stain = vnoise(UV * 4.5 + vec2(1.7, 2.9)) * 0.62 + vnoise(UV * 11.5) * 0.38;
+	float border_d = min(min(UV.x, 1.0 - UV.x), min(UV.y, 1.0 - UV.y));
+	float edge_wear = 1.0 - smoothstep(0.015, 0.14, border_d + (n_stain - 0.5) * 0.05);
+	float sun_bleach = smoothstep(0.18, 0.72, border_d) * smoothstep(0.38, 0.85, n_stain);
+
+	vec3 alb = tex_col * base_col.rgb * weave_grain;
+	alb = mix(alb, alb * vec3(1.12, 1.09, 1.03), sun_bleach * 0.42);
+	alb = mix(alb, tex_col * edge_col.rgb, clamp(edge_wear * 0.68 + (1.0 - n_stain) * 0.24, 0.0, 0.78));
+	alb = mix(alb, tex_col * edge_col.rgb * (0.76 + stitch_dash * 0.34), seam_mask * 0.65);
+
+	// Weather response (rain darkening + frost)
+	alb = mix(alb, alb * vec3(0.65, 0.69, 0.73), wetness * 0.82);
+	alb = mix(alb, vec3(0.86, 0.89, 0.92), snow_cover * clamp(0.45 + n_stain * 0.25 - edge_wear * 0.2, 0.12, 0.58));
+
+	float rough = clamp(0.84 + (1.0 - n_stain) * 0.11 - sun_bleach * 0.06 + edge_wear * 0.05, 0.76, 0.95);
+	rough = mix(rough, max(0.28, rough * 0.48), wetness);
+	ROUGHNESS = mix(rough, 0.86, snow_cover * 0.6);
+	METALLIC = 0.02;
+	SPECULAR = 0.28;
+	NORMAL_MAP = texture(cloth_norm, uv_weave * 1.4).rgb;
+	NORMAL_MAP_DEPTH = 0.52;
+	BACKLIGHT = base_col.rgb * vec3(0.46, 0.38, 0.26) * (1.0 - wetness * 0.4);
+	ALBEDO = alb;
+}
+"""
+	var smat := ShaderMaterial.new()
+	smat.shader = shader
+	var t_lin := load_tex("linen.webp")
+	if t_lin == null:
+		t_lin = load_tex("linen-v4.webp")
+	var n_cloth := make_organic_normal("cloth", 128)
+	if t_lin: smat.set_shader_parameter("linen_tex", t_lin)
+	if n_cloth: smat.set_shader_parameter("cloth_norm", n_cloth)
+	smat.set_shader_parameter("base_col", base_tint)
+	smat.set_shader_parameter("edge_col", hem_tint)
+	smat.set_shader_parameter("occlude_fade_enabled", 0.0)
+	smat.set_shader_parameter("cam_world_pos", Vector3.ZERO)
+	smat.set_shader_parameter("hero_occlude_pts", [Vector4.ZERO, Vector4.ZERO, Vector4.ZERO, Vector4.ZERO])
 	if exposed:
 		_exposed_shaders.append(smat)
 	return smat

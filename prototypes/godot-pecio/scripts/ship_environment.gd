@@ -188,6 +188,24 @@ func apply_state(_immediate: bool = true) -> void:
 		sky_material.sky_top_color = sky_material.sky_top_color.lerp(Color("#4e626d"), 0.55)
 		sky_material.sky_horizon_color = sky_material.sky_horizon_color.lerp(Color("#71858e"), 0.45)
 	sky_material.ground_horizon_color = sky_material.sky_horizon_color
+	sky_material.ground_bottom_color = Color("#050b14") if night else (Color("#271f27") if dusk else Color("#162c36"))
+	var fresnel_col: Color = sky_material.sky_horizon_color.lerp(Color("#4a7280"), 0.42)
+	var distant_col: Color = Color("#153642")
+	var fresnel_str: float = 0.46
+	if night:
+		fresnel_col = Color("#18293d").lerp(sky_material.sky_horizon_color, 0.30)
+		distant_col = Color("#0b1824")
+		fresnel_str = 0.42
+	elif dusk:
+		fresnel_col = Color("#635258").lerp(sky_material.sky_horizon_color, 0.46)
+		distant_col = Color("#1c2936")
+		fresnel_str = 0.50
+	if overcast:
+		fresnel_col = fresnel_col.lerp(Color("#4b5f69"), 0.45)
+		distant_col = distant_col.lerp(Color("#1f2e36"), 0.45)
+	water.set_shader_parameter("fresnel_sky_color", fresnel_col)
+	water.set_shader_parameter("distant_color_tint", distant_col)
+	water.set_shader_parameter("fresnel_strength", fresnel_str)
 	water.set_shader_parameter("wave_amplitude", 0.42 if weather == "storm" else 0.30)
 	var breach_light := vessel.find_child("C9_SternBreachGlow", true, false) as OmniLight3D
 	if breach_light: breach_light.light_energy = 0.08 if night else (0.24 if dusk else 0.48)

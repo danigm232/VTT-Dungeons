@@ -786,11 +786,35 @@ func _apply_procedural_motion(delta: float, input_dir: Vector2, state: String) -
 	if contact_shadow:
 		var alt_factor := clampf(1.0 - (jump_y / (jump_peak_height * 1.45)), 0.35, 1.0)
 		var state_shadow := 0.85 if state == "sit" else (1.25 if state in ["prone", "crawl", "defeated"] else 1.0)
-		contact_shadow.scale = Vector3(alt_factor * state_shadow, 1.0, alt_factor * state_shadow)
+		# La huella se adapta a la estatura canónica del actor (Trinity < Mia < Mike)
+		var stature_shadow := clampf(target_height * current_height_scale / 1.82, 0.62, 1.12)
+		if state in ["prone", "crawl", "defeated"]:
+			stature_shadow = clampf(target_height / 1.82, 0.7, 1.12)
+		var airborne := clampf(jump_y / maxf(jump_peak_height, 0.01), 0.0, 1.0)
+		if char_key == "harpy" and state in ["run", "fly"]:
+			airborne = 0.7
+		contact_shadow.scale = Vector3(alt_factor * state_shadow * stature_shadow, 1.0, alt_factor * state_shadow * stature_shadow)
+		var shadow_mat := contact_shadow.material_override as StandardMaterial3D
+		if shadow_mat:
+			# Cuanto más lejos del suelo, más tenue la sombra de contacto
+			shadow_mat.albedo_color.a = lerpf(1.0, 0.38, airborne)
 	if selection_ring:
 		var m := selection_ring.material_override as StandardMaterial3D
 		if m:
-			m.albedo_color.a = 0.38 if is_stealth else ring_color.a
+			m.albedo_color.a = 0.28 if is_stealth else ring_color.a
+			m.emission_enabled = not is_stealth
+			# Pulso lento del anillo (respeta el movimiento reducido de la sesión y atenúa emisión en sigilo)
+			var loading_node := get_node_or_null("/root/SkillLoading")
+			var calm: bool = loading_node != null and bool(loading_node.get("reduced"))
+			var stealth_mul := 0.0 if is_stealth else 1.0
+			if calm:
+				m.emission_energy_multiplier = 1.5 * stealth_mul
+				selection_ring.scale = Vector3.ONE
+			else:
+				var pulse := 0.5 + 0.5 * sin(float(Time.get_ticks_msec()) * 0.0028)
+				m.emission_energy_multiplier = lerpf(1.25, 1.85, pulse) * stealth_mul
+				var ring_scale := 1.0 + pulse * 0.025
+				selection_ring.scale = Vector3(ring_scale, 1.0, ring_scale)
 
 func _trigger_action_vfx(mode_name: String) -> void:
 	vfx_mode = mode_name

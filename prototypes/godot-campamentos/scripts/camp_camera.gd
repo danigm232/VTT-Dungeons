@@ -62,6 +62,31 @@ func get_zone_zoom_limits(zone: String) -> Vector2:
 		return Vector2(6.0, 32.0)
 	return Vector2(6.0, 75.0)
 
+func get_player_max_distance(zone_id: String = "") -> float:
+	var z := zone_id if zone_id != "" else current_zone_id
+	if is_interior_zone(z):
+		return 26.0
+	return 36.0 if scene_id == "camp-a1-rooms" else 32.0
+
+func get_world_visual_bounds() -> Rect2:
+	if scene_def.is_empty():
+		return Rect2()
+	var cols := float(scene_def.get("cols", 25))
+	var rows := float(scene_def.get("rows", 22))
+	var width_m := cols * Structure.TILE_METERS
+	var depth_m := rows * Structure.TILE_METERS
+	match scene_id:
+		"camp-a1-rooms":
+			return Rect2(-410.0, -380.0, 840.0, 740.0)
+		"camp-forest-pleamar":
+			return Rect2(-80.0, -82.0, width_m + 160.0, depth_m + 150.0)
+		"camp-cliffs-observatory":
+			return Rect2(-24.0, -20.0, width_m + 48.0, depth_m * 0.72 + 116.0)
+		"camp-coastal-refuge":
+			return Rect2(-24.0, -20.0, width_m + 48.0, depth_m * 0.84 + 84.0)
+		_:
+			return Rect2(-24.0, -20.0, width_m + 48.0, depth_m * 0.68 + 94.0)
+
 func clamp_navigation_point(point: Vector3) -> Vector3:
 	var b := Structure.get_map_bounds(scene_def)
 	return Vector3(
@@ -81,7 +106,8 @@ func apply_zone_preset(key: String, instant: bool = false) -> void:
 			target_focus = f + Vector3.UP * 0.9
 			var interior := bool(z.get("is_interior", false))
 			_apply_zone_boundary_transition(interior, key if interior else "exterior")
-			target_distance = clampf(float(z.get("distance", 20.0)), min_distance, max_distance)
+			var zb := _effective_zoom_bounds(current_zone_id)
+			target_distance = clampf(float(z.get("distance", 20.0)), zb.x, zb.y)
 			if instant:
 				focus_point = target_focus
 				current_distance = target_distance

@@ -92,6 +92,8 @@ func _ready() -> void:
 	add_child(combat_controller)
 	combat_controller.setup(self)
 	set_role(current_role)
+	if main_ctrl and main_ctrl.get("rest_phase") != null:
+		sync_clock_to_phase(str(main_ctrl.get("rest_phase")))
 	_apply_external_ui_coordination.call_deferred()
 
 func configure_initial(role: String, ready_projector: bool = false, active: bool = true) -> void:
@@ -387,12 +389,34 @@ func get_active_token_node() -> Node3D:
 		return tokens_by_node[nname]
 	return tokens_by_node.get("PlayerToken", null)
 
+func sync_selected_actor_from_party_index(idx: int, announce: bool = false) -> void:
+	if idx < 0 or idx >= actors.size():
+		return
+	var target_id: String = str(actors[idx].get("id", ""))
+	if target_id.is_empty():
+		return
+	if target_id != selected_actor_id:
+		selected_actor_id = target_id
+		if announce:
+			notify_mesa("Personaje activo: %s" % str(actors[idx].get("name", target_id)))
+		_sync_grid_and_rings()
+		refresh_all()
+
+func sync_selected_actor_from_party_token(tok: Node3D, announce: bool = false) -> void:
+	if not is_instance_valid(tok):
+		return
+	for i in range(actors.size()):
+		if str(actors[i].get("node_name", "")) == str(tok.name):
+			sync_selected_actor_from_party_index(i, announce)
+			return
+
 func select_player_character(actor_id: String) -> void:
 	for i in range(actors.size()):
 		if actors[i]["id"] == actor_id:
 			selected_actor_id = actor_id
 			if main_ctrl and main_ctrl.has_method("select_party_member"):
 				main_ctrl.select_party_member(i)
+			_sync_grid_and_rings()
 			notify_mesa("Personaje activo: %s" % actors[i]["name"])
 			refresh_all()
 			return
@@ -552,10 +576,8 @@ func get_env_reduced_effects() -> bool:
 		return bool(main_ctrl.fx.reduced_motion)
 	return _fallback_reduced
 
-func set_env_time(t: String) -> void:
+func sync_clock_to_phase(t: String) -> void:
 	_fallback_time = t
-	if main_ctrl and main_ctrl.has_method("set_env_time"):
-		main_ctrl.set_env_time(t)
 	var day_idx := int(clock_seconds / 86400)
 	match t:
 		"day", "arrival": clock_seconds = day_idx * 86400 + 12 * 3600
@@ -563,6 +585,12 @@ func set_env_time(t: String) -> void:
 		"night": clock_seconds = day_idx * 86400 + 22 * 3600 + 15 * 60
 		"dawn", "finalization": clock_seconds = day_idx * 86400 + 6 * 3600 + 30 * 60
 	refresh_all()
+
+func set_env_time(t: String) -> void:
+	_fallback_time = t
+	if main_ctrl and main_ctrl.has_method("set_env_time"):
+		main_ctrl.set_env_time(t)
+	sync_clock_to_phase(t)
 
 func set_env_weather(w: String) -> void:
 	_fallback_weather = w
@@ -857,4 +885,9 @@ func toggle_camp_chest(chest_id: String) -> bool:
 func trigger_camp_interact() -> void:
 	if main_ctrl and main_ctrl.has_method("trigger_nearest_interaction"):
 		main_ctrl.trigger_nearest_interaction()
+	refresh_all()
+
+func trigger_camp_activity(activity_id: String) -> void:
+	if main_ctrl and main_ctrl.has_method("perform_camp_activity"):
+		main_ctrl.perform_camp_activity(activity_id)
 	refresh_all()

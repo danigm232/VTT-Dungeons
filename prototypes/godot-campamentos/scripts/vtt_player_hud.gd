@@ -32,6 +32,7 @@ var joystick: ThemeKit.TacticalThumbStick
 
 # Bottom-right actions
 var interact_btn: Button
+var fire_cook_btn: Button
 var _interaction_action: Callable
 var action_toggle_btn: Button
 var exploration_menu: PanelContainer
@@ -303,6 +304,19 @@ func _build_bottom_actions() -> void:
 	ThemeKit.style_button(interact_btn, "primary", 999, 14, 9)
 	interact_btn.pressed.connect(_on_interact_pressed)
 	row.add_child(interact_btn)
+
+	fire_cook_btn = Button.new()
+	fire_cook_btn.name = "CampCookButton"
+	fire_cook_btn.text = "🍲 Cocinar"
+	fire_cook_btn.visible = false
+	ThemeKit.style_button(fire_cook_btn, "gold_solid", 999, 14, 9)
+	fire_cook_btn.pressed.connect(func():
+		if ui.has_method("trigger_camp_activity"):
+			ui.call("trigger_camp_activity", "cook")
+		else:
+			ui.perform_player_exploration_action({"id": "cook", "label": "Calentar rancho"})
+	)
+	row.add_child(fire_cook_btn)
 
 	action_toggle_btn = Button.new()
 	action_toggle_btn.name = "ActionToggleButton"
@@ -749,6 +763,10 @@ func set_interaction_prompt(text: String, enabled: bool, action: Callable = Call
 		interact_btn.text = "Acércate al objetivo"
 		interact_btn.disabled = true
 		ThemeKit.style_button(interact_btn, "secondary", 999, 14, 9)
+
+func set_fire_actions_visible(on: bool) -> void:
+	if fire_cook_btn:
+		fire_cook_btn.visible = on
 
 func refresh() -> void:
 	var a: Dictionary = ui.get_active_actor()

@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-runara-greet",
+  "character": "sw-runara",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "retreat_greet",
+  "direction": "se",
+  "fps": 6,
+  "loop": false,
+  "dependencies": [
+    "sw-runara"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "standing feet registered; isolated handheld props; one authored view"
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/01.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/02.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/03.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/04.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/05.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/06.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/07.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/08.png"
+  ],
+  "production": {
+    "method": "built-in ImageGen with existing character reference; native-size independent sprites",
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/runara.png",
+    "minimumVisibleStandingPixels": 235,
+    "prompt": "Game asset, identity-preserving illustration. Use the single attached project character as the exact identity and brushwork reference. Elderly monastery leader. Dark warm skin, the same long white braid, ivory plain monk's robe and rope belt from the reference. Produce one transparent RGBA game animation sheet at 1536 x 1024 or the highest available size in a 3:2 landscape aspect ratio. Exactly four equally spaced columns and two equally spaced rows, each cell one full-body drawing, read left to right on each row. No words, numbering, grid lines, floor, background, casting shadows, other characters, or panels. All eight cells strictly share one orthographic camera, body scale and view direction (match the attached facing, slight tactical elevation). Use the same eye level and vertical placement in all phases. Place each full-body silhouette at the center of its cell, keeping every hand, horn, wing, tail, clothing hem and foot at least 15 pixels inside its cell at this resolution. Shared foot baseline an equal distance from bottom of each row; character should fill about 79-83 percent of cell height. Strong readable silhouettes and finely painted cloth and skin without blown highlights. No graphic style shift or redesign. Eight visibly different phases of ONE grounded action in temporal order. A gentle welcome: 1 hands relaxed at waist, 2 slight lean and one open hand rises, 3 both forearms rise, 4 arms open in a modest warm welcome, 5 hold with a soft smile, 6 begin to lower her hands, 7 bring one hand lightly to her chest, 8 relax. Her sandaled feet stay planted.",
+    "sourcePages": [
+      8
+    ],
+    "expectedPhases": 8,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-runara-greet-b969cc267396.png",
+    "originalSha256": "b969cc2673969c6a945ec0eb479d8db58122908c156bceb8e9c7a98314078c5c",
+    "importReport": "output/stormwreck-motion-detail/sw-runara-greet-b969cc267396.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "Source and native-size frame extraction reviewed; in-game staging awaiting capture",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 462,
+  "pivot": [
+    0.5,
+    0.9217557251908397
+  ]
+}

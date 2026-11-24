@@ -20,8 +20,12 @@ var wetness: float = 0.0
 var snow_cover: float = 0.0
 var reduced_motion: bool = false
 var campfire_lit: bool = true
+var campfire_state: String = "lit"
 var fire_manual_override: String = ""
 var _fire_auto_schedule: bool = false
+var stoke_timer_s: float = 0.0
+var _stoke_duration_s: float = 16.0
+var cooking_timer_s: float = 0.0
 
 var _rain_particles: GPUParticles3D
 var _snow_particles: GPUParticles3D
@@ -37,6 +41,7 @@ var _aurora_meshes: Array[MeshInstance3D] = []
 var _clouds: Array[Dictionary] = []
 var _lanterns: Array[Dictionary] = []
 var _smoke_materials: Array[ParticleProcessMaterial] = []
+var _ambient_terrain_pockets: Array[Dictionary] = []
 var _time: float = 0.0
 var _map_center := Vector3(18.0, 0.0, 16.5)
 
@@ -60,27 +65,107 @@ func _build_sky_fill_light() -> void:
 func _process(delta: float) -> void:
 	var dt := 0.0 if reduced_motion else delta
 	_time += dt
+	if not reduced_motion:
+		stoke_timer_s = maxf(0.0, stoke_timer_s - delta)
+		cooking_timer_s = maxf(0.0, cooking_timer_s - delta) if campfire_lit else 0.0
+	var stoke_boost := get_stoke_boost()
+	var cook_boil := 1.0 if (campfire_lit and cooking_timer_s > 0.0) else 0.0
+	var active_fire_state := get_campfire_state()
 
-	# Campfire & torch warm flicker (0 energy & hidden flame when extinguished)
-	var day_scale := 0.48 if (current_phase in ["day", "arrival"] and current_weather == "clear") else 1.0
+	# Campfire & torch warm multi-frequency organic flicker (Paso 12.17-12.19 & Paso 15.14-15.16)
+	var day_scale := 0.50 if (current_phase in ["day", "arrival"] and current_weather == "clear") else 1.0
 	for fl in _fire_lights:
 		var light: OmniLight3D = fl.get("light")
 		if not is_instance_valid(light):
 			continue
+		var fill_light: OmniLight3D = fl.get("fill_light")
 		var flame_mesh: Node3D = fl.get("flame_node")
-		if not campfire_lit:
+		var smoke: GPUParticles3D = fl.get("smoke")
+		var embers: GPUParticles3D = fl.get("embers")
+		var steam: GPUParticles3D = fl.get("kettle_steam")
+		var bubbles: GPUParticles3D = fl.get("kettle_bubbles")
+		var coals_mat: StandardMaterial3D = fl.get("coals_mat")
+		var soup_sh := fl.get("soup_shader") as ShaderMaterial
+		if active_fire_state == "off":
 			light.light_energy = 0.0
+			if is_instance_valid(fill_light):
+				fill_light.light_energy = 0.0
 			if is_instance_valid(flame_mesh):
 				flame_mesh.visible = false
+			if is_instance_valid(smoke):
+				smoke.emitting = false
+				smoke.visible = false
+			if is_instance_valid(embers):
+				embers.emitting = false
+				embers.visible = false
+			if is_instance_valid(steam):
+				steam.emitting = false
+				steam.visible = false
+			if is_instance_valid(bubbles):
+				bubbles.emitting = false
+				bubbles.visible = false
+			if is_instance_valid(coals_mat):
+				coals_mat.emission_enabled = false
+				coals_mat.emission_energy_multiplier = 0.0
+				coals_mat.albedo_color = Color("#24211f")
+			if is_instance_valid(soup_sh):
+				soup_sh.set_shader_parameter("lit", 0.0)
+				soup_sh.set_shader_parameter("boil", 0.0)
 			continue
 		var fuel: float = float(fl.get("fuel", 0.78))
-		var base_e: float = float(fl.get("base_energy", 2.2)) * clampf(0.35 + fuel * 0.9, 0.25, 1.35) * day_scale
-		var pulse := (sin(_time * 6.2 + float(fl["phase"])) * 0.14 + cos(_time * 10.7 + float(fl["phase"])) * 0.08) * day_scale
+		var is_embers := active_fire_state == "embers"
+		var state_mult := 0.42 if is_embers else 1.0
+		var stoke_e := (1.0 + stoke_boost * 0.52) * state_mult
+		var base_e: float = float(fl.get("base_energy", 2.55)) * clampf(0.38 + fuel * 0.88, 0.28, 1.32) * day_scale * stoke_e
+		# Non-repeating 4-frequency organic flicker + subtle color warmth & position micro-dance
+		var ph := float(fl["phase"])
+		var tf := _time * (1.0 + stoke_boost * 0.42)
+		var wave := sin(tf * 4.7 + ph) * 0.45 + sin(tf * 8.3 - ph * 1.3) * 0.30 + cos(tf * 13.7 + ph * 0.7) * 0.15 + sin(tf * 21.1 - ph * 1.9) * 0.10
+		var pulse := wave * (0.14 if is_embers else 0.24) * day_scale
 		light.light_energy = maxf(0.18, base_e + pulse)
+		light.light_color = Color("#e05e24").lerp(Color("#ff963d"), 0.5 + 0.5 * wave) if is_embers else Color("#ff8830").lerp(Color("#ffad52"), 0.5 + 0.5 * wave)
+		light.omni_range = (8.8 if is_embers else 14.2) + stoke_boost * 3.2
+		light.position = Vector3(sin(tf * 5.9 + ph) * 0.018, 0.86 + cos(tf * 7.3) * 0.014, cos(tf * 6.4 - ph) * 0.018)
+		if is_instance_valid(fill_light):
+			fill_light.light_energy = (0.28 if is_embers else 0.68) * day_scale * (1.0 + stoke_boost * 0.35 + wave * 0.08)
+		if is_instance_valid(coals_mat):
+			coals_mat.emission_enabled = true
+			coals_mat.albedo_color = Color("#cc3f14") if is_embers else Color("#e85a1e")
+			coals_mat.emission_energy_multiplier = (1.15 if is_embers else 1.72) + stoke_boost * 0.55 + wave * 0.18
 		if is_instance_valid(flame_mesh):
 			flame_mesh.visible = true
-			var sc := clampf(0.55 + fuel * 0.65, 0.4, 1.25)
-			flame_mesh.scale = Vector3(sc, sc * (0.9 + sin(_time * 9.0 + float(fl["phase"])) * 0.16), sc)
+			var sc := clampf(0.55 + fuel * 0.58, 0.4, 1.15) * (0.48 if is_embers else 1.0)
+			var w_sc := sc * (1.0 + stoke_boost * 0.28)
+			var h_sc := sc * (0.90 + wave * 0.12) * (1.0 + stoke_boost * 0.36) * (0.55 if is_embers else 1.0)
+			flame_mesh.scale = Vector3(w_sc, h_sc, w_sc)
+			for f_child in flame_mesh.get_children():
+				if f_child is MeshInstance3D and (f_child as MeshInstance3D).material_override is ShaderMaterial:
+					((f_child as MeshInstance3D).material_override as ShaderMaterial).set_shader_parameter("stoke", stoke_boost)
+		if is_instance_valid(smoke):
+			smoke.emitting = true
+			smoke.visible = true
+			smoke.amount_ratio = clampf((0.20 if is_embers else 0.38) + fuel * 0.22 + stoke_boost * 0.52, 0.16, 1.0)
+			var spm := smoke.process_material as ParticleProcessMaterial
+			if spm:
+				spm.initial_velocity_min = 0.52 + stoke_boost * 0.45
+				spm.initial_velocity_max = 0.90 + stoke_boost * 0.70
+				spm.scale_max = 1.6 + stoke_boost * 0.85
+		if is_instance_valid(embers):
+			embers.emitting = true
+			embers.visible = true
+			embers.amount_ratio = clampf((0.18 if is_embers else 0.35) + fuel * 0.25 + stoke_boost * 0.65, 0.14, 1.0)
+		if is_instance_valid(steam):
+			steam.emitting = true
+			steam.visible = true
+			steam.amount_ratio = clampf((0.24 if is_embers else 0.42) + cook_boil * 0.48 + stoke_boost * 0.25, 0.22, 1.0)
+		if is_instance_valid(bubbles):
+			var bub_on := cook_boil > 0.05 and not is_embers
+			bubbles.emitting = bub_on
+			bubbles.visible = bub_on
+		if is_instance_valid(soup_sh):
+			soup_sh.set_shader_parameter("lit", 0.55 if is_embers else 1.0)
+			soup_sh.set_shader_parameter("boil", 0.14 if cook_boil <= 0.05 else 0.95)
+			soup_sh.set_shader_parameter("stoke", stoke_boost)
 
 	# Breaking surf wave sliding
 	for idx in range(_surf_meshes.size()):
@@ -99,7 +184,12 @@ func _process(delta: float) -> void:
 			var v_duty: float = float(b.get("visit_duty", 0.44))
 			var v_off: float = float(b.get("visit_offset", 0.0))
 			var u_c := fmod(maxf(0.0, _time + v_off), v_cyc) / v_cyc
-			var ang := (u_c / v_duty) * TAU + float(b["phase"])
+			var u_orb := clampf(u_c / maxf(0.01, v_duty), 0.0, 1.0)
+			var edge_fade := minf(u_orb, 1.0 - u_orb)
+			var base_b_sc := float(b.get("base_scale", 1.0))
+			var fly_sc := base_b_sc * (1.0 if edge_fade >= 0.07 else clampf(edge_fade / 0.07, 0.08, 1.0))
+			node.scale = Vector3.ONE * fly_sc
+			var ang := u_orb * TAU + float(b["phase"])
 			var rad := float(b["radius"])
 			var c: Vector3 = b["center"]
 			node.position = Vector3(c.x + cos(ang) * rad, c.y + sin(ang * 2.1) * 0.65, c.z + sin(ang * 1.2) * rad * 0.62)
@@ -114,20 +204,32 @@ func _process(delta: float) -> void:
 			if is_instance_valid(lw): lw.rotation.z = flap
 			if is_instance_valid(rw): rw.rotation.z = -flap
 
-	# Evening/night fireflies & insects (shelter cleanly in rain/storm/snow)
+	# Evening/night fireflies & insects: subtle organic pinhead bioluminescent blinks (shelter in rain/storm/snow)
 	var show_insects := (current_phase in ["dusk", "night"]) and not (current_weather in ["rain", "storm", "snow"])
 	for ins in _insects:
-		var node: Node3D = ins.get("node")
+		var node: MeshInstance3D = ins.get("node") as MeshInstance3D
 		if is_instance_valid(node):
-			node.visible = show_insects
-			if show_insects:
-				var c: Vector3 = ins["center"]
-				var p := float(ins["phase"])
+			if not show_insects:
+				node.visible = false
+				continue
+			var c: Vector3 = ins["center"]
+			var p := float(ins["phase"])
+			var amp_xz := float(ins.get("amp_xz", 1.1))
+			var amp_y := float(ins.get("amp_y", 0.25))
+			var b_per := float(ins.get("blink_period", 5.6))
+			var bu := fmod(maxf(0.0, _time + p * 2.3), b_per) / b_per
+			var blink := 0.0
+			if bu < 0.34:
+				blink = pow(sin((bu / 0.34) * PI), 1.65)
+			node.visible = blink > 0.02
+			if node.visible:
 				node.position = Vector3(
-					c.x + sin(_time * 1.4 + p) * 1.1,
-					c.y + sin(_time * 2.2 + p * 1.7) * 0.25,
-					c.z + cos(_time * 1.1 + p) * 1.1
+					c.x + sin(_time * 0.95 + p) * amp_xz + cos(_time * 0.35 + p * 0.7) * (amp_xz * 0.35),
+					c.y + sin(_time * 1.55 + p * 1.7) * amp_y,
+					c.z + cos(_time * 0.80 + p) * amp_xz + sin(_time * 0.31 + p * 1.1) * (amp_xz * 0.35)
 				)
+				node.set_instance_shader_parameter("blink", blink)
+				node.scale = Vector3.ONE * lerpf(0.32, 1.0, blink)
 
 	# Cave ceiling water drips
 	for dr in _drips:
@@ -181,82 +283,94 @@ func apply_lighting_phase(phase_id: String) -> void:
 	var sun_col := Color("#ffe6c4")
 	var sun_e := 1.1
 	var sun_pitch := deg_to_rad(-42.0)
+	var sun_yaw := deg_to_rad(-34.0)
 	var fog_col := Color("#465564")
-	var fog_den := 0.008
+	var clear_fog_den := 0.065
 
 	match phase_id:
 		"day", "arrival":
-			sky_top = Color("#2d5a84")
-			sky_hor = Color("#94b5ca")
-			amb_col = Color("#657c8f")
-			amb_e = 0.84
-			sun_col = Color("#fff2da")
-			sun_e = 1.48
-			sun_pitch = deg_to_rad(-44.0)
-			fog_col = Color("#8aa4b8")
-			fog_den = 0.0
-		"dusk":
-			sky_top = Color("#242c52")
-			sky_hor = Color("#c87759")
-			amb_col = Color("#625775")
+			# Paso 15 (15.1-15.7): Crisp warm daylight, rich canopy shadow depth & woodland green-amber bounce (zero greyish wash!)
+			sky_top = Color("#2e6394")
+			sky_hor = Color("#94bacf")
+			amb_col = Color("#5a7462")
 			amb_e = 0.72
-			sun_col = Color("#ffae74")
+			sun_col = Color("#fff1d4")
+			sun_e = 1.48
+			sun_pitch = deg_to_rad(-46.0)
+			sun_yaw = deg_to_rad(-36.0)
+			fog_col = Color("#6b8578")
+			clear_fog_den = 0.055
+		"dusk":
+			sky_top = Color("#232d52")
+			sky_hor = Color("#c87656")
+			amb_col = Color("#5f556e")
+			amb_e = 0.68
+			sun_col = Color("#ff9e5e")
 			sun_e = 1.24
-			sun_pitch = deg_to_rad(-31.0)
-			fog_col = Color("#6a535d")
-			fog_den = 0.0
+			sun_pitch = deg_to_rad(-29.0)
+			sun_yaw = deg_to_rad(-44.0)
+			fog_col = Color("#544858")
+			clear_fog_den = 0.072
 		"night":
-			sky_top = Color("#091322")
-			sky_hor = Color("#1d324d")
-			amb_col = Color("#395273")
-			amb_e = 0.62
-			sun_col = Color("#93b8ee")
-			sun_e = 0.72
-			sun_pitch = deg_to_rad(-36.0)
-			fog_col = Color("#162336")
-			fog_den = 0.0
+			# Paso 15 (15.9-15.16): Readable cool silver-blue moonlight on trees/river/trails + warm golden campfire dominance
+			sky_top = Color("#0a1526")
+			sky_hor = Color("#1e3450")
+			amb_col = Color("#2d425c")
+			amb_e = 0.64
+			sun_col = Color("#88b0e8")
+			sun_e = 0.68
+			sun_pitch = deg_to_rad(-38.0)
+			sun_yaw = deg_to_rad(-28.0)
+			fog_col = Color("#152436")
+			clear_fog_den = 0.082
 		"dawn", "finalization":
-			sky_top = Color("#3b5578")
-			sky_hor = Color("#d99e7e")
-			amb_col = Color("#666c82")
-			amb_e = 0.76
-			sun_col = Color("#ffd1a4")
-			sun_e = 1.22
-			sun_pitch = deg_to_rad(-32.0)
-			fog_col = Color("#9b8b90")
-			fog_den = 0.0
+			sky_top = Color("#395376")
+			sky_hor = Color("#da9c7a")
+			amb_col = Color("#636d82")
+			amb_e = 0.72
+			sun_col = Color("#ffce9e")
+			sun_e = 1.26
+			sun_pitch = deg_to_rad(-31.0)
+			sun_yaw = deg_to_rad(32.0)
+			fog_col = Color("#7f757e")
+			clear_fog_den = 0.068
 
 	if world_env and world_env.environment:
 		var env := world_env.environment
 		env.ambient_light_color = amb_col
 		env.ambient_light_energy = amb_e
+		env.tonemap_exposure = 1.02 if phase_id == "night" else (1.04 if phase_id in ["dusk", "dawn", "finalization"] else 1.05)
 		env.fog_mode = Environment.FOG_MODE_DEPTH
-		env.fog_depth_curve = 1.0
+		env.fog_depth_curve = 1.15
 		env.fog_aerial_perspective = 0.0
 		env.fog_light_color = fog_col
 		match current_weather:
 			"fog":
 				env.fog_enabled = true
-				env.fog_depth_begin = 38.0
-				env.fog_depth_end = 135.0
-				env.fog_density = 0.36
+				env.fog_depth_begin = 36.0
+				env.fog_depth_end = 130.0
+				env.fog_density = 0.34
 			"storm":
 				env.fog_enabled = true
-				env.fog_depth_begin = 54.0
-				env.fog_depth_end = 165.0
+				env.fog_depth_begin = 50.0
+				env.fog_depth_end = 155.0
 				env.fog_density = 0.24
 			"rain":
 				env.fog_enabled = true
-				env.fog_depth_begin = 64.0
-				env.fog_depth_end = 190.0
+				env.fog_depth_begin = 58.0
+				env.fog_depth_end = 175.0
 				env.fog_density = 0.18
 			"snow":
 				env.fog_enabled = true
-				env.fog_depth_begin = 58.0
-				env.fog_depth_end = 180.0
+				env.fog_depth_begin = 54.0
+				env.fog_depth_end = 165.0
 				env.fog_density = 0.20
 			_:
-				env.fog_enabled = false
+				# Far horizon depth blend starting well beyond the playable clearing (78m..215m) so daytime colors stay vivid
+				env.fog_enabled = true
+				env.fog_depth_begin = 78.0
+				env.fog_depth_end = 215.0
+				env.fog_density = clear_fog_den
 		if env.sky and env.sky.sky_material is ProceduralSkyMaterial:
 			var psm := env.sky.sky_material as ProceduralSkyMaterial
 			psm.sky_top_color = sky_top
@@ -268,16 +382,17 @@ func apply_lighting_phase(phase_id: String) -> void:
 		sun_light.light_color = sun_col
 		sun_light.light_energy = sun_e
 		sun_light.rotation.x = sun_pitch
+		sun_light.rotation.y = sun_yaw
 	if is_instance_valid(_sky_fill_light):
 		if phase_id == "night":
-			_sky_fill_light.light_color = Color("#6f90c4")
-			_sky_fill_light.light_energy = 0.28
+			_sky_fill_light.light_color = Color("#5e82b8")
+			_sky_fill_light.light_energy = 0.26
 		elif phase_id == "dusk":
-			_sky_fill_light.light_color = Color("#8f8ab8")
+			_sky_fill_light.light_color = Color("#867ea8")
 			_sky_fill_light.light_energy = 0.25
 		else:
-			_sky_fill_light.light_color = Color("#b9d0df")
-			_sky_fill_light.light_energy = 0.20
+			_sky_fill_light.light_color = Color("#a8c8b6")
+			_sky_fill_light.light_energy = 0.24
 
 	# Daylight lantern policy: portable lanterns stay OFF in bright clear day/arrival
 	var lanterns_lit := (not (phase_id in ["day", "arrival"])) or (current_weather in ["storm", "fog"])
@@ -300,6 +415,36 @@ func apply_lighting_phase(phase_id: String) -> void:
 			_apply_campfire_lit_state(not (phase_id in ["day", "arrival"]))
 
 	_sync_sky_wildlife()
+
+## Smooth progressive transition between lighting phases (Paso 15.8)
+func transition_to_lighting_phase(phase_id: String, duration: float = 0.55) -> void:
+	if duration <= 0.01 or not is_inside_tree() or reduced_motion:
+		apply_lighting_phase(phase_id)
+		return
+	var prev_sun_col := sun_light.light_color if is_instance_valid(sun_light) else Color.WHITE
+	var prev_sun_e := sun_light.light_energy if is_instance_valid(sun_light) else 1.0
+	var env := world_env.environment if (world_env and world_env.environment) else null
+	var prev_amb_col := env.ambient_light_color if env else Color.WHITE
+	var prev_amb_e := env.ambient_light_energy if env else 0.7
+	apply_lighting_phase(phase_id)
+	var target_sun_col := sun_light.light_color if is_instance_valid(sun_light) else Color.WHITE
+	var target_sun_e := sun_light.light_energy if is_instance_valid(sun_light) else 1.0
+	var target_amb_col := env.ambient_light_color if env else Color.WHITE
+	var target_amb_e := env.ambient_light_energy if env else 0.7
+	if is_instance_valid(sun_light):
+		sun_light.light_color = prev_sun_col
+		sun_light.light_energy = prev_sun_e
+	if env:
+		env.ambient_light_color = prev_amb_col
+		env.ambient_light_energy = prev_amb_e
+	var tw := create_tween()
+	tw.set_parallel(true)
+	if is_instance_valid(sun_light):
+		tw.tween_property(sun_light, "light_color", target_sun_col, duration)
+		tw.tween_property(sun_light, "light_energy", target_sun_e, duration)
+	if env:
+		tw.tween_property(env, "ambient_light_color", target_amb_col, duration)
+		tw.tween_property(env, "ambient_light_energy", target_amb_e, duration)
 
 func _sync_sky_wildlife() -> void:
 	var weather_ok := not (current_weather in ["rain", "storm", "snow"])
@@ -324,48 +469,116 @@ func _sync_sky_wildlife() -> void:
 		if is_instance_valid(m):
 			m.visible = show_insects
 
+func get_stoke_boost() -> float:
+	if stoke_timer_s <= 0.0:
+		return 0.0
+	var t := clampf(stoke_timer_s / maxf(1.0, _stoke_duration_s), 0.0, 1.0)
+	return pow(t, 0.72)
+
+func stoke_campfire(duration_s: float = 16.0) -> void:
+	campfire_state = "lit"
+	if not campfire_lit:
+		set_campfire_lit(true, true)
+	_stoke_duration_s = maxf(2.0, duration_s)
+	stoke_timer_s = _stoke_duration_s
+
+func start_kettle_cooking(duration_s: float = 45.0) -> void:
+	if not campfire_lit:
+		set_campfire_lit(true, true)
+	cooking_timer_s = maxf(cooking_timer_s, duration_s)
+
+func is_kettle_cooking() -> bool:
+	return campfire_lit and cooking_timer_s > 0.0
+
 func set_campfire_auto_by_phase(enabled: bool) -> void:
 	_fire_auto_schedule = enabled
 	if _fire_auto_schedule and fire_manual_override == "":
 		_apply_campfire_lit_state(not (current_phase in ["day", "arrival"]))
 
+func get_campfire_state() -> String:
+	if not campfire_lit:
+		return "off"
+	var avg_fuel := 0.80
+	if not _fire_lights.is_empty():
+		avg_fuel = float(_fire_lights[0].get("fuel", 0.80))
+	if campfire_state == "embers" or (avg_fuel < 0.28 and stoke_timer_s <= 0.0):
+		return "embers"
+	return "lit"
+
+func set_campfire_state(state_id: String, manual: bool = true) -> String:
+	var norm := state_id.to_lower()
+	if norm == "off":
+		campfire_state = "off"
+		set_campfire_lit(false, manual)
+	elif norm == "embers":
+		campfire_state = "embers"
+		set_campfire_fuel(0.22)
+		set_campfire_lit(true, manual)
+	else:
+		campfire_state = "lit"
+		if not _fire_lights.is_empty() and float(_fire_lights[0].get("fuel", 0.80)) < 0.30:
+			set_campfire_fuel(0.82)
+		set_campfire_lit(true, manual)
+	return get_campfire_state()
+
 func set_campfire_lit(lit: bool, manual: bool = true) -> bool:
 	if manual:
 		fire_manual_override = "on" if lit else "off"
+	if lit and campfire_state == "off":
+		campfire_state = "lit"
+	elif not lit:
+		campfire_state = "off"
 	_apply_campfire_lit_state(lit)
 	return campfire_lit
 
 func _apply_campfire_lit_state(lit: bool) -> void:
 	campfire_lit = lit
+	var cur_st := get_campfire_state()
+	var is_embers := cur_st == "embers"
 	for fl in _fire_lights:
 		var light: OmniLight3D = fl.get("light")
+		var fill_light: OmniLight3D = fl.get("fill_light")
 		var flame_node: Node3D = fl.get("flame_node")
 		var smoke: GPUParticles3D = fl.get("smoke")
 		var embers: GPUParticles3D = fl.get("embers")
+		var steam: GPUParticles3D = fl.get("kettle_steam")
+		var bubbles: GPUParticles3D = fl.get("kettle_bubbles")
 		var coals_mat: StandardMaterial3D = fl.get("coals_mat")
-		var soup_mat: StandardMaterial3D = fl.get("soup_mat")
+		var soup_sh := fl.get("soup_shader") as ShaderMaterial
 		if is_instance_valid(flame_node):
 			flame_node.visible = lit
+			if lit:
+				var sc_e := 0.45 if is_embers else 1.0
+				flame_node.scale = Vector3(sc_e, sc_e * (0.55 if is_embers else 1.0), sc_e)
 		if is_instance_valid(smoke):
 			smoke.emitting = lit
 			smoke.visible = lit
 		if is_instance_valid(embers):
 			embers.emitting = lit
 			embers.visible = lit
+		if is_instance_valid(steam):
+			steam.emitting = lit
+			steam.visible = lit
+		if is_instance_valid(bubbles):
+			var bub_on := lit and (not is_embers) and cooking_timer_s > 0.0
+			bubbles.emitting = bub_on
+			bubbles.visible = bub_on
 		if is_instance_valid(coals_mat):
 			coals_mat.emission_enabled = lit
-			coals_mat.emission_energy_multiplier = 2.4 if lit else 0.0
-			coals_mat.albedo_color = Color("#ff6522") if lit else Color("#242220")
-		if is_instance_valid(soup_mat):
-			soup_mat.emission_enabled = lit
-			soup_mat.emission_energy_multiplier = 0.72 if lit else 0.0
-			soup_mat.albedo_color = Color("#c96b2b") if lit else Color("#574331")
+			coals_mat.emission_energy_multiplier = (1.15 if is_embers else 1.68) if lit else 0.0
+			coals_mat.albedo_color = (Color("#cc3f14") if is_embers else Color("#e4561b")) if lit else Color("#24211f")
+		if is_instance_valid(soup_sh):
+			soup_sh.set_shader_parameter("lit", (0.55 if is_embers else 1.0) if lit else 0.0)
+			soup_sh.set_shader_parameter("boil", (0.95 if cooking_timer_s > 0.0 else 0.14) if lit else 0.0)
 		if is_instance_valid(light):
 			if lit:
 				var fuel: float = float(fl.get("fuel", 0.8))
-				light.light_energy = float(fl.get("base_energy", 2.8)) * clampf(0.35 + fuel * 0.9, 0.25, 1.35)
+				var e_mult := 0.42 if is_embers else 1.0
+				light.light_energy = float(fl.get("base_energy", 2.55)) * clampf(0.38 + fuel * 0.88, 0.28, 1.32) * e_mult
 			else:
 				light.light_energy = 0.0
+		if is_instance_valid(fill_light):
+			fill_light.light_energy = (0.28 if is_embers else 0.68) if lit else 0.0
 	emit_signal("campfire_lit_changed", campfire_lit)
 
 func apply_weather(weather_id: String) -> void:
@@ -385,8 +598,11 @@ func apply_weather(weather_id: String) -> void:
 	apply_lighting_phase(current_phase)
 
 func set_campfire_fuel(fuel: float) -> void:
+	var clamped := clampf(fuel, 0.12, 1.0)
 	for fl in _fire_lights:
-		fl["fuel"] = clampf(fuel, 0.15, 1.0)
+		fl["fuel"] = clamped
+	if campfire_lit:
+		campfire_state = "embers" if clamped < 0.28 else "lit"
 
 func _build_weather_emitters() -> void:
 	_lightning_light = DirectionalLight3D.new()
@@ -422,7 +638,7 @@ func _build_weather_emitters() -> void:
 	_rain_particles.draw_pass_1 = drop
 	add_child(_rain_particles)
 
-	# Snow GPUParticles3D
+	# Snow GPUParticles3D (Paso 17.12: soft radial billboard flakes, zero white squares!)
 	_snow_particles = GPUParticles3D.new()
 	_snow_particles.name = "SnowParticles"
 	_snow_particles.position = _map_center + Vector3(0.0, 13.0, 0.0)
@@ -438,15 +654,139 @@ func _build_weather_emitters() -> void:
 	spm.initial_velocity_min = 2.6
 	spm.initial_velocity_max = 4.0
 	_snow_particles.process_material = spm
-	var flake := BoxMesh.new()
-	flake.size = Vector3(0.09, 0.09, 0.09)
+	var flake := QuadMesh.new()
+	flake.size = Vector2(0.10, 0.10)
 	var smat := StandardMaterial3D.new()
 	smat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	smat.albedo_color = Color(0.95, 0.97, 1.0, 0.82)
+	smat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	smat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	smat.albedo_texture = _create_soft_radial_tex(Color(0.96, 0.98, 1.0, 0.88), Color(0.96, 0.98, 1.0, 0.0), 16)
 	smat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	flake.material = smat
 	_snow_particles.draw_pass_1 = flake
 	add_child(_snow_particles)
+
+func _create_soft_radial_tex(inner_col: Color, outer_col: Color, sz: int = 32) -> Texture2D:
+	var grad := Gradient.new()
+	grad.set_color(0, inner_col)
+	grad.set_color(1, outer_col)
+	var gt := GradientTexture2D.new()
+	gt.gradient = grad
+	gt.fill = GradientTexture2D.FILL_RADIAL
+	gt.fill_from = Vector2(0.5, 0.5)
+	gt.fill_to = Vector2(0.95, 0.5)
+	gt.width = sz
+	gt.height = sz
+	return gt
+
+func _create_flame_shader_material() -> ShaderMaterial:
+	var sh := Shader.new()
+	sh.code = """
+shader_type spatial;
+render_mode blend_add, depth_draw_never, cull_disabled, unshaded;
+
+uniform float phase = 0.0;
+uniform float stoke = 0.0;
+
+float hash21(vec2 p) {
+	p = fract(p * vec2(127.1, 311.7));
+	p += dot(p, p + 41.3);
+	return fract(p.x * p.y);
+}
+float vnoise(vec2 p) {
+	vec2 i = floor(p); vec2 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash21(i), hash21(i + vec2(1.0, 0.0)), f.x),
+	           mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+void fragment() {
+	float t = TIME * (3.6 + stoke * 1.7) + phase;
+	float cx = (UV.x - 0.5) * 2.0;
+	float h = 1.0 - UV.y;
+	float sway_a = sin(h * 5.4 - t * 1.45 + UV.x * 2.8) * (0.20 + stoke * 0.09) * h;
+	float sway_b = cos(h * 7.8 - t * 2.10 - UV.x * 3.4) * (0.14 + stoke * 0.07) * h;
+	float n = vnoise(vec2(cx * 2.5, h * 3.4 - t)) * 0.65 + vnoise(vec2(cx * 5.2 + 1.7, h * 6.1 - t * 1.4)) * 0.35;
+	// Dual asymmetric flame tongues for irregular organic silhouette (Paso 12.10)
+	float t_main = exp(-pow((cx + sway_a + (n - 0.5) * 0.30) * mix(1.50, 3.8, h), 2.0));
+	float t_side = exp(-pow((cx - 0.24 * sin(phase) + sway_b + (n - 0.5) * 0.25) * mix(2.1, 4.6, h), 2.0)) * (1.0 - smoothstep(0.35, 0.82, h));
+	float tongue = max(t_main, t_side * 0.82);
+	float body = tongue * smoothstep(0.0, 0.14, h) * (1.0 - smoothstep(0.42, 0.98, h + n * 0.24));
+	// Warm amber-gold-crimson fire palette without harsh white blow-out (Paso 12.11)
+	vec3 col_core = vec3(1.0, 0.72, 0.24);
+	vec3 col_mid = vec3(0.95, 0.36, 0.07);
+	vec3 col_tip = vec3(0.68, 0.12, 0.02);
+	vec3 col = mix(col_core, col_mid, smoothstep(0.12, 0.52, h));
+	col = mix(col, col_tip, smoothstep(0.48, 0.88, h));
+	ALBEDO = col * (1.04 + stoke * 0.24);
+	ALPHA = clamp(body * (0.74 + stoke * 0.15), 0.0, 0.82);
+}
+"""
+	var sm := ShaderMaterial.new()
+	sm.shader = sh
+	sm.set_shader_parameter("phase", randf_range(0.0, 6.28))
+	return sm
+
+func _create_kettle_soup_shader() -> ShaderMaterial:
+	var sh := Shader.new()
+	sh.code = """
+shader_type spatial;
+render_mode blend_mix, depth_draw_opaque, cull_back, specular_schlick_ggx;
+
+uniform float lit = 1.0;
+uniform float boil = 0.14;
+uniform float stoke = 0.0;
+
+float hash21(vec2 p) {
+	p = fract(p * vec2(127.1, 311.7));
+	p += dot(p, p + 34.56);
+	return fract(p.x * p.y);
+}
+float vnoise(vec2 p) {
+	vec2 i = floor(p); vec2 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash21(i), hash21(i + vec2(1.0, 0.0)), f.x),
+	           mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+
+void fragment() {
+	vec2 uv = (UV - 0.5) * 2.0;
+	float r = length(uv);
+	float t = TIME * mix(0.6, 2.8, boil);
+	float conv = vnoise(uv * 3.8 + vec2(t * 0.35, -t * 0.25));
+	// Layered expanding boiling bubbles concentrated toward warmer pot center
+	float bubble_mask = 0.0;
+	float bubble_rim = 0.0;
+	for (int k = 0; k < 6; k++) {
+		float fk = float(k);
+		vec2 cell_uv = uv * (4.2 + fk * 0.85) + vec2(fk * 3.1, -fk * 2.4);
+		vec2 id = floor(cell_uv);
+		vec2 lc = fract(cell_uv) - 0.5;
+		float rnd = hash21(id + vec2(fk * 11.7, fk * 5.3));
+		vec2 ctr = (vec2(fract(rnd * 17.3), fract(rnd * 31.7)) - 0.5) * 0.45;
+		float life = fract(t * (0.45 + rnd * 0.55) + rnd * 6.28);
+		float max_rad = mix(0.06, 0.28, clamp(boil * (1.05 - r * 0.55), 0.0, 1.0));
+		float b_r = life * max_rad;
+		float d = length(lc - ctr);
+		float dome = smoothstep(b_r, b_r * 0.35, d) * sin(life * 3.14159);
+		float pop_ring = smoothstep(0.05, 0.0, abs(d - b_r)) * smoothstep(0.55, 0.95, life) * (1.0 - smoothstep(0.92, 1.0, life));
+		bubble_mask = max(bubble_mask, dome * smoothstep(0.18, 0.72, boil));
+		bubble_rim = max(bubble_rim, pop_ring * smoothstep(0.25, 0.85, boil));
+	}
+	vec3 cold_stew = vec3(0.24, 0.16, 0.10);
+	vec3 hot_stew = mix(vec3(0.48, 0.22, 0.09), vec3(0.72, 0.40, 0.15), conv);
+	vec3 col = mix(cold_stew, hot_stew, lit);
+	vec3 foam = vec3(0.92, 0.80, 0.58);
+	col = mix(col, foam * 0.82, bubble_mask * 0.42);
+	col = mix(col, foam, bubble_rim * 0.75);
+	ALBEDO = col;
+	ROUGHNESS = mix(0.52, 0.10, lit);
+	SPECULAR = mix(0.35, 0.85, lit);
+	EMISSION = col * lit * (0.28 + boil * 0.18 + stoke * 0.15 + bubble_rim * 0.22);
+}
+"""
+	var mat := ShaderMaterial.new()
+	mat.shader = sh
+	return mat
 
 func build_campfire(parent: Node3D, pos: Vector3, with_kettle: bool = true, include_base: bool = true) -> Node3D:
 	var root := Node3D.new()
@@ -454,177 +794,438 @@ func build_campfire(parent: Node3D, pos: Vector3, with_kettle: bool = true, incl
 	root.position = pos
 	parent.add_child(root)
 
-	var mat_stone := MatKit.make_textured_mat("coastal-rock.png", Color("#6a7074"), 0.88, "rock", Vector3.ONE, false, true)
-	var mat_log := MatKit.make_wood_mat(Color("#5b3b24"), false)
-	var mat_ember := MatKit.make_glow_mat(Color("#ff6522"), 2.4)
-	var mat_iron := MatKit.make_bronze_mat(Color("#2d3136"))
-	var mat_soup := MatKit.make_glow_mat(Color("#c96b2b"), 0.85)
+	var mat_stone := MatKit.make_textured_mat("coastal-rock.png", Color("#565a59"), 0.90, "rock", Vector3.ONE, false, true)
+	var mat_soot_stone := MatKit.make_textured_mat("coastal-rock.png", Color("#3d3a37"), 0.94, "rock", Vector3.ONE, false, true)
+	var mat_ash := MatKit.make_textured_mat("earth.webp", Color("#25211e"), 0.96, "rock", Vector3(2.2, 2.2, 2.2), false, true)
+	var mat_log := MatKit.make_wood_mat(Color("#543822"), false)
+	var mat_char := MatKit.make_wood_mat(Color("#231914"), false)
+	var mat_rope := MatKit.make_cloth_mat(Color("#9e8860"), true, true)
+	var mat_ember := MatKit.make_glow_mat(Color("#e4561b"), 1.65)
+	var mat_iron := MatKit.make_bronze_mat(Color("#292c30"))
+	var mat_soup: ShaderMaterial = _create_kettle_soup_shader() if with_kettle else null
+
+	# Contact shadow decal under firewood, cauldron and tripod base (Paso 12.13)
+	var ao_mi := MeshInstance3D.new()
+	ao_mi.name = "CampfireContactAO"
+	var ao_pm := PlaneMesh.new(); ao_pm.size = Vector2(1.52, 1.52)
+	ao_mi.mesh = ao_pm
+	var ao_mat := StandardMaterial3D.new()
+	ao_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ao_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	ao_mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	ao_mat.albedo_texture = _create_soft_radial_tex(Color(0.02, 0.02, 0.02, 0.72), Color(0.02, 0.02, 0.02, 0.0), 64)
+	ao_mi.material_override = ao_mat
+	ao_mi.position = Vector3(0.0, 0.008, 0.0)
+	ao_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(ao_mi)
 
 	if include_base:
-		# Ash bed
+		# Soot-darkened ash hearth bed
 		var ash := MeshInstance3D.new()
+		ash.name = "AshHearthBed"
 		var ac := CylinderMesh.new()
 		ac.top_radius = 0.56
-		ac.bottom_radius = 0.62
-		ac.height = 0.08
+		ac.bottom_radius = 0.68
+		ac.height = 0.042
 		ash.mesh = ac
-		ash.material_override = mat_stone
-		ash.position.y = 0.04
+		ash.material_override = mat_ash
+		ash.position.y = 0.02
 		root.add_child(ash)
 
-		# Ring of 10 stones
-		for i in range(10):
-			var a := float(i) * TAU / 10.0
+		# 11 irregular non-repeating fire-blackened inner hearth stones (Paso 12.12)
+		for i in range(11):
+			var a := float(i) * TAU / 11.0 + sin(float(i) * 2.3 + 0.4) * 0.19
+			var r_stone := 0.49 + cos(float(i) * 1.9) * 0.065
 			var st := MeshInstance3D.new()
+			st.name = "HearthStone_%d" % i
 			var sm := SphereMesh.new()
-			sm.radius = 0.14
-			sm.height = 0.18
+			sm.radius = 0.11 + fmod(float(i) * 0.029, 0.055)
+			sm.height = 0.13 + fmod(float(i) * 0.021, 0.045)
+			sm.radial_segments = 5 + (i % 3)
+			sm.rings = 2 + (i % 2)
 			st.mesh = sm
-			st.material_override = mat_stone
-			st.position = Vector3(cos(a) * 0.56, 0.09, sin(a) * 0.56)
-			st.scale = Vector3(1.15, 0.72, 0.92)
-			st.rotation.y = a
+			st.material_override = mat_soot_stone if (i % 2 == 0) else mat_stone
+			st.position = Vector3(cos(a) * r_stone, 0.048 + fmod(float(i) * 0.011, 0.025), sin(a) * r_stone)
+			st.scale = Vector3(
+				1.05 + fmod(float(i) * 0.17, 0.42),
+				0.54 + fmod(float(i) * 0.13, 0.28),
+				0.82 + fmod(float(i) * 0.19, 0.36)
+			)
+			st.rotation = Vector3(sin(float(i) * 1.7) * 0.22, a + float(i) * 0.35, cos(float(i) * 1.3) * 0.18)
 			root.add_child(st)
 
-		# Crossed logs + glowing ember core
-		for i in range(4):
+		# 6 partially charred firewood logs with glowing ember fissures where they meet (Paso 12.8 & 12.9)
+		for i in range(6):
+			var ang := float(i) * (TAU / 6.0) + 0.16 + sin(float(i) * 1.8) * 0.12
+			var tilt_rot := Vector3(cos(ang) * 1.26, ang, sin(ang) * 0.32)
+			var log_len := 0.58 + fmod(float(i) * 0.07, 0.16)
+			var rad_b := 0.048 + fmod(float(i) * 0.011, 0.022)
 			var lg := MeshInstance3D.new()
+			lg.name = "CampfireLog_%d" % i
 			var lm := CylinderMesh.new()
-			lm.top_radius = 0.065
-			lm.bottom_radius = 0.075
-			lm.height = 0.78
-			lg.mesh = lm
-			lg.material_override = mat_log
-			var ang := float(i) * PI * 0.25
-			lg.position = Vector3(cos(ang) * 0.06, 0.14, sin(ang) * 0.06)
-			lg.rotation = Vector3(cos(ang) * 1.15, ang, sin(ang) * 0.35)
+			lm.top_radius = rad_b * 0.78; lm.bottom_radius = rad_b; lm.height = log_len; lm.radial_segments = 7
+			lg.mesh = lm; lg.material_override = mat_log
+			lg.position = Vector3(cos(ang) * 0.18, 0.105 + float(i % 2) * 0.018, sin(ang) * 0.18)
+			lg.rotation = tilt_rot
 			root.add_child(lg)
 
-		var coals := MeshInstance3D.new()
-		var cm := SphereMesh.new()
-		cm.radius = 0.24
-		cm.height = 0.16
-		coals.mesh = cm
-		coals.material_override = mat_ember
-		coals.position.y = 0.11
-		root.add_child(coals)
+			var char_tip := MeshInstance3D.new()
+			char_tip.name = "CharredLogSection_%d" % i
+			var cm_t := CylinderMesh.new()
+			cm_t.top_radius = rad_b * 0.64; cm_t.bottom_radius = rad_b * 0.84; cm_t.height = log_len * 0.48; cm_t.radial_segments = 7
+			char_tip.mesh = cm_t; char_tip.material_override = mat_char
+			char_tip.position = Vector3(cos(ang) * 0.04, 0.115 + float(i % 2) * 0.015, sin(ang) * 0.04)
+			char_tip.rotation = tilt_rot
+			root.add_child(char_tip)
 
-	# Multi-tongue stylized 3D flame node
+			var fissure := MeshInstance3D.new()
+			fissure.name = "LogEmberFissure_%d" % i
+			var fm_e := CylinderMesh.new()
+			fm_e.top_radius = rad_b * 0.38; fm_e.bottom_radius = rad_b * 0.48; fm_e.height = 0.16; fm_e.radial_segments = 6
+			fissure.mesh = fm_e; fissure.material_override = mat_ember
+			fissure.position = Vector3(cos(ang) * 0.055, 0.10 + float(i % 2) * 0.012, sin(ang) * 0.055)
+			fissure.rotation = tilt_rot
+			root.add_child(fissure)
+
+		# Sculpted bed of 7 irregular glowing coals nestled between the logs (Paso 12.9)
+		for c_i in range(7):
+			var ca := float(c_i) * (TAU / 6.0) + 0.32
+			var cr := 0.0 if c_i == 0 else (0.11 + float(c_i % 2) * 0.07)
+			var coals := MeshInstance3D.new()
+			coals.name = "GlowingCoal_%d" % c_i
+			var cm := SphereMesh.new()
+			cm.radius = 0.16 if c_i == 0 else (0.075 + fmod(float(c_i) * 0.019, 0.035))
+			cm.height = 0.085 if c_i == 0 else 0.065
+			cm.radial_segments = 5; cm.rings = 2
+			coals.mesh = cm; coals.material_override = mat_ember
+			coals.position = Vector3(cos(ca) * cr, 0.058, sin(ca) * cr)
+			coals.scale = Vector3(1.15, 0.72, 0.92)
+			coals.rotation.y = ca * 1.3
+			root.add_child(coals)
+
+	# 5 asymmetric multi-height shader-driven flame blades (Paso 12.10: irregular heights & silhouettes!)
 	var flame_node := Node3D.new()
 	flame_node.name = "FlameCluster"
-	flame_node.position = Vector3(0.0, 0.18, 0.0)
+	flame_node.position = Vector3(0.0, 0.12, 0.0)
 	root.add_child(flame_node)
-	for idx in range(3):
+	var flame_defs := [
+		[Vector2(0.46, 0.42), Vector3(0.0, 0.17, 0.0), 0.0],
+		[Vector2(0.38, 0.35), Vector3(0.06, 0.14, -0.04), 1.05],
+		[Vector2(0.34, 0.31), Vector3(-0.07, 0.13, 0.05), 2.15],
+		[Vector2(0.28, 0.26), Vector3(0.08, 0.11, 0.07), 0.55],
+		[Vector2(0.30, 0.28), Vector3(-0.06, 0.12, -0.07), 2.65],
+	]
+	for idx in range(flame_defs.size()):
+		var fd: Array = flame_defs[idx]
 		var fmesh := MeshInstance3D.new()
-		var cone := CylinderMesh.new()
-		cone.top_radius = 0.01
-		cone.bottom_radius = 0.18 - float(idx) * 0.04
-		cone.height = 0.48 - float(idx) * 0.09
-		fmesh.mesh = cone
-		fmesh.material_override = MatKit.make_glow_mat(
-			Color("#ffb347") if idx == 0 else (Color("#ff6a1f") if idx == 1 else Color("#ffe799")),
-			2.8 - float(idx) * 0.3
-		)
-		fmesh.position = Vector3(float(idx - 1) * 0.05, cone.height * 0.45, (float(idx) - 1.0) * 0.03)
+		fmesh.name = "FlameBlade_%d" % idx
+		var qm := QuadMesh.new()
+		qm.size = fd[0] as Vector2
+		fmesh.mesh = qm
+		var fmat := _create_flame_shader_material()
+		fmat.set_shader_parameter("phase", float(idx) * 1.37 + 0.4)
+		fmesh.material_override = fmat
+		fmesh.position = fd[1] as Vector3
+		fmesh.rotation.y = float(fd[2])
 		fmesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		flame_node.add_child(fmesh)
 
-	# Smoke & ember GPU particles
+	# Annular combustion wood-smoke drafting around the outside of the cauldron (Paso 12.14 & 12.21: zero pot clipping!)
 	var smoke := GPUParticles3D.new()
-	smoke.amount = 16
-	smoke.lifetime = 2.4
-	smoke.position = Vector3(0.0, 0.48, 0.0)
+	smoke.name = "CampfireSmokeParticles"
+	smoke.amount = 32
+	smoke.amount_ratio = 0.44
+	smoke.lifetime = 2.8
+	smoke.position = Vector3(0.0, 0.46, 0.0)
 	var sm_pm := ParticleProcessMaterial.new()
-	sm_pm.direction = Vector3(0.12, 1.0, -0.05)
-	sm_pm.spread = 16.0
-	sm_pm.initial_velocity_min = 0.55
-	sm_pm.initial_velocity_max = 0.95
+	sm_pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_RING
+	sm_pm.emission_ring_axis = Vector3(0.0, 1.0, 0.0)
+	sm_pm.emission_ring_height = 0.04
+	sm_pm.emission_ring_radius = 0.24 if with_kettle else 0.14
+	sm_pm.emission_ring_inner_radius = 0.185 if with_kettle else 0.04
+	sm_pm.direction = Vector3(0.12, 1.0, -0.06)
+	sm_pm.spread = 18.0
+	sm_pm.initial_velocity_min = 0.50
+	sm_pm.initial_velocity_max = 0.88
+	sm_pm.gravity = Vector3(0.0, 0.12, 0.0)
+	sm_pm.scale_min = 0.82
+	sm_pm.scale_max = 1.58
+	sm_pm.turbulence_enabled = true
+	sm_pm.turbulence_noise_strength = 0.35
+	var sm_grad := Gradient.new()
+	sm_grad.offsets = PackedFloat32Array([0.0, 0.22, 0.72, 1.0])
+	sm_grad.colors = PackedColorArray([Color(0.58, 0.56, 0.55, 0.0), Color(0.58, 0.56, 0.55, 0.30), Color(0.66, 0.66, 0.68, 0.16), Color(0.70, 0.72, 0.75, 0.0)])
+	var sm_ramp := GradientTexture1D.new(); sm_ramp.gradient = sm_grad
+	sm_pm.color_ramp = sm_ramp
 	smoke.process_material = sm_pm
 	_smoke_materials.append(sm_pm)
-	var puffs := SphereMesh.new()
-	puffs.radius = 0.14
-	puffs.height = 0.24
+	var puffs := QuadMesh.new()
+	puffs.size = Vector2(0.44, 0.44)
 	var puff_mat := StandardMaterial3D.new()
 	puff_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	puff_mat.albedo_color = Color(0.65, 0.67, 0.72, 0.18)
+	puff_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	puff_mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	puff_mat.vertex_color_use_as_albedo = true
+	puff_mat.albedo_texture = _create_soft_radial_tex(Color(1.0, 1.0, 1.0, 0.62), Color(1.0, 1.0, 1.0, 0.0), 32)
 	puff_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	puffs.material = puff_mat
 	smoke.draw_pass_1 = puffs
 	root.add_child(smoke)
 
+	# Occasional small crackle sparks curling around the hearth (Paso 12.16)
 	var embers := GPUParticles3D.new()
-	embers.amount = 14
-	embers.lifetime = 1.6
-	embers.position = Vector3(0.0, 0.32, 0.0)
+	embers.name = "CampfireEmbersParticles"
+	embers.amount = 22
+	embers.amount_ratio = 0.42
+	embers.lifetime = 1.65
+	embers.position = Vector3(0.0, 0.28, 0.0)
 	var em_pm := ParticleProcessMaterial.new()
+	em_pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_RING
+	em_pm.emission_ring_axis = Vector3(0.0, 1.0, 0.0)
+	em_pm.emission_ring_height = 0.03
+	em_pm.emission_ring_radius = 0.22 if with_kettle else 0.14
+	em_pm.emission_ring_inner_radius = 0.17 if with_kettle else 0.03
 	em_pm.direction = Vector3(0.0, 1.0, 0.0)
-	em_pm.spread = 32.0
-	em_pm.initial_velocity_min = 0.85
-	em_pm.initial_velocity_max = 1.55
+	em_pm.spread = 28.0
+	em_pm.initial_velocity_min = 0.78
+	em_pm.initial_velocity_max = 1.45
+	em_pm.turbulence_enabled = true
+	em_pm.turbulence_noise_strength = 0.38
 	embers.process_material = em_pm
-	var spark := BoxMesh.new()
-	spark.size = Vector3(0.035, 0.035, 0.035)
-	spark.material = MatKit.make_glow_mat(Color("#ff9d42"), 3.2)
+	var spark := QuadMesh.new()
+	spark.size = Vector2(0.062, 0.062)
+	var sp_mat := StandardMaterial3D.new()
+	sp_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	sp_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	sp_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	sp_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	sp_mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	sp_mat.albedo_texture = _create_soft_radial_tex(Color(1.0, 0.72, 0.26, 0.95), Color(1.0, 0.36, 0.06, 0.0), 16)
+	spark.material = sp_mat
 	embers.draw_pass_1 = spark
 	root.add_child(embers)
 
-	# Warm campfire light
+	var kettle_steam: GPUParticles3D = null
+	var kettle_bubbles: GPUParticles3D = null
+	if with_kettle:
+		# Delicate translucent white water-vapor steam rising cleanly out of the cauldron rim (Paso 12.15)
+		kettle_steam = GPUParticles3D.new()
+		kettle_steam.name = "KettleSteamParticles"
+		kettle_steam.amount = 24
+		kettle_steam.amount_ratio = 0.45
+		kettle_steam.lifetime = 2.0
+		kettle_steam.position = Vector3(0.0, 0.60, 0.0)
+		var st_pm := ParticleProcessMaterial.new()
+		st_pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_RING
+		st_pm.emission_ring_axis = Vector3(0.0, 1.0, 0.0)
+		st_pm.emission_ring_height = 0.02
+		st_pm.emission_ring_radius = 0.105
+		st_pm.emission_ring_inner_radius = 0.0
+		st_pm.direction = Vector3(0.04, 1.0, 0.03)
+		st_pm.spread = 14.0
+		st_pm.initial_velocity_min = 0.36
+		st_pm.initial_velocity_max = 0.62
+		st_pm.gravity = Vector3(0.0, 0.08, 0.0)
+		st_pm.scale_min = 0.38
+		st_pm.scale_max = 0.92
+		st_pm.turbulence_enabled = true
+		st_pm.turbulence_noise_strength = 0.45
+		var st_grad := Gradient.new()
+		st_grad.offsets = PackedFloat32Array([0.0, 0.18, 0.68, 1.0])
+		st_grad.colors = PackedColorArray([Color(0.96, 0.98, 1.0, 0.0), Color(0.96, 0.98, 1.0, 0.38), Color(0.95, 0.97, 0.99, 0.20), Color(0.95, 0.97, 0.99, 0.0)])
+		var st_ramp := GradientTexture1D.new(); st_ramp.gradient = st_grad
+		st_pm.color_ramp = st_ramp
+		kettle_steam.process_material = st_pm
+		var steam_q := QuadMesh.new()
+		steam_q.size = Vector2(0.26, 0.26)
+		var steam_mat := StandardMaterial3D.new()
+		steam_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		steam_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+		steam_mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+		steam_mat.vertex_color_use_as_albedo = true
+		steam_mat.albedo_texture = _create_soft_radial_tex(Color(1.0, 1.0, 1.0, 0.68), Color(1.0, 1.0, 1.0, 0.0), 32)
+		steam_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		steam_q.material = steam_mat
+		kettle_steam.draw_pass_1 = steam_q
+		root.add_child(kettle_steam)
+
+		# Simmering broth micro-bubbles popping above the soup surface when cooking
+		kettle_bubbles = GPUParticles3D.new()
+		kettle_bubbles.name = "KettleBubblesParticles"
+		kettle_bubbles.amount = 18
+		kettle_bubbles.lifetime = 0.38
+		kettle_bubbles.emitting = false
+		kettle_bubbles.visible = false
+		kettle_bubbles.position = Vector3(0.0, 0.58, 0.0)
+		var bp_pm := ParticleProcessMaterial.new()
+		bp_pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_RING
+		bp_pm.emission_ring_axis = Vector3(0.0, 1.0, 0.0)
+		bp_pm.emission_ring_height = 0.01
+		bp_pm.emission_ring_radius = 0.105
+		bp_pm.emission_ring_inner_radius = 0.0
+		bp_pm.direction = Vector3(0.0, 1.0, 0.0)
+		bp_pm.spread = 32.0
+		bp_pm.initial_velocity_min = 0.16
+		bp_pm.initial_velocity_max = 0.34
+		bp_pm.gravity = Vector3(0.0, -0.95, 0.0)
+		bp_pm.scale_min = 0.75
+		bp_pm.scale_max = 1.35
+		kettle_bubbles.process_material = bp_pm
+		var bm := SphereMesh.new()
+		bm.radius = 0.013; bm.height = 0.024; bm.radial_segments = 6; bm.rings = 3
+		var b_mat := StandardMaterial3D.new()
+		b_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		b_mat.albedo_color = Color(0.96, 0.86, 0.64, 0.78)
+		b_mat.roughness = 0.12
+		b_mat.emission_enabled = true
+		b_mat.emission = Color(0.92, 0.62, 0.28)
+		b_mat.emission_energy_multiplier = 0.35
+		bm.material = b_mat
+		kettle_bubbles.draw_pass_1 = bm
+		root.add_child(kettle_bubbles)
+
+	# Calibrated warm amber campfire pool + gentle shadowless fill right around hearth (Paso 15.14-15.16)
 	var light := OmniLight3D.new()
-	light.light_color = Color("#ff9a48")
-	light.light_energy = 2.9
-	light.omni_range = 14.5
-	light.omni_attenuation = 1.3
+	light.name = "CampfireMainLight"
+	light.light_color = Color("#ff933b")
+	light.light_energy = 2.55
+	light.omni_range = 14.2
+	light.omni_attenuation = 1.38
 	light.shadow_enabled = true
 	light.shadow_bias = 0.06
 	light.shadow_blur = 2.0
-	light.position = Vector3(0.0, 0.82, 0.0)
+	light.position = Vector3(0.0, 0.86, 0.0)
 	root.add_child(light)
+
+	var fill_light := OmniLight3D.new()
+	fill_light.name = "CampfireBounceFill"
+	fill_light.light_color = Color("#ffa856")
+	fill_light.light_energy = 0.68
+	fill_light.omni_range = 6.2
+	fill_light.omni_attenuation = 1.35
+	fill_light.shadow_enabled = false
+	fill_light.position = Vector3(0.0, 1.35, 0.0)
+	root.add_child(fill_light)
 
 	_fire_lights.append({
 		"light": light,
+		"fill_light": fill_light,
 		"flame_node": flame_node,
 		"smoke": smoke,
 		"embers": embers,
+		"kettle_steam": kettle_steam,
+		"kettle_bubbles": kettle_bubbles,
 		"coals_mat": mat_ember,
-		"soup_mat": mat_soup,
-		"base_energy": 2.8,
+		"soup_shader": mat_soup,
+		"base_energy": 2.55,
 		"fuel": 0.82,
 		"phase": pos.x * 0.7 + pos.z * 0.4,
 	})
 
 	if with_kettle:
-		# Tripod + hanging pot + soup + wooden spoons
+		# Paso 12 (12.2-12.7): 3 grounded tripod poles angling radially inward to a single coherent top joint
+		# at (0, 1.28, 0), bound with rope lashings & an iron ring, suspending the cauldron via chain, S-hook & bail handle!
+		var apex_pt := Vector3(0.0, 1.28, 0.0)
 		for i in range(3):
+			var a := float(i) * TAU / 3.0 + 0.38
+			var base_pt := Vector3(cos(a) * 0.58, -0.04, sin(a) * 0.58)
+			var dir_to_apex := (apex_pt - base_pt).normalized()
+			var top_pt := apex_pt + dir_to_apex * 0.11
+			var leg_vec := top_pt - base_pt
+			var leg_len := leg_vec.length()
+			var y_ax := leg_vec / leg_len
+			var x_ax := Vector3.UP.cross(y_ax).normalized()
+			var z_ax := x_ax.cross(y_ax).normalized()
 			var leg := MeshInstance3D.new()
+			leg.name = "TripodLeg_%d" % i
 			var lm := CylinderMesh.new()
-			lm.top_radius = 0.028
-			lm.bottom_radius = 0.034
-			lm.height = 1.48
-			leg.mesh = lm
-			leg.material_override = mat_log
-			var a := float(i) * TAU / 3.0 + 0.4
-			leg.position = Vector3(cos(a) * 0.34, 0.62, sin(a) * 0.34)
-			leg.rotation = Vector3(sin(a) * 0.36, 0.0, -cos(a) * 0.36)
+			lm.top_radius = 0.024; lm.bottom_radius = 0.040; lm.height = leg_len; lm.radial_segments = 7
+			leg.mesh = lm; leg.material_override = mat_log
+			leg.transform = Transform3D(Basis(x_ax, y_ax, z_ax), (base_pt + top_pt) * 0.5)
+			leg.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 			root.add_child(leg)
 
+		# Coherent top lashing collar + forged iron suspension ring at the tripod apex (Paso 12.4)
+		for turn_i in range(3):
+			var lash := MeshInstance3D.new()
+			lash.name = "TripodApexLashing_%d" % turn_i
+			var ltm := TorusMesh.new(); ltm.inner_radius = 0.036; ltm.outer_radius = 0.056; ltm.rings = 10; ltm.ring_segments = 6
+			lash.mesh = ltm; lash.material_override = mat_rope
+			lash.position = apex_pt + Vector3(0.0, -0.02 + float(turn_i) * 0.020, 0.0)
+			root.add_child(lash)
+
+		var apex_ring := MeshInstance3D.new()
+		apex_ring.name = "TripodApexRing"
+		var arm := TorusMesh.new(); arm.inner_radius = 0.028; arm.outer_radius = 0.044; arm.rings = 10; arm.ring_segments = 6
+		apex_ring.mesh = arm; apex_ring.material_override = mat_iron
+		apex_ring.position = apex_pt + Vector3(0.0, -0.045, 0.0)
+		root.add_child(apex_ring)
+
+		# Forged iron suspension chain + visible links + S-hook (Paso 12.5)
+		var chain := MeshInstance3D.new()
+		chain.name = "CauldronChain"
+		var chm := CylinderMesh.new(); chm.top_radius = 0.011; chm.bottom_radius = 0.011; chm.height = 0.48; chm.radial_segments = 6
+		chain.mesh = chm; chain.material_override = mat_iron
+		chain.position = Vector3(0.0, 0.99, 0.0)
+		root.add_child(chain)
+
+		for lk_i in range(5):
+			var link := MeshInstance3D.new()
+			link.name = "ChainLink_%d" % lk_i
+			var lkm := TorusMesh.new(); lkm.inner_radius = 0.014; lkm.outer_radius = 0.024; lkm.rings = 8; lkm.ring_segments = 5
+			link.mesh = lkm; link.material_override = mat_iron
+			link.position = Vector3(0.0, 1.18 - float(lk_i) * 0.09, 0.0)
+			link.rotation = Vector3(PI * 0.5, float(lk_i % 2) * PI * 0.5, 0.0)
+			root.add_child(link)
+
+		var hook := MeshInstance3D.new()
+		hook.name = "CauldronHook"
+		var hkm := TorusMesh.new(); hkm.inner_radius = 0.018; hkm.outer_radius = 0.032; hkm.rings = 8; hkm.ring_segments = 6
+		hook.mesh = hkm; hook.material_override = mat_iron
+		hook.position = Vector3(0.0, 0.74, 0.0)
+		hook.rotation.x = PI * 0.5
+		root.add_child(hook)
+
+		# Curved wrought-iron bail handle (asa) hooking the cauldron rim lugs to the S-hook (Paso 12.5 & 12.6)
+		var bail := MeshInstance3D.new()
+		bail.name = "CauldronBailHandle"
+		var blm := TorusMesh.new(); blm.inner_radius = 0.155; blm.outer_radius = 0.169; blm.rings = 14; blm.ring_segments = 6
+		bail.mesh = blm; bail.material_override = mat_iron
+		bail.position = Vector3(0.0, 0.58, 0.0)
+		bail.rotation.x = PI * 0.5
+		root.add_child(bail)
+
+		for side_i in [-1, 1]:
+			var lug := MeshInstance3D.new()
+			lug.name = "CauldronLug_L" if side_i < 0 else "CauldronLug_R"
+			var lgm := BoxMesh.new(); lgm.size = Vector3(0.032, 0.042, 0.028)
+			lug.mesh = lgm; lug.material_override = mat_iron
+			lug.position = Vector3(float(side_i) * 0.162, 0.575, 0.0)
+			root.add_child(lug)
+
+		# Cast-iron belly cauldron positioned at y = 0.49m right above the flames (Paso 12.6 & 12.7)
 		var kettle := MeshInstance3D.new()
-		var km := CylinderMesh.new()
-		km.top_radius = 0.21
-		km.bottom_radius = 0.17
-		km.height = 0.24
-		kettle.mesh = km
-		kettle.material_override = mat_iron
-		kettle.position = Vector3(0.0, 0.54, 0.0)
+		kettle.name = "CampfireKettle"
+		var km := SphereMesh.new()
+		km.radius = 0.19; km.height = 0.25; km.radial_segments = 12; km.rings = 7
+		kettle.mesh = km; kettle.material_override = mat_iron
+		kettle.position = Vector3(0.0, 0.49, 0.0)
+		kettle.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 		root.add_child(kettle)
 
+		var rim := MeshInstance3D.new()
+		rim.name = "KettleRim"
+		var rm := TorusMesh.new(); rm.inner_radius = 0.135; rm.outer_radius = 0.162; rm.rings = 12
+		rim.mesh = rm; rim.material_override = mat_iron
+		rim.position = Vector3(0.0, 0.58, 0.0)
+		root.add_child(rim)
+
 		var soup := MeshInstance3D.new()
+		soup.name = "KettleBroth"
 		var sm := CylinderMesh.new()
-		sm.top_radius = 0.18
-		sm.bottom_radius = 0.18
-		sm.height = 0.02
-		soup.mesh = sm
-		soup.material_override = mat_soup
-		soup.position = Vector3(0.0, 0.65, 0.0)
+		sm.top_radius = 0.136; sm.bottom_radius = 0.136; sm.height = 0.02; sm.radial_segments = 10
+		soup.mesh = sm; soup.material_override = mat_soup
+		soup.position = Vector3(0.0, 0.57, 0.0)
 		root.add_child(soup)
 
 	_apply_campfire_lit_state(campfire_lit)
@@ -662,64 +1263,157 @@ func build_ocean_backdrop(parent: Node3D, bounds_x: float, start_z: float, depth
 	parent.add_child(surf)
 	_surf_meshes.append(surf)
 
-func build_camp_life(parent: Node3D, center: Vector3, count_birds: int = 4, count_insects: int = 12, bird_tint: Color = Color("#eef2f6"), nocturnal_owls: int = 1, orbit_scale: float = 1.0) -> void:
+func build_camp_life(parent: Node3D, center: Vector3, count_birds: int = 4, count_insects: int = 12, bird_tint: Color = Color("#eef2f6"), nocturnal_owls: int = 1, orbit_scale: float = 1.0, spread_xz: Vector2 = Vector2.ZERO) -> void:
 	var wing_tint := bird_tint.darkened(0.24)
+	var wide_forest := spread_xz.x > 1.0 and spread_xz.y > 1.0
+	var bird_sectors: Array[Vector3] = [
+		Vector3(-24.0, 2.8, -18.0),
+		Vector3(24.0, 3.1, -24.0),
+		Vector3(-26.0, 2.5, 22.0),
+		Vector3(24.0, 2.7, 26.0),
+		Vector3(-4.0, 3.5, -40.0),
+		Vector3(2.0, 3.2, 38.0),
+		Vector3(-34.0, 2.9, 2.0),
+		Vector3(34.0, 3.4, -2.0),
+	]
 	for i in range(count_birds):
 		var b_res := FaunaKit.build_bird_node("AmbientBird_%d" % i, bird_tint, wing_tint, 1.24, true)
 		var bird: Node3D = b_res["root"]
 		var ang := float(i) * 1.85 + 0.35
-		var rad := (9.2 + float(i) * 2.4) * orbit_scale
+		var rad := (12.5 + float(i % 3) * 3.4) if wide_forest else ((9.2 + float(i) * 2.4) * orbit_scale)
 		var arc_c := center + Vector3(cos(float(i)) * 2.6 * orbit_scale, 3.8 + float(i % 3) * 0.75, sin(float(i)) * 2.0 * orbit_scale)
-		var b_phases := ["day", "arrival", "dawn"] if i < 2 else ["dawn", "dusk"]
+		if wide_forest:
+			var sec: Vector3 = bird_sectors[i % bird_sectors.size()]
+			arc_c = Vector3(center.x + sec.x * (spread_xz.x / 102.0), center.y + 3.9 + sec.y * 0.55 + float(i % 3) * 0.65, center.z + sec.z * (spread_xz.y / 120.0))
+		var b_phases := ["day", "arrival", "dawn"] if i < 2 else (["day", "dawn", "dusk"] if wide_forest else ["dawn", "dusk"])
 		var v_cyc := 48.0 + float(i) * 6.0
-		var v_duty := 0.42
-		var offsets: Array[float] = [4.0, 26.0, 11.0, 34.0]
-		var v_off: float = offsets[i % 4]
+		var v_duty := 0.54 if wide_forest else 0.42
+		var offsets: Array[float] = [4.0, 26.0, 11.0, 34.0, 16.0, 2.0, 22.0, 30.0]
+		var v_off: float = offsets[i % offsets.size()]
 		bird.position = Vector3(arc_c.x + cos(ang) * rad, arc_c.y + sin(ang * 2.1) * 0.65, arc_c.z + sin(ang * 1.2) * rad * 0.62)
 		parent.add_child(bird)
 		_birds.append({
 			"node": bird, "lw": b_res["lw"], "rw": b_res["rw"],
 			"center": arc_c, "radius": rad,
-			"speed": 0.28 + float(i % 3) * 0.06,
+			"speed": 0.25 + float(i % 3) * 0.055,
 			"phase": ang, "nocturnal": false,
 			"phases": b_phases,
 			"blocked_weather": ["storm", "snow"] if i == 0 else ["rain", "storm", "snow"],
 			"visit_cycle": v_cyc, "visit_duty": v_duty, "visit_offset": v_off,
 		})
 
+	var owl_sectors: Array[Vector3] = [
+		Vector3(-22.0, 2.8, -22.0),
+		Vector3(24.0, 3.0, 20.0),
+		Vector3(0.0, 3.4, -36.0),
+	]
 	for j in range(nocturnal_owls):
 		var o_res := FaunaKit.build_bird_node("AmbientOwl_%d" % j, Color("#9e9688"), Color("#635b50"), 1.32, true)
 		var owl: Node3D = o_res["root"]
 		var ang_o := float(j) * 2.5 + 1.1
-		var rad_o := (8.8 + float(j) * 2.5) * orbit_scale
+		var rad_o := (11.5 + float(j) * 2.8) if wide_forest else ((8.8 + float(j) * 2.5) * orbit_scale)
 		var arc_o := center + Vector3(0.0, 4.1 + float(j) * 0.8, -1.5 * orbit_scale)
+		if wide_forest:
+			var osec: Vector3 = owl_sectors[j % owl_sectors.size()]
+			arc_o = Vector3(center.x + osec.x, center.y + 4.1 + osec.y * 0.55, center.z + osec.z)
 		owl.position = Vector3(arc_o.x + cos(ang_o) * rad_o, arc_o.y, arc_o.z + sin(ang_o * 1.2) * rad_o * 0.62)
 		parent.add_child(owl)
 		_birds.append({
 			"node": owl, "lw": o_res["lw"], "rw": o_res["rw"],
 			"center": arc_o, "radius": rad_o,
-			"speed": 0.24 + float(j) * 0.05,
+			"speed": 0.23 + float(j) * 0.045,
 			"phase": ang_o, "nocturnal": true,
 			"phases": ["night", "dusk"],
 			"blocked_weather": ["storm", "rain"],
-			"visit_cycle": 56.0, "visit_duty": 0.48, "visit_offset": 8.0 + float(j) * 22.0,
+			"visit_cycle": 56.0, "visit_duty": 0.52 if wide_forest else 0.48, "visit_offset": 8.0 + float(j) * 18.0,
 		})
 	_sync_sky_wildlife()
 	call_deferred("_settle_sky_birds_clear_of_obstacles")
 
-	var imat := MatKit.make_glow_mat(Color("#e8ff85"), 2.4)
+	var ish := Shader.new()
+	ish.code = """
+shader_type spatial;
+render_mode blend_add, depth_draw_never, cull_disabled, unshaded;
+uniform vec4 glow_col : source_color = vec4(0.92, 0.90, 0.46, 0.42);
+instance uniform float blink = 1.0;
+void vertex() {
+	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(
+		INV_VIEW_MATRIX[0],
+		INV_VIEW_MATRIX[1],
+		INV_VIEW_MATRIX[2],
+		MODEL_MATRIX[3]
+	);
+	MODELVIEW_MATRIX = MODELVIEW_MATRIX * mat4(
+		vec4(length(MODEL_MATRIX[0].xyz), 0.0, 0.0, 0.0),
+		vec4(0.0, length(MODEL_MATRIX[1].xyz), 0.0, 0.0),
+		vec4(0.0, 0.0, length(MODEL_MATRIX[2].xyz), 0.0),
+		vec4(0.0, 0.0, 0.0, 1.0)
+	);
+}
+void fragment() {
+	float d = clamp(length(UV - vec2(0.5)) * 2.0, 0.0, 1.0);
+	float core = pow(1.0 - d, 3.2);
+	ALBEDO = glow_col.rgb;
+	ALPHA = glow_col.a * core * blink;
+}
+"""
+	var imat := ShaderMaterial.new()
+	imat.shader = ish
+	var fquad := QuadMesh.new()
+	fquad.size = Vector2(0.115, 0.115)
+	# Non-uniform irregular firefly pockets across the forest floor & riverbanks (zero single camp-center cube)
+	var forest_pockets: Array[Dictionary] = [
+		{"pos": Vector3(-5.0, 0.85, -36.0), "rx": 6.5, "rz": 8.0, "count": 5},
+		{"pos": Vector3(20.0, 1.05, -38.0), "rx": 7.0, "rz": 6.5, "count": 4},
+		{"pos": Vector3(6.5, 0.78, -16.0), "rx": 5.5, "rz": 6.5, "count": 5},
+		{"pos": Vector3(-13.0, 0.95, -2.0), "rx": 6.5, "rz": 7.5, "count": 4},
+		{"pos": Vector3(2.0, 0.82, 12.0), "rx": 5.0, "rz": 5.5, "count": 4},
+		{"pos": Vector3(9.5, 0.70, 20.0), "rx": 4.5, "rz": 4.0, "count": 4},
+		{"pos": Vector3(38.0, 1.15, 8.0), "rx": 7.0, "rz": 8.5, "count": 4},
+		{"pos": Vector3(36.0, 1.15, -20.0), "rx": 6.5, "rz": 7.0, "count": 3},
+		{"pos": Vector3(26.5, 0.92, 22.0), "rx": 4.2, "rz": 4.2, "count": 3},
+		{"pos": Vector3(2.0, 0.78, 35.0), "rx": 6.0, "rz": 7.0, "count": 4},
+		{"pos": Vector3(24.0, 0.92, 43.0), "rx": 6.5, "rz": 7.5, "count": 4},
+		{"pos": Vector3(-22.0, 1.02, 18.0), "rx": 6.5, "rz": 7.5, "count": 3},
+		{"pos": Vector3(-22.0, 1.05, -22.0), "rx": 6.5, "rz": 6.5, "count": 3},
+		{"pos": Vector3(37.0, 1.02, 36.0), "rx": 6.5, "rz": 7.0, "count": 4},
+	]
+	var pocket_cursor := 0
+	var pocket_left := int(forest_pockets[0]["count"])
 	for i in range(count_insects):
 		var m := MeshInstance3D.new()
-		var bm := BoxMesh.new()
-		bm.size = Vector3(0.055, 0.055, 0.055)
-		m.mesh = bm
+		m.mesh = fquad
 		m.material_override = imat
+		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		parent.add_child(m)
+		var icenter := center + Vector3(randf_range(-11.0, 11.0), randf_range(0.55, 2.0), randf_range(-9.0, 9.0))
+		var h_off := randf_range(0.55, 2.05)
+		var amp_xz := 1.1
+		if wide_forest:
+			var pk: Dictionary = forest_pockets[pocket_cursor % forest_pockets.size()]
+			var ppos: Vector3 = pk["pos"]
+			var rx := float(pk["rx"])
+			var rz := float(pk["rz"])
+			# Organic cluster radius skewed inward + irregular angle so pockets read naturally non-uniform
+			var rad_u := sqrt(randf()) * randf_range(0.35, 1.05)
+			var ang_u := randf_range(0.0, TAU)
+			icenter = Vector3(ppos.x + cos(ang_u) * rx * rad_u, h_off, ppos.z + sin(ang_u) * rz * rad_u)
+			amp_xz = randf_range(0.75, 1.75)
+			pocket_left -= 1
+			if pocket_left <= 0:
+				pocket_cursor += 1
+				pocket_left = int(forest_pockets[pocket_cursor % forest_pockets.size()]["count"])
 		_insects.append({
 			"node": m,
-			"center": center + Vector3(randf_range(-11.0, 11.0), randf_range(0.5, 2.1), randf_range(-9.0, 9.0)),
+			"center": icenter,
+			"height_above": h_off,
+			"amp_xz": amp_xz,
+			"amp_y": randf_range(0.16, 0.36),
+			"blink_period": randf_range(4.2, 7.6),
 			"phase": randf_range(0.0, TAU),
 		})
+	if wide_forest:
+		call_deferred("_settle_fx_to_terrain")
 
 func _settle_sky_birds_clear_of_obstacles() -> void:
 	if not is_inside_tree() or not get_world_3d():
@@ -728,6 +1422,9 @@ func _settle_sky_birds_clear_of_obstacles() -> void:
 	var root := get_parent()
 	if not root:
 		return
+	var builder_obj: Object = root.get("outdoor_builder")
+	var tree_spots: Array = builder_obj.get("_tree_spots") if builder_obj != null and builder_obj.get("_tree_spots") is Array else []
+	var has_terrain_eval := builder_obj != null and builder_obj.has_method("eval_ground_height")
 	var obstacle_aabbs: Array[AABB] = []
 	for child in root.find_children("*", "MeshInstance3D", true, false):
 		var mi := child as MeshInstance3D
@@ -745,10 +1442,27 @@ func _settle_sky_birds_clear_of_obstacles() -> void:
 	q_shape.collide_with_areas = false
 	q_shape.collide_with_bodies = true
 
-	for b in _birds:
+	for b_i in range(_birds.size()):
+		var b: Dictionary = _birds[b_i]
 		var c: Vector3 = b.get("center", Vector3.ZERO)
 		var rad: float = float(b.get("radius", 9.0))
 		var ph: float = float(b.get("phase", 0.0))
+		# Ensure flight altitude clears ALL hilltops & multi-mesh conifer/broadleaf treetops cleanly
+		if has_terrain_eval:
+			var max_canopy_y := c.y
+			for si_t in range(24):
+				var ang_t := float(si_t) / 24.0 * TAU + ph
+				var px_t := c.x + cos(ang_t) * rad
+				var pz_t := c.z + sin(ang_t * 1.2) * rad * 0.62
+				var gy_t: float = float(builder_obj.call("eval_ground_height", px_t, pz_t))
+				var canopy_margin := 4.4
+				for ts_v in tree_spots:
+					var t2: Vector2 = ts_v
+					if Vector2(px_t - t2.x, pz_t - t2.y).length_squared() <= 22.0:
+						canopy_margin = 8.8
+						break
+				max_canopy_y = maxf(max_canopy_y, gy_t + canopy_margin + float(b_i % 3) * 0.55)
+			c.y = maxf(c.y, max_canopy_y)
 		for _try in range(16):
 			var blocked := false
 			for si in range(24):
@@ -771,7 +1485,66 @@ func _settle_sky_birds_clear_of_obstacles() -> void:
 			c.z += 0.65
 		b["center"] = c
 
-func build_biome_ambience(profile: String, bounds_m: Vector2) -> void:
+func _settle_fx_to_terrain() -> void:
+	if not is_inside_tree() or not get_world_3d():
+		return
+	var space := get_world_3d().direct_space_state
+	if not space:
+		return
+	var _sample_y := func(xz: Vector2) -> float:
+		var excl: Array[RID] = []
+		for _step in range(5):
+			var q := PhysicsRayQueryParameters3D.create(Vector3(xz.x, 14.0, xz.y), Vector3(xz.x, -6.0, xz.y))
+			q.collide_with_areas = false
+			q.collide_with_bodies = true
+			q.exclude = excl
+			var hit := space.intersect_ray(q)
+			if hit.is_empty():
+				break
+			var col_obj: Object = hit.get("collider")
+			var cname: String = str((col_obj as Node).name).to_lower() if (col_obj is Node) else ""
+			var nrm: Vector3 = hit.get("normal", Vector3.UP)
+			var pos: Vector3 = hit.get("position", Vector3.ZERO)
+			var is_prop_or_tree := ("tree" in cname or "trunk" in cname or "canopy" in cname or "rock" in cname or "shelter" in cname or "boulder" in cname)
+			if not is_prop_or_tree and pos.y <= 4.0 and nrm.y >= 0.55:
+				return clampf(pos.y, -1.5, 3.8)
+			var rid_val: RID = hit.get("rid", RID())
+			if rid_val.is_valid():
+				excl.append(rid_val)
+			else:
+				break
+		return 0.0
+
+	for ins in _insects:
+		var c: Vector3 = ins.get("center", Vector3.ZERO)
+		var h_off: float = float(ins.get("height_above", 0.9))
+		if h_off > 0.0:
+			var gy: float = float(_sample_y.call(Vector2(c.x, c.z)))
+			ins["center"] = Vector3(c.x, gy + h_off, c.z)
+			var node: Node3D = ins.get("node")
+			if is_instance_valid(node):
+				node.position = ins["center"]
+
+	for pk in _ambient_terrain_pockets:
+		var pnode: Node3D = pk.get("node")
+		if is_instance_valid(pnode):
+			var h_off: float = float(pk.get("height_above", 2.0))
+			var gy: float = float(_sample_y.call(Vector2(pnode.position.x, pnode.position.z)))
+			pnode.position.y = gy + h_off
+
+func build_biome_ambience(profile: String, bounds_m: Vector2, map_center_xz: Vector2 = Vector2(-9999.0, -9999.0)) -> void:
+	var cx := bounds_m.x * 0.5 if map_center_xz.x < -9000.0 else map_center_xz.x
+	var cz := bounds_m.y * 0.5 if map_center_xz.y < -9000.0 else map_center_xz.y
+	if bounds_m.x > 60.0 or bounds_m.y > 60.0:
+		if is_instance_valid(_rain_particles) and _rain_particles.process_material is ParticleProcessMaterial:
+			_rain_particles.position = Vector3(cx, 14.0, cz)
+			_rain_particles.amount = 540
+			(_rain_particles.process_material as ParticleProcessMaterial).emission_box_extents = Vector3(bounds_m.x * 0.52, 1.0, bounds_m.y * 0.52)
+		if is_instance_valid(_snow_particles) and _snow_particles.process_material is ParticleProcessMaterial:
+			_snow_particles.position = Vector3(cx, 13.0, cz)
+			_snow_particles.amount = 340
+			(_snow_particles.process_material as ParticleProcessMaterial).emission_box_extents = Vector3(bounds_m.x * 0.52, 1.0, bounds_m.y * 0.52)
+
 	var gp := GPUParticles3D.new()
 	gp.name = "BiomeAmbientParticles_%s" % profile
 	var pm := ParticleProcessMaterial.new()
@@ -809,18 +1582,18 @@ void fragment() {
 
 	match profile:
 		"forest":
-			# Drifting sunlit leaves & golden woodland pollen
-			gp.amount = 34
-			gp.lifetime = 5.2
-			gp.position = Vector3(bounds_m.x * 0.5, 4.2, bounds_m.y * 0.5)
-			pm.emission_box_extents = Vector3(bounds_m.x * 0.48, 2.2, bounds_m.y * 0.48)
+			# Subtle wide-map canopy pollen background + distinct non-uniform micro-habitat pockets across all quadrants
+			gp.amount = 44
+			gp.lifetime = 5.4
+			gp.position = Vector3(cx, 3.8, cz)
+			pm.emission_box_extents = Vector3(bounds_m.x * 0.48, 2.5, bounds_m.y * 0.48)
 			pm.direction = Vector3(0.28, -0.45, 0.22)
-			pm.spread = 35.0
-			pm.initial_velocity_min = 0.28
-			pm.initial_velocity_max = 0.68
-			pm.gravity = Vector3(0.0, -0.06, 0.0)
-			mote.size = Vector2(0.09, 0.09)
-			tint_c = Color(0.76, 0.85, 0.45, 0.65)
+			pm.spread = 38.0
+			pm.initial_velocity_min = 0.24
+			pm.initial_velocity_max = 0.62
+			pm.gravity = Vector3(0.0, -0.05, 0.0)
+			mote.size = Vector2(0.085, 0.085)
+			tint_c = Color(0.78, 0.86, 0.48, 0.36)
 		"wreck-beach":
 			# Salty coastal sea-spray mist rising off the breaking surf
 			gp.amount = 38
@@ -867,6 +1640,121 @@ void fragment() {
 	gp.draw_pass_1 = mote
 	gp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(gp)
+
+	if profile == "forest":
+		# Non-uniform micro-habitat pockets across the full woodland & river (zero single-box camp cluster)
+		var pollen_specs: Array[Dictionary] = [
+			{"xz": Vector2(-14.0, -28.0), "ext": Vector3(4.8, 1.5, 5.4), "amt": 16, "h": 2.2, "col": Color(0.88, 0.90, 0.50, 0.56), "dir": Vector3(0.18, -0.25, 0.14)},
+			{"xz": Vector2(16.0, -38.0),  "ext": Vector3(6.2, 1.8, 5.0), "amt": 20, "h": 2.4, "col": Color(0.92, 0.84, 0.44, 0.54), "dir": Vector3(0.24, -0.18, 0.10)},
+			{"xz": Vector2(-16.0, 2.0),   "ext": Vector3(4.2, 1.4, 6.4), "amt": 14, "h": 2.0, "col": Color(0.84, 0.89, 0.48, 0.52), "dir": Vector3(0.12, -0.30, 0.22)},
+			{"xz": Vector2(40.0, -8.0),   "ext": Vector3(5.6, 1.7, 5.8), "amt": 18, "h": 2.5, "col": Color(0.86, 0.88, 0.46, 0.50), "dir": Vector3(-0.14, -0.24, 0.18)},
+			{"xz": Vector2(-8.0, 28.0),   "ext": Vector3(5.2, 1.5, 4.4), "amt": 15, "h": 1.9, "col": Color(0.90, 0.85, 0.45, 0.54), "dir": Vector3(0.20, -0.22, -0.12)},
+			{"xz": Vector2(36.0, 30.0),   "ext": Vector3(6.4, 1.8, 6.0), "amt": 21, "h": 2.3, "col": Color(0.85, 0.88, 0.46, 0.52), "dir": Vector3(0.15, -0.26, 0.20)},
+		]
+		for pi in range(pollen_specs.size()):
+			var ps: Dictionary = pollen_specs[pi]
+			var pgp := GPUParticles3D.new()
+			pgp.name = "ForestPollenPocket_%d" % pi
+			var pxz: Vector2 = ps["xz"]
+			var h_abv := float(ps["h"])
+			pgp.position = Vector3(pxz.x, h_abv, pxz.y)
+			pgp.amount = int(ps["amt"])
+			pgp.lifetime = 4.6 + float(pi % 3) * 0.65
+			var ppm := ParticleProcessMaterial.new()
+			ppm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+			ppm.emission_box_extents = ps["ext"]
+			ppm.direction = ps["dir"]
+			ppm.spread = 42.0
+			ppm.initial_velocity_min = 0.18
+			ppm.initial_velocity_max = 0.54
+			ppm.gravity = Vector3(0.0, -0.04, 0.0)
+			var pmote := QuadMesh.new()
+			pmote.size = Vector2(0.078 + float(pi % 2) * 0.018, 0.078 + float(pi % 2) * 0.018)
+			var pmat := ShaderMaterial.new()
+			pmat.shader = sh
+			pmat.set_shader_parameter("tint", ps["col"])
+			pmote.material = pmat
+			pgp.process_material = ppm
+			pgp.draw_pass_1 = pmote
+			pgp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			add_child(pgp)
+			_ambient_terrain_pockets.append({"node": pgp, "height_above": h_abv})
+
+		var swirl_specs: Array[Dictionary] = [
+			{"xz": Vector2(34.0, -28.0),  "ext": Vector3(5.5, 2.0, 5.2), "amt": 14, "h": 3.4, "col": Color(0.70, 0.68, 0.34, 0.62), "dir": Vector3(-0.36, -0.45, 0.26)},
+			{"xz": Vector2(-26.0, -12.0), "ext": Vector3(5.8, 2.1, 6.4), "amt": 16, "h": 3.5, "col": Color(0.64, 0.72, 0.32, 0.58), "dir": Vector3(0.32, -0.48, 0.22)},
+			{"xz": Vector2(-24.0, 20.0),  "ext": Vector3(4.8, 1.9, 5.5), "amt": 13, "h": 3.2, "col": Color(0.74, 0.62, 0.30, 0.58), "dir": Vector3(0.28, -0.42, -0.24)},
+			{"xz": Vector2(16.0, 44.0),   "ext": Vector3(6.2, 2.0, 5.8), "amt": 17, "h": 3.4, "col": Color(0.68, 0.70, 0.34, 0.60), "dir": Vector3(0.22, -0.50, 0.30)},
+			{"xz": Vector2(46.0, 14.0),   "ext": Vector3(5.4, 2.2, 6.2), "amt": 15, "h": 3.6, "col": Color(0.72, 0.64, 0.32, 0.58), "dir": Vector3(-0.26, -0.44, 0.28)},
+		]
+		for si in range(swirl_specs.size()):
+			var ss: Dictionary = swirl_specs[si]
+			var sgp := GPUParticles3D.new()
+			sgp.name = "ForestLeafSwirl_%d" % si
+			var sxz: Vector2 = ss["xz"]
+			var h_abv := float(ss["h"])
+			sgp.position = Vector3(sxz.x, h_abv, sxz.y)
+			sgp.amount = int(ss["amt"])
+			sgp.lifetime = 5.0 + float(si % 3) * 0.55
+			var spm := ParticleProcessMaterial.new()
+			spm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+			spm.emission_box_extents = ss["ext"]
+			spm.direction = ss["dir"]
+			spm.spread = 34.0
+			spm.initial_velocity_min = 0.34
+			spm.initial_velocity_max = 0.82
+			spm.gravity = Vector3(0.0, -0.09, 0.0)
+			var smote := QuadMesh.new()
+			smote.size = Vector2(0.13, 0.085)
+			var smat := ShaderMaterial.new()
+			smat.shader = sh
+			smat.set_shader_parameter("tint", ss["col"])
+			smote.material = smat
+			sgp.process_material = spm
+			sgp.draw_pass_1 = smote
+			sgp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			add_child(sgp)
+			_ambient_terrain_pockets.append({"node": sgp, "height_above": h_abv})
+
+		var builder_obj: Object = get_parent().get("outdoor_builder") if get_parent() else null
+		var mist_specs: Array[Dictionary] = [
+			{"xz": Vector2(4.0, -24.0), "ext": Vector3(3.4, 0.45, 7.5), "amt": 16, "h": 0.90},
+			{"xz": Vector2(6.5, 2.0),   "ext": Vector3(3.2, 0.45, 6.8), "amt": 14, "h": 0.85},
+			{"xz": Vector2(9.2, 34.0),  "ext": Vector3(3.6, 0.45, 7.8), "amt": 16, "h": 0.90},
+		]
+		for mi in range(mist_specs.size()):
+			var ms: Dictionary = mist_specs[mi]
+			var mgp := GPUParticles3D.new()
+			mgp.name = "RiverMistDrift_%d" % mi
+			var mxz: Vector2 = ms["xz"]
+			if builder_obj != null and builder_obj.has_method("get_nearest_river_point"):
+				var rpt: Vector3 = builder_obj.call("get_nearest_river_point", Vector3(mxz.x, 0.0, mxz.y))
+				mxz = Vector2(rpt.x, mxz.y)
+			var h_abv := float(ms["h"])
+			mgp.position = Vector3(mxz.x, h_abv, mxz.y)
+			mgp.amount = int(ms["amt"])
+			mgp.lifetime = 4.2
+			var mpm := ParticleProcessMaterial.new()
+			mpm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+			mpm.emission_box_extents = ms["ext"]
+			mpm.direction = Vector3(0.14, 0.22, 0.55)
+			mpm.spread = 28.0
+			mpm.initial_velocity_min = 0.22
+			mpm.initial_velocity_max = 0.48
+			mpm.gravity = Vector3(0.0, 0.02, 0.0)
+			var mmote := QuadMesh.new()
+			mmote.size = Vector2(0.56, 0.36)
+			var mmat := ShaderMaterial.new()
+			mmat.shader = sh
+			mmat.set_shader_parameter("tint", Color(0.80, 0.90, 0.96, 0.11))
+			mmote.material = mmat
+			mgp.process_material = mpm
+			mgp.draw_pass_1 = mmote
+			mgp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			add_child(mgp)
+			_ambient_terrain_pockets.append({"node": mgp, "height_above": h_abv})
+
+		call_deferred("_settle_fx_to_terrain")
 
 func register_drip(node: Node3D, y_top: float, y_bot: float, speed: float, phase: float) -> void:
 	_drips.append({"node": node, "y_top": y_top, "y_bot": y_bot, "speed": speed, "phase": phase})

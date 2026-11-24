@@ -13,7 +13,7 @@ signal item_collected(item_name: String)
 var items: Dictionary = {
 	"torch": {"name": "Antorcha de brea", "count": 2, "equipped": false, "desc": "Antorcha impregnada en pez. Ilumina 14 m con llama viva."},
 	"gold": {"name": "Monedas de oro", "count": 25, "equipped": false, "desc": "Monedas acuñadas en Neverwinter y Waterdeep."},
-	"potion": {"name": "Poción de curación", "count": 1, "equipped": false, "desc": "Frasco de cristal con líquido rojo brillante (2d4+2 PG)."},
+	"potion": {"name": "Poción de curación", "count": 1, "equipped": false, "desc": "Frasco de cristal con líquido rojo brillante (2d4+2 PG).", "healing_dice": "2d4+2", "healing_range": [4,10]},
 	"dagger": {"name": "Daga de plata", "count": 2, "equipped": false, "desc": "Hoja afilada forjada con aleación de plata pura."},
 	"compass": {"name": "Brújula náutica", "count": 0, "equipped": false, "desc": "Instrumento de navegación de latón dorado recuperado de C4."},
 	"cartographer_tools": {"name": "Herramientas de cartógrafo", "count": 0, "equipped": false, "desc": "Compás de puntas, regla paralela y astrolabio de latón del capitán."},

@@ -95,11 +95,57 @@ static func tile_to_world(col: int, row: int, elevation: float = 0.0) -> Vector3
 static func world_to_cell(pos: Vector3) -> Vector2i:
 	return Vector2i(int(floor(pos.x / TILE_METERS)), int(floor(pos.z / TILE_METERS)))
 
+static func _forest_stream_x_at(z: float) -> float:
+	var raw: Array = get_forest_stream().get("samples", [])
+	if raw.size() < 2:
+		return 4.65
+	for i in range(raw.size() - 1):
+		var a: Dictionary = raw[i]
+		var b: Dictionary = raw[i + 1]
+		var za := float(a["z"]); var zb := float(b["z"])
+		if (z >= za and z <= zb) or (z <= za and z >= zb):
+			var t := clampf((z - za) / maxf(0.0001, zb - za), 0.0, 1.0)
+			return lerpf(float(a["x"]), float(b["x"]), t)
+	if z < float(raw[0]["z"]):
+		return float(raw[0]["x"])
+	return float(raw[raw.size() - 1]["x"])
+
+static func _forest_stream_half_width(z: float) -> float:
+	return 1.92 + sin(z * 0.37) * 0.26 + cos(z * 0.71) * 0.12
+
+static func is_on_forest_bridge(pos: Vector3) -> bool:
+	var bx := _forest_stream_x_at(17.0)
+	var span_half := _forest_stream_half_width(17.0) + 0.72
+	# Match plank corridor & stone abutments cleanly; if character is elevated atop bridge/ramps (y>=0.04) give full deck margin
+	if pos.y >= 0.04 and absf(pos.z - 17.0) <= 1.05 and absf(pos.x - bx) <= span_half + 0.45:
+		return true
+	return absf(pos.z - 17.0) <= 0.86 and absf(pos.x - bx) <= span_half + 0.12
+
 static func is_water_at(pos: Vector3, scene_def: Dictionary) -> bool:
+	var sid := str(scene_def.get("id", ""))
+	if sid == "camp-forest-pleamar":
+		if is_on_forest_bridge(pos):
+			return false
+		# Walking high above river surface means traversing bridge/abutment, never stepping in water
+		if pos.y >= 0.06:
+			return false
+		var sx := _forest_stream_x_at(pos.z)
+		var hw := _forest_stream_half_width(pos.z)
+		if absf(pos.x - sx) <= hw:
+			return true
+		return false
 	var cell := world_to_cell(pos)
 	for entry in scene_def.get("walkable", []):
 		if int(entry.get("col", -999)) == cell.x and int(entry.get("row", -999)) == cell.y:
 			return str(entry.get("medium", "solid")) == "water" or str(entry.get("materialId", "")) == "water"
+	return false
+
+static func is_shallow_water_at(pos: Vector3, scene_def: Dictionary) -> bool:
+	var sid := str(scene_def.get("id", ""))
+	if sid == "camp-forest-pleamar":
+		return is_water_at(pos, scene_def)
+	if sid == "camp-coastal-refuge" and pos.z < 22.5:
+		return is_water_at(pos, scene_def)
 	return false
 
 static func get_map_center(scene_def: Dictionary) -> Vector3:
@@ -157,7 +203,8 @@ static func get_zone_at(pos: Vector3, scene_id: String = "") -> Dictionary:
 			"id": str(tent.get("id", "tent")),
 			"label": str(tent.get("label", "Tienda")),
 			"elevation_min": 0.0,
-			"is_interior": true,
+			# Outdoor open tarps are NOT closed interiors (must keep camera tilt & roof steady!)
+			"is_interior": false,
 		}
 
 	for pt in scene_def.get("interactionPoints", []):
@@ -180,7 +227,7 @@ static func get_zones_for_scene(scene_def: Dictionary) -> Array[Dictionary]:
 		{
 			"id": "overview",
 			"code": "GEN",
-			"label": "Vista general · " + str(scene_def.get("title", "Campamento")),
+			"label": "Vista general · Claro del campamento",
 			"focus": center,
 			"distance": 42.0 if sid == "camp-a1-rooms" else 34.0,
 			"overview": true,

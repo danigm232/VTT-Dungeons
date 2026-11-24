@@ -7,6 +7,9 @@ render_mode depth_draw_always, specular_schlick_ggx;
 uniform vec4 albedo_shallow : source_color = vec4(0.085, 0.330, 0.320, 0.90);
 uniform vec4 albedo_deep : source_color = vec4(0.016, 0.072, 0.110, 0.98);
 uniform vec4 foam_color : source_color = vec4(0.92, 0.97, 0.96, 1.0);
+uniform vec4 fresnel_sky_color : source_color = vec4(0.028, 0.062, 0.082, 1.0);
+uniform vec4 distant_color_tint : source_color = vec4(0.018, 0.055, 0.075, 1.0);
+uniform float fresnel_strength = 0.44;
 uniform float foam_distance : hint_range(0.2, 4.0) = 1.65;
 uniform float wave_amplitude : hint_range(0.0, 0.6) = 0.30;
 uniform float wave_speed : hint_range(0.1, 3.0) = 1.15;
@@ -160,7 +163,7 @@ void fragment() {
 		}
 	}
 	float distant_mix = smoothstep(75.0, 100.0, length(v_world_pos.xz));
-	vec3 distant_color = vec3(0.018, 0.055, 0.075);
+	vec3 distant_color = distant_color_tint.rgb;
 	// Fragment-space broad ripples keep the distant ocean alive without
 	// sampling scene depth or depending on the large horizon triangles.
 	vec2 distant_slope = vec2(
@@ -266,7 +269,7 @@ void fragment() {
 	// Fresnel costero en espacio lineal + bruma atmosférica hacia el horizonte
 	vec3 view_dir = normalize(VIEW);
 	float fresnel = pow(1.0 - clamp(dot(normalize(NORMAL), view_dir), 0.0, 1.0), 4.0);
-	final_color = mix(final_color, vec3(0.028, 0.062, 0.082), fresnel * 0.40 * (1.0 - total_foam));
+	final_color = mix(final_color, fresnel_sky_color.rgb, fresnel * fresnel_strength * (1.0 - total_foam));
 	float far_haze = smoothstep(60.0, 125.0, length(uv));
 	final_color = mix(final_color, distant_color, far_haze * 0.78);
 

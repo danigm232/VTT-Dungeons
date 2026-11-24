@@ -29,6 +29,19 @@ static func set_behavior(
 	agent["pause_mid"] = pause_mid
 	agent["shy_radius"] = shy_radius
 
+static func _nearest_hero_info(pos: Vector3, hero_positions: Array) -> Dictionary:
+	var best_d2 := INF
+	var best_p := Vector3.ZERO
+	for hp in hero_positions:
+		var hv: Vector3 = hp
+		var dx := pos.x - hv.x
+		var dz := pos.z - hv.z
+		var d2 := dx * dx + dz * dz
+		if d2 < best_d2:
+			best_d2 = d2
+			best_p = hv
+	return {"dist": sqrt(best_d2) if best_d2 < INF else INF, "pos": best_p}
+
 static func _hero_too_close(pos: Vector3, hero_positions: Array, radius: float) -> bool:
 	if radius <= 0.05 or hero_positions.is_empty():
 		return false
@@ -39,90 +52,297 @@ static func _hero_too_close(pos: Vector3, hero_positions: Array, radius: float) 
 			return true
 	return false
 
-static func update_agents(agents: Array[Dictionary], time_s: float, weather_id: String, phase_id: String, hero_positions: Array = []) -> void:
+static func _probe_blocked(space: PhysicsDirectSpaceState3D, from_p: Vector3, dir_xz: Vector3, step_d: float, ground_y_fn: Callable, is_aquatic: bool) -> bool:
+	var to_p := from_p + dir_xz * step_d
+	if not is_aquatic and ground_y_fn.is_valid():
+		var probe_gy: float = float(ground_y_fn.call(to_p.x, to_p.z))
+		if probe_gy < -0.06:
+			return true
+	if space != null:
+		var q := PhysicsRayQueryParameters3D.create(from_p + Vector3(0.0, 0.55, 0.0), to_p + Vector3(0.0, 0.55, 0.0))
+		q.collide_with_areas = false
+		q.collide_with_bodies = true
+		var hit := space.intersect_ray(q)
+		if not hit.is_empty():
+			var nrm: Vector3 = hit.get("normal", Vector3.UP)
+			if nrm.y < 0.65:
+				return true
+	return false
+
+static func update_agents(
+	agents: Array[Dictionary],
+	time_s: float,
+	weather_id: String,
+	phase_id: String,
+	hero_positions: Array = [],
+	ground_height_fn: Callable = Callable(),
+	stream_clamp_fn: Callable = Callable()
+) -> void:
+	var world_space: PhysicsDirectSpaceState3D = null
 	for fa in agents:
 		var node: Node3D = fa.get("node")
 		if not is_instance_valid(node):
 			continue
+		if world_space == null and node.is_inside_tree() and node.get_world_3d():
+			world_space = node.get_world_3d().direct_space_state
+		if not fa.has("_base_scale"):
+			fa["_base_scale"] = node.scale
+		var base_scale: Vector3 = fa.get("_base_scale", Vector3.ONE)
 
 		var gait := str(fa.get("gait", "walk"))
 		var p_val: float = float(fa.get("phase", 0.0))
+		var prev_t: float = float(fa.get("_prev_t", time_s))
+		if time_s < prev_t - 0.5:
+			fa["_flee_active"] = false
+			fa["_flee_elapsed"] = 0.0
+			fa["_fly_escape"] = 0.0
+			fa["_fly_enter"] = 0.0
+			fa["_flee_cooldown_cycle"] = -1
+			fa["_spooked_until_t"] = -1.0
+			fa["_waiting_fresh_entry"] = false
+			fa["_was_active"] = false
+			node.scale = base_scale
+		var dt := clampf(time_s - prev_t, 0.0, 0.12)
+		fa["_prev_t"] = time_s
 
 		# 1. Time-of-day, weather & intermittent presence scheduling
-		var vis := true
+		var sched_ok := true
 		var gate := str(fa.get("time_gate", "always"))
 		if gate == "day_clear":
-			vis = (phase_id in ["day", "arrival", "dawn"]) and not (weather_id in ["rain", "storm", "snow"])
+			sched_ok = (phase_id in ["day", "arrival", "dawn"]) and not (weather_id in ["rain", "storm", "snow"])
 		elif gate == "nocturnal":
-			vis = (phase_id in ["dusk", "night", "dawn"]) and not (weather_id in ["storm"])
+			sched_ok = (phase_id in ["dusk", "night", "dawn"]) and not (weather_id in ["storm"])
 
 		var a_phases: Array = fa.get("active_phases", [])
-		if vis and not a_phases.is_empty():
-			vis = phase_id in a_phases
+		if sched_ok and not a_phases.is_empty():
+			sched_ok = phase_id in a_phases
 		var b_weather: Array = fa.get("blocked_weather", [])
-		if vis and not b_weather.is_empty():
-			vis = not (weather_id in b_weather)
+		if sched_ok and not b_weather.is_empty():
+			sched_ok = not (weather_id in b_weather)
 
 		var v_cyc: float = float(fa.get("visit_cycle", 0.0))
 		var v_duty: float = clampf(float(fa.get("visit_duty", 1.0)), 0.05, 1.0)
 		var v_off: float = float(fa.get("visit_offset", 0.0))
 		var u_active := 0.5
-		if vis and v_cyc > 0.1:
-			var u_c := fmod(maxf(0.0, time_s + v_off), v_cyc) / v_cyc
+		var cur_cycle_idx := 0
+		if sched_ok and v_cyc > 0.1:
+			var t_adj := maxf(0.0, time_s + v_off)
+			cur_cycle_idx = int(floorf(t_adj / v_cyc))
+			var u_c := fmod(t_adj, v_cyc) / v_cyc
 			if u_c >= v_duty:
-				vis = false
+				sched_ok = false
 			else:
 				u_active = u_c / v_duty
 
 		var shy_r: float = float(fa.get("shy_radius", 0.0))
-		if vis and gait in ["perch", "butterfly"] and _hero_too_close(node.global_position, hero_positions, shy_r):
-			vis = false
+		if shy_r <= 0.05 and gait in ["glb", "trot", "hop"]:
+			shy_r = 7.5
+		var h_info := _nearest_hero_info(node.global_position, hero_positions)
+		var h_dist: float = float(h_info["dist"])
+		var hero_near := (shy_r > 0.05) and (h_dist <= shy_r)
 
-		node.visible = vis
-		if not vis:
+		# Check distance from hero to animal's natural HOME/SPAWN spot (prevents infinite flee->popback->flee loops!)
+		var pts_chk: Array = fa.get("waypoints", [])
+		var home_pos: Vector3 = fa.get("base_pos", pts_chk[0] if not pts_chk.is_empty() else node.global_position)
+		var hero_home_info := _nearest_hero_info(home_pos, hero_positions)
+		var hero_home_dist: float = float(hero_home_info["dist"])
+		var spook_until: float = float(fa.get("_spooked_until_t", -1.0))
+
+		# Reset flee lock cleanly ONLY once cooldown duration elapsed, cycle rolled over, AND hero left home zone
+		if int(fa.get("_flee_cooldown_cycle", -1)) != cur_cycle_idx and time_s >= spook_until and hero_home_dist > maxf(shy_r * 1.65, 10.5):
+			fa["_flee_cooldown_cycle"] = -1
+			fa["_flee_active"] = false
+			fa["_flee_elapsed"] = 0.0
+			fa["_fly_escape"] = 0.0
+
+		var fleeing := bool(fa.get("_flee_active", false))
+		if int(fa.get("_flee_cooldown_cycle", -1)) == cur_cycle_idx or time_s < spook_until:
+			sched_ok = false
+
+		# Prevent animals emerging mid-trail or right beside a stationary hero
+		var was_active := bool(fa.get("_was_active", false))
+		if sched_ok and not was_active and not fleeing and dt > 0.0001:
+			if hero_home_dist <= maxf(shy_r * 1.65, 9.5):
+				sched_ok = false
+			elif bool(fa.get("_waiting_fresh_entry", false)):
+				if gait in ["perch", "butterfly"]:
+					fa["_waiting_fresh_entry"] = false
+				elif v_cyc > 0.1 and u_active > 0.10:
+					sched_ok = false
+				else:
+					fa["_waiting_fresh_entry"] = false
+
+		# Trigger natural flee (instead of disappearing in place!) when hero approaches
+		if sched_ok and hero_near and not fleeing and gait in ["glb", "trot", "hop", "scuttle", "swim_crawl", "perch", "butterfly"]:
+			fleeing = true
+			fa["_flee_active"] = true
+			fa["_flee_elapsed"] = 0.0
+			if gait in ["perch", "butterfly"] and float(fa.get("_fly_enter", 0.0)) > 0.02:
+				fa["_fly_escape"] = clampf(1.0 - float(fa.get("_fly_enter", 0.0)), 0.06, 0.90)
+				fa["_fly_enter"] = 0.0
+			var away := node.global_position - (h_info["pos"] as Vector3)
+			away.y = 0.0
+			# Bias escape gently outward from camp center (18, 16.5) so deer/rabbits dash into outer woods
+			var out_woods := Vector3(node.global_position.x - 18.0, 0.0, node.global_position.z - 16.5)
+			if out_woods.length_squared() > 0.5:
+				away = away.normalized() * 0.72 + out_woods.normalized() * 0.28
+			if away.length_squared() < 0.01:
+				away = Vector3(cos(p_val), 0.0, sin(p_val))
+			fa["_flee_dir"] = away.normalized()
+			fa["_flee_pos"] = node.position
+
+		# 2. Perched birds & hovering butterflies: smooth canopy fly-in / fly-away escape (NO instant pop!)
+		if gait in ["perch", "butterfly"]:
+			var fly_esc: float = float(fa.get("_fly_escape", 0.0))
+			if not sched_ok or fleeing:
+				if dt <= 0.0001 and not fleeing:
+					node.visible = false
+					node.scale = base_scale
+					fa["_fly_enter"] = 1.0
+					fa["_was_active"] = false
+					continue
+				if node.visible or fleeing:
+					fly_esc = minf(1.0, fly_esc + dt / 1.15)
+					fa["_fly_escape"] = fly_esc
+					if fly_esc >= 1.0:
+						node.visible = false
+						node.scale = base_scale
+						fa["_flee_active"] = false
+						fa["_flee_cooldown_cycle"] = cur_cycle_idx
+						if fleeing:
+							fa["_spooked_until_t"] = time_s + 28.0
+						fa["_waiting_fresh_entry"] = true
+						fa["_fly_enter"] = 1.0
+						fa["_was_active"] = false
+						continue
+				else:
+					fa["_was_active"] = false
+					continue
+			else:
+				if not node.visible:
+					fa["_fly_enter"] = 1.0 if dt > 0.0001 else 0.0
+					fa["_fly_escape"] = 0.0
+					if not fa.has("_flee_dir"):
+						fa["_flee_dir"] = Vector3(cos(p_val), 0.0, sin(p_val)).normalized()
+				fly_esc = 0.0
+				var f_in: float = maxf(0.0, float(fa.get("_fly_enter", 0.0)) - dt / 1.25)
+				fa["_fly_enter"] = f_in
+
+			node.visible = true
+			fa["_was_active"] = true
+			var esc_u: float = maxf(fly_esc, float(fa.get("_fly_enter", 0.0)))
+			var vis_sc := 1.0 if esc_u <= 0.55 else clampf(1.0 - (esc_u - 0.55) / 0.45, 0.04, 1.0)
+			node.scale = base_scale * vis_sc
+			if gait == "perch":
+				var base_pos: Vector3 = fa.get("base_pos", node.position)
+				var base_yaw: float = float(fa.get("base_yaw", 0.0))
+				var hop_cyc: float = fmod(time_s * 0.48 + p_val, 3.2)
+				var hop_h: float = sin(hop_cyc * PI / 0.35) * 0.09 if (hop_cyc < 0.35 and esc_u <= 0.01) else 0.0
+				var flee_dir_b: Vector3 = fa.get("_flee_dir", Vector3(cos(p_val), 0.0, sin(p_val)).normalized())
+				var aerial_off := (flee_dir_b * 7.5 + Vector3(0.0, 9.0, 0.0)) * (esc_u * esc_u)
+				node.position = base_pos + Vector3(sin(p_val) * hop_h * 0.3, hop_h, 0.0) + aerial_off
+				node.rotation.y = (atan2(flee_dir_b.x, flee_dir_b.z) if fly_esc > 0.01 else (base_yaw + sin(time_s * 1.15 + p_val * 2.0) * 0.55))
+				var head_n: Node3D = fa.get("head_node")
+				if is_instance_valid(head_n):
+					var peck := maxf(0.0, sin(time_s * 2.1 + p_val * 3.0))
+					head_n.rotation.x = -0.52 * pow(peck, 6.0) if esc_u <= 0.01 else -0.15
+					head_n.rotation.y = sin(time_s * 2.7 + p_val) * 0.38 if esc_u <= 0.01 else 0.0
+				var lw: Node3D = fa.get("lw")
+				var rw: Node3D = fa.get("rw")
+				var stretch := maxf(0.0, sin(time_s * 0.85 + p_val))
+				var wing_a := (sin(time_s * 22.0 + p_val) * 0.82) if esc_u > 0.01 else (0.25 if stretch < 0.92 else 0.25 + sin(time_s * 14.0) * 0.45)
+				if is_instance_valid(lw): lw.rotation.z = wing_a
+				if is_instance_valid(rw): rw.rotation.z = -wing_a
+				var tail_n: Node3D = fa.get("tail_node")
+				if is_instance_valid(tail_n):
+					tail_n.rotation.x = 0.18 + sin(time_s * 4.5 + p_val) * 0.14
+				continue
+			else:
+				var anchor: Vector3 = fa.get("base_pos", node.position)
+				var ang := time_s * 1.45 + p_val * 2.3
+				var climb_b := Vector3(cos(ang) * 3.2, 6.5, sin(ang) * 3.2) * (esc_u * esc_u)
+				node.position = anchor + Vector3(
+					cos(ang) * 0.65 + sin(ang * 2.1) * 0.25,
+					0.28 + sin(time_s * 3.1 + p_val) * 0.16,
+					sin(ang * 1.3) * 0.55
+				) + climb_b
+				node.rotation.y = -ang
+				var lw_b: Node3D = fa.get("lw")
+				var rw_b: Node3D = fa.get("rw")
+				var flap := sin(time_s * (26.0 if esc_u > 0.01 else 18.0) + p_val * 4.0) * 1.05
+				if is_instance_valid(lw_b): lw_b.rotation.z = flap
+				if is_instance_valid(rw_b): rw_b.rotation.z = -flap
+				continue
+
+		# 3. Active ground flee (obstacle-steered sprint into cover instead of getting stuck or popping!)
+		if fleeing and gait in ["glb", "trot", "hop", "scuttle", "swim_crawl"]:
+			var flee_t: float = float(fa.get("_flee_elapsed", 0.0)) + dt
+			fa["_flee_elapsed"] = flee_t
+			var fdir: Vector3 = fa.get("_flee_dir", Vector3(-1.0, 0.0, 0.0))
+			if hero_near and h_dist > 0.1:
+				var re_away := node.global_position - (h_info["pos"] as Vector3)
+				re_away.y = 0.0
+				if re_away.length_squared() > 0.01:
+					fdir = fdir.lerp(re_away.normalized(), clampf(dt * 3.6, 0.0, 1.0)).normalized()
+			var cur_fp: Vector3 = fa.get("_flee_pos", node.position)
+			var fspeed := 6.4 if gait in ["glb", "trot"] else (4.4 if gait == "hop" else 2.2)
+			var is_aq := gait == "swim_crawl"
+			var probe_d := maxf(1.35, fspeed * dt * 8.0)
+			if _probe_blocked(world_space, cur_fp, fdir, probe_d, ground_height_fn, is_aq):
+				var turn_sgn := 1.0 if int(round(p_val * 10.0)) % 2 == 0 else -1.0
+				var chosen := fdir
+				for ang_d: float in [0.68 * turn_sgn, -0.68 * turn_sgn, 1.28 * turn_sgn, -1.28 * turn_sgn, 2.05 * turn_sgn, -2.05 * turn_sgn]:
+					var cand := fdir.rotated(Vector3.UP, ang_d).normalized()
+					if not _probe_blocked(world_space, cur_fp, cand, probe_d, ground_height_fn, is_aq):
+						chosen = cand
+						break
+				fdir = fdir.lerp(chosen, clampf(dt * 12.0 + 0.35, 0.0, 1.0)).normalized()
+			fa["_flee_dir"] = fdir
+			var fpos: Vector3 = cur_fp + fdir * (fspeed * dt)
+			if ground_height_fn.is_valid():
+				fpos.y = float(ground_height_fn.call(fpos.x, fpos.z))
+			if gait == "hop":
+				fpos.y += absf(sin(time_s * 11.0 + p_val)) * 0.24
+			fa["_flee_pos"] = Vector3(fpos.x, fpos.y, fpos.z)
+			node.position = fpos
+			node.rotation.y = atan2(fdir.x, fdir.z) + (PI * 0.5 if gait == "scuttle" else 0.0)
+			var flee_fade := 1.0 if flee_t < 3.35 else clampf(1.0 - (flee_t - 3.35) / 0.85, 0.04, 1.0)
+			node.scale = base_scale * flee_fade
+			var ap_f: AnimationPlayer = fa.get("ap")
+			if is_instance_valid(ap_f):
+				var run_c := str(fa.get("walk_clip", "Walk"))
+				if ap_f.has_animation("Run"):
+					run_c = "Run"
+				elif ap_f.has_animation("Gallop"):
+					run_c = "Gallop"
+				if run_c != "" and ap_f.current_animation != run_c and ap_f.has_animation(run_c):
+					ap_f.play(run_c, -1, 1.65)
+			node.visible = true
+			fa["_was_active"] = true
+			if h_dist >= 26.0 or flee_t >= 4.2:
+				node.visible = false
+				node.scale = base_scale
+				fa["_flee_active"] = false
+				fa["_flee_cooldown_cycle"] = cur_cycle_idx
+				fa["_spooked_until_t"] = time_s + (34.0 if gait in ["glb", "trot"] else 28.0)
+				fa["_waiting_fresh_entry"] = true
+				fa["_was_active"] = false
 			continue
 
-		# 2. Stationary articulated agents (perched birds & hovering butterflies)
-		if gait == "perch":
-			var base_pos: Vector3 = fa.get("base_pos", node.position)
-			var base_yaw: float = float(fa.get("base_yaw", 0.0))
-			var hop_cyc: float = fmod(time_s * 0.48 + p_val, 3.2)
-			var hop_h: float = sin(hop_cyc * PI / 0.35) * 0.09 if hop_cyc < 0.35 else 0.0
-			node.position = base_pos + Vector3(sin(p_val) * hop_h * 0.3, hop_h, 0.0)
-			node.rotation.y = base_yaw + sin(time_s * 1.15 + p_val * 2.0) * 0.55
-			var head_n: Node3D = fa.get("head_node")
-			if is_instance_valid(head_n):
-				var peck := maxf(0.0, sin(time_s * 2.1 + p_val * 3.0))
-				head_n.rotation.x = -0.52 * pow(peck, 6.0)
-				head_n.rotation.y = sin(time_s * 2.7 + p_val) * 0.38
-			var lw: Node3D = fa.get("lw")
-			var rw: Node3D = fa.get("rw")
-			var stretch := maxf(0.0, sin(time_s * 0.85 + p_val))
-			var wing_a := 0.25 if stretch < 0.92 else 0.25 + sin(time_s * 14.0) * 0.45
-			if is_instance_valid(lw): lw.rotation.z = wing_a
-			if is_instance_valid(rw): rw.rotation.z = -wing_a
-			var tail_n: Node3D = fa.get("tail_node")
-			if is_instance_valid(tail_n):
-				tail_n.rotation.x = 0.18 + sin(time_s * 4.5 + p_val) * 0.14
+		node.visible = sched_ok
+		fa["_was_active"] = sched_ok
+		if not sched_ok:
+			node.scale = base_scale
 			continue
 
-		if gait == "butterfly":
-			var anchor: Vector3 = fa.get("base_pos", node.position)
-			var ang := time_s * 1.45 + p_val * 2.3
-			node.position = anchor + Vector3(
-				cos(ang) * 0.65 + sin(ang * 2.1) * 0.25,
-				0.28 + sin(time_s * 3.1 + p_val) * 0.16,
-				sin(ang * 1.3) * 0.55
-			)
-			node.rotation.y = -ang
-			var lw_b: Node3D = fa.get("lw")
-			var rw_b: Node3D = fa.get("rw")
-			var flap := sin(time_s * 18.0 + p_val * 4.0) * 1.05
-			if is_instance_valid(lw_b): lw_b.rotation.z = flap
-			if is_instance_valid(rw_b): rw_b.rotation.z = -flap
-			continue
+		# Smooth emergence/exit scaling at entry/exit thickets
+		if v_cyc > 0.1 and gait in ["glb", "trot", "hop", "scuttle"]:
+			var edge_u := minf(u_active, 1.0 - u_active)
+			node.scale = base_scale * (1.0 if edge_u >= 0.06 else clampf(edge_u / 0.06, 0.06, 1.0))
+		else:
+			node.scale = base_scale
 
-		# 3. Natural Catmull-Rom visit trajectory (entry -> graze/look pause -> exit)
+		# 4. Natural Catmull-Rom visit trajectory (entry off-screen -> graze/look pause -> exit off-screen)
 		var pts: Array = fa.get("waypoints", [])
 		if pts.size() < 2:
 			continue
@@ -148,6 +368,13 @@ static func update_agents(agents: Array[Dictionary], time_s: float, weather_id: 
 		var p3: Vector3 = pts[mini(pts.size() - 1, idx + 2)]
 		var pos := _catmull_rom(p0, p1, p2, p3, frac)
 		var next_pos := _catmull_rom(p0, p1, p2, p3, clampf(frac + 0.02, 0.0, 1.0))
+		if bool(fa.get("clamp_to_river", false)) and stream_clamp_fn.is_valid():
+			var c_now: Vector2 = stream_clamp_fn.call(pos.x, pos.z)
+			var c_nxt: Vector2 = stream_clamp_fn.call(next_pos.x, next_pos.z)
+			pos.x = c_now.x
+			next_pos.x = c_nxt.x
+		if ground_height_fn.is_valid() and gait in ["glb", "trot", "hop", "scuttle", "swim_crawl"]:
+			pos.y = float(ground_height_fn.call(pos.x, pos.z))
 
 		# Sync GLB AnimationPlayer clip between Walk & Eating/Idle during natural stops
 		var ap: AnimationPlayer = fa.get("ap")

@@ -41,6 +41,7 @@ var _indicator_root: Node3D
 var _chevron_mesh: MeshInstance3D
 var _ring_mesh: MeshInstance3D
 var _signpost_root: Node3D
+var _sign_swing_pivot: Node3D
 var _sign_label_3d: Label3D
 var _suppressed_until_exit: bool = false
 var _dm_highlighted: bool = false
@@ -66,6 +67,10 @@ func _process(delta: float) -> void:
 			var target_xz := Vector3(cam.global_position.x, _signpost_root.global_position.y, cam.global_position.z)
 			if target_xz.distance_squared_to(_signpost_root.global_position) > 0.01:
 				_signpost_root.look_at(target_xz, Vector3.UP, true)
+		if is_instance_valid(_sign_swing_pivot):
+			var loading_node := get_node_or_null("/root/SkillLoading")
+			var calm: bool = loading_node != null and bool(loading_node.get("reduced"))
+			_sign_swing_pivot.rotation.x = 0.0 if calm else sin(float(Time.get_ticks_msec()) * 0.0018 + global_position.x * 0.37) * 0.024
 
 	if _auto_timer >= 0.0:
 		_auto_timer -= delta
@@ -226,16 +231,26 @@ func _build_signpost_prop() -> void:
 	base_mesh.position = Vector3(0.0, 0.05, 0.0)
 	_signpost_root.add_child(base_mesh)
 
+	var sign_holder: Node3D = _signpost_root
+	var pivot_y := 0.0
+	if kind == "dragon_plaque":
+		_sign_swing_pivot = Node3D.new()
+		_sign_swing_pivot.name = "SignpostSwingPivot"
+		pivot_y = 1.48
+		_sign_swing_pivot.position = Vector3(0.0, pivot_y, 0.0)
+		_signpost_root.add_child(_sign_swing_pivot)
+		sign_holder = _sign_swing_pivot
+
 	var spr := Sprite3D.new()
 	spr.name = "SignpostSprite"
 	spr.texture = tex
 	spr.pixel_size = pixel_sz
-	spr.position = Vector3(0.0, sprite_center_y, 0.0)
+	spr.position = Vector3(0.0, sprite_center_y - pivot_y, 0.0)
 	spr.shaded = true
 	spr.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
 	spr.alpha_scissor_threshold = 0.35
 	spr.double_sided = true
-	_signpost_root.add_child(spr)
+	sign_holder.add_child(spr)
 
 	_sign_label_3d = Label3D.new()
 	_sign_label_3d.name = "SignpostTitle"
@@ -248,10 +263,10 @@ func _build_signpost_prop() -> void:
 	_sign_label_3d.modulate = Color("#fff3d6")
 	_sign_label_3d.outline_modulate = Color(0.06, 0.03, 0.01, 0.98)
 	_sign_label_3d.outline_size = 11
-	_sign_label_3d.position = Vector3(0.0, board_center_y, 0.05)
+	_sign_label_3d.position = Vector3(0.0, board_center_y - pivot_y, 0.05)
 	_sign_label_3d.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_sign_label_3d.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_signpost_root.add_child(_sign_label_3d)
+	sign_holder.add_child(_sign_label_3d)
 
 	call_deferred("_snap_signpost_to_ground")
 

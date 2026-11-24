@@ -37,8 +37,18 @@ var _reduced_motion: bool = false:
 # Forest river (camp-forest-pleamar, 17/11/2026): long meandering centreline sorted by z
 var _river_pts: Array[Vector2] = []
 var _river_mats: Array[ShaderMaterial] = []
+var _forest_occlude_mats: Array[ShaderMaterial] = []
 var _river_depth_m: float = 33.0
+var _build_scene_def: Dictionary = {}
+var _build_profile: String = "forest"
+var _build_width_m: float = 36.0
+var _build_depth_m: float = 33.0
+var _river_ripple_ring: Array[Vector4] = []
+var _river_ripple_next: int = 0
+var _last_hero_ripple_pos: Dictionary = {}
+var _last_hero_ripple_t: Dictionary = {}
 var _tree_spots: Array[Vector2] = []
+var _outer_perimeter_trees: Array[Vector3] = []
 var river_length_m: float = 0.0
 var flora_stats: Dictionary = {}
 
@@ -52,6 +62,7 @@ var _grp_interactables: Node3D
 
 func set_party_tokens(tokens: Array[Node3D]) -> void:
 	_hero_tokens = tokens
+	_update_foliage_occlusion()
 
 func _collect_hero_positions() -> Array:
 	var out: Array = []
@@ -60,16 +71,156 @@ func _collect_hero_positions() -> Array:
 			out.append(tok.global_position)
 	return out
 
+func _seg_dist_2d(p: Vector2, a: Vector2, b: Vector2) -> float:
+	var pa := p - a
+	var ba := b - a
+	var h := clampf(pa.dot(ba) / maxf(0.0001, ba.dot(ba)), 0.0, 1.0)
+	return (pa - ba * h).length()
+
+func _forest_trail_dist(px: float, pz: float) -> float:
+	var p := Vector2(px, pz)
+	# Organic curved west bridge path, northern Pleamar road, and southern trail (synced with terrain shader)
+	var d := _seg_dist_2d(p, Vector2(-30.0, 19.2), Vector2(-15.5, 16.2))
+	d = minf(d, _seg_dist_2d(p, Vector2(-15.5, 16.2), Vector2(-2.2, 17.5)))
+	d = minf(d, _seg_dist_2d(p, Vector2(-2.2, 17.5), Vector2(6.5, 17.0)))
+	d = minf(d, _seg_dist_2d(p, Vector2(6.5, 17.0), Vector2(15.5, 16.3)))
+	d = minf(d, _seg_dist_2d(p, Vector2(18.0, 13.8), Vector2(19.6, 4.5)))
+	d = minf(d, _seg_dist_2d(p, Vector2(19.6, 4.5), Vector2(17.8, -8.5)))
+	d = minf(d, _seg_dist_2d(p, Vector2(17.8, -8.5), Vector2(22.8, -24.0)))
+	d = minf(d, _seg_dist_2d(p, Vector2(22.8, -24.0), Vector2(21.2, -48.0)))
+	d = minf(d, _seg_dist_2d(p, Vector2(21.2, -48.0), Vector2(26.0, -96.0)))
+	d = minf(d, _seg_dist_2d(p, Vector2(18.5, 19.2), Vector2(20.6, 30.5)))
+	d = minf(d, _seg_dist_2d(p, Vector2(20.6, 30.5), Vector2(24.0, 48.0)))
+	d = minf(d, _seg_dist_2d(p, Vector2(24.0, 48.0), Vector2(21.8, 76.0)))
+	d = minf(d, _seg_dist_2d(p, Vector2(21.8, 76.0), Vector2(25.2, 116.0)))
+	return d
+
+func _eval_forest_play_height(wx: float, wz: float) -> float:
+	# Flat stable bivouac core around fire/tarp/bedrolls + gentle natural woodland relief & damp hollows outside core
+	var clear_d := Vector2((wx - 18.0) * 0.90, (wz - 16.0) * 1.08).length()
+	var pad_weight := smoothstep(4.2, 8.8, clear_d)
+	var td := _forest_trail_dist(wx, wz)
+	var trail_flat := 1.0 - smoothstep(1.2, 3.2, td)
+	var relief := (sin(wx * 0.28 + 0.6) * cos(wz * 0.24 - 0.4) * 0.048 + sin((wx - wz) * 0.46) * 0.022) * pad_weight * (1.0 - trail_flat * 0.72)
+	# Subtle damp woodland depressions away from camp & trails
+	var hollow_n := sin(wx * 0.31 + 1.4) * sin(wz * 0.29 + 0.9)
+	if hollow_n < -0.58 and pad_weight > 0.35 and trail_flat < 0.25:
+		relief -= (-0.58 - hollow_n) * 0.14 * pad_weight
+	return _carve_river_valley(wx, wz, relief)
+
+func eval_ground_height(wx: float, wz: float) -> float:
+	if _build_profile == "forest":
+		if Structure.is_on_forest_bridge(Vector3(wx, 0.0, wz)):
+			return 0.16
+		if wx >= -0.5 and wx <= _build_width_m + 0.5 and wz >= -0.5 and wz <= _build_depth_m + 0.5:
+			return maxf(-0.23, _eval_forest_play_height(wx, wz))
+		return maxf(-0.23, _eval_skirt_height("forest", wx, wz, _build_width_m, _build_depth_m))
+	return _eval_skirt_height(_build_profile, wx, wz, _build_width_m, _build_depth_m)
+
+func clamp_point_to_river(wx: float, wz: float) -> Vector2:
+	if _river_pts.is_empty():
+		return Vector2(wx, wz)
+	var cx := _river_center_x(wz)
+	var max_off := maxf(0.24, _river_half_width(wz) - 0.52)
+	return Vector2(clampf(wx, cx - max_off, cx + max_off), wz)
+
+func get_nearest_river_point(from_pos: Vector3) -> Vector3:
+	if _river_pts.is_empty():
+		return Vector3(6.8, 0.08, clampf(from_pos.z, 2.0, _build_depth_m - 2.0))
+	var z_clamped := clampf(from_pos.z, -24.0, _build_depth_m + 24.0)
+	return Vector3(_river_center_x(z_clamped), 0.06, z_clamped)
+
 func sync_wildlife() -> void:
 	var w_id := _fx_ref.current_weather if is_instance_valid(_fx_ref) else "clear"
 	var p_id := _fx_ref.current_phase if is_instance_valid(_fx_ref) else "dusk"
-	FaunaKit.update_agents(fauna_agents, _fauna_time, w_id, p_id, _collect_hero_positions())
+	FaunaKit.update_agents(fauna_agents, _fauna_time, w_id, p_id, _collect_hero_positions(), Callable(self, "eval_ground_height"), Callable(self, "clamp_point_to_river"))
+
+func _update_river_mover_ripples() -> void:
+	if _river_mats.is_empty():
+		return
+	var triggered := false
+	for tok in _hero_tokens:
+		if not is_instance_valid(tok):
+			continue
+		var pos := tok.global_position
+		if pos.y >= 0.045 or not Structure.is_water_at(pos, _build_scene_def):
+			continue
+		var tid := tok.get_instance_id()
+		var p2 := Vector2(pos.x, pos.z)
+		var prev_p: Vector2 = _last_hero_ripple_pos.get(tid, p2)
+		var prev_t: float = float(_last_hero_ripple_t.get(tid, -9.0))
+		var moved := p2.distance_to(prev_p)
+		if moved >= 0.24 or (_fauna_time - prev_t) >= 0.85:
+			var strength := clampf(0.42 + moved * 1.45, 0.42, 1.0)
+			if _river_ripple_ring.size() < 8:
+				_river_ripple_ring.resize(8)
+			_river_ripple_ring[_river_ripple_next] = Vector4(pos.x, pos.z, _fauna_time, strength)
+			_river_ripple_next = (_river_ripple_next + 1) % 8
+			_last_hero_ripple_pos[tid] = p2
+			_last_hero_ripple_t[tid] = _fauna_time
+			triggered = true
+	var arr: Array[Vector4] = []
+	arr.resize(8)
+	for i in range(8):
+		arr[i] = _river_ripple_ring[i] if i < _river_ripple_ring.size() else Vector4(0.0, 0.0, -999.0, 0.0)
+	for rm in _river_mats:
+		if is_instance_valid(rm):
+			rm.set_shader_parameter("river_time", _fauna_time)
+			if triggered or _fauna_time < 0.2:
+				rm.set_shader_parameter("mover_ripples", arr)
+
+func push_water_ripple_at(pos: Vector3, strength: float = 0.88) -> void:
+	if _river_ripple_ring.size() < 8:
+		_river_ripple_ring.resize(8)
+	_river_ripple_ring[_river_ripple_next] = Vector4(pos.x, pos.z, _fauna_time, clampf(strength, 0.25, 1.0))
+	_river_ripple_next = (_river_ripple_next + 1) % 8
+	var arr: Array[Vector4] = []
+	arr.resize(8)
+	for i in range(8):
+		arr[i] = _river_ripple_ring[i]
+	for rm in _river_mats:
+		if is_instance_valid(rm):
+			rm.set_shader_parameter("mover_ripples", arr)
+
+func _update_foliage_occlusion() -> void:
+	if _build_profile != "forest" or _forest_occlude_mats.is_empty():
+		return
+	var vp := get_viewport()
+	var cam := vp.get_camera_3d() if vp else null
+	if not is_instance_valid(cam):
+		return
+	var cam_pos := cam.global_position
+	var pts: Array[Vector4] = [Vector4.ZERO, Vector4.ZERO, Vector4.ZERO, Vector4.ZERO]
+	var count := 0
+	for tok in _hero_tokens:
+		if count >= 4:
+			break
+		if is_instance_valid(tok) and tok.visible:
+			var tp := tok.global_position + Vector3(0.0, 0.98, 0.0)
+			pts[count] = Vector4(tp.x, tp.y, tp.z, 1.0)
+			count += 1
+	for fm in _forest_occlude_mats:
+		if is_instance_valid(fm):
+			fm.set_shader_parameter("cam_world_pos", cam_pos)
+			fm.set_shader_parameter("hero_occlude_pts", pts)
+
+func _register_forest_canopy_mat(mat: ShaderMaterial, volume_boost: float = 1.0, enable_occlude: bool = true) -> ShaderMaterial:
+	if mat == null:
+		return mat
+	mat.set_shader_parameter("canopy_volume_boost", volume_boost)
+	if enable_occlude:
+		mat.set_shader_parameter("occlude_fade_enabled", 1.0)
+		if not _forest_occlude_mats.has(mat):
+			_forest_occlude_mats.append(mat)
+	return mat
 
 func _process(delta: float) -> void:
+	_update_foliage_occlusion()
 	if _reduced_motion:
 		return
 	_fauna_time += delta
 	sync_wildlife()
+	_update_river_mover_ripples()
 
 func build(scene_def: Dictionary, fx: CampAtmosphereFx) -> Dictionary:
 	_prepare_build(scene_def, fx)
@@ -103,8 +254,14 @@ func build_async(scene_def: Dictionary, fx: CampAtmosphereFx, tree: SceneTree) -
 	_build_profile_details(scene_def, fx, profile, width_m, depth_m, tile)
 	return _build_result()
 
-func _prepare_build(_scene_def: Dictionary, fx: CampAtmosphereFx) -> void:
+func _prepare_build(scene_def: Dictionary, fx: CampAtmosphereFx) -> void:
 	_fx_ref = fx
+	_build_scene_def = scene_def
+	_build_profile = str(scene_def.get("profile", "forest"))
+	var cols := int(scene_def.get("cols", 25))
+	var rows := int(scene_def.get("rows", 22))
+	_build_width_m = float(cols) * Structure.TILE_METERS
+	_build_depth_m = float(rows) * Structure.TILE_METERS
 	cutaway_tents.clear()
 	chest_lids.clear()
 	bedrolls.clear()
@@ -112,6 +269,14 @@ func _prepare_build(_scene_def: Dictionary, fx: CampAtmosphereFx) -> void:
 	shelter_anchors.clear()
 	fauna_agents.clear()
 	_stream_shader_mats.clear()
+	_river_mats.clear()
+	_forest_occlude_mats.clear()
+	_river_ripple_ring.clear()
+	_river_ripple_next = 0
+	_last_hero_ripple_pos.clear()
+	_last_hero_ripple_t.clear()
+	_tree_spots.clear()
+	_outer_perimeter_trees.clear()
 
 	_grp_terrain = _make_group("Terrain")
 	_grp_env_geo = _make_group("EnvironmentGeometry")
@@ -222,15 +387,16 @@ func _build_walkable_ground_and_skirt(scene_def: Dictionary, profile: String, wi
 	floor_body.name = "OutdoorGroundBody"
 	_grp_terrain.add_child(floor_body)
 
-	var mat_primary: StandardMaterial3D
+	var mat_primary: Material
 	var mat_ground_splat: ShaderMaterial
 	var ripple_v := 0.85 if profile == "coastal-refuge" else 0.35
 	var mat_water_tile := MatKit.create_water_shader_material(Color(0.071, 0.271, 0.322, 0.76), Color(0.173, 0.443, 0.490, 0.54), Color("#d6eef2"), 0.014, 1.15, 0.0, Vector2(0.0, 0.2), 0.35, ripple_v)
 
 	match profile:
 		"forest":
-			mat_primary = MatKit.make_textured_mat("moss.jpg", Color("#568c4c"), 0.90, "rock", Vector3(0.32, 0.32, 0.32), true, true)
-			mat_ground_splat = MatKit.create_terrain_splat_material("moss.jpg", Color("#568c4c"), "path.jpg", Color("#877153"), 0.30, 0.90, true)
+			var forest_ground_mat := MatKit.create_forest_terrain_shader_material(true)
+			mat_primary = forest_ground_mat
+			mat_ground_splat = forest_ground_mat
 		"wreck-beach":
 			mat_primary = MatKit.make_textured_mat("earth.webp", Color("#d3c6aa"), 0.86, "rock", Vector3(0.24, 0.24, 0.24), true, true)
 			mat_ground_splat = MatKit.create_terrain_splat_material("earth.webp", Color("#d3c6aa"), "earth.webp", Color("#938368"), 0.24, 0.28, true)
@@ -263,41 +429,86 @@ func _build_walkable_ground_and_skirt(scene_def: Dictionary, profile: String, wi
 				sum += float(sec_map.get(Vector2i(vc + dc, vr + dr), 0.0))
 		return sum * 0.25
 
-	for t in scene_def.get("walkable", []):
-		var col := int(t["col"])
-		var row := int(t["row"])
-		var mid := str(t.get("materialId", ""))
-		var med := str(t.get("medium", "solid"))
-		var x0 := float(col) * tile
-		var x1 := float(col + 1) * tile
-		var z0 := float(row) * tile
-		var z1 := float(row + 1) * tile
-		if med == "water" or mid == "water":
-			if profile != "forest":
+	if profile == "forest":
+		# Continuous sculpted forest floor across [-1.5..width_m+1.5] x [-1.5..depth_m+1.5]
+		# Eliminates ALL rectangular water-tile stair-step bank ledges and matches collision 1:1!
+		var step_m := 0.75
+		var gx0 := -1.5; var gx1 := width_m + 1.5
+		var gz0 := -1.5; var gz1 := depth_m + 1.5
+		var nx_f := int(round((gx1 - gx0) / step_m))
+		var nz_f := int(round((gz1 - gz0) / step_m))
+		var g_pts: Array = []
+		var g_w: Array = []
+		for iz in range(nz_f + 1):
+			var vz := lerpf(gz0, gz1, float(iz) / float(nz_f))
+			var p_row: Array[Vector3] = []
+			var w_row: Array[float] = []
+			for ix in range(nx_f + 1):
+				var vx := lerpf(gx0, gx1, float(ix) / float(nx_f))
+				# Seamlessly blend GroundPrimary outer 1.8m perimeter into OuterTerrainSkirt (zero border crease!)
+				var edge_d := minf(minf(vx - gx0, gx1 - vx), minf(vz - gz0, gz1 - vz))
+				var border_blend := 1.0 - smoothstep(0.0, 1.8, edge_d)
+				var vy := lerpf(_eval_forest_play_height(vx, vz), _eval_skirt_height("forest", vx, vz, width_m, depth_m), border_blend)
+				p_row.append(Vector3(vx, vy, vz))
+				var vc := clampi(int(floor(vx / tile)), 0, cols - 1)
+				var vr := clampi(int(floor(vz / tile)), 0, rows - 1)
+				w_row.append(float(sec_map.get(Vector2i(vc, vr), 0.0)))
+			g_pts.append(p_row)
+			g_w.append(w_row)
+		for iz in range(nz_f):
+			for ix in range(nx_f):
+				var a: Vector3 = g_pts[iz][ix]
+				var b: Vector3 = g_pts[iz][ix + 1]
+				var c: Vector3 = g_pts[iz + 1][ix + 1]
+				var d: Vector3 = g_pts[iz + 1][ix]
+				var wa: float = g_w[iz][ix]
+				var wb: float = g_w[iz][ix + 1]
+				var wc: float = g_w[iz + 1][ix + 1]
+				var wd: float = g_w[iz + 1][ix]
+				st_g.set_color(Color(wa, 0, 0, 1)); st_g.set_uv(Vector2(a.x * 0.25, a.z * 0.25)); st_g.add_vertex(a)
+				st_g.set_color(Color(wb, 0, 0, 1)); st_g.set_uv(Vector2(b.x * 0.25, b.z * 0.25)); st_g.add_vertex(b)
+				st_g.set_color(Color(wc, 0, 0, 1)); st_g.set_uv(Vector2(c.x * 0.25, c.z * 0.25)); st_g.add_vertex(c)
+				st_g.set_color(Color(wa, 0, 0, 1)); st_g.set_uv(Vector2(a.x * 0.25, a.z * 0.25)); st_g.add_vertex(a)
+				st_g.set_color(Color(wc, 0, 0, 1)); st_g.set_uv(Vector2(c.x * 0.25, c.z * 0.25)); st_g.add_vertex(c)
+				st_g.set_color(Color(wd, 0, 0, 1)); st_g.set_uv(Vector2(d.x * 0.25, d.z * 0.25)); st_g.add_vertex(d)
+		has_g = true
+	else:
+		for t in scene_def.get("walkable", []):
+			var col := int(t["col"])
+			var row := int(t["row"])
+			var mid := str(t.get("materialId", ""))
+			var med := str(t.get("medium", "solid"))
+			var x0 := float(col) * tile
+			var x1 := float(col + 1) * tile
+			var z0 := float(row) * tile
+			var z1 := float(row + 1) * tile
+			if med == "water" or mid == "water":
 				has_w = true
 				_emit_quad(st_w, Vector3(x0, -0.04, z0), Vector3(x1, -0.04, z0), Vector3(x1, -0.04, z1), Vector3(x0, -0.04, z1))
-		else:
-			has_g = true
-			var w00: float = corner_splat.call(col, row)
-			var w10: float = corner_splat.call(col + 1, row)
-			var w11: float = corner_splat.call(col + 1, row + 1)
-			var w01: float = corner_splat.call(col, row + 1)
-			var h_lift := 0.036 if profile == "coastal-refuge" else 0.0
-			var a := Vector3(x0, w00 * h_lift, z0)
-			var b := Vector3(x1, w10 * h_lift, z0)
-			var c := Vector3(x1, w11 * h_lift, z1)
-			var d := Vector3(x0, w01 * h_lift, z1)
-			st_g.set_color(Color(w00, 0, 0, 1)); st_g.set_uv(Vector2(x0 * 0.25, z0 * 0.25)); st_g.add_vertex(a)
-			st_g.set_color(Color(w10, 0, 0, 1)); st_g.set_uv(Vector2(x1 * 0.25, z0 * 0.25)); st_g.add_vertex(b)
-			st_g.set_color(Color(w11, 0, 0, 1)); st_g.set_uv(Vector2(x1 * 0.25, z1 * 0.25)); st_g.add_vertex(c)
-			st_g.set_color(Color(w00, 0, 0, 1)); st_g.set_uv(Vector2(x0 * 0.25, z0 * 0.25)); st_g.add_vertex(a)
-			st_g.set_color(Color(w11, 0, 0, 1)); st_g.set_uv(Vector2(x1 * 0.25, z1 * 0.25)); st_g.add_vertex(c)
-			st_g.set_color(Color(w01, 0, 0, 1)); st_g.set_uv(Vector2(x0 * 0.25, z1 * 0.25)); st_g.add_vertex(d)
+			else:
+				has_g = true
+				var w00: float = corner_splat.call(col, row)
+				var w10: float = corner_splat.call(col + 1, row)
+				var w11: float = corner_splat.call(col + 1, row + 1)
+				var w01: float = corner_splat.call(col, row + 1)
+				var h_lift := 0.036 if profile == "coastal-refuge" else 0.0
+				var a := Vector3(x0, w00 * h_lift, z0)
+				var b := Vector3(x1, w10 * h_lift, z0)
+				var c := Vector3(x1, w11 * h_lift, z1)
+				var d := Vector3(x0, w01 * h_lift, z1)
+				st_g.set_color(Color(w00, 0, 0, 1)); st_g.set_uv(Vector2(x0 * 0.25, z0 * 0.25)); st_g.add_vertex(a)
+				st_g.set_color(Color(w10, 0, 0, 1)); st_g.set_uv(Vector2(x1 * 0.25, z0 * 0.25)); st_g.add_vertex(b)
+				st_g.set_color(Color(w11, 0, 0, 1)); st_g.set_uv(Vector2(x1 * 0.25, z1 * 0.25)); st_g.add_vertex(c)
+				st_g.set_color(Color(w00, 0, 0, 1)); st_g.set_uv(Vector2(x0 * 0.25, z0 * 0.25)); st_g.add_vertex(a)
+				st_g.set_color(Color(w11, 0, 0, 1)); st_g.set_uv(Vector2(x1 * 0.25, z1 * 0.25)); st_g.add_vertex(c)
+				st_g.set_color(Color(w01, 0, 0, 1)); st_g.set_uv(Vector2(x0 * 0.25, z1 * 0.25)); st_g.add_vertex(d)
 
 	if has_g:
 		st_g.generate_normals()
 		var mg := MeshInstance3D.new(); mg.name = "GroundPrimary"
 		mg.mesh = st_g.commit(); mg.material_override = mat_ground_splat; _grp_terrain.add_child(mg)
+		if profile == "forest":
+			mg.create_trimesh_collision()
 	if has_w:
 		st_w.generate_normals()
 		var mw := MeshInstance3D.new(); mw.name = "ShallowWaterCells"
@@ -305,9 +516,16 @@ func _build_walkable_ground_and_skirt(scene_def: Dictionary, profile: String, wi
 
 	var fcs := CollisionShape3D.new()
 	var fbox := BoxShape3D.new()
-	fbox.size = Vector3(width_m + 6.0, 1.0, depth_m + 6.0)
-	fcs.shape = fbox
-	fcs.position = Vector3(width_m * 0.5, -0.5, depth_m * 0.5)
+	if profile == "forest":
+		# Safety backstop strictly under the flat eastern bivouac core; sculpted GroundPrimary + ForestStreamBed + OuterTerrainSkirt provide exact 1:1 visual/collision height
+		var east_w := maxf(4.0, (width_m - 1.5) - 9.5)
+		fbox.size = Vector3(east_w, 1.0, depth_m - 2.0)
+		fcs.shape = fbox
+		fcs.position = Vector3(9.5 + east_w * 0.5, -0.58, depth_m * 0.5)
+	else:
+		fbox.size = Vector3(width_m + 6.0, 1.0, depth_m + 6.0)
+		fcs.shape = fbox
+		fcs.position = Vector3(width_m * 0.5, -0.5, depth_m * 0.5)
 	floor_body.add_child(fcs)
 
 	_build_sculpted_surround_skirt(profile, width_m, depth_m, mat_primary)
@@ -327,15 +545,15 @@ func _build_walkable_ground_and_skirt(scene_def: Dictionary, profile: String, wi
 		obs_body.add_child(cs)
 
 func _build_sculpted_surround_skirt(profile: String, width_m: float, depth_m: float, mat_primary: Material) -> void:
-	var pad_x := 28.0 if profile != "forest" else 58.0
-	var pad_z_n := 24.0 if profile != "forest" else 48.0
-	var pad_z_s := 14.0 if profile != "forest" else 70.0
+	var pad_x := 28.0 if profile != "forest" else 86.0
+	var pad_z_n := 24.0 if profile != "forest" else 90.0
+	var pad_z_s := 14.0 if profile != "forest" else 76.0
 	var x_min := -pad_x; var x_max := width_m + pad_x
 	var z_min := -pad_z_n; var z_max := depth_m + pad_z_s
 	var nx := 32; var nz := 28
 	if profile == "forest":
-		# Smooth river valley without excessive vertex cost
-		nx = 72; nz = 58
+		# Extended seamless forest hills & river valley eliminating far straight horizon cutoff
+		nx = 84; nz = 70
 
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -356,6 +574,8 @@ func _build_sculpted_surround_skirt(profile: String, width_m: float, depth_m: fl
 	skirt.mesh = st.commit()
 	skirt.material_override = mat_primary
 	_grp_terrain.add_child(skirt)
+	if profile == "forest":
+		skirt.create_trimesh_collision()
 
 func _eval_skirt_height(profile: String, px: float, pz: float, width_m: float, depth_m: float) -> float:
 	var dx := maxf(0.0, maxf(1.5 - px, px - (width_m - 1.5)))
@@ -363,13 +583,27 @@ func _eval_skirt_height(profile: String, px: float, pz: float, width_m: float, d
 	var undul := sin(px * 0.24) * cos(pz * 0.22) * 0.35 + sin((px + pz) * 0.42) * 0.18
 	match profile:
 		"forest":
-			var h_f := -0.055
-			if pz > depth_m - 1.2:
-				h_f = -0.055 + undul * 0.14
+			var h_f := -0.025 + sin(px * 0.19) * cos(pz * 0.17) * 0.08
+			var inside_d := minf(minf(px - (-1.4), (width_m + 1.4) - px), minf(pz - (-1.4), (depth_m + 1.4) - pz))
+			if inside_d > 0.0:
+				# Smoothly sit just below GroundPrimary inside the play rect, rising seamlessly to 0 offset at border
+				var under_bias := smoothstep(0.0, 1.6, inside_d) * 0.045
+				return _eval_forest_play_height(px, pz) - under_bias
+			elif pz > depth_m - 0.8:
+				var south_t := clampf((pz - (depth_m - 0.8)) / 18.0, 0.0, 1.0)
+				h_f = lerpf(-0.025, 0.18 + undul * 0.28, south_t)
 			else:
 				var rim := sqrt(dx * dx + dz_n * dz_n * 1.15)
-				if rim >= 0.8:
-					h_f = -0.055 + minf(3.6, rim * 0.17) + clampf(undul * minf(1.0, rim * 0.2), -0.3, 0.8)
+				if rim >= 0.6:
+					var hill := minf(5.2, rim * 0.145)
+					h_f = -0.025 + hill + clampf(undul * minf(1.1, rim * 0.18), -0.35, 0.95)
+			# Carve gentle walkable pass grading along Pleamar north/south/west trails (wide shoulder
+			# margin so trimesh triangles beside trails stay within _floor_hit window before hills rise)
+			var td := _forest_trail_dist(px, pz)
+			if td < 7.8 and pz > -62.0 and pz < depth_m + 62.0 and px > -32.0:
+				var pass_t := 1.0 - smoothstep(3.8, 7.8, td)
+				var gentle_trail := -0.015 + clampf(sin(px * 0.18) * 0.05 + cos(pz * 0.14) * 0.06, -0.04, 0.12)
+				h_f = lerpf(h_f, gentle_trail, pass_t)
 			return _carve_river_valley(px, pz, h_f)
 		"wreck-beach":
 			if pz > depth_m * 0.72:
@@ -398,11 +632,17 @@ func _eval_skirt_height(profile: String, px: float, pz: float, width_m: float, d
 			return -0.055 + minf(4.8, rim_c * 0.24) + undul * 0.36
 
 func _emit_quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3) -> void:
+	st.set_color(Color(0.0, 0.0, 0.0, 1.0))
 	st.set_uv(Vector2(a.x * 0.25, a.z * 0.25)); st.add_vertex(a)
+	st.set_color(Color(0.0, 0.0, 0.0, 1.0))
 	st.set_uv(Vector2(b.x * 0.25, b.z * 0.25)); st.add_vertex(b)
+	st.set_color(Color(0.0, 0.0, 0.0, 1.0))
 	st.set_uv(Vector2(c.x * 0.25, c.z * 0.25)); st.add_vertex(c)
+	st.set_color(Color(0.0, 0.0, 0.0, 1.0))
 	st.set_uv(Vector2(a.x * 0.25, a.z * 0.25)); st.add_vertex(a)
+	st.set_color(Color(0.0, 0.0, 0.0, 1.0))
 	st.set_uv(Vector2(c.x * 0.25, c.z * 0.25)); st.add_vertex(c)
+	st.set_color(Color(0.0, 0.0, 0.0, 1.0))
 	st.set_uv(Vector2(d.x * 0.25, d.z * 0.25)); st.add_vertex(d)
 
 # ------------------------------------------------------------------------------
@@ -430,18 +670,20 @@ func _build_bivouac_gear_and_points(scene_def: Dictionary, fx: CampAtmosphereFx,
 			"tent":
 				# Only present in forest, wreck-beach, cliff-observatory (NEVER coastal-refuge!)
 				if profile != "coastal-refuge":
-					var sh_yaw := 0.14 if profile == "forest" else (-0.24 if profile == "wreck-beach" else 0.18)
-					var anc_a := Vector3(-2.85, 0.0, -1.65)
-					var anc_b := Vector3(2.85, 0.0, -1.65)
-					var res := PropFactory.create_canvas_shelter(_grp_structures, profile, obj_pos, sh_yaw, _env_kit, shelter_rock_mat, anc_a, anc_b)
-					cutaway_tents.append({
-						"id": pid,
-						"node": res["roof"],
-						"rect": res["rect"],
-					})
+					var sh_yaw := 0.06 if profile == "forest" else (-0.24 if profile == "wreck-beach" else 0.18)
+					var anc_a := Vector3(-3.0, 0.0, -1.5) if profile == "forest" else Vector3(-2.85, 0.0, -1.65)
+					var anc_b := Vector3(3.0, 0.0, -1.5) if profile == "forest" else Vector3(2.85, 0.0, -1.65)
+					var res := PropFactory.create_canvas_shelter(_grp_structures, profile, obj_pos, sh_yaw, _env_kit, shelter_rock_mat, anc_a, anc_b, fx)
+					# Open camp tarps stay permanently visible & steady; character silhouette + subtle local dither peek shine gently when underneath!
+					var tarp_sh: ShaderMaterial = res.get("tarp_mat") as ShaderMaterial
+					if profile == "forest" and tarp_sh != null:
+						tarp_sh.set_shader_parameter("occlude_fade_enabled", 1.0)
+						if not _forest_occlude_mats.has(tarp_sh):
+							_forest_occlude_mats.append(tarp_sh)
 					shelter_anchors[pid] = {
 						"center": obj_pos,
 						"capacity": int(res.get("capacity", 2)),
+						"min_clear_height": float(res.get("min_clear_height", 1.47)),
 					}
 			"bed":
 				var bed_y := floor_offset if profile == "coastal-refuge" else 0.0
@@ -484,15 +726,16 @@ func _build_bivouac_gear_and_points(scene_def: Dictionary, fx: CampAtmosphereFx,
 # Camp 02: Bosque camino a Pleamar
 # ------------------------------------------------------------------------------
 func _build_forest_details(scene_def: Dictionary, _fx: CampAtmosphereFx, width_m: float, depth_m: float) -> void:
-	var mat_trunk := MatKit.make_wood_mat(Color("#543d2b"), true)
-	var mat_plank := MatKit.make_wood_mat(Color("#73573d"), true)
-	var mat_bark_moss := MatKit.make_textured_mat("moss.jpg", Color("#4e6d42"), 0.90, "rock", Vector3(1.2, 1.2, 1.2), true, true)
-	var mat_pine_a := MatKit.create_foliage_wind_shader_material("foliage-atlas-v5.png", Color("#3f6a3b"), 0.044, Color("#6fa056"), false, 2.2, true)
-	var mat_pine_b := MatKit.create_foliage_wind_shader_material("foliage-atlas.png", Color("#4a7742"), 0.048, Color("#78aa5e"), false, 2.0, true)
-	var mat_oak := MatKit.create_foliage_wind_shader_material("foliage-atlas-v5.png", Color("#598045"), 0.052, Color("#8db868"), false, 1.8, true)
-	var mat_fern := _env_kit.make_alpha_foliage_mat("forest_fern", Color("#517843"))
-	var mat_moss_rock := MatKit.make_textured_mat("a1-cliff-organic-v7.png", Color("#6c7569"), 0.88, "rock", Vector3(0.45, 0.45, 0.45), true, true)
-	var mat_bed := MatKit.make_textured_mat("stream.jpg", Color("#6e7e7a"), 0.86, "rock", Vector3(0.42, 0.42, 0.42), true, true)
+	var mat_trunk := MatKit.make_wood_mat(Color("#5a422f"), true)
+	var mat_plank := MatKit.make_wood_mat(Color("#7c5f44"), true)
+	var mat_bark_moss := MatKit.make_textured_mat("moss.jpg", Color("#44613b"), 0.90, "rock", Vector3(1.2, 1.2, 1.2), true, true)
+	# Paso 23.3: Softened natural woodland canopy greens (toned down from overly bright yellow-green) + O2 occlusion fade
+	var mat_pine_a := _register_forest_canopy_mat(MatKit.create_foliage_wind_shader_material("foliage.webp", Color("#426937"), 0.036, Color("#638c4c"), false, 2.8, true))
+	var mat_pine_b := _register_forest_canopy_mat(MatKit.create_foliage_wind_shader_material("foliage.webp", Color("#4d753d"), 0.040, Color("#709953"), false, 2.6, true))
+	var mat_oak := _register_forest_canopy_mat(MatKit.create_foliage_wind_shader_material("foliage.webp", Color("#4e6d39"), 0.044, Color("#6d8d50"), false, 2.4, true))
+	var mat_fern := _env_kit.make_alpha_foliage_mat("forest_fern", Color("#48663a"))
+	var mat_moss_rock := MatKit.make_textured_mat("a1-cliff-organic-v7.png", Color("#646f61"), 0.88, "rock", Vector3(0.45, 0.45, 0.45), true, true)
+	var mat_bed := MatKit.make_textured_mat("stream.jpg", Color("#48534a"), 0.68, "rock", Vector3(0.42, 0.42, 0.42), true, true)
 
 	# Long meandering forest river (17/11/2026): runs from the northern hills, through the
 	# canonical water cells of the clearing and away south. Flow-mapped animated shader.
@@ -500,38 +743,49 @@ func _build_forest_details(scene_def: Dictionary, _fx: CampAtmosphereFx, width_m
 		_build_forest_river_ribbon(mat_bed, mat_moss_rock, mat_fern, mat_plank)
 
 	# Tactile perimeter trees from obstacles (trees (8,7) and (12,7) anchor canopy tarp cleanly)
+	var ob_idx := 0
 	for ob in scene_def.get("obstacles", []):
 		if str(ob.get("id", "")).contains("tree"):
 			var tp := Structure.tile_to_world(int(ob["col"]), int(ob["row"]), 0.0)
 			if tp.z > depth_m * 0.72 and tp.x > 6.5 and tp.x < width_m - 6.5:
-				_env_kit.spawn_fern_clump(_grp_vegetation, tp, 1.05, mat_fern, tp.x, 3)
-				_env_kit.spawn_rock(_grp_env_geo, tp + Vector3(0.25, 0.10, -0.2), Vector3(0.82, 0.48, 0.78), tp.z, mat_moss_rock, int(ob["col"]), "craggy")
+				_env_kit.spawn_fern_clump(_grp_vegetation, tp, 0.95, mat_fern, tp.x, 2)
+				_env_kit.spawn_rock(_grp_env_geo, tp + Vector3(0.25, 0.06, -0.2), Vector3(0.82, 0.44, 0.78), tp.z, mat_moss_rock, int(ob["col"]), "craggy")
 			else:
 				var is_oak := int(ob["col"]) % 3 == 0
 				var sp := "oak" if is_oak else "pine"
-				_env_kit.build_organic_tree(_grp_vegetation, sp, tp, 0.96, mat_trunk, mat_oak if is_oak else mat_pine_a, mat_bark_moss, tp.x * 0.7 + tp.z)
+				# Paso 23.4: vary clearing tree age & stature slightly while preserving shelter anchor positions
+				var is_shelter_anchor := (int(ob["col"]) == 8 or int(ob["col"]) == 12) and int(ob["row"]) == 7
+				var ob_scale := (0.98 if is_oak else 0.96) if is_shelter_anchor else (0.84 + fmod(float(ob_idx) * 0.23, 0.34))
+				_env_kit.build_organic_tree(_grp_vegetation, sp, tp, ob_scale, mat_trunk, mat_oak if is_oak else mat_pine_a, mat_bark_moss, tp.x * 0.73 + tp.z * 1.13 + float(ob_idx) * 1.7)
 				_tree_spots.append(Vector2(tp.x, tp.z))
+				_outer_perimeter_trees.append(tp)
 				if int(ob["row"]) <= 12:
-					_env_kit.spawn_fern_clump(_grp_vegetation, tp + Vector3(0.65, 0.0, 0.55), 0.85, mat_fern, tp.x, 2)
+					_env_kit.spawn_fern_clump(_grp_vegetation, tp + Vector3(0.65, 0.0, 0.55), 0.78, mat_fern, tp.x, 2)
+				ob_idx += 1
 
-	# Natural clustered outer forest canopy (preserving open south corridor sightline!)
+	# Paso 23.4, 23.6, 23.7: Irregular clustered outer perimeter canopy (varied distances, grove pairs & open glade gaps!)
 	for i in range(28):
-		var a := float(i) * TAU / 28.0 + sin(float(i) * 1.9) * 0.14
-		var rx := width_m * 0.62 + sin(a * 3.0) * 3.4
-		var rz := depth_m * 0.60 + cos(a * 2.0) * 3.1
+		# Leave natural breathing gaps on select glade directions (i == 5, 13, 22) so the perimeter never reads as an even ring
+		if i in [5, 13, 22]:
+			continue
+		var a := float(i) * TAU / 28.0 + sin(float(i) * 1.9) * 0.18 + cos(float(i) * 3.1) * 0.08
+		var rx := width_m * 0.63 + sin(a * 3.0) * 3.6 + cos(float(i) * 2.1) * 1.6
+		var rz := depth_m * 0.61 + cos(a * 2.0) * 3.2 + sin(float(i) * 1.7) * 1.4
 		var wp := Vector3(width_m * 0.5 + cos(a) * rx, 0.0, depth_m * 0.5 + sin(a) * rz)
-		if wp.z > depth_m * 0.68 and absf(wp.x - width_m * 0.5) < 11.5:
-			_env_kit.spawn_fern_clump(_grp_vegetation, wp, 1.15, mat_fern, a, 2)
+		if wp.z > depth_m * 0.58 and absf(wp.x - width_m * 0.5) < 12.5:
+			_env_kit.spawn_fern_clump(_grp_vegetation, wp, 0.98, mat_fern, a, 2)
 			if i % 3 == 0:
-				_env_kit.spawn_rock(_grp_env_geo, wp + Vector3(0.6, 0.10, 0.2), Vector3(0.92, 0.48, 0.85), a * 2.0, mat_moss_rock, i, "craggy")
+				_env_kit.spawn_rock(_grp_env_geo, wp + Vector3(0.6, 0.06, 0.2), Vector3(0.92, 0.44, 0.85), a * 2.0, mat_moss_rock, i, "craggy")
 			continue
-		if _river_distance(Vector2(wp.x, wp.z)) < _river_half_width(wp.z) + 1.8:
+		var trail_margin_p := 2.45 + 1.45 * (0.5 + 0.5 * sin(wp.z * 0.23 + float(i)))
+		if _river_distance(Vector2(wp.x, wp.z)) < _river_half_width(wp.z) + 1.8 or _forest_trail_dist(wp.x, wp.z) < trail_margin_p:
 			continue
-		wp.y = maxf(0.0, _eval_skirt_height("forest", wp.x, wp.z, width_m, depth_m) + 0.04)
+		wp.y = maxf(0.0, _eval_skirt_height("forest", wp.x, wp.z, width_m, depth_m) + 0.02)
 		_tree_spots.append(Vector2(wp.x, wp.z))
-		var is_broad := i % 3 == 0
-		var tscale := 0.95 + fmod(float(i) * 0.19, 0.48)
-		_env_kit.build_organic_tree(_grp_vegetation, "oak" if is_broad else "pine", wp, tscale, mat_trunk, mat_oak if is_broad else (mat_pine_a if i % 2 == 0 else mat_pine_b), mat_bark_moss, float(i) * 1.37)
+		_outer_perimeter_trees.append(wp)
+		var is_broad := (i % 3 == 0) or (i % 7 == 0)
+		var tscale := 0.78 + fmod(float(i) * 0.27, 0.62)
+		_env_kit.build_organic_tree(_grp_vegetation, "oak" if is_broad else "pine", wp, tscale, mat_trunk, mat_oak if is_broad else (mat_pine_a if i % 2 == 0 else mat_pine_b), mat_bark_moss, float(i) * 1.73 + 0.4)
 
 	# Localized undergrowth clusters near roots & mossy clearing edges (non-uniform!)
 	var bush_clusters := [
@@ -540,7 +794,7 @@ func _build_forest_details(scene_def: Dictionary, _fx: CampAtmosphereFx, width_m
 	]
 	for c_i in range(bush_clusters.size()):
 		var cp: Vector2 = bush_clusters[c_i]
-		_env_kit.spawn_fern_clump(_grp_vegetation, Vector3(cp.x, 0.0, cp.y), 0.92 + float(c_i % 3) * 0.16, mat_fern, float(c_i) * 1.9, 3)
+		_env_kit.spawn_fern_clump(_grp_vegetation, Vector3(cp.x, 0.0, cp.y), 0.78 + float(c_i % 3) * 0.14, mat_fern, float(c_i) * 1.9, 2)
 
 	# Natural decaying stump + woodland fungi + wildflower clusters along clearing borders
 	var stump := MeshInstance3D.new()
@@ -557,7 +811,7 @@ func _build_forest_details(scene_def: Dictionary, _fx: CampAtmosphereFx, width_m
 		var wpos: Vector2 = wf_spots[wf_i]
 		_env_kit.spawn_wildflower_patch(_grp_vegetation, Vector3(wpos.x, 0.0, wpos.y), float(wf_i) * 1.4, 7)
 
-	# Much richer woodland: more tree species, bushes, ferns, flowers and mushrooms (batched)
+	# Much richer woodland: more tree species, bushes, ferns, flowers and mushrooms (MultiMesh batched)
 	_build_forest_flora_expansion(scene_def, width_m, depth_m, mat_trunk, mat_pine_a, mat_pine_b, mat_oak)
 
 	# Moss cushions & flowering berry shrubs framing the clearing perimeter
@@ -566,67 +820,160 @@ func _build_forest_details(scene_def: Dictionary, _fx: CampAtmosphereFx, width_m
 		_env_kit.spawn_moss_cushion(_grp_vegetation, Vector3(mp.x, 0.0, mp.y), Color("#466e3c"), 1.05, float(mb_i) * 1.4)
 		_env_kit.spawn_woodland_shrub(_grp_vegetation, Vector3(mp.x + 0.55, 0.0, mp.y - 0.35), mat_oak, Color("#c93838") if mb_i % 2 == 0 else Color("#4b589e"), float(mb_i) * 2.1)
 
-	# Natural realistic woodland fauna: crepuscular/diurnal schedules, deep-cover emergence,
-	# grazing/sniffing stops and occasional passing creek trout!
+	# Helper: anchor woodland animal entry/exit inside lush fern & shrub cover thickets (zero open-field pop-ins!)
+	var _add_spawn_cover := func(wp: Vector3, seed_ang: float) -> void:
+		var gy_c := eval_ground_height(wp.x, wp.z)
+		if gy_c < -0.05 or _forest_trail_dist(wp.x, wp.z) < 2.2:
+			return
+		var cover_pos := Vector3(wp.x, gy_c, wp.z)
+		_env_kit.spawn_fern_clump(_grp_vegetation, cover_pos, 1.05, mat_fern, seed_ang, 3)
+		for k_sh in range(2):
+			var sa := seed_ang + float(k_sh) * 2.1 - 0.8
+			var off_sh := Vector3(cos(sa) * 0.72, 0.0, sin(sa) * 0.72)
+			var sh_y := eval_ground_height(wp.x + off_sh.x, wp.z + off_sh.z)
+			if sh_y >= -0.04:
+				_env_kit.spawn_woodland_shrub(_grp_vegetation, Vector3(wp.x + off_sh.x, sh_y, wp.z + off_sh.z), mat_oak, Color("#734538") if k_sh == 0 else Color("#4a5e78"), sa)
+
+	# Helper: clamp ground patrol waypoints precisely to terrain elevation & wrap entry/exit in brush cover
+	var _clamp_wp := func(raw_pts: Array, cover_seed: float) -> Array:
+		var out_pts: Array = []
+		for rp_v: Vector3 in raw_pts:
+			out_pts.append(Vector3(rp_v.x, eval_ground_height(rp_v.x, rp_v.z), rp_v.z))
+		if out_pts.size() >= 2:
+			_add_spawn_cover.call(out_pts[0], cover_seed)
+			_add_spawn_cover.call(out_pts[out_pts.size() - 1], cover_seed + 1.8)
+		return out_pts
+
+	# Natural realistic woodland fauna: deer/stag/fox/rabbits enter from dense outer thickets & flee cleanly into cover!
 	var rx_n := _river_center_x(10.0)
-	var rx_m := _river_center_x(17.5)
-	var rx_s := _river_center_x(24.0)
-	_spawn_fauna_actor("res://assets/fauna/quaternius_cc0-deer-908.glb", "ForestDeer", 0.44, [
-		Vector3(-9.0, 0.12, 7.5), Vector3(rx_m - 2.9, 0.06, 15.0),
-		Vector3(rx_m - 2.6, 0.06, 17.5), Vector3(rx_s - 3.2, 0.06, 22.0),
-		Vector3(-9.5, 0.14, 26.5),
-	], 28.0, 0.0)
-	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "dusk", "day"], ["storm"], 68.0, 0.44, 10.0, true, 4.6)
+	_spawn_fauna_actor("res://assets/fauna/quaternius_cc0-deer-908.glb", "ForestDeer", 0.44, _clamp_wp.call([
+		Vector3(-27.5, 0.0, 4.0), Vector3(-20.0, 0.0, 6.2),
+		Vector3(-14.8, 0.0, 8.2), Vector3(-19.5, 0.0, 11.2),
+		Vector3(-28.5, 0.0, 9.0),
+	], 0.4), 34.0, 0.0)
+	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "dusk", "day"], ["storm"], 165.0, 0.28, 10.0, true, 9.0)
 
-	_spawn_fauna_actor("res://assets/fauna/quaternius_cc0-stag-1373.glb", "ForestStag", 0.42, [
-		Vector3(width_m + 9.0, 0.12, 8.0), Vector3(29.8, 0.05, 13.0),
-		Vector3(28.0, 0.05, 15.2), Vector3(28.8, 0.05, 21.0),
-		Vector3(width_m + 9.5, 0.14, 24.5),
-	], 30.0, 0.0)
-	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "dusk", "night"], ["storm"], 74.0, 0.46, 22.0, true, 5.0)
+	_spawn_fauna_actor("res://assets/fauna/quaternius_cc0-stag-1373.glb", "ForestStag", 0.42, _clamp_wp.call([
+		Vector3(width_m + 26.5, 0.0, 6.5), Vector3(width_m + 15.5, 0.0, 11.5),
+		Vector3(width_m + 11.0, 0.0, 15.5), Vector3(width_m + 16.0, 0.0, 21.5),
+		Vector3(width_m + 27.5, 0.0, 26.0),
+	], 1.2), 36.0, 0.0)
+	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "dusk", "night"], ["storm"], 175.0, 0.28, 18.0, true, 9.5)
 
-	FaunaKit.spawn_fox(_grp_vegetation, fauna_agents, "ForestFox", [
-		Vector3(8.5, 0.0, -3.5), Vector3(13.5, 0.0, 7.8),
-		Vector3(17.6, 0.0, 7.5), Vector3(22.0, 0.0, 8.8),
-		Vector3(26.5, 0.0, -2.5),
-	], 24.0, 0.5)
-	FaunaKit.set_behavior(fauna_agents.back(), ["dusk", "night", "dawn"], ["storm"], 54.0, 0.46, 6.0, true, 4.4)
+	FaunaKit.spawn_fox(_grp_vegetation, fauna_agents, "ForestFox", _clamp_wp.call([
+		Vector3(-19.5, 0.0, -25.5), Vector3(-10.5, 0.0, -16.8),
+		Vector3(-4.2, 0.0, -14.8), Vector3(-11.2, 0.0, -20.5),
+		Vector3(-20.5, 0.0, -27.5),
+	], 2.1), 30.0, 0.5)
+	FaunaKit.set_behavior(fauna_agents.back(), ["dusk", "night", "dawn"], ["storm"], 112.0, 0.34, 8.0, true, 8.0)
 
-	FaunaKit.spawn_rabbit(_grp_vegetation, fauna_agents, "ForestRabbit_0", [
-		Vector3(6.6, 0.0, 14.8), Vector3(9.0, 0.0, 14.0),
-		Vector3(9.6, 0.0, 14.2), Vector3(10.8, 0.0, 13.0),
-		Vector3(6.2, 0.0, 15.6),
-	], 18.0, 0.6, Color("#7a5c44"))
-	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "dusk", "day"], ["rain", "storm", "snow"], 44.0, 0.46, 4.0, true, 3.8)
+	FaunaKit.spawn_rabbit(_grp_vegetation, fauna_agents, "ForestRabbit_0", _clamp_wp.call([
+		Vector3(-18.5, 0.0, 6.0), Vector3(-12.2, 0.0, 7.6),
+		Vector3(-10.5, 0.0, 9.2), Vector3(-13.0, 0.0, 10.4),
+		Vector3(-19.0, 0.0, 8.0),
+	], 3.0), 22.0, 0.6, Color("#7a5c44"))
+	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "dusk", "day"], ["rain", "storm", "snow"], 92.0, 0.34, 4.0, true, 6.5)
 
-	FaunaKit.spawn_rabbit(_grp_vegetation, fauna_agents, "ForestRabbit_1", [
-		Vector3(26.8, 0.0, 12.2), Vector3(24.6, 0.0, 13.2),
-		Vector3(23.8, 0.0, 13.8), Vector3(25.0, 0.0, 15.2),
-		Vector3(27.2, 0.0, 13.0),
-	], 20.0, 1.1, Color("#614b3a"))
-	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "dusk"], ["rain", "storm", "snow"], 48.0, 0.46, 14.0, true, 3.8)
+	FaunaKit.spawn_rabbit(_grp_vegetation, fauna_agents, "ForestRabbit_1", _clamp_wp.call([
+		Vector3(width_m + 18.5, 0.0, 9.5), Vector3(width_m + 12.2, 0.0, 11.2),
+		Vector3(width_m + 10.5, 0.0, 12.6), Vector3(width_m + 12.8, 0.0, 14.0),
+		Vector3(width_m + 19.0, 0.0, 11.8),
+	], 4.2), 24.0, 1.1, Color("#614b3a"))
+	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "dusk"], ["rain", "storm", "snow"], 98.0, 0.34, 14.0, true, 6.5)
 
 	if _river_pts.size() >= 2:
-		var rx_far_n := _river_center_x(-16.0)
-		var rx_far_s := _river_center_x(depth_m + 14.0)
-		var rx_b := _river_center_x(17.0)
-		FaunaKit.spawn_fish(_grp_vegetation, fauna_agents, "StreamTrout_0", [
-			Vector3(rx_far_n, 0.022, -16.0), Vector3(rx_n + 0.15, 0.022, 10.5),
-			Vector3(rx_m - 0.15, 0.022, 19.5), Vector3(rx_far_s, 0.022, depth_m + 14.0),
-		], 20.0, 0.4, Color("#668b72"), "swim_fish", 1.38)
-		FaunaKit.set_behavior(fauna_agents.back(), ["day", "arrival", "dawn", "dusk"], [], 56.0, 0.36, 18.0, false, 0.0)
+		var trout_ns_pts := func(lat_bias: float, y_lvl: float, reverse: bool) -> Array:
+			var pts_out: Array = []
+			var z_a := -46.0
+			var z_b := depth_m + 42.0
+			var step_z := 2.5
+			var z_cur := z_b if reverse else z_a
+			while (z_cur >= z_a - 0.01) if reverse else (z_cur <= z_b + 0.01):
+				var cx_r := _river_center_x(z_cur)
+				var max_l := maxf(0.22, _river_half_width(z_cur) - 0.56)
+				var wiggle := clampf(lat_bias + sin(z_cur * 0.28 + lat_bias * 4.0) * 0.35, -max_l, max_l)
+				pts_out.append(Vector3(cx_r + wiggle, y_lvl, z_cur))
+				z_cur += (-step_z) if reverse else step_z
+			return pts_out
+		FaunaKit.spawn_fish(_grp_vegetation, fauna_agents, "StreamTrout_0", trout_ns_pts.call(0.18, 0.016, false), 26.0, 0.4, Color("#668b72"), "swim_fish", 1.38)
+		FaunaKit.set_behavior(fauna_agents.back(), ["day", "arrival", "dawn", "dusk"], [], 68.0, 0.36, 18.0, false, 0.0)
+		fauna_agents.back()["clamp_to_river"] = true
 
-		FaunaKit.spawn_fish(_grp_vegetation, fauna_agents, "StreamTrout_1", [
-			Vector3(rx_far_s, 0.022, depth_m + 14.0), Vector3(rx_s + 0.15, 0.022, 24.0),
-			Vector3(rx_n - 0.12, 0.022, 10.0), Vector3(rx_far_n, 0.022, -16.0),
-		], 22.0, 1.8, Color("#567966"), "swim_fish", 1.32)
-		FaunaKit.set_behavior(fauna_agents.back(), ["day", "arrival", "dawn", "dusk"], [], 62.0, 0.34, 42.0, false, 0.0)
+		FaunaKit.spawn_fish(_grp_vegetation, fauna_agents, "StreamTrout_1", trout_ns_pts.call(-0.18, 0.016, true), 28.0, 1.8, Color("#567966"), "swim_fish", 1.32)
+		FaunaKit.set_behavior(fauna_agents.back(), ["day", "arrival", "dawn", "dusk"], [], 72.0, 0.34, 42.0, false, 0.0)
+		fauna_agents.back()["clamp_to_river"] = true
 
-		FaunaKit.spawn_fish(_grp_vegetation, fauna_agents, "StreamTrout_2", [
-			Vector3(rx_far_n, 0.024, -14.0), Vector3(rx_b - 0.15, 0.024, 15.0),
-			Vector3(rx_b + 0.18, 0.024, 21.0), Vector3(rx_far_s, 0.024, depth_m + 12.0),
-		], 18.0, 0.18, Color("#72997d"), "swim_ocean_jump", 1.42)
-		FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "day", "dusk"], ["rain", "storm"], 64.0, 0.34, 30.0, false, 0.0)
+		FaunaKit.spawn_fish(_grp_vegetation, fauna_agents, "StreamTrout_2", trout_ns_pts.call(0.0, 0.018, false), 24.0, 0.18, Color("#72997d"), "swim_ocean_jump", 1.42)
+		FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "day", "dusk"], ["rain", "storm"], 74.0, 0.34, 30.0, false, 0.0)
+		fauna_agents.back()["clamp_to_river"] = true
+
+		# Regional upstream & downstream trout shoals spanning the entire river valley
+		var trout_sub_pts := func(z_from: float, z_to: float, lat_off: float, reverse: bool) -> Array:
+			var sub_out: Array = []
+			var z_c := z_to if reverse else z_from
+			while (z_c >= z_from - 0.01) if reverse else (z_c <= z_to + 0.01):
+				var cx_s := _river_center_x(z_c)
+				var max_s := maxf(0.20, _river_half_width(z_c) - 0.56)
+				sub_out.append(Vector3(cx_s + clampf(lat_off + sin(z_c * 0.31) * 0.32, -max_s, max_s), 0.016, z_c))
+				z_c += (-2.2) if reverse else 2.2
+			return sub_out
+		FaunaKit.spawn_fish(_grp_vegetation, fauna_agents, "StreamTrout_North", trout_sub_pts.call(-56.0, -10.0, -0.15, false), 22.0, 1.1, Color("#5f836c"), "swim_fish", 1.26)
+		FaunaKit.set_behavior(fauna_agents.back(), ["day", "arrival", "dawn", "dusk"], [], 66.0, 0.38, 6.0, false, 0.0)
+		fauna_agents.back()["clamp_to_river"] = true
+
+		FaunaKit.spawn_fish(_grp_vegetation, fauna_agents, "StreamTrout_South", trout_sub_pts.call(24.0, depth_m + 34.0, 0.16, true), 23.0, 2.3, Color("#6b9176"), "swim_fish", 1.30)
+		FaunaKit.set_behavior(fauna_agents.back(), ["day", "arrival", "dawn", "dusk"], [], 70.0, 0.38, 22.0, false, 0.0)
+		fauna_agents.back()["clamp_to_river"] = true
+
+	# Regional woodland mammals across North, South, West & East forest sectors (cover-wrapped off-camera entry/exit)
+	_spawn_fauna_actor("res://assets/fauna/quaternius_cc0-deer-908.glb", "ForestDeer_North", 0.42, _clamp_wp.call([
+		Vector3(-23.0, 0.0, -34.0), Vector3(-13.5, 0.0, -28.0),
+		Vector3(-8.5, 0.0, -22.0), Vector3(-14.5, 0.0, -31.0),
+		Vector3(-24.5, 0.0, -39.0),
+	], 5.1), 35.0, 1.4)
+	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "day", "dusk"], ["storm"], 172.0, 0.32, 6.0, true, 9.0)
+
+	_spawn_fauna_actor("res://assets/fauna/quaternius_cc0-deer-908.glb", "ForestDoe_South", 0.40, _clamp_wp.call([
+		Vector3(48.0, 0.0, 42.0), Vector3(36.0, 0.0, 38.0),
+		Vector3(29.5, 0.0, 34.5), Vector3(35.5, 0.0, 44.0),
+		Vector3(50.0, 0.0, 47.0),
+	], 6.4), 37.0, 2.7)
+	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "day", "dusk"], ["storm"], 180.0, 0.32, 24.0, true, 9.0)
+
+	FaunaKit.spawn_fox(_grp_vegetation, fauna_agents, "ForestFox_South", _clamp_wp.call([
+		Vector3(-22.0, 0.0, 42.0), Vector3(-11.0, 0.0, 35.0),
+		Vector3(-3.0, 0.0, 30.0), Vector3(-9.0, 0.0, 40.0),
+		Vector3(-21.0, 0.0, 46.0),
+	], 7.3), 31.0, 1.9)
+	FaunaKit.set_behavior(fauna_agents.back(), ["dusk", "night", "dawn", "day"], ["storm"], 118.0, 0.36, 12.0, true, 8.0)
+
+	FaunaKit.spawn_rabbit(_grp_vegetation, fauna_agents, "ForestRabbit_NW", _clamp_wp.call([
+		Vector3(-25.0, 0.0, -18.0), Vector3(-15.0, 0.0, -14.0),
+		Vector3(-12.0, 0.0, -16.5), Vector3(-17.0, 0.0, -21.0),
+		Vector3(-26.0, 0.0, -20.0),
+	], 8.2), 23.0, 0.4, Color("#735740"))
+	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "dusk", "day"], ["rain", "storm", "snow"], 96.0, 0.36, 8.0, true, 6.5)
+
+	FaunaKit.spawn_rabbit(_grp_vegetation, fauna_agents, "ForestRabbit_SW", _clamp_wp.call([
+		Vector3(-18.0, 0.0, 36.0), Vector3(-8.5, 0.0, 31.0),
+		Vector3(-5.5, 0.0, 33.5), Vector3(-10.0, 0.0, 37.0),
+		Vector3(-19.0, 0.0, 39.0),
+	], 9.4), 24.0, 2.2, Color("#664e3b"))
+	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "dusk", "day"], ["rain", "storm", "snow"], 98.0, 0.36, 18.0, true, 6.5)
+
+	FaunaKit.spawn_rabbit(_grp_vegetation, fauna_agents, "ForestRabbit_NE", _clamp_wp.call([
+		Vector3(width_m + 18.0, 0.0, -24.0), Vector3(width_m + 7.5, 0.0, -18.0),
+		Vector3(width_m + 4.0, 0.0, -15.0), Vector3(width_m + 8.5, 0.0, -21.0),
+		Vector3(width_m + 19.0, 0.0, -27.0),
+	], 10.1), 25.0, 1.5, Color("#7d6149"))
+	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "dusk", "day"], ["rain", "storm", "snow"], 94.0, 0.36, 26.0, true, 6.5)
+
+	FaunaKit.spawn_rabbit(_grp_vegetation, fauna_agents, "ForestRabbit_SE", _clamp_wp.call([
+		Vector3(width_m + 16.0, 0.0, 34.0), Vector3(width_m + 6.0, 0.0, 31.0),
+		Vector3(width_m + 3.0, 0.0, 34.0), Vector3(width_m + 7.5, 0.0, 38.0),
+		Vector3(width_m + 17.5, 0.0, 37.0),
+	], 11.2), 24.0, 0.9, Color("#5f4a39"))
+	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "dusk", "day"], ["rain", "storm", "snow"], 100.0, 0.36, 36.0, true, 6.5)
 
 	FaunaKit.spawn_perched_bird(_grp_vegetation, fauna_agents, "ForestPerchedRobin", Vector3(24.6, 0.52, 15.8), -2.2, Color("#6e5344"), Color("#c96b38"), 0.88, 0.9)
 	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "day", "dusk"], ["rain", "storm", "snow"], 42.0, 0.44, 2.0, false, 3.6)
@@ -634,12 +981,60 @@ func _build_forest_details(scene_def: Dictionary, _fx: CampAtmosphereFx, width_m
 	FaunaKit.spawn_perched_bird(_grp_vegetation, fauna_agents, "ForestPerchedJay", Vector3(rx_n + 1.4, 0.34, 11.2), 1.4, Color("#4f74a8"), Color("#2c384e"), 0.92, 2.7)
 	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "day", "dusk"], ["rain", "storm", "snow"], 48.0, 0.42, 24.0, false, 3.6)
 
+	# Paso 17.4: Additional forest birds perched high on actual tree branches framing the camp clearing
+	FaunaKit.spawn_perched_bird(_grp_vegetation, fauna_agents, "ForestPerchedThrush", Vector3(12.9, 2.38, 10.9), 0.75, Color("#73563e"), Color("#d6b482"), 0.86, 1.8)
+	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "day", "dusk"], ["rain", "storm", "snow"], 45.0, 0.46, 11.0, false, 3.8)
+
+	FaunaKit.spawn_perched_bird(_grp_vegetation, fauna_agents, "ForestPerchedFinch", Vector3(23.8, 2.52, 11.7), -1.15, Color("#566e3d"), Color("#d8a63c"), 0.82, 3.2)
+	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "day", "dusk"], ["rain", "storm", "snow"], 52.0, 0.44, 18.0, false, 3.8)
+
+	# Regional perched woodland birds anchored cleanly on physical stumps & mossy perch boulders (never floating or trapped!)
+	var rx_sw := _river_center_x(32.0)
+	var perched_specs: Array[Dictionary] = [
+		{"name": "ForestPerchedWren_NW", "xz": Vector2(-14.0, -20.0), "stump": true,  "yaw": 0.9,  "body": Color("#6d523d"), "wing": Color("#9c7858"), "sc": 0.84, "ph": 0.5, "off": 6.0},
+		{"name": "ForestPerchedThrush_N", "xz": Vector2(24.0, -28.0), "stump": true,  "yaw": -1.4, "body": Color("#755840"), "wing": Color("#d4b180"), "sc": 0.88, "ph": 1.6, "off": 15.0},
+		{"name": "ForestPerchedFinch_W", "xz": Vector2(-11.5, 16.5),  "stump": false, "yaw": 1.8,  "body": Color("#556d3d"), "wing": Color("#d8a43b"), "sc": 0.82, "ph": 2.4, "off": 24.0},
+		{"name": "ForestPerchedJay_SW",  "xz": Vector2(rx_sw - 2.6, 32.0), "stump": false, "yaw": 0.4, "body": Color("#4d72a6"), "wing": Color("#2a364c"), "sc": 0.90, "ph": 3.1, "off": 9.0},
+		{"name": "ForestPerchedRobin_S", "xz": Vector2(26.5, 38.0),   "stump": true,  "yaw": -2.1, "body": Color("#6e5344"), "wing": Color("#cb6c3a"), "sc": 0.86, "ph": 1.2, "off": 29.0},
+		{"name": "ForestPerchedFinch_E", "xz": Vector2(42.0, 10.0),   "stump": false, "yaw": -0.8, "body": Color("#5c7442"), "wing": Color("#dec056"), "sc": 0.84, "ph": 2.9, "off": 36.0},
+	]
+	for p_idx in range(perched_specs.size()):
+		var pspec: Dictionary = perched_specs[p_idx]
+		var pxz: Vector2 = pspec["xz"]
+		var p_gy := eval_ground_height(pxz.x, pxz.y)
+		var perch_top_y := p_gy + 0.52
+		if bool(pspec["stump"]):
+			var pst := MeshInstance3D.new()
+			pst.name = "BirdPerchStump_%d" % p_idx
+			var psm := CylinderMesh.new(); psm.top_radius = 0.24; psm.bottom_radius = 0.36; psm.height = 0.54; psm.radial_segments = 8
+			pst.mesh = psm; pst.material_override = mat_trunk
+			pst.position = Vector3(pxz.x, p_gy + 0.24, pxz.y)
+			_grp_env_geo.add_child(pst)
+			_env_kit.spawn_shelf_fungi(_grp_vegetation, Vector3(pxz.x - 0.18, p_gy + 0.25, pxz.y + 0.08), float(p_idx) * 1.3)
+		else:
+			_env_kit.spawn_rock(_grp_env_geo, Vector3(pxz.x, p_gy + 0.18, pxz.y), Vector3(0.68, 0.42, 0.62), float(p_idx) * 1.1, mat_moss_rock, p_idx + 2, "rounded")
+			perch_top_y = p_gy + 0.38
+		FaunaKit.spawn_perched_bird(_grp_vegetation, fauna_agents, str(pspec["name"]), Vector3(pxz.x, perch_top_y, pxz.y), float(pspec["yaw"]), pspec["body"], pspec["wing"], float(pspec["sc"]), float(pspec["ph"]))
+		FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "day", "dusk"], ["rain", "storm", "snow"], 48.0, 0.48, float(pspec["off"]), false, 3.8)
+
 	FaunaKit.spawn_butterflies(_grp_vegetation, fauna_agents, "ForestButterflyA", Vector3(10.2, 0.0, 21.8), 3, 1.1)
 	FaunaKit.spawn_butterflies(_grp_vegetation, fauna_agents, "ForestButterflyB", Vector3(23.4, 0.0, 13.0), 3, 3.4)
+	var rx_mid := _river_center_x(4.0)
+	var rx_up := _river_center_x(-22.0)
+	var bfly_spots: Array[Dictionary] = [
+		{"name": "ForestButterfly_WBank", "pos": Vector3(rx_mid - 2.8, eval_ground_height(rx_mid - 2.8, 4.0), 4.0), "ph": 0.7},
+		{"name": "ForestButterfly_WestGlade", "pos": Vector3(-15.0, eval_ground_height(-15.0, 12.0), 12.0), "ph": 2.1},
+		{"name": "ForestButterfly_NorthTrail", "pos": Vector3(22.0, eval_ground_height(22.0, -30.0), -30.0), "ph": 3.5},
+		{"name": "ForestButterfly_NorthCreek", "pos": Vector3(rx_up + 2.5, eval_ground_height(rx_up + 2.5, -22.0), -22.0), "ph": 1.6},
+		{"name": "ForestButterfly_SouthTrail", "pos": Vector3(28.0, eval_ground_height(28.0, 39.0), 39.0), "ph": 4.2},
+		{"name": "ForestButterfly_EastGrove", "pos": Vector3(41.0, eval_ground_height(41.0, -4.0), -4.0), "ph": 2.8},
+	]
+	for bsp: Dictionary in bfly_spots:
+		FaunaKit.spawn_butterflies(_grp_vegetation, fauna_agents, str(bsp["name"]), bsp["pos"], 3, float(bsp["ph"]))
 	sync_wildlife()
 
 # ------------------------------------------------------------------------------
-# Forest river: centreline, valley carving and animated ribbon (17/11/2026)
+# Forest river: centreline, valley carving and animated ribbon (FASE 1 Pasos 2-5)
 # ------------------------------------------------------------------------------
 func _prepare_forest_river(depth_m: float) -> void:
 	_river_pts.clear()
@@ -649,36 +1044,41 @@ func _prepare_forest_river(depth_m: float) -> void:
 		return
 	var x0 := float(raw[0]["x"]); var z0 := float(raw[0]["z"])
 	# Upstream: descends from the northern hills, meandering west then back (to skirt edge)
-	var z := -47.5
+	var z := -88.0
 	while z < z0 - 0.01:
 		var dz := z0 - z
 		var ramp := clampf(dz / 14.0, 0.0, 1.0)
 		_river_pts.append(Vector2(x0 - sin(dz * 0.075) * 4.2 * ramp - dz * 0.035 * ramp, z))
-		z += 1.5
-	# Canonical in-map course (exact water cells preserved)
+		z += 1.25
+	# Canonical in-map course (exact water cells preserved, finer subdivision along bends)
 	for s_i in range(raw.size() - 1):
 		var pa: Dictionary = raw[s_i]; var pb: Dictionary = raw[s_i + 1]
-		for sub in range(3):
-			var tf := float(sub) / 3.0
+		for sub in range(4):
+			var tf := float(sub) / 4.0
 			_river_pts.append(Vector2(lerpf(float(pa["x"]), float(pb["x"]), tf), lerpf(float(pa["z"]), float(pb["z"]), tf)))
 	var last: Dictionary = raw[raw.size() - 1]
 	var xl := float(last["x"]); var zl := float(last["z"])
 	_river_pts.append(Vector2(xl, zl))
 	# Downstream: widening meander away south towards Pleamar
-	z = zl + 1.5
-	while z <= depth_m + 69.0:
+	z = zl + 1.25
+	while z <= depth_m + 74.0:
 		var ds := z - zl
 		var ramp2 := clampf(ds / 12.0, 0.0, 1.0)
 		_river_pts.append(Vector2(xl + sin(ds * 0.065) * 5.0 * ramp2 + ds * 0.06 * ramp2, z))
-		z += 1.5
-	# Smooth only the off-map parts
-	for _pass in range(3):
+		z += 1.25
+	# Smooth off-map bends thoroughly + micro-round in-map bend vertices (<0.09m) for seamless curves
+	for pass_idx in range(4):
 		for i in range(1, _river_pts.size() - 1):
 			var pz := _river_pts[i].y
+			var avg_x := (_river_pts[i - 1].x + _river_pts[i].x * 2.0 + _river_pts[i + 1].x) * 0.25
 			if pz < -0.5 or pz > depth_m + 0.5:
 				var sv := _river_pts[i]
-				sv.x = (_river_pts[i - 1].x + _river_pts[i].x * 2.0 + _river_pts[i + 1].x) * 0.25
+				sv.x = avg_x
 				_river_pts[i] = sv
+			elif pass_idx < 2 and absf(pz - 17.0) > 1.8:
+				var sv2 := _river_pts[i]
+				sv2.x = lerpf(sv2.x, avg_x, 0.42)
+				_river_pts[i] = sv2
 
 func _river_center_x(z: float) -> float:
 	var n := _river_pts.size()
@@ -700,10 +1100,13 @@ func _river_center_x(z: float) -> float:
 	return lerpf(a.x, b.x, (z - a.y) / maxf(0.0001, b.y - a.y))
 
 func _river_half_width(z: float) -> float:
-	var hw := 2.05 + sin(z * 0.37) * 0.2
-	hw += clampf((z - _river_depth_m) / 60.0, 0.0, 1.0) * 0.55
-	hw -= clampf(-z / 40.0, 0.0, 1.0) * 0.55
-	return hw
+	# Organic width undulations (slight narrows near bridge & riffles, wider quiet pools downstream)
+	var hw := 1.94 + sin(z * 0.34) * 0.30 + cos(z * 0.67 + 0.8) * 0.14
+	var bridge_pinch := exp(-pow((z - 17.0) / 3.4, 2.0)) * 0.16
+	hw -= bridge_pinch
+	hw += clampf((z - _river_depth_m) / 60.0, 0.0, 1.0) * 0.58
+	hw -= clampf(-z / 48.0, 0.0, 1.0) * 0.52
+	return maxf(1.32, hw)
 
 func _river_distance(p: Vector2) -> float:
 	if _river_pts.is_empty():
@@ -713,17 +1116,23 @@ func _river_distance(p: Vector2) -> float:
 func _carve_river_valley(px: float, pz: float, h: float) -> float:
 	if _river_pts.is_empty():
 		return h
-	var floor_h := -0.03
+	var floor_h := -0.27
 	if h <= floor_h:
 		return h
-	var d := _river_distance(Vector2(px, pz))
+	var cx := _river_center_x(pz)
+	var d := absf(px - cx)
+	var side_sign := 1.0 if px >= cx else -1.0
 	var hw := _river_half_width(pz)
-	var t := smoothstep(hw + 0.5, hw + 6.5, d)
+	# Vary bank slope naturally between steeper outer bends and gentler inner sediment margins
+	var slope_var := 1.0 + sin(pz * 0.23 + side_sign * 1.15) * 0.36 + cos(pz * 0.51) * 0.14
+	var bank_span := clampf(2.6 * slope_var, 1.45, 4.4)
+	var edge_jitter := sin(pz * 0.62 + px * 0.45) * 0.24
+	var t := smoothstep(hw * 0.78 + edge_jitter, hw + bank_span + edge_jitter, d)
 	return lerpf(floor_h, h, t)
 
 func _build_forest_river_ribbon(mat_bed: Material, mat_moss_rock: Material, mat_fern: Material, mat_plank: Material) -> void:
 	var n := _river_pts.size()
-	var across := 4
+	var across := 10
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var st_bed := SurfaceTool.new(); st_bed.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var rows: Array = []
@@ -738,21 +1147,32 @@ func _build_forest_river_ribbon(mat_bed: Material, mat_moss_rock: Material, mat_
 		var nrm := Vector2(tan.y, -tan.x)
 		if nrm.x < 0.0:
 			nrm = -nrm
-		var hw := _river_half_width(_river_pts[i].y)
+		var pz := _river_pts[i].y
+		var hw := _river_half_width(pz)
+		# Gentle natural downstream water grade (imperceptible micro-slope, zero abrupt drops!)
+		var water_grade := clampf((17.0 - pz) * 0.00045, -0.018, 0.018)
 		var row: Array[Vector3] = []
 		for k in range(across + 1):
-			var off := (float(k) / float(across) * 2.0 - 1.0) * hw
+			var u := float(k) / float(across)
+			var off := (u * 2.0 - 1.0) * (hw + 0.22)
 			var p2 := _river_pts[i] + nrm * off
-			row.append(Vector3(p2.x, 0.045, p2.y))
+			# Soft convex water surface crown tapering smoothly beneath wet earth margins
+			var edge_dip := lerpf(-0.042, 0.022, sin(u * PI)) + water_grade
+			row.append(Vector3(p2.x, edge_dip, p2.y))
 		rows.append(row)
-		var bl := _river_pts[i] - nrm * (hw + 0.55)
-		var br := _river_pts[i] + nrm * (hw + 0.55)
-		bed_rows.append([Vector3(bl.x, 0.012, bl.y), Vector3(br.x, 0.012, br.y)])
+		var b_row: Array[Vector3] = []
+		var pool_depth := -0.225 - sin(pz * 0.29) * 0.028
+		for bk in range(7):
+			var bu := float(bk) / 6.0
+			var bp := _river_pts[i] + nrm * ((bu * 2.0 - 1.0) * (hw + 0.62))
+			var by := lerpf(-0.07, pool_depth, sin(bu * PI))
+			b_row.append(Vector3(bp.x, by, bp.y))
+		bed_rows.append(b_row)
 	river_length_m = dist
 
 	for i in range(n - 1):
 		var r0: Array = rows[i]; var r1: Array = rows[i + 1]
-		var v0 := dists[i] * 0.5; var v1 := dists[i + 1] * 0.5
+		var v0 := dists[i] * 0.58; var v1 := dists[i + 1] * 0.58
 		for k in range(across):
 			var u0 := float(k) / float(across); var u1 := float(k + 1) / float(across)
 			var quad := [[r0[k], Vector2(u0, v0)], [r0[k + 1], Vector2(u1, v0)], [r1[k + 1], Vector2(u1, v1)], [r1[k], Vector2(u0, v1)]]
@@ -760,19 +1180,22 @@ func _build_forest_river_ribbon(mat_bed: Material, mat_moss_rock: Material, mat_
 				st.set_normal(Vector3.UP)
 				st.set_uv(quad[idx][1])
 				st.add_vertex(quad[idx][0])
-		var b0: Array = bed_rows[i]; var b1: Array = bed_rows[i + 1]
-		_emit_quad(st_bed, b0[0], b0[1], b1[1], b1[0])
+		var br0: Array = bed_rows[i]; var br1: Array = bed_rows[i + 1]
+		for bk in range(6):
+			_emit_quad(st_bed, br0[bk], br0[bk + 1], br1[bk + 1], br1[bk])
 
 	st_bed.generate_normals()
 	var sbed := MeshInstance3D.new(); sbed.name = "ForestStreamBed"
 	sbed.mesh = st_bed.commit(); sbed.material_override = mat_bed
 	sbed.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_grp_terrain.add_child(sbed)
+	sbed.create_trimesh_collision()
 
+	st.generate_normals()
 	st.generate_tangents()
 	var smesh := MeshInstance3D.new(); smesh.name = "ForestOrganicStream"
 	smesh.mesh = st.commit()
-	var smat := MatKit.create_river_shader_material(Color(0.059, 0.247, 0.298, 0.72), Color(0.169, 0.486, 0.502, 0.44), Color("#e2f5f6"), 0.95, 0.014, true)
+	var smat := MatKit.create_river_shader_material(Color(0.055, 0.19, 0.22, 0.82), Color(0.14, 0.31, 0.28, 0.34), Color("#ddece8"), 1.25, 0.011, true)
 	smat.set_meta("river_flow", true)
 	_river_mats.append(smat)
 	_stream_shader_mats.append(smat)
@@ -781,14 +1204,38 @@ func _build_forest_river_ribbon(mat_bed: Material, mat_moss_rock: Material, mat_
 	smesh.set_meta("river_length_m", river_length_m)
 	_grp_terrain.add_child(smesh)
 
-	# Banks: mossy stones, reeds and ferns aligned along perpendicular normal (never inside water or bridge)
+	# Submerged & half-emergent rounded stream boulders casting natural non-repeating V-wakes (10 wake points)
 	var bz := 17.0
-	var next_rock := 0.0; var next_reed := 1.4; var next_fern := 2.8
-	var side := 1.0
+	var bx := _river_center_x(bz)
+	var b_hw := _river_half_width(bz)
+	var wake_list: Array[Vector4] = [
+		Vector4(bx - b_hw * 0.72, bz, 0.64, 0.72),
+		Vector4(bx + b_hw * 0.72, bz, 0.64, 0.72),
+	]
+	var mat_wet_cobble := MatKit.make_textured_mat("basalt-coastal-albedo-v1.webp", Color("#4e5a52"), 0.28, "rock", Vector3(0.65, 0.65, 0.65), true, true)
+	var stream_rocks := [2.8, 7.6, 10.6, 13.9, 20.4, 24.8, 29.5, 36.2]
+	for sr_i in range(stream_rocks.size()):
+		var rz := float(stream_rocks[sr_i])
+		var lat_off := (-0.64 if sr_i % 3 == 0 else (0.58 if sr_i % 3 == 1 else -0.22))
+		var rx := _river_center_x(rz) + lat_off
+		var s_sc := 0.58 + fmod(float(sr_i) * 0.19, 0.24)
+		_env_kit.spawn_rock(_grp_env_geo, Vector3(rx, -0.055, rz), Vector3(s_sc * 1.08, s_sc * 0.52, s_sc * 0.92), float(sr_i) * 1.4, mat_wet_cobble, sr_i, "rounded")
+		_env_kit.spawn_rock(_grp_env_geo, Vector3(rx + 0.34 * (1.0 if sr_i % 2 == 0 else -1.0), -0.11, rz + 0.32), Vector3(s_sc * 0.65, s_sc * 0.34, s_sc * 0.58), float(sr_i) * 2.1, mat_wet_cobble, sr_i + 2, "rounded")
+		wake_list.append(Vector4(rx, rz, 0.54 + s_sc * 0.22, 0.85))
+	while wake_list.size() < 10:
+		wake_list.append(Vector4.ZERO)
+	smat.set_shader_parameter("wake_pts", wake_list)
+
+	# Organic irregular bank clusters: partially buried rounded cobbles, exposed roots, lush ferns & reeds (never uniform rows, clear of bridge!)
+	var bank_rng := RandomNumberGenerator.new()
+	bank_rng.seed = 20261122
+	var mat_root_bark := MatKit.make_wood_mat(Color("#4c3928"), true)
+	var root_proto := _env_kit.get_twig_debris_proto("root")
+	var next_rock := 0.8; var next_reed := 1.4; var next_fern := 1.9; var next_root := 4.5
 	for i in range(n):
 		var d_i := dists[i]
 		var p := _river_pts[i]
-		if absf(p.y - bz) < 2.25:
+		if absf(p.y - bz) < 2.65:
 			continue
 		var tan_i := (_river_pts[mini(n - 1, i + 1)] - _river_pts[maxi(0, i - 1)]).normalized()
 		var nrm_i := Vector2(tan_i.y, -tan_i.x)
@@ -796,61 +1243,177 @@ func _build_forest_river_ribbon(mat_bed: Material, mat_moss_rock: Material, mat_
 			nrm_i = -nrm_i
 		var hw2 := _river_half_width(p.y)
 		if d_i >= next_rock:
-			next_rock = d_i + 2.6 + fmod(float(i) * 0.37, 1.4)
-			side = -side
-			var rp2 := p + nrm_i * (side * (hw2 + 0.18))
-			_env_kit.spawn_rock(_grp_env_geo, Vector3(rp2.x, 0.05, rp2.y), Vector3(0.72, 0.30, 0.66), float(i) * 0.9, mat_moss_rock, i, "rounded")
-		if d_i >= next_reed:
-			next_reed = d_i + 3.2 + fmod(float(i) * 0.53, 1.6)
-			var s2 := -side
-			var rdp := p + nrm_i * (s2 * (hw2 + 0.38))
-			var bank_y := maxf(0.0, _carve_river_valley(rdp.x, rdp.y, 0.0))
-			_env_kit.spawn_reed_cluster(_grp_vegetation, Vector3(rdp.x, bank_y, rdp.y), mat_fern, float(i) * 1.3, i % 3 == 0)
-		if d_i >= next_fern and (p.y < 0.0 or p.y > _river_depth_m):
-			next_fern = d_i + 4.4
-			var fp2 := p + nrm_i * (side * (hw2 + 0.85))
-			var fy := maxf(0.0, _carve_river_valley(fp2.x, fp2.y, 0.0))
-			_env_kit.spawn_fern_clump(_grp_vegetation, Vector3(fp2.x, fy, fp2.y), 0.95, mat_fern, float(i), 3)
+			next_rock = d_i + bank_rng.randf_range(2.6, 5.4)
+			var r_side := -1.0 if bank_rng.randf() < 0.5 else 1.0
+			var cluster_n := bank_rng.randi_range(2, 4)
+			for ci in range(cluster_n):
+				var off_d := bank_rng.randf_range(-0.42, 0.52)
+				var along_d := bank_rng.randf_range(-0.75, 0.75)
+				var rp2 := p + nrm_i * (r_side * (hw2 + 0.08 + off_d)) + tan_i * along_d
+				var ry_rock := _carve_river_valley(rp2.x, rp2.y, 0.0)
+				var r_sc := bank_rng.randf_range(0.32, 0.76) * (1.0 if ci == 0 else 0.72)
+				_env_kit.spawn_rock(_grp_env_geo, Vector3(rp2.x, ry_rock - 0.02 + r_sc * 0.12, rp2.y), Vector3(r_sc * 1.15, r_sc * 0.44, r_sc * 0.96), bank_rng.randf() * TAU, mat_moss_rock if ci % 2 == 0 else mat_wet_cobble, i + ci, "rounded")
+		if d_i >= next_reed and p.y > -24.0 and p.y < _river_depth_m + 24.0:
+			next_reed = d_i + bank_rng.randf_range(2.4, 5.2)
+			var s2 := -1.0 if bank_rng.randf() < 0.5 else 1.0
+			var reed_cnt := bank_rng.randi_range(1, 2)
+			for ri2 in range(reed_cnt):
+				var rdp := p + nrm_i * (s2 * (hw2 + bank_rng.randf_range(0.24, 0.62))) + tan_i * bank_rng.randf_range(-0.6, 0.6)
+				var bank_y := maxf(-0.06, _carve_river_valley(rdp.x, rdp.y, 0.0))
+				_env_kit.spawn_reed_cluster(_grp_vegetation, Vector3(rdp.x, bank_y, rdp.y), mat_fern, bank_rng.randf() * 10.0, (i + ri2) % 3 == 0)
+		if d_i >= next_fern and p.y > -26.0 and p.y < _river_depth_m + 26.0:
+			next_fern = d_i + bank_rng.randf_range(2.2, 4.8)
+			var f_side := -1.0 if bank_rng.randf() < 0.5 else 1.0
+			var fp2 := p + nrm_i * (f_side * (hw2 + bank_rng.randf_range(0.68, 1.38)))
+			var fy := maxf(-0.04, _carve_river_valley(fp2.x, fp2.y, 0.0))
+			_env_kit.spawn_fern_clump(_grp_vegetation, Vector3(fp2.x, fy, fp2.y), bank_rng.randf_range(0.72, 1.06), mat_fern, bank_rng.randf() * 10.0, bank_rng.randi_range(2, 3))
+		if d_i >= next_root and p.y > -12.0 and p.y < _river_depth_m + 14.0:
+			next_root = d_i + bank_rng.randf_range(5.5, 9.5)
+			var rt_side := -1.0 if bank_rng.randf() < 0.5 else 1.0
+			var rtp := p + nrm_i * (rt_side * (hw2 + bank_rng.randf_range(0.75, 1.45)))
+			var rty := _carve_river_valley(rtp.x, rtp.y, 0.0)
+			var r_mi := MeshInstance3D.new()
+			r_mi.mesh = root_proto
+			r_mi.material_override = mat_root_bark
+			r_mi.position = Vector3(rtp.x, rty + 0.02, rtp.y)
+			r_mi.rotation = Vector3(0.0, atan2(-rt_side * nrm_i.y, -rt_side * nrm_i.x) + bank_rng.randf_range(-0.35, 0.35), rt_side * 0.16)
+			r_mi.scale = Vector3.ONE * bank_rng.randf_range(0.85, 1.32)
+			r_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			_grp_vegetation.add_child(r_mi)
 
-	# Handcrafted wooden plank footbridge spanning cleanly bank-to-bank
-	var bx := _river_center_x(bz)
-	var span_w := _river_half_width(bz) * 2.0 + 1.05
-	_build_wooden_footbridge(Vector3(bx, 0.12, bz), span_w, mat_plank)
+	# Handcrafted rustic timber footbridge anchored with stone/earth abutments on both banks
+	var span_w := _river_half_width(bz) * 2.0 + 1.65
+	_build_wooden_footbridge(Vector3(bx, 0.06, bz), span_w, mat_plank, mat_moss_rock)
 
-func _build_wooden_footbridge(pos: Vector3, span_w: float, mat_plank: Material) -> void:
+func _build_wooden_footbridge(pos: Vector3, span_w: float, mat_plank: Material, mat_stone: Material = null) -> void:
 	var bridge := Node3D.new()
 	bridge.name = "StreamFootbridge"
 	bridge.position = pos
 	_grp_structures.add_child(bridge)
 	var mat_post := MatKit.make_wood_mat(Color("#543d2b"), true)
+	var mat_wet_post := MatKit.make_wood_mat(Color("#362b21"), true)
+	var mat_rope := MatKit.make_cloth_mat(Color("#a7936c"), true, true)
+	var mat_abut := mat_stone if mat_stone else MatKit.make_textured_mat("a1-cliff-organic-v7.png", Color("#646f61"), 0.88, "rock", Vector3(0.45, 0.45, 0.45), true, true)
+	var mat_earth_apron := MatKit.make_textured_mat("path.jpg", Color("#705c45"), 0.88, "rock", Vector3(0.55, 0.55, 0.55), true, true)
 	var st_deck := SurfaceTool.new(); st_deck.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var st_deck_pale := SurfaceTool.new(); st_deck_pale.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var st_deck_moss := SurfaceTool.new(); st_deck_moss.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var st_beam := SurfaceTool.new(); st_beam.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var st_wet := SurfaceTool.new(); st_wet.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var st_rope := SurfaceTool.new(); st_rope.begin(Mesh.PRIMITIVE_TRIANGLES)
 
-	# Two longitudinal side stringers under the planks
-	for sz in [-0.54, 0.54]:
-		var bm := BoxMesh.new(); bm.size = Vector3(span_w, 0.14, 0.16)
-		st_beam.append_from(bm, 0, Transform3D(Basis.IDENTITY, Vector3(0.0, -0.02, sz)))
-	# Four low corner mooring posts anchored into the banks
-	for px in [-span_w * 0.44, span_w * 0.44]:
-		for pz in [-0.68, 0.68]:
-			var pm := CylinderMesh.new(); pm.top_radius = 0.075; pm.bottom_radius = 0.095; pm.height = 0.62; pm.radial_segments = 7
-			st_beam.append_from(pm, 0, Transform3D(Basis.IDENTITY, Vector3(px, 0.10, pz)))
-	st_beam.generate_normals()
+	var deck_w := 1.72
+	var half_span := span_w * 0.5
+	var abutment_x := half_span - 0.36
+
+	# West & East mossy stone abutments + sloped earth/cobble approach aprons seamlessly meeting banks
+	for end_s: float in [-1.0, 1.0]:
+		var ax: float = end_s * (abutment_x + 0.14)
+		_env_kit.spawn_rock(bridge, Vector3(ax, -0.05, -0.84), Vector3(1.18, 0.46, 0.74), end_s * 0.35, mat_abut, 0 if end_s < 0 else 2, "flat")
+		_env_kit.spawn_rock(bridge, Vector3(ax, -0.05, 0.84), Vector3(1.18, 0.46, 0.74), -end_s * 0.3, mat_abut, 1 if end_s < 0 else 3, "flat")
+		_env_kit.spawn_rock(bridge, Vector3(end_s * (half_span + 0.18), -0.07, 0.0), Vector3(1.22, 0.24, 1.68), 0.0, mat_abut, 4, "flat")
+		# Natural flat stepping stones embedded flush into curved dirt bank threshold (zero boxy slab!)
+		_env_kit.spawn_rock(bridge, Vector3(end_s * (half_span + 0.56), -0.09, -0.34), Vector3(0.68, 0.16, 0.58), end_s * 0.4, mat_earth_apron, 1, "flat")
+		_env_kit.spawn_rock(bridge, Vector3(end_s * (half_span + 0.52), -0.09, 0.34), Vector3(0.64, 0.16, 0.56), -end_s * 0.35, mat_abut, 3, "flat")
+		# Horizontal timber mudsill embedded across bank abutment
+		var sill := BoxMesh.new(); sill.size = Vector3(0.24, 0.22, deck_w + 0.12)
+		st_wet.append_from(sill, 0, Transform3D(Basis.IDENTITY, Vector3(end_s * abutment_x, -0.04, 0.0)))
+
+	# Arched heavy side stringer beams, 3 under-cross-bearers, and low rustic log curb rails along deck edges
+	for sz: float in [-0.64, 0.64]:
+		var segs := 4
+		for s_i in range(segs):
+			var xa := lerpf(-abutment_x - 0.15, abutment_x + 0.15, float(s_i) / float(segs))
+			var xb := lerpf(-abutment_x - 0.15, abutment_x + 0.15, float(s_i + 1) / float(segs))
+			var ya := sin((float(s_i) / float(segs)) * PI) * 0.11 + 0.01
+			var yb := sin((float(s_i + 1) / float(segs)) * PI) * 0.11 + 0.01
+			var dx := xb - xa; var dy := yb - ya
+			var len_s := sqrt(dx * dx + dy * dy) + 0.04
+			var pitch := atan2(dy, dx)
+			var bm := BoxMesh.new(); bm.size = Vector3(len_s, 0.16, 0.18)
+			st_beam.append_from(bm, 0, Transform3D(Basis.from_euler(Vector3(0.0, 0.0, pitch)), Vector3((xa + xb) * 0.5, (ya + yb) * 0.5, sz)))
+			# Low rustic curb beam along deck outer edge (gives crisp bridge silhouette without hiding sprites)
+			var curb_z := 0.80 if sz > 0.0 else -0.80
+			var cm_curb := BoxMesh.new(); cm_curb.size = Vector3(len_s, 0.085, 0.11)
+			st_beam.append_from(cm_curb, 0, Transform3D(Basis.from_euler(Vector3(0.0, 0.0, pitch)), Vector3((xa + xb) * 0.5, (ya + yb) * 0.5 + 0.145, curb_z)))
+	for cb_f: float in [-0.36, 0.0, 0.36]:
+		var cbx: float = cb_f * span_w
+		var cby: float = cos(cb_f * PI * 0.5) * 0.09 - 0.04
+		var cbm := BoxMesh.new(); cbm.size = Vector3(0.14, 0.14, 1.54)
+		st_beam.append_from(cbm, 0, Transform3D(Basis.IDENTITY, Vector3(cbx, cby, 0.0)))
+
+	# Four driven bank/bed pilings with damp moss base collars, diagonal braces & hemp lashings
+	for px: float in [-abutment_x + 0.12, abutment_x - 0.12]:
+		var dir_in := -1.0 if px > 0.0 else 1.0
+		for pz: float in [-0.78, 0.78]:
+			var pm := CylinderMesh.new(); pm.top_radius = 0.085; pm.bottom_radius = 0.11; pm.height = 0.94; pm.radial_segments = 7
+			st_beam.append_from(pm, 0, Transform3D(Basis.IDENTITY, Vector3(px, 0.08, pz)))
+			var collar := CylinderMesh.new(); collar.top_radius = 0.105; collar.bottom_radius = 0.125; collar.height = 0.28; collar.radial_segments = 7
+			st_wet.append_from(collar, 0, Transform3D(Basis.IDENTITY, Vector3(px, -0.14, pz)))
+			# Diagonal knee brace from piling inward up to stringer
+			var br := BoxMesh.new(); br.size = Vector3(0.68, 0.09, 0.09)
+			st_beam.append_from(br, 0, Transform3D(Basis.from_euler(Vector3(0.0, 0.0, dir_in * 0.52)), Vector3(px + dir_in * 0.28, -0.02, pz * 0.84)))
+			# Hemp rope lashing wrapping post/stringer & curb joint
+			for turn in range(2):
+				var rt := TorusMesh.new(); rt.inner_radius = 0.082; rt.outer_radius = 0.105; rt.rings = 10; rt.ring_segments = 6
+				st_rope.append_from(rt, 0, Transform3D(Basis.IDENTITY, Vector3(px, 0.08 + float(turn) * 0.036, pz)))
+
+	st_wet.deindex(); st_wet.generate_normals()
+	var wet_mesh := MeshInstance3D.new(); wet_mesh.mesh = st_wet.commit(); wet_mesh.material_override = mat_wet_post
+	bridge.add_child(wet_mesh)
+
+	st_beam.deindex(); st_beam.generate_normals()
 	var beams := MeshInstance3D.new(); beams.mesh = st_beam.commit(); beams.material_override = mat_post
 	bridge.add_child(beams)
 
-	# 10 weathered cross planks with narrow gaps so the river glints beneath
-	var plank_count := 10
-	var step_x := (span_w - 0.30) / float(plank_count)
+	st_rope.deindex(); st_rope.generate_normals()
+	var ropes := MeshInstance3D.new(); ropes.mesh = st_rope.commit(); ropes.material_override = mat_rope
+	bridge.add_child(ropes)
+
+	# 13 weathered rough-hewn cross planks in 3 aged timber tones (warm oak, sun-bleached grey, mossy edge)
+	var mat_plank_pale := MatKit.make_wood_mat(Color("#8c7a62"), true)
+	var mat_plank_moss := MatKit.make_wood_mat(Color("#5b5c40"), true)
+	var plank_count := 13
+	var step_x := (span_w - 0.12) / float(plank_count)
 	for i in range(plank_count):
-		var px := -span_w * 0.5 + 0.15 + (float(i) + 0.5) * step_x
-		var arch_y := sin(float(i + 1) / float(plank_count + 1) * PI) * 0.09
-		var pm2 := BoxMesh.new(); pm2.size = Vector3(step_x * 0.84, 0.065, 1.48)
-		var rot := Basis.from_euler(Vector3(0.0, sin(float(i) * 1.9) * 0.025, 0.0))
-		st_deck.append_from(pm2, 0, Transform3D(rot, Vector3(px, 0.08 + arch_y, 0.0)))
-	st_deck.generate_normals()
+		var px := -span_w * 0.5 + 0.06 + (float(i) + 0.5) * step_x
+		var u_p := float(i + 1) / float(plank_count + 1)
+		var arch_y := sin(u_p * PI) * 0.11
+		var thick := 0.068 + fmod(float(i) * 0.017, 0.022)
+		var pm2 := BoxMesh.new(); pm2.size = Vector3(step_x * 0.90, thick, deck_w + sin(float(i) * 2.3) * 0.06)
+		var rot := Basis.from_euler(Vector3(0.0, sin(float(i) * 1.9) * 0.022, 0.0))
+		var xf_p := Transform3D(rot, Vector3(px, 0.095 + arch_y, 0.0))
+		if i == 0 or i == 1 or i == plank_count - 1 or i == 5:
+			st_deck_moss.append_from(pm2, 0, xf_p)
+		elif i == 3 or i == 7 or i == 10:
+			st_deck_pale.append_from(pm2, 0, xf_p)
+		else:
+			st_deck.append_from(pm2, 0, xf_p)
+	st_deck.deindex(); st_deck.generate_normals()
 	var deck := MeshInstance3D.new(); deck.mesh = st_deck.commit(); deck.material_override = mat_plank
 	bridge.add_child(deck)
+	st_deck_pale.deindex(); st_deck_pale.generate_normals()
+	var deck_p := MeshInstance3D.new(); deck_p.mesh = st_deck_pale.commit(); deck_p.material_override = mat_plank_pale
+	bridge.add_child(deck_p)
+	st_deck_moss.deindex(); st_deck_moss.generate_normals()
+	var deck_m := MeshInstance3D.new(); deck_m.mesh = st_deck_moss.commit(); deck_m.material_override = mat_plank_moss
+	bridge.add_child(deck_m)
+
+	# Walkable StaticBody3D collider: smooth flush deck (+0.16m world) & gentle overlapping bank ramps (zero step corner snag!)
+	var b_body := StaticBody3D.new()
+	b_body.name = "StreamFootbridgeBody"
+	bridge.add_child(b_body)
+	var c_deck := CollisionShape3D.new()
+	var b_box := BoxShape3D.new(); b_box.size = Vector3(maxf(2.0, span_w - 0.95), 0.14, deck_w)
+	c_deck.shape = b_box; c_deck.position = Vector3(0.0, 0.03, 0.0)
+	b_body.add_child(c_deck)
+	for rs: float in [-1.0, 1.0]:
+		var rc_col := CollisionShape3D.new()
+		var r_box := BoxShape3D.new(); r_box.size = Vector3(1.65, 0.12, deck_w + 0.14)
+		rc_col.shape = r_box
+		rc_col.position = Vector3(rs * (span_w * 0.5 + 0.10), -0.025, 0.0)
+		rc_col.rotation.z = -rs * 0.095
+		b_body.add_child(rc_col)
 
 # ------------------------------------------------------------------------------
 # Forest flora expansion: species, bushes, flowers and mushrooms (batched)
@@ -893,50 +1456,123 @@ func _build_forest_flora_expansion(scene_def: Dictionary, width_m: float, depth_
 		var dz := maxf(0.0, maxf(-p.y, p.y - depth_m))
 		return sqrt(dx * dx + dz * dz)
 	var in_south_band := func(p: Vector2) -> bool:
-		return p.y > depth_m - 2.0 and p.y < depth_m + 24.0 and p.x > -12.0 and p.x < width_m + 12.0
+		return p.y > depth_m - 2.0 and p.y < depth_m + 24.0 and p.x > -14.0 and p.x < width_m + 14.0
+	var near_pleamar_trail := func(p: Vector2) -> bool:
+		# Keep walkable trail core (north toward Pleamar, south off-map, west across bridge) 100% clear of trunks/tall bushes
+		return _forest_trail_dist(p.x, p.y) < 2.15
+	var trail_tree_setback := func(p: Vector2) -> float:
+		# Paso 23.6: Vary trail-side tree setback organically between 2.18m (close trailside coppice) and 5.35m (open wayside recess)
+		var wave_t := 0.5 + 0.5 * sin(p.y * 0.21 + p.x * 0.17 + cos(p.y * 0.11) * 1.55)
+		var side_open := 0.5 + 0.5 * cos(p.y * 0.15 - p.x * 0.23 + 0.7)
+		return 2.18 + wave_t * 1.95 + (1.22 if side_open > 0.66 else 0.0)
 
-	# --- Materials (one batch = one draw call) ---
+	# --- Materials & MultiMesh prototypes (foliage.webp continuous canopies = ZERO black cutouts!) ---
 	var q_tl := Rect2(0.01, 0.01, 0.48, 0.48)
 	var q_tr := Rect2(0.51, 0.01, 0.48, 0.48)
 	var q_br := Rect2(0.51, 0.51, 0.48, 0.48)
 	var ivy_uv := Rect2(0.02, 0.51, 0.46, 0.47)
-	_env_kit.define_batch("trunk_dark", mat_trunk, true)
-	_env_kit.define_batch("trunk_birch", MatKit.make_wood_mat(Color("#ddd6c6"), true), true)
-	_env_kit.define_batch("trunk_dead", MatKit.make_wood_mat(Color("#6b6155"), true), true)
-	_env_kit.define_batch("canopy_pine_a", mat_pine_a, true)
-	_env_kit.define_batch("canopy_pine_b", mat_pine_b, true)
-	_env_kit.define_batch("canopy_oak", mat_oak, true)
-	_env_kit.define_batch("canopy_spruce", MatKit.create_foliage_wind_shader_material("foliage-atlas.png", Color("#2e5034"), 0.03, Color("#55804e"), false, 2.4, true), true)
-	_env_kit.define_batch("canopy_birch", MatKit.create_foliage_wind_shader_material("foliage-atlas-v5.png", Color("#93b35e"), 0.07, Color("#c2dc7a"), false, 2.0, true), true)
-	_env_kit.define_batch("canopy_beech", MatKit.create_foliage_wind_shader_material("foliage-atlas-v5.png", Color("#6a8f42"), 0.05, Color("#9cc066"), false, 1.7, true), true)
-	_env_kit.define_batch("canopy_copper", MatKit.create_foliage_wind_shader_material("foliage-atlas-v5.png", Color("#9a6a3c"), 0.05, Color("#c79458"), false, 1.7, true), true)
-	_env_kit.define_batch("canopy_willow", MatKit.create_foliage_wind_shader_material("foliage-atlas-v5.png", Color("#7f9a4c"), 0.06, Color("#b0cc70"), false, 1.9, true), true)
-	var willow_cards := MatKit.create_foliage_wind_shader_material("foliage-atlas.png", Color("#a6bf7a"), 0.09, Color("#c4dc8a"), true, 1.0, true, ivy_uv)
-	willow_cards.set_shader_parameter("hang", 1.0)
-	_env_kit.define_batch("cards_willow", willow_cards, true)
 
+	var mat_birch_bark := MatKit.make_wood_mat(Color("#c9c1b0"), true)
+	var mat_dead_bark := MatKit.make_wood_mat(Color("#62584d"), true)
+	# Paso 23.3: Softened natural woodland green tints (zero neon or overly bright chartreuse crowns)
+	var mat_canopy_spruce := _register_forest_canopy_mat(MatKit.create_foliage_wind_shader_material("foliage.webp", Color("#395e35"), 0.028, Color("#57824a"), false, 2.8, true))
+	var mat_canopy_birch := _register_forest_canopy_mat(MatKit.create_foliage_wind_shader_material("foliage.webp", Color("#55703b"), 0.045, Color("#718e4f"), false, 2.4, true))
+	var mat_canopy_beech := _register_forest_canopy_mat(MatKit.create_foliage_wind_shader_material("foliage.webp", Color("#476535"), 0.038, Color("#648448"), false, 2.2, true))
+	var mat_canopy_copper := _register_forest_canopy_mat(MatKit.create_foliage_wind_shader_material("foliage.webp", Color("#7c5834"), 0.038, Color("#9f7346"), false, 2.2, true))
+	var mat_canopy_willow := _register_forest_canopy_mat(MatKit.create_foliage_wind_shader_material("foliage.webp", Color("#4e6939"), 0.042, Color("#6a864b"), false, 2.3, true))
+	var willow_cards := _register_forest_canopy_mat(MatKit.create_foliage_wind_shader_material("foliage-atlas.png", Color("#6b834c"), 0.075, Color("#849e5e"), true, 1.0, true, ivy_uv), 0.45, true)
+	willow_cards.set_shader_parameter("hang", 1.0)
+
+	var canopy_mats := {
+		"pine": mat_pine_a,
+		"pine_b": mat_pine_b,
+		"oak": mat_oak,
+		"spruce": mat_canopy_spruce,
+		"birch": mat_canopy_birch,
+		"sapling": mat_canopy_birch,
+		"beech": mat_canopy_beech,
+		"beech_copper": mat_canopy_copper,
+		"willow": mat_canopy_willow,
+	}
+	var tree_species := ["pine", "spruce", "oak", "birch", "beech", "beech_copper", "willow", "sapling", "snag"]
+	var species_variant_counts := {
+		"pine": 2, "spruce": 2, "oak": 4, "birch": 4, "beech": 4, "beech_copper": 4, "willow": 3, "sapling": 4, "snag": 2,
+	}
+	for sp in tree_species:
+		var v_cnt := int(species_variant_counts.get(sp, 1))
+		var tm: Material = mat_birch_bark if sp in ["birch", "sapling"] else (mat_dead_bark if sp == "snag" else mat_trunk)
+		var cm: Material = canopy_mats.get(sp, mat_oak) as Material
+		for v_i in range(v_cnt):
+			var pr := _env_kit.get_tree_species_proto(sp, v_i)
+			var v_tag := "" if v_i == 0 else ("_v%d" % v_i)
+			_env_kit.define_multimesh("trunk_" + sp + v_tag + "_near", pr["trunk"] as Mesh, tm, true)
+			_env_kit.define_multimesh("trunk_" + sp + v_tag + "_far", pr["trunk"] as Mesh, tm, false)
+			if pr.has("canopy"):
+				_env_kit.define_multimesh("canopy_" + sp + v_tag + "_near", pr["canopy"] as Mesh, cm, true)
+				_env_kit.define_multimesh("canopy_" + sp + v_tag + "_far", pr["canopy"] as Mesh, cm, false)
+			if pr.has("cards"):
+				_env_kit.define_multimesh("cards_" + sp + v_tag, pr["cards"] as Mesh, willow_cards, false)
+
+	_env_kit.define_batch("trunk_dark", mat_trunk, true)
+
+	# Desaturated muted coastal-woodland bushes & fern palettes (Paso 9: coherent with 2D sprites, zero bright neon!)
 	var bush_defs := {
-		"laurel": {"tex": "foliage-atlas-v5.png", "uv": q_tl, "tint": Color(0.86, 0.95, 0.84), "min": 0.9, "max": 1.4, "low": false},
-		"holly": {"tex": "foliage-atlas.png", "uv": q_tl, "tint": Color(0.82, 0.90, 0.82), "min": 0.85, "max": 1.3, "low": false},
-		"fern_yarrow": {"tex": "foliage-atlas-v5.png", "uv": q_tr, "tint": Color(0.86, 0.94, 0.82), "min": 0.7, "max": 1.05, "low": true},
-		"fern_tall": {"tex": "foliage-atlas.png", "uv": q_tr, "tint": Color(0.84, 0.93, 0.84), "min": 0.75, "max": 1.15, "low": false},
-		"heather": {"tex": "foliage-atlas-v5.png", "uv": q_br, "tint": Color(0.92, 0.95, 0.92), "min": 0.5, "max": 0.8, "low": true},
-		"meadow": {"tex": "foliage-atlas.png", "uv": q_br, "tint": Color(0.92, 0.96, 0.90), "min": 0.45, "max": 0.75, "low": true},
+		"laurel": {"tex": "foliage-atlas-v5.png", "uv": q_tl, "tint": Color(0.46, 0.57, 0.40), "min": 0.72, "max": 1.18, "low": false},
+		"holly": {"tex": "foliage-atlas.png", "uv": q_tl, "tint": Color(0.42, 0.54, 0.38), "min": 0.70, "max": 1.14, "low": false},
+		"fern_yarrow": {"tex": "foliage-atlas-v5.png", "uv": q_tr, "tint": Color(0.50, 0.60, 0.42), "min": 0.58, "max": 0.96, "low": true},
+		"fern_tall": {"tex": "foliage-atlas.png", "uv": q_tr, "tint": Color(0.46, 0.58, 0.40), "min": 0.66, "max": 1.08, "low": false},
+		"heather": {"tex": "foliage-atlas-v5.png", "uv": q_br, "tint": Color(0.58, 0.61, 0.56), "min": 0.36, "max": 0.66, "low": true},
+		"meadow": {"tex": "foliage-atlas.png", "uv": q_br, "tint": Color(0.54, 0.61, 0.46), "min": 0.34, "max": 0.64, "low": true},
 	}
 	for bk in bush_defs.keys():
 		var bd: Dictionary = bush_defs[bk]
-		var bm := MatKit.create_foliage_wind_shader_material(str(bd["tex"]), bd["tint"], 0.05, Color("#9fc46a"), true, 1.0, true, bd["uv"])
-		_env_kit.define_batch("bush_" + str(bk), bm, bk in ["laurel", "holly", "fern_tall"])
+		var bm := MatKit.create_foliage_wind_shader_material(str(bd["tex"]), bd["tint"], 0.042, Color("#59723d"), true, 1.0, true, bd["uv"])
+		_env_kit.define_multimesh("bush_" + str(bk), _env_kit.get_bush_quad_proto(bd["uv"], 1.15), bm, false)
 
-	var mk := {"stem": "mush_stem", "dots": "mush_dots", "cap_amanita": "mush_cap_amanita", "cap_porcini": "mush_cap_porcini",
-		"cap_chanterelle": "mush_cap_chanterelle", "cap_parasol": "mush_cap_parasol", "cap_brown": "mush_cap_brown"}
-	_env_kit.define_batch("mush_stem", MatKit.make_cloth_mat(Color("#d9ceb4"), false, true), false)
-	_env_kit.define_batch("mush_dots", MatKit.make_cloth_mat(Color("#f1ead8"), false, true), false)
-	_env_kit.define_batch("mush_cap_amanita", MatKit.make_textured_mat("earth.webp", Color("#c2341f"), 0.45, "", Vector3.ONE, false, true), false)
-	_env_kit.define_batch("mush_cap_porcini", MatKit.make_textured_mat("earth.webp", Color("#8a542c"), 0.6, "", Vector3.ONE, false, true), false)
-	_env_kit.define_batch("mush_cap_chanterelle", MatKit.make_textured_mat("earth.webp", Color("#e0a033"), 0.6, "", Vector3.ONE, false, true), false)
-	_env_kit.define_batch("mush_cap_parasol", MatKit.make_textured_mat("earth.webp", Color("#cdb592"), 0.7, "", Vector3.ONE, false, true), false)
-	_env_kit.define_batch("mush_cap_brown", MatKit.make_textured_mat("earth.webp", Color("#8a5838"), 0.7, "", Vector3.ONE, false, true), false)
+	# MultiMesh isolated mushroom prototypes (Paso 1.6: 100% eliminates cross-cluster stretched yellow lines!)
+	var mat_mush_stem := MatKit.make_cloth_mat(Color("#cfc3a8"), false, true)
+	var mat_mush_dots := MatKit.make_cloth_mat(Color("#ece3ce"), false, true)
+	var mush_cap_mats := {
+		"amanita": MatKit.make_textured_mat("earth.webp", Color("#a63624"), 0.52, "", Vector3.ONE, false, true),
+		"porcini": MatKit.make_textured_mat("earth.webp", Color("#7c4d29"), 0.64, "", Vector3.ONE, false, true),
+		"chanterelle": MatKit.make_textured_mat("earth.webp", Color("#c68e32"), 0.64, "", Vector3.ONE, false, true),
+		"parasol": MatKit.make_textured_mat("earth.webp", Color("#b8a17f"), 0.72, "", Vector3.ONE, false, true),
+		"brown": MatKit.make_textured_mat("earth.webp", Color("#784e34"), 0.72, "", Vector3.ONE, false, true),
+	}
+	for mk_kind in ["amanita", "porcini", "chanterelle", "parasol", "brown", "puffball"]:
+		var mp_proto := _env_kit.get_mushroom_proto(mk_kind)
+		if mp_proto.has("stem"):
+			_env_kit.define_multimesh("mush_stem_" + mk_kind, mp_proto["stem"] as Mesh, mat_mush_stem, false)
+		if mp_proto.has("cap"):
+			var cap_m: Material = mush_cap_mats.get(mk_kind, mush_cap_mats["brown"]) as Material
+			_env_kit.define_multimesh("mush_cap_" + mk_kind, mp_proto["cap"] as Mesh, cap_m, false)
+		if mp_proto.has("dots"):
+			_env_kit.define_multimesh("mush_dots_" + mk_kind, mp_proto["dots"] as Mesh, mat_mush_dots, false)
+
+	# MultiMesh forest floor microdetail: fallen twigs/branches, trailside exposed roots & mossy pebbles (Pasos 6, 7, 9)
+	var mat_twig := MatKit.make_wood_mat(Color("#4c3a2a"), true)
+	var mat_pebble := MatKit.make_textured_mat("a1-cliff-organic-v7.png", Color("#646f61"), 0.86, "rock", Vector3(0.55, 0.55, 0.55), true, true)
+	_env_kit.define_multimesh("twig_debris", _env_kit.get_twig_debris_proto("twig"), mat_twig, false)
+	_env_kit.define_multimesh("trail_roots", _env_kit.get_twig_debris_proto("root"), mat_twig, false)
+	var pebble_variants := _env_kit.get_rock_variants("rounded")
+	_env_kit.define_multimesh("trail_pebbles", pebble_variants[0] as Mesh, mat_pebble, false)
+
+	var place_mush_cluster := func(kind: String, pos: Vector3, seed_v: float, count: int, scale_f: float = 1.38) -> void:
+		var mp_proto := _env_kit.get_mushroom_proto(kind)
+		for mi in range(count):
+			var ma := seed_v + float(mi) * 2.399
+			var mrad := (0.03 + sqrt(float(mi)) * 0.072) * scale_f
+			var ms := scale_f * (0.72 + fmod(seed_v * 0.37 + float(mi) * 0.29, 0.52))
+			var mp3 := pos + Vector3(cos(ma) * mrad, 0.0, sin(ma) * mrad)
+			var mlean := Basis.from_euler(Vector3(sin(ma) * 0.12, ma, cos(ma) * 0.10))
+			var mxf := Transform3D(mlean.scaled(Vector3.ONE * ms), mp3)
+			var mcol := Color(rng.randf_range(0.90, 1.06), rng.randf_range(0.90, 1.06), rng.randf_range(0.88, 1.04))
+			if mp_proto.has("stem"):
+				_env_kit.append_multimesh("mush_stem_" + kind, mxf, mcol)
+			if mp_proto.has("cap"):
+				_env_kit.append_multimesh("mush_cap_" + kind, mxf, mcol)
+			if mp_proto.has("dots"):
+				_env_kit.append_multimesh("mush_dots_" + kind, mxf, Color.WHITE)
 
 	var tree_counts: Dictionary = {}
 	var bush_counts: Dictionary = {}
@@ -944,25 +1580,91 @@ func _build_forest_flora_expansion(scene_def: Dictionary, width_m: float, depth_
 	var logs := 0
 	var new_spots: Array[Dictionary] = []
 
-	# --- Trees: jittered grid around the clearing, avoiding river, map and south view band ---
-	var gx := -36.0
-	while gx <= width_m + 36.0:
-		var gz := -44.0
-		while gz <= depth_m + 40.0:
-			var p := Vector2(gx + rng.randf_range(-1.8, 1.8), gz + rng.randf_range(-1.8, 1.8))
-			gz += 5.0
+	# Paso 23.4, 23.6, 23.7: Distinct dense old-growth grove nuclei vs sparse open glade pockets
+	var grove_nuclei: Array[Vector2] = [
+		Vector2(6.2, -15.5), Vector2(30.5, -13.5), Vector2(37.5, 11.5),
+		Vector2(-10.8, 23.5), Vector2(33.2, 33.5), Vector2(-11.8, -5.5),
+		Vector2(29.5, -29.0), Vector2(-24.0, 22.0),
+	]
+	var sparse_glades: Array[Vector2] = [
+		Vector2(-19.0, 8.2), Vector2(42.5, 23.5), Vector2(10.5, -34.0), Vector2(-8.5, 38.0),
+	]
+	var eval_grove_affinity := func(pt: Vector2) -> float:
+		var best := 0.0
+		for gn: Vector2 in grove_nuclei:
+			var d := pt.distance_to(gn)
+			if d < 12.5:
+				best = maxf(best, 1.0 - (d / 12.5))
+		return best
+	var eval_glade_openness := func(pt: Vector2) -> float:
+		var best := 0.0
+		for sg: Vector2 in sparse_glades:
+			var d := pt.distance_to(sg)
+			if d < 10.5:
+				best = maxf(best, 1.0 - (d / 10.5))
+		return best
+
+	var emit_tree_instance := func(p: Vector2, species: String, sc_h: float, is_veteran: bool = false) -> void:
+		var rd_t: float = rect_dist.call(p)
+		var sc_wx := sc_h * rng.randf_range(0.84, 1.22 if is_veteran else 1.16)
+		var sc_wz := sc_h * rng.randf_range(0.84, 1.22 if is_veteran else 1.16)
+		if species == "sapling":
+			sc_wx = sc_h * rng.randf_range(0.86, 1.12)
+			sc_wz = sc_h * rng.randf_range(0.86, 1.12)
+		var y := _eval_skirt_height("forest", p.x, p.y, width_m, depth_m) - 0.11
+		var yaw := rng.randf() * TAU
+		var lean_r := Vector3(rng.randf_range(-0.055, 0.055), yaw, rng.randf_range(-0.055, 0.055))
+		var tx := Transform3D(Basis.from_euler(lean_r).scaled(Vector3(sc_wx, sc_h, sc_wz)), Vector3(p.x, y, p.y))
+		var shade_var := rng.randf_range(0.80, 1.03)
+		# Soft organic foliage tint shift (deep moss to warm olive-sage, zero harsh yellow-green boost!)
+		var warm_shift := rng.randf_range(-0.05, 0.06)
+		var hue_c := Color(
+			clampf(shade_var * (0.96 + warm_shift), 0.72, 1.04),
+			clampf(shade_var * (0.95 - absf(warm_shift) * 0.25), 0.72, 1.02),
+			clampf(shade_var * (0.91 - warm_shift * 0.5), 0.68, 0.98)
+		)
+		var v_cnt := int(species_variant_counts.get(species, 1))
+		var v_idx := posmod(rng.randi(), v_cnt)
+		if is_veteran and species in ["oak", "beech", "beech_copper"]:
+			v_idx = 0 if rng.randf() < 0.55 else 2 # Veteran trees favor wide spreading or twin-bole archetypes
+		var v_tag := "" if v_idx == 0 else ("_v%d" % v_idx)
+		var tier_sfx := "_near" if rd_t < 24.0 else "_far"
+		_env_kit.append_multimesh("trunk_" + species + v_tag + tier_sfx, tx, Color(shade_var, shade_var, shade_var))
+		if species != "snag":
+			_env_kit.append_multimesh("canopy_" + species + v_tag + tier_sfx, tx, hue_c)
+		if species == "willow":
+			_env_kit.append_multimesh("cards_willow" + v_tag, tx, hue_c)
+		_tree_spots.append(p)
+		new_spots.append({"p": p, "y": y, "species": species, "scale": sc_h})
+		tree_counts[species] = int(tree_counts.get(species, 0)) + 1
+
+	# --- Trees: natural clustered groves with small glades, non-uniform height/width & species variety (Paso 8 & Paso 23) ---
+	var gx := -56.0
+	while gx <= width_m + 56.0:
+		var gz := -68.0
+		while gz <= depth_m + 50.0:
+			var p := Vector2(gx + rng.randf_range(-2.05, 2.05), gz + rng.randf_range(-2.05, 2.05))
+			gz += 4.3
 			var rd: float = rect_dist.call(p)
-			if rd < 1.4 or bool(in_south_band.call(p)):
+			var trail_d := _forest_trail_dist(p.x, p.y)
+			if rd < 1.5 or bool(in_south_band.call(p)) or trail_d < float(trail_tree_setback.call(p)):
 				continue
 			var hw := _river_half_width(p.y)
 			var rv := _river_distance(p)
-			if rv < hw + 1.7:
+			if rv < hw + 1.85:
 				continue
-			if rng.randf() > (0.8 if rd < 14.0 else 0.36):
+			var g_aff: float = eval_grove_affinity.call(p)
+			var gl_open: float = eval_glade_openness.call(p)
+			var grove_wave := 0.5 + 0.5 * sin(p.x * 0.13 + cos(p.y * 0.10) * 1.55)
+			var glade_pocket := 0.5 + 0.5 * cos(p.x * 0.08 - p.y * 0.09 + 1.1)
+			var chance := (0.86 if rd < 16.0 else 0.60) * lerpf(0.45, 1.36, grove_wave * 0.68 + glade_pocket * 0.32)
+			chance = clampf(chance + g_aff * 0.36 - gl_open * 0.58, 0.10, 0.96)
+			if rng.randf() > chance:
 				continue
+			var min_tree_space := lerpf(2.75, 1.96, g_aff) + gl_open * 1.85
 			var too_close := false
 			for ts in _tree_spots:
-				if ts.distance_to(p) < 2.8:
+				if ts.distance_to(p) < min_tree_space:
 					too_close = true
 					break
 			if too_close:
@@ -970,44 +1672,70 @@ func _build_forest_flora_expansion(scene_def: Dictionary, width_m: float, depth_
 			var roll := rng.randf()
 			var species := "spruce"
 			if rv < hw + 6.5:
-				species = "willow" if roll < 0.5 else ("birch" if roll < 0.82 else "sapling")
+				species = "willow" if roll < 0.42 else ("birch" if roll < 0.76 else "sapling")
 			elif p.y < -14.0:
-				species = "spruce" if roll < 0.5 else ("pine" if roll < 0.7 else ("birch" if roll < 0.85 else ("beech" if roll < 0.95 else "snag")))
+				species = "spruce" if roll < 0.40 else ("pine" if roll < 0.64 else ("birch" if roll < 0.80 else ("beech" if roll < 0.92 else "snag")))
 			else:
-				if roll < 0.2: species = "spruce"
-				elif roll < 0.35: species = "pine"
-				elif roll < 0.47: species = "oak"
-				elif roll < 0.65: species = "birch"
-				elif roll < 0.85: species = "beech"
-				elif roll < 0.9: species = "beech_copper"
-				elif roll < 0.94: species = "snag"
+				if roll < 0.22: species = "spruce"
+				elif roll < 0.38: species = "pine"
+				elif roll < 0.52: species = "oak"
+				elif roll < 0.66: species = "birch"
+				elif roll < 0.81: species = "beech"
+				elif roll < 0.87: species = "beech_copper"
+				elif roll < 0.92: species = "snag"
 				else: species = "sapling"
-			var sc := rng.randf_range(0.85, 1.25)
+			# Paso 23.4: Broader age & size hierarchy (veteran elders in grove cores, mature middle canopy, young understory)
+			var is_vet := (g_aff > 0.42 and rng.randf() < 0.38 and species in ["oak", "beech", "pine", "spruce"])
+			var sc_h := rng.randf_range(1.24, 1.50) if is_vet else (rng.randf_range(0.64, 0.86) if rng.randf() < 0.26 else rng.randf_range(0.88, 1.24))
 			if species == "sapling":
-				sc = rng.randf_range(0.42, 0.6)
-			var y := _eval_skirt_height("forest", p.x, p.y, width_m, depth_m) - 0.05
-			var keys := {"trunk": "trunk_dark"}
-			match species:
-				"pine": keys["canopy"] = "canopy_pine_a" if rng.randf() < 0.5 else "canopy_pine_b"
-				"oak": keys["canopy"] = "canopy_oak"
-				"spruce": keys["canopy"] = "canopy_spruce"
-				"birch", "sapling":
-					keys["trunk"] = "trunk_birch"; keys["canopy"] = "canopy_birch"
-				"beech": keys["canopy"] = "canopy_beech"
-				"beech_copper": keys["canopy"] = "canopy_copper"
-				"willow":
-					keys["canopy"] = "canopy_willow"; keys["cards"] = "cards_willow"
-				"snag": keys["trunk"] = "trunk_dead"
-			_env_kit.append_tree(species, Vector3(p.x, y, p.y), sc, rng.randf() * TAU, rng.randf() * 10.0, keys)
-			_tree_spots.append(p)
-			new_spots.append({"p": p, "y": y, "species": species})
-			tree_counts[species] = int(tree_counts.get(species, 0)) + 1
-		gx += 5.0
+				sc_h = rng.randf_range(0.38, 0.66)
+			emit_tree_instance.call(p, species, sc_h, is_vet)
+			# Inside dense grove nuclei, cluster 1 companion younger tree or sub-canopy sapling nearby
+			if g_aff > 0.36 and rng.randf() < 0.52:
+				var ca_g := rng.randf() * TAU
+				var cr_g := rng.randf_range(1.85, 2.55)
+				var cp_g := p + Vector2(cos(ca_g), sin(ca_g)) * cr_g
+				if rect_dist.call(cp_g) >= 1.8 and not bool(in_south_band.call(cp_g)) and _forest_trail_dist(cp_g.x, cp_g.y) >= float(trail_tree_setback.call(cp_g)) and _river_distance(cp_g) >= _river_half_width(cp_g.y) + 1.9:
+					var comp_ok := true
+					for ts2 in _tree_spots:
+						if ts2.distance_to(cp_g) < 1.75:
+							comp_ok = false
+							break
+					if comp_ok:
+						var comp_sp := "sapling" if rng.randf() < 0.48 else ("birch" if rng.randf() < 0.5 else species)
+						var comp_sc := rng.randf_range(0.44, 0.68) if comp_sp == "sapling" else rng.randf_range(0.62, 0.88)
+						emit_tree_instance.call(cp_g, comp_sp, comp_sc, false)
+		gx += 4.3
 
-	# --- Bushes / ferns / flowers outside the grid and on non-walkable interior cells ---
+	# Paso 23.6 & 23.7: Irregular trail-shoulder coppice clusters along northern & far-southern trail bends
+	# (kept strictly outside the southern camp clearing sightline window!)
+	var trail_coppices: Array = [
+		[ Vector2(15.2, -3.2), "oak", 1.16, Vector2(13.8, -4.6), "sapling", 0.56 ],
+		[ Vector2(21.6, -8.8), "beech", 1.24, Vector2(23.1, -7.4), "birch", 0.74 ],
+		[ Vector2(15.8, -21.5), "pine", 1.20, Vector2(14.3, -20.1), "birch", 0.68 ],
+		[ Vector2(22.4, -27.5), "oak", 1.22, Vector2(23.8, -26.0), "sapling", 0.58 ],
+		[ Vector2(10.8, 37.5), "beech_copper", 1.10, Vector2(9.4, 36.0), "birch", 0.72 ],
+	]
+	for tc_item: Array in trail_coppices:
+		for pair_i in [0, 3]:
+			var tcp: Vector2 = tc_item[pair_i]
+			var tsp: String = str(tc_item[pair_i + 1])
+			var tsc: float = float(tc_item[pair_i + 2])
+			if _forest_trail_dist(tcp.x, tcp.y) >= 2.20 and _river_distance(tcp) >= _river_half_width(tcp.y) + 1.85 and not bool(in_south_band.call(tcp)):
+				var ok_tc := true
+				for ts3 in _tree_spots:
+					if ts3.distance_to(tcp) < 1.65:
+						ok_tc = false
+						break
+				if ok_tc:
+					emit_tree_instance.call(tcp, tsp, tsc, pair_i == 0)
+
+	# --- Undergrowth grouped naturally by shade/moisture/light (Paso 9: zero uniform scatter!) ---
 	var bush_keys := bush_defs.keys()
-	var bush_w := [0.2, 0.18, 0.2, 0.2, 0.12, 0.1]
-	var pick_bush := func(low_only: bool) -> String:
+	var bush_w := [0.18, 0.16, 0.25, 0.21, 0.11, 0.09]
+	var pick_bush := func(low_only: bool, damp_zone: bool = false) -> String:
+		if damp_zone:
+			return "fern_yarrow" if (low_only or rng.randf() < 0.55) else "fern_tall"
 		for _try in range(8):
 			var r := rng.randf()
 			var acc := 0.0
@@ -1018,95 +1746,232 @@ func _build_forest_flora_expansion(scene_def: Dictionary, width_m: float, depth_
 					if low_only and not bool(bush_defs[k]["low"]):
 						break
 					return k
-		return "meadow"
-	var place_bush := func(p: Vector2, low_only: bool) -> void:
-		var k: String = pick_bush.call(low_only)
+		return "fern_yarrow"
+	var place_bush := func(p: Vector2, low_only: bool, damp_zone: bool = false) -> void:
+		var k: String = pick_bush.call(low_only, damp_zone)
 		var bd: Dictionary = bush_defs[k]
 		var size := rng.randf_range(float(bd["min"]), float(bd["max"]))
 		if low_only:
-			size = minf(size, 0.85)
-		var y := 0.0
-		if str(cell_kind.call(p)) == "outside":
-			y = maxf(-0.06, _eval_skirt_height("forest", p.x, p.y, width_m, depth_m))
-		_env_kit.append_bush("bush_" + k, Vector3(p.x, y, p.y), size, rng.randf() * TAU, bd["uv"])
+			size = minf(size, 0.72)
+		var y := _eval_forest_play_height(p.x, p.y) if str(cell_kind.call(p)) != "outside" else maxf(-0.08, _eval_skirt_height("forest", p.x, p.y, width_m, depth_m))
+		var bx_xf := Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(size * rng.randf_range(0.88, 1.15), size * rng.randf_range(0.82, 1.18), size * rng.randf_range(0.88, 1.15))), Vector3(p.x, y, p.y))
+		var b_v := rng.randf_range(0.82, 1.05)
+		_env_kit.append_multimesh("bush_" + k, bx_xf, Color(b_v, b_v * rng.randf_range(0.95, 1.04), b_v * 0.93))
 		bush_counts[k] = int(bush_counts.get(k, 0)) + 1
 
-	var bx := -28.0
-	while bx <= width_m + 28.0:
-		var bz := -30.0
-		while bz <= depth_m + 18.0:
-			var p2 := Vector2(bx + rng.randf_range(-1.2, 1.2), bz + rng.randf_range(-1.2, 1.2))
-			bz += 3.1
-			var kind: String = cell_kind.call(p2)
-			if kind != "outside":
-				continue
-			var rd2: float = rect_dist.call(p2)
-			if rd2 < 0.6:
-				continue
-			if _river_distance(p2) < _river_half_width(p2.y) + 0.9:
-				continue
-			if rng.randf() > (0.58 if rd2 < 11.0 else 0.28):
-				continue
-			var low_only := bool(in_south_band.call(p2))
-			place_bush.call(p2, low_only)
-			# Group 1-2 companion ferns/heather tufts beside shrubs for organic clusters
-			var companions := rng.randi_range(1, 2)
-			for _ci in range(companions):
-				var ca := rng.randf() * TAU
-				var cp2 := p2 + Vector2(cos(ca), sin(ca)) * rng.randf_range(0.65, 1.25)
-				if str(cell_kind.call(cp2)) == "outside" and _river_distance(cp2) >= _river_half_width(cp2.y) + 0.85:
-					place_bush.call(cp2, true)
-		bx += 3.1
+	# Paso 23: Wide, lush volumetric 3D woodland hedgerows / dense bramble-laurel thickets
+	# ("aumentar los setos más amplios que en algún sitio incluso impidan el paso de lo frondoso que está")
+	var hedge_group := Node3D.new()
+	hedge_group.name = "ForestHedgeThickets"
+	_grp_vegetation.add_child(hedge_group)
+	var mat_hedge_a := _register_forest_canopy_mat(MatKit.create_foliage_wind_shader_material("foliage.webp", Color("#3b5730"), 0.032, Color("#587844"), false, 2.5, true), 0.38, false)
+	var mat_hedge_b := _register_forest_canopy_mat(MatKit.create_foliage_wind_shader_material("foliage.webp", Color("#446036"), 0.034, Color("#61824b"), false, 2.4, true), 0.38, false)
+	var mat_hedge_frond := MatKit.create_foliage_wind_shader_material("foliage-atlas-v5.png", Color(0.45, 0.57, 0.39), 0.048, Color("#5c7840"), true, 1.0, true, q_tl)
+	# [pos_2d, yaw_rad, scale_vec3, variant_idx, has_blocking_collider]
+	var hedge_specs: Array = [
+		# 9 impenetrable off-trail / outer-clearing boundary hedgerows with StaticBody3D physical colliders!
+		[ Vector2(10.6, 4.4), 0.22, Vector3(1.18, 1.06, 1.12), 0, true ],
+		[ Vector2(26.4, 7.8), -0.78, Vector3(1.26, 1.12, 1.16), 2, true ],
+		[ Vector2(28.2, 14.8), 1.42, Vector3(1.28, 1.12, 1.16), 1, true ],
+		[ Vector2(27.8, 22.8), 0.95, Vector3(1.24, 1.10, 1.15), 0, true ],
+		[ Vector2(8.2, 23.8), 0.65, Vector3(1.18, 1.06, 1.12), 1, true ],
+		[ Vector2(14.4, -1.2), 1.38, Vector3(1.28, 1.14, 1.18), 2, true ],
+		[ Vector2(22.6, -4.6), -1.24, Vector3(1.30, 1.14, 1.18), 0, true ],
+		[ Vector2(-7.8, 13.0), 0.32, Vector3(1.22, 1.08, 1.14), 1, true ],
+		[ Vector2(-8.6, 21.4), -0.38, Vector3(1.24, 1.10, 1.15), 2, true ],
+		# 5 additional sprawling deep-grove hedgerows enriching the dense forest pockets
+		[ Vector2(13.6, -12.4), 1.26, Vector3(1.28, 1.12, 1.18), 1, false ],
+		[ Vector2(31.8, -10.5), 0.54, Vector3(1.38, 1.18, 1.24), 2, false ],
+		[ Vector2(35.2, 14.2), 1.48, Vector3(1.36, 1.16, 1.22), 0, false ],
+		[ Vector2(11.8, 36.5), 1.32, Vector3(1.28, 1.12, 1.18), 1, false ],
+		[ Vector2(25.4, 35.8), -1.18, Vector3(1.34, 1.15, 1.20), 2, false ],
+		# 6 lush outer-sanctuary hedgerow thickets deepening foliage walling in NW, W, SW, NE, E & SE groves
+		[ Vector2(-10.8, 5.4), 0.42, Vector3(1.34, 1.14, 1.20), 0, true ],
+		[ Vector2(32.5, -24.5), -0.68, Vector3(1.38, 1.18, 1.22), 2, true ],
+		[ Vector2(38.5, 4.5), 1.25, Vector3(1.42, 1.20, 1.24), 1, false ],
+		[ Vector2(-6.2, -18.5), 0.88, Vector3(1.36, 1.16, 1.22), 0, false ],
+		[ Vector2(-5.8, 29.2), -0.52, Vector3(1.34, 1.14, 1.20), 2, false ],
+		[ Vector2(36.2, 28.8), 1.08, Vector3(1.38, 1.18, 1.24), 1, false ],
+	]
+	for hi in range(hedge_specs.size()):
+		var h_entry: Array = hedge_specs[hi]
+		var hp2: Vector2 = h_entry[0]
+		var h_yaw: float = float(h_entry[1])
+		var h_sc: Vector3 = h_entry[2]
+		var h_var: int = int(h_entry[3])
+		var h_blocks: bool = bool(h_entry[4])
+		var hy := _eval_forest_play_height(hp2.x, hp2.y) if str(cell_kind.call(hp2)) != "outside" else _eval_skirt_height("forest", hp2.x, hp2.y, width_m, depth_m)
+		var h_proto := _env_kit.get_hedge_thicket_proto(h_var)
+		var h_node := Node3D.new()
+		h_node.name = "ForestHedgeThicket_%d" % hi
+		h_node.position = Vector3(hp2.x, hy, hp2.y)
+		h_node.rotation.y = h_yaw
+		h_node.scale = h_sc
+		hedge_group.add_child(h_node)
 
-	# Extra lush shrubs, ferns & damp-bank mushrooms along the extended riverbanks
+		var mi_stems := MeshInstance3D.new(); mi_stems.name = "HedgeStems"
+		mi_stems.mesh = h_proto["stems"] as Mesh; mi_stems.material_override = mat_trunk
+		h_node.add_child(mi_stems)
+
+		var mi_fol := MeshInstance3D.new(); mi_fol.name = "HedgeFoliageMass"
+		mi_fol.mesh = h_proto["foliage"] as Mesh; mi_fol.material_override = mat_hedge_a if (hi % 2 == 0) else mat_hedge_b
+		h_node.add_child(mi_fol)
+
+		var mi_fronds := MeshInstance3D.new(); mi_fronds.name = "HedgeLeafyFronds"
+		mi_fronds.mesh = h_proto["fronds"] as Mesh; mi_fronds.material_override = mat_hedge_frond
+		mi_fronds.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		h_node.add_child(mi_fronds)
+
+		if h_blocks:
+			var hb := StaticBody3D.new()
+			hb.name = "ForestHedgeCollider_%d" % hi
+			h_node.add_child(hb)
+			var h_col := CollisionShape3D.new()
+			var h_box := BoxShape3D.new()
+			h_box.size = Vector3(2.45, 1.45, 1.18)
+			h_col.shape = h_box
+			h_col.position = Vector3(0.0, 0.68, 0.0)
+			hb.add_child(h_col)
+
+		# Blend hedgerow skirts into surrounding understory with 4 flanking shrubs/ferns
+		for h_bi in range(4):
+			var ba := h_yaw + (float(h_bi) - 1.5) * 0.75 + rng.randf_range(-0.2, 0.2)
+			var bp_h := hp2 + Vector2(cos(ba), sin(ba)) * rng.randf_range(0.95, 1.65)
+			if _forest_trail_dist(bp_h.x, bp_h.y) >= 2.25 and _river_distance(bp_h) >= _river_half_width(bp_h.y) + 0.75 and not bool(near_blocked.call(bp_h, 1.35)):
+				place_bush.call(bp_h, h_bi % 2 == 1, false)
+		bush_counts["hedge_thicket"] = int(bush_counts.get("hedge_thicket", 0)) + 1
+
+	# Wrap EVERY perimeter & clearing obstacle tree base in low bushes/ferns + fallen twigs
+	for op3 in _outer_perimeter_trees:
+		var op2 := Vector2(op3.x, op3.z)
+		var is_inside := str(cell_kind.call(op2)) != "outside"
+		var b_cnt := 2 if is_inside else 3
+		for ci in range(b_cnt):
+			var ca := rng.randf() * TAU
+			var cr := rng.randf_range(0.46, 0.74) if is_inside else rng.randf_range(0.62, 1.42)
+			var cp2 := op2 + Vector2(cos(ca), sin(ca)) * cr
+			if _river_distance(cp2) >= _river_half_width(cp2.y) + 0.65 and not bool(near_pleamar_trail.call(cp2)):
+				place_bush.call(cp2, is_inside or ci > 0, _river_distance(cp2) < _river_half_width(cp2.y) + 3.2)
+		# Small twigs resting around tree root base
+		if rng.randf() < 0.70:
+			var ta := rng.randf() * TAU
+			var tp2 := op2 + Vector2(cos(ta), sin(ta)) * rng.randf_range(0.65, 1.35)
+			var ty := _eval_forest_play_height(tp2.x, tp2.y) if is_inside else _eval_skirt_height("forest", tp2.x, tp2.y, width_m, depth_m)
+			_env_kit.append_multimesh("twig_debris", Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.75, 1.25)), Vector3(tp2.x, ty, tp2.y)), Color(0.9, 0.88, 0.84))
+
+	# Seed natural bush/fern thickets + fallen twigs + damp-shaded mushrooms around woodland trees
+	for spot in new_spots:
+		var sp2: Vector2 = spot["p"]
+		if sp2.x < -54.0 or sp2.x > width_m + 54.0 or sp2.y < -64.0 or sp2.y > depth_m + 48.0:
+			continue
+		if bool(in_south_band.call(sp2)) or bool(near_pleamar_trail.call(sp2)):
+			continue
+		var near_water := _river_distance(sp2) < _river_half_width(sp2.y) + 5.5
+		var cluster_cnt := rng.randi_range(2, 4)
+		for ci in range(cluster_cnt):
+			var ca := float(ci) * (TAU / float(cluster_cnt)) + rng.randf_range(-0.45, 0.45)
+			var cr := rng.randf_range(0.55, 1.60)
+			var cp2 := sp2 + Vector2(cos(ca), sin(ca)) * cr
+			if str(cell_kind.call(cp2)) == "outside" and _river_distance(cp2) >= _river_half_width(cp2.y) + 0.75 and not bool(near_pleamar_trail.call(cp2)):
+				place_bush.call(cp2, ci > 0, near_water)
+		if rect_dist.call(sp2) > 3.5 and rng.randf() < 0.48:
+			var ug_off := Vector2(cos(rng.randf() * TAU), sin(rng.randf() * TAU)) * rng.randf_range(1.8, 3.2)
+			var up := sp2 + ug_off
+			if str(cell_kind.call(up)) == "outside" and _river_distance(up) >= _river_half_width(up.y) + 1.0 and not bool(near_pleamar_trail.call(up)) and not bool(in_south_band.call(up)):
+				place_bush.call(up, rng.randf() < 0.65, near_water)
+		# Fallen twigs beneath canopy trees
+		if rect_dist.call(sp2) < 28.0 and rng.randf() < 0.42:
+			var tw_a := rng.randf() * TAU
+			var tw_p := sp2 + Vector2(cos(tw_a), sin(tw_a)) * rng.randf_range(0.85, 2.0)
+			var tw_y := _eval_skirt_height("forest", tw_p.x, tw_p.y, width_m, depth_m)
+			_env_kit.append_multimesh("twig_debris", Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.8, 1.35)), Vector3(tw_p.x, tw_y, tw_p.y)), Color(0.92, 0.88, 0.84))
+		# Mushrooms concentrated in damp shade near tree bases & deadwood snags
+		var spc := str(spot["species"])
+		if (near_water or spc in ["snag", "willow", "spruce"]) and rng.randf() < 0.44:
+			var kinds: Array = ["amanita", "porcini"] if spc in ["spruce", "pine", "birch", "sapling"] else (["brown", "puffball"] if spc == "snag" else ["chanterelle", "porcini", "brown"])
+			var a2 := rng.randf() * TAU
+			var mp := sp2 + Vector2(cos(a2), sin(a2)) * rng.randf_range(0.65, 1.25)
+			var my := float(spot["y"]) + 0.04
+			place_mush_cluster.call(str(kinds[rng.randi() % kinds.size()]), Vector3(mp.x, my, mp.y), rng.randf() * 10.0, rng.randi_range(3, 6))
+			mush_clusters += 1
+		if spc == "snag" and sp2.distance_to(Vector2(width_m * 0.5, depth_m * 0.5)) < 36.0:
+			_env_kit.spawn_shelf_fungi(_grp_vegetation, Vector3(sp2.x + 0.25, float(spot["y"]) + 1.1, sp2.y), rng.randf() * 5.0)
+
+	# Selective dense lushness sanctuaries: multi-tiered ferns, laurels, berry shrubs & moss cushions in shaded pockets
+	var lush_pockets: Array[Dictionary] = [
+		{"xz": Vector2(-6.5, -20.0), "r": 10.5, "amt": 28, "damp": true},
+		{"xz": Vector2(28.0, -24.0), "r": 11.0, "amt": 30, "damp": false},
+		{"xz": Vector2(-11.0, 7.0),  "r": 9.5,  "amt": 26, "damp": true},
+		{"xz": Vector2(-6.5, 29.0),  "r": 10.0, "amt": 28, "damp": true},
+		{"xz": Vector2(37.5, 6.0),   "r": 11.0, "amt": 30, "damp": false},
+		{"xz": Vector2(34.5, 29.0),  "r": 10.5, "amt": 28, "damp": false},
+	]
+	for lp_d: Dictionary in lush_pockets:
+		var l_center: Vector2 = lp_d["xz"]
+		var l_rad := float(lp_d["r"])
+		var l_amt := int(lp_d["amt"])
+		var l_damp := bool(lp_d["damp"])
+		for li_p in range(l_amt):
+			var lang := float(li_p) * 2.3999 + rng.randf_range(-0.35, 0.35)
+			var ldist := sqrt((float(li_p) + 0.4) / float(l_amt)) * l_rad
+			var lpt := l_center + Vector2(cos(lang), sin(lang)) * ldist
+			if _forest_trail_dist(lpt.x, lpt.y) < 2.25 or _river_distance(lpt) < _river_half_width(lpt.y) + 0.90 or bool(near_blocked.call(lpt, 1.45)) or bool(in_south_band.call(lpt)):
+				continue
+			if str(cell_kind.call(lpt)) != "outside":
+				continue
+			place_bush.call(lpt, li_p % 3 == 2, l_damp)
+			if li_p % 2 == 0:
+				var twin_p := lpt + Vector2(rng.randf_range(-0.85, 0.85), rng.randf_range(-0.85, 0.85))
+				if _forest_trail_dist(twin_p.x, twin_p.y) >= 2.25 and _river_distance(twin_p) >= _river_half_width(twin_p.y) + 0.85:
+					place_bush.call(twin_p, true, l_damp)
+			if li_p < 4:
+				var sy_l := _eval_skirt_height("forest", lpt.x, lpt.y, width_m, depth_m)
+				_env_kit.spawn_woodland_shrub(_grp_vegetation, Vector3(lpt.x, sy_l, lpt.y), mat_oak, Color("#734538") if li_p % 2 == 0 else Color("#465a74"), lang)
+				if li_p < 3:
+					_env_kit.spawn_moss_cushion(_grp_vegetation, Vector3(lpt.x + 0.45, sy_l, lpt.y - 0.35), Color("#426839"), 1.1, lang * 1.3)
+
+	# Lush fern & damp-bank mushroom communities hugging the riverbanks (Paso 4 & Paso 9)
 	for ri in range(0, _river_pts.size(), 3):
 		var rp_c := _river_pts[ri]
-		if absf(rp_c.y - 17.0) < 2.4:
+		if rp_c.y < -36.0 or rp_c.y > depth_m + 34.0 or absf(rp_c.y - 17.0) < 2.65:
 			continue
 		var hw_r := _river_half_width(rp_c.y)
 		for side_r in [-1.0, 1.0]:
-			if rng.randf() < 0.45:
-				var bp := Vector2(rp_c.x + side_r * (hw_r + rng.randf_range(0.95, 1.85)), rp_c.y + rng.randf_range(-0.6, 0.6))
-				if str(cell_kind.call(bp)) == "outside" or not walk.has(Vector2i(int(floor(bp.x / tile)), int(floor(bp.y / tile)))):
-					if not bool(near_blocked.call(bp, 1.2)):
-						place_bush.call(bp, bool(in_south_band.call(bp)))
+			if rng.randf() < 0.78:
+				var bp := Vector2(rp_c.x + side_r * (hw_r + rng.randf_range(0.80, 1.85)), rp_c.y + rng.randf_range(-0.6, 0.6))
+				if (str(cell_kind.call(bp)) == "outside" or not walk.has(Vector2i(int(floor(bp.x / tile)), int(floor(bp.y / tile))))) and not bool(near_blocked.call(bp, 1.2)):
+					place_bush.call(bp, bool(in_south_band.call(bp)), true)
+					if rng.randf() < 0.68:
+						place_bush.call(bp + Vector2(rng.randf_range(-0.75, 0.75), rng.randf_range(-0.75, 0.75)), true, true)
 			if rng.randf() < 0.30:
-				var mp_r := Vector2(rp_c.x + side_r * (hw_r + rng.randf_range(0.65, 1.35)), rp_c.y + rng.randf_range(-0.5, 0.5))
+				var mp_r := Vector2(rp_c.x + side_r * (hw_r + rng.randf_range(0.68, 1.35)), rp_c.y + rng.randf_range(-0.5, 0.5))
 				if not bool(near_blocked.call(mp_r, 1.1)):
-					var ry := maxf(0.0, _carve_river_valley(mp_r.x, mp_r.y, 0.0))
+					var ry := maxf(-0.04, _carve_river_valley(mp_r.x, mp_r.y, 0.0))
 					var rmkind: String = ["chanterelle", "amanita", "porcini", "brown"][rng.randi() % 4]
-					_env_kit.append_mushroom_cluster(mk, rmkind, Vector3(mp_r.x, ry, mp_r.y), rng.randf() * 10.0, rng.randi_range(3, 6), 1.35)
+					place_mush_cluster.call(rmkind, Vector3(mp_r.x, ry, mp_r.y), rng.randf() * 10.0, rng.randi_range(3, 6), 1.28)
 					mush_clusters += 1
 
-	for c in range(cols):
-		for r in range(rows):
-			if walk.has(Vector2i(c, r)):
-				continue
-			var cp := Structure.tile_to_world(c, r, 0.0)
-			var p3 := Vector2(cp.x + rng.randf_range(-0.35, 0.35), cp.z + rng.randf_range(-0.35, 0.35))
-			if bool(near_blocked.call(p3, 1.3)) or _river_distance(p3) < _river_half_width(p3.y) + 0.6:
-				continue
-			if rng.randf() < 0.75:
-				place_bush.call(p3, r >= rows - 3)
+	# Paso 7.6: Flanking mossy pebbles & exposed roots strictly OUTSIDE main trail walking line (never blocking!)
+	var trail_acc_pts: Array[Vector2] = [
+		Vector2(16.8, 10.2), Vector2(21.8, 8.6), Vector2(16.6, 2.2), Vector2(22.2, -3.5),
+		Vector2(15.2, -10.5), Vector2(20.6, -15.2), Vector2(19.8, -28.0), Vector2(25.2, -32.0),
+		Vector2(16.0, 24.5), Vector2(22.8, 26.8), Vector2(18.2, 35.5), Vector2(25.8, 39.0),
+		Vector2(11.4, 14.3), Vector2(10.8, 18.9), Vector2(-6.5, 14.8), Vector2(-9.2, 19.6),
+		Vector2(-15.8, 13.6), Vector2(-19.5, 19.8),
+	]
+	for tp_i in range(trail_acc_pts.size()):
+		var tp := trail_acc_pts[tp_i]
+		var td_chk := _forest_trail_dist(tp.x, tp.y)
+		if td_chk < 1.85 or _river_distance(tp) < _river_half_width(tp.y) + 1.1 or bool(near_blocked.call(tp, 1.35)):
+			continue
+		var ty := _eval_forest_play_height(tp.x, tp.y) if str(cell_kind.call(tp)) != "outside" else _eval_skirt_height("forest", tp.x, tp.y, width_m, depth_m)
+		var st_sc := rng.randf_range(0.28, 0.56)
+		_env_kit.append_multimesh("trail_pebbles", Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(st_sc * 1.15, st_sc * 0.42, st_sc * 0.92)), Vector3(tp.x, ty + 0.02, tp.y)), Color(0.86, 0.90, 0.84))
+		_env_kit.append_multimesh("trail_pebbles", Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(st_sc * 0.65, st_sc * 0.28, st_sc * 0.58)), Vector3(tp.x + 0.36, ty + 0.01, tp.y - 0.24)), Color(0.82, 0.85, 0.80))
+		if tp_i % 3 == 0:
+			_env_kit.append_multimesh("trail_roots", Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.75, 1.05)), Vector3(tp.x - 0.45, ty + 0.01, tp.y + 0.32)), Color(0.88, 0.84, 0.78))
 
-	# Ferns hugging new tree bases + mushrooms by species
-	for spot in new_spots:
-		var sp2: Vector2 = spot["p"]
-		var spc := str(spot["species"])
-		if rng.randf() < 0.55 and not bool(in_south_band.call(sp2)):
-			var a := rng.randf() * TAU
-			place_bush.call(sp2 + Vector2(cos(a), sin(a)) * rng.randf_range(1.1, 1.9), true)
-		if rng.randf() < 0.42:
-			var kinds: Array = ["amanita", "porcini"] if spc in ["spruce", "pine", "birch", "sapling"] else (["brown", "puffball"] if spc == "snag" else ["chanterelle", "porcini", "brown"])
-			var a2 := rng.randf() * TAU
-			var mp := sp2 + Vector2(cos(a2), sin(a2)) * rng.randf_range(0.6, 1.2)
-			var my := float(spot["y"]) + 0.04
-			_env_kit.append_mushroom_cluster(mk, str(kinds[rng.randi() % kinds.size()]), Vector3(mp.x, my, mp.y), rng.randf() * 10.0, rng.randi_range(3, 7))
-			mush_clusters += 1
-		if spc == "snag":
-			_env_kit.spawn_shelf_fungi(_grp_vegetation, Vector3(sp2.x + 0.25, float(spot["y"]) + 1.1, sp2.y), rng.randf() * 5.0)
-
-	# Fallen mossy logs with fungi in the surrounding woodland
+	# Fallen mossy logs with fungi & twig litter in the surrounding woodland
 	var log_spots: Array[Vector2] = [Vector2(-6.5, 4.0), Vector2(-9.0, 26.0), Vector2(width_m + 5.5, 3.5), Vector2(width_m + 7.0, 22.0),
 		Vector2(14.0, -7.0), Vector2(26.0, -9.5), Vector2(-14.0, -12.0), Vector2(width_m + 14.0, -6.0), Vector2(-16.0, 40.0), Vector2(width_m + 16.0, 44.0)]
 	for li in range(log_spots.size()):
@@ -1116,41 +1981,50 @@ func _build_forest_flora_expansion(scene_def: Dictionary, width_m: float, depth_
 		var ly := maxf(-0.05, _eval_skirt_height("forest", lp.x, lp.y, width_m, depth_m)) - 0.08
 		var yaw := float(li) * 1.37
 		_env_kit.append_fallen_log("trunk_dark", Vector3(lp.x, ly, lp.y), yaw, rng.randf_range(2.6, 4.0), rng.randf_range(0.22, 0.32))
-		_env_kit.append_mushroom_cluster(mk, "brown" if li % 2 == 0 else "porcini", Vector3(lp.x + 0.6, ly + 0.05, lp.y + 0.45), float(li), 5)
+		place_mush_cluster.call("brown" if li % 2 == 0 else "porcini", Vector3(lp.x + 0.6, ly + 0.05, lp.y + 0.45), float(li), 5)
 		_env_kit.spawn_shelf_fungi(_grp_vegetation, Vector3(lp.x - cos(yaw) * 0.6, ly + 0.42, lp.y - sin(yaw) * 0.6 + 0.2), float(li) * 2.1)
+		_env_kit.append_multimesh("twig_debris", Transform3D(Basis(Vector3.UP, yaw + 0.7).scaled(Vector3.ONE * 1.15), Vector3(lp.x - 0.7, ly + 0.04, lp.y + 0.55)), Color(0.9, 0.88, 0.85))
 		logs += 1
 		mush_clusters += 1
 
-	# Low meadow flora & mushrooms on walkable grass (decorative, <0.4 m, away from camp points)
+	# Guarantee amanita cluster beside shaded northern tree base
+	place_mush_cluster.call("amanita", Vector3(width_m - 4.0, _eval_forest_play_height(width_m - 4.0, 6.5), 6.5), 2.1, 4, 1.3)
+	mush_clusters += 1
+
+	# Low quiet meadow/grass tufts & tiny twigs along outer grass tiles (varied heights, kept off trails & dry clearings!)
 	for key in walk.keys():
 		var mat_id := str(walk[key])
 		if mat_id in ["earth", "water", "stone", "gravel"]:
 			continue
 		var cw := Structure.tile_to_world(int(key.x), int(key.y), 0.0)
-		var p4 := Vector2(cw.x + rng.randf_range(-0.55, 0.55), cw.z + rng.randf_range(-0.55, 0.55))
-		if bool(near_blocked.call(p4, 1.4)) or _river_distance(p4) < _river_half_width(p4.y) + 0.3:
+		var p4 := Vector2(cw.x + rng.randf_range(-0.52, 0.52), cw.z + rng.randf_range(-0.52, 0.52))
+		if bool(near_blocked.call(p4, 1.75)) or bool(near_pleamar_trail.call(p4)) or _river_distance(p4) < _river_half_width(p4.y) + 0.45:
 			continue
+		var py4 := _eval_forest_play_height(p4.x, p4.y)
 		var roll2 := rng.randf()
-		if roll2 < 0.16:
-			_env_kit.append_bush("bush_meadow", Vector3(p4.x, 0.0, p4.y), rng.randf_range(0.3, 0.4), rng.randf() * TAU, q_br)
+		if roll2 < 0.13:
+			var sc_m := rng.randf_range(0.24, 0.44)
+			_env_kit.append_multimesh("bush_meadow", Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc_m, sc_m * rng.randf_range(0.75, 1.25), sc_m)), Vector3(p4.x, py4, p4.y)), Color(0.86, 0.90, 0.84))
 			bush_counts["meadow_low"] = int(bush_counts.get("meadow_low", 0)) + 1
-		elif roll2 < 0.24:
-			_env_kit.append_bush("bush_heather", Vector3(p4.x, 0.0, p4.y), rng.randf_range(0.3, 0.38), rng.randf() * TAU, q_br)
+		elif roll2 < 0.19:
+			var sc_h2 := rng.randf_range(0.24, 0.40)
+			_env_kit.append_multimesh("bush_heather", Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc_h2, sc_h2 * rng.randf_range(0.8, 1.2), sc_h2)), Vector3(p4.x, py4, p4.y)), Color(0.88, 0.88, 0.90))
 			bush_counts["heather_low"] = int(bush_counts.get("heather_low", 0)) + 1
-		elif roll2 < 0.31:
-			var mkind: String = ["brown", "puffball", "amanita", "chanterelle"][rng.randi() % 4]
-			_env_kit.append_mushroom_cluster(mk, mkind, Vector3(p4.x, 0.0, p4.y), rng.randf() * 10.0, rng.randi_range(2, 4), 1.25)
-			mush_clusters += 1
+		elif roll2 < 0.24:
+			_env_kit.append_multimesh("twig_debris", Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.65, 1.05)), Vector3(p4.x, py4, p4.y)), Color(0.88, 0.84, 0.78))
 
-	# Fairy ring of small mushrooms in the northern grass of the clearing
+	# Fairy ring of small mushrooms in the damp northern grass glade of the clearing
 	var ring_c := Vector2(27.0, 7.5)
 	for ri in range(12):
 		var ra := float(ri) * TAU / 12.0
 		var rp := ring_c + Vector2(cos(ra), sin(ra)) * 1.05
-		_env_kit.append_mushroom_cluster(mk, "parasol" if ri % 4 == 0 else "brown", Vector3(rp.x, 0.0, rp.y), float(ri) * 1.3, 1, 1.2)
+		place_mush_cluster.call("parasol" if ri % 4 == 0 else "brown", Vector3(rp.x, _eval_forest_play_height(rp.x, rp.y), rp.y), float(ri) * 1.3, 1, 1.18)
 	mush_clusters += 1
 
+	var mm_stats := _env_kit.flush_multimeshes(_grp_vegetation, "ForestFlora_")
 	var batch_stats := _env_kit.flush_batches(_grp_vegetation, "ForestFlora_")
+	for mk_s in mm_stats.keys():
+		batch_stats[mk_s] = mm_stats[mk_s]
 	var species_total := 0
 	for sk in tree_counts.keys():
 		species_total += int(tree_counts[sk])

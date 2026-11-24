@@ -18,22 +18,48 @@ class Medallion extends Control:
 	var texture: Texture2D
 	var ornate: bool=false
 	var closeup: bool=false
+	var overhang: Vector2=Vector2.ZERO
 	func _ready() -> void:
 		mouse_filter=Control.MOUSE_FILTER_IGNORE
+		clip_contents=false
 		if custom_minimum_size==Vector2.ZERO: custom_minimum_size=Vector2(72,72)
 	func _draw() -> void:
-		var center=size*.5; var radius=minf(size.x,size.y)*(.36 if ornate else .5)-4
-		draw_circle(center,radius+4,Color("#493023")); draw_circle(center,radius+2,Color("#b68a42"))
+		var draw_size=size+(Vector2(20,20) if ornate else Vector2.ZERO)
+		var center=size*.5+overhang
+		var radius=minf(draw_size.x,draw_size.y)*(.38 if ornate else .5)-4
+		# Rich multi-layered drop shadow so the circular portrait proudly floats over the corner & name scroll.
+		if ornate:
+			for sh in range(6,0,-1):
+				draw_circle(center+Vector2(2.0,3.5),radius+4.0+float(sh)*1.6,Color("#180a04",0.075*(1.0-float(sh-1)/6.0)))
+		draw_circle(center,radius+5,Color("#351d10")); draw_circle(center,radius+3,Color("#b88838")); draw_circle(center,radius+1,Color("#e8c373"))
 		if texture:
 			var points=PackedVector2Array(); var uvs=PackedVector2Array()
 			for i in range(64):
-				var v=Vector2.from_angle(TAU*i/64); points.append(center+v*(radius-2)); uvs.append(Vector2(.51,.34)+v*.30 if closeup else Vector2(.5,.45)+v*.44 if ornate else Vector2(.5,.5)+v*.5)
+				var v=Vector2.from_angle(TAU*i/64); points.append(center+v*(radius-1.5)); uvs.append(Vector2(.51,.34)+v*.30 if closeup else Vector2(.5,.45)+v*.44 if ornate else Vector2(.5,.5)+v*.5)
 			draw_polygon(points,PackedColorArray([Color.WHITE]),uvs,texture)
-		draw_arc(center,radius-1,0,TAU,64,Color("#eed39b"),1.5,true)
-		for a in [0.0,PI*.5,PI,PI*1.5]:
-			var p=center+Vector2.from_angle(a)*(radius+2)
-			draw_colored_polygon(PackedVector2Array([p+Vector2(0,-3),p+Vector2(3,0),p+Vector2(0,3),p+Vector2(-3,0)]),Color("#e1b965"))
-		if ornate: draw_texture_rect(Paint.ornament(0),Rect2((size-Vector2.ONE*minf(size.x,size.y))*.5,Vector2.ONE*minf(size.x,size.y)),false)
+		# Inner shadow rim inside portrait glass + crisp gilded inner ring.
+		draw_arc(center,radius-2.0,0,TAU,64,Color("#241106",.38),2.5,true)
+		draw_arc(center,radius-0.5,0,TAU,64,Color("#f5dca1"),1.8,true)
+		if ornate:
+			var ring_span=minf(draw_size.x,draw_size.y)*1.04
+			draw_texture_rect(Paint.ornament(0),Rect2(center-Vector2.ONE*(ring_span*.5),Vector2.ONE*ring_span),false)
+			# Iconic bottom & top sculpted compass-diamond stars (matching reference Image 1).
+			for star_spec in [[PI*.5,13.5,8.5],[PI*1.5,8.5,5.5]]:
+				var p=center+Vector2.from_angle(star_spec[0])*(radius+3.5)
+				var r_maj: float=star_spec[1]; var r_min: float=star_spec[2]
+				var sh_star=PackedVector2Array([p+Vector2(1,2-r_maj),p+Vector2(1+r_min,2),p+Vector2(1,2+r_maj),p+Vector2(1-r_min,2)])
+				draw_colored_polygon(sh_star,Color("#1a0a04",.52))
+				var s_out=PackedVector2Array([p+Vector2(0,-r_maj),p+Vector2(r_min,0),p+Vector2(0,r_maj),p+Vector2(-r_min,0)])
+				draw_colored_polygon(s_out,Color("#b5812f"))
+				var s_mid=PackedVector2Array([p+Vector2(0,-r_maj*.72),p+Vector2(r_min*.72,0),p+Vector2(0,r_maj*.72),p+Vector2(-r_min*.72,0)])
+				draw_colored_polygon(s_mid,Color("#f5d484"))
+				var s_hi=PackedVector2Array([p+Vector2(0,-r_maj*.4),p+Vector2(r_min*.38,0),p+Vector2(0,r_maj*.25),p+Vector2(-r_min*.38,0)])
+				draw_colored_polygon(s_hi,Color("#fff6d4"))
+				s_out.append(s_out[0]); draw_polyline(s_out,Color("#543111"),1.3,true)
+		else:
+			for a in [0.0,PI*.5,PI,PI*1.5]:
+				var p=center+Vector2.from_angle(a)*(radius+2)
+				draw_colored_polygon(PackedVector2Array([p+Vector2(0,-3),p+Vector2(3,0),p+Vector2(0,3),p+Vector2(-3,0)]),Color("#e1b965"))
 class Stage extends Control:
 	var ui
 	var stage_profile: Dictionary={}
@@ -63,10 +89,10 @@ class Stage extends Control:
 		draw_polygon(points,PackedColorArray([Color("#e2d4c1")]),uv,background)
 		# A soft contact shadow rests on the painted platform at the same feet anchor.
 		for layer in range(8):
-			var radius=Vector2(size.x*(.24-layer*.018),size.y*(.026-layer*.002))
+			var radius=Vector2(size.x*(.26-layer*.020),size.y*(.025-layer*.002))
 			var ellipse=PackedVector2Array()
 			for i in range(40): ellipse.append(Vector2(size.x*.5,size.y*.865)+Vector2(cos(TAU*i/40),sin(TAU*i/40))*radius)
-			draw_colored_polygon(ellipse,Color(.09,.065,.04,.055))
+			draw_colored_polygon(ellipse,Color(.09,.065,.04,.075))
 	func _process(delta: float) -> void:
 		if not is_visible_in_tree(): return
 		if ui.preferences and ui.preferences.values.reducedMotion: phase=0

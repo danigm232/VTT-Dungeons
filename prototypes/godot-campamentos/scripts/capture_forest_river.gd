@@ -25,7 +25,10 @@ func _run() -> void:
 		{"name": "forest-river-day-closeup.png", "time": "day", "weather": "clear", "zone": "forest-fire-point", "zoom": 13.0, "focus_offset": Vector3(-13.5, 0.0, -3.0)},
 		{"name": "forest-north-day.png", "time": "day", "weather": "clear", "zone": "forest-guard-point", "zoom": 22.0, "focus_offset": Vector3(-6.0, 0.0, -8.0)},
 		{"name": "forest-camp-day-closeup.png", "time": "day", "weather": "clear", "zone": "forest-fire-point", "zoom": 11.0, "focus_offset": Vector3(-1.2, 0.3, -2.2)},
+		{"name": "forest-wade-footprints-day.png", "time": "day", "weather": "clear", "zone": "forest-fire-point", "zoom": 11.5, "focus_offset": Vector3(-9.5, 0.0, -2.4), "wade_demo": true},
 		{"name": "forest-night.png", "time": "night", "weather": "clear", "zone": "overview"},
+		{"name": "forest-foliage-occlusion-day.png", "time": "day", "weather": "clear", "zone": "forest-fire-point", "zoom": 11.0, "focus_offset": Vector3(4.2, 0.0, -3.2), "occlude_demo": true},
+		{"name": "forest-camp-rest-showcase-dusk.png", "time": "dusk", "weather": "clear", "zone": "forest-fire-point", "zoom": 9.8, "focus_offset": Vector3(-1.1, 0.25, -1.9), "rest_demo": true},
 	]
 	for shot in shots:
 		var packed := load(Structure.scene_path_for_id("camp-forest-pleamar")) as PackedScene
@@ -54,6 +57,48 @@ func _run() -> void:
 			inst.camera.target_focus += off
 			inst.camera.focus_point = inst.camera.target_focus
 			inst.camera.update_camera_transform()
+		if bool(shot.get("wade_demo", false)) and inst.outdoor_builder:
+			var hero: Node3D = inst.party_tokens[0] if not inst.party_tokens.is_empty() else null
+			if hero and is_instance_valid(hero):
+				var rx_w: float = inst.outdoor_builder._river_center_x(13.8)
+				# Step through shallow creek to trigger splash particles, foam ring, and water waves
+				hero.global_position = Vector3(rx_w - 0.5, -0.18, 13.8)
+				hero._physics_process(0.1)
+				hero.global_position = Vector3(rx_w + 0.4, -0.18, 13.9)
+				hero._physics_process(0.1)
+				# Emerge onto east clearing pad (x>=7.2) and walk ~11m so progressive fade is clearly visible!
+				hero.global_position = Vector3(7.2, 0.0, 14.0)
+				hero._physics_process(0.05)
+				for st_i in range(18):
+					hero.global_position = Vector3(7.2 + float(st_i + 1) * 0.56, 0.0, 14.0 + float(st_i + 1) * 0.14)
+					hero._physics_process(0.06)
+				# Also wade Wizard right inside stream so live ripple waves, splash ring & droplets show together!
+				if inst.party_tokens.size() >= 2 and is_instance_valid(inst.party_tokens[1]):
+					var wiz: Node3D = inst.party_tokens[1]
+					wiz.global_position = Vector3(rx_w - 0.1, -0.18, 14.2)
+					wiz._physics_process(0.08)
+					wiz.global_position = Vector3(rx_w + 0.25, -0.18, 14.4)
+					wiz._physics_process(0.08)
+					inst.outdoor_builder._update_river_mover_ripples()
+		if bool(shot.get("occlude_demo", false)) and inst.outdoor_builder:
+			if inst.party_tokens.size() >= 3:
+				inst.party_tokens[0].global_position = Vector3(23.8, 0.05, 11.4)
+				inst.party_tokens[1].global_position = Vector3(25.2, 0.05, 12.6)
+				inst.party_tokens[2].global_position = Vector3(22.6, 0.05, 12.8)
+				for pt_o in inst.party_tokens:
+					pt_o._physics_process(0.05)
+				inst.outdoor_builder._update_foliage_occlusion()
+		if bool(shot.get("rest_demo", false)) and inst.outdoor_builder:
+			inst.fx.stoke_campfire(16.0)
+			inst.fx.start_kettle_cooking(45.0)
+			if inst.party_tokens.size() >= 3:
+				inst.select_party_member(0)
+				inst.perform_camp_activity("rest", {"id": "forest-bed-mia", "kind": "bed"})
+				inst.select_party_member(2)
+				inst.perform_camp_activity("rest", {"id": "forest-bed-mike", "kind": "bed"})
+				inst.select_party_member(1)
+				inst.perform_camp_activity("sit", {"id": "forest-seat-a-point", "kind": "seat", "col": 11, "row": 11, "objectCol": 11, "objectRow": 11})
+				inst.outdoor_builder._update_foliage_occlusion()
 		for _w in range(3):
 			await process_frame
 		var t0 := Time.get_ticks_usec()
