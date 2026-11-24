@@ -87,9 +87,11 @@ func apply_preferences(prefs: Dictionary,focus: Vector3) -> void:
 	if _hints: _hints.visible=bool(prefs.get("showMovementHints",true))
 
 func _rebuild(version: int) -> void:
+	while is_inside_tree() and not can_process():
+		await get_tree().physics_frame
 	await get_tree().physics_frame
 	await get_tree().physics_frame
-	if version!=revision: return
+	if not is_inside_tree() or version!=revision: return
 	var started:=Time.get_ticks_usec()
 	for child in get_children():
 		if child!=_visual_area: child.queue_free()

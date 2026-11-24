@@ -24,6 +24,10 @@ func _run() -> void:
 	check(not loading.session.projector_ready, "No fabricated readiness before initial load")
 	await prepared(loading)
 	await enter(loading)
+	for i in range(6): await physics_frame
+	check(current_scene.retreat_residents != null and current_scene.retreat_residents.residents.size() == 12, "All 12 Retiro residents spawn after loading screen")
+	var grid = current_scene.get_node_or_null("TacticalGridOverlay")
+	check(grid != null and grid.verified_cells.size() > 500, "WalkableGrid builds active cells after loading screen")
 	var initial = loading.session.entry.id
 	var exit_node
 	for candidate in transition.get_scene_exits(current_scene):
@@ -51,5 +55,9 @@ func _run() -> void:
 	await prepared(loading)
 	check(current_scene.name == "Main", "Return to original map")
 	await enter(loading)
+	for i in range(6): await physics_frame
+	check(current_scene.retreat_residents != null and current_scene.retreat_residents.residents.size() == 12, "All 12 Retiro residents spawn on return to Retiro")
+	var return_grid = current_scene.get_node_or_null("TacticalGridOverlay")
+	check(return_grid != null and return_grid.verified_cells.size() > 500, "WalkableGrid rebuilds active cells on return to Retiro")
 	print("MAP_LOADING_TESTS ", passed, " passed; ", failed, " failed")
 	quit(0 if failed == 0 else 1)

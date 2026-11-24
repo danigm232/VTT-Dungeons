@@ -81,6 +81,9 @@ func _ready() -> void:
 	_spawn_residents.call_deferred()
 
 func _spawn_residents() -> void:
+	while is_inside_tree() and not can_process():
+		await get_tree().physics_frame
+	await get_tree().physics_frame
 	await get_tree().physics_frame
 	if not is_inside_tree():
 		return
