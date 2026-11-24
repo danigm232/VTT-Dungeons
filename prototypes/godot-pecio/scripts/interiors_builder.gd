@@ -293,8 +293,8 @@ func build_cabins_aft() -> void:
 	aft_node.add_child(front_c4)
 	build_bulkhead_wall(front_c4, Vector3(-13.5, 0, -beam_aft), Vector3(-13.5, 0, -4.35), 2.95, "Bulkhead_C4_Outboard")
 	PbrMaterialKit.add_occluder_box(front_c4, "Occ_FrontC4", Vector3(0.24, 2.7, maxf(1.0, beam_aft - 4.35)), WreckStructure.get_world_pos(-13.5, 1.4, -(beam_aft + 4.35) * 0.5))
-	# Cierre inferior bajo la escalera de popa babor (y <= 2.25m; despeja cápsula en el desembarco de C3 a y = 3.0m)
-	build_bulkhead_wall(front_c4, Vector3(-13.5, 0, -4.35), Vector3(-13.5, 0, -2.65), 2.25, "UnderStair_Aft_Port", false)
+	# Cierre inferior sólido bajo la escalera de popa babor (y <= 2.25m; bloquea paso bajo escalera y despeja C3 a y = 3.0m)
+	build_bulkhead_wall(front_c4, Vector3(-13.5, 0, -4.35), Vector3(-13.5, 0, -2.65), 2.25, "UnderStair_Aft_Port", true)
 	build_bulkhead_wall(front_c4, Vector3(-13.5, 0, -2.65), Vector3(-13.5, 0, -2.40), 2.95, "Wall_Aft_PortDoorToStair")
 	build_bulkhead_wall(front_c4, Vector3(-13.5, 0, -1.20), Vector3(-13.5, 0, 0.0), 2.95, "Wall_Aft_PortDoorToSpine")
 
@@ -309,8 +309,8 @@ func build_cabins_aft() -> void:
 	var front_c5 = Node3D.new()
 	front_c5.name = "Bulkhead_Front_C5"
 	aft_node.add_child(front_c5)
-	# Cierre inferior bajo la escalera de popa estribor (y <= 2.25m)
-	build_bulkhead_wall(front_c5, Vector3(-13.5, 0, 2.65), Vector3(-13.5, 0, 4.35), 2.25, "UnderStair_Aft_Stbd", false)
+	# Cierre inferior sólido bajo la escalera de popa estribor (y <= 2.25m)
+	build_bulkhead_wall(front_c5, Vector3(-13.5, 0, 2.65), Vector3(-13.5, 0, 4.35), 2.25, "UnderStair_Aft_Stbd", true)
 	build_bulkhead_wall(front_c5, Vector3(-13.5, 0, 4.35), Vector3(-13.5, 0, 4.60), 2.95, "Wall_Aft_StbdStairToDoor")
 	build_bulkhead_wall(front_c5, Vector3(-13.5, 0, 5.80), Vector3(-13.5, 0, beam_aft), 2.95, "Bulkhead_C5_Outboard")
 	PbrMaterialKit.add_occluder_box(front_c5, "Occ_FrontC5", Vector3(0.24, 2.7, maxf(1.0, beam_aft - 5.80)), WreckStructure.get_world_pos(-13.5, 1.4, (beam_aft + 5.80) * 0.5))
@@ -1214,8 +1214,8 @@ func build_cabins_fore() -> void:
 	fore_node.add_child(front_c6)
 	build_bulkhead_wall(front_c6, Vector3(13.5, 0, -beam_fore), Vector3(13.5, 0, -4.35), 2.95, "Bulkhead_C6_Outboard")
 	PbrMaterialKit.add_occluder_box(front_c6, "Occ_FrontC6", Vector3(0.24, 2.7, maxf(1.0, beam_fore - 4.35)), WreckStructure.get_world_pos(13.5, 1.4, -(beam_fore + 4.35) * 0.5))
-	# Cierre inferior bajo escalera proa babor (y <= 2.25m; despeja cápsula al subir a C2)
-	build_bulkhead_wall(front_c6, Vector3(13.5, 0, -4.35), Vector3(13.5, 0, -2.65), 2.25, "UnderStair_Fore_Port", false)
+	# Cierre inferior sólido bajo escalera proa babor (y <= 2.25m; bloquea paso bajo escalera y despeja C2 a y = 3.0m)
+	build_bulkhead_wall(front_c6, Vector3(13.5, 0, -4.35), Vector3(13.5, 0, -2.65), 2.25, "UnderStair_Fore_Port", true)
 	build_bulkhead_wall(front_c6, Vector3(13.5, 0, -2.65), Vector3(13.5, 0, -2.40), 2.95, "Wall_Fore_PortDoorToStair")
 	build_bulkhead_wall(front_c6, Vector3(13.5, 0, -1.20), Vector3(13.5, 0, 0.0), 2.95, "Wall_Fore_PortDoorToSpine")
 
@@ -1230,8 +1230,8 @@ func build_cabins_fore() -> void:
 	var front_c7 = Node3D.new()
 	front_c7.name = "Bulkhead_Front_C7"
 	fore_node.add_child(front_c7)
-	# Cierre inferior bajo escalera proa estribor (y <= 2.25m)
-	build_bulkhead_wall(front_c7, Vector3(13.5, 0, 2.65), Vector3(13.5, 0, 4.35), 2.25, "UnderStair_Fore_Stbd", false)
+	# Cierre inferior sólido bajo escalera proa estribor (y <= 2.25m)
+	build_bulkhead_wall(front_c7, Vector3(13.5, 0, 2.65), Vector3(13.5, 0, 4.35), 2.25, "UnderStair_Fore_Stbd", true)
 	build_bulkhead_wall(front_c7, Vector3(13.5, 0, 4.35), Vector3(13.5, 0, 4.60), 2.95, "Wall_Fore_StbdStairToDoor")
 	build_bulkhead_wall(front_c7, Vector3(13.5, 0, 5.80), Vector3(13.5, 0, beam_fore), 2.95, "Bulkhead_C7_Outboard")
 	PbrMaterialKit.add_occluder_box(front_c7, "Occ_FrontC7", Vector3(0.24, 2.7, maxf(1.0, beam_fore - 5.80)), WreckStructure.get_world_pos(13.5, 1.4, (beam_fore + 5.80) * 0.5))

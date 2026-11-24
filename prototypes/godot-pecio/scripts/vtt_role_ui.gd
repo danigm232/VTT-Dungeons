@@ -198,6 +198,10 @@ func _build_role_switcher() -> void:
 func set_role(new_role: String) -> void:
 	current_role = _normalize_role(new_role)
 	if camera and camera.has_method("set_view_role"): camera.set_view_role(current_role)
+	if current_role == "player" and roof_ctrl:
+		roof_ctrl.lock_override_mode = false
+		if roof_ctrl.has_method("check_exit_to_exterior"):
+			roof_ctrl.check_exit_to_exterior()
 	if current_role != "player":
 		_clear_joystick()
 

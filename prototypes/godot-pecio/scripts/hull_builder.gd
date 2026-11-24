@@ -1187,6 +1187,25 @@ static func build_physical_stair_flight(parent: Node3D, node_name: String, x_sta
 		])
 		col_landing.shape = cv_top
 		sb.add_child(col_landing)
+
+		# Barandillas laterales físicas inclinadas para impedir atravesar la escalera de lado
+		for edge_sign: float in [-1.0, 1.0]:
+			var z_in: float = z + edge_sign * (half_w + 0.02)
+			var z_out: float = z + edge_sign * (half_w + 0.14)
+			var rail_col := CollisionShape3D.new()
+			var cv_rail := ConvexPolygonShape3D.new()
+			cv_rail.points = PackedVector3Array([
+				WreckStructure.get_world_pos(x_start, y_start - 0.15, z_in),
+				WreckStructure.get_world_pos(x_start, y_start - 0.15, z_out),
+				WreckStructure.get_world_pos(x_end,   y_end - 0.15,   z_in),
+				WreckStructure.get_world_pos(x_end,   y_end - 0.15,   z_out),
+				WreckStructure.get_world_pos(x_start, y_start + 1.05, z_in),
+				WreckStructure.get_world_pos(x_start, y_start + 1.05, z_out),
+				WreckStructure.get_world_pos(x_end,   y_end + 1.05,   z_in),
+				WreckStructure.get_world_pos(x_end,   y_end + 1.05,   z_out),
+			])
+			rail_col.shape = cv_rail
+			sb.add_child(rail_col)
 		root.add_child(sb)
 	return root
 
@@ -1351,6 +1370,41 @@ func create_stair_ramp_collider(x_start: float, x_deck: float, x_land: float, y_
 	concave.set_faces(faces)
 	col.shape = concave
 	sb.add_child(col)
+
+	# Barandillas laterales físicas y faldón inferior bajo zanca para impedir atravesar la escalera por el costado o por debajo
+	for edge_sign: float in [-1.0, 1.0]:
+		var z_in: float = z + edge_sign * w
+		var z_out: float = z + edge_sign * (w + 0.14)
+		var rail_col := CollisionShape3D.new()
+		var cv_rail := ConvexPolygonShape3D.new()
+		cv_rail.points = PackedVector3Array([
+			WreckStructure.get_world_pos(x_start, y_start - 0.15, z_in),
+			WreckStructure.get_world_pos(x_start, y_start - 0.15, z_out),
+			WreckStructure.get_world_pos(x_deck,  y_top - 0.15,   z_in),
+			WreckStructure.get_world_pos(x_deck,  y_top - 0.15,   z_out),
+			WreckStructure.get_world_pos(x_start, y_start + 1.05, z_in),
+			WreckStructure.get_world_pos(x_start, y_start + 1.05, z_out),
+			WreckStructure.get_world_pos(x_deck,  y_top + 1.05,   z_in),
+			WreckStructure.get_world_pos(x_deck,  y_top + 1.05,   z_out),
+		])
+		rail_col.shape = cv_rail
+		sb.add_child(rail_col)
+
+	var under_col := CollisionShape3D.new()
+	var cv_under := ConvexPolygonShape3D.new()
+	cv_under.points = PackedVector3Array([
+		WreckStructure.get_world_pos(x_start, y_start - 0.45, z - w),
+		WreckStructure.get_world_pos(x_start, y_start - 0.45, z + w),
+		WreckStructure.get_world_pos(x_deck,  y_start - 0.45, z + w),
+		WreckStructure.get_world_pos(x_deck,  y_start - 0.45, z - w),
+		WreckStructure.get_world_pos(x_start, y_start,        z - w),
+		WreckStructure.get_world_pos(x_start, y_start,        z + w),
+		WreckStructure.get_world_pos(x_deck,  y_top - 0.05,   z + w),
+		WreckStructure.get_world_pos(x_deck,  y_top - 0.05,   z - w),
+	])
+	under_col.shape = cv_under
+	sb.add_child(under_col)
+
 	add_child(sb)
 
 func build_waterline_barnacles() -> void:
