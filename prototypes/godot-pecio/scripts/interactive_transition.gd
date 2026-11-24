@@ -105,10 +105,13 @@ func _is_eligible_player(body: Node) -> bool:
 	var tok := body as PlayerToken
 	if not tok.is_active_player or tok.is_npc or tok.in_boat:
 		return false
+	var vessel := get_tree().root.find_child("ShipVessel", true, false) as Node3D
+	var loc_y := vessel.to_local(tok.global_position).y if vessel else tok.global_position.y
 	if require_water_or_below_y < 900.0:
-		var vessel := get_parent() as Node3D
-		var loc_y := vessel.to_local(tok.global_position).y if vessel else tok.global_position.y
 		return tok.in_open_ocean or tok.in_water or loc_y <= require_water_or_below_y
+	var my_loc_y := vessel.to_local(global_position).y if vessel else global_position.y
+	if absf(loc_y - my_loc_y) > 2.0:
+		return false
 	return true
 
 func _has_closer_rowboat(tok: PlayerToken) -> bool:
@@ -176,7 +179,10 @@ func execute_transition() -> void:
 
 	var inv = get_tree().root.find_child("InventoryManager", true, false)
 	if inv:
-		inv.show_notification("Acceso: " + prompt_label)
+		if destination.y < -4.15 and not target_player.is_torch_lit:
+			inv.show_notification("🌊 Bodega sumergida C9: oscuridad total sin fuente de luz. Busca bolsas de aire en la escalera P15 o bajo P14.")
+		else:
+			inv.show_notification("Acceso: " + prompt_label)
 		inv.hide_prompt()
 
 	var start_pos = target_player.position

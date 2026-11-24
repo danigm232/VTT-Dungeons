@@ -162,6 +162,9 @@ func _build_top_identity() -> void:
 		["◎ Enfocar vista Detalle", func(): ui.cam_detail()],
 		["▧ Vista Conjunto / Mapa", func(): ui.cam_overview_toggle()]
 	]
+	if not ui.is_retreat:
+		actions.append(["⛺ Descanso a bordo (corto/largo)", func(): ui.open_ship_rest_modal()])
+		actions.append(["📖 Bitácora y Talismán de Orcus", func(): ui.open_logbook_and_talisman_modal()])
 	for item in actions:
 		var b := Button.new()
 		b.text = item[0]

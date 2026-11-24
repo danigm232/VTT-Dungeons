@@ -67,6 +67,7 @@ var rust_port: Node3D
 var c2_brow: Node3D
 var c3_brow: Node3D
 var bow_beak: Node3D
+var bowsprit: Node3D
 var transom: Node3D
 var bulwark_waist_port: Node3D
 var lantern_c1: Node3D
@@ -135,6 +136,7 @@ func initialize_references() -> void:
 	c2_brow = root.find_child("C2_BrowBalustrade", true, false)
 	c3_brow = root.find_child("C3_BrowBalustrade", true, false)
 	bow_beak = root.find_child("BowBeakhead", true, false)
+	bowsprit = root.find_child("Bowsprit", true, false)
 	transom = root.find_child("Transom", true, false)
 	bulwark_waist_port = root.find_child("Bulwark_Waist_Port", true, false)
 	lantern_c1 = root.find_child("LanternGroup_C1", true, false)
@@ -163,7 +165,12 @@ func initialize_references() -> void:
 		if n:
 			upper_nodes_for_lower_cutout.append(n)
 	character_tokens.clear()
-	for t_name in ["PlayerToken", "RogueToken", "WizardToken", "HarpyToken", "ZombieToken"]:
+	for t_name in [
+		"PlayerToken", "RogueToken", "WizardToken",
+		"HarpyToken", "HarpyToken_C2",
+		"ZombieToken", "ZombieC4_A", "ZombieC4_B", "ZombieC4_C_Lvl2",
+		"GhoulToken", "ZombieC8_B_Lvl2", "ZombieC8_C_Lvl2",
+	]:
 		var tok = root.find_child(t_name, true, false) as Node3D
 		if tok:
 			character_tokens.append(tok)
@@ -221,7 +228,7 @@ func set_interior_mode(new_mode: String, lock_mode: bool = false) -> void:
 	_set_vis(bulkhead_front_fore_mid, true); _set_vis(bulkhead_spine_fore, true)
 	_set_vis(hull_inner_fore_front, true); _set_vis(hull_inner_c8_front, true); _set_vis(hull_inner_c9_front, true)
 	_set_vis(hull_lower_front, true); _set_vis(hull_lower_port, true); _set_vis(barnacles_front, true); _set_vis(barnacles_port, true); _set_vis(kelp_front, true); _set_vis(kelp_port, true); _set_vis(rust_front, true); _set_vis(rust_port, true)
-	_set_vis(c2_brow, true); _set_vis(c3_brow, true); _set_vis(bow_beak, true); _set_vis(transom, true)
+	_set_vis(c2_brow, true); _set_vis(c3_brow, true); _set_vis(bow_beak, true); _set_vis(bowsprit, true); _set_vis(transom, true)
 	_set_vis(bulwark_waist_port, true)
 	_set_vis(lantern_c1, true); _set_vis(lantern_c2, true); _set_vis(lantern_c8, true)
 	_set_vis(stairs_c1_c8, true)
@@ -247,8 +254,11 @@ func set_interior_mode(new_mode: String, lock_mode: bool = false) -> void:
 	_set_vis(hull_up_fore_front, true); _set_vis(hull_up_fore_port, true)
 	_set_vis(bulwark_waist_front, true)
 	_set_vis(breach_aft_front, true); _set_vis(breach_fore_front, true)
+	var vtt_ui_ref := get_tree().root.find_child("VttRoleUi", true, false)
+	var strict_on := vtt_ui_ref != null and ("world_state" in vtt_ui_ref) and vtt_ui_ref.world_state != null and bool(vtt_ui_ref.world_state.strict_canon_mode)
+	var strict_extras := ["PickupPotionC5", "PickupTorchC1", "PickupTorchC4", "PickupTorchC7"]
 	for un in upper_nodes_for_lower_cutout:
-		if un.name == "PickupGemsCofa" and bool(un.get_meta("collected_c10", false)):
+		if bool(un.get_meta("collected_c10", false)) or (strict_on and un.name in strict_extras):
 			_set_vis(un, false)
 		else:
 			_set_vis(un, true)
@@ -294,8 +304,8 @@ func set_interior_mode(new_mode: String, lock_mode: bool = false) -> void:
 			_set_vis(hull_up_aft_front, false); _set_vis(hull_up_aft_port, false)
 			_set_vis(hull_up_fore_front, false); _set_vis(hull_up_fore_port, false)
 			_set_vis(bulwark_waist_front, false); _set_vis(bulwark_waist_port, false); _set_vis(hull_core_occ, false)
-			_set_vis(c2_brow, false); _set_vis(c3_brow, false); _set_vis(bow_beak, false); _set_vis(transom, false)
-			_set_vis(hull_lower_front, false); _set_vis(barnacles_front, false); _set_vis(kelp_front, false); _set_vis(rust_front, false)
+			_set_vis(c2_brow, false); _set_vis(c3_brow, false); _set_vis(bow_beak, false); _set_vis(bowsprit, false); _set_vis(transom, false)
+			_set_vis(hull_lower_front, false); _set_vis(barnacles_front, false); _set_vis(kelp_front, false); _set_vis(rust_front, false); _set_vis(rust_port, false)
 			_set_vis(hull_inner_c8_front, false); _set_vis(hull_inner_c9_front, false)
 			_set_vis(dressing_c1, false); _set_vis(dressing_c2, false); _set_vis(dressing_c3, false); _set_vis(dressing_c10, false)
 			_set_vis(lantern_c1, false); _set_vis(lantern_c2, false)
@@ -331,7 +341,7 @@ func _sync_entity_visibility(mode: String) -> void:
 	for tok in character_tokens:
 		if not is_instance_valid(tok) or not tok.is_inside_tree():
 			continue
-		if tok.name == "HarpyToken" and not bool(tok.get_meta("adventure_present", true)):
+		if not bool(tok.get_meta("adventure_present", true)):
 			tok.visible = false
 			continue
 		if tok.get("is_active_player"):

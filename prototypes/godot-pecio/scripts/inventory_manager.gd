@@ -14,14 +14,24 @@ var items: Dictionary = {
 	"torch": {"name": "Antorcha de brea", "count": 2, "equipped": false, "desc": "Antorcha impregnada en pez. Ilumina 14 m con llama viva."},
 	"gold": {"name": "Monedas de oro", "count": 25, "equipped": false, "desc": "Monedas acuñadas en Neverwinter y Waterdeep."},
 	"potion": {"name": "Poción de curación", "count": 1, "equipped": false, "desc": "Frasco de cristal con líquido rojo brillante (2d4+2 PG).", "healing_dice": "2d4+2", "healing_range": [4,10]},
-	"dagger": {"name": "Daga de plata", "count": 2, "equipped": false, "desc": "Hoja afilada forjada con aleación de plata pura."},
-	"compass": {"name": "Brújula náutica", "count": 0, "equipped": false, "desc": "Instrumento de navegación de latón dorado recuperado de C4."},
-	"cartographer_tools": {"name": "Herramientas de cartógrafo", "count": 0, "equipped": false, "desc": "Compás de puntas, regla paralela y astrolabio de latón del capitán."},
+	"dagger": {"name": "Daga", "count": 2, "equipped": false, "desc": "Daga marinera de hoja templada (1d4 perforante, sutil, ligera, arrojadiza)."},
+	"compass": {"name": "Brújula náutica (25 po)", "count": 0, "equipped": false, "desc": "Brújula de latón desmontada del escritorio del capitán en C4 (valor 25 po)."},
+	"cartographer_tools": {"name": "Herramientas de cartógrafo", "count": 0, "equipped": false, "desc": "Compás de puntas, regla paralela y astrolabio de latón hallados en C4."},
 	"gems": {"name": "Gemas ojo de tigre", "count": 0, "equipped": false, "desc": "Gemas brillantes extraídas del nido de la arpía en la cofa."},
 	"gold_bracelet_c10": {"name": "Pulsera pequeña de oro (25 po)", "count": 0, "equipped": false, "desc": "Pulsera labrada de oro valorada en 25 po, hallada entre las virutas del nido."},
 	"gold_earring_c10": {"name": "Pendiente único de oro (25 po)", "count": 0, "equipped": false, "desc": "Pendiente solitario de oro puro valorado en 25 po del botín de la arpía."},
 	"tiger_eye_gem_c10": {"name": "Gema ojo de tigre (10 po c/u)", "count": 0, "equipped": false, "desc": "Dos gemas pequeñas estriadas ojo de tigre (10 po cada una) escondidas en la cofa."},
-	"bloodstone_gem_c10": {"name": "Gema de heliotropo (50 po)", "count": 0, "equipped": false, "desc": "Heliotropo verde oscuro con motas carmesí valorado en 50 po del nido de la arpía."}
+	"bloodstone_gem_c10": {"name": "Gema de heliotropo (50 po)", "count": 0, "equipped": false, "desc": "Heliotropo verde oscuro con motas carmesí valorado en 50 po del nido de la arpía."},
+	"turquoise_c9": {"name": "Turquesa (10 po c/u)", "count": 0, "equipped": false, "desc": "Tres turquesas pulidas recuperadas del cofre de hierro sumergido de C9 (10 po c/u)."},
+	"boots_of_elvenkind": {"name": "Botas élficas", "count": 0, "equipped": false, "desc": "Objeto maravilloso: tus pasos no hacen ruido y tienes ventaja en Sigilo al moverte."},
+	"captain_logbook": {"name": "Bitácora protegida de Aleitha", "count": 0, "equipped": false, "desc": "Diario encerado del cofre de C9: relata el amor de Aleitha y Brastos y su súplica desesperada a Orcus."},
+	"orcus_talisman": {"name": "Talismán de Orcus (Nigromancia)", "count": 0, "equipped": false, "desc": "Talismán de cabellos y huesos que marca la bitácora. Detectar magia revela un aura intensa de nigromancia."},
+	"c8_fine_wine": {"name": "Caja de vino fino (C8 · d6 #1)", "count": 0, "equipped": false, "desc": "Botellas selladas con cera que sobrevivieron intactas en una caja de C8."},
+	"c8_cloves_spices": {"name": "Saco de clavos y especias (C8 · d6 #2)", "count": 0, "equipped": false, "desc": "Especias exóticas secas selladas en tela encerada halladas en C8."},
+	"c8_silver_ingots": {"name": "Lingotes de plata (C8 · d6 #3)", "count": 0, "equipped": false, "desc": "Barras de plata mercantil rescatadas del cargamento inundado de C8."},
+	"c8_silver_candlesticks": {"name": "Candelabros de plata (C8 · d6 #4)", "count": 0, "equipped": false, "desc": "Juego de candelabros de plata labrada hallado en una caja de C8."},
+	"c8_crafted_lute": {"name": "Laúd artesanal (C8 · d6 #5)", "count": 0, "equipped": false, "desc": "Instrumento de cuerda de fina marquetería protegido en estuche impermeable en C8."},
+	"c8_spell_scroll": {"name": "Pergamino de conjuro (C8 · d6 #6)", "count": 0, "equipped": false, "desc": "Pergamino arcano sellado en tubo de cuero encerado hallado en C8."}
 }
 
 var is_backpack_open: bool = false

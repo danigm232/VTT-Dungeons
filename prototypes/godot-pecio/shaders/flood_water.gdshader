@@ -4,11 +4,11 @@ render_mode blend_mix, depth_draw_opaque, cull_disabled, specular_schlick_ggx;
 // Shader de Agua Inundada protegida para Sentina C8 (15-45cm) y Superficie de Bodega C9.
 // Movimiento casi imperceptible e independiente del oleaje exterior del océano.
 
-uniform vec4 color_shallow : source_color = vec4(0.06, 0.17, 0.16, 0.70);
-uniform vec4 color_deep : source_color = vec4(0.025, 0.10, 0.14, 0.88);
+uniform vec4 color_shallow : source_color = vec4(0.048, 0.132, 0.124, 0.85);
+uniform vec4 color_deep : source_color = vec4(0.020, 0.070, 0.084, 0.94);
 uniform float is_deep_hold = 0.0;
-uniform float surface_visibility = 0.66;
-uniform float caustic_energy = 0.07;
+uniform float surface_visibility = 0.82;
+uniform float caustic_energy = 0.05;
 
 varying vec3 v_world_pos;
 
@@ -45,14 +45,14 @@ void fragment() {
 	vec3 world_n = normalize(vec3(ripple * 0.032, 1.0, rip2 * 0.032));
 	vec3 view_n = normalize((VIEW_MATRIX * vec4(world_n, 0.0)).xyz);
 	float fresnel = pow(1.0 - clamp(dot(view_n, normalize(VIEW)), 0.0, 1.0), 3.0);
-	vec3 sheen_col = mix(vec3(0.10, 0.22, 0.24), vec3(0.12, 0.32, 0.40), is_deep_hold);
-	vec3 final_col = base.rgb + caustic_col * c_web * mix(0.14, 0.24, is_deep_hold) + sheen_col * fresnel * 0.35;
+	vec3 sheen_col = mix(vec3(0.05, 0.12, 0.13), vec3(0.10, 0.28, 0.36), is_deep_hold);
+	vec3 final_col = base.rgb + caustic_col * c_web * mix(0.08, 0.22, is_deep_hold) + sheen_col * fresnel * mix(0.22, 0.34, is_deep_hold);
 
 	ALBEDO = final_col;
-	ALPHA = clamp(base.a * surface_visibility + fresnel * 0.12, 0.32, 0.86);
-	ROUGHNESS = mix(0.12, 0.16, is_deep_hold);
-	SPECULAR = 0.44;
+	ALPHA = clamp(base.a * surface_visibility + fresnel * 0.10, 0.42, 0.92);
+	ROUGHNESS = mix(0.56, 0.20, is_deep_hold);
+	SPECULAR = mix(0.08, 0.36, is_deep_hold);
 	METALLIC = 0.02;
-	EMISSION = caustic_col * c_web * caustic_energy * 0.14;
+	EMISSION = caustic_col * c_web * caustic_energy * mix(0.06, 0.14, is_deep_hold);
 	NORMAL = view_n;
 }

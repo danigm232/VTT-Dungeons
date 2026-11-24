@@ -69,7 +69,12 @@ func initialize() -> void:
 		light.shadow_enabled = is_int_shadow
 		if light.name in ["C9_DepthGlimmer", "C9_HoldAmbient"]:
 			light.light_energy = 0.0 # Only the breach, hatch spill and carried lamps provide light below.
-	for id in ["PlayerToken", "RogueToken", "WizardToken", "HarpyToken", "ZombieToken"]:
+	for id in [
+		"PlayerToken", "RogueToken", "WizardToken",
+		"HarpyToken", "HarpyToken_C2",
+		"ZombieToken", "ZombieC4_A", "ZombieC4_B", "ZombieC4_C_Lvl2",
+		"GhoulToken", "ZombieC8_B_Lvl2", "ZombieC8_C_Lvl2"
+	]:
 		var actor := vessel.get_node_or_null(id) as Node3D
 		if actor:
 			actors.append(actor)
@@ -318,7 +323,21 @@ func sync_zone_lighting() -> void:
 		var light := actor.get_node_or_null("CarriedLantern") as OmniLight3D
 		if light and light.light_cull_mask != mask: light.light_cull_mask = mask
 	var interior: bool = roof.current_interior_state != "exterior"
-	environment.volumetric_fog_density = (0.0032 if roof.current_interior_state == "lower_c9_hold" else 0.0006) if interior else exterior_fog_density
+	var in_lower_bilge: bool = roof.current_interior_state in ["lower_c8_bilge", "lower_c9_hold", "lower_c8_c9"]
+	if in_lower_bilge:
+		# Sentina C8 y Bodega C9 en penumbra cerrada (sin cielo azul soleado de fondo)
+		environment.background_mode = Environment.BG_COLOR
+		environment.background_color = Color("#040b10") if roof.current_interior_state == "lower_c9_hold" else Color("#081318")
+		environment.ambient_light_energy = 0.12 if roof.current_interior_state == "lower_c9_hold" else 0.30
+	else:
+		environment.background_mode = Environment.BG_SKY
+		environment.ambient_light_energy = 0.38 if time_of_day == "night" else (0.46 if time_of_day == "dusk" else 0.56)
+	var shaft_mul := 0.24 if time_of_day == "night" else (0.58 if time_of_day == "dusk" else 1.0)
+	for entry in local_lights:
+		var ln: OmniLight3D = entry["node"]
+		if ln.has_meta("c8_shaft_base_energy"):
+			ln.light_energy = float(ln.get_meta("c8_shaft_base_energy")) * shaft_mul
+	environment.volumetric_fog_density = (0.0032 if roof.current_interior_state == "lower_c9_hold" else (0.0022 if in_lower_bilge else 0.0006)) if interior else exterior_fog_density
 	vfx.set_environment(weather, interior, reduced_effects)
 	var caustic := vessel.find_child("C9_CausticsOverlay", true, false) as MeshInstance3D
 	if caustic:

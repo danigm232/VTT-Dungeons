@@ -3,6 +3,8 @@ extends Node3D
 
 const PbrMaterialKit = preload("res://scripts/pbr_material_kit.gd")
 const InteractiveProp = preload("res://scripts/interactive_prop.gd")
+const InteractiveTransition = preload("res://scripts/interactive_transition.gd")
+const WeakPlankTrap = preload("res://scripts/weak_plank_trap.gd")
 const HelmController = preload("res://scripts/helm_controller.gd")
 const CrowsNestBuilder = preload("res://scripts/crows_nest_builder.gd")
 const WreckStructure = preload("res://scripts/wreck_structure.gd")
@@ -22,6 +24,7 @@ var mat_bronze: StandardMaterial3D
 var mat_nest_thorns: StandardMaterial3D
 
 var animated_fauna: Array[Node3D] = []
+var soaring_birds: Array[Dictionary] = []
 var flickering_lights: Array[Dictionary] = []
 
 var _prebuilt: bool = false
@@ -39,6 +42,7 @@ func prebuild() -> void:
 	build_zone_c3_poop_deck()
 	build_zone_c10_crows_nest()
 	build_ambient_lanterns()
+	_build_soaring_seabirds()
 
 func setup_materials() -> void:
 	mat_iron = PbrMaterialKit.create_iron_pbr("#232524", 0.56, 0.78)
@@ -168,6 +172,41 @@ func build_zone_c1_main_deck() -> void:
 		hatch_node.add_child(pull_ring)
 
 	PbrMaterialKit.add_box_collider(hatch_node, "Col_CargoHatch", Vector3(2.42, 0.48, 1.82), Vector3(0, 0.24, 0))
+
+	# Transición canónica P12: Escotilla de carga C1 -> C8
+	var trans_p12_down := InteractiveTransition.new()
+	trans_p12_down.name = "Trans_P12_Down"
+	trans_p12_down.position = WreckStructure.get_world_pos(-4.5, 0.12, -5.35)
+	trans_p12_down.prompt_label = "Bajar por Escotilla de Carga (P12 → C8)"
+	trans_p12_down.destination = Vector3(-4.5, -3.22, -5.1)
+	trans_p12_down.transition_mode = "hatch"
+	trans_p12_down.trigger_radius = 2.0
+	c1_node.add_child(trans_p12_down)
+
+	# Punto de amarre canónico P01 en la jarcia de estribor junto a la escala del bote
+	var prop_p01 := InteractiveProp.new()
+	prop_p01.name = "PropMooringP01"
+	prop_p01.prop_id = "p01_mooring"
+	prop_p01.prompt_text = "Amarrar / Soltar bote en la jarcia (P01)"
+	prop_p01.inspection_message = "Cabo de amarre del bote de remos."
+	prop_p01.position = WreckStructure.get_world_pos(3.2, 0.15, 8.75)
+	prop_p01.interaction_radius = 2.4
+	c1_node.add_child(prop_p01)
+
+	# 4 trampas sutiles de tablones podridos en C1 (grietas casi imperceptibles; ceden al pisar -> caída a C8)
+	var weak_plank_spots := [
+		{"id": "c1_weak_plank_1", "x": -4.2, "z": -1.6},
+		{"id": "c1_weak_plank_2", "x":  5.2, "z":  1.0},
+		{"id": "c1_weak_plank_3", "x": -3.8, "z":  3.4},
+		{"id": "c1_weak_plank_4", "x":  5.8, "z": -2.6},
+	]
+	for wp in weak_plank_spots:
+		var trap := WeakPlankTrap.new()
+		trap.name = "WeakPlankTrap_" + str(wp["id"])
+		trap.trap_id = str(wp["id"])
+		trap.trap_x = float(wp["x"])
+		trap.trap_z = float(wp["z"])
+		c1_node.add_child(trap)
 
 	# Percha de respeto trincada junto a la amurada de babor (C1)
 	var spare_spar := MeshInstance3D.new()
@@ -372,16 +411,29 @@ func build_zone_c1_main_deck() -> void:
 	prop_skel1.interaction_radius = 2.2
 	c1_node.add_child(prop_skel1)
 
-	# Cangrejos en charcas de C1
+	# Cangrejos en charcas de C1 (con movimiento lateral acotado)
 	var crab1 = create_crab_mesh()
 	crab1.position = Vector3(-4.0, 0.08, -2.5)
+	crab1.set_meta("home_pos", crab1.position)
+	crab1.set_meta("phase", 0.4)
 	c1_node.add_child(crab1)
 	animated_fauna.append(crab1)
 
 	var crab2 = create_crab_mesh()
 	crab2.position = Vector3(1.5, 0.08, 3.0)
+	crab2.set_meta("home_pos", crab2.position)
+	crab2.set_meta("phase", 2.7)
 	c1_node.add_child(crab2)
 	animated_fauna.append(crab2)
+
+	# Esqueleto de marinero visible en la banda de estribor de C1 (Req. #2)
+	_build_deck_skeleton(
+		c1_node, "DeckSkeleton_C1_Stbd",
+		WreckStructure.get_world_pos(4.8, 0.02, 6.2), 148.0, 1,
+		"Esqueleto de un marinero atrapado junto a la borda de estribor. Su chaquetón empapado aún conserva botones de latón."
+	)
+	# Gaviota viva posada en bita de babor en C1
+	_spawn_perched_seagull(c1_node, -8.5, 0.0, -7.8, 0.55, true, 0.93)
 
 # ==============================================================================
 # ZONA 2: CASTILLO DE PROA (C2, +3.0m)
@@ -683,6 +735,13 @@ func build_zone_c2_forecastle() -> void:
 	# Gaviota posada sobre la bita de amarre babor de proa (despejando el cañón)
 	_spawn_perched_seagull(c2_node, 28.3, 3.0, -1.05, -0.95, false, 0.71)
 
+	# Esqueleto de vigía/marinero atrapado cerca del trinquete partido en C2 (Req. #2)
+	_build_deck_skeleton(
+		c2_node, "DeckSkeleton_C2_Fore",
+		WreckStructure.get_world_pos(18.6, 3.02, -4.6), 34.0, 2,
+		"Restos de un vigía caído junto al trinquete fracturado. Un trozo de cabo roto rodea aún su muñeca."
+	)
+
 # ==============================================================================
 # ZONA 3: CASTILLO DE POPA (C3, +3.0m)
 # ==============================================================================
@@ -799,16 +858,21 @@ func build_zone_c3_poop_deck() -> void:
 	stern_strut.rotation_degrees = Vector3(0, 0, -40.0)
 	c3_node.add_child(stern_strut)
 
-	var stern_lantern = _create_lantern_housing(0.24, 0.48, "#ff9b38", 1.5)
+	var stern_lantern = _create_lantern_housing(0.24, 0.48, "#ff9b38", 1.5, false)
+	stern_lantern.name = "LanternHousing_SternAdmiralLantern"
 	stern_lantern.position = WreckStructure.get_world_pos(-30.98, 3.44, 0.0)
 	c3_node.add_child(stern_lantern)
 
-	# Luz puntual del farol de popa
+	# Luz puntual del farol de popa (apagada por defecto; encendible con [T])
 	var stern_light = OmniLight3D.new()
 	stern_light.name = "SternAdmiralLantern"
 	stern_light.position = WreckStructure.get_world_pos(-30.98, 3.44, 0.0)
 	stern_light.light_color = Color("#ff9e3b")
-	stern_light.light_energy = 2.0
+	stern_light.light_energy = 0.0
+	stern_light.set_meta("lantern_base_energy", 2.0)
+	stern_light.set_meta("lantern_lit", false)
+	stern_light.set_meta("lantern_ember_name", "LanternEmbers_SternC3")
+	stern_light.set_meta("lantern_housing", stern_lantern)
 	stern_light.omni_range = 11.5
 	stern_light.omni_attenuation = 1.35
 	stern_light.shadow_enabled = true
@@ -820,15 +884,22 @@ func build_zone_c3_poop_deck() -> void:
 
 	var prop_lantern = InteractiveProp.new()
 	prop_lantern.name = "PropSternLanternC3"
-	prop_lantern.prop_id = "c3_stern_lantern"
-	prop_lantern.prompt_text = "Examinar Farol de Popa Gran Almirante"
-	prop_lantern.inspection_message = "Farol de bronce y cristal emplomado octogonal. Su llama ámbar resistió medio siglo de temporales marinos."
+	prop_lantern.prop_id = "lantern:SternAdmiralLantern"
+	prop_lantern.prompt_text = "Encender Farol de Popa Gran Almirante"
+	prop_lantern.inspection_message = "Farol de bronce y cristal emplomado octogonal, frío y apagado."
 	prop_lantern.position = WreckStructure.get_world_pos(-29.8, 3.4, 0.0)
-	prop_lantern.interaction_radius = 2.6
+	prop_lantern.interaction_radius = 2.8
 	c3_node.add_child(prop_lantern)
+	stern_light.set_meta("lantern_prop", prop_lantern)
 
-	# Gaviota posada sobre bita de amarre en popa (sin flotar)
+	# Gaviotas vivas posadas en C3 (babor y estribor) + esqueleto de oficial junto al arcón de estribor
 	_spawn_perched_seagull(c3_node, -24.5, 3.0, -3.8, 0.8)
+	_spawn_perched_seagull(c3_node, -28.0, 3.0, 5.2, -2.1)
+	_build_deck_skeleton(
+		c3_node, "DeckSkeleton_C3_Stern",
+		WreckStructure.get_world_pos(-27.6, 3.02, 4.3), -122.0, 3,
+		"Esqueleto de un oficial desplomado junto al arcón de popa con un sable corroído a su lado."
+	)
 
 	# 5. Claraboyas náuticas con fondo profundo, cuarterones de madera, cristal reflectante y barras de latón (C4/C5)
 	var mat_skylight_well := StandardMaterial3D.new()
@@ -1482,7 +1553,7 @@ func build_zone_c10_crows_nest() -> void:
 # ==============================================================================
 # FAROLES AMBIENTALES Y MICRO-ANIMACIÓN
 # ==============================================================================
-func _create_lantern_housing(radius: float, height: float, hex_color: String, emission_mult: float) -> Node3D:
+func _create_lantern_housing(radius: float, height: float, hex_color: String, emission_mult: float, start_lit: bool = false) -> Node3D:
 	var lan_root = Node3D.new()
 	lan_root.name = "LanternHousing"
 
@@ -1530,8 +1601,9 @@ func _create_lantern_housing(radius: float, height: float, hex_color: String, em
 		bar.position = Vector3(cos(cage_ang) * radius * 0.90, 0.0, sin(cage_ang) * radius * 0.90)
 		lan_root.add_child(bar)
 
-	# Núcleo vivo de llama en lágrima interior
+	# Núcleo vivo de llama en lágrima interior (nombrado para no fundirse en batching y apagado por defecto)
 	var flame = MeshInstance3D.new()
+	flame.name = "LanternFlame"
 	var f_cone = CylinderMesh.new()
 	f_cone.top_radius = 0.008
 	f_cone.bottom_radius = radius * 0.28
@@ -1542,12 +1614,14 @@ func _create_lantern_housing(radius: float, height: float, hex_color: String, em
 	mat_flame.albedo_color = Color("#fff4c4")
 	mat_flame.emission_enabled = true
 	mat_flame.emission = Color("#ffd36e")
-	mat_flame.emission_energy_multiplier = emission_mult * 2.2
+	mat_flame.emission_energy_multiplier = maxf(1.8, emission_mult * 2.2)
 	flame.material_override = mat_flame
 	flame.position = Vector3(0, -height * 0.04, 0)
+	flame.visible = start_lit
 	lan_root.add_child(flame)
 
 	var glass = MeshInstance3D.new()
+	glass.name = "LanternGlass"
 	var g_cyl = CylinderMesh.new()
 	g_cyl.top_radius = radius * 0.85
 	g_cyl.bottom_radius = radius * 0.72
@@ -1557,12 +1631,12 @@ func _create_lantern_housing(radius: float, height: float, hex_color: String, em
 	glass.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var mat_glass = StandardMaterial3D.new()
 	var col := Color(hex_color)
-	mat_glass.albedo_color = Color(col.r, col.g, col.b, 0.62)
+	mat_glass.albedo_color = Color(col.r, col.g, col.b, 0.62) if start_lit else Color(0.24, 0.28, 0.30, 0.45)
 	mat_glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat_glass.roughness = 0.25
-	mat_glass.emission_enabled = true
+	mat_glass.emission_enabled = start_lit
 	mat_glass.emission = col
-	mat_glass.emission_energy_multiplier = emission_mult * 0.85
+	mat_glass.emission_energy_multiplier = maxf(0.95, emission_mult * 0.85)
 	glass.material_override = mat_glass
 	glass.position = Vector3(0, 0, 0)
 	lan_root.add_child(glass)
@@ -1595,8 +1669,120 @@ func _spawn_perched_seagull(parent: Node3D, x: float, y_deck: float, z: float, r
 	var bird = create_seagull_mesh()
 	bird.position = bitt_pos + Vector3(0, custom_perch_h, 0)
 	bird.rotation.y = rot_y
+	bird.set_meta("home_pos", bird.position)
+	bird.set_meta("home_yaw", rot_y)
+	bird.set_meta("flight_state", "perched")
+	bird.set_meta("flight_t", 0.0)
+	bird.set_meta("cooldown", 0.0)
+	bird.set_meta("peck_phase", randf() * TAU)
 	parent.add_child(bird)
 	animated_fauna.append(bird)
+
+func _build_deck_skeleton(parent: Node3D, skel_name: String, world_pos: Vector3, yaw_deg: float, pose_seed: int, lore_msg: String) -> void:
+	var skel := Node3D.new()
+	skel.name = skel_name
+	skel.position = world_pos
+	skel.rotation_degrees = Vector3(0.0, yaw_deg, 0.0)
+	parent.add_child(skel)
+
+	var st := ShipGeometry.begin(mat_skeleton)
+	# Columna vertebral arqueada + pelvis + fémures/tibias + húmeros/cúbitos + caja torácica
+	ShipGeometry.tube(st, [Vector3(-0.20, 0.06, 0.0), Vector3(0.05, 0.11, 0.02), Vector3(0.32, 0.10, -0.02), Vector3(0.50, 0.09, 0.0)], 0.032, 6)
+	ShipGeometry.beam(st, Vector3(-0.24, 0.07, -0.15), Vector3(-0.24, 0.07, 0.15), 0.14, 0.10)
+	for side in [-1.0, 1.0]:
+		var bend := 0.16 if (pose_seed % 2 == 0 and side > 0.0) else 0.06
+		ShipGeometry.tube(st, [
+			Vector3(-0.24, 0.06, side * 0.12),
+			Vector3(-0.58, 0.05 + bend * 0.4, side * (0.16 + bend)),
+			Vector3(-0.92, 0.04, side * (0.12 + bend * 0.5)),
+		], 0.030, 6)
+		ShipGeometry.tube(st, [
+			Vector3(0.36, 0.09, side * 0.16),
+			Vector3(0.14, 0.05, side * 0.34),
+			Vector3(-0.08, 0.035, side * 0.28),
+		], 0.024, 5)
+		for rib in range(6):
+			var arc: Array[Vector3] = []
+			for k in range(7):
+				var t := float(k) / 6.0
+				arc.append(Vector3(0.04 + float(rib) * 0.058, 0.065 + sin(t * PI) * 0.11, side * sin(t * PI * 0.88) * (0.15 + float(rib % 3) * 0.012)))
+			ShipGeometry.tube(st, arc, 0.015, 5)
+	ShipGeometry.commit(skel, skel_name + "_Bones", st)
+
+	# Cráneo con cuencas oscuras y mandíbula ligeramente ladeada
+	var skull := Node3D.new()
+	skull.position = Vector3(0.60, 0.12, 0.04 * (1.0 if pose_seed % 2 == 0 else -1.0))
+	skull.rotation_degrees = Vector3(-14.0, 22.0 * float(pose_seed - 2), 18.0)
+	skel.add_child(skull)
+	var cranium := MeshInstance3D.new()
+	var cs := SphereMesh.new()
+	cs.radius = 0.125; cs.height = 0.22; cs.radial_segments = 12; cs.rings = 6
+	cranium.mesh = cs
+	cranium.material_override = mat_skeleton
+	cranium.scale = Vector3(1.08, 0.92, 0.88)
+	skull.add_child(cranium)
+	var mat_sock := StandardMaterial3D.new()
+	mat_sock.albedo_color = Color("#121211")
+	mat_sock.roughness = 0.96
+	for ez in [-0.042, 0.042]:
+		var eye := MeshInstance3D.new()
+		var es := SphereMesh.new()
+		es.radius = 0.028; es.height = 0.042; es.radial_segments = 8; es.rings = 4
+		eye.mesh = es
+		eye.material_override = mat_sock
+		eye.position = Vector3(0.105, -0.01, ez)
+		eye.scale = Vector3(0.45, 0.95, 1.0)
+		skull.add_child(eye)
+
+	# Harapo oscuro de casaca de marinero sobre el torso + sable oxidado junto a la mano
+	var rag := MeshInstance3D.new()
+	var rb := BoxMesh.new()
+	rb.size = Vector3(0.44, 0.035, 0.34)
+	rag.mesh = rb
+	rag.material_override = PbrMaterialKit.create_moldy_cloth_pbr("#2d363a")
+	rag.position = Vector3(0.12, 0.03, 0.0)
+	rag.rotation_degrees = Vector3(0.0, 12.0, 0.0)
+	skel.add_child(rag)
+
+	var blade := MeshInstance3D.new()
+	var bl := BoxMesh.new()
+	bl.size = Vector3(0.58, 0.018, 0.055)
+	blade.mesh = bl
+	blade.material_override = mat_iron
+	blade.position = Vector3(-0.08, 0.025, 0.36)
+	blade.rotation_degrees = Vector3(0.0, -28.0, 0.0)
+	skel.add_child(blade)
+
+	var ao := PbrMaterialKit.create_blob_shadow(0.95, 0.65, 0.62)
+	ao.position = Vector3(0.0, 0.012, 0.0)
+	skel.add_child(ao)
+
+	var prop := InteractiveProp.new()
+	prop.name = "Prop_" + skel_name
+	prop.prop_id = "deck_skeleton_" + str(pose_seed)
+	prop.prompt_text = "Examinar Esqueleto de Marinero"
+	prop.inspection_message = lore_msg
+	prop.interaction_radius = 2.1
+	skel.add_child(prop)
+
+func _build_soaring_seabirds() -> void:
+	var flock := Node3D.new()
+	flock.name = "SoaringSeagullFlock"
+	add_child(flock)
+	var specs := [
+		{"center": Vector3(-8.0, 18.5, 4.0),  "rx": 18.0, "rz": 12.5, "speed": 0.28, "phase": 0.0,  "dir": 1.0},
+		{"center": Vector3(12.0, 20.5, -5.0), "rx": 16.0, "rz": 11.0, "speed": 0.24, "phase": 1.9,  "dir": -1.0},
+		{"center": Vector3(-16.0, 22.0, -6.0),"rx": 22.0, "rz": 15.0, "speed": 0.21, "phase": 3.8,  "dir": 1.0},
+		{"center": Vector3(4.0, 17.0, 11.0),  "rx": 14.5, "rz": 10.0, "speed": 0.31, "phase": 5.1,  "dir": -1.0},
+	]
+	for i in range(specs.size()):
+		var sp: Dictionary = specs[i]
+		var bird := create_seagull_mesh()
+		bird.name = "SoaringGull_%d" % i
+		bird.scale = Vector3.ONE * 1.18
+		flock.add_child(bird)
+		sp["node"] = bird
+		soaring_birds.append(sp)
 
 func build_ambient_lanterns() -> void:
 	var lantern_node = Node3D.new()
@@ -1605,9 +1791,9 @@ func build_ambient_lanterns() -> void:
 
 	# Todos los faroles quedan amarrados físicamente mediante abrazadera y brazo de hierro a su mástil o puntal
 	var spots = [
-		{"pos": WreckStructure.get_world_pos(0.95, 1.85, 0.78), "anchor": WreckStructure.get_world_pos(0.35, 2.00, 0.32), "energy": 1.65, "range": 9.5, "shadow": true,  "name": "Lantern_C1_Mid",       "group": "LanternGroup_C1"},
-		{"pos": WreckStructure.get_world_pos(21.0, 4.72, -0.92), "anchor": WreckStructure.get_world_pos(21.0, 4.86, 0.00), "energy": 1.45, "range": 9.0, "shadow": false, "name": "Lantern_C2_Bow",       "group": "LanternGroup_C2"},
-		{"pos": WreckStructure.get_world_pos(-5.5, -1.35, 2.18), "anchor": WreckStructure.get_world_pos(-5.5, -1.20, 2.60), "energy": 1.35, "range": 8.0, "shadow": false, "name": "Lantern_C8_HoldStair", "group": "LanternGroup_C8"}
+		{"pos": WreckStructure.get_world_pos(0.95, 1.85, 0.78), "anchor": WreckStructure.get_world_pos(0.35, 2.00, 0.32), "energy": 1.65, "range": 9.5, "shadow": true,  "name": "Lantern_C1_Mid",       "group": "LanternGroup_C1", "ember": "LanternEmbers_DeckC1"},
+		{"pos": WreckStructure.get_world_pos(21.0, 4.72, -0.92), "anchor": WreckStructure.get_world_pos(21.0, 4.86, 0.00), "energy": 1.45, "range": 9.0, "shadow": false, "name": "Lantern_C2_Bow",       "group": "LanternGroup_C2", "ember": "LanternEmbers_BowC2"},
+		{"pos": WreckStructure.get_world_pos(-5.5, -1.35, 2.18), "anchor": WreckStructure.get_world_pos(-5.5, -1.20, 2.60), "energy": 1.35, "range": 8.0, "shadow": false, "name": "Lantern_C8_HoldStair", "group": "LanternGroup_C8", "ember": "LanternEmbers_C8"}
 	]
 
 	for s in spots:
@@ -1653,7 +1839,8 @@ func build_ambient_lanterns() -> void:
 		stem.position = Vector3(lpos.x, (apos.y + lpos.y) * 0.5 + 0.05, lpos.z)
 		grp.add_child(stem)
 
-		var housing = _create_lantern_housing(0.14, 0.34, "#ffa840", 1.45)
+		var housing = _create_lantern_housing(0.14, 0.34, "#ffa840", 1.45, false)
+		housing.name = "LanternHousing_" + str(s["name"])
 		housing.position = lpos
 		grp.add_child(housing)
 
@@ -1661,7 +1848,11 @@ func build_ambient_lanterns() -> void:
 		light.name = s.name
 		light.position = lpos
 		light.light_color = Color("#ffbd66")
-		light.light_energy = s.energy
+		light.light_energy = 0.0
+		light.set_meta("lantern_base_energy", s.energy)
+		light.set_meta("lantern_lit", false)
+		light.set_meta("lantern_ember_name", str(s.get("ember", "")))
+		light.set_meta("lantern_housing", housing)
 		light.omni_range = s.range
 		light.omni_attenuation = 1.45
 		light.shadow_enabled = s["shadow"]
@@ -1670,6 +1861,16 @@ func build_ambient_lanterns() -> void:
 			light.shadow_normal_bias = 1.6
 			light.shadow_blur = 1.5
 		grp.add_child(light)
+
+		var prop_l := InteractiveProp.new()
+		prop_l.name = "Prop_" + str(s["name"])
+		prop_l.prop_id = "lantern:" + str(s["name"])
+		prop_l.prompt_text = "Encender farol"
+		prop_l.inspection_message = "El farol de hierro está frío y apagado."
+		prop_l.position = Vector3(lpos.x, lpos.y - 1.35, lpos.z)
+		prop_l.interaction_radius = 1.45
+		grp.add_child(prop_l)
+		light.set_meta("lantern_prop", prop_l)
 
 		flickering_lights.append({"node": light, "base": s.energy, "speed": 2.4, "offset": randf() * 10.0})
 
@@ -1705,36 +1906,68 @@ func create_crab_mesh() -> Node3D:
 func create_seagull_mesh() -> Node3D:
 	var root = Node3D.new()
 	root.set_meta("type", "seagull")
-	root.set_meta("bob_timer", randf() * 3.0)
+	root.set_meta("bob_timer", randf() * 6.0)
 
 	var mat_wing = StandardMaterial3D.new()
-	mat_wing.albedo_color = Color("#8e989c")
+	mat_wing.albedo_color = Color("#88949a")
 	mat_wing.roughness = 0.72
+
+	var mat_tip = StandardMaterial3D.new()
+	mat_tip.albedo_color = Color("#252a2e")
+	mat_tip.roughness = 0.78
 
 	var mat_legs = StandardMaterial3D.new()
 	mat_legs.albedo_color = Color("#d98b34")
-	mat_legs.roughness = 0.6
+	mat_legs.roughness = 0.58
 
 	var body = MeshInstance3D.new()
+	body.name = "Body"
 	var cap = CapsuleMesh.new()
-	cap.radius = 0.10
-	cap.height = 0.42
+	cap.radius = 0.105
+	cap.height = 0.44
 	body.mesh = cap
 	body.material_override = mat_seagull
-	body.position = Vector3(0, 0.10, 0)
+	body.position = Vector3(0, 0.11, 0)
 	body.rotation_degrees = Vector3(68, 0, 0)
 	root.add_child(body)
 
-	# Alas grises plegadas sobre el lomo
+	# Cola en abanico
+	var tail := MeshInstance3D.new()
+	tail.name = "Tail"
+	var t_box := BoxMesh.new()
+	t_box.size = Vector3(0.14, 0.025, 0.18)
+	tail.mesh = t_box
+	tail.material_override = mat_seagull
+	tail.position = Vector3(0, 0.09, -0.24)
+	tail.rotation_degrees = Vector3(-14, 0, 0)
+	root.add_child(tail)
+
+	# Alas articuladas (pivote izquierdo/derecho para aleteo real al volar y acicalarse)
 	for side in [-1.0, 1.0]:
-		var wing = MeshInstance3D.new()
-		var w_box = BoxMesh.new()
-		w_box.size = Vector3(0.05, 0.12, 0.34)
-		wing.mesh = w_box
-		wing.material_override = mat_wing
-		wing.position = Vector3(side * 0.09, 0.13, -0.04)
-		wing.rotation_degrees = Vector3(-12, side * 8, 0)
-		root.add_child(wing)
+		var wing_pivot := Node3D.new()
+		wing_pivot.name = "LeftWingPivot" if side < 0.0 else "RightWingPivot"
+		wing_pivot.position = Vector3(side * 0.09, 0.15, 0.0)
+		root.add_child(wing_pivot)
+
+		var inner_w := MeshInstance3D.new()
+		var iw_box := BoxMesh.new()
+		iw_box.size = Vector3(0.28, 0.028, 0.18)
+		inner_w.mesh = iw_box
+		inner_w.material_override = mat_wing
+		inner_w.position = Vector3(side * 0.14, 0.0, -0.02)
+		wing_pivot.add_child(inner_w)
+
+		var outer_w := MeshInstance3D.new()
+		var ow_box := BoxMesh.new()
+		ow_box.size = Vector3(0.24, 0.022, 0.13)
+		outer_w.mesh = ow_box
+		outer_w.material_override = mat_tip
+		outer_w.position = Vector3(side * 0.38, -0.01, -0.05)
+		outer_w.rotation_degrees = Vector3(0, side * -12.0, side * -8.0)
+		wing_pivot.add_child(outer_w)
+
+		# Plegadas por defecto en reposo
+		wing_pivot.rotation_degrees = Vector3(-10.0, side * -68.0, side * -74.0)
 
 		var leg = MeshInstance3D.new()
 		var l_cyl = CylinderMesh.new()
@@ -1748,8 +1981,10 @@ func create_seagull_mesh() -> Node3D:
 
 	var head = MeshInstance3D.new()
 	var sph = SphereMesh.new()
-	sph.radius = 0.08
+	sph.radius = 0.082
 	sph.height = 0.16
+	sph.radial_segments = 12
+	sph.rings = 6
 	head.name = "Head"
 	head.mesh = sph
 	head.material_override = mat_seagull
@@ -1760,36 +1995,126 @@ func create_seagull_mesh() -> Node3D:
 	var cone = CylinderMesh.new()
 	cone.top_radius = 0.005
 	cone.bottom_radius = 0.028
-	cone.height = 0.11
+	cone.height = 0.115
+	cone.radial_segments = 8
 	beak.mesh = cone
 	beak.material_override = mat_legs
 	beak.position = Vector3(0, -0.01, 0.10)
-	beak.rotation_degrees = Vector3(82, 0, 0)
+	beak.rotation_degrees = Vector3(84, 0, 0)
 	head.add_child(beak)
 
 	return root
 
+func _set_seagull_wing_pose(bird: Node3D, spread: float, flap_deg: float) -> void:
+	var lw := bird.get_node_or_null("LeftWingPivot") as Node3D
+	var rw := bird.get_node_or_null("RightWingPivot") as Node3D
+	if lw:
+		lw.rotation_degrees = Vector3(lerpf(-10.0, 4.0, spread), lerpf(68.0, 6.0, spread), lerpf(74.0, flap_deg, spread))
+	if rw:
+		rw.rotation_degrees = Vector3(lerpf(-10.0, 4.0, spread), lerpf(-68.0, -6.0, spread), lerpf(-74.0, -flap_deg, spread))
+
 func _process(delta: float) -> void:
-	# Parpadeo natural y suave de llamas de faroles (respiración lumínica orgánica sin saltos estroboscópicos)
-	var time_now = Time.get_ticks_msec() * 0.001
+	# Parpadeo natural y suave SOLO en faroles encendidos (apagados permanecen exactamente a 0.0)
+	var time_now: float = float(Time.get_ticks_msec()) * 0.001
 	for fl in flickering_lights:
 		var node = fl["node"] as OmniLight3D
 		if node:
+			if not bool(node.get_meta("lantern_lit", false)):
+				if node.light_energy != 0.0:
+					node.light_energy = 0.0
+				continue
 			var base = fl["base"] as float
 			var speed = fl["speed"] as float
 			var offset = fl["offset"] as float
 			var flicker = sin(time_now * speed + offset) * 0.04 + cos(time_now * (speed * 1.5) + offset) * 0.02
-			node.light_energy = max(0.2, base + flicker)
+			node.light_energy = maxf(0.2, base + flicker)
 
-	# Micro-animación procedural de fauna
+	var active_tok: Node3D = null
+	var main_ctrl := get_tree().root.find_child("Main", true, false)
+	if main_ctrl and "party" in main_ctrl and not main_ctrl.party.is_empty():
+		active_tok = main_ctrl.party[clampi(int(main_ctrl.active_party_index), 0, main_ctrl.party.size() - 1)]
+
+	# Fauna viva en cubierta (gaviotas mirando/picoteando/volando si te acercas + cangrejos caminando)
 	for f in animated_fauna:
+		if not is_instance_valid(f):
+			continue
 		var type = f.get_meta("type", "")
 		if type == "seagull":
-			var timer = f.get_meta("bob_timer", 0.0) + delta
+			var timer = float(f.get_meta("bob_timer", 0.0)) + delta
 			f.set_meta("bob_timer", timer)
-			var head = f.get_node_or_null("Head")
-			if head:
-				var bob = sin(timer * 4.0) * 0.025 if fmod(timer, 4.0) < 1.0 else 0.0
-				head.position.y = 0.24 + bob
+			var f_state := str(f.get_meta("flight_state", "perched"))
+			var home_pos: Vector3 = f.get_meta("home_pos", f.position)
+			var home_yaw: float = float(f.get_meta("home_yaw", f.rotation.y))
+			var cd: float = maxf(0.0, float(f.get_meta("cooldown", 0.0)) - delta)
+			f.set_meta("cooldown", cd)
+
+			if f_state == "perched":
+				var head := f.get_node_or_null("Head") as Node3D
+				if head:
+					var scan_yaw := sin(timer * 1.15) * 0.55 + sin(timer * 0.43) * 0.25
+					var peck_cycle := fmod(timer + float(f.get_meta("peck_phase", 0.0)), 6.5)
+					var peck_dip := sin(clampf((peck_cycle - 4.8) / 0.9, 0.0, 1.0) * PI) if peck_cycle > 4.8 and peck_cycle < 5.7 else 0.0
+					head.rotation.y = scan_yaw
+					head.rotation.x = peck_dip * 0.65
+					head.position.y = 0.24 - peck_dip * 0.065 + sin(timer * 2.4) * 0.008
+				# Sacudida ocasional de alas al posarse
+				var ruff := fmod(timer * 0.85, 8.2)
+				if ruff < 0.75:
+					var flap := sin(ruff / 0.75 * PI * 3.0) * 26.0
+					_set_seagull_wing_pose(f, 0.45 * sin(ruff / 0.75 * PI), flap)
+				else:
+					_set_seagull_wing_pose(f, 0.0, 0.0)
+				# Si el jugador activo se acerca (< 3.2 m), levanta vuelo en círculo y luego regresa
+				if cd <= 0.0 and active_tok and DisplayServer.get_name() != "headless":
+					if f.global_position.distance_to(active_tok.global_position) < 3.2:
+						f.set_meta("flight_state", "circling")
+						f.set_meta("flight_t", 0.0)
+			else:
+				var ft: float = float(f.get_meta("flight_t", 0.0)) + delta
+				f.set_meta("flight_t", ft)
+				var dur := 11.0
+				if ft >= dur:
+					f.position = home_pos
+					f.rotation = Vector3(0.0, home_yaw, 0.0)
+					f.set_meta("flight_state", "perched")
+					f.set_meta("cooldown", 6.0)
+					_set_seagull_wing_pose(f, 0.0, 0.0)
+				else:
+					var u := ft / dur
+					var env := sin(u * PI)
+					var ang := u * TAU * 1.5
+					var rad := 7.2 * env
+					var next_pos := home_pos + Vector3(cos(ang) * rad, 5.2 * env + sin(ft * 2.1) * 0.35 * env, sin(ang) * rad)
+					var move_v := next_pos - f.position
+					f.position = next_pos
+					if move_v.length_squared() > 0.0001:
+						f.rotation.y = atan2(move_v.x, move_v.z)
+					f.rotation.z = -0.28 * env
+					f.rotation.x = clampf(-move_v.y * 1.4, -0.35, 0.35)
+					var flap_deg := sin(ft * 13.5) * 32.0 if (u < 0.30 or u > 0.75) else sin(ft * 4.0) * 9.0
+					_set_seagull_wing_pose(f, 1.0, flap_deg)
 		elif type == "crab":
-			f.rotation.y += sin(Time.get_ticks_msec() * 0.003) * 0.002
+			var home: Vector3 = f.get_meta("home_pos", f.position)
+			var ph: float = float(f.get_meta("phase", 0.0))
+			var ct := time_now * 0.95 + ph
+			var off := Vector3(sin(ct) * 0.32, 0.0, cos(ct * 0.72) * 0.24)
+			f.position = home + off
+			f.rotation.y = atan2(cos(ct) * 0.32, -sin(ct * 0.72) * 0.24 * 0.72)
+
+	# Gaviotas planeando y batiendo alas en altura sobre el pecio y los arrecifes
+	for sb in soaring_birds:
+		var b: Node3D = sb["node"]
+		if not is_instance_valid(b):
+			continue
+		var a: float = time_now * float(sb["speed"]) * float(sb["dir"]) + float(sb["phase"])
+		var c: Vector3 = sb["center"]
+		var rx: float = float(sb["rx"])
+		var rz: float = float(sb["rz"])
+		var pos := Vector3(c.x + cos(a) * rx, c.y + sin(a * 2.0) * 1.15, c.z + sin(a) * rz)
+		var vel := Vector3(-sin(a) * rx * float(sb["dir"]), cos(a * 2.0) * 0.5, cos(a) * rz * float(sb["dir"]))
+		b.position = pos
+		b.rotation.y = atan2(vel.x, vel.z)
+		b.rotation.z = -0.22 * float(sb["dir"])
+		var beat_phase := fmod(time_now + float(sb["phase"]), 5.2)
+		var flap := sin(time_now * 10.5 + float(sb["phase"])) * 26.0 if beat_phase < 1.9 else sin(time_now * 2.0) * 5.0
+		_set_seagull_wing_pose(b, 1.0, flap)

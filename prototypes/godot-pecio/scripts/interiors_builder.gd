@@ -4,6 +4,7 @@ extends Node3D
 const WreckStructure = preload("res://scripts/wreck_structure.gd")
 const PbrMaterialKit = preload("res://scripts/pbr_material_kit.gd")
 const InteractiveProp = preload("res://scripts/interactive_prop.gd")
+const InteractiveTransition = preload("res://scripts/interactive_transition.gd")
 const HullBuilder = preload("res://scripts/hull_builder.gd")
 const ShipGeometry = preload("res://scripts/ship_geometry.gd")
 const DragonBonesBuilder = preload("res://scripts/dragon_bones_builder.gd")
@@ -590,13 +591,13 @@ func build_cabins_aft() -> void:
 		rod.rotation_degrees.x = 90.0
 		desk_node.add_child(rod)
 
-	# Interacción contextual canónica: [T] Examinar Carta Náutica
+	# Interacción contextual canónica: Escritorio, carta náutica, cajones y brújula (C4)
 	var prop_chart = InteractiveProp.new()
 	prop_chart.name = "PropChartC4"
 	prop_chart.prop_id = "c4_chart"
-	prop_chart.prompt_text = "Examinar Carta Náutica de la Costa de la Espada"
+	prop_chart.prompt_text = "Examinar Escritorio, Cajones y Brújula (C4)"
 	prop_chart.inspection_message = "El mapa náutico detalla arrecifes traicioneros y la derrota hacia la Isla de los Naufragios."
-	prop_chart.interaction_radius = 2.4
+	prop_chart.interaction_radius = 2.5
 	desk_node.add_child(prop_chart)
 
 	# Sillón del capitán retranqueado ligeramente hacia la popa del escritorio
@@ -844,8 +845,16 @@ func build_cabins_aft() -> void:
 		sp_book.rotation_degrees = Vector3(0, 22.0 * float(idx) - 18.0, 0)
 		aft_node.add_child(sp_book)
 
-	# 5. Agujero P13 enmarcado en vigas rotas hacia la cubierta baja C8
+	# 5. Agujero P13 enmarcado en vigas rotas hacia la cubierta baja C8 + transición con cuerda
 	build_hole_rim(aft_node, WreckStructure.get_world_pos(-17.5, 0.0, -3.2), 0.8)
+	var trans_p13_down := InteractiveTransition.new()
+	trans_p13_down.name = "Trans_P13_Down"
+	trans_p13_down.position = WreckStructure.get_world_pos(-17.5, 0.12, -3.2)
+	trans_p13_down.prompt_label = "Bajar por Boquete P13 a Sentina C8 (cuerda)"
+	trans_p13_down.destination = Vector3(-18.1, -3.22, -3.2)
+	trans_p13_down.transition_mode = "hatch"
+	trans_p13_down.trigger_radius = 1.9
+	aft_node.add_child(trans_p13_down)
 
 	# Farol de escritorio elevado sobre pie de bronce en la mesa del Capitán (-27.25, 1.24, -2.10)
 	var desk_lamp_stand := MeshInstance3D.new()
@@ -1110,7 +1119,7 @@ func build_cabins_aft() -> void:
 
 	_add_round_contact_shadow(aft_node, -20.4, 1.65, 0.72, 0.72, 0.68)
 
-	# 3 cangrejos pequeños inofensivos moviendo el esqueleto (canon C5)
+	# 3 cangrejos pequeños inofensivos moviendo el esqueleto (canon C5 · falsa alarma)
 	_build_galley_crab(aft_node, "GalleyCrab_0", WreckStructure.get_world_pos(-20.0, 0.01, 2.02), -25.0, 0.0)
 	_build_galley_crab(aft_node, "GalleyCrab_1", WreckStructure.get_world_pos(-20.75, 0.01, 1.95), 42.0, 2.1)
 	_build_galley_crab(aft_node, "GalleyCrab_2", WreckStructure.get_world_pos(-20.25, 0.01, 1.25), 115.0, 4.2)
@@ -1408,7 +1417,9 @@ func build_cabins_fore() -> void:
 	sconce_light.name = "C6_PortraitSconceLight"
 	sconce_light.position = Vector3(-0.34, 0.58, 0)
 	sconce_light.light_color = Color("#ffcf87")
-	sconce_light.light_energy = 0.55
+	sconce_light.light_energy = 0.0
+	sconce_light.set_meta("lantern_base_energy", 0.55)
+	sconce_light.set_meta("lantern_lit", false)
 	sconce_light.omni_range = 3.2
 	sconce_light.shadow_enabled = false
 	portrait_root.add_child(sconce_light)
@@ -1444,12 +1455,14 @@ func build_cabins_fore() -> void:
 	stash_node.add_child(stash_plank)
 
 	var trap_needle = MeshInstance3D.new()
+	trap_needle.name = "TrapNeedleC6"
 	var tn_cyl = CylinderMesh.new()
 	tn_cyl.top_radius = 0.012; tn_cyl.bottom_radius = 0.030; tn_cyl.height = 0.14
 	trap_needle.mesh = tn_cyl
 	trap_needle.material_override = mat_brass
 	trap_needle.position = Vector3(-0.24, 0.04, -0.05)
 	trap_needle.rotation_degrees = Vector3(0, 0, -48.0)
+	trap_needle.visible = false
 	stash_node.add_child(trap_needle)
 
 	_add_rect_contact_shadow(fore_node, 18.6, -2.6, 1.15, 0.65, 14.0, 0.68)
@@ -1457,8 +1470,8 @@ func build_cabins_fore() -> void:
 	var prop_trap = InteractiveProp.new()
 	prop_trap.name = "PropTrapC6"
 	prop_trap.prop_id = "c6_needle_trap"
-	prop_trap.prompt_text = "Desarmar Trampa de Aguja del Alijo"
-	prop_trap.inspection_message = "¡Desarmas el resorte con cuidado! El alijo contiene 200 piezas de oro seguras."
+	prop_trap.prompt_text = "Inspeccionar tablones del suelo (Percepción CD 10)"
+	prop_trap.inspection_message = "Bajo el tablón suelto se esconde un mecanismo de aguja envenenada y un alijo de 200 piezas de oro."
 	prop_trap.interaction_radius = 2.0
 	stash_node.add_child(prop_trap)
 
@@ -1851,8 +1864,8 @@ func build_lower_deck_c8() -> void:
 		var x1 := cuts[i + 1]
 		if x1 - x0 < 0.01:
 			continue
-		var b0 := WreckStructure.get_beam_at(x0) * 0.88
-		var b1 := WreckStructure.get_beam_at(x1) * 0.88
+		var b0 := WreckStructure.get_beam_at(x0) * 0.93
+		var b1 := WreckStructure.get_beam_at(x1) * 0.93
 		var in_p13 := (x0 >= -18.31 and x1 <= -16.69)
 		var in_c9_stair := (x0 >= 12.74 and x1 <= 18.76)
 
@@ -1892,31 +1905,49 @@ func build_lower_deck_c8() -> void:
 	# Escalera física descendente C8 -> Bodega Sumergida C9 (x: 12.75..18.75, z = 2.25)
 	HullBuilder.build_physical_stair_flight(c8_node, "Stairs_C8_C9", 12.75, 18.75, -3.28, -6.40, 2.25, 0.72, 16, mat_floor_cabin, mat_furniture)
 
-	# Forros interiores húmedos de C8 (babor visible, estribor recortable en vista interior baja)
-	_build_hull_interior_lining(c8_node, "HullInner_C8_Port", -29.0, 26.5, -3.55, -0.22, -1.0, 0.88, 0.96)
-	_build_hull_interior_lining(c8_node, "HullInner_C8_Front", -29.0, 26.5, -3.55, -0.22, 1.0, 0.88, 0.96)
+	# Forros interiores húmedos y mamparos cerrados de proa/popa de C8 (sin huecos hacia el fondo o exterior)
+	_build_hull_interior_lining(c8_node, "HullInner_C8_Port", -29.0, 26.5, -3.55, -0.22, -1.0, 0.92, 0.96)
+	_build_hull_interior_lining(c8_node, "HullInner_C8_Front", -29.0, 26.5, -3.55, -0.22, 1.0, 0.92, 0.96)
+	var b_bow_c8 := WreckStructure.get_beam_at(26.5) * 0.95
+	build_bulkhead_wall(c8_node, Vector3(26.5, -3.55, -b_bow_c8), Vector3(26.5, -3.55, b_bow_c8), 3.38, "Bulkhead_C8_BowWall")
+	var b_stern_c8 := WreckStructure.get_beam_at(-29.0) * 0.95
+	build_bulkhead_wall(c8_node, Vector3(-29.0, -3.55, -b_stern_c8), Vector3(-29.0, -3.55, b_stern_c8), 3.38, "Bulkhead_C8_SternWall")
 
-	# Brazola rota del pozo vertical P13 también en cubierta C8 + puntales y vigas maestras
+	# Pantalla oscura de profundidad bajo el hueco de la escalera C8->C9 para no ver vacío brillante debajo
+	var stair_abyss := MeshInstance3D.new()
+	stair_abyss.name = "C8_StairWellAbyss"
+	var sa_pl := PlaneMesh.new()
+	sa_pl.size = Vector2(6.2, 2.1)
+	stair_abyss.mesh = sa_pl
+	var mat_abyss := StandardMaterial3D.new()
+	mat_abyss.albedo_color = Color("#03090c")
+	mat_abyss.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	stair_abyss.material_override = mat_abyss
+	stair_abyss.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	stair_abyss.position = WreckStructure.get_world_pos(15.75, -3.95, 2.25)
+	c8_node.add_child(stair_abyss)
+
+	# Brazola rota del pozo vertical P13/P14 también en cubierta C8 + puntales y vigas maestras
 	build_hole_rim(c8_node, WreckStructure.get_world_pos(-17.5, -3.35, -3.2), 0.82)
 	c8_node.get_child(c8_node.get_child_count() - 1).name = "BreachP13Coaming_C8"
 	_build_stanchions_and_beams(c8_node, "HullLowerStanchions_C8", [-11.5, -5.5, 1.5, 8.5], [-2.8, 2.6], -3.45, -0.15)
 
-	# Lámina de agua inundada canónica al nivel del mar (-3.05m -> 45cm babor / 15cm estribor)
-	_build_contoured_water_plane(c8_node, "C8_FloodWater", -29.0, 26.5, WreckStructure.SEA_HEIGHT, 0.89, mat_flood_water)
+	# Lámina de agua inundada canónica al nivel del mar (-3.05m -> 45cm babor / 15cm estribor) sin grietas en bordes
+	_build_contoured_water_plane(c8_node, "C8_FloodWater", -29.0, 26.5, WreckStructure.SEA_HEIGHT, 0.95, mat_flood_water)
 
-	# Luz de destello verde-azulada del agua en C8 + rellenos suaves popa/proa
+	# Iluminación de sentina en penumbra interior real (legible pero claramente bajo cubierta, realzada por haces cenitales y faroles)
 	var c8_light = OmniLight3D.new()
 	c8_light.name = "C8_WaterGlimmer"
-	c8_light.position = Vector3(-1.5, -2.0, 2.0)
-	c8_light.light_color = Color("#78d2c3")
-	c8_light.light_energy = 2.6
+	c8_light.position = Vector3(-1.5, -1.65, 1.5)
+	c8_light.light_color = Color("#4d8684")
+	c8_light.light_energy = 1.05
 	c8_light.omni_range = 22.0
-	c8_light.omni_attenuation = 1.15
+	c8_light.omni_attenuation = 1.12
 	c8_node.add_child(c8_light)
 
 	for fill_cfg in [
-		{"name": "C8_AftFill",  "pos": Vector3(-18.5, -1.25, -0.4), "col": "#6eb8ad", "energy": 1.45, "range": 19.0},
-		{"name": "C8_ForeFill", "pos": Vector3(15.0, -1.25, 0.2),   "col": "#83b8a6", "energy": 1.35, "range": 17.5},
+		{"name": "C8_AftFill",  "pos": Vector3(-18.5, -1.25, -0.4), "col": "#44726e", "energy": 0.78, "range": 17.5},
+		{"name": "C8_ForeFill", "pos": Vector3(15.0, -1.25, 0.2),   "col": "#467570", "energy": 0.72, "range": 17.0},
 	]:
 		var fill := OmniLight3D.new()
 		fill.name = fill_cfg["name"]
@@ -1924,9 +1955,40 @@ func build_lower_deck_c8() -> void:
 		fill.light_color = Color(fill_cfg["col"])
 		fill.light_energy = fill_cfg["energy"]
 		fill.omni_range = fill_cfg["range"]
-		fill.omni_attenuation = 1.05
+		fill.omni_attenuation = 1.15
 		fill.shadow_enabled = false
 		c8_node.add_child(fill)
+
+	# Haces de luz cenital cayendo desde aberturas superiores (escalera P11, escotilla P12, boquete P13 y trampas C1)
+	_build_c8_overhead_light_shafts(c8_node)
+
+	# Transiciones canónicas desde C8 hacia C1 (P12), C4 (P13) y C9 (P14)
+	var trans_p12_up := InteractiveTransition.new()
+	trans_p12_up.name = "Trans_P12_Up"
+	trans_p12_up.position = Vector3(-4.5, -3.12, -5.1)
+	trans_p12_up.prompt_label = "Subir por Escotilla de Carga (P12 → C1)"
+	trans_p12_up.destination = Vector3(-4.5, 0.15, -5.35)
+	trans_p12_up.transition_mode = "hatch"
+	trans_p12_up.trigger_radius = 1.9
+	c8_node.add_child(trans_p12_up)
+
+	var trans_p13_up := InteractiveTransition.new()
+	trans_p13_up.name = "Trans_P13_Up"
+	trans_p13_up.position = Vector3(-18.3, -3.12, -3.2)
+	trans_p13_up.prompt_label = "Subir por Boquete P13 a Camarote C4 (cuerda)"
+	trans_p13_up.destination = Vector3(-17.5, 0.15, -3.2)
+	trans_p13_up.transition_mode = "hatch"
+	trans_p13_up.trigger_radius = 1.65
+	c8_node.add_child(trans_p13_up)
+
+	var trans_p14_down := InteractiveTransition.new()
+	trans_p14_down.name = "Trans_P14_Down"
+	trans_p14_down.position = Vector3(-16.6, -3.12, -3.2)
+	trans_p14_down.prompt_label = "Sumergirse por Agujero P14 a Bodega C9"
+	trans_p14_down.destination = Vector3(-17.5, -6.10, -3.2)
+	trans_p14_down.transition_mode = "swim"
+	trans_p14_down.trigger_radius = 1.65
+	c8_node.add_child(trans_p14_down)
 
 	# Farol secundario de mamparo amarrado al puntal popel (-11.5, -1.40, -2.8) para iluminar la zona de popa y la brecha P13
 	build_wall_lantern(c8_node, WreckStructure.get_world_pos(-11.5, -1.40, -2.42), "Lantern_C8_Aft", "wall")
@@ -2007,12 +2069,21 @@ func build_lower_deck_c8() -> void:
 		var fcp: Vector3 = floating_crates[idx_fc]
 		if crate_res:
 			var fc = crate_res.instantiate()
+			fc.name = "FloatingCrate_C8_%d" % idx_fc
 			fc.position = fcp
 			fc.rotation_degrees = Vector3(randf_range(-8, 8), randf_range(0, 360), randf_range(-8, 8))
 			fc.scale = Vector3(0.88, 0.88, 0.88)
 			PbrMaterialKit.apply_kenney_material(fc)
 			c8_node.add_child(fc)
 			PbrMaterialKit.add_box_collider(c8_node, "Col_C8Crate_%d" % idx_fc, Vector3(0.88, 0.95, 0.88), fcp + Vector3(0, 0.42, 0))
+			var prop_crate := InteractiveProp.new()
+			prop_crate.name = "PropC8Crate_%d" % idx_fc
+			prop_crate.prop_id = "c8_crate_%d" % idx_fc
+			prop_crate.prompt_text = "Abrir Caja de Carga (1d6 · C8)"
+			prop_crate.inspection_message = "Caja mercantil medio sumergida en la sentina."
+			prop_crate.position = fcp + Vector3(0, 0.25, 0)
+			prop_crate.interaction_radius = 2.2
+			c8_node.add_child(prop_crate)
 		var fc_sh = PbrMaterialKit.create_blob_shadow(0.85, 0.85, 0.55)
 		fc_sh.position = Vector3(fcp.x, -3.08, fcp.z)
 		c8_node.add_child(fc_sh)
@@ -2113,16 +2184,59 @@ func build_hold_c9() -> void:
 	# Umbral y rampa continua en la brecha submarina P16 para conectar con el lecho marino
 	PbrMaterialKit.add_box_collider(c9_node, "Col_C9_BreachFloor", Vector3(1.8, 0.85, 3.2), WreckStructure.get_world_pos(WreckStructure.STERN_X - 0.6, -6.80, 0.0))
 
-	# 1. Cofre de hierro sumergido en el limo (c9-iron-chest) con colisionador
+	# 1. Cofre de hierro sumergido en el limo (~60 kg · c9-iron-chest) con colisionador e interacción canónica
 	var chest_res = load("res://assets/models/chest.glb")
 	if chest_res:
 		var c_inst = chest_res.instantiate()
+		c_inst.name = "IronChestMesh_C9"
 		c_inst.position = Vector3(-19.5, -6.32, -3.2)
 		c_inst.rotation_degrees = Vector3(6, -22, -4)
-		c_inst.scale = Vector3(0.75, 0.75, 0.75)
+		c_inst.scale = Vector3(0.82, 0.82, 0.82)
 		PbrMaterialKit.apply_kenney_material(c_inst)
 		c9_node.add_child(c_inst)
-		PbrMaterialKit.add_box_collider(c9_node, "Col_C9IronChest", Vector3(0.92, 0.75, 0.68), Vector3(-19.5, -6.02, -3.2))
+		PbrMaterialKit.add_box_collider(c9_node, "Col_C9IronChest", Vector3(0.95, 0.78, 0.72), Vector3(-19.5, -6.02, -3.2))
+
+	var prop_c9_chest := InteractiveProp.new()
+	prop_c9_chest.name = "PropIronChestC9"
+	prop_c9_chest.prop_id = "c9_iron_chest"
+	prop_c9_chest.prompt_text = "Cofre de Hierro Sumergido (~60 kg · C9)"
+	prop_c9_chest.inspection_message = "Pesado cofre de hierro caído desde el camarote del capitán."
+	prop_c9_chest.position = Vector3(-19.5, -6.0, -3.2)
+	prop_c9_chest.interaction_radius = 2.6
+	c9_node.add_child(prop_c9_chest)
+
+	# 2 bolsas de aire respirables bajo las tablas del techo de C9 (PDF p. 26: escalera P15 y bajo P14)
+	for ap in [
+		{"name": "PropAirPocket_Stairs", "pos": Vector3(13.2, -3.95, 2.25), "prompt": "Respirar en Bolsa de Aire (Escalera P15)"},
+		{"name": "PropAirPocket_P14",    "pos": Vector3(-17.5, -4.05, -3.2), "prompt": "Respirar en Bolsa de Aire (Bajo Agujero P14)"},
+	]:
+		var p_air := InteractiveProp.new()
+		p_air.name = str(ap["name"])
+		p_air.prop_id = "c9_air_pocket"
+		p_air.prompt_text = str(ap["prompt"])
+		p_air.inspection_message = "Bolsa de aire atrapada bajo las vigas de cubierta."
+		p_air.position = ap["pos"]
+		p_air.interaction_radius = 2.5
+		c9_node.add_child(p_air)
+
+	# Transiciones de salida de C9: P14 hacia C8 y brecha submarina P16 hacia el mar abierto
+	var trans_p14_up := InteractiveTransition.new()
+	trans_p14_up.name = "Trans_P14_Up"
+	trans_p14_up.position = Vector3(-17.5, -6.05, -3.2)
+	trans_p14_up.prompt_label = "Subir nadando por Agujero P14 a Sentina C8"
+	trans_p14_up.destination = Vector3(-16.6, -3.22, -3.2)
+	trans_p14_up.transition_mode = "swim"
+	trans_p14_up.trigger_radius = 2.0
+	c9_node.add_child(trans_p14_up)
+
+	var trans_p16_out := InteractiveTransition.new()
+	trans_p16_out.name = "Trans_P16_Out"
+	trans_p16_out.position = Vector3(-29.1, -5.80, 0.0)
+	trans_p16_out.prompt_label = "Salir nadando al Mar por Brecha de Popa (P16)"
+	trans_p16_out.destination = Vector3(-33.0, -3.35, 0.0)
+	trans_p16_out.transition_mode = "swim"
+	trans_p16_out.trigger_radius = 2.2
+	c9_node.add_child(trans_p16_out)
 
 	var c9_chest_sh = PbrMaterialKit.create_blob_shadow(0.75, 0.6, 0.65)
 	c9_chest_sh.position = Vector3(-19.5, -6.38, -3.2)
@@ -2258,55 +2372,182 @@ func build_hold_c9() -> void:
 
 	_build_c9_submerged_dragon_bones(c9_node)
 
+func _build_c8_overhead_light_shafts(c8_node: Node3D) -> void:
+	var beam_sh := load("res://shaders/underwater_light_shaft.gdshader") as Shader
+	var mat_c8_shaft := ShaderMaterial.new()
+	if beam_sh:
+		mat_c8_shaft.shader = beam_sh
+		mat_c8_shaft.set_shader_parameter("shaft_color", Color(0.76, 0.90, 0.92, 1.0))
+		mat_c8_shaft.set_shader_parameter("intensity", 0.16)
+		mat_c8_shaft.set_shader_parameter("speed", 0.24)
+
+	var permanent_shafts := [
+		{"name": "C8LightShaft_P11Stair", "pos": Vector3(1.5, -1.48, 5.15),   "r_top": 0.65, "r_bot": 1.65, "h": 2.95, "rot": Vector3(6.0, 0.0, -8.0),  "energy": 1.05, "visible": true},
+		{"name": "C8LightShaft_P12Hatch", "pos": Vector3(-4.5, -1.48, -5.65), "r_top": 0.55, "r_bot": 1.35, "h": 2.95, "rot": Vector3(-8.0, 0.0, 7.0),  "energy": 0.85, "visible": true},
+		{"name": "C8LightShaft_P13Hole",  "pos": Vector3(-17.5, -1.48, -3.2), "r_top": 0.52, "r_bot": 1.45, "h": 2.95, "rot": Vector3(5.0, 0.0, 11.0),  "energy": 1.00, "visible": true},
+		# 4 haces ocultos que se revelan automáticamente cuando el jugador rompe las trampas de tablones en C1
+		{"name": "C8TrapLightShaft_c1_weak_plank_1", "pos": Vector3(-4.2, -1.48, -1.6), "r_top": 0.44, "r_bot": 1.25, "h": 2.95, "rot": Vector3(4.0, 0.0, -6.0), "energy": 0.90, "visible": false},
+		{"name": "C8TrapLightShaft_c1_weak_plank_2", "pos": Vector3(5.2, -1.48, 1.0),   "r_top": 0.44, "r_bot": 1.25, "h": 2.95, "rot": Vector3(4.0, 0.0, -6.0), "energy": 0.90, "visible": false},
+		{"name": "C8TrapLightShaft_c1_weak_plank_3", "pos": Vector3(-3.8, -1.48, 3.4),  "r_top": 0.44, "r_bot": 1.25, "h": 2.95, "rot": Vector3(4.0, 0.0, -6.0), "energy": 0.90, "visible": false},
+		{"name": "C8TrapLightShaft_c1_weak_plank_4", "pos": Vector3(5.8, -1.48, -2.6),  "r_top": 0.44, "r_bot": 1.25, "h": 2.95, "rot": Vector3(4.0, 0.0, -6.0), "energy": 0.90, "visible": false},
+	]
+	for sh in permanent_shafts:
+		var holder := Node3D.new()
+		holder.name = str(sh["name"])
+		holder.position = sh["pos"]
+		holder.visible = bool(sh["visible"])
+		c8_node.add_child(holder)
+
+		var ray := MeshInstance3D.new()
+		ray.name = "ShaftCone"
+		var cyl := CylinderMesh.new()
+		cyl.top_radius = float(sh["r_top"])
+		cyl.bottom_radius = float(sh["r_bot"])
+		cyl.height = float(sh["h"])
+		cyl.radial_segments = 16
+		cyl.cap_top = false
+		cyl.cap_bottom = false
+		ray.mesh = cyl
+		ray.material_override = mat_c8_shaft
+		ray.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		ray.rotation_degrees = sh["rot"]
+		holder.add_child(ray)
+
+		var pool_light := OmniLight3D.new()
+		pool_light.name = "C8_ShaftLight_" + str(sh["name"])
+		pool_light.position = Vector3(0.0, 0.25, 0.0)
+		pool_light.light_color = Color("#b4d8dc")
+		pool_light.light_energy = float(sh["energy"])
+		pool_light.set_meta("c8_shaft_base_energy", float(sh["energy"]))
+		pool_light.omni_range = 10.5
+		pool_light.omni_attenuation = 1.12
+		pool_light.shadow_enabled = false
+		holder.add_child(pool_light)
+
+func _append_c8_torn_breach(st_oak: SurfaceTool, st_dark: SurfaceTool, breach_center: Vector3, inward_dir: Vector3, rib_r: float, seed_val: int) -> void:
+	var in_n := Vector3(inward_dir.x, 0.0, inward_dir.z).normalized()
+	if in_n.length_squared() < 0.01:
+		in_n = Vector3(0.0, 0.0, -1.0)
+	var tan_v := Vector3(-in_n.z, 0.0, in_n.x).normalized()
+	var up_v := Vector3(0.0, 1.0, 0.0)
+
+	# 1. Grieta profunda de madera aplastada y rasgada rodeando la perforación del forro
+	var hw := clampf(rib_r * 1.45, 0.42, 0.78)
+	var hh := clampf(rib_r * 1.35, 0.40, 0.74)
+	for vs in [-1.0, 1.0]:
+		ShipGeometry.beam(st_dark, breach_center - tan_v * (hw * 1.35) + up_v * (vs * hh), breach_center + tan_v * (hw * 1.35) + up_v * (vs * hh), 0.16, 0.12, 0.85)
+	for hs in [-1.0, 1.0]:
+		ShipGeometry.beam(st_dark, breach_center + tan_v * (hs * hw * 1.05) - up_v * (hh * 1.15), breach_center + tan_v * (hs * hw * 1.05) + up_v * (hh * 1.15), 0.14, 0.12, 0.80)
+
+	# 2. Tablas desgarradas del forro dobladas HACIA DENTRO en el sentido del impacto óseo (jamás pinchos verticales)
+	var tear_specs := [
+		[-1.0,  0.58, 0.96,  0.18, 0.46, 0.16],
+		[ 1.0,  0.46, 0.88, -0.22, 0.42, 0.15],
+		[-1.0, -0.24, 1.04, -0.16, 0.52, 0.17],
+		[ 1.0, -0.38, 0.92,  0.20, 0.44, 0.15],
+		[-0.5,  0.86, 0.72,  0.26, 0.36, 0.13],
+		[ 0.5, -0.68, 0.78, -0.20, 0.38, 0.14],
+	]
+	for ti in range(tear_specs.size()):
+		var ts: Array = tear_specs[ti]
+		var s_t := float(ts[0])
+		var s_y := float(ts[1])
+		var plen := float(ts[2])
+		var tilt := float(ts[3])
+		var peel := float(ts[4])
+		var w := float(ts[5])
+		var jit := sin(float(seed_val * 7 + ti * 5)) * 0.08
+		var p0 := breach_center + tan_v * (s_t * hw * 1.40) + up_v * (s_y * hh + jit) - in_n * 0.08
+		var p1 := breach_center + tan_v * (s_t * (hw * 0.35 - plen * 0.18)) + up_v * (s_y * hh + tilt * 0.42 + jit) + in_n * (peel + absf(jit))
+		ShipGeometry.beam(st_oak, p0, p1, w, 0.052, 0.22)
+
+	# 3. Astillas caídas y tablones rotos flotando junto a la brecha en el agua de sentina
+	var water_base := Vector3(breach_center.x, -3.03, breach_center.z) + in_n * 0.65
+	for wi in range(3):
+		var ang := float(seed_val * 3 + wi * 2) * 1.1
+		var d_v := (tan_v * cos(ang) + in_n * sin(ang)).normalized()
+		var c_w := water_base + tan_v * (float(wi - 1) * 0.48) + in_n * (0.28 + float(wi % 2) * 0.32)
+		ShipGeometry.beam(st_oak, c_w - d_v * 0.46, c_w + d_v * 0.46, 0.14, 0.04, 0.30)
+
 func _build_c8_piercing_dragon_bones(c8_node: Node3D) -> void:
 	var bones_c8 := Node3D.new()
 	bones_c8.name = "DragonBones_C8"
 	c8_node.add_child(bones_c8)
 
-	var mat_gold := PbrMaterialKit.create_mineralized_bone_pbr("#d8c28c")
-	var mat_dark := PbrMaterialKit.create_mineralized_bone_pbr("#9b8456")
+	# Shader unificado de hueso antiguo de Clyssavar (idéntico al exterior y a C9)
+	var mat_gold := PbrMaterialKit.create_dragon_bone_shader_material("#cbb580", "#3a301e")
+	var mat_dark := PbrMaterialKit.create_dragon_bone_shader_material("#8e7950", "#292217")
 	var st_gold := ShipGeometry.begin(mat_gold)
 	var st_dark := ShipGeometry.begin(mat_dark)
 
-	# Costillas titánicas atravesando la brecha de estribor en popa hacia el interior de C8 (z >= 4.2, pasillo libre)
-	for x_pos in [-26.5, -22.5, -18.5, -14.5, -10.5]:
-		var root := Vector3(x_pos, -3.45, 8.1)
-		var mid := Vector3(x_pos + 0.5, -1.05, 6.0)
-		var tip := Vector3(x_pos + 1.0, -0.42, 4.35)
-		DragonBonesBuilder.add_sculpted_rib_arch(st_gold, root, mid, tip, 0.56, 0.15, 10, 8)
+	var mat_c8_splint := PbrMaterialKit.create_oak_furniture_pbr("#5c442c")
+	mat_c8_splint.roughness = 0.92
+	var mat_c8_fracture := PbrMaterialKit.create_weathered_hull_pbr("#1c140e")
+	mat_c8_fracture.roughness = 0.98
+	var st_oak := ShipGeometry.begin(mat_c8_splint)
+	var st_dark_wood := ShipGeometry.begin(mat_c8_fracture)
+
+	var mat_water_collar := StandardMaterial3D.new()
+	mat_water_collar.albedo_color = Color(0.54, 0.68, 0.66, 0.34)
+	mat_water_collar.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat_water_collar.roughness = 0.45
+	mat_water_collar.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+
+	# 1. Costillas titánicas perforando el costado estribor de popa hacia C8 con brecha desgarrada real
+	var aft_stbd_xs := [-26.5, -22.5, -18.5, -14.5, -10.5]
+	for idx in range(aft_stbd_xs.size()):
+		var x_pos: float = aft_stbd_xs[idx]
+		var beam_here := WreckStructure.get_beam_at(x_pos) * 0.92
+		var root := Vector3(x_pos, -3.45, beam_here + 0.55)
+		var mid := Vector3(x_pos + 0.45, -1.25, beam_here - 1.55)
+		var tip := Vector3(x_pos + 0.95, -0.48, beam_here - 3.35)
+		DragonBonesBuilder.add_sculpted_rib_arch(st_gold, root, mid, tip, 0.54, 0.15, 10, 8)
+		_append_c8_torn_breach(st_oak, st_dark_wood, Vector3(x_pos + 0.18, -2.35, beam_here - 0.08), Vector3(0.0, 0.0, -1.0), 0.52, idx + 1)
 
 	# Espolón vertebral incrustado junto a la brecha de popa-estribor de C8
 	var stern_spur: Array[Vector3] = [
-		Vector3(-28.4, -3.35, 5.4),
-		Vector3(-25.8, -2.65, 5.6),
-		Vector3(-23.0, -2.85, 5.2),
-		Vector3(-20.5, -3.30, 5.5),
+		Vector3(-28.2, -3.35, 5.2),
+		Vector3(-25.8, -2.65, 5.4),
+		Vector3(-23.0, -2.85, 5.0),
+		Vector3(-20.5, -3.30, 5.3),
 	]
 	DragonBonesBuilder.add_flanged_bone_tube(st_dark, stern_spur, 0.44, 0.38, 0.24, 0.20, 8, true, true)
-	DragonBonesBuilder.add_vertebra_segment(st_gold, Vector3(-25.8, -2.65, 5.6), Vector3(1.0, 0.0, 0.0), 1.05)
+	DragonBonesBuilder.add_vertebra_segment(st_gold, Vector3(-25.8, -2.65, 5.4), Vector3(1.0, 0.0, 0.0), 1.05)
 
-	# Costillas fracturadas en el costado babor-popa y amuras de proa en C8 (lejos de escaleras y pasillos)
-	DragonBonesBuilder.add_sculpted_rib_arch(st_gold, Vector3(-26.5, -3.45, -7.2), Vector3(-25.5, -1.5, -5.9), Vector3(-24.2, -0.9, -4.9), 0.48, 0.14, 9, 8)
-	DragonBonesBuilder.add_sculpted_rib_arch(st_gold, Vector3(19.2, -3.45, -6.9), Vector3(19.6, -1.35, -5.6), Vector3(20.0, -0.55, -4.4), 0.46, 0.14, 9, 8)
-	DragonBonesBuilder.add_sculpted_rib_arch(st_gold, Vector3(22.6, -3.45, -6.2), Vector3(22.8, -1.55, -5.1), Vector3(23.2, -0.75, -4.2), 0.42, 0.12, 9, 8)
-	DragonBonesBuilder.add_sculpted_rib_arch(st_gold, Vector3(21.4, -3.45, 7.1), Vector3(21.2, -1.35, 5.6), Vector3(20.8, -0.55, 4.3), 0.44, 0.12, 9, 8)
+	# 2. Costillas que perforan el forro babor-popa y las amuras de babor y estribor en proa (TODAS con pared rota y desgarrada!)
+	var side_ribs := [
+		{"root": Vector3(-26.5, -3.45, -7.2), "mid": Vector3(-25.5, -1.55, -5.8), "tip": Vector3(-24.2, -0.85, -4.6), "r": 0.48, "side": -1.0, "seed": 11},
+		{"root": Vector3(19.2, -3.45, -7.4),  "mid": Vector3(19.6, -1.45, -5.8),  "tip": Vector3(20.0, -0.60, -4.4),  "r": 0.46, "side": -1.0, "seed": 12},
+		{"root": Vector3(22.6, -3.45, -6.6),  "mid": Vector3(22.8, -1.60, -5.1),  "tip": Vector3(23.2, -0.78, -4.0),  "r": 0.42, "side": -1.0, "seed": 13},
+		{"root": Vector3(21.4, -3.45,  7.0),  "mid": Vector3(21.2, -1.45,  5.4),  "tip": Vector3(20.8, -0.58,  4.1),  "r": 0.44, "side":  1.0, "seed": 14},
+	]
+	for sr in side_ribs:
+		var r0: Vector3 = sr["root"]
+		var r1: Vector3 = sr["mid"]
+		var r2: Vector3 = sr["tip"]
+		var side: float = float(sr["side"])
+		DragonBonesBuilder.add_sculpted_rib_arch(st_gold, r0, r1, r2, float(sr["r"]), 0.13, 10, 8)
+		var b_wall := WreckStructure.get_beam_at(r0.x) * 0.92
+		var wall_hit := Vector3(r0.x + 0.15, -2.42, side * (b_wall - 0.06))
+		_append_c8_torn_breach(st_oak, st_dark_wood, wall_hit, Vector3(0.0, 0.0, -side), float(sr["r"]), int(sr["seed"]))
 
-	# Astillas interiores de roble fracturado donde los arcos costales rompen el forro y la cubierta C8
-	var mat_c8_splint := PbrMaterialKit.create_oak_furniture_pbr("#4c3927")
-	mat_c8_splint.roughness = 0.94
-	var st_c8_splint := ShipGeometry.begin(mat_c8_splint)
-	for sp_x in [-26.5, -22.5, -18.5, -14.5, -10.5]:
-		for ang in [0.25, 1.4, 2.5, 3.8, 5.1]:
-			var off := Vector3(cos(ang) * 0.62, -0.05, sin(ang) * 0.42)
-			var base_p := Vector3(sp_x, -3.35, 6.2) + off
-			ShipGeometry.beam(st_c8_splint, base_p, base_p + Vector3(cos(ang) * 0.35, 0.48 + 0.15 * sin(ang), sin(ang) * 0.25), 0.13, 0.05, 0.18)
-	for port_pt: Vector3 in [Vector3(-25.6, -2.55, -6.1), Vector3(19.5, -2.55, -5.8), Vector3(22.7, -2.55, -5.2)]:
-		for k in range(5):
-			var ka := TAU * float(k) / 5.0
-			var pb: Vector3 = port_pt + Vector3(cos(ka) * 0.45, -0.4, sin(ka) * 0.22)
-			ShipGeometry.beam(st_c8_splint, pb, pb + Vector3(cos(ka) * 0.22, 0.68, 0.25), 0.12, 0.05, 0.16)
-	ShipGeometry.commit(bones_c8, "C8BoneBreachSplinters", st_c8_splint)
+		# Anillo de contacto húmedo donde la costilla rompe la lámina de agua de sentina
+		var ring := MeshInstance3D.new()
+		ring.name = "C8RibWaterRing_%d" % int(sr["seed"])
+		var r_tor := TorusMesh.new()
+		r_tor.inner_radius = float(sr["r"]) * 0.82
+		r_tor.outer_radius = float(sr["r"]) * 1.48
+		r_tor.rings = 14
+		r_tor.ring_segments = 6
+		ring.mesh = r_tor
+		ring.material_override = mat_water_collar
+		ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		ring.position = Vector3(lerpf(r0.x, r1.x, 0.25), -3.035, lerpf(r0.z, r1.z, 0.25))
+		ring.scale = Vector3(1.0, 0.14, 1.18)
+		bones_c8.add_child(ring)
 
+	ShipGeometry.commit(bones_c8, "C8BoneBreachSplinters", st_oak)
+	ShipGeometry.commit(bones_c8, "C8BoneBreachFracture", st_dark_wood)
 	DragonBonesBuilder._commit_bone_mesh(bones_c8, "C8PiercingRibsMesh", st_gold)
 	DragonBonesBuilder._commit_bone_mesh(bones_c8, "C8FracturedSpineMesh", st_dark)
 
@@ -3457,6 +3698,7 @@ func build_wall_lantern(parent: Node3D, pos: Vector3, light_name: String, suppor
 		lan_root.add_child(rib)
 
 	var flame = MeshInstance3D.new()
+	flame.name = "LanternFlame"
 	var f_cone = CylinderMesh.new()
 	f_cone.top_radius = 0.006
 	f_cone.bottom_radius = 0.036
@@ -3470,9 +3712,11 @@ func build_wall_lantern(parent: Node3D, pos: Vector3, light_name: String, suppor
 	mat_flame.emission_energy_multiplier = 3.2
 	flame.material_override = mat_flame
 	flame.position = Vector3(0, 0.01, 0)
+	flame.visible = false
 	lan_root.add_child(flame)
 
 	var glass = MeshInstance3D.new()
+	glass.name = "LanternGlass"
 	var g_cyl = CylinderMesh.new()
 	g_cyl.top_radius = 0.095
 	g_cyl.bottom_radius = 0.078
@@ -3481,20 +3725,33 @@ func build_wall_lantern(parent: Node3D, pos: Vector3, light_name: String, suppor
 	glass.mesh = g_cyl
 	glass.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var mat_glass = StandardMaterial3D.new()
-	mat_glass.albedo_color = Color(0.97, 0.72, 0.34, 0.64)
+	mat_glass.albedo_color = Color(0.24, 0.28, 0.30, 0.45)
 	mat_glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat_glass.emission_enabled = true
+	mat_glass.emission_enabled = false
 	mat_glass.emission = Color("#f5a642")
 	mat_glass.emission_energy_multiplier = 1.25
 	glass.material_override = mat_glass
 	glass.position = Vector3(0, 0.02, 0)
 	lan_root.add_child(glass)
 
+	var ember_map := {
+		"Lantern_C4_Captain": "LanternEmbers_C4",
+		"Lantern_C5_Galley":  "LanternEmbers_C5",
+		"Lantern_C6_Crew_A":  "LanternEmbers_C6_A",
+		"Lantern_C6_Crew_B":  "LanternEmbers_C6_B",
+		"Lantern_C7_Mess":    "LanternEmbers_C7",
+		"Lantern_C8_Aft":     "LanternEmbers_C8",
+	}
+
 	var light = OmniLight3D.new()
 	light.name = light_name
 	light.position = pos
 	light.light_color = Color("#ffbd66")
-	light.light_energy = 2.6
+	light.light_energy = 0.0
+	light.set_meta("lantern_base_energy", 2.4)
+	light.set_meta("lantern_lit", false)
+	light.set_meta("lantern_housing", lan_root)
+	light.set_meta("lantern_ember_name", str(ember_map.get(light_name, "")))
 	light.omni_range = 13.5
 	light.omni_attenuation = 1.15
 	light.shadow_enabled = (light_name in ["Lantern_C4_Captain", "Lantern_C7_Mess"])
@@ -3503,3 +3760,13 @@ func build_wall_lantern(parent: Node3D, pos: Vector3, light_name: String, suppor
 		light.shadow_normal_bias = 0.85
 		light.shadow_blur = 1.25
 	parent.add_child(light)
+
+	var prop_lan := InteractiveProp.new()
+	prop_lan.name = "Prop_" + light_name
+	prop_lan.prop_id = "lantern:" + light_name
+	prop_lan.prompt_text = "Encender farol"
+	prop_lan.inspection_message = "El farol de hierro está frío y apagado."
+	prop_lan.position = Vector3(pos.x, pos.y - 1.15 if support_mode != "table" else pos.y - 0.55, pos.z)
+	prop_lan.interaction_radius = 1.55
+	parent.add_child(prop_lan)
+	light.set_meta("lantern_prop", prop_lan)

@@ -35,6 +35,7 @@ var ship_env: Node
 var inv_mgr: Node
 var inventory_bridge
 var roof_ctrl: Node
+var canon_ctrl: Node
 var preferences: Node
 var grid_node: Node3D
 var tokens_by_node: Dictionary = {}
@@ -127,10 +128,16 @@ func _detect_scene_context() -> void:
 		ship_env = main_ctrl.find_child("ShipEnvironment", true, false)
 		inv_mgr = main_ctrl.find_child("InventoryManager", true, false)
 		roof_ctrl = main_ctrl.find_child("RoofCutout", true, false)
+		canon_ctrl = main_ctrl.find_child("PecioCanonController", true, false)
 		grid_node = main_ctrl.find_child("TacticalGrid", true, false) as Node3D
 		if not grid_node:
 			grid_node = main_ctrl.find_child("TacticalGridOverlay", true, false) as Node3D
-		for nname in ["PlayerToken", "RogueToken", "WizardToken", "HarpyToken", "ZombieToken"]:
+		for nname in [
+			"PlayerToken", "RogueToken", "WizardToken",
+			"HarpyToken", "HarpyToken_C2",
+			"ZombieToken", "ZombieC4_A", "ZombieC4_B", "ZombieC4_C_Lvl2",
+			"GhoulToken", "ZombieC8_B_Lvl2", "ZombieC8_C_Lvl2"
+		]:
 			var tok := main_ctrl.find_child(nname, true, false) as Node3D
 			if tok:
 				tokens_by_node[nname] = tok
@@ -544,6 +551,9 @@ func trigger_nearby_interaction() -> void:
 			return active_tok.global_position.distance_squared_to(a.global_position) < active_tok.global_position.distance_squared_to(b.global_position)
 		)
 	for node in candidates:
+		if node.has_method("interact_or_toggle"):
+			node.interact_or_toggle()
+			return
 		if node.has_method("toggle_door"):
 			node.toggle_door()
 			return
@@ -893,6 +903,53 @@ func get_helm_controller() -> Node:
 	if not main_ctrl:
 		return null
 	return main_ctrl.find_child("PropWheelC3", true, false)
+
+func get_canon_ctrl() -> Node:
+	if is_instance_valid(canon_ctrl):
+		return canon_ctrl
+	if main_ctrl:
+		canon_ctrl = main_ctrl.find_child("PecioCanonController", true, false)
+	return canon_ctrl
+
+func set_party_level(lvl: int) -> void:
+	var c := get_canon_ctrl()
+	if c and c.has_method("apply_party_level"):
+		c.apply_party_level(lvl, true)
+	refresh_all()
+
+func set_strict_canon_mode(enabled: bool) -> void:
+	var c := get_canon_ctrl()
+	if c and c.has_method("apply_strict_canon_mode"):
+		c.apply_strict_canon_mode(enabled, true)
+	refresh_all()
+
+func open_ship_rest_modal() -> void:
+	var c := get_canon_ctrl()
+	if c and c.has_method("open_ship_rest_modal"):
+		c.open_ship_rest_modal()
+
+func open_logbook_and_talisman_modal() -> void:
+	var c := get_canon_ctrl()
+	if c and c.has_method("open_logbook_and_talisman_modal"):
+		c.open_logbook_and_talisman_modal()
+
+func trigger_harpy_return(reason: String = "Decisión del DM") -> void:
+	var c := get_canon_ctrl()
+	if c and c.has_method("trigger_harpy_return"):
+		c.trigger_harpy_return(reason)
+	refresh_all()
+
+func resolve_harpy(resolution: String) -> void:
+	var c := get_canon_ctrl()
+	if c and c.has_method("resolve_harpy"):
+		c.resolve_harpy(resolution)
+	refresh_all()
+
+func set_all_lanterns(lit: bool) -> void:
+	var c := get_canon_ctrl()
+	if c and c.has_method("set_all_lanterns"):
+		c.set_all_lanterns(lit)
+	refresh_all()
 
 func set_harpy_present(present: bool) -> void:
 	_apply_harpy_world_presence(present, true)
