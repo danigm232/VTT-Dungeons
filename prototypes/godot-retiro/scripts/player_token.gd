@@ -433,7 +433,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if combat and event is InputEventKey and event.pressed and combat.shortcut(self,event.keycode):
 		get_viewport().set_input_as_handled()
 		return
-	if not _camera_allows_keyboard() or is_npc or is_transitioning:
+	if not _camera_allows_keyboard() or is_npc or is_transitioning or get_meta("retreat_dialogue_open", false):
 		return
 	if event is InputEventKey and event.is_pressed() and not event.is_echo():
 		var kev := event as InputEventKey
@@ -489,12 +489,20 @@ func world_heading_for_pose(direction: String) -> Vector3:
 		return _seat_heading
 	return _pose_world_heading if direction == facing_dir else Vector3.ZERO
 
+func _set_movement_facing(input_dir: Vector2) -> void:
+	facing_dir = _dir_from_vector(input_dir)
+	_pose_world_heading = Vector3.ZERO
+
+func _move_character_body(_delta: float) -> void:
+	move_and_slide()
+
 func _physics_process(delta: float) -> void:
 	var sheet_open := bool(get_meta("character_sheet_open", false))
-	if (sheet_open or bool(get_meta("inventory_modal_open", false)) or bool(get_meta("player_settings_modal", false))):
+	var talking := bool(get_meta("retreat_dialogue_open", false))
+	if (sheet_open or talking or bool(get_meta("inventory_modal_open", false)) or bool(get_meta("player_settings_modal", false))):
 		input_override = Vector2.ZERO
 		velocity.x = 0; velocity.z = 0
-		if sheet_open:
+		if sheet_open or talking:
 			velocity = Vector3.ZERO
 			# The real actor keeps its existing idle/state renderer while translation is blocked.
 			idle_breath_time += delta
@@ -534,8 +542,7 @@ func _physics_process(delta: float) -> void:
 				_release_prop_pose()
 			else:
 				is_sitting = false
-			facing_dir = _dir_from_vector(input_dir)
-			_pose_world_heading = Vector3.ZERO
+			_set_movement_facing(input_dir)
 
 		if has_meta("prop_seat_pos") or (bool(get_meta("resting_on_prop", false)) and (is_sitting or is_prone or not resting_on.is_empty()) and input_dir.length_squared() <= 0.04):
 			velocity = Vector3.ZERO
@@ -565,7 +572,7 @@ func _physics_process(delta: float) -> void:
 			var combat=get_meta("combat_controller") if has_meta("combat_controller") else null
 			var before:=global_position
 			if combat and not combat.can_move(self): velocity.x=0; velocity.z=0
-			move_and_slide()
+			_move_character_body(delta)
 			if combat: combat.moved(self,before)
 
 		var min_x := 0.25
@@ -987,7 +994,7 @@ func _apply_procedural_motion(delta: float, input_dir: Vector2, state: String) -
 	if state in ["walk", "run"]:
 		var speed_hz := 14.0 if state == "run" else 10.5
 		walk_cycle += delta * speed_hz
-		if not is_directional_sprite_cycle:
+		if not is_directional_sprite_cycle and not (active_clip_drawn_motion and is_in_group("retreat_residents")):
 			bob_y = absf(sin(walk_cycle)) * (0.11 if state == "run" else 0.07)
 			rot_z = sin(walk_cycle) * (0.08 if state == "run" else 0.045) - dir_sign * (0.07 if state == "run" else 0.03)
 			sy = 1.0 + cos(walk_cycle * 2.0) * 0.025

@@ -388,7 +388,45 @@ func build_cabins_aft() -> void:
 	c4_fill.shadow_enabled = false
 	aft_node.add_child(c4_fill)
 
-	# Banco corrido de popa bajo los ventanales (con respaldo y sombra de contacto) y alfombra bordeada en popa C4
+	# Cortinajes rasgados y haces tenues de luz marina entrando por los ventanales de popa de C4
+	var mat_curtain := PbrMaterialKit.create_moldy_cloth_pbr("#592822")
+	mat_curtain.cull_mode = BaseMaterial3D.CULL_DISABLED
+	for cz_drape in [-2.60, -1.40, -0.22]:
+		var drape := MeshInstance3D.new()
+		var dr_box := BoxMesh.new()
+		dr_box.size = Vector3(0.08, 1.18, 0.24)
+		drape.mesh = dr_box
+		drape.material_override = mat_curtain
+		drape.position = WreckStructure.get_world_pos(WreckStructure.STERN_X + 0.22, 1.92, cz_drape)
+		drape.rotation_degrees = Vector3(0.0, 0.0, 4.0)
+		aft_node.add_child(drape)
+
+	var beam_sh := load("res://shaders/underwater_light_shaft.gdshader") as Shader
+	var mat_c4_beam := ShaderMaterial.new()
+	if beam_sh:
+		mat_c4_beam.shader = beam_sh
+		mat_c4_beam.set_shader_parameter("shaft_color", Color(0.76, 0.90, 0.96, 1.0))
+		mat_c4_beam.set_shader_parameter("intensity", 0.14)
+		mat_c4_beam.set_shader_parameter("edge_power", 2.2)
+		mat_c4_beam.set_shader_parameter("scroll_speed", 0.08)
+	for win_z in [-2.05, -0.72]:
+		var ray_m := MeshInstance3D.new()
+		var r_cyl := CylinderMesh.new()
+		r_cyl.top_radius = 0.24
+		r_cyl.bottom_radius = 0.56
+		r_cyl.height = 2.65
+		r_cyl.radial_segments = 12
+		r_cyl.rings = 1
+		r_cyl.cap_top = false
+		r_cyl.cap_bottom = false
+		ray_m.mesh = r_cyl
+		ray_m.material_override = mat_c4_beam
+		ray_m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		ray_m.position = WreckStructure.get_world_pos(WreckStructure.STERN_X + 1.38, 1.32, win_z)
+		ray_m.rotation_degrees = Vector3(8.0, 0.0, 56.0)
+		aft_node.add_child(ray_m)
+
+	# Banco corrido de popa bajo los ventanales (con respaldo, cartas enrolladas y sombra de contacto) y alfombra bordeada en popa C4
 	var stern_bench := MeshInstance3D.new()
 	var sb_box := BoxMesh.new()
 	sb_box.size = Vector3(0.68, 0.46, 2.45)
@@ -396,8 +434,32 @@ func build_cabins_aft() -> void:
 	stern_bench.material_override = mat_furniture
 	stern_bench.position = WreckStructure.get_world_pos(WreckStructure.STERN_X + 0.62, 0.24, -1.65)
 	aft_node.add_child(stern_bench)
+	# Cartas marinas enrolladas y cojín húmedo sobre el banco de popa
+	for rz_off in [-0.75, -0.58, 0.62]:
+		var scroll := MeshInstance3D.new()
+		var sc_cyl := CylinderMesh.new()
+		sc_cyl.top_radius = 0.045; sc_cyl.bottom_radius = 0.045; sc_cyl.height = 0.48; sc_cyl.radial_segments = 8
+		scroll.mesh = sc_cyl
+		scroll.material_override = mat_chart
+		scroll.position = WreckStructure.get_world_pos(WreckStructure.STERN_X + 0.64, 0.51, -1.65 + rz_off)
+		scroll.rotation_degrees = Vector3(0.0, 28.0 * sign(rz_off), 90.0)
+		aft_node.add_child(scroll)
 	PbrMaterialKit.add_box_collider(aft_node, "Col_SternBenchC4", Vector3(0.72, 0.50, 2.50), stern_bench.position)
 	_add_rect_contact_shadow(aft_node, WreckStructure.STERN_X + 0.62, -1.65, 0.86, 2.65, 0.0, 0.72)
+
+	# Silla de capitán ligeramente ladeada frente al escritorio + folios esparcidos en C4
+	_build_rotten_chair(aft_node, "CaptainsChair_C4", WreckStructure.get_world_pos(-25.1, 0.0, -2.55), Vector3(0, -108, 0), false)
+	_add_round_contact_shadow(aft_node, -25.1, -2.55, 0.42, 0.42, 0.68)
+	for pg_pt in [Vector2(-24.2, -3.4), Vector2(-23.6, -2.1), Vector2(-21.9, -2.85), Vector2(-19.4, -4.6)]:
+		var page := MeshInstance3D.new()
+		var pg_p := PlaneMesh.new()
+		pg_p.size = Vector2(0.28, 0.21)
+		page.mesh = pg_p
+		page.material_override = mat_chart
+		page.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		page.position = WreckStructure.get_world_pos(pg_pt.x, 0.018, pg_pt.y)
+		page.rotation = Vector3(-atan(WreckStructure.LIST_SLOPE), pg_pt.x * 1.9, 0.0)
+		aft_node.add_child(page)
 
 	var carpet_border := MeshInstance3D.new()
 	carpet_border.name = "CaptainCarpetBorder_C4"
@@ -667,6 +729,28 @@ func build_cabins_aft() -> void:
 		top_rail.position = Vector3(0, 2.32, bz)
 		bed_node.add_child(top_rail)
 
+	# Dosel rasgado y cortinajes caídos en la cama del Capitán (rompe postes desnudos)
+	var mat_canopy := PbrMaterialKit.create_moldy_cloth_pbr("#5a2722")
+	mat_canopy.cull_mode = BaseMaterial3D.CULL_DISABLED
+	for bx in [-1.06, 1.06]:
+		for bz in [-0.76, 0.76]:
+			var corner_drape := MeshInstance3D.new()
+			var cd_box := BoxMesh.new()
+			cd_box.size = Vector3(0.16, 1.55, 0.26)
+			corner_drape.mesh = cd_box
+			corner_drape.material_override = mat_canopy
+			corner_drape.position = Vector3(bx * 0.96, 1.52, bz * 0.96)
+			corner_drape.rotation_degrees = Vector3(bz * 5.0, 0.0, -bx * 4.0)
+			bed_node.add_child(corner_drape)
+	for side_val in [-0.80, 0.80]:
+		var valance := MeshInstance3D.new()
+		var vl_box := BoxMesh.new()
+		vl_box.size = Vector3(2.22, 0.26, 0.04)
+		valance.mesh = vl_box
+		valance.material_override = mat_canopy
+		valance.position = Vector3(0.0, 2.18, side_val)
+		bed_node.add_child(valance)
+
 	PbrMaterialKit.add_box_collider(bed_node, "Col_CaptainsBed", Vector3(2.44, 1.10, 1.84), Vector3(0, 0.55, 0))
 	_add_rect_contact_shadow(aft_node, -22.8, -5.8, 2.70, 2.10, 0.0, 0.76)
 
@@ -808,6 +892,22 @@ func build_cabins_aft() -> void:
 	stove_top.material_override = mat_stove_cast
 	stove_top.position = Vector3(0, 0.96, 0)
 	stove_node.add_child(stove_top)
+
+	# Tiro de chimenea remachado hasta el techo y leñera junto al fogón de C5 (sin duplicar la marmita existente)
+	var stove_flue := MeshInstance3D.new()
+	var sfl_cyl := CylinderMesh.new()
+	sfl_cyl.top_radius = 0.14; sfl_cyl.bottom_radius = 0.17; sfl_cyl.height = 1.78; sfl_cyl.radial_segments = 10
+	stove_flue.mesh = sfl_cyl
+	stove_flue.material_override = mat_stove_cast
+	stove_flue.position = Vector3(-0.25, 1.98, 0.20)
+	stove_node.add_child(stove_flue)
+
+	var logs_st := ShipGeometry.begin(PbrMaterialKit.create_oak_furniture_pbr("#4c3724", 0.55))
+	for li in range(5):
+		var ly := 0.08 + float(int(li / 3)) * 0.11
+		var lz := -0.82 - float(li % 3) * 0.12
+		ShipGeometry.tube(logs_st, [Vector3(-0.38, ly, lz), Vector3(0.32, ly, lz)], 0.055, 6)
+	ShipGeometry.commit(stove_node, "GalleyFirewoodStack", logs_st)
 
 	var ember_bed = MeshInstance3D.new()
 	var emb_box = BoxMesh.new()
@@ -1053,8 +1153,36 @@ func build_cabins_aft() -> void:
 		PbrMaterialKit.add_box_collider(aft_node, "Col_GalleyCrateC5", Vector3(0.75, 0.65, 0.75), c5_crate_pos + Vector3(0, 0.32, 0))
 		_add_rect_contact_shadow(aft_node, -25.4, 6.1, 0.92, 0.92, -24.0, 0.70)
 
-	# Farol de pie anclado al suelo en C5 (alineado con LanternEmbers_C5) + luz ambiente de relleno C5
-	build_wall_lantern(aft_node, WreckStructure.get_world_pos(-19.5, 1.68, 5.2), "Lantern_C5_Galley", "post")
+	# Despensa, sacos de harina, estantería de utensilios de cobre y farol de mamparo naval en C5 (sin farola de calle)
+	var mat_burlap := PbrMaterialKit.create_moldy_cloth_pbr("#8d7a5a")
+	for sack_pt in [Vector3(-25.4, 0.24, 3.65), Vector3(-24.8, 0.20, 4.15), Vector3(-26.1, 0.22, 2.95)]:
+		var sack := MeshInstance3D.new()
+		var sack_mesh := CylinderMesh.new()
+		sack_mesh.top_radius = 0.19; sack_mesh.bottom_radius = 0.25; sack_mesh.height = 0.46; sack_mesh.radial_segments = 8
+		sack.mesh = sack_mesh
+		sack.material_override = mat_burlap
+		sack.position = WreckStructure.get_world_pos(sack_pt.x, sack_pt.y, sack_pt.z)
+		sack.rotation_degrees = Vector3(8.0, sack_pt.x * 19.0, -6.0)
+		aft_node.add_child(sack)
+		_add_round_contact_shadow(aft_node, sack_pt.x, sack_pt.z, 0.36, 0.36, 0.62)
+
+	var rack_st := ShipGeometry.begin(mat_furniture)
+	var rack_base := WreckStructure.get_world_pos(-26.8, 1.45, 2.1)
+	ShipGeometry.beam(rack_st, rack_base + Vector3(0.18, 0.0, -0.85), rack_base + Vector3(0.18, 0.0, 0.85), 0.28, 0.06)
+	ShipGeometry.beam(rack_st, rack_base + Vector3(0.18, 0.48, -0.85), rack_base + Vector3(0.18, 0.48, 0.85), 0.26, 0.06)
+	ShipGeometry.commit(aft_node, "GalleyPantryShelves_C5", rack_st)
+	for pan_z in [-0.55, -0.10, 0.35]:
+		var pan := MeshInstance3D.new()
+		var pn_cyl := CylinderMesh.new()
+		pn_cyl.top_radius = 0.14; pn_cyl.bottom_radius = 0.14; pn_cyl.height = 0.04; pn_cyl.radial_segments = 10
+		pan.mesh = pn_cyl
+		pan.material_override = mat_copper
+		pan.position = rack_base + Vector3(0.24, -0.22, pan_z)
+		pan.rotation_degrees.z = 90.0
+		aft_node.add_child(pan)
+
+	# Farol de mamparo montado sobre el mamparo central/popa en C5 (sustituye farola callejera de pie)
+	build_wall_lantern(aft_node, WreckStructure.get_world_pos(-19.5, 1.82, 0.32), "Lantern_C5_Galley", "wall_bracket")
 
 	var c5_fill := OmniLight3D.new()
 	c5_fill.name = "C5_InteriorFill"
@@ -1108,22 +1236,22 @@ func build_cabins_fore() -> void:
 	build_bulkhead_wall(front_c7, Vector3(13.5, 0, 5.80), Vector3(13.5, 0, beam_fore), 2.95, "Bulkhead_C7_Outboard")
 	PbrMaterialKit.add_occluder_box(front_c7, "Occ_FrontC7", Vector3(0.24, 2.7, maxf(1.0, beam_fore - 5.80)), WreckStructure.get_world_pos(13.5, 1.4, (beam_fore + 5.80) * 0.5))
 
-	# Mamparo longitudinal central completo hasta la roda de proa (x = 13.5..30.75) sin huecos
+	# Mamparo longitudinal central completo hasta la roda de proa (x = 13.5..30.75) sin sobresalir por Deck_C2 (y = 3.0)
 	var spine_fore = Node3D.new()
 	spine_fore.name = "Bulkhead_Spine_Fore"
 	fore_node.add_child(spine_fore)
-	build_bulkhead_wall(spine_fore, Vector3(13.5, 0, 0), Vector3(WreckStructure.BOW_X, 0, 0), 3.0, "Bulkhead_Spine_Fore_Mesh")
-	PbrMaterialKit.add_occluder_box(spine_fore, "Occ_SpineFore", Vector3(16.5, 2.7, 0.24), WreckStructure.get_world_pos(22.0, 1.4, 0.0))
+	build_bulkhead_wall(spine_fore, Vector3(13.5, 0, 0), Vector3(WreckStructure.BOW_X, 0, 0), 2.86, "Bulkhead_Spine_Fore_Mesh")
+	PbrMaterialKit.add_occluder_box(spine_fore, "Occ_SpineFore", Vector3(16.5, 2.65, 0.24), WreckStructure.get_world_pos(22.0, 1.38, 0.0))
 
-	# Forros interiores curvos de proa (babor C6 visible, estribor C7 recortable)
-	_build_hull_interior_lining(fore_node, "HullInner_Fore_Port", 13.5, WreckStructure.BOW_X, 0.0, 3.05, -1.0, 0.96, 0.98)
-	_build_hull_interior_lining(fore_node, "HullInner_Fore_Front", 13.5, WreckStructure.BOW_X, 0.0, 3.05, 1.0, 0.96, 0.98)
+	# Forros interiores curvos de proa (babor C6 visible, estribor C7 recortable; enrasados bajo Deck_C2)
+	_build_hull_interior_lining(fore_node, "HullInner_Fore_Port", 13.5, WreckStructure.BOW_X, 0.0, 2.92, -1.0, 0.96, 0.98)
+	_build_hull_interior_lining(fore_node, "HullInner_Fore_Front", 13.5, WreckStructure.BOW_X, 0.0, 2.92, 1.0, 0.96, 0.98)
 	var forepeak_b := maxf(0.5, WreckStructure.get_beam_at(27.2) - 0.30)
-	build_bulkhead_wall(fore_node, Vector3(27.2, 0, -forepeak_b), Vector3(27.2, 0, 0.0), 3.0, "BowForepeakWall_Fore")
+	build_bulkhead_wall(fore_node, Vector3(27.2, 0, -forepeak_b), Vector3(27.2, 0, 0.0), 2.86, "BowForepeakWall_Fore")
 	var fp_stbd := Node3D.new()
 	fp_stbd.name = "BowForepeakWall_Stbd"
 	fore_node.add_child(fp_stbd)
-	build_bulkhead_wall(fp_stbd, Vector3(27.2, 0, 0.0), Vector3(27.2, 0, forepeak_b), 3.0, "BowForepeakWall_Stbd_Mesh")
+	build_bulkhead_wall(fp_stbd, Vector3(27.2, 0, 0.0), Vector3(27.2, 0, forepeak_b), 2.86, "BowForepeakWall_Stbd_Mesh")
 
 	# --------------------------------------------------------------------------
 	# MOBILIARIO DE ZONA 6: CAMAROTE DE TRIPULACIÓN (C6, z < 0)
@@ -1394,9 +1522,25 @@ func build_cabins_fore() -> void:
 	crew_stool.add_child(st_leg)
 	_add_round_contact_shadow(fore_node, 19.4, -4.0, 0.32, 0.32, 0.66)
 
-	# Faroles sobre candeleros de suelo en C6 (despejando literas e iluminando el retrato de Aleitha y Brastos)
-	build_wall_lantern(fore_node, WreckStructure.get_world_pos(17.6, 1.65, -3.60), "Lantern_C6_Crew_A", "post")
-	build_wall_lantern(fore_node, WreckStructure.get_world_pos(24.2, 1.65, -2.40), "Lantern_C6_Crew_B", "post")
+	# Hamaca marinera de lona doble cara colgada en el rincón popa-babor de C6 (sin bloquear paso)
+	var mat_hammock := PbrMaterialKit.create_moldy_cloth_pbr("#968a70")
+	mat_hammock.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var hm_st := ShipGeometry.begin(mat_hammock)
+	var hm_segs := 8
+	for hi in range(hm_segs):
+		var t0 := float(hi) / float(hm_segs)
+		var t1 := float(hi + 1) / float(hm_segs)
+		var c0 := WreckStructure.get_world_pos(lerpf(14.1, 15.8, t0), 1.48 - sin(t0 * PI) * 0.42, lerpf(-6.2, -7.8, t0))
+		var c1 := WreckStructure.get_world_pos(lerpf(14.1, 15.8, t1), 1.48 - sin(t1 * PI) * 0.42, lerpf(-6.2, -7.8, t1))
+		var w0 := Vector3(0.24, 0.05, 0.24) * (0.30 + 0.70 * sin(t0 * PI))
+		var w1 := Vector3(0.24, 0.05, 0.24) * (0.30 + 0.70 * sin(t1 * PI))
+		ShipGeometry.quad(hm_st, c0 - w0, c0 + w0, c1 + w1, c1 - w1)
+	ShipGeometry.commit(fore_node, "CrewHammockMesh_C6", hm_st)
+
+	# Faroles navales anclados a mamparos SIEMPRE VISIBLES en recorte C6 (forro curvo de babor + mamparo de proa)
+	var c6_port_wall_z := -WreckStructure.get_beam_at(18.5) * 0.97 + 0.28
+	build_wall_lantern(fore_node, WreckStructure.get_world_pos(18.5, 1.92, c6_port_wall_z), "Lantern_C6_Crew_A", "wall_bracket_port")
+	build_wall_lantern(fore_node, WreckStructure.get_world_pos(26.86, 1.86, -1.10), "Lantern_C6_Crew_B", "wall_bracket_bow")
 
 	var c6_fill = OmniLight3D.new()
 	c6_fill.name = "C6_InteriorFill"
@@ -1634,9 +1778,40 @@ func build_cabins_fore() -> void:
 		plate.position = Vector3(plate_x, 0.825, -0.18 if plate_x < 0.0 else 0.16)
 		table_node.add_child(plate)
 
+	# Alacena marinera con cuencos + astillas de madera y filtración junto al costado de estribor en C7
+	var cupboard := Node3D.new()
+	cupboard.name = "MessCupboard_C7"
+	cupboard.position = WreckStructure.get_world_pos(26.55, 0.0, 1.25)
+	fore_node.add_child(cupboard)
+	var cb_body := MeshInstance3D.new()
+	var cbb_box := BoxMesh.new()
+	cbb_box.size = Vector3(0.54, 1.55, 1.28)
+	cb_body.mesh = cbb_box
+	cb_body.material_override = mat_furniture_trim
+	cb_body.position = Vector3(0.0, 0.78, 0.0)
+	cupboard.add_child(cb_body)
+	var cb_shelf := MeshInstance3D.new()
+	var cbs_box := BoxMesh.new()
+	cbs_box.size = Vector3(0.60, 0.06, 1.34)
+	cb_shelf.mesh = cbs_box
+	cb_shelf.material_override = mat_furniture
+	cb_shelf.position = Vector3(-0.04, 1.56, 0.0)
+	cupboard.add_child(cb_shelf)
+	PbrMaterialKit.add_box_collider(cupboard, "Col_MessCupboardC7", Vector3(0.62, 1.60, 1.36), Vector3(0.0, 0.80, 0.0))
+	_add_rect_contact_shadow(fore_node, 26.55, 1.25, 0.80, 1.52, 0.0, 0.72)
+
+	# Astillas de casco roto en el borde exterior estribor de C7 donde presionan los restos del dragón
+	var c7_splint_st := ShipGeometry.begin(mat_furniture_trim)
+	for sp_x in [16.5, 19.8, 22.8]:
+		var b_stbd := WreckStructure.get_beam_at(sp_x) - 0.55
+		for k in range(3):
+			var p_in := WreckStructure.get_world_pos(sp_x + float(k - 1) * 0.45, 0.06, b_stbd)
+			ShipGeometry.beam(c7_splint_st, p_in, p_in + Vector3(0.28, 0.24 + float(k) * 0.14, -0.58), 0.14, 0.05, 0.22)
+	ShipGeometry.commit(fore_node, "MessHullSplinters_C7", c7_splint_st)
+
 	# Farol de sobremesa elevado en MessTable_C7 + aplique proel + luz de rebote interior C7
 	build_wall_lantern(fore_node, WreckStructure.get_world_pos(18.5, 1.08, 3.55), "Lantern_C7_Mess", "table")
-	build_wall_lantern(fore_node, WreckStructure.get_world_pos(25.2, 1.85, 2.20), "Lantern_C7_Forward", "wall")
+	build_wall_lantern(fore_node, WreckStructure.get_world_pos(25.2, 1.85, 2.20), "Lantern_C7_Forward", "wall_bracket")
 
 	var c7_fill := OmniLight3D.new()
 	c7_fill.name = "C7_InteriorFill"
@@ -1756,7 +1931,23 @@ func build_lower_deck_c8() -> void:
 	# Farol secundario de mamparo amarrado al puntal popel (-11.5, -1.40, -2.8) para iluminar la zona de popa y la brecha P13
 	build_wall_lantern(c8_node, WreckStructure.get_world_pos(-11.5, -1.40, -2.42), "Lantern_C8_Aft", "wall")
 
-	# Maderos rotos, bombas de sentina y rollo de cabo en la sentina anegada (fuera de pasillos)
+	# Maderos rotos, bombas de sentina, estiba inundada en bahías laterales y rollo de cabo en C8 (pasillos libres)
+	var c8_stave_st := ShipGeometry.begin(mat_furniture_trim)
+	for drift in [
+		[Vector3(-15.2, -3.02, -4.8), Vector3(-13.1, -3.00, -4.1), 0.26, 0.08],
+		[Vector3(-3.8, -3.03, -4.5), Vector3(-1.4, -3.01, -4.9), 0.24, 0.08],
+		[Vector3(3.2, -3.02, -4.6), Vector3(5.6, -3.00, -4.0), 0.25, 0.08],
+		[Vector3(-12.4, -3.01, 4.7), Vector3(-10.0, -3.02, 4.2), 0.26, 0.08],
+		[Vector3(14.2, -3.02, -4.2), Vector3(16.6, -3.01, -3.6), 0.24, 0.08],
+	]:
+		ShipGeometry.beam(c8_stave_st, drift[0], drift[1], drift[2], drift[3])
+	ShipGeometry.commit(c8_node, "C8FloatingCargoTimbers", c8_stave_st)
+
+	# Banda de algas húmedas y percebes a lo largo del forro interior babor inundado de C8
+	for kx8 in [-22.0, -14.0, -6.0, 2.0, 10.0, 18.0]:
+		var b8 := WreckStructure.get_beam_at(kx8) * 0.86
+		PbrMaterialKit.add_kelp_strand(c8_node, WreckStructure.get_world_pos(kx8, -2.55, -b8), Vector3(0.0, -1.0, 0.25), 0.68, 0.14, 800 + int(absf(kx8)))
+
 	for beam_cfg in [
 		{"pos": Vector3(-10.2, -3.02, -4.4), "rot": Vector3(4, 28, -5),  "size": Vector3(2.4, 0.14, 0.28)},
 		{"pos": Vector3(6.8, -3.00, -4.6),   "rot": Vector3(-3, -34, 6), "size": Vector3(2.1, 0.14, 0.26)},
@@ -1960,16 +2151,16 @@ func build_hold_c9() -> void:
 			PbrMaterialKit.apply_kenney_material(s_bar)
 			c9_node.add_child(s_bar)
 
-	# Haces sutiles de luz subacuática filtrándose por la brecha de popa P16 y la escotilla de C8
-	var mat_shaft := StandardMaterial3D.new()
-	mat_shaft.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat_shaft.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat_shaft.albedo_color = Color(0.28, 0.78, 0.88, 0.055)
-	mat_shaft.cull_mode = BaseMaterial3D.CULL_DISABLED
+	# Haces volumétricos subacuáticos AAA (shader Fresnel suave + cáusticas animadas; sin conos plásticos rígidos)
+	var mat_shaft := ShaderMaterial.new()
+	mat_shaft.shader = preload("res://shaders/underwater_light_shaft.gdshader")
+	mat_shaft.set_shader_parameter("shaft_color", Color(0.28, 0.80, 0.90, 1.0))
+	mat_shaft.set_shader_parameter("intensity", 0.26)
+	mat_shaft.set_shader_parameter("speed", 0.65)
 	for sh_cfg in [
-		{"pos": Vector3(-25.8, -4.65, 0.0),  "rot": Vector3(0.0, 0.0, 32.0),  "r_top": 0.45, "r_bot": 1.65, "h": 4.2},
-		{"pos": Vector3(-17.4, -4.70, -3.1), "rot": Vector3(8.0, 0.0, -14.0), "r_top": 0.42, "r_bot": 1.45, "h": 3.6},
-		{"pos": Vector3(12.2, -4.75, 2.2),   "rot": Vector3(0.0, 0.0, -18.0), "r_top": 0.48, "r_bot": 1.55, "h": 3.8},
+		{"pos": Vector3(-25.8, -4.65, 0.0),  "rot": Vector3(0.0, 0.0, 32.0),  "r_top": 0.52, "r_bot": 1.85, "h": 4.2},
+		{"pos": Vector3(-17.4, -4.70, -3.1), "rot": Vector3(8.0, 0.0, -14.0), "r_top": 0.46, "r_bot": 1.55, "h": 3.6},
+		{"pos": Vector3(12.2, -4.75, 2.2),   "rot": Vector3(0.0, 0.0, -18.0), "r_top": 0.50, "r_bot": 1.65, "h": 3.8},
 	]:
 		var shaft := MeshInstance3D.new()
 		shaft.name = "UnderwaterLightShaft"
@@ -1977,7 +2168,7 @@ func build_hold_c9() -> void:
 		s_cone.top_radius = sh_cfg["r_top"]
 		s_cone.bottom_radius = sh_cfg["r_bot"]
 		s_cone.height = sh_cfg["h"]
-		s_cone.radial_segments = 14
+		s_cone.radial_segments = 20
 		s_cone.cap_top = false
 		s_cone.cap_bottom = false
 		shaft.mesh = s_cone
@@ -1987,6 +2178,23 @@ func build_hold_c9() -> void:
 		shaft.rotation_degrees = sh_cfg["rot"]
 		c9_node.add_child(shaft)
 
+	# Ánforas de terracota hundidas y cadena de ancla oxidada en bahías laterales de C9 (pasillo central libre)
+	var mat_amphora := PbrMaterialKit.create_oak_furniture_pbr("#8c533b", 0.65)
+	mat_amphora.roughness = 0.72
+	for amp_cfg in [
+		{"pos": Vector3(-16.0, -6.18, -2.95), "rot": Vector3(24.0, 18.0, -62.0)},
+		{"pos": Vector3(-15.3, -6.14, -3.20), "rot": Vector3(-12.0, 42.0, 18.0)},
+		{"pos": Vector3(-8.2, -6.16, 2.95),   "rot": Vector3(68.0, -35.0, 12.0)},
+	]:
+		var amp := MeshInstance3D.new()
+		var am_cyl := CylinderMesh.new()
+		am_cyl.top_radius = 0.08; am_cyl.bottom_radius = 0.16; am_cyl.height = 0.54; am_cyl.radial_segments = 10
+		amp.mesh = am_cyl
+		amp.material_override = mat_amphora
+		amp.position = amp_cfg["pos"]
+		amp.rotation_degrees = amp_cfg["rot"]
+		c9_node.add_child(amp)
+
 	# Escalera inferior física en C9 para subir de vuelta a C8 sin teletransporte
 	# Escalera visual idéntica en capa C9 sin collider duplicado (la rampa física única vive en Stairs_C8_C9)
 	HullBuilder.build_physical_stair_flight(c9_node, "Stairs_C9_ExitRamp", 12.75, 18.75, -3.28, -6.40, 2.25, 0.72, 16, mat_floor_cabin, mat_furniture, false)
@@ -1995,29 +2203,29 @@ func build_hold_c9() -> void:
 	var breach_glow = OmniLight3D.new()
 	breach_glow.name = "C9_SternBreachGlow"
 	breach_glow.position = Vector3(-28.0, -4.6, 0.5)
-	breach_glow.light_color = Color("#5fd3ea")
+	breach_glow.light_color = Color("#6ce0f2")
 	breach_glow.light_energy = 3.0
-	breach_glow.omni_range = 25.0
-	breach_glow.omni_attenuation = 1.05
+	breach_glow.omni_range = 28.0
+	breach_glow.omni_attenuation = 1.0
 	c9_node.add_child(breach_glow)
 
-	# Filtración natural tenue de luz marina a través del boquete y de la escotilla de C8 (sin neón artificial)
+	# Filtración natural legible de luz marina a través del boquete y de la escotilla de C8 (sin neón artificial)
 	var mid_breach_spill = OmniLight3D.new()
 	mid_breach_spill.name = "HoldBreachWater_Glow"
 	mid_breach_spill.position = Vector3(-8.0, -4.25, 1.2)
-	mid_breach_spill.light_color = Color("#48aec4")
-	mid_breach_spill.light_energy = 2.05
-	mid_breach_spill.omni_range = 27.0
-	mid_breach_spill.omni_attenuation = 1.08
+	mid_breach_spill.light_color = Color("#58c6da")
+	mid_breach_spill.light_energy = 2.85
+	mid_breach_spill.omni_range = 29.0
+	mid_breach_spill.omni_attenuation = 1.02
 	c9_node.add_child(mid_breach_spill)
 
 	var stair_spill = OmniLight3D.new()
 	stair_spill.name = "HoldStairHatch_Glow"
 	stair_spill.position = Vector3(11.5, -4.05, -0.5)
-	stair_spill.light_color = Color("#4daec2")
-	stair_spill.light_energy = 1.95
-	stair_spill.omni_range = 22.0
-	stair_spill.omni_attenuation = 1.10
+	stair_spill.light_color = Color("#5ec4d6")
+	stair_spill.light_energy = 2.45
+	stair_spill.omni_range = 24.0
+	stair_spill.omni_attenuation = 1.04
 	c9_node.add_child(stair_spill)
 
 	# 3. Luz de profundidad submarina (Depth Glimmer)
@@ -2107,8 +2315,9 @@ func _build_c9_submerged_dragon_bones(c9_node: Node3D) -> void:
 	bones_c9.name = "DragonBones_C9"
 	c9_node.add_child(bones_c9)
 
-	var mat_gold := PbrMaterialKit.create_mineralized_bone_pbr("#d8c28c")
-	var mat_dark := PbrMaterialKit.create_mineralized_bone_pbr("#9b8456")
+	# Hueso sumergido con pátina marina y algas basales (shader unificado de Clyssavar)
+	var mat_gold := PbrMaterialKit.create_dragon_bone_shader_material("#c4b282", "#312d21")
+	var mat_dark := PbrMaterialKit.create_dragon_bone_shader_material("#8c7c56", "#25231b")
 	var st_gold := ShipGeometry.begin(mat_gold)
 	var st_dark := ShipGeometry.begin(mat_dark)
 
@@ -2188,9 +2397,15 @@ func _build_c9_corals(parent: Node3D) -> void:
 	root.name = "Corals_C9"
 	parent.add_child(root)
 
-	var mat_stag := _create_coral_pbr("#d9b4be", 0.48, 0.48)
-	var mat_ochre := _create_coral_pbr("#ded0b0", 0.52, 0.38)
-	var mat_teal := _create_coral_pbr("#66cfc9", 0.42, 0.54)
+	var mat_stag := _create_coral_pbr("#e0a6b4", 0.44, 0.50)
+	mat_stag.emission_enabled = true
+	mat_stag.emission = Color("#5a3240")
+	mat_stag.emission_energy_multiplier = 0.14
+	var mat_ochre := _create_coral_pbr("#e3d2a8", 0.48, 0.42)
+	var mat_teal := _create_coral_pbr("#66dfd8", 0.38, 0.58)
+	mat_teal.emission_enabled = true
+	mat_teal.emission = Color("#247c80")
+	mat_teal.emission_energy_multiplier = 0.22
 
 	var st_stag := ShipGeometry.begin(mat_stag)
 	var st_ochre := ShipGeometry.begin(mat_ochre)
@@ -2510,16 +2725,35 @@ func _build_c9_barnacles(parent: Node3D) -> void:
 	ShipGeometry.commit(root, "C9BarnacleApertures", st_pit)
 
 func _build_fish_template_meshes(body_hex: String, belly_hex: String, fin_hex: String, body_len: float) -> Dictionary:
+	# Textura procedural de escamas iridiscentes y franjas dorsales para evitar peces triangulares planos
+	var fish_img := Image.create(32, 16, false, Image.FORMAT_RGBA8)
+	var c_top := Color(body_hex).darkened(0.22)
+	var c_mid := Color(body_hex).lightened(0.10)
+	var c_bot := Color(belly_hex)
+	for fy in range(16):
+		var v := float(fy) / 15.0
+		var row_col := c_top.lerp(c_mid, clampf(v * 2.0, 0.0, 1.0)) if v < 0.5 else c_mid.lerp(c_bot, (v - 0.5) * 2.0)
+		for fx in range(32):
+			var u := float(fx) / 31.0
+			var stripe := 0.88 + 0.18 * sin(u * TAU * 4.5) * (1.0 - v)
+			var eye := (Vector2(u, v).distance_to(Vector2(0.82, 0.36)) < 0.09)
+			var px := Color(0.06, 0.09, 0.12, 1.0) if eye else Color(row_col.r * stripe, row_col.g * stripe, row_col.b * stripe, 1.0)
+			fish_img.set_pixel(fx, fy, px)
+	fish_img.generate_mipmaps()
+	var fish_tex := ImageTexture.create_from_image(fish_img)
+
 	var mat_body := StandardMaterial3D.new()
-	mat_body.albedo_color = Color(body_hex)
-	mat_body.roughness = 0.16
-	mat_body.metallic = 0.28
-	mat_body.metallic_specular = 0.85
+	mat_body.albedo_texture = fish_tex
+	mat_body.albedo_color = Color.WHITE
+	mat_body.roughness = 0.18
+	mat_body.metallic = 0.34
+	mat_body.metallic_specular = 0.88
 
 	var mat_belly := StandardMaterial3D.new()
-	mat_belly.albedo_color = Color(belly_hex)
-	mat_belly.roughness = 0.15
-	mat_belly.metallic = 0.34
+	mat_belly.albedo_texture = fish_tex
+	mat_belly.albedo_color = Color(belly_hex).lightened(0.15)
+	mat_belly.roughness = 0.16
+	mat_belly.metallic = 0.36
 	mat_belly.metallic_specular = 0.90
 
 	var mat_fin := StandardMaterial3D.new()
@@ -3053,25 +3287,46 @@ func _build_stanchions_and_beams(parent: Node3D, node_name: String, x_list: Arra
 			ShipGeometry.commit(root, "PillarKnees_%d_%d" % [int(px), int(pz)], knees)
 
 func build_hole_rim(parent: Node3D, pos: Vector3, half_size: float) -> void:
-	# Marco rectangular de vigas de roble astilladas alrededor de la brecha P13
+	# Brecha P13 astillada e irregular hacia la sentina inundada (rompe apariencia de claraboya cuadrada)
 	var rim_node = Node3D.new()
 	rim_node.name = "BreachP13Coaming"
 	rim_node.position = pos
 	parent.add_child(rim_node)
 
-	for cfg in [
-		{"pos": Vector3(-half_size, 0.05, 0), "size": Vector3(0.14, 0.12, half_size * 2.0 + 0.14)},
-		{"pos": Vector3(half_size, 0.05, 0),  "size": Vector3(0.14, 0.12, half_size * 2.0 + 0.14)},
-		{"pos": Vector3(0, 0.05, -half_size), "size": Vector3(half_size * 2.0, 0.12, 0.14)},
-		{"pos": Vector3(0, 0.05, half_size),  "size": Vector3(half_size * 2.0, 0.12, 0.14)}
-	]:
-		var beam = MeshInstance3D.new()
-		var box = BoxMesh.new()
-		box.size = cfg["size"]
-		beam.mesh = box
-		beam.material_override = mat_furniture
-		beam.position = cfg["pos"]
-		rim_node.add_child(beam)
+	var mat_splint := PbrMaterialKit.create_wood_shaving_pbr("#5a4732")
+	var rim_st := ShipGeometry.begin(mat_furniture)
+	var splint_st := ShipGeometry.begin(mat_splint)
+	var sides := 10
+	for i in range(sides):
+		var a0 := TAU * float(i) / float(sides)
+		var a1 := TAU * float(i + 1) / float(sides)
+		var r0 := half_size * (0.94 + sin(float(i) * 2.7) * 0.14)
+		var r1 := half_size * (0.94 + sin(float((i + 1) % sides) * 2.7) * 0.14)
+		var p0 := Vector3(cos(a0) * r0, 0.03, sin(a0) * r0)
+		var p1 := Vector3(cos(a1) * r1, 0.03, sin(a1) * r1)
+		ShipGeometry.beam(rim_st, p0, p1, 0.15, 0.09)
+		# Dientes de tablas rotas apuntando hacia el abismo de la sentina C8
+		var mid := (p0 + p1) * 0.5
+		var inward := Vector3(-mid.x, -0.26, -mid.z).normalized()
+		var jag_len := 0.24 + float((i * 3) % 3) * 0.09
+		ShipGeometry.beam(splint_st, mid + Vector3(0.0, 0.02, 0.0), mid + inward * jag_len, 0.13, 0.045, 0.22)
+	ShipGeometry.commit(rim_node, "BreachRimBeams", rim_st)
+	ShipGeometry.commit(rim_node, "BreachBrokenPlanks", splint_st)
+
+	# Pozo de sombra profunda bajo la brecha para evitar que parezca una claraboya de cristal azul claro
+	var dark_pit := MeshInstance3D.new()
+	var pit_pl := PlaneMesh.new()
+	pit_pl.size = Vector2(half_size * 1.92, half_size * 1.92)
+	dark_pit.mesh = pit_pl
+	var mat_pit := StandardMaterial3D.new()
+	mat_pit.albedo_color = Color(0.02, 0.05, 0.06, 0.78)
+	mat_pit.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat_pit.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat_pit.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	dark_pit.material_override = mat_pit
+	dark_pit.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	dark_pit.position = Vector3(0.0, -0.18, 0.0)
+	rim_node.add_child(dark_pit)
 
 func build_wall_lantern(parent: Node3D, pos: Vector3, light_name: String, support_mode: String = "hanging") -> void:
 	var lan_root = Node3D.new()
@@ -3079,7 +3334,44 @@ func build_wall_lantern(parent: Node3D, pos: Vector3, light_name: String, suppor
 	lan_root.position = pos
 	parent.add_child(lan_root)
 
-	if support_mode == "post":
+	if support_mode in ["wall_bracket", "wall_bracket_port", "wall_bracket_bow"]:
+		# Aplique naval de hierro forjado anclado al mamparo (reemplaza las viejas farolas callejeras de pie)
+		var brk_root := Node3D.new()
+		lan_root.add_child(brk_root)
+		var wall_z := -0.22 if pos.z > 0.0 else 0.22
+		if support_mode == "wall_bracket_port":
+			wall_z = -0.26
+		elif support_mode == "wall_bracket_bow":
+			wall_z = 0.26
+			brk_root.rotation_degrees.y = 90.0
+		var plate := MeshInstance3D.new()
+		var pl_box := BoxMesh.new()
+		pl_box.size = Vector3(0.14, 0.34, 0.04)
+		plate.mesh = pl_box
+		plate.material_override = mat_metal
+		plate.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		plate.position = Vector3(0.0, 0.08, wall_z)
+		brk_root.add_child(plate)
+
+		var jib := MeshInstance3D.new()
+		var jb_box := BoxMesh.new()
+		jb_box.size = Vector3(0.045, 0.045, absf(wall_z) + 0.06)
+		jib.mesh = jb_box
+		jib.material_override = mat_metal
+		jib.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		jib.position = Vector3(0.0, 0.21, wall_z * 0.5)
+		brk_root.add_child(jib)
+
+		var strut := MeshInstance3D.new()
+		var st_box := BoxMesh.new()
+		st_box.size = Vector3(0.035, 0.035, 0.24)
+		strut.mesh = st_box
+		strut.material_override = mat_metal
+		strut.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		strut.position = Vector3(0.0, 0.11, wall_z * 0.62)
+		strut.rotation_degrees.x = 42.0 if wall_z < 0.0 else -42.0
+		brk_root.add_child(strut)
+	elif support_mode == "post":
 		var floor_y := WreckStructure.get_list_height(pos.z)
 		var post_h := maxf(0.35, pos.y - 0.10 - floor_y)
 		var stanchion := MeshInstance3D.new()

@@ -1,0 +1,57 @@
+{
+  "id": "sw-kilnip-chat",
+  "version": 1,
+  "kind": "animation",
+  "character": "sw-kilnip",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "retreat_chat",
+  "direction": "se",
+  "fps": 6,
+  "loop": false,
+  "dependencies": [
+    "sw-kilnip"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "planted soles, station contact; one authored view"
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-chat/67a2e51c6305/01.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-chat/67a2e51c6305/02.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-chat/67a2e51c6305/03.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-chat/67a2e51c6305/04.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-chat/67a2e51c6305/05.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-chat/67a2e51c6305/06.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-chat/67a2e51c6305/07.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-chat/67a2e51c6305/08.png"
+  ],
+  "production": {
+    "method": "built-in ImageGen with existing character reference; native-size independent sprites",
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/kilnip.png",
+    "minimumVisibleStandingPixels": 240,
+    "prompt": "Dungeons VTT original game asset. Use the attached original character illustration as the exact design, palette, material and proportional reference. Produce one new high-detail game sprite sheet on truly transparent RGBA, 3:2 landscape, exactly two equally spaced rows of four cells, eight fully separated illustrations read left to right. Nothing outside the silhouettes. Ground baseline at about 45 percent and 95 percent of the sheet height, centered body in each cell, fully inside the cell with at least 15 px transparent gutter on ALL sides. Consistent planted-foot baseline and head scale. No words, numbering, panels, border, grids, scenery, ground or shadows; every hand, toe, tail, horn or fabric edge visible and preserved. Same orthographic perspective and slight 12-degree elevated view in all eight frames. Painted linework and textured fabric as attached. Kilnip, the tired but animated conversationalist. Preserve original paler rusty kobold, exact cream point-trimmed robe, horns and spotted muzzle. Three-quarter toward screen right. Both feet stay planted. Phase 1 eyes relaxed, hands idle; 2 mouth opens slightly and one hand lifts; 3 hand turns palm up; 4 raises the other hand as if asking a question; 5 smile and small tilt of head; 6 sweeps one hand down gently; 7 both hands return to waist; 8 relaxed with mouth closed. No props, weapons, or equipment changes.",
+    "sourcePages": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "expectedPhases": 8,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-kilnip-chat-67a2e51c6305.png",
+    "originalSha256": "67a2e51c63057d6c77e47fa05ccb62765d993063c6e30a170ffa86e6c509beaa",
+    "importReport": "output/stormwreck-motion-detail/sw-kilnip-chat-67a2e51c6305.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "Original y ocho fases comparados con la apariencia base. Revisión en escena de la candidata.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 453,
+  "pivot": [
+    0.5,
+    0.9028571428571428
+  ]
+}

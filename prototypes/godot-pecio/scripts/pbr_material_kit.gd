@@ -14,6 +14,8 @@ const SHADER_KENNEY_WEATHERED = preload("res://shaders/kenney_weathered.gdshader
 const SHADER_FLOOD_WATER = preload("res://shaders/flood_water.gdshader")
 const SHADER_UNDERWATER_CAUSTICS = preload("res://shaders/underwater_caustics.gdshader")
 const SHADER_WRECK_PLANK = preload("res://shaders/wreck_plank_weathered.gdshader")
+const SHADER_COASTAL_BASALT = preload("res://shaders/coastal_basalt.gdshader")
+const SHADER_DRAGON_BONE = preload("res://shaders/dragon_bone_weathered.gdshader")
 
 static var _kenney_mat: Material = null
 static var _pbr_map_cache: Dictionary = {}
@@ -471,12 +473,63 @@ static func create_barnacle_pbr(base_hex: String = "#bfb8a8") -> StandardMateria
 	_attach_pbr_channels(mat, TEX_BASALT, 3.2, 1.15, 0.76, 0.98, 0.55)
 	return mat
 
-static func create_algae_pbr(base_hex: String = "#253b28") -> StandardMaterial3D:
+static func create_coastal_basalt_shader_material() -> ShaderMaterial:
+	var smat := ShaderMaterial.new()
+	smat.shader = SHADER_COASTAL_BASALT
+	var maps := _get_pbr_maps(TEX_BASALT, 3.0, 0.56, 0.94)
+	smat.set_shader_parameter("basalt_tex", TEX_BASALT)
+	if maps["normal"]:
+		smat.set_shader_parameter("normal_tex", maps["normal"])
+	return smat
+
+static func create_dragon_bone_shader_material(bone_hex: String = "#d2bc88", crevice_hex: String = "#4e3e27") -> ShaderMaterial:
+	var smat := ShaderMaterial.new()
+	smat.shader = SHADER_DRAGON_BONE
+	var bone_tex := _get_dragon_bone_texture()
+	var maps := _get_pbr_maps(bone_tex, 2.8, 0.54, 0.94)
+	smat.set_shader_parameter("bone_tex", bone_tex)
+	if maps["normal"]:
+		smat.set_shader_parameter("normal_tex", maps["normal"])
+	smat.set_shader_parameter("bone_tint", Color(bone_hex))
+	smat.set_shader_parameter("crevice_tint", Color(crevice_hex))
+	return smat
+
+static func _get_kelp_frond_texture() -> Texture2D:
+	const CACHE_KEY := "__kelp_frond_v1"
+	if _runtime_tex_cache.has(CACHE_KEY):
+		return _runtime_tex_cache[CACHE_KEY]
+	var sz := 64
+	var img := Image.create(sz, sz, false, Image.FORMAT_RGBA8)
+	for y in range(sz):
+		var v := float(y) / float(sz - 1)
+		var taper := sin(clampf(v * 0.92 + 0.08, 0.0, 1.0) * PI)
+		var serration := 0.78 + 0.22 * sin(v * TAU * 4.5)
+		var half_w := clampf(0.42 * taper * serration + 0.05, 0.04, 0.48)
+		var sway_center := 0.5 + sin(v * TAU * 1.4) * 0.07
+		for x in range(sz):
+			var u := float(x) / float(sz - 1)
+			var dx := absf(u - sway_center)
+			var alpha := 1.0 if dx <= half_w else 0.0
+			var midrib := clampf(1.0 - dx / maxf(0.06, half_w * 0.24), 0.0, 1.0)
+			var shade := lerpf(0.76, 1.18, midrib * 0.55 + (1.0 - v) * 0.45)
+			var col := Color(0.18 * shade, 0.30 * shade, 0.17 * shade, alpha)
+			img.set_pixel(x, y, col)
+	img.generate_mipmaps()
+	var tex := ImageTexture.create_from_image(img)
+	_runtime_tex_cache[CACHE_KEY] = tex
+	return tex
+
+static func create_algae_pbr(base_hex: String = "#2d4930") -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(base_hex)
-	mat.roughness = 0.38
-	mat.metallic_specular = 0.40
+	var kelp_tex := _get_kelp_frond_texture()
+	mat.albedo_texture = kelp_tex
+	mat.albedo_color = Color(base_hex).lightened(0.32)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	mat.alpha_scissor_threshold = 0.45
+	mat.roughness = 0.30
+	mat.metallic_specular = 0.48
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_attach_pbr_channels(mat, TEX_BASALT, 1.6, 0.45, 0.22, 0.46, 0.25)
 	return mat
 
 static func add_box_collider(parent: Node3D, col_name: String, size: Vector3, local_pos: Vector3 = Vector3.ZERO) -> StaticBody3D:

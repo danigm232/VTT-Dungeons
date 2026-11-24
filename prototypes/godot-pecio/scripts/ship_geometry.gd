@@ -127,3 +127,67 @@ static func slab_shell(top: MeshInstance3D, material: Material, thickness: float
 	var shell := commit(top, "ConstructionShell", st)
 	shell.set_meta("visual_only", true)
 	shell.set_meta("thickness_m", thickness)
+
+# Merge anonymous leaf MeshInstance3D children under `container` that share the
+# same material, layers and shadow-casting setting. Named nodes and nodes with
+# children/colliders are preserved untouched so scene contracts remain intact.
+static func merge_static_meshes(container: Node3D) -> int:
+	if not container:
+		return 0
+	var groups: Dictionary = {}
+	var candidates: Array[MeshInstance3D] = []
+	for child in container.get_children():
+		if not (child is MeshInstance3D):
+			continue
+		var mi := child as MeshInstance3D
+		if not mi.mesh or mi.get_child_count() > 0 or mi.get_script() != null:
+			continue
+		if mi.mesh.get_surface_count() != 1:
+			continue
+		var nm := String(mi.name)
+		if not nm.begins_with("@") and not nm.begins_with("MeshInstance3D"):
+			continue
+		var mat: Material = mi.material_override if mi.material_override else mi.get_active_material(0)
+		var mat_id: int = mat.get_instance_id() if mat else 0
+		var fmt: String = mi.mesh.get_class()
+		if mi.mesh is ArrayMesh:
+			var am := mi.mesh as ArrayMesh
+			if am.surface_get_primitive_type(0) != Mesh.PRIMITIVE_TRIANGLES:
+				continue
+			fmt = "AM_%d" % am.surface_get_format(0)
+		var key := "%d|%d|%d|%s" % [mat_id, mi.layers, int(mi.cast_shadow), fmt]
+		if not groups.has(key):
+			groups[key] = {"mat": mat, "layers": mi.layers, "shadow": mi.cast_shadow, "nodes": []}
+		groups[key]["nodes"].append(mi)
+		candidates.append(mi)
+
+	var merged_away := 0
+	var batch_idx := 0
+	for g in groups.values():
+		var nodes: Array = g["nodes"]
+		if nodes.size() < 2:
+			continue
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		if g["mat"]:
+			st.set_material(g["mat"])
+		var added := 0
+		for mi: MeshInstance3D in nodes:
+			st.append_from(mi.mesh, 0, mi.transform)
+			added += 1
+		if added < 2:
+			continue
+		var batched := MeshInstance3D.new()
+		batched.name = "StaticBatch_%d" % batch_idx
+		batch_idx += 1
+		batched.mesh = st.commit()
+		if g["mat"]:
+			batched.material_override = g["mat"]
+		batched.layers = g["layers"]
+		batched.cast_shadow = g["shadow"]
+		container.add_child(batched)
+		for mi: MeshInstance3D in nodes:
+			container.remove_child(mi)
+			mi.free()
+			merged_away += 1
+	return merged_away

@@ -121,9 +121,9 @@ func _is_zone_active(zone_tag: String) -> bool:
 		"fore_cabins":
 			return fore_vis and (not c2_vis)
 		"c8_bilge":
-			return (not c1_vis) and c8_vis
+			return mode in ["lower_c8_bilge", "lower_c8_c9"]
 		"c9_hold":
-			return (not c1_vis) and (not c8_vis) and c9_vis
+			return mode in ["lower_c9_hold", "lower_c8_c9"]
 		_:
 			return true
 
@@ -162,6 +162,31 @@ func _process(delta: float) -> void:
 		rain.visible = weather_state in ["rain", "storm"] and not in_interior
 		rain.emitting = rain.visible
 		rain.amount_ratio = (0.95 if weather_state == "storm" else 0.55) * (0.30 if gentle_effects else 1.0)
+
+func set_time_lighting(time_of_day: String, weather: String = "clear") -> void:
+	# Modula el brillo y tinte de partículas unshaded para que jamás brillen como puntos blancos de noche
+	var overcast := weather in ["rain", "storm", "fog"]
+	var spray_tint := Color(0.92, 0.96, 0.99, 0.82)
+	var mist_tint := Color(0.84, 0.91, 0.94, 0.62)
+	var wind_tint := Color(0.76, 0.86, 0.90, 0.48)
+	var feather_tint := Color(0.88, 0.84, 0.78, 0.82)
+	if time_of_day == "dusk":
+		spray_tint = Color(0.74, 0.66, 0.64, 0.68)
+		mist_tint = Color(0.66, 0.58, 0.58, 0.52)
+		wind_tint = Color(0.60, 0.54, 0.56, 0.42)
+		feather_tint = Color(0.72, 0.64, 0.58, 0.75)
+	elif time_of_day == "night":
+		spray_tint = Color(0.30, 0.42, 0.54, 0.48)
+		mist_tint = Color(0.24, 0.35, 0.46, 0.36)
+		wind_tint = Color(0.22, 0.33, 0.44, 0.28)
+		feather_tint = Color(0.42, 0.48, 0.56, 0.62)
+	if overcast:
+		spray_tint = spray_tint * Color(0.86, 0.90, 0.94, 0.90)
+		mist_tint = mist_tint * Color(0.88, 0.92, 0.95, 0.92)
+	if mat_particle_spray: mat_particle_spray.albedo_color = spray_tint
+	if mat_particle_mist: mat_particle_mist.albedo_color = mist_tint
+	if mat_particle_wind_mist: mat_particle_wind_mist.albedo_color = wind_tint
+	if mat_particle_feather: mat_particle_feather.albedo_color = feather_tint
 
 func set_environment(value: String, interior: bool, gentle: bool) -> void:
 	_ensure_refs()
@@ -652,11 +677,11 @@ func build_lantern_embers_vfx() -> void:
 		{"name": "LanternEmbers_SternC3", "zone": "deck_c3",    "pos": Vector3(-30.98, 3.54, 0.0),  "amt": 18},
 		{"name": "LanternEmbers_DeckC1",  "zone": "deck_c1",    "pos": Vector3(0.95, 1.95, 0.78),   "amt": 14},
 		{"name": "LanternEmbers_BowC2",   "zone": "deck_c2",    "pos": Vector3(21.0, 4.82, -0.92),  "amt": 14},
-		{"name": "LanternEmbers_C4",      "zone": "aft_cabins", "pos": Vector3(-27.25, 1.05, -2.05),"amt": 12},
-		{"name": "LanternEmbers_C5",      "zone": "aft_cabins", "pos": Vector3(-19.5, 1.85, 5.20),  "amt": 12},
-		{"name": "LanternEmbers_C6_A",    "zone": "fore_cabins","pos": Vector3(17.6, 1.68, -3.60),  "amt": 10},
-		{"name": "LanternEmbers_C6_B",    "zone": "fore_cabins","pos": Vector3(24.2, 1.68, -2.40),  "amt": 10},
-		{"name": "LanternEmbers_C7",      "zone": "fore_cabins","pos": Vector3(18.5, 1.14, 3.55),   "amt": 12},
+		{"name": "LanternEmbers_C4",      "zone": "c4",         "pos": Vector3(-27.25, 1.05, -2.05),"amt": 12},
+		{"name": "LanternEmbers_C5",      "zone": "c5",         "pos": Vector3(-19.5, 1.94, 0.32),  "amt": 12},
+		{"name": "LanternEmbers_C6_A",    "zone": "c6",         "pos": Vector3(18.5, 2.04, -9.55),  "amt": 10},
+		{"name": "LanternEmbers_C6_B",    "zone": "c6",         "pos": Vector3(26.86, 1.98, -1.10), "amt": 10},
+		{"name": "LanternEmbers_C7",      "zone": "c7",         "pos": Vector3(18.5, 1.14, 3.55),   "amt": 12},
 		{"name": "LanternEmbers_C8",      "zone": "c8_bilge",   "pos": Vector3(-5.5, -1.25, 2.18),  "amt": 14},
 	]
 	for lt in lanterns:
@@ -684,9 +709,9 @@ func build_lantern_embers_vfx() -> void:
 func build_interior_cabins_vfx() -> void:
 	# Motas de polvo iluminadas flotando en camarotes C4, C6 y C7 (ocultas en sentina C8/C9)
 	var dust_rooms := [
-		{"name": "CabinDust_C4", "zone": "aft_cabins",  "pos": Vector3(-18.5, 1.3, -3.2), "ext": Vector3(4.0, 1.0, 2.2)},
-		{"name": "CabinDust_C6", "zone": "fore_cabins", "pos": Vector3(18.5, 1.3, -3.0),  "ext": Vector3(4.0, 1.0, 2.2)},
-		{"name": "CabinDust_C7", "zone": "fore_cabins", "pos": Vector3(18.0, 1.3, 3.5),   "ext": Vector3(3.8, 1.0, 2.2)},
+		{"name": "CabinDust_C4", "zone": "c4", "pos": Vector3(-18.5, 1.3, -3.2), "ext": Vector3(4.0, 1.0, 2.2)},
+		{"name": "CabinDust_C6", "zone": "c6", "pos": Vector3(18.5, 1.3, -3.0),  "ext": Vector3(4.0, 1.0, 2.2)},
+		{"name": "CabinDust_C7", "zone": "c7", "pos": Vector3(18.0, 1.3, 3.5),   "ext": Vector3(3.8, 1.0, 2.2)},
 	]
 	for dr in dust_rooms:
 		_spawn_zone_emitter(dr["zone"], {
@@ -709,7 +734,7 @@ func build_interior_cabins_vfx() -> void:
 		})
 
 	# Pavesas frías y polvo de hollín alrededor del fogón extinguido de C5
-	_spawn_zone_emitter("aft_cabins", {
+	_spawn_zone_emitter("c5", {
 		"name": "GalleySoot_C5",
 		"local_pos": Vector3(-22.2, 1.35, 4.4),
 		"box_extents": Vector3(0.95, 0.75, 0.85),
@@ -750,23 +775,23 @@ func build_submerged_decks_vfx() -> void:
 		"align_vel": true,
 	})
 
-	# Bruma húmeda baja flotando sobre la lámina de agua estancada en C8
+	# Bruma húmeda baja y sutil flotando sobre el agua estancada de C8 (sin quads rectangulares claros)
 	_spawn_zone_emitter("c8_bilge", {
 		"name": "BilgeMist_C8",
-		"local_pos": Vector3(-4.0, -2.75, 0.0),
-		"box_extents": Vector3(17.0, 0.30, 4.2),
-		"direction": Vector3(0.2, 0.04, 0.0),
+		"local_pos": Vector3(-4.0, -2.80, 0.0),
+		"box_extents": Vector3(16.0, 0.24, 3.8),
+		"direction": Vector3(0.2, 0.03, 0.0),
 		"spread": 60.0,
-		"amount": 28,
-		"lifetime": 4.2,
-		"vel_min": 0.08,
-		"vel_max": 0.20,
-		"scale_min": 1.6,
-		"scale_max": 2.8,
-		"quad_size": Vector2(1.8, 1.0),
+		"amount": 18,
+		"lifetime": 4.4,
+		"vel_min": 0.06,
+		"vel_max": 0.16,
+		"scale_min": 0.85,
+		"scale_max": 1.45,
+		"quad_size": Vector2(1.15, 0.68),
 		"material": mat_particle_wind_mist,
-		"color_ramp": ramp_wind_mist,
-		"turb_strength": 0.30,
+		"color": Color(0.45, 0.62, 0.64, 0.22),
+		"turb_strength": 0.26,
 	})
 
 	# Burbujas huecas con reflejo especular distribuidas por la bodega sumergida C9 y brecha P16

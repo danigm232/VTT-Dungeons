@@ -1,0 +1,57 @@
+{
+  "id": "sw-kilnip-courtyard-walk",
+  "version": 1,
+  "kind": "animation",
+  "character": "sw-kilnip",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "walk",
+  "direction": "e",
+  "fps": 8,
+  "loop": true,
+  "dependencies": [
+    "sw-kilnip"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "grounded in-place stride; east source view; unpainted views pending"
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-courtyard-walk/42c5a936d8cb/01.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-courtyard-walk/42c5a936d8cb/02.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-courtyard-walk/42c5a936d8cb/03.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-courtyard-walk/42c5a936d8cb/04.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-courtyard-walk/42c5a936d8cb/05.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-courtyard-walk/42c5a936d8cb/06.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-courtyard-walk/42c5a936d8cb/07.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-courtyard-walk/42c5a936d8cb/08.png"
+  ],
+  "production": {
+    "method": "built-in ImageGen with existing character reference; native-size independent sprites",
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/kilnip.png",
+    "minimumVisibleStandingPixels": 260,
+    "prompt": "Repaint the uploaded original Dungeons VTT illustration as an in-place NPC walking animation sheet. The upload is the exact character model sheet; same face, height, proportions, silhouette, outfit, colors, and detailed painterly 2.5D inked miniature treatment. Exactly Kilnip from the reference, preserve outfit, face and features. Slightly tired alternating steps, upright body. All poses look and walk SCREEN RIGHT in a readable side view, with a modest downward tactical camera angle of roughly 12 degrees, both feet readable. Exactly EIGHT frames arranged in TWO isolated rows of FOUR frames, read left-to-right. 3:2 landscape canvas at the largest available resolution. Equally spaced centers at 12.5%, 37.5%, 62.5%, 87.5% of width, for BOTH rows. Ground line at 43% and 93% of sheet height. Each head and every toe, tail, hand and wing stay fully within its own cell with at least 16 pixels of transparent gutter. Figure uses 79–82% of each cell height. Keep the pelvis and planted feet on a stable root and use matching head size across frames. Visible readable leg alternation in this exact order: 1 left foot forward at contact with right foot trailing, 2 left knee loads and right foot lifts, 3 right foot passes left, 4 right foot swings forward distinct from 3, 5 right foot forward at contact with left foot trailing, 6 right knee loads and left foot lifts, 7 left passes right, 8 left foot swings forward into frame 1. Arms swing gently in opposition. Same character and orientation in every cell. Truly transparent alpha. No text, numbering, lines, ground, contact shadow, borders, panels, weapons, or equipment changes. Only the eight cleanly separated figures.",
+    "sourcePages": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "expectedPhases": 8,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-kilnip-courtyard-walk-42c5a936d8cb.png",
+    "originalSha256": "42c5a936d8cbc9accf158379161a4bee55d3193019c428bac66f26db78f38717",
+    "importReport": "output/stormwreck-motion-detail/sw-kilnip-courtyard-walk-42c5a936d8cb.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "Original y ocho fases comparados con la apariencia base. Revisión en escena de la candidata.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 429,
+  "pivot": [
+    0.5,
+    0.8657844990548205
+  ]
+}

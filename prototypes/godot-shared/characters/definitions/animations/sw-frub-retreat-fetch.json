@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-frub-retreat-fetch",
+  "character": "sw-frub",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "retreat_fetch",
+  "direction": "se",
+  "fps": 7,
+  "loop": false,
+  "dependencies": [
+    "sw-frub"
+  ],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch/6f934553353c/01.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch/6f934553353c/02.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch/6f934553353c/03.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch/6f934553353c/04.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch/6f934553353c/05.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch/6f934553353c/06.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch/6f934553353c/07.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch/6f934553353c/08.png"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Current frame alpha",
+    "placement": "standing with world object controlled outside character sprite"
+  },
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/frub.png",
+    "prompt": "Production fantasy VTT sprite sheet. Attached figure is exact identity, clothing and material reference. Frub, copper red kobold with his rolled sleeves, ochre brown sleeveless vest and green waist sash. Original curved horns, loose trousers, tail shape. Energetic posture. Same three-quarter front view angled toward screen right in all cells, modest tactical 16-degree elevation, natural proportional feet and body. Create eight chronological, visibly distinct full-body phases of this single action: take two small eager hand gestures at waist height, start at rest, lean forward while near arm reaches, turn the palm as if picking up a cup, bring the near arm back, show the cup to another resident with a cheerful half-gesture, reach forward to set down a cup, release fingers, settle. Keep both feet planted, hands empty, the cup is drawn separately by the game. Native 1536x1024 transparent RGBA, exact 4 columns by 2 rows, no labels, background, ground, shadows, panel lines, extra objects or changes of identity. Body and tail fully inside each cell with 16px empty gutters, soles grounded near 45% and 95% of full sheet height, preserve equal head scale across all eight views.",
+    "minimumVisibleStandingPixels": 250,
+    "expectedPhases": 8,
+    "sourcePages": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "method": "ImageGen from the installed design; native-size extraction",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-frub-retreat-fetch-6f934553353c.png",
+    "originalSha256": "6f934553353cc988ee0b11e1eeefaf379836dfcd25c2e213def60930a88dc972",
+    "importReport": "output/stormwreck-motion-detail/sw-frub-retreat-fetch-6f934553353c.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "Reviewed for identity, view, silhouette and pose against the current in-game design. Integrated camera evidence in the Retiro routine audit.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 458,
+  "pivot": [
+    0.5,
+    0.9161904761904762
+  ]
+}

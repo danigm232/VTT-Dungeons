@@ -1,0 +1,57 @@
+{
+  "id": "sw-varnoth-courtyard-walk",
+  "version": 1,
+  "kind": "animation",
+  "character": "sw-varnoth",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "walk",
+  "direction": "e",
+  "fps": 8,
+  "loop": true,
+  "dependencies": [
+    "sw-varnoth"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "grounded in-place stride; east source view; unpainted views pending"
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk/2ed552c3f725/01.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk/2ed552c3f725/02.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk/2ed552c3f725/03.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk/2ed552c3f725/04.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk/2ed552c3f725/05.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk/2ed552c3f725/06.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk/2ed552c3f725/07.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk/2ed552c3f725/08.png"
+  ],
+  "production": {
+    "method": "built-in ImageGen with existing character reference; native-size independent sprites",
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/varnoth.png",
+    "minimumVisibleStandingPixels": 260,
+    "prompt": "Draw an eight-phase in-place eastward (screen RIGHT) walking sprite sheet of this identical Dungeons VTT character. Input 1 is exact appearance; do not alter face, hair, complexion, brown cloth, white eye, or height. Difficult requirement: true AND clearly visible alternation. She has ONE wood-and-metal prosthesis on the RIGHT lower leg and exactly one natural brown lower leg with a simple leather sandal. The prosthetic foot must be FORWARD only at frame 1 landing and frame 8 swinging. The NATURAL foot must be FORWARD at frame 4 swinging and frame 5 landing. Frame 1: prosthetic heel at rightmost foreground, natural foot behind toward left. Frame 2: prosthetic planted, natural foot lifts. Frame 3: natural foot clearly crosses in front of planted prosthesis. Frame 4: natural foot in air farthest right, prosthesis planted toward left. Frame 5: natural heel at rightmost foreground, prosthetic foot trailing toward left. Frame 6: natural planted, prosthesis lifts. Frame 7: prosthetic foot clearly crosses in front of natural. Frame 8: prosthetic foot swings farthest right, natural foot planted toward left. The step follows continuous displacement, NO anatomical swaps. Arms counter-swing clearly and her posture stays upright. Fixed right profile with slight tactical view from above, keep planted soles and stable head height. 1536x1024 or larger, 3:2 landscape, exactly 4 columns and 2 rows, read left-to-right within rows, with wide gaps and at least 15px transparent padding on all sides of each character. No text, ground, shadows, background, dividers, weapons, or extra objects. Transparent RGBA.",
+    "sourcePages": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "expectedPhases": 8,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-varnoth-courtyard-walk-2ed552c3f725.png",
+    "originalSha256": "2ed552c3f7253a88583cd53e4d6a5e5295009129c11ae91812fc0ce8a7365744",
+    "importReport": "output/stormwreck-motion-detail/sw-varnoth-courtyard-walk-2ed552c3f725.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "Original y ocho fases comparados con la apariencia base. Revisión en escena de la candidata.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 455,
+  "pivot": [
+    0.5,
+    0.9149338374291115
+  ]
+}

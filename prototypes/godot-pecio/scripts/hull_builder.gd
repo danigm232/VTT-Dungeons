@@ -11,8 +11,8 @@ const ShipGeometry = preload("res://scripts/ship_geometry.gd")
 
 var mat_hull: Material
 var mat_frame: StandardMaterial3D
-var mat_deck: StandardMaterial3D
-var mat_deck_c2: StandardMaterial3D
+var mat_deck: Material
+var mat_deck_c2: Material
 var mat_deck_c3: Material
 var mat_oak_trim: StandardMaterial3D
 var mat_iron: StandardMaterial3D
@@ -46,8 +46,8 @@ func prebuild() -> void:
 func setup_materials() -> void:
 	mat_hull = PbrMaterialKit.create_hull_weathered_shader_material()
 	mat_frame = PbrMaterialKit.create_wood_planks_pbr("#544938", 0.42)
-	mat_deck = PbrMaterialKit.create_structural_deck_pbr()
-	mat_deck.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+	# Unificación AAA (VA-01): C1, C2 y C3 comparten el mismo shader naval de tablazón húmeda, salitre y verdín
+	mat_deck = PbrMaterialKit.create_wreck_plank_shader_material(0.34, 0.54, 0.62, 0.0)
 
 	mat_oak_trim = PbrMaterialKit.create_oak_furniture_pbr("#4c3c2c", 0.40)
 	mat_iron = PbrMaterialKit.create_iron_pbr("#2d2c2a", 0.72, 0.42)
@@ -60,10 +60,8 @@ func setup_materials() -> void:
 	mat_glass.roughness = 0.08
 	mat_glass.metallic = 0.18
 
-	# Cubiertas C2 (Proa) y C3 (Popa) con soporte de recorte/fade cenital (Fase 5)
-	mat_deck_c2 = mat_deck.duplicate()
-	mat_deck_c2.albedo_color = mat_deck.albedo_color
-
+	# Cubiertas C2 (Proa) y C3 (Popa) con misma familia de tablazón envejecida y variación sutil por exposición
+	mat_deck_c2 = PbrMaterialKit.create_wreck_plank_shader_material(0.34, 0.46, 0.52, 0.0)
 	mat_deck_c3 = PbrMaterialKit.create_wreck_plank_shader_material(0.34, 0.50, 0.58, 0.0)
 
 	# Materiales de deterioro de 50 años encallado

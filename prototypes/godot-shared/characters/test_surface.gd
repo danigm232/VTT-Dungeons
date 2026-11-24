@@ -12,7 +12,7 @@ func _run() -> void:
 	var world:=Node3D.new(); root.add_child(world)
 	var env:=WorldEnvironment.new(); env.environment=Environment.new(); env.environment.background_mode=Environment.BG_COLOR; env.environment.background_color=Color("142024"); env.environment.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR; env.environment.ambient_light_energy=.85; world.add_child(env)
 	var camera:=Camera3D.new(); world.add_child(camera); camera.projection=Camera3D.PROJECTION_ORTHOGONAL; camera.size=3.7; camera.position=Vector3(0,4,10); camera.look_at(Vector3(0,.9,0)); camera.current=true
-	var capture:=not "--headless" in OS.get_cmdline_args()
+	var capture:=DisplayServer.get_name()!="headless"
 	var folder:=ProjectSettings.globalize_path("res://../../output/character-modular-20261116")
 	DirAccess.make_dir_recursive_absolute(folder)
 	for id in ["mike","anteros","cow"]:

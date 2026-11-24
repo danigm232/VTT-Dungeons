@@ -41,12 +41,12 @@ func setup_materials() -> void:
 
 	mat_harpy_nest = PbrMaterialKit.create_wet_wreck_wood_pbr("#3a3224", 0.42, 0.85, 0.16)
 
-	# Shader de viento dinámico para el velamen roto
+	# Shader de viento dinámico para el velamen roto (lona envejecida por salitre y sol)
 	var shader = preload("res://shaders/cloth_sail.gdshader")
 	mat_sail_cloth = ShaderMaterial.new()
 	mat_sail_cloth.shader = shader
-	mat_sail_cloth.set_shader_parameter("albedo_color", Color(0.48, 0.44, 0.37, 1.0))
-	mat_sail_cloth.set_shader_parameter("dirt_color", Color(0.22, 0.18, 0.13, 1.0))
+	mat_sail_cloth.set_shader_parameter("albedo_color", Color(0.66, 0.61, 0.50, 1.0))
+	mat_sail_cloth.set_shader_parameter("dirt_color", Color(0.24, 0.23, 0.17, 1.0))
 	mat_sail_cloth.set_shader_parameter("wind_speed", 2.1)
 	mat_sail_cloth.set_shader_parameter("wind_amplitude", 0.18)
 	mat_sail_cloth.set_shader_parameter("tear_flutter", 0.35)
@@ -259,12 +259,15 @@ func build_crows_nest(parent: Node3D, pos: Vector3) -> void:
 	ShipGeometry.beam(arm_st, Vector3(0.30, 1.02, 0.0), Vector3(0.68, 1.36, 0.0), 0.070, 0.070)
 	ShipGeometry.commit(crow_node, "LanternCraneArm", arm_st)
 
-	# Remate irregular y desgastado del penol del palo mayor (bajo y natural, sin puntas en corona)
+	# Remate irregular y astillado del penol del palo mayor (cubre completamente la tapa plana del cilindro desde arriba)
 	var mat_cap_end := PbrMaterialKit.create_wood_shaving_pbr("#6d5d43")
 	var cap_splinter_st := ShipGeometry.begin(mat_cap_end)
 	var cap_specs := [
-		[0.2, 0.25, 1.54, 0.14, 0.11], [1.2, 0.23, 1.49, 0.12, 0.10], [2.1, 0.26, 1.56, 0.14, 0.11],
-		[3.1, 0.22, 1.48, 0.11, 0.09], [4.1, 0.25, 1.55, 0.13, 0.10], [5.2, 0.24, 1.50, 0.12, 0.09],
+		[0.15, 0.33, 1.66, 0.17, 0.13], [0.85, 0.31, 1.58, 0.16, 0.12], [1.65, 0.34, 1.72, 0.17, 0.13],
+		[2.35, 0.30, 1.60, 0.15, 0.12], [3.10, 0.33, 1.64, 0.16, 0.12], [3.95, 0.32, 1.69, 0.17, 0.13],
+		[4.75, 0.31, 1.57, 0.15, 0.12], [5.50, 0.33, 1.65, 0.16, 0.12],
+		[0.50, 0.14, 1.62, 0.22, 0.18], [2.60, 0.13, 1.59, 0.22, 0.18], [4.40, 0.12, 1.61, 0.21, 0.17],
+		[1.25, 0.22, 1.54, 0.20, 0.16], [3.55, 0.21, 1.55, 0.20, 0.16], [5.10, 0.22, 1.54, 0.20, 0.16],
 	]
 	for cs in cap_specs:
 		var sa: float = cs[0]
@@ -272,7 +275,7 @@ func build_crows_nest(parent: Node3D, pos: Vector3) -> void:
 		var top_y: float = cs[2]
 		var w: float = cs[3]
 		var d: float = cs[4]
-		ShipGeometry.beam(cap_splinter_st, Vector3(cos(sa) * rad, 1.38, sin(sa) * rad), Vector3(cos(sa) * (rad * 0.55), top_y, sin(sa) * (rad * 0.55)), w, d, 0.45)
+		ShipGeometry.beam(cap_splinter_st, Vector3(cos(sa) * rad, 1.40, sin(sa) * rad), Vector3(cos(sa) * (rad * 0.56), top_y, sin(sa) * (rad * 0.56)), w, d, 0.48)
 	ShipGeometry.commit(crow_node, "MastHeadSplitCap", cap_splinter_st)
 
 	# Algas, salitre y percebes sutiles SOLO en puntos húmedos expuestos exteriores y garganta inferior (sin cubrir el nido seco)

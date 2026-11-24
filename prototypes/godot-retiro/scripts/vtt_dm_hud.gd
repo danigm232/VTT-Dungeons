@@ -635,19 +635,37 @@ func _rebuild_drawer() -> void:
 
 	elif drawer_tab == "audio":
 		drawer_body.add_child(ThemeKit.make_eyebrow("MEZCLA DE ESCENA"))
-		for ch in ["Música principal", "Oleaje y casco", "Viento en jarcia", "Lluvia y tormenta"]:
-			drawer_body.add_child(ThemeKit.make_label(ch, 12, ThemeKit.COL_INK))
+		var ch_list := [
+			["music", "Ambiente del claustro" if ui.is_retreat else "Música principal"],
+			["ocean", "Oleaje en acantilados" if ui.is_retreat else "Oleaje y casco"],
+			["wind", "Brisa y pinar" if ui.is_retreat else "Viento en jarcia"],
+			["rain", "Lluvia y tormenta"]
+		]
+		for ch in ch_list:
+			var ch_id: String = ch[0]
+			var ch_lbl: String = ch[1]
+			drawer_body.add_child(ThemeKit.make_label(ch_lbl, 12, ThemeKit.COL_INK))
 			var s := HSlider.new()
 			s.min_value = 0.0
 			s.max_value = 100.0
-			s.value = 70.0
+			s.value = float(ui.audio_volumes.get(ch_id, 70.0)) if "audio_volumes" in ui else 70.0
+			s.value_changed.connect(func(v):
+				if ui.has_method("set_audio_channel_volume"):
+					ui.set_audio_channel_volume(ch_id, v)
+			)
 			drawer_body.add_child(s)
 		drawer_body.add_child(ThemeKit.make_eyebrow("DISPARAR EFECTOS PUNTUALES"))
-		for sfx in ["Canto de arpía", "Crujido de madera", "Trueno lejano", "Choque de aceros", "Tirada de dados"]:
+		var sfx_list := ["Campana del templo", "Graznido de gaviotas", "Trueno costero", "Crujido del cabrestante", "Tirada de dados"] if ui.is_retreat else ["Canto de arpía", "Crujido de madera", "Trueno lejano", "Choque de aceros", "Tirada de dados"]
+		for sfx in sfx_list:
 			var sb := Button.new()
 			sb.text = "♪ " + sfx
 			ThemeKit.style_button(sb, "secondary", 8, 10, 5)
-			sb.pressed.connect(func(): ui.notify_mesa("♪ Efecto sonoro en mesa: " + sfx))
+			sb.pressed.connect(func():
+				if ui.has_method("play_dm_sfx"):
+					ui.play_dm_sfx(sfx)
+				else:
+					ui.notify_mesa("♪ Efecto sonoro en mesa: " + sfx)
+			)
 			drawer_body.add_child(sb)
 
 	elif drawer_tab == "settings":
@@ -941,6 +959,59 @@ func _rebuild_encounter_card() -> void:
 	var sum := ThemeKit.make_label(en.get("summary", ""), 11, ThemeKit.COL_MUTED)
 	sum.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	enemy_body_box.add_child(sum)
+
+	if ui.is_retreat and ui.route_scene_kind.is_empty():
+		enemy_body_box.add_child(HSeparator.new())
+		enemy_body_box.add_child(ThemeKit.make_title("Hitos del Retiro (DM)", 12, ThemeKit.COL_HEADING))
+		var beat_row := HBoxContainer.new()
+		beat_row.add_theme_constant_override("separation", 6)
+		enemy_body_box.add_child(beat_row)
+		var z_on: bool = ui.is_retreat_zombie_reappearance_active()
+		var z_btn := Button.new()
+		z_btn.text = "🎣 Zombis + aparejos"
+		z_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		z_btn.tooltip_text = "Activa la reaparición de zombis (p. 12): aparejos de pesca tirados en Z2 y 3 marineros ahogados"
+		ThemeKit.style_button(z_btn, "primary" if z_on else "secondary", 6, 8, 4)
+		z_btn.pressed.connect(func(): ui.toggle_retreat_zombie_reappearance())
+		beat_row.add_child(z_btn)
+
+		var r_on: bool = ui.is_retreat_runara_revelation_active()
+		var r_btn := Button.new()
+		r_btn.text = "🐉 Revelación A5"
+		r_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		r_btn.tooltip_text = "Activa la revelación dracónica de Runara y la llave de piedra lunar en el Templo de Bahamut (p. 13)"
+		ThemeKit.style_button(r_btn, "primary" if r_on else "secondary", 6, 8, 4)
+		r_btn.pressed.connect(func(): ui.toggle_retreat_runara_revelation())
+		beat_row.add_child(r_btn)
+
+		var beat_row2 := HBoxContainer.new()
+		beat_row2.add_theme_constant_override("separation", 6)
+		enemy_body_box.add_child(beat_row2)
+
+		var d_on: bool = ui.is_retreat_dining_gathering_active()
+		var d_btn := Button.new()
+		d_btn.text = "🍲 Comida A3"
+		d_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		d_btn.tooltip_text = "Reúne a Runara (cabecera) y a los residentes en el Salón de la Comunidad A3"
+		ThemeKit.style_button(d_btn, "primary" if d_on else "secondary", 6, 8, 4)
+		d_btn.pressed.connect(func(): ui.toggle_retreat_dining_gathering())
+		beat_row2.add_child(d_btn)
+
+		var p_btn := Button.new()
+		p_btn.text = "🧪 +2 Pociones"
+		p_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		p_btn.tooltip_text = "Entrega la recompensa de Tarak (2 Pociones de curación, 2d4+2 PG) a la mochila activa"
+		ThemeKit.style_button(p_btn, "secondary", 6, 8, 4)
+		p_btn.pressed.connect(func(): ui.grant_canonical_quest_reward("tarak_potions"))
+		beat_row2.add_child(p_btn)
+
+		var k_btn := Button.new()
+		k_btn.text = "🔑 Llave lunar"
+		k_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		k_btn.tooltip_text = "Entrega la Llave de piedra lunar de Runara (p. 13) para el Observatorio a la mochila activa"
+		ThemeKit.style_button(k_btn, "secondary", 6, 8, 4)
+		k_btn.pressed.connect(func(): ui.grant_canonical_quest_reward("moonstone_key"))
+		beat_row2.add_child(k_btn)
 
 func _rebuild_requests_list() -> void:
 	for c in requests_list_box.get_children():

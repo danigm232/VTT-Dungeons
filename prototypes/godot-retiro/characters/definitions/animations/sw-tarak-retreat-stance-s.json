@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-tarak-retreat-stance-s",
+  "character": "sw-tarak",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "retreat_stance",
+  "direction": "s",
+  "fps": 1,
+  "loop": false,
+  "dependencies": [
+    "sw-tarak"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "directional held pose with planted feet"
+  },
+  "frames": [
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-turnaround/7792457e6c80/01.png",
+      "pivot": [
+        0.49142857142857144,
+        0.9873150105708245
+      ]
+    }
+  ],
+  "referenceHeight": 460,
+  "pivot": [
+    0.5,
+    0.9125475285171103
+  ],
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/tarak.png",
+    "prompt": "Create a clean 2.5D game character turnaround using the attached exact in-game design. Tarak, middle-aged human gardener. Exact reddish-brown hair and partly grey short beard, same worn ochre-olive tunic, utility belt with little pouches, brown trousers and boots. Preserve proportions from the reference. Match head shape, age, colors, proportions, textiles, face, tail and materials. Use one consistent orthographic camera, looking slightly down from 16 degrees. Transparent RGBA, 1536 x 1024, precisely equal 4 columns and 2 rows, 8 independent images; ample 20 px transparent gutters, centralized within each cell, ground baseline at 45 and 95 percent of overall height. Every silhouette fully visible; no words, outlines on the cells, no panel lines, floor, props, costumes, context or shadow. Both rows have exact same view headings in this specific order: 1 direct FRONT (both eyes, looking directly at camera); 2 strict profile RIGHT with nose toward right; 3 direct BACK with neither eye and no nose visible, viewer sees back of head and both shoulders; 4 strict profile LEFT with nose toward left. TOP ROW is a restful neutral standing pose with legs in stable parallel stance, arms quiet. BOTTOM ROW same headings and planted feet, character gently leans forward at waist, brings both arms forward to work at about belly button height with one hand slightly farther out and the other hand relaxed beneath it; no tools drawn. Forearms must genuinely rotate according to each viewing angle. Include any footwear and the tail fully. These are separate static reference poses in angle order, not an animation.",
+    "minimumVisibleStandingPixels": 260,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-tarak-retreat-turnaround-7792457e6c80.png",
+    "originalSha256": "7792457e6c802a73a011c1d23276b785d8c3258933d1c96367f207233c3f5974",
+    "importReport": "output/stormwreck-motion-detail/sw-tarak-retreat-turnaround-7792457e6c80.json",
+    "method": "ImageGen turnaround with native-size cell extraction",
+    "heldPose": true,
+    "cell": 1,
+    "sourcePages": [
+      8,
+      9,
+      10,
+      11
+    ]
+  },
+  "review": {
+    "technical": "Native detail and cell clearance verified",
+    "visual": "Reviewed for identity, view, silhouette and pose against the current in-game design. Integrated camera evidence in the Retiro routine audit.",
+    "userAcceptance": "pending"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "id": "sw-rix-courtyard-walk",
+  "version": 1,
+  "kind": "animation",
+  "character": "sw-rix",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "walk",
+  "direction": "e",
+  "fps": 8,
+  "loop": true,
+  "dependencies": [
+    "sw-rix"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "grounded in-place stride; east source view; unpainted views pending"
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-courtyard-walk/876f674f1c83/01.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-courtyard-walk/876f674f1c83/02.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-courtyard-walk/876f674f1c83/03.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-courtyard-walk/876f674f1c83/04.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-courtyard-walk/876f674f1c83/05.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-courtyard-walk/876f674f1c83/06.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-courtyard-walk/876f674f1c83/07.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-courtyard-walk/876f674f1c83/08.png"
+  ],
+  "production": {
+    "method": "built-in ImageGen with existing character reference; native-size independent sprites",
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/rix.png",
+    "minimumVisibleStandingPixels": 260,
+    "prompt": "Repaint the uploaded original Dungeons VTT illustration as an in-place NPC walking animation sheet. The upload is the exact character model sheet; same face, height, proportions, silhouette, outfit, colors, and detailed painterly 2.5D inked miniature treatment. Exactly Rix from the reference, preserve the cream temple robe, same face and tail. Short steady alternating steps, empty hands. All poses look and walk SCREEN RIGHT in a readable side view, with a modest downward tactical camera angle of roughly 12 degrees, both feet readable. Exactly EIGHT frames arranged in TWO isolated rows of FOUR frames, read left-to-right. 3:2 landscape canvas at the largest available resolution. Equally spaced centers at 12.5%, 37.5%, 62.5%, 87.5% of width, for BOTH rows. Ground line at 43% and 93% of sheet height. Each head and every toe, tail, hand and wing stay fully within its own cell with at least 16 pixels of transparent gutter. Figure uses 79–82% of each cell height. Keep the pelvis and planted feet on a stable root and use matching head size across frames. Visible readable leg alternation in this exact order: 1 left foot forward at contact with right foot trailing, 2 left knee loads and right foot lifts, 3 right foot passes left, 4 right foot swings forward distinct from 3, 5 right foot forward at contact with left foot trailing, 6 right knee loads and left foot lifts, 7 left passes right, 8 left foot swings forward into frame 1. Arms swing gently in opposition. Same character and orientation in every cell. Truly transparent alpha. No text, numbering, lines, ground, contact shadow, borders, panels, weapons, or equipment changes. Only the eight cleanly separated figures.",
+    "sourcePages": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "expectedPhases": 8,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-rix-courtyard-walk-876f674f1c83.png",
+    "originalSha256": "876f674f1c83fd388eaecd0a13c4f032e3772c34626db86c4b67390375537cbb",
+    "importReport": "output/stormwreck-motion-detail/sw-rix-courtyard-walk-876f674f1c83.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "Original y ocho fases comparados con la apariencia base. Revisión en escena de la candidata.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 430,
+  "pivot": [
+    0.5,
+    0.876425855513308
+  ]
+}

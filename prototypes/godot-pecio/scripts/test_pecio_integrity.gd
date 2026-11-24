@@ -52,26 +52,37 @@ func _verify(root_node: Node) -> void:
 			printerr("FAIL: LowerDeck_C8 should be hidden in lower_c9_hold")
 			ok = false
 
-		# Verificar grids multicubierta y recorte superior casco/oclusor
+		# Verificar grid táctico multicubierta (WalkableGrid) y recorte superior casco/oclusor
 		var tgrid = root_node.find_child("TacticalGrid", true, false)
-		for g_name in ["Grid_C1", "Grid_C2", "Grid_C3", "Grid_CabinsAft", "Grid_CabinsFore", "Grid_C8", "Grid_C9", "Grid_C10"]:
-			if not tgrid or not tgrid.find_child(g_name, true, false):
-				printerr("FAIL: Missing tactical grid layer ", g_name)
-				ok = false
+		if not tgrid:
+			tgrid = root_node.find_child("TacticalGridOverlay", true, false)
+		if not tgrid or not ("cells" in tgrid) or tgrid.cells.size() < 200:
+			printerr("FAIL: Missing or empty multicubierta TacticalGrid")
+			ok = false
+		else:
+			var covered_levels := {}
+			for cell in tgrid.cells:
+				var corners: Array = cell.get("corners", [])
+				if corners.is_empty():
+					continue
+				var y0: float = float(corners[0].y)
+				if y0 > 12.0: covered_levels["c10"] = true
+				elif y0 > 2.0: covered_levels["upper"] = true
+				elif y0 > -1.5: covered_levels["main"] = true
+				elif y0 > -5.0: covered_levels["c8"] = true
+				else: covered_levels["c9"] = true
+			for req_lvl in ["main", "upper", "c8", "c9", "c10"]:
+				if not covered_levels.has(req_lvl):
+					printerr("FAIL: TacticalGrid missing deck level ", req_lvl)
+					ok = false
 
-		var g_c1 = tgrid.find_child("Grid_C1", true, false) as Node3D if tgrid else null
-		var g_c8 = tgrid.find_child("Grid_C8", true, false) as Node3D if tgrid else null
-		var g_aft = tgrid.find_child("Grid_CabinsAft", true, false) as Node3D if tgrid else null
 		var hull_up_aft_front = root_node.find_child("Hull_Upper_Aft_Front", true, false) as Node3D
 		var hull_up_aft_port = root_node.find_child("Hull_Upper_Aft_Port", true, false) as Node3D
 		var hull_core_occ = root_node.find_child("HullCoreOccluder", true, false) as Node3D
 
 		roof_ctrl.set_interior_mode("lower_c8_bilge", true)
-		if g_c1 and g_c1.visible:
-			printerr("FAIL: Grid_C1 should be hidden in lower_c8_bilge")
-			ok = false
-		if g_c8 and not g_c8.visible:
-			printerr("FAIL: Grid_C8 should be visible in lower_c8_bilge")
+		if tgrid and "cutout_mode" in tgrid and tgrid.cutout_mode != "lower_c8_bilge":
+			printerr("FAIL: TacticalGrid cutout_mode did not sync to lower_c8_bilge")
 			ok = false
 		if hull_core_occ and hull_core_occ.visible:
 			printerr("FAIL: HullCoreOccluder should be hidden in lower_c8_bilge")
@@ -84,8 +95,8 @@ func _verify(root_node: Node) -> void:
 		if hull_up_aft_port and not hull_up_aft_port.visible:
 			printerr("FAIL: Hull_Upper_Aft_Port must remain visible in aft_c4_port")
 			ok = false
-		if g_aft and not g_aft.visible:
-			printerr("FAIL: Grid_CabinsAft should be visible in aft_c4_port")
+		if tgrid and "cutout_mode" in tgrid and tgrid.cutout_mode != "aft_c4_port":
+			printerr("FAIL: TacticalGrid cutout_mode did not sync to aft_c4_port")
 			ok = false
 
 		roof_ctrl.set_interior_mode("exterior", true)

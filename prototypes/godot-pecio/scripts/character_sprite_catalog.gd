@@ -114,7 +114,7 @@ static func get_character_clips(char_key: String) -> Dictionary:
 			profile=load("res://combat/combat_catalogue.gd").sprite_profile("anteros")
 		"rogue":
 			_build_maria_clips(profile)
-			var added: Dictionary=load("res://combat/combat_catalogue.gd").sprite_profile("rogue",["help","influence","hit-physical","hit-fire","hit-arcane","disengage","use-torch"])
+			var added: Dictionary=load("res://combat/combat_catalogue.gd").sprite_profile("rogue",["help","influence","hit-physical","hit-fire","hit-arcane","disengage","use-torch","fall","stand"])
 			profile.clips.merge(added.clips,true)
 		"cleric":
 			_build_facing_hero_clips(profile, "cleric", "res://assets/tokens/cleric-rest-v1.png", "res://assets/tokens/animations/seated/cleric-seated.png")

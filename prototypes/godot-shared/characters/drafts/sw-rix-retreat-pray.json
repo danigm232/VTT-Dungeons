@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-rix-retreat-pray",
+  "character": "sw-rix",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "retreat_pray",
+  "direction": "se",
+  "fps": 7,
+  "loop": false,
+  "dependencies": [
+    "sw-rix"
+  ],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray/c55ffdeda949/01.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray/c55ffdeda949/02.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray/c55ffdeda949/03.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray/c55ffdeda949/04.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray/c55ffdeda949/05.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray/c55ffdeda949/06.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray/c55ffdeda949/07.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray/c55ffdeda949/08.png"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Current frame alpha",
+    "placement": "standing with world object controlled outside character sprite"
+  },
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/rix.png",
+    "prompt": "Production fantasy VTT sprite sheet. Attached figure is exact identity, clothing and material reference. Rix, reddish kobold attendant in the same ivory robe and gold temple embroidered details; keep the horn shape and matching tail. Modest, steady, calm posture. Same three-quarter front view angled toward screen right in all cells, modest tactical 16-degree elevation, natural proportional feet and body. Create eight chronological, visibly distinct full-body phases of this single action: with a calm respectful face, lower the head and bring the two hands together in prayer at waist height, raise joined hands a little, close eyes briefly, pause with chin down, open eyes and drop hands gently, return to an upright quiet stance. Standing on both feet, no prop or visual effect. Native 1536x1024 transparent RGBA, exact 4 columns by 2 rows, no labels, background, ground, shadows, panel lines, extra objects or changes of identity. Body and tail fully inside each cell with 16px empty gutters, soles grounded near 45% and 95% of full sheet height, preserve equal head scale across all eight views.",
+    "minimumVisibleStandingPixels": 250,
+    "expectedPhases": 8,
+    "sourcePages": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "method": "ImageGen from the installed design; native-size extraction",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-rix-retreat-pray-c55ffdeda949.png",
+    "originalSha256": "c55ffdeda949a256b29735ca949a5b83f3a6b821b163b66e9be53b95704e47fe",
+    "importReport": "output/stormwreck-motion-detail/sw-rix-retreat-pray-c55ffdeda949.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 434,
+  "pivot": [
+    0.5,
+    0.9047619047619048
+  ]
+}

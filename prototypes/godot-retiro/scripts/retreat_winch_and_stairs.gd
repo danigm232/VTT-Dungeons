@@ -71,7 +71,7 @@ static func _make_catenary(parent: Node3D, rope_name: String, a: Vector3, b: Vec
 	_emit_cyl_mm(parent, rope_name, xfs, mat, 7, false)
 
 static func _box_xf(pos: Vector3, sz: Vector3, yaw: float = 0.0) -> Transform3D:
-	return Transform3D(Basis.from_euler(Vector3(0.0, yaw, 0.0)).scaled(sz), pos)
+	return Transform3D(Basis.from_euler(Vector3(0.0, yaw, 0.0)) * Basis.from_scale(sz), pos)
 
 static func _cyl_xf(pos: Vector3, radius: float, height: float) -> Transform3D:
 	return Transform3D(Basis.IDENTITY.scaled(Vector3(radius, height, radius)), pos)
@@ -208,11 +208,13 @@ static func _make_foam_collar_mesh(inner_r: float, outer_r: float, seed_val: int
 
 static func _make_foam_mat() -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
-	m.albedo_color = Color(0.82, 0.90, 0.95, 0.72)
+	m.albedo_color = Color(0.86, 0.90, 0.92, 0.36)
 	m.vertex_color_use_as_albedo = true
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
-	m.roughness = 0.55
+	m.roughness = 0.78
+	m.metallic_specular = 0.12
 	return m
 
 static func _make_basalt_mat(builder: Node3D, tint: Color, roughness_v: float = 0.86) -> StandardMaterial3D:
@@ -683,6 +685,12 @@ static func build_a2_winch_complex(builder: Node3D) -> Dictionary:
 	_box(mech, "WinchBrakePawl", Vector3(drum_x - 1.28, drum_y + 0.44, drum_z + 0.32), Vector3(0.10, 0.12, 0.58), mat_bronze)
 	_make_segment(mech, "WinchLeverLinkRod", Vector3(160.15, y + 0.16, 67.45), Vector3(drum_x - 1.32, y + 0.22, drum_z + 0.55), 0.032, mat_iron, 8, false)
 	SceneEnhancer.add_box_collider(mech, Vector3(drum_x, y + 0.95, drum_z), Vector3(3.45, 1.90, 2.05))
+	var mech_anchor := Node3D.new()
+	mech_anchor.name = "WinchMechanismInteractAnchor"
+	mech_anchor.position = Vector3(drum_x, y, drum_z)
+	mech.add_child(mech_anchor)
+	var mech_ip := SceneEnhancer._attach_interactive_prop(mech_anchor, "winch", "Torno y manivela de A2", "[T] Accionar torno del cabrestante", Vector3.ZERO, "e", "Haces girar la manivela del torno de A2: el cable de cáñamo se enrolla en el tambor y mueve el montacargas costero.")
+	mech_ip.interact_radius = 2.85
 
 	# 3. Palanca interactiva de retención del cabrestante (WinchLeverAssembly — preserva nombre, posición y acción [T]/[G])
 	var lever_asm := Node3D.new()
@@ -879,14 +887,21 @@ static func build_a2_winch_complex(builder: Node3D) -> Dictionary:
 	if builder.has_method("register_flame_fx"):
 		builder.register_flame_fx(wh_flame, wh_light, false)
 
-	# 4. Luz de relleno costera / reflejo marino sobre el acantilado inferior y escollos (A2_SeaViewLight)
+	# 4. Luz de relleno costera / reflejo marino sobre el acantilado inferior y escollos (evita sombras aplastadas a negro)
 	var sea_light := OmniLight3D.new()
 	sea_light.name = "A2_SeaViewLight"
-	sea_light.position = Vector3(163.2, 6.2, 74.5)
-	sea_light.light_color = Color(0.76, 0.88, 1.0)
-	sea_light.light_energy = 1.25
-	sea_light.omni_range = 19.0
+	sea_light.position = Vector3(163.8, 6.8, 74.8)
+	sea_light.light_color = Color(0.68, 0.84, 0.98)
+	sea_light.light_energy = 1.65
+	sea_light.omni_range = 24.0
 	a2_node.add_child(sea_light)
+	var east_bounce := OmniLight3D.new()
+	east_bounce.name = "EastCliffBounceLight"
+	east_bounce.position = Vector3(162.5, 5.8, 87.5)
+	east_bounce.light_color = Color(0.62, 0.80, 0.94)
+	east_bounce.light_energy = 1.35
+	east_bounce.omni_range = 22.0
+	a2_node.add_child(east_bounce)
 
 	# 5. 7 escollos marinos esculpidos en basalto con zócalo húmedo y coronas suaves de espuma (WinchSeaRocks)
 	var sea_rocks_node := Node3D.new()
@@ -930,13 +945,15 @@ static func build_a2_winch_complex(builder: Node3D) -> Dictionary:
 		wet_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		r_wrap.add_child(wet_inst)
 
-		# Corona sutil de espuma costera alrededor del escollo
+		# Corona sutil de espuma costera alrededor del escollo (sincronizada con la altura de marea)
 		var foam_r := maxf(float(sp[3]), float(sp[5])) * 0.42
 		var foam_inst := MeshInstance3D.new()
 		foam_inst.name = "SeaOutcropFoam_%d" % idx
 		foam_inst.mesh = _make_foam_collar_mesh(foam_r * 0.72, foam_r * 1.42, 700 + idx * 19)
 		foam_inst.material_override = mat_foam
-		foam_inst.position = Vector3(0.0, 1.92, 0.0)
+		foam_inst.position = Vector3(0.0, 1.88, 0.0)
+		foam_inst.set_meta("base_y", 1.88)
+		foam_inst.add_to_group("tide_foam")
 		foam_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		r_wrap.add_child(foam_inst)
 
@@ -1089,7 +1106,9 @@ static func _build_a2_cliff_and_coast(
 		cf.name = "A2_CliffBaseFoam_%d" % fi
 		cf.mesh = _make_foam_collar_mesh(fp.w * 0.52, fp.w * 1.15, 820 + fi * 23)
 		cf.material_override = mat_foam
-		cf.position = Vector3(fp.x, fp.y, fp.z)
+		cf.position = Vector3(fp.x, 0.03, fp.z)
+		cf.set_meta("base_y", 0.03)
+		cf.add_to_group("tide_foam")
 		cf.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		l_rock.add_child(cf)
 
@@ -1578,7 +1597,7 @@ static func build_upgraded_a5_bridge(builder: Node3D, parent: Node3D, a: Vector3
 		_box(br, lname + "_Cap", lpos + Vector3(0.0, 1.14, 0.0), Vector3(0.74, 0.14, 0.74), mat_ashlar_b)
 		UpperArch._build_stone_stair_lantern(builder, br, lname, lpos + Vector3(0.0, 1.22, 0.0), mat_iron, mat_flame, float(lspec[2]), float(lspec[3]))
 
-# 2E. Escalones rústicos de montaña macizos y armoniosos en MultiMesh (A5North, A5RidgeW, ObsTurn, ObsNorth, ObsCrown, ObsCoast)
+# 2E. Escalones rústicos de montaña macizos con cimentación profunda, barandillas perimetrales y faroles
 static func build_upgraded_rustic_stone_flight(
 	builder: Node3D,
 	parent: Node3D,
@@ -1595,14 +1614,24 @@ static func build_upgraded_rustic_stone_flight(
 	var mat_tread_a := UpperArch.create_weathered_ashlar_material(builder, Color("#c0b8a4"))
 	var mat_tread_b := UpperArch.create_weathered_ashlar_material(builder, Color("#b0a896"))
 	var mat_riser := UpperArch.create_weathered_ashlar_material(builder, Color("#969082"))
+	var mat_wood_dark: Material = builder.get("mat_wood_dark")
+	var mat_iron: Material = builder.get("mat_iron")
+	var mat_flame: Material = builder.get("mat_flame")
+	var mat_rope := _make_rope_mat(builder)
 
 	var delta_v := b - a
 	var horiz := Vector3(delta_v.x, 0.0, delta_v.z)
-	var yaw := atan2(horiz.x, horiz.z)
-	var step_depth := maxf(0.48, horiz.length() / float(maxi(1, step_count)) + 0.18)
-	var side_dir := Vector3(cos(yaw), 0.0, -sin(yaw))
+	var flat_len := horiz.length()
+	var dir_xz := horiz.normalized() if flat_len > 0.001 else Vector3.FORWARD
+	var yaw := atan2(dir_xz.x, dir_xz.z)
+	var step_depth := maxf(0.48, flat_len / float(maxi(1, step_count)) + 0.18)
+	var side_dir := Vector3(dir_xz.z, 0.0, -dir_xz.x).normalized()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = flight_name.hash()
+
+	# Cimentación profunda para eliminar cualquier peldaño o descansillo flotando sobre pendientes escarpadas
+	var is_turn_or_obs := ("ObsTurn" in flight_name or "ObsNorth" in flight_name or "ObsCrown" in flight_name or "ObsCoast" in flight_name)
+	var base_drop := 5.2 if "ObsTurn" in flight_name else (3.0 if is_turn_or_obs else 2.6)
 
 	var xfs_riser: Array[Transform3D] = []
 	var xfs_ta: Array[Transform3D] = []
@@ -1610,9 +1639,9 @@ static func build_upgraded_rustic_stone_flight(
 	for i in range(step_count + 1):
 		var t := float(i) / float(maxi(1, step_count))
 		var p := a.lerp(b, t)
-		var tread_w := width + rng.randf_range(-0.06, 0.08)
-		xfs_riser.append(_box_xf(p + Vector3(0.0, -0.38, 0.0), Vector3(width - 0.08, 0.78, step_depth * 0.96), yaw))
-		var t_xf := _box_xf(p + Vector3(0.0, 0.02, 0.0), Vector3(tread_w, 0.16, step_depth), yaw + rng.randf_range(-0.020, 0.020))
+		var tread_w := width + rng.randf_range(-0.05, 0.06)
+		xfs_riser.append(_box_xf(p + Vector3(0.0, -base_drop * 0.5, 0.0), Vector3(width - 0.06, base_drop, step_depth * 0.98), yaw))
+		var t_xf := _box_xf(p + Vector3(0.0, 0.02, 0.0), Vector3(tread_w, 0.16, step_depth), yaw + rng.randf_range(-0.015, 0.015))
 		if i % 3 != 1:
 			xfs_ta.append(t_xf)
 		else:
@@ -1620,9 +1649,46 @@ static func build_upgraded_rustic_stone_flight(
 		for s_x_v in [-1.0, 1.0]:
 			var s_x := float(s_x_v)
 			var side_vec := side_dir * (s_x * (width * 0.5 + 0.16))
-			xfs_riser.append(_box_xf(p + side_vec + Vector3(0.0, -0.14, 0.0), Vector3(0.36, 0.62, step_depth * 1.06), yaw + rng.randf_range(-0.025, 0.025)))
+			var curb_h := base_drop * 0.55 + 0.36
+			xfs_riser.append(_box_xf(p + side_vec + Vector3(0.0, 0.24 - curb_h * 0.5, 0.0), Vector3(0.36, curb_h, step_depth * 1.04), yaw + rng.randf_range(-0.018, 0.018)))
 			if i % 2 == 0 or i == step_count:
-				xfs_ta.append(_box_xf(p + side_vec + Vector3(0.0, 0.20, 0.0), Vector3(0.42, 0.11, step_depth * 1.95), yaw + rng.randf_range(-0.020, 0.020)))
+				xfs_ta.append(_box_xf(p + side_vec + Vector3(0.0, 0.26, 0.0), Vector3(0.42, 0.12, step_depth * 1.95), yaw + rng.randf_range(-0.015, 0.015)))
 	_emit_box_mm(fl, "MM_RisersCurbs", xfs_riser, mat_riser, true)
 	_emit_box_mm(fl, "MM_StepsA", xfs_ta, mat_tread_a, true)
 	_emit_box_mm(fl, "MM_StepsB", xfs_tb, mat_tread_b, true)
+
+	# Barandillas de postes de roble y doble cuerda en catenaria en los bordes exteriores de los tramos de montaña
+	if mat_wood_dark != null and mat_iron != null and flat_len >= 3.2:
+		var post_count := clampi(int(round(flat_len / 3.8)), 2, 10)
+		var rail_off := width * 0.5 + 0.18
+		for s_side in [-1.0, 1.0]:
+			var sgn := float(s_side)
+			var pts_rail: Array[Vector3] = []
+			for pi in range(post_count + 1):
+				var pf := float(pi) / float(post_count)
+				# Dejar libres los 1.2m iniciales/finales en cruces para nunca atravesar embocaduras
+				var eff_t := lerpf(0.06, 0.94, pf)
+				var rp := a.lerp(b, eff_t) + side_dir * (sgn * rail_off) + Vector3(0.0, 0.26, 0.0)
+				pts_rail.append(rp)
+			_build_perimeter_rope_run(fl, "%s_Rail_%s" % [flight_name, "L" if sgn < 0.0 else "R"], pts_rail, mat_wood_dark, mat_iron, mat_rope, 0.072, 0.94, 0.50, 0.07, false)
+
+	# Faroles cálidos en pilares de piedra para orientar las escaleras de montaña al anochecer/noche
+	if mat_iron != null and mat_flame != null:
+		var lantern_ts: Array[float] = []
+		if "A5North" in flight_name:
+			lantern_ts = [0.50, 0.96]
+		elif "A5RidgeW" in flight_name:
+			lantern_ts = [0.35, 0.72]
+		elif "ObsTurn" in flight_name:
+			lantern_ts = [0.55]
+		elif "ObsNorth" in flight_name:
+			lantern_ts = [0.45, 0.95]
+		elif "ObsCrown" in flight_name:
+			lantern_ts = [0.50]
+		elif "ObsCoast" in flight_name:
+			lantern_ts = [0.15]
+		for li in range(lantern_ts.size()):
+			var lt := float(lantern_ts[li])
+			var lp := a.lerp(b, lt) + side_dir * (width * 0.5 + 0.22) + Vector3(0.0, 0.28, 0.0)
+			_box(fl, "%s_LanternPier_%d" % [flight_name, li], lp + Vector3(0.0, 0.42, 0.0), Vector3(0.46, 0.86, 0.46), mat_tread_a)
+			UpperArch._build_stone_stair_lantern(builder, fl, "%s_Lantern_%d" % [flight_name, li], lp + Vector3(0.0, 0.88, 0.0), mat_iron, mat_flame, 1.45, 11.0)

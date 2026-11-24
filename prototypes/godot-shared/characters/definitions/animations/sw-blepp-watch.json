@@ -1,0 +1,57 @@
+{
+  "id": "sw-blepp-watch",
+  "version": 1,
+  "kind": "animation",
+  "character": "sw-blepp",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "retreat_watch",
+  "direction": "se",
+  "fps": 6,
+  "loop": false,
+  "dependencies": [
+    "sw-blepp"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "planted soles, station contact; one authored view"
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-watch/bd5092564ef8/01.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-watch/bd5092564ef8/02.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-watch/bd5092564ef8/03.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-watch/bd5092564ef8/04.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-watch/bd5092564ef8/05.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-watch/bd5092564ef8/06.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-watch/bd5092564ef8/07.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-watch/bd5092564ef8/08.png"
+  ],
+  "production": {
+    "method": "built-in ImageGen with existing character reference; native-size independent sprites",
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/blepp.png",
+    "minimumVisibleStandingPixels": 240,
+    "prompt": "Dungeons VTT original game asset. Use the attached original character illustration as the exact design, palette, material and proportional reference. Produce one new high-detail game sprite sheet on truly transparent RGBA, 3:2 landscape, exactly two equally spaced rows of four cells, eight fully separated illustrations read left to right. Nothing outside the silhouettes. Ground baseline at about 45 percent and 95 percent of the sheet height, centered body in each cell, fully inside the cell with at least 15 px transparent gutter on ALL sides. Consistent planted-foot baseline and head scale. No words, numbering, panels, border, grids, scenery, ground or shadows; every hand, toe, tail, horn or fabric edge visible and preserved. Same orthographic perspective and slight 12-degree elevated view in all eight frames. Painted linework and textured fabric as attached. Blepp cautiously scopes the path. Preserve original rusty red kobold, simple leather apron, muted green scarf and pale short horns. Three-quarter toward screen right. Both clawed feet planted. Phase 1 alert listening, 2 snout up, 3 lifts his near forearm, 4 one hand shades the brow, 5 peers forward with slight forward lean, 6 tilts his head a little to the side, 7 lowers forearm, 8 alert resting pose. Tail stays fully visible and counterbalances softly. No objects, weapons or equipment changes.",
+    "sourcePages": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "expectedPhases": 8,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-blepp-watch-bd5092564ef8.png",
+    "originalSha256": "bd5092564ef85dd2c159c2fa4a7356e29960aef2d245c896ea0fca2fe6bcfb38",
+    "importReport": "output/stormwreck-motion-detail/sw-blepp-watch-bd5092564ef8.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "Original y ocho fases comparados con la apariencia base. Revisión en escena de la candidata.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 448,
+  "pivot": [
+    0.5,
+    0.9077212806026366
+  ]
+}

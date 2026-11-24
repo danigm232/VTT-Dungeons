@@ -162,21 +162,36 @@ void fragment() {
 			}
 		}
 	}
-	float distant_mix = smoothstep(75.0, 100.0, length(v_world_pos.xz));
+	float dist_xz = length(v_world_pos.xz);
+	float distant_mix = smoothstep(72.0, 148.0, dist_xz);
+	float horizon_haze = smoothstep(150.0, 760.0, dist_xz);
 	vec3 distant_color = distant_color_tint.rgb;
-	// Fragment-space broad ripples keep the distant ocean alive without
-	// sampling scene depth or depending on the large horizon triangles.
-	vec2 distant_slope = vec2(
-		cos(dot(v_world_pos.xz, vec2(0.064, -0.11)) - TIME * 0.38),
-		cos(dot(v_world_pos.xz, vec2(-0.081, -0.057)) - TIME * 0.29)
-	) * 0.045;
-	vec3 distant_normal = normalize((VIEW_MATRIX * vec4(normalize(vec3(distant_slope.x, 1.0, distant_slope.y)), 0.0)).xyz);
+	// Ondas multi-direccionales con warping de dominio para evitar bandas paralelas en el horizonte
+	vec2 dw = vec2(
+		vnoise(v_world_pos.xz * 0.035 + vec2(TIME * 0.018, -TIME * 0.014)),
+		vnoise(v_world_pos.xz * 0.035 + vec2(17.3, -TIME * 0.016))
+	) * 6.5;
+	vec2 dp = v_world_pos.xz + dw;
+	float dsx = cos(dot(dp, vec2(0.072, -0.098)) - TIME * 0.42) * 0.022
+		+ cos(dot(dp, vec2(-0.115, -0.044)) + TIME * 0.31) * 0.018
+		+ cos(dot(dp, vec2(0.041, 0.128)) - TIME * 0.25) * 0.014;
+	float dsz = sin(dot(dp, vec2(-0.088, 0.068)) - TIME * 0.36) * 0.022
+		+ sin(dot(dp, vec2(0.056, -0.118)) + TIME * 0.29) * 0.018
+		+ cos(dot(dp, vec2(-0.132, -0.052)) - TIME * 0.21) * 0.014;
+	float swell_atten = 1.0 - smoothstep(82.0, 320.0, dist_xz) * 0.88;
+	vec3 distant_normal = normalize((VIEW_MATRIX * vec4(normalize(vec3(dsx * swell_atten, 1.0, dsz * swell_atten)), 0.0)).xyz);
+	vec3 view_dir_far = normalize(VIEW);
+	float far_fresnel = pow(1.0 - clamp(dot(distant_normal, view_dir_far), 0.0, 1.0), 3.6);
+	float far_patch = vnoise(v_world_pos.xz * 0.022 + vec2(TIME * 0.012, -TIME * 0.009));
+	vec3 far_water_col = mix(distant_color * 0.90, distant_color * 1.16, far_patch);
+	far_water_col = mix(far_water_col, fresnel_sky_color.rgb, clamp(far_fresnel * fresnel_strength * 1.05, 0.0, 0.78));
+	far_water_col = mix(far_water_col, fresnel_sky_color.rgb, horizon_haze * 0.56);
 	if (distant_mix >= 0.999) {
-		ALBEDO = distant_color;
+		ALBEDO = far_water_col;
 		NORMAL = distant_normal;
-		ROUGHNESS = 0.38;
+		ROUGHNESS = mix(0.28, 0.42, horizon_haze);
 		METALLIC = 0.02;
-		SPECULAR = 0.22;
+		SPECULAR = mix(0.30, 0.16, horizon_haze);
 		ALPHA = 1.0;
 	} else {
 	vec2 uv = v_world_pos.xz;
@@ -266,18 +281,16 @@ void fragment() {
 	vec3 foam_lit = mix(foam_edge_tint, foam_color.rgb, smoothstep(0.22, 0.74, total_foam));
 	vec3 final_color = mix(ocean_base, foam_lit, total_foam);
 
-	// Fresnel costero en espacio lineal + bruma atmosférica hacia el horizonte
+	// Fresnel costero en espacio lineal + transición continua sin costura hacia el mar abierto
 	vec3 view_dir = normalize(VIEW);
-	float fresnel = pow(1.0 - clamp(dot(normalize(NORMAL), view_dir), 0.0, 1.0), 4.0);
+	float fresnel = pow(1.0 - clamp(dot(normalize(NORMAL), view_dir), 0.0, 1.0), 3.8);
 	final_color = mix(final_color, fresnel_sky_color.rgb, fresnel * fresnel_strength * (1.0 - total_foam));
-	float far_haze = smoothstep(60.0, 125.0, length(uv));
-	final_color = mix(final_color, distant_color, far_haze * 0.78);
 
-	ALBEDO = mix(final_color, distant_color, distant_mix);
+	ALBEDO = mix(final_color, far_water_col, distant_mix);
 	NORMAL = normalize(mix(NORMAL, distant_normal, distant_mix));
-	ROUGHNESS = mix(mix(0.28, 0.90, total_foam), 0.38, distant_mix);
+	ROUGHNESS = mix(mix(0.26, 0.90, total_foam), mix(0.28, 0.42, horizon_haze), distant_mix);
 	METALLIC = 0.02;
-	SPECULAR = mix(mix(0.28, 0.05, total_foam), 0.22, distant_mix);
+	SPECULAR = mix(mix(0.30, 0.05, total_foam), mix(0.30, 0.16, horizon_haze), distant_mix);
 	float shore_wet_alpha = smoothstep(0.0, 0.10, ray_dist) * 0.38 + turbidity_alpha * 0.61;
 	ALPHA = mix(clamp(mix(max(0.30, shore_wet_alpha), 0.995, total_foam), 0.0, 1.0), 1.0, distant_mix);
 	}

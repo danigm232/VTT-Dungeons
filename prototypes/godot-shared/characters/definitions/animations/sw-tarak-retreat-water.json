@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-tarak-retreat-water",
+  "character": "sw-tarak",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "retreat_water",
+  "direction": "se",
+  "fps": 7,
+  "loop": false,
+  "dependencies": [
+    "sw-tarak"
+  ],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water/9e3cb45b2a3c/01.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water/9e3cb45b2a3c/02.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water/9e3cb45b2a3c/03.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water/9e3cb45b2a3c/04.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water/9e3cb45b2a3c/05.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water/9e3cb45b2a3c/06.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water/9e3cb45b2a3c/07.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water/9e3cb45b2a3c/08.png"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Current frame alpha",
+    "placement": "standing with world object controlled outside character sprite"
+  },
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/tarak.png",
+    "prompt": "Production fantasy VTT sprite sheet. Attached figure is exact identity, clothing and material reference. Tarak, middle-aged human gardener. Exact reddish-brown hair and partly grey short beard, same worn ochre-olive tunic, utility belt with little pouches, brown trousers and boots. Preserve proportions from the reference. Same three-quarter front view angled toward screen right in all cells, modest tactical 16-degree elevation, natural proportional feet and body. Create eight chronological, visibly distinct full-body phases of this single action: reach down slightly with his near hand, lift empty hands as if gripping the handle of a bronze watering can controlled separately by the game, angle both wrists gently down and reach forward at knee-to-waist height during the pour, hold a beat, return both hands to rest. The sprite has empty hands, the watering can and water are NOT drawn. Native 1536x1024 transparent RGBA, exact 4 columns by 2 rows, no labels, background, ground, shadows, panel lines, extra objects or changes of identity. Body and tail fully inside each cell with 16px empty gutters, soles grounded near 45% and 95% of full sheet height, preserve equal head scale across all eight views.",
+    "minimumVisibleStandingPixels": 250,
+    "expectedPhases": 8,
+    "sourcePages": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "method": "ImageGen from the installed design; native-size extraction",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-tarak-retreat-water-9e3cb45b2a3c.png",
+    "originalSha256": "9e3cb45b2a3c72bf075491afdc120c3ba0617467d7da65fd362346aa0e8046e0",
+    "importReport": "output/stormwreck-motion-detail/sw-tarak-retreat-water-9e3cb45b2a3c.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "Reviewed for identity, view, silhouette and pose against the current in-game design. Integrated camera evidence in the Retiro routine audit.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 464,
+  "pivot": [
+    0.5,
+    0.9295238095238095
+  ]
+}

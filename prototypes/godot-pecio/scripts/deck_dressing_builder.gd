@@ -188,6 +188,42 @@ func build_zone_c1_main_deck() -> void:
 		lashing.position = Vector3(0.0, lx_off, 0.0)
 		spare_spar.add_child(lashing)
 
+	# Micro-narrativa marinera en bordes de C1 (adujas de cabo, cubo de baldeo, tablones sueltos y AO; pasillo central libre)
+	var c1_clutter_st := ShipGeometry.begin(mat_rope)
+	for coil_pos in [Vector3(-1.8, 0.02, -6.9), Vector3(5.6, 0.02, -7.1), Vector3(-8.4, 0.02, 5.4)]:
+		var c_pts: Array[Vector3] = []
+		var wp_c := WreckStructure.get_world_pos(coil_pos.x, coil_pos.y, coil_pos.z)
+		for k in range(36):
+			var t := float(k) / 35.0
+			var r := lerpf(0.09, 0.36, t)
+			var a := t * TAU * 2.0
+			c_pts.append(wp_c + Vector3(cos(a) * r, 0.02 + sin(t * PI) * 0.018, sin(a) * r))
+		ShipGeometry.tube(c1_clutter_st, c_pts, 0.028, 5)
+	ShipGeometry.commit(c1_node, "DeckRopeCoils_C1", c1_clutter_st)
+
+	var c1_wood_st := ShipGeometry.begin(PbrMaterialKit.create_oak_furniture_pbr("#4c4536", 0.44))
+	for debris_c1 in [
+		[Vector3(-9.2, 0.03, -2.6), Vector3(-7.7, 0.03, -2.1), 0.18, 0.04],
+		[Vector3(6.4, 0.03, -5.8), Vector3(7.9, 0.03, -5.4), 0.16, 0.04],
+		[Vector3(-5.8, 0.03, 6.8), Vector3(-4.2, 0.03, 7.1), 0.17, 0.04],
+	]:
+		var pa := WreckStructure.get_world_pos(debris_c1[0].x, debris_c1[0].y, debris_c1[0].z)
+		var pb := WreckStructure.get_world_pos(debris_c1[1].x, debris_c1[1].y, debris_c1[1].z)
+		ShipGeometry.beam(c1_wood_st, pa, pb, debris_c1[2], debris_c1[3])
+	ShipGeometry.commit(c1_node, "DeckSplinteredPlanks_C1", c1_wood_st)
+
+	# Cubo de madera con aros de hierro junto a la bancada del mástil mayor
+	var bucket := MeshInstance3D.new()
+	var bk_cyl := CylinderMesh.new()
+	bk_cyl.top_radius = 0.18; bk_cyl.bottom_radius = 0.14; bk_cyl.height = 0.32; bk_cyl.radial_segments = 10
+	bucket.mesh = bk_cyl
+	bucket.material_override = mat_wood_crate
+	bucket.position = WreckStructure.get_world_pos(-1.45, 0.16, -1.25)
+	c1_node.add_child(bucket)
+	var bk_sh := PbrMaterialKit.create_blob_shadow(0.45, 0.45, 0.56)
+	bk_sh.position = WreckStructure.get_world_pos(-1.45, 0.015, -1.25)
+	c1_node.add_child(bk_sh)
+
 	var hatch_shadow = PbrMaterialKit.create_blob_shadow(1.5, 1.2, 0.55)
 	hatch_shadow.position = Vector3(0, 0.01, 0)
 	hatch_node.add_child(hatch_shadow)
@@ -372,7 +408,7 @@ func build_zone_c2_forecastle() -> void:
 	stump_shadow.position = Vector3(21.0, 3.02, 0.0)
 	c2_node.add_child(stump_shadow)
 
-	# Zunchos de hierro forjado en el tocón y en el palo trinquete caído
+	# Zunchos de hierro forjado y astillas fracturadas en el tocón del trinquete (estilo lanza rota de C3)
 	for by in [3.55, 4.35, 4.95]:
 		var band := MeshInstance3D.new()
 		var b_tor := TorusMesh.new()
@@ -382,6 +418,27 @@ func build_zone_c2_forecastle() -> void:
 		band.material_override = mat_iron
 		band.position = Vector3(21.0, by, 0.0)
 		c2_node.add_child(band)
+
+	var mat_c2_splint := PbrMaterialKit.create_wood_shaving_pbr("#766549")
+	var c2_splint_st := ShipGeometry.begin(mat_c2_splint)
+	for sp_i in range(9):
+		var a := float(sp_i) / 9.0 * TAU + 0.2
+		var r := 0.24 if (sp_i % 2 == 0) else 0.12
+		var h_top := 5.55 + float((sp_i * 5) % 4) * 0.22
+		var base_p := Vector3(21.0 + cos(a) * r, 5.05, sin(a) * r)
+		var tip_p := Vector3(21.0 + cos(a) * (r * 0.55) + 0.08, h_top, sin(a) * (r * 0.55) - 0.10)
+		ShipGeometry.beam(c2_splint_st, base_p, tip_p, 0.11, 0.07, 0.16)
+	ShipGeometry.commit(c2_node, "ForemastSplinters_C2", c2_splint_st)
+
+	# Escobenes de hierro remachados en proa y virotes de repuesto junto a la balista C2
+	var hawse_st := ShipGeometry.begin(mat_iron)
+	for hz in [-1.05, 1.05]:
+		var hp := WreckStructure.get_world_pos(29.15, 3.38, hz)
+		ShipGeometry.beam(hawse_st, hp - Vector3(0.08, 0.14, 0.18), hp + Vector3(0.08, 0.14, 0.18), 0.12, 0.12)
+	for bx_i in range(3):
+		var bp := WreckStructure.get_world_pos(18.8 + float(bx_i) * 0.14, 3.06, -4.45 + float(bx_i) * 0.08)
+		ShipGeometry.beam(hawse_st, bp, bp + Vector3(1.15, 0.02, 0.25), 0.045, 0.045, 0.4)
+	ShipGeometry.commit(c2_node, "BowHawseAndBolts_C2", hawse_st)
 
 	# Tronco caído que cruza la borda norte hacia el arrecife con colisionador
 	var fallen_mast = MeshInstance3D.new()
@@ -637,52 +694,66 @@ func build_zone_c3_poop_deck() -> void:
 	# 1. Timón Náutico arruinado y desencajado ("Rosa de los Vientos" en nácar boca abajo)
 	_build_c3_helm(c3_node)
 
-	# 2. Bitácora de Latón con base de roble, capuchón abovedado y visor de brújula
+	# 2. Bitácora de Latón envejecido con base moldurada, capuchón verdoso, bisel y rosa de los vientos
 	var binnacle_node = Node3D.new()
 	binnacle_node.name = "Binnacle_C3"
 	binnacle_node.position = WreckStructure.get_world_pos(-21.2, 3.0, 0.0)
 	c3_node.add_child(binnacle_node)
 
+	var mat_verdigris := PbrMaterialKit.create_iron_pbr("#3f675c", 0.52, 0.62)
 	var bin_base = MeshInstance3D.new()
 	var bb_box = BoxMesh.new()
-	bb_box.size = Vector3(0.55, 0.12, 0.55)
+	bb_box.size = Vector3(0.58, 0.14, 0.58)
 	bin_base.mesh = bb_box
 	bin_base.material_override = PbrMaterialKit.create_wet_wreck_wood_pbr("#3b372c", 0.44, 0.66, 0.34)
-	bin_base.position = Vector3(0, 0.06, 0)
+	bin_base.position = Vector3(0, 0.07, 0)
 	binnacle_node.add_child(bin_base)
 
 	var binnacle = MeshInstance3D.new()
 	var bin_cyl = CylinderMesh.new()
 	bin_cyl.top_radius = 0.16
-	bin_cyl.bottom_radius = 0.21
+	bin_cyl.bottom_radius = 0.22
 	bin_cyl.height = 0.85
+	bin_cyl.radial_segments = 12
 	binnacle.mesh = bin_cyl
-	binnacle.material_override = mat_bronze
+	binnacle.material_override = mat_verdigris
 	binnacle.position = Vector3(0, 0.54, 0)
 	binnacle_node.add_child(binnacle)
 
+	var mat_bin_brass := PbrMaterialKit.create_iron_pbr("#b8954c", 0.68, 0.36)
 	var bin_dome = MeshInstance3D.new()
 	var bd_sph = SphereMesh.new()
 	bd_sph.radius = 0.21
 	bd_sph.height = 0.32
+	bd_sph.radial_segments = 16
+	bd_sph.rings = 8
 	bin_dome.mesh = bd_sph
-	bin_dome.material_override = mat_bronze
+	bin_dome.material_override = mat_bin_brass
 	bin_dome.position = Vector3(0, 1.02, 0)
 	binnacle_node.add_child(bin_dome)
 
+	var compass_bezel := MeshInstance3D.new()
+	var cb_tor := TorusMesh.new()
+	cb_tor.inner_radius = 0.135; cb_tor.outer_radius = 0.17; cb_tor.rings = 16; cb_tor.ring_segments = 8
+	compass_bezel.mesh = cb_tor
+	compass_bezel.material_override = mat_bin_brass
+	compass_bezel.position = Vector3(-0.08, 1.075, 0.04)
+	compass_bezel.rotation_degrees = Vector3(24.0, 0.0, 36.0)
+	binnacle_node.add_child(compass_bezel)
+
 	var compass_face = MeshInstance3D.new()
 	var cf_cyl = CylinderMesh.new()
-	cf_cyl.top_radius = 0.13; cf_cyl.bottom_radius = 0.13; cf_cyl.height = 0.02
+	cf_cyl.top_radius = 0.135; cf_cyl.bottom_radius = 0.135; cf_cyl.height = 0.024; cf_cyl.radial_segments = 12
 	compass_face.mesh = cf_cyl
 	var mat_compass_dial := StandardMaterial3D.new()
-	mat_compass_dial.albedo_color = Color("#1e363a")
+	mat_compass_dial.albedo_color = Color("#e4dab6")
 	mat_compass_dial.emission_enabled = true
-	mat_compass_dial.emission = Color("#5ec4b8")
-	mat_compass_dial.emission_energy_multiplier = 0.45
-	mat_compass_dial.roughness = 0.15
+	mat_compass_dial.emission = Color("#8be2d0")
+	mat_compass_dial.emission_energy_multiplier = 0.72
+	mat_compass_dial.roughness = 0.18
 	compass_face.material_override = mat_compass_dial
-	compass_face.position = Vector3(-0.08, 1.04, 0)
-	compass_face.rotation_degrees.z = 52.0
+	compass_face.position = Vector3(-0.075, 1.07, 0.038)
+	compass_face.rotation_degrees = Vector3(24.0, 0.0, 36.0)
 	binnacle_node.add_child(compass_face)
 
 	var bin_shadow = PbrMaterialKit.create_blob_shadow(0.68, 0.68, 0.66)
@@ -759,14 +830,20 @@ func build_zone_c3_poop_deck() -> void:
 	# Gaviota posada sobre bita de amarre en popa (sin flotar)
 	_spawn_perched_seagull(c3_node, -24.5, 3.0, -3.8, 0.8)
 
-	# 5. Claraboyas bajas con enjaretado sobre camarotes C4/C5 (x = -25.8, z = ±2.8)
+	# 5. Claraboyas náuticas con fondo profundo, cuarterones de madera, cristal reflectante y barras de latón (C4/C5)
+	var mat_skylight_well := StandardMaterial3D.new()
+	mat_skylight_well.albedo_color = Color("#0c1113")
+	mat_skylight_well.roughness = 0.96
+
 	var mat_skylight_glass := StandardMaterial3D.new()
-	mat_skylight_glass.albedo_color = Color("#18252b")
-	mat_skylight_glass.roughness = 0.16
-	mat_skylight_glass.metallic_specular = 0.72
+	mat_skylight_glass.albedo_color = Color(0.11, 0.22, 0.25, 0.72)
+	mat_skylight_glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat_skylight_glass.roughness = 0.10
+	mat_skylight_glass.metallic = 0.15
+	mat_skylight_glass.metallic_specular = 0.88
 	mat_skylight_glass.emission_enabled = true
-	mat_skylight_glass.emission = Color("#4d3218")
-	mat_skylight_glass.emission_energy_multiplier = 0.35
+	mat_skylight_glass.emission = Color("#7a4b1f")
+	mat_skylight_glass.emission_energy_multiplier = 0.55
 
 	var mat_skylight_frame := PbrMaterialKit.create_oak_furniture_pbr("#484234", 0.48)
 	mat_skylight_frame.roughness = 0.74
@@ -778,19 +855,37 @@ func build_zone_c3_poop_deck() -> void:
 
 		var sky_st := ShipGeometry.begin(mat_skylight_frame)
 		for sz_edge in [-0.72, 0.72]:
-			ShipGeometry.beam(sky_st, Vector3(-0.95, 0.08, sz_edge), Vector3(0.95, 0.08, sz_edge), 0.12, 0.18)
+			ShipGeometry.beam(sky_st, Vector3(-0.96, 0.11, sz_edge), Vector3(0.96, 0.11, sz_edge), 0.13, 0.24)
 		for sx_edge in [-0.90, 0.0, 0.90]:
-			ShipGeometry.beam(sky_st, Vector3(sx_edge, 0.08, -0.72), Vector3(sx_edge, 0.08, 0.72), 0.10, 0.18)
+			ShipGeometry.beam(sky_st, Vector3(sx_edge, 0.11, -0.72), Vector3(sx_edge, 0.11, 0.72), 0.11, 0.24)
+		# Cuarterones secundarios de carpintería sobre el cristal
+		for sub_x in [-0.45, 0.45]:
+			ShipGeometry.beam(sky_st, Vector3(sub_x, 0.18, -0.68), Vector3(sub_x, 0.18, 0.68), 0.045, 0.05)
+		ShipGeometry.beam(sky_st, Vector3(-0.86, 0.18, 0.0), Vector3(0.86, 0.18, 0.0), 0.045, 0.05)
 		ShipGeometry.commit(sky_root, "SkylightFrame", sky_st)
+
+		# Barras protectoras de latón sobre la claraboya (típicas de galeón)
+		var guard_st := ShipGeometry.begin(mat_bronze)
+		for gz in [-0.46, -0.18, 0.18, 0.46]:
+			ShipGeometry.beam(guard_st, Vector3(-0.88, 0.225, gz), Vector3(0.88, 0.225, gz), 0.018, 0.018)
+		ShipGeometry.commit(sky_root, "SkylightBrassGuards", guard_st)
+
+		var well := MeshInstance3D.new()
+		var w_box := BoxMesh.new()
+		w_box.size = Vector3(1.74, 0.03, 1.32)
+		well.mesh = w_box
+		well.material_override = mat_skylight_well
+		well.position = Vector3(0.0, 0.05, 0.0)
+		sky_root.add_child(well)
 
 		var pane := MeshInstance3D.new()
 		var p_box := BoxMesh.new()
-		p_box.size = Vector3(1.74, 0.04, 1.32)
+		p_box.size = Vector3(1.74, 0.025, 1.32)
 		pane.mesh = p_box
 		pane.material_override = mat_skylight_glass
-		pane.position = Vector3(0.0, 0.12, 0.0)
+		pane.position = Vector3(0.0, 0.165, 0.0)
 		sky_root.add_child(pane)
-		var sky_ao := PbrMaterialKit.create_contact_shadow_rect(2.12, 1.68, 0.62, WreckStructure.LIST_SLOPE)
+		var sky_ao := PbrMaterialKit.create_contact_shadow_rect(2.14, 1.70, 0.66, WreckStructure.LIST_SLOPE)
 		sky_ao.position = Vector3(0.0, -0.005, 0.0)
 		sky_root.add_child(sky_ao)
 		PbrMaterialKit.add_box_collider(sky_root, "Col_Skylight", Vector3(1.96, 0.24, 1.52), Vector3(0, 0.12, 0))

@@ -43,6 +43,9 @@ func set_kind(id: String) -> bool:
 	kind=id
 	if not is_node_ready(): return true
 	if id.is_empty(): hide(); return true
+	# A newly allocated mesh must rebuild even if the same pose and cause
+	# were visible just before the condition was cleared.
+	last_signature = 0
 	var multimesh:=MultiMesh.new(); multimesh.transform_format=MultiMesh.TRANSFORM_3D; multimesh.mesh=primitive(id); multimesh.instance_count=0; instance_node.multimesh=multimesh
 	material.albedo_color=Color("655039") if id=="roots" else Color("c9d5d8") if id=="webs" else Color("858c92") if id=="chains" else Color("88c6de") if id=="binding-ice" else Color("9185c9")
 	material.metallic=.7 if id=="chains" else .0

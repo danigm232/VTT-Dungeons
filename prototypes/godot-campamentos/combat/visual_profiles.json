@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "source": "Procedural Godot geometry and the current native animation profiles",
+  "compatibility": {
+    "anatomies": "all; existing authored poses are selected per profile",
+    "anchor": "world position and logical stature of the token; floor markers follow the token parent",
+    "equipment": "no equipment attached or replaced",
+    "reducedMotion": "keep contact and footprints; remove moving trails, sparks and expansion",
+    "activation": "resolved actions and existing state only"
+  },
+  "projectiles": {
+    "arrow": { "shape": "arrow", "color": "ead5a1", "length": 0.70 },
+    "radiantArrow": { "shape": "arrow", "color": "ffce70", "length": 0.76 },
+    "thrownWeapon": { "shape": "blade", "color": "e3e5eb", "length": 0.34 },
+    "fireProjectile": { "shape": "ember", "color": "ff8a43", "length": 0.29 },
+    "magicalProjectile": { "shape": "dart", "color": "b7adff", "length": 0.38 }
+  },
+  "actionColors": {
+    "ray-of-frost": "88e6ff",
+    "magic-missile": "b7adff",
+    "sacred-flame": "ffe1a0",
+    "burning-hands": "ff9146",
+    "shield": "88c8ff",
+    "shield-of-faith": "ffe1a0",
+    "harpy-song": "e3b8dd",
+    "feather-fall": "dceafa",
+    "healing-word": "83e6a6",
+    "bless": "f6d497"
+  }
+}

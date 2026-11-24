@@ -1,0 +1,57 @@
+{
+  "id": "sw-tarak-cook",
+  "version": 1,
+  "kind": "animation",
+  "character": "sw-tarak",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "retreat_cook",
+  "direction": "se",
+  "fps": 7,
+  "loop": false,
+  "dependencies": [
+    "sw-tarak"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "planted soles, station contact; one authored view"
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-cook/acd9c509b829/01.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-cook/acd9c509b829/02.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-cook/acd9c509b829/03.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-cook/acd9c509b829/04.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-cook/acd9c509b829/05.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-cook/acd9c509b829/06.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-cook/acd9c509b829/07.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-cook/acd9c509b829/08.png"
+  ],
+  "production": {
+    "method": "built-in ImageGen with existing character reference; native-size independent sprites",
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/tarak.png",
+    "minimumVisibleStandingPixels": 240,
+    "prompt": "Dungeons VTT original game asset. Use the attached original character illustration as the exact design, palette, material and proportional reference. Produce one new high-detail game sprite sheet on truly transparent RGBA, 3:2 landscape, exactly two equally spaced rows of four cells, eight fully separated illustrations read left to right. Nothing outside the silhouettes. Ground baseline at about 45 percent and 95 percent of the sheet height, centered body in each cell, fully inside the cell with at least 15 px transparent gutter on ALL sides. Consistent planted-foot baseline and head scale. No words, numbering, panels, border, grids, scenery, ground or shadows; every hand, toe, tail, horn or fabric edge visible and preserved. Same orthographic perspective and slight 12-degree elevated view in all eight frames. Painted linework and textured fabric as attached. Tarak the gardener preparing herb stew at the refectory. Preserve reddish-brown hair, graying short beard, worn olive-brown tunic and small front leather pouch. Match original three-quarter front view, facing toward screen right. His boots stay planted throughout. No pot or furniture in the sprite, the stove is already a 3D prop. Phase 1 he holds a small pinch of deep green dried herbs in the left palm; 2 right fingers begin to gather the herbs; 3 rub herbs between fingers over the left palm; 4 right hand gathers a pinch and reaches out at chest height; 5 fingers open to sprinkle; 6 finish sprinkling, keep the hand out; 7 right hand returns and shakes remaining crumbs; 8 both hands rest at waist height. No detached floating particles; those are rendered in-game.",
+    "sourcePages": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "expectedPhases": 8,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-tarak-cook-acd9c509b829.png",
+    "originalSha256": "acd9c509b829783f759bf8ed9da9ef984ad6605e7c450ee70df88683d49762fc",
+    "importReport": "output/stormwreck-motion-detail/sw-tarak-cook-acd9c509b829.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "Original y ocho fases comparados con la apariencia base. Revisión en escena de la candidata.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 456,
+  "pivot": [
+    0.5,
+    0.9066666666666666
+  ]
+}

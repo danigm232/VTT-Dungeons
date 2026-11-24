@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-kilnip-walk-rear",
+  "character": "sw-kilnip",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "walk",
+  "direction": "n",
+  "fps": 8,
+  "loop": true,
+  "dependencies": [
+    "sw-kilnip"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "anchored soles on a common baseline; directional walking"
+  },
+  "frames": [
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-walk-rear/7277bc4ed400/01.png",
+      "pivot": [
+        0.5263157894736842,
+        0.991304347826087
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-walk-rear/7277bc4ed400/02.png",
+      "pivot": [
+        0.49748743718592964,
+        0.9867549668874173
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-walk-rear/7277bc4ed400/03.png",
+      "pivot": [
+        0.5025380710659898,
+        0.9861431870669746
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-walk-rear/7277bc4ed400/04.png",
+      "pivot": [
+        0.5202020202020202,
+        0.9866369710467706
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-walk-rear/7277bc4ed400/05.png",
+      "pivot": [
+        0.49029126213592233,
+        0.9866369710467706
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-walk-rear/7277bc4ed400/06.png",
+      "pivot": [
+        0.49261083743842365,
+        0.9865168539325843
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-walk-rear/7277bc4ed400/07.png",
+      "pivot": [
+        0.4898989898989899,
+        0.9867256637168141
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-walk-rear/7277bc4ed400/08.png",
+      "pivot": [
+        0.48826291079812206,
+        0.9869565217391304
+      ]
+    }
+  ],
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/kilnip.png",
+    "prompt": "Create a production 2.5D game sprite sheet, using the uploaded figure as the exact character identity and painted materials reference. Kilnip, slightly sleepy copper red kobold with original cream point-trimmed hooded robe, speckling, pale horns and dark tail. Same model. Only change the stance and body direction to this new gait, no new outfit, gear, shadow, text or scenery. Draw the character walking straight AWAY from the viewer. TRUE REAR view in ALL eight phases. The back of the head fully faces viewer: no front-facing eyes, muzzle or nose. Both shoulders aligned horizontally, looking straight away, no turns. Orthographic camera slightly above head level, looking downward by about 16 degrees, stable in every cell. Width 1536, height 1024 or highest available 3:2. Transparent RGBA, no backdrop, floor, shadows, labels, frames or grid. Exactly EIGHT independent drawings in a 4 COLUMN by 2 ROW equal grid, centers at (12.5%,37.5%,62.5%,87.5%) in each row. Keep each whole figure inside their cell with at least 15 px empty margins, including tail, hands and outstretched toes. Ground baseline at 45% and 95% of image height. Preserve head and shoulder size for all frames. Distinct steps visible in the legs and arm counter-swing: 1 right heel advances, 2 right leg takes weight and left foot lifts, 3 left passes right, 4 left swings forward, 5 left heel advances while right trails, 6 left leg takes weight and right foot lifts, 7 right foot passes left, 8 right swings forward. Make the first and fifth frames visibly different sides of the gait. Short natural walking stride, not a run.",
+    "method": "ImageGen from the installed design; native-size cell extraction",
+    "sourcePages": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "minimumVisibleStandingPixels": 270,
+    "expectedPhases": 8,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-kilnip-walk-rear-7277bc4ed400.png",
+    "originalSha256": "7277bc4ed40043e87dca9d99c1b39d40b7809e3117147b5e3d12beffff352453",
+    "importReport": "output/stormwreck-motion-detail/sw-kilnip-walk-rear-7277bc4ed400.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "Reviewed for identity, view, silhouette and pose against the current in-game design. Integrated camera evidence in the Retiro routine audit.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 440,
+  "pivot": [
+    0.5,
+    0.8553345388788427
+  ]
+}

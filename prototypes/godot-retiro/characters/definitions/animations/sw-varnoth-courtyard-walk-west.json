@@ -1,0 +1,57 @@
+{
+  "id": "sw-varnoth-courtyard-walk-west",
+  "version": 1,
+  "kind": "animation",
+  "character": "sw-varnoth",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "walk",
+  "direction": "w",
+  "fps": 8,
+  "loop": true,
+  "dependencies": [
+    "sw-varnoth"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "grounded leftward side view; right prosthesis retained"
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk-west/20b8d3c47af4/01.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk-west/20b8d3c47af4/02.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk-west/20b8d3c47af4/03.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk-west/20b8d3c47af4/04.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk-west/20b8d3c47af4/05.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk-west/20b8d3c47af4/06.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk-west/20b8d3c47af4/07.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk-west/20b8d3c47af4/08.png"
+  ],
+  "production": {
+    "method": "built-in ImageGen with existing character reference; native-size independent sprites",
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/varnoth.png",
+    "minimumVisibleStandingPixels": 240,
+    "prompt": "Dungeons VTT original game asset. Use the attached original character illustration as the exact design, palette, material and proportional reference. Produce one new high-detail game sprite sheet on truly transparent RGBA, 3:2 landscape, exactly two equally spaced rows of four cells, eight fully separated illustrations read left to right. Nothing outside the silhouettes. Ground baseline at about 45 percent and 95 percent of the sheet height, centered body in each cell, fully inside the cell with at least 15 px transparent gutter on ALL sides. Consistent planted-foot baseline and head scale. No words, numbering, panels, border, grids, scenery, ground or shadows; every hand, toe, tail, horn or fabric edge visible and preserved. Same orthographic perspective and slight 12-degree elevated view in all eight frames. Painted linework and textured fabric as attached. Exactly eight leftward profile walking frames, looking SCREEN LEFT. Elderly dark-skinned ex-general with close-cropped dark hair and a scarred milky left eye. Preserve the worn brown outfit and sandals. The prosthesis is the RIGHT lower leg only. The opposite leg is intact skin and leather sandal. At contact frame 1 the prosthetic shin and sandal are clearly FORWARD, at contact frame 5 the intact shin and leather sandal are clearly FORWARD, with the prosthesis TRAILING. Do not hide either leg at phases 1 and 5. Alternate arm swings (left arm forward when right leg goes forward). Chronological cycle 1 right leg contact, 2 right leg load, 3 left leg passes, 4 left leg swing, 5 left leg contact, 6 left leg load, 7 right leg passes, 8 right leg swing. Marked distinction of wood-and-metal vs bare lower shin in every visible leg. No cane or weapon.",
+    "sourcePages": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "expectedPhases": 8,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-varnoth-courtyard-walk-west-20b8d3c47af4.png",
+    "originalSha256": "20b8d3c47af4080b4e10ca1c06af13aac24253000afccadf4295eb426a94d23e",
+    "importReport": "output/stormwreck-motion-detail/sw-varnoth-courtyard-walk-west-20b8d3c47af4.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "Original y ocho fases comparados con la apariencia base. Revisión en escena de la candidata.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 476,
+  "pivot": [
+    0.5,
+    0.9298892988929889
+  ]
+}

@@ -63,6 +63,7 @@ var barnacles_port: Node3D
 var kelp_front: Node3D
 var kelp_port: Node3D
 var rust_front: Node3D
+var rust_port: Node3D
 var c2_brow: Node3D
 var c3_brow: Node3D
 var bow_beak: Node3D
@@ -130,6 +131,7 @@ func initialize_references() -> void:
 	kelp_front = root.find_child("DrippingKelp_Front", true, false)
 	kelp_port = root.find_child("DrippingKelp_Port", true, false)
 	rust_front = root.find_child("HullRustStains_Front", true, false)
+	rust_port = root.find_child("HullRustStains_Port", true, false)
 	c2_brow = root.find_child("C2_BrowBalustrade", true, false)
 	c3_brow = root.find_child("C3_BrowBalustrade", true, false)
 	bow_beak = root.find_child("BowBeakhead", true, false)
@@ -218,7 +220,7 @@ func set_interior_mode(new_mode: String, lock_mode: bool = false) -> void:
 	_set_vis(bulkhead_front_c6, true); _set_vis(bulkhead_front_c7, true)
 	_set_vis(bulkhead_front_fore_mid, true); _set_vis(bulkhead_spine_fore, true)
 	_set_vis(hull_inner_fore_front, true); _set_vis(hull_inner_c8_front, true); _set_vis(hull_inner_c9_front, true)
-	_set_vis(hull_lower_front, true); _set_vis(hull_lower_port, true); _set_vis(barnacles_front, true); _set_vis(barnacles_port, true); _set_vis(kelp_front, true); _set_vis(kelp_port, true); _set_vis(rust_front, true)
+	_set_vis(hull_lower_front, true); _set_vis(hull_lower_port, true); _set_vis(barnacles_front, true); _set_vis(barnacles_port, true); _set_vis(kelp_front, true); _set_vis(kelp_port, true); _set_vis(rust_front, true); _set_vis(rust_port, true)
 	_set_vis(c2_brow, true); _set_vis(c3_brow, true); _set_vis(bow_beak, true); _set_vis(transom, true)
 	_set_vis(bulwark_waist_port, true)
 	_set_vis(lantern_c1, true); _set_vis(lantern_c2, true); _set_vis(lantern_c8, true)
@@ -310,6 +312,7 @@ func set_interior_mode(new_mode: String, lock_mode: bool = false) -> void:
 				_set_vis(hull_lower_port, false)
 				_set_vis(barnacles_port, false)
 				_set_vis(kelp_port, false)
+				_set_vis(rust_port, false)
 				_set_vis(stairs_c1_c8, false)
 				_set_vis(lantern_c8, false)
 				_set_vis(submerged_c9, true)

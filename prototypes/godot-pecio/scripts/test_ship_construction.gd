@@ -54,10 +54,25 @@ func _run() -> void:
 	var skull_root := node("GoldDragonSkull")
 	var skull := skull_root.get_child(0) as MeshInstance3D
 	check(skull.get_meta("refined_anatomy", false), "volumetric dragon cranium")
-	var bone_mat := skull.get_active_material(0) as StandardMaterial3D
-	check(bone_mat != null and bone_mat.albedo_texture != null and bone_mat.normal_texture != null, "mineralized dragon bone procedural PBR")
-	check(bone_mat.albedo_texture != PbrMaterialKit.TEX_OAK and bone_mat.albedo_texture != PbrMaterialKit.TEX_TIMBER, "bone has no wood planks or nails")
-	check(bone_mat.albedo_color.r > bone_mat.albedo_color.b and bone_mat.albedo_color.b < 0.72, "bone has warm aged fossilized tint, not chalk white")
+	var bone_raw := skull.get_active_material(0)
+	var bone_albedo_tex: Texture2D = null
+	var bone_normal_tex: Texture2D = null
+	var bone_tint: Color = Color.WHITE
+	if bone_raw is StandardMaterial3D:
+		var bone_std := bone_raw as StandardMaterial3D
+		bone_albedo_tex = bone_std.albedo_texture
+		bone_normal_tex = bone_std.normal_texture
+		bone_tint = bone_std.albedo_color
+	elif bone_raw is ShaderMaterial:
+		var bone_sh := bone_raw as ShaderMaterial
+		bone_albedo_tex = bone_sh.get_shader_parameter("bone_tex") as Texture2D
+		bone_normal_tex = bone_sh.get_shader_parameter("normal_tex") as Texture2D
+		var raw_tint = bone_sh.get_shader_parameter("bone_tint")
+		if raw_tint is Color:
+			bone_tint = raw_tint
+	check(bone_raw != null and bone_albedo_tex != null and bone_normal_tex != null, "mineralized dragon bone procedural PBR")
+	check(bone_albedo_tex != PbrMaterialKit.TEX_OAK and bone_albedo_tex != PbrMaterialKit.TEX_TIMBER, "bone has no wood planks or nails")
+	check(bone_tint.r > bone_tint.b and bone_tint.b < 0.72, "bone has warm aged fossilized tint, not chalk white")
 	check(skull.get_node_or_null("OrbitalCavities") != null, "recessed orbital cavities")
 	check(skull.get_aabb().size.x >= 9.0, "mastodontic Gold Dragon skull scale")
 	var skull_col := skull.find_children("*", "CollisionShape3D", true, false)[0] as CollisionShape3D

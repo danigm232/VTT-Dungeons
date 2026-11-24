@@ -45,16 +45,28 @@ func initialize() -> void:
 	vfx = vessel.get_node("Vfx")
 	roof = vessel.get_node("RoofCutout")
 	_build_horizon(main.get_node("OceanWater"))
+	_optimize_scene_geometry(main)
 	_catalogue_surfaces(main)
+	_batch_static_containers(main)
 	_build_shadow_blockers(main)
 	sun.light_cull_mask = 1 # Skylight cannot illuminate a cutaway cabin through its missing roof.
+	var primary_exterior_shadows := ["SternAdmiralLantern", "Lantern_C1_Mid"]
+	var primary_interior_shadows := ["Lantern_C4_Captain", "Lantern_C5_Galley", "Lantern_C6_Crew_A", "Lantern_C7_Mess", "Lantern_C8_Aft"]
 	for light: OmniLight3D in main.find_children("*", "OmniLight3D", true, false):
 		var room_mask := mask_at(vessel.to_local(light.global_position))
 		light.light_cull_mask = room_mask | 128
 		if light.get_parent() is CharacterBody3D:
 			continue
-		local_lights.append({"node": light, "room": room_mask})
-		light.shadow_enabled = not ("Glimmer" in light.name or "Ambient" in light.name or "Glow" in light.name or "Fill" in light.name)
+		var is_ext_shadow := light.name in primary_exterior_shadows
+		var is_int_shadow := light.name in primary_interior_shadows
+		local_lights.append({
+			"node": light,
+			"room": room_mask,
+			"base_energy": light.light_energy,
+			"ext_shadow": is_ext_shadow,
+			"int_shadow": is_int_shadow,
+		})
+		light.shadow_enabled = is_int_shadow
 		if light.name in ["C9_DepthGlimmer", "C9_HoldAmbient"]:
 			light.light_energy = 0.0 # Only the breach, hatch spill and carried lamps provide light below.
 	for id in ["PlayerToken", "RogueToken", "WizardToken", "HarpyToken", "ZombieToken"]:
@@ -76,6 +88,69 @@ func mask_at(p: Vector3) -> int:
 	if p.y < 2.75 and p.x > 13.3 and p.x < 30.8: return 8 if p.z < 0 else 16
 	return 1
 
+func _optimize_scene_geometry(main: Node3D) -> void:
+	# 1. Reducir teselación sobredimensionada en primitivas pequeñas (SphereMesh 64x32 = 4,224 tris en gemas/cabezas)
+	#    y desactivar proyección de sombras en micro-decoración (< 0.72m) y planos horizontales base.
+	for mesh_inst: MeshInstance3D in main.find_children("*", "MeshInstance3D", true, false):
+		if not mesh_inst.mesh:
+			continue
+		var m := mesh_inst.mesh
+		if m is SphereMesh:
+			var sm := m as SphereMesh
+			if sm.radius <= 0.45 and sm.radial_segments > 14:
+				sm.radial_segments = 14
+				sm.rings = 8
+			elif sm.radius <= 1.25 and sm.radial_segments > 20:
+				sm.radial_segments = 20
+				sm.rings = 10
+		elif m is TorusMesh:
+			var tm := m as TorusMesh
+			if tm.outer_radius <= 0.40 and tm.rings > 16:
+				tm.rings = 16
+				tm.ring_segments = 8
+		elif m is CylinderMesh:
+			var cm := m as CylinderMesh
+			if maxf(cm.top_radius, cm.bottom_radius) <= 0.16 and cm.radial_segments > 10:
+				cm.radial_segments = 10
+				cm.rings = 1
+
+		var nm := String(mesh_inst.name)
+		var is_flat_base := (
+			nm.begins_with("Floor_") or nm.begins_with("Deck_") or nm.begins_with("CaptainCarpet")
+			or nm == "ConstructionShell" or nm == "SeabedTerrain" or nm == "OceanHorizon"
+			or "Water" in nm or "Caustics" in nm or "Shadow" in nm or "BlobShadow" in nm
+		)
+		if is_flat_base:
+			mesh_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			continue
+
+		if mesh_inst.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+			var aabb := mesh_inst.get_aabb()
+			var max_dim := aabb.size.length() * mesh_inst.scale.length() * 0.577
+			var parent_nm := String(mesh_inst.get_parent().name) if mesh_inst.get_parent() else ""
+			var protected := ("Door" in parent_nm or "Bulkhead" in nm or "Hull" in nm or "Frame" in nm or "Mast" in nm or "Beam" in nm or "Stanchion" in nm or "Rail" in nm or "Blocker" in parent_nm)
+			if max_dim < 0.72 and not protected:
+				mesh_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+func _batch_static_containers(main: Node3D) -> void:
+	# 2. Fusionar hojas estáticas anónimas por (material, capa de sala, sombra) DESPUÉS de _catalogue_surfaces
+	#    para respetar C4/C5/C6/C7 y variantes húmedas sin cruzar salas ni romper nodos con nombre.
+	var safe_batch_containers := [
+		"C3_BrowBalustrade", "C2_BrowBalustrade", "SternGallery",
+		"Bulwark_Waist_Port", "Bulwark_Waist_Front",
+		"HullLowerStanchions_C8", "HullHoldStanchions_C9",
+		"Bunk_16", "Bunk_18", "Bunk_21", "MainMastRigging",
+		"C3_AgingAndNarrative", "Zone_C1_MainDeck", "Zone_C2_Forecastle",
+		"Zone_C3_PoopDeck", "AftCabins_C4_C5",
+		"ForeCabins_C6_C7", "LowerDeck_C8", "SubmergedHold_C9",
+	]
+	for cname in safe_batch_containers:
+		var node := main.find_child(cname, true, false) as Node3D
+		if node:
+			Geometry.merge_static_meshes(node)
+	for lan_node: Node3D in main.find_children("LanternHousing", "Node3D", true, false):
+		Geometry.merge_static_meshes(lan_node)
+
 func _catalogue_surfaces(main: Node3D) -> void:
 	var variants: Dictionary = {}
 	for mesh: MeshInstance3D in main.find_children("*", "MeshInstance3D", true, false):
@@ -94,7 +169,7 @@ func _catalogue_surfaces(main: Node3D) -> void:
 		for surface in range(mesh.mesh.get_surface_count()):
 			var original := mesh.get_active_material(surface)
 			var wettable: bool = original is StandardMaterial3D and original.albedo_texture != null and original.transparency == BaseMaterial3D.TRANSPARENCY_DISABLED
-			var wet_shader: bool = original is ShaderMaterial and ("hull_weathered" in original.shader.resource_path or "kenney_weathered" in original.shader.resource_path or "cloth_sail" in original.shader.resource_path or "wreck_plank" in original.shader.resource_path)
+			var wet_shader: bool = original is ShaderMaterial and ("hull_weathered" in original.shader.resource_path or "kenney_weathered" in original.shader.resource_path or "cloth_sail" in original.shader.resource_path or "wreck_plank" in original.shader.resource_path or "coastal_basalt" in original.shader.resource_path or "dragon_bone" in original.shader.resource_path)
 			if not wettable and not wet_shader: continue
 			var key := original.get_instance_id()
 			var variant: Material
@@ -168,50 +243,54 @@ func apply_state(_immediate: bool = true) -> void:
 	var night := time_of_day == "night"
 	var dusk := time_of_day == "dusk"
 	var overcast := weather in ["rain", "storm", "fog"]
-	sun.light_energy = (0.14 if night else (0.80 if dusk else 1.30)) * (0.45 if overcast else 1.0)
-	sun.light_color = Color("#b2c7e5") if night else (Color("#ffd5a3") if dusk else Color("#fff5e8"))
-	sun.rotation_degrees = Vector3(-24 if dusk else -48, -35 if night else -42, 0)
-	environment.ambient_light_color = Color("#637e9c") if night else Color("#91acb8")
-	environment.ambient_light_energy = 0.16 if night else (0.34 if dusk else 0.54)
-	environment.ssao_intensity = 0.85
+	# Noche/tormenta legible con contraluz lunar azul-plata (estilo REF-01) sin halos artificiales en personajes
+	var overcast_mul := (0.76 if night else 0.58) if overcast else 1.0
+	sun.light_energy = (0.48 if night else (1.02 if dusk else 1.35)) * overcast_mul
+	sun.light_color = Color("#9ec2eb") if night else (Color("#ffc98c") if dusk else Color("#fff4e6"))
+	sun.rotation_degrees = Vector3(-22 if dusk else (-44 if night else -48), -34 if night else -42, 0)
+	environment.ambient_light_color = Color("#5b7da6") if night else (Color("#8f9cb0") if dusk else Color("#93b0bd"))
+	environment.ambient_light_energy = 0.38 if night else (0.46 if dusk else 0.56)
+	environment.ssao_intensity = 0.92
 	environment.ssao_power = 1.15
 	environment.ssao_radius = 0.85
 	environment.glow_intensity = 0.30
 	environment.glow_bloom = 0.04
-	exterior_fog_density = 0.014 if weather == "fog" else (0.006 if weather == "storm" else 0.002)
+	exterior_fog_density = 0.011 if weather == "fog" else (0.0042 if weather == "storm" else 0.0018)
 	environment.volumetric_fog_density = exterior_fog_density
-	environment.volumetric_fog_albedo = Color("#526678") if night else Color("#9bafb6")
+	environment.volumetric_fog_albedo = Color("#4d6988") if night else (Color("#b08d7e") if dusk else Color("#9cb4bd"))
 	environment.volumetric_fog_emission_energy = 0.0
-	sky_material.sky_top_color = Color("#07101f") if night else (Color("#534c65") if dusk else Color("#577e96"))
-	sky_material.sky_horizon_color = Color("#263547") if night else (Color("#c7a38b") if dusk else Color("#b6c7c9"))
+	sky_material.sky_top_color = Color("#0e1b30") if night else (Color("#4a4566") if dusk else Color("#4f7b96"))
+	sky_material.sky_horizon_color = Color("#344c68") if night else (Color("#d49e7c") if dusk else Color("#b6ccd0"))
 	if overcast:
-		sky_material.sky_top_color = sky_material.sky_top_color.lerp(Color("#4e626d"), 0.55)
-		sky_material.sky_horizon_color = sky_material.sky_horizon_color.lerp(Color("#71858e"), 0.45)
+		sky_material.sky_top_color = sky_material.sky_top_color.lerp(Color("#3b5060") if night else Color("#4e626d"), 0.48)
+		sky_material.sky_horizon_color = sky_material.sky_horizon_color.lerp(Color("#546b7d") if night else Color("#788c95"), 0.42)
 	sky_material.ground_horizon_color = sky_material.sky_horizon_color
-	sky_material.ground_bottom_color = Color("#050b14") if night else (Color("#271f27") if dusk else Color("#162c36"))
-	var fresnel_col: Color = sky_material.sky_horizon_color.lerp(Color("#4a7280"), 0.42)
-	var distant_col: Color = Color("#153642")
-	var fresnel_str: float = 0.46
+	sky_material.ground_bottom_color = Color("#0a1524") if night else (Color("#272530") if dusk else Color("#15303c"))
+	var fresnel_col: Color = sky_material.sky_horizon_color.lerp(Color("#3f6f7e"), 0.36)
+	var distant_col: Color = Color("#133644")
+	var fresnel_str: float = 0.52
 	if night:
-		fresnel_col = Color("#18293d").lerp(sky_material.sky_horizon_color, 0.30)
-		distant_col = Color("#0b1824")
-		fresnel_str = 0.42
+		fresnel_col = Color("#284360").lerp(sky_material.sky_horizon_color, 0.45)
+		distant_col = Color("#102234")
+		fresnel_str = 0.56
 	elif dusk:
-		fresnel_col = Color("#635258").lerp(sky_material.sky_horizon_color, 0.46)
-		distant_col = Color("#1c2936")
-		fresnel_str = 0.50
+		fresnel_col = Color("#48546b").lerp(sky_material.sky_horizon_color, 0.36)
+		distant_col = Color("#16293b")
+		fresnel_str = 0.54
 	if overcast:
-		fresnel_col = fresnel_col.lerp(Color("#4b5f69"), 0.45)
-		distant_col = distant_col.lerp(Color("#1f2e36"), 0.45)
+		fresnel_col = fresnel_col.lerp(Color("#465d6a"), 0.40)
+		distant_col = distant_col.lerp(Color("#1d303c"), 0.40)
 	water.set_shader_parameter("fresnel_sky_color", fresnel_col)
 	water.set_shader_parameter("distant_color_tint", distant_col)
 	water.set_shader_parameter("fresnel_strength", fresnel_str)
 	water.set_shader_parameter("wave_amplitude", 0.42 if weather == "storm" else 0.30)
 	var breach_light := vessel.find_child("C9_SternBreachGlow", true, false) as OmniLight3D
-	if breach_light: breach_light.light_energy = 0.08 if night else (0.24 if dusk else 0.48)
+	if breach_light: breach_light.light_energy = 0.42 if night else (0.95 if dusk else 1.65)
 	Waves.current_amplitude = 0.42 if weather == "storm" else 0.30
 	var boat := get_parent().find_child("Rowboat", true, false)
 	if boat: boat.wave_amplitude = Waves.current_amplitude
+	if vfx and vfx.has_method("set_time_lighting"):
+		vfx.call("set_time_lighting", time_of_day, weather)
 	_apply_wetness()
 	sync_zone_lighting()
 
@@ -227,8 +306,13 @@ func sync_zone_lighting() -> void:
 		"lower_c8_bilge": active_mask = 32
 		"lower_c9_hold": active_mask = 64
 		"lower_c8_c9": active_mask = 32 | 64
+	var exterior_dark := time_of_day != "day"
 	for entry in local_lights:
-		entry["node"].visible = (entry["room"] & active_mask) != 0
+		var lnode: OmniLight3D = entry["node"]
+		var active_room: bool = (entry["room"] & active_mask) != 0
+		lnode.visible = active_room
+		if entry.get("ext_shadow", false):
+			lnode.shadow_enabled = active_room and exterior_dark
 	for actor in actors:
 		var mask := mask_at(vessel.to_local(actor.global_position)) | 128
 		var light := actor.get_node_or_null("CarriedLantern") as OmniLight3D

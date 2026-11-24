@@ -41,13 +41,18 @@ void fragment() {
 	vec4 base = mix(color_shallow, color_deep, mix(depth_grad * 0.85, 0.88, is_deep_hold));
 	vec3 caustic_col = mix(vec3(0.14, 0.28, 0.24), vec3(0.14, 0.38, 0.46), is_deep_hold);
 
-	vec3 final_col = base.rgb + caustic_col * c_web * mix(0.10, 0.20, is_deep_hold);
+	// Transformar normal de onda a espacio vista (Godot 4 fragment() exige NORMAL en view-space)
+	vec3 world_n = normalize(vec3(ripple * 0.032, 1.0, rip2 * 0.032));
+	vec3 view_n = normalize((VIEW_MATRIX * vec4(world_n, 0.0)).xyz);
+	float fresnel = pow(1.0 - clamp(dot(view_n, normalize(VIEW)), 0.0, 1.0), 3.0);
+	vec3 sheen_col = mix(vec3(0.10, 0.22, 0.24), vec3(0.12, 0.32, 0.40), is_deep_hold);
+	vec3 final_col = base.rgb + caustic_col * c_web * mix(0.14, 0.24, is_deep_hold) + sheen_col * fresnel * 0.35;
 
 	ALBEDO = final_col;
-	ALPHA = clamp(base.a * surface_visibility, 0.30, 0.80);
-	ROUGHNESS = mix(0.14, 0.16, is_deep_hold);
-	SPECULAR = 0.32;
-	METALLIC = 0.0;
-	EMISSION = caustic_col * c_web * caustic_energy * 0.11;
-	NORMAL = normalize(vec3(ripple * 0.026, 1.0, rip2 * 0.026));
+	ALPHA = clamp(base.a * surface_visibility + fresnel * 0.12, 0.32, 0.86);
+	ROUGHNESS = mix(0.12, 0.16, is_deep_hold);
+	SPECULAR = 0.44;
+	METALLIC = 0.02;
+	EMISSION = caustic_col * c_web * caustic_energy * 0.14;
+	NORMAL = view_n;
 }

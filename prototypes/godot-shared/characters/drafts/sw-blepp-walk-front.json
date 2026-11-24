@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-blepp-walk-front",
+  "character": "sw-blepp",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "walk",
+  "direction": "s",
+  "fps": 8,
+  "loop": true,
+  "dependencies": [
+    "sw-blepp"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "anchored soles on a common baseline; directional walking"
+  },
+  "frames": [
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-walk-front/1e8ba25901f7/01.png",
+      "pivot": [
+        0.4909090909090909,
+        0.9877800407331976
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-walk-front/1e8ba25901f7/02.png",
+      "pivot": [
+        0.5113122171945701,
+        0.9877049180327869
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-walk-front/1e8ba25901f7/03.png",
+      "pivot": [
+        0.5023474178403756,
+        0.9877049180327869
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-walk-front/1e8ba25901f7/04.png",
+      "pivot": [
+        0.5119617224880383,
+        0.9877551020408163
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-walk-front/1e8ba25901f7/05.png",
+      "pivot": [
+        0.5217391304347826,
+        0.9897750511247444
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-walk-front/1e8ba25901f7/06.png",
+      "pivot": [
+        0.49065420560747663,
+        0.9877300613496932
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-walk-front/1e8ba25901f7/07.png",
+      "pivot": [
+        0.4782608695652174,
+        0.9872881355932204
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-walk-front/1e8ba25901f7/08.png",
+      "pivot": [
+        0.47115384615384615,
+        0.9876288659793815
+      ]
+    }
+  ],
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/blepp.png",
+    "prompt": "Create a production 2.5D game sprite sheet, using the uploaded figure as the exact character identity and painted materials reference. Blepp, rusty red kobold with original moss green scarf, simple leather apron, pale curved horns and thin tail. Cautious posture, hands empty. No weapon. Only change the stance and body direction to this new gait, no new outfit, gear, shadow, text or scenery. Draw the character walking straight TOWARD the viewer. TRUE FRONT view in ALL eight phases. Nose and both eyes face viewer, both shoulders aligned horizontally. No three-quarter or profile. Orthographic camera slightly above head level, looking downward by about 16 degrees, stable in every cell. Width 1536, height 1024 or highest available 3:2. Transparent RGBA, no backdrop, floor, shadows, labels, frames or grid. Exactly EIGHT independent drawings in a 4 COLUMN by 2 ROW equal grid, centers at (12.5%,37.5%,62.5%,87.5%) in each row. Keep each whole figure inside their cell with at least 15 px empty margins, including tail, hands and outstretched toes. Ground baseline at 45% and 95% of image height. Preserve head and shoulder size for all frames. Distinct steps visible in the legs and arm counter-swing: 1 right heel advances, 2 right leg takes weight and left foot lifts, 3 left passes right, 4 left swings forward, 5 left heel advances while right trails, 6 left leg takes weight and right foot lifts, 7 right foot passes left, 8 right swings forward. Make the first and fifth frames visibly different sides of the gait. Short natural walking stride, not a run.",
+    "method": "ImageGen from the installed design; native-size cell extraction",
+    "sourcePages": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "minimumVisibleStandingPixels": 270,
+    "expectedPhases": 8,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-blepp-walk-front-1e8ba25901f7.png",
+    "originalSha256": "1e8ba25901f7e9804d9092ee140eaaa628d52d0d8fc5d1fed71c1e31169e01ce",
+    "importReport": "output/stormwreck-motion-detail/sw-blepp-walk-front-1e8ba25901f7.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 478,
+  "pivot": [
+    0.5,
+    0.9209558823529411
+  ]
+}

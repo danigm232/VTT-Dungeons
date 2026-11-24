@@ -1,0 +1,57 @@
+{
+  "id": "sw-agga-direct",
+  "version": 1,
+  "kind": "animation",
+  "character": "sw-agga",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "retreat_direct",
+  "direction": "se",
+  "fps": 6,
+  "loop": false,
+  "dependencies": [
+    "sw-agga"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "planted soles, station contact; one authored view"
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-direct/545be563b671/01.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-direct/545be563b671/02.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-direct/545be563b671/03.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-direct/545be563b671/04.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-direct/545be563b671/05.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-direct/545be563b671/06.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-direct/545be563b671/07.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-direct/545be563b671/08.png"
+  ],
+  "production": {
+    "method": "built-in ImageGen with existing character reference; native-size independent sprites",
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/agga.png",
+    "minimumVisibleStandingPixels": 240,
+    "prompt": "Dungeons VTT original game asset. Use the attached original character illustration as the exact design, palette, material and proportional reference. Produce one new high-detail game sprite sheet on truly transparent RGBA, 3:2 landscape, exactly two equally spaced rows of four cells, eight fully separated illustrations read left to right. Nothing outside the silhouettes. Ground baseline at about 45 percent and 95 percent of the sheet height, centered body in each cell, fully inside the cell with at least 15 px transparent gutter on ALL sides. Consistent planted-foot baseline and head scale. No words, numbering, panels, border, grids, scenery, ground or shadows; every hand, toe, tail, horn or fabric edge visible and preserved. Same orthographic perspective and slight 12-degree elevated view in all eight frames. Painted linework and textured fabric as attached. Agga organizing other kobolds. Preserve original rusty kobold face, cream robe and exact brown waist wrap and horns. Three-quarter toward screen right. Standing planted feet throughout. 1 hands at waist, 2 looks up in recognition, 3 raises right hand, 4 hand directs a short point out to screen right, 5 holds with a no-nonsense brow, 6 closes fingers and pulls back, 7 places right hand by left elbow, 8 neutral stance. No other objects, equipment, sparks or weapons.",
+    "sourcePages": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "expectedPhases": 8,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-agga-direct-545be563b671.png",
+    "originalSha256": "545be563b671eb71119268164710fc176fc9bddfb7083120a92880f1dac9d959",
+    "importReport": "output/stormwreck-motion-detail/sw-agga-direct-545be563b671.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "Original y ocho fases comparados con la apariencia base. Revisión en escena de la candidata.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 466,
+  "pivot": [
+    0.5,
+    0.9293893129770993
+  ]
+}

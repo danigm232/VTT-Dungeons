@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-varnoth-retreat-work-e",
+  "character": "sw-varnoth",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "retreat_work",
+  "direction": "e",
+  "fps": 1,
+  "loop": false,
+  "dependencies": [
+    "sw-varnoth"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "directional held pose with planted feet"
+  },
+  "frames": [
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-turnaround/9fa4f151d59b/06.png",
+      "pivot": [
+        0.3482142857142857,
+        0.9892703862660944
+      ]
+    }
+  ],
+  "referenceHeight": 460,
+  "pivot": [
+    0.5,
+    0.9163498098859315
+  ],
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/varnoth.png",
+    "prompt": "Create a clean 2.5D game character turnaround using the attached exact in-game design. Varnoth, elderly woman with brown skin, very short black hair, scars and milky LEFT eye. Keep her brown linen clothing and one wood-and-metal prosthesis below her RIGHT knee only. For view toward viewer the prosthesis is on viewer's LEFT. From directly behind it is on viewer's RIGHT. The other lower leg is natural skin with leather sandal. Maintain this asymmetry in all eight cells. Match head shape, age, colors, proportions, textiles, face, tail and materials. Use one consistent orthographic camera, looking slightly down from 16 degrees. Transparent RGBA, 1536 x 1024, precisely equal 4 columns and 2 rows, 8 independent images; ample 20 px transparent gutters, centralized within each cell, ground baseline at 45 and 95 percent of overall height. Every silhouette fully visible; no words, outlines on the cells, no panel lines, floor, props, costumes, context or shadow. Both rows have exact same view headings in this specific order: 1 direct FRONT (both eyes, looking directly at camera); 2 strict profile RIGHT with nose toward right; 3 direct BACK with neither eye and no nose visible, viewer sees back of head and both shoulders; 4 strict profile LEFT with nose toward left. TOP ROW is a restful neutral standing pose with legs in stable parallel stance, arms quiet. BOTTOM ROW same headings and planted feet, character gently leans forward at waist, brings both arms forward to work at about belly button height with one hand slightly farther out and the other hand relaxed beneath it; no tools drawn. Forearms must genuinely rotate according to each viewing angle. Include any footwear and the tail fully. These are separate static reference poses in angle order, not an animation.",
+    "minimumVisibleStandingPixels": 260,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-varnoth-retreat-turnaround-9fa4f151d59b.png",
+    "originalSha256": "9fa4f151d59b95baab1dbaaa37e65dd3de9ec96ad257e7ba487dedd3761f162a",
+    "importReport": "output/stormwreck-motion-detail/sw-varnoth-retreat-turnaround-9fa4f151d59b.json",
+    "method": "ImageGen turnaround with native-size cell extraction",
+    "heldPose": true,
+    "cell": 6,
+    "sourcePages": [
+      8,
+      9,
+      10,
+      11
+    ]
+  },
+  "review": {
+    "technical": "Native detail and cell clearance verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  }
+}

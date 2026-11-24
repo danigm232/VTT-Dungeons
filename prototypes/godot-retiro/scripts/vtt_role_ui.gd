@@ -11,6 +11,7 @@ const ThemeKit := preload("res://scripts/vtt_ui_theme.gd")
 const PlayerHud := preload("res://scripts/vtt_player_hud.gd")
 const DmHud := preload("res://scripts/vtt_dm_hud.gd")
 const ProjectorHud := preload("res://scripts/vtt_projector_hud.gd")
+const MylaShopPanelScript := preload("res://scripts/retreat_myla_shop_panel.gd")
 
 signal role_changed(new_role: String)
 
@@ -21,10 +22,13 @@ var role_buttons: Dictionary = {}
 var player_hud: PlayerHud
 var dm_hud: DmHud
 var projector_hud: ProjectorHud
+var _myla_shop: CanvasLayer = null
+var _hero_gold: Dictionary = {"mia": 15, "trinity": 20, "mike": 25}
 
 var player_root: Control
 var dm_root: Control
 var projector_root: Control
+var retreat_life: Node3D
 
 # Referencias al escenario
 var main_ctrl: Node
@@ -66,6 +70,7 @@ var grid_enabled: bool = true
 var grid_opacity: float = 0.22
 var show_scene_notice: bool = true
 var audio_muted: bool = false
+var audio_volumes: Dictionary = {"music": 65.0, "ocean": 75.0, "wind": 65.0, "rain": 80.0}
 
 var combat_active: bool = false
 var combat_round: int = 1
@@ -196,10 +201,25 @@ func _build_role_switcher() -> void:
 		row.add_child(b)
 		role_buttons[r[0]] = b
 
+func attach_retreat_conversations(village: Node3D) -> void:
+	retreat_life = village
+	player_root.add_child(village.dialogue)
+	var party_button := Button.new()
+	party_button.name = "PartyConversationButton"
+	party_button.text = "Grupo"
+	party_button.tooltip_text = "Conversación del grupo (Y)"
+	ThemeKit.style_button(party_button, "secondary", 999, 12, 9)
+	party_button.pressed.connect(village.open_party_dialogue)
+	var controls := player_hud.interact_btn.get_parent()
+	controls.add_child(party_button)
+	controls.move_child(party_button, 0)
+
 func set_role(new_role: String) -> void:
 	current_role = _normalize_role(new_role)
 	if camera and camera.has_method("set_view_role"): camera.set_view_role(current_role)
 	if current_role != "player":
+		if is_instance_valid(retreat_life):
+			retreat_life.close_conversation()
 		_clear_joystick()
 
 	if player_root: player_root.visible = (current_role == "player")
@@ -275,6 +295,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 			get_viewport().set_input_as_handled()
 		elif kev.keycode == KEY_ESCAPE and current_role == "player" and player_hud:
+			if is_instance_valid(retreat_life) and retreat_life.has_open_dialogue():
+				retreat_life.close_conversation()
+				get_viewport().set_input_as_handled()
+				return
 			player_hud.close_modals()
 			player_hud.toggle_exploration_menu(false)
 		elif (kev.keycode == KEY_I or kev.keycode == KEY_B) and current_role == "player" and player_hud:
@@ -288,6 +312,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		elif kev.keycode == KEY_T and current_role == "player":
 			trigger_nearby_interaction()
+			get_viewport().set_input_as_handled()
+		elif kev.keycode == KEY_Y and current_role == "player" and is_instance_valid(retreat_life):
+			retreat_life.open_party_dialogue()
 			get_viewport().set_input_as_handled()
 
 func _process(delta: float) -> void:
@@ -380,6 +407,8 @@ func refresh_all() -> void:
 	if combat_controller: combat_controller.refresh()
 
 func _refresh_clock_only() -> void:
+	if is_instance_valid(retreat_life):
+		retreat_life.synchronize_clock(clock_seconds)
 	var clock_info := CampaignData.format_clock_day_time(clock_seconds)
 	if player_hud and player_hud.clock_time_lbl:
 		player_hud.clock_time_lbl.text = clock_info["day_label"]
@@ -466,6 +495,122 @@ func apply_enemy_hp_delta(enemy_id: String, delta_hp: int) -> void:
 				tok.play_action_animation("hit")
 			refresh_all()
 			return
+
+func _retreat_layout_builder() -> Node:
+	return main_ctrl.find_child("RetreatLayoutBuilder", true, false) if is_instance_valid(main_ctrl) else null
+
+func is_retreat_zombie_reappearance_active() -> bool:
+	var lb := _retreat_layout_builder()
+	return lb != null and lb.has_method("is_zombie_reappearance_active") and bool(lb.call("is_zombie_reappearance_active"))
+
+func toggle_retreat_zombie_reappearance() -> void:
+	var lb := _retreat_layout_builder()
+	if lb == null or not lb.has_method("set_zombie_reappearance_active"):
+		return
+	var next_state := not is_retreat_zombie_reappearance_active()
+	lb.call("set_zombie_reappearance_active", next_state)
+	for e in enemies:
+		var eid := str(e.get("id", ""))
+		if eid.begins_with("zombie"):
+			e["revealed"] = next_state
+			var tok: Node3D = tokens_by_node.get(e.get("node_name", ""), null)
+			if tok:
+				_apply_enemy_visibility(tok, next_state)
+	if is_instance_valid(retreat_life) and retreat_life.has_method("trigger_zombie_alarm"):
+		retreat_life.call("trigger_zombie_alarm", next_state)
+	notify_mesa("🎣 Reaparición de zombis activada: aparejos de pesca tirados en el camino bajo, Blepp y Tarak dan la voz de alarma en Z2 y 3 marineros ahogados emergen en la orilla." if next_state else "🎣 Escena de reaparición de zombis ocultada.")
+	refresh_all()
+
+func is_retreat_dining_gathering_active() -> bool:
+	return is_instance_valid(retreat_life) and retreat_life.has_method("is_dining_gathering_active") and bool(retreat_life.call("is_dining_gathering_active"))
+
+func toggle_retreat_dining_gathering() -> void:
+	if not is_instance_valid(retreat_life) or not retreat_life.has_method("set_dining_gathering_active"):
+		return
+	var next_state := not is_retreat_dining_gathering_active()
+	retreat_life.call("set_dining_gathering_active", next_state)
+	notify_mesa("🍲 Comida comunitaria en A3: Runara preside la cabecera y los residentes se reúnen en el Salón de la Comunidad." if next_state else "🍲 Los residentes regresan a sus rutinas habituales por el claustro.")
+	refresh_all()
+
+func get_active_hero_display_name() -> String:
+	var a := get_active_actor()
+	return str(a.get("name", selected_actor_id.capitalize()))
+
+func get_active_hero_gold() -> int:
+	var key := selected_actor_id if not selected_actor_id.is_empty() else "mia"
+	return int(_hero_gold.get(key, 15))
+
+func open_myla_shop() -> void:
+	if not is_instance_valid(_myla_shop):
+		_myla_shop = MylaShopPanelScript.new()
+		_myla_shop.name = "RetreatMylaShopPanel"
+		add_child(_myla_shop)
+		_myla_shop.call("setup", self)
+	_myla_shop.call("open_shop")
+
+func purchase_myla_item(spec: Dictionary) -> Dictionary:
+	var key := selected_actor_id if not selected_actor_id.is_empty() else "mia"
+	var price := int(spec.get("price_gp", 0))
+	var cur_gold := get_active_hero_gold()
+	if cur_gold < price:
+		var deny := "Oro insuficiente (%d po disponibles; cuesta %d po)." % [cur_gold, price]
+		notify_mesa("🪙 " + deny)
+		return {"ok": false, "message": deny}
+	_hero_gold[key] = cur_gold - price
+	var item_id := str(spec.get("id", "equipo_myla"))
+	var item_name := str(spec.get("name", "Equipo de Myla"))
+	var qty := maxi(1, int(spec.get("qty", 1)))
+	var desc := str(spec.get("desc", "Equipo adquirido en el taller de Myla (Celda 4)."))
+	add_inventory_item(item_id, qty, item_name)
+	var inv := get_inventory_items()
+	if inv.has(item_id) and inv[item_id] is Dictionary:
+		inv[item_id]["desc"] = desc
+		if item_id == "pocion_curacion":
+			inv[item_id]["healing_range"] = [4, 10]
+	if player_hud and player_hud.inventory_modal and player_hud.inventory_modal.visible:
+		player_hud.inventory_modal.refresh_view()
+	var msg := "Comprado: %s (×%d) por %d po. Restan %d po en la bolsa de %s." % [item_name, qty, price, int(_hero_gold[key]), get_active_hero_display_name()]
+	notify_mesa("🛠️ " + msg)
+	refresh_all()
+	return {"ok": true, "message": msg, "gold": int(_hero_gold[key])}
+
+func grant_canonical_quest_reward(reward_id: String) -> bool:
+	var hero := get_active_hero_display_name()
+	if reward_id == "tarak_potions":
+		add_inventory_item("pocion_curacion", 2, "Poción de curación (Tarak)")
+		var inv := get_inventory_items()
+		if inv.has("pocion_curacion") and inv["pocion_curacion"] is Dictionary:
+			inv["pocion_curacion"]["desc"] = "Recompensa de Tarak tras despejar las Cavernas de Pleamar. Restaura 2d4 + 2 PG."
+			inv["pocion_curacion"]["healing_range"] = [4, 10]
+		if player_hud and player_hud.inventory_modal and player_hud.inventory_modal.visible:
+			player_hud.inventory_modal.refresh_view()
+		notify_mesa("🧪 Tarak entrega 2 Pociones de curación a %s (añadidas a la mochila)." % hero)
+		refresh_all()
+		return true
+	elif reward_id == "moonstone_key":
+		add_inventory_item("llave_piedra_lunar", 1, "Llave de piedra lunar")
+		var inv2 := get_inventory_items()
+		if inv2.has("llave_piedra_lunar") and inv2["llave_piedra_lunar"] is Dictionary:
+			inv2["llave_piedra_lunar"]["desc"] = "Llave tallada en piedra lunar confiada por Runara para acceder al Observatorio del Acantilado (Canon PDF p. 13)."
+		if player_hud and player_hud.inventory_modal and player_hud.inventory_modal.visible:
+			player_hud.inventory_modal.refresh_view()
+		notify_mesa("🔑 Runara entrega la Llave de piedra lunar a %s (añadida a la mochila)." % hero)
+		refresh_all()
+		return true
+	return false
+
+func is_retreat_runara_revelation_active() -> bool:
+	var lb := _retreat_layout_builder()
+	return lb != null and lb.has_method("is_runara_revelation_active") and bool(lb.call("is_runara_revelation_active"))
+
+func toggle_retreat_runara_revelation() -> void:
+	var lb := _retreat_layout_builder()
+	if lb == null or not lb.has_method("set_runara_revelation_active"):
+		return
+	var next_state := not is_retreat_runara_revelation_active()
+	lb.call("set_runara_revelation_active", next_state)
+	notify_mesa("🐉 Revelación en el Templo A5: el santuario resplandece con el aura de bronce de Runara y la llave de piedra lunar aguarda en el altar." if next_state else "🐉 Efecto de revelación dracónica en A5 desactivado.")
+	refresh_all()
 
 func toggle_enemy_revealed(enemy_id: String) -> void:
 	for e in enemies:
@@ -609,6 +754,11 @@ func _find_best_nearby_interactable() -> Dictionary:
 func _sync_nearby_interaction_prompt() -> void:
 	if not player_hud:
 		return
+	if is_instance_valid(retreat_life) and retreat_life.has_open_dialogue():
+		if _last_prompt_text != "":
+			_last_prompt_text = ""
+			player_hud.set_interaction_prompt("", false)
+		return
 	var found := _find_best_nearby_interactable()
 	var p_txt: String = str(found.get("prompt", ""))
 	if p_txt != _last_prompt_text:
@@ -617,6 +767,10 @@ func _sync_nearby_interaction_prompt() -> void:
 
 func trigger_nearby_interaction() -> void:
 	if not main_ctrl:
+		return
+	if is_instance_valid(retreat_life) and retreat_life.has_open_dialogue():
+		retreat_life.close_conversation()
+		_sync_nearby_interaction_prompt()
 		return
 	var active_tok := get_active_token_node()
 	var found := _find_best_nearby_interactable()
@@ -692,17 +846,41 @@ func set_env_weather(w: String) -> void:
 	_fallback_weather = w
 	if ship_env and ship_env.has_method("set_weather"):
 		ship_env.set_weather(w)
+	if get_tree():
+		for listener in get_tree().get_nodes_in_group("weather_listener"):
+			if listener.has_method("set_weather"):
+				listener.set_weather(w)
 	refresh_all()
 
 func set_env_reduced_effects(v: bool) -> void:
 	_fallback_reduced = v
 	if ship_env and ship_env.has_method("set_reduced_effects"):
 		ship_env.set_reduced_effects(v)
+	if get_tree():
+		for listener in get_tree().get_nodes_in_group("weather_listener"):
+			if listener.has_method("set_reduced_effects"):
+				listener.set_reduced_effects(v)
 	refresh_all()
+
+func set_audio_channel_volume(channel_id: String, value_0_100: float) -> void:
+	audio_volumes[channel_id] = clampf(value_0_100, 0.0, 100.0)
+	if get_tree():
+		for listener in get_tree().get_nodes_in_group("weather_listener"):
+			if listener.has_method("set_channel_volume"):
+				listener.set_channel_volume(channel_id, audio_volumes[channel_id])
+
+func play_dm_sfx(sfx_id: String) -> void:
+	if get_tree():
+		for listener in get_tree().get_nodes_in_group("weather_listener"):
+			if listener.has_method("play_dm_sfx"):
+				listener.play_dm_sfx(sfx_id)
+	notify_mesa("♪ Efecto sonoro en mesa: " + sfx_id)
 
 func advance_clock_seconds(secs: int) -> void:
 	clock_seconds += secs
 	if combat_controller: combat_controller.rules.advance_time(secs)
+	if is_instance_valid(retreat_life):
+		retreat_life.synchronize_clock(clock_seconds)
 	refresh_all()
 
 # --- Zonas y Cámara ---

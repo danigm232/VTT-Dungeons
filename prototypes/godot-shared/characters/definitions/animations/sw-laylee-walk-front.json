@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-laylee-walk-front",
+  "character": "sw-laylee",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "walk",
+  "direction": "s",
+  "fps": 8,
+  "loop": true,
+  "dependencies": [
+    "sw-laylee"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "anchored soles on a common baseline; directional walking"
+  },
+  "frames": [
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-walk-front/15cb5040fcf6/01.png",
+      "pivot": [
+        0.5423728813559322,
+        0.9874739039665971
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-walk-front/15cb5040fcf6/02.png",
+      "pivot": [
+        0.5493562231759657,
+        0.9893842887473461
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-walk-front/15cb5040fcf6/03.png",
+      "pivot": [
+        0.543859649122807,
+        0.9874476987447699
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-walk-front/15cb5040fcf6/04.png",
+      "pivot": [
+        0.5511111111111111,
+        0.9874213836477987
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-walk-front/15cb5040fcf6/05.png",
+      "pivot": [
+        0.5656108597285068,
+        0.9876543209876543
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-walk-front/15cb5040fcf6/06.png",
+      "pivot": [
+        0.5656108597285068,
+        0.9874476987447699
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-walk-front/15cb5040fcf6/07.png",
+      "pivot": [
+        0.5540540540540541,
+        0.991578947368421
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-walk-front/15cb5040fcf6/08.png",
+      "pivot": [
+        0.5364806866952789,
+        0.9876543209876543
+      ]
+    }
+  ],
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/laylee.png",
+    "prompt": "Create a production 2.5D game sprite sheet, using the uploaded figure as the exact character identity and painted materials reference. Laylee, rust red kobold mechanic's apprentice in original roughly cut brown work apron, rolled cream sleeves, same horns, tail and original foot wraps. Grounded purposeful steps. Only change the stance and body direction to this new gait, no new outfit, gear, shadow, text or scenery. Draw the character walking straight TOWARD the viewer. TRUE FRONT view in ALL eight phases. Nose and both eyes face viewer, both shoulders aligned horizontally. No three-quarter or profile. Orthographic camera slightly above head level, looking downward by about 16 degrees, stable in every cell. Width 1536, height 1024 or highest available 3:2. Transparent RGBA, no backdrop, floor, shadows, labels, frames or grid. Exactly EIGHT independent drawings in a 4 COLUMN by 2 ROW equal grid, centers at (12.5%,37.5%,62.5%,87.5%) in each row. Keep each whole figure inside their cell with at least 15 px empty margins, including tail, hands and outstretched toes. Ground baseline at 45% and 95% of image height. Preserve head and shoulder size for all frames. Distinct steps visible in the legs and arm counter-swing: 1 right heel advances, 2 right leg takes weight and left foot lifts, 3 left passes right, 4 left swings forward, 5 left heel advances while right trails, 6 left leg takes weight and right foot lifts, 7 right foot passes left, 8 right swings forward. Make the first and fifth frames visibly different sides of the gait. Short natural walking stride, not a run.",
+    "method": "ImageGen from the installed design; native-size cell extraction",
+    "sourcePages": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "minimumVisibleStandingPixels": 270,
+    "expectedPhases": 8,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-laylee-walk-front-15cb5040fcf6.png",
+    "originalSha256": "15cb5040fcf653209b44fd21f997aed56bc1d3c663f7f92511538c76236c5b05",
+    "importReport": "output/stormwreck-motion-detail/sw-laylee-walk-front-15cb5040fcf6.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "Reviewed for identity, view, silhouette and pose against the current in-game design. Integrated camera evidence in the Retiro routine audit.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 468,
+  "pivot": [
+    0.5,
+    0.9253731343283582
+  ]
+}

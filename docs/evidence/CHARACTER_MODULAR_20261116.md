@@ -4,9 +4,15 @@ Encargo autorizado: [texto completo del usuario](CHARACTER_MODULAR_REQUEST_20261
 
 ## Estado actual del trabajo
 
+### Marchas y rutinas del Retiro — 24/11/2026
+
+Se añadieron 125 definiciones al catálogo candidato del Retiro. Son 24 ciclos de marcha de frente y espalda, cinco secuencias de trabajo y 96 poses de reposo o trabajo sostenidas. Las secuencias duran ocho fotogramas y las poses quedan identificadas como fijas. La extracción conserva el tamaño nativo de los píxeles y registra la altura de referencia, el apoyo y la huella del original. Se conservaron los diseños base. La inspección integrada sigue el rumbo del PNJ al cambiar de vista y mantiene las poses sin añadir equipo. [Registro por imagen y objeto](../../output/retreat-routines-20261124/capture-register.json).
+
 ### Habitantes del Retiro — 24/11/2026
 
 El registro del Retiro usa las doce apariencias con reposo ya existentes. Se añadieron ocho clips de ocho fases para el saludo, estudio y meditación de Runara, herbolaria de Tarak, mantenimiento de Varnoth, taller de Myla y Laylee y ofrenda de Rix. El recorte registra las suelas, mantiene el PNG original por hash y conserva una vista pintada por gesto. Almacena poses, referencias y compatibilidades en `characters/definitions/animations/sw-*.json`. [Registro por recurso y capturas nativas](../../output/retreat-residents-20261124/index.html).
+
+La siguiente entrega incorpora doce marchas de perfil y el perfil opuesto pintado de Varnoth, para conservar su prótesis derecha. Agga, Blepp, Kilnip y Tarak tienen cuatro gestos propios adicionales. Son 136 dibujos en 17 clips. Se comprobaron los originales, las siluetas recortadas, las fases, la escala y los apoyos. Se verificó la carga en escena de cada clip y se capturó la marcha de Runara y la preparación del guiso de Tarak. La candidata está instalada para inspección en el Retiro. Las marchas hacia la cámara y de espaldas siguen pendientes. [Comparativas y registro por recurso](../../output/retreat-life-20261124/index.html).
 
 ### Campamentos · postura tumbada con manta — 18/11/2026
 

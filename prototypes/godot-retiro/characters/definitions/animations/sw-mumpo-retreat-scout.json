@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-mumpo-retreat-scout",
+  "character": "sw-mumpo",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "retreat_scout",
+  "direction": "se",
+  "fps": 7,
+  "loop": false,
+  "dependencies": [
+    "sw-mumpo"
+  ],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout/47e4b3854954/01.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout/47e4b3854954/02.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout/47e4b3854954/03.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout/47e4b3854954/04.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout/47e4b3854954/05.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout/47e4b3854954/06.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout/47e4b3854954/07.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout/47e4b3854954/08.png"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Current frame alpha",
+    "placement": "standing with world object controlled outside character sprite"
+  },
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/mumpo.png",
+    "prompt": "Production fantasy VTT sprite sheet. Attached figure is exact identity, clothing and material reference. Mumpo, young courageous rust-red kobold, original tan shirt, long straw-brown waist-wrap and rust-colored sash, pale horns and curled striped tail. Preserve all silhouette and colors. Same three-quarter front view angled toward screen right in all cells, modest tactical 16-degree elevation, natural proportional feet and body. Create eight chronological, visibly distinct full-body phases of this single action: look out from the path while both feet stay planted. 1 neutral, 2 shifts weight to the left, 3 bends elbows and leans forward, 4 lifts head to look farther ahead, 5 shades eyes with near hand, 6 lowers hand and points a few inches ahead, 7 draws hand back, 8 neutral. No jumping. No added objects or equipment. Native 1536x1024 transparent RGBA, exact 4 columns by 2 rows, no labels, background, ground, shadows, panel lines, extra objects or changes of identity. Body and tail fully inside each cell with 16px empty gutters, soles grounded near 45% and 95% of full sheet height, preserve equal head scale across all eight views.",
+    "minimumVisibleStandingPixels": 250,
+    "expectedPhases": 8,
+    "sourcePages": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "method": "ImageGen from the installed design; native-size extraction",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mumpo-retreat-scout-47e4b3854954.png",
+    "originalSha256": "47e4b3854954e9111931adbae493cbcb1ca7a2209b2f032531a7491a22f6d6aa",
+    "importReport": "output/stormwreck-motion-detail/sw-mumpo-retreat-scout-47e4b3854954.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "Reviewed for identity, view, silhouette and pose against the current in-game design. Integrated camera evidence in the Retiro routine audit.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 442,
+  "pivot": [
+    0.5,
+    0.8876190476190476
+  ]
+}

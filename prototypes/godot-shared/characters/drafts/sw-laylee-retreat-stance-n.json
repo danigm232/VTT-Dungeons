@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-laylee-retreat-stance-n",
+  "character": "sw-laylee",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "retreat_stance",
+  "direction": "n",
+  "fps": 1,
+  "loop": false,
+  "dependencies": [
+    "sw-laylee"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "directional held pose with planted feet"
+  },
+  "frames": [
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-turnaround/70533ffae250/03.png",
+      "pivot": [
+        0.5,
+        0.9870967741935484
+      ]
+    }
+  ],
+  "referenceHeight": 456,
+  "pivot": [
+    0.5,
+    0.9014869888475836
+  ],
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/laylee.png",
+    "prompt": "Create a clean 2.5D game character turnaround using the attached exact in-game design. Laylee, rust red kobold mechanic's apprentice in original roughly cut brown work apron, rolled cream sleeves, same horns, tail and original foot wraps. Grounded purposeful steps. Match head shape, age, colors, proportions, textiles, face, tail and materials. Use one consistent orthographic camera, looking slightly down from 16 degrees. Transparent RGBA, 1536 x 1024, precisely equal 4 columns and 2 rows, 8 independent images; ample 20 px transparent gutters, centralized within each cell, ground baseline at 45 and 95 percent of overall height. Every silhouette fully visible; no words, outlines on the cells, no panel lines, floor, props, costumes, context or shadow. Both rows have exact same view headings in this specific order: 1 direct FRONT (both eyes, looking directly at camera); 2 strict profile RIGHT with nose toward right; 3 direct BACK with neither eye and no nose visible, viewer sees back of head and both shoulders; 4 strict profile LEFT with nose toward left. TOP ROW is a restful neutral standing pose with legs in stable parallel stance, arms quiet. BOTTOM ROW same headings and planted feet, character gently leans forward at waist, brings both arms forward to work at about belly button height with one hand slightly farther out and the other hand relaxed beneath it; no tools drawn. Forearms must genuinely rotate according to each viewing angle. Include any footwear and the tail fully. These are separate static reference poses in angle order, not an animation.",
+    "minimumVisibleStandingPixels": 260,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-laylee-retreat-turnaround-70533ffae250.png",
+    "originalSha256": "70533ffae2506722fd5a5917d36d7cb0177ab8e3f33869686a8f190500b1fc42",
+    "importReport": "output/stormwreck-motion-detail/sw-laylee-retreat-turnaround-70533ffae250.json",
+    "method": "ImageGen turnaround with native-size cell extraction",
+    "heldPose": true,
+    "cell": 3,
+    "sourcePages": [
+      8,
+      9,
+      10,
+      11
+    ]
+  },
+  "review": {
+    "technical": "Native detail and cell clearance verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  }
+}

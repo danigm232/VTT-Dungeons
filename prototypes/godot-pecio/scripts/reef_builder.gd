@@ -4,11 +4,12 @@ extends Node3D
 const PbrMaterialKit = preload("res://scripts/pbr_material_kit.gd")
 const RowboatController = preload("res://scripts/rowboat_controller.gd")
 const InteractiveProp = preload("res://scripts/interactive_prop.gd")
+const ShipGeometry = preload("res://scripts/ship_geometry.gd")
 
 # Generador de Arrecifes de Basalto y Bote de Remos (Fase 2)
 # Conforme a engine/client/wreck-ocean.ts y wreck-exterior.ts
 
-var mat_basalt: StandardMaterial3D
+var mat_basalt: Material
 var mat_seabed: StandardMaterial3D
 var mat_kelp: StandardMaterial3D
 var mat_boat: StandardMaterial3D
@@ -29,13 +30,10 @@ func prebuild() -> void:
 	build_rowboat()
 
 func setup_materials() -> void:
-	mat_basalt = PbrMaterialKit.create_basalt_rock_pbr("#6c7a7e") # Basalto volcánico húmedo legible
+	mat_basalt = PbrMaterialKit.create_coastal_basalt_shader_material() # Basalto volcánico triplanar con banda mareal y percebes
 	mat_seabed = PbrMaterialKit.create_basalt_rock_pbr("#323f42", 0.16) # Fondo marino somero bajo arrecifes y quilla
 
-	mat_kelp = StandardMaterial3D.new()
-	mat_kelp.albedo_color = Color("#2e4231")
-	mat_kelp.roughness = 0.65
-	mat_kelp.metallic_specular = 0.25
+	mat_kelp = PbrMaterialKit.create_algae_pbr("#2d4730")
 
 	mat_boat = PbrMaterialKit.create_wood_planks_pbr("#826646", 0.30)
 
@@ -124,13 +122,19 @@ func build_stern_reef() -> void:
 			_apply_basalt_material(inst)
 			reef_node.add_child(inst)
 			PbrMaterialKit.add_cyl_collider(reef_node, "Col_SternRock", r["scale"].x * 1.15, r["scale"].y * 2.2, r["pos"] + Vector3(0, 0.8, 0))
-			# Piedra angular secundaria junto a la base para romper siluetas hexagonales uniformes
+			# Piedra angular secundaria y corona escarpada para romper caras planas hexagonales de Kenney
 			var crag := MeshInstance3D.new()
 			crag.mesh = create_faceted_rock(Vector3(r["scale"].x * 1.15, r["scale"].y * 0.90, r["scale"].z * 1.10))
 			crag.material_override = mat_basalt
 			crag.position = r["pos"] + Vector3(cos(r["rot"]) * 1.45, 0.10, sin(r["rot"]) * 1.35)
 			crag.rotation = Vector3(0.14, r["rot"] + 1.1, -0.12)
 			reef_node.add_child(crag)
+			var cap_crag := MeshInstance3D.new()
+			cap_crag.mesh = create_faceted_rock(Vector3(r["scale"].x * 0.92, r["scale"].y * 0.62, r["scale"].z * 0.88))
+			cap_crag.material_override = mat_basalt
+			cap_crag.position = r["pos"] + Vector3(-sin(r["rot"]) * 0.35, r["scale"].y * 0.88, cos(r["rot"]) * 0.30)
+			cap_crag.rotation = Vector3(-0.16, r["rot"] * 1.7 + 0.5, 0.14)
+			reef_node.add_child(cap_crag)
 		else:
 			var rock_mesh = create_faceted_rock(r["scale"])
 			var inst = MeshInstance3D.new()
@@ -175,6 +179,12 @@ func build_bow_reef() -> void:
 			crag.position = r["pos"] + Vector3(sin(r["rot"]) * 1.35, 0.08, cos(r["rot"]) * 1.30)
 			crag.rotation = Vector3(-0.12, r["rot"] - 0.9, 0.10)
 			reef_node.add_child(crag)
+			var cap_crag := MeshInstance3D.new()
+			cap_crag.mesh = create_faceted_rock(Vector3(r["scale"].x * 0.88, r["scale"].y * 0.58, r["scale"].z * 0.86))
+			cap_crag.material_override = mat_basalt
+			cap_crag.position = r["pos"] + Vector3(cos(r["rot"]) * 0.30, r["scale"].y * 0.84, -sin(r["rot"]) * 0.28)
+			cap_crag.rotation = Vector3(0.15, r["rot"] * 1.5 - 0.6, -0.12)
+			reef_node.add_child(cap_crag)
 		else:
 			var rock_mesh = create_faceted_rock(r["scale"])
 			var inst = MeshInstance3D.new()
@@ -198,47 +208,53 @@ func create_faceted_rock(size: Vector3) -> ArrayMesh:
 	var st = SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 
-	# Poliedro facetado irregular con bobinado CCW (Counter-Clockwise) correcto
-	var hx = size.x * 0.5
-	var hy = size.y * 0.5
-	var hz = size.z * 0.5
-
-	var v = [
-		Vector3(-hx * 0.8, -hy, -hz * 0.8), # 0
-		Vector3(hx * 0.9, -hy, -hz * 0.7),  # 1
-		Vector3(hx * 0.8, -hy, hz * 0.9),   # 2
-		Vector3(-hx * 0.9, -hy, hz * 0.8),  # 3
-		Vector3(-hx * 0.5, hy * 0.9, -hz * 0.4), # 4
-		Vector3(hx * 0.6, hy * 0.8, -hz * 0.3),  # 5
-		Vector3(hx * 0.4, hy * 1.0, hz * 0.5),   # 6
-		Vector3(-hx * 0.5, hy * 0.7, hz * 0.4)   # 7
+	# Farallón basáltico escalonado de 3 niveles con aristas volcánicas irregulares (rompe silueta Kenney)
+	var hx := size.x * 0.56
+	var hy := size.y * 0.54
+	var hz := size.z * 0.56
+	var sides := 8
+	var seed_s := size.x * 13.7 + size.z * 7.3
+	var rings: Array = []
+	var tier_specs := [
+		[-hy, 1.05, 0.24],
+		[-hy * 0.18, 0.88, 0.30],
+		[hy * 0.58, 0.56, 0.26],
 	]
+	for t_i in range(tier_specs.size()):
+		var ty: float = tier_specs[t_i][0]
+		var rad_mul: float = tier_specs[t_i][1]
+		var jag: float = tier_specs[t_i][2]
+		var ring: Array[Vector3] = []
+		for k in range(sides):
+			var a := TAU * float(k) / float(sides) + float(t_i) * 0.28
+			var w := 1.0 + sin(a * 3.0 + seed_s + float(t_i) * 1.7) * jag + cos(a * 5.0 - seed_s) * (jag * 0.45)
+			var y_off := sin(a * 2.0 + float(t_i)) * hy * 0.12
+			ring.append(Vector3(cos(a) * hx * rad_mul * w, ty + y_off, sin(a) * hz * rad_mul * w))
+		rings.append(ring)
 
-	# Caras facetadas con orden anti-horario hacia el exterior
-	var faces = [
-		# Laterales (CCW)
-		[0, 5, 4], [0, 1, 5],
-		[1, 6, 5], [1, 2, 6],
-		[2, 7, 6], [2, 3, 7],
-		[3, 4, 7], [3, 0, 4],
-		# Superior (CCW)
-		[4, 5, 6], [4, 6, 7],
-		# Inferior (CCW)
-		[0, 2, 1], [0, 3, 2]
-	]
+	var apex := Vector3(sin(seed_s) * hx * 0.12, hy * 1.04, cos(seed_s) * hz * 0.12)
+	var base_c := Vector3(0.0, -hy, 0.0)
 
-	for f in faces:
-		var p0 = v[f[0]]
-		var p1 = v[f[1]]
-		var p2 = v[f[2]]
-		st.set_uv(Vector2(p0.x, p0.z))
-		st.add_vertex(p0)
-		st.set_uv(Vector2(p1.x, p1.z))
-		st.add_vertex(p1)
-		st.set_uv(Vector2(p2.x, p2.z))
-		st.add_vertex(p2)
+	for t_i in range(rings.size() - 1):
+		var r0: Array = rings[t_i]
+		var r1: Array = rings[t_i + 1]
+		for k in range(sides):
+			var kn := (k + 1) % sides
+			ShipGeometry.quad(st, r0[k], r0[kn], r1[kn], r1[k])
+
+	var top_r: Array = rings[rings.size() - 1]
+	var bot_r: Array = rings[0]
+	for k in range(sides):
+		var kn := (k + 1) % sides
+		st.set_uv(Vector2(0.5, 0.5)); st.add_vertex(apex)
+		st.set_uv(Vector2(0.0, 1.0)); st.add_vertex(top_r[kn])
+		st.set_uv(Vector2(1.0, 1.0)); st.add_vertex(top_r[k])
+		st.set_uv(Vector2(0.5, 0.5)); st.add_vertex(base_c)
+		st.set_uv(Vector2(0.0, 0.0)); st.add_vertex(bot_r[k])
+		st.set_uv(Vector2(1.0, 0.0)); st.add_vertex(bot_r[kn])
 
 	st.generate_normals()
+	st.generate_tangents()
 	return st.commit()
 
 func _collect_glb_meshes(node: Node, acc_pos: Vector3, out: Array[Dictionary]) -> void:
@@ -421,24 +437,27 @@ func build_rowboat() -> void:
 	shadow.position = Vector3(0, 0.02, 0)
 	boat_node.add_child(shadow)
 
-	# Cabo de amarre desde la proa del bote hacia la borda de estribor del pecio
-	var rope_start = Vector3(5.05, -2.07, 15.6)
-	var rope_end = Vector3(3.5, -1.15, 10.5)
-	var rope_dir = rope_end - rope_start
+	# Cabo de amarre con catenaria pronunciada desde la proa del bote hacia la cornamusa de estribor del pecio
+	var rope_start := Vector3(5.02, -2.06, 15.65)
+	var rope_end := Vector3(3.5, -1.15, 10.5)
+	var cat_pts: Array[Vector3] = []
+	var segs := 18
+	for si in range(segs + 1):
+		var t := float(si) / float(segs)
+		var p := rope_start.lerp(rope_end, t)
+		# Catenaria natural colgante sobre el agua + deriva suave de la corriente
+		p.y -= sin(t * PI) * 0.94
+		p.x += sin(t * PI) * 0.48
+		cat_pts.append(p)
 
-	var rope_cyl = CylinderMesh.new()
-	rope_cyl.top_radius = 0.025
-	rope_cyl.bottom_radius = 0.025
-	rope_cyl.height = rope_dir.length()
-	rope_cyl.radial_segments = 6
-
-	var rope_inst = MeshInstance3D.new()
-	rope_inst.name = "MooringPainter"
-	rope_inst.mesh = rope_cyl
-	rope_inst.material_override = mat_rope
-	add_child(rope_inst)
+	var rope_st := ShipGeometry.begin(mat_rope)
+	ShipGeometry.tube(rope_st, cat_pts, 0.036, 7)
+	# Vuelta de amarre en la proa del bote
+	var knot_pts: Array[Vector3] = []
+	for ki in range(10):
+		var ka := float(ki) / 8.0 * TAU * 1.5
+		knot_pts.append(rope_start + Vector3(cos(ka) * 0.06, -0.04 + float(ki) * 0.01, sin(ka) * 0.06))
+	ShipGeometry.tube(rope_st, knot_pts, 0.024, 5)
+	var rope_inst := ShipGeometry.commit(self, "MooringPainter", rope_st)
+	rope_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	boat_node.painter_rope = rope_inst
-
-	rope_inst.position = (rope_start + rope_end) * 0.5
-	rope_inst.look_at_from_position(rope_inst.position, rope_end, Vector3.UP)
-	rope_inst.rotate_object_local(Vector3.RIGHT, deg_to_rad(90))

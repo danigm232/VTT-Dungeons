@@ -39,33 +39,39 @@ var _vfx_particles: GPUParticles3D = null
 var _fire_ember_particles: GPUParticles3D = null
 
 const _BOOK_NOTES: Array[String] = [
-	"Pergamino de Runara: «Quien busca refugio en la Isla de las Tempestades deja las armas en la puerta.»",
-	"Crónica del Reposo del Dragón: «Astalagan y Sharruth libraron aquí su último duelo bajo las estrellas.»",
-	"Tratado del Observatorio: «Las mareas oscilan cuando los fuegos antiguos iluminan los acantilados.»",
-	"Registro de Tarak: «La salvia de la terraza alta alivia la fatiga de los peregrinos tras el ascenso.»"
+	"Tratado de Teología: «Bahamut camina entre los mortales como un anciano amable rodeado de siete canarios dorados.»",
+	"Crónica del Reposo del Dragón: «Astalagan, dragón de bronce, y Sharruth libraron aquí su último duelo; la paz del santuario aún guarda su eco.»",
+	"Anales del Observatorio: «Las torres orientales miden las mareas y los astros; hace años nadie regresa sin la llave de piedra lunar.»",
+	"Registro marítimo del claustro: «El Rosa de los Vientos encalló en los arrecifes del norte; la tumba de Brastos reposa en el acantilado noroeste.»"
 ]
 
 const _NOTICE_NOTES: Array[String] = [
 	"Aviso del Claustro: «Marea baja al amanecer para cruzar hacia las Cuevas de Pleamar; extremad la prudencia con la creciente.»",
-	"Nota de Myla: «Necesito alambre de cobre y lentes intactas del pecio del Rosa de los Vientos si alguien baja a la caleta.»",
-	"Recado de Tarak: «Quien recoja salvia junto al pretil sur, que deje las raíces intactas para el otoño.»",
-	"Mensaje de Runara: «El caldo del refectorio A3 está siempre caliente para todo viajero que llegue en paz.»"
+	"Nota de Myla: «Vendo cualquier equipo corriente de aventurero en Celda 4. (Laylee: el fuego alquímico NO se toca).»",
+	"Recado de Tarak: «Quien recoja hierbas junto a la plaza, que respete las raíces; necesito hongos sombrero de corazón de Pleamar.»",
+	"Mensaje de Runara: «Comemos tres veces al día en el refectorio A3; todos los viajeros pacíficos tienen sitio a la mesa.»"
 ]
 
 const _HERB_NOTES: Array[String] = [
-	"Frascos de Tarak: tintura de salvia marina, ungüento de caléndula y manojos secos contra la humedad costera.",
-	"Etiqueta manuscrita: «Infusión de romero y miel de acantilado — calma el temblor tras tormentas en alta mar.»",
-	"Mortero de piedra con hojas machacadas: desprende un aroma fresco a eucalipto, tomillo y salitre."
+	"Estantería de Tarak: dos pociones de curación recién filtradas con hongos sombrero de corazón y tinturas de salvia marina.",
+	"Cuaderno botánico: «Si los micónidos comparten colmenilla rubí, podría destilar incluso un elixir de salud.»",
+	"Mortero de piedra con hierbas recién machacadas: aroma a romero, tomillo y miel de acantilado."
 ]
 
 const _WEAPON_NOTES: Array[String] = [
-	"Escudo abollado y espadas bien aceitadas de Varnoth: acero veterano que ya no busca gloria, solo guardia serena.",
-	"En el reverso del escudo hay marcas de antiguas campañas mercenarias, ahora cubiertas por una funda de lino."
+	"Escudo abollado de los Lobos Celestes guardado como recuerdo, junto a mazo, cincel y plomada de albañil: Varnoth ya no porta armas a la vista.",
+	"Planos de mampostería para reparar el pórtico de Bahamut descansan ordenados junto a las herramientas de piedra."
 ]
 
 const _WORKBENCH_NOTES: Array[String] = [
-	"Alambique de vidrio y engranajes de bronce de Myla: un pequeño mecanismo gira con precisión al tocar la rueda dentada.",
-	"Planos de alas mecánicas y notas sobre corrientes térmicas de la isla descansan junto a las herramientas de ajuste."
+	"Alambique de vidrio, engranajes de bronce y notas arcanas de Myla: combina alquimia, ingeniería y magia en cada prototipo.",
+	"Bocetos de prótesis alares y reparaciones para sus alas dañadas por estirges reposan junto al banco de trabajo."
+]
+
+const _MYLA_SHOP_CATALOG: Array[String] = [
+	"Tienda de Myla (equipo del reglamento): Cuerda de cáñamo 15 m (1 po) · Antorchas ×10 (1 pp) · Farol con capucha (5 po) · Palanca (2 po).",
+	"Tienda de Myla (suministros): Botiquín (5 po) · Raciones de viaje (5 pp/día) · Garfio (2 po) · Juego de herramientas (5–50 po).",
+	"Tienda de Myla (alquimia): Ácido (25 po) · Fuego de alquimista (50 po — «Con permiso de Myla, prohibido a Laylee») · Aceite (1 pp)."
 ]
 
 func _ready() -> void:
@@ -117,6 +123,9 @@ func _process(delta: float) -> void:
 	refresh_proximity()
 
 func refresh_proximity() -> void:
+	if not is_visible_in_tree():
+		is_player_nearby = false
+		return
 	var active_tok := _get_active_player()
 	if not is_instance_valid(active_tok):
 		is_player_nearby = false
@@ -158,6 +167,24 @@ func get_interaction_prompt() -> String:
 func spin_workbench_gear() -> void:
 	if prop_kind == "workbench":
 		_gear_spin_timer = 2.6
+
+func begin_well_cycle(restart := true) -> bool:
+	if prop_kind != "well" or (_well_anim_active and not restart):
+		return false
+	_well_anim_active = true
+	_well_anim_time = 0.0
+	_well_splash_played = false
+	_play_prop_sound("pulley")
+	return true
+
+func show_watering_contact(spout_world := Vector3.INF) -> void:
+	if prop_kind == "watering":
+		if spout_world.is_finite():
+			var owner_node := get_parent() as Node3D
+			_emit_burst_particles(Color(0.58, 0.90, 1.0, 0.90), owner_node.to_local(spout_world), 18, true)
+		else:
+			_trigger_water_droplets()
+		_play_prop_sound("splash")
 
 func interact() -> void:
 	var tok := _get_active_player()
@@ -218,7 +245,7 @@ func interact() -> void:
 			if tok.has_method("play_action_animation"):
 				tok.play_action_animation("interact", 0.62)
 			_play_prop_sound("parchment")
-			var msg := _NOTICE_NOTES[_lore_idx % _NOTICE_NOTES.size()]
+			var msg := toast_text if not toast_text.is_empty() else _NOTICE_NOTES[_lore_idx % _NOTICE_NOTES.size()]
 			_lore_idx += 1
 			if ui and ui.has_method("notify_mesa"):
 				ui.notify_mesa(msg)
@@ -229,13 +256,14 @@ func interact() -> void:
 			_play_prop_sound("splash")
 			_show_feedback("🍞 Refrigerio del claustro", Color("#f5d999"))
 			if ui and ui.has_method("notify_mesa"):
-				ui.notify_mesa("%s bebe agua fresca y comparte pan recién horneado de la mesa del claustro." % _actor_label(tok))
+				var r_msg := toast_text if not toast_text.is_empty() else ("%s bebe agua fresca y comparte pan recién horneado de la mesa del claustro." % _actor_label(tok))
+				ui.notify_mesa(r_msg)
 		"bookshelf":
 			_face_prop(tok)
 			if tok.has_method("play_action_animation"):
 				tok.play_action_animation("interact", 0.64)
 			_play_prop_sound("parchment")
-			var msg := toast_text if not toast_text.is_empty() else _BOOK_NOTES[_lore_idx % _BOOK_NOTES.size()]
+			var msg := _contextual_lore_message(tok, toast_text if not toast_text.is_empty() else _BOOK_NOTES[_lore_idx % _BOOK_NOTES.size()])
 			_lore_idx += 1
 			if ui and ui.has_method("notify_mesa"):
 				ui.notify_mesa(msg)
@@ -244,9 +272,34 @@ func interact() -> void:
 			if tok.has_method("play_action_animation"):
 				tok.play_action_animation("interact", 0.60)
 			_play_prop_sound("parchment")
-			var msg := toast_text if not toast_text.is_empty() else "Examinas los útiles y documentos dispuestos sobre %s." % display_name
+			var msg := _contextual_lore_message(tok, toast_text if not toast_text.is_empty() else "Examinas los útiles y documentos dispuestos sobre %s." % display_name)
 			if ui and ui.has_method("notify_mesa"):
 				ui.notify_mesa(msg)
+		"shop":
+			_face_prop(tok)
+			if tok.has_method("play_action_animation"):
+				tok.play_action_animation("interact", 0.64)
+			_play_prop_sound("metal")
+			_show_feedback("🛒 Tienda de Myla", Color("#f5d27a"))
+			if ui and ui.has_method("open_myla_shop") and DisplayServer.get_name() != "headless":
+				ui.call("open_myla_shop")
+			else:
+				var smsg := _MYLA_SHOP_CATALOG[_lore_idx % _MYLA_SHOP_CATALOG.size()]
+				_lore_idx += 1
+				if ui and ui.has_method("notify_mesa"):
+					ui.notify_mesa(smsg)
+		"secret":
+			_face_prop(tok)
+			if tok.has_method("play_action_animation"):
+				tok.play_action_animation("interact", 0.70)
+			_play_prop_sound("parchment")
+			var sec_id := str(get_meta("secret_id", ""))
+			if not sec_id.is_empty():
+				_record_clue_in_residents(sec_id)
+			var sec_msg := _contextual_secret_message(tok, toast_text)
+			_show_feedback("🔎 Hallazgo", Color("#ffd882"))
+			if ui and ui.has_method("notify_mesa"):
+				ui.notify_mesa(sec_msg)
 
 func _face_prop(tok: Node3D) -> void:
 	if is_instance_valid(tok) and tok.has_method("face_world_direction"):
@@ -436,10 +489,93 @@ func _interact_shrine(tok: Node3D, ui: Node) -> void:
 		layout.call("set_local_fire_state", get_parent() as Node3D, true, 1.22)
 	_trigger_shrine_sparkles()
 	_play_prop_sound("chime")
-	_show_feedback("✨ Ofrenda serena", Color("#ffe599"))
+	var hero_id := _hero_role_key(tok)
+	var low_name := display_name.to_lower()
 	var msg := toast_text if not toast_text.is_empty() else "%s inclina la cabeza en señal de respeto y aviva las velas votivas." % _actor_label(tok)
+	if "bahamut" in low_name:
+		_show_feedback("✨ Bendición de Astalagan (+1d4 salv.)", Color("#ffe599"))
+		msg = "Las 4 hendiduras cardinales desprenden incienso sereno. El aura protectora de Astalagan otorga +1d4 a las tiradas de salvación en el templo (criaturas no malvadas)."
+		if hero_id == "mike":
+			msg += " [Mike · Detectar magia]: Percibes un tenue resplandor de abjuración dracónica alrededor de la estatua de Bahamut y sus siete canarios."
+		elif hero_id == "mia":
+			msg += " [Mia · Clériga]: La presencia del Dragón de Platino templa la sombra de muerte de tus sueños y señala hacia los arrecifes del norte."
+	elif "astalagan" in low_name:
+		_show_feedback("🐉 Estatua de Astalagan", Color("#f2d084"))
+		if hero_id == "mike":
+			msg = "Estatua de piedra de Astalagan. [Mike · C. Arcano]: Reconoces inequívocamente la cresta y el porte de un dragón de bronce (CD 10)."
+	elif "brastos" in low_name:
+		_show_feedback("🕊 Tumba de Brastos", Color("#d8ecf8"))
+		_record_clue_in_residents("brastos_grave")
+		if hero_id == "mia":
+			msg = "Tumba de Brastos cubierta de flores silvestres blancas. [Mia · Clériga]: Sientes que devolver aquí el talismán de Aleitha cerraría la maldición del Rosa de los Vientos."
+	else:
+		_show_feedback("✨ Ofrenda serena", Color("#ffe599"))
 	if ui and ui.has_method("notify_mesa"):
 		ui.notify_mesa(msg)
+
+func _record_clue_in_residents(clue_id: String) -> void:
+	if clue_id.is_empty():
+		return
+	var tree := get_tree()
+	if not tree:
+		return
+	var mt := tree.root.get_node_or_null("MapTransition")
+	if mt:
+		var clues: Dictionary = mt.get_meta("retreat_discovered_clues", {})
+		clues[clue_id] = true
+		mt.set_meta("retreat_discovered_clues", clues)
+	var main := tree.current_scene
+	if main:
+		var res := main.get_node_or_null("RetreatResidents")
+		if is_instance_valid(res) and res.has_method("record_discovered_clue"):
+			res.call("record_discovered_clue", clue_id)
+
+func _hero_role_key(tok: Node3D) -> String:
+	if not is_instance_valid(tok):
+		return ""
+	var n := str(tok.name).to_lower()
+	var tn := str(tok.get("token_name")).to_lower()
+	if "rogue" in n or "trinity" in tn or "maria" in tn or "maría" in tn:
+		return "trinity"
+	if "wizard" in n or "mike" in tn:
+		return "mike"
+	if "player" in n or "mia" in tn:
+		return "mia"
+	return ""
+
+func _contextual_secret_message(tok: Node3D, fallback_text: String) -> String:
+	var sec_id := str(get_meta("secret_id", ""))
+	var hero_id := _hero_role_key(tok)
+	match sec_id:
+		"tarak_daggers":
+			if hero_id == "trinity":
+				return "Bajo la tabla reposan tres dagas equilibradas de acero oscuro. [Trinity · Trasfondo Criminal]: Reconoces al instante el equilibrio de hoja y el nudo dorado grabado del gremio del Cadalso Dorado."
+		"varnoth_sword":
+			if hero_id == "mia":
+				return "Bajo el colchón descansa una vieja espada corta con el emblema raspado de los Lobos Celestes. [Mia · Soldado]: Reconoces el acero reglamentario de la legendaria compañía mercenaria."
+		"brastos_grave":
+			if hero_id == "mia":
+				return "Lápida de madera desgastada con el nombre «Brastos» entre flores blancas. [Mia · Clériga]: Depositar, enterrar o quemar aquí el talismán de Aleitha traería descanso a los muertos del pecio."
+	return fallback_text
+
+func _contextual_lore_message(tok: Node3D, fallback_text: String) -> String:
+	var topic := str(get_meta("lore_topic", ""))
+	var hero_id := _hero_role_key(tok)
+	match topic:
+		"history_theology":
+			if hero_id == "trinity":
+				return fallback_text + " [Trinity · Pista]: Un margen anotado cita al Cadalso Dorado y un antiguo envenenador huido hacia la costa."
+			if hero_id == "mia":
+				return fallback_text + " [Mia · Pista]: Una crónica reciente menciona la sombra no muerta que acecha cerca del pecio del Rosa de los Vientos."
+		"runara_codex":
+			if hero_id == "mike":
+				return fallback_text + " [Mike · Erudito]: Coincide con la carta de tu colega sobre el Observatorio oriental; Runara parece saber cómo cruzar hacia allí."
+		"island_chart":
+			if hero_id == "mike":
+				return fallback_text + " [Mike · Erudito]: Las marcas astronómicas en el extremo oriental de la carta corresponden al antiguo Observatorio."
+			if hero_id == "mia":
+				return fallback_text + " [Mia · Clériga]: Los arrecifes del norte muestran la posición exacta del pecio del Rosa de los Vientos y el cementerio en los acantilados al NO."
+	return fallback_text
 
 func _interact_firewood(tok: Node3D, ui: Node) -> void:
 	_face_prop(tok)
@@ -467,8 +603,7 @@ func _interact_watering(tok: Node3D, ui: Node) -> void:
 	_face_prop(tok)
 	if tok.has_method("play_action_animation"):
 		tok.play_action_animation("water_plants", 0.85)
-	_trigger_water_droplets()
-	_play_prop_sound("splash")
+	show_watering_contact()
 	_show_feedback("💧 Hierbas regadas", Color("#9ee8ff"))
 	if ui and ui.has_method("notify_mesa"):
 		ui.notify_mesa("%s toma la regadera monástica y riega la salvia, lavandas y macetas del claustro." % _actor_label(tok))
@@ -504,10 +639,7 @@ func _interact_well(tok: Node3D, ui: Node) -> void:
 		tok.play_action_animation("use_well", 1.15)
 
 	# Siempre activar la animación real de polea, cuerda y cubo + sonido y gotas
-	_well_anim_active = true
-	_well_anim_time = 0.0
-	_well_splash_played = false
-	_play_prop_sound("pulley")
+	begin_well_cycle()
 
 	if empty_key.is_empty():
 		_show_feedback("💧 Agua fresca del pozo", Color("#8fe8ff"))
@@ -700,7 +832,7 @@ func _trigger_water_droplets() -> void:
 func _trigger_shrine_sparkles() -> void:
 	_emit_burst_particles(Color(1.0, 0.90, 0.56, 0.92), Vector3(0.0, 0.95, 0.0), 16)
 
-func _emit_burst_particles(col: Color, pos_local: Vector3, count: int) -> void:
+func _emit_burst_particles(col: Color, pos_local: Vector3, count: int, from_spout := false) -> void:
 	if DisplayServer.get_name() == "headless":
 		return
 	var parent_n := get_parent() as Node3D
@@ -716,9 +848,6 @@ func _emit_burst_particles(col: Color, pos_local: Vector3, count: int) -> void:
 		_vfx_particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var pm := ParticleProcessMaterial.new()
 		pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
-		pm.emission_sphere_radius = 0.28
-		pm.direction = Vector3(0.0, 1.0, 0.0)
-		pm.spread = 48.0
 		pm.initial_velocity_min = 0.6
 		pm.initial_velocity_max = 1.4
 		pm.gravity = Vector3(0.0, -1.2 if prop_kind in ["well", "watering"] else 0.35, 0.0)
@@ -737,8 +866,12 @@ func _emit_burst_particles(col: Color, pos_local: Vector3, count: int) -> void:
 		sm.albedo_color = col
 		qm.material = sm
 		_vfx_particles.draw_pass_1 = qm
-		_vfx_particles.position = pos_local
 		parent_n.add_child(_vfx_particles)
+	var process_material := _vfx_particles.process_material as ParticleProcessMaterial
+	process_material.emission_sphere_radius = 0.029 if from_spout else 0.28
+	process_material.direction = Vector3(0.6, -1.0, 0.0) if from_spout else Vector3.UP
+	process_material.spread = 14.0 if from_spout else 48.0
+	_vfx_particles.position = pos_local
 	_vfx_particles.restart()
 	_vfx_particles.emitting = true
 

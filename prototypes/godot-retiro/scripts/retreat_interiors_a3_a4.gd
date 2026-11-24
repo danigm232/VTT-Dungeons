@@ -396,18 +396,28 @@ static func build_a3_refectory_and_kitchen(
 		var seat_xs := [-3.25, -2.05, -0.85, 0.55, 1.85, 3.10]
 		for si in range(seat_xs.size()):
 			var sx: float = float(seat_xs[si])
-			for side_z in [-0.39, 0.39]:
-				if rng.randf() < 0.16:
+			for side_z_v in [-0.39, 0.39]:
+				var side_z := float(side_z_v)
+				var soup: bool = is_equal_approx(tz, 57.6) and si == 5 and side_z > 0.0
+				var drink: bool = is_equal_approx(tz, 57.6) and si == 0 and side_z > 0.0
+				if rng.randf() < 0.16 and not (soup or drink):
 					continue # algún puesto libre natural para romper simetría rígida
 				var ox := sx + rng.randf_range(-0.14, 0.14)
-				var oz := float(side_z) + rng.randf_range(-0.04, 0.04)
+				var oz := side_z + rng.randf_range(-0.04, 0.04)
 				# Plato / cuenco hondo de madera o cerámica esmaltada
 				_cyl(b, Vector3(ox, 0.842, oz), 0.14, 0.026, mat_ceramic if (si + int(side_z > 0.0)) % 2 == 0 else mat_bowl_wood, 10, false)
-				if rng.randf() < 0.62:
-					_cyl(b, Vector3(ox, 0.870, oz), 0.095, 0.045, mat_bowl_wood, 10, false)
-					_cyl(b, Vector3(ox, 0.885, oz), 0.075, 0.02, mat_stew, 8, false)
+				if rng.randf() < 0.62 or soup:
+					if soup:
+						var meal := SceneEnhancer.routine_pivot(b, "RetreatSoupBowl", Vector3(ox, 0.870, oz))
+						_cyl(meal, Vector3.ZERO, 0.095, 0.045, mat_bowl_wood, 10, false)
+						_cyl(meal, Vector3(0, 0.015, 0), 0.075, 0.02, mat_stew, 8, false)
+					else:
+						_cyl(b, Vector3(ox, 0.870, oz), 0.095, 0.045, mat_bowl_wood, 10, false)
+						_cyl(b, Vector3(ox, 0.885, oz), 0.075, 0.02, mat_stew, 8, false)
 				# Vaso de peltre/bronce ligeramente desplazado
-				_cyl(b, Vector3(ox + 0.19, 0.878, oz * 0.82), 0.048, 0.10, mat_brass if si % 2 == 0 else mat_iron, 8, false)
+				var cup := _cyl(b, Vector3(ox + 0.19, 0.878, oz * 0.82), 0.048, 0.10, mat_brass if si % 2 == 0 else mat_iron, 8, false)
+				if drink:
+					SceneEnhancer.routine_target(cup, "RetreatDinnerCup")
 				# Cuchara junto al plato
 				_box(b, Vector3(ox - 0.18, 0.836, oz), Vector3(0.03, 0.012, 0.16), mat_iron, false)
 			# Jarras de cerámica y hogazas de pan repartidas orgánicamente en el centro
@@ -419,7 +429,9 @@ static func build_a3_refectory_and_kitchen(
 			if si in [0, 3]:
 				var bx := sx + rng.randf_range(0.10, 0.45)
 				_box(b, Vector3(bx, 0.852, rng.randf_range(-0.10, 0.10)), Vector3(0.32, 0.03, 0.22), mat_dark, false)
-				_cyl(b, Vector3(bx, 0.895, 0.0), 0.11, 0.08, mat_bread, 10, false)
+				var bread := _cyl(b, Vector3(bx, 0.895, 0.0), 0.11, 0.08, mat_bread, 10, false)
+				if is_equal_approx(tz, 57.6) and si == 0:
+					SceneEnhancer.routine_target(bread, "RetreatDinnerBread")
 
 		# Bancos corridos robustos con patas, cartelas y travesaños (preservando anclajes interactivos!)
 		for dz in [-0.96, 0.96]:
@@ -434,15 +446,34 @@ static func build_a3_refectory_and_kitchen(
 			var a3_slots: Array[Vector3] = [Vector3(-2.1, 0.49, 0.0), Vector3(0.0, 0.49, 0.0), Vector3(2.1, 0.49, 0.0)]
 			SceneEnhancer._attach_seat_prop(bench_anchor, "bench", "Banco del comedor", "[T] Sentarse a la mesa", a3_slots, Vector3(0.0, 0.0, 1.0 if dz < 0.0 else -1.0), 0.23, "s" if dz < 0.0 else "n", false, 3.6)
 
-		# Taburete ligeramente apartado en el extremo este de la mesa (detalle de uso cotidiano)
-		var stool_off := Vector3(4.42, 0.0, 0.18 if tz < 60.0 else -0.22)
-		_cyl(b, stool_off + Vector3(0.0, 0.44, 0.0), 0.24, 0.06, mat_oak_plank_b, 10)
-		for slx in [-0.14, 0.14]:
-			for slz in [-0.14, 0.14]:
-				_cyl(b, stool_off + Vector3(float(slx), 0.22, float(slz)), 0.032, 0.44, mat_dark, 7)
+		if tz < 60.0:
+			# Taburete ligeramente apartado en el extremo este de la mesa norte (deja paso a rutina east_dinner)
+			var stool_off := Vector3(4.42, 0.0, 0.18)
+			_cyl(b, stool_off + Vector3(0.0, 0.44, 0.0), 0.24, 0.06, mat_oak_plank_b, 10)
+			for slx in [-0.14, 0.14]:
+				for slz in [-0.14, 0.14]:
+					_cyl(b, stool_off + Vector3(float(slx), 0.22, float(slz)), 0.032, 0.44, mat_dark, 7)
+		else:
+			# Silla presidencial única de Runara presidiendo la cabecera del comedor (canon p. 10)
+			var head_chair := Node3D.new()
+			head_chair.name = "A3_RunaraHeadChair"
+			head_chair.position = Vector3(4.56, 0.0, 0.0)
+			b.add_child(head_chair)
+			_box(head_chair, Vector3(0.0, 0.46, 0.0), Vector3(0.56, 0.075, 0.58), mat_oak_plank_a)
+			_box(head_chair, Vector3(0.0, 0.515, 0.0), Vector3(0.46, 0.04, 0.48), mat_runner, false)
+			_box(head_chair, Vector3(0.25, 0.94, 0.0), Vector3(0.08, 0.96, 0.56), mat_dark) # respaldo alto tallado
+			_box(head_chair, Vector3(0.25, 1.44, 0.0), Vector3(0.11, 0.10, 0.62), mat_oak_plank_b)
+			_box(head_chair, Vector3(0.20, 1.18, 0.0), Vector3(0.03, 0.24, 0.26), mat_brass, false) # emblema discreto de bronce
+			for arm_z in [-0.27, 0.27]:
+				_box(head_chair, Vector3(-0.02, 0.68, float(arm_z)), Vector3(0.54, 0.06, 0.07), mat_oak_plank_a)
+				_box(head_chair, Vector3(-0.24, 0.34, float(arm_z)), Vector3(0.07, 0.68, 0.07), mat_dark)
+				_box(head_chair, Vector3(0.24, 0.24, float(arm_z)), Vector3(0.08, 0.48, 0.08), mat_dark)
+			SceneEnhancer.add_box_collider(head_chair, Vector3(0.0, 0.52, 0.0), Vector3(0.62, 1.04, 0.64))
+			var head_slots: Array[Vector3] = [Vector3(-0.04, 0.54, 0.0)]
+			SceneEnhancer._attach_seat_prop(head_chair, "chair", "Silla de cabecera de Runara", "[T] Sentarse en la cabecera", head_slots, Vector3(-1.0, 0.0, 0.0), 0.26, "w", false, 2.35)
 
 		SceneEnhancer.add_box_collider(b, Vector3(0.0, 0.48, 0.0), Vector3(8.10, 0.96, 1.32))
-		SceneEnhancer._attach_interactive_prop(b, "table", "Mesa del comedor", "[T] Examinar mesa del refectorio", Vector3.ZERO, "n", "Cuencos de caldo caliente, hogazas recién horneadas y jarras de sidra aguardan a los comensales.")
+		SceneEnhancer._attach_interactive_prop(b, "refreshments", "Mesa del refectorio A3", "[T] Compartir guiso y pan del claustro", Vector3.ZERO, "n", "Compartes el guiso caliente de hierbas de Tarak, hogazas recién horneadas y sidra en la mesa comunitaria de Runara.")
 
 	# --------------------------------------------------------------------------
 	# 3.2 COCINA MONÁSTICA FUNCIONAL (HOGAR + CAMPANA + CALDERO + ISLA + DESPENSA + LEÑERA)
@@ -538,6 +569,27 @@ static func build_a3_refectory_and_kitchen(
 	_cyl(prep, Vector3(-0.95, 0.48, 0.0), 0.20, 0.32, mat_pot, 10)
 	_box(prep, Vector3(0.75, 0.46, 0.0), Vector3(0.58, 0.28, 0.44), mat_sack)
 	SceneEnhancer.add_box_collider(prep, Vector3(0.0, 0.50, 0.0), Vector3(3.80, 1.00, 1.02))
+
+	# Guiño canónico (p. 9): mancha de hollín alquímico del «desafortunado accidente» de Laylee en la cocina + aviso de Myla
+	var scorch := Node3D.new()
+	scorch.name = "A3_LayleeAlchemicalScorch"
+	scorch.position = Vector3(115.65, y, 53.55)
+	parent.add_child(scorch)
+	var mat_alchem_scorch := _make_solid_mat(Color("#1e2920"), 0.94, 0.0)
+	var mat_alchem_tint := _make_solid_mat(Color("#36593a"), 0.72, 0.04)
+	_cyl(scorch, Vector3(0.0, 0.050, 0.0), 0.54, 0.010, mat_alchem_scorch, 12, false)
+	_cyl(scorch, Vector3(0.14, 0.055, -0.09), 0.26, 0.010, mat_alchem_tint, 10, false)
+	_box(scorch, Vector3(-0.22, 0.075, 0.16), Vector3(0.16, 0.04, 0.12), mat_pot, false) # fragmento de frasco roto
+	# Tablilla de advertencia clavada en el muro oeste de la cocina (x=113.48)
+	var sign_w := Node3D.new()
+	sign_w.name = "A3_LayleeWarningPlacard"
+	sign_w.position = Vector3(113.48, y + 1.48, 53.95)
+	parent.add_child(sign_w)
+	_box(sign_w, Vector3(0.0, 0.0, 0.0), Vector3(0.05, 0.36, 0.52), mat_oak_plank_b, false)
+	_box(sign_w, Vector3(0.032, 0.0, 0.0), Vector3(0.02, 0.26, 0.42), _mat_linen, false)
+	var lip := SceneEnhancer._attach_interactive_prop(scorch, "secret", "Mancha alquímica de cocina", "[T] Examinar mancha chamuscada", Vector3.ZERO, "w", "Hollín verdoso y restos de cerámica en la pizarra. En la pared, una nota de Myla avisa: «Tras el accidente del guiso, Laylee tiene prohibido acercar fuego alquímico a la cocina.»")
+	lip.set_meta("secret_id", "laylee_kitchen")
+	lip.interact_radius = 2.40
 
 	# Estantería de despensa en muro norte (x=123.6, z=50.55) con sacos, tinajas, quesos y cestos
 	var pantry := Node3D.new()
@@ -900,6 +952,8 @@ static func build_a4_library_and_scriptorium(
 	for rz_m in [-1.09, 1.09]:
 		var roll := _cyl(map_tbl, Vector3(-0.04, 0.86, float(rz_m)), 0.045, 1.34, mat_paper, 8, false)
 		roll.rotation.z = PI * 0.5
+		if rz_m > 0.0:
+			SceneEnhancer.routine_target(roll, "RetreatMapScroll")
 	# Instrumentos de medición: compás de puntas de bronce, regla, diario rojo de expedición y lámpara de mesa
 	var comp_a := _box(map_tbl, Vector3(0.44, 0.85, -0.62), Vector3(0.03, 0.02, 0.30), mat_brass, false)
 	comp_a.rotation.y = 0.25
@@ -907,16 +961,25 @@ static func build_a4_library_and_scriptorium(
 	comp_b.rotation.y = -0.25
 	_box(map_tbl, Vector3(0.45, 0.88, 0.72), Vector3(0.40, 0.09, 0.52), mat_rug_crimson, false)
 	_box(map_tbl, Vector3(0.45, 0.88, 0.72), Vector3(0.36, 0.06, 0.48), mat_paper, false)
-	# Lámpara de bronce con llama cálida
-	_cyl(map_tbl, Vector3(-0.46, 0.90, -0.82), 0.11, 0.14, mat_brass, 10, false)
-	var ml_f := _cyl(map_tbl, Vector3(-0.46, 1.03, -0.82), 0.045, 0.14, mat_flame, 8, false)
+	# Lámpara de cristal y bronce sobre la carta náutica (canon p. 10)
+	_cyl(map_tbl, Vector3(-0.46, 0.87, -0.82), 0.11, 0.08, mat_brass, 10, false)
+	var map_glass := StandardMaterial3D.new()
+	map_glass.albedo_color = Color(0.95, 0.94, 0.86, 0.34)
+	map_glass.roughness = 0.08
+	map_glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	map_glass.emission_enabled = true
+	map_glass.emission = Color(1.0, 0.82, 0.48)
+	map_glass.emission_energy_multiplier = 0.50
+	_cyl(map_tbl, Vector3(-0.46, 1.03, -0.82), 0.072, 0.24, map_glass, 12, false)
+	var ml_f := _cyl(map_tbl, Vector3(-0.46, 0.99, -0.82), 0.032, 0.11, mat_flame, 8, false)
 	ml_f.add_to_group("night_flame")
 	# Tubos de mapas enrollados en la balda inferior
 	for tub_i in range(4):
 		var tub := _cyl(map_tbl, Vector3(-0.35 + float(tub_i) * 0.22, 0.32, 0.0), 0.065, 1.85, mat_paper if tub_i % 2 == 0 else mat_oak, 8, false)
 		tub.rotation.x = PI * 0.5
 	SceneEnhancer.add_box_collider(map_tbl, Vector3(0.0, 0.50, 0.0), Vector3(1.94, 1.00, 3.12))
-	SceneEnhancer._attach_interactive_prop(map_tbl, "table", "Mesa de cartografía", "[T] Examinar mapa insular", Vector3.ZERO, "w", "Cartas náuticas detallan el Retiro, Pleamar y el Observatorio de la isla.")
+	var chart_ip := SceneEnhancer._attach_interactive_prop(map_tbl, "table", "Mesa de cartografía", "[T] Examinar mapa insular", Vector3.ZERO, "w", "Cartas náuticas detallan el Retiro, el cementerio del acantilado NO, Pleamar, el Pecio del Rosa de los Vientos y el Observatorio.")
+	chart_ip.set_meta("lore_topic", "island_chart")
 
 	# Pequeña pila de códices y cofre de manuscritos en el rincón oeste (x=87.4, z=61.4)
 	_box(parent, Vector3(87.2, y + 0.28, 61.8), Vector3(0.95, 0.56, 0.62), mat_walnut)
@@ -1093,18 +1156,21 @@ static func _build_scriptorium_desk(
 		slope.rotation.x = 0.26
 		var ms_l := _box(d, Vector3(-0.30, 0.94, -0.01), Vector3(0.28, 0.02, 0.42), mat_paper, false)
 		ms_l.rotation.x = 0.26
-		var ms_r := _box(d, Vector3(0.02, 0.94, -0.01), Vector3(0.28, 0.02, 0.42), mat_paper, false)
+		var west_page := SceneEnhancer.routine_pivot(d, "RetreatWestFolio", Vector3(-0.12, 0.94, -0.01))
+		var ms_r := _box(west_page, Vector3(0.14, 0.0, 0.0), Vector3(0.28, 0.02, 0.42), mat_paper, false)
 		ms_r.rotation.x = 0.26
 		# Tintero de hierro + mancha de tinta + pluma blanca
 		_cyl(d, Vector3(0.42, 0.85, -0.14), 0.048, 0.06, mat_ink, 8, false)
 		var quill := _cyl(d, Vector3(0.45, 0.96, -0.14), 0.014, 0.24, mat_paper, 6, false)
 		quill.rotation.z = -0.36
+		SceneEnhancer.routine_target(quill, "RetreatScribeQuill")
 		_box(d, Vector3(0.46, 0.835, 0.14), Vector3(0.32, 0.015, 0.045), mat_brass, false) # regla
 		_box(d, Vector3(-0.64, 0.86, 0.14), Vector3(0.28, 0.06, 0.22), mat_cover, false)
 		_box(d, Vector3(-0.62, 0.92, 0.12), Vector3(0.24, 0.05, 0.19), mat_paper, false)
 	else:
 		# Puesto de estudio con códice abierto sobre soporte, pergaminos desenrollados, estuche y cuchillo de escriba
-		_box(d, Vector3(-0.12, 0.835, 0.06), Vector3(0.64, 0.016, 0.44), mat_paper, false)
+		var east_page := SceneEnhancer.routine_pivot(d, "RetreatEastFolio", Vector3(-0.41, 0.835, 0.06))
+		_box(east_page, Vector3(0.29, 0, 0), Vector3(0.64, 0.016, 0.44), mat_paper, false)
 		var sc_a := _cyl(d, Vector3(-0.44, 0.86, 0.06), 0.04, 0.46, mat_paper, 8, false)
 		sc_a.rotation.x = PI * 0.5
 		_box(d, Vector3(0.44, 0.87, -0.14), Vector3(0.38, 0.09, 0.28), mat_cover, false)
@@ -1112,22 +1178,22 @@ static func _build_scriptorium_desk(
 		_box(d, Vector3(0.42, 0.835, 0.20), Vector3(0.22, 0.015, 0.035), mat_iron, false) # cuchillo de escriba
 		_box(d, Vector3(-0.62, 0.89, -0.18), Vector3(0.30, 0.14, 0.24), mat_walnut, false) # cajita de sellos
 
-	# Fase 6 (A4): Lámpara erudita de lectura en latón con pantalla cálida en ambos escritorios
+	# Fase 6 + Canon p. 10 (A4): Lámpara de cristal soplado sobre base de latón en ambos escritorios
 	var c_x := 0.58 if has_sloped_lectern else -0.58
-	_cyl(d, Vector3(c_x, 0.84, -0.24), 0.10, 0.04, mat_brass, 10, false)
-	_cyl(d, Vector3(c_x, 1.00, -0.24), 0.025, 0.30, mat_brass, 8, false)
-	var shade_m := CylinderMesh.new()
-	shade_m.top_radius = 0.075
-	shade_m.bottom_radius = 0.155
-	shade_m.height = 0.12
-	shade_m.radial_segments = 12
-	var shade_i := MeshInstance3D.new()
-	shade_i.name = "ReadingLampShade"
-	shade_i.mesh = shade_m
-	shade_i.material_override = mat_brass
-	shade_i.position = Vector3(c_x, 1.15, -0.24)
-	d.add_child(shade_i)
-	var flm := _cyl(d, Vector3(c_x, 1.06, -0.24), 0.042, 0.10, mat_flame, 8, false)
+	_cyl(d, Vector3(c_x, 0.84, -0.24), 0.105, 0.045, mat_brass, 10, false)
+	_cyl(d, Vector3(c_x, 0.91, -0.24), 0.075, 0.10, mat_brass, 10, false)
+	var mat_lamp_glass := StandardMaterial3D.new()
+	mat_lamp_glass.albedo_color = Color(0.95, 0.94, 0.86, 0.34)
+	mat_lamp_glass.roughness = 0.08
+	mat_lamp_glass.metallic = 0.05
+	mat_lamp_glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat_lamp_glass.emission_enabled = true
+	mat_lamp_glass.emission = Color(1.0, 0.82, 0.48)
+	mat_lamp_glass.emission_energy_multiplier = 0.55
+	var glass_chimney := _cyl(d, Vector3(c_x, 1.08, -0.24), 0.072, 0.24, mat_lamp_glass, 12, false)
+	glass_chimney.name = "CrystalLampChimney"
+	_cyl(d, Vector3(c_x, 1.21, -0.24), 0.058, 0.032, mat_brass, 10, false)
+	var flm := _cyl(d, Vector3(c_x, 1.03, -0.24), 0.030, 0.095, mat_flame, 8, false)
 	flm.add_to_group("night_flame")
 
 	# Taburete de escriba robusto con patas abiertas y travesaños (preserva interacción de asiento!)
@@ -1141,7 +1207,11 @@ static func _build_scriptorium_desk(
 
 	SceneEnhancer.add_box_collider(d, Vector3(0.0, 0.50, 0.0), Vector3(1.76, 1.00, 0.96))
 	SceneEnhancer.add_box_collider(d, Vector3(0.0, 0.32, 0.78), Vector3(0.56, 0.64, 0.56))
-	SceneEnhancer._attach_interactive_prop(d, "table", "Puesto del Scriptorium", "[T] Examinar manuscritos", Vector3.ZERO, "n", "Manuscritos iluminados, tinta fresca y notas sobre la historia dracónica de la isla.")
+	var desk_title := "Atril de Teología e Historia" if has_sloped_lectern else "Códice de los Dragones de la Isla"
+	var desk_hint := "[T] Consultar tratados de historia" if has_sloped_lectern else "[T] Leer códice de Runara"
+	var desk_toast := "Tratados de historia y teología bajo la lámpara de cristal: crónicas de Bahamut, los naufragios de la isla y viejas compañías mercenarias de la Costa de la Espada." if has_sloped_lectern else "Códice anotado con pulso firme por Runara: relata el duelo de Astalagan y Sharruth y las antiguas señales del Observatorio oriental."
+	var dip := SceneEnhancer._attach_interactive_prop(d, "bookshelf", desk_title, desk_hint, Vector3.ZERO, "n", desk_toast)
+	dip.set_meta("lore_topic", "history_theology" if has_sloped_lectern else "runara_codex")
 	var chair_anchor := Node3D.new()
 	chair_anchor.name = "DeskChairAnchor"
 	chair_anchor.position = Vector3(0.0, 0.0, 0.78)

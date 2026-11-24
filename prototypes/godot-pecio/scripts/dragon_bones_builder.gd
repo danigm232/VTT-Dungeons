@@ -8,8 +8,8 @@ const WreckStructure = preload("res://scripts/wreck_structure.gd")
 # Reconstrucción Anatómica y Canónica de los Huesos de Clyssavar (Dragón de Oro Antiguo)
 # Basado en engine/client/wreck-dragon-bones.ts y D&D 5e Cap. 3 pp. 22-27
 
-var mat_bone_gold: StandardMaterial3D
-var mat_bone_dark: StandardMaterial3D
+var mat_bone_gold: Material
+var mat_bone_dark: Material
 var mat_socket: StandardMaterial3D
 
 var _skull_root: Node3D
@@ -34,8 +34,8 @@ func prebuild() -> void:
 	build_distant_skeletal_spires()
 
 func setup_materials() -> void:
-	mat_bone_gold = PbrMaterialKit.create_mineralized_bone_pbr("#d8c28c")
-	mat_bone_dark = PbrMaterialKit.create_mineralized_bone_pbr("#9b8456")
+	mat_bone_gold = PbrMaterialKit.create_dragon_bone_shader_material("#d2bb86", "#4e3e26")
+	mat_bone_dark = PbrMaterialKit.create_dragon_bone_shader_material("#9c8558", "#352a19")
 
 	mat_socket = StandardMaterial3D.new()
 	mat_socket.albedo_color = Color("#111514")
@@ -190,6 +190,20 @@ func _refine_skull_visual(instance: MeshInstance3D) -> void:
 		Vector3(3.38, -2.32, 0.32),
 	], 0.23, 0.26, 0.23, 0.26, 8, false, false)
 
+	# Cresta nasal serrada dorsal y espolones de corona para romper silueta en cuña
+	for cr_cfg in [
+		[Vector3(2.85, 0.34, 0.0), Vector3(2.45, 0.88, 0.0), 0.14],
+		[Vector3(1.55, 0.80, 0.0), Vector3(1.05, 1.48, 0.0), 0.18],
+		[Vector3(-0.35, 1.42, 0.0), Vector3(-1.05, 2.25, 0.0), 0.22],
+		[Vector3(-1.85, 1.62, 0.0), Vector3(-2.65, 2.48, 0.0), 0.24],
+	]:
+		add_flanged_bone_tube(shell, [cr_cfg[0], cr_cfg[1]], cr_cfg[2], cr_cfg[2] * 0.72, 0.035, 0.035, 6, false, true, 0.25)
+
+	# Fosas nasales talladas en la punta del hocico
+	for n_side in [-1.0, 1.0]:
+		var nc := Vector3(3.35, 0.08, n_side * 0.36)
+		_emit_tri_uv(recess, nc + Vector3(0.24, -0.05, 0.0), nc + Vector3(-0.20, 0.14, n_side * 0.08), nc + Vector3(-0.18, -0.10, n_side * 0.10), Vector2(0.5, 0.5))
+
 	shell.index()
 	shell.generate_normals()
 	shell.generate_tangents()
@@ -199,6 +213,12 @@ func _refine_skull_visual(instance: MeshInstance3D) -> void:
 	recess.index()
 	recess.generate_normals()
 	Geometry.commit(instance, "OrbitalCavities", recess)
+
+	# Percebes y algas colgantes en la mandíbula y bases del cráneo de Clyssavar
+	PbrMaterialKit.add_barnacle_cluster(_skull_root, Vector3(0.4, -1.9, 1.35), Vector3(0.2, -0.2, 1.0), 7, 0.12, 701)
+	PbrMaterialKit.add_barnacle_cluster(_skull_root, Vector3(-1.4, -1.3, -1.65), Vector3(-0.2, -0.2, -1.0), 6, 0.11, 702)
+	PbrMaterialKit.add_kelp_strand(_skull_root, Vector3(1.1, -1.95, 1.15), Vector3(0.0, -1.0, 0.18), 1.45, 0.22, 711)
+	PbrMaterialKit.add_kelp_strand(_skull_root, Vector3(-2.2, -0.65, 1.95), Vector3(0.0, -1.0, 0.15), 1.65, 0.24, 712)
 
 func build_titanic_ribs() -> void:
 	# Costillas titánicas que acunan, sostienen y atraviesan el casco desde el arrecife de estribor

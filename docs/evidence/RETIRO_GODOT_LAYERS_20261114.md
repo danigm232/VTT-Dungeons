@@ -1,5 +1,81 @@
 # Retiro del Dragón en Godot — Auditoría y Traslado por Capas, 14/11/2026
 
+## Auditoría 3 y Bloques 1–5 (geometría, clima 3D, mar, fauna y cierre canónico) — 24/11/2026
+
+Tras auditar integralmente la escena Forward+ frente al Capítulo 1 del PDF y a las capturas reales, se implementaron los **5 bloques** en `prototypes/godot-retiro/` sin tocar Pecio ni el trabajo paralelo de Codex (rutinas de los 12 habitantes y combate compartidos intactos):
+
+| Bloque | Objetos / sistemas y archivos propietarios | Resultado verificado |
+| --- | --- | --- |
+| **Bloque 1 · Geometría, escaleras, árboles y spawn** | `_box_xf()` y `build_upgraded_rustic_stone_flight()` (`retreat_winch_and_stairs.gd`); `A5NorthSummitLanding` y `GraveyardCliffBase` (`retreat_temple_and_cliffs.gd`); `A1EastFlankStrata` (`retreat_scene_enhancer.gd`); exclusiones forestales, `Surface_IslandPleamarHigh` visual transparente, `MM_Z2PlanterHerbs/Blossoms`, `Z2MidLanternPost_0/1` (`retreat_layout_builder.gd`); `WizardToken` (`main.tscn`) | **0 troncos y 0 copas** recortando muros/escaleras/edificios (512 troncos); `ObsTurn` con cimentación maciza de `5,2 m` y farol; `A5RidgeW`, `A5NorthSummitLanding` (`y=35,04 m`) y acceso al Cementerio de Brastos 100 % despejados; `EastCliffWestRail` y Z2 libres; Mike libre del pozo (`x=97,80`). |
+| **Bloque 2 · Climatología 3D real y audio DM** | `RetreatWeatherAndAudio` (`retreat_weather_and_audio.gd`), `retreat_layout_builder.gd`, `vtt_role_ui.gd`, `vtt_dm_hud.gd` | `clear`/`rain`/`storm`/`fog` activos con `RetreatRainParticles` + 4 `RainRoofBlockers` (no llueve en interiores), `RetreatFogMistParticles`, relámpagos `StormLightningLight`, humedad en materiales, modulación del mar y mezclador procedural DM de 4 canales + 5 SFX. |
+| **Bloque 3 · Mar, mareas, SSAO, sombras, A5 y A1** | `OceanPlane` (`128×112`), `ocean_shader`, `_on_tide_state_changed()`, `MM_SubmergedKelp`, `_optimize_scene_lights()` (`retreat_layout_builder.gd`); `EastCliffBounceLight` y grupo `tide_foam` (`retreat_winch_and_stairs.gd`); SSAO (`main.tscn`); tejado pizarra mate A5 (`retreat_temple_and_cliffs.gd`); contrafuertes asimétricos A1 (`retreat_scene_enhancer.gd`) | 11 nodos `tide_foam` sincronizados (`low=−0,31`, `mid=+0,03`, `high=+0,45`); SSAO activo; 5 luces focales hero con sombras (`CampfireLight`, `DiningLampLight`, `KitchenHearthLight`, `LibraryStudyLight`, `TempleSanctuaryLight`); tejado A5 mate sin brillo plástico. |
+| **Bloque 4 · Fauna 3D esculpida y vida costera** | `_make_swept_gull_wing_mesh`, `_make_butterfly_wing_mesh`, `_create_coastal_fish_node` (`retreat_layout_builder.gd`); `build_sanctuary_canary` (`retreat_scene_enhancer.gd`) | 5 gaviotas planeadoras aerodinámicas, 6 posadas esculpidas, 7 canarios dorados 3D en A5, 12 mariposas bilobuladas (A1 + Z7) y 8 peces costeros animados bajo el muelle Z1. |
+| **Bloque 5 · Cierre canónico PDF e interactivos** | `RetreatMylaShopPanel` (`retreat_myla_shop_panel.gd`), `CLUE_TOPICS` (`retreat_conversations.gd`), `record_discovered_clue` / `set_dining_gathering_active` / `trigger_zombie_alarm` (`retreat_residents.gd`), `interactive_prop.gd`, `retreat_interiors_a3_a4.gd`, `retreat_winch_and_stairs.gd`, `vtt_role_ui.gd`, `vtt_dm_hud.gd` | Tienda Myla descuenta oro y entrega objetos reales a la mochila (`InventoryBridge`); 4 pistas desbloquean 5 temas de diálogo en Tarak/Varnoth/Laylee/Myla/Runara; conmutador DM **Comida A3**; alarma viva de Blepp/Tarak; botones DM de recompensa (`+2 Pociones` `[4, 10]` y `Llave lunar`); interactivos `[T]` en los 3 carteles, `A2_WinchMechanism` y mesas `RefectoryTable_576`/`615`. |
+
+### Verificación técnica, revisión visual y estado separado
+1. **Verificación técnica (tras el último cambio):** `--check-only` **12/12 PASS**; `test_retreat_layout.gd` **152/152**, `test_camera_contract.gd` **49/49**, `test_map_exits.gd` **128/128**, `test_retreat_residents.gd` **209/209**, `test_retreat_routines.gd` **483/483**, `inventory/test_backpack.gd` **161/161**, `verify_bloques1_to_5_20261124.gd` **51/51** (**1.233 PASS / 0 FAIL**, 0 errores en ejecución).
+2. **Revisión visual integrada (Godot 4.7.2 Forward+ · `1440×810`):** comparadas las 16 parejas con cámara/resolución idénticas más 3 vistas extra (niebla, peces Z1 y tienda de Myla) en [informe interactivo Antes/Después con clic-superponer y SHA-256](../../output/retreat-audit3-20261124/index.html) (`manifest.json`).
+3. **Aceptación artística del usuario:** pendiente de revisión final en el informe y en sesión de juego.
+4. **Pruebas físicas / multijugador y pendientes fuera de alcance:** validación física/ENet en dispositivo y sprite dracónico de Runara (sujeto a `docs/CHARACTER_ASSET_PIPELINE.md`) quedan separados.
+
+## Rutinas de los doce habitantes — 24/11/2026
+
+Las seis tareas de cada residente son una adaptación propia de las personalidades y funciones del capítulo 1, pp. 8–12. Runara alterna estudio y templo. Tarak cuida los brotes, recoge agua y trabaja en la cocina. Varnoth atiende la cantería y las lecturas. Los kobolds alternan encargos, recreo y trabajo con periodos de reposo diurno. Cuando se encuentran cerca, pueden cooperar o conversar. Hablar con un héroe interrumpe la tarea y el combate suspende la actividad ambiental.
+
+| Alcance | Archivo propietario y cambio |
+| --- | --- |
+| Agenda | `prototypes/godot-retiro/scripts/retreat_routine_directory.gd`. 72 actividades con destino, franja, gesto y reacción declarada. |
+| Movimiento | `retreat_resident.gd` y `retreat_residents.gd`. Se mantienen los recorridos con suelo y puertas y la orientación física de la ficha al cambiar el ángulo de cámara. |
+| Utilería | `retreat_routine_props.gd` enlaza cubo, torno, regadera, folios, bandejas, engranajes, vajilla, lona o pasador con el gesto. El ciclo del pozo se reutiliza sin aplicar inventario de jugador. El pasador del baúl se anima separado de su tapa interactiva. |
+| Recursos | 24 marchas de 8 fotogramas, 5 gestos específicos de 8 fotogramas y 96 poses orientadas. El catálogo registra origen, altura de referencia, apoyo y poses por vista. Las diagonales usan la vista disponible más próxima. |
+
+El informe interactivo recoge los 72 contactos y compara riego y lectura en dos ángulos con el mismo encuadre por par. Conserva originales y registra cada objeto y animación por ID. Se seleccionaron imágenes y se rechazaron dos láminas de Kilnip por su fondo opaco o su parecido con Rix. Queda pendiente animar el descanso tumbado en hamaca. Los gestos específicos aún utilizan una pose de trabajo en los ángulos que carecen de una secuencia propia. La aceptación artística en mesa y las pruebas físicas quedan separadas. [Auditoría y reproductor](../../output/retreat-routines-20261124/index.html).
+
+Pasaron 483 comprobaciones de rutinas y cámara, 346 en la captura nativa y 209 en la suite de residentes. La agenda avanzó de forma automática del engranaje al alambique de Myla. Se observaron tres colaboraciones, entre ellas la demostración con Laylee. Las 23 comprobaciones del trabajo paralelo confirmaron la presencia de los elementos de Antigravity y la activación y desactivación de sus dos hitos DM. [Prueba de rutinas](../../output/retreat-routines-20261124/headless-routines.json) · [Render nativo](../../output/retreat-routines-20261124/native-routines.json) · [Prueba del trabajo paralelo](../../output/retreat-routines-20261124/routine-evidence-parallel.log).
+
+## Cierre canónico del Retiro, Cementerio de Brastos, ganchos de PJ e hitos DM · 24/11/2026
+
+Cierre de fidelidad canónica del Capítulo 1 (*Aventura Los Dragones de la Isla de las Tempestades.pdf*, pp. 6–15, Mapa 2 p. 11, p. 27, pp. 41/44/47–48 y pregenerados pp. 49–58) junto con la restauración estructural de la fachada A4/A3 y el pulido arquitectónico previo de A2/A3/A4/Paseo (Fases 0–7 + 5 mejoras extra del 23/11, [comparativa interactiva A2/A3/A4/Paseo](../../output/retreat-final-20261123/index.html)):
+
+### 1. Reparación estructural y sellado de fachada
+- **Error de parseo en `retreat_interiors_a3_a4.gd`:** corregida la inferencia estricta en el bucle de vajilla (`var side_z := float(side_z_v)`, `var soup: bool`, `var drink: bool`) que abortaba `build_rooms_and_plaza_furniture()` y `build_cave_roofs_and_archways()`, restaurando íntegramente `A4CliffStrata`, `A3CliffStrata`, los 5 contrafuertes escalonados del paseo, bancos, faroles, tablón de avisos, muro occidental y el registro de *cutaway* de A2/A5.
+- **Sellado de costura A4/A3 (`retreat_scene_enhancer.gd`):** ampliado el borde oriental de `A4VaultMesh` (`112,75` → `112,95`) para solapar `A3VaultMesh` (`112,90`) eliminando la grieta vertical de `0,15 m` en la fachada superior.
+
+### 2. Narrativa ambiental, secretos de celdas, Cementerio de Brastos e hitos DM
+| Zona / Sistema | IDs / elementos implementados | Archivo propietario | Canon y función verificada |
+| --- | --- | --- | --- |
+| **A1 · Celdas 1–6 y Plaza** | `GuestBedroll_82_78`, `GuestBedroll_78_86` (Celda 1); `TarakCompostSack`, 2 pociones rubí y `TarakHiddenDaggers` (Celda 2); `WeaponRackVarnoth` con herramientas de cantero (conservando `RetreatRackShield`) + `VarnothHiddenSword` bajo el colchón (Celda 3); `MylaGearShopDisplay` con catálogo del PHB (Celda 4); `BleppDaggerPeg` (Celda 5); `MumpoHiddenCoin` (Celda 6); `BleppLookoutPost` en parapeto sur | `prototypes/godot-retiro/scripts/retreat_scene_enhancer.gd` | Secretos y utilería de pp. 8 y 47–48; todos inspeccionables `[T]` sin romper rutas ni rutinas de residentes. |
+| **A3 · Comedor y Cocina** | `A3_RunaraHeadChair` en cabecera este de la mesa sur; `A3_LayleeAlchemicalScorch` (hollín y cerámica rota) + `A3_LayleeWarningPlacard` en muro oeste de cocina | `prototypes/godot-retiro/scripts/retreat_interiors_a3_a4.gd` | Silla única de Runara (p. 10) y accidente alquímico de Laylee con aviso de Myla (p. 9). |
+| **A4 · Biblioteca** | `CrystalLampChimney` (lámparas de aceite con tulipa de cristal soplado) en escritorios y mesa de cartografía; códices de historia/teología (`lore_topic`) | `prototypes/godot-retiro/scripts/retreat_interiors_a3_a4.gd` | Iluminación de escritorio y fondos bibliográficos canónicos (p. 10). |
+| **A5 · Templo de Bahamut** | `CardinalIncenseSlot_N/S/E/W` en el estrado; `A5_VarnothMasonryKit` junto a `varnoth_temple`; bendición `+1d4` y lectura *Detectar magia* en el altar | `prototypes/godot-retiro/scripts/retreat_temple_and_cliffs.gd`, `scripts/interactive_prop.gd` | Hornacinas cardinales y consagración del santuario (p. 11). |
+| **NO · Cementerio de Brastos** | `NW_BrastosCliffGraveyard` en terraza elevada con musgo (`x=45,0`, `z=39,4`, `y=36,85 m`), escalera de 5 peldaños + rampa de colisión desde la senda NO (`z=44,20`, `y=35,50`), claro forestal reservado en `_build_lush_mountain_forest()`, 6 túmulos con lápidas de madera y flores, `BrastosGrave` interactiva | `prototypes/godot-retiro/scripts/retreat_temple_and_cliffs.gd`, `scripts/retreat_layout_builder.gd` | Tumba de Brastos sobre el acantilado noroeste (p. 27), despejada de árboles/roca y transitable. |
+| **Puestos PNJ y ganchos de PJ** | `kilnip_dining` ajustado a `(125,6, 18,0, 59,15)` en pasillo central libre; `HERO_TOPICS` añadidos sin desplazar índices previos para **Mía** (sueño de la sombra de muerte con Runara/Varnoth), **Trinity** (tatuaje de la Horca Dorada con Tarak/Runara) y **Mike** (carta del Observatorio y llave de piedra lunar con Runara/Myla) | `prototypes/godot-retiro/scripts/retreat_resident_directory.gd`, `scripts/retreat_conversations.gd`, `scripts/retreat_residents.gd`, `scripts/vtt_role_ui.gd` | Trasfondos y ganchos individuales de los pregenerados (pp. 49–58) respetando el contrato de diálogos existente. |
+| **Hitos del Retiro (DM)** | Conmutadores en HUD DM: `🎣 Zombis + aparejos` (`Z2_ZombieReappearanceGear` con cañas/cesta/peces + 3 marineros ahogados en playa, p. 12) y `🐉 Revelación A5` (`A5_RunaraRevelationFx` con aura de dragón de bronce + `MoonstoneKeyDisplay` en el altar, p. 13); guarda `is_visible_in_tree()` en `interactive_prop.gd` | `prototypes/godot-retiro/scripts/vtt_dm_hud.gd`, `scripts/retreat_temple_and_cliffs.gd`, `scripts/interactive_prop.gd` | Puesta en escena reversible bajo control del DM sin interferir con la exploración normal. |
+
+### 3. Verificación técnica y visual (Godot 4.7.2 Forward+)
+- **Sintaxis (`--check-only`):** **10/10 PASS** en todos los scripts modificados.
+- **Suites automatizadas tras el último cambio:** `test_retreat_layout.gd` **152/152**, `test_camera_contract.gd` **49/49**, `test_map_exits.gd` **128/128**, `test_retreat_residents.gd` **209/209** y `verify_canon_enhancements.gd` **29/29** (**567 PASS / 0 FAIL** totales).
+- **Revisión visual:** inspeccionadas 7 capturas nativas Forward+ (`canon_01_paseo_restored` a `canon_07_z2_fishing_gear`) confirmando la restauración de estratos/contrafuertes, sellado A4/A3, secretos de A1, interiores A3/A4/A5, Cementerio de Brastos limpio y los dos hitos DM.
+
+### 4. Pendientes separados del Retiro
+- Comercio transaccional en la tienda de Myla (deducción de oro y traspaso real de objetos a la mochila).
+- Entregas automáticas de misión y seguimiento de recompensas ligadas al progreso de campaña.
+- Sprite/animación de Runara en forma de dragón de bronce durante la revelación en A5.
+- Marchas de frente y de espalda, riego y descanso en hamacas de los residentes (heredados de *Vida del claustro*).
+- Aceptación artística en mesa del usuario y pruebas físicas/ENet en dispositivos.
+
+## Vida del claustro · 24/11/2026
+
+Los doce habitantes recorren la plaza, las celdas, las escaleras junto a A2, el comedor y la cocina de A3, la biblioteca de A4 y el acceso al templo de A5. Cada residente tiene un destino por franja. Hay catorce recorridos cortos entre puestos para tareas como revisar el pórtico, llevar recados y vigilar la bajada. Las rutas se apoyan en el suelo y las colisiones de la escena. Un PNJ espera si una puerta bloquea su recorrido y vuelve a intentarlo cuando queda paso. El combate pausa la actividad del claustro.
+
+Hay 29 opciones de diálogo para los doce residentes y siete intercambios entre parejas basados en los capítulos y escenas de las páginas 8–12 de la aventura. Los intercambios aparecen al alcance de oído y con paso visual libre. El encabezado indica la tarea del PNJ. Al hablar se detiene su recorrido y al terminar continúa hacia su destino. **Grupo** abre una conversación escrita con el nombre del héroe activo y guarda las líneas durante la sesión local.
+
+Se incorporaron doce marchas de perfil, una segunda vista para conservar la prótesis de Varnoth y cuatro gestos. Tarak echa hierbas al guiso de A3 con vapor en el fogón encendido. Agga organiza los recados, Blepp vigila el sendero y Kilnip gesticula al hablar. Se usaron los diseños existentes como referencia y se reservaron los originales por hash. El registro enlaza las 17 definiciones, las 136 poses limpias y las decisiones por recurso. [Comparativas, originales y animaciones](../../output/retreat-life-20261124/index.html).
+
+Verificado con 209 comprobaciones de rutas y juego, 145 comprobaciones y cinco pares comparables en Godot Forward+ a 1440 × 810, y 27 pruebas del catálogo. También pasaron las pruebas de cuadrícula (12), cámara (49) y jugador en cuatro escenas (88). La tanda de rutas registra 12 llegadas en cada franja y seguimiento continuo de Runara de los 9 a los 18 metros de altura. Se comprobó que las siete parejas tienen al menos un puesto en el que el jugador puede oír el intercambio. [Prueba de rutas](../../output/retreat-life-20261124/headless-proof.json) · [Prueba nativa](../../output/retreat-life-20261124/native-proof.json) · [Registro visual](../../output/retreat-life-20261124/capture-register.json).
+
+Quedan las marchas de frente y de espalda, el riego y el descanso en hamacas. Siguen pendientes el comercio de Myla, las entregas de misión y las escenas de rescate y revelación de Runara. La revisión artística en mesa y las pruebas físicas de dispositivos quedan por realizar.
+
 ## Habitantes del Retiro · 24/11/2026
 
 Canon consultado en el capítulo 1 de la aventura, pp. 7–12. La estructura y los niveles se contrastaron con el mapa de la p. 11. El guion corto, las posiciones y la distribución por franjas son decisiones de puesta en escena. El diálogo público de Runara conserva el secreto de su forma dracónica. Varnoth conserva su ojo izquierdo ciego y la prótesis derecha. Myla y Laylee trabajan con herramientas en tierra y Laylee evita el fuego alquímico.
@@ -16,7 +92,9 @@ Canon consultado en el capítulo 1 de la aventura, pp. 7–12. La estructura y l
 
 Cada estación toma el suelo y el espacio libre de las colisiones de la escena. El cambio de estación se espera hasta que el residente y su destino queden fuera de vista. Los gestos nuevos se pintaron con la herramienta integrada a partir de los diseños existentes. Las láminas de origen se conservan por hash y el importador extrae los ocho fotogramas a escala nativa, con apoyo de pies. Se selecciona una vista pintada por gesto. VA-03/06/10/13/16 y REF-01/03/08 guían la lectura, el contacto y la colocación. [Comparativas, originales y registro por ID](../../output/retreat-residents-20261124/index.html).
 
-Quedan los recorridos animados entre zonas, los otros ángulos y gestos de tareas como cocina, riego y descanso en hamacas. Quedan por secuenciar la segunda aparición de los zombis con Blepp y Tarak, el rescate de Runara y sus revelaciones, y el comercio de Myla y las entregas de misión. La candidata del Retiro se puede jugar localmente. La revisión artística en mesa sigue pendiente.
+La prueba física y funcional de la escena pasó 163 comprobaciones en modo sin pantalla. La prueba nativa de esta revisión pasó 205 con Godot Forward+ y produjo nueve pares de capturas a 1440 × 810, con cámara y escena fijas para cada par. Las 27 pruebas del catálogo de personajes también pasaron. Las capturas permiten revisar el apoyo de los habitantes y la revelación de los marineros. [Prueba nativa](../../output/retreat-residents-20261124/native-proof.json) · [Registro de capturas y originales](../../output/retreat-residents-20261124/capture-register.json).
+
+Después de esta primera entrega, [Vida del claustro](#vida-del-claustro--24112026) completó los recorridos animados y la cocina. La segunda aparición de los zombis con Blepp y Tarak sigue pendiente de puesta en escena.
 
 ## Encargo y Alcance
 

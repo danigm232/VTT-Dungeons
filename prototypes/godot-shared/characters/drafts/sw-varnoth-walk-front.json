@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-varnoth-walk-front",
+  "character": "sw-varnoth",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "walk",
+  "direction": "s",
+  "fps": 8,
+  "loop": true,
+  "dependencies": [
+    "sw-varnoth"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "anchored soles on a common baseline; directional walking"
+  },
+  "frames": [
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-walk-front/4da8043d6e65/01.png",
+      "pivot": [
+        0.515,
+        0.9879275653923542
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-walk-front/4da8043d6e65/02.png",
+      "pivot": [
+        0.5308056872037915,
+        0.9879518072289156
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-walk-front/4da8043d6e65/03.png",
+      "pivot": [
+        0.463768115942029,
+        0.9897330595482546
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-walk-front/4da8043d6e65/04.png",
+      "pivot": [
+        0.47342995169082125,
+        0.9879275653923542
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-walk-front/4da8043d6e65/05.png",
+      "pivot": [
+        0.47572815533980584,
+        0.9919678714859438
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-walk-front/4da8043d6e65/06.png",
+      "pivot": [
+        0.47783251231527096,
+        0.99
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-walk-front/4da8043d6e65/07.png",
+      "pivot": [
+        0.5099009900990099,
+        0.9877800407331976
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-walk-front/4da8043d6e65/08.png",
+      "pivot": [
+        0.4827586206896552,
+        0.9899193548387096
+      ]
+    }
+  ],
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/varnoth.png",
+    "prompt": "Create a production 2.5D game sprite sheet, using the uploaded figure as the exact character identity and painted materials reference. Varnoth, elderly woman with brown skin, very short black hair, scars and milky LEFT eye. Keep her brown linen clothing and one wood-and-metal prosthesis below her RIGHT knee only. For view toward viewer the prosthesis is on viewer's LEFT. From directly behind it is on viewer's RIGHT. The other lower leg is natural skin with leather sandal. Maintain this asymmetry in all eight cells. Only change the stance and body direction to this new gait, no new outfit, gear, shadow, text or scenery. Draw the character walking straight TOWARD the viewer. TRUE FRONT view in ALL eight phases. Nose and both eyes face viewer, both shoulders aligned horizontally. No three-quarter or profile. Orthographic camera slightly above head level, looking downward by about 16 degrees, stable in every cell. Width 1536, height 1024 or highest available 3:2. Transparent RGBA, no backdrop, floor, shadows, labels, frames or grid. Exactly EIGHT independent drawings in a 4 COLUMN by 2 ROW equal grid, centers at (12.5%,37.5%,62.5%,87.5%) in each row. Keep each whole figure inside their cell with at least 15 px empty margins, including tail, hands and outstretched toes. Ground baseline at 45% and 95% of image height. Preserve head and shoulder size for all frames. Distinct steps visible in the legs and arm counter-swing: 1 right heel advances, 2 right leg takes weight and left foot lifts, 3 left passes right, 4 left swings forward, 5 left heel advances while right trails, 6 left leg takes weight and right foot lifts, 7 right foot passes left, 8 right swings forward. Make the first and fifth frames visibly different sides of the gait. Short natural walking stride, not a run.",
+    "method": "ImageGen from the installed design; native-size cell extraction",
+    "sourcePages": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "minimumVisibleStandingPixels": 270,
+    "expectedPhases": 8,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-varnoth-walk-front-4da8043d6e65.png",
+    "originalSha256": "4da8043d6e65e8d353f534565a42058a15892be80b147cfb908df31df86dd4b6",
+    "importReport": "output/stormwreck-motion-detail/sw-varnoth-walk-front-4da8043d6e65.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 486,
+  "pivot": [
+    0.5,
+    0.9349442379182156
+  ]
+}

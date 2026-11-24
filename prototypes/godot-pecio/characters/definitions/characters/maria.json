@@ -47,6 +47,14 @@
     "run",
     "attack"
   ],
+  "combatMotionReuse": {
+    "catalogue": "prototypes/godot-shared/combat/catalogue.json#frames.rogue",
+    "source": "tokens/generated-20261004/rogue-rise.png",
+    "actions": ["fall", "stand"],
+    "framesPerAction": 4,
+    "compatibility": "Legacy painted clothing and equipment, logical feet unchanged. Existing recovery and fall sequences, no new atlas or fitted equipment.",
+    "exception": "Existing four-frame sequences are retained through the legacy adapter. This is not a newly drawn Stormwreck cycle."
+  },
   "limitations": [
     "Compatibility adapter: existing animations are retained; anatomical seeds are editable and are not approved equipment fitting.",
     "No newly authored animation or clothing is implied."

@@ -42,7 +42,7 @@ ambient_light_color = Color(0.34, 0.40, 0.46, 1)
 ambient_light_energy = 0.55
 tonemap_mode = 3
 tonemap_exposure = 1.02
-ssr_enabled = true
+ssr_enabled = false
 ssao_enabled = true
 ssao_radius = 1.25
 ssao_intensity = 1.65
@@ -73,8 +73,8 @@ shader_parameter/wave_speed = 1.15
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_ocean"]
 size = Vector2(280, 240)
-subdivide_width = 250
-subdivide_depth = 215
+subdivide_width = 160
+subdivide_depth = 136
 
 [node name="Main" type="Node3D"]
 script = ExtResource("1_ctrl")
@@ -95,12 +95,12 @@ shadow_bias = 0.02
 shadow_normal_bias = 0.85
 shadow_blur = 1.2
 shadow_opacity = 0.90
-directional_shadow_mode = 2
-directional_shadow_split_1 = 0.12
-directional_shadow_split_2 = 0.28
-directional_shadow_split_3 = 0.60
+directional_shadow_mode = 1
+directional_shadow_split_1 = 0.28
+directional_shadow_split_2 = 0.48
+directional_shadow_split_3 = 0.75
 directional_shadow_blend_splits = true
-directional_shadow_max_distance = 65.0
+directional_shadow_max_distance = 62.0
 
 [node name="TacticalCamera" type="Camera3D" parent="." node_paths=PackedStringArray("target")]
 transform = Transform3D(1, 0, 0, 0, 0.819152, 0.573576, 0, -0.573576, 0.819152, 0, 24, 34)

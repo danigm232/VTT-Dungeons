@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-zark-retreat-tidy",
+  "character": "sw-zark",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "retreat_tidy",
+  "direction": "se",
+  "fps": 7,
+  "loop": false,
+  "dependencies": [
+    "sw-zark"
+  ],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy/ec0e058bc17d/01.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy/ec0e058bc17d/02.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy/ec0e058bc17d/03.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy/ec0e058bc17d/04.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy/ec0e058bc17d/05.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy/ec0e058bc17d/06.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy/ec0e058bc17d/07.png",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy/ec0e058bc17d/08.png"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Current frame alpha",
+    "placement": "standing with world object controlled outside character sprite"
+  },
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/zark.png",
+    "prompt": "Production fantasy VTT sprite sheet. Attached figure is exact identity, clothing and material reference. Zark, gruff grey-copper kobold, original olive-taupe scarf and ragged worker's trousers, same blackened horns eyes and wiry tail. Maintain identity in eight poses. Same three-quarter front view angled toward screen right in all cells, modest tactical 16-degree elevation, natural proportional feet and body. Create eight chronological, visibly distinct full-body phases of this single action: perform a practical tidying action at a low table. Begin standing disgruntled, reach forward and down, brush the surface across to screen right with one open empty hand while the other steadies him, briefly move an invisible item with both hands, pull hands back to waist, shake one hand, return to stern neutral. Keep feet supported. No broom, cloth or other props drawn. Native 1536x1024 transparent RGBA, exact 4 columns by 2 rows, no labels, background, ground, shadows, panel lines, extra objects or changes of identity. Body and tail fully inside each cell with 16px empty gutters, soles grounded near 45% and 95% of full sheet height, preserve equal head scale across all eight views.",
+    "minimumVisibleStandingPixels": 250,
+    "expectedPhases": 8,
+    "sourcePages": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "method": "ImageGen from the installed design; native-size extraction",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-zark-retreat-tidy-ec0e058bc17d.png",
+    "originalSha256": "ec0e058bc17d3e24d8be513272cba8df5f76e6081910193bff836d82ffd57558",
+    "importReport": "output/stormwreck-motion-detail/sw-zark-retreat-tidy-ec0e058bc17d.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct PNG phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 436,
+  "pivot": [
+    0.5,
+    0.8819047619047619
+  ]
+}

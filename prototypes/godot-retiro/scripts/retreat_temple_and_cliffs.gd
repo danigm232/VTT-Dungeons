@@ -541,9 +541,12 @@ static func build_a5_monumental_architecture(builder: Node3D, parthenon: Node3D,
 	var mat_stone_dark := create_temple_stone_material(builder, Color("#767a7d"), 0.82, "basalt-coastal-albedo-v1.webp", 0.30, 0.56, 0.03)
 	var mat_stone_mid := create_temple_stone_material(builder, Color("#b0aa9c"), 0.76, "ashlar-v4.webp", 0.36, 0.48, 0.02)
 	var mat_stone_noble := create_temple_stone_material(builder, Color("#ccc5b4"), 0.72, "limestone-v3.webp", 0.38, 0.42, 0.03)
-	var mat_slate_a := create_temple_stone_material(builder, Color("#4b545e"), 0.88, "basalt-coastal-albedo-v1.webp", 0.42, 0.52, 0.0)
-	var mat_slate_b := create_temple_stone_material(builder, Color("#58626c"), 0.90, "coastal-rock.png", 0.44, 0.48, 0.0)
-	var mat_slate_ridge := create_temple_stone_material(builder, Color("#969b9f"), 0.78, "limestone-v3.webp", 0.42, 0.44, 0.02)
+	var mat_slate_a := create_temple_stone_material(builder, Color("#586168"), 0.95, "basalt-coastal-albedo-v1.webp", 0.42, 0.56, 0.0)
+	mat_slate_a.metallic_specular = 0.10
+	var mat_slate_b := create_temple_stone_material(builder, Color("#636c70"), 0.96, "coastal-rock.png", 0.44, 0.52, 0.0)
+	mat_slate_b.metallic_specular = 0.10
+	var mat_slate_ridge := create_temple_stone_material(builder, Color("#7e8380"), 0.90, "limestone-v3.webp", 0.42, 0.46, 0.0)
+	mat_slate_ridge.metallic_specular = 0.14
 	var mat_timber := create_temple_stone_material(builder, Color("#5f4631"), 0.84, "oak-v4.webp", 0.52, 0.45, 0.0)
 	var mat_platinum_relief := StandardMaterial3D.new()
 	mat_platinum_relief.albedo_color = Color("#cfd4db")
@@ -812,11 +815,11 @@ static func build_a5_monumental_architecture(builder: Node3D, parthenon: Node3D,
 			else:
 				tile_xfs_b.append(Transform3D(c_bas, Vector3(40.5, cy, cz)))
 
-		# 11 imbrices / tapajuntas longitudinales de piedra tallada siguiendo el faldón (ritmo clásico de templo!)
+		# 11 imbrices / tapajuntas longitudinales discretos de pizarra-caliza (sin efecto chapa metálica)
 		for ri in range(11):
 			var rx := lerpf(31.2, 49.8, float(ri) / 10.0)
-			var r_bas := Basis.from_euler(Vector3(sgn * slope_angle, 0.0, 0.0)) * Basis.from_scale(Vector3(0.24, 0.16, slope_len + 0.08))
-			rib_xfs.append(Transform3D(r_bas, Vector3(rx, mid_y + 0.28, mid_z)))
+			var r_bas := Basis.from_euler(Vector3(sgn * slope_angle, 0.0, 0.0)) * Basis.from_scale(Vector3(0.15, 0.09, slope_len + 0.04))
+			rib_xfs.append(Transform3D(r_bas, Vector3(rx, mid_y + 0.24, mid_z)))
 
 		# 13 pares / canecillos de madera oscura visibles bajo el alero saliente
 		for rfi in range(13):
@@ -993,6 +996,37 @@ static func build_a5_sacred_interior(builder: Node3D, a5_node: Node3D, y: float)
 	for dc in [Vector2(-1.18, -1.18), Vector2(1.18, -1.18), Vector2(-1.18, 1.18), Vector2(1.18, 1.18)]:
 		_box(dais, "DaisCornerPost_%d_%d" % [int(dc.x * 10.0), int(dc.y * 10.0)], Vector3(dc.x, 0.28, dc.y), Vector3(0.28, 0.34, 0.28), mat_stone_border)
 
+	# 4 hendiduras cardinales (N/S/E/O) talladas en el pedestal de Bahamut para ofrendas de incienso (canon p. 11)
+	for card in [
+		["N", Vector3(0.0, 0.32, -1.24), Vector3(0.42, 0.10, 0.14), Vector3(0.0, 0.0, 0.0)],
+		["S", Vector3(0.0, 0.32, 1.24), Vector3(0.42, 0.10, 0.14), Vector3(0.0, PI, 0.0)],
+		["W", Vector3(-1.24, 0.32, 0.0), Vector3(0.14, 0.10, 0.42), Vector3(0.0, PI * 0.5, 0.0)],
+		["E", Vector3(1.24, 0.32, 0.0), Vector3(0.14, 0.10, 0.42), Vector3(0.0, -PI * 0.5, 0.0)],
+	]:
+		var ctag: String = str(card[0])
+		var cpos: Vector3 = card[1]
+		var csz: Vector3 = card[2]
+		_box(dais, "CardinalIncenseSlot_%s" % ctag, cpos, csz, mat_stone_border, false)
+		_box(dais, "CardinalIncenseTray_%s" % ctag, cpos + Vector3(0.0, 0.045, 0.0), Vector3(csz.x * 0.72, 0.035, csz.z * 0.72), mat_bronze, false)
+		var stick := _cyl(dais, "CardinalIncenseStick_%s" % ctag, cpos + Vector3(0.0, 0.11, 0.0), 0.010, 0.012, 0.14, mat_charcoal, 6, false)
+		stick.rotation.z = 0.28 if ctag in ["N", "S"] else 0.0
+		stick.rotation.x = 0.28 if ctag in ["W", "E"] else 0.0
+		_cyl(dais, "CardinalIncenseEmber_%s" % ctag, cpos + Vector3(0.0, 0.17, 0.0), 0.014, 0.014, 0.022, mat_flame, 6, false)
+
+	# Útiles de albañilería de Varnoth junto al zócalo norte-oeste del templo (encaja con su rutina retreat_masonry sin obstruir paso)
+	var mason_kit := Node3D.new()
+	mason_kit.name = "A5_VarnothMasonryKit"
+	mason_kit.position = Vector3(35.05, y, 64.08)
+	interior.add_child(mason_kit)
+	_box(mason_kit, "DressedAshlarBlock", Vector3(0.0, 0.16, 0.0), Vector3(0.62, 0.32, 0.42), mat_stone_pale)
+	_box(mason_kit, "MasonMalletHead", Vector3(-0.14, 0.36, 0.04), Vector3(0.16, 0.09, 0.09), mat_iron, false)
+	_cyl(mason_kit, "MasonMalletHandle", Vector3(-0.04, 0.35, 0.04), 0.020, 0.022, 0.24, mat_bronze, 7, false).rotation.z = PI * 0.5
+	_box(mason_kit, "MasonChisel", Vector3(0.14, 0.335, -0.05), Vector3(0.22, 0.025, 0.035), mat_iron, false)
+	_cyl(mason_kit, "MortarBucket", Vector3(0.46, 0.16, 0.06), 0.14, 0.11, 0.32, mat_stone_border, 10)
+	SceneEnhancer.add_box_collider(mason_kit, Vector3(0.16, 0.20, 0.0), Vector3(0.95, 0.40, 0.52))
+	var mkip := SceneEnhancer._attach_interactive_prop(mason_kit, "table", "Sillar y herramientas de Varnoth", "[T] Examinar trabajo de albañilería", Vector3.ZERO, "n", "Bloque de caliza recién labrado, mazo y cincel: Varnoth restaura cada grieta que abre el salitre en el templo.")
+	mkip.interact_radius = 2.25
+
 	# Mesa/Ara de ofrendas situada delante del altar hacia la entrada este (x=42.85, z=69.5)
 	var offering := Node3D.new()
 	offering.name = "BahamutOfferingAltar"
@@ -1003,7 +1037,9 @@ static func build_a5_sacred_interior(builder: Node3D, a5_node: Node3D, y: float)
 	_box(offering, "OfferingTableTop", Vector3(0.0, 0.84, 0.0), Vector3(0.98, 0.12, 1.78), mat_stone_pale)
 	_box(offering, "OfferingPlatinumInlay", Vector3(0.0, 0.905, 0.0), Vector3(0.76, 0.02, 1.48), mat_platinum_trim, false)
 	# Cuenco ceremonial de ofrendas + 2 candelabros votivos + pergamino sagrado
-	_cyl(offering, "OfferingBowl", Vector3(0.0, 0.98, 0.0), 0.22, 0.13, 0.14, mat_bronze, 12, false)
+	var offering_bowl := _cyl(offering, "OfferingBowl", Vector3(0.0, 0.98, 0.0), 0.22, 0.13, 0.14, mat_bronze, 12, false)
+	offering_bowl.add_to_group("retreat_routine_props")
+	offering_bowl.add_to_group("dynamic_prop")
 	_cyl(offering, "OfferingIncenseGlow", Vector3(0.0, 1.04, 0.0), 0.14, 0.14, 0.04, mat_flame, 10, false)
 	for cz_v in [-0.62, 0.62]:
 		_cyl(offering, "VotiveCandleBase_%d" % int(cz_v * 10.0), Vector3(-0.08, 0.96, float(cz_v)), 0.09, 0.12, 0.12, mat_bronze, 10, false)
@@ -1517,3 +1553,326 @@ static func build_z7_terraced_gardens(builder: Node3D, parent: Node3D) -> void:
 		var mm_pn: MultiMeshInstance3D = builder.call("_make_multimesh_batch", "MM_Z7GardenConifers", p_mesh, shrub_mat, pine_xf, pine_col)
 		mm_pn.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 		z7_root.add_child(mm_pn)
+
+# ==============================================================================
+# CANON PDF (p. 27): CEMENTERIO DE BRASTOS EN LOS ACANTILADOS AL NOROESTE
+# Pequeña terraza natural conectada a la cima NO (x=44.25..45.75, z=44.25, y=35.50m)
+# con tumbas cubiertas de flores silvestres blancas y lápidas sencillas de madera.
+# ==============================================================================
+static func build_brastos_nw_graveyard(builder: Node3D, parent: Node3D) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 202611241
+
+	var gy_root := Node3D.new()
+	gy_root.name = "NW_BrastosCliffGraveyard"
+	parent.add_child(gy_root)
+
+	var y_top := 36.85
+	var cx := 45.0
+	var cz := 39.4
+
+	var mat_cliff := create_unified_rock_vcol_material(builder, 0.88, 0.72)
+	var mat_wall := create_temple_stone_material(builder, Color("#9a978c"), 0.84, "ashlar-v4.webp", 0.34, 0.50, 0.01)
+	var mat_flag := create_temple_stone_material(builder, Color("#b8b2a2"), 0.80, "limestone-v3.webp", 0.36, 0.40, 0.01)
+	var mat_turf := StandardMaterial3D.new()
+	mat_turf.albedo_color = Color("#4a5f3b")
+	mat_turf.roughness = 0.94
+	var mat_soil := StandardMaterial3D.new()
+	mat_soil.albedo_color = Color("#4d3f31")
+	mat_soil.roughness = 0.96
+	var mat_plank_a := StandardMaterial3D.new()
+	mat_plank_a.albedo_color = Color("#6e5b47")
+	mat_plank_a.roughness = 0.88
+	var mat_plank_b := StandardMaterial3D.new()
+	mat_plank_b.albedo_color = Color("#5b4c3d")
+	mat_plank_b.roughness = 0.90
+	var mat_bronze: Material = builder.get("mat_bronze")
+	var mat_flame: Material = builder.get("mat_flame")
+
+	# 1. Plinto volcánico estratificado estrictamente bajo la terraza del cementerio (sin sobresalir hacia el cruce A5North/A5RidgeW en z>42.8 ni x>49.2)
+	var cliff_block := make_faceted_cliff_block_mesh(20261124, 5)
+	for b_cfg in [
+		[Vector3(45.0, 26.2, 39.0), Vector3(7.4, 9.6, 7.0), 0.10],
+		[Vector3(41.4, 26.4, 39.4), Vector3(3.2, 9.2, 4.4), -0.26],
+		[Vector3(48.2, 26.4, 39.0), Vector3(3.0, 9.2, 4.2), 0.20],
+		[Vector3(45.0, 26.8, 35.6), Vector3(6.8, 8.8, 3.8), 0.04],
+	]:
+		var cb := MeshInstance3D.new()
+		cb.name = "GraveyardCliffBase"
+		cb.mesh = cliff_block
+		cb.material_override = mat_cliff
+		cb.position = b_cfg[0]
+		cb.scale = b_cfg[1]
+		cb.rotation.y = float(b_cfg[2])
+		cb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		gy_root.add_child(cb)
+
+	# 1B. Descansillo de piedra tallada uniendo limpiamente RusticStair_A5North (52.1, 34.82, 48.0),
+	#     RusticStair_A5RidgeW (49.5, 34.7, 44.2) y el acceso al Cementerio de Brastos (45.0, 35.5, 44.2)
+	var summit_land := Node3D.new()
+	summit_land.name = "A5NorthSummitLanding"
+	gy_root.add_child(summit_land)
+	_box(summit_land, "SummitLandingCore", Vector3(48.8, 33.4, 46.2), Vector3(9.6, 3.1, 5.2), mat_wall)
+	_box(summit_land, "SummitLandingDeck", Vector3(48.8, 34.96, 46.2), Vector3(9.8, 0.18, 5.4), mat_flag)
+	SceneEnhancer.add_box_collider(summit_land, Vector3(48.8, 34.86, 46.2), Vector3(9.8, 0.36, 5.4))
+	# Enlace inclinado suave desde el descansillo (x=48.8, y=35.0) hasta la base de los escalones del cementerio (x=45.0, z=44.2, y=35.5)
+	_box(summit_land, "SummitToGraveApron", Vector3(45.4, 35.22, 44.6), Vector3(3.6, 0.56, 1.6), mat_flag)
+	SceneEnhancer.add_box_collider(summit_land, Vector3(45.4, 35.22, 44.6), Vector3(3.6, 0.56, 1.6))
+	# Bordillo protector norte del descansillo (entre cementerio y cima de A5North) + farol de cumbre
+	_box(summit_land, "SummitNorthCurb", Vector3(51.4, 35.34, 43.75), Vector3(4.2, 0.58, 0.42), mat_wall)
+	_box(summit_land, "SummitNorthCurbCap", Vector3(51.4, 35.68, 43.75), Vector3(4.3, 0.12, 0.50), mat_flag)
+	_box(summit_land, "SummitCornerPillar", Vector3(53.45, 35.60, 44.05), Vector3(0.56, 1.15, 0.56), mat_flag)
+	var sl_flm := _cyl(summit_land, "SummitCornerLanternFlame", Vector3(53.45, 36.32, 44.05), 0.055, 0.075, 0.20, mat_flame, 7, false)
+	sl_flm.add_to_group("night_flame")
+	var sl_lt := OmniLight3D.new()
+	sl_lt.name = "SummitCornerLanternLight"
+	sl_lt.position = Vector3(53.45, 36.65, 44.05)
+	sl_lt.light_color = Color(1.0, 0.78, 0.42)
+	sl_lt.light_energy = 1.45
+	sl_lt.omni_range = 12.0
+	summit_land.add_child(sl_lt)
+	builder.call("register_flame_fx", sl_flm, sl_lt, false)
+
+	# 2. Terraza elevada sobre la cresta rocosa + escalinata de 5 peldaños de piedra subiendo desde la senda alta (y=35.50 -> 36.85m)
+	_box(gy_root, "GraveyardStoneBase", Vector3(cx, y_top - 0.56, cz), Vector3(7.9, 0.90, 7.5), mat_wall)
+	_box(gy_root, "GraveyardTurfTerrace", Vector3(cx, y_top - 0.06, cz), Vector3(7.6, 0.14, 7.2), mat_turf)
+	SceneEnhancer.add_box_collider(gy_root, Vector3(cx, y_top - 0.14, cz), Vector3(7.6, 0.28, 7.2))
+	# 5 peldaños firmes en piedra caliza + rampa de colisión suave conectando z=44.20 (y=35.50) con z=42.85 (y=36.85)
+	var y_start := 35.52
+	for st_i in range(5):
+		var frac := float(st_i + 1) / 5.0
+		var sy := lerpf(y_start, y_top, frac)
+		var sz := lerpf(44.20, 42.98, frac)
+		_box(gy_root, "GraveyardAccessStep_%d" % st_i, Vector3(cx, sy - 0.16, sz), Vector3(2.85, 0.34, 0.34), mat_flag)
+	var ramp_sb := StaticBody3D.new()
+	ramp_sb.name = "GraveyardAccessRampCollider"
+	var ramp_cs := CollisionShape3D.new()
+	var ramp_box := BoxShape3D.new()
+	ramp_box.size = Vector3(2.90, 0.30, 1.95)
+	ramp_cs.shape = ramp_box
+	ramp_sb.add_child(ramp_cs)
+	ramp_sb.position = Vector3(cx, (y_start + y_top) * 0.5 - 0.14, 43.55)
+	ramp_sb.rotation.x = atan2(y_top - y_start, 1.45)
+	gy_root.add_child(ramp_sb)
+
+	# Lajas desgastadas guiando desde la entrada sur hasta la tumba central de Brastos
+	for step_i in range(4):
+		var sz := lerpf(42.55, 40.05, float(step_i) / 3.0)
+		var sx := cx + sin(float(step_i) * 1.4) * 0.20
+		var sl := _box(gy_root, "GraveyardStepSlab_%d" % step_i, Vector3(sx, y_top + 0.025, sz), Vector3(0.86, 0.04, 0.54), mat_flag, false)
+		sl.rotation.y = rng.randf_range(-0.14, 0.14)
+
+	# Muro bajo de piedra seca protegiendo el borde del acantilado (N, O, E y flancos de entrada sur)
+	for wall_cfg in [
+		["WallN", Vector3(cx, y_top + 0.30, cz - 3.45), Vector3(7.5, 0.62, 0.42)],
+		["WallW", Vector3(cx - 3.65, y_top + 0.30, cz), Vector3(0.42, 0.62, 6.8)],
+		["WallE", Vector3(cx + 3.65, y_top + 0.30, cz), Vector3(0.42, 0.62, 6.8)],
+		["WallSW", Vector3(cx - 2.55, y_top + 0.30, cz + 3.45), Vector3(2.3, 0.62, 0.42)],
+		["WallSE", Vector3(cx + 2.55, y_top + 0.30, cz + 3.45), Vector3(2.3, 0.62, 0.42)],
+	]:
+		_box(gy_root, "Graveyard" + str(wall_cfg[0]), wall_cfg[1], wall_cfg[2], mat_wall)
+		SceneEnhancer.add_box_collider(gy_root, wall_cfg[1], wall_cfg[2])
+
+	# Postes sencillos de madera desgastada en la entrada + farol sereno de bronce
+	for px in [cx - 1.32, cx + 1.32]:
+		_box(gy_root, "GraveyardGatePost_%d" % int(px * 10.0), Vector3(float(px), y_top + 0.62, cz + 3.45), Vector3(0.22, 1.24, 0.22), mat_plank_b)
+	_cyl(gy_root, "GraveyardLanternBase", Vector3(cx + 1.32, y_top + 1.30, cz + 3.45), 0.11, 0.13, 0.10, mat_bronze, 8, false)
+	var gy_flm := _cyl(gy_root, "GraveyardLanternFlame", Vector3(cx + 1.32, y_top + 1.44, cz + 3.45), 0.04, 0.055, 0.18, mat_flame, 7, false)
+	gy_flm.add_to_group("night_flame")
+	var gy_lt := OmniLight3D.new()
+	gy_lt.name = "GraveyardLanternLight"
+	gy_lt.position = Vector3(cx + 1.32, y_top + 1.72, cz + 3.45)
+	gy_lt.light_color = Color(0.95, 0.84, 0.62)
+	gy_lt.light_energy = 1.15
+	gy_lt.omni_range = 9.5
+	gy_root.add_child(gy_lt)
+	builder.call("register_flame_fx", gy_flm, gy_lt, false)
+
+	# 3. Seis tumbas humildes con planchas de madera a modo de lápidas y flores silvestres blancas (p. 27)
+	var flower_xf: Array[Transform3D] = []
+	var flower_col: Array[Color] = []
+	var shrub_xf: Array[Transform3D] = []
+	var shrub_col: Array[Color] = []
+	var white_bloom_pal: Array[Color] = [Color("#f4f3ec"), Color("#ebe9de"), Color("#fafaf4"), Color("#dde6e4")]
+	var turf_greens: Array[Color] = [Color("#4e6a3e"), Color("#5c7848"), Color("#425c35")]
+
+	var grave_specs := [
+		{"name": "BrastosGrave", "pos": Vector3(45.0, y_top, 38.55), "yaw": 0.0, "is_brastos": true},
+		{"name": "GraveNW", "pos": Vector3(42.75, y_top, 38.75), "yaw": 0.12, "is_brastos": false},
+		{"name": "GraveNE", "pos": Vector3(47.20, y_top, 38.65), "yaw": -0.10, "is_brastos": false},
+		{"name": "GraveSW", "pos": Vector3(42.95, y_top, 41.05), "yaw": 0.08, "is_brastos": false},
+		{"name": "GraveSE", "pos": Vector3(47.05, y_top, 41.15), "yaw": -0.14, "is_brastos": false},
+		{"name": "GraveFarN", "pos": Vector3(45.0, y_top, 37.15), "yaw": 0.04, "is_brastos": false},
+	]
+	for gi in range(grave_specs.size()):
+		var gs: Dictionary = grave_specs[gi]
+		var gpos: Vector3 = gs["pos"]
+		var gyaw := float(gs["yaw"])
+		var is_b := bool(gs["is_brastos"])
+		var gnode := Node3D.new()
+		gnode.name = str(gs["name"])
+		gnode.position = gpos
+		gnode.rotation.y = gyaw
+		gy_root.add_child(gnode)
+
+		# Túmulo bajo de tierra cubierta de hierba y flores blancas
+		var mound_w := 0.96 if is_b else 0.80
+		var mound_l := 1.65 if is_b else 1.42
+		_box(gnode, "Mound", Vector3(0.0, 0.06, 0.24), Vector3(mound_w, 0.12, mound_l), mat_soil, false)
+		# Plancha de madera desgastada a modo de lápida (p. 27)
+		var plank_h := 0.92 if is_b else rng.randf_range(0.68, 0.82)
+		var plank := _box(gnode, "WoodHeadstone", Vector3(0.0, plank_h * 0.5, -0.56), Vector3(0.42 if is_b else 0.34, plank_h, 0.075), mat_plank_a if gi % 2 == 0 else mat_plank_b)
+		plank.rotation.z = rng.randf_range(-0.07, 0.07) if not is_b else 0.02
+		plank.rotation.x = rng.randf_range(-0.05, 0.06)
+		if is_b:
+			# Detalle discreto de ofrenda y pequeña inscripción tallada en la lápida de Brastos
+			_box(gnode, "BrastosPlaqueTrim", Vector3(0.0, 0.58, -0.515), Vector3(0.30, 0.16, 0.02), mat_bronze, false)
+			_cyl(gnode, "BrastosOfferingDish", Vector3(0.0, 0.15, -0.34), 0.13, 0.10, 0.06, mat_flag, 10, false)
+			SceneEnhancer.add_box_collider(gnode, Vector3(0.0, 0.45, -0.56), Vector3(0.50, 0.90, 0.22))
+			var bip := SceneEnhancer._attach_interactive_prop(gnode, "shrine", "Tumba de Brastos", "[T] Examinar tumba de Brastos", Vector3.ZERO, "n", "Plancha de madera gastada por el salitre con el nombre «Brastos», rodeada de flores silvestres blancas. Aquí descansa el esposo de Aleitha, capitana del Rosa de los Vientos.")
+			bip.set_meta("secret_id", "brastos_grave")
+			bip.interact_radius = 2.65
+		else:
+			SceneEnhancer.add_box_collider(gnode, Vector3(0.0, 0.36, -0.56), Vector3(0.40, 0.72, 0.18))
+
+		# Flores silvestres blancas cubriendo cada túmulo
+		var n_fl := 10 if is_b else 6
+		for fi in range(n_fl):
+			var fx := gpos.x + rng.randf_range(-mound_w * 0.48, mound_w * 0.48)
+			var fz := gpos.z + 0.22 + rng.randf_range(-mound_l * 0.46, mound_l * 0.46)
+			var fsc := rng.randf_range(0.24, 0.42)
+			var fb := Basis.from_euler(Vector3(0.0, rng.randf_range(0.0, TAU), 0.0)) * Basis.from_scale(Vector3(fsc, fsc * 0.85, fsc))
+			flower_xf.append(Transform3D(fb, Vector3(fx, y_top + 0.14, fz)))
+			flower_col.append(white_bloom_pal[rng.randi() % white_bloom_pal.size()])
+		for si in range(3):
+			var sx := gpos.x + rng.randf_range(-mound_w * 0.55, mound_w * 0.55)
+			var sz := gpos.z + 0.20 + rng.randf_range(-mound_l * 0.50, mound_l * 0.50)
+			var ssc := rng.randf_range(0.28, 0.46)
+			var sb := Basis.from_euler(Vector3(0.0, rng.randf_range(0.0, TAU), 0.0)) * Basis.from_scale(Vector3(ssc, ssc * 0.58, ssc))
+			shrub_xf.append(Transform3D(sb, Vector3(sx, y_top + 0.10, sz)))
+			shrub_col.append(turf_greens[rng.randi() % turf_greens.size()])
+
+	var gy_shrub_mat := StandardMaterial3D.new()
+	gy_shrub_mat.vertex_color_use_as_albedo = true
+	gy_shrub_mat.vertex_color_is_srgb = true
+	gy_shrub_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	gy_shrub_mat.roughness = 0.88
+	var gy_fl_mat := StandardMaterial3D.new()
+	gy_fl_mat.vertex_color_use_as_albedo = true
+	gy_fl_mat.vertex_color_is_srgb = true
+	gy_fl_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	gy_fl_mat.roughness = 0.72
+	var mm_gsh: MultiMeshInstance3D = builder.call("_make_multimesh_batch", "MM_GraveyardGrass", SceneEnhancer.make_botanical_shrub_mesh(), gy_shrub_mat, shrub_xf, shrub_col)
+	mm_gsh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	gy_root.add_child(mm_gsh)
+	var mm_gfl: MultiMeshInstance3D = builder.call("_make_multimesh_batch", "MM_GraveyardWhiteWildflowers", SceneEnhancer.make_blossom_cluster_mesh(), gy_fl_mat, flower_xf, flower_col)
+	mm_gfl.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	gy_root.add_child(mm_gfl)
+
+# ==============================================================================
+# HITO DM (PDF p. 12): APAREJOS DE PESCA ABANDONADOS ("Reaparición de zombis")
+# ==============================================================================
+static func build_zombie_reappearance_gear(builder: Node3D, parent: Node3D) -> Node3D:
+	var gear := Node3D.new()
+	gear.name = "Z2_ZombieReappearanceGear"
+	gear.position = Vector3(36.2, 1.50, 108.65)
+	gear.visible = false
+	parent.add_child(gear)
+
+	var mat_wood: Material = builder.get("mat_wood")
+	var mat_wood_dark: Material = builder.get("mat_wood_dark")
+	var mat_rope := StandardMaterial3D.new()
+	mat_rope.albedo_color = Color("#b89e72")
+	mat_rope.roughness = 0.92
+	var mat_wicker := StandardMaterial3D.new()
+	mat_wicker.albedo_color = Color("#9b7c52")
+	mat_wicker.roughness = 0.90
+	var mat_fish := StandardMaterial3D.new()
+	mat_fish.albedo_color = Color("#98aeb8")
+	mat_fish.metallic = 0.38
+	mat_fish.roughness = 0.34
+
+	# 2 cañas de pescar caídas en diagonal en el descansillo inferior de Z2
+	var rod_a := _cyl(gear, "DroppedFishingRodA", Vector3(-0.35, 0.06, -0.18), 0.014, 0.026, 2.05, mat_wood, 7)
+	rod_a.rotation = Vector3(0.05, 0.58, PI * 0.5)
+	var rod_b := _cyl(gear, "DroppedFishingRodB", Vector3(0.28, 0.07, 0.22), 0.012, 0.024, 1.85, mat_wood_dark, 7)
+	rod_b.rotation = Vector3(-0.04, -0.72, PI * 0.5)
+	# Cesto de pesca volcado + 3 peces plateados desparramados + carrete de sedal
+	var creel := _cyl(gear, "OverturnedCreel", Vector3(0.08, 0.17, -0.04), 0.22, 0.18, 0.42, mat_wicker, 10)
+	creel.rotation = Vector3(0.0, 0.45, PI * 0.46)
+	for f_cfg in [[Vector3(0.42, 0.045, -0.12), 0.35], [Vector3(0.56, 0.045, 0.08), -0.62], [Vector3(0.32, 0.045, 0.18), 1.15]]:
+		var fish := _box(gear, "SpilledFish", f_cfg[0], Vector3(0.30, 0.055, 0.10), mat_fish, false)
+		fish.rotation.y = float(f_cfg[1])
+	_cyl(gear, "FishingLineCoil", Vector3(-0.48, 0.05, 0.24), 0.14, 0.14, 0.08, mat_rope, 10, false)
+	var gip := SceneEnhancer._attach_interactive_prop(gear, "table", "Aparejos de pesca abandonados", "[T] Examinar aparejos tirados", Vector3.ZERO, "s", "Cañas de pescar, cesto volcado y captura reciente: Tarak y Blepp soltaron el equipo al huir cuesta arriba perseguidos por tres marineros ahogados.")
+	gip.interact_radius = 2.65
+	return gear
+
+# ==============================================================================
+# HITO DM (PDF p. 13): REVELACIÓN DE RUNARA EN A5 + LLAVE DE PIEDRA LUNAR
+# ==============================================================================
+static func build_a5_runara_revelation_fx(builder: Node3D, a5_node: Node3D, y: float) -> Node3D:
+	var rev := Node3D.new()
+	rev.name = "A5_RunaraRevelationFx"
+	rev.visible = false
+	a5_node.add_child(rev)
+
+	# Halo radiante de bronce-oro envolviendo el octógono sagrado de Bahamut
+	var mat_aura := StandardMaterial3D.new()
+	mat_aura.albedo_color = Color(0.95, 0.74, 0.32, 0.42)
+	mat_aura.emission_enabled = true
+	mat_aura.emission = Color(1.0, 0.78, 0.34)
+	mat_aura.emission_energy_multiplier = 1.45
+	mat_aura.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat_aura.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var ring_mi := MeshInstance3D.new()
+	ring_mi.name = "BronzeDragonSanctuaryHalo"
+	var tm := TorusMesh.new()
+	tm.inner_radius = 3.05
+	tm.outer_radius = 3.28
+	tm.rings = 32
+	tm.ring_segments = 10
+	ring_mi.mesh = tm
+	ring_mi.material_override = mat_aura
+	ring_mi.position = Vector3(40.5, y + 0.10, 69.5)
+	ring_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	rev.add_child(ring_mi)
+
+	var drac_light := OmniLight3D.new()
+	drac_light.name = "RunaraDragonPresenceLight"
+	drac_light.position = Vector3(40.5, y + 4.4, 69.5)
+	drac_light.light_color = Color(1.0, 0.80, 0.40)
+	drac_light.light_energy = 3.2
+	drac_light.omni_range = 18.0
+	rev.add_child(drac_light)
+
+	# Llave de piedra lunar resplandeciente sobre el ara de ofrendas (x=42.75, y+0.94, z=69.5)
+	var key_node := Node3D.new()
+	key_node.name = "MoonstoneKeyDisplay"
+	key_node.position = Vector3(42.75, y + 0.94, 69.5)
+	rev.add_child(key_node)
+	var mat_velvet := StandardMaterial3D.new()
+	mat_velvet.albedo_color = Color("#243b57")
+	mat_velvet.roughness = 0.92
+	var mat_moonstone := StandardMaterial3D.new()
+	mat_moonstone.albedo_color = Color("#dceeff")
+	mat_moonstone.roughness = 0.14
+	mat_moonstone.metallic = 0.25
+	mat_moonstone.emission_enabled = true
+	mat_moonstone.emission = Color("#82c6ff")
+	mat_moonstone.emission_energy_multiplier = 1.65
+	_box(key_node, "VelvetCushion", Vector3(0.0, 0.03, 0.28), Vector3(0.32, 0.06, 0.24), mat_velvet, false)
+	_cyl(key_node, "MoonstoneKeyBow", Vector3(-0.07, 0.085, 0.28), 0.048, 0.048, 0.025, mat_moonstone, 12, false)
+	_box(key_node, "MoonstoneKeyShaft", Vector3(0.04, 0.085, 0.28), Vector3(0.16, 0.022, 0.028), mat_moonstone, false)
+	_box(key_node, "MoonstoneKeyBit", Vector3(0.10, 0.085, 0.31), Vector3(0.04, 0.022, 0.05), mat_moonstone, false)
+	var key_lt := OmniLight3D.new()
+	key_lt.name = "MoonstoneKeyGlow"
+	key_lt.position = Vector3(0.0, 0.26, 0.28)
+	key_lt.light_color = Color(0.62, 0.85, 1.0)
+	key_lt.light_energy = 1.35
+	key_lt.omni_range = 4.5
+	key_node.add_child(key_lt)
+	var kip := SceneEnhancer._attach_interactive_prop(key_node, "secret", "Llave de piedra lunar", "[T] Examinar llave de piedra lunar", Vector3.ZERO, "w", "La llave tallada en piedra lunar que Runara confía al grupo tras revelar su forma de dragona de bronce: abre el acceso al Observatorio oriental.")
+	kip.set_meta("secret_id", "moonstone_key")
+	kip.interact_radius = 2.65
+	return rev
