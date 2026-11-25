@@ -1,0 +1,112 @@
+{
+  "id": "sw-mike-loading-scroll-walk-v6",
+  "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-loading-scroll-walk-v6-5c1da44a7fab.png",
+  "sourceSha256": "5c1da44a7fab127911b19663d9e8aa76392d97bfe72227c1fa0eea3924f1e9f8",
+  "size": [
+    1774,
+    887
+  ],
+  "grid": [
+    4,
+    2
+  ],
+  "columnCutsByRow": [
+    [
+      0,
+      444,
+      887,
+      1330,
+      1774
+    ],
+    [
+      0,
+      444,
+      887,
+      1330,
+      1774
+    ]
+  ],
+  "cellBounds": [
+    [
+      122,
+      15,
+      307,
+      425
+    ],
+    [
+      128,
+      15,
+      306,
+      424
+    ],
+    [
+      122,
+      15,
+      318,
+      419
+    ],
+    [
+      111,
+      15,
+      333,
+      413
+    ],
+    [
+      107,
+      15,
+      324,
+      414
+    ],
+    [
+      106,
+      14,
+      321,
+      413
+    ],
+    [
+      115,
+      14,
+      305,
+      415
+    ],
+    [
+      120,
+      14,
+      306,
+      425
+    ]
+  ],
+  "visibleHeights": [
+    410,
+    409,
+    404,
+    398,
+    399,
+    399,
+    401,
+    411
+  ],
+  "distinctPhases": 8,
+  "errors": [],
+  "minimumAlpha": 24,
+  "silhouetteAlpha": 24,
+  "operation": "Native-size cell extraction, faint alpha removed and common registration. No resizing.",
+  "equivalentPngBytes": 1067104,
+  "format": "webp",
+  "frameBytes": 766020,
+  "referenceHeight": 402,
+  "framePaths": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-walk-v6/5c1da44a7fab/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-walk-v6/5c1da44a7fab/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-walk-v6/5c1da44a7fab/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-walk-v6/5c1da44a7fab/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-walk-v6/5c1da44a7fab/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-walk-v6/5c1da44a7fab/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-walk-v6/5c1da44a7fab/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-walk-v6/5c1da44a7fab/08.webp"
+  ],
+  "pivot": [
+    0.5,
+    0.9209401709401709
+  ]
+}

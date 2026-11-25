@@ -1,0 +1,112 @@
+{
+  "id": "sw-mike-loading-medicine-v6",
+  "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-loading-medicine-v6-b6c352325d31.png",
+  "sourceSha256": "b6c352325d313e599ff2d1a8bb2fd924672026b3bde6d1f92dc9968a9e456ba2",
+  "size": [
+    2172,
+    724
+  ],
+  "grid": [
+    4,
+    2
+  ],
+  "columnCutsByRow": [
+    [
+      0,
+      543,
+      1086,
+      1629,
+      2172
+    ],
+    [
+      0,
+      543,
+      1086,
+      1629,
+      2172
+    ]
+  ],
+  "cellBounds": [
+    [
+      146,
+      64,
+      409,
+      321
+    ],
+    [
+      147,
+      63,
+      409,
+      321
+    ],
+    [
+      139,
+      69,
+      408,
+      322
+    ],
+    [
+      138,
+      68,
+      409,
+      322
+    ],
+    [
+      145,
+      61,
+      409,
+      318
+    ],
+    [
+      139,
+      62,
+      409,
+      318
+    ],
+    [
+      130,
+      62,
+      408,
+      318
+    ],
+    [
+      127,
+      64,
+      408,
+      318
+    ]
+  ],
+  "visibleHeights": [
+    257,
+    258,
+    253,
+    254,
+    257,
+    256,
+    256,
+    254
+  ],
+  "distinctPhases": 8,
+  "errors": [],
+  "minimumAlpha": 24,
+  "silhouetteAlpha": 24,
+  "operation": "Native-size cell extraction, faint alpha removed and common registration. No resizing.",
+  "equivalentPngBytes": 1055373,
+  "format": "webp",
+  "frameBytes": 742232,
+  "referenceHeight": 256,
+  "framePaths": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/08.webp"
+  ],
+  "pivot": [
+    0.5,
+    0.8677248677248677
+  ]
+}

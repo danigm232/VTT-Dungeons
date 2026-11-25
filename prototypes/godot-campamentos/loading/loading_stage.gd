@@ -116,6 +116,12 @@ func _selection(character: String) -> Dictionary:
 	if phase in ["success", "failure"]: return config[phase][clampi(int(progress * 128), 0, 128)]
 	return config.get("ambient" if phase == "roll" else phase, config.ambient)
 
+static func playback_frame(count: int, fps: float, elapsed: float, looped: bool, pose: float = -1.0) -> int:
+	if count < 1: return 0
+	if pose >= 0: return clampi(int(pose * count), 0, count - 1)
+	var index = int(maxf(0, elapsed) * fps)
+	return index % count if looped else mini(count - 1, index)
+
 func _actor(character: String, pos: Vector2, motion: Dictionary, selected: Dictionary = {}) -> void:
 	if float(motion.opacity) <= 0.001: return
 	height = float(data.actors[character].height)
@@ -123,11 +129,10 @@ func _actor(character: String, pos: Vector2, motion: Dictionary, selected: Dicti
 	var balance_ambient = session.entry.mode == "contest" and scene.id == "acrobatics" and phase in ["ambient", "roll", "prepare"]
 	if balance_ambient: choice = data.actors[character].scenes.acrobatics.success[64]
 	var clip = data.selections[int(choice.clip)]
-	var key = character + ":" + str(choice.role)
+	var key = character + ":clip:" + str(choice.clip)
 	if not role_clocks.has(key): role_clocks[key] = clock
 	var time = clock - float(role_clocks[key])
-	var index = int(time * (3.0 if balance_ambient else float(clip.fps))) % clip.frames.size()
-	if choice.has("pose"): index = mini(clip.frames.size() - 1, int(float(choice.pose) * clip.frames.size()))
+	var index = playback_frame(clip.frames.size(), 3.0 if balance_ambient else float(clip.fps), time, bool(clip.loop), float(choice.get("pose", -1)))
 	if reduced: index = clip.frames.size() - 1 if choice.has("pose") else 0
 	var scale = height / float(clip.referenceHeight)
 	var breath = 1.0 if choice.role in ["run_loop", "walk_loop", "sneak_loop", "jump", "slip"] or reduced else 1.0 + sin(clock * 2.7) * 0.0025

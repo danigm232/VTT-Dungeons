@@ -1,0 +1,112 @@
+{
+  "id": "sw-mike-loading-pickpocket-v6",
+  "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-loading-pickpocket-v6-8da8821e0e49.png",
+  "sourceSha256": "8da8821e0e49ff65acd8837b3853a45892327687a96a52a5de3c539e0034713c",
+  "size": [
+    1774,
+    887
+  ],
+  "grid": [
+    4,
+    2
+  ],
+  "columnCutsByRow": [
+    [
+      0,
+      444,
+      887,
+      1330,
+      1774
+    ],
+    [
+      0,
+      444,
+      887,
+      1330,
+      1774
+    ]
+  ],
+  "cellBounds": [
+    [
+      38,
+      6,
+      401,
+      423
+    ],
+    [
+      37,
+      6,
+      401,
+      423
+    ],
+    [
+      39,
+      6,
+      402,
+      423
+    ],
+    [
+      40,
+      6,
+      402,
+      423
+    ],
+    [
+      20,
+      8,
+      404,
+      423
+    ],
+    [
+      22,
+      12,
+      402,
+      422
+    ],
+    [
+      23,
+      11,
+      406,
+      425
+    ],
+    [
+      24,
+      8,
+      423,
+      425
+    ]
+  ],
+  "visibleHeights": [
+    417,
+    417,
+    417,
+    417,
+    415,
+    410,
+    414,
+    417
+  ],
+  "distinctPhases": 8,
+  "errors": [],
+  "minimumAlpha": 24,
+  "silhouetteAlpha": 24,
+  "operation": "Native-size cell extraction, faint alpha removed and common registration. No resizing.",
+  "equivalentPngBytes": 1927571,
+  "format": "webp",
+  "frameBytes": 1346036,
+  "referenceHeight": 395,
+  "framePaths": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-pickpocket-v6/8da8821e0e49/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-pickpocket-v6/8da8821e0e49/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-pickpocket-v6/8da8821e0e49/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-pickpocket-v6/8da8821e0e49/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-pickpocket-v6/8da8821e0e49/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-pickpocket-v6/8da8821e0e49/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-pickpocket-v6/8da8821e0e49/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-pickpocket-v6/8da8821e0e49/08.webp"
+  ],
+  "pivot": [
+    0.5,
+    0.9410480349344978
+  ]
+}

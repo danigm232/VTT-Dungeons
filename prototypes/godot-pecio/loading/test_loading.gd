@@ -1,6 +1,7 @@
 extends SceneTree
 const Session = preload("res://loading/loading_session.gd")
 const Stage = preload("res://loading/loading_stage.gd")
+const SkillDie = preload("res://loading/loading_d20_button.gd")
 var passed: int = 0
 var failures: Array = []
 func _initialize() -> void: _run.call_deferred()
@@ -16,6 +17,9 @@ func _run() -> void:
 	check(Stage.prop_position({"art":"rope","x":324,"y":169}, neutral).y == 169, "Rope and actor share the elevated support")
 	check(Stage.prop_position({"art":"table","x":400,"y":180}, neutral).y == 202, "Furniture stays on the floor")
 	check(Stage.prop_position({"art":"crystal","x":400,"y":118}, neutral).y == 118, "Magical levitation stays intentional")
+	check(Stage.playback_frame(8, 4, 3, false) == 7, "One-shot frame playback holds its ending")
+	check(Stage.playback_frame(8, 4, 3, true) == 4, "Ambient frame playback loops naturally")
+	check(Stage.playback_frame(8, 4, 0, false, 1) == 7, "Explicit ending pose selects final authored frame")
 	var model = Session.new(data)
 	check(data.scenes.size() == 18, "18 skill definitions")
 	check(data.frames.size() >= 500, "Original authored frames exported")
@@ -113,6 +117,17 @@ func _run() -> void:
 		if capture:
 			RenderingServer.force_draw(false)
 			root.get_texture().get_image().save_png(output.path_join("contest-" + skill + ".png"))
+	var faces_a = SkillDie.project_faces(0.25)
+	var faces_b = SkillDie.project_faces(0.65)
+	check(faces_a.size() == 20 and faces_b.size() == 20 and faces_a[0].poly != faces_b[0].poly, "Native desktop d20 projects 20 tumbling faces")
+	var die_btn = SkillDie.new()
+	die_btn.set_roll_state({"natural": 17, "at": 1000}, false, 1320)
+	check(die_btn.is_tumbling(), "Native d20 tumbles during 1115ms roll")
+	die_btn.set_roll_state({"natural": 17, "at": 1000}, false, 2200)
+	check(not die_btn.is_tumbling() and die_btn.text == "⬡ 17", "Native d20 lands on natural roll")
+	die_btn.set_roll_state({"natural": 14, "at": 3000}, true, 3150)
+	check(not die_btn.is_tumbling() and die_btn.text == "⬡ 14", "Reduced motion skips tumble and shows natural roll")
+	die_btn.free()
 	stage.queue_free()
 	await process_frame
 	print("LOADING_TESTS ", passed, " passed; ", failures.size(), " failed")

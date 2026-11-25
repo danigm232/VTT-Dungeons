@@ -9,19 +9,29 @@
   "review": {
     "visual": "pending",
     "userAcceptance": "pending",
-    "evidence": []
+    "evidence": [],
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified"
   },
   "instructions": "Create draft, search reuse, complete source/style/scale fields, adopt only after validation. Technical success is not artistic acceptance.",
   "kind": "animation",
   "character": "mike",
-  "action": "loading_deception",
+  "action": "retreat_loading_deception",
   "direction": "se",
-  "frames": [],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/08.webp"
+  ],
   "fps": 4.5,
   "loop": true,
   "pivot": [
     0.5,
-    1
+    0.9036402569593148
   ],
   "compatibility": {
     "anatomies": [
@@ -33,7 +43,7 @@
   "events": [],
   "initialFrame": 0,
   "transition": "preserve support pivot",
-  "referenceHeight": null,
+  "referenceHeight": 401,
   "reuseSearch": {
     "required": true,
     "command": "node scripts/character-pipeline.mjs reuse --query sw-mike-loading-deception-v6"
@@ -48,7 +58,12 @@
     "paired": false,
     "heldPoseLibrary": false,
     "minimumVisibleStandingPixels": 300,
-    "minimumDistinctFrames": 6
+    "minimumDistinctFrames": 6,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-loading-deception-v6-68f15a3b2ac7.png",
+    "originalSha256": "68f15a3b2ac701e0922234a92ac4e26fc02a3ba29eee3d98cb60c2c3058de2d0",
+    "importReport": "output/stormwreck-motion-detail/sw-mike-loading-deception-v6-68f15a3b2ac7.json",
+    "minimumAlpha": 24,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
   },
   "minimumDistinctFrames": 6
 }

@@ -1,5 +1,9 @@
 # Estado del proyecto
 
+## Identidad y dado de las cargas Godot — 25/11/2026
+
+Corregida la familia de Mike y la continuidad del comerciante de Persuasión; el resto de Mía/Trinity se conserva. Once láminas seleccionadas (88 poses), locomoción/reposo reutilizados y desenlaces sin reinicio. Instalado en Pecio, Retiro y Campamentos, junto al dado nativo de Antigravity. Pipeline limitado a 14 recursos; 11.304 comprobaciones de catálogo, 27 de pipeline, 183 de carga por proyecto y 192 en GPU. Revisión interna realizada; aceptación artística/física pendiente. [Ficha y capturas](docs/evidence/GODOT_SKILL_LOADING_20261114.md#corrección-selectiva-instalada--25112026).
+
 ## Sincronización Godot — 25/11/2026
 
 Se reúnen los cambios recientes de Pecio, Retiro y Campamentos. Una instalación limpia detectó que cinco archivos de geometría y terreno estaban excluidos de Git: se incorporan y se mantiene la exclusión de las partidas. La candidata de mantas continúa pendiente de capturas nativas y aceptación visual; los proyectos Godot se mantienen como proyectos separados. [Contenido y pruebas](docs/evidence/GODOT_SYNC_20261125.md).

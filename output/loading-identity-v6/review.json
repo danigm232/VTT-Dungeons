@@ -1,0 +1,29 @@
+{
+  "scope": "loading-identities-v6",
+  "revision": "2a2750f073a575e1167a4c7b68341515867a42d5e936b9973c29475fe581d329",
+  "technical": "passed",
+  "visual": "reviewed",
+  "userAcceptance": "pending",
+  "nativeReport": "output/loading-identity-v6/native-validation.json",
+  "evidence": [
+    "docs/evidence/captures/loading-identities-20261125/index.html",
+    "docs/evidence/captures/loading-identities-20261125/manifest.json",
+    "output/loading-identity-v6/catalog-checks.json"
+  ],
+  "resourceIds": [
+    "maria",
+    "mia",
+    "mike",
+    "sw-mike-loading-scroll-v6",
+    "sw-mike-loading-scroll-walk-v6",
+    "sw-mike-loading-performance-v6",
+    "sw-mike-loading-deception-v6",
+    "sw-mike-loading-religion-v6",
+    "sw-mike-loading-medicine-v6",
+    "sw-mike-loading-pickpocket-v6",
+    "sw-mike-loading-handshake-v6",
+    "sw-mia-loading-handshake-v6",
+    "sw-maria-loading-handshake-v6",
+    "sw-mike-loading-nature-v6"
+  ]
+}

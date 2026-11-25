@@ -1,0 +1,112 @@
+{
+  "id": "sw-mike-loading-deception-v6",
+  "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-loading-deception-v6-68f15a3b2ac7.png",
+  "sourceSha256": "68f15a3b2ac701e0922234a92ac4e26fc02a3ba29eee3d98cb60c2c3058de2d0",
+  "size": [
+    1774,
+    887
+  ],
+  "grid": [
+    4,
+    2
+  ],
+  "columnCutsByRow": [
+    [
+      0,
+      444,
+      887,
+      1330,
+      1774
+    ],
+    [
+      0,
+      444,
+      887,
+      1330,
+      1774
+    ]
+  ],
+  "cellBounds": [
+    [
+      146,
+      4,
+      323,
+      416
+    ],
+    [
+      114,
+      4,
+      323,
+      416
+    ],
+    [
+      71,
+      16,
+      332,
+      415
+    ],
+    [
+      77,
+      9,
+      331,
+      405
+    ],
+    [
+      64,
+      10,
+      333,
+      407
+    ],
+    [
+      68,
+      10,
+      333,
+      411
+    ],
+    [
+      68,
+      11,
+      334,
+      415
+    ],
+    [
+      64,
+      14,
+      336,
+      415
+    ]
+  ],
+  "visibleHeights": [
+    412,
+    412,
+    399,
+    396,
+    397,
+    401,
+    404,
+    401
+  ],
+  "distinctPhases": 8,
+  "errors": [],
+  "minimumAlpha": 24,
+  "silhouetteAlpha": 24,
+  "operation": "Native-size cell extraction, faint alpha removed and common registration. No resizing.",
+  "equivalentPngBytes": 1120651,
+  "format": "webp",
+  "frameBytes": 804046,
+  "referenceHeight": 401,
+  "framePaths": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/08.webp"
+  ],
+  "pivot": [
+    0.5,
+    0.9036402569593148
+  ]
+}

@@ -1,0 +1,112 @@
+{
+  "id": "sw-mike-loading-performance-v6",
+  "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-loading-performance-v6-d383d815ac5d.png",
+  "sourceSha256": "d383d815ac5d2add4b10559cee5fe542d97a4254ccdebccbdf5d4f9c88aded10",
+  "size": [
+    1774,
+    887
+  ],
+  "grid": [
+    4,
+    2
+  ],
+  "columnCutsByRow": [
+    [
+      0,
+      444,
+      887,
+      1330,
+      1774
+    ],
+    [
+      0,
+      444,
+      887,
+      1330,
+      1774
+    ]
+  ],
+  "cellBounds": [
+    [
+      109,
+      11,
+      340,
+      434
+    ],
+    [
+      110,
+      11,
+      339,
+      434
+    ],
+    [
+      111,
+      12,
+      341,
+      434
+    ],
+    [
+      112,
+      10,
+      342,
+      434
+    ],
+    [
+      109,
+      9,
+      340,
+      432
+    ],
+    [
+      110,
+      10,
+      341,
+      432
+    ],
+    [
+      111,
+      7,
+      341,
+      432
+    ],
+    [
+      112,
+      10,
+      342,
+      432
+    ]
+  ],
+  "visibleHeights": [
+    423,
+    423,
+    422,
+    424,
+    423,
+    422,
+    425,
+    422
+  ],
+  "distinctPhases": 8,
+  "errors": [],
+  "minimumAlpha": 24,
+  "silhouetteAlpha": 24,
+  "operation": "Native-size cell extraction, faint alpha removed and common registration. No resizing.",
+  "equivalentPngBytes": 1301408,
+  "format": "webp",
+  "frameBytes": 942084,
+  "referenceHeight": 423,
+  "framePaths": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/08.webp"
+  ],
+  "pivot": [
+    0.5,
+    0.962800875273523
+  ]
+}

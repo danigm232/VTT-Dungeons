@@ -1,0 +1,10 @@
+{
+  "atlases": 9,
+  "captures": 103,
+  "checks": 113,
+  "errors": [],
+  "passed": true,
+  "renderer": "Godot native Vulkan Forward+; see loading-v6-candidate-review.log",
+  "revision": "2a2750f073a575e1167a4c7b68341515867a42d5e936b9973c29475fe581d329",
+  "scope": "loading-identities-v6"
+}

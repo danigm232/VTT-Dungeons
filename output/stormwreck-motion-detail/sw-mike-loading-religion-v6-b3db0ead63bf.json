@@ -1,0 +1,112 @@
+{
+  "id": "sw-mike-loading-religion-v6",
+  "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-loading-religion-v6-b3db0ead63bf.png",
+  "sourceSha256": "b3db0ead63bf6c41647be5611541965f707bc64e16b6cd760f134ac07e484ac8",
+  "size": [
+    1774,
+    887
+  ],
+  "grid": [
+    4,
+    2
+  ],
+  "columnCutsByRow": [
+    [
+      0,
+      444,
+      887,
+      1330,
+      1774
+    ],
+    [
+      0,
+      444,
+      887,
+      1330,
+      1774
+    ]
+  ],
+  "cellBounds": [
+    [
+      126,
+      8,
+      313,
+      433
+    ],
+    [
+      124,
+      8,
+      312,
+      433
+    ],
+    [
+      126,
+      8,
+      313,
+      432
+    ],
+    [
+      126,
+      8,
+      361,
+      433
+    ],
+    [
+      126,
+      9,
+      313,
+      431
+    ],
+    [
+      125,
+      8,
+      312,
+      431
+    ],
+    [
+      126,
+      8,
+      317,
+      431
+    ],
+    [
+      126,
+      8,
+      315,
+      431
+    ]
+  ],
+  "visibleHeights": [
+    425,
+    425,
+    424,
+    425,
+    422,
+    423,
+    423,
+    423
+  ],
+  "distinctPhases": 8,
+  "errors": [],
+  "minimumAlpha": 24,
+  "silhouetteAlpha": 24,
+  "operation": "Native-size cell extraction, faint alpha removed and common registration. No resizing.",
+  "equivalentPngBytes": 1161211,
+  "format": "webp",
+  "frameBytes": 829148,
+  "referenceHeight": 424,
+  "framePaths": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/08.webp"
+  ],
+  "pivot": [
+    0.5,
+    0.9606126914660832
+  ]
+}

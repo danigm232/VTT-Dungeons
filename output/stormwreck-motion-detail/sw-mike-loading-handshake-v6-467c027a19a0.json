@@ -1,0 +1,112 @@
+{
+  "id": "sw-mike-loading-handshake-v6",
+  "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-loading-handshake-v6-467c027a19a0.png",
+  "sourceSha256": "467c027a19a0d196b7c123e73571834c0469c43fa4287736edafe9172dd646d3",
+  "size": [
+    1774,
+    887
+  ],
+  "grid": [
+    4,
+    2
+  ],
+  "columnCutsByRow": [
+    [
+      0,
+      444,
+      887,
+      1330,
+      1774
+    ],
+    [
+      0,
+      444,
+      887,
+      1330,
+      1774
+    ]
+  ],
+  "cellBounds": [
+    [
+      36,
+      16,
+      399,
+      423
+    ],
+    [
+      38,
+      17,
+      398,
+      424
+    ],
+    [
+      38,
+      16,
+      390,
+      424
+    ],
+    [
+      38,
+      21,
+      399,
+      424
+    ],
+    [
+      24,
+      18,
+      414,
+      424
+    ],
+    [
+      34,
+      20,
+      404,
+      424
+    ],
+    [
+      35,
+      21,
+      404,
+      425
+    ],
+    [
+      36,
+      21,
+      405,
+      424
+    ]
+  ],
+  "visibleHeights": [
+    407,
+    407,
+    408,
+    403,
+    406,
+    404,
+    404,
+    403
+  ],
+  "distinctPhases": 8,
+  "errors": [],
+  "minimumAlpha": 24,
+  "silhouetteAlpha": 24,
+  "operation": "Native-size cell extraction, faint alpha removed and common registration. No resizing.",
+  "equivalentPngBytes": 1852437,
+  "format": "webp",
+  "frameBytes": 1297588,
+  "referenceHeight": 407,
+  "framePaths": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-handshake-v6/467c027a19a0/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-handshake-v6/467c027a19a0/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-handshake-v6/467c027a19a0/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-handshake-v6/467c027a19a0/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-handshake-v6/467c027a19a0/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-handshake-v6/467c027a19a0/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-handshake-v6/467c027a19a0/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-handshake-v6/467c027a19a0/08.webp"
+  ],
+  "pivot": [
+    0.5,
+    0.9410480349344978
+  ]
+}

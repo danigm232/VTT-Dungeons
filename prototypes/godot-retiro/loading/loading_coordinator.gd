@@ -5,13 +5,14 @@ const Session = preload("res://loading/loading_session.gd")
 const Stage = preload("res://loading/loading_stage.gd")
 const HttpAdapter = preload("res://loading/loading_http.gd")
 const Tones = preload("res://loading/performance_tones.gd")
+const SkillDieButton = preload("res://loading/loading_d20_button.gd")
 var catalog: Dictionary = {}
 var session
 var http
 var stage
 var panel: Control
 var status: Label
-var die: Button
+var die: BaseButton
 var next_button: Button
 var selector: OptionButton
 var actor_selector: OptionButton
@@ -90,17 +91,15 @@ func _build_ui() -> void:
 	status.add_theme_constant_override("shadow_offset_x", 1)
 	status.add_theme_constant_override("shadow_offset_y", 1)
 	panel.add_child(status)
-	die = Button.new()
-	die.text = "⬡ 20"
-	die.custom_minimum_size = Vector2(84, 52)
+	die = SkillDieButton.new()
+	die.custom_minimum_size = Vector2(96, 96)
 	die.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	die.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	die.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	die.offset_left = -42
-	die.offset_top = -68
-	die.offset_right = 42
-	die.offset_bottom = -16
-	_style_loading_button(die, true)
+	die.offset_left = -48
+	die.offset_top = -104
+	die.offset_right = 48
+	die.offset_bottom = -8
 	die.pressed.connect(func(): session.roll("desktop", session.entry.get("id", "")))
 	panel.add_child(die)
 	next_button = Button.new()
@@ -176,7 +175,7 @@ func load_map(path: String, destination: String, _reason: String = "map") -> voi
 	load_requested = false
 	load_progress.clear()
 	if die:
-		die.text = "⬡ 20"
+		die.reset_die()
 		die.rotation = 0.0
 	# Let the lightweight loading presentation render before requesting the heavy map.
 	await get_tree().process_frame
@@ -210,11 +209,7 @@ func _process(_delta: float) -> void:
 	die.visible = not review and role == "player" and personal.participants.has(local_character)
 	die.disabled = not personal.canRoll
 	die.pivot_offset = die.size * 0.5
-	var own_roll = personal.roll
-	if not own_roll.is_empty():
-		var elapsed = Time.get_ticks_msec() - int(own_roll.at)
-		die.text = "⬡ " + str(1 + int(elapsed / 45) % 20 if elapsed < 1200 else own_roll.natural)
-		die.rotation = sin(elapsed * 0.02) * (1.0 - elapsed / 1200.0) if elapsed < 1200 and not reduced else 0
+	die.set_roll_state(personal.roll, reduced)
 	next_button.visible = not review and ((role == "player" and personal.ready) or (role == "dm" and session.projector_ready))
 	if role == "dm":
 		next_button.disabled = false

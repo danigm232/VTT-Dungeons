@@ -21,13 +21,20 @@ const actions={
 await mkdir(resolve(root,'output/loading-identity-v6'),{recursive:true});
 const jobs=[];
 for(const [actor,hero]of Object.entries(heroes))for(const [action,spec]of Object.entries(actions)){
+ if(actor!=='mike'&&action!=='handshake')continue;
  const id=`sw-${actor}-loading-${action}-v6`,file=`prototypes/godot-shared/characters/drafts/${id}.json`;
  if(!existsSync(resolve(root,file)))execFileSync(process.execPath,[resolve(root,'scripts/character-pipeline.mjs'),'create','--id',id,'--kind','animation','--template',hero.anatomy],{cwd:root});
  const definition=JSON.parse(await readFile(resolve(root,file),'utf8'));
+ if(definition.frames?.length&&definition.production?.importReport){
+  jobs.push({id,actor,action,definition:file,prompt:definition.production.prompt,reference:resolve(root,definition.production.originalIdentity),paired:!!spec.paired});
+  continue;
+ }
  const prompt=`Identity-preserving production game sprites derived from the attached canonical character. ${hero.identity} ${hero.gear} ${spec.brief} Fixed southeast three-quarter view of hero facing RIGHT, exactly the canonical face, proportions, costume, palette and pixel-painted rendering of the reference, no redesign. A regular EXACT FOUR columns by TWO rows grid, eight complete isolated frames in reading order. ALL figures fully visible inside their cells with generous transparent safety margins. Constant body scale in all frames, shortened crouched silhouette is NOT a smaller person. ${spec.paired?'Wide landscape sheet: each cell contains BOTH complete figures with transparent separation from other cells; hero always left, NPC always right.':'Landscape 2:1 sheet, each cell contains only the hero.'} Real transparent background; no ground, shadows, labels, numbers, borders or text. High detail at native size, ideally 350+ pixels for standing human figure per cell. Do not use old loading-character designs.`;
  Object.assign(definition,{name:`${actor} · ${action} de carga · identidad v6`,character:actor,campaign:'stormwreck-isle',anatomy:hero.anatomy,action:`loading_${action.replaceAll('-','_')}`,direction:'se',fps:spec.loop?4.5:1,loop:spec.loop,dependencies:[actor],compatibility:{anatomies:[hero.anatomy],equipment:false,overlays:false},production:{stage:'defined-before-generation',method:'built-in image_gen, identity-preserve',originalIdentity:`campaigns/stormwreck-isle/public/art/characters/base-v1/${actor}/idle-01.png`,prompt,equipmentState:hero.gear,paired:!!spec.paired,heldPoseLibrary:!spec.loop,minimumVisibleStandingPixels:spec.paired?200:300,minimumDistinctFrames:action==='deception'||action==='performance'?6:8},minimumDistinctFrames:action==='deception'||action==='performance'?6:8});
  await writeFile(resolve(root,file),JSON.stringify(definition,null,2)+'\n');
  jobs.push({id,actor,action,definition:file,prompt,reference:resolve(root,definition.production.originalIdentity),paired:!!spec.paired});
 }
+const natureFile='prototypes/godot-shared/characters/drafts/sw-mike-loading-nature-v6.json';
+if(existsSync(resolve(root,natureFile))){const d=JSON.parse(await readFile(resolve(root,natureFile),'utf8'));jobs.push({id:d.id,actor:'mike',action:'nature',definition:natureFile,prompt:d.production.prompt,reference:resolve(root,d.production.originalIdentity),paired:false});}
 await writeFile(resolve(root,'output/loading-identity-v6/production-jobs.json'),JSON.stringify(jobs,null,2));
 console.log(`Prepared ${jobs.length} identity-preserving sheets before generation. Originals and older drafts retained.`);

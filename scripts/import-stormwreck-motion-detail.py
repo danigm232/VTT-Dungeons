@@ -62,6 +62,8 @@ if len(row_cuts) != 2 or any(
 frames = []
 bounds = []
 horizontal_pivots = []
+pair_hero_heights = []
+pair_hero_left = definition['production'].get('paired', False)
 reclined = definition['production'].get('reclinedSheet', False)
 if reclined and definition.get('action') != 'rest_on_prop':
     parser.error('Reclined registration requires a rest_on_prop animation')
@@ -101,7 +103,14 @@ for index in range(8):
     elif stationary:
         # Register the sole pair rather than the hands and tail moving above it.
         lower = body[3] - max(8, round((body[3] - body[1]) * .045))
-        feet = alpha.crop((0, lower, cell.width, body[3])).point(lambda a: 255 if a >= 32 else 0).getbbox()
+        foot_right = round(cell.width * .52) if pair_hero_left else cell.width
+        feet = alpha.crop((0, lower, foot_right, body[3])).point(lambda a: 255 if a >= 32 else 0).getbbox()
+        if pair_hero_left:
+            hero = alpha.crop((0, 0, foot_right, cell.height)).point(lambda a: 255 if a >= 32 else 0).getbbox()
+            pair_hero_heights.append(hero[3] - hero[1])
+        if not feet:
+            errors.append(f'Cell {index + 1} has no supported protagonist foot in its declared side')
+            feet = (body[0], 0, body[2], 1)
         horizontal_pivots.append(round((feet[0] + feet[2]) / 2))
     else:
         horizontal_pivots.append(round((nominal_cuts[col] + nominal_cuts[col + 1]) / 2) - box[0])
@@ -123,7 +132,7 @@ if not errors:
     ground = definition['action'] == 'walk' or stationary
     common_base = round(median(b[3] for b in bounds))
     calibration = bounds[:4] if is_pose_grid else bounds
-    reference = args.reference_height or round(median(b[3] - b[1] for b in calibration))
+    reference = args.reference_height or (max(pair_hero_heights) if pair_hero_heights else round(median(b[3] - b[1] for b in calibration)))
     anchor_y = common_base
     vertical_offsets = [common_base - body[3] if ground else 0 for body in bounds]
     if reclined:

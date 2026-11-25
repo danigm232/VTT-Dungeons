@@ -145,8 +145,14 @@ export async function validate(records=undefined,base=source){
  return {version:1,errors,warnings,valid:errors.length===0,definitions:all.length,anatomies:anatomies.size,revision:digest(all.map(r=>digest(JSON.stringify(r.definition))).join('\n')+'\n'+JSON.stringify(references)),referencedFiles:references};
 }
 async function output(value,path){await mkdir(dirname(path),{recursive:true});await writeFile(path,JSON.stringify(value,null,2)+'\n');}
-export async function importLibrary({promote=false,reviewFile=null}={}){
- const records=await definitions(),result=await validate(records);if(!result.valid)throw Error('Import blocked: '+JSON.stringify(result.errors));
+export async function importLibrary({promote=false,reviewFile=null,scope=null,onlyIds=null}={}){
+ const all=await definitions();
+ if(scope!==null||onlyIds!==null){
+  if(typeof scope!=='string'||!/^[a-z][a-z0-9-]{1,63}$/.test(scope)||!Array.isArray(onlyIds)||!onlyIds.length)throw Error('Scoped import requires a safe name and explicit resource IDs');
+  const known=new Set(all.map(r=>r.definition.id));
+  for(const id of onlyIds)if(!known.has(id))throw Error('Unknown scoped resource: '+id);
+ }
+ const records=onlyIds?all.filter(r=>onlyIds.includes(r.definition.id)):all,result=await validate(records);if(!result.valid)throw Error('Import blocked: '+JSON.stringify(result.errors));
  let review=null;
  if(promote){if(!reviewFile)throw Error('Production promotion requires current technical and visual review evidence');review=await json(safePath(reviewFile));
   for(const r of records)if(!r.definition.deferred&&!r.definition.review?.deferredByUser&&String(r.definition.review?.visual??'').startsWith('rejected'))throw Error('Production promotion blocked by rejected visual resource '+r.definition.id);
@@ -154,6 +160,7 @@ export async function importLibrary({promote=false,reviewFile=null}={}){
   for(const file of review.evidence)if(!await exists(safePath(file)))throw Error('Review evidence does not exist: '+file);
   if(!review.nativeReport)throw Error('Native validation report is required for promotion');
   const native=await json(safePath(review.nativeReport));
+  if(scope&&(review.scope!==scope||native.scope!==scope))throw Error('Review scope does not match requested resources');
   if(native.revision!==result.revision||native.passed!==true||native.errors?.length||!(native.checks>0))throw Error('Native validation is failed, missing checks or stale');
  }
  const catalogue={version:1,status:promote?'reviewed-candidate':'inspection-only',revision:result.revision,characters:{},variants:{},equipment:{},animations:{},overlays:{},bindings:{},anatomies:{},provenance:[],review};
@@ -181,7 +188,8 @@ export async function importLibrary({promote=false,reviewFile=null}={}){
   if(bucket)catalogue[bucket][def.id]=def;
   catalogue.provenance.push({id:def.id,definition:relative(workspace,path).replaceAll('\\','/'),sha256});
  }
- const target=resolve(source,promote?'catalogue.json':'candidate-catalogue.json');await output(catalogue,target);await output(result,resolve(workspace,'output/character-modular-20261116/pipeline-validation.json'));
+ if(scope)catalogue.scope={name:scope,ids:onlyIds};
+ const target=resolve(source,scope?'scopes/'+scope+(promote?'':'.candidate')+'.json':promote?'catalogue.json':'candidate-catalogue.json');await output(catalogue,target);await output(result,resolve(workspace,scope?'output/loading-identity-v6/pipeline-validation.json':'output/character-modular-20261116/pipeline-validation.json'));
  return {file:relative(workspace,target),...result,referencedFiles:result.referencedFiles.length,status:catalogue.status};
 }
 async function main(){const [command='validate',...args]=process.argv.slice(2),option=name=>{const i=args.indexOf(name);return i<0?null:args[i+1];};
@@ -189,7 +197,7 @@ async function main(){const [command='validate',...args]=process.argv.slice(2),o
   const path=option('--definition'),all=await definitions();
   const records=path?[...all.filter(r=>resolve(r.path)!==safePath(path)),{path:safePath(path),definition:await json(safePath(path)),sha256:digest(await readFile(safePath(path)))}]:all;
   const result=await validate(records);await output(result,resolve(workspace,'output/character-modular-20261116/pipeline-validation.json'));console.log(JSON.stringify(result));if(!result.valid)process.exitCode=1;
- }else if(command==='import'){console.log(JSON.stringify(await importLibrary({promote:args.includes('--promote'),reviewFile:option('--review')})));}
+ }else if(command==='import'){console.log(JSON.stringify(await importLibrary({promote:args.includes('--promote'),reviewFile:option('--review'),scope:option('--scope'),onlyIds:option('--only')?.split(',')??null})));}
  else if(command==='templates'){console.log((await list(resolve(source,'templates'))).map(p=>relative(source,p)).join('\n'));}
  else if(command==='reuse'){
   const query=(option('--query')??'').toLowerCase();const audit=await json(resolve(workspace,'output/character-modular-20261116/repository-audit.json'));

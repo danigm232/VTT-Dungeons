@@ -1,0 +1,21 @@
+{
+  "scope": "loading-identities-v6",
+  "records": [
+    {
+      "project": "pecio",
+      "catalogSha256": "ef588b0324f4234627938db1098dcb2ddc79b4e3080b257427037fc9f4b1ffe2",
+      "scopeRevision": "2a2750f073a575e1167a4c7b68341515867a42d5e936b9973c29475fe581d329"
+    },
+    {
+      "project": "retiro",
+      "catalogSha256": "ef588b0324f4234627938db1098dcb2ddc79b4e3080b257427037fc9f4b1ffe2",
+      "scopeRevision": "2a2750f073a575e1167a4c7b68341515867a42d5e936b9973c29475fe581d329"
+    },
+    {
+      "project": "campamentos",
+      "catalogSha256": "ef588b0324f4234627938db1098dcb2ddc79b4e3080b257427037fc9f4b1ffe2",
+      "scopeRevision": "2a2750f073a575e1167a4c7b68341515867a42d5e936b9973c29475fe581d329"
+    }
+  ],
+  "notes": "Only selected loading art/catalog changed. Coordinators, maps, network sessions and other character definitions preserved."
+}

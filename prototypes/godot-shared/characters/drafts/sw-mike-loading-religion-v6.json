@@ -9,19 +9,29 @@
   "review": {
     "visual": "pending",
     "userAcceptance": "pending",
-    "evidence": []
+    "evidence": [],
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified"
   },
   "instructions": "Create draft, search reuse, complete source/style/scale fields, adopt only after validation. Technical success is not artistic acceptance.",
   "kind": "animation",
   "character": "mike",
-  "action": "loading_religion",
+  "action": "retreat_loading_religion",
   "direction": "se",
-  "frames": [],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/08.webp"
+  ],
   "fps": 1,
   "loop": false,
   "pivot": [
     0.5,
-    1
+    0.9606126914660832
   ],
   "compatibility": {
     "anatomies": [
@@ -33,7 +43,7 @@
   "events": [],
   "initialFrame": 0,
   "transition": "preserve support pivot",
-  "referenceHeight": null,
+  "referenceHeight": 424,
   "reuseSearch": {
     "required": true,
     "command": "node scripts/character-pipeline.mjs reuse --query sw-mike-loading-religion-v6"
@@ -48,7 +58,12 @@
     "paired": false,
     "heldPoseLibrary": true,
     "minimumVisibleStandingPixels": 300,
-    "minimumDistinctFrames": 8
+    "minimumDistinctFrames": 8,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-loading-religion-v6-b3db0ead63bf.png",
+    "originalSha256": "b3db0ead63bf6c41647be5611541965f707bc64e16b6cd760f134ac07e484ac8",
+    "importReport": "output/stormwreck-motion-detail/sw-mike-loading-religion-v6-b3db0ead63bf.json",
+    "minimumAlpha": 24,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
   },
   "minimumDistinctFrames": 8
 }

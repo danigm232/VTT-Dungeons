@@ -1,5 +1,9 @@
 # Personajes modulares y pipeline permanente — 16/11/2026
 
+## Corrección selectiva de cargas — 25/11/2026
+
+Once definiciones `sw-*-loading-*-v6` y 88 fotogramas con identidad/equipo integrados, escala, pivote y excepciones declaradas. Importados y promovidos en el alcance central `loading-identities-v6` (tres personajes existentes + once animaciones), sin promover los recursos de trabajos paralelos. Revisión exacta `2a2750f073a575e1167a4c7b68341515867a42d5e936b9973c29475fe581d329`, con informe nativo y tres advertencias heredadas conservadas. Las láminas exploratorias descartadas no se instalan. [Evidencia, recursos, pruebas y aceptación pendiente](GODOT_SKILL_LOADING_20261114.md#corrección-selectiva-instalada--25112026).
+
 Encargo autorizado: [texto completo del usuario](CHARACTER_MODULAR_REQUEST_20261116.md). Esta ficha mantiene evidencia y criterios locales; la prioridad global sigue en `ROADMAP_V1.md`.
 
 ## Estado actual del trabajo

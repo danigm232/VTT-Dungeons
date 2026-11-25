@@ -1,5 +1,7 @@
 # Roadmap maestro del proyecto VTT
 
+**Corrección selectiva de sprites de carga, 25/11/2026:** instalada la identidad coherente de Mike en las 18 habilidades y un comerciante estable en Persuasión con los tres protagonistas. Se conservan las otras 34 combinaciones de Mía/Trinity. Incluido el dado nativo de Antigravity. Recursos promovidos por alcance, 183 pruebas por proyecto y 192 en la revisión gráfica. [Evidencia y comparaciones](docs/evidence/GODOT_SKILL_LOADING_20261114.md#corrección-selectiva-instalada--25112026).
+
 **Sincronización Godot, 25/11/2026:** reunión de los cambios recientes del Retiro, Pecio y Campamentos, con código, recursos y siete informes visuales compartibles. La ruta de Runara al petate se corrige y supera la prueba sin pantalla; la revisión visual de las mantas queda pendiente. [Alcance y pruebas](docs/evidence/GODOT_SYNC_20261125.md). No cambia el orden del roadmap ni supone aceptación artística o física.
 
 **Retiro del Dragón · mantas para el descanso, 24/11/2026.** La escena añade una ronda nocturna con manta para los doce habitantes. Once usan una pose fija y Kilnip conserva seis etapas de su siesta; la lana se mueve suavemente en ambos casos. [Ficha y revisión nativa](docs/evidence/RETIRO_GODOT_LAYERS_20261114.md#mantas-para-el-descanso--24112026).
