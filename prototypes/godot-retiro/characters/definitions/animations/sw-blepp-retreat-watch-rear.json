@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "character": "sw-blepp",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "retreat_watch",
+  "fps": 6,
+  "loop": false,
+  "dependencies": [
+    "sw-blepp"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "planted soles, station contact; one authored view"
+  },
+  "id": "sw-blepp-retreat-watch-rear",
+  "direction": "n",
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/08.webp"
+  ],
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-turnaround/bfef67b39490/03.png",
+    "companionClip": "sw-blepp-watch",
+    "motionReference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-blepp-watch-bd5092564ef8.png",
+    "prompt": "Paint a production transparent spritesheet of the exact same character in reference 1, performing the action from reference 2, as seen directly from BEHIND in all 8 frames. Reference 1 is the exact back silhouette and costume. Reference 2 shows the movement from the other side. Match the same painted fantasy RPG style, colors, height and age. No face visible, eyes fully concealed, both heels and back visible in every single frame. Slight tactical top elevation 18 degrees. Feet planted, tail fully contained and scale consistent. Motion, in 8 distinct chronological phases from upper-left row across then lower-left row across: Watch for a distant disturbance. Silhouette shows right elbow bending, hand rising to brow and pointing ahead, lean forward, then hand drops and spine straightens. Olive scarf remains fixed, horns and trousers follow the reference. No weapon. Exact centered rectangular equal grid 4 columns by 2 rows in a 1536 x 1024 sprite sheet. No panels, numerals, writing, floor, shadows, fog or colored backing. True transparent RGBA. Keep a clear 20 px of transparent space between every figure and the edges of its cell. Vertically use 86% of each cell and keep a consistent center of the feet. Always see this person from the back, including all moving phases.",
+    "minimumVisibleStandingPixels": 250,
+    "expectedPhases": 8,
+    "sourcePages": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "method": "ImageGen reverse view from the existing stance and companion motion, native-size extraction",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-blepp-retreat-watch-rear-3b40230a887d.png",
+    "originalSha256": "3b40230a887d0207260ac4a601e7aa0ab0819ee213d00ebfec7f55d055698e2c",
+    "importReport": "output/stormwreck-motion-detail/sw-blepp-retreat-watch-rear-3b40230a887d.json",
+    "minimumAlpha": 12,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "Inspected all eight cropped frames with the original resident as a reference.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 460,
+  "pivot": [
+    0.5,
+    0.9255725190839694
+  ]
+}

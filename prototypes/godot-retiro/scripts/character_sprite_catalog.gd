@@ -175,6 +175,11 @@ static func _load_raw_image(res_path: String) -> Image:
 	return null
 
 static func _make_tex(img: Image) -> ImageTexture:
+	if img.get_height() > 280:
+		var scale := 280.0 / float(img.get_height())
+		img = img.duplicate()
+		img.resize(maxi(4, int(round(img.get_width() * scale))), 280, Image.INTERPOLATE_BILINEAR)
+		img.fix_alpha_edges()
 	if not img.has_mipmaps():
 		img.generate_mipmaps()
 	return ImageTexture.create_from_image(img)
@@ -669,8 +674,9 @@ static func collect_required_keys(scene_root: Node, extra_keys: Array[String] = 
 	while not stack.is_empty():
 		var n: Node = stack.pop_back()
 		if "token_name" in n:
+			var hidden_npc := bool(n.get("is_npc")) and n is Node3D and not (n as Node3D).visible
 			var tn := str(n.get("token_name"))
-			if not tn.is_empty():
+			if not hidden_npc and not tn.is_empty():
 				var resolved := resolve_character_key(tn)
 				if not resolved.is_empty() and resolved not in keys and not _catalog_cache.has(resolved):
 					keys.append(resolved)
@@ -678,18 +684,21 @@ static func collect_required_keys(scene_root: Node, extra_keys: Array[String] = 
 			stack.append(child)
 	return keys
 
-static func build_prewarm_job(keys: Array[String]) -> Dictionary:
+static func build_prewarm_job(keys: Array[String], resident_ids: Array[String] = []) -> Dictionary:
 	var spr_lib = preload("res://sprites/sprite_library.gd")
 	var combat_cat = preload("res://combat/combat_catalogue.gd")
 	var npc_lib = preload("res://sprites/npc_sprite_library.gd")
+	var reg = preload("res://characters/registry.gd")
 	return {
 		"keys": keys.duplicate(),
+		"resident_ids": resident_ids.duplicate(),
 		"res_root_abs": ProjectSettings.globalize_path("res://"),
 		"sprites_dir_abs": ProjectSettings.globalize_path("res://sprites"),
 		"inv_dir_abs": ProjectSettings.globalize_path("res://inventory/art"),
 		"sprites_manifest": spr_lib._manifest().duplicate(true),
 		"combat_data": combat_cat.load_data().duplicate(true),
 		"combat_baked": combat_cat.baked.duplicate(true),
+		"registry_data": reg.data().duplicate(true) if not resident_ids.is_empty() else {},
 		"harpy_npc_ready": npc_lib.ready("harpy"),
 		"zombie_npc_ready": npc_lib.ready("zombie")
 	}
@@ -821,6 +830,9 @@ static func run_prewarm_job(job: Dictionary) -> Dictionary:
 	var atlas_imgs: Dictionary = spr_lib.collect_cpu_images(keys, job.get("sprites_manifest", {}), str(job.get("sprites_dir_abs", "")))
 	var inv_profs: Dictionary = inv_lib.collect_cpu_profiles(keys, str(job.get("inv_dir_abs", "")))
 	var combat_imgs: Dictionary = combat_cat.collect_cpu_images(keys, job.get("combat_data", {}), job.get("combat_baked", {}), res_root)
+	var reg_ids: Array = job.get("resident_ids", [])
+	var reg_data: Dictionary = job.get("registry_data", {})
+	var resident_profs: Dictionary = preload("res://characters/registry.gd").collect_resident_cpu_profiles(reg_ids, reg_data, res_root) if not reg_ids.is_empty() else {}
 
 	return {
 		"facing": facing_out,
@@ -829,7 +841,8 @@ static func run_prewarm_job(job: Dictionary) -> Dictionary:
 		"trimmed": trimmed_out,
 		"atlas_imgs": atlas_imgs,
 		"inv_profs": inv_profs,
-		"combat_imgs": combat_imgs
+		"combat_imgs": combat_imgs,
+		"resident_profs": resident_profs
 	}
 
 static func apply_prewarm_result(res: Dictionary) -> void:
@@ -840,3 +853,4 @@ static func apply_prewarm_result(res: Dictionary) -> void:
 	preload("res://sprites/sprite_library.gd").apply_cpu_images(res.get("atlas_imgs", {}))
 	preload("res://inventory/sprite_library.gd").apply_cpu_profiles(res.get("inv_profs", {}))
 	preload("res://combat/combat_catalogue.gd").apply_cpu_images(res.get("combat_imgs", {}))
+	preload("res://characters/registry.gd").apply_resident_cpu_profiles(res.get("resident_profs", {}))

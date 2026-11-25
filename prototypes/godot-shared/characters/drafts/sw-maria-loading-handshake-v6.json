@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "sw-maria-loading-handshake-v6",
+  "name": "maria · handshake de carga · identidad v6",
+  "anatomy": "humanoid-small",
+  "dependencies": [
+    "maria"
+  ],
+  "review": {
+    "visual": "pending",
+    "userAcceptance": "pending",
+    "evidence": []
+  },
+  "instructions": "Create draft, search reuse, complete source/style/scale fields, adopt only after validation. Technical success is not artistic acceptance.",
+  "kind": "animation",
+  "character": "maria",
+  "action": "loading_handshake",
+  "direction": "se",
+  "frames": [],
+  "fps": 1,
+  "loop": false,
+  "pivot": [
+    0.5,
+    1
+  ],
+  "compatibility": {
+    "anatomies": [
+      "humanoid-small"
+    ],
+    "equipment": false,
+    "overlays": false
+  },
+  "events": [],
+  "initialFrame": 0,
+  "transition": "preserve support pivot",
+  "referenceHeight": null,
+  "reuseSearch": {
+    "required": true,
+    "command": "node scripts/character-pipeline.mjs reuse --query sw-maria-loading-handshake-v6"
+  },
+  "campaign": "stormwreck-isle",
+  "production": {
+    "stage": "defined-before-generation",
+    "method": "built-in image_gen, identity-preserve",
+    "originalIdentity": "campaigns/stormwreck-isle/public/art/characters/base-v1/maria/idle-01.png",
+    "prompt": "Identity-preserving production game sprites derived from the attached canonical character. The EXACT adult halfling Trinity / María: short adult halfling proportions, dark curly hair, rounded small ears, youthful adult face, grey-cream padded rogue clothes, wool collar, dark leather straps and bracers, belts, pale brown boots, existing dagger. No child, elf ears, hood, new armour or redesign. Existing dagger is sheathed at her belt while hands work. Keep costume identical throughout. Eight STORY frames, hero LEFT facing right and the SAME merchant RIGHT facing left. Merchant: adult HUMAN with small tan flat cap, brown moustache, warm brown waistcoat, beige rolled sleeves, grey-brown breeches, brown boots. 1 neutral conversation hands lowered, 2 merchant listens and hero explains with gentle hand gesture; 3 merchant crosses arms, 4 merchant gently shakes head and hero looks disappointed; 5 both reach hands toward each other, 6 hands make firm actual handshake contact, 7 small handshake and smiles, 8 satisfied friendly handshake held. The merchant must not change face, cap, clothing, size or position. Anatomically correct relative height, no tiny human next to dwarf/halfling. Both feet grounded. No table or other prop. Fixed southeast three-quarter view of hero facing RIGHT, exactly the canonical face, proportions, costume, palette and pixel-painted rendering of the reference, no redesign. A regular EXACT FOUR columns by TWO rows grid, eight complete isolated frames in reading order. ALL figures fully visible inside their cells with generous transparent safety margins. Constant body scale in all frames, shortened crouched silhouette is NOT a smaller person. Wide landscape sheet: each cell contains BOTH complete figures with transparent separation from other cells; hero always left, NPC always right. Real transparent background; no ground, shadows, labels, numbers, borders or text. High detail at native size, ideally 350+ pixels for standing human figure per cell. Do not use old loading-character designs.",
+    "equipmentState": "Existing dagger is sheathed at her belt while hands work. Keep costume identical throughout.",
+    "paired": true,
+    "heldPoseLibrary": true,
+    "minimumVisibleStandingPixels": 200,
+    "minimumDistinctFrames": 8
+  },
+  "minimumDistinctFrames": 8
+}

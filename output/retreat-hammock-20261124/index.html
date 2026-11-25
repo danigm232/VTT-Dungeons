@@ -1,0 +1,92 @@
+<!doctype html><html lang="es"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kilnip en su hamaca</title>
+<style>
+body{margin:0;background:#172427;color:#f0e6ce;font:16px/1.55 system-ui}
+main{max-width:1140px;margin:auto;padding:2rem clamp(16px,4vw,48px)}
+h1,h2{font-family:Georgia,serif;line-height:1.18}
+h1{font-size:clamp(2rem,6vw,4rem);margin:0 0 1rem}
+p{max-width:70ch;color:#dbe0d5}a{color:#efc979}
+.pares{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,450px),1fr));gap:1rem}
+img.cycle{height:320px;max-width:100%;background:#2c3839;display:block;margin:1rem 0;object-fit:contain}
+button{font:inherit;padding:.4rem 1rem;margin-right:1rem}
+</style><style>
+.vtt-comparison{margin:18px 0;min-width:0}.vtt-comparison figcaption{font-weight:600;margin:0 0 10px}
+.vtt-comparison-stage{box-sizing:border-box;display:block;position:relative;padding:0;border:1px solid #70817e;background:#101c22;cursor:pointer;width:100%;overflow:hidden;border-radius:4px;color:#fff;touch-action:manipulation}
+.vtt-comparison-stage img{display:block;width:100%;height:auto;max-width:none;border-radius:0}
+.vtt-comparison-stage .vtt-comparison-after{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;opacity:0;pointer-events:none}
+.vtt-comparison[data-after="true"] .vtt-comparison-after{opacity:1}.vtt-comparison-badge{position:absolute;right:12px;bottom:12px;background:#08141be8;color:#fff;font:700 13px/1.4 system-ui;padding:6px 12px;border:1px solid #a3b9af;border-radius:3px}
+.vtt-comparison-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}.vtt-comparison-controls button,.vtt-comparison-modal button:not(.vtt-comparison-stage){font:inherit;background:#29434a;color:#f0e8d5;border:1px solid #819991;border-radius:4px;padding:8px 14px;cursor:pointer;min-height:44px}
+.vtt-comparison-controls a{font-size:13px}.vtt-comparison-help{font-size:13px;color:#c6d5d0;margin:8px 0}
+.vtt-comparison button:focus-visible,.vtt-comparison-modal button:focus-visible{outline:3px solid #f3ce91;outline-offset:3px}
+.vtt-comparison-modal{width:min(96vw,1800px);max-width:none;padding:16px;background:#14272e;color:#ececdf;border:1px solid #80928d;border-radius:7px}
+.vtt-comparison-modal::backdrop{background:#050c12e8}.vtt-comparison-modal header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:none;padding:0;margin:0 0 10px}
+.vtt-comparison-modal h2{font:600 18px/1.4 system-ui;margin:0;flex:1}.vtt-comparison-modal label{display:flex;align-items:center;gap:8px}.vtt-comparison-modal input{max-width:160px}
+.vtt-comparison-pan{overflow:auto;max-height:72vh;overscroll-behavior:contain}.vtt-comparison-pan .vtt-comparison{margin:0}.vtt-comparison-pan .vtt-comparison-stage{border-radius:0}.vtt-comparison-pan .vtt-comparison-stage:focus-visible{outline-offset:-4px}
+</style><script>(function installVisualComparisons(){
+ let modal;
+ function update(figure,after){
+  figure.dataset.after=String(after);
+  const title=figure.dataset.title||'Comparativa';
+  for(const toggle of figure.querySelectorAll('[data-compare-toggle]')){
+   toggle.setAttribute('aria-pressed',String(after));
+   toggle.setAttribute('aria-label',`Mostrar ${after?'antes':'después'}: ${title}`);
+   if(!toggle.classList.contains('vtt-comparison-stage'))toggle.textContent=after?'Ver antes':'Ver después';
+  }
+  const images=figure.querySelectorAll('.vtt-comparison-stage img');
+  images[0].setAttribute('aria-hidden',String(after));images[1].setAttribute('aria-hidden',String(!after));
+  figure.querySelector('.vtt-comparison-badge').textContent=after?'DESPUÉS':'ANTES';
+  const status=figure.querySelector('[data-compare-status]');
+  if(status)status.textContent=`Mostrando ${after?'después':'antes'}. Pulsa la imagen para alternar sin mover el encuadre.`;
+ }
+ function enlarge(source){
+  if(!modal){
+   modal=document.createElement('dialog');modal.className='vtt-comparison-modal';
+   modal.innerHTML='<header><h2></h2><label>Zoom <input type="range" min="100" max="300" step="25" value="100" aria-label="Ampliación de la comparativa"><output>100 %</output></label><button type="button" data-close-comparison>Cerrar</button></header><div class="vtt-comparison-pan"></div>';
+   document.body.append(modal);
+   modal.querySelector('[data-close-comparison]').onclick=()=>modal.close();
+   modal.querySelector('input').oninput=event=>{const value=event.target.value;modal.querySelector('output').textContent=value+' %';modal.querySelector('.vtt-comparison').style.width=value+'%';};
+  }
+  modal.querySelector('h2').textContent=source.dataset.title;
+  const clone=source.cloneNode(true);clone.style.width='100%';clone.querySelector('[data-compare-enlarge]').remove();
+  for(const img of clone.querySelectorAll('img'))img.loading='eager';
+  modal.querySelector('.vtt-comparison-pan').replaceChildren(clone);modal.querySelector('input').value='100';modal.querySelector('output').textContent='100 %';
+  modal.showModal();modal.querySelector('.vtt-comparison-stage').focus();
+ }
+ document.addEventListener('click',event=>{
+  const target=event.target.closest('[data-compare-toggle], [data-compare-enlarge]');if(!target)return;
+  const figure=target.closest('[data-vtt-comparison]');if(!figure)return;
+  if(target.hasAttribute('data-compare-enlarge'))enlarge(figure);else update(figure,figure.dataset.after!=='true');
+ });
+})();</script>
+<main><h1>Kilnip en su hamaca</h1>
+<p>Kilnip duerme unos segundos durante su ronda diurna. Al terminar regresa a la casilla desde la que se acercó a la hamaca.</p>
+<h2>Vista desde la celda</h2>
+<p>Pulsa cada imagen para alternar la rutina anterior y el descanso tumbado con la misma cámara.</p>
+<div class="pares"><figure class="vtt-comparison" data-vtt-comparison data-title="Desde el pasillo"><figcaption>Desde el pasillo</figcaption><button type="button" class="vtt-comparison-stage" data-compare-toggle aria-pressed="false" aria-label="Mostrar después: Desde el pasillo"><img src="lateral-antes.png" alt="Antes: Desde el pasillo" width="1440" height="810" loading="lazy" decoding="async"><img class="vtt-comparison-after" src="lateral-despues.png" alt="Después: Desde el pasillo" width="1440" height="810" loading="lazy" decoding="async" aria-hidden="true"><span class="vtt-comparison-badge" aria-hidden="true">ANTES</span></button><div class="vtt-comparison-controls"><button type="button" data-compare-toggle aria-pressed="false">Ver después</button><button type="button" data-compare-enlarge>Ampliar</button><a href="lateral-antes.png" target="_blank" rel="noopener">Original antes</a><a href="lateral-despues.png" target="_blank" rel="noopener">Original después</a></div><p class="vtt-comparison-help" data-compare-status role="status">Mostrando antes. Pulsa la imagen para superponer el después; vuelve a pulsar para regresar.</p></figure><figure class="vtt-comparison" data-vtt-comparison data-title="Desde el otro lado de la hamaca"><figcaption>Desde el otro lado de la hamaca</figcaption><button type="button" class="vtt-comparison-stage" data-compare-toggle aria-pressed="false" aria-label="Mostrar después: Desde el otro lado de la hamaca"><img src="oblicua-antes.png" alt="Antes: Desde el otro lado de la hamaca" width="1440" height="810" loading="lazy" decoding="async"><img class="vtt-comparison-after" src="oblicua-despues.png" alt="Después: Desde el otro lado de la hamaca" width="1440" height="810" loading="lazy" decoding="async" aria-hidden="true"><span class="vtt-comparison-badge" aria-hidden="true">ANTES</span></button><div class="vtt-comparison-controls"><button type="button" data-compare-toggle aria-pressed="false">Ver después</button><button type="button" data-compare-enlarge>Ampliar</button><a href="oblicua-antes.png" target="_blank" rel="noopener">Original antes</a><a href="oblicua-despues.png" target="_blank" rel="noopener">Original después</a></div><p class="vtt-comparison-help" data-compare-status role="status">Mostrando antes. Pulsa la imagen para superponer el después; vuelve a pulsar para regresar.</p></figure></div>
+<h2>Respiración en reposo</h2>
+<img class="cycle" id="pose" src="../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/01.webp" alt="Pose de Kilnip tumbado con los ojos cerrados">
+<button id="play" type="button">Reproducir</button><a href="../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-kilnip-hammock-rest-33f7b58bf524.png">Lámina original</a>
+<p>Ocho fotogramas WebP sin pérdida, un 36 % menos de tamaño que los mismos recortes en PNG.</p>
+<p><a href="capture-register.json">Pruebas y registro de originales</a></p></main>
+<script>
+const frames = ["../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/01.webp","../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/02.webp","../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/03.webp","../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/04.webp","../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/05.webp","../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/06.webp","../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/07.webp","../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/08.webp"];
+const pose = document.getElementById('pose');
+const play = document.getElementById('play');
+let timer = 0;
+let phase = 0;
+play.addEventListener('click', () => {
+  if (timer) {
+    clearInterval(timer);
+    timer = 0;
+    play.textContent = 'Reproducir';
+    return;
+  }
+  for (const path of frames) { const image = new Image(); image.src = path; }
+  play.textContent = 'Pausar';
+  timer = setInterval(() => {
+    phase = (phase + 1) % frames.length;
+    pose.src = frames[phase];
+  }, 400);
+});
+</script></html>

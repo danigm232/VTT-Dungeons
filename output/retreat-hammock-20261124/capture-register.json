@@ -1,0 +1,267 @@
+{
+  "actor": "sw-kilnip",
+  "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/kilnip.png",
+  "fixture": "KoboldHammock_1200_820",
+  "owner": "prototypes/godot-retiro/scripts/retreat_scene_enhancer.gd",
+  "target": "RetreatHammockWestCloth",
+  "routine": "kilnip/quiet",
+  "before": "retreat_work with a fabric cue",
+  "candidate": {
+    "id": "sw-kilnip-hammock-rest",
+    "definitionPath": "prototypes/godot-shared/characters/definitions/animations/sw-kilnip-hammock-rest.json",
+    "original": {
+      "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-kilnip-hammock-rest-33f7b58bf524.png",
+      "bytes": 2188942,
+      "sha256": "33f7b58bf524577ac857868d558e866fd37eccfb75e963948404e5f243adb55d",
+      "dimensions": [
+        1536,
+        1024
+      ]
+    },
+    "frames": [
+      {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/01.webp",
+        "bytes": 93532,
+        "sha256": "17095e786ba3ef58ffe160c6dbbb4faa0dff3f788deab991686b420514c738f7"
+      },
+      {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/02.webp",
+        "bytes": 93036,
+        "sha256": "cc1b39773ca61dc338345f949012f98bd4f7cce1882e0a08228d5879ca1e1443"
+      },
+      {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/03.webp",
+        "bytes": 93710,
+        "sha256": "898135223d696e34602d252bf6fbd0a6c426c966abac164f139ce08adcdf1032"
+      },
+      {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/04.webp",
+        "bytes": 94424,
+        "sha256": "0139b99937b46f2ee25704ed6f1aab894a63e0151d752252903d9abc93138414"
+      },
+      {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/05.webp",
+        "bytes": 94290,
+        "sha256": "cb21f1368355320ffe6ff02f34d0d0ee8912b92317e562bd189a1cd7cc09911a"
+      },
+      {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/06.webp",
+        "bytes": 93278,
+        "sha256": "77bf88e9d96c7fc7a3bcbef307b6cafe7b7cb6a3d6c830335ee80842939bb0c8"
+      },
+      {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/07.webp",
+        "bytes": 92832,
+        "sha256": "ef44863446d60ea485792ca9a2313d4f482aa7dd66f95992e3463d059022306b"
+      },
+      {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/08.webp",
+        "bytes": 92268,
+        "sha256": "dc672ce610f52ffaef6051ee1ccdf0ad85a001b744bb6dcf1b9305a02372bf04"
+      }
+    ],
+    "pivot": [
+      0.5,
+      0.012396694214876033
+    ],
+    "soleContact": [
+      0.5,
+      0.987603305785124
+    ]
+  },
+  "criteria": [
+    "VA-03",
+    "VA-06",
+    "VA-07",
+    "VA-10",
+    "VA-13",
+    "REF-01",
+    "REF-08"
+  ],
+  "acceptance": "Pendiente de revisión en mesa",
+  "revision": "c85baf0b27b7e15128355d3d432af345b5caa3f0342fb0334f34ea7476cfd0ce",
+  "native": {
+    "capture": true,
+    "checks": 36,
+    "failures": []
+  },
+  "headless": {
+    "capture": false,
+    "checks": 30,
+    "failures": []
+  },
+  "routines": {
+    "catalogue": "c85baf0b27b7e15128355d3d432af345b5caa3f0342fb0334f34ea7476cfd0ce",
+    "checks": 483,
+    "contacts": 72,
+    "cooperation": [
+      "blepp/listen/kilnip",
+      "kilnip/blepp/blepp",
+      "myla/lesson/laylee"
+    ],
+    "failures": [],
+    "passed": true,
+    "scheduledContacts": [
+      "gear",
+      "alembic"
+    ],
+    "shots": []
+  },
+  "pairs": [
+    {
+      "id": "lateral",
+      "title": "Desde el pasillo",
+      "before": {
+        "path": "lateral-antes.png",
+        "bytes": 1874001,
+        "sha256": "52ab3e1900ded966ddcfb59b881598b977f191d1ddbe8ecb29197acfbafb2f40",
+        "dimensions": [
+          1440,
+          810
+        ]
+      },
+      "after": {
+        "path": "lateral-despues.png",
+        "bytes": 1872972,
+        "sha256": "d28b3dde40e9f66d42c178acaa8fb2341a85a36e33f6296ee6d79313e0d1377c",
+        "dimensions": [
+          1440,
+          810
+        ]
+      }
+    },
+    {
+      "id": "oblicua",
+      "title": "Desde el otro lado de la hamaca",
+      "before": {
+        "path": "oblicua-antes.png",
+        "bytes": 1902140,
+        "sha256": "369549fcaa8b34e1255f7ee4e5534d833eae820b60a7c7229e6169d38448fc60",
+        "dimensions": [
+          1440,
+          810
+        ]
+      },
+      "after": {
+        "path": "oblicua-despues.png",
+        "bytes": 1901897,
+        "sha256": "e94e2f3fc62e17addb00f131236ec286008b2f0840141f2c2579baa4381e3ac0",
+        "dimensions": [
+          1440,
+          810
+        ]
+      }
+    }
+  ],
+  "report": {
+    "id": "sw-kilnip-hammock-rest",
+    "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-kilnip-hammock-rest-33f7b58bf524.png",
+    "sourceSha256": "33f7b58bf524577ac857868d558e866fd37eccfb75e963948404e5f243adb55d",
+    "size": [
+      1536,
+      1024
+    ],
+    "grid": [
+      4,
+      2
+    ],
+    "columnCutsByRow": [
+      [
+        0,
+        384,
+        768,
+        1152,
+        1536
+      ],
+      [
+        0,
+        384,
+        768,
+        1152,
+        1536
+      ]
+    ],
+    "cellBounds": [
+      [
+        72,
+        11,
+        289,
+        483
+      ],
+      [
+        72,
+        11,
+        290,
+        483
+      ],
+      [
+        72,
+        11,
+        292,
+        483
+      ],
+      [
+        71,
+        11,
+        295,
+        483
+      ],
+      [
+        72,
+        12,
+        294,
+        483
+      ],
+      [
+        71,
+        11,
+        290,
+        483
+      ],
+      [
+        72,
+        12,
+        289,
+        483
+      ],
+      [
+        72,
+        12,
+        289,
+        483
+      ]
+    ],
+    "visibleHeights": [
+      472,
+      472,
+      472,
+      472,
+      471,
+      472,
+      471,
+      471
+    ],
+    "distinctPhases": 8,
+    "errors": [],
+    "minimumAlpha": 12,
+    "operation": "Native-size cell extraction, faint alpha removed and common registration. No resizing.",
+    "equivalentPngBytes": 1169708,
+    "format": "webp",
+    "frameBytes": 747370,
+    "referenceHeight": 472,
+    "framePaths": [
+      "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/01.webp",
+      "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/02.webp",
+      "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/03.webp",
+      "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/04.webp",
+      "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/05.webp",
+      "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/06.webp",
+      "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/07.webp",
+      "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/08.webp"
+    ],
+    "pivot": [
+      0.5,
+      0.012396694214876033
+    ]
+  }
+}

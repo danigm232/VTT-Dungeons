@@ -11,6 +11,11 @@ func check(value: bool, message: String) -> void:
 		printerr("FAIL: ", message)
 func _run() -> void:
 	var data = JSON.parse_string(FileAccess.get_file_as_string("res://loading/catalog.json"))
+	check(Stage.bandit_escape_frame(0.1) == 14 and Stage.bandit_escape_frame(0.7) == 15, "Bandit escape keeps its own hooded source row")
+	var neutral = Stage.sample([], 0)
+	check(Stage.prop_position({"art":"rope","x":324,"y":169}, neutral).y == 169, "Rope and actor share the elevated support")
+	check(Stage.prop_position({"art":"table","x":400,"y":180}, neutral).y == 202, "Furniture stays on the floor")
+	check(Stage.prop_position({"art":"crystal","x":400,"y":118}, neutral).y == 118, "Magical levitation stays intentional")
 	var model = Session.new(data)
 	check(data.scenes.size() == 18, "18 skill definitions")
 	check(data.frames.size() >= 500, "Original authored frames exported")

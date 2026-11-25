@@ -1,7 +1,7 @@
 {
   "version": 1,
   "status": "inspection-only",
-  "revision": "10bddb403b92edb196188d76bcc0c3ad365a04bbd5152a4e96f963131fb45034",
+  "revision": "4fb69da614fec36e3716ca2cb7f616b804b662188cf39077399ad083a28b451d",
   "characters": {
     "anteros": {
       "version": 1,
@@ -385,6 +385,17 @@
         "run",
         "attack"
       ],
+      "combatMotionReuse": {
+        "catalogue": "prototypes/godot-shared/combat/catalogue.json#frames.rogue",
+        "source": "tokens/generated-20261004/rogue-rise.png",
+        "actions": [
+          "fall",
+          "stand"
+        ],
+        "framesPerAction": 4,
+        "compatibility": "Legacy painted clothing and equipment, logical feet unchanged. Existing recovery and fall sequences, no new atlas or fitted equipment.",
+        "exception": "Existing four-frame sequences are retained through the legacy adapter. This is not a newly drawn Stormwreck cycle."
+      },
       "limitations": [
         "Compatibility adapter: existing animations are retained; anatomical seeds are editable and are not approved equipment fitting.",
         "No newly authored animation or clothing is implied."
@@ -5041,6 +5052,93 @@
         }
       ]
     },
+    "sw-agga-covered-rest": {
+      "version": 1,
+      "kind": "animation",
+      "id": "sw-agga-covered-rest",
+      "character": "sw-agga",
+      "campaign": "stormwreck-isle",
+      "anatomy": "reptilian-small",
+      "action": "rest_on_prop",
+      "direction": "s",
+      "fps": 1,
+      "loop": false,
+      "poseKind": "hold",
+      "dependencies": [
+        "sw-agga"
+      ],
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-covered-rest/9da715cf0abf/01.webp"
+      ],
+      "restVolume": {
+        "head": 0.105,
+        "chest": 0.108,
+        "hips": 0.09,
+        "calves": 0.07,
+        "boots": 0.054
+      },
+      "restBlanket": {
+        "base": "#83704f",
+        "trim": "#c2ad82",
+        "bands": 2
+      },
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "placement": "Static overhead bust positioned in the head-to-foot axis; the existing wool volume covers the matching anatomy and determines the rest of the silhouette.",
+        "overlay": "Shared resting body surface, world-aligned cloth."
+      },
+      "production": {
+        "candidateSheet": 1,
+        "candidateCell": 4,
+        "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-turnaround/3622dcd4b20e/01.png",
+        "intent": "A single overhead pose of head and torso with closed eyes. Native 3D cloth covers the body below the shoulder line.",
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-retreat-covered-rest-1-9da715cf0abf.png",
+        "originalSha256": "9da715cf0abf204cef70c315cb90b106316f43bee767a146956ad9db9af5d0af",
+        "extraction": "Native cut on a transparent registration canvas; padding describes space under the blanket.",
+        "nativeBustPixels": 445,
+        "cellBounds": [
+          63,
+          32,
+          443,
+          477
+        ],
+        "encoding": "Lossless WebP, all RGBA pixels verified"
+      },
+      "review": {
+        "technical": "Cell clearance, native resolution, pivot and lossless RGBA verified.",
+        "visual": "Overhead bust and cell crop compared with the installed appearance; user acceptance pending.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 945,
+      "pivot": [
+        0.5,
+        0.0072992700729927005
+      ],
+      "soleContact": [
+        0.5,
+        0.9927007299270073
+      ],
+      "restSculpt": {
+        "eyes": 0.16058394160583941,
+        "nose": [
+          0.5,
+          0.2116788321167883
+        ],
+        "jaw": 0.23983315954118875,
+        "faceHalfWidth": 0.16,
+        "recline": 8
+      },
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-agga-covered-rest/00-01.webp",
+          "pivot": [
+            0.5,
+            0.0072992700729927005
+          ]
+        }
+      ]
+    },
     "sw-agga-direct": {
       "id": "sw-agga-direct",
       "version": 1,
@@ -5152,6 +5250,125 @@
           "pivot": [
             0.5,
             0.9293893129770993
+          ]
+        }
+      ]
+    },
+    "sw-agga-retreat-direct-rear": {
+      "version": 1,
+      "kind": "animation",
+      "character": "sw-agga",
+      "campaign": "stormwreck-isle",
+      "anatomy": "reptilian-small",
+      "action": "retreat_direct",
+      "fps": 6,
+      "loop": false,
+      "dependencies": [
+        "sw-agga"
+      ],
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "overlay": "current frame alpha",
+        "placement": "planted soles, station contact; one authored view"
+      },
+      "id": "sw-agga-retreat-direct-rear",
+      "direction": "n",
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/01.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/02.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/03.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/04.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/05.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/06.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/07.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/08.webp"
+      ],
+      "production": {
+        "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-turnaround/3622dcd4b20e/03.png",
+        "companionClip": "sw-agga-direct",
+        "motionReference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-agga-direct-545be563b671.png",
+        "prompt": "Paint a production transparent spritesheet of the exact same character in reference 1, performing the action from reference 2, as seen directly from BEHIND in all 8 frames. Reference 1 is the exact back silhouette and costume. Reference 2 shows the movement from the other side. Match the same painted fantasy RPG style, colors, height and age. No face visible, eyes fully concealed, both heels and back visible in every single frame. Slight tactical top elevation 18 degrees. Feet planted, tail fully contained and scale consistent. Motion, in 8 distinct chronological phases from upper-left row across then lower-left row across: Brief someone standing in front of her with one clear bent-to-extended pointing gesture from her right arm, hold through two changing elbow phases, then bring the arm slowly back. Plain cream robes with beige cropped shawl and rolled sleeves, no emblems. Exact centered rectangular equal grid 4 columns by 2 rows in a 1536 x 1024 sprite sheet. No panels, numerals, writing, floor, shadows, fog or colored backing. True transparent RGBA. Keep a clear 20 px of transparent space between every figure and the edges of its cell. Vertically use 86% of each cell and keep a consistent center of the feet. Always see this person from the back, including all moving phases.",
+        "minimumVisibleStandingPixels": 250,
+        "expectedPhases": 8,
+        "sourcePages": [
+          8,
+          9,
+          10,
+          11
+        ],
+        "method": "ImageGen reverse view from the existing stance and companion motion, native-size extraction",
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-agga-retreat-direct-rear-38abb89b22c4.png",
+        "originalSha256": "38abb89b22c43139b0ddc302c290d138a407e8616a1930a0946150bba564b00e",
+        "importReport": "output/stormwreck-motion-detail/sw-agga-retreat-direct-rear-38abb89b22c4.json",
+        "minimumAlpha": 3,
+        "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+      },
+      "review": {
+        "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+        "visual": "Inspected all eight cropped frames with the original resident as a reference.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 452,
+      "pivot": [
+        0.5,
+        0.9007633587786259
+      ],
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-agga-retreat-direct-rear/00-01.webp",
+          "pivot": [
+            0.5,
+            0.9007633587786259
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-agga-retreat-direct-rear/01-02.webp",
+          "pivot": [
+            0.5,
+            0.9007633587786259
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-agga-retreat-direct-rear/02-03.webp",
+          "pivot": [
+            0.5,
+            0.9007633587786259
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-agga-retreat-direct-rear/03-04.webp",
+          "pivot": [
+            0.5,
+            0.9007633587786259
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-agga-retreat-direct-rear/04-05.webp",
+          "pivot": [
+            0.5,
+            0.9007633587786259
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-agga-retreat-direct-rear/05-06.webp",
+          "pivot": [
+            0.5,
+            0.9007633587786259
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-agga-retreat-direct-rear/06-07.webp",
+          "pivot": [
+            0.5,
+            0.9007633587786259
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-agga-retreat-direct-rear/07-08.webp",
+          "pivot": [
+            0.5,
+            0.9007633587786259
           ]
         }
       ]
@@ -6125,6 +6342,93 @@
         }
       ]
     },
+    "sw-blepp-covered-rest": {
+      "version": 1,
+      "kind": "animation",
+      "id": "sw-blepp-covered-rest",
+      "character": "sw-blepp",
+      "campaign": "stormwreck-isle",
+      "anatomy": "reptilian-small",
+      "action": "rest_on_prop",
+      "direction": "s",
+      "fps": 1,
+      "loop": false,
+      "poseKind": "hold",
+      "dependencies": [
+        "sw-blepp"
+      ],
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-covered-rest/9da715cf0abf/01.webp"
+      ],
+      "restVolume": {
+        "head": 0.105,
+        "chest": 0.108,
+        "hips": 0.09,
+        "calves": 0.07,
+        "boots": 0.054
+      },
+      "restBlanket": {
+        "base": "#5f6554",
+        "trim": "#ae9b71",
+        "bands": 1
+      },
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "placement": "Static overhead bust positioned in the head-to-foot axis; the existing wool volume covers the matching anatomy and determines the rest of the silhouette.",
+        "overlay": "Shared resting body surface, world-aligned cloth."
+      },
+      "production": {
+        "candidateSheet": 1,
+        "candidateCell": 5,
+        "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-turnaround/bfef67b39490/01.png",
+        "intent": "A single overhead pose of head and torso with closed eyes. Native 3D cloth covers the body below the shoulder line.",
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-retreat-covered-rest-1-9da715cf0abf.png",
+        "originalSha256": "9da715cf0abf204cef70c315cb90b106316f43bee767a146956ad9db9af5d0af",
+        "extraction": "Native cut on a transparent registration canvas; padding describes space under the blanket.",
+        "nativeBustPixels": 439,
+        "cellBounds": [
+          77,
+          38,
+          436,
+          477
+        ],
+        "encoding": "Lossless WebP, all RGBA pixels verified"
+      },
+      "review": {
+        "technical": "Cell clearance, native resolution, pivot and lossless RGBA verified.",
+        "visual": "Overhead bust and cell crop compared with the installed appearance; user acceptance pending.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 932,
+      "pivot": [
+        0.5,
+        0.007399577167019027
+      ],
+      "soleContact": [
+        0.5,
+        0.992600422832981
+      ],
+      "restSculpt": {
+        "eyes": 0.15327695560253699,
+        "nose": [
+          0.5,
+          0.19978858350951373
+        ],
+        "jaw": 0.23044397463002114,
+        "faceHalfWidth": 0.16,
+        "recline": 8
+      },
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-blepp-covered-rest/00-01.webp",
+          "pivot": [
+            0.5,
+            0.007399577167019027
+          ]
+        }
+      ]
+    },
     "sw-blepp-retreat-stance-e": {
       "version": 1,
       "kind": "animation",
@@ -6385,6 +6689,125 @@
           "pivot": [
             0.3080357142857143,
             0.9872068230277186
+          ]
+        }
+      ]
+    },
+    "sw-blepp-retreat-watch-rear": {
+      "version": 1,
+      "kind": "animation",
+      "character": "sw-blepp",
+      "campaign": "stormwreck-isle",
+      "anatomy": "reptilian-small",
+      "action": "retreat_watch",
+      "fps": 6,
+      "loop": false,
+      "dependencies": [
+        "sw-blepp"
+      ],
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "overlay": "current frame alpha",
+        "placement": "planted soles, station contact; one authored view"
+      },
+      "id": "sw-blepp-retreat-watch-rear",
+      "direction": "n",
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/01.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/02.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/03.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/04.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/05.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/06.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/07.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/08.webp"
+      ],
+      "production": {
+        "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-turnaround/bfef67b39490/03.png",
+        "companionClip": "sw-blepp-watch",
+        "motionReference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-blepp-watch-bd5092564ef8.png",
+        "prompt": "Paint a production transparent spritesheet of the exact same character in reference 1, performing the action from reference 2, as seen directly from BEHIND in all 8 frames. Reference 1 is the exact back silhouette and costume. Reference 2 shows the movement from the other side. Match the same painted fantasy RPG style, colors, height and age. No face visible, eyes fully concealed, both heels and back visible in every single frame. Slight tactical top elevation 18 degrees. Feet planted, tail fully contained and scale consistent. Motion, in 8 distinct chronological phases from upper-left row across then lower-left row across: Watch for a distant disturbance. Silhouette shows right elbow bending, hand rising to brow and pointing ahead, lean forward, then hand drops and spine straightens. Olive scarf remains fixed, horns and trousers follow the reference. No weapon. Exact centered rectangular equal grid 4 columns by 2 rows in a 1536 x 1024 sprite sheet. No panels, numerals, writing, floor, shadows, fog or colored backing. True transparent RGBA. Keep a clear 20 px of transparent space between every figure and the edges of its cell. Vertically use 86% of each cell and keep a consistent center of the feet. Always see this person from the back, including all moving phases.",
+        "minimumVisibleStandingPixels": 250,
+        "expectedPhases": 8,
+        "sourcePages": [
+          8,
+          9,
+          10,
+          11
+        ],
+        "method": "ImageGen reverse view from the existing stance and companion motion, native-size extraction",
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-blepp-retreat-watch-rear-3b40230a887d.png",
+        "originalSha256": "3b40230a887d0207260ac4a601e7aa0ab0819ee213d00ebfec7f55d055698e2c",
+        "importReport": "output/stormwreck-motion-detail/sw-blepp-retreat-watch-rear-3b40230a887d.json",
+        "minimumAlpha": 12,
+        "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+      },
+      "review": {
+        "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+        "visual": "Inspected all eight cropped frames with the original resident as a reference.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 460,
+      "pivot": [
+        0.5,
+        0.9255725190839694
+      ],
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-blepp-retreat-watch-rear/00-01.webp",
+          "pivot": [
+            0.5,
+            0.9255725190839694
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-blepp-retreat-watch-rear/01-02.webp",
+          "pivot": [
+            0.5,
+            0.9255725190839694
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-blepp-retreat-watch-rear/02-03.webp",
+          "pivot": [
+            0.5,
+            0.9255725190839694
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-blepp-retreat-watch-rear/03-04.webp",
+          "pivot": [
+            0.5,
+            0.9255725190839694
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-blepp-retreat-watch-rear/04-05.webp",
+          "pivot": [
+            0.5,
+            0.9255725190839694
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-blepp-retreat-watch-rear/05-06.webp",
+          "pivot": [
+            0.5,
+            0.9255725190839694
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-blepp-retreat-watch-rear/06-07.webp",
+          "pivot": [
+            0.5,
+            0.9255725190839694
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-blepp-retreat-watch-rear/07-08.webp",
+          "pivot": [
+            0.5,
+            0.9255725190839694
           ]
         }
       ]
@@ -7205,6 +7628,212 @@
           "pivot": [
             0.5,
             0.8981132075471698
+          ]
+        }
+      ]
+    },
+    "sw-frub-covered-rest": {
+      "version": 1,
+      "kind": "animation",
+      "id": "sw-frub-covered-rest",
+      "character": "sw-frub",
+      "campaign": "stormwreck-isle",
+      "anatomy": "reptilian-small",
+      "action": "rest_on_prop",
+      "direction": "s",
+      "fps": 1,
+      "loop": false,
+      "poseKind": "hold",
+      "dependencies": [
+        "sw-frub"
+      ],
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-covered-rest/287665f23971/01.webp"
+      ],
+      "restVolume": {
+        "head": 0.105,
+        "chest": 0.108,
+        "hips": 0.09,
+        "calves": 0.07,
+        "boots": 0.054
+      },
+      "restBlanket": {
+        "base": "#825f42",
+        "trim": "#bfaa80",
+        "bands": 2
+      },
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "placement": "Static overhead bust positioned in the head-to-foot axis; the existing wool volume covers the matching anatomy and determines the rest of the silhouette.",
+        "overlay": "Shared resting body surface, world-aligned cloth."
+      },
+      "production": {
+        "candidateSheet": 2,
+        "candidateCell": 0,
+        "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-turnaround/0f81da46a176/01.png",
+        "intent": "A single overhead pose of head and torso with closed eyes. Native 3D cloth covers the body below the shoulder line.",
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-retreat-covered-rest-2-287665f23971.png",
+        "originalSha256": "287665f23971d0c535373be5845e4760d0a5c5c4cc9e0c757e1390721632ed3d",
+        "extraction": "Native cut on a transparent registration canvas; padding describes space under the blanket.",
+        "nativeBustPixels": 447,
+        "cellBounds": [
+          107,
+          29,
+          405,
+          476
+        ],
+        "encoding": "Lossless WebP, all RGBA pixels verified"
+      },
+      "review": {
+        "technical": "Cell clearance, native resolution, pivot and lossless RGBA verified.",
+        "visual": "Overhead bust and cell crop compared with the installed appearance; user acceptance pending.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 949,
+      "pivot": [
+        0.5,
+        0.007268951194184839
+      ],
+      "soleContact": [
+        0.5,
+        0.9927310488058152
+      ],
+      "restSculpt": {
+        "eyes": 0.14849428868120457,
+        "nose": [
+          0.5,
+          0.1786085150571132
+        ],
+        "jaw": 0.21079958463136034,
+        "faceHalfWidth": 0.16,
+        "recline": 8
+      },
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-frub-covered-rest/00-01.webp",
+          "pivot": [
+            0.5,
+            0.007268951194184839
+          ]
+        }
+      ]
+    },
+    "sw-frub-retreat-fetch-rear": {
+      "version": 1,
+      "kind": "animation",
+      "character": "sw-frub",
+      "campaign": "stormwreck-isle",
+      "anatomy": "reptilian-small",
+      "action": "retreat_fetch",
+      "fps": 7,
+      "loop": false,
+      "dependencies": [
+        "sw-frub"
+      ],
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "overlay": "Current frame alpha",
+        "placement": "standing with world object controlled outside character sprite"
+      },
+      "id": "sw-frub-retreat-fetch-rear",
+      "direction": "n",
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/01.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/02.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/03.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/04.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/05.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/06.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/07.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/08.webp"
+      ],
+      "production": {
+        "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-turnaround/0f81da46a176/03.png",
+        "companionClip": "sw-frub-retreat-fetch",
+        "motionReference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-frub-retreat-fetch-6f934553353c.png",
+        "prompt": "Paint a production transparent spritesheet of the exact same character in reference 1, performing the action from reference 2, as seen directly from BEHIND in all 8 frames. Reference 1 is the exact back silhouette and costume. Reference 2 shows the movement from the other side. Match the same painted fantasy RPG style, colors, height and age. No face visible, eyes fully concealed, both heels and back visible in every single frame. Slight tactical top elevation 18 degrees. Feet planted, tail fully contained and scale consistent. Motion, in 8 distinct chronological phases from upper-left row across then lower-left row across: Reach forward with his right arm at waist height, curl fingers as if picking up an invisible small cup, draw the hand just in, then place the cup forward and release, straighten. The cup is a separate object, no object painted. Warm brown vest with pale sleeves and green waist sash. Exact centered rectangular equal grid 4 columns by 2 rows in a 1536 x 1024 sprite sheet. No panels, numerals, writing, floor, shadows, fog or colored backing. True transparent RGBA. Keep a clear 20 px of transparent space between every figure and the edges of its cell. Vertically use 86% of each cell and keep a consistent center of the feet. Always see this person from the back, including all moving phases.",
+        "minimumVisibleStandingPixels": 250,
+        "expectedPhases": 8,
+        "sourcePages": [
+          8,
+          9,
+          10,
+          11
+        ],
+        "method": "ImageGen reverse view from the existing stance and companion motion, native-size extraction",
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-frub-retreat-fetch-rear-838919deb5bc.png",
+        "originalSha256": "838919deb5bc3df549838951b455ed044f80cde9a929628f33c79a882e54058d",
+        "importReport": "output/stormwreck-motion-detail/sw-frub-retreat-fetch-rear-838919deb5bc.json",
+        "minimumAlpha": 12,
+        "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+      },
+      "review": {
+        "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+        "visual": "Inspected all eight cropped frames with the original resident as a reference.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 462,
+      "pivot": [
+        0.5,
+        0.916030534351145
+      ],
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-frub-retreat-fetch-rear/00-01.webp",
+          "pivot": [
+            0.5,
+            0.916030534351145
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-frub-retreat-fetch-rear/01-02.webp",
+          "pivot": [
+            0.5,
+            0.916030534351145
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-frub-retreat-fetch-rear/02-03.webp",
+          "pivot": [
+            0.5,
+            0.916030534351145
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-frub-retreat-fetch-rear/03-04.webp",
+          "pivot": [
+            0.5,
+            0.916030534351145
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-frub-retreat-fetch-rear/04-05.webp",
+          "pivot": [
+            0.5,
+            0.916030534351145
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-frub-retreat-fetch-rear/05-06.webp",
+          "pivot": [
+            0.5,
+            0.916030534351145
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-frub-retreat-fetch-rear/06-07.webp",
+          "pivot": [
+            0.5,
+            0.916030534351145
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-frub-retreat-fetch-rear/07-08.webp",
+          "pivot": [
+            0.5,
+            0.916030534351145
           ]
         }
       ]
@@ -8760,6 +9389,253 @@
         }
       ]
     },
+    "sw-kilnip-hammock-rest": {
+      "version": 1,
+      "kind": "animation",
+      "id": "sw-kilnip-hammock-rest",
+      "character": "sw-kilnip",
+      "campaign": "stormwreck-isle",
+      "anatomy": "reptilian-small",
+      "action": "rest_on_prop",
+      "direction": "s",
+      "fps": 1.875,
+      "loop": true,
+      "dependencies": [
+        "sw-kilnip"
+      ],
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/01.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/02.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/03.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/05.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/06.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/08.webp"
+      ],
+      "restVolume": {
+        "head": 0.145,
+        "chest": 0.15,
+        "hips": 0.13,
+        "calves": 0.084,
+        "boots": 0.062
+      },
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "placement": "Head-to-foot texture of a reclining kobold supported by anchored hammock geometry, footprint measured from the original standing actor",
+        "overlay": "Existing resting body surface"
+      },
+      "production": {
+        "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/kilnip.png",
+        "prompt": "Create a production sprite atlas of the exact kobold Kilnip in the attached art, sleeping on his back. Same muted copper-red scales, two swept back horns, long angular muzzle, tired eyes now closed, and unadorned beige hooded robe with brown belt and plain dark hem. Exact realistic painterly fantasy style. Draw only his isolated body, with full silhouette, no bed, no hammock, no blanket, no background, no floor, no shadow, no labels. Transparent RGBA with truly empty alpha. Camera exactly directly overhead looking down at the prone body from above, as if taking an orthographic photo of him laid flat, with top of crown and horns at top of cell, nose toward bottom of page, soles at bottom of cell. It should look sleeping and clearly reclined, arms relaxed over belly or to the sides, feet relaxed and separated, tail curls gently close to his right thigh, adult kobold proportions, no additional clothes or jewelry. Atlas 1536x1024, EXACT 4 equally sized columns by 2 equally sized rows, 8 independent figures in chronological order row-major. All figures aligned, head roots and hips and feet at same positions. Animate subtle visible breathing in chest and sleeves with just one rise and fall, shoulders start relaxed, then rise progressively through frames 2 3 4 5, then relax back through frames 6 7 8. Eyes closed consistently. Slight movement of hands and cloth with chest, neither legs nor the head travel. Do not sleep standing or draw front-standing figures. Each pose fills 86% of its cell height and less than 77% of its width with at least 20px of empty clear gap to each edge in every cell, all feet and horns included.",
+        "minimumVisibleStandingPixels": 320,
+        "expectedPhases": 8,
+        "sourcePages": [
+          8,
+          9
+        ],
+        "method": "ImageGen overhead breathing cycle with native lossless WebP extraction",
+        "reclinedSheet": true,
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-kilnip-hammock-rest-33f7b58bf524.png",
+        "originalSha256": "33f7b58bf524577ac857868d558e866fd37eccfb75e963948404e5f243adb55d",
+        "importReport": "output/stormwreck-motion-detail/sw-kilnip-hammock-rest-33f7b58bf524.json",
+        "minimumAlpha": 12,
+        "encoding": "WebP lossless, verified RGBA including fully transparent pixels",
+        "activePhases": 6,
+        "archivedAuthoredPhases": 8
+      },
+      "review": {
+        "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+        "visual": "The original sleeping pose and wool tone were reviewed for the blanket candidate.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 472,
+      "pivot": [
+        0.5,
+        0.012396694214876033
+      ],
+      "soleContact": [
+        0.5,
+        0.987603305785124
+      ],
+      "restSculpt": {
+        "eyes": 0.166,
+        "nose": [
+          0.5,
+          0.232
+        ],
+        "jaw": 0.27,
+        "faceHalfWidth": 0.135,
+        "recline": 0
+      },
+      "restBlanket": {
+        "base": "#686557",
+        "trim": "#cbb18b",
+        "bands": 2
+      },
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-kilnip-hammock-rest/00-01.webp",
+          "pivot": [
+            0.5,
+            0.012396694214876033
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-kilnip-hammock-rest/01-02.webp",
+          "pivot": [
+            0.5,
+            0.012396694214876033
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-kilnip-hammock-rest/02-03.webp",
+          "pivot": [
+            0.5,
+            0.012396694214876033
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-kilnip-hammock-rest/03-05.webp",
+          "pivot": [
+            0.5,
+            0.012396694214876033
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-kilnip-hammock-rest/04-06.webp",
+          "pivot": [
+            0.5,
+            0.012396694214876033
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-kilnip-hammock-rest/05-08.webp",
+          "pivot": [
+            0.5,
+            0.012396694214876033
+          ]
+        }
+      ]
+    },
+    "sw-kilnip-retreat-chat-rear": {
+      "version": 1,
+      "kind": "animation",
+      "character": "sw-kilnip",
+      "campaign": "stormwreck-isle",
+      "anatomy": "reptilian-small",
+      "action": "retreat_chat",
+      "fps": 6,
+      "loop": false,
+      "dependencies": [
+        "sw-kilnip"
+      ],
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "overlay": "current frame alpha",
+        "placement": "planted soles, station contact; one authored view"
+      },
+      "id": "sw-kilnip-retreat-chat-rear",
+      "direction": "n",
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/01.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/02.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/03.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/04.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/05.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/06.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/07.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/08.webp"
+      ],
+      "production": {
+        "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-turnaround/e2c936a549d5/03.png",
+        "companionClip": "sw-kilnip-chat",
+        "motionReference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-kilnip-chat-67a2e51c6305.png",
+        "prompt": "Paint a production transparent spritesheet of the exact same character in reference 1, performing the action from reference 2, as seen directly from BEHIND in all 8 frames. Reference 1 is the exact back silhouette and costume. Reference 2 shows the movement from the other side. Match the same painted fantasy RPG style, colors, height and age. No face visible, eyes fully concealed, both heels and back visible in every single frame. Slight tactical top elevation 18 degrees. Feet planted, tail fully contained and scale consistent. Motion, in 8 distinct chronological phases from upper-left row across then lower-left row across: One relaxed low conversation gesture: raise his right elbow and open one hand to his right at waist height, shrug and briefly bring the other hand up, then settle. Very simple hooded beige tunic with dark hem and no insignia, no gold embroidery. Match reference 1. Exact centered rectangular equal grid 4 columns by 2 rows in a 1536 x 1024 sprite sheet. No panels, numerals, writing, floor, shadows, fog or colored backing. True transparent RGBA. Keep a clear 20 px of transparent space between every figure and the edges of its cell. Vertically use 86% of each cell and keep a consistent center of the feet. Always see this person from the back, including all moving phases.",
+        "minimumVisibleStandingPixels": 250,
+        "expectedPhases": 8,
+        "sourcePages": [
+          8,
+          9,
+          10,
+          11
+        ],
+        "method": "ImageGen reverse view from the existing stance and companion motion, native-size extraction",
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-kilnip-retreat-chat-rear-88cce312ae63.png",
+        "originalSha256": "88cce312ae63d6ababde118dd355830f484f0c8d0f3ab6b434c812832d7e6252",
+        "importReport": "output/stormwreck-motion-detail/sw-kilnip-retreat-chat-rear-88cce312ae63.json",
+        "minimumAlpha": 12,
+        "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+      },
+      "review": {
+        "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+        "visual": "Inspected all eight cropped frames with the original resident as a reference.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 458,
+      "pivot": [
+        0.5,
+        0.9141221374045801
+      ],
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-kilnip-retreat-chat-rear/00-01.webp",
+          "pivot": [
+            0.5,
+            0.9141221374045801
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-kilnip-retreat-chat-rear/01-02.webp",
+          "pivot": [
+            0.5,
+            0.9141221374045801
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-kilnip-retreat-chat-rear/02-03.webp",
+          "pivot": [
+            0.5,
+            0.9141221374045801
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-kilnip-retreat-chat-rear/03-04.webp",
+          "pivot": [
+            0.5,
+            0.9141221374045801
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-kilnip-retreat-chat-rear/04-05.webp",
+          "pivot": [
+            0.5,
+            0.9141221374045801
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-kilnip-retreat-chat-rear/05-06.webp",
+          "pivot": [
+            0.5,
+            0.9141221374045801
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-kilnip-retreat-chat-rear/06-07.webp",
+          "pivot": [
+            0.5,
+            0.9141221374045801
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-kilnip-retreat-chat-rear/07-08.webp",
+          "pivot": [
+            0.5,
+            0.9141221374045801
+          ]
+        }
+      ]
+    },
     "sw-kilnip-retreat-stance-e": {
       "version": 1,
       "kind": "animation",
@@ -9733,6 +10609,210 @@
           "pivot": [
             0.5,
             0.9011194029850746
+          ]
+        }
+      ]
+    },
+    "sw-laylee-covered-rest": {
+      "version": 1,
+      "kind": "animation",
+      "id": "sw-laylee-covered-rest",
+      "character": "sw-laylee",
+      "campaign": "stormwreck-isle",
+      "anatomy": "reptilian-small",
+      "action": "rest_on_prop",
+      "direction": "s",
+      "fps": 1,
+      "loop": false,
+      "poseKind": "hold",
+      "dependencies": [
+        "sw-laylee"
+      ],
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-covered-rest/287665f23971/01.webp"
+      ],
+      "restVolume": {
+        "head": 0.105,
+        "chest": 0.108,
+        "hips": 0.09,
+        "calves": 0.07,
+        "boots": 0.054
+      },
+      "restBlanket": {
+        "base": "#685754",
+        "trim": "#bf966f",
+        "bands": 1
+      },
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "placement": "Static overhead bust positioned in the head-to-foot axis; the existing wool volume covers the matching anatomy and determines the rest of the silhouette.",
+        "overlay": "Shared resting body surface, world-aligned cloth."
+      },
+      "production": {
+        "candidateSheet": 2,
+        "candidateCell": 1,
+        "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-turnaround/70533ffae250/01.png",
+        "intent": "A single overhead pose of head and torso with closed eyes. Native 3D cloth covers the body below the shoulder line.",
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-retreat-covered-rest-2-287665f23971.png",
+        "originalSha256": "287665f23971d0c535373be5845e4760d0a5c5c4cc9e0c757e1390721632ed3d",
+        "extraction": "Native cut on a transparent registration canvas; padding describes space under the blanket.",
+        "nativeBustPixels": 447,
+        "cellBounds": [
+          106,
+          29,
+          405,
+          476
+        ],
+        "encoding": "Lossless WebP, all RGBA pixels verified"
+      },
+      "review": {
+        "technical": "Cell clearance, native resolution, pivot and lossless RGBA verified.",
+        "visual": "Overhead bust and cell crop compared with the installed appearance; user acceptance pending.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 949,
+      "pivot": [
+        0.5,
+        0.007268951194184839
+      ],
+      "soleContact": [
+        0.5,
+        0.9927310488058152
+      ],
+      "restSculpt": {
+        "eyes": 0.13187954309449637,
+        "nose": [
+          0.5,
+          0.16926272066458983
+        ],
+        "jaw": 0.19626168224299065,
+        "faceHalfWidth": 0.16,
+        "recline": 8
+      },
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-laylee-covered-rest/00-01.webp",
+          "pivot": [
+            0.5,
+            0.007268951194184839
+          ]
+        }
+      ]
+    },
+    "sw-laylee-retreat-sort-rear": {
+      "version": 1,
+      "kind": "animation",
+      "character": "sw-laylee",
+      "campaign": "stormwreck-isle",
+      "anatomy": "reptilian-small",
+      "action": "retreat_sort",
+      "fps": 6,
+      "loop": false,
+      "dependencies": [
+        "sw-laylee"
+      ],
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "overlay": "current frame alpha",
+        "placement": "standing feet registered; one authored view"
+      },
+      "id": "sw-laylee-retreat-sort-rear",
+      "direction": "n",
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/01.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/02.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/03.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/04.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/05.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/06.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/07.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/08.webp"
+      ],
+      "production": {
+        "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-turnaround/70533ffae250/03.png",
+        "companionClip": "sw-laylee-sort",
+        "motionReference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-laylee-sort-6d70b6a59334.png",
+        "prompt": "Paint a production transparent spritesheet of the exact same character in reference 1, performing the action from reference 2, as seen directly from BEHIND in all 8 frames. Reference 1 is the exact back silhouette and costume. Reference 2 shows the movement from the other side. Match the same painted fantasy RPG style, colors, height and age. No face visible, eyes fully concealed, both heels and back visible in every single frame. Slight tactical top elevation 18 degrees. Feet planted, tail fully contained and scale consistent. Motion, in 8 distinct chronological phases from upper-left row across then lower-left row across: Lean in, extend right hand gently over an invisible work surface, sort or polish an invisible small part with two small alternating forearm motions, then relax. Keep the leather workshop apron, straps, gloves only if visible in reference, and bandaged lower legs. Do not add gear or furniture. Exact centered rectangular equal grid 4 columns by 2 rows in a 1536 x 1024 sprite sheet. No panels, numerals, writing, floor, shadows, fog or colored backing. True transparent RGBA. Keep a clear 20 px of transparent space between every figure and the edges of its cell. Vertically use 86% of each cell and keep a consistent center of the feet. Always see this person from the back, including all moving phases.",
+        "minimumVisibleStandingPixels": 250,
+        "expectedPhases": 8,
+        "sourcePages": [
+          9,
+          10
+        ],
+        "method": "ImageGen reverse view from the existing stance and companion motion, native-size extraction",
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-laylee-retreat-sort-rear-f723bf020ad2.png",
+        "originalSha256": "f723bf020ad2190be51f90924ef9301fac67d470eef67ec5bc922946d00b729e",
+        "importReport": "output/stormwreck-motion-detail/sw-laylee-retreat-sort-rear-f723bf020ad2.json",
+        "minimumAlpha": 12,
+        "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+      },
+      "review": {
+        "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+        "visual": "Inspected all eight cropped frames with the original resident as a reference.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 455,
+      "pivot": [
+        0.5,
+        0.9103053435114504
+      ],
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-laylee-retreat-sort-rear/00-01.webp",
+          "pivot": [
+            0.5,
+            0.9103053435114504
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-laylee-retreat-sort-rear/01-02.webp",
+          "pivot": [
+            0.5,
+            0.9103053435114504
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-laylee-retreat-sort-rear/02-03.webp",
+          "pivot": [
+            0.5,
+            0.9103053435114504
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-laylee-retreat-sort-rear/03-04.webp",
+          "pivot": [
+            0.5,
+            0.9103053435114504
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-laylee-retreat-sort-rear/04-05.webp",
+          "pivot": [
+            0.5,
+            0.9103053435114504
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-laylee-retreat-sort-rear/05-06.webp",
+          "pivot": [
+            0.5,
+            0.9103053435114504
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-laylee-retreat-sort-rear/06-07.webp",
+          "pivot": [
+            0.5,
+            0.9103053435114504
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-laylee-retreat-sort-rear/07-08.webp",
+          "pivot": [
+            0.5,
+            0.9103053435114504
           ]
         }
       ]
@@ -12578,6 +13658,212 @@
         }
       ]
     },
+    "sw-mumpo-covered-rest": {
+      "version": 1,
+      "kind": "animation",
+      "id": "sw-mumpo-covered-rest",
+      "character": "sw-mumpo",
+      "campaign": "stormwreck-isle",
+      "anatomy": "reptilian-small",
+      "action": "rest_on_prop",
+      "direction": "s",
+      "fps": 1,
+      "loop": false,
+      "poseKind": "hold",
+      "dependencies": [
+        "sw-mumpo"
+      ],
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-covered-rest/287665f23971/01.webp"
+      ],
+      "restVolume": {
+        "head": 0.105,
+        "chest": 0.108,
+        "hips": 0.09,
+        "calves": 0.07,
+        "boots": 0.054
+      },
+      "restBlanket": {
+        "base": "#636559",
+        "trim": "#bcae87",
+        "bands": 2
+      },
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "placement": "Static overhead bust positioned in the head-to-foot axis; the existing wool volume covers the matching anatomy and determines the rest of the silhouette.",
+        "overlay": "Shared resting body surface, world-aligned cloth."
+      },
+      "production": {
+        "candidateSheet": 2,
+        "candidateCell": 2,
+        "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-turnaround/7693e2d92ec9/01.png",
+        "intent": "A single overhead pose of head and torso with closed eyes. Native 3D cloth covers the body below the shoulder line.",
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-retreat-covered-rest-2-287665f23971.png",
+        "originalSha256": "287665f23971d0c535373be5845e4760d0a5c5c4cc9e0c757e1390721632ed3d",
+        "extraction": "Native cut on a transparent registration canvas; padding describes space under the blanket.",
+        "nativeBustPixels": 448,
+        "cellBounds": [
+          93,
+          28,
+          419,
+          476
+        ],
+        "encoding": "Lossless WebP, all RGBA pixels verified"
+      },
+      "review": {
+        "technical": "Cell clearance, native resolution, pivot and lossless RGBA verified.",
+        "visual": "Overhead bust and cell crop compared with the installed appearance; user acceptance pending.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 952,
+      "pivot": [
+        0.5,
+        0.007246376811594203
+      ],
+      "soleContact": [
+        0.5,
+        0.9927536231884058
+      ],
+      "restSculpt": {
+        "eyes": 0.15838509316770186,
+        "nose": [
+          0.5,
+          0.19875776397515527
+        ],
+        "jaw": 0.2246376811594203,
+        "faceHalfWidth": 0.16,
+        "recline": 8
+      },
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-mumpo-covered-rest/00-01.webp",
+          "pivot": [
+            0.5,
+            0.007246376811594203
+          ]
+        }
+      ]
+    },
+    "sw-mumpo-retreat-scout-rear": {
+      "version": 1,
+      "kind": "animation",
+      "character": "sw-mumpo",
+      "campaign": "stormwreck-isle",
+      "anatomy": "reptilian-small",
+      "action": "retreat_scout",
+      "fps": 7,
+      "loop": false,
+      "dependencies": [
+        "sw-mumpo"
+      ],
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "overlay": "Current frame alpha",
+        "placement": "standing with world object controlled outside character sprite"
+      },
+      "id": "sw-mumpo-retreat-scout-rear",
+      "direction": "n",
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/01.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/02.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/03.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/04.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/05.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/06.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/07.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/08.webp"
+      ],
+      "production": {
+        "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-turnaround/7693e2d92ec9/03.png",
+        "companionClip": "sw-mumpo-retreat-scout",
+        "motionReference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mumpo-retreat-scout-47e4b3854954.png",
+        "prompt": "Paint a production transparent spritesheet of the exact same character in reference 1, performing the action from reference 2, as seen directly from BEHIND in all 8 frames. Reference 1 is the exact back silhouette and costume. Reference 2 shows the movement from the other side. Match the same painted fantasy RPG style, colors, height and age. No face visible, eyes fully concealed, both heels and back visible in every single frame. Slight tactical top elevation 18 degrees. Feet planted, tail fully contained and scale consistent. Motion, in 8 distinct chronological phases from upper-left row across then lower-left row across: Rise a little as if scouting, shade his eyes with his right hand, stand still with that elbow raised for a beat, then point ahead out to his right before dropping the arm and relaxing. Rust-red sash, brown trousers, bare clawed feet. Exact centered rectangular equal grid 4 columns by 2 rows in a 1536 x 1024 sprite sheet. No panels, numerals, writing, floor, shadows, fog or colored backing. True transparent RGBA. Keep a clear 20 px of transparent space between every figure and the edges of its cell. Vertically use 86% of each cell and keep a consistent center of the feet. Always see this person from the back, including all moving phases.",
+        "minimumVisibleStandingPixels": 250,
+        "expectedPhases": 8,
+        "sourcePages": [
+          8,
+          9,
+          10,
+          11
+        ],
+        "method": "ImageGen reverse view from the existing stance and companion motion, native-size extraction",
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mumpo-retreat-scout-rear-868f58f87dc6.png",
+        "originalSha256": "868f58f87dc66d347ccd0cba2044cf97c6815ae072d8fd1e0514bb93c6b61373",
+        "importReport": "output/stormwreck-motion-detail/sw-mumpo-retreat-scout-rear-868f58f87dc6.json",
+        "minimumAlpha": 12,
+        "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+      },
+      "review": {
+        "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+        "visual": "Inspected all eight cropped frames with the original resident as a reference.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 464,
+      "pivot": [
+        0.5,
+        0.9219047619047619
+      ],
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-mumpo-retreat-scout-rear/00-01.webp",
+          "pivot": [
+            0.5,
+            0.9219047619047619
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-mumpo-retreat-scout-rear/01-02.webp",
+          "pivot": [
+            0.5,
+            0.9219047619047619
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-mumpo-retreat-scout-rear/02-03.webp",
+          "pivot": [
+            0.5,
+            0.9219047619047619
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-mumpo-retreat-scout-rear/03-04.webp",
+          "pivot": [
+            0.5,
+            0.9219047619047619
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-mumpo-retreat-scout-rear/04-05.webp",
+          "pivot": [
+            0.5,
+            0.9219047619047619
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-mumpo-retreat-scout-rear/05-06.webp",
+          "pivot": [
+            0.5,
+            0.9219047619047619
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-mumpo-retreat-scout-rear/06-07.webp",
+          "pivot": [
+            0.5,
+            0.9219047619047619
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-mumpo-retreat-scout-rear/07-08.webp",
+          "pivot": [
+            0.5,
+            0.9219047619047619
+          ]
+        }
+      ]
+    },
     "sw-mumpo-retreat-scout": {
       "version": 1,
       "kind": "animation",
@@ -13662,6 +14948,93 @@
         }
       ]
     },
+    "sw-myla-covered-rest": {
+      "version": 1,
+      "kind": "animation",
+      "id": "sw-myla-covered-rest",
+      "character": "sw-myla",
+      "campaign": "stormwreck-isle",
+      "anatomy": "reptilian-winged-small",
+      "action": "rest_on_prop",
+      "direction": "s",
+      "fps": 1,
+      "loop": false,
+      "poseKind": "hold",
+      "dependencies": [
+        "sw-myla"
+      ],
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-covered-rest/9da715cf0abf/01.webp"
+      ],
+      "restVolume": {
+        "head": 0.105,
+        "chest": 0.108,
+        "hips": 0.09,
+        "calves": 0.07,
+        "boots": 0.054
+      },
+      "restBlanket": {
+        "base": "#784744",
+        "trim": "#cba675",
+        "bands": 1
+      },
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "placement": "Static overhead bust positioned in the head-to-foot axis; the existing wool volume covers the matching anatomy and determines the rest of the silhouette.",
+        "overlay": "Shared resting body surface, world-aligned cloth."
+      },
+      "production": {
+        "candidateSheet": 1,
+        "candidateCell": 3,
+        "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-turnaround/fdac2f3ff603/01.png",
+        "intent": "A single overhead pose of head and torso with closed eyes. Native 3D cloth covers the body below the shoulder line.",
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-retreat-covered-rest-1-9da715cf0abf.png",
+        "originalSha256": "9da715cf0abf204cef70c315cb90b106316f43bee767a146956ad9db9af5d0af",
+        "extraction": "Native cut on a transparent registration canvas; padding describes space under the blanket.",
+        "nativeBustPixels": 443,
+        "cellBounds": [
+          66,
+          34,
+          475,
+          477
+        ],
+        "encoding": "Lossless WebP, all RGBA pixels verified"
+      },
+      "review": {
+        "technical": "Cell clearance, native resolution, pivot and lossless RGBA verified.",
+        "visual": "Overhead bust and cell crop compared with the installed appearance; user acceptance pending.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 941,
+      "pivot": [
+        0.5,
+        0.007329842931937173
+      ],
+      "soleContact": [
+        0.5,
+        0.9926701570680628
+      ],
+      "restSculpt": {
+        "eyes": 0.15392670157068064,
+        "nose": [
+          0.5,
+          0.19162303664921465
+        ],
+        "jaw": 0.225130890052356,
+        "faceHalfWidth": 0.16,
+        "recline": 8
+      },
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-myla-covered-rest/00-01.webp",
+          "pivot": [
+            0.5,
+            0.007329842931937173
+          ]
+        }
+      ]
+    },
     "sw-myla-retreat-stance-e": {
       "version": 1,
       "kind": "animation",
@@ -13922,6 +15295,124 @@
           "pivot": [
             0.26720647773279355,
             0.9910514541387024
+          ]
+        }
+      ]
+    },
+    "sw-myla-retreat-tinker-rear": {
+      "version": 1,
+      "kind": "animation",
+      "character": "sw-myla",
+      "campaign": "stormwreck-isle",
+      "anatomy": "reptilian-winged-small",
+      "action": "retreat_tinker",
+      "fps": 7,
+      "loop": false,
+      "dependencies": [
+        "sw-myla"
+      ],
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "overlay": "current frame alpha",
+        "placement": "standing feet registered; isolated handheld props; one authored view"
+      },
+      "id": "sw-myla-retreat-tinker-rear",
+      "direction": "n",
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/01.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/02.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/03.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/04.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/05.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/06.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/07.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/08.webp"
+      ],
+      "production": {
+        "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-turnaround/fdac2f3ff603/03.png",
+        "companionClip": "sw-myla-tinker",
+        "motionReference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-myla-tinker-bfc486a2ef1e.png",
+        "prompt": "Paint a production transparent spritesheet of the exact same character in reference 1, performing the action from reference 2, as seen directly from BEHIND in all 8 frames. Reference 1 is the exact back silhouette and costume. Reference 2 shows the movement from the other side. Match the same painted fantasy RPG style, colors, height and age. No face visible, eyes fully concealed, both heels and back visible in every single frame. Slight tactical top elevation 18 degrees. Feet planted, tail fully contained and scale consistent. Motion, in 8 distinct chronological phases from upper-left row across then lower-left row across: Tinker with an invisible workbench with small deliberate turn of the right forearm and an inspecting lean, left hand steadies a part, return to neutral. Both damaged wings are folded against the back throughout and have the same exact silhouette as reference. Tail stays low, worn reddish leather work apron unchanged. Draw no tools or furniture. Exact centered rectangular equal grid 4 columns by 2 rows in a 1536 x 1024 sprite sheet. No panels, numerals, writing, floor, shadows, fog or colored backing. True transparent RGBA. Keep a clear 20 px of transparent space between every figure and the edges of its cell. Vertically use 86% of each cell and keep a consistent center of the feet. Always see this person from the back, including all moving phases.",
+        "minimumVisibleStandingPixels": 250,
+        "expectedPhases": 8,
+        "sourcePages": [
+          9,
+          10,
+          44
+        ],
+        "method": "ImageGen reverse view from the existing stance and companion motion, native-size extraction",
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-myla-retreat-tinker-rear-8ab2349a258c.png",
+        "originalSha256": "8ab2349a258c93e88f634fb1f83448ae1f84ad1e770d8f7ca087f7c56fc5c15b",
+        "importReport": "output/stormwreck-motion-detail/sw-myla-retreat-tinker-rear-8ab2349a258c.json",
+        "minimumAlpha": 3,
+        "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+      },
+      "review": {
+        "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+        "visual": "Inspected all eight cropped frames with the original resident as a reference.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 458,
+      "pivot": [
+        0.5,
+        0.9274809160305344
+      ],
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-myla-retreat-tinker-rear/00-01.webp",
+          "pivot": [
+            0.5,
+            0.9274809160305344
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-myla-retreat-tinker-rear/01-02.webp",
+          "pivot": [
+            0.5,
+            0.9274809160305344
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-myla-retreat-tinker-rear/02-03.webp",
+          "pivot": [
+            0.5,
+            0.9274809160305344
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-myla-retreat-tinker-rear/03-04.webp",
+          "pivot": [
+            0.5,
+            0.9274809160305344
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-myla-retreat-tinker-rear/04-05.webp",
+          "pivot": [
+            0.5,
+            0.9274809160305344
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-myla-retreat-tinker-rear/05-06.webp",
+          "pivot": [
+            0.5,
+            0.9274809160305344
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-myla-retreat-tinker-rear/06-07.webp",
+          "pivot": [
+            0.5,
+            0.9274809160305344
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-myla-retreat-tinker-rear/07-08.webp",
+          "pivot": [
+            0.5,
+            0.9274809160305344
           ]
         }
       ]
@@ -14745,6 +16236,93 @@
         }
       ]
     },
+    "sw-rix-covered-rest": {
+      "version": 1,
+      "kind": "animation",
+      "id": "sw-rix-covered-rest",
+      "character": "sw-rix",
+      "campaign": "stormwreck-isle",
+      "anatomy": "reptilian-small",
+      "action": "rest_on_prop",
+      "direction": "s",
+      "fps": 1,
+      "loop": false,
+      "poseKind": "hold",
+      "dependencies": [
+        "sw-rix"
+      ],
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-covered-rest/287665f23971/01.webp"
+      ],
+      "restVolume": {
+        "head": 0.105,
+        "chest": 0.108,
+        "hips": 0.09,
+        "calves": 0.07,
+        "boots": 0.054
+      },
+      "restBlanket": {
+        "base": "#787161",
+        "trim": "#ceb996",
+        "bands": 1
+      },
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "placement": "Static overhead bust positioned in the head-to-foot axis; the existing wool volume covers the matching anatomy and determines the rest of the silhouette.",
+        "overlay": "Shared resting body surface, world-aligned cloth."
+      },
+      "production": {
+        "candidateSheet": 2,
+        "candidateCell": 3,
+        "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-turnaround/148319c4f91f/01.png",
+        "intent": "A single overhead pose of head and torso with closed eyes. Native 3D cloth covers the body below the shoulder line.",
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-retreat-covered-rest-2-287665f23971.png",
+        "originalSha256": "287665f23971d0c535373be5845e4760d0a5c5c4cc9e0c757e1390721632ed3d",
+        "extraction": "Native cut on a transparent registration canvas; padding describes space under the blanket.",
+        "nativeBustPixels": 435,
+        "cellBounds": [
+          99,
+          25,
+          419,
+          460
+        ],
+        "encoding": "Lossless WebP, all RGBA pixels verified"
+      },
+      "review": {
+        "technical": "Cell clearance, native resolution, pivot and lossless RGBA verified.",
+        "visual": "Overhead bust and cell crop compared with the installed appearance; user acceptance pending.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 924,
+      "pivot": [
+        0.5,
+        0.007462686567164179
+      ],
+      "soleContact": [
+        0.5,
+        0.9925373134328358
+      ],
+      "restSculpt": {
+        "eyes": 0.1396588486140725,
+        "nose": [
+          0.5,
+          0.16844349680170576
+        ],
+        "jaw": 0.20149253731343283,
+        "faceHalfWidth": 0.16,
+        "recline": 8
+      },
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-rix-covered-rest/00-01.webp",
+          "pivot": [
+            0.5,
+            0.007462686567164179
+          ]
+        }
+      ]
+    },
     "sw-rix-incense": {
       "version": 1,
       "kind": "animation",
@@ -14854,6 +16432,125 @@
           "pivot": [
             0.5,
             0.9047619047619048
+          ]
+        }
+      ]
+    },
+    "sw-rix-retreat-pray-rear": {
+      "version": 1,
+      "kind": "animation",
+      "character": "sw-rix",
+      "campaign": "stormwreck-isle",
+      "anatomy": "reptilian-small",
+      "action": "retreat_pray",
+      "fps": 7,
+      "loop": false,
+      "dependencies": [
+        "sw-rix"
+      ],
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "overlay": "Current frame alpha",
+        "placement": "standing with world object controlled outside character sprite"
+      },
+      "id": "sw-rix-retreat-pray-rear",
+      "direction": "n",
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/01.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/02.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/03.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/04.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/05.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/06.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/07.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/08.webp"
+      ],
+      "production": {
+        "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-turnaround/148319c4f91f/03.png",
+        "companionClip": "sw-rix-retreat-pray",
+        "motionReference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-rix-retreat-pray-c55ffdeda949.png",
+        "prompt": "Paint a production transparent spritesheet of the exact same character in reference 1, performing the action from reference 2, as seen directly from BEHIND in all 8 frames. Reference 1 is the exact back silhouette and costume. Reference 2 shows the movement from the other side. Match the same painted fantasy RPG style, colors, height and age. No face visible, eyes fully concealed, both heels and back visible in every single frame. Slight tactical top elevation 18 degrees. Feet planted, tail fully contained and scale consistent. Motion, in 8 distinct chronological phases from upper-left row across then lower-left row across: Quiet prayer, fold both hands together ahead of the chest, bow head and shoulders gently through three phases, take a breath, then straighten and lower arms. Keep the cream religious robe and existing restrained gold stitching; arms and shoulders must visibly move although hands overlap from back. Exact centered rectangular equal grid 4 columns by 2 rows in a 1536 x 1024 sprite sheet. No panels, numerals, writing, floor, shadows, fog or colored backing. True transparent RGBA. Keep a clear 20 px of transparent space between every figure and the edges of its cell. Vertically use 86% of each cell and keep a consistent center of the feet. Always see this person from the back, including all moving phases.",
+        "minimumVisibleStandingPixels": 250,
+        "expectedPhases": 8,
+        "sourcePages": [
+          8,
+          9,
+          10,
+          11
+        ],
+        "method": "ImageGen reverse view from the existing stance and companion motion, native-size extraction",
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-rix-retreat-pray-rear-89c9bc441b93.png",
+        "originalSha256": "89c9bc441b93f4b14ea45cc736bb5e555e638fda556f5e58f967b82a8cb09b69",
+        "importReport": "output/stormwreck-motion-detail/sw-rix-retreat-pray-rear-89c9bc441b93.json",
+        "minimumAlpha": 12,
+        "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+      },
+      "review": {
+        "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+        "visual": "Inspected all eight cropped frames with the original resident as a reference.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 453,
+      "pivot": [
+        0.5,
+        0.8912213740458015
+      ],
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-rix-retreat-pray-rear/00-01.webp",
+          "pivot": [
+            0.5,
+            0.8912213740458015
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-rix-retreat-pray-rear/01-02.webp",
+          "pivot": [
+            0.5,
+            0.8912213740458015
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-rix-retreat-pray-rear/02-03.webp",
+          "pivot": [
+            0.5,
+            0.8912213740458015
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-rix-retreat-pray-rear/03-04.webp",
+          "pivot": [
+            0.5,
+            0.8912213740458015
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-rix-retreat-pray-rear/04-05.webp",
+          "pivot": [
+            0.5,
+            0.8912213740458015
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-rix-retreat-pray-rear/05-06.webp",
+          "pivot": [
+            0.5,
+            0.8912213740458015
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-rix-retreat-pray-rear/06-07.webp",
+          "pivot": [
+            0.5,
+            0.8912213740458015
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-rix-retreat-pray-rear/07-08.webp",
+          "pivot": [
+            0.5,
+            0.8912213740458015
           ]
         }
       ]
@@ -15942,6 +17639,93 @@
         }
       ]
     },
+    "sw-runara-covered-rest": {
+      "version": 1,
+      "kind": "animation",
+      "id": "sw-runara-covered-rest",
+      "character": "sw-runara",
+      "campaign": "stormwreck-isle",
+      "anatomy": "humanoid-tall",
+      "action": "rest_on_prop",
+      "direction": "s",
+      "fps": 1,
+      "loop": false,
+      "poseKind": "hold",
+      "dependencies": [
+        "sw-runara"
+      ],
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-covered-rest/9da715cf0abf/01.webp"
+      ],
+      "restVolume": {
+        "head": 0.105,
+        "chest": 0.108,
+        "hips": 0.09,
+        "calves": 0.07,
+        "boots": 0.054
+      },
+      "restBlanket": {
+        "base": "#656678",
+        "trim": "#c1b393",
+        "bands": 2
+      },
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "placement": "Static overhead bust positioned in the head-to-foot axis; the existing wool volume covers the matching anatomy and determines the rest of the silhouette.",
+        "overlay": "Shared resting body surface, world-aligned cloth."
+      },
+      "production": {
+        "candidateSheet": 1,
+        "candidateCell": 0,
+        "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-turnaround/c50f95791c7d/01.png",
+        "intent": "A single overhead pose of head and torso with closed eyes. Native 3D cloth covers the body below the shoulder line.",
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-retreat-covered-rest-1-9da715cf0abf.png",
+        "originalSha256": "9da715cf0abf204cef70c315cb90b106316f43bee767a146956ad9db9af5d0af",
+        "extraction": "Native cut on a transparent registration canvas; padding describes space under the blanket.",
+        "nativeBustPixels": 439,
+        "cellBounds": [
+          95,
+          37,
+          443,
+          476
+        ],
+        "encoding": "Lossless WebP, all RGBA pixels verified"
+      },
+      "review": {
+        "technical": "Cell clearance, native resolution, pivot and lossless RGBA verified.",
+        "visual": "Overhead bust and cell crop compared with the installed appearance; user acceptance pending.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 932,
+      "pivot": [
+        0.5,
+        0.007399577167019027
+      ],
+      "soleContact": [
+        0.5,
+        0.992600422832981
+      ],
+      "restSculpt": {
+        "eyes": 0.13107822410147993,
+        "nose": [
+          0.5,
+          0.1638477801268499
+        ],
+        "jaw": 0.20507399577167018,
+        "faceHalfWidth": 0.16,
+        "recline": 8
+      },
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-runara-covered-rest/00-01.webp",
+          "pivot": [
+            0.5,
+            0.007399577167019027
+          ]
+        }
+      ]
+    },
     "sw-runara-greet": {
       "version": 1,
       "kind": "animation",
@@ -16427,6 +18211,123 @@
           "pivot": [
             0.453416149068323,
             0.9875776397515528
+          ]
+        }
+      ]
+    },
+    "sw-runara-retreat-study-rear": {
+      "version": 1,
+      "kind": "animation",
+      "character": "sw-runara",
+      "campaign": "stormwreck-isle",
+      "anatomy": "humanoid-tall",
+      "action": "retreat_study",
+      "fps": 6,
+      "loop": false,
+      "dependencies": [
+        "sw-runara"
+      ],
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "overlay": "current frame alpha",
+        "placement": "standing feet registered; isolated handheld props; one authored view"
+      },
+      "id": "sw-runara-retreat-study-rear",
+      "direction": "n",
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/01.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/02.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/03.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/04.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/05.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/06.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/07.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/08.webp"
+      ],
+      "production": {
+        "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-turnaround/c50f95791c7d/03.png",
+        "companionClip": "sw-runara-study",
+        "motionReference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-runara-study-5708e96fe295.png",
+        "prompt": "Paint a production transparent spritesheet of the exact same character in reference 1, performing the action from reference 2, as seen directly from BEHIND in all 8 frames. Reference 1 is the exact back silhouette and costume. Reference 2 shows the movement from the other side. Match the same painted fantasy RPG style, colors, height and age. No face visible, eyes fully concealed, both heels and back visible in every single frame. Slight tactical top elevation 18 degrees. Feet planted, tail fully contained and scale consistent. Motion, in 8 distinct chronological phases from upper-left row across then lower-left row across: Open the brown book that is part of the illustrated study gesture in reference 2, lift it in front of the chest, read, turn a single page, lower it. Show some movement of elbows and the book's corners visible beyond sleeves. Long pale grey braid hangs down the middle of the cream cloak. Exact centered rectangular equal grid 4 columns by 2 rows in a 1536 x 1024 sprite sheet. No panels, numerals, writing, floor, shadows, fog or colored backing. True transparent RGBA. Keep a clear 20 px of transparent space between every figure and the edges of its cell. Vertically use 86% of each cell and keep a consistent center of the feet. Always see this person from the back, including all moving phases.",
+        "minimumVisibleStandingPixels": 250,
+        "expectedPhases": 8,
+        "sourcePages": [
+          8,
+          10
+        ],
+        "method": "ImageGen reverse view from the existing stance and companion motion, native-size extraction",
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-runara-retreat-study-rear-802212709b14.png",
+        "originalSha256": "802212709b1469e0665be7e420547b7270da8769a641eeb36ae5c508d277300f",
+        "importReport": "output/stormwreck-motion-detail/sw-runara-retreat-study-rear-802212709b14.json",
+        "minimumAlpha": 12,
+        "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+      },
+      "review": {
+        "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+        "visual": "Inspected all eight cropped frames with the original resident as a reference.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 473,
+      "pivot": [
+        0.5,
+        0.9504761904761905
+      ],
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-runara-retreat-study-rear/00-01.webp",
+          "pivot": [
+            0.5,
+            0.9504761904761905
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-runara-retreat-study-rear/01-02.webp",
+          "pivot": [
+            0.5,
+            0.9504761904761905
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-runara-retreat-study-rear/02-03.webp",
+          "pivot": [
+            0.5,
+            0.9504761904761905
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-runara-retreat-study-rear/03-04.webp",
+          "pivot": [
+            0.5,
+            0.9504761904761905
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-runara-retreat-study-rear/04-05.webp",
+          "pivot": [
+            0.5,
+            0.9504761904761905
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-runara-retreat-study-rear/05-06.webp",
+          "pivot": [
+            0.5,
+            0.9504761904761905
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-runara-retreat-study-rear/06-07.webp",
+          "pivot": [
+            0.5,
+            0.9504761904761905
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-runara-retreat-study-rear/07-08.webp",
+          "pivot": [
+            0.5,
+            0.9504761904761905
           ]
         }
       ]
@@ -17364,6 +19265,93 @@
         }
       ]
     },
+    "sw-tarak-covered-rest": {
+      "version": 1,
+      "kind": "animation",
+      "id": "sw-tarak-covered-rest",
+      "character": "sw-tarak",
+      "campaign": "stormwreck-isle",
+      "anatomy": "humanoid-tall",
+      "action": "rest_on_prop",
+      "direction": "s",
+      "fps": 1,
+      "loop": false,
+      "poseKind": "hold",
+      "dependencies": [
+        "sw-tarak"
+      ],
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-covered-rest/9da715cf0abf/01.webp"
+      ],
+      "restVolume": {
+        "head": 0.105,
+        "chest": 0.108,
+        "hips": 0.09,
+        "calves": 0.07,
+        "boots": 0.054
+      },
+      "restBlanket": {
+        "base": "#596345",
+        "trim": "#aea374",
+        "bands": 1
+      },
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "placement": "Static overhead bust positioned in the head-to-foot axis; the existing wool volume covers the matching anatomy and determines the rest of the silhouette.",
+        "overlay": "Shared resting body surface, world-aligned cloth."
+      },
+      "production": {
+        "candidateSheet": 1,
+        "candidateCell": 1,
+        "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-turnaround/7792457e6c80/01.png",
+        "intent": "A single overhead pose of head and torso with closed eyes. Native 3D cloth covers the body below the shoulder line.",
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-retreat-covered-rest-1-9da715cf0abf.png",
+        "originalSha256": "9da715cf0abf204cef70c315cb90b106316f43bee767a146956ad9db9af5d0af",
+        "extraction": "Native cut on a transparent registration canvas; padding describes space under the blanket.",
+        "nativeBustPixels": 435,
+        "cellBounds": [
+          72,
+          41,
+          441,
+          476
+        ],
+        "encoding": "Lossless WebP, all RGBA pixels verified"
+      },
+      "review": {
+        "technical": "Cell clearance, native resolution, pivot and lossless RGBA verified.",
+        "visual": "Overhead bust and cell crop compared with the installed appearance; user acceptance pending.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 924,
+      "pivot": [
+        0.5,
+        0.007462686567164179
+      ],
+      "soleContact": [
+        0.5,
+        0.9925373134328358
+      ],
+      "restSculpt": {
+        "eyes": 0.12686567164179105,
+        "nose": [
+          0.5,
+          0.15671641791044777
+        ],
+        "jaw": 0.2025586353944563,
+        "faceHalfWidth": 0.16,
+        "recline": 8
+      },
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-tarak-covered-rest/00-01.webp",
+          "pivot": [
+            0.5,
+            0.007462686567164179
+          ]
+        }
+      ]
+    },
     "sw-tarak-retreat-stance-e": {
       "version": 1,
       "kind": "animation",
@@ -17624,6 +19612,125 @@
           "pivot": [
             0.4722222222222222,
             0.9872611464968153
+          ]
+        }
+      ]
+    },
+    "sw-tarak-retreat-water-rear": {
+      "version": 1,
+      "kind": "animation",
+      "character": "sw-tarak",
+      "campaign": "stormwreck-isle",
+      "anatomy": "humanoid-tall",
+      "action": "retreat_water",
+      "fps": 7,
+      "loop": false,
+      "dependencies": [
+        "sw-tarak"
+      ],
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "overlay": "Current frame alpha",
+        "placement": "standing with world object controlled outside character sprite"
+      },
+      "id": "sw-tarak-retreat-water-rear",
+      "direction": "n",
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/01.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/02.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/03.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/04.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/05.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/06.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/07.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/08.webp"
+      ],
+      "production": {
+        "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-turnaround/7792457e6c80/03.png",
+        "companionClip": "sw-tarak-retreat-water",
+        "motionReference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-tarak-retreat-water-9e3cb45b2a3c.png",
+        "prompt": "Paint a production transparent spritesheet of the exact same character in reference 1, performing the action from reference 2, as seen directly from BEHIND in all 8 frames. Reference 1 is the exact back silhouette and costume. Reference 2 shows the movement from the other side. Match the same painted fantasy RPG style, colors, height and age. No face visible, eyes fully concealed, both heels and back visible in every single frame. Slight tactical top elevation 18 degrees. Feet planted, tail fully contained and scale consistent. Motion, in 8 distinct chronological phases from upper-left row across then lower-left row across: Relax, bend slightly to reach down empty-handed, reach forward and curl both hands around the handle of an INVISIBLE watering can, lean forward to tip it, then place it back down and straighten. The can is a separate 3D object. Draw only his arms and empty hands. Keep the same brown utilitarian tunic and utility belt. Exact centered rectangular equal grid 4 columns by 2 rows in a 1536 x 1024 sprite sheet. No panels, numerals, writing, floor, shadows, fog or colored backing. True transparent RGBA. Keep a clear 20 px of transparent space between every figure and the edges of its cell. Vertically use 86% of each cell and keep a consistent center of the feet. Always see this person from the back, including all moving phases.",
+        "minimumVisibleStandingPixels": 250,
+        "expectedPhases": 8,
+        "sourcePages": [
+          8,
+          9,
+          10,
+          11
+        ],
+        "method": "ImageGen reverse view from the existing stance and companion motion, native-size extraction",
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-tarak-retreat-water-rear-87276bebfe20.png",
+        "originalSha256": "87276bebfe20e230759b87ff2f1708ea089c8446454ea8b0851643cb5e1dafd6",
+        "importReport": "output/stormwreck-motion-detail/sw-tarak-retreat-water-rear-87276bebfe20.json",
+        "minimumAlpha": 12,
+        "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+      },
+      "review": {
+        "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+        "visual": "Inspected all eight cropped frames with the original resident as a reference.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 464,
+      "pivot": [
+        0.5,
+        0.9122137404580153
+      ],
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-tarak-retreat-water-rear/00-01.webp",
+          "pivot": [
+            0.5,
+            0.9122137404580153
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-tarak-retreat-water-rear/01-02.webp",
+          "pivot": [
+            0.5,
+            0.9122137404580153
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-tarak-retreat-water-rear/02-03.webp",
+          "pivot": [
+            0.5,
+            0.9122137404580153
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-tarak-retreat-water-rear/03-04.webp",
+          "pivot": [
+            0.5,
+            0.9122137404580153
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-tarak-retreat-water-rear/04-05.webp",
+          "pivot": [
+            0.5,
+            0.9122137404580153
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-tarak-retreat-water-rear/05-06.webp",
+          "pivot": [
+            0.5,
+            0.9122137404580153
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-tarak-retreat-water-rear/06-07.webp",
+          "pivot": [
+            0.5,
+            0.9122137404580153
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-tarak-retreat-water-rear/07-08.webp",
+          "pivot": [
+            0.5,
+            0.9122137404580153
           ]
         }
       ]
@@ -18676,6 +20783,93 @@
         }
       ]
     },
+    "sw-varnoth-covered-rest": {
+      "version": 1,
+      "kind": "animation",
+      "id": "sw-varnoth-covered-rest",
+      "character": "sw-varnoth",
+      "campaign": "stormwreck-isle",
+      "anatomy": "humanoid-tall",
+      "action": "rest_on_prop",
+      "direction": "s",
+      "fps": 1,
+      "loop": false,
+      "poseKind": "hold",
+      "dependencies": [
+        "sw-varnoth"
+      ],
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-covered-rest/9da715cf0abf/01.webp"
+      ],
+      "restVolume": {
+        "head": 0.105,
+        "chest": 0.108,
+        "hips": 0.09,
+        "calves": 0.07,
+        "boots": 0.054
+      },
+      "restBlanket": {
+        "base": "#4b6274",
+        "trim": "#a8aeb1",
+        "bands": 2
+      },
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "placement": "Static overhead bust positioned in the head-to-foot axis; the existing wool volume covers the matching anatomy and determines the rest of the silhouette.",
+        "overlay": "Shared resting body surface, world-aligned cloth."
+      },
+      "production": {
+        "candidateSheet": 1,
+        "candidateCell": 2,
+        "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-turnaround/9fa4f151d59b/01.png",
+        "intent": "A single overhead pose of head and torso with closed eyes. Native 3D cloth covers the body below the shoulder line.",
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-retreat-covered-rest-1-9da715cf0abf.png",
+        "originalSha256": "9da715cf0abf204cef70c315cb90b106316f43bee767a146956ad9db9af5d0af",
+        "extraction": "Native cut on a transparent registration canvas; padding describes space under the blanket.",
+        "nativeBustPixels": 432,
+        "cellBounds": [
+          69,
+          42,
+          443,
+          474
+        ],
+        "encoding": "Lossless WebP, all RGBA pixels verified"
+      },
+      "review": {
+        "technical": "Cell clearance, native resolution, pivot and lossless RGBA verified.",
+        "visual": "Overhead bust and cell crop compared with the installed appearance; user acceptance pending.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 917,
+      "pivot": [
+        0.5,
+        0.007518796992481203
+      ],
+      "soleContact": [
+        0.5,
+        0.9924812030075187
+      ],
+      "restSculpt": {
+        "eyes": 0.12781954887218044,
+        "nose": [
+          0.5,
+          0.16433941997851773
+        ],
+        "jaw": 0.21160042964554243,
+        "faceHalfWidth": 0.16,
+        "recline": 8
+      },
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-varnoth-covered-rest/00-01.webp",
+          "pivot": [
+            0.5,
+            0.007518796992481203
+          ]
+        }
+      ]
+    },
     "sw-varnoth-masonry": {
       "version": 1,
       "kind": "animation",
@@ -18786,6 +20980,124 @@
           "pivot": [
             0.5,
             0.9236641221374046
+          ]
+        }
+      ]
+    },
+    "sw-varnoth-retreat-masonry-rear": {
+      "version": 1,
+      "kind": "animation",
+      "character": "sw-varnoth",
+      "campaign": "stormwreck-isle",
+      "anatomy": "humanoid-tall",
+      "action": "retreat_masonry",
+      "fps": 6,
+      "loop": false,
+      "dependencies": [
+        "sw-varnoth"
+      ],
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "overlay": "current frame alpha",
+        "placement": "standing feet registered; isolated handheld props; one authored view"
+      },
+      "id": "sw-varnoth-retreat-masonry-rear",
+      "direction": "n",
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/01.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/02.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/03.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/04.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/05.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/06.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/07.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/08.webp"
+      ],
+      "production": {
+        "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-turnaround/9fa4f151d59b/03.png",
+        "companionClip": "sw-varnoth-masonry",
+        "motionReference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-varnoth-masonry-77a446b803b1.png",
+        "prompt": "Paint a production transparent spritesheet of the exact same character in reference 1, performing the action from reference 2, as seen directly from BEHIND in all 8 frames. Reference 1 is the exact back silhouette and costume. Reference 2 shows the movement from the other side. Match the same painted fantasy RPG style, colors, height and age. No face visible, eyes fully concealed, both heels and back visible in every single frame. Slight tactical top elevation 18 degrees. Feet planted, tail fully contained and scale consistent. Motion, in 8 distinct chronological phases from upper-left row across then lower-left row across: Bend forward and wipe a low vertical stone surface with short downward and upward sweeps of her bare right hand, use the other arm for balance, inspect, return upright. Stone surface and any tools remain invisible. Her metal right lower leg and brown sandal are always on the RIGHT from behind. Left leg is flesh. Very short dark hair and charcoal robe. Exact centered rectangular equal grid 4 columns by 2 rows in a 1536 x 1024 sprite sheet. No panels, numerals, writing, floor, shadows, fog or colored backing. True transparent RGBA. Keep a clear 20 px of transparent space between every figure and the edges of its cell. Vertically use 86% of each cell and keep a consistent center of the feet. Always see this person from the back, including all moving phases.",
+        "minimumVisibleStandingPixels": 250,
+        "expectedPhases": 8,
+        "sourcePages": [
+          9,
+          11,
+          48
+        ],
+        "method": "ImageGen reverse view from the existing stance and companion motion, native-size extraction",
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-varnoth-retreat-masonry-rear-e374943508b3.png",
+        "originalSha256": "e374943508b3571c8ecbf61d11fe3d3cf381fe4e61f19ab855c0b47a5d9037e5",
+        "importReport": "output/stormwreck-motion-detail/sw-varnoth-retreat-masonry-rear-e374943508b3.json",
+        "minimumAlpha": 12,
+        "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+      },
+      "review": {
+        "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+        "visual": "Inspected all eight cropped frames with the original resident as a reference.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 469,
+      "pivot": [
+        0.5,
+        0.9293893129770993
+      ],
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-varnoth-retreat-masonry-rear/00-01.webp",
+          "pivot": [
+            0.5,
+            0.9293893129770993
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-varnoth-retreat-masonry-rear/01-02.webp",
+          "pivot": [
+            0.5,
+            0.9293893129770993
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-varnoth-retreat-masonry-rear/02-03.webp",
+          "pivot": [
+            0.5,
+            0.9293893129770993
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-varnoth-retreat-masonry-rear/03-04.webp",
+          "pivot": [
+            0.5,
+            0.9293893129770993
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-varnoth-retreat-masonry-rear/04-05.webp",
+          "pivot": [
+            0.5,
+            0.9293893129770993
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-varnoth-retreat-masonry-rear/05-06.webp",
+          "pivot": [
+            0.5,
+            0.9293893129770993
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-varnoth-retreat-masonry-rear/06-07.webp",
+          "pivot": [
+            0.5,
+            0.9293893129770993
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-varnoth-retreat-masonry-rear/07-08.webp",
+          "pivot": [
+            0.5,
+            0.9293893129770993
           ]
         }
       ]
@@ -19759,6 +22071,93 @@
         }
       ]
     },
+    "sw-zark-covered-rest": {
+      "version": 1,
+      "kind": "animation",
+      "id": "sw-zark-covered-rest",
+      "character": "sw-zark",
+      "campaign": "stormwreck-isle",
+      "anatomy": "reptilian-small",
+      "action": "rest_on_prop",
+      "direction": "s",
+      "fps": 1,
+      "loop": false,
+      "poseKind": "hold",
+      "dependencies": [
+        "sw-zark"
+      ],
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-covered-rest/287665f23971/01.webp"
+      ],
+      "restVolume": {
+        "head": 0.105,
+        "chest": 0.108,
+        "hips": 0.09,
+        "calves": 0.07,
+        "boots": 0.054
+      },
+      "restBlanket": {
+        "base": "#66564d",
+        "trim": "#aa9574",
+        "bands": 2
+      },
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "placement": "Static overhead bust positioned in the head-to-foot axis; the existing wool volume covers the matching anatomy and determines the rest of the silhouette.",
+        "overlay": "Shared resting body surface, world-aligned cloth."
+      },
+      "production": {
+        "candidateSheet": 2,
+        "candidateCell": 4,
+        "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-turnaround/cf00b16dd88a/01.png",
+        "intent": "A single overhead pose of head and torso with closed eyes. Native 3D cloth covers the body below the shoulder line.",
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-retreat-covered-rest-2-287665f23971.png",
+        "originalSha256": "287665f23971d0c535373be5845e4760d0a5c5c4cc9e0c757e1390721632ed3d",
+        "extraction": "Native cut on a transparent registration canvas; padding describes space under the blanket.",
+        "nativeBustPixels": 445,
+        "cellBounds": [
+          80,
+          15,
+          433,
+          460
+        ],
+        "encoding": "Lossless WebP, all RGBA pixels verified"
+      },
+      "review": {
+        "technical": "Cell clearance, native resolution, pivot and lossless RGBA verified.",
+        "visual": "Overhead bust and cell crop compared with the installed appearance; user acceptance pending.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 945,
+      "pivot": [
+        0.5,
+        0.0072992700729927005
+      ],
+      "soleContact": [
+        0.5,
+        0.9927007299270073
+      ],
+      "restSculpt": {
+        "eyes": 0.1835245046923879,
+        "nose": [
+          0.5,
+          0.21897810218978103
+        ],
+        "jaw": 0.2533889468196038,
+        "faceHalfWidth": 0.16,
+        "recline": 8
+      },
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-zark-covered-rest/00-01.webp",
+          "pivot": [
+            0.5,
+            0.0072992700729927005
+          ]
+        }
+      ]
+    },
     "sw-zark-retreat-stance-e": {
       "version": 1,
       "kind": "animation",
@@ -20019,6 +22418,125 @@
           "pivot": [
             0.31225296442687744,
             0.9912663755458515
+          ]
+        }
+      ]
+    },
+    "sw-zark-retreat-tidy-rear": {
+      "version": 1,
+      "kind": "animation",
+      "character": "sw-zark",
+      "campaign": "stormwreck-isle",
+      "anatomy": "reptilian-small",
+      "action": "retreat_tidy",
+      "fps": 7,
+      "loop": false,
+      "dependencies": [
+        "sw-zark"
+      ],
+      "compatibility": {
+        "preservesAppearance": true,
+        "embeddedSlotsRetained": true,
+        "overlay": "Current frame alpha",
+        "placement": "standing with world object controlled outside character sprite"
+      },
+      "id": "sw-zark-retreat-tidy-rear",
+      "direction": "n",
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/01.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/02.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/03.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/04.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/05.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/06.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/07.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/08.webp"
+      ],
+      "production": {
+        "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-turnaround/cf00b16dd88a/03.png",
+        "companionClip": "sw-zark-retreat-tidy",
+        "motionReference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-zark-retreat-tidy-ec0e058bc17d.png",
+        "prompt": "Paint a production transparent spritesheet of the exact same character in reference 1, performing the action from reference 2, as seen directly from BEHIND in all 8 frames. Reference 1 is the exact back silhouette and costume. Reference 2 shows the movement from the other side. Match the same painted fantasy RPG style, colors, height and age. No face visible, eyes fully concealed, both heels and back visible in every single frame. Slight tactical top elevation 18 degrees. Feet planted, tail fully contained and scale consistent. Motion, in 8 distinct chronological phases from upper-left row across then lower-left row across: Bend slightly over an invisible table, extend one hand forward and to his right as if nudging a vessel, re-centre both forearms, straighten to rest. Gloved only if reference shows; no objects painted. Ragged trousers and olive-brown scarf. Exact centered rectangular equal grid 4 columns by 2 rows in a 1536 x 1024 sprite sheet. No panels, numerals, writing, floor, shadows, fog or colored backing. True transparent RGBA. Keep a clear 20 px of transparent space between every figure and the edges of its cell. Vertically use 86% of each cell and keep a consistent center of the feet. Always see this person from the back, including all moving phases.",
+        "minimumVisibleStandingPixels": 250,
+        "expectedPhases": 8,
+        "sourcePages": [
+          8,
+          9,
+          10,
+          11
+        ],
+        "method": "ImageGen reverse view from the existing stance and companion motion, native-size extraction",
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-zark-retreat-tidy-rear-ec78e08d27da.png",
+        "originalSha256": "ec78e08d27daefddc7e9059ca76abc949a801b0e7239450ad96ebec63c5c0f66",
+        "importReport": "output/stormwreck-motion-detail/sw-zark-retreat-tidy-rear-ec78e08d27da.json",
+        "minimumAlpha": 12,
+        "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+      },
+      "review": {
+        "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+        "visual": "Inspected all eight cropped frames with the original resident as a reference.",
+        "userAcceptance": "pending"
+      },
+      "referenceHeight": 461,
+      "pivot": [
+        0.5,
+        0.9312977099236641
+      ],
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-zark-retreat-tidy-rear/00-01.webp",
+          "pivot": [
+            0.5,
+            0.9312977099236641
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-zark-retreat-tidy-rear/01-02.webp",
+          "pivot": [
+            0.5,
+            0.9312977099236641
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-zark-retreat-tidy-rear/02-03.webp",
+          "pivot": [
+            0.5,
+            0.9312977099236641
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-zark-retreat-tidy-rear/03-04.webp",
+          "pivot": [
+            0.5,
+            0.9312977099236641
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-zark-retreat-tidy-rear/04-05.webp",
+          "pivot": [
+            0.5,
+            0.9312977099236641
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-zark-retreat-tidy-rear/05-06.webp",
+          "pivot": [
+            0.5,
+            0.9312977099236641
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-zark-retreat-tidy-rear/06-07.webp",
+          "pivot": [
+            0.5,
+            0.9312977099236641
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-zark-retreat-tidy-rear/07-08.webp",
+          "pivot": [
+            0.5,
+            0.9312977099236641
           ]
         }
       ]
@@ -24081,6 +26599,18 @@
       "sha256": "8c2fa959865c31178de9d1ffb180403b44ddd5d5439adc3f5d5577bc4d3a0eba"
     },
     {
+      "id": "sw-agga-covered-rest",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-covered-rest/9da715cf0abf/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-agga-covered-rest/00-01.webp",
+      "sha256": "eeac47fd4d89cb30a9eb1a87da21935dc0d5b294d84fb177dcaaf088276eb40d",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-agga-covered-rest",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-agga-covered-rest.json",
+      "sha256": "fca51197838a5a11aa0e834feaa6d1010024ab2ac9c5e8f5d5ded24e71401a2d"
+    },
+    {
       "id": "sw-agga-direct",
       "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-direct/545be563b671/01.png",
       "derived": "prototypes/godot-shared/characters/imported/sw-agga-direct/00-01.png",
@@ -24140,6 +26670,67 @@
       "id": "sw-agga-direct",
       "definition": "prototypes/godot-shared/characters/definitions/animations/sw-agga-direct.json",
       "sha256": "eada30f49ae2edec74b50d304a3dd78abb96bbdc1373841e0350ece699a94dc3"
+    },
+    {
+      "id": "sw-agga-retreat-direct-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-agga-retreat-direct-rear/00-01.webp",
+      "sha256": "91131f7bbf878d020e8abd99938a46648745905f8e6cf61ac609b240b2b49079",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-agga-retreat-direct-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/02.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-agga-retreat-direct-rear/01-02.webp",
+      "sha256": "2ab2af727ea84abeeaa5bd358ba00bfcaa9596ba5482542a0d7efc2e3887a88c",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-agga-retreat-direct-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/03.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-agga-retreat-direct-rear/02-03.webp",
+      "sha256": "6344e2567864d684cf8cb3055b26067296063e23f914b833c90ab945af36b3f6",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-agga-retreat-direct-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/04.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-agga-retreat-direct-rear/03-04.webp",
+      "sha256": "95535d4f4a065dfc65b7ab49bfd9a256086ef702e90ed8beb8d1252c3e954b46",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-agga-retreat-direct-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/05.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-agga-retreat-direct-rear/04-05.webp",
+      "sha256": "02bb360ddb9519059bbbedf2180600119fc99743fe8418ca9db70e7bf52812ff",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-agga-retreat-direct-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/06.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-agga-retreat-direct-rear/05-06.webp",
+      "sha256": "add7a99d82a5a67148c3f0e93eba91101b6beec10c5382e1783c2e3f5024325f",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-agga-retreat-direct-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/07.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-agga-retreat-direct-rear/06-07.webp",
+      "sha256": "28770fccc0d8f3eb48b95f2a9e7f67c4eef3397439378f0a663cdbaeb2cbcb18",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-agga-retreat-direct-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/08.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-agga-retreat-direct-rear/07-08.webp",
+      "sha256": "19368c1b09ccb1c2b802544b71945aca311a4f01cd8bf2d77d3efadfbfc62c23",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-agga-retreat-direct-rear",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-agga-retreat-direct-rear.json",
+      "sha256": "c87a527e39fa5f3aca65511c58796d67d8b476eef69d7e105a5ed545ff5067ff"
     },
     {
       "id": "sw-agga-retreat-stance-e",
@@ -24421,6 +27012,18 @@
       "sha256": "d144c3bbaca71cfa242865b70235121e0022dca16e1509f61c0d966acb3f83a0"
     },
     {
+      "id": "sw-blepp-covered-rest",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-covered-rest/9da715cf0abf/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-blepp-covered-rest/00-01.webp",
+      "sha256": "07d4a3e9a253d60b27d34ccd1ceb862341305114ff0ba96edf73c27a0a55d992",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-blepp-covered-rest",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-blepp-covered-rest.json",
+      "sha256": "e33f8c40bab392cf982304e13ad57790ac6a6d0e59dc35ef34ec1c2c2ab4ef87"
+    },
+    {
       "id": "sw-blepp-retreat-stance-e",
       "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-turnaround/bfef67b39490/02.png",
       "derived": "prototypes/godot-shared/characters/imported/sw-blepp-retreat-stance-e/00-02.png",
@@ -24467,6 +27070,67 @@
       "id": "sw-blepp-retreat-stance-w",
       "definition": "prototypes/godot-shared/characters/definitions/animations/sw-blepp-retreat-stance-w.json",
       "sha256": "3485610d6775e5c72126bab3be70044fbb9188144e9688c502b865ed7d7356d7"
+    },
+    {
+      "id": "sw-blepp-retreat-watch-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-blepp-retreat-watch-rear/00-01.webp",
+      "sha256": "4d139587595d4c4042f4971e7cdd6f70a1030daa82b0070db08cb697ae98dcc1",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-blepp-retreat-watch-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/02.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-blepp-retreat-watch-rear/01-02.webp",
+      "sha256": "79e9c1f356df42a5935caa69b5f8e5e3942e0cfae41e6d12e520a01e6bd86530",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-blepp-retreat-watch-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/03.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-blepp-retreat-watch-rear/02-03.webp",
+      "sha256": "58d58209a3fe7a5004fe991669a096df85f17ef0fb162bce6f5c06d548cb1e72",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-blepp-retreat-watch-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/04.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-blepp-retreat-watch-rear/03-04.webp",
+      "sha256": "71cc06a48c47b63f34920064cf5fc01ee30cf53b6859f89870921b953786e0bf",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-blepp-retreat-watch-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/05.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-blepp-retreat-watch-rear/04-05.webp",
+      "sha256": "c996ad9755d11c2e91701c2becda807ce69288d9d40ac73944527a5ae0ce032a",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-blepp-retreat-watch-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/06.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-blepp-retreat-watch-rear/05-06.webp",
+      "sha256": "f6f4d6126bc6dbde60e461e9019332ba4655d6c2e3475afb227cae8b01130bfb",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-blepp-retreat-watch-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/07.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-blepp-retreat-watch-rear/06-07.webp",
+      "sha256": "d7c625449eec6011373b55d3d90037980d19dd335073742bf26f45b38b1b9001",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-blepp-retreat-watch-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/08.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-blepp-retreat-watch-rear/07-08.webp",
+      "sha256": "87b0dda1241ee6013a854778d88c6ebcb1a8c69b756e06ecaae67d2981a74c74",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-blepp-retreat-watch-rear",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-blepp-retreat-watch-rear.json",
+      "sha256": "87232477a6552bbfdba2436c2bf9f3a23fbf741609076b6370165c9677ad16d5"
     },
     {
       "id": "sw-blepp-retreat-work-e",
@@ -24759,6 +27423,79 @@
       "id": "sw-frub-courtyard-walk",
       "definition": "prototypes/godot-shared/characters/definitions/animations/sw-frub-courtyard-walk.json",
       "sha256": "8372913f1809fe76d186f5f71c98b405d066376388e3d8dfb72edcdde81056b2"
+    },
+    {
+      "id": "sw-frub-covered-rest",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-covered-rest/287665f23971/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-frub-covered-rest/00-01.webp",
+      "sha256": "66368fa9e16a1489e22cb71584389d48ea9f2e84194afa04873f294c8f46c219",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-frub-covered-rest",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-frub-covered-rest.json",
+      "sha256": "7a3c13f71a9b9faf6912a5c53a016da921d6854f2053aab48bdeb72aacc117f7"
+    },
+    {
+      "id": "sw-frub-retreat-fetch-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-frub-retreat-fetch-rear/00-01.webp",
+      "sha256": "7f2830008f7e55fb87543bbbaf0c75cebb2d5760904f8961f553702a382727d0",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-frub-retreat-fetch-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/02.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-frub-retreat-fetch-rear/01-02.webp",
+      "sha256": "4b925682e6a79fedbcd225cdb529bf0fbd32b57b7ad3808f266f0054d3896309",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-frub-retreat-fetch-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/03.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-frub-retreat-fetch-rear/02-03.webp",
+      "sha256": "7db70d9b49353185ddef9e821ce3f0799f6963ac25a5cdd624962cfbacdbe3a8",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-frub-retreat-fetch-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/04.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-frub-retreat-fetch-rear/03-04.webp",
+      "sha256": "4a7cb09fa1a5130a6e65dc94e3bb122fbd3b106815726bcf72fa1216a2e52c99",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-frub-retreat-fetch-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/05.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-frub-retreat-fetch-rear/04-05.webp",
+      "sha256": "4da5cff35db7053d1bee036b6b9b64748e8f90d9da514623508d5e56f4eaa1d7",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-frub-retreat-fetch-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/06.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-frub-retreat-fetch-rear/05-06.webp",
+      "sha256": "675f3dec1c9331486c409a9fb0ef4c836402c69cee53040f77c15b5984259c37",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-frub-retreat-fetch-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/07.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-frub-retreat-fetch-rear/06-07.webp",
+      "sha256": "b3605f9909e0708f935f28c7a3cdcdc4d7f4e54589114b8448257810414b4809",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-frub-retreat-fetch-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/08.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-frub-retreat-fetch-rear/07-08.webp",
+      "sha256": "19594fbb562d1ee75d5bd60de75f142ae01005a79d93735c77d515678854e5b1",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-frub-retreat-fetch-rear",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-frub-retreat-fetch-rear.json",
+      "sha256": "27d39faaa6f36df7422ecf300fdf8aa9e4a9d115fcf25d8d184afc48e7d39847"
     },
     {
       "id": "sw-frub-retreat-fetch",
@@ -25345,6 +28082,114 @@
       "sha256": "6eb290b89c15172263196784c6a2a3752cf68ff43f0f97d07159f99642e4b6f3"
     },
     {
+      "id": "sw-kilnip-hammock-rest",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-kilnip-hammock-rest/00-01.webp",
+      "sha256": "17095e786ba3ef58ffe160c6dbbb4faa0dff3f788deab991686b420514c738f7",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-kilnip-hammock-rest",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/02.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-kilnip-hammock-rest/01-02.webp",
+      "sha256": "cc1b39773ca61dc338345f949012f98bd4f7cce1882e0a08228d5879ca1e1443",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-kilnip-hammock-rest",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/03.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-kilnip-hammock-rest/02-03.webp",
+      "sha256": "898135223d696e34602d252bf6fbd0a6c426c966abac164f139ce08adcdf1032",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-kilnip-hammock-rest",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/05.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-kilnip-hammock-rest/03-05.webp",
+      "sha256": "cb21f1368355320ffe6ff02f34d0d0ee8912b92317e562bd189a1cd7cc09911a",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-kilnip-hammock-rest",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/06.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-kilnip-hammock-rest/04-06.webp",
+      "sha256": "77bf88e9d96c7fc7a3bcbef307b6cafe7b7cb6a3d6c830335ee80842939bb0c8",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-kilnip-hammock-rest",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/08.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-kilnip-hammock-rest/05-08.webp",
+      "sha256": "dc672ce610f52ffaef6051ee1ccdf0ad85a001b744bb6dcf1b9305a02372bf04",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-kilnip-hammock-rest",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-kilnip-hammock-rest.json",
+      "sha256": "877d48014886252a97e4b261d21ad1e29e60ba4ffd651c1ec8178473c0de03b2"
+    },
+    {
+      "id": "sw-kilnip-retreat-chat-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-kilnip-retreat-chat-rear/00-01.webp",
+      "sha256": "8d251cc56b653b933a9ff85e0b12848f18591da6c3b1b928086637fffd908179",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-kilnip-retreat-chat-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/02.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-kilnip-retreat-chat-rear/01-02.webp",
+      "sha256": "3bbfc3c1c56f29df82cc6a374ca4e3148f1f7304dc492f9fd0717cdf331a5a3b",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-kilnip-retreat-chat-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/03.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-kilnip-retreat-chat-rear/02-03.webp",
+      "sha256": "645eae33666cf735ae9b28dbd36faf96fd28e7dca77a9b38f3b4cb417520e078",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-kilnip-retreat-chat-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/04.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-kilnip-retreat-chat-rear/03-04.webp",
+      "sha256": "430b97501a5abbd3040e82651443faf2bb7d75f8a3c37d4048529dc02029d5fe",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-kilnip-retreat-chat-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/05.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-kilnip-retreat-chat-rear/04-05.webp",
+      "sha256": "83cdfcf4ae01f6c6b056c71facbe5a365657c6897ce6460be898be48f62b4f8c",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-kilnip-retreat-chat-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/06.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-kilnip-retreat-chat-rear/05-06.webp",
+      "sha256": "68472e372a1396876686cde5ae851b311abc1bdb0fc455fe45e6a000c62fbdef",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-kilnip-retreat-chat-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/07.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-kilnip-retreat-chat-rear/06-07.webp",
+      "sha256": "d14bebed45b8a8a09a60bcffb9fec344d5e1755c6c597c25807e673cf489981f",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-kilnip-retreat-chat-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/08.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-kilnip-retreat-chat-rear/07-08.webp",
+      "sha256": "14f28318200a86e057099891c49abd74eb5deacb851ddacaf7b0922b0595542f",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-kilnip-retreat-chat-rear",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-kilnip-retreat-chat-rear.json",
+      "sha256": "84d4b3df35640acf46748770afa938e63fdf2add3b28e817a78ad4afae96a7c7"
+    },
+    {
       "id": "sw-kilnip-retreat-stance-e",
       "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-turnaround/e2c936a549d5/02.png",
       "derived": "prototypes/godot-shared/characters/imported/sw-kilnip-retreat-stance-e/00-02.png",
@@ -25622,6 +28467,79 @@
       "id": "sw-laylee-courtyard-walk",
       "definition": "prototypes/godot-shared/characters/definitions/animations/sw-laylee-courtyard-walk.json",
       "sha256": "b4e1f3a8de3e9aad22f3ba1606ad6176e5e265f701851d3c1329cd9c49db0252"
+    },
+    {
+      "id": "sw-laylee-covered-rest",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-covered-rest/287665f23971/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-laylee-covered-rest/00-01.webp",
+      "sha256": "ea2d2b0a2d37cced9e352deb3191398622779ccd7b2639862f94378839455057",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-laylee-covered-rest",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-laylee-covered-rest.json",
+      "sha256": "5a3b2a6f9696dd15caf321a292153ee1dc873edef551331174f85b8abe27c7a4"
+    },
+    {
+      "id": "sw-laylee-retreat-sort-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-laylee-retreat-sort-rear/00-01.webp",
+      "sha256": "7ffa9c646dcdceb47760335947df1f0f8a9cab0e8f9a500f5d825a5a7dcd33a3",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-laylee-retreat-sort-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/02.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-laylee-retreat-sort-rear/01-02.webp",
+      "sha256": "2d9715e5b19f98332f8f72cd0838ad77cda09a22a0cd4b9cd5cbfbfaa445feac",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-laylee-retreat-sort-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/03.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-laylee-retreat-sort-rear/02-03.webp",
+      "sha256": "200f026c1b44603550bb2e3277169001b4e5439c0bf066ff98a12f0a81973079",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-laylee-retreat-sort-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/04.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-laylee-retreat-sort-rear/03-04.webp",
+      "sha256": "6cca0c47b4d9103ef6b34b1d37d21c0f1eaa74531de584cea5987bf6e8b3debe",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-laylee-retreat-sort-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/05.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-laylee-retreat-sort-rear/04-05.webp",
+      "sha256": "ebc83acd0a2ce6fab83e9dbf3c95f9babe197e7fa26d9f0b7925f000951b5de9",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-laylee-retreat-sort-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/06.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-laylee-retreat-sort-rear/05-06.webp",
+      "sha256": "f9519f2dabc83d65391c3f3ea2b944adbd4ee61ae0867e91621de7c78e54b4e1",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-laylee-retreat-sort-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/07.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-laylee-retreat-sort-rear/06-07.webp",
+      "sha256": "d1046c4bd54959e131321376145c6139d93fd3c8509c5831780b27c6e94f58f9",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-laylee-retreat-sort-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/08.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-laylee-retreat-sort-rear/07-08.webp",
+      "sha256": "5626b9797fd2e20d9ddda27dfed5965d41d87d03bfa5062913a2acba7445f22f",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-laylee-retreat-sort-rear",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-laylee-retreat-sort-rear.json",
+      "sha256": "18b4d12d313b519b7d9fe9a70ad8dde28fc0afc0fff334a3b3933fd1078cc7a3"
     },
     {
       "id": "sw-laylee-retreat-stance-e",
@@ -26471,6 +29389,79 @@
       "sha256": "7d09d587afa9ea06ef8ef198fa51a4816975be594d4255832944b6b4bca085b1"
     },
     {
+      "id": "sw-mumpo-covered-rest",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-covered-rest/287665f23971/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-mumpo-covered-rest/00-01.webp",
+      "sha256": "475ac273dd80a75077017cf0c8409823609a2f4d5098733f1b017ce15368cadc",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-mumpo-covered-rest",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-mumpo-covered-rest.json",
+      "sha256": "d37c404e80504b1af7096001102a87a68259d1c9f1f65f65549f8685d7d28771"
+    },
+    {
+      "id": "sw-mumpo-retreat-scout-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-mumpo-retreat-scout-rear/00-01.webp",
+      "sha256": "eaef9ff4cbea9c07331dde0d1a89b3e0fd9b40d7f29fbad1644b4e0dd7fb0149",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-mumpo-retreat-scout-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/02.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-mumpo-retreat-scout-rear/01-02.webp",
+      "sha256": "485a6f2be756198a8d314ba0a5b272c5e4260aee057703a7fbfdab8278c54eef",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-mumpo-retreat-scout-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/03.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-mumpo-retreat-scout-rear/02-03.webp",
+      "sha256": "ca0839f128f51b84ce6d92d0c40154be841969d061329d68f627a4a4f285f76c",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-mumpo-retreat-scout-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/04.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-mumpo-retreat-scout-rear/03-04.webp",
+      "sha256": "33b9eac40a086b5622351c35e94c264f24e542a477a36a902d2bce586b6482af",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-mumpo-retreat-scout-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/05.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-mumpo-retreat-scout-rear/04-05.webp",
+      "sha256": "b990d92cc54e4c6ad2d7dc5f813c246935c0a66e1680598b56bd206a697c41f6",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-mumpo-retreat-scout-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/06.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-mumpo-retreat-scout-rear/05-06.webp",
+      "sha256": "0d6c5f869f5892ea74817b296d2f2856b9fc082c5ec1231c17cde08a706455b5",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-mumpo-retreat-scout-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/07.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-mumpo-retreat-scout-rear/06-07.webp",
+      "sha256": "af909dba17c1116fb6bc55e8ed2c6c132017f9f3c4f94b7354b0cfa98935f271",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-mumpo-retreat-scout-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/08.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-mumpo-retreat-scout-rear/07-08.webp",
+      "sha256": "0ee4b14dab08a503b4104c805541403a0d8c303b426923142b780b73e97e8d62",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-mumpo-retreat-scout-rear",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-mumpo-retreat-scout-rear.json",
+      "sha256": "4c2abcde538d96bee058b32f065b936a259d2691b4559617a6ab3d4046e50383"
+    },
+    {
       "id": "sw-mumpo-retreat-scout",
       "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout/47e4b3854954/01.png",
       "derived": "prototypes/godot-shared/characters/imported/sw-mumpo-retreat-scout/00-01.png",
@@ -26811,6 +29802,18 @@
       "sha256": "ad0d290ae0c7687d9cb3f80192fe3ead6e1fb785958a5ce2d31702d2cdcbfbf9"
     },
     {
+      "id": "sw-myla-covered-rest",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-covered-rest/9da715cf0abf/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-myla-covered-rest/00-01.webp",
+      "sha256": "8f1baf160b9ee197a445fd7fd26c6e88dd812597a86482f6bde298f10580f359",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-myla-covered-rest",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-myla-covered-rest.json",
+      "sha256": "5fb55f50ed100561ca9c1a086ebff11525260eb478719b09c1e7b39bbafc9a38"
+    },
+    {
       "id": "sw-myla-retreat-stance-e",
       "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-turnaround/fdac2f3ff603/02.png",
       "derived": "prototypes/godot-shared/characters/imported/sw-myla-retreat-stance-e/00-02.png",
@@ -26857,6 +29860,67 @@
       "id": "sw-myla-retreat-stance-w",
       "definition": "prototypes/godot-shared/characters/definitions/animations/sw-myla-retreat-stance-w.json",
       "sha256": "70efbd2cf99f6e17399b869e5e48881aae3d59d511fdaf16c91c61b20530ea68"
+    },
+    {
+      "id": "sw-myla-retreat-tinker-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-myla-retreat-tinker-rear/00-01.webp",
+      "sha256": "68ea23ea960e91e4ebe8b97f49beca609e577090cd3206a5d07660cff5790c46",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-myla-retreat-tinker-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/02.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-myla-retreat-tinker-rear/01-02.webp",
+      "sha256": "9c452fb9160cc901a327dba5a6d7087d8bf1e0240908ac8832b53fa481f50f77",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-myla-retreat-tinker-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/03.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-myla-retreat-tinker-rear/02-03.webp",
+      "sha256": "71a4896019ca6656c43ad92164bf4ec0498bde4c7e236ca2760f45827862f091",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-myla-retreat-tinker-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/04.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-myla-retreat-tinker-rear/03-04.webp",
+      "sha256": "86e614ca059a61ad8a6212481de69c3e220ef2cf0787c5e65f4fca43c81eb951",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-myla-retreat-tinker-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/05.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-myla-retreat-tinker-rear/04-05.webp",
+      "sha256": "d62154f7c03f9d457b629a059a3b761d4315175695993a1e431d6b9906995533",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-myla-retreat-tinker-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/06.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-myla-retreat-tinker-rear/05-06.webp",
+      "sha256": "d26e2ff0385757385f8c3e32f325f6fb9d10803dcf274363df9ff5fe3135f192",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-myla-retreat-tinker-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/07.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-myla-retreat-tinker-rear/06-07.webp",
+      "sha256": "ffca5b5fe8fd5aef4fb3da794acfb6c9c008465ba198cd4d59bb4939b5957b40",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-myla-retreat-tinker-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/08.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-myla-retreat-tinker-rear/07-08.webp",
+      "sha256": "1dd8710bdd371ab8af155dd44e8b2f7d96e3a1700cd0cef626a08f14e99e4d32",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-myla-retreat-tinker-rear",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-myla-retreat-tinker-rear.json",
+      "sha256": "042d9d7e6ff16baf711255955d00c1c3d8cb650f3359fb3d5f3af30aaa6d51d2"
     },
     {
       "id": "sw-myla-retreat-work-e",
@@ -27151,6 +30215,18 @@
       "sha256": "1f6d23323a33b9775d622e76635fc3e55412eaa02685c30e94fa0c3f886774a4"
     },
     {
+      "id": "sw-rix-covered-rest",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-covered-rest/287665f23971/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-rix-covered-rest/00-01.webp",
+      "sha256": "439a0ec0c038f224d1e354caa06afb01ae3a286ad6ffc53b97252654dd24e2a5",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-rix-covered-rest",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-rix-covered-rest.json",
+      "sha256": "ab8424b1d9147c40382b17ff19e5c12640da5307534c933dada908271a674401"
+    },
+    {
       "id": "sw-rix-incense",
       "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-incense/5170a20fecf8/01.png",
       "derived": "prototypes/godot-shared/characters/imported/sw-rix-incense/00-01.png",
@@ -27210,6 +30286,67 @@
       "id": "sw-rix-incense",
       "definition": "prototypes/godot-shared/characters/definitions/animations/sw-rix-incense.json",
       "sha256": "8eed9e54d69861c7360ee384128b4cceda33918afa196bac5ac87be8a3c66eeb"
+    },
+    {
+      "id": "sw-rix-retreat-pray-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-rix-retreat-pray-rear/00-01.webp",
+      "sha256": "9ed467d98cbfd43f4a0b24b2947ecad99c3efc697d1bf4c48f67e1493636c7c3",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-rix-retreat-pray-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/02.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-rix-retreat-pray-rear/01-02.webp",
+      "sha256": "9aac13fa16f7ae3df8e710af655173c1b2281f6c33955ff0a1961262c2498d69",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-rix-retreat-pray-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/03.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-rix-retreat-pray-rear/02-03.webp",
+      "sha256": "cfc3480d7ac791fa9783aa01cab2a98d9365dc89578ba627bb98260f5e7aaf2b",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-rix-retreat-pray-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/04.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-rix-retreat-pray-rear/03-04.webp",
+      "sha256": "111d437d866cda8e15e5ac5fbbcad016fd3a7c1b6a5cb46455738743f7eff949",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-rix-retreat-pray-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/05.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-rix-retreat-pray-rear/04-05.webp",
+      "sha256": "c8c97b0aabd17116622fac05cceee2baa3c792db7cfc23b88a9204e5ab59463d",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-rix-retreat-pray-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/06.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-rix-retreat-pray-rear/05-06.webp",
+      "sha256": "fbee73d245838e08d526f488e959c122c7ccbdef58919ff2f59d53031ddcf3dd",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-rix-retreat-pray-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/07.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-rix-retreat-pray-rear/06-07.webp",
+      "sha256": "3130dfb944648ab9b6e059272a8d29cbd787629cf9b66233c871ac58c2185ff0",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-rix-retreat-pray-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/08.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-rix-retreat-pray-rear/07-08.webp",
+      "sha256": "0729de595ae926707dcf40afef4850412439a9fd9e614cdac1c02767956d5fbf",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-rix-retreat-pray-rear",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-rix-retreat-pray-rear.json",
+      "sha256": "667a546d8b887746748265df2313918c4040bb45daf67570ae0341e9bd3575d1"
     },
     {
       "id": "sw-rix-retreat-pray",
@@ -27552,6 +30689,18 @@
       "sha256": "a9f58b7ff23d65da90ff199cc327b5c0049ae91e4ef4086e0497129ce715e557"
     },
     {
+      "id": "sw-runara-covered-rest",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-covered-rest/9da715cf0abf/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-runara-covered-rest/00-01.webp",
+      "sha256": "197618c9eeb16126b0e243cbc4cce1eedd8ce4250916a45de0af6b31862fb4fe",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-runara-covered-rest",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-runara-covered-rest.json",
+      "sha256": "58cb81393fdf0bc20820c808a5ace8f0998d75ba2804b15dc6319e50cd02316d"
+    },
+    {
       "id": "sw-runara-greet",
       "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/01.png",
       "derived": "prototypes/godot-shared/characters/imported/sw-runara-greet/00-01.png",
@@ -27720,6 +30869,67 @@
       "id": "sw-runara-retreat-stance-w",
       "definition": "prototypes/godot-shared/characters/definitions/animations/sw-runara-retreat-stance-w.json",
       "sha256": "7a8dbe59c57a948fd71a63ad7c76b2afc4ff99d685de56ed926f85f6591fc6c9"
+    },
+    {
+      "id": "sw-runara-retreat-study-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-runara-retreat-study-rear/00-01.webp",
+      "sha256": "f41d55c9bacbacf9537edac443ec1f60e62ca923b5b2feb31d576a84b5b26e70",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-runara-retreat-study-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/02.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-runara-retreat-study-rear/01-02.webp",
+      "sha256": "cf20e8ac4eb81c21f164ddcebf6cefc6a052c48a5f195b05679e652267d326f5",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-runara-retreat-study-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/03.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-runara-retreat-study-rear/02-03.webp",
+      "sha256": "c143a1b0ea2882e2ed69fdda22a8a67875751dca9c11ea6250c08b60f0766754",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-runara-retreat-study-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/04.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-runara-retreat-study-rear/03-04.webp",
+      "sha256": "a9f8ea30f36259cb153415a7c2988f022a3ed83c84520c6adba260c899ffd6e0",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-runara-retreat-study-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/05.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-runara-retreat-study-rear/04-05.webp",
+      "sha256": "7857a8e6c595179446160033a4f459647cb76f4a37604620489aa17a3b865c39",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-runara-retreat-study-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/06.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-runara-retreat-study-rear/05-06.webp",
+      "sha256": "3eeff522165360f7280e9056c63598e2eba8450f83e9a074ba7336273cb002db",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-runara-retreat-study-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/07.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-runara-retreat-study-rear/06-07.webp",
+      "sha256": "90e2faa640711280d5a7d0f43e34c823589636d038c65b5b1788e6adbc05f9bc",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-runara-retreat-study-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/08.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-runara-retreat-study-rear/07-08.webp",
+      "sha256": "142ed6bf486c44c27669c2e61f496c9ee14a9b335f3b94e681879809829736c8",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-runara-retreat-study-rear",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-runara-retreat-study-rear.json",
+      "sha256": "7b74bc7a2e0c3f0350efbdd8802860d7b7a04bd4314128bd1120f5fd1fec2c1d"
     },
     {
       "id": "sw-runara-retreat-work-e",
@@ -28075,6 +31285,18 @@
       "sha256": "82ad696268f0bb80305b4b00d7ba756fc6a8a8537c00f3917d3f1394dcac49de"
     },
     {
+      "id": "sw-tarak-covered-rest",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-covered-rest/9da715cf0abf/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-tarak-covered-rest/00-01.webp",
+      "sha256": "d3b9ff9eddf729a7ef90f9e5673588a0fedb644baad71db52fd2bfca33d74bc0",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-tarak-covered-rest",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-tarak-covered-rest.json",
+      "sha256": "3d22f120144f99a54aba1690f6ddeaa298b278afcd6732401b4d525af98653f7"
+    },
+    {
       "id": "sw-tarak-retreat-stance-e",
       "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-turnaround/7792457e6c80/02.png",
       "derived": "prototypes/godot-shared/characters/imported/sw-tarak-retreat-stance-e/00-02.png",
@@ -28121,6 +31343,67 @@
       "id": "sw-tarak-retreat-stance-w",
       "definition": "prototypes/godot-shared/characters/definitions/animations/sw-tarak-retreat-stance-w.json",
       "sha256": "d7cf7565bf0358724a68e86128960f69f62240b2beac47319c1657685b9751c1"
+    },
+    {
+      "id": "sw-tarak-retreat-water-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-tarak-retreat-water-rear/00-01.webp",
+      "sha256": "ed222d0278a4d0404bde9aeb244a113d7c114a3de5f974c64f20825476220b62",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-tarak-retreat-water-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/02.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-tarak-retreat-water-rear/01-02.webp",
+      "sha256": "da2483847312e5a51f05d2f9d26cc1fd67e6565eccdd83a9de57c41a25303c85",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-tarak-retreat-water-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/03.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-tarak-retreat-water-rear/02-03.webp",
+      "sha256": "5c917ef22920ed09cea4804b1df67f62a2984d96d0c93500c48a4c8cbfa42d9c",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-tarak-retreat-water-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/04.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-tarak-retreat-water-rear/03-04.webp",
+      "sha256": "68679584cc06bd7bf6e1b3e7d7a7996106dfbec4d84e75950b31e31481395f70",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-tarak-retreat-water-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/05.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-tarak-retreat-water-rear/04-05.webp",
+      "sha256": "a7784910679fa321c780ac23c5210a8dafe9745c30ca96a34527a068510e801a",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-tarak-retreat-water-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/06.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-tarak-retreat-water-rear/05-06.webp",
+      "sha256": "639c9b7599af63bd1d3b5fe52a237f4d3693826b6b02baa282b0c74f3dbef330",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-tarak-retreat-water-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/07.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-tarak-retreat-water-rear/06-07.webp",
+      "sha256": "5c50bb5a14522bd14ea7f688ebdc905ce1a8f5216b44384c594edf6500a174bf",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-tarak-retreat-water-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/08.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-tarak-retreat-water-rear/07-08.webp",
+      "sha256": "6c76ca01a998b7a87c42b1419ffa199a7fa658b75dff64fc4ace47324c361730",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-tarak-retreat-water-rear",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-tarak-retreat-water-rear.json",
+      "sha256": "e492c47172b55ffa445662ae37fef025c3a864707f2059c79e60432f832a4b9b"
     },
     {
       "id": "sw-tarak-retreat-water",
@@ -28537,6 +31820,18 @@
       "sha256": "7cb28223beeaf1ca9e05ffe445a713e474f938052081bed0db3663d4433ad6ee"
     },
     {
+      "id": "sw-varnoth-covered-rest",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-covered-rest/9da715cf0abf/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-varnoth-covered-rest/00-01.webp",
+      "sha256": "8b220a086dd572d63ef8f522379bf8f97050f27bf701c6548ef7e7875166ed5b",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-varnoth-covered-rest",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-varnoth-covered-rest.json",
+      "sha256": "3907784885b2f4d56f52b98def61cda96799fadc895801e15d5d668e7ba957d7"
+    },
+    {
       "id": "sw-varnoth-masonry",
       "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/01.png",
       "derived": "prototypes/godot-shared/characters/imported/sw-varnoth-masonry/00-01.png",
@@ -28596,6 +31891,67 @@
       "id": "sw-varnoth-masonry",
       "definition": "prototypes/godot-shared/characters/definitions/animations/sw-varnoth-masonry.json",
       "sha256": "35abed31a46d616df3c01be24014aa491fad32301c1f206c34013e4fe76b397c"
+    },
+    {
+      "id": "sw-varnoth-retreat-masonry-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-varnoth-retreat-masonry-rear/00-01.webp",
+      "sha256": "642b7e4f050a4e08efccdca2d67be8e8c22b089e67f5422a00ef074a1091df6b",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-varnoth-retreat-masonry-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/02.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-varnoth-retreat-masonry-rear/01-02.webp",
+      "sha256": "5d1f9bd1b4a1d4cf4341f16eb0b2b4cf25c737277d11a8811d02fab8f0ca06b4",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-varnoth-retreat-masonry-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/03.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-varnoth-retreat-masonry-rear/02-03.webp",
+      "sha256": "24fa169cf4633d23712db29ded450fad10e67e78d4cc86257047b69ff359c571",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-varnoth-retreat-masonry-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/04.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-varnoth-retreat-masonry-rear/03-04.webp",
+      "sha256": "0107e72783f6958b3cef2c322ebc7b536d02340b6792a55bf6af0ad01b79ae34",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-varnoth-retreat-masonry-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/05.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-varnoth-retreat-masonry-rear/04-05.webp",
+      "sha256": "e6c2958181a48dda0da16761daafb979489b97566f94aa77ac9909f6ea230ee6",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-varnoth-retreat-masonry-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/06.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-varnoth-retreat-masonry-rear/05-06.webp",
+      "sha256": "c9ff4363f3ea41bbb8f425c40c0477f51ada36eac0daee95a022ce49a3852d0c",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-varnoth-retreat-masonry-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/07.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-varnoth-retreat-masonry-rear/06-07.webp",
+      "sha256": "e5225833ff1d63defde44d6dad101def4b3beed1c861db412e9a130fc7044bfd",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-varnoth-retreat-masonry-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/08.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-varnoth-retreat-masonry-rear/07-08.webp",
+      "sha256": "3a0c185563c15f89b63b3c2b811369214957f5caf4c71644eba751185cd2d699",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-varnoth-retreat-masonry-rear",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-varnoth-retreat-masonry-rear.json",
+      "sha256": "97f67abbf6f1ebe7e0f05c3d695fc449f2d94b89dcf83146bd9f7a1cfb924748"
     },
     {
       "id": "sw-varnoth-retreat-stance-e",
@@ -28877,6 +32233,18 @@
       "sha256": "aee1a46e483d29b30b37afa0f198064d45099d2989da0d388c0b382f208c0aaf"
     },
     {
+      "id": "sw-zark-covered-rest",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-covered-rest/287665f23971/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-zark-covered-rest/00-01.webp",
+      "sha256": "1de2bb0a172daf40dbbb5e0ce7f47d5abb19c26423aee64275aee519b2152b95",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-zark-covered-rest",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-zark-covered-rest.json",
+      "sha256": "f0ecdf91296d71bac17aaf1df583647d202cd8bc406c69b5e273f43c4a0c5bf9"
+    },
+    {
       "id": "sw-zark-retreat-stance-e",
       "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-turnaround/cf00b16dd88a/02.png",
       "derived": "prototypes/godot-shared/characters/imported/sw-zark-retreat-stance-e/00-02.png",
@@ -28923,6 +32291,67 @@
       "id": "sw-zark-retreat-stance-w",
       "definition": "prototypes/godot-shared/characters/definitions/animations/sw-zark-retreat-stance-w.json",
       "sha256": "c7251c44193a25af4f5dae34e928e073badf30e51f30de14327d397eb1b84eb2"
+    },
+    {
+      "id": "sw-zark-retreat-tidy-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-zark-retreat-tidy-rear/00-01.webp",
+      "sha256": "8dfb95359607c4e580675654eea2ce4c2fb11c86cd4457ddf6a779136bf4097d",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-zark-retreat-tidy-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/02.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-zark-retreat-tidy-rear/01-02.webp",
+      "sha256": "8ec7ac9a46c20e0979ffb9c03e8ae3b7fc82ad1c954bc6d647b4f6d8194cbf65",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-zark-retreat-tidy-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/03.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-zark-retreat-tidy-rear/02-03.webp",
+      "sha256": "d508fed4d0be6f1fc44af36b51be78d8f937ace01560870775e6e29fa71d33f2",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-zark-retreat-tidy-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/04.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-zark-retreat-tidy-rear/03-04.webp",
+      "sha256": "53bc699e1abff0a132289a9d19764619a7f084526b4630faac4ef9b353b9bed4",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-zark-retreat-tidy-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/05.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-zark-retreat-tidy-rear/04-05.webp",
+      "sha256": "09af9e1fecf30dff8b99c07ec97bc9ae087c5da474542c535fb7709c67c08da9",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-zark-retreat-tidy-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/06.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-zark-retreat-tidy-rear/05-06.webp",
+      "sha256": "7e64fc1f1fc3ee9c2884cfd75a8b731e0076b018fb85fd6e4d68259ad52d249d",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-zark-retreat-tidy-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/07.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-zark-retreat-tidy-rear/06-07.webp",
+      "sha256": "47d9442f35f771eb4afb8392fd77df95ce5b6754145878114466ffc4b756e970",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-zark-retreat-tidy-rear",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/08.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-zark-retreat-tidy-rear/07-08.webp",
+      "sha256": "75891a34dd151f63fd28055065ee9d8718efb5356514ef9f0cf692508bffb505",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-zark-retreat-tidy-rear",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-zark-retreat-tidy-rear.json",
+      "sha256": "6ac6b3239d1e6b4067ef5bc65481cb23ed25ce5d04d01af9401151f618a37c00"
     },
     {
       "id": "sw-zark-retreat-tidy",
@@ -29712,7 +33141,7 @@
     {
       "id": "maria",
       "definition": "prototypes/godot-shared/characters/definitions/characters/maria.json",
-      "sha256": "c669e71ceedbd85a197c93da36b32885d693e7949cfe7289c8a0506f592f6e73"
+      "sha256": "c61f55dd2fdccf5a75f30ab63b051fd0c6929ea3f6f0b6d1b7e3848921cf8ca5"
     },
     {
       "id": "mia",

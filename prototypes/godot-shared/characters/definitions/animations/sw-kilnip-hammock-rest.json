@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-kilnip-hammock-rest",
+  "character": "sw-kilnip",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "rest_on_prop",
+  "direction": "s",
+  "fps": 1.875,
+  "loop": true,
+  "dependencies": [
+    "sw-kilnip"
+  ],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/08.webp"
+  ],
+  "restVolume": {
+    "head": 0.145,
+    "chest": 0.15,
+    "hips": 0.13,
+    "calves": 0.084,
+    "boots": 0.062
+  },
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "placement": "Head-to-foot texture of a reclining kobold supported by anchored hammock geometry, footprint measured from the original standing actor",
+    "overlay": "Existing resting body surface"
+  },
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/kilnip.png",
+    "prompt": "Create a production sprite atlas of the exact kobold Kilnip in the attached art, sleeping on his back. Same muted copper-red scales, two swept back horns, long angular muzzle, tired eyes now closed, and unadorned beige hooded robe with brown belt and plain dark hem. Exact realistic painterly fantasy style. Draw only his isolated body, with full silhouette, no bed, no hammock, no blanket, no background, no floor, no shadow, no labels. Transparent RGBA with truly empty alpha. Camera exactly directly overhead looking down at the prone body from above, as if taking an orthographic photo of him laid flat, with top of crown and horns at top of cell, nose toward bottom of page, soles at bottom of cell. It should look sleeping and clearly reclined, arms relaxed over belly or to the sides, feet relaxed and separated, tail curls gently close to his right thigh, adult kobold proportions, no additional clothes or jewelry. Atlas 1536x1024, EXACT 4 equally sized columns by 2 equally sized rows, 8 independent figures in chronological order row-major. All figures aligned, head roots and hips and feet at same positions. Animate subtle visible breathing in chest and sleeves with just one rise and fall, shoulders start relaxed, then rise progressively through frames 2 3 4 5, then relax back through frames 6 7 8. Eyes closed consistently. Slight movement of hands and cloth with chest, neither legs nor the head travel. Do not sleep standing or draw front-standing figures. Each pose fills 86% of its cell height and less than 77% of its width with at least 20px of empty clear gap to each edge in every cell, all feet and horns included.",
+    "minimumVisibleStandingPixels": 320,
+    "expectedPhases": 8,
+    "sourcePages": [
+      8,
+      9
+    ],
+    "method": "ImageGen overhead breathing cycle with native lossless WebP extraction",
+    "reclinedSheet": true,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-kilnip-hammock-rest-33f7b58bf524.png",
+    "originalSha256": "33f7b58bf524577ac857868d558e866fd37eccfb75e963948404e5f243adb55d",
+    "importReport": "output/stormwreck-motion-detail/sw-kilnip-hammock-rest-33f7b58bf524.json",
+    "minimumAlpha": 12,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels",
+    "activePhases": 6,
+    "archivedAuthoredPhases": 8
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "The original sleeping pose and wool tone were reviewed for the blanket candidate.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 472,
+  "pivot": [
+    0.5,
+    0.012396694214876033
+  ],
+  "soleContact": [
+    0.5,
+    0.987603305785124
+  ],
+  "restSculpt": {
+    "eyes": 0.166,
+    "nose": [
+      0.5,
+      0.232
+    ],
+    "jaw": 0.27,
+    "faceHalfWidth": 0.135,
+    "recline": 0
+  },
+  "restBlanket": {
+    "base": "#686557",
+    "trim": "#cbb18b",
+    "bands": 2
+  }
+}

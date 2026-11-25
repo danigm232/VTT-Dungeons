@@ -29,10 +29,11 @@ func actor(id: String) -> Node3D:
 		if definition.get("campaign","")=="stormwreck-isle" and definition.get("source",{}).get("kind","")=="individual-frames":
 			var profile:=Registry.profile(str(definition.id))
 			if not profile.is_empty(): body.char_profile=profile; body.char_key=str(definition.id)
-		elif not Registry.data().get("animations",{}).is_empty():
+		elif not Registry.data().get("animations",{}).is_empty() and not body.char_profile.is_empty():
 			body.char_profile=Registry.with_animations(body.char_profile.duplicate(true),definition)
-		# Apply a newly registered idle immediately, even while the actor is still.
-		body._resolve_and_apply_clip(str(body.current_anim),str(body.facing_dir),false)
+		if not body.char_profile.is_empty():
+			# Apply a newly registered idle immediately, even while the actor is still.
+			body._resolve_and_apply_clip(str(body.current_anim),str(body.facing_dir),false)
 		visual.set_meta("registered_animations_loaded",true)
 	if not visual.has_meta("appearance_preferences_loaded"):
 		visual.intensity=clampf(float(preferences.get_value(id,"intensity",.85)),0,1)

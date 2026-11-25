@@ -1,0 +1,83 @@
+[
+  {
+    "id": "LS-01",
+    "severity": "alta",
+    "status": "pendiente de arte",
+    "target": "Mike · las 18 habilidades",
+    "owner": "apps/web/ui/art/skill-wizard-{v2,objects-v3,motion-v3,reactions-v5}.webp y parejas compartidas",
+    "problem": "Las familias históricas reinterpretan rostro, proporciones, peinado y ropa. Frente al Mike actual desaparecen guantes y libro habitual, sin una sustitución de equipo declarada. Las diferencias son visibles también entre familias.",
+    "action": "Rehacer primero una muestra de Mike con su identidad canónica y equipo por acción; revisar antes de extender. No sustituir por el reposo con libro mientras toca un instrumento."
+  },
+  {
+    "id": "LS-02",
+    "severity": "media",
+    "status": "pendiente de arte",
+    "target": "Mía y Trinity · familias v2/v3/v5",
+    "owner": "apps/web/ui/art/skill-{cleric,rogue}-*.webp y parejas compartidas",
+    "problem": "Se reconocen los personajes, pero varían la escala del rostro, la anatomía y la confección del equipo entre familias. Mía pierde escudo/maza y Trinity cambia detalles de ropa/botas en las láminas históricas.",
+    "action": "Declarar qué equipo se guarda en cada acción y revisar identidad, talla y continuidad en los 18 cambios. No considerar retirada de equipo un permiso para rediseñar."
+  },
+  {
+    "id": "LS-03",
+    "severity": "alta",
+    "status": "corregido con límite",
+    "target": "Intimidación · éxito",
+    "owner": "loading/loading_stage.gd de los tres proyectos",
+    "problem": "El bandido con capucha de people fila 2 se sustituía por otro hombre con gorra en npcs fila 1.",
+    "action": "Se reutilizan people[14] (alarma) y people[15] (huida), del mismo bandido. Conserva capucha y capa. La huida dispone de una sola pose auténtica; falta producir un ciclo continuo, no se simulan ocho dibujos distintos."
+  },
+  {
+    "id": "LS-04",
+    "severity": "alta",
+    "status": "pendiente de arte",
+    "target": "Persuasión · entrada en apretón de manos",
+    "owner": "skill-people-v3.webp fila merchant → skill-handshake-v3.webp",
+    "problem": "El comerciante separado cambia rasgos, volumen y punto de apoyo al entrar en la pareja pintada; el héroe también cambia de familia.",
+    "action": "Producir conversación y apretón con el mismo comerciante y protagonista, con anclajes coincidentes. Se conserva el defecto como evidencia; no se elimina el apretón para ocultarlo."
+  },
+  {
+    "id": "LS-05",
+    "severity": "alta",
+    "status": "corregido",
+    "target": "Acrobacias · cuerda/apoyos",
+    "owner": "loading/loading_stage.gd de los tres proyectos",
+    "problem": "El personaje usa y=169 y la cuerda se forzaba a y=202. Separación: 33 unidades, 66 píxeles en la cámara de esta escena.",
+    "action": "La cuerda usa su altura declarada, alineada con la trayectoria del personaje. Se retira su sombra genérica en el vacío. Las bases de postes llegan al suelo."
+  },
+  {
+    "id": "LS-06",
+    "severity": "media",
+    "status": "riesgo de continuidad pendiente",
+    "target": "Engaño e Interpretación · cambio de familia de PNJ",
+    "owner": "skill-people-v3.webp → skill-npcs-v5.webp",
+    "problem": "Guardia y público alternan fuentes distintas al cambiar de estado. Se conservan atributos generales, pero la misma continuidad de rostro/ropa no queda garantizada por compartir nombre de fila.",
+    "action": "Revisar y unificar las poses alrededor del cambio, conservando la corrección previa de orientación del público. No se declara un error de índice en todos los PNJ."
+  },
+  {
+    "id": "LS-07",
+    "severity": "media",
+    "status": "pendiente de anclajes de arte",
+    "target": "Medicina y Juego de manos · parejas",
+    "owner": "skill-treatment-v5.webp y skill-pickpocket-v5.webp",
+    "problem": "Héroe, compañero y equipo están horneados en una sola imagen. El pie global del recorte no verifica por separado ambos cuerpos ni la altura de la mano; una pareja puede variar su escala aparente.",
+    "action": "Auditar apoyo de cada integrante y manos por fotograma, con una referencia erguida estable. Mantener el contacto dibujado; no separar equipo postizo."
+  },
+  {
+    "id": "LS-08",
+    "severity": "informativa",
+    "status": "sin fallo de flotación reproducido en las muestras",
+    "target": "Mesa, mecanismo, emblema, altar y cartel",
+    "owner": "loading/catalog.json + loading_stage.gd",
+    "problem": "En las capturas actuales se apoyan en y=202. La perspectiva muestra patas a alturas distintas; no se ha demostrado que todos floten. La revisión de un fotograma no certifica todo el ciclo.",
+    "action": "Conservar evidencia y repetir al producir poses nuevas. Cuerda y apoyos sí tenían un error reproducible; no confundirlo con la levitación intencional del cristal, ave o efectos."
+  },
+  {
+    "id": "LS-09",
+    "severity": "informativa",
+    "status": "verificado técnicamente",
+    "target": "576 IDs de fotogramas y 54 combinaciones personaje/habilidad",
+    "owner": "scripts/export-godot-skill-loading.ts --audit-only",
+    "problem": "El catálogo instalado coincide con el resolvedor fuente actual. Las variaciones no se explican por un intercambio general de IDs entre Mike, Mía y Trinity.",
+    "action": "Se registra origen, recorte, clip y familia. Esto no acredita identidad artística ni continuidad visual."
+  }
+]

@@ -1,0 +1,238 @@
+[
+  {
+    "skill": "acrobatics",
+    "clips": [
+      112,
+      113,
+      114,
+      115,
+      116,
+      117
+    ],
+    "sources": [
+      "skill-rogue-motion-v3.webp"
+    ]
+  },
+  {
+    "skill": "athletics",
+    "clips": [
+      118,
+      112,
+      113,
+      115,
+      116,
+      117
+    ],
+    "sources": [
+      "skill-rogue-v2.webp",
+      "skill-rogue-motion-v3.webp"
+    ]
+  },
+  {
+    "skill": "arcana",
+    "clips": [
+      115,
+      119,
+      120
+    ],
+    "sources": [
+      "skill-rogue-motion-v3.webp"
+    ]
+  },
+  {
+    "skill": "deception",
+    "clips": [
+      124,
+      125,
+      126,
+      127
+    ],
+    "sources": [
+      "skill-rogue-objects-v3.webp",
+      "skill-rogue-reactions-v5.webp"
+    ]
+  },
+  {
+    "skill": "history",
+    "clips": [
+      128,
+      129,
+      130,
+      132,
+      131,
+      133
+    ],
+    "sources": [
+      "skill-rogue-objects-v3.webp",
+      "skill-scroll-walk-v5.webp",
+      "skill-rogue-reactions-v5.webp"
+    ]
+  },
+  {
+    "skill": "performance",
+    "clips": [
+      134,
+      135
+    ],
+    "sources": [
+      "skill-rogue-objects-v3.webp"
+    ]
+  },
+  {
+    "skill": "intimidation",
+    "clips": [
+      136,
+      112,
+      115
+    ],
+    "sources": [
+      "skill-rogue-motion-v3.webp"
+    ]
+  },
+  {
+    "skill": "investigation",
+    "clips": [
+      115,
+      119,
+      121,
+      137
+    ],
+    "sources": [
+      "skill-rogue-motion-v3.webp",
+      "skill-rogue-v2.webp"
+    ]
+  },
+  {
+    "skill": "sleight-of-hand",
+    "clips": [
+      138,
+      139,
+      141,
+      140,
+      142
+    ],
+    "sources": [
+      "skill-pickpocket-v5.webp"
+    ]
+  },
+  {
+    "skill": "medicine",
+    "clips": [
+      143,
+      144,
+      146,
+      145,
+      147
+    ],
+    "sources": [
+      "skill-treatment-v5.webp"
+    ]
+  },
+  {
+    "skill": "nature",
+    "clips": [
+      148,
+      149,
+      150,
+      152,
+      151,
+      153
+    ],
+    "sources": [
+      "skill-rogue-motion-v3.webp",
+      "skill-rogue-v2.webp",
+      "skill-rogue-reactions-v5.webp"
+    ]
+  },
+  {
+    "skill": "perception",
+    "clips": [
+      119,
+      120,
+      154,
+      115
+    ],
+    "sources": [
+      "skill-rogue-motion-v3.webp"
+    ]
+  },
+  {
+    "skill": "insight",
+    "clips": [
+      119,
+      121,
+      115
+    ],
+    "sources": [
+      "skill-rogue-motion-v3.webp",
+      "skill-rogue-v2.webp"
+    ]
+  },
+  {
+    "skill": "persuasion",
+    "clips": [
+      115,
+      119,
+      121,
+      122,
+      123
+    ],
+    "sources": [
+      "skill-rogue-motion-v3.webp",
+      "skill-rogue-v2.webp",
+      "skill-handshake-v3.webp"
+    ]
+  },
+  {
+    "skill": "religion",
+    "clips": [
+      155,
+      156,
+      158,
+      157,
+      159
+    ],
+    "sources": [
+      "skill-rogue-objects-v3.webp",
+      "skill-rogue-reactions-v5.webp"
+    ]
+  },
+  {
+    "skill": "stealth",
+    "clips": [
+      160,
+      161,
+      162
+    ],
+    "sources": [
+      "skill-rogue-reactions-v5.webp"
+    ]
+  },
+  {
+    "skill": "survival",
+    "clips": [
+      148,
+      119,
+      121
+    ],
+    "sources": [
+      "skill-rogue-motion-v3.webp",
+      "skill-rogue-v2.webp"
+    ]
+  },
+  {
+    "skill": "animal-handling",
+    "clips": [
+      163,
+      121,
+      164,
+      166,
+      165,
+      167
+    ],
+    "sources": [
+      "skill-animal-reach-v3.webp",
+      "skill-rogue-v2.webp"
+    ]
+  }
+]

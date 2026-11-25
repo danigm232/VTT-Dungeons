@@ -259,8 +259,12 @@ func _attach_map() -> void:
 	if not local_character.is_empty():
 		extra_keys.append(CharacterSpriteCatalog.resolve_character_key(local_character))
 	var req_keys: Array[String] = CharacterSpriteCatalog.collect_required_keys(loaded_map, extra_keys)
-	if not req_keys.is_empty():
-		var job := CharacterSpriteCatalog.build_prewarm_job(req_keys)
+	var resident_ids: Array[String] = []
+	if loaded_map != null and loaded_map.find_child("RetreatLayoutBuilder", true, false) != null:
+		for rid in preload("res://scripts/retreat_resident_directory.gd").RESIDENTS:
+			resident_ids.append("sw-" + str(rid))
+	if not req_keys.is_empty() or not resident_ids.is_empty():
+		var job := CharacterSpriteCatalog.build_prewarm_job(req_keys, resident_ids)
 		var worker := Thread.new()
 		if worker.start(CharacterSpriteCatalog.run_prewarm_job.bind(job)) == OK:
 			_prewarm_thread = worker

@@ -4,7 +4,9 @@ extends RefCounted
 ## doorways and some stairs, so sample the floors along the actual corridors.
 const STEP := 0.75
 const FLOORS := [
-	[Rect2(85.5, 80.25, 55.5, 15.0), 9.0],
+	# The western guest bedroll is at (82, 78); include its existing floor so
+	# Runara can reach it without changing furniture, collisions or movement.
+	[Rect2(78.0, 78.0, 63.0, 17.25), 9.0],
 	[Rect2(140.25, 91.5, 15.0, 3.0), 9.0],
 	[Rect2(74.25, 54.0, 73.5, 17.25), 18.0],
 	[Rect2(114.0, 52.0, 9.75, 3.0), 18.0],

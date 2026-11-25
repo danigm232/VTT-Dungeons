@@ -458,6 +458,15 @@ func _begin_routine_at_station(actor: Resident) -> void:
 		return
 	var prop_at := routine_props.anchor(task[5])
 	actor.face_world_direction(prop_at - actor.global_position if prop_at.is_finite() else actor.station_heading)
+	if task[6] == "doze":
+		if routine_props.try_rest(actor, task[5]):
+			var duration := 8.0
+			_running_routines[id] = {"task": task, "until": _elapsed + duration, "contact": true}
+			_departures[id] = _elapsed + duration + _round_pause(id)
+			routine_contacted.emit(id, task[0], task[5])
+		else:
+			_routine_orders.erase(id)
+		return
 	var duration := 2.1 if task[6] in ["draw", "water", "cloth"] else 1.65
 	if not actor.play_gesture(task[4], duration, 0.42):
 		_routine_orders.erase(id)
@@ -490,6 +499,7 @@ func _release_companion(id: String) -> void:
 func _finish_routines() -> void:
 	for id: String in _running_routines.keys():
 		if _elapsed >= float(_running_routines[id].until):
+			_release_routine_rest(id)
 			_running_routines.erase(id)
 			_routine_orders.erase(id)
 			_release_companion(id)
@@ -499,6 +509,7 @@ func _interrupt_routine(actor: Resident, retry: bool) -> void:
 	if not _running_routines.has(id):
 		return
 	var task: Dictionary = _running_routines[id]
+	_release_routine_rest(id)
 	_running_routines.erase(id)
 	_release_companion(id)
 	if retry and not task.contact:
@@ -506,8 +517,14 @@ func _interrupt_routine(actor: Resident, retry: bool) -> void:
 	else:
 		_routine_orders.erase(id)
 
+func _release_routine_rest(id: String) -> void:
+	var actor: Resident = residents.get(id)
+	if is_instance_valid(actor) and not actor.resting_on.is_empty():
+		actor.stand_from_bed()
+
 func _stop_routines() -> void:
 	for id: String in _running_routines.keys():
+		_release_routine_rest(id)
 		if is_instance_valid(residents.get(id)):
 			residents[id].play_action_animation("idle")
 		_release_companion(id)

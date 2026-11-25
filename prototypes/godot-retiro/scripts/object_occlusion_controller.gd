@@ -14,10 +14,18 @@ const MAX_CANOPY_MATERIALS: int = 16
 static var _fade_levels: Dictionary = {} # instance_id -> {"node": GeometryInstance3D, "value": float}
 static var _canopy_shaders: Array[ShaderMaterial] = []
 static var _canopy_shader_res: Shader
+static var _last_occluded_ids: Dictionary = {}
+static var _last_probe_pos := Vector3(-9999.0, 0.0, -9999.0)
+static var _last_probe_yaw: float = -999.0
+static var _probe_tick: int = 0
 
 static func clear_registry() -> void:
 	_fade_levels.clear()
 	_canopy_shaders.clear()
+	_last_occluded_ids.clear()
+	_last_probe_pos = Vector3(-9999.0, 0.0, -9999.0)
+	_last_probe_yaw = -999.0
+	_probe_tick = 0
 
 static func make_canopy_dissolve_material(base_color: Color = Color.WHITE, roughness_val: float = 0.88, backlight_col: Color = Color(0.24, 0.42, 0.16), use_vertex_col: bool = true) -> ShaderMaterial:
 	if _canopy_shader_res == null:
@@ -137,43 +145,47 @@ static func update(scene_root: Node, delta: float) -> void:
 			sh_mat.set_shader_parameter("focus_world_1", f1)
 			sh_mat.set_shader_parameter("cam_to_eye", cam_to_eye)
 
-	# Sondear obstáculos sólidos entre cámara y ficha activa para desvanecer props marcados como oclusores
-	var w3d := viewport.get_world_3d()
-	if w3d == null:
-		return
-	var space := w3d.direct_space_state
-	var occluded_ids: Dictionary = {}
-
-	var probe_offsets := [
-		Vector3(0.0, 0.95, 0.0),
-		Vector3(0.45, 0.95, 0.0),
-		Vector3(-0.45, 0.95, 0.0),
-		Vector3(0.0, 1.55, 0.0),
-	]
-	var max_tokens := mini(2, tokens.size())
-	for ti in range(max_tokens):
-		var tok := tokens[ti]
-		var excluded: Array[RID] = []
-		if tok is CollisionObject3D:
-			excluded.append((tok as CollisionObject3D).get_rid())
-		for off in probe_offsets:
-			var target_pt: Vector3 = tok.global_position + off
-			var ray_start: Vector3 = cam.global_position if cam.projection == Camera3D.PROJECTION_PERSPECTIVE else (target_pt + cam_to_eye * 36.0)
-			for _step in range(3):
-				var q := PhysicsRayQueryParameters3D.create(ray_start, target_pt)
-				q.exclude = excluded
-				var hit := space.intersect_ray(q)
-				if hit.is_empty():
-					break
-				var collider: Object = hit.get("collider")
-				var rid: RID = hit.get("rid", RID())
-				if rid.is_valid():
-					excluded.append(rid)
-				if collider is Node:
-					var occ_root := _find_occluder_ancestor(collider as Node)
-					if occ_root != null:
-						_collect_geometry_ids(occ_root, occluded_ids)
-				ray_start = (hit["position"] as Vector3) + (target_pt - ray_start).normalized() * 0.12
+	# Sondear obstáculos sólidos entre cámara y ficha activa cada 4 frames o al moverse/girar
+	_probe_tick += 1
+	var cam_yaw: float = cam.global_rotation.y
+	var moved: bool = f0.distance_squared_to(_last_probe_pos) > 0.04 or absf(cam_yaw - _last_probe_yaw) > 0.03
+	var occluded_ids: Dictionary = _last_occluded_ids
+	if moved or (_probe_tick % 4) == 0:
+		_last_probe_pos = f0
+		_last_probe_yaw = cam_yaw
+		var w3d := viewport.get_world_3d()
+		if w3d != null:
+			var space := w3d.direct_space_state
+			occluded_ids = {}
+			var probe_offsets := [
+				Vector3(0.0, 0.95, 0.0),
+				Vector3(0.45, 0.95, 0.0),
+				Vector3(-0.45, 0.95, 0.0),
+				Vector3(0.0, 1.55, 0.0),
+			]
+			var tok := tokens[0]
+			var excluded: Array[RID] = []
+			if tok is CollisionObject3D:
+				excluded.append((tok as CollisionObject3D).get_rid())
+			for off in probe_offsets:
+				var target_pt: Vector3 = tok.global_position + off
+				var ray_start: Vector3 = cam.global_position if cam.projection == Camera3D.PROJECTION_PERSPECTIVE else (target_pt + cam_to_eye * 36.0)
+				for _step in range(3):
+					var q := PhysicsRayQueryParameters3D.create(ray_start, target_pt, 1)
+					q.exclude = excluded
+					var hit := space.intersect_ray(q)
+					if hit.is_empty():
+						break
+					var collider: Object = hit.get("collider")
+					var rid: RID = hit.get("rid", RID())
+					if rid.is_valid():
+						excluded.append(rid)
+					if collider is Node:
+						var occ_root := _find_occluder_ancestor(collider as Node)
+						if occ_root != null:
+							_collect_geometry_ids(occ_root, occluded_ids)
+					ray_start = (hit["position"] as Vector3) + (target_pt - ray_start).normalized() * 0.12
+			_last_occluded_ids = occluded_ids
 
 	# Actualizar suavemente transparencia en geometrías tocadas y restaurar el resto
 	for gid in occluded_ids.keys():

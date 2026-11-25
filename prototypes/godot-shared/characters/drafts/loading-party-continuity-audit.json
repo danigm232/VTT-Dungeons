@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "id": "loading-party-continuity-audit",
+  "name": "Auditoría del adaptador histórico de Mike en cargas",
+  "anatomy": "humanoid-tall",
+  "dependencies": [],
+  "review": {
+    "visual": "rejected legacy identity; audit evidence",
+    "userAcceptance": "pending",
+    "evidence": [
+      "output/loading-sprite-audit-20261124/mike-clips.png"
+    ]
+  },
+  "instructions": "Create draft, search reuse, complete source/style/scale fields, adopt only after validation. Technical success is not artistic acceptance.",
+  "kind": "animation",
+  "character": "mike",
+  "action": "loading-demonstration",
+  "direction": "s",
+  "frames": [],
+  "fps": 0,
+  "loop": false,
+  "pivot": [
+    0.5,
+    1
+  ],
+  "compatibility": {
+    "anatomies": [
+      "humanoid-tall"
+    ],
+    "equipment": false,
+    "overlays": false
+  },
+  "events": [],
+  "initialFrame": 0,
+  "transition": "preserve support pivot",
+  "referenceHeight": 108,
+  "reuseSearch": {
+    "required": true,
+    "command": "node scripts/character-pipeline.mjs reuse --query loading-party-continuity-audit"
+  },
+  "source": {
+    "kind": "legacy-profile",
+    "key": "loading/catalog.json:actors.mike"
+  },
+  "limitations": [
+    "DRAFT AUDIT ONLY, NOT IMPORTABLE: no new frames. Legacy wizard v2/v3/v5 lacks identity approval against canonical Mike.",
+    "Baked clothes and held equipment must be redrawn consistently, not overlaid.",
+    "Paired merchant changes appearance at persuasion success; retained as flagged evidence, not approved."
+  ],
+  "supportContract": {
+    "rope": 169,
+    "ground": 202,
+    "exceptions": [
+      "crystal levitates",
+      "owl flies",
+      "notes and smoke are effects"
+    ]
+  }
+}

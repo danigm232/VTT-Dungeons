@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "sw-maria-loading-religion-v6",
+  "name": "maria · religion de carga · identidad v6",
+  "anatomy": "humanoid-small",
+  "dependencies": [
+    "maria"
+  ],
+  "review": {
+    "visual": "pending",
+    "userAcceptance": "pending",
+    "evidence": []
+  },
+  "instructions": "Create draft, search reuse, complete source/style/scale fields, adopt only after validation. Technical success is not artistic acceptance.",
+  "kind": "animation",
+  "character": "maria",
+  "action": "loading_religion",
+  "direction": "se",
+  "frames": [],
+  "fps": 1,
+  "loop": false,
+  "pivot": [
+    0.5,
+    1
+  ],
+  "compatibility": {
+    "anatomies": [
+      "humanoid-small"
+    ],
+    "equipment": false,
+    "overlays": false
+  },
+  "events": [],
+  "initialFrame": 0,
+  "transition": "preserve support pivot",
+  "referenceHeight": null,
+  "reuseSearch": {
+    "required": true,
+    "command": "node scripts/character-pipeline.mjs reuse --query sw-maria-loading-religion-v6"
+  },
+  "campaign": "stormwreck-isle",
+  "production": {
+    "stage": "defined-before-generation",
+    "method": "built-in image_gen, identity-preserve",
+    "originalIdentity": "campaigns/stormwreck-isle/public/art/characters/base-v1/maria/idle-01.png",
+    "prompt": "Identity-preserving production game sprites derived from the attached canonical character. The EXACT adult halfling Trinity / María: short adult halfling proportions, dark curly hair, rounded small ears, youthful adult face, grey-cream padded rogue clothes, wool collar, dark leather straps and bracers, belts, pale brown boots, existing dagger. No child, elf ears, hood, new armour or redesign. Existing dagger is sheathed at her belt while hands work. Keep costume identical throughout. Eight chronological reading/story poses with a small gold-embossed religious reference book physically held by the hands in every pose: 1 neutral reading, 2 turns page, 3 compares symbol unseen to right, 4 holds open book forward showing simple gold sun emblem, 5 respectful smile and small nod still with book, 6 puzzled, 7 turns book upside down, 8 confused calm holding book. No glow, divine effects, rewards or powers. Feet fixed. Fixed southeast three-quarter view of hero facing RIGHT, exactly the canonical face, proportions, costume, palette and pixel-painted rendering of the reference, no redesign. A regular EXACT FOUR columns by TWO rows grid, eight complete isolated frames in reading order. ALL figures fully visible inside their cells with generous transparent safety margins. Constant body scale in all frames, shortened crouched silhouette is NOT a smaller person. Landscape 2:1 sheet, each cell contains only the hero. Real transparent background; no ground, shadows, labels, numbers, borders or text. High detail at native size, ideally 350+ pixels for standing human figure per cell. Do not use old loading-character designs.",
+    "equipmentState": "Existing dagger is sheathed at her belt while hands work. Keep costume identical throughout.",
+    "paired": false,
+    "heldPoseLibrary": true,
+    "minimumVisibleStandingPixels": 300,
+    "minimumDistinctFrames": 8
+  },
+  "minimumDistinctFrames": 8
+}

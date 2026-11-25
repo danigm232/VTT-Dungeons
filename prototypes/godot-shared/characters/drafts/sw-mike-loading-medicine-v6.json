@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "sw-mike-loading-medicine-v6",
+  "name": "mike · medicine de carga · identidad v6",
+  "anatomy": "humanoid-tall",
+  "dependencies": [
+    "mike"
+  ],
+  "review": {
+    "visual": "pending",
+    "userAcceptance": "pending",
+    "evidence": []
+  },
+  "instructions": "Create draft, search reuse, complete source/style/scale fields, adopt only after validation. Technical success is not artistic acceptance.",
+  "kind": "animation",
+  "character": "mike",
+  "action": "loading_medicine",
+  "direction": "se",
+  "frames": [],
+  "fps": 1,
+  "loop": false,
+  "pivot": [
+    0.5,
+    1
+  ],
+  "compatibility": {
+    "anatomies": [
+      "humanoid-tall"
+    ],
+    "equipment": false,
+    "overlays": false
+  },
+  "events": [],
+  "initialFrame": 0,
+  "transition": "preserve support pivot",
+  "referenceHeight": null,
+  "reuseSearch": {
+    "required": true,
+    "command": "node scripts/character-pipeline.mjs reuse --query sw-mike-loading-medicine-v6"
+  },
+  "campaign": "stormwreck-isle",
+  "production": {
+    "stage": "defined-before-generation",
+    "method": "built-in image_gen, identity-preserve",
+    "originalIdentity": "campaigns/stormwreck-isle/public/art/characters/base-v1/mike/idle-01.png",
+    "prompt": "Identity-preserving production game sprites derived from the attached canonical character. The EXACT youthful adult male elf Mike: blue eyes, long blond hair tied behind, pointed ears, blue robe with detailed gold trim, BLACK gloves, black boots, red-brown gold spellbook, sheathed dagger. Do not feminize, change face or use chibi proportions. His book is deliberately secured in its belt pouch whenever BOTH hands work; otherwise keep it in his anatomical LEFT arm. Gloves stay black in every pose. Eight chronological STORY frames of two people together. Hero stays LEFT, a wounded human companion sits RIGHT on a low stool. Companion is always the SAME young brown-haired adult man with green vest, rolled beige sleeves, brown trousers and brown boots; red scraped wound on forearm. Frame1 hero examines forearm, 2 prepares a bandage in hands, 3 starts wrapping, 4 finishes neat bandage, 5 companion thanks hero with relieved smile, 6 hero accidentally winds bandage around own hands, 7 bandage tangle causes both to look surprised, 8 companion laughs kindly while hero is embarrassed with tangled bandage. NO changing patient identity. Hands meet arm in actual contact, bandage painted into poses, all feet/stool share ground baseline. Hero stature relative to human is anatomically correct. Fixed southeast three-quarter view of hero facing RIGHT, exactly the canonical face, proportions, costume, palette and pixel-painted rendering of the reference, no redesign. A regular EXACT FOUR columns by TWO rows grid, eight complete isolated frames in reading order. ALL figures fully visible inside their cells with generous transparent safety margins. Constant body scale in all frames, shortened crouched silhouette is NOT a smaller person. Wide landscape sheet: each cell contains BOTH complete figures with transparent separation from other cells; hero always left, NPC always right. Real transparent background; no ground, shadows, labels, numbers, borders or text. High detail at native size, ideally 350+ pixels for standing human figure per cell. Do not use old loading-character designs.",
+    "equipmentState": "His book is deliberately secured in its belt pouch whenever BOTH hands work; otherwise keep it in his anatomical LEFT arm. Gloves stay black in every pose.",
+    "paired": true,
+    "heldPoseLibrary": true,
+    "minimumVisibleStandingPixels": 200,
+    "minimumDistinctFrames": 8
+  },
+  "minimumDistinctFrames": 8
+}

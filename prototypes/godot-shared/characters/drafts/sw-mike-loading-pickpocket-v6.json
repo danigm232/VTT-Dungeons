@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "sw-mike-loading-pickpocket-v6",
+  "name": "mike · pickpocket de carga · identidad v6",
+  "anatomy": "humanoid-tall",
+  "dependencies": [
+    "mike"
+  ],
+  "review": {
+    "visual": "pending",
+    "userAcceptance": "pending",
+    "evidence": []
+  },
+  "instructions": "Create draft, search reuse, complete source/style/scale fields, adopt only after validation. Technical success is not artistic acceptance.",
+  "kind": "animation",
+  "character": "mike",
+  "action": "loading_pickpocket",
+  "direction": "se",
+  "frames": [],
+  "fps": 1,
+  "loop": false,
+  "pivot": [
+    0.5,
+    1
+  ],
+  "compatibility": {
+    "anatomies": [
+      "humanoid-tall"
+    ],
+    "equipment": false,
+    "overlays": false
+  },
+  "events": [],
+  "initialFrame": 0,
+  "transition": "preserve support pivot",
+  "referenceHeight": null,
+  "reuseSearch": {
+    "required": true,
+    "command": "node scripts/character-pipeline.mjs reuse --query sw-mike-loading-pickpocket-v6"
+  },
+  "campaign": "stormwreck-isle",
+  "production": {
+    "stage": "defined-before-generation",
+    "method": "built-in image_gen, identity-preserve",
+    "originalIdentity": "campaigns/stormwreck-isle/public/art/characters/base-v1/mike/idle-01.png",
+    "prompt": "Identity-preserving production game sprites derived from the attached canonical character. The EXACT youthful adult male elf Mike: blue eyes, long blond hair tied behind, pointed ears, blue robe with detailed gold trim, BLACK gloves, black boots, red-brown gold spellbook, sheathed dagger. Do not feminize, change face or use chibi proportions. His book is deliberately secured in its belt pouch whenever BOTH hands work; otherwise keep it in his anatomical LEFT arm. Gloves stay black in every pose. Eight chronological STORY frames, hero LEFT and the SAME adult young brown-haired human traveler RIGHT in green waistcoat, beige sleeves, brown trousers and boots. 1 hero crouches near traveler pocket, traveler faces right unaware; 2 hero reaches into traveler side pocket with fingertips, 3 withdraws small brown purse discreetly, 4 shows stolen purse with mischievous satisfaction; 5 attempt goes wrong and traveler starts to turn, 6 traveler catches hero wrist gently, 7 hero looks surprised with open empty hands, 8 traveler looks suspicious and hero shrugs innocently. Same two identities and clothing in every frame. Real hand-pocket contact, no detached purse overlay, correct relative stature, grounded feet. Fixed southeast three-quarter view of hero facing RIGHT, exactly the canonical face, proportions, costume, palette and pixel-painted rendering of the reference, no redesign. A regular EXACT FOUR columns by TWO rows grid, eight complete isolated frames in reading order. ALL figures fully visible inside their cells with generous transparent safety margins. Constant body scale in all frames, shortened crouched silhouette is NOT a smaller person. Wide landscape sheet: each cell contains BOTH complete figures with transparent separation from other cells; hero always left, NPC always right. Real transparent background; no ground, shadows, labels, numbers, borders or text. High detail at native size, ideally 350+ pixels for standing human figure per cell. Do not use old loading-character designs.",
+    "equipmentState": "His book is deliberately secured in its belt pouch whenever BOTH hands work; otherwise keep it in his anatomical LEFT arm. Gloves stay black in every pose.",
+    "paired": true,
+    "heldPoseLibrary": true,
+    "minimumVisibleStandingPixels": 200,
+    "minimumDistinctFrames": 8
+  },
+  "minimumDistinctFrames": 8
+}

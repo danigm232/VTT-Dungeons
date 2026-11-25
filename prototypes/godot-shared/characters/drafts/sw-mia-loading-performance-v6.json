@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "sw-mia-loading-performance-v6",
+  "name": "mia · performance de carga · identidad v6",
+  "anatomy": "humanoid-dwarf",
+  "dependencies": [
+    "mia"
+  ],
+  "review": {
+    "visual": "pending",
+    "userAcceptance": "pending",
+    "evidence": []
+  },
+  "instructions": "Create draft, search reuse, complete source/style/scale fields, adopt only after validation. Technical success is not artistic acceptance.",
+  "kind": "animation",
+  "character": "mia",
+  "action": "loading_performance",
+  "direction": "se",
+  "frames": [],
+  "fps": 4.5,
+  "loop": true,
+  "pivot": [
+    0.5,
+    1
+  ],
+  "compatibility": {
+    "anatomies": [
+      "humanoid-dwarf"
+    ],
+    "equipment": false,
+    "overlays": false
+  },
+  "events": [],
+  "initialFrame": 0,
+  "transition": "preserve support pivot",
+  "referenceHeight": null,
+  "reuseSearch": {
+    "required": true,
+    "command": "node scripts/character-pipeline.mjs reuse --query sw-mia-loading-performance-v6"
+  },
+  "campaign": "stormwreck-isle",
+  "production": {
+    "stage": "defined-before-generation",
+    "method": "built-in image_gen, identity-preserve",
+    "originalIdentity": "campaigns/stormwreck-isle/public/art/characters/base-v1/mia/idle-01.png",
+    "prompt": "Identity-preserving production game sprites derived from the attached canonical character. The EXACT adult stocky dwarf cleric Mía: strong male dwarven face, blue eyes, red braided hair, HUGE red beard, chainmail and steel armour, white tabard with gold sun, brown boots, gold sun shield and mace. Do NOT remove beard, feminize, make taller or redesign armour. Shield and mace are deliberately secured on his back/belt when both hands work, not overlaid. Preserve chainmail, tabard and armour in every pose. Eight chronological phases: first SIX form one gentle mandolin-playing loop (fingers on frets, right hand strums, small head movements, planted feet). Frame7: one wrong note, surprised but still holding mandolin properly. Frame8: embarrassed, instrument held calmly. Instrument is painted into every pose and always supported by hands. No floating instrument or musical-note graphics. Fixed southeast three-quarter view of hero facing RIGHT, exactly the canonical face, proportions, costume, palette and pixel-painted rendering of the reference, no redesign. A regular EXACT FOUR columns by TWO rows grid, eight complete isolated frames in reading order. ALL figures fully visible inside their cells with generous transparent safety margins. Constant body scale in all frames, shortened crouched silhouette is NOT a smaller person. Landscape 2:1 sheet, each cell contains only the hero. Real transparent background; no ground, shadows, labels, numbers, borders or text. High detail at native size, ideally 350+ pixels for standing human figure per cell. Do not use old loading-character designs.",
+    "equipmentState": "Shield and mace are deliberately secured on his back/belt when both hands work, not overlaid. Preserve chainmail, tabard and armour in every pose.",
+    "paired": false,
+    "heldPoseLibrary": false,
+    "minimumVisibleStandingPixels": 300,
+    "minimumDistinctFrames": 6
+  },
+  "minimumDistinctFrames": 6
+}

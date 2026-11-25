@@ -1,5 +1,31 @@
 # Retiro del Dragón en Godot — Auditoría y Traslado por Capas, 14/11/2026
 
+## Mantas para el descanso — 24/11/2026
+
+Los doce habitantes añaden una pausa nocturna a sus tareas previas. Ocho kobolds usan las hamacas de las celdas este y oeste. Tarak, Varnoth y Myla usan sus camastros. Runara puede descansar brevemente en el petate norte cuando está libre, y conserva su meditación. Se reutilizan el mobiliario, la lana de Mía, Mike y Trinity y la ocupación por lecho. Los dos petates reciben apoyos para tumbarse desde la interacción existente.
+
+Once habitantes usan un busto fijo. Kilnip conserva seis de sus ocho fotogramas originales y la duración del ciclo. Cada manta usa una variante de color y ribete y se eleva suavemente sobre el pecho. La geometría recibe la longitud y anchura útil que necesita para respetar el apoyo. Los valores por personaje, lechos, originales, derivaciones y huellas se detallan en el registro. [Comparativas nativas y registro](../../output/retreat-blankets-20261124/index.html).
+
+La candidata es local. Siguen pendientes las transiciones dibujadas de entrada y salida, la revisión artística del usuario y las pruebas físicas.
+
+## Siesta de Kilnip en la hamaca — 24/11/2026
+
+La tarea diurna `kilnip/quiet` usa `KoboldHammock_1200_820` en la celda oeste. Antes Kilnip acomodaba la lona desde el suelo. En la candidata descansa ocho segundos sobre la hamaca existente y vuelve a su punto de entrada cuando se levanta o responde a una interrupción. La ocupación se comparte con el grupo y se pausa la manipulación de la lona mientras alguien descansa. El rumbo coincide con el eje de la hamaca al girar la cámara.
+
+La lámina generada conserva como referencia al Kilnip ya instalado. El recorte común mantiene la cabeza estable y los pies separados. Los ocho WebP conservan los píxeles RGBA y ocupan 747 kB frente a 1.170 kB de los mismos recortes en PNG. La textura se anima sobre la malla de descanso. El apoyo de la hamaca distingue el borde de la almohada de la lona, con una transición suave entre ambos. La hamaca conserva el mobiliario y la colisión originales. [Registro del recurso, originales y dos comparativas con cámara fija](../../output/retreat-hammock-20261124/index.html).
+
+La candidata final pasó 30 comprobaciones sin render, 36 en Godot Forward+ con capturas a 1440×810 y 483 en la suite de rutinas. Se observaron las ocho fases en la malla, ocho rumbos de cámara con el mismo anclaje, el bloqueo de una segunda ocupación y el regreso al suelo al terminar o interrumpir la rutina. El registro conserva los 72 contactos de la agenda. El render de esta muestra proyecta una única ilustración cenital animada sobre un volumen. La lectura del rostro en ángulos muy bajos queda para la revisión artística.
+
+La siesta queda disponible para Kilnip en la candidata local. Las transiciones dibujadas al tumbarse y levantarse, las poses de los demás habitantes y la aceptación visual en mesa quedan pendientes.
+
+## Gestos vistos de espaldas — 24/11/2026
+
+Se dibujó una secuencia trasera de ocho fases por residente. Runara lee, Tarak riega, Varnoth limpia la piedra, Myla ajusta el engranaje, Agga da indicaciones y Blepp vigila. Frub coloca un vaso, Kilnip conversa, Laylee limpia una herramienta, Mumpo otea la costa, Rix reza y Zark recoge la mesa. Las diagonales traseras reutilizan la secuencia de espalda. El rumbo del PNJ sigue ligado al objeto o a su puesto. La prótesis de Varnoth conserva su lado derecho y las alas de Myla permanecen plegadas.
+
+El importador conserva la lámina PNG por huella y comprueba el tamaño y los píxeles RGBA de cada WebP. Los 96 fotogramas ocupan 8,24 MB, un 37,1 % menos que los mismos recortes codificados en PNG. El registro documenta el gesto previo, propietarios, procedencia y comparación a cámara fija bajo VA-03, VA-10 y VA-13. Dos primeras láminas, Tarak y Zark, quedaron fuera de la candidata por su fondo opaco. Se validaron nuevos originales con transparencia. Quedan pendientes el descanso tumbado en hamaca, otros gestos sin vista propia y la aceptación artística del usuario. [Comparativas y reproductor](../../output/retreat-gesture-views-20261124/index.html).
+
+La revisión instalada superó 72 comprobaciones de los gestos, 102 en el render nativo con cinco comparativas y 483 de la suite de rutinas. La última registró los contactos de las 72 tareas. Una prueba adicional decodificó un fotograma de Tarak en ambos formatos y confirmó la igualdad de píxeles, escala y pivote. [Prueba de formatos](../../output/retreat-gesture-views-20261124/format.log) · [Prueba de las rutinas](../../output/retreat-gesture-views-20261124/final-routines.log).
+
 ## Auditoría 3 y Bloques 1–5 (geometría, clima 3D, mar, fauna y cierre canónico) — 24/11/2026
 
 Tras auditar integralmente la escena Forward+ frente al Capítulo 1 del PDF y a las capturas reales, se implementaron los **5 bloques** en `prototypes/godot-retiro/` sin tocar Pecio ni el trabajo paralelo de Codex (rutinas de los 12 habitantes y combate compartidos intactos):
@@ -434,5 +460,22 @@ Ejecución completa de las **8 fases (Fases 0 a 7)** solicitadas sobre `prototyp
 3. **Aceptación del usuario:** pendiente de revisión directa de las 19 comparativas interactivas y prueba jugable.
 4. **Pruebas físicas / dispositivo y red:** pendientes en pantalla real en primer plano (FPS sostenido MX350), control táctil/teclado y sincronización multijugador ENet.
 
+---
 
+## Corrección de bloqueo al entrar y mejora integral de NPCs (24/11/2026)
 
+1. **Bloqueo al entrar en El Retiro (`VRAM 2056 MB > 2048 MB MX350` + bucle síncrono):**
+   - `characters/registry.gd`: reescalado seguro a `max_h = 192 px` en cargas individuales/modulares (`RGBA8` sin romper `anchors.gd`), más precalentado paralelo `collect_resident_cpu_profiles()` / `apply_resident_cpu_profiles()` en el hilo de fondo de `scripts/character_sprite_catalog.gd` y `loading/loading_coordinator.gd`.
+   - `scripts/character_sprite_catalog.gd` & `combat/combat_catalogue.gd`: tope `<= 280 px` en `_make_tex()` / `_make_combat_tex()` (principalmente frames sueltos de `rogue`) y omisión en precalentado de `is_npc` ocultos (`ZombieToken`, `ZombieBeach2`, `ZombieBeach3`) hasta que sean visibles (`scripts/player_token.gd`, `characters/character_service.gd`).
+   - `scripts/retreat_layout_builder.gd`, `scripts/object_occlusion_controller.gd`, `scripts/retreat_weather_and_audio.gd`: slice async GLB `140 -> 650 ms`, malla oceánica `128×112 -> 72×64`, sondeo físico de oclusión cada 4 frames/movimiento y bombeo ambiental en bloques `<= 256` muestras.
+   - Resultado medido en Forward+ sobre MX350 (`task-9002`): **VRAM `742,0 MB` (`tex=602,8 MB`)**, `max_post_dt=199 ms` al entrar tras `Continuar` (frente al cuelgue `>140 s` + parón `20,8 s` previo).
+2. **Colisión física, no transparencia tras NPCs, iluminación, sombras y presencia diurna:**
+   - `scripts/retreat_resident.gd` & `scripts/player_token.gd`: residentes en capa sólida `collision_layer = 2` (`collision_mask = 5`) y héroes en `collision_layer = 5`, `collision_mask = 3` (`move_and_slide()` detiene el paso a través del NPC sin atascar rutas entre residentes).
+   - `scripts/player_token.gd`: `_is_occluded_by_static_world()` limita `OcclusionSilhouette` a geometría estática (capa 1) y anula la silueta translúcida cuando hay un NPC (capa 2) más cerca de cámara.
+   - `scripts/player_token.gd`: activados `sprite.shaded = true`, `SHADOW_CASTING_SETTING_DOUBLE_SIDED`, compensación `modulate` (`Color(1.22, 1.20, 1.16)`) y `ContactShadow` proporcional (`0.44..1.18`) para reacción real a sol, faroles y hogueras con sombra proyectada.
+   - `scripts/retreat_routine_directory.gd` & `scripts/retreat_resident.gd`: auditoría y activación de rutinas diurnas exteriores `"D"` para `agga`, `blepp`, `frub`, `kilnip`, `mumpo`, `rix` y `zark` (`11/12` residentes activos al exterior en pruebas de día en A1), además de etiqueta `PresenceLabel` (`Label3D`, `font_size=32`, `pixel_size=0.0115`) compatible con `TacticalCamera` ortogonal (`cam.size <= 42.0`).
+3. **Verificación tras la última edición (`task-8993` + `task-9002`, todos `exit 0`):**
+   - `verify_npc_and_perf_20261124.gd` (Forward+ MX350): **14/14 PASS**, capturas en `output/retreat-npc-fix-20261124/01..03*.png`.
+   - `characters/test_render_contract.gd` (`task-8993`): **152/152 PASS** (`occlusion 37/20877`).
+   - `characters/test_surface.gd` (**198/198**), `sprites/test_npcs.gd` (**442/442**), `sprites/test_npc_regressions.gd` (**99/99**), `characters/test_modular.gd` (**348/348**), `scripts/test_retreat_residents.gd` (**209/209**), `scripts/test_retreat_layout.gd`, `scripts/test_camera_contract.gd`, `scripts/test_map_exits.gd` (**128/128**), `inventory/test_backpack.gd` (**161/161**), `loading/test_map_roundtrip.gd` (**28/28**).
+   - Nota: `scripts/test_retreat_routines.gd` pasó **483/483** (`72` contactos) en `task-8977` justo antes del último ajuste tonal `1.09 -> 1.22` en `player_token.gd`.

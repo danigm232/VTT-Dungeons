@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-tarak-covered-rest",
+  "character": "sw-tarak",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "rest_on_prop",
+  "direction": "s",
+  "fps": 1,
+  "loop": false,
+  "poseKind": "hold",
+  "dependencies": [
+    "sw-tarak"
+  ],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-covered-rest/9da715cf0abf/01.webp"
+  ],
+  "restVolume": {
+    "head": 0.105,
+    "chest": 0.108,
+    "hips": 0.09,
+    "calves": 0.07,
+    "boots": 0.054
+  },
+  "restBlanket": {
+    "base": "#596345",
+    "trim": "#aea374",
+    "bands": 1
+  },
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "placement": "Static overhead bust positioned in the head-to-foot axis; the existing wool volume covers the matching anatomy and determines the rest of the silhouette.",
+    "overlay": "Shared resting body surface, world-aligned cloth."
+  },
+  "production": {
+    "candidateSheet": 1,
+    "candidateCell": 1,
+    "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-turnaround/7792457e6c80/01.png",
+    "intent": "A single overhead pose of head and torso with closed eyes. Native 3D cloth covers the body below the shoulder line.",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-retreat-covered-rest-1-9da715cf0abf.png",
+    "originalSha256": "9da715cf0abf204cef70c315cb90b106316f43bee767a146956ad9db9af5d0af",
+    "extraction": "Native cut on a transparent registration canvas; padding describes space under the blanket.",
+    "nativeBustPixels": 435,
+    "cellBounds": [
+      72,
+      41,
+      441,
+      476
+    ],
+    "encoding": "Lossless WebP, all RGBA pixels verified"
+  },
+  "review": {
+    "technical": "Cell clearance, native resolution, pivot and lossless RGBA verified.",
+    "visual": "Overhead bust and cell crop compared with the installed appearance; user acceptance pending.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 924,
+  "pivot": [
+    0.5,
+    0.007462686567164179
+  ],
+  "soleContact": [
+    0.5,
+    0.9925373134328358
+  ],
+  "restSculpt": {
+    "eyes": 0.12686567164179105,
+    "nose": [
+      0.5,
+      0.15671641791044777
+    ],
+    "jaw": 0.2025586353944563,
+    "faceHalfWidth": 0.16,
+    "recline": 8
+  }
+}

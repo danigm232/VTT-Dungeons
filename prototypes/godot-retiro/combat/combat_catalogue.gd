@@ -134,6 +134,16 @@ static func apply_cpu_images(imgs: Dictionary) -> void:
 		if not textures.has(k):
 			_prewarmed_images[k] = imgs[k]
 
+static func _make_combat_tex(img: Image) -> ImageTexture:
+	if img.get_height() > 280:
+		var scale := 280.0 / float(img.get_height())
+		img = img.duplicate()
+		img.resize(maxi(4, int(round(img.get_width() * scale))), 280, Image.INTERPOLATE_BILINEAR)
+		img.fix_alpha_edges()
+	if not img.has_mipmaps():
+		img.generate_mipmaps()
+	return ImageTexture.create_from_image(img)
+
 static func sprite_profile(token_id: String,only_states: Array=[]) -> Dictionary:
 	var states: Dictionary=load_data().get("frames",{}).get(token_id,{})
 	var result := {"dir_idle":{},"dir_walk":{},"dir_run":{},"dir_attack":{},"clips":{},"sneak_fx":[]}
@@ -150,13 +160,12 @@ static func sprite_profile(token_id: String,only_states: Array=[]) -> Dictionary
 			if _prewarmed_images.has(key):
 				var pre_img: Image = _prewarmed_images[key]
 				_prewarmed_images.erase(key)
-				if not pre_img.has_mipmaps(): pre_img.generate_mipmaps()
-				textures[key] = ImageTexture.create_from_image(pre_img)
+				textures[key] = _make_combat_tex(pre_img)
 				frames.append({"tex":textures[key],"height_scale":float(f.get("logicalHeight",92.0))/92.0,"flip_h":entry.get("flipX",false)}); continue
 			var path: String=f.url
 			if baked.has(key) and FileAccess.file_exists(str(baked[key])):
 				var prepared:=Image.load_from_file(ProjectSettings.globalize_path(str(baked[key])))
-				prepared.generate_mipmaps(); textures[key]=ImageTexture.create_from_image(prepared)
+				textures[key]=_make_combat_tex(prepared)
 				frames.append({"tex":textures[key],"height_scale":float(f.get("logicalHeight",92.0))/92.0,"flip_h":entry.get("flipX",false)}); continue
 			if not images.has(path): images[path]=Image.load_from_file(ProjectSettings.globalize_path(path))
 			var image: Image=images[path]
@@ -169,8 +178,7 @@ static func sprite_profile(token_id: String,only_states: Array=[]) -> Dictionary
 			var bounds := isolated.get_used_rect()
 			if bounds.size.x<1 or bounds.size.y<1: continue
 			var trimmed: Image=isolated.get_region(bounds)
-			trimmed.generate_mipmaps()
-			textures[key]=ImageTexture.create_from_image(trimmed)
+			textures[key]=_make_combat_tex(trimmed)
 			frames.append({"tex":textures[key],"height_scale":float(f.get("logicalHeight",92.0))/92.0,"flip_h":entry.get("flipX",false)})
 		if frames.is_empty(): continue
 		var clip := {"frames":frames,"fps":float(entry.get("fps",8)),"loop":state in ["idle","moving","running","combat-idle"]}

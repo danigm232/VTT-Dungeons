@@ -1,5 +1,7 @@
 extends RefCounted
 
+const Agenda = preload("res://scripts/retreat_routine_directory.gd")
+
 const RANGE := 2.45
 const CUES := {
 	"page": [Vector3.ZERO, Vector3(0, 0, 1.15), 0.76],
@@ -29,6 +31,11 @@ func bind(owner: Node3D, map: Node3D, workbench: Node, stove: Node3D, incense: N
 	for node in map.get_tree().get_nodes_in_group("retreat_routine_props"):
 		if map.is_ancestor_of(node):
 			targets[str(node.name)] = node
+	for id: String in Agenda.NIGHT_REST:
+		var support := map.find_child(Agenda.NIGHT_REST[id][0], true, false)
+		if is_instance_valid(support):
+			var prop_name := "Interactive_Hammock" if str(support.name).begins_with("KoboldHammock_") else "Interactive_Bed"
+			_register("@rest/" + id, support.get_node_or_null(prop_name))
 	_register("MeridianRing", map.find_child("MeridianRing", true, false))
 	_register("@workbench", workbench)
 	_register("@stove", stove)
@@ -59,6 +66,19 @@ func can_reach(actor: Node3D, id: String) -> bool:
 	var offset := anchor(id) - actor.global_position
 	return absf(offset.y) <= 2.0 and Vector2(offset.x, offset.z).length() <= RANGE
 
+func try_rest(actor: Node3D, id: String) -> bool:
+	if not can_reach(actor, id) or not actor.char_profile.get("clips", {}).has("rest_on_prop"):
+		return false
+	var target: Node3D = targets.get(id)
+	if not is_instance_valid(target):
+		return false
+	var support := target.get_parent()
+	for child in support.get_children():
+		if _motions.has(str(child.name)):
+			return false
+	var prop := target if target.has_method("try_attach_rest") else support.get_node_or_null("Interactive_Hammock") as Node3D
+	return is_instance_valid(prop) and prop.try_attach_rest(actor)
+
 func react(actor: Node3D, id: String, verb: String) -> bool:
 	if id.is_empty():
 		return true
@@ -66,6 +86,12 @@ func react(actor: Node3D, id: String, verb: String) -> bool:
 		return false
 	var target: Node3D = targets[id]
 	match verb:
+		"doze":
+			return false
+		"cloth":
+			var hammock := target.get_parent().get_node_or_null("Interactive_Hammock")
+			if is_instance_valid(hammock) and hammock._is_bed_occupied(str(target.get_parent().name), actor):
+				return false
 		"draw":
 			return target.begin_well_cycle(false)
 		"gear":

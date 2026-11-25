@@ -48,6 +48,15 @@ for(const [id,meta] of Object.entries({...v3,...v5})as any){
 }
 const bounds=[[76,17,234,343],[403,94,300,238],[754,126,311,175],[1115,46,306,302],[35,429,313,233],[405,486,298,119],[854,407,95,254],[1144,487,240,124],[32,779,316,248],[446,756,215,269],[743,747,325,285],[1159,789,207,213]];
 groups.objects={frames:bounds.map(([x,y,width,height])=>register({url:resolve(root,'apps/web/ui/art/skill-props-v2.webp'),x,y,width,height,anchorX:.5,anchorY:1}))};
+// Audit mode maps installed native IDs back to originals without repacking art.
+if(process.argv.includes('--audit-only')){
+ const installed=JSON.parse(await readFile(resolve(target,'catalog.json'),'utf8'));
+ if(JSON.stringify(installed.selections)!==JSON.stringify(selections)||installed.frames.length!==frames.length)throw Error('Installed clip IDs differ; refusing to attribute stale resources');
+ const auditDir=resolve(root,'output/loading-sprite-audit-20261124');await mkdir(auditDir,{recursive:true});
+ await writeFile(resolve(auditDir,'frame-sources.json'),JSON.stringify({frames:frames.map((frame,id)=>({id,...frame})),actors,selections},null,2));
+ console.log(`Audited ${frames.length} native frame IDs against the current source resolver; no atlas rewritten.`);
+ process.exit(0);
+}
 const sources=new Map<string,any>(),provenance:any[]=[];
 const tiles:any[]=[],nativeFrames:any[]=[];
 for(const f of frames){

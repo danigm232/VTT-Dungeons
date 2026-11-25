@@ -1,6 +1,7 @@
 """Extract a single authored cycle at its native pixel resolution."""
 import argparse
 import hashlib
+from io import BytesIO
 import json
 from pathlib import Path
 import re
@@ -18,6 +19,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('id', help='ID of a Stormwreck animation draft')
 parser.add_argument('image', type=Path)
 parser.add_argument('--reference-height', type=int)
+parser.add_argument('--format', choices=('png', 'webp'), default='png',
+                    help='Write individual frames as PNG or verified lossless WebP')
 parser.add_argument('--minimum-alpha', type=int, default=3, choices=range(3, 25),
                     metavar='3–24', help='Discard alpha below this threshold during native extraction')
 args = parser.parse_args()
@@ -59,6 +62,9 @@ if len(row_cuts) != 2 or any(
 frames = []
 bounds = []
 horizontal_pivots = []
+reclined = definition['production'].get('reclinedSheet', False)
+if reclined and definition.get('action') != 'rest_on_prop':
+    parser.error('Reclined registration requires a rest_on_prop animation')
 stationary = is_pose_grid or definition['action'].startswith('retreat_')
 errors = []
 for index in range(8):
@@ -86,7 +92,13 @@ for index in range(8):
     clean.paste(cell, mask=cell.getchannel('A').point(lambda a: 255 if a else 0))
     frames.append(clean)
     bounds.append(body)
-    if stationary:
+    if reclined:
+        # A curled tail can extend outside the body axis. Use the head rather
+        # than the silhouette or moving sleeves to keep the body on its pillow.
+        upper = body[1] + round((body[3] - body[1]) * .24)
+        head = alpha.crop((0, body[1], cell.width, upper)).point(lambda a: 255 if a >= 32 else 0).getbbox()
+        horizontal_pivots.append(round((head[0] + head[2]) / 2))
+    elif stationary:
         # Register the sole pair rather than the hands and tail moving above it.
         lower = body[3] - max(8, round((body[3] - body[1]) * .045))
         feet = alpha.crop((0, lower, cell.width, body[3])).point(lambda a: 255 if a >= 32 else 0).getbbox()
@@ -112,21 +124,37 @@ if not errors:
     common_base = round(median(b[3] for b in bounds))
     calibration = bounds[:4] if is_pose_grid else bounds
     reference = args.reference_height or round(median(b[3] - b[1] for b in calibration))
+    anchor_y = common_base
     vertical_offsets = [common_base - body[3] if ground else 0 for body in bounds]
+    if reclined:
+        anchor_y = round(median(body[1] for body in bounds))
+        vertical_offsets = [anchor_y - body[1] for body in bounds]
+        common_base = round(median(body[3] + offset for body, offset in zip(bounds, vertical_offsets)))
     top = min(0, min(vertical_offsets))
     bottom = max(im.height + offset for im, offset in zip(frames, vertical_offsets))
     height = bottom - top + 12
     half_width = max(max(pivot, im.width - pivot) for im, pivot in zip(frames, horizontal_pivots)) + 6
     width = half_width * 2
+    crop_left, crop_top = 0, 0
+    if reclined:
+        # Use one tight, symmetric canvas for the entire loop. Godot wraps
+        # these textures over one mesh, so every phase must share its UVs.
+        half_used = max(max(x - body[0], body[2] - x) for body, x in zip(bounds, horizontal_pivots)) + 6
+        crop_left = half_width - half_used
+        crop_top = anchor_y - top
+        width = half_used * 2
+        height = common_base + 12 - top - crop_top
     paths = []
-    pivot = [0.5, (common_base + 6 - top) / height]
+    png_bytes = 0
+    frame_bytes = 0
+    pivot = [0.5, (anchor_y + 6 - top - crop_top) / height]
     for index, (im, offset) in enumerate(zip(frames, vertical_offsets)):
         # Gait and stationary gestures share the sole line. Flight keeps its authored
         # vertical motion within each cell and uses a common virtual baseline.
-        y = 6 + offset - top
+        y = 6 + offset - top - crop_top
         canvas = Image.new('RGBA', (width, height))
-        canvas.paste(im, (half_width - horizontal_pivots[index], y))
-        path = target / f'{index + 1:02}.png'
+        canvas.paste(im, (half_width - horizontal_pivots[index] - crop_left, y))
+        path = target / f'{index + 1:02}.{args.format}'
         if is_pose_grid or definition['action'] == 'walk' and definition['direction'] in ('n', 's'):
             # Strip unused gutters at native resolution while retaining the
             # authored scale and registration of the body.
@@ -139,13 +167,31 @@ if not errors:
             canvas = cropped
         else:
             cell_pivot = pivot
-        canvas.save(path)
+        if args.format == 'webp':
+            png = BytesIO()
+            canvas.save(png, format='PNG')
+            encoded = BytesIO()
+            canvas.save(encoded, format='WEBP', lossless=True, exact=True, quality=90, method=4)
+            with Image.open(encoded) as decoded:
+                if decoded.size != canvas.size or decoded.convert('RGBA').tobytes() != canvas.tobytes():
+                    raise ValueError(f'Lossless round trip changed the pixels of {path.name}')
+            png_bytes += png.getbuffer().nbytes
+            path.write_bytes(encoded.getbuffer())
+        else:
+            canvas.save(path)
+        frame_bytes += path.stat().st_size
         relative_path = path.relative_to(root).as_posix()
         paths.append(relative_path if cell_pivot == pivot else {'file': relative_path, 'pivot': cell_pivot})
     definition.update(frames=paths, referenceHeight=reference, pivot=pivot)
+    if reclined:
+        definition['soleContact'] = [0.5, (common_base + 6 - top - crop_top) / height]
     definition['production'].update(original=report['source'], originalSha256=report['sourceSha256'],
                                     importReport=report_path.relative_to(root).as_posix(),
                                     minimumAlpha=args.minimum_alpha)
+    if args.format == 'webp':
+        definition['production']['encoding'] = 'WebP lossless, verified RGBA including fully transparent pixels'
+        report['equivalentPngBytes'] = png_bytes
+    report.update(format=args.format, frameBytes=frame_bytes)
     if is_pose_grid:
         pose_ids = []
         for index, (action, direction) in enumerate(definition['expectedViews']):
@@ -170,7 +216,7 @@ if not errors:
             pose_ids.append(pose_id)
         report['poseIds'] = pose_ids
     else:
-        definition['review']['technical'] = 'Native detail, cell clearance and distinct PNG phases verified'
+        definition['review']['technical'] = f'Native detail, cell clearance and distinct {args.format.upper()} phases verified'
         draft.write_text(json.dumps(definition, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
     report.update(referenceHeight=reference, framePaths=paths, pivot=definition['pivot'])
 report_path.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')

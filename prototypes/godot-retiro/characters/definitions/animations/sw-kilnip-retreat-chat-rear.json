@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "character": "sw-kilnip",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "retreat_chat",
+  "fps": 6,
+  "loop": false,
+  "dependencies": [
+    "sw-kilnip"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "planted soles, station contact; one authored view"
+  },
+  "id": "sw-kilnip-retreat-chat-rear",
+  "direction": "n",
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/08.webp"
+  ],
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-turnaround/e2c936a549d5/03.png",
+    "companionClip": "sw-kilnip-chat",
+    "motionReference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-kilnip-chat-67a2e51c6305.png",
+    "prompt": "Paint a production transparent spritesheet of the exact same character in reference 1, performing the action from reference 2, as seen directly from BEHIND in all 8 frames. Reference 1 is the exact back silhouette and costume. Reference 2 shows the movement from the other side. Match the same painted fantasy RPG style, colors, height and age. No face visible, eyes fully concealed, both heels and back visible in every single frame. Slight tactical top elevation 18 degrees. Feet planted, tail fully contained and scale consistent. Motion, in 8 distinct chronological phases from upper-left row across then lower-left row across: One relaxed low conversation gesture: raise his right elbow and open one hand to his right at waist height, shrug and briefly bring the other hand up, then settle. Very simple hooded beige tunic with dark hem and no insignia, no gold embroidery. Match reference 1. Exact centered rectangular equal grid 4 columns by 2 rows in a 1536 x 1024 sprite sheet. No panels, numerals, writing, floor, shadows, fog or colored backing. True transparent RGBA. Keep a clear 20 px of transparent space between every figure and the edges of its cell. Vertically use 86% of each cell and keep a consistent center of the feet. Always see this person from the back, including all moving phases.",
+    "minimumVisibleStandingPixels": 250,
+    "expectedPhases": 8,
+    "sourcePages": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "method": "ImageGen reverse view from the existing stance and companion motion, native-size extraction",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-kilnip-retreat-chat-rear-88cce312ae63.png",
+    "originalSha256": "88cce312ae63d6ababde118dd355830f484f0c8d0f3ab6b434c812832d7e6252",
+    "importReport": "output/stormwreck-motion-detail/sw-kilnip-retreat-chat-rear-88cce312ae63.json",
+    "minimumAlpha": 12,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "Inspected all eight cropped frames with the original resident as a reference.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 458,
+  "pivot": [
+    0.5,
+    0.9141221374045801
+  ]
+}

@@ -11,10 +11,14 @@ static func build(frame: Dictionary, size: Vector2, bed: Dictionary, placement: 
 	var volume: Dictionary = frame.rest_volume
 	var pivot: Vector2 = frame.visual_pivot
 	var eyes := float(sculpt.get("eyes", 0.135))
+	var uncovered: bool = frame.get("rest_blanket", {}).is_empty()
 	var nose: Array = sculpt.get("nose", [0.5, 0.155])
 	var jaw := float(sculpt.get("jaw", 0.193))
 	var face_width := float(sculpt.get("faceHalfWidth", 0.165))
 	var tilt := deg_to_rad(float(sculpt.get("recline", 14.0)))
+	var pillow_end := float(bed.get("pillow_end", 0.0))
+	if pillow_end > 0.0:
+		tilt = 0.0
 	var beard_end := float(sculpt.get("beardEnd", 0.0))
 	var pillow: Vector3 = bed.head
 	var support_offset := float(bed.bedding_y) - pillow.y
@@ -38,7 +42,15 @@ static func build(frame: Dictionary, size: Vector2, bed: Dictionary, placement: 
 		var neck_under := 1.0 - smoothstep(jaw - 0.007, jaw + 0.067, v)
 		var skull := crown_rise * chin_round * neck_under
 		var chest := smoothstep(jaw + 0.015, jaw + 0.106, v) * (1.0 - smoothstep(0.32, 0.55, v) * 0.22)
+		if uncovered:
+			chest *= 1.0 - smoothstep(0.51, 0.78, v)
+		var legs := smoothstep(0.52, 0.72, v)
+		var legs_depth := lerpf(float(volume.hips), float(volume.calves), smoothstep(0.54, 0.80, v))
+		legs_depth = lerpf(legs_depth, float(volume.boots), smoothstep(0.86, 0.98, v))
+		var length := (v - pivot.y) * size.y
 		var support := support_offset * neck
+		if pillow_end > 0.0:
+			support = support_offset * smoothstep(pillow_end - 0.012, pillow_end + 0.26, length)
 		var heading_tilt := tilt * (1.0 - smoothstep(jaw - 0.012, jaw + 0.052, v))
 		var base_depth := (0.035 + 0.027 * skull) * size.y
 		var front_depth := (0.037 + float(volume.head) * 0.71 * skull + float(volume.chest) * 0.79 * chest) * size.y * rim_fit
@@ -58,13 +70,19 @@ static func build(frame: Dictionary, size: Vector2, bed: Dictionary, placement: 
 				var sleeve := _bell((absf(cross) - 0.72) / 0.19) * chest * 0.042
 				var beard := beard_along * _bell(face_x / 1.0) * 0.038
 				depth = front_depth * pow(front, 0.93) + size.y * front * (facial_features + sleeve + beard)
-			var point := Vector3((u - pivot.x) * size.x, depth, (v - pivot.y) * size.y)
+				if uncovered:
+					var thighs := _bell((absf(cross) - 0.47) / 0.43)
+					depth += size.y * front * legs * legs_depth * (0.2 + thighs * 0.58)
+			var point := Vector3((u - pivot.x) * size.x, depth, length)
 			point = point.rotated(Vector3.RIGHT, heading_tilt)
 			point.y += support
 			vertices.append(placement * point)
 			var projected_arc := asin(clampf(cross, -1.0, 1.0))
 			var mapped := _unwrap_flank(projected_arc) * lerpf(1.0, 0.64, maxf(0.0, -front))
-			uvs.append(Vector2(lerpf(painted.x, painted.y, mapped * 0.5 + 0.5), v))
+			var paint_u := lerpf(painted.x, painted.y, mapped * 0.5 + 0.5)
+			if uncovered and front >= 0.0:
+				paint_u = lerpf(paint_u, u, smoothstep(0.0, 0.54, front))
+			uvs.append(Vector2(paint_u, v))
 
 	var stride := SIDES + 1
 	var normals := PackedVector3Array()

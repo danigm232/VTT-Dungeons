@@ -11,12 +11,12 @@ async function json(path){return JSON.parse(await readFile(path,'utf8'));}
 async function list(dir){const files=[];for(const e of await readdir(dir,{withFileTypes:true}).catch(()=>[])){const p=resolve(dir,e.name);if(e.isDirectory())files.push(...await list(p));else if(e.name.endsWith('.json'))files.push(p);}return files.sort();}
 export function safePath(path,base=workspace){const full=resolve(base,path);const rel=relative(base,full);if(rel==='..'||rel.startsWith('../')||rel.startsWith('..\\')||/^[A-Za-z]:/.test(rel))throw Error('Path escapes its declared root: '+path);return full;}
 export async function definitions(base=source){return Promise.all((await list(resolve(base,'definitions'))).map(async path=>({path,definition:await json(path),sha256:digest(await readFile(path))})));}
-function validRestSculpt(sculpt,volume,blanket) {
+function validRestSculpt(sculpt,volume) {
  const inRange=(n,min,max)=>Number.isFinite(n)&&n>=min&&n<=max;
- if(!sculpt||!volume||!blanket||!Array.isArray(sculpt.nose)||sculpt.nose.length!==2)return false;
+ if(!sculpt||!volume||!Array.isArray(sculpt.nose)||sculpt.nose.length!==2)return false;
  const [noseX,noseY]=sculpt.nose;
  return inRange(sculpt.eyes,.07,.19)&&inRange(noseX,.30,.70)
-  &&inRange(noseY,sculpt.eyes+.008,.22)&&inRange(sculpt.jaw,noseY+.018,.25)
+  &&inRange(noseY,sculpt.eyes+.008,.27)&&inRange(sculpt.jaw,noseY+.018,.31)
   &&inRange(sculpt.faceHalfWidth,.055,.26)&&inRange(sculpt.recline,0,30)
   &&(sculpt.beardEnd===undefined||inRange(sculpt.beardEnd,sculpt.jaw+.04,.39));
 }
@@ -97,8 +97,8 @@ export async function validate(records=undefined,base=source){
     const validTint=(value)=>typeof value==='string'&&/^#[\da-f]{6}$/i.test(value);
     if(!d.restVolume||!validTint(blanket?.base)||!validTint(blanket?.trim)||![1,2].includes(blanket?.bands))error(id,'Rest blanket requires a body profile, two hex textile colors and one or two bands');
    }
-   if(d.restSculpt!==undefined&&!validRestSculpt(d.restSculpt,d.restVolume,d.restBlanket)){
-    error(id,'Reclining bust needs a body profile, a cover, and ordered facial landmarks within the top half of the source');
+   if(d.restSculpt!==undefined&&!validRestSculpt(d.restSculpt,d.restVolume)){
+    error(id,'Reclining bust needs a body profile and ordered facial landmarks within the top half of the source');
    }
    const minimum=frameMinimum(d,all,rules);
    if(minimum&&(d.frames?.length??0)<minimum)error(id,'Animation has fewer than '+minimum+' phases');

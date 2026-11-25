@@ -919,8 +919,8 @@ func _load_json_dict(res_path: String) -> Dictionary:
 func _build_ocean() -> void:
 	var ocean_mesh := PlaneMesh.new()
 	ocean_mesh.size = Vector2(900.0, 800.0)
-	ocean_mesh.subdivide_width = 128
-	ocean_mesh.subdivide_depth = 112
+	ocean_mesh.subdivide_width = 72
+	ocean_mesh.subdivide_depth = 64
 	var inst := MeshInstance3D.new()
 	inst.name = "OceanPlane"
 	inst.mesh = ocean_mesh
@@ -2319,7 +2319,7 @@ func _load_glb_bundle_async(res_path: String, default_parent: Node3D, prefix_tar
 	var slice_start := Time.get_ticks_msec()
 	for m_inst in meshes:
 		_process_babylon_mesh(m_inst, default_parent, prefix_targets)
-		if Time.get_ticks_msec() - slice_start >= 140:
+		if Time.get_ticks_msec() - slice_start >= 650:
 			await tree.process_frame
 			slice_start = Time.get_ticks_msec()
 	scene_root.queue_free()

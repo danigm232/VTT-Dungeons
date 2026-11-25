@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "character": "sw-myla",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-winged-small",
+  "action": "retreat_tinker",
+  "fps": 7,
+  "loop": false,
+  "dependencies": [
+    "sw-myla"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "standing feet registered; isolated handheld props; one authored view"
+  },
+  "id": "sw-myla-retreat-tinker-rear",
+  "direction": "n",
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/08.webp"
+  ],
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-turnaround/fdac2f3ff603/03.png",
+    "companionClip": "sw-myla-tinker",
+    "motionReference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-myla-tinker-bfc486a2ef1e.png",
+    "prompt": "Paint a production transparent spritesheet of the exact same character in reference 1, performing the action from reference 2, as seen directly from BEHIND in all 8 frames. Reference 1 is the exact back silhouette and costume. Reference 2 shows the movement from the other side. Match the same painted fantasy RPG style, colors, height and age. No face visible, eyes fully concealed, both heels and back visible in every single frame. Slight tactical top elevation 18 degrees. Feet planted, tail fully contained and scale consistent. Motion, in 8 distinct chronological phases from upper-left row across then lower-left row across: Tinker with an invisible workbench with small deliberate turn of the right forearm and an inspecting lean, left hand steadies a part, return to neutral. Both damaged wings are folded against the back throughout and have the same exact silhouette as reference. Tail stays low, worn reddish leather work apron unchanged. Draw no tools or furniture. Exact centered rectangular equal grid 4 columns by 2 rows in a 1536 x 1024 sprite sheet. No panels, numerals, writing, floor, shadows, fog or colored backing. True transparent RGBA. Keep a clear 20 px of transparent space between every figure and the edges of its cell. Vertically use 86% of each cell and keep a consistent center of the feet. Always see this person from the back, including all moving phases.",
+    "minimumVisibleStandingPixels": 250,
+    "expectedPhases": 8,
+    "sourcePages": [
+      9,
+      10,
+      44
+    ],
+    "method": "ImageGen reverse view from the existing stance and companion motion, native-size extraction",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-myla-retreat-tinker-rear-8ab2349a258c.png",
+    "originalSha256": "8ab2349a258c93e88f634fb1f83448ae1f84ad1e770d8f7ca087f7c56fc5c15b",
+    "importReport": "output/stormwreck-motion-detail/sw-myla-retreat-tinker-rear-8ab2349a258c.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "Inspected all eight cropped frames with the original resident as a reference.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 458,
+  "pivot": [
+    0.5,
+    0.9274809160305344
+  ]
+}

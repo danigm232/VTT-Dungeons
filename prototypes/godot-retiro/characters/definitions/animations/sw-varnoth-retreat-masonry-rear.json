@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "character": "sw-varnoth",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "retreat_masonry",
+  "fps": 6,
+  "loop": false,
+  "dependencies": [
+    "sw-varnoth"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "standing feet registered; isolated handheld props; one authored view"
+  },
+  "id": "sw-varnoth-retreat-masonry-rear",
+  "direction": "n",
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/08.webp"
+  ],
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-turnaround/9fa4f151d59b/03.png",
+    "companionClip": "sw-varnoth-masonry",
+    "motionReference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-varnoth-masonry-77a446b803b1.png",
+    "prompt": "Paint a production transparent spritesheet of the exact same character in reference 1, performing the action from reference 2, as seen directly from BEHIND in all 8 frames. Reference 1 is the exact back silhouette and costume. Reference 2 shows the movement from the other side. Match the same painted fantasy RPG style, colors, height and age. No face visible, eyes fully concealed, both heels and back visible in every single frame. Slight tactical top elevation 18 degrees. Feet planted, tail fully contained and scale consistent. Motion, in 8 distinct chronological phases from upper-left row across then lower-left row across: Bend forward and wipe a low vertical stone surface with short downward and upward sweeps of her bare right hand, use the other arm for balance, inspect, return upright. Stone surface and any tools remain invisible. Her metal right lower leg and brown sandal are always on the RIGHT from behind. Left leg is flesh. Very short dark hair and charcoal robe. Exact centered rectangular equal grid 4 columns by 2 rows in a 1536 x 1024 sprite sheet. No panels, numerals, writing, floor, shadows, fog or colored backing. True transparent RGBA. Keep a clear 20 px of transparent space between every figure and the edges of its cell. Vertically use 86% of each cell and keep a consistent center of the feet. Always see this person from the back, including all moving phases.",
+    "minimumVisibleStandingPixels": 250,
+    "expectedPhases": 8,
+    "sourcePages": [
+      9,
+      11,
+      48
+    ],
+    "method": "ImageGen reverse view from the existing stance and companion motion, native-size extraction",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-varnoth-retreat-masonry-rear-e374943508b3.png",
+    "originalSha256": "e374943508b3571c8ecbf61d11fe3d3cf381fe4e61f19ab855c0b47a5d9037e5",
+    "importReport": "output/stormwreck-motion-detail/sw-varnoth-retreat-masonry-rear-e374943508b3.json",
+    "minimumAlpha": 12,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "Inspected all eight cropped frames with the original resident as a reference.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 469,
+  "pivot": [
+    0.5,
+    0.9293893129770993
+  ]
+}

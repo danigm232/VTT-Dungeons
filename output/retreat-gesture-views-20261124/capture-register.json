@@ -1,0 +1,1469 @@
+{
+  "revision": "d6602e5408f2c08f6399d161cea4a15f95b6ab2f9b41bc3219e331e5fd8e22b3",
+  "entries": [
+    {
+      "id": "sw-runara-retreat-study-rear",
+      "actor": "runara",
+      "name": "Runara",
+      "task": "Leer el códice",
+      "direction": "n",
+      "before": "retreat_work/n · pose sostenida",
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-runara-retreat-study-rear-802212709b14.png",
+        "bytes": 2020684,
+        "sha256": "802212709b1469e0665be7e420547b7270da8769a641eeb36ae5c508d277300f",
+        "dimensions": [
+          1536,
+          1024
+        ]
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/01.webp",
+          "bytes": 78838,
+          "sha256": "f41d55c9bacbacf9537edac443ec1f60e62ca923b5b2feb31d576a84b5b26e70",
+          "pivot": [
+            0.5,
+            0.9504761904761905
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/02.webp",
+          "bytes": 80532,
+          "sha256": "cf20e8ac4eb81c21f164ddcebf6cefc6a052c48a5f195b05679e652267d326f5",
+          "pivot": [
+            0.5,
+            0.9504761904761905
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/03.webp",
+          "bytes": 83538,
+          "sha256": "c143a1b0ea2882e2ed69fdda22a8a67875751dca9c11ea6250c08b60f0766754",
+          "pivot": [
+            0.5,
+            0.9504761904761905
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/04.webp",
+          "bytes": 83810,
+          "sha256": "a9f8ea30f36259cb153415a7c2988f022a3ed83c84520c6adba260c899ffd6e0",
+          "pivot": [
+            0.5,
+            0.9504761904761905
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/05.webp",
+          "bytes": 84604,
+          "sha256": "7857a8e6c595179446160033a4f459647cb76f4a37604620489aa17a3b865c39",
+          "pivot": [
+            0.5,
+            0.9504761904761905
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/06.webp",
+          "bytes": 83322,
+          "sha256": "3eeff522165360f7280e9056c63598e2eba8450f83e9a074ba7336273cb002db",
+          "pivot": [
+            0.5,
+            0.9504761904761905
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/07.webp",
+          "bytes": 82960,
+          "sha256": "90e2faa640711280d5a7d0f43e34c823589636d038c65b5b1788e6adbc05f9bc",
+          "pivot": [
+            0.5,
+            0.9504761904761905
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-study-rear/802212709b14/08.webp",
+          "bytes": 81572,
+          "sha256": "142ed6bf486c44c27669c2e61f496c9ee14a9b335f3b94e681879809829736c8",
+          "pivot": [
+            0.5,
+            0.9504761904761905
+          ]
+        }
+      ],
+      "fps": 6,
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-runara-retreat-study-rear.json",
+      "stance": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-retreat-turnaround/c50f95791c7d/03.png",
+      "companion": "sw-runara-study",
+      "pngBytes": 1054977,
+      "webpBytes": 659176,
+      "acceptance": "Pendiente",
+      "criteria": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ]
+    },
+    {
+      "id": "sw-tarak-retreat-water-rear",
+      "actor": "tarak",
+      "name": "Tarak",
+      "task": "Regar las hierbas",
+      "direction": "n",
+      "before": "retreat_work/n · pose sostenida",
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-tarak-retreat-water-rear-87276bebfe20.png",
+        "bytes": 1901378,
+        "sha256": "87276bebfe20e230759b87ff2f1708ea089c8446454ea8b0851643cb5e1dafd6",
+        "dimensions": [
+          1536,
+          1024
+        ]
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/01.webp",
+          "bytes": 74688,
+          "sha256": "ed222d0278a4d0404bde9aeb244a113d7c114a3de5f974c64f20825476220b62",
+          "pivot": [
+            0.5,
+            0.9122137404580153
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/02.webp",
+          "bytes": 70996,
+          "sha256": "da2483847312e5a51f05d2f9d26cc1fd67e6565eccdd83a9de57c41a25303c85",
+          "pivot": [
+            0.5,
+            0.9122137404580153
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/03.webp",
+          "bytes": 69642,
+          "sha256": "5c917ef22920ed09cea4804b1df67f62a2984d96d0c93500c48a4c8cbfa42d9c",
+          "pivot": [
+            0.5,
+            0.9122137404580153
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/04.webp",
+          "bytes": 70338,
+          "sha256": "68679584cc06bd7bf6e1b3e7d7a7996106dfbec4d84e75950b31e31481395f70",
+          "pivot": [
+            0.5,
+            0.9122137404580153
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/05.webp",
+          "bytes": 66034,
+          "sha256": "a7784910679fa321c780ac23c5210a8dafe9745c30ca96a34527a068510e801a",
+          "pivot": [
+            0.5,
+            0.9122137404580153
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/06.webp",
+          "bytes": 64542,
+          "sha256": "639c9b7599af63bd1d3b5fe52a237f4d3693826b6b02baa282b0c74f3dbef330",
+          "pivot": [
+            0.5,
+            0.9122137404580153
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/07.webp",
+          "bytes": 68218,
+          "sha256": "5c50bb5a14522bd14ea7f688ebdc905ce1a8f5216b44384c594edf6500a174bf",
+          "pivot": [
+            0.5,
+            0.9122137404580153
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-water-rear/87276bebfe20/08.webp",
+          "bytes": 74860,
+          "sha256": "6c76ca01a998b7a87c42b1419ffa199a7fa658b75dff64fc4ace47324c361730",
+          "pivot": [
+            0.5,
+            0.9122137404580153
+          ]
+        }
+      ],
+      "fps": 7,
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-tarak-retreat-water-rear.json",
+      "stance": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-turnaround/7792457e6c80/03.png",
+      "companion": "sw-tarak-retreat-water",
+      "pngBytes": 912091,
+      "webpBytes": 559318,
+      "acceptance": "Pendiente",
+      "criteria": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ]
+    },
+    {
+      "id": "sw-varnoth-retreat-masonry-rear",
+      "actor": "varnoth",
+      "name": "Varnoth",
+      "task": "Limpiar la piedra",
+      "direction": "n",
+      "before": "retreat_work/n · pose sostenida",
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-varnoth-retreat-masonry-rear-e374943508b3.png",
+        "bytes": 1818307,
+        "sha256": "e374943508b3571c8ecbf61d11fe3d3cf381fe4e61f19ab855c0b47a5d9037e5",
+        "dimensions": [
+          1536,
+          1024
+        ]
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/01.webp",
+          "bytes": 68382,
+          "sha256": "642b7e4f050a4e08efccdca2d67be8e8c22b089e67f5422a00ef074a1091df6b",
+          "pivot": [
+            0.5,
+            0.9293893129770993
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/02.webp",
+          "bytes": 66262,
+          "sha256": "5d1f9bd1b4a1d4cf4341f16eb0b2b4cf25c737277d11a8811d02fab8f0ca06b4",
+          "pivot": [
+            0.5,
+            0.9293893129770993
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/03.webp",
+          "bytes": 63878,
+          "sha256": "24fa169cf4633d23712db29ded450fad10e67e78d4cc86257047b69ff359c571",
+          "pivot": [
+            0.5,
+            0.9293893129770993
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/04.webp",
+          "bytes": 62436,
+          "sha256": "0107e72783f6958b3cef2c322ebc7b536d02340b6792a55bf6af0ad01b79ae34",
+          "pivot": [
+            0.5,
+            0.9293893129770993
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/05.webp",
+          "bytes": 65322,
+          "sha256": "e6c2958181a48dda0da16761daafb979489b97566f94aa77ac9909f6ea230ee6",
+          "pivot": [
+            0.5,
+            0.9293893129770993
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/06.webp",
+          "bytes": 63834,
+          "sha256": "c9ff4363f3ea41bbb8f425c40c0477f51ada36eac0daee95a022ce49a3852d0c",
+          "pivot": [
+            0.5,
+            0.9293893129770993
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/07.webp",
+          "bytes": 68538,
+          "sha256": "e5225833ff1d63defde44d6dad101def4b3beed1c861db412e9a130fc7044bfd",
+          "pivot": [
+            0.5,
+            0.9293893129770993
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/08.webp",
+          "bytes": 67790,
+          "sha256": "3a0c185563c15f89b63b3c2b811369214957f5caf4c71644eba751185cd2d699",
+          "pivot": [
+            0.5,
+            0.9293893129770993
+          ]
+        }
+      ],
+      "fps": 6,
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-varnoth-retreat-masonry-rear.json",
+      "stance": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-turnaround/9fa4f151d59b/03.png",
+      "companion": "sw-varnoth-masonry",
+      "pngBytes": 860251,
+      "webpBytes": 526442,
+      "acceptance": "Pendiente",
+      "criteria": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ]
+    },
+    {
+      "id": "sw-myla-retreat-tinker-rear",
+      "actor": "myla",
+      "name": "Myla",
+      "task": "Ajustar el engranaje",
+      "direction": "n",
+      "before": "retreat_work/n · pose sostenida",
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-myla-retreat-tinker-rear-8ab2349a258c.png",
+        "bytes": 2225380,
+        "sha256": "8ab2349a258c93e88f634fb1f83448ae1f84ad1e770d8f7ca087f7c56fc5c15b",
+        "dimensions": [
+          1536,
+          1024
+        ]
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/01.webp",
+          "bytes": 105332,
+          "sha256": "68ea23ea960e91e4ebe8b97f49beca609e577090cd3206a5d07660cff5790c46",
+          "pivot": [
+            0.5,
+            0.9274809160305344
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/02.webp",
+          "bytes": 107124,
+          "sha256": "9c452fb9160cc901a327dba5a6d7087d8bf1e0240908ac8832b53fa481f50f77",
+          "pivot": [
+            0.5,
+            0.9274809160305344
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/03.webp",
+          "bytes": 107062,
+          "sha256": "71a4896019ca6656c43ad92164bf4ec0498bde4c7e236ca2760f45827862f091",
+          "pivot": [
+            0.5,
+            0.9274809160305344
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/04.webp",
+          "bytes": 106622,
+          "sha256": "86e614ca059a61ad8a6212481de69c3e220ef2cf0787c5e65f4fca43c81eb951",
+          "pivot": [
+            0.5,
+            0.9274809160305344
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/05.webp",
+          "bytes": 106752,
+          "sha256": "d62154f7c03f9d457b629a059a3b761d4315175695993a1e431d6b9906995533",
+          "pivot": [
+            0.5,
+            0.9274809160305344
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/06.webp",
+          "bytes": 106896,
+          "sha256": "d26e2ff0385757385f8c3e32f325f6fb9d10803dcf274363df9ff5fe3135f192",
+          "pivot": [
+            0.5,
+            0.9274809160305344
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/07.webp",
+          "bytes": 107696,
+          "sha256": "ffca5b5fe8fd5aef4fb3da794acfb6c9c008465ba198cd4d59bb4939b5957b40",
+          "pivot": [
+            0.5,
+            0.9274809160305344
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/08.webp",
+          "bytes": 104574,
+          "sha256": "1dd8710bdd371ab8af155dd44e8b2f7d96e3a1700cd0cef626a08f14e99e4d32",
+          "pivot": [
+            0.5,
+            0.9274809160305344
+          ]
+        }
+      ],
+      "fps": 7,
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-myla-retreat-tinker-rear.json",
+      "stance": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-turnaround/fdac2f3ff603/03.png",
+      "companion": "sw-myla-tinker",
+      "pngBytes": 1315886,
+      "webpBytes": 852058,
+      "acceptance": "Pendiente",
+      "criteria": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ]
+    },
+    {
+      "id": "sw-agga-retreat-direct-rear",
+      "actor": "agga",
+      "name": "Agga",
+      "task": "Dar instrucciones",
+      "direction": "n",
+      "before": "retreat_work/n · pose sostenida",
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-agga-retreat-direct-rear-38abb89b22c4.png",
+        "bytes": 2105966,
+        "sha256": "38abb89b22c43139b0ddc302c290d138a407e8616a1930a0946150bba564b00e",
+        "dimensions": [
+          1536,
+          1024
+        ]
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/01.webp",
+          "bytes": 95108,
+          "sha256": "91131f7bbf878d020e8abd99938a46648745905f8e6cf61ac609b240b2b49079",
+          "pivot": [
+            0.5,
+            0.9007633587786259
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/02.webp",
+          "bytes": 95854,
+          "sha256": "2ab2af727ea84abeeaa5bd358ba00bfcaa9596ba5482542a0d7efc2e3887a88c",
+          "pivot": [
+            0.5,
+            0.9007633587786259
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/03.webp",
+          "bytes": 94956,
+          "sha256": "6344e2567864d684cf8cb3055b26067296063e23f914b833c90ab945af36b3f6",
+          "pivot": [
+            0.5,
+            0.9007633587786259
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/04.webp",
+          "bytes": 94594,
+          "sha256": "95535d4f4a065dfc65b7ab49bfd9a256086ef702e90ed8beb8d1252c3e954b46",
+          "pivot": [
+            0.5,
+            0.9007633587786259
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/05.webp",
+          "bytes": 95572,
+          "sha256": "02bb360ddb9519059bbbedf2180600119fc99743fe8418ca9db70e7bf52812ff",
+          "pivot": [
+            0.5,
+            0.9007633587786259
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/06.webp",
+          "bytes": 93092,
+          "sha256": "add7a99d82a5a67148c3f0e93eba91101b6beec10c5382e1783c2e3f5024325f",
+          "pivot": [
+            0.5,
+            0.9007633587786259
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/07.webp",
+          "bytes": 84248,
+          "sha256": "28770fccc0d8f3eb48b95f2a9e7f67c4eef3397439378f0a663cdbaeb2cbcb18",
+          "pivot": [
+            0.5,
+            0.9007633587786259
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-direct-rear/38abb89b22c4/08.webp",
+          "bytes": 93704,
+          "sha256": "19368c1b09ccb1c2b802544b71945aca311a4f01cd8bf2d77d3efadfbfc62c23",
+          "pivot": [
+            0.5,
+            0.9007633587786259
+          ]
+        }
+      ],
+      "fps": 6,
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-agga-retreat-direct-rear.json",
+      "stance": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-retreat-turnaround/3622dcd4b20e/03.png",
+      "companion": "sw-agga-direct",
+      "pngBytes": 1152458,
+      "webpBytes": 747128,
+      "acceptance": "Pendiente",
+      "criteria": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ]
+    },
+    {
+      "id": "sw-blepp-retreat-watch-rear",
+      "actor": "blepp",
+      "name": "Blepp",
+      "task": "Vigilar el camino",
+      "direction": "n",
+      "before": "retreat_work/n · pose sostenida",
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-blepp-retreat-watch-rear-3b40230a887d.png",
+        "bytes": 2112397,
+        "sha256": "3b40230a887d0207260ac4a601e7aa0ab0819ee213d00ebfec7f55d055698e2c",
+        "dimensions": [
+          1536,
+          1024
+        ]
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/01.webp",
+          "bytes": 89650,
+          "sha256": "4d139587595d4c4042f4971e7cdd6f70a1030daa82b0070db08cb697ae98dcc1",
+          "pivot": [
+            0.5,
+            0.9255725190839694
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/02.webp",
+          "bytes": 88126,
+          "sha256": "79e9c1f356df42a5935caa69b5f8e5e3942e0cfae41e6d12e520a01e6bd86530",
+          "pivot": [
+            0.5,
+            0.9255725190839694
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/03.webp",
+          "bytes": 86464,
+          "sha256": "58d58209a3fe7a5004fe991669a096df85f17ef0fb162bce6f5c06d548cb1e72",
+          "pivot": [
+            0.5,
+            0.9255725190839694
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/04.webp",
+          "bytes": 88442,
+          "sha256": "71cc06a48c47b63f34920064cf5fc01ee30cf53b6859f89870921b953786e0bf",
+          "pivot": [
+            0.5,
+            0.9255725190839694
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/05.webp",
+          "bytes": 88050,
+          "sha256": "c996ad9755d11c2e91701c2becda807ce69288d9d40ac73944527a5ae0ce032a",
+          "pivot": [
+            0.5,
+            0.9255725190839694
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/06.webp",
+          "bytes": 85676,
+          "sha256": "f6f4d6126bc6dbde60e461e9019332ba4655d6c2e3475afb227cae8b01130bfb",
+          "pivot": [
+            0.5,
+            0.9255725190839694
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/07.webp",
+          "bytes": 87964,
+          "sha256": "d7c625449eec6011373b55d3d90037980d19dd335073742bf26f45b38b1b9001",
+          "pivot": [
+            0.5,
+            0.9255725190839694
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-watch-rear/3b40230a887d/08.webp",
+          "bytes": 90016,
+          "sha256": "87b0dda1241ee6013a854778d88c6ebcb1a8c69b756e06ecaae67d2981a74c74",
+          "pivot": [
+            0.5,
+            0.9255725190839694
+          ]
+        }
+      ],
+      "fps": 6,
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-blepp-retreat-watch-rear.json",
+      "stance": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-turnaround/bfef67b39490/03.png",
+      "companion": "sw-blepp-watch",
+      "pngBytes": 1119816,
+      "webpBytes": 704388,
+      "acceptance": "Pendiente",
+      "criteria": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ]
+    },
+    {
+      "id": "sw-frub-retreat-fetch-rear",
+      "actor": "frub",
+      "name": "Frub",
+      "task": "Colocar un vaso",
+      "direction": "n",
+      "before": "retreat_work/n · pose sostenida",
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-frub-retreat-fetch-rear-838919deb5bc.png",
+        "bytes": 2152319,
+        "sha256": "838919deb5bc3df549838951b455ed044f80cde9a929628f33c79a882e54058d",
+        "dimensions": [
+          1536,
+          1024
+        ]
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/01.webp",
+          "bytes": 97450,
+          "sha256": "7f2830008f7e55fb87543bbbaf0c75cebb2d5760904f8961f553702a382727d0",
+          "pivot": [
+            0.5,
+            0.916030534351145
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/02.webp",
+          "bytes": 94694,
+          "sha256": "4b925682e6a79fedbcd225cdb529bf0fbd32b57b7ad3808f266f0054d3896309",
+          "pivot": [
+            0.5,
+            0.916030534351145
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/03.webp",
+          "bytes": 95484,
+          "sha256": "7db70d9b49353185ddef9e821ce3f0799f6963ac25a5cdd624962cfbacdbe3a8",
+          "pivot": [
+            0.5,
+            0.916030534351145
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/04.webp",
+          "bytes": 93884,
+          "sha256": "4a7cb09fa1a5130a6e65dc94e3bb122fbd3b106815726bcf72fa1216a2e52c99",
+          "pivot": [
+            0.5,
+            0.916030534351145
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/05.webp",
+          "bytes": 92494,
+          "sha256": "4da5cff35db7053d1bee036b6b9b64748e8f90d9da514623508d5e56f4eaa1d7",
+          "pivot": [
+            0.5,
+            0.916030534351145
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/06.webp",
+          "bytes": 94768,
+          "sha256": "675f3dec1c9331486c409a9fb0ef4c836402c69cee53040f77c15b5984259c37",
+          "pivot": [
+            0.5,
+            0.916030534351145
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/07.webp",
+          "bytes": 95642,
+          "sha256": "b3605f9909e0708f935f28c7a3cdcdc4d7f4e54589114b8448257810414b4809",
+          "pivot": [
+            0.5,
+            0.916030534351145
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-fetch-rear/838919deb5bc/08.webp",
+          "bytes": 96462,
+          "sha256": "19594fbb562d1ee75d5bd60de75f142ae01005a79d93735c77d515678854e5b1",
+          "pivot": [
+            0.5,
+            0.916030534351145
+          ]
+        }
+      ],
+      "fps": 7,
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-frub-retreat-fetch-rear.json",
+      "stance": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-turnaround/0f81da46a176/03.png",
+      "companion": "sw-frub-retreat-fetch",
+      "pngBytes": 1189321,
+      "webpBytes": 760878,
+      "acceptance": "Pendiente",
+      "criteria": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ]
+    },
+    {
+      "id": "sw-kilnip-retreat-chat-rear",
+      "actor": "kilnip",
+      "name": "Kilnip",
+      "task": "Conversar",
+      "direction": "n",
+      "before": "retreat_work/n · pose sostenida",
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-kilnip-retreat-chat-rear-88cce312ae63.png",
+        "bytes": 2087011,
+        "sha256": "88cce312ae63d6ababde118dd355830f484f0c8d0f3ab6b434c812832d7e6252",
+        "dimensions": [
+          1536,
+          1024
+        ]
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/01.webp",
+          "bytes": 89916,
+          "sha256": "8d251cc56b653b933a9ff85e0b12848f18591da6c3b1b928086637fffd908179",
+          "pivot": [
+            0.5,
+            0.9141221374045801
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/02.webp",
+          "bytes": 88342,
+          "sha256": "3bbfc3c1c56f29df82cc6a374ca4e3148f1f7304dc492f9fd0717cdf331a5a3b",
+          "pivot": [
+            0.5,
+            0.9141221374045801
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/03.webp",
+          "bytes": 89196,
+          "sha256": "645eae33666cf735ae9b28dbd36faf96fd28e7dca77a9b38f3b4cb417520e078",
+          "pivot": [
+            0.5,
+            0.9141221374045801
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/04.webp",
+          "bytes": 90868,
+          "sha256": "430b97501a5abbd3040e82651443faf2bb7d75f8a3c37d4048529dc02029d5fe",
+          "pivot": [
+            0.5,
+            0.9141221374045801
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/05.webp",
+          "bytes": 88700,
+          "sha256": "83cdfcf4ae01f6c6b056c71facbe5a365657c6897ce6460be898be48f62b4f8c",
+          "pivot": [
+            0.5,
+            0.9141221374045801
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/06.webp",
+          "bytes": 89626,
+          "sha256": "68472e372a1396876686cde5ae851b311abc1bdb0fc455fe45e6a000c62fbdef",
+          "pivot": [
+            0.5,
+            0.9141221374045801
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/07.webp",
+          "bytes": 90610,
+          "sha256": "d14bebed45b8a8a09a60bcffb9fec344d5e1755c6c597c25807e673cf489981f",
+          "pivot": [
+            0.5,
+            0.9141221374045801
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-chat-rear/88cce312ae63/08.webp",
+          "bytes": 88756,
+          "sha256": "14f28318200a86e057099891c49abd74eb5deacb851ddacaf7b0922b0595542f",
+          "pivot": [
+            0.5,
+            0.9141221374045801
+          ]
+        }
+      ],
+      "fps": 6,
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-kilnip-retreat-chat-rear.json",
+      "stance": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-retreat-turnaround/e2c936a549d5/03.png",
+      "companion": "sw-kilnip-chat",
+      "pngBytes": 1152755,
+      "webpBytes": 716014,
+      "acceptance": "Pendiente",
+      "criteria": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ]
+    },
+    {
+      "id": "sw-laylee-retreat-sort-rear",
+      "actor": "laylee",
+      "name": "Laylee",
+      "task": "Limpiar una herramienta",
+      "direction": "n",
+      "before": "retreat_work/n · pose sostenida",
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-laylee-retreat-sort-rear-f723bf020ad2.png",
+        "bytes": 2026550,
+        "sha256": "f723bf020ad2190be51f90924ef9301fac67d470eef67ec5bc922946d00b729e",
+        "dimensions": [
+          1536,
+          1024
+        ]
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/01.webp",
+          "bytes": 83078,
+          "sha256": "7ffa9c646dcdceb47760335947df1f0f8a9cab0e8f9a500f5d825a5a7dcd33a3",
+          "pivot": [
+            0.5,
+            0.9103053435114504
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/02.webp",
+          "bytes": 82638,
+          "sha256": "2d9715e5b19f98332f8f72cd0838ad77cda09a22a0cd4b9cd5cbfbfaa445feac",
+          "pivot": [
+            0.5,
+            0.9103053435114504
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/03.webp",
+          "bytes": 84064,
+          "sha256": "200f026c1b44603550bb2e3277169001b4e5439c0bf066ff98a12f0a81973079",
+          "pivot": [
+            0.5,
+            0.9103053435114504
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/04.webp",
+          "bytes": 84454,
+          "sha256": "6cca0c47b4d9103ef6b34b1d37d21c0f1eaa74531de584cea5987bf6e8b3debe",
+          "pivot": [
+            0.5,
+            0.9103053435114504
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/05.webp",
+          "bytes": 83342,
+          "sha256": "ebc83acd0a2ce6fab83e9dbf3c95f9babe197e7fa26d9f0b7925f000951b5de9",
+          "pivot": [
+            0.5,
+            0.9103053435114504
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/06.webp",
+          "bytes": 85100,
+          "sha256": "f9519f2dabc83d65391c3f3ea2b944adbd4ee61ae0867e91621de7c78e54b4e1",
+          "pivot": [
+            0.5,
+            0.9103053435114504
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/07.webp",
+          "bytes": 82822,
+          "sha256": "d1046c4bd54959e131321376145c6139d93fd3c8509c5831780b27c6e94f58f9",
+          "pivot": [
+            0.5,
+            0.9103053435114504
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/08.webp",
+          "bytes": 83978,
+          "sha256": "5626b9797fd2e20d9ddda27dfed5965d41d87d03bfa5062913a2acba7445f22f",
+          "pivot": [
+            0.5,
+            0.9103053435114504
+          ]
+        }
+      ],
+      "fps": 6,
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-laylee-retreat-sort-rear.json",
+      "stance": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-turnaround/70533ffae250/03.png",
+      "companion": "sw-laylee-sort",
+      "pngBytes": 1065432,
+      "webpBytes": 669476,
+      "acceptance": "Pendiente",
+      "criteria": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ]
+    },
+    {
+      "id": "sw-mumpo-retreat-scout-rear",
+      "actor": "mumpo",
+      "name": "Mumpo",
+      "task": "Otear la costa",
+      "direction": "n",
+      "before": "retreat_work/n · pose sostenida",
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mumpo-retreat-scout-rear-868f58f87dc6.png",
+        "bytes": 2077896,
+        "sha256": "868f58f87dc66d347ccd0cba2044cf97c6815ae072d8fd1e0514bb93c6b61373",
+        "dimensions": [
+          1536,
+          1024
+        ]
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/01.webp",
+          "bytes": 90848,
+          "sha256": "eaef9ff4cbea9c07331dde0d1a89b3e0fd9b40d7f29fbad1644b4e0dd7fb0149",
+          "pivot": [
+            0.5,
+            0.9219047619047619
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/02.webp",
+          "bytes": 88286,
+          "sha256": "485a6f2be756198a8d314ba0a5b272c5e4260aee057703a7fbfdab8278c54eef",
+          "pivot": [
+            0.5,
+            0.9219047619047619
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/03.webp",
+          "bytes": 89154,
+          "sha256": "ca0839f128f51b84ce6d92d0c40154be841969d061329d68f627a4a4f285f76c",
+          "pivot": [
+            0.5,
+            0.9219047619047619
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/04.webp",
+          "bytes": 88894,
+          "sha256": "33b9eac40a086b5622351c35e94c264f24e542a477a36a902d2bce586b6482af",
+          "pivot": [
+            0.5,
+            0.9219047619047619
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/05.webp",
+          "bytes": 89344,
+          "sha256": "b990d92cc54e4c6ad2d7dc5f813c246935c0a66e1680598b56bd206a697c41f6",
+          "pivot": [
+            0.5,
+            0.9219047619047619
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/06.webp",
+          "bytes": 89976,
+          "sha256": "0d6c5f869f5892ea74817b296d2f2856b9fc082c5ec1231c17cde08a706455b5",
+          "pivot": [
+            0.5,
+            0.9219047619047619
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/07.webp",
+          "bytes": 87976,
+          "sha256": "af909dba17c1116fb6bc55e8ed2c6c132017f9f3c4f94b7354b0cfa98935f271",
+          "pivot": [
+            0.5,
+            0.9219047619047619
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-scout-rear/868f58f87dc6/08.webp",
+          "bytes": 90300,
+          "sha256": "0ee4b14dab08a503b4104c805541403a0d8c303b426923142b780b73e97e8d62",
+          "pivot": [
+            0.5,
+            0.9219047619047619
+          ]
+        }
+      ],
+      "fps": 7,
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-mumpo-retreat-scout-rear.json",
+      "stance": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-retreat-turnaround/7693e2d92ec9/03.png",
+      "companion": "sw-mumpo-retreat-scout",
+      "pngBytes": 1128732,
+      "webpBytes": 714778,
+      "acceptance": "Pendiente",
+      "criteria": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ]
+    },
+    {
+      "id": "sw-rix-retreat-pray-rear",
+      "actor": "rix",
+      "name": "Rix",
+      "task": "Rezar",
+      "direction": "n",
+      "before": "retreat_work/n · pose sostenida",
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-rix-retreat-pray-rear-89c9bc441b93.png",
+        "bytes": 2075658,
+        "sha256": "89c9bc441b93f4b14ea45cc736bb5e555e638fda556f5e58f967b82a8cb09b69",
+        "dimensions": [
+          1536,
+          1024
+        ]
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/01.webp",
+          "bytes": 93234,
+          "sha256": "9ed467d98cbfd43f4a0b24b2947ecad99c3efc697d1bf4c48f67e1493636c7c3",
+          "pivot": [
+            0.5,
+            0.8912213740458015
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/02.webp",
+          "bytes": 82866,
+          "sha256": "9aac13fa16f7ae3df8e710af655173c1b2281f6c33955ff0a1961262c2498d69",
+          "pivot": [
+            0.5,
+            0.8912213740458015
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/03.webp",
+          "bytes": 80580,
+          "sha256": "cfc3480d7ac791fa9783aa01cab2a98d9365dc89578ba627bb98260f5e7aaf2b",
+          "pivot": [
+            0.5,
+            0.8912213740458015
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/04.webp",
+          "bytes": 77086,
+          "sha256": "111d437d866cda8e15e5ac5fbbcad016fd3a7c1b6a5cb46455738743f7eff949",
+          "pivot": [
+            0.5,
+            0.8912213740458015
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/05.webp",
+          "bytes": 75606,
+          "sha256": "c8c97b0aabd17116622fac05cceee2baa3c792db7cfc23b88a9204e5ab59463d",
+          "pivot": [
+            0.5,
+            0.8912213740458015
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/06.webp",
+          "bytes": 79782,
+          "sha256": "fbee73d245838e08d526f488e959c122c7ccbdef58919ff2f59d53031ddcf3dd",
+          "pivot": [
+            0.5,
+            0.8912213740458015
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/07.webp",
+          "bytes": 82982,
+          "sha256": "3130dfb944648ab9b6e059272a8d29cbd787629cf9b66233c871ac58c2185ff0",
+          "pivot": [
+            0.5,
+            0.8912213740458015
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-pray-rear/89c9bc441b93/08.webp",
+          "bytes": 93512,
+          "sha256": "0729de595ae926707dcf40afef4850412439a9fd9e614cdac1c02767956d5fbf",
+          "pivot": [
+            0.5,
+            0.8912213740458015
+          ]
+        }
+      ],
+      "fps": 7,
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-rix-retreat-pray-rear.json",
+      "stance": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-turnaround/148319c4f91f/03.png",
+      "companion": "sw-rix-retreat-pray",
+      "pngBytes": 1076519,
+      "webpBytes": 665648,
+      "acceptance": "Pendiente",
+      "criteria": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ]
+    },
+    {
+      "id": "sw-zark-retreat-tidy-rear",
+      "actor": "zark",
+      "name": "Zark",
+      "task": "Recoger la mesa",
+      "direction": "n",
+      "before": "retreat_work/n · pose sostenida",
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-zark-retreat-tidy-rear-ec78e08d27da.png",
+        "bytes": 2062764,
+        "sha256": "ec78e08d27daefddc7e9059ca76abc949a801b0e7239450ad96ebec63c5c0f66",
+        "dimensions": [
+          1536,
+          1024
+        ]
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/01.webp",
+          "bytes": 81634,
+          "sha256": "8dfb95359607c4e580675654eea2ce4c2fb11c86cd4457ddf6a779136bf4097d",
+          "pivot": [
+            0.5,
+            0.9312977099236641
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/02.webp",
+          "bytes": 82300,
+          "sha256": "8ec7ac9a46c20e0979ffb9c03e8ae3b7fc82ad1c954bc6d647b4f6d8194cbf65",
+          "pivot": [
+            0.5,
+            0.9312977099236641
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/03.webp",
+          "bytes": 84408,
+          "sha256": "d508fed4d0be6f1fc44af36b51be78d8f937ace01560870775e6e29fa71d33f2",
+          "pivot": [
+            0.5,
+            0.9312977099236641
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/04.webp",
+          "bytes": 84962,
+          "sha256": "53bc699e1abff0a132289a9d19764619a7f084526b4630faac4ef9b353b9bed4",
+          "pivot": [
+            0.5,
+            0.9312977099236641
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/05.webp",
+          "bytes": 84120,
+          "sha256": "09af9e1fecf30dff8b99c07ec97bc9ae087c5da474542c535fb7709c67c08da9",
+          "pivot": [
+            0.5,
+            0.9312977099236641
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/06.webp",
+          "bytes": 83240,
+          "sha256": "7e64fc1f1fc3ee9c2884cfd75a8b731e0076b018fb85fd6e4d68259ad52d249d",
+          "pivot": [
+            0.5,
+            0.9312977099236641
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/07.webp",
+          "bytes": 82668,
+          "sha256": "47d9442f35f771eb4afb8392fd77df95ce5b6754145878114466ffc4b756e970",
+          "pivot": [
+            0.5,
+            0.9312977099236641
+          ]
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-tidy-rear/ec78e08d27da/08.webp",
+          "bytes": 80844,
+          "sha256": "75891a34dd151f63fd28055065ee9d8718efb5356514ef9f0cf692508bffb505",
+          "pivot": [
+            0.5,
+            0.9312977099236641
+          ]
+        }
+      ],
+      "fps": 7,
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-zark-retreat-tidy-rear.json",
+      "stance": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-turnaround/cf00b16dd88a/03.png",
+      "companion": "sw-zark-retreat-tidy",
+      "pngBytes": 1076433,
+      "webpBytes": 664176,
+      "acceptance": "Pendiente",
+      "criteria": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ]
+    }
+  ],
+  "pairs": [
+    {
+      "camera": "[X: (0.500861, 0.0, -0.865528), Y: (-0.365788, 0.906308, -0.211673), Z: (0.784435, 0.422618, 0.453934), O: (294.4567, 120.3794, 170.2538)]",
+      "direction": "n",
+      "id": "runara",
+      "time": "paused",
+      "before": {
+        "path": "runara-before.png",
+        "bytes": 2072847,
+        "sha256": "b5e8ad49d96522be4d2580d6641c0bf02965c665c6aa905857844d89a3d97b4d",
+        "dimensions": [
+          1440,
+          810
+        ]
+      },
+      "after": {
+        "path": "runara-after.png",
+        "bytes": 2072945,
+        "sha256": "db027876b75e22d6155197772f426666972fe06e91bdc5891aa3f5fbcc432d05",
+        "dimensions": [
+          1440,
+          810
+        ]
+      }
+    },
+    {
+      "camera": "[X: (0.954595, 0.0, -0.297906), Y: (-0.125901, 0.906308, -0.403429), Z: (0.269995, 0.422618, 0.865157), O: (158.6058, 111.4434, 297.6933)]",
+      "direction": "n",
+      "id": "tarak",
+      "time": "paused",
+      "before": {
+        "path": "tarak-before.png",
+        "bytes": 2068723,
+        "sha256": "7fc02a20071327ac8cda4a088f7fd9b5c71c294945e1311e67ef346fe7cc081d",
+        "dimensions": [
+          1440,
+          810
+        ]
+      },
+      "after": {
+        "path": "tarak-after.png",
+        "bytes": 2067642,
+        "sha256": "c753aac2daa587273a1e40dbc6d410ab9a796611fceb220dc2919620c2c87202",
+        "dimensions": [
+          1440,
+          810
+        ]
+      }
+    },
+    {
+      "camera": "[X: (0.890719, 0.0, 0.454555), Y: (0.192103, 0.906308, -0.376434), Z: (-0.411967, 0.422618, 0.807265), O: (13.83198, 110.9574, 274.7277)]",
+      "direction": "n",
+      "id": "myla",
+      "time": "paused",
+      "before": {
+        "path": "myla-before.png",
+        "bytes": 2112074,
+        "sha256": "e80379ab71ef98a20fb0ab1bb73df11b20d7bf73d74ece28e49e509c28c0686e",
+        "dimensions": [
+          1440,
+          810
+        ]
+      },
+      "after": {
+        "path": "myla-after.png",
+        "bytes": 2112379,
+        "sha256": "68725fd1d21f987a0e065f56f9db14c647dabca86e46bbbde8c3b07905799480",
+        "dimensions": [
+          1440,
+          810
+        ]
+      }
+    },
+    {
+      "camera": "[X: (-0.743052, 0.0, 0.669234), Y: (0.282831, 0.906308, 0.314027), Z: (-0.606532, 0.422618, -0.673433), O: (-26.5677, 111.0515, -69.97404)]",
+      "direction": "n",
+      "id": "agga",
+      "time": "paused",
+      "before": {
+        "path": "agga-before.png",
+        "bytes": 2245691,
+        "sha256": "2d5768c001c2a96c7dbb03eb872790468684e4940649336904570f8bc2839836",
+        "dimensions": [
+          1440,
+          810
+        ]
+      },
+      "after": {
+        "path": "agga-after.png",
+        "bytes": 2245969,
+        "sha256": "32bae30deecd99991f628031c07aa1f7f7bbe3d8a76942c0c984e6f6c78f21a2",
+        "dimensions": [
+          1440,
+          810
+        ]
+      }
+    },
+    {
+      "camera": "[X: (-0.980861, 0.0, 0.194709), Y: (0.082288, 0.906308, 0.41453), Z: (-0.176467, 0.422618, -0.888962), O: (87.99802, 110.952, -120.5509)]",
+      "direction": "n",
+      "id": "mumpo",
+      "time": "paused",
+      "before": {
+        "path": "mumpo-before.png",
+        "bytes": 2144107,
+        "sha256": "61cae507f51910999295ce97cabb6bf9bfce5ce84b69a2666a4b2cbea8a8e467",
+        "dimensions": [
+          1440,
+          810
+        ]
+      },
+      "after": {
+        "path": "mumpo-after.png",
+        "bytes": 2144556,
+        "sha256": "b83f8569a9e4306161a1cba2ea245973e0d0fb8fffdb38569e1e3fc4403e6631",
+        "dimensions": [
+          1440,
+          810
+        ]
+      }
+    }
+  ],
+  "native": {
+    "checks": 102,
+    "clips": 12,
+    "failures": [],
+    "passed": true,
+    "revision": "d6602e5408f2c08f6399d161cea4a15f95b6ab2f9b41bc3219e331e5fd8e22b3",
+    "shots": [
+      {
+        "camera": "[X: (0.500861, 0.0, -0.865528), Y: (-0.365788, 0.906308, -0.211673), Z: (0.784435, 0.422618, 0.453934), O: (294.4567, 120.3794, 170.2538)]",
+        "direction": "n",
+        "id": "runara",
+        "time": "paused"
+      },
+      {
+        "camera": "[X: (0.954595, 0.0, -0.297906), Y: (-0.125901, 0.906308, -0.403429), Z: (0.269995, 0.422618, 0.865157), O: (158.6058, 111.4434, 297.6933)]",
+        "direction": "n",
+        "id": "tarak",
+        "time": "paused"
+      },
+      {
+        "camera": "[X: (0.890719, 0.0, 0.454555), Y: (0.192103, 0.906308, -0.376434), Z: (-0.411967, 0.422618, 0.807265), O: (13.83198, 110.9574, 274.7277)]",
+        "direction": "n",
+        "id": "myla",
+        "time": "paused"
+      },
+      {
+        "camera": "[X: (-0.743052, 0.0, 0.669234), Y: (0.282831, 0.906308, 0.314027), Z: (-0.606532, 0.422618, -0.673433), O: (-26.5677, 111.0515, -69.97404)]",
+        "direction": "n",
+        "id": "agga",
+        "time": "paused"
+      },
+      {
+        "camera": "[X: (-0.980861, 0.0, 0.194709), Y: (0.082288, 0.906308, 0.41453), Z: (-0.176467, 0.422618, -0.888962), O: (87.99802, 110.952, -120.5509)]",
+        "direction": "n",
+        "id": "mumpo",
+        "time": "paused"
+      }
+    ]
+  },
+  "headless": {
+    "checks": 72,
+    "clips": 12,
+    "failures": [],
+    "passed": true,
+    "revision": "d6602e5408f2c08f6399d161cea4a15f95b6ab2f9b41bc3219e331e5fd8e22b3",
+    "shots": []
+  },
+  "pngBytes": 13104671,
+  "webpBytes": 8239480,
+  "percent": 37,
+  "rejected": [
+    {
+      "id": "sw-tarak-retreat-water-rear",
+      "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-tarak-retreat-water-rear-35cff6808011.png",
+      "sha256": "35cff68080111cc2eea51c0b317566de3037322b50860cfeb821dc5cd17048ec",
+      "errors": [
+        "Cell 1 has opaque pixels inside the required safety margin",
+        "Cell 2 has opaque pixels inside the required safety margin",
+        "Cell 3 has opaque pixels inside the required safety margin",
+        "Cell 4 has opaque pixels inside the required safety margin",
+        "Cell 5 has opaque pixels inside the required safety margin",
+        "Cell 6 has opaque pixels inside the required safety margin",
+        "Cell 7 has opaque pixels inside the required safety margin",
+        "Cell 8 has opaque pixels inside the required safety margin"
+      ]
+    },
+    {
+      "id": "sw-zark-retreat-tidy-rear",
+      "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-zark-retreat-tidy-rear-59ce1e52bf4a.png",
+      "sha256": "59ce1e52bf4a5813b52823a094aaa9927c3797ea0e0db32f4c9041be5d59da1c",
+      "errors": [
+        "Cell 1 has opaque pixels inside the required safety margin",
+        "Cell 2 has opaque pixels inside the required safety margin",
+        "Cell 3 has opaque pixels inside the required safety margin",
+        "Cell 4 has opaque pixels inside the required safety margin",
+        "Cell 5 has opaque pixels inside the required safety margin",
+        "Cell 6 has opaque pixels inside the required safety margin",
+        "Cell 7 has opaque pixels inside the required safety margin",
+        "Cell 8 has opaque pixels inside the required safety margin"
+      ]
+    }
+  ]
+}

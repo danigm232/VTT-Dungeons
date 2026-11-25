@@ -55,8 +55,7 @@ func fit(sprite: Sprite3D, frame: Dictionary, bed: Dictionary) -> void:
 	var forward: Vector3 = bed.forward
 	var right := Vector3.UP.cross(forward).normalized()
 	layers = sprite.layers
-	_material.albedo_texture = sprite.texture
-	_material.emission_texture = sprite.texture
+	set_pose_texture(sprite.texture)
 	sync_color(sprite.modulate)
 
 	var placement := global_transform.affine_inverse() * Transform3D(Basis(right, Vector3.UP, forward), head)
@@ -72,6 +71,11 @@ func fit(sprite: Sprite3D, frame: Dictionary, bed: Dictionary) -> void:
 	elif is_instance_valid(_blanket):
 		_blanket.hide()
 
+func set_pose_texture(texture: Texture2D) -> void:
+	if texture and _material.albedo_texture != texture:
+		_material.albedo_texture = texture
+		_material.emission_texture = texture
+
 func _fit_blanket(size: Vector2, pivot: Vector2, bed: Dictionary, style: Dictionary, profile: Array[Vector2]) -> void:
 	if not _blanket:
 		_blanket = MeshInstance3D.new()
@@ -82,14 +86,17 @@ func _fit_blanket(size: Vector2, pivot: Vector2, bed: Dictionary, style: Diction
 		wool.set_shader_parameter("woven_wool", _load_wool_tex())
 		_blanket.material_override = wool
 	_blanket.layers = layers
+	var wool := _blanket.material_override as ShaderMaterial
+	wool.set_shader_parameter("breath_phase", float(absi(str(get_parent().name).hash()) % 360) * PI / 180.0)
+	wool.set_shader_parameter("breath_height", minf(0.008, size.y * 0.005))
 	var head: Vector3 = bed.head
 	var forward: Vector3 = bed.forward
 	var right := Vector3.UP.cross(forward).normalized()
 	var half_width := minf(size.x * 0.79, float(bed.available_width) * 0.465)
 	var start := (COVER_START - pivot.y) * size.y
 	var end := minf((1.0 - pivot.y) * size.y + 0.10, float(bed.available_length) - 0.015)
-	var base := Color.html(style.base)
-	var trim := Color.html(style.trim)
+	var base := Color.html(style.base).srgb_to_linear()
+	var trim := Color.html(style.trim).srgb_to_linear()
 	var bands := int(style.bands)
 	var vertices := PackedVector3Array()
 	var uvs := PackedVector2Array()
@@ -110,6 +117,10 @@ func _fit_blanket(size: Vector2, pivot: Vector2, bed: Dictionary, style: Diction
 			var cuff := maxf(0.0, 1.0 - absf(v - 0.05) * 22.0) * 0.017
 			var edge_drop := smoothstep(0.62, 1.0, absf(x)) * 0.032
 			point.y = float(bed.bedding_y) + 0.014 + center_height + folds + cuff - between_legs - edge_drop
+			if bed.has("pillow_end"):
+				var longitudinal := (point - head).dot(forward)
+				var pillow_blend := 1.0 - smoothstep(float(bed.pillow_end) - 0.012, float(bed.pillow_end) + 0.26, longitudinal)
+				point.y += maxf(0.0, head.y - float(bed.bedding_y)) * pillow_blend
 			vertices.append(to_local(point))
 			uvs.append(Vector2(u, v))
 			var edge := col <= 1 or col >= COVER_COLUMNS - 1

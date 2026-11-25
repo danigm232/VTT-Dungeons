@@ -361,27 +361,7 @@ func _interact_bed(tok: Node3D, ui: Node) -> void:
 			ui.notify_mesa("%s ya está ocupado por otro compañero." % display_name)
 		return
 
-	var used_3d_rest := false
-	if parent_n and parent_n.has_meta("rest_head") and tok.has_method("attach_to_bed") and tok.has_method("rest_footprint"):
-		var head_local: Vector3 = parent_n.get_meta("rest_head")
-		var bedding_y_local: float = float(parent_n.get_meta("rest_bedding", 0.62))
-		var foot_z_local: float = float(parent_n.get_meta("rest_foot", 0.96))
-		var width_local: float = float(parent_n.get_meta("rest_width", 1.10))
-		var bed_anchor := {
-			"head": parent_n.to_global(head_local),
-			"bedding_y": parent_n.to_global(Vector3(0.0, bedding_y_local, 0.0)).y,
-			"forward": Vector3(parent_n.global_basis.z.x, 0.0, parent_n.global_basis.z.z).normalized(),
-			"available_length": foot_z_local - head_local.z,
-			"available_width": width_local,
-		}
-		var body: Vector2 = tok.rest_footprint()
-		if body != Vector2.ZERO and body.x <= float(bed_anchor.available_width) + 0.06 and body.y <= float(bed_anchor.available_length) + 0.06:
-			tok.attach_to_bed(bed_id, bed_anchor)
-			if prop_kind == "hammock":
-				tok.set_meta("hammock_sway", true)
-			used_3d_rest = true
-
-	if not used_3d_rest:
+	if not try_attach_rest(tok):
 		# Alternativa limpia para actores/lechos sin encaje 3D: sentarse/recostarse en el lecho con sprites 8-dir
 		var slots := _compute_seat_slots_world(parent_n)
 		var slot_pos := slots[0] if not slots.is_empty() else to_global(seat_offset)
@@ -945,13 +925,42 @@ func _seat_foot_contact(slot: Vector3, heading: Vector3, front_radius: float, st
 	feet.y = stand.y + 0.006
 	return feet
 
+func try_attach_rest(actor: Node3D) -> bool:
+	var support := get_parent() as Node3D
+	if not support or not support.has_meta("rest_head") or not actor.has_method("attach_to_bed") or not actor.has_method("rest_footprint"):
+		return false
+	var bed_id := str(support.name)
+	if _is_bed_occupied(bed_id, actor):
+		return false
+	var head_local: Vector3 = support.get_meta("rest_head")
+	var bedding_y := float(support.get_meta("rest_bedding", 0.62))
+	var available_length := float(support.get_meta("rest_foot", 0.96)) - head_local.z
+	var available_width := float(support.get_meta("rest_width", 1.10))
+	var body: Vector2 = actor.rest_footprint()
+	if body == Vector2.ZERO or body.x > available_width + 0.06 or body.y > available_length + 0.06:
+		return false
+	var bed := {
+		"head": support.to_global(head_local),
+		"bedding_y": support.to_global(Vector3(0.0, bedding_y, 0.0)).y,
+		"forward": Vector3(support.global_basis.z.x, 0.0, support.global_basis.z.z).normalized(),
+		"available_length": available_length,
+		"available_width": available_width,
+	}
+	if support.has_meta("rest_pillow_end"):
+		bed["pillow_end"] = float(support.get_meta("rest_pillow_end")) - head_local.z
+	actor.attach_to_bed(bed_id, bed)
+	if prop_kind == "hammock":
+		actor.set_meta("hammock_sway", true)
+	return true
+
 func _is_bed_occupied(bed_id: String, actor: Node3D) -> bool:
 	var tree := get_tree()
 	if not tree or bed_id.is_empty():
 		return false
-	for m in tree.get_nodes_in_group("party_tokens"):
-		if m is Node3D and m != actor and str(m.get("resting_on")) == bed_id:
-			return true
+	for group in ["party_tokens", "retreat_residents"]:
+		for occupant in tree.get_nodes_in_group(group):
+			if occupant is Node3D and occupant != actor and str(occupant.get("resting_on")) == bed_id:
+				return true
 	return false
 
 func _show_feedback(text: String, col: Color) -> void:

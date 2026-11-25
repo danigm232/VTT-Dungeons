@@ -1,5 +1,19 @@
 # Estado del proyecto
 
+## Retiro del Dragón · mantas para el descanso — 24/11/2026
+
+Los doce habitantes tienen implementado el descanso con manta en los lechos de A1. Once usan un busto fijo y Kilnip reutiliza seis fases de su siesta. Mía, Mike y Trinity conservan sus mantas y pueden usarlas también en los petates. **Corrección 25/11:** la red de rutas se amplía al suelo ya existente del petate occidental, al que Runara no podía llegar. La prueba sin pantalla pasa ahora 159/159. **Candidata pendiente de cierre visual:** los registros nativos anteriores contienen aquel fallo y `output/retreat-blankets-20261124/index.html` aún no existe; falta repetir la captura nativa y generar el informe antes de darla por revisada o aceptada.
+
+## Retiro del Dragón · siesta de Kilnip — 24/11/2026
+
+Kilnip se tumba durante su ronda diurna y utiliza los apoyos de la hamaca. El ciclo de respiración contiene ocho WebP sin pérdida. Al terminar o interrumpir el descanso vuelve a su posición en el suelo. [Comparativas y reproductor](output/retreat-hammock-20261124/index.html).
+
+**Auditoría de sprites de carga Godot, 24/11:** confirmadas diferencias de identidad (especialmente Mike) y de comerciante al entrar en la pareja de Persuasión. Corregidos el apoyo de la cuerda y el cambio de bandido a otro PNJ al huir, en Pecio/Retiro/Campamentos. La familia artística sigue pendiente de poses fieles; no se considera aprobada por las pruebas técnicas. [Hallazgos y evidencia actual](docs/evidence/GODOT_SKILL_LOADING_20261114.md#auditoría-de-identidad-apoyos-y-pnj--24112026).
+
+## Retiro del Dragón · gestos vistos de espaldas — 24/11/2026
+
+Doce gestos nuevos en la candidata local de Godot, con una acción propia por habitante. Las secuencias se usan desde atrás y en las dos diagonales traseras. Sus 96 fotogramas ocupan 8,24 MB en WebP sin pérdida frente a 13,10 MB de los mismos recortes en PNG. Se conservan las láminas originales. [Comparativas y reproductor](output/retreat-gesture-views-20261124/index.html).
+
 ## Retiro del Dragón · Auditoría 3 y Bloques 1–5 — 24/11/2026
 
 Completados los **5 bloques** resultantes de la auditoría integral visual + canon PDF en `prototypes/godot-retiro/` (conservando intactas las rutinas de los 12 habitantes y sin tocar Pecio ni el trabajo paralelo de Codex):

@@ -244,11 +244,19 @@ func _running_floor(offset: Vector2, s: float, elapsed: float) -> void:
 		var visible_width = minf(1280, edge - left)
 		if visible_width > 0: draw_texture_rect_region(plates.floor, Rect2(left, 454, visible_width, 266), Rect2(0, 568, visible_width * 1.25, 332), Color(1, 1, 1, 1 - smoothstep(2.208, 2.688, maxf(0, elapsed))))
 
+static func bandit_escape_frame(at: float) -> int:
+	# The v5 escape row depicts another man. Keep the hooded bandit's own poses.
+	return 14 if at < 0.35 else 15
+
+static func prop_position(prop: Dictionary, motion: Dictionary) -> Vector2:
+	var elevated = prop.art in ["crystal", "owl", "notes", "smoke", "spores", "fall-mist", "laughter", "sound", "spring", "loose-pages", "symbol-match", "rope"] or str(prop.art).begins_with("tracks-")
+	return Vector2(prop.x + motion.x, (prop.y if elevated else 202) + motion.y)
+
 func _draw_prop(prop: Dictionary, motion: Dictionary, character: String) -> void:
 	if motion.opacity < 0.001: return
 	var art = str(prop.art)
 	var floating = art in ["crystal", "owl", "notes", "smoke", "spores", "fall-mist", "laughter", "sound", "spring", "loose-pages", "symbol-match"]
-	var pos = Vector2(prop.x + motion.x, prop.y + motion.y if floating or art.begins_with("tracks-") else 202 + motion.y)
+	var pos = prop_position(prop, motion)
 	if art == "crystal" and success and phase not in ["ambient", "roll", "prepare"]:
 		_transform(Vector2(pos.x, 202), 0, Vector2(1, 0.16))
 		for i in range(10, 0, -1): draw_circle(Vector2.ZERO, i * 8, Color(1, 0.8, 0.4, 0.012 * float(motion.cue)))
@@ -256,7 +264,7 @@ func _draw_prop(prop: Dictionary, motion: Dictionary, character: String) -> void
 		art = session.entry.variant
 		floating = art == "owl"
 		if art != "owl": pos = Vector2(prop.x + (83 * progress if success else 400 * progress), 202)
-	if not floating and not art.begins_with("tracks-"): _shadow(Vector2(pos.x, 202), 35 * motion.scale, motion.opacity)
+	if not floating and art != "rope" and not art.begins_with("tracks-"): _shadow(Vector2(pos.x, 202), 35 * motion.scale, motion.opacity)
 	# Applause frames face right; the audience stands to the musician's right.
 	# Mirror only this authored row, preserving ambient and departing poses.
 	var facing = -motion.facing if art == "audience" and success and phase not in ["ambient", "roll", "prepare"] else motion.facing
@@ -280,8 +288,7 @@ func _draw_prop(prop: Dictionary, motion: Dictionary, character: String) -> void
 			extended_row = 0
 			column = mini(1, int(progress / 0.19)) if progress < 0.38 else 2 + int(clock * 7.5) % 6
 		if art == "bandit" and resolved and success:
-			extended_row = 1
-			column = mini(1, int(progress / 0.175)) if progress < 0.35 else 2 + int(clock * 7) % 6
+			index = bandit_escape_frame(progress)
 		if art == "audience" and resolved:
 			extended_row = 2 if success else 5
 			column = int(clock * 4.4) % 8

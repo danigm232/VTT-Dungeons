@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-frub-covered-rest",
+  "character": "sw-frub",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "rest_on_prop",
+  "direction": "s",
+  "fps": 1,
+  "loop": false,
+  "poseKind": "hold",
+  "dependencies": [
+    "sw-frub"
+  ],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-covered-rest/287665f23971/01.webp"
+  ],
+  "restVolume": {
+    "head": 0.105,
+    "chest": 0.108,
+    "hips": 0.09,
+    "calves": 0.07,
+    "boots": 0.054
+  },
+  "restBlanket": {
+    "base": "#825f42",
+    "trim": "#bfaa80",
+    "bands": 2
+  },
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "placement": "Static overhead bust positioned in the head-to-foot axis; the existing wool volume covers the matching anatomy and determines the rest of the silhouette.",
+    "overlay": "Shared resting body surface, world-aligned cloth."
+  },
+  "production": {
+    "candidateSheet": 2,
+    "candidateCell": 0,
+    "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-turnaround/0f81da46a176/01.png",
+    "intent": "A single overhead pose of head and torso with closed eyes. Native 3D cloth covers the body below the shoulder line.",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-retreat-covered-rest-2-287665f23971.png",
+    "originalSha256": "287665f23971d0c535373be5845e4760d0a5c5c4cc9e0c757e1390721632ed3d",
+    "extraction": "Native cut on a transparent registration canvas; padding describes space under the blanket.",
+    "nativeBustPixels": 447,
+    "cellBounds": [
+      107,
+      29,
+      405,
+      476
+    ],
+    "encoding": "Lossless WebP, all RGBA pixels verified"
+  },
+  "review": {
+    "technical": "Cell clearance, native resolution, pivot and lossless RGBA verified.",
+    "visual": "Overhead bust and cell crop compared with the installed appearance; user acceptance pending.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 949,
+  "pivot": [
+    0.5,
+    0.007268951194184839
+  ],
+  "soleContact": [
+    0.5,
+    0.9927310488058152
+  ],
+  "restSculpt": {
+    "eyes": 0.14849428868120457,
+    "nose": [
+      0.5,
+      0.1786085150571132
+    ],
+    "jaw": 0.21079958463136034,
+    "faceHalfWidth": 0.16,
+    "recline": 8
+  }
+}

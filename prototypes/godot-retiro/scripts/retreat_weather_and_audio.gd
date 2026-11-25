@@ -452,22 +452,26 @@ func _setup_audio_players() -> void:
 	add_child(_sfx_player)
 
 func _pump_ambient_audio() -> void:
+	if DisplayServer.get_name() == "headless" or AudioServer.get_driver_name() == "Dummy":
+		return
 	if not is_instance_valid(_ambient_player) or not _ambient_player.playing:
 		return
 	var pb := _ambient_player.get_stream_playback() as AudioStreamGeneratorPlayback
 	if pb == null:
 		return
 	var avail := pb.get_frames_available()
-	if avail <= 0:
+	if avail < 64:
 		return
 	var v_music := float(channel_volumes.get("music", 65.0)) / 100.0
 	var v_ocean := float(channel_volumes.get("ocean", 75.0)) / 100.0
 	var v_wind := float(channel_volumes.get("wind", 65.0)) / 100.0
 	var v_rain := float(channel_volumes.get("rain", 80.0)) / 100.0
+	if v_music + v_ocean + v_wind + v_rain <= 0.01:
+		return
 	var rain_mult := 1.0 if weather == "storm" else (0.58 if weather == "rain" else 0.0)
 	var wind_mult := 1.0 if weather == "storm" else (0.55 if weather == "rain" else (0.35 if weather == "fog" else 0.22))
 	var dt := 1.0 / 22050.0
-	var steps := mini(avail, 1024)
+	var steps := mini(avail, 256)
 	for _i in range(steps):
 		_audio_phase += dt
 		var white := _audio_rng.randf_range(-1.0, 1.0)

@@ -3,6 +3,8 @@ extends "res://scripts/player_token.gd"
 const TALK_REACH := 2.65
 const MAX_RISER := 0.34
 
+var presence_label: Label3D
+var _presence_timer: float = 0.0
 var resident_id := ""
 var job := ""
 var greeting_line := ""
@@ -42,7 +44,8 @@ func configure(id: String, entry: Dictionary, view: Camera3D, schedule: Node3D) 
 	is_npc = true
 	is_active_player = false
 	has_carried_light = false
-	collision_layer = 0
+	collision_layer = 2
+	collision_mask = 5
 	_schedule = schedule
 
 func _ready() -> void:
@@ -50,7 +53,7 @@ func _ready() -> void:
 	if collision and collision.shape is CapsuleShape3D:
 		collision.shape.radius = minf(0.29, target_height * 0.27)
 	safe_margin = 0.015
-	_ground_ray.collision_mask = collision_mask
+	_ground_ray.collision_mask = 1
 	_ground_ray.exclude = [get_rid()]
 	var clearance := CapsuleShape3D.new()
 	clearance.radius = minf(0.26, target_height * 0.24)
@@ -64,6 +67,58 @@ func _ready() -> void:
 		speed = 2.13
 	remove_from_group("party_tokens")
 	add_to_group("retreat_residents")
+	_build_presence_label()
+
+func _build_presence_label() -> void:
+	if presence_label != null:
+		return
+	presence_label = Label3D.new()
+	presence_label.name = "PresenceLabel"
+	presence_label.text = token_name
+	presence_label.font_size = 32
+	presence_label.outline_size = 7
+	presence_label.pixel_size = 0.0115
+	presence_label.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+	presence_label.modulate = Color(0.98, 0.91, 0.74, 0.0)
+	presence_label.outline_modulate = Color(0.04, 0.07, 0.08, 0.0)
+	presence_label.position = Vector3(0.0, target_height + 0.28, 0.0)
+	presence_label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	presence_label.visible = false
+	add_child(presence_label)
+
+func _update_presence_label(delta: float) -> void:
+	if presence_label == null:
+		return
+	_presence_timer += delta
+	if _presence_timer < 0.12:
+		return
+	_presence_timer = 0.0
+	if not is_visible_in_tree() or is_talking() or (is_instance_valid(_schedule) and _schedule.dialogue != null and _schedule.dialogue.panel.visible):
+		presence_label.visible = false
+		return
+	var target_alpha := 0.0
+	var hero: Node3D = _schedule.active_hero() if is_instance_valid(_schedule) and _schedule.has_method("active_hero") else null
+	var ref_pos: Vector3 = hero.global_position if is_instance_valid(hero) else global_position
+	var cam := camera if camera else (get_viewport().get_camera_3d() if get_viewport() else null)
+	if is_instance_valid(hero):
+		var d_hero := global_position.distance_to(ref_pos)
+		if d_hero <= 22.0:
+			target_alpha = clampf((22.0 - d_hero) / 5.5, 0.0, 0.95)
+	if is_instance_valid(cam):
+		if cam.projection == Camera3D.PROJECTION_ORTHOGONAL:
+			if cam.size > 42.0:
+				target_alpha = 0.0
+		else:
+			var cam_dist: float = cam.global_position.distance_to(global_position)
+			if cam_dist > 72.0:
+				target_alpha = 0.0
+	if target_alpha <= 0.04:
+		presence_label.visible = false
+		return
+	presence_label.visible = true
+	presence_label.modulate.a = target_alpha
+	presence_label.outline_modulate.a = target_alpha * 0.94
+	presence_label.position.y = target_height * current_height_scale + 0.28
 
 func _load_character_profile(_resolve_src: String) -> void:
 	char_key = "sw-" + resident_id
@@ -179,6 +234,7 @@ func _physics_process(delta: float) -> void:
 		_blocked_seconds = _blocked_seconds + delta if step < delta * 0.17 else 0.0
 		if _blocked_seconds > 1.7:
 			_stop_blocked_route()
+	_update_presence_label(delta)
 	if not _prop_cue_sent and current_anim == _gesture and action_lock_timer > 0.0 and (
 		_gesture_duration - action_lock_timer >= _gesture_duration * _gesture_contact
 	):
@@ -242,6 +298,8 @@ func _stop_blocked_route() -> void:
 
 func _resolve_desired_state(input_dir: Vector2) -> String:
 	var state := super._resolve_desired_state(input_dir)
+	if state == "rest_on_prop":
+		return state
 	return "idle" if action_lock_timer <= 0.0 and not _walked_this_frame else state
 
 func _process_frame_animation(delta: float) -> void:
@@ -266,6 +324,8 @@ func _camera_relative_dir(input_dir: Vector2) -> Vector3:
 func _pick_clip_from_profile(state: String, direction: String) -> Dictionary:
 	var states: Dictionary = char_profile.get("dir_states", {})
 	var authored: Dictionary = states.get(state, {})
+	if state == "rest_on_prop" and authored.has("s"):
+		return authored.s
 	if state == "walk" and not authored.is_empty():
 		if authored.has(direction):
 			return authored[direction]
@@ -289,6 +349,8 @@ func _pick_clip_from_profile(state: String, direction: String) -> Dictionary:
 	if not authored.is_empty():
 		if authored.has(direction):
 			return authored[direction]
+		if direction in ["ne", "nw"] and authored.has("n"):
+			return authored.n
 		if authored.has("se") and direction in ["s", "se", "e"]:
 			return authored.se
 		var work := _in_view(states.get("retreat_work", {}), direction)

@@ -105,6 +105,8 @@ var flicker_time: float = 0.0
 var silhouette_mesh: MeshInstance3D
 var _silhouette_mat: ShaderMaterial
 static var _silhouette_shader_res: Shader
+var _world_occluded: bool = false
+var _occ_check_timer: float = 0.0
 
 static var _shared_slash_tex: Texture2D
 static var _shared_spell_tex: Texture2D
@@ -113,6 +115,9 @@ func _ready() -> void:
 	floor_max_angle = deg_to_rad(68.0)
 	floor_snap_length = 0.65
 	add_to_group("party_tokens")
+	if not is_npc:
+		collision_layer = 5
+		collision_mask = 3
 	safe_margin = 0.04
 	floor_constant_speed = true
 	floor_stop_on_slope = true
@@ -122,7 +127,13 @@ func _ready() -> void:
 		global_position = Structure.LANDMARKS["spawn"]["world_pos"]
 
 	var resolve_src: String = token_name if not token_name.is_empty() else String(name)
-	_load_character_profile(resolve_src)
+	var defer_hidden_npc: bool = is_npc and not visible and get_script() == preload("res://scripts/player_token.gd")
+	if not defer_hidden_npc:
+		_load_character_profile(resolve_src)
+	else:
+		char_key = Catalog.resolve_character_key(resolve_src)
+		preload("res://sprites/character_stature.gd").apply(self, char_key)
+		visibility_changed.connect(_on_deferred_visibility_changed)
 
 	setup_sprite_visuals()
 	build_contact_shadow()
@@ -132,10 +143,17 @@ func _ready() -> void:
 		build_carried_lantern()
 
 	set_active(is_active_player)
-	_resolve_and_apply_clip("idle", "s", true)
+	if not char_profile.is_empty():
+		_resolve_and_apply_clip("idle", "s", true)
 
 	current_zone = Structure.get_zone_at(global_position)
 	current_elevation = global_position.y
+
+func _on_deferred_visibility_changed() -> void:
+	if visible and char_profile.is_empty():
+		var resolve_src: String = token_name if not token_name.is_empty() else String(name)
+		_load_character_profile(resolve_src)
+		_resolve_and_apply_clip("idle", facing_dir, true)
 
 func _load_character_profile(resolve_src: String) -> void:
 	char_key = Catalog.resolve_character_key(resolve_src)
@@ -158,7 +176,8 @@ func setup_sprite_visuals() -> void:
 		sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
 		sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 		sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
-		sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		sprite.shaded = true
+		sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_DOUBLE_SIDED
 		sprite.render_priority = 10
 		if sprite.texture == null and token_texture:
 			sprite.texture = token_texture
@@ -939,7 +958,7 @@ void fragment() {
 func _sync_occlusion_silhouette(lean_z: float) -> void:
 	if not silhouette_mesh or not _silhouette_mat or not sprite:
 		return
-	var show := (not is_npc) and visible and sprite.visible and sprite.texture != null
+	var show := (not is_npc) and _world_occluded and visible and sprite.visible and sprite.texture != null
 	silhouette_mesh.visible = show
 	if not show:
 		return
@@ -1089,17 +1108,22 @@ func _apply_procedural_motion(delta: float, input_dir: Vector2, state: String) -
 		sprite.rotation = Vector3(0.0, 0.0, rot_z)
 	sprite.scale = Vector3(sx, sy, 1.0)
 	if has_meta("npc_condition_color"): mod = mod * get_meta("npc_condition_color")
-	sprite.modulate = mod
+	sprite.modulate = mod * (Color(1.22, 1.20, 1.16) if (sprite.shaded and mod == Color.WHITE) else Color.WHITE)
 	_update_seat_surface(state)
 	_update_rest_surface(state)
+	if not is_npc:
+		_occ_check_timer += delta
+		if _occ_check_timer >= 0.08:
+			_occ_check_timer = 0.0
+			_world_occluded = _is_occluded_by_static_world()
 	_sync_occlusion_silhouette(rot_z)
 
 	if contact_shadow:
 		contact_shadow.visible = state not in ["sit_on_prop", "rest_on_prop"]
 		var alt_factor := clampf(1.0 - (jump_y / (jump_peak_height * 1.45)), 0.35, 1.0)
 		var state_shadow := 0.85 if state == "sit" else (1.25 if state in ["prone", "crawl", "defeated"] else 1.0)
-		# La huella se adapta a la estatura canónica del actor (Trinity < Mia < Mike)
-		var stature_shadow := clampf(target_height * current_height_scale / 1.82, 0.62, 1.12)
+		# La huella se adapta a la estatura canónica del actor (kobolds < Trinity < Mia < Mike < Runara)
+		var stature_shadow := clampf(target_height * current_height_scale / 1.78, 0.44, 1.18)
 		if state in ["prone", "crawl", "defeated"]:
 			stature_shadow = clampf(target_height / 1.82, 0.7, 1.12)
 		var airborne := clampf(jump_y / maxf(jump_peak_height, 0.01), 0.0, 1.0)
@@ -1130,6 +1154,49 @@ func _apply_procedural_motion(delta: float, input_dir: Vector2, state: String) -
 				var ring_scale := 1.0 + pulse * 0.025
 				selection_ring.scale = Vector3(ring_scale, 1.0, ring_scale)
 
+func _is_occluded_by_static_world() -> bool:
+	if not is_inside_tree():
+		return false
+	var vp := get_viewport()
+	var w3d := get_world_3d()
+	if vp == null or w3d == null:
+		return false
+	var cam := camera if camera else vp.get_camera_3d()
+	if not is_instance_valid(cam):
+		return false
+	var space := w3d.direct_space_state
+	var cam_to_eye := cam.global_basis.z.normalized()
+	var target_pts := [
+		global_position + Vector3(0.0, target_height * 0.56, 0.0),
+		global_position + Vector3(0.0, target_height * 0.82, 0.0),
+	]
+	var center_pt: Vector3 = target_pts[0]
+	var center_start: Vector3 = cam.global_position if cam.projection == Camera3D.PROJECTION_PERSPECTIVE else (center_pt + cam_to_eye * 34.0)
+	var center_dir: Vector3 = (center_pt - center_start).normalized()
+	var npc_q := PhysicsRayQueryParameters3D.create(center_start, center_pt - center_dir * 0.25, 2)
+	npc_q.exclude = [get_rid()]
+	var npc_hit := space.intersect_ray(npc_q)
+	var hits := 0
+	var closest_wall_dist := INF
+	for pt in target_pts:
+		var ray_start: Vector3 = cam.global_position if cam.projection == Camera3D.PROJECTION_PERSPECTIVE else (pt + cam_to_eye * 34.0)
+		var ray_dir: Vector3 = (pt - ray_start).normalized()
+		var q := PhysicsRayQueryParameters3D.create(ray_start, pt - ray_dir * 0.38, 1)
+		q.exclude = [get_rid()]
+		var hit := space.intersect_ray(q)
+		if not hit.is_empty():
+			var collider: Object = hit.get("collider")
+			if not (collider is CharacterBody3D):
+				hits += 1
+				closest_wall_dist = minf(closest_wall_dist, ray_start.distance_to(hit["position"] as Vector3))
+	if hits < 1:
+		return false
+	if not npc_hit.is_empty():
+		var npc_dist := center_start.distance_to(npc_hit["position"] as Vector3)
+		if npc_dist <= closest_wall_dist + 0.5:
+			return false
+	return true
+
 func active_prop_surface() -> MeshInstance3D:
 	if is_instance_valid(_rest_surface) and _rest_surface.visible:
 		return _rest_surface
@@ -1155,6 +1222,8 @@ func _update_rest_surface(state: String) -> void:
 	if not _rest_surface.visible:
 		_rest_surface.fit(sprite, frame0, _rest_bed)
 		_rest_surface.show()
+	if active_clip_frames.size() > 1:
+		_rest_surface.set_pose_texture(sprite.texture)
 	if bool(get_meta("hammock_sway", false)):
 		_rest_surface.rotation.z = sin(idle_breath_time * 1.45) * 0.04
 	else:

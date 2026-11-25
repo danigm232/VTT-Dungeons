@@ -1220,8 +1220,9 @@ static func _build_kobold_hammock(parent: Node3D, pos: Vector3, yaw: float, mat_
 	h.name = "KoboldHammock_%d_%d" % [int(pos.x * 10.0), int(pos.z * 10.0)]
 	h.position = pos
 	h.rotation.y = yaw
-	h.set_meta("rest_head", Vector3(0.0, 0.66, -0.76))
-	h.set_meta("rest_bedding", 0.56)
+	h.set_meta("rest_head", Vector3(0.0, 0.708, -0.75))
+	h.set_meta("rest_bedding", 0.556)
+	h.set_meta("rest_pillow_end", -0.48)
 	h.set_meta("rest_foot", 0.96)
 	h.set_meta("rest_width", 0.86)
 	parent.add_child(h)
@@ -1309,6 +1310,11 @@ static func _build_guest_bedroll(parent: Node3D, pos: Vector3, yaw: float, mat_m
 	br.name = "GuestBedroll_%d_%d" % [int(pos.x), int(pos.z)]
 	br.position = pos
 	br.rotation.y = yaw
+	br.set_meta("rest_head", Vector3(0.0, 0.27, -0.82))
+	br.set_meta("rest_bedding", 0.128)
+	br.set_meta("rest_pillow_end", -0.60)
+	br.set_meta("rest_foot", 0.98)
+	br.set_meta("rest_width", 0.96)
 	parent.add_child(br)
 	# Estera tejida, manta mullida de viaje y almohada enrollada lista para los PJ en Celda 1
 	_box(br, Vector3(0.0, 0.045, 0.0), Vector3(0.96, 0.05, 1.92), mat_mat)

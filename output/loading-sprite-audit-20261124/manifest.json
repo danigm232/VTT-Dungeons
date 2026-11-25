@@ -1,0 +1,3111 @@
+{
+  "createdAt": "2026-11-24T19:47:01.133Z",
+  "conditions": {
+    "width": 1280,
+    "height": 720,
+    "clock": 0.4,
+    "overrideElapsed": 4
+  },
+  "records": [
+    {
+      "file": "before/maria-acrobatics-ambient.png",
+      "sha256": "deb8099f9e2d0c1fe4baece3341950cf2ad22fc32bc4dda6abe83208ab42b167"
+    },
+    {
+      "file": "before/maria-acrobatics-failure.png",
+      "sha256": "852e2eed9912494f838d8ab7d11fcf88e3d37811a3b8b8c4e2dfde36af454ada"
+    },
+    {
+      "file": "before/maria-acrobatics-success.png",
+      "sha256": "8f47e63206e849d162dbafd4dc290fb748bef9066f14312ff6e698e55813c30b"
+    },
+    {
+      "file": "before/maria-animal-handling-ambient.png",
+      "sha256": "b7c703a090172cc76efc5402fc2f93af8bc25daa39f851179f30573bfbc6bc3a"
+    },
+    {
+      "file": "before/maria-animal-handling-failure.png",
+      "sha256": "f655803f8c96c1693101808567035e5de629855dfa86447392035867f296a3cd"
+    },
+    {
+      "file": "before/maria-animal-handling-success.png",
+      "sha256": "da04993ccb60352dd3ef2b950748e8158f498931d538f3f79051989ab1069981"
+    },
+    {
+      "file": "before/maria-arcana-ambient.png",
+      "sha256": "aa0c78ed23caf86a3d54d74bd33f9fff1430dc9beaa89be44e5d8552523a6d13"
+    },
+    {
+      "file": "before/maria-arcana-failure.png",
+      "sha256": "5a79f5ef8fd8d0a0c936e7ab030dc5e6806b4adb782131b95e6f00b0a7a3eda8"
+    },
+    {
+      "file": "before/maria-arcana-success.png",
+      "sha256": "85fd1485f1f8c577acf57586bb079732fc4c7196af64e0de4dcca3e627760104"
+    },
+    {
+      "file": "before/maria-athletics-ambient.png",
+      "sha256": "ffe4d657534f5c4931d967b59ea940ea699e9e9170645c32d83e4a32855c1aa8"
+    },
+    {
+      "file": "before/maria-athletics-failure.png",
+      "sha256": "e64e7e871585b513554c199e689bbf6a4bc603154d4c8352b12df3240948c133"
+    },
+    {
+      "file": "before/maria-athletics-success.png",
+      "sha256": "89ad246bda8f401bbead15ead8feb526be0aba936712e59ac17e66b1a8a22cf7"
+    },
+    {
+      "file": "before/maria-deception-ambient.png",
+      "sha256": "e1909e6dc8170de286b7ff9fba066354b0b2deeb95c5dabdc9db305ba86a0e08"
+    },
+    {
+      "file": "before/maria-deception-failure.png",
+      "sha256": "bd8d1bf05379c35c2b60d9d172f9b08059a5de7c01e9311166ab8745cc405993"
+    },
+    {
+      "file": "before/maria-deception-success.png",
+      "sha256": "0c7de6161ec16a835a9248156f85ec995cb5b9bb0f6b64d1d12aaac7a53d3b46"
+    },
+    {
+      "file": "before/maria-history-ambient.png",
+      "sha256": "333bfb176be15aa7c2e08140e1eb131730eb69bfecfc2d80d7090b2e07334dc3"
+    },
+    {
+      "file": "before/maria-history-failure.png",
+      "sha256": "3d13a56b11791c45327debf2215f49f2b62a8df199f1394e404f2176c196bea9"
+    },
+    {
+      "file": "before/maria-history-success.png",
+      "sha256": "c4c7759ca17c76c696f4ac3846604afa30a8cc384c19602398a01d46c554c2da"
+    },
+    {
+      "file": "before/maria-insight-ambient.png",
+      "sha256": "bf2ec8aae312b29fd5f834fe1aa08ca17faa2c2b44267015c11859051be2f3f2"
+    },
+    {
+      "file": "before/maria-insight-failure.png",
+      "sha256": "d2a545a45d621f0b015e952c4dad736fdca911900f0ca1efd6399611718dfb3d"
+    },
+    {
+      "file": "before/maria-insight-success.png",
+      "sha256": "e3a5101061b7f311c1601ec75f28b30102954f18907f3c8aa2c364b66bbb3564"
+    },
+    {
+      "file": "before/maria-intimidation-ambient.png",
+      "sha256": "ae398520c49188d468f2f78cd95c26c131e4f8a37d917fb242a88e06f94dd024"
+    },
+    {
+      "file": "before/maria-intimidation-failure.png",
+      "sha256": "1b767723c9df0170e9820a22bab4857f765c54547ff1cf3a116428ff983b60cb"
+    },
+    {
+      "file": "before/maria-intimidation-success.png",
+      "sha256": "4358afdbce1da89fb02f72913462d79842598b45e40dd38269e70253ef42c703"
+    },
+    {
+      "file": "before/maria-investigation-ambient.png",
+      "sha256": "d00074eeba62070fd289c70441f4b4721def6773423c3d083c8f13add05e4044"
+    },
+    {
+      "file": "before/maria-investigation-failure.png",
+      "sha256": "a0935117d6f6479a80de32f4bb087511d8dd4ade1547803f2bc63c5845d628a8"
+    },
+    {
+      "file": "before/maria-investigation-success.png",
+      "sha256": "f1c1343722cec7548117758901175512d90cda4da400d99d17542062f7f3a982"
+    },
+    {
+      "file": "before/maria-medicine-ambient.png",
+      "sha256": "6d25f507bf0c1c6401b5adcb7724561be7741d1fd779e4f557ef6d9dce0aa25d"
+    },
+    {
+      "file": "before/maria-medicine-failure.png",
+      "sha256": "9b450bfff7d9ca2622935affaf92d81b6ec87a26c8c9ed26a6b430532ae67b65"
+    },
+    {
+      "file": "before/maria-medicine-success.png",
+      "sha256": "14f147150cbdd0438bcc36641b6cc488b30c0024cbd2f1fb14cea4a18d11e2f0"
+    },
+    {
+      "file": "before/maria-nature-ambient.png",
+      "sha256": "8fc1110fa46510c83749edea57f0de94a0f5f2f62266638a41c7a8387199f107"
+    },
+    {
+      "file": "before/maria-nature-failure.png",
+      "sha256": "6840eb00c5edef1ceaa7a0f5b557eef9d5a17da9fc9da52367513d96ac6f923e"
+    },
+    {
+      "file": "before/maria-nature-success.png",
+      "sha256": "c052b6887a0be93c66fc7d4746ddf97d033e0921b444a9357e6da9add9956ad0"
+    },
+    {
+      "file": "before/maria-perception-ambient.png",
+      "sha256": "11a2653f39f9980844af5fb7f7c50021bdb8d0fd7a7d1d9f2d83c138ae4fd57b"
+    },
+    {
+      "file": "before/maria-perception-failure.png",
+      "sha256": "d59412d2d9fdac8692d58d058cbfe5f622669dd51eece67768ce2586af7a36e8"
+    },
+    {
+      "file": "before/maria-perception-success.png",
+      "sha256": "2226b427ac8cefc759d25c6b6604735551ecbd37572132f660e66f60e46898af"
+    },
+    {
+      "file": "before/maria-performance-ambient.png",
+      "sha256": "8ae9ec6c57b0d4379e68e7e45a67631f7373da2455b7745263da74177f43d02a"
+    },
+    {
+      "file": "before/maria-performance-failure.png",
+      "sha256": "41d7990fa9f141194bff5be10558195c25bc0941f91be11b337d1e249d6895bb"
+    },
+    {
+      "file": "before/maria-performance-success.png",
+      "sha256": "3ef48286019078ac3afccc16963213d8970af9def2a98636fb071e3aa93a4000"
+    },
+    {
+      "file": "before/maria-persuasion-ambient.png",
+      "sha256": "67cd6dcbce7f75f41a016b90c1c73e3eebe934798287a1e0fe9b7da58a203005"
+    },
+    {
+      "file": "before/maria-persuasion-failure.png",
+      "sha256": "ac8b7a96519867efc40a95ad8e64fed7bd8afea5b364748360c55b242613d380"
+    },
+    {
+      "file": "before/maria-persuasion-success.png",
+      "sha256": "b3a0b3f84a1a17d2e7e863460805e1815abbee51314aedab22ff4d3641db99af"
+    },
+    {
+      "file": "before/maria-religion-ambient.png",
+      "sha256": "72c29e7b2e0378383ef77116ad4bee1da1f4b2eef0230e86771684a786bebd0a"
+    },
+    {
+      "file": "before/maria-religion-failure.png",
+      "sha256": "b42f035817fb4d8a47a48e9b2e93310756d0d425d33c3fe2a9c06e33a0d48b9c"
+    },
+    {
+      "file": "before/maria-religion-success.png",
+      "sha256": "d901bedb0637f0751b3a2ef00fa999498657ea345452024f8530538c0331c7a6"
+    },
+    {
+      "file": "before/maria-sleight-of-hand-ambient.png",
+      "sha256": "70178ae185291cff0ac17b02a5f20afc7dea1ebfcce29ae446855d36685feade"
+    },
+    {
+      "file": "before/maria-sleight-of-hand-failure.png",
+      "sha256": "a44331887370b2064e8646e1827bb2b867195eff95c2522ef103b467f9adf0b5"
+    },
+    {
+      "file": "before/maria-sleight-of-hand-success.png",
+      "sha256": "f62a9ad693be3353001e705d2be9f2ab380997e14adca3a8204fb7367165469d"
+    },
+    {
+      "file": "before/maria-stealth-ambient.png",
+      "sha256": "9cf99f6b8be5d28c930b9962ba4d0fec906f484c8a32c1c34e55fc66e27002f6"
+    },
+    {
+      "file": "before/maria-stealth-failure.png",
+      "sha256": "984c3776281743030d6494467762c369beff4a8d8cc63332b322c989219b5fbb"
+    },
+    {
+      "file": "before/maria-stealth-success.png",
+      "sha256": "69c80edcb4024cf759f5814c188844f668002b94974a4d5ba78583ec63ecf680"
+    },
+    {
+      "file": "before/maria-survival-ambient.png",
+      "sha256": "e60591321a60e57c4215502edd9b437c7bb2a26b438e262437d276a95c7ec74b"
+    },
+    {
+      "file": "before/maria-survival-failure.png",
+      "sha256": "502d770d6e90e045b05995fb7b6f0da608d02564bb9af59493d3a60c6ddbec86"
+    },
+    {
+      "file": "before/maria-survival-success.png",
+      "sha256": "4307b894bfb56ae3cbae83c486f949f94ad90f7d206074cc184f2d6d1a0b53a1"
+    },
+    {
+      "file": "before/mia-acrobatics-ambient.png",
+      "sha256": "8106d6b98841ea03ae93d220bc136887616b71e78642ae2a78bc0658c92ef2ef"
+    },
+    {
+      "file": "before/mia-acrobatics-failure.png",
+      "sha256": "a23bf56e46bfb750f3ae6daa71c091e5f49a080dba5c90aa3f5ac207daf8b3a5"
+    },
+    {
+      "file": "before/mia-acrobatics-success.png",
+      "sha256": "91e5c67911ce3bd0ae44550ee55cd93328590eb3a92756e523936fbd60e434b8"
+    },
+    {
+      "file": "before/mia-animal-handling-ambient.png",
+      "sha256": "35df7eafadceafe3008946f5a96a98caa4467ff6dd128d4b4a8f28ae543dcda3"
+    },
+    {
+      "file": "before/mia-animal-handling-failure.png",
+      "sha256": "b28d9278bb62f0ebaf32468d56874890a971bcb5d593fa0be43381cb628da4e5"
+    },
+    {
+      "file": "before/mia-animal-handling-success.png",
+      "sha256": "263ea7e918345f347257720b11c650d690c087a8f5713e8d5e79bfeb2afca817"
+    },
+    {
+      "file": "before/mia-arcana-ambient.png",
+      "sha256": "0a0567c5f04c99623dd13beae22807783d2fab65a2f0b371741ea573fc91fa57"
+    },
+    {
+      "file": "before/mia-arcana-failure.png",
+      "sha256": "8397f47d8a944b9252fbec358993cbf06fcd23ae1950cc88ecfc3bceb76c39d8"
+    },
+    {
+      "file": "before/mia-arcana-success.png",
+      "sha256": "cb31940bab79ba942ff55ca6d67888d1130b725243c66ddd447d2158440f8a3e"
+    },
+    {
+      "file": "before/mia-athletics-ambient.png",
+      "sha256": "36f429b3610962b43f66f7992476210829c8f439eaf3d34916747ddbbf1bd68d"
+    },
+    {
+      "file": "before/mia-athletics-failure.png",
+      "sha256": "c407ff0a7362cedf27fca5bdfe326a0bfc71932df3cc1ba13117090dfb88610c"
+    },
+    {
+      "file": "before/mia-athletics-success.png",
+      "sha256": "8d4134f66e7a7d1267140f7466562ca97d29b63ec16071f7bf455e537f92a63f"
+    },
+    {
+      "file": "before/mia-deception-ambient.png",
+      "sha256": "30faa1a021643b0596808c57e120af875234b96a11a90b97db23c3b22d6b6eeb"
+    },
+    {
+      "file": "before/mia-deception-failure.png",
+      "sha256": "e3ef2eb1c742759620098b4901a12062460e3a83c871f445b7803b4ed3661660"
+    },
+    {
+      "file": "before/mia-deception-success.png",
+      "sha256": "ecc49e6e91a1e9050753f0f60082bd65e8a869f345c773122aa97f31e8e85552"
+    },
+    {
+      "file": "before/mia-history-ambient.png",
+      "sha256": "2d9554401910c4f37805af08ed858f5ac56b40c20d642d8fbba051042338f5f0"
+    },
+    {
+      "file": "before/mia-history-failure.png",
+      "sha256": "3027ac3269254e44f689cb3fc3ec5b722369baa1fc1cc33f464b6c5e81545a7f"
+    },
+    {
+      "file": "before/mia-history-success.png",
+      "sha256": "822ed19cbe879a0fb2ed7a2d5b002aaf52a99ab0c31366e391e4954ffc22c3fc"
+    },
+    {
+      "file": "before/mia-insight-ambient.png",
+      "sha256": "7b31a5837e120856415cebffbf7aab9f53917913afe68954b245b96af47e0aff"
+    },
+    {
+      "file": "before/mia-insight-failure.png",
+      "sha256": "2d4e4d4bbb9102a727fd29240635850988bbc51446a5d19a061e41774647a874"
+    },
+    {
+      "file": "before/mia-insight-success.png",
+      "sha256": "372eac6697949173d8a89eae2a2a561a094effe3e5238c0f9086a15d33228e24"
+    },
+    {
+      "file": "before/mia-intimidation-ambient.png",
+      "sha256": "f3dd87121352c8ebfac99da7909efbbc10fff29fbbc19ce0ae88224b87d23db7"
+    },
+    {
+      "file": "before/mia-intimidation-failure.png",
+      "sha256": "ab640b1bf4c3a4295b6b2725a9bf5d6830d8417537472b3ec83c2f65e50ef16b"
+    },
+    {
+      "file": "before/mia-intimidation-success.png",
+      "sha256": "fbd91f49aa2f631bc22209698773d25f06579bb1ad05bf4bfbe5c4b12eb81018"
+    },
+    {
+      "file": "before/mia-investigation-ambient.png",
+      "sha256": "12b766b8927c968098e8e3d9d842d690fa4e83790b5eeb2e0cb560cc4d07d8af"
+    },
+    {
+      "file": "before/mia-investigation-failure.png",
+      "sha256": "2ffbffbce1fa9857d374a5dcc48fab0e4d42c264302fb3a8551c7b946ee46e92"
+    },
+    {
+      "file": "before/mia-investigation-success.png",
+      "sha256": "108a5c30dc2304e75ed584a2ad613c61b06d61cd64c51c9a9dc015efa6fdfe62"
+    },
+    {
+      "file": "before/mia-medicine-ambient.png",
+      "sha256": "9ea0b5f3c1c539d89e2e6c6a43244bdd3922deb122625d563d0f9fa05ee57a12"
+    },
+    {
+      "file": "before/mia-medicine-failure.png",
+      "sha256": "674bca363b0f27f4b7be93b31b9d09aacf40c4342f689eae07ed428c108f89df"
+    },
+    {
+      "file": "before/mia-medicine-success.png",
+      "sha256": "3dda288d5a6b035e6193702a60428b8f7c56091c31e6a01c509ea543dbd9050d"
+    },
+    {
+      "file": "before/mia-nature-ambient.png",
+      "sha256": "ee72ea8d36065101a5efcb6c919fdfe6f11acf2d33ba3e340fcc825c52ae68ad"
+    },
+    {
+      "file": "before/mia-nature-failure.png",
+      "sha256": "d1ca99d2e66c22bf7b17500e5be23c917f3cd03dce871c72e6e40c11edf5b090"
+    },
+    {
+      "file": "before/mia-nature-success.png",
+      "sha256": "5f4ec072b382e182ab80f7b2bcf8d12db235889f65a4e06b2bdd4f5defcbd8b9"
+    },
+    {
+      "file": "before/mia-perception-ambient.png",
+      "sha256": "0a884c8de66f82af8fe8af9afce349338da7d0bae0c7b747ed4991f483ae634b"
+    },
+    {
+      "file": "before/mia-perception-failure.png",
+      "sha256": "4558366a20d86fefcaee5c22ca87637bdefd3402ee16a0be4959166134df454f"
+    },
+    {
+      "file": "before/mia-perception-success.png",
+      "sha256": "8a9452f9a018e3f369226c84773c4d4d3c22d6c325302509cff7ef8d8b1dd643"
+    },
+    {
+      "file": "before/mia-performance-ambient.png",
+      "sha256": "ceb3561f44c7521b8633da0a32d8e53b4dfe663b8e35b0ec71cfb761514bf4f2"
+    },
+    {
+      "file": "before/mia-performance-failure.png",
+      "sha256": "6c9642d1dd9227d47d930bd58454c03163a2475ec27fe60a4df20209090b33a2"
+    },
+    {
+      "file": "before/mia-performance-success.png",
+      "sha256": "366807359799f26b039d297cb9430ff7a3eae22bad35ff08b585fde433ab0b0b"
+    },
+    {
+      "file": "before/mia-persuasion-ambient.png",
+      "sha256": "cd4e07645244597799c2b9051cec3386724d3a396ab3d01dab45ed860d3856c1"
+    },
+    {
+      "file": "before/mia-persuasion-failure.png",
+      "sha256": "c51a5ecb23cbafbcaec074dd1d3ed21bc2178594bef6857f18609f88b42b6c77"
+    },
+    {
+      "file": "before/mia-persuasion-success.png",
+      "sha256": "21e572a1c9d1da30cabb530569f5cf1e0159af4b80ef52be0e42fb0f7bcf7e78"
+    },
+    {
+      "file": "before/mia-religion-ambient.png",
+      "sha256": "b1983805cfdcdafdbd2c59c4f6331a7774057f58706af144c8c983d2d5ca5aa6"
+    },
+    {
+      "file": "before/mia-religion-failure.png",
+      "sha256": "7fc032ab0e5c2afa993dc81a77c6140663bda54dcedc860d8ed83c1951f629d6"
+    },
+    {
+      "file": "before/mia-religion-success.png",
+      "sha256": "902859d37e86d388962df34f802c47d0b7f59f03a44d9d3966c7e064aae5d27c"
+    },
+    {
+      "file": "before/mia-sleight-of-hand-ambient.png",
+      "sha256": "48e71fffe70f293444d48b3b56ffbb4985bfa715a31ab55bf37c22d465e40572"
+    },
+    {
+      "file": "before/mia-sleight-of-hand-failure.png",
+      "sha256": "b389219cb8d47472e4ddc9b4d4d32bfe39586a94b21e0b6910bc97ccef653a92"
+    },
+    {
+      "file": "before/mia-sleight-of-hand-success.png",
+      "sha256": "a7f1dc0dc7ada68c251f3720da981bb3cb3427ca5bb5bc9df4629cecee6aca16"
+    },
+    {
+      "file": "before/mia-stealth-ambient.png",
+      "sha256": "a8684bae55a6ad970cc781230e184aabd0fa041634c11eda20b6704504ca1786"
+    },
+    {
+      "file": "before/mia-stealth-failure.png",
+      "sha256": "e35135f4bb0cd12733983edd7bbb43ac42fbd83ffc6a307efb831843e619b2e9"
+    },
+    {
+      "file": "before/mia-stealth-success.png",
+      "sha256": "6ad513a6a7cb61321964a978463b5346f532a87621661524f2235b01d6e4caea"
+    },
+    {
+      "file": "before/mia-survival-ambient.png",
+      "sha256": "e7632b216a67645985c527929ba3b72ad64ae163571da13edf50e4003fc7e894"
+    },
+    {
+      "file": "before/mia-survival-failure.png",
+      "sha256": "3bd682ec90cf40040c5263166cc283f5e9bebbd8b353260373e5998c96bf27c0"
+    },
+    {
+      "file": "before/mia-survival-success.png",
+      "sha256": "057976364aa59c653eb0022f8b1c9d24aa1d2cd88308f43cc523fa47715118f4"
+    },
+    {
+      "file": "before/mike-acrobatics-ambient.png",
+      "sha256": "7fccd43096db589ab716d6951662259f350af24bde1c57de77cae6efd22d17f8"
+    },
+    {
+      "file": "before/mike-acrobatics-failure.png",
+      "sha256": "78fb0b14b6835fded60c48600bc7edeaba5f89aa041dc4a12e9785eb3355cc84"
+    },
+    {
+      "file": "before/mike-acrobatics-success.png",
+      "sha256": "690b95e4e977fbce550c916b3418c49515db4d8ba88b472478d2394b59286a94"
+    },
+    {
+      "file": "before/mike-animal-handling-ambient.png",
+      "sha256": "dd6d1fe4dbbac35549e6642a8a7d51a7c07e9975fbe8d57754de52e91812911a"
+    },
+    {
+      "file": "before/mike-animal-handling-failure.png",
+      "sha256": "dc43d1c518e07ae77d0f893b9ebec953ce628eb89ed69eaea736c170fd159998"
+    },
+    {
+      "file": "before/mike-animal-handling-success.png",
+      "sha256": "56fa1a8d2112ca5db825836bf5d8d07d93fd09438c31c965ba191e2bbb9220c2"
+    },
+    {
+      "file": "before/mike-arcana-ambient.png",
+      "sha256": "6edbab2b0ff1766556f49227568c29fb604f084ceeed7a83ba4780e6fd9366c9"
+    },
+    {
+      "file": "before/mike-arcana-failure.png",
+      "sha256": "418ed3f0dfef0b2ece8b2aed1d073aa78a95eb5b45941ab49452b15b4c8a354d"
+    },
+    {
+      "file": "before/mike-arcana-success.png",
+      "sha256": "3b54237b9e6245b64a314bcff4b3525f33d92e6e5dd4f0b46b70e9160c3382ae"
+    },
+    {
+      "file": "before/mike-athletics-ambient.png",
+      "sha256": "a0bf7b958cba0d1b318ad6bd3f102ef2c676952cc3e75256fa6f7fe0b2dccc9d"
+    },
+    {
+      "file": "before/mike-athletics-failure.png",
+      "sha256": "6dd5dc9da17e8296b0aa0ec95c944602efdef214f1449c426aee4bcbaa597158"
+    },
+    {
+      "file": "before/mike-athletics-success.png",
+      "sha256": "994e29bac188d80735e44509f51f6e2e487aac702c13ac2554f7d4173a406302"
+    },
+    {
+      "file": "before/mike-deception-ambient.png",
+      "sha256": "9416ec6d6b93e9fa47f1680ca2629902d13ae736f0e03d0b6328e565a679e1ac"
+    },
+    {
+      "file": "before/mike-deception-failure.png",
+      "sha256": "f2054aa44781e9e84b76ff2ef771c99576023ea412a4d21ff2dfe4fe2a981fa3"
+    },
+    {
+      "file": "before/mike-deception-success.png",
+      "sha256": "13265271ab317cc6ec66d2de5df1b7d68b96b073927cea4bb45afc3bd10a3926"
+    },
+    {
+      "file": "before/mike-history-ambient.png",
+      "sha256": "04585f1fb91c041ff066afb8bc9fb5339fde70b3f0cae1c38e0db4d0b72f5bac"
+    },
+    {
+      "file": "before/mike-history-failure.png",
+      "sha256": "d7364422a74df054f12d98cc89bcb12446282bc4a1b4976b88bc1dccc6d7e530"
+    },
+    {
+      "file": "before/mike-history-success.png",
+      "sha256": "21023edadf9524eaa97b0e8bfeec77964a63890720eed4e9684761ac674a771e"
+    },
+    {
+      "file": "before/mike-insight-ambient.png",
+      "sha256": "638b52d7282fae7b0396e4420bdb9e249a0375651b379b5e1c2b27ea574708bb"
+    },
+    {
+      "file": "before/mike-insight-failure.png",
+      "sha256": "a47dd68869c361518127318c7fd9932614aa42075019ed292459fd19e7728f6d"
+    },
+    {
+      "file": "before/mike-insight-success.png",
+      "sha256": "3cab4e3833c417cac02c2725a1b8073e5e252e8fd5511528945711a202311a26"
+    },
+    {
+      "file": "before/mike-intimidation-ambient.png",
+      "sha256": "6989df367636bb07f8c23b231ff8d6d7185ecb63bdc5a84a8b8e45ade03c7ba4"
+    },
+    {
+      "file": "before/mike-intimidation-failure.png",
+      "sha256": "385e640b6e120f59b7bb55ff8476881f01ae88e27ce946d33b5c609e681fc6cd"
+    },
+    {
+      "file": "before/mike-intimidation-success.png",
+      "sha256": "15447429dc328e4323f2dbb071b31f1d71fc530a53f1ecbc93ed3cb15d9a42ca"
+    },
+    {
+      "file": "before/mike-investigation-ambient.png",
+      "sha256": "37f1a8d65f28e041609bfba54ea9ba77b2a35e4c08846ff7ec8b38bab28c83d9"
+    },
+    {
+      "file": "before/mike-investigation-failure.png",
+      "sha256": "e143c87d13757dc27826e157bd4f5c35da0ffc604b3eebb9792b3d0b631c0c26"
+    },
+    {
+      "file": "before/mike-investigation-success.png",
+      "sha256": "3c89e83b473aca411e42db4e630759123c309397e37d29949fcee0f3796e7d65"
+    },
+    {
+      "file": "before/mike-medicine-ambient.png",
+      "sha256": "1439bcfbde31a9a1cc0749ec126490d35b745a7b5e0027c551c18d6629d1bd81"
+    },
+    {
+      "file": "before/mike-medicine-failure.png",
+      "sha256": "c15812879bec4ae7ae06917bc4157e2a1e71a71ef1658d95996965a3d99d430e"
+    },
+    {
+      "file": "before/mike-medicine-success.png",
+      "sha256": "777e9e4429d4fe361ef0907897eea210354b75154fe13a8bee46695a387b0d60"
+    },
+    {
+      "file": "before/mike-nature-ambient.png",
+      "sha256": "447ed38ddf62350fd6cd86aac02cd7b860b79bb1dcc4a43c4aabac8223967565"
+    },
+    {
+      "file": "before/mike-nature-failure.png",
+      "sha256": "30cbe632bf51eb7305b45a5a1a6837f50e7c56fe827195ef66511b2ee27c7b29"
+    },
+    {
+      "file": "before/mike-nature-success.png",
+      "sha256": "2406cb0e98a3a67296c37e86bbcec7542637aa8a3da30425c2067e86cb4696fb"
+    },
+    {
+      "file": "before/mike-perception-ambient.png",
+      "sha256": "440f6e0fe26196092648a5e88b0e532328f463b6fb95a8c518040504fd493c3f"
+    },
+    {
+      "file": "before/mike-perception-failure.png",
+      "sha256": "286fb388185b1b37d40d45aaa2c263731545b2f3b801bd22865d0f26ac0bf1aa"
+    },
+    {
+      "file": "before/mike-perception-success.png",
+      "sha256": "d66ee0e03fa18a1a97822d335d094e8ee7494c501397605334918a74da82de73"
+    },
+    {
+      "file": "before/mike-performance-ambient.png",
+      "sha256": "622e8794a096b6aee0d671e49ba24325fe59be52983b9786d720d186e1bf60ed"
+    },
+    {
+      "file": "before/mike-performance-failure.png",
+      "sha256": "e88b78b0598df248ff0687296c39355cc2f0f03b047b8aba9851a3b5d7796554"
+    },
+    {
+      "file": "before/mike-performance-success.png",
+      "sha256": "53b5e0deb62732c87f68456074f314bb23779da641accb013403cedac43ee2af"
+    },
+    {
+      "file": "before/mike-persuasion-ambient.png",
+      "sha256": "3e99f28aca56d8bacc2bf725aa03195d0cec32da4cf20a62c39796c7f11e8434"
+    },
+    {
+      "file": "before/mike-persuasion-failure.png",
+      "sha256": "fc9a432b170df97b96f489b24101ff3b5a57b29014e2b1f288a7eb13ff01b90c"
+    },
+    {
+      "file": "before/mike-persuasion-success.png",
+      "sha256": "671283cfce223d451e14449adc18505b01f2e928a904f88b8b9d3b1857e8fb08"
+    },
+    {
+      "file": "before/mike-religion-ambient.png",
+      "sha256": "07697db4121bb7024cb2cbd6200ba12b35d033f304d82c6d5bd049fd7a0b087c"
+    },
+    {
+      "file": "before/mike-religion-failure.png",
+      "sha256": "41e9792d1b01ba2444a5015a332908cd4973847287a68344a8f3c53fb779a0c2"
+    },
+    {
+      "file": "before/mike-religion-success.png",
+      "sha256": "92b1613b1337344acb6dd5b91e082987fa20012b43f8fba8a18baf7933df3537"
+    },
+    {
+      "file": "before/mike-sleight-of-hand-ambient.png",
+      "sha256": "8b4921f3611c4f93cc49cb47440a9b513376ec4eec4cffe4f25463ebf9fa368d"
+    },
+    {
+      "file": "before/mike-sleight-of-hand-failure.png",
+      "sha256": "8daa67d55ebcaaa06f3689bfbf156d43618c2171e62935be6ba1143208368be6"
+    },
+    {
+      "file": "before/mike-sleight-of-hand-success.png",
+      "sha256": "7041dad88dc5728863520611c5e4770d9790bbb18401a878824780379c38c602"
+    },
+    {
+      "file": "before/mike-stealth-ambient.png",
+      "sha256": "7469259334162a5c1ddd06b5b788e5d505f463e67cd0b9f904f3f756af7d25aa"
+    },
+    {
+      "file": "before/mike-stealth-failure.png",
+      "sha256": "743afb9de5d35190d046ed9a4842d9732245741190b135e3312e68c59de37ab8"
+    },
+    {
+      "file": "before/mike-stealth-success.png",
+      "sha256": "13bf51348b71edf1602e2c82bf72885509551abf8f8aba362b62cd58a0b9009d"
+    },
+    {
+      "file": "before/mike-survival-ambient.png",
+      "sha256": "38f50487d443450e885c3638f632129e3f1a3835d2d24ecf31f19fa9acdf0c9c"
+    },
+    {
+      "file": "before/mike-survival-failure.png",
+      "sha256": "e07a27e5ce10d27963f4d492924b84bd4148b9c9fdf4d31dab560b47fcbc02c5"
+    },
+    {
+      "file": "before/mike-survival-success.png",
+      "sha256": "f06a79cc201b1edd1691a7b19df3782f16ec7f451feb323e4fc1a6ad0947bccc"
+    },
+    {
+      "file": "after/maria-acrobatics-ambient.png",
+      "sha256": "001ae370685a546c5f55726d464786718550096f1989035e74f896297daf6eb5"
+    },
+    {
+      "file": "after/maria-acrobatics-failure.png",
+      "sha256": "fa4afce66aad1581da8d52c7053d7d64e9805da0bdc1b0229bbbbe8d2b4948fb"
+    },
+    {
+      "file": "after/maria-acrobatics-success.png",
+      "sha256": "7c63cdd2852247110004509ef2882d45c116f93fc493c1c085ed754a321ab417"
+    },
+    {
+      "file": "after/maria-animal-handling-ambient.png",
+      "sha256": "b7c703a090172cc76efc5402fc2f93af8bc25daa39f851179f30573bfbc6bc3a"
+    },
+    {
+      "file": "after/maria-animal-handling-failure.png",
+      "sha256": "f655803f8c96c1693101808567035e5de629855dfa86447392035867f296a3cd"
+    },
+    {
+      "file": "after/maria-animal-handling-success.png",
+      "sha256": "da04993ccb60352dd3ef2b950748e8158f498931d538f3f79051989ab1069981"
+    },
+    {
+      "file": "after/maria-arcana-ambient.png",
+      "sha256": "aa0c78ed23caf86a3d54d74bd33f9fff1430dc9beaa89be44e5d8552523a6d13"
+    },
+    {
+      "file": "after/maria-arcana-failure.png",
+      "sha256": "5a79f5ef8fd8d0a0c936e7ab030dc5e6806b4adb782131b95e6f00b0a7a3eda8"
+    },
+    {
+      "file": "after/maria-arcana-success.png",
+      "sha256": "85fd1485f1f8c577acf57586bb079732fc4c7196af64e0de4dcca3e627760104"
+    },
+    {
+      "file": "after/maria-athletics-ambient.png",
+      "sha256": "ffe4d657534f5c4931d967b59ea940ea699e9e9170645c32d83e4a32855c1aa8"
+    },
+    {
+      "file": "after/maria-athletics-failure.png",
+      "sha256": "e64e7e871585b513554c199e689bbf6a4bc603154d4c8352b12df3240948c133"
+    },
+    {
+      "file": "after/maria-athletics-success.png",
+      "sha256": "89ad246bda8f401bbead15ead8feb526be0aba936712e59ac17e66b1a8a22cf7"
+    },
+    {
+      "file": "after/maria-deception-ambient.png",
+      "sha256": "e1909e6dc8170de286b7ff9fba066354b0b2deeb95c5dabdc9db305ba86a0e08"
+    },
+    {
+      "file": "after/maria-deception-failure.png",
+      "sha256": "bd8d1bf05379c35c2b60d9d172f9b08059a5de7c01e9311166ab8745cc405993"
+    },
+    {
+      "file": "after/maria-deception-success.png",
+      "sha256": "0c7de6161ec16a835a9248156f85ec995cb5b9bb0f6b64d1d12aaac7a53d3b46"
+    },
+    {
+      "file": "after/maria-history-ambient.png",
+      "sha256": "333bfb176be15aa7c2e08140e1eb131730eb69bfecfc2d80d7090b2e07334dc3"
+    },
+    {
+      "file": "after/maria-history-failure.png",
+      "sha256": "3d13a56b11791c45327debf2215f49f2b62a8df199f1394e404f2176c196bea9"
+    },
+    {
+      "file": "after/maria-history-success.png",
+      "sha256": "c4c7759ca17c76c696f4ac3846604afa30a8cc384c19602398a01d46c554c2da"
+    },
+    {
+      "file": "after/maria-insight-ambient.png",
+      "sha256": "bf2ec8aae312b29fd5f834fe1aa08ca17faa2c2b44267015c11859051be2f3f2"
+    },
+    {
+      "file": "after/maria-insight-failure.png",
+      "sha256": "d2a545a45d621f0b015e952c4dad736fdca911900f0ca1efd6399611718dfb3d"
+    },
+    {
+      "file": "after/maria-insight-success.png",
+      "sha256": "e3a5101061b7f311c1601ec75f28b30102954f18907f3c8aa2c364b66bbb3564"
+    },
+    {
+      "file": "after/maria-intimidation-ambient.png",
+      "sha256": "ae398520c49188d468f2f78cd95c26c131e4f8a37d917fb242a88e06f94dd024"
+    },
+    {
+      "file": "after/maria-intimidation-failure.png",
+      "sha256": "1b767723c9df0170e9820a22bab4857f765c54547ff1cf3a116428ff983b60cb"
+    },
+    {
+      "file": "after/maria-intimidation-success.png",
+      "sha256": "f8c4cf3124ddfb10e123ab1392545195ca804e6dd70a582b57987c55231d2156"
+    },
+    {
+      "file": "after/maria-investigation-ambient.png",
+      "sha256": "d00074eeba62070fd289c70441f4b4721def6773423c3d083c8f13add05e4044"
+    },
+    {
+      "file": "after/maria-investigation-failure.png",
+      "sha256": "a0935117d6f6479a80de32f4bb087511d8dd4ade1547803f2bc63c5845d628a8"
+    },
+    {
+      "file": "after/maria-investigation-success.png",
+      "sha256": "f1c1343722cec7548117758901175512d90cda4da400d99d17542062f7f3a982"
+    },
+    {
+      "file": "after/maria-medicine-ambient.png",
+      "sha256": "6d25f507bf0c1c6401b5adcb7724561be7741d1fd779e4f557ef6d9dce0aa25d"
+    },
+    {
+      "file": "after/maria-medicine-failure.png",
+      "sha256": "9b450bfff7d9ca2622935affaf92d81b6ec87a26c8c9ed26a6b430532ae67b65"
+    },
+    {
+      "file": "after/maria-medicine-success.png",
+      "sha256": "14f147150cbdd0438bcc36641b6cc488b30c0024cbd2f1fb14cea4a18d11e2f0"
+    },
+    {
+      "file": "after/maria-nature-ambient.png",
+      "sha256": "8fc1110fa46510c83749edea57f0de94a0f5f2f62266638a41c7a8387199f107"
+    },
+    {
+      "file": "after/maria-nature-failure.png",
+      "sha256": "6840eb00c5edef1ceaa7a0f5b557eef9d5a17da9fc9da52367513d96ac6f923e"
+    },
+    {
+      "file": "after/maria-nature-success.png",
+      "sha256": "c052b6887a0be93c66fc7d4746ddf97d033e0921b444a9357e6da9add9956ad0"
+    },
+    {
+      "file": "after/maria-perception-ambient.png",
+      "sha256": "11a2653f39f9980844af5fb7f7c50021bdb8d0fd7a7d1d9f2d83c138ae4fd57b"
+    },
+    {
+      "file": "after/maria-perception-failure.png",
+      "sha256": "d59412d2d9fdac8692d58d058cbfe5f622669dd51eece67768ce2586af7a36e8"
+    },
+    {
+      "file": "after/maria-perception-success.png",
+      "sha256": "2226b427ac8cefc759d25c6b6604735551ecbd37572132f660e66f60e46898af"
+    },
+    {
+      "file": "after/maria-performance-ambient.png",
+      "sha256": "8ae9ec6c57b0d4379e68e7e45a67631f7373da2455b7745263da74177f43d02a"
+    },
+    {
+      "file": "after/maria-performance-failure.png",
+      "sha256": "41d7990fa9f141194bff5be10558195c25bc0941f91be11b337d1e249d6895bb"
+    },
+    {
+      "file": "after/maria-performance-success.png",
+      "sha256": "3ef48286019078ac3afccc16963213d8970af9def2a98636fb071e3aa93a4000"
+    },
+    {
+      "file": "after/maria-persuasion-ambient.png",
+      "sha256": "67cd6dcbce7f75f41a016b90c1c73e3eebe934798287a1e0fe9b7da58a203005"
+    },
+    {
+      "file": "after/maria-persuasion-failure.png",
+      "sha256": "ac8b7a96519867efc40a95ad8e64fed7bd8afea5b364748360c55b242613d380"
+    },
+    {
+      "file": "after/maria-persuasion-success.png",
+      "sha256": "b3a0b3f84a1a17d2e7e863460805e1815abbee51314aedab22ff4d3641db99af"
+    },
+    {
+      "file": "after/maria-religion-ambient.png",
+      "sha256": "72c29e7b2e0378383ef77116ad4bee1da1f4b2eef0230e86771684a786bebd0a"
+    },
+    {
+      "file": "after/maria-religion-failure.png",
+      "sha256": "b42f035817fb4d8a47a48e9b2e93310756d0d425d33c3fe2a9c06e33a0d48b9c"
+    },
+    {
+      "file": "after/maria-religion-success.png",
+      "sha256": "d901bedb0637f0751b3a2ef00fa999498657ea345452024f8530538c0331c7a6"
+    },
+    {
+      "file": "after/maria-sleight-of-hand-ambient.png",
+      "sha256": "70178ae185291cff0ac17b02a5f20afc7dea1ebfcce29ae446855d36685feade"
+    },
+    {
+      "file": "after/maria-sleight-of-hand-failure.png",
+      "sha256": "a44331887370b2064e8646e1827bb2b867195eff95c2522ef103b467f9adf0b5"
+    },
+    {
+      "file": "after/maria-sleight-of-hand-success.png",
+      "sha256": "f62a9ad693be3353001e705d2be9f2ab380997e14adca3a8204fb7367165469d"
+    },
+    {
+      "file": "after/maria-stealth-ambient.png",
+      "sha256": "9cf99f6b8be5d28c930b9962ba4d0fec906f484c8a32c1c34e55fc66e27002f6"
+    },
+    {
+      "file": "after/maria-stealth-failure.png",
+      "sha256": "984c3776281743030d6494467762c369beff4a8d8cc63332b322c989219b5fbb"
+    },
+    {
+      "file": "after/maria-stealth-success.png",
+      "sha256": "69c80edcb4024cf759f5814c188844f668002b94974a4d5ba78583ec63ecf680"
+    },
+    {
+      "file": "after/maria-survival-ambient.png",
+      "sha256": "e60591321a60e57c4215502edd9b437c7bb2a26b438e262437d276a95c7ec74b"
+    },
+    {
+      "file": "after/maria-survival-failure.png",
+      "sha256": "502d770d6e90e045b05995fb7b6f0da608d02564bb9af59493d3a60c6ddbec86"
+    },
+    {
+      "file": "after/maria-survival-success.png",
+      "sha256": "4307b894bfb56ae3cbae83c486f949f94ad90f7d206074cc184f2d6d1a0b53a1"
+    },
+    {
+      "file": "after/mia-acrobatics-ambient.png",
+      "sha256": "f0ec7c2cb3c90e7fa96151bd3daaa795d30c72e3d28e3f8072e3084c4a68ac87"
+    },
+    {
+      "file": "after/mia-acrobatics-failure.png",
+      "sha256": "41de50b9ddd5abbef75da03c470b6d1a73908b3d1f0abcb5f8eb160c42de9fe5"
+    },
+    {
+      "file": "after/mia-acrobatics-success.png",
+      "sha256": "034c70b08c3f284aa6776122732da12e3c407750e8f59c7b7eb51defa49214ca"
+    },
+    {
+      "file": "after/mia-animal-handling-ambient.png",
+      "sha256": "35df7eafadceafe3008946f5a96a98caa4467ff6dd128d4b4a8f28ae543dcda3"
+    },
+    {
+      "file": "after/mia-animal-handling-failure.png",
+      "sha256": "b28d9278bb62f0ebaf32468d56874890a971bcb5d593fa0be43381cb628da4e5"
+    },
+    {
+      "file": "after/mia-animal-handling-success.png",
+      "sha256": "263ea7e918345f347257720b11c650d690c087a8f5713e8d5e79bfeb2afca817"
+    },
+    {
+      "file": "after/mia-arcana-ambient.png",
+      "sha256": "0a0567c5f04c99623dd13beae22807783d2fab65a2f0b371741ea573fc91fa57"
+    },
+    {
+      "file": "after/mia-arcana-failure.png",
+      "sha256": "8397f47d8a944b9252fbec358993cbf06fcd23ae1950cc88ecfc3bceb76c39d8"
+    },
+    {
+      "file": "after/mia-arcana-success.png",
+      "sha256": "cb31940bab79ba942ff55ca6d67888d1130b725243c66ddd447d2158440f8a3e"
+    },
+    {
+      "file": "after/mia-athletics-ambient.png",
+      "sha256": "36f429b3610962b43f66f7992476210829c8f439eaf3d34916747ddbbf1bd68d"
+    },
+    {
+      "file": "after/mia-athletics-failure.png",
+      "sha256": "c407ff0a7362cedf27fca5bdfe326a0bfc71932df3cc1ba13117090dfb88610c"
+    },
+    {
+      "file": "after/mia-athletics-success.png",
+      "sha256": "8d4134f66e7a7d1267140f7466562ca97d29b63ec16071f7bf455e537f92a63f"
+    },
+    {
+      "file": "after/mia-deception-ambient.png",
+      "sha256": "30faa1a021643b0596808c57e120af875234b96a11a90b97db23c3b22d6b6eeb"
+    },
+    {
+      "file": "after/mia-deception-failure.png",
+      "sha256": "e3ef2eb1c742759620098b4901a12062460e3a83c871f445b7803b4ed3661660"
+    },
+    {
+      "file": "after/mia-deception-success.png",
+      "sha256": "ecc49e6e91a1e9050753f0f60082bd65e8a869f345c773122aa97f31e8e85552"
+    },
+    {
+      "file": "after/mia-history-ambient.png",
+      "sha256": "2d9554401910c4f37805af08ed858f5ac56b40c20d642d8fbba051042338f5f0"
+    },
+    {
+      "file": "after/mia-history-failure.png",
+      "sha256": "3027ac3269254e44f689cb3fc3ec5b722369baa1fc1cc33f464b6c5e81545a7f"
+    },
+    {
+      "file": "after/mia-history-success.png",
+      "sha256": "822ed19cbe879a0fb2ed7a2d5b002aaf52a99ab0c31366e391e4954ffc22c3fc"
+    },
+    {
+      "file": "after/mia-insight-ambient.png",
+      "sha256": "7b31a5837e120856415cebffbf7aab9f53917913afe68954b245b96af47e0aff"
+    },
+    {
+      "file": "after/mia-insight-failure.png",
+      "sha256": "2d4e4d4bbb9102a727fd29240635850988bbc51446a5d19a061e41774647a874"
+    },
+    {
+      "file": "after/mia-insight-success.png",
+      "sha256": "372eac6697949173d8a89eae2a2a561a094effe3e5238c0f9086a15d33228e24"
+    },
+    {
+      "file": "after/mia-intimidation-ambient.png",
+      "sha256": "f3dd87121352c8ebfac99da7909efbbc10fff29fbbc19ce0ae88224b87d23db7"
+    },
+    {
+      "file": "after/mia-intimidation-failure.png",
+      "sha256": "ab640b1bf4c3a4295b6b2725a9bf5d6830d8417537472b3ec83c2f65e50ef16b"
+    },
+    {
+      "file": "after/mia-intimidation-success.png",
+      "sha256": "397e2c190156684cd93c9206e6f2dc6997a713c7a04b9be8d87dfa82ef3d9a23"
+    },
+    {
+      "file": "after/mia-investigation-ambient.png",
+      "sha256": "12b766b8927c968098e8e3d9d842d690fa4e83790b5eeb2e0cb560cc4d07d8af"
+    },
+    {
+      "file": "after/mia-investigation-failure.png",
+      "sha256": "2ffbffbce1fa9857d374a5dcc48fab0e4d42c264302fb3a8551c7b946ee46e92"
+    },
+    {
+      "file": "after/mia-investigation-success.png",
+      "sha256": "108a5c30dc2304e75ed584a2ad613c61b06d61cd64c51c9a9dc015efa6fdfe62"
+    },
+    {
+      "file": "after/mia-medicine-ambient.png",
+      "sha256": "9ea0b5f3c1c539d89e2e6c6a43244bdd3922deb122625d563d0f9fa05ee57a12"
+    },
+    {
+      "file": "after/mia-medicine-failure.png",
+      "sha256": "674bca363b0f27f4b7be93b31b9d09aacf40c4342f689eae07ed428c108f89df"
+    },
+    {
+      "file": "after/mia-medicine-success.png",
+      "sha256": "3dda288d5a6b035e6193702a60428b8f7c56091c31e6a01c509ea543dbd9050d"
+    },
+    {
+      "file": "after/mia-nature-ambient.png",
+      "sha256": "ee72ea8d36065101a5efcb6c919fdfe6f11acf2d33ba3e340fcc825c52ae68ad"
+    },
+    {
+      "file": "after/mia-nature-failure.png",
+      "sha256": "d1ca99d2e66c22bf7b17500e5be23c917f3cd03dce871c72e6e40c11edf5b090"
+    },
+    {
+      "file": "after/mia-nature-success.png",
+      "sha256": "5f4ec072b382e182ab80f7b2bcf8d12db235889f65a4e06b2bdd4f5defcbd8b9"
+    },
+    {
+      "file": "after/mia-perception-ambient.png",
+      "sha256": "0a884c8de66f82af8fe8af9afce349338da7d0bae0c7b747ed4991f483ae634b"
+    },
+    {
+      "file": "after/mia-perception-failure.png",
+      "sha256": "4558366a20d86fefcaee5c22ca87637bdefd3402ee16a0be4959166134df454f"
+    },
+    {
+      "file": "after/mia-perception-success.png",
+      "sha256": "8a9452f9a018e3f369226c84773c4d4d3c22d6c325302509cff7ef8d8b1dd643"
+    },
+    {
+      "file": "after/mia-performance-ambient.png",
+      "sha256": "ceb3561f44c7521b8633da0a32d8e53b4dfe663b8e35b0ec71cfb761514bf4f2"
+    },
+    {
+      "file": "after/mia-performance-failure.png",
+      "sha256": "6c9642d1dd9227d47d930bd58454c03163a2475ec27fe60a4df20209090b33a2"
+    },
+    {
+      "file": "after/mia-performance-success.png",
+      "sha256": "366807359799f26b039d297cb9430ff7a3eae22bad35ff08b585fde433ab0b0b"
+    },
+    {
+      "file": "after/mia-persuasion-ambient.png",
+      "sha256": "cd4e07645244597799c2b9051cec3386724d3a396ab3d01dab45ed860d3856c1"
+    },
+    {
+      "file": "after/mia-persuasion-failure.png",
+      "sha256": "c51a5ecb23cbafbcaec074dd1d3ed21bc2178594bef6857f18609f88b42b6c77"
+    },
+    {
+      "file": "after/mia-persuasion-success.png",
+      "sha256": "21e572a1c9d1da30cabb530569f5cf1e0159af4b80ef52be0e42fb0f7bcf7e78"
+    },
+    {
+      "file": "after/mia-religion-ambient.png",
+      "sha256": "b1983805cfdcdafdbd2c59c4f6331a7774057f58706af144c8c983d2d5ca5aa6"
+    },
+    {
+      "file": "after/mia-religion-failure.png",
+      "sha256": "7fc032ab0e5c2afa993dc81a77c6140663bda54dcedc860d8ed83c1951f629d6"
+    },
+    {
+      "file": "after/mia-religion-success.png",
+      "sha256": "902859d37e86d388962df34f802c47d0b7f59f03a44d9d3966c7e064aae5d27c"
+    },
+    {
+      "file": "after/mia-sleight-of-hand-ambient.png",
+      "sha256": "48e71fffe70f293444d48b3b56ffbb4985bfa715a31ab55bf37c22d465e40572"
+    },
+    {
+      "file": "after/mia-sleight-of-hand-failure.png",
+      "sha256": "b389219cb8d47472e4ddc9b4d4d32bfe39586a94b21e0b6910bc97ccef653a92"
+    },
+    {
+      "file": "after/mia-sleight-of-hand-success.png",
+      "sha256": "a7f1dc0dc7ada68c251f3720da981bb3cb3427ca5bb5bc9df4629cecee6aca16"
+    },
+    {
+      "file": "after/mia-stealth-ambient.png",
+      "sha256": "a8684bae55a6ad970cc781230e184aabd0fa041634c11eda20b6704504ca1786"
+    },
+    {
+      "file": "after/mia-stealth-failure.png",
+      "sha256": "e35135f4bb0cd12733983edd7bbb43ac42fbd83ffc6a307efb831843e619b2e9"
+    },
+    {
+      "file": "after/mia-stealth-success.png",
+      "sha256": "6ad513a6a7cb61321964a978463b5346f532a87621661524f2235b01d6e4caea"
+    },
+    {
+      "file": "after/mia-survival-ambient.png",
+      "sha256": "e7632b216a67645985c527929ba3b72ad64ae163571da13edf50e4003fc7e894"
+    },
+    {
+      "file": "after/mia-survival-failure.png",
+      "sha256": "3bd682ec90cf40040c5263166cc283f5e9bebbd8b353260373e5998c96bf27c0"
+    },
+    {
+      "file": "after/mia-survival-success.png",
+      "sha256": "057976364aa59c653eb0022f8b1c9d24aa1d2cd88308f43cc523fa47715118f4"
+    },
+    {
+      "file": "after/mike-acrobatics-ambient.png",
+      "sha256": "cc36355d3ca2e923cb23bb865d48e8358c1313f74b394660170e70fd875bcab2"
+    },
+    {
+      "file": "after/mike-acrobatics-failure.png",
+      "sha256": "61439ae77e71883465df27a83f0978a7aafeab7531b37749b34eb195cc3f5dee"
+    },
+    {
+      "file": "after/mike-acrobatics-success.png",
+      "sha256": "d828e88670ecc944eef8dd5f0605a819b870d4ff0be6257a71c16080304dbb6f"
+    },
+    {
+      "file": "after/mike-animal-handling-ambient.png",
+      "sha256": "dd6d1fe4dbbac35549e6642a8a7d51a7c07e9975fbe8d57754de52e91812911a"
+    },
+    {
+      "file": "after/mike-animal-handling-failure.png",
+      "sha256": "dc43d1c518e07ae77d0f893b9ebec953ce628eb89ed69eaea736c170fd159998"
+    },
+    {
+      "file": "after/mike-animal-handling-success.png",
+      "sha256": "56fa1a8d2112ca5db825836bf5d8d07d93fd09438c31c965ba191e2bbb9220c2"
+    },
+    {
+      "file": "after/mike-arcana-ambient.png",
+      "sha256": "6edbab2b0ff1766556f49227568c29fb604f084ceeed7a83ba4780e6fd9366c9"
+    },
+    {
+      "file": "after/mike-arcana-failure.png",
+      "sha256": "418ed3f0dfef0b2ece8b2aed1d073aa78a95eb5b45941ab49452b15b4c8a354d"
+    },
+    {
+      "file": "after/mike-arcana-success.png",
+      "sha256": "3b54237b9e6245b64a314bcff4b3525f33d92e6e5dd4f0b46b70e9160c3382ae"
+    },
+    {
+      "file": "after/mike-athletics-ambient.png",
+      "sha256": "a0bf7b958cba0d1b318ad6bd3f102ef2c676952cc3e75256fa6f7fe0b2dccc9d"
+    },
+    {
+      "file": "after/mike-athletics-failure.png",
+      "sha256": "6dd5dc9da17e8296b0aa0ec95c944602efdef214f1449c426aee4bcbaa597158"
+    },
+    {
+      "file": "after/mike-athletics-success.png",
+      "sha256": "994e29bac188d80735e44509f51f6e2e487aac702c13ac2554f7d4173a406302"
+    },
+    {
+      "file": "after/mike-deception-ambient.png",
+      "sha256": "9416ec6d6b93e9fa47f1680ca2629902d13ae736f0e03d0b6328e565a679e1ac"
+    },
+    {
+      "file": "after/mike-deception-failure.png",
+      "sha256": "f2054aa44781e9e84b76ff2ef771c99576023ea412a4d21ff2dfe4fe2a981fa3"
+    },
+    {
+      "file": "after/mike-deception-success.png",
+      "sha256": "13265271ab317cc6ec66d2de5df1b7d68b96b073927cea4bb45afc3bd10a3926"
+    },
+    {
+      "file": "after/mike-history-ambient.png",
+      "sha256": "04585f1fb91c041ff066afb8bc9fb5339fde70b3f0cae1c38e0db4d0b72f5bac"
+    },
+    {
+      "file": "after/mike-history-failure.png",
+      "sha256": "d7364422a74df054f12d98cc89bcb12446282bc4a1b4976b88bc1dccc6d7e530"
+    },
+    {
+      "file": "after/mike-history-success.png",
+      "sha256": "21023edadf9524eaa97b0e8bfeec77964a63890720eed4e9684761ac674a771e"
+    },
+    {
+      "file": "after/mike-insight-ambient.png",
+      "sha256": "638b52d7282fae7b0396e4420bdb9e249a0375651b379b5e1c2b27ea574708bb"
+    },
+    {
+      "file": "after/mike-insight-failure.png",
+      "sha256": "a47dd68869c361518127318c7fd9932614aa42075019ed292459fd19e7728f6d"
+    },
+    {
+      "file": "after/mike-insight-success.png",
+      "sha256": "3cab4e3833c417cac02c2725a1b8073e5e252e8fd5511528945711a202311a26"
+    },
+    {
+      "file": "after/mike-intimidation-ambient.png",
+      "sha256": "6989df367636bb07f8c23b231ff8d6d7185ecb63bdc5a84a8b8e45ade03c7ba4"
+    },
+    {
+      "file": "after/mike-intimidation-failure.png",
+      "sha256": "385e640b6e120f59b7bb55ff8476881f01ae88e27ce946d33b5c609e681fc6cd"
+    },
+    {
+      "file": "after/mike-intimidation-success.png",
+      "sha256": "79c00fc3f47d6c64fb59ef8553bfcaff27b17ff603f41cb7c5f6cb7b0b189289"
+    },
+    {
+      "file": "after/mike-investigation-ambient.png",
+      "sha256": "37f1a8d65f28e041609bfba54ea9ba77b2a35e4c08846ff7ec8b38bab28c83d9"
+    },
+    {
+      "file": "after/mike-investigation-failure.png",
+      "sha256": "e143c87d13757dc27826e157bd4f5c35da0ffc604b3eebb9792b3d0b631c0c26"
+    },
+    {
+      "file": "after/mike-investigation-success.png",
+      "sha256": "3c89e83b473aca411e42db4e630759123c309397e37d29949fcee0f3796e7d65"
+    },
+    {
+      "file": "after/mike-medicine-ambient.png",
+      "sha256": "1439bcfbde31a9a1cc0749ec126490d35b745a7b5e0027c551c18d6629d1bd81"
+    },
+    {
+      "file": "after/mike-medicine-failure.png",
+      "sha256": "c15812879bec4ae7ae06917bc4157e2a1e71a71ef1658d95996965a3d99d430e"
+    },
+    {
+      "file": "after/mike-medicine-success.png",
+      "sha256": "777e9e4429d4fe361ef0907897eea210354b75154fe13a8bee46695a387b0d60"
+    },
+    {
+      "file": "after/mike-nature-ambient.png",
+      "sha256": "447ed38ddf62350fd6cd86aac02cd7b860b79bb1dcc4a43c4aabac8223967565"
+    },
+    {
+      "file": "after/mike-nature-failure.png",
+      "sha256": "30cbe632bf51eb7305b45a5a1a6837f50e7c56fe827195ef66511b2ee27c7b29"
+    },
+    {
+      "file": "after/mike-nature-success.png",
+      "sha256": "2406cb0e98a3a67296c37e86bbcec7542637aa8a3da30425c2067e86cb4696fb"
+    },
+    {
+      "file": "after/mike-perception-ambient.png",
+      "sha256": "440f6e0fe26196092648a5e88b0e532328f463b6fb95a8c518040504fd493c3f"
+    },
+    {
+      "file": "after/mike-perception-failure.png",
+      "sha256": "286fb388185b1b37d40d45aaa2c263731545b2f3b801bd22865d0f26ac0bf1aa"
+    },
+    {
+      "file": "after/mike-perception-success.png",
+      "sha256": "d66ee0e03fa18a1a97822d335d094e8ee7494c501397605334918a74da82de73"
+    },
+    {
+      "file": "after/mike-performance-ambient.png",
+      "sha256": "622e8794a096b6aee0d671e49ba24325fe59be52983b9786d720d186e1bf60ed"
+    },
+    {
+      "file": "after/mike-performance-failure.png",
+      "sha256": "e88b78b0598df248ff0687296c39355cc2f0f03b047b8aba9851a3b5d7796554"
+    },
+    {
+      "file": "after/mike-performance-success.png",
+      "sha256": "53b5e0deb62732c87f68456074f314bb23779da641accb013403cedac43ee2af"
+    },
+    {
+      "file": "after/mike-persuasion-ambient.png",
+      "sha256": "3e99f28aca56d8bacc2bf725aa03195d0cec32da4cf20a62c39796c7f11e8434"
+    },
+    {
+      "file": "after/mike-persuasion-failure.png",
+      "sha256": "fc9a432b170df97b96f489b24101ff3b5a57b29014e2b1f288a7eb13ff01b90c"
+    },
+    {
+      "file": "after/mike-persuasion-success.png",
+      "sha256": "671283cfce223d451e14449adc18505b01f2e928a904f88b8b9d3b1857e8fb08"
+    },
+    {
+      "file": "after/mike-religion-ambient.png",
+      "sha256": "07697db4121bb7024cb2cbd6200ba12b35d033f304d82c6d5bd049fd7a0b087c"
+    },
+    {
+      "file": "after/mike-religion-failure.png",
+      "sha256": "41e9792d1b01ba2444a5015a332908cd4973847287a68344a8f3c53fb779a0c2"
+    },
+    {
+      "file": "after/mike-religion-success.png",
+      "sha256": "92b1613b1337344acb6dd5b91e082987fa20012b43f8fba8a18baf7933df3537"
+    },
+    {
+      "file": "after/mike-sleight-of-hand-ambient.png",
+      "sha256": "8b4921f3611c4f93cc49cb47440a9b513376ec4eec4cffe4f25463ebf9fa368d"
+    },
+    {
+      "file": "after/mike-sleight-of-hand-failure.png",
+      "sha256": "8daa67d55ebcaaa06f3689bfbf156d43618c2171e62935be6ba1143208368be6"
+    },
+    {
+      "file": "after/mike-sleight-of-hand-success.png",
+      "sha256": "7041dad88dc5728863520611c5e4770d9790bbb18401a878824780379c38c602"
+    },
+    {
+      "file": "after/mike-stealth-ambient.png",
+      "sha256": "7469259334162a5c1ddd06b5b788e5d505f463e67cd0b9f904f3f756af7d25aa"
+    },
+    {
+      "file": "after/mike-stealth-failure.png",
+      "sha256": "743afb9de5d35190d046ed9a4842d9732245741190b135e3312e68c59de37ab8"
+    },
+    {
+      "file": "after/mike-stealth-success.png",
+      "sha256": "13bf51348b71edf1602e2c82bf72885509551abf8f8aba362b62cd58a0b9009d"
+    },
+    {
+      "file": "after/mike-survival-ambient.png",
+      "sha256": "38f50487d443450e885c3638f632129e3f1a3835d2d24ecf31f19fa9acdf0c9c"
+    },
+    {
+      "file": "after/mike-survival-failure.png",
+      "sha256": "e07a27e5ce10d27963f4d492924b84bd4148b9c9fdf4d31dab560b47fcbc02c5"
+    },
+    {
+      "file": "after/mike-survival-success.png",
+      "sha256": "f06a79cc201b1edd1691a7b19df3782f16ec7f451feb323e4fc1a6ad0947bccc"
+    },
+    {
+      "file": "references/maria.png",
+      "sha256": "65853913d180e7b53e12adfdd74f47505f61c92183dee213265366e8631928fa"
+    },
+    {
+      "file": "references/mia.png",
+      "sha256": "5f3c37502520c1fa8be2ba9fe958ecd4560c37a2e000c05ef9c02018b19dadf8"
+    },
+    {
+      "file": "references/mike.png",
+      "sha256": "ff16265d755a7e3bca0d1bc77785aa96247608709bdd71dfbdd35b89a9421a01"
+    },
+    {
+      "file": "bandit-poses.png",
+      "sha256": "f6cc8562a281f83e032fb064a6f00736310b0210dd18e613b54a621ef3cbac08"
+    },
+    {
+      "file": "findings.json",
+      "sha256": "aadeb998c7c4bd00a7c197499d3bfae0f9ba3b39716edc42f76f3b1add577fcc"
+    },
+    {
+      "file": "frame-sources.json",
+      "sha256": "3169c7248c9ee3da85c5259e3dd60b588ead5c891aacf9bd358d5b552765a1c5"
+    },
+    {
+      "file": "maria-clips.png",
+      "sha256": "4a648da34d8f15b3fb1b6926f7a463821124743c9f49456cbda346218d3529e7"
+    },
+    {
+      "file": "maria-native.png",
+      "sha256": "6b0e19ff5d0ff78128bdc39eb0f28791e7bd7422a3175ed5e8bf04d400ad65b5"
+    },
+    {
+      "file": "maria-sources.json",
+      "sha256": "0da346f66bd7a4c053cb7e3a2e77e9a3e0cc6a9cd7cfa9ca2909c7d831bbb7cb"
+    },
+    {
+      "file": "mia-clips.png",
+      "sha256": "255782d8acef1e0f3f5adfedd13fe48bc11456fbc39c462bfcc10469987ff798"
+    },
+    {
+      "file": "mia-native.png",
+      "sha256": "defd08d37f19a235254e2e8cad2058d2ab077690d9da708572a84b6c91dc810b"
+    },
+    {
+      "file": "mia-sources.json",
+      "sha256": "1578fc2531caa5221220443e13328bef7fcb7ddb7b30185496a457d4a5dbcf01"
+    },
+    {
+      "file": "mike-clips.png",
+      "sha256": "6b215eb590e4038c54f677e9d232b7bf9295a373a8d44f7ec1c1646c221ab6b2"
+    },
+    {
+      "file": "mike-native.png",
+      "sha256": "bb45eaec64f83bb55f3676ffa6fea904f41c4af2af6ee63843a7917bdf3175d7"
+    },
+    {
+      "file": "mike-sources.json",
+      "sha256": "8e749b9a0d7962e75f77c2d9a75010fbf161d89474c07b3a96230c3fda35003c"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-v2.webp",
+      "sha256": "9c839667df024d1a572fdc24fb66f4d1dda43c5e5046a9fcc863af47758b2178"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-v2.webp",
+      "sha256": "9c839667df024d1a572fdc24fb66f4d1dda43c5e5046a9fcc863af47758b2178"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-v2.webp",
+      "sha256": "9c839667df024d1a572fdc24fb66f4d1dda43c5e5046a9fcc863af47758b2178"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-v2.webp",
+      "sha256": "9c839667df024d1a572fdc24fb66f4d1dda43c5e5046a9fcc863af47758b2178"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-handshake-v3.webp",
+      "sha256": "686ebe10986d0d89a182187d18a37f3e490c020c9e0747ab7d53b81b5b6b2692"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-handshake-v3.webp",
+      "sha256": "686ebe10986d0d89a182187d18a37f3e490c020c9e0747ab7d53b81b5b6b2692"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-handshake-v3.webp",
+      "sha256": "686ebe10986d0d89a182187d18a37f3e490c020c9e0747ab7d53b81b5b6b2692"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-handshake-v3.webp",
+      "sha256": "686ebe10986d0d89a182187d18a37f3e490c020c9e0747ab7d53b81b5b6b2692"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-handshake-v3.webp",
+      "sha256": "686ebe10986d0d89a182187d18a37f3e490c020c9e0747ab7d53b81b5b6b2692"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-handshake-v3.webp",
+      "sha256": "686ebe10986d0d89a182187d18a37f3e490c020c9e0747ab7d53b81b5b6b2692"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-objects-v3.webp",
+      "sha256": "883935934d9c9a7b0b2d605f843f4c312380df6f206be28cb66e72dfff212454"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-objects-v3.webp",
+      "sha256": "883935934d9c9a7b0b2d605f843f4c312380df6f206be28cb66e72dfff212454"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-objects-v3.webp",
+      "sha256": "883935934d9c9a7b0b2d605f843f4c312380df6f206be28cb66e72dfff212454"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-objects-v3.webp",
+      "sha256": "883935934d9c9a7b0b2d605f843f4c312380df6f206be28cb66e72dfff212454"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-objects-v3.webp",
+      "sha256": "883935934d9c9a7b0b2d605f843f4c312380df6f206be28cb66e72dfff212454"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-objects-v3.webp",
+      "sha256": "883935934d9c9a7b0b2d605f843f4c312380df6f206be28cb66e72dfff212454"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-objects-v3.webp",
+      "sha256": "883935934d9c9a7b0b2d605f843f4c312380df6f206be28cb66e72dfff212454"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-objects-v3.webp",
+      "sha256": "883935934d9c9a7b0b2d605f843f4c312380df6f206be28cb66e72dfff212454"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-objects-v3.webp",
+      "sha256": "883935934d9c9a7b0b2d605f843f4c312380df6f206be28cb66e72dfff212454"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-scroll-walk-v5.webp",
+      "sha256": "c59631c3bcc5a03360c704875117994ff32ecbf28f77ccea717204c27d03a66d"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-scroll-walk-v5.webp",
+      "sha256": "c59631c3bcc5a03360c704875117994ff32ecbf28f77ccea717204c27d03a66d"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-scroll-walk-v5.webp",
+      "sha256": "c59631c3bcc5a03360c704875117994ff32ecbf28f77ccea717204c27d03a66d"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-scroll-walk-v5.webp",
+      "sha256": "c59631c3bcc5a03360c704875117994ff32ecbf28f77ccea717204c27d03a66d"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-scroll-walk-v5.webp",
+      "sha256": "c59631c3bcc5a03360c704875117994ff32ecbf28f77ccea717204c27d03a66d"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-scroll-walk-v5.webp",
+      "sha256": "c59631c3bcc5a03360c704875117994ff32ecbf28f77ccea717204c27d03a66d"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-objects-v3.webp",
+      "sha256": "883935934d9c9a7b0b2d605f843f4c312380df6f206be28cb66e72dfff212454"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-objects-v3.webp",
+      "sha256": "883935934d9c9a7b0b2d605f843f4c312380df6f206be28cb66e72dfff212454"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-objects-v3.webp",
+      "sha256": "883935934d9c9a7b0b2d605f843f4c312380df6f206be28cb66e72dfff212454"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-objects-v3.webp",
+      "sha256": "883935934d9c9a7b0b2d605f843f4c312380df6f206be28cb66e72dfff212454"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-objects-v3.webp",
+      "sha256": "883935934d9c9a7b0b2d605f843f4c312380df6f206be28cb66e72dfff212454"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-objects-v3.webp",
+      "sha256": "883935934d9c9a7b0b2d605f843f4c312380df6f206be28cb66e72dfff212454"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-v2.webp",
+      "sha256": "9c839667df024d1a572fdc24fb66f4d1dda43c5e5046a9fcc863af47758b2178"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-v2.webp",
+      "sha256": "9c839667df024d1a572fdc24fb66f4d1dda43c5e5046a9fcc863af47758b2178"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-v2.webp",
+      "sha256": "9c839667df024d1a572fdc24fb66f4d1dda43c5e5046a9fcc863af47758b2178"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-v2.webp",
+      "sha256": "9c839667df024d1a572fdc24fb66f4d1dda43c5e5046a9fcc863af47758b2178"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-motion-v3.webp",
+      "sha256": "409b9d5a0a341b3c577ba6c5696ad0d49f1253909bd8a62f3c58a51c051375cf"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-objects-v3.webp",
+      "sha256": "883935934d9c9a7b0b2d605f843f4c312380df6f206be28cb66e72dfff212454"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-objects-v3.webp",
+      "sha256": "883935934d9c9a7b0b2d605f843f4c312380df6f206be28cb66e72dfff212454"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-objects-v3.webp",
+      "sha256": "883935934d9c9a7b0b2d605f843f4c312380df6f206be28cb66e72dfff212454"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-objects-v3.webp",
+      "sha256": "883935934d9c9a7b0b2d605f843f4c312380df6f206be28cb66e72dfff212454"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-wizard-reactions-v5.webp",
+      "sha256": "381aa1e0fe8f17ee8164691589c24c0361da88c99324643a271ec755b3fdb932"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-animal-reach-v3.webp",
+      "sha256": "0e3760261e992736b00134451b15cae6b7f0d41ac8f84919d910e9d7f3ccbe16"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-animal-reach-v3.webp",
+      "sha256": "0e3760261e992736b00134451b15cae6b7f0d41ac8f84919d910e9d7f3ccbe16"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-animal-reach-v3.webp",
+      "sha256": "0e3760261e992736b00134451b15cae6b7f0d41ac8f84919d910e9d7f3ccbe16"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-animal-reach-v3.webp",
+      "sha256": "0e3760261e992736b00134451b15cae6b7f0d41ac8f84919d910e9d7f3ccbe16"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-animal-reach-v3.webp",
+      "sha256": "0e3760261e992736b00134451b15cae6b7f0d41ac8f84919d910e9d7f3ccbe16"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-animal-reach-v3.webp",
+      "sha256": "0e3760261e992736b00134451b15cae6b7f0d41ac8f84919d910e9d7f3ccbe16"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-v2.webp",
+      "sha256": "ae416c8d5974914e4e99ecba609b6e0f7ba11c740075adbcd0e50502ef092ce4"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-v2.webp",
+      "sha256": "ae416c8d5974914e4e99ecba609b6e0f7ba11c740075adbcd0e50502ef092ce4"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-v2.webp",
+      "sha256": "ae416c8d5974914e4e99ecba609b6e0f7ba11c740075adbcd0e50502ef092ce4"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-v2.webp",
+      "sha256": "ae416c8d5974914e4e99ecba609b6e0f7ba11c740075adbcd0e50502ef092ce4"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-handshake-v3.webp",
+      "sha256": "686ebe10986d0d89a182187d18a37f3e490c020c9e0747ab7d53b81b5b6b2692"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-handshake-v3.webp",
+      "sha256": "686ebe10986d0d89a182187d18a37f3e490c020c9e0747ab7d53b81b5b6b2692"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-handshake-v3.webp",
+      "sha256": "686ebe10986d0d89a182187d18a37f3e490c020c9e0747ab7d53b81b5b6b2692"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-handshake-v3.webp",
+      "sha256": "686ebe10986d0d89a182187d18a37f3e490c020c9e0747ab7d53b81b5b6b2692"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-handshake-v3.webp",
+      "sha256": "686ebe10986d0d89a182187d18a37f3e490c020c9e0747ab7d53b81b5b6b2692"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-handshake-v3.webp",
+      "sha256": "686ebe10986d0d89a182187d18a37f3e490c020c9e0747ab7d53b81b5b6b2692"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-objects-v3.webp",
+      "sha256": "5a459bcabe90489eab2398a56d03e1bf08f686402e5315a8d7582133249ea87c"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-objects-v3.webp",
+      "sha256": "5a459bcabe90489eab2398a56d03e1bf08f686402e5315a8d7582133249ea87c"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-objects-v3.webp",
+      "sha256": "5a459bcabe90489eab2398a56d03e1bf08f686402e5315a8d7582133249ea87c"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-objects-v3.webp",
+      "sha256": "5a459bcabe90489eab2398a56d03e1bf08f686402e5315a8d7582133249ea87c"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-objects-v3.webp",
+      "sha256": "5a459bcabe90489eab2398a56d03e1bf08f686402e5315a8d7582133249ea87c"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-objects-v3.webp",
+      "sha256": "5a459bcabe90489eab2398a56d03e1bf08f686402e5315a8d7582133249ea87c"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-objects-v3.webp",
+      "sha256": "5a459bcabe90489eab2398a56d03e1bf08f686402e5315a8d7582133249ea87c"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-objects-v3.webp",
+      "sha256": "5a459bcabe90489eab2398a56d03e1bf08f686402e5315a8d7582133249ea87c"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-objects-v3.webp",
+      "sha256": "5a459bcabe90489eab2398a56d03e1bf08f686402e5315a8d7582133249ea87c"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-scroll-walk-v5.webp",
+      "sha256": "c59631c3bcc5a03360c704875117994ff32ecbf28f77ccea717204c27d03a66d"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-scroll-walk-v5.webp",
+      "sha256": "c59631c3bcc5a03360c704875117994ff32ecbf28f77ccea717204c27d03a66d"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-scroll-walk-v5.webp",
+      "sha256": "c59631c3bcc5a03360c704875117994ff32ecbf28f77ccea717204c27d03a66d"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-scroll-walk-v5.webp",
+      "sha256": "c59631c3bcc5a03360c704875117994ff32ecbf28f77ccea717204c27d03a66d"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-scroll-walk-v5.webp",
+      "sha256": "c59631c3bcc5a03360c704875117994ff32ecbf28f77ccea717204c27d03a66d"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-scroll-walk-v5.webp",
+      "sha256": "c59631c3bcc5a03360c704875117994ff32ecbf28f77ccea717204c27d03a66d"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-objects-v3.webp",
+      "sha256": "5a459bcabe90489eab2398a56d03e1bf08f686402e5315a8d7582133249ea87c"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-objects-v3.webp",
+      "sha256": "5a459bcabe90489eab2398a56d03e1bf08f686402e5315a8d7582133249ea87c"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-objects-v3.webp",
+      "sha256": "5a459bcabe90489eab2398a56d03e1bf08f686402e5315a8d7582133249ea87c"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-objects-v3.webp",
+      "sha256": "5a459bcabe90489eab2398a56d03e1bf08f686402e5315a8d7582133249ea87c"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-objects-v3.webp",
+      "sha256": "5a459bcabe90489eab2398a56d03e1bf08f686402e5315a8d7582133249ea87c"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-objects-v3.webp",
+      "sha256": "5a459bcabe90489eab2398a56d03e1bf08f686402e5315a8d7582133249ea87c"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-v2.webp",
+      "sha256": "ae416c8d5974914e4e99ecba609b6e0f7ba11c740075adbcd0e50502ef092ce4"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-v2.webp",
+      "sha256": "ae416c8d5974914e4e99ecba609b6e0f7ba11c740075adbcd0e50502ef092ce4"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-v2.webp",
+      "sha256": "ae416c8d5974914e4e99ecba609b6e0f7ba11c740075adbcd0e50502ef092ce4"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-v2.webp",
+      "sha256": "ae416c8d5974914e4e99ecba609b6e0f7ba11c740075adbcd0e50502ef092ce4"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-motion-v3.webp",
+      "sha256": "ed80b4689a7dd7c4fed6bf0d8803740073dc30b937023ae064d0fbfbae41deaa"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-objects-v3.webp",
+      "sha256": "5a459bcabe90489eab2398a56d03e1bf08f686402e5315a8d7582133249ea87c"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-objects-v3.webp",
+      "sha256": "5a459bcabe90489eab2398a56d03e1bf08f686402e5315a8d7582133249ea87c"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-objects-v3.webp",
+      "sha256": "5a459bcabe90489eab2398a56d03e1bf08f686402e5315a8d7582133249ea87c"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-objects-v3.webp",
+      "sha256": "5a459bcabe90489eab2398a56d03e1bf08f686402e5315a8d7582133249ea87c"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-cleric-reactions-v5.webp",
+      "sha256": "0e6febbd5919ba0dd064cf284ecd999f79691746273ee09c625c1d1e12c987d8"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-animal-reach-v3.webp",
+      "sha256": "0e3760261e992736b00134451b15cae6b7f0d41ac8f84919d910e9d7f3ccbe16"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-animal-reach-v3.webp",
+      "sha256": "0e3760261e992736b00134451b15cae6b7f0d41ac8f84919d910e9d7f3ccbe16"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-animal-reach-v3.webp",
+      "sha256": "0e3760261e992736b00134451b15cae6b7f0d41ac8f84919d910e9d7f3ccbe16"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-animal-reach-v3.webp",
+      "sha256": "0e3760261e992736b00134451b15cae6b7f0d41ac8f84919d910e9d7f3ccbe16"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-animal-reach-v3.webp",
+      "sha256": "0e3760261e992736b00134451b15cae6b7f0d41ac8f84919d910e9d7f3ccbe16"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-animal-reach-v3.webp",
+      "sha256": "0e3760261e992736b00134451b15cae6b7f0d41ac8f84919d910e9d7f3ccbe16"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-v2.webp",
+      "sha256": "4287dacfeedca98e579a59039f6205bc0f88d1fe22b54aedca7a03d5fef13993"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-v2.webp",
+      "sha256": "4287dacfeedca98e579a59039f6205bc0f88d1fe22b54aedca7a03d5fef13993"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-v2.webp",
+      "sha256": "4287dacfeedca98e579a59039f6205bc0f88d1fe22b54aedca7a03d5fef13993"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-v2.webp",
+      "sha256": "4287dacfeedca98e579a59039f6205bc0f88d1fe22b54aedca7a03d5fef13993"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-handshake-v3.webp",
+      "sha256": "686ebe10986d0d89a182187d18a37f3e490c020c9e0747ab7d53b81b5b6b2692"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-handshake-v3.webp",
+      "sha256": "686ebe10986d0d89a182187d18a37f3e490c020c9e0747ab7d53b81b5b6b2692"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-handshake-v3.webp",
+      "sha256": "686ebe10986d0d89a182187d18a37f3e490c020c9e0747ab7d53b81b5b6b2692"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-handshake-v3.webp",
+      "sha256": "686ebe10986d0d89a182187d18a37f3e490c020c9e0747ab7d53b81b5b6b2692"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-handshake-v3.webp",
+      "sha256": "686ebe10986d0d89a182187d18a37f3e490c020c9e0747ab7d53b81b5b6b2692"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-handshake-v3.webp",
+      "sha256": "686ebe10986d0d89a182187d18a37f3e490c020c9e0747ab7d53b81b5b6b2692"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-objects-v3.webp",
+      "sha256": "1618dcea22a1ea618c1b615d5da8c5a4193fa7600dd48dbafe60cb1f65acb8e1"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-objects-v3.webp",
+      "sha256": "1618dcea22a1ea618c1b615d5da8c5a4193fa7600dd48dbafe60cb1f65acb8e1"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-objects-v3.webp",
+      "sha256": "1618dcea22a1ea618c1b615d5da8c5a4193fa7600dd48dbafe60cb1f65acb8e1"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-objects-v3.webp",
+      "sha256": "1618dcea22a1ea618c1b615d5da8c5a4193fa7600dd48dbafe60cb1f65acb8e1"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-objects-v3.webp",
+      "sha256": "1618dcea22a1ea618c1b615d5da8c5a4193fa7600dd48dbafe60cb1f65acb8e1"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-objects-v3.webp",
+      "sha256": "1618dcea22a1ea618c1b615d5da8c5a4193fa7600dd48dbafe60cb1f65acb8e1"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-objects-v3.webp",
+      "sha256": "1618dcea22a1ea618c1b615d5da8c5a4193fa7600dd48dbafe60cb1f65acb8e1"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-objects-v3.webp",
+      "sha256": "1618dcea22a1ea618c1b615d5da8c5a4193fa7600dd48dbafe60cb1f65acb8e1"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-objects-v3.webp",
+      "sha256": "1618dcea22a1ea618c1b615d5da8c5a4193fa7600dd48dbafe60cb1f65acb8e1"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-scroll-walk-v5.webp",
+      "sha256": "c59631c3bcc5a03360c704875117994ff32ecbf28f77ccea717204c27d03a66d"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-scroll-walk-v5.webp",
+      "sha256": "c59631c3bcc5a03360c704875117994ff32ecbf28f77ccea717204c27d03a66d"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-scroll-walk-v5.webp",
+      "sha256": "c59631c3bcc5a03360c704875117994ff32ecbf28f77ccea717204c27d03a66d"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-scroll-walk-v5.webp",
+      "sha256": "c59631c3bcc5a03360c704875117994ff32ecbf28f77ccea717204c27d03a66d"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-scroll-walk-v5.webp",
+      "sha256": "c59631c3bcc5a03360c704875117994ff32ecbf28f77ccea717204c27d03a66d"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-scroll-walk-v5.webp",
+      "sha256": "c59631c3bcc5a03360c704875117994ff32ecbf28f77ccea717204c27d03a66d"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-objects-v3.webp",
+      "sha256": "1618dcea22a1ea618c1b615d5da8c5a4193fa7600dd48dbafe60cb1f65acb8e1"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-objects-v3.webp",
+      "sha256": "1618dcea22a1ea618c1b615d5da8c5a4193fa7600dd48dbafe60cb1f65acb8e1"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-objects-v3.webp",
+      "sha256": "1618dcea22a1ea618c1b615d5da8c5a4193fa7600dd48dbafe60cb1f65acb8e1"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-objects-v3.webp",
+      "sha256": "1618dcea22a1ea618c1b615d5da8c5a4193fa7600dd48dbafe60cb1f65acb8e1"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-objects-v3.webp",
+      "sha256": "1618dcea22a1ea618c1b615d5da8c5a4193fa7600dd48dbafe60cb1f65acb8e1"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-objects-v3.webp",
+      "sha256": "1618dcea22a1ea618c1b615d5da8c5a4193fa7600dd48dbafe60cb1f65acb8e1"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-pickpocket-v5.webp",
+      "sha256": "983f972b5f258cbabab0c5c4095ae28c83254e7b3da1198be8ed90ca83c5dd4e"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-treatment-v5.webp",
+      "sha256": "7bc02cc28520c0e5accf49d7f942005319cbde5e2a59cbad58a26a9af869aea6"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-v2.webp",
+      "sha256": "4287dacfeedca98e579a59039f6205bc0f88d1fe22b54aedca7a03d5fef13993"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-v2.webp",
+      "sha256": "4287dacfeedca98e579a59039f6205bc0f88d1fe22b54aedca7a03d5fef13993"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-v2.webp",
+      "sha256": "4287dacfeedca98e579a59039f6205bc0f88d1fe22b54aedca7a03d5fef13993"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-v2.webp",
+      "sha256": "4287dacfeedca98e579a59039f6205bc0f88d1fe22b54aedca7a03d5fef13993"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-motion-v3.webp",
+      "sha256": "e8d96d674dc09e571e368fb35867698f3c12b053e1ec5600af6ffb3d343e2d88"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-objects-v3.webp",
+      "sha256": "1618dcea22a1ea618c1b615d5da8c5a4193fa7600dd48dbafe60cb1f65acb8e1"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-objects-v3.webp",
+      "sha256": "1618dcea22a1ea618c1b615d5da8c5a4193fa7600dd48dbafe60cb1f65acb8e1"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-objects-v3.webp",
+      "sha256": "1618dcea22a1ea618c1b615d5da8c5a4193fa7600dd48dbafe60cb1f65acb8e1"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-objects-v3.webp",
+      "sha256": "1618dcea22a1ea618c1b615d5da8c5a4193fa7600dd48dbafe60cb1f65acb8e1"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-rogue-reactions-v5.webp",
+      "sha256": "86be7330a20fc223105fbb5e9b894a2d634b4155279c13a57d8985e196ef0a3a"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-animal-reach-v3.webp",
+      "sha256": "0e3760261e992736b00134451b15cae6b7f0d41ac8f84919d910e9d7f3ccbe16"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-animal-reach-v3.webp",
+      "sha256": "0e3760261e992736b00134451b15cae6b7f0d41ac8f84919d910e9d7f3ccbe16"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-animal-reach-v3.webp",
+      "sha256": "0e3760261e992736b00134451b15cae6b7f0d41ac8f84919d910e9d7f3ccbe16"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-animal-reach-v3.webp",
+      "sha256": "0e3760261e992736b00134451b15cae6b7f0d41ac8f84919d910e9d7f3ccbe16"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-animal-reach-v3.webp",
+      "sha256": "0e3760261e992736b00134451b15cae6b7f0d41ac8f84919d910e9d7f3ccbe16"
+    },
+    {
+      "file": "file:///C:/Users/User/Desktop/Dungeons/apps/web/ui/art/skill-animal-reach-v3.webp",
+      "sha256": "0e3760261e992736b00134451b15cae6b7f0d41ac8f84919d910e9d7f3ccbe16"
+    },
+    {
+      "file": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-environment-v3.webp",
+      "sha256": "913bcdbf3355b3199fdf59e8af4ac7b4530727c09705244965226a9a89a7572f"
+    },
+    {
+      "file": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-people-v3.webp",
+      "sha256": "320f14608e5eff39b4f8c42681a983d6e6c2a890db5ee4edb09ad55783ff1457"
+    },
+    {
+      "file": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-horse-v3.webp",
+      "sha256": "2744fd2289ca56addffcdb6943464473f63d59fcdf824c281a36edd82614b2c6"
+    },
+    {
+      "file": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-npcs-v5.webp",
+      "sha256": "4cc9d8a4254727b37fb0d730f106e8f202b221fe6d4530197497946d2d8662fa"
+    },
+    {
+      "file": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-creatures-v5.webp",
+      "sha256": "60d485ba5b0d10f6e434ea53240496933a1a32025c39de51c2335d83983ed26d"
+    },
+    {
+      "file": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-tracks-v5.webp",
+      "sha256": "ea425fd8d6364e802088c1c549c41bf5ca92119a444cf62051b0fc9ba4ada6ef"
+    },
+    {
+      "file": "C:\\Users\\User\\Desktop\\Dungeons\\apps\\web\\ui\\art\\skill-props-v2.webp",
+      "sha256": "03d76d889e70cbe9606372acee4ac312e60e816240cd4e512946fc981417c16d"
+    },
+    {
+      "file": "C:\\Users\\User\\Desktop\\Dungeons\\prototypes\\godot-pecio\\loading\\loading_stage.gd",
+      "sha256": "e9f8270234be4c306839740bb44b069237cf932d509dfa5d4fdee23b7ca2512f"
+    },
+    {
+      "file": "C:\\Users\\User\\Desktop\\Dungeons\\prototypes\\godot-retiro\\loading\\loading_stage.gd",
+      "sha256": "e9f8270234be4c306839740bb44b069237cf932d509dfa5d4fdee23b7ca2512f"
+    },
+    {
+      "file": "C:\\Users\\User\\Desktop\\Dungeons\\prototypes\\godot-campamentos\\loading\\loading_stage.gd",
+      "sha256": "e9f8270234be4c306839740bb44b069237cf932d509dfa5d4fdee23b7ca2512f"
+    }
+  ]
+}

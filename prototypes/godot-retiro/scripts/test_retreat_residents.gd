@@ -3,6 +3,7 @@ extends SceneTree
 const Directory = preload("res://scripts/retreat_resident_directory.gd")
 const Conversations = preload("res://scripts/retreat_conversations.gd")
 const Registry = preload("res://characters/registry.gd")
+const Agenda = preload("res://scripts/retreat_routine_directory.gd")
 
 var failures: Array[String] = []
 var checks := 0
@@ -84,6 +85,9 @@ func _check_catalogue() -> void:
 		var start: Vector3 = village._find_landing(Directory.STATIONS[key][0], 0.90)
 		var stop: Vector3 = village._find_landing(Directory.STATIONS[goal][0], 0.90)
 		check(start.is_finite() and stop.is_finite() and village.routes.path(start, stop).size() > 1, key + " has a physically marked local round")
+	var runara: PlayerToken = village.residents.runara
+	var night_rest: Vector3 = village._find_landing(Agenda.NIGHT_REST.runara[1], runara.target_height, runara)
+	check(night_rest.is_finite() and not village.routes.path(runara.global_position, night_rest).is_empty(), "Runara can reach her guest bedroll using the physical route network")
 
 func _check_clip(actor: PlayerToken, action: String, direction: String) -> void:
 	var views: Dictionary = actor.char_profile.get("dir_states", {}).get(action, {})

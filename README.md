@@ -21,15 +21,25 @@ Los encargos iniciales para sus sesiones separadas de Codex son [Dani / D0](docs
 | Quiero abrir… | Archivo en la raíz |
 | --- | --- |
 | VTT web Babylon, con mesa LAN para móviles y proyector | `INICIAR.cmd` |
-| Pecio o Retiro nativos de Godot, con selector de rol | `JUGAR-GODOT.cmd` |
+| Pecio, Retiro o Campamentos nativos de Godot, con selector de rol | `JUGAR-GODOT.cmd` |
 | Visor de las pantallas de habilidades de Godot | `PROBAR-CARGAS-GODOT.cmd` |
 | Revisión y limpieza de residuos antiguos | `MANTENIMIENTO.cmd` |
 
-Los proyectos editables de Godot están en `prototypes/godot-pecio/` y
-`prototypes/godot-retiro/`; sus funciones locales y los pendientes de integración
+Los proyectos editables de Godot están en `prototypes/godot-pecio/`,
+`prototypes/godot-retiro/` y `prototypes/godot-campamentos/`; sus funciones locales y los pendientes de integración
 con la mesa web se detallan en [PROJECT_STATE.md](PROJECT_STATE.md). El
 [mapa de carpetas](docs/WORKSPACE_MAINTENANCE.md) identifica las fuentes,
 guardados y archivos temporales de ambos motores.
+
+Si acabas de clonar el repositorio, instala **Godot 4.7.2** y abre en el editor
+el archivo `project.godot` del proyecto que vayas a usar. Espera a que termine
+la importación inicial de recursos antes de jugar con `JUGAR-GODOT.cmd` o editar
+el mapa. La carpeta `.godot` se genera en cada ordenador y no se sube a Git.
+El catálogo y las fuentes compartidas de personajes están en
+`prototypes/godot-shared/characters/`; su proceso obligatorio de producción y
+revisión está en [CHARACTER_ASSET_PIPELINE.md](docs/CHARACTER_ASSET_PIPELINE.md).
+La [sincronización del 25/11](docs/evidence/GODOT_SYNC_20261125.md) indica qué
+informes visuales se incluyen en Git y las verificaciones realizadas.
 
 **Actualización Retiro/Pecio del 02/11 instalada en el puerto 3000.** El arranque normal incluye el acabado y el cráneo terminado. Los informes de materiales/cráneo e iluminación permiten pulsar la imagen para alternar antes/después y ampliarla. **Revisión aislada opcional:** abre `REVISAR-ACABADO.cmd` para probar materiales ilustrados y el cráneo terminado en una partida temporal, en otro puerto. La consola muestra los enlaces DM/jugador/proyector del PC; escribe `quit` para cerrarla. No sustituye la mesa habitual. [Capturas y resultado](output/stormwreck-style-sample-20261101/index.html), [alcance y pruebas](docs/evidence/STORMWRECK_STYLE_SKULL_20261102.md). Si falta su compilación la prepara automáticamente; para reconstruirla expresamente: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/review-stormwreck-style.ps1 -Build`.
 

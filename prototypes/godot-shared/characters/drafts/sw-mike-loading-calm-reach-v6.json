@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "id": "sw-mike-loading-calm-reach-v6",
+  "name": "Mike · calm-reach de carga",
+  "anatomy": "humanoid-tall",
+  "dependencies": [
+    "mike"
+  ],
+  "review": {
+    "visual": "pending",
+    "userAcceptance": "pending",
+    "evidence": []
+  },
+  "instructions": "Create draft, search reuse, complete source/style/scale fields, adopt only after validation. Technical success is not artistic acceptance.",
+  "kind": "animation",
+  "character": "mike",
+  "action": "loading_calm_reach",
+  "direction": "se",
+  "frames": [],
+  "fps": 4,
+  "loop": true,
+  "pivot": [
+    0.5,
+    1
+  ],
+  "compatibility": {
+    "anatomies": [
+      "humanoid-tall"
+    ],
+    "equipment": false,
+    "overlays": false
+  },
+  "events": [],
+  "initialFrame": 0,
+  "transition": "preserve support pivot",
+  "referenceHeight": null,
+  "reuseSearch": {
+    "required": true,
+    "command": "node scripts/character-pipeline.mjs reuse --query sw-mike-loading-calm-reach-v6"
+  },
+  "campaign": "stormwreck-isle",
+  "production": {
+    "stage": "defined-before-generation",
+    "sourceFamily": "wizard-motion-v6",
+    "row": 5,
+    "columns": 6,
+    "rows": 6,
+    "originalIdentity": "campaigns/stormwreck-isle/public/art/characters/base-v1/mike/idle-01.png",
+    "poseReference": "apps/web/ui/art/skill-wizard-motion-v3.webp",
+    "equipmentState": "Canonical blue/gold robes, black gloves/boots, dagger unchanged. Left book stowed only for actions requiring both hands; declared replacement, not overlay.",
+    "minimumVisibleStandingPixels": 180,
+    "minimumDistinctFrames": 6
+  }
+}

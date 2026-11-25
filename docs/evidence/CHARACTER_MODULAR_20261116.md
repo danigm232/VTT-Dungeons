@@ -4,6 +4,18 @@ Encargo autorizado: [texto completo del usuario](CHARACTER_MODULAR_REQUEST_20261
 
 ## Estado actual del trabajo
 
+### Mantas para el descanso del Retiro — 24/11/2026
+
+Once bustos nuevos de un fotograma con identidad y alfa revisados. Los WebP conservan los píxeles RGBA y las dos láminas PNG quedan registradas por huella. Kilnip usa seis fases del original archivado. El volumen de lana compartido limita el ancho y el largo al lecho y simula respiración en el pecho. **Corrección 25/11:** se amplía la red de rutas al petate occidental y la prueba headless pasa 159/159, incluido el acceso de Runara. **Pendiente:** repetir la prueba nativa tras el cambio; los registros nativos anteriores conservan el fallo, por lo que el `capture-register.json` y el informe final aún no se han generado. Se conserva la candidata sin afirmar su aprobación global.
+
+### Reposo de Kilnip en hamaca — 24/11/2026
+
+La definición `sw-kilnip-hammock-rest` añade ocho fases WebP a `rest_on_prop`. Las fases conservan el tamaño nativo, una tarjeta común y los puntos de cabeza y pies. Se reutiliza la malla de descanso y la alineación física de la hamaca. Queda abierta la revisión de esta solución con los demás residentes. [Registro con huellas e importación](../../output/retreat-hammock-20261124/capture-register.json).
+
+### Gestos traseros del Retiro — 24/11/2026
+
+Doce definiciones de animación con ocho fases por habitante. Los WebP verificados en RGBA se instalan junto a los demás recursos mediante el catálogo del Retiro. La extracción mantiene el punto de apoyo y declara la altura erguida de referencia, incluida la de Varnoth y Rix al inclinarse. El catálogo candidato y la galería conservan la procedencia y las huellas de originales y fotogramas. [Registro por recurso](../../output/retreat-gesture-views-20261124/capture-register.json).
+
 ### Marchas y rutinas del Retiro — 24/11/2026
 
 Se añadieron 125 definiciones al catálogo candidato del Retiro. Son 24 ciclos de marcha de frente y espalda, cinco secuencias de trabajo y 96 poses de reposo o trabajo sostenidas. Las secuencias duran ocho fotogramas y las poses quedan identificadas como fijas. La extracción conserva el tamaño nativo de los píxeles y registra la altura de referencia, el apoyo y la huella del original. Se conservaron los diseños base. La inspección integrada sigue el rumbo del PNJ al cambiar de vista y mantiene las poses sin añadir equipo. [Registro por imagen y objeto](../../output/retreat-routines-20261124/capture-register.json).

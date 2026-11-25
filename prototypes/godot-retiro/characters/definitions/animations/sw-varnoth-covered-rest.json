@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-varnoth-covered-rest",
+  "character": "sw-varnoth",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "rest_on_prop",
+  "direction": "s",
+  "fps": 1,
+  "loop": false,
+  "poseKind": "hold",
+  "dependencies": [
+    "sw-varnoth"
+  ],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-covered-rest/9da715cf0abf/01.webp"
+  ],
+  "restVolume": {
+    "head": 0.105,
+    "chest": 0.108,
+    "hips": 0.09,
+    "calves": 0.07,
+    "boots": 0.054
+  },
+  "restBlanket": {
+    "base": "#4b6274",
+    "trim": "#a8aeb1",
+    "bands": 2
+  },
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "placement": "Static overhead bust positioned in the head-to-foot axis; the existing wool volume covers the matching anatomy and determines the rest of the silhouette.",
+    "overlay": "Shared resting body surface, world-aligned cloth."
+  },
+  "production": {
+    "candidateSheet": 1,
+    "candidateCell": 2,
+    "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-turnaround/9fa4f151d59b/01.png",
+    "intent": "A single overhead pose of head and torso with closed eyes. Native 3D cloth covers the body below the shoulder line.",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-retreat-covered-rest-1-9da715cf0abf.png",
+    "originalSha256": "9da715cf0abf204cef70c315cb90b106316f43bee767a146956ad9db9af5d0af",
+    "extraction": "Native cut on a transparent registration canvas; padding describes space under the blanket.",
+    "nativeBustPixels": 432,
+    "cellBounds": [
+      69,
+      42,
+      443,
+      474
+    ],
+    "encoding": "Lossless WebP, all RGBA pixels verified"
+  },
+  "review": {
+    "technical": "Cell clearance, native resolution, pivot and lossless RGBA verified.",
+    "visual": "Overhead bust and cell crop compared with the installed appearance; user acceptance pending.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 917,
+  "pivot": [
+    0.5,
+    0.007518796992481203
+  ],
+  "soleContact": [
+    0.5,
+    0.9924812030075187
+  ],
+  "restSculpt": {
+    "eyes": 0.12781954887218044,
+    "nose": [
+      0.5,
+      0.16433941997851773
+    ],
+    "jaw": 0.21160042964554243,
+    "faceHalfWidth": 0.16,
+    "recline": 8
+  }
+}
