@@ -1,0 +1,1496 @@
+{
+  "revision": "5b9f775e0db9a0f70e01f75613ea246c56131b89b78b076bd675182f45506c4f",
+  "resolution": [
+    1440,
+    810
+  ],
+  "conditions": "Mismo encuadre y misma escena por par. En marcha y cocina se compara el gesto con el reposo. En diálogos se activa el panel o subtítulo.",
+  "sceneEffects": [
+    {
+      "id": "ResidentStewSteam",
+      "owner": "prototypes/godot-retiro/scripts/retreat_residents.gd",
+      "before": "Fogón A3_KitchenStove existente",
+      "after": "Vapor en el caldero al añadir hierbas con el fogón encendido",
+      "criterion": [
+        "VA-06",
+        "VA-16",
+        "REF-08"
+      ],
+      "userAcceptance": "Pendiente"
+    }
+  ],
+  "capturePairs": [
+    {
+      "id": "conversacion-runara",
+      "near": 0.0500000007450581,
+      "size": 7.45584392547607,
+      "transform": "[X: (0.990268, 0.0, -0.139173), Y: (-0.087584, 0.777146, -0.623196), Z: (0.108158, 0.629321, 0.769583), O: (126.4579, 160.791, 278.1499)]",
+      "before": {
+        "path": "conversacion-runara-before.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "b749429e1a760adc5839a09ca9388ee96a02c6f6563242663c2cc991cfc43b22"
+      },
+      "after": {
+        "path": "conversacion-runara-after.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "a9031cc0348bb07186cef5c2c45abef407604b92f24c9502458439b159258f0b"
+      }
+    },
+    {
+      "id": "charla-kobolds",
+      "near": 236,
+      "size": 5.21909093856812,
+      "transform": "[X: (0.987688, 0.0, 0.156434), Y: (0.104675, 0.743145, -0.660893), Z: (-0.116253, 0.669131, 0.733995), O: (95.22417, 170.1567, 262.3839)]",
+      "before": {
+        "path": "charla-kobolds-before.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "674b989241c247701bb08429ec9c61b208ccfa91b7535c850ce3d956d059d4cc"
+      },
+      "after": {
+        "path": "charla-kobolds-after.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "197f0336e03442ade2d6c78d208769a1236c972301c9bffe47cefad8866713b3"
+      }
+    },
+    {
+      "id": "conversacion-grupo",
+      "near": 0.100000001490116,
+      "size": 7.45584392547607,
+      "transform": "[X: (0.999391, 0.0, -0.034899), Y: (-0.021963, 0.777146, -0.628937), Z: (0.027122, 0.62932, 0.776673), O: (31.25928, 151.6369, 295.4014)]",
+      "before": {
+        "path": "conversacion-grupo-before.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "0f791f01b3992e50142927abfe47bee63f320463b36ef01870969915ffbaa87b"
+      },
+      "after": {
+        "path": "conversacion-grupo-after.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "4e491f77729805d9f7235cdfca17f91196f362460cccdac1a0619b014c77422a"
+      }
+    },
+    {
+      "id": "marcha-runara",
+      "near": 0.100000001490116,
+      "size": 5.05340528488159,
+      "transform": "[X: (0.978148, 0.0, 0.207912), Y: (0.125124, 0.798635, -0.588664), Z: (-0.166046, 0.601815, 0.781183), O: (65.33233, 154.1719, 279.0202)]",
+      "before": {
+        "path": "marcha-runara-before.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "f215c4fb653aae941fa16954a72054cb226b7985341e3876d8db2b152d81dbe6"
+      },
+      "after": {
+        "path": "marcha-runara-after.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "ba63a390dc9081b288f7afaf0521b6fd6d7b0509e85f4ff842b39acd19b0fe2c"
+      }
+    },
+    {
+      "id": "cocina-tarak",
+      "near": 236.100021362305,
+      "size": 5.38477611541748,
+      "transform": "[X: (0.961262, 0.0, -0.275637), Y: (-0.184437, 0.743145, -0.64321), Z: (0.204838, 0.669131, 0.714357), O: (166.4612, 179.2514, 223.6356)]",
+      "before": {
+        "path": "cocina-tarak-before.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "4f926b0883df0b6f03b7a6f4a65634440a0418da5bea4db1aafb87e72c198bbd"
+      },
+      "after": {
+        "path": "cocina-tarak-after.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "6a9ac62e1040630cfa33f0129f90d5460e5778e4724856dff9ec6396be34e7c1"
+      }
+    }
+  ],
+  "motions": [
+    {
+      "id": "sw-runara-courtyard-walk",
+      "label": "Runara · Marcha hacia la derecha",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-runara-courtyard-walk.json",
+      "fps": 8,
+      "loop": true,
+      "direction": "e",
+      "before": "campaigns/stormwreck-isle/public/art/characters/base-v1/runara.png",
+      "sourcePages": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-runara-courtyard-walk-eb592361d029.png",
+        "width": 1536,
+        "height": 1024,
+        "sha256": "eb592361d029df0b5c7926b34c25f181659be05bb5cd9eab9a952a810bedc53a"
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-courtyard-walk/eb592361d029/01.png",
+          "width": 396,
+          "height": 532,
+          "sha256": "10e7c060207358167f17ee20abad15217a239d1af773ad72f5193ef05254c7c8"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-courtyard-walk/eb592361d029/02.png",
+          "width": 396,
+          "height": 532,
+          "sha256": "42a21fd40ed25a614eda4754cbf18b04c14e17c88648d4b5507d7f33c24119d4"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-courtyard-walk/eb592361d029/03.png",
+          "width": 396,
+          "height": 532,
+          "sha256": "ccfa39a86765bb30ed489ac71103f88a86cd2221206a092a0c25f00f64726929"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-courtyard-walk/eb592361d029/04.png",
+          "width": 396,
+          "height": 532,
+          "sha256": "45b8c45265a0e35be4afdffb288231e47578203213c2df608979817ae3d62ec0"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-courtyard-walk/eb592361d029/05.png",
+          "width": 396,
+          "height": 532,
+          "sha256": "012593cacc43845cc71ab7ab9712797e09ad486024a25a1789e1ac31a882e81e"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-courtyard-walk/eb592361d029/06.png",
+          "width": 396,
+          "height": 532,
+          "sha256": "49ae0a5e9cde3edf9ffb43f39bc175be8557e70b589e12ef2a59acdc43b5cb72"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-courtyard-walk/eb592361d029/07.png",
+          "width": 396,
+          "height": 532,
+          "sha256": "cb71883b2b2abf7da43c703d67b74cda06bdeb89a55f0573f24a204ca9787b62"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-courtyard-walk/eb592361d029/08.png",
+          "width": 396,
+          "height": 532,
+          "sha256": "4eb42d1c417d6a3da361cfa1c288402fb1e432839324b904d45e48a443e43e78"
+        }
+      ],
+      "prompt": "Repaint the uploaded original Dungeons VTT illustration as an in-place NPC walking animation sheet. The upload is the exact character model sheet; same face, height, proportions, silhouette, outfit, colors, and detailed painterly 2.5D inked miniature treatment. Elderly woman with dark warm skin, long white braided hair, light ivory wool robe, the same rope belt and sandals. Cloth shifts enough to see alternating ankles. Unhurried steps with hands naturally held well away from the robe. All poses look and walk SCREEN RIGHT in a readable side view, with a modest downward tactical camera angle of roughly 12 degrees, both feet readable. Exactly EIGHT frames arranged in TWO isolated rows of FOUR frames, read left-to-right. 3:2 landscape canvas at the largest available resolution. Equally spaced centers at 12.5%, 37.5%, 62.5%, 87.5% of width, for BOTH rows. Ground line at 43% and 93% of sheet height. Each head and every toe, tail, hand and wing stay fully within its own cell with at least 16 pixels of transparent gutter. Figure uses 79–82% of each cell height. Keep the pelvis and planted feet on a stable root and use matching head size across frames. Visible readable leg alternation in this exact order: 1 left foot forward at contact with right foot trailing, 2 left knee loads and right foot lifts, 3 right foot passes left, 4 right foot swings forward distinct from 3, 5 right foot forward at contact with left foot trailing, 6 right knee loads and left foot lifts, 7 left passes right, 8 left foot swings forward into frame 1. Arms swing gently in opposition. Same character and orientation in every cell. Truly transparent alpha. No text, numbering, lines, ground, contact shadow, borders, panels, weapons, or equipment changes. Only the eight cleanly separated figures.",
+      "criterion": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ],
+      "userAcceptance": "Pendiente"
+    },
+    {
+      "id": "sw-tarak-courtyard-walk",
+      "label": "Tarak · Marcha hacia la derecha",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-tarak-courtyard-walk.json",
+      "fps": 8,
+      "loop": true,
+      "direction": "e",
+      "before": "campaigns/stormwreck-isle/public/art/characters/base-v1/tarak.png",
+      "sourcePages": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-tarak-courtyard-walk-09bb2b58fd15.png",
+        "width": 1536,
+        "height": 1024,
+        "sha256": "09bb2b58fd15d3a2f9ac1d2fcb70078b22d7afe5436a5083f1c2ae06638d2c67"
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-courtyard-walk/09bb2b58fd15/01.png",
+          "width": 396,
+          "height": 532,
+          "sha256": "a73e6a301453366e74b79945d0aebb31de987bb19588c11062ddaea2371907f9"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-courtyard-walk/09bb2b58fd15/02.png",
+          "width": 396,
+          "height": 532,
+          "sha256": "0f5fd1f28e4650ca05cee9f264fc9ba0647969656ba26a27eb38f7bb7b69f58d"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-courtyard-walk/09bb2b58fd15/03.png",
+          "width": 396,
+          "height": 532,
+          "sha256": "8e2243a7acd921b721bfc1d52dc17f69080c83df0334624495616d2ea7e3897d"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-courtyard-walk/09bb2b58fd15/04.png",
+          "width": 396,
+          "height": 532,
+          "sha256": "23f87bf535e14d33d549a4967a0b12f6ad1379c9cead7d24ba71769d5436dc86"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-courtyard-walk/09bb2b58fd15/05.png",
+          "width": 396,
+          "height": 532,
+          "sha256": "33b8d0e882bad8cbe58793bfe5ebe397050813072674bc6f907d1d048117158b"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-courtyard-walk/09bb2b58fd15/06.png",
+          "width": 396,
+          "height": 532,
+          "sha256": "9790c7da342cd722561aeaa772185b3ed0cf05b227d3702efa71a78d1aa6a9bf"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-courtyard-walk/09bb2b58fd15/07.png",
+          "width": 396,
+          "height": 532,
+          "sha256": "5bc9b043829366d40aba4f3ef8b39c35b90fb0f9153f6da4799b3810ba51da95"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-courtyard-walk/09bb2b58fd15/08.png",
+          "width": 396,
+          "height": 532,
+          "sha256": "9088fdd55a6ea044947a87b0b549ce79518dd8ad654658fae17cbe81cb250cbf"
+        }
+      ],
+      "prompt": "Repaint the uploaded original Dungeons VTT illustration as an in-place NPC walking animation sheet. The upload is the exact character model sheet; same face, height, proportions, silhouette, outfit, colors, and detailed painterly 2.5D inked miniature treatment. Middle-aged human gardener, red-brown hair, graying short beard, faded worn green/brown apron and the same trousers and boots. Hands empty. Short purposeful steps. All poses look and walk SCREEN RIGHT in a readable side view, with a modest downward tactical camera angle of roughly 12 degrees, both feet readable. Exactly EIGHT frames arranged in TWO isolated rows of FOUR frames, read left-to-right. 3:2 landscape canvas at the largest available resolution. Equally spaced centers at 12.5%, 37.5%, 62.5%, 87.5% of width, for BOTH rows. Ground line at 43% and 93% of sheet height. Each head and every toe, tail, hand and wing stay fully within its own cell with at least 16 pixels of transparent gutter. Figure uses 79–82% of each cell height. Keep the pelvis and planted feet on a stable root and use matching head size across frames. Visible readable leg alternation in this exact order: 1 left foot forward at contact with right foot trailing, 2 left knee loads and right foot lifts, 3 right foot passes left, 4 right foot swings forward distinct from 3, 5 right foot forward at contact with left foot trailing, 6 right knee loads and left foot lifts, 7 left passes right, 8 left foot swings forward into frame 1. Arms swing gently in opposition. Same character and orientation in every cell. Truly transparent alpha. No text, numbering, lines, ground, contact shadow, borders, panels, weapons, or equipment changes. Only the eight cleanly separated figures.",
+      "criterion": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ],
+      "userAcceptance": "Pendiente"
+    },
+    {
+      "id": "sw-varnoth-courtyard-walk",
+      "label": "Varnoth · Marcha hacia la derecha",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-varnoth-courtyard-walk.json",
+      "fps": 8,
+      "loop": true,
+      "direction": "e",
+      "before": "campaigns/stormwreck-isle/public/art/characters/base-v1/varnoth.png",
+      "sourcePages": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-varnoth-courtyard-walk-2ed552c3f725.png",
+        "width": 1536,
+        "height": 1024,
+        "sha256": "2ed552c3f7253a88583cd53e4d6a5e5295009129c11ae91812fc0ce8a7365744"
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk/2ed552c3f725/01.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "0df02248e8be17dcc9c3ede259545dd4b71bf790d679f315f65bd9f73ec69ecc"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk/2ed552c3f725/02.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "43b2bcbf18e3bf1a9f02ac9e56e751e6041b0d44312ff916767fa765324677b0"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk/2ed552c3f725/03.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "57ab805d1408f8f1214afd9a851d1b82ad28273115eb76e42be03496886fd8a5"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk/2ed552c3f725/04.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "ff3531ccc6a68499724b13714c4a7a9a0905c2bf961187b75beb51a26d205970"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk/2ed552c3f725/05.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "929a3db423c4b294a3b6c65322d4823836504e5efa751ce09f9ac1bd28270ba5"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk/2ed552c3f725/06.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "ee5a03349e8aee4687d137497db282130ac4adbb8fe54a6c16cd4b187aa49549"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk/2ed552c3f725/07.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "509c2f889cf5fbeaa2b52decad0f45029d3d869babcc096062e210d4989e9a4f"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk/2ed552c3f725/08.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "f7c9af90594a8dddf00a13078ade49ea170f93884b300f59b01967dbc59888fe"
+        }
+      ],
+      "prompt": "Draw an eight-phase in-place eastward (screen RIGHT) walking sprite sheet of this identical Dungeons VTT character. Input 1 is exact appearance; do not alter face, hair, complexion, brown cloth, white eye, or height. Difficult requirement: true AND clearly visible alternation. She has ONE wood-and-metal prosthesis on the RIGHT lower leg and exactly one natural brown lower leg with a simple leather sandal. The prosthetic foot must be FORWARD only at frame 1 landing and frame 8 swinging. The NATURAL foot must be FORWARD at frame 4 swinging and frame 5 landing. Frame 1: prosthetic heel at rightmost foreground, natural foot behind toward left. Frame 2: prosthetic planted, natural foot lifts. Frame 3: natural foot clearly crosses in front of planted prosthesis. Frame 4: natural foot in air farthest right, prosthesis planted toward left. Frame 5: natural heel at rightmost foreground, prosthetic foot trailing toward left. Frame 6: natural planted, prosthesis lifts. Frame 7: prosthetic foot clearly crosses in front of natural. Frame 8: prosthetic foot swings farthest right, natural foot planted toward left. The step follows continuous displacement, NO anatomical swaps. Arms counter-swing clearly and her posture stays upright. Fixed right profile with slight tactical view from above, keep planted soles and stable head height. 1536x1024 or larger, 3:2 landscape, exactly 4 columns and 2 rows, read left-to-right within rows, with wide gaps and at least 15px transparent padding on all sides of each character. No text, ground, shadows, background, dividers, weapons, or extra objects. Transparent RGBA.",
+      "criterion": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ],
+      "userAcceptance": "Pendiente"
+    },
+    {
+      "id": "sw-myla-courtyard-walk",
+      "label": "Myla · Marcha hacia la derecha",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-myla-courtyard-walk.json",
+      "fps": 8,
+      "loop": true,
+      "direction": "e",
+      "before": "campaigns/stormwreck-isle/public/art/characters/base-v1/myla.png",
+      "sourcePages": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-myla-courtyard-walk-4c900d467de4.png",
+        "width": 1536,
+        "height": 1024,
+        "sha256": "4c900d467de4c71a869efb378f79d25f3c25e2bc1b67ef60762c72a6a8a00c90"
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-courtyard-walk/4c900d467de4/01.png",
+          "width": 396,
+          "height": 531,
+          "sha256": "8a593bef694847731f23aa8981cf54211b0e334dceed7e8f3325c1b3d933eb70"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-courtyard-walk/4c900d467de4/02.png",
+          "width": 396,
+          "height": 531,
+          "sha256": "727014c057456b913aedd4b74616c27e73421d6bc017af8fd8aa7217689dbf7e"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-courtyard-walk/4c900d467de4/03.png",
+          "width": 396,
+          "height": 531,
+          "sha256": "e98de01b303960b1c5c403008b808fe2fef784cb62b090fa7112131fb48be9cd"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-courtyard-walk/4c900d467de4/04.png",
+          "width": 396,
+          "height": 531,
+          "sha256": "83004eef6bf56c92442f13b4dc4d1554831cf56b512673ae4e084868d1fec990"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-courtyard-walk/4c900d467de4/05.png",
+          "width": 396,
+          "height": 531,
+          "sha256": "e3ef047476d4782b54142cfc75bdbc6dd50cc634aae42138bbabab62da49347e"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-courtyard-walk/4c900d467de4/06.png",
+          "width": 396,
+          "height": 531,
+          "sha256": "5a2e53e507d9249a49f72f20ec413fb672a742e8f1ca7143113cfacacdfeae57"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-courtyard-walk/4c900d467de4/07.png",
+          "width": 396,
+          "height": 531,
+          "sha256": "15f718c3f92a1aa725d30c009620fe4a76e0c1298f3e4cfc9cc10a26e98ecc31"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-courtyard-walk/4c900d467de4/08.png",
+          "width": 396,
+          "height": 531,
+          "sha256": "c4cea17a5e6dd9e588f91883aa2690ba2380f3f6596a562b7e89d26de72a8c6a"
+        }
+      ],
+      "prompt": "Repaint the uploaded original Dungeons VTT illustration as an in-place NPC walking animation sheet. The upload is the exact character model sheet; same face, height, proportions, silhouette, outfit, colors, and detailed painterly 2.5D inked miniature treatment. The same small reddish kobold artisan, compact folded dragon wings kept close to her back, goggles and the same leather work apron, same horns, muzzle and long tail. Hands empty. Grounded small alternating steps, tail softly balances them. All poses look and walk SCREEN RIGHT in a readable side view, with a modest downward tactical camera angle of roughly 12 degrees, both feet readable. Exactly EIGHT frames arranged in TWO isolated rows of FOUR frames, read left-to-right. 3:2 landscape canvas at the largest available resolution. Equally spaced centers at 12.5%, 37.5%, 62.5%, 87.5% of width, for BOTH rows. Ground line at 43% and 93% of sheet height. Each head and every toe, tail, hand and wing stay fully within its own cell with at least 16 pixels of transparent gutter. Figure uses 79–82% of each cell height. Keep the pelvis and planted feet on a stable root and use matching head size across frames. Visible readable leg alternation in this exact order: 1 left foot forward at contact with right foot trailing, 2 left knee loads and right foot lifts, 3 right foot passes left, 4 right foot swings forward distinct from 3, 5 right foot forward at contact with left foot trailing, 6 right knee loads and left foot lifts, 7 left passes right, 8 left foot swings forward into frame 1. Arms swing gently in opposition. Same character and orientation in every cell. Truly transparent alpha. No text, numbering, lines, ground, contact shadow, borders, panels, weapons, or equipment changes. Only the eight cleanly separated figures.",
+      "criterion": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ],
+      "userAcceptance": "Pendiente"
+    },
+    {
+      "id": "sw-agga-courtyard-walk",
+      "label": "Agga · Marcha hacia la derecha",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-agga-courtyard-walk.json",
+      "fps": 8,
+      "loop": true,
+      "direction": "e",
+      "before": "campaigns/stormwreck-isle/public/art/characters/base-v1/agga.png",
+      "sourcePages": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-agga-courtyard-walk-56d355922178.png",
+        "width": 1536,
+        "height": 1024,
+        "sha256": "56d3559221787d0eb6b9c5ad3a33826f6618a2e9866af0cdcd6bed9936c9c2e0"
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-courtyard-walk/56d355922178/01.png",
+          "width": 396,
+          "height": 528,
+          "sha256": "64244fe7efce2e27d5168ab7cf4a4bc005e16738a624189c5d168e408d1bb43b"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-courtyard-walk/56d355922178/02.png",
+          "width": 396,
+          "height": 528,
+          "sha256": "67c329e1bb622b339399e709c3c85551f2b44d7466906e35f84aff20f21d9625"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-courtyard-walk/56d355922178/03.png",
+          "width": 396,
+          "height": 528,
+          "sha256": "5d24d803597f07c6345ea94aa7d0ba0ccdc0a109a42b4045074aff5b78e09f0c"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-courtyard-walk/56d355922178/04.png",
+          "width": 396,
+          "height": 528,
+          "sha256": "348c8164b10ea40492da47c48a9ad1a8e7c0597a72de60dee0d27a68a690aaa9"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-courtyard-walk/56d355922178/05.png",
+          "width": 396,
+          "height": 528,
+          "sha256": "0aff075f48077c53cc69d05b545703477a94e7a46503a53e5a435ac7941d6928"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-courtyard-walk/56d355922178/06.png",
+          "width": 396,
+          "height": 528,
+          "sha256": "a3bd5fe3f455ad3537b42894920ada6502652f1b86fa1dc5742a1862765d0740"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-courtyard-walk/56d355922178/07.png",
+          "width": 396,
+          "height": 528,
+          "sha256": "6e44257669f8c4933f2c62d7094546451384b2a45b46daf56909a4a018ef4157"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-courtyard-walk/56d355922178/08.png",
+          "width": 396,
+          "height": 528,
+          "sha256": "9b759cac38e8301cc5af0e5c124cc55172eb41cf8a5193d8b2c918d02d212c18"
+        }
+      ],
+      "prompt": "Repaint the uploaded original Dungeons VTT illustration as an in-place NPC walking animation sheet. The upload is the exact character model sheet; same face, height, proportions, silhouette, outfit, colors, and detailed painterly 2.5D inked miniature treatment. The same distinctive Agga from the reference, keep the cloth, markings and horn silhouette. Brisk measured alternating steps, empty hands. All poses look and walk SCREEN RIGHT in a readable side view, with a modest downward tactical camera angle of roughly 12 degrees, both feet readable. Exactly EIGHT frames arranged in TWO isolated rows of FOUR frames, read left-to-right. 3:2 landscape canvas at the largest available resolution. Equally spaced centers at 12.5%, 37.5%, 62.5%, 87.5% of width, for BOTH rows. Ground line at 43% and 93% of sheet height. Each head and every toe, tail, hand and wing stay fully within its own cell with at least 16 pixels of transparent gutter. Figure uses 79–82% of each cell height. Keep the pelvis and planted feet on a stable root and use matching head size across frames. Visible readable leg alternation in this exact order: 1 left foot forward at contact with right foot trailing, 2 left knee loads and right foot lifts, 3 right foot passes left, 4 right foot swings forward distinct from 3, 5 right foot forward at contact with left foot trailing, 6 right knee loads and left foot lifts, 7 left passes right, 8 left foot swings forward into frame 1. Arms swing gently in opposition. Same character and orientation in every cell. Truly transparent alpha. No text, numbering, lines, ground, contact shadow, borders, panels, weapons, or equipment changes. Only the eight cleanly separated figures.",
+      "criterion": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ],
+      "userAcceptance": "Pendiente"
+    },
+    {
+      "id": "sw-blepp-courtyard-walk",
+      "label": "Blepp · Marcha hacia la derecha",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-blepp-courtyard-walk.json",
+      "fps": 8,
+      "loop": true,
+      "direction": "e",
+      "before": "campaigns/stormwreck-isle/public/art/characters/base-v1/blepp.png",
+      "sourcePages": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-blepp-courtyard-walk-846cc8e7d84e.png",
+        "width": 1536,
+        "height": 1024,
+        "sha256": "846cc8e7d84eb636346b3e7cf89de793419550c1f1418ea5c736a6fad2874f78"
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-courtyard-walk/846cc8e7d84e/01.png",
+          "width": 396,
+          "height": 531,
+          "sha256": "87f639a4e4387acc2b736eecc0ebfc6c90a7e07ce258a2c3bdd868d46542e603"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-courtyard-walk/846cc8e7d84e/02.png",
+          "width": 396,
+          "height": 531,
+          "sha256": "9ddcea0f80c8939b20a7a2af8ea6511ec63e29c7de1ee6cb0d52a22da41f60a9"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-courtyard-walk/846cc8e7d84e/03.png",
+          "width": 396,
+          "height": 531,
+          "sha256": "5474a4865a909d3ee7591e1e378847976e33977b49a9c801acf6cf64d46b1b58"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-courtyard-walk/846cc8e7d84e/04.png",
+          "width": 396,
+          "height": 531,
+          "sha256": "45d400a830e5e5c0e4d5969a2a0fe1aeb021be9c745868df14f0e25fbf04c911"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-courtyard-walk/846cc8e7d84e/05.png",
+          "width": 396,
+          "height": 531,
+          "sha256": "aed1f9af0f619dc50a6439fcad188c3a154ee0a9053677fb4af5786056c22c3b"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-courtyard-walk/846cc8e7d84e/06.png",
+          "width": 396,
+          "height": 531,
+          "sha256": "af552a5e3dc5736b199596230ae7527aa189e9e8f3ff85c49153a1e781cc52d3"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-courtyard-walk/846cc8e7d84e/07.png",
+          "width": 396,
+          "height": 531,
+          "sha256": "63e05706e53358c0e381d4e703d85f245d32b625bb2679b4844b78fd75bf660d"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-courtyard-walk/846cc8e7d84e/08.png",
+          "width": 396,
+          "height": 531,
+          "sha256": "d5c76565beb2e704f2f6d70561ccbec97dc20ecd96dd31f7672617a4fc9ffcf5"
+        }
+      ],
+      "prompt": "Repaint the uploaded original Dungeons VTT illustration as an in-place NPC walking animation sheet. The upload is the exact character model sheet; same face, height, proportions, silhouette, outfit, colors, and detailed painterly 2.5D inked miniature treatment. Exactly Blepp from the reference, same cloth and goggles or headwear as the reference, same horns and tail. Cautious alternating steps, keep hands empty, no new gear. All poses look and walk SCREEN RIGHT in a readable side view, with a modest downward tactical camera angle of roughly 12 degrees, both feet readable. Exactly EIGHT frames arranged in TWO isolated rows of FOUR frames, read left-to-right. 3:2 landscape canvas at the largest available resolution. Equally spaced centers at 12.5%, 37.5%, 62.5%, 87.5% of width, for BOTH rows. Ground line at 43% and 93% of sheet height. Each head and every toe, tail, hand and wing stay fully within its own cell with at least 16 pixels of transparent gutter. Figure uses 79–82% of each cell height. Keep the pelvis and planted feet on a stable root and use matching head size across frames. Visible readable leg alternation in this exact order: 1 left foot forward at contact with right foot trailing, 2 left knee loads and right foot lifts, 3 right foot passes left, 4 right foot swings forward distinct from 3, 5 right foot forward at contact with left foot trailing, 6 right knee loads and left foot lifts, 7 left passes right, 8 left foot swings forward into frame 1. Arms swing gently in opposition. Same character and orientation in every cell. Truly transparent alpha. No text, numbering, lines, ground, contact shadow, borders, panels, weapons, or equipment changes. Only the eight cleanly separated figures.",
+      "criterion": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ],
+      "userAcceptance": "Pendiente"
+    },
+    {
+      "id": "sw-frub-courtyard-walk",
+      "label": "Frub · Marcha hacia la derecha",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-frub-courtyard-walk.json",
+      "fps": 8,
+      "loop": true,
+      "direction": "e",
+      "before": "campaigns/stormwreck-isle/public/art/characters/base-v1/frub.png",
+      "sourcePages": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-frub-courtyard-walk-1e9bf5ea5619.png",
+        "width": 1536,
+        "height": 1024,
+        "sha256": "1e9bf5ea5619d6daff86fa64270d934bc66f677c5f6e61a4ffa9c06a654edfdd"
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-courtyard-walk/1e9bf5ea5619/01.png",
+          "width": 396,
+          "height": 530,
+          "sha256": "dd1ab50ed8501f9c0d2b5b0cdf85d8eea8dc098024a4a864357d8ad376306251"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-courtyard-walk/1e9bf5ea5619/02.png",
+          "width": 396,
+          "height": 530,
+          "sha256": "109259c838c36b90babc73426a86258451ed9bea8c42b3928d7bd46e1a2ff406"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-courtyard-walk/1e9bf5ea5619/03.png",
+          "width": 396,
+          "height": 530,
+          "sha256": "eace1e6c5af000cadd6958a0f62cf800dfcba7d0f7fb048faed559590dd628d9"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-courtyard-walk/1e9bf5ea5619/04.png",
+          "width": 396,
+          "height": 530,
+          "sha256": "a86df078f95d9be432db6caff007fafb80dcc06bd3a2bb62769153eca2961491"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-courtyard-walk/1e9bf5ea5619/05.png",
+          "width": 396,
+          "height": 530,
+          "sha256": "7614999cc932c433f568b9ccf8c0d41cd30c4b4b6d1edc7ddf3f3b5fab70dad6"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-courtyard-walk/1e9bf5ea5619/06.png",
+          "width": 396,
+          "height": 530,
+          "sha256": "4b762e50c905d383ea9f2c8603061dcfe0a0524b5f9e2ed9644263ae386a2638"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-courtyard-walk/1e9bf5ea5619/07.png",
+          "width": 396,
+          "height": 530,
+          "sha256": "f89e4fb994a0d273b8c878bb39c50688d6118518b2d1899b49b3c171984a6fd4"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-courtyard-walk/1e9bf5ea5619/08.png",
+          "width": 396,
+          "height": 530,
+          "sha256": "21ec683d28be584fa684187eeb097cb3cf5795a7b87f3f867f1a80e348d6ae8f"
+        }
+      ],
+      "prompt": "Repaint the uploaded original Dungeons VTT illustration as an in-place NPC walking animation sheet. The upload is the exact character model sheet; same face, height, proportions, silhouette, outfit, colors, and detailed painterly 2.5D inked miniature treatment. Exactly Frub from the reference, preserve the outfit, color, head and tail. Energetic alternating steps, still a walk. All poses look and walk SCREEN RIGHT in a readable side view, with a modest downward tactical camera angle of roughly 12 degrees, both feet readable. Exactly EIGHT frames arranged in TWO isolated rows of FOUR frames, read left-to-right. 3:2 landscape canvas at the largest available resolution. Equally spaced centers at 12.5%, 37.5%, 62.5%, 87.5% of width, for BOTH rows. Ground line at 43% and 93% of sheet height. Each head and every toe, tail, hand and wing stay fully within its own cell with at least 16 pixels of transparent gutter. Figure uses 79–82% of each cell height. Keep the pelvis and planted feet on a stable root and use matching head size across frames. Visible readable leg alternation in this exact order: 1 left foot forward at contact with right foot trailing, 2 left knee loads and right foot lifts, 3 right foot passes left, 4 right foot swings forward distinct from 3, 5 right foot forward at contact with left foot trailing, 6 right knee loads and left foot lifts, 7 left passes right, 8 left foot swings forward into frame 1. Arms swing gently in opposition. Same character and orientation in every cell. Truly transparent alpha. No text, numbering, lines, ground, contact shadow, borders, panels, weapons, or equipment changes. Only the eight cleanly separated figures.",
+      "criterion": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ],
+      "userAcceptance": "Pendiente"
+    },
+    {
+      "id": "sw-kilnip-courtyard-walk",
+      "label": "Kilnip · Marcha hacia la derecha",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-kilnip-courtyard-walk.json",
+      "fps": 8,
+      "loop": true,
+      "direction": "e",
+      "before": "campaigns/stormwreck-isle/public/art/characters/base-v1/kilnip.png",
+      "sourcePages": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-kilnip-courtyard-walk-42c5a936d8cb.png",
+        "width": 1536,
+        "height": 1024,
+        "sha256": "42c5a936d8cbc9accf158379161a4bee55d3193019c428bac66f26db78f38717"
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-courtyard-walk/42c5a936d8cb/01.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "8503b9e7b5c95687a6fcdadd39fd0069fc9d4bd7b0e3fc59483a9747b9ba7582"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-courtyard-walk/42c5a936d8cb/02.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "83a1feb7a4e15473b26311c72e86d673b864dd19b521111adcb8d0e5f8dba75a"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-courtyard-walk/42c5a936d8cb/03.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "5f10fcbcc1ab16e2045b91a4842c7ed34ce9d7dcf85caf1832a0c5a3dcbbf5e2"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-courtyard-walk/42c5a936d8cb/04.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "ea3395c28ff868e4a6bf27521c30863c38e878c1df3920762638d3fa38582508"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-courtyard-walk/42c5a936d8cb/05.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "0b8b221b5d955e457775ca02f2c9e6e02c7d72cd18f5199da13f81868418eecc"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-courtyard-walk/42c5a936d8cb/06.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "5a08deef8118e67073f33db4595b0410b9c40cec7726b93b390419086b8cc270"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-courtyard-walk/42c5a936d8cb/07.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "4c4f333eccae5de74df7bd563099d3ddb38283f07a76b6de6660f8ea77f48cc5"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-courtyard-walk/42c5a936d8cb/08.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "5067ca1b9910b21d9c2be7daaf59b1437df87522ec058233fdd32c25bb10e92d"
+        }
+      ],
+      "prompt": "Repaint the uploaded original Dungeons VTT illustration as an in-place NPC walking animation sheet. The upload is the exact character model sheet; same face, height, proportions, silhouette, outfit, colors, and detailed painterly 2.5D inked miniature treatment. Exactly Kilnip from the reference, preserve outfit, face and features. Slightly tired alternating steps, upright body. All poses look and walk SCREEN RIGHT in a readable side view, with a modest downward tactical camera angle of roughly 12 degrees, both feet readable. Exactly EIGHT frames arranged in TWO isolated rows of FOUR frames, read left-to-right. 3:2 landscape canvas at the largest available resolution. Equally spaced centers at 12.5%, 37.5%, 62.5%, 87.5% of width, for BOTH rows. Ground line at 43% and 93% of sheet height. Each head and every toe, tail, hand and wing stay fully within its own cell with at least 16 pixels of transparent gutter. Figure uses 79–82% of each cell height. Keep the pelvis and planted feet on a stable root and use matching head size across frames. Visible readable leg alternation in this exact order: 1 left foot forward at contact with right foot trailing, 2 left knee loads and right foot lifts, 3 right foot passes left, 4 right foot swings forward distinct from 3, 5 right foot forward at contact with left foot trailing, 6 right knee loads and left foot lifts, 7 left passes right, 8 left foot swings forward into frame 1. Arms swing gently in opposition. Same character and orientation in every cell. Truly transparent alpha. No text, numbering, lines, ground, contact shadow, borders, panels, weapons, or equipment changes. Only the eight cleanly separated figures.",
+      "criterion": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ],
+      "userAcceptance": "Pendiente"
+    },
+    {
+      "id": "sw-laylee-courtyard-walk",
+      "label": "Laylee · Marcha hacia la derecha",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-laylee-courtyard-walk.json",
+      "fps": 8,
+      "loop": true,
+      "direction": "e",
+      "before": "campaigns/stormwreck-isle/public/art/characters/base-v1/laylee.png",
+      "sourcePages": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-laylee-courtyard-walk-7460a8185fab.png",
+        "width": 1536,
+        "height": 1024,
+        "sha256": "7460a8185fab01722a3613065c563c518f32ca393306b64f01514ee8a072debf"
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-courtyard-walk/7460a8185fab/01.png",
+          "width": 396,
+          "height": 536,
+          "sha256": "03eb440c67cd42b926dc0d2ac29acfb32a4beb4df052aae7ffc5adc47e6d0a43"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-courtyard-walk/7460a8185fab/02.png",
+          "width": 396,
+          "height": 536,
+          "sha256": "08ee52f4bf89de1944e745b2227ced44ec46f5349ffc9293b4df111e2c444978"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-courtyard-walk/7460a8185fab/03.png",
+          "width": 396,
+          "height": 536,
+          "sha256": "d990903928004ef4808572384b1756b2b841ba04c0248cb10b509962133f7489"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-courtyard-walk/7460a8185fab/04.png",
+          "width": 396,
+          "height": 536,
+          "sha256": "e96f1ce48feb12cf46e1dffb35e58ef07be7573df10e20b25574a354aac70022"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-courtyard-walk/7460a8185fab/05.png",
+          "width": 396,
+          "height": 536,
+          "sha256": "bd3f9acb853c74d83a08f749edf7c6158a039edb9c2d3d955bdcee1c717268e4"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-courtyard-walk/7460a8185fab/06.png",
+          "width": 396,
+          "height": 536,
+          "sha256": "4c98fbd62d5d8a93e69a01e025d4b5813e514d493b79549eab884d5ee9dd2946"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-courtyard-walk/7460a8185fab/07.png",
+          "width": 396,
+          "height": 536,
+          "sha256": "647ed911a184804feaa4d71fe3c5f0d677bc2d4e88808f9d9fc9928d13fb95fb"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-courtyard-walk/7460a8185fab/08.png",
+          "width": 396,
+          "height": 536,
+          "sha256": "c128364d0089b2a0aebdb326e4ede2a4fc010398189737343ac72408e73225ce"
+        }
+      ],
+      "prompt": "Repaint the uploaded original Dungeons VTT illustration as an in-place NPC walking animation sheet. The upload is the exact character model sheet; same face, height, proportions, silhouette, outfit, colors, and detailed painterly 2.5D inked miniature treatment. Exactly Laylee from the reference, preserve outfit, face and features. A light purposeful grounded walk, empty hands. All poses look and walk SCREEN RIGHT in a readable side view, with a modest downward tactical camera angle of roughly 12 degrees, both feet readable. Exactly EIGHT frames arranged in TWO isolated rows of FOUR frames, read left-to-right. 3:2 landscape canvas at the largest available resolution. Equally spaced centers at 12.5%, 37.5%, 62.5%, 87.5% of width, for BOTH rows. Ground line at 43% and 93% of sheet height. Each head and every toe, tail, hand and wing stay fully within its own cell with at least 16 pixels of transparent gutter. Figure uses 79–82% of each cell height. Keep the pelvis and planted feet on a stable root and use matching head size across frames. Visible readable leg alternation in this exact order: 1 left foot forward at contact with right foot trailing, 2 left knee loads and right foot lifts, 3 right foot passes left, 4 right foot swings forward distinct from 3, 5 right foot forward at contact with left foot trailing, 6 right knee loads and left foot lifts, 7 left passes right, 8 left foot swings forward into frame 1. Arms swing gently in opposition. Same character and orientation in every cell. Truly transparent alpha. No text, numbering, lines, ground, contact shadow, borders, panels, weapons, or equipment changes. Only the eight cleanly separated figures.",
+      "criterion": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ],
+      "userAcceptance": "Pendiente"
+    },
+    {
+      "id": "sw-mumpo-courtyard-walk",
+      "label": "Mumpo · Marcha hacia la derecha",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-mumpo-courtyard-walk.json",
+      "fps": 8,
+      "loop": true,
+      "direction": "e",
+      "before": "campaigns/stormwreck-isle/public/art/characters/base-v1/mumpo.png",
+      "sourcePages": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mumpo-courtyard-walk-b55a8eec60d5.png",
+        "width": 1536,
+        "height": 1024,
+        "sha256": "b55a8eec60d519e9932f1f424340f84568f53acb7cbef039b7015e0fa4081685"
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-courtyard-walk/b55a8eec60d5/01.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "9062c0efa8844332cb92b88b132bd299cfab8b56103832dd3148c58ecc2a5296"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-courtyard-walk/b55a8eec60d5/02.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "2ab9ce33feda798a3119ff739086e4fd946647433890383f8af8bcf3ea17376f"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-courtyard-walk/b55a8eec60d5/03.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "1a69e03117137b7b9e0e34298338245ac45b252b7d27662151b5bff310142f06"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-courtyard-walk/b55a8eec60d5/04.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "8c241910b80bf65676d4b0479d58e8063ba289fa0da830551e3da519ebbccac3"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-courtyard-walk/b55a8eec60d5/05.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "b77e0e3e26c1281d2d551b30e3c9cd1d07d18d29a073e3618c9e839103dee531"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-courtyard-walk/b55a8eec60d5/06.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "70f745dd7d22c98f55d37a40dfc3c9c55194bee10dcb79f01b25b9ab0ee84bd4"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-courtyard-walk/b55a8eec60d5/07.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "a102763de4cd6741bca8addc54608b00e9b65c02062a20ead838fea08b9b21ff"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mumpo-courtyard-walk/b55a8eec60d5/08.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "bb47b6578421ff9042829028686921e4bef22621babb8fd3de709be7634dde30"
+        }
+      ],
+      "prompt": "Repaint the uploaded original Dungeons VTT illustration as an in-place NPC walking animation sheet. The upload is the exact character model sheet; same face, height, proportions, silhouette, outfit, colors, and detailed painterly 2.5D inked miniature treatment. Exactly Mumpo from the reference, preserve outfit, face and features. Eager confident alternating gait, empty hands. All poses look and walk SCREEN RIGHT in a readable side view, with a modest downward tactical camera angle of roughly 12 degrees, both feet readable. Exactly EIGHT frames arranged in TWO isolated rows of FOUR frames, read left-to-right. 3:2 landscape canvas at the largest available resolution. Equally spaced centers at 12.5%, 37.5%, 62.5%, 87.5% of width, for BOTH rows. Ground line at 43% and 93% of sheet height. Each head and every toe, tail, hand and wing stay fully within its own cell with at least 16 pixels of transparent gutter. Figure uses 79–82% of each cell height. Keep the pelvis and planted feet on a stable root and use matching head size across frames. Visible readable leg alternation in this exact order: 1 left foot forward at contact with right foot trailing, 2 left knee loads and right foot lifts, 3 right foot passes left, 4 right foot swings forward distinct from 3, 5 right foot forward at contact with left foot trailing, 6 right knee loads and left foot lifts, 7 left passes right, 8 left foot swings forward into frame 1. Arms swing gently in opposition. Same character and orientation in every cell. Truly transparent alpha. No text, numbering, lines, ground, contact shadow, borders, panels, weapons, or equipment changes. Only the eight cleanly separated figures.",
+      "criterion": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ],
+      "userAcceptance": "Pendiente"
+    },
+    {
+      "id": "sw-rix-courtyard-walk",
+      "label": "Rix · Marcha hacia la derecha",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-rix-courtyard-walk.json",
+      "fps": 8,
+      "loop": true,
+      "direction": "e",
+      "before": "campaigns/stormwreck-isle/public/art/characters/base-v1/rix.png",
+      "sourcePages": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-rix-courtyard-walk-876f674f1c83.png",
+        "width": 1536,
+        "height": 1024,
+        "sha256": "876f674f1c83fd388eaecd0a13c4f032e3772c34626db86c4b67390375537cbb"
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-courtyard-walk/876f674f1c83/01.png",
+          "width": 396,
+          "height": 526,
+          "sha256": "7ae2b4330fa58f7ed82842180af45f937994b242658d1c1f6cac18af3a77812f"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-courtyard-walk/876f674f1c83/02.png",
+          "width": 396,
+          "height": 526,
+          "sha256": "23225291b3391f4f07099e8734e554989165dc9b6f816c69ef804aef162fe74c"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-courtyard-walk/876f674f1c83/03.png",
+          "width": 396,
+          "height": 526,
+          "sha256": "624b087ab4a8cef28fabbd91b4571ec15192bb4801dd503560490aaedf5283e7"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-courtyard-walk/876f674f1c83/04.png",
+          "width": 396,
+          "height": 526,
+          "sha256": "413d2737296eac9f5f5ddfc678cacaa296627e19c291374958a9d7b28cadc64d"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-courtyard-walk/876f674f1c83/05.png",
+          "width": 396,
+          "height": 526,
+          "sha256": "a0dc2fc225c58910df9baf1255a5b1bf8da8dab0e4361412dab2fecff27d1ca4"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-courtyard-walk/876f674f1c83/06.png",
+          "width": 396,
+          "height": 526,
+          "sha256": "8eb84f537e7bbd8d4edad3e793d30dad4214080c9a059553581e3aac2c7a4f3c"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-courtyard-walk/876f674f1c83/07.png",
+          "width": 396,
+          "height": 526,
+          "sha256": "644a962aa0d60a45f1421241868c85e665ce9f4fa1267cf9fdd51913107578b9"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-courtyard-walk/876f674f1c83/08.png",
+          "width": 396,
+          "height": 526,
+          "sha256": "9effcd6a231c5c38bf1615d47a8d903c682e662fe2d32bca22238310dfebe8c0"
+        }
+      ],
+      "prompt": "Repaint the uploaded original Dungeons VTT illustration as an in-place NPC walking animation sheet. The upload is the exact character model sheet; same face, height, proportions, silhouette, outfit, colors, and detailed painterly 2.5D inked miniature treatment. Exactly Rix from the reference, preserve the cream temple robe, same face and tail. Short steady alternating steps, empty hands. All poses look and walk SCREEN RIGHT in a readable side view, with a modest downward tactical camera angle of roughly 12 degrees, both feet readable. Exactly EIGHT frames arranged in TWO isolated rows of FOUR frames, read left-to-right. 3:2 landscape canvas at the largest available resolution. Equally spaced centers at 12.5%, 37.5%, 62.5%, 87.5% of width, for BOTH rows. Ground line at 43% and 93% of sheet height. Each head and every toe, tail, hand and wing stay fully within its own cell with at least 16 pixels of transparent gutter. Figure uses 79–82% of each cell height. Keep the pelvis and planted feet on a stable root and use matching head size across frames. Visible readable leg alternation in this exact order: 1 left foot forward at contact with right foot trailing, 2 left knee loads and right foot lifts, 3 right foot passes left, 4 right foot swings forward distinct from 3, 5 right foot forward at contact with left foot trailing, 6 right knee loads and left foot lifts, 7 left passes right, 8 left foot swings forward into frame 1. Arms swing gently in opposition. Same character and orientation in every cell. Truly transparent alpha. No text, numbering, lines, ground, contact shadow, borders, panels, weapons, or equipment changes. Only the eight cleanly separated figures.",
+      "criterion": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ],
+      "userAcceptance": "Pendiente"
+    },
+    {
+      "id": "sw-zark-courtyard-walk",
+      "label": "Zark · Marcha hacia la derecha",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-zark-courtyard-walk.json",
+      "fps": 8,
+      "loop": true,
+      "direction": "e",
+      "before": "campaigns/stormwreck-isle/public/art/characters/base-v1/zark.png",
+      "sourcePages": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-zark-courtyard-walk-9afb21e8e692.png",
+        "width": 1536,
+        "height": 1024,
+        "sha256": "9afb21e8e69203351e8d6a899b0a9c83568913dd69a788a6dfedc6de9a46915e"
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-courtyard-walk/9afb21e8e692/01.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "238614a1c764b1391f93c6742a842169c8d8f25f38ed0cda3b3c65de7c0415bb"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-courtyard-walk/9afb21e8e692/02.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "d1c64f1b7c14d04ab99bdeaf806a1ebeba4541be4defe372716af8726142f940"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-courtyard-walk/9afb21e8e692/03.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "46c8f41f25afef8940e45a2436eda34862f14c98a7957b0fbc158eaf51333532"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-courtyard-walk/9afb21e8e692/04.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "281d23e44b488a21bd5ece6b42543bf68e052e7e2fad51e63b645f80bd4a00b9"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-courtyard-walk/9afb21e8e692/05.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "babd13ad314d3ac829bb8baa5e1501c5155f8d73186e49aa2b50945cfe475fc1"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-courtyard-walk/9afb21e8e692/06.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "d98214232b7a5238a1acb043768b82efcf6dd83b29560f0e444aa8fd91e6ad0d"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-courtyard-walk/9afb21e8e692/07.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "b7c8a55ada06c181df29d26b145a3cb111ccdb257fc39ac42607741d2c0eb7fa"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-courtyard-walk/9afb21e8e692/08.png",
+          "width": 396,
+          "height": 529,
+          "sha256": "166e0a586f8cf028ae1761f70945c40d2476f337d35feeaade93a884b1f09748"
+        }
+      ],
+      "prompt": "Repaint the uploaded original Dungeons VTT illustration as an in-place NPC walking animation sheet. The upload is the exact character model sheet; same face, height, proportions, silhouette, outfit, colors, and detailed painterly 2.5D inked miniature treatment. Exactly Zark from the reference, preserve outfit, face and features. Sturdy alternating gait, empty hands. All poses look and walk SCREEN RIGHT in a readable side view, with a modest downward tactical camera angle of roughly 12 degrees, both feet readable. Exactly EIGHT frames arranged in TWO isolated rows of FOUR frames, read left-to-right. 3:2 landscape canvas at the largest available resolution. Equally spaced centers at 12.5%, 37.5%, 62.5%, 87.5% of width, for BOTH rows. Ground line at 43% and 93% of sheet height. Each head and every toe, tail, hand and wing stay fully within its own cell with at least 16 pixels of transparent gutter. Figure uses 79–82% of each cell height. Keep the pelvis and planted feet on a stable root and use matching head size across frames. Visible readable leg alternation in this exact order: 1 left foot forward at contact with right foot trailing, 2 left knee loads and right foot lifts, 3 right foot passes left, 4 right foot swings forward distinct from 3, 5 right foot forward at contact with left foot trailing, 6 right knee loads and left foot lifts, 7 left passes right, 8 left foot swings forward into frame 1. Arms swing gently in opposition. Same character and orientation in every cell. Truly transparent alpha. No text, numbering, lines, ground, contact shadow, borders, panels, weapons, or equipment changes. Only the eight cleanly separated figures.",
+      "criterion": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ],
+      "userAcceptance": "Pendiente"
+    },
+    {
+      "id": "sw-varnoth-courtyard-walk-west",
+      "label": "Varnoth · Marcha hacia la izquierda",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-varnoth-courtyard-walk-west.json",
+      "fps": 8,
+      "loop": true,
+      "direction": "w",
+      "before": "campaigns/stormwreck-isle/public/art/characters/base-v1/varnoth.png",
+      "sourcePages": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-varnoth-courtyard-walk-west-20b8d3c47af4.png",
+        "width": 1536,
+        "height": 1024,
+        "sha256": "20b8d3c47af4080b4e10ca1c06af13aac24253000afccadf4295eb426a94d23e"
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk-west/20b8d3c47af4/01.png",
+          "width": 396,
+          "height": 542,
+          "sha256": "cf4b0588a794fd2d4be763e78ec1d7610c59c0dfe0cef61fc55e6788f082cd5c"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk-west/20b8d3c47af4/02.png",
+          "width": 396,
+          "height": 542,
+          "sha256": "5071aa4c6b8773d0d8afbdbee60b793c63ec49696964f5752dacba9250320431"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk-west/20b8d3c47af4/03.png",
+          "width": 396,
+          "height": 542,
+          "sha256": "864eb2669d451916b851bfbd48ae64f55e874c059d29c388d6666979dcb5cea8"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk-west/20b8d3c47af4/04.png",
+          "width": 396,
+          "height": 542,
+          "sha256": "1bc3d374e68c1286a3b19efe2220e9dc294d0a3a5ef1b0050c9ec216602cc878"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk-west/20b8d3c47af4/05.png",
+          "width": 396,
+          "height": 542,
+          "sha256": "75c392d3b9ccf768752e199e7205337d52f8a1221c8502171a06a7375d50e423"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk-west/20b8d3c47af4/06.png",
+          "width": 396,
+          "height": 542,
+          "sha256": "fd176f67c1e5e1b9b6396a24567c3199502f0e845ff76680984fc991cb4173fe"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk-west/20b8d3c47af4/07.png",
+          "width": 396,
+          "height": 542,
+          "sha256": "73497c4df4cceb218861bc59e893b0e54386f5f864bf33690f615db6316924f9"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-courtyard-walk-west/20b8d3c47af4/08.png",
+          "width": 396,
+          "height": 542,
+          "sha256": "c8b9e639afc9f0db932a0777f6ffbaddd4c68077a97c14cb41e755f3b4e20a08"
+        }
+      ],
+      "prompt": "Dungeons VTT original game asset. Use the attached original character illustration as the exact design, palette, material and proportional reference. Produce one new high-detail game sprite sheet on truly transparent RGBA, 3:2 landscape, exactly two equally spaced rows of four cells, eight fully separated illustrations read left to right. Nothing outside the silhouettes. Ground baseline at about 45 percent and 95 percent of the sheet height, centered body in each cell, fully inside the cell with at least 15 px transparent gutter on ALL sides. Consistent planted-foot baseline and head scale. No words, numbering, panels, border, grids, scenery, ground or shadows; every hand, toe, tail, horn or fabric edge visible and preserved. Same orthographic perspective and slight 12-degree elevated view in all eight frames. Painted linework and textured fabric as attached. Exactly eight leftward profile walking frames, looking SCREEN LEFT. Elderly dark-skinned ex-general with close-cropped dark hair and a scarred milky left eye. Preserve the worn brown outfit and sandals. The prosthesis is the RIGHT lower leg only. The opposite leg is intact skin and leather sandal. At contact frame 1 the prosthetic shin and sandal are clearly FORWARD, at contact frame 5 the intact shin and leather sandal are clearly FORWARD, with the prosthesis TRAILING. Do not hide either leg at phases 1 and 5. Alternate arm swings (left arm forward when right leg goes forward). Chronological cycle 1 right leg contact, 2 right leg load, 3 left leg passes, 4 left leg swing, 5 left leg contact, 6 left leg load, 7 right leg passes, 8 right leg swing. Marked distinction of wood-and-metal vs bare lower shin in every visible leg. No cane or weapon.",
+      "criterion": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ],
+      "userAcceptance": "Pendiente"
+    },
+    {
+      "id": "sw-tarak-cook",
+      "label": "Tarak · Preparar el guiso",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-tarak-cook.json",
+      "fps": 7,
+      "loop": false,
+      "direction": "se",
+      "before": "campaigns/stormwreck-isle/public/art/characters/base-v1/tarak.png",
+      "sourcePages": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-tarak-cook-acd9c509b829.png",
+        "width": 1536,
+        "height": 1024,
+        "sha256": "acd9c509b829783f759bf8ed9da9ef984ad6605e7c450ee70df88683d49762fc"
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-cook/acd9c509b829/01.png",
+          "width": 408,
+          "height": 525,
+          "sha256": "0e3be13852b912d1b380c80e0fa95eb799d02c22789a0c094cd5a929d7237d83"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-cook/acd9c509b829/02.png",
+          "width": 408,
+          "height": 525,
+          "sha256": "3ea495aa89d6d219db742c60e9d48de69ba6eae12246384f7e51ca542e0e342f"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-cook/acd9c509b829/03.png",
+          "width": 408,
+          "height": 525,
+          "sha256": "3f402e92f98b3ecef7174b20f0f714af1af538035abe318aaf4aba0c1ee26d26"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-cook/acd9c509b829/04.png",
+          "width": 408,
+          "height": 525,
+          "sha256": "fb30078918991bece033e8092472a8291db8e52daaa9a58f5bd0b7adf51dd43a"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-cook/acd9c509b829/05.png",
+          "width": 408,
+          "height": 525,
+          "sha256": "bd9e17810e7ba2571b470c8b379e98525d6cd9e2f394a9e9ffa02ca9f5198ece"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-cook/acd9c509b829/06.png",
+          "width": 408,
+          "height": 525,
+          "sha256": "92d4269a527944221d96f426256f7418012d1ed76516282583280bd46cac295e"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-cook/acd9c509b829/07.png",
+          "width": 408,
+          "height": 525,
+          "sha256": "0dc84f8dd89dfe1cbff4102efafd4dd4938820caa2cdfcca60bad5245d57e6b3"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-cook/acd9c509b829/08.png",
+          "width": 408,
+          "height": 525,
+          "sha256": "07f16ab3cf068aeb5adb8f0f0e9cd288b7a1be6f3666de27fb52245d1dd63efc"
+        }
+      ],
+      "prompt": "Dungeons VTT original game asset. Use the attached original character illustration as the exact design, palette, material and proportional reference. Produce one new high-detail game sprite sheet on truly transparent RGBA, 3:2 landscape, exactly two equally spaced rows of four cells, eight fully separated illustrations read left to right. Nothing outside the silhouettes. Ground baseline at about 45 percent and 95 percent of the sheet height, centered body in each cell, fully inside the cell with at least 15 px transparent gutter on ALL sides. Consistent planted-foot baseline and head scale. No words, numbering, panels, border, grids, scenery, ground or shadows; every hand, toe, tail, horn or fabric edge visible and preserved. Same orthographic perspective and slight 12-degree elevated view in all eight frames. Painted linework and textured fabric as attached. Tarak the gardener preparing herb stew at the refectory. Preserve reddish-brown hair, graying short beard, worn olive-brown tunic and small front leather pouch. Match original three-quarter front view, facing toward screen right. His boots stay planted throughout. No pot or furniture in the sprite, the stove is already a 3D prop. Phase 1 he holds a small pinch of deep green dried herbs in the left palm; 2 right fingers begin to gather the herbs; 3 rub herbs between fingers over the left palm; 4 right hand gathers a pinch and reaches out at chest height; 5 fingers open to sprinkle; 6 finish sprinkling, keep the hand out; 7 right hand returns and shakes remaining crumbs; 8 both hands rest at waist height. No detached floating particles; those are rendered in-game.",
+      "criterion": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ],
+      "userAcceptance": "Pendiente"
+    },
+    {
+      "id": "sw-blepp-watch",
+      "label": "Blepp · Vigilar el camino",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-blepp-watch.json",
+      "fps": 6,
+      "loop": false,
+      "direction": "se",
+      "before": "campaigns/stormwreck-isle/public/art/characters/base-v1/blepp.png",
+      "sourcePages": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-blepp-watch-bd5092564ef8.png",
+        "width": 1536,
+        "height": 1024,
+        "sha256": "bd5092564ef85dd2c159c2fa4a7356e29960aef2d245c896ea0fca2fe6bcfb38"
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-watch/bd5092564ef8/01.png",
+          "width": 436,
+          "height": 531,
+          "sha256": "9153506595806e04a2d857b44e4cc8826393a742b50ba1d29f154cb008f0ad11"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-watch/bd5092564ef8/02.png",
+          "width": 436,
+          "height": 531,
+          "sha256": "204cfb2cc074eda68ed2f142912fd255b25bd9d8cbb25db87279c39a3ace5d76"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-watch/bd5092564ef8/03.png",
+          "width": 436,
+          "height": 531,
+          "sha256": "2b11067163e8e6311b078347ba4bd3b4484443d858bcbbaefccafa6d0238cb2f"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-watch/bd5092564ef8/04.png",
+          "width": 436,
+          "height": 531,
+          "sha256": "83121b3125f6a29410d6c93893c9420e90675a44adf24bc79a9bca1d5b906d52"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-watch/bd5092564ef8/05.png",
+          "width": 436,
+          "height": 531,
+          "sha256": "53ba2cc6b9a32368a1c8aa21e0f0bffa06874ebc9a53e39ee66fef11d01ec2a3"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-watch/bd5092564ef8/06.png",
+          "width": 436,
+          "height": 531,
+          "sha256": "341bd68d2f5175f6c47ea579b7c16163a8f0fdc8e8b78ca014d43225eee5f5f7"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-watch/bd5092564ef8/07.png",
+          "width": 436,
+          "height": 531,
+          "sha256": "4c6b90e9939d305e48ba9c30fed9af9cfbd27459cfa26c87167bf0e9076b6534"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-watch/bd5092564ef8/08.png",
+          "width": 436,
+          "height": 531,
+          "sha256": "42be3d11024970cc8c6299ed337df02a1c110a5bcb112bbbb1a3d8fd6c99d357"
+        }
+      ],
+      "prompt": "Dungeons VTT original game asset. Use the attached original character illustration as the exact design, palette, material and proportional reference. Produce one new high-detail game sprite sheet on truly transparent RGBA, 3:2 landscape, exactly two equally spaced rows of four cells, eight fully separated illustrations read left to right. Nothing outside the silhouettes. Ground baseline at about 45 percent and 95 percent of the sheet height, centered body in each cell, fully inside the cell with at least 15 px transparent gutter on ALL sides. Consistent planted-foot baseline and head scale. No words, numbering, panels, border, grids, scenery, ground or shadows; every hand, toe, tail, horn or fabric edge visible and preserved. Same orthographic perspective and slight 12-degree elevated view in all eight frames. Painted linework and textured fabric as attached. Blepp cautiously scopes the path. Preserve original rusty red kobold, simple leather apron, muted green scarf and pale short horns. Three-quarter toward screen right. Both clawed feet planted. Phase 1 alert listening, 2 snout up, 3 lifts his near forearm, 4 one hand shades the brow, 5 peers forward with slight forward lean, 6 tilts his head a little to the side, 7 lowers forearm, 8 alert resting pose. Tail stays fully visible and counterbalances softly. No objects, weapons or equipment changes.",
+      "criterion": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ],
+      "userAcceptance": "Pendiente"
+    },
+    {
+      "id": "sw-agga-direct",
+      "label": "Agga · Dar indicaciones",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-agga-direct.json",
+      "fps": 6,
+      "loop": false,
+      "direction": "se",
+      "before": "campaigns/stormwreck-isle/public/art/characters/base-v1/agga.png",
+      "sourcePages": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-agga-direct-545be563b671.png",
+        "width": 1536,
+        "height": 1024,
+        "sha256": "545be563b671eb71119268164710fc176fc9bddfb7083120a92880f1dac9d959"
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-direct/545be563b671/01.png",
+          "width": 440,
+          "height": 524,
+          "sha256": "2e5ca78ff7f6fd667a91ffbdf8db2a230db3859bad45f615ab9d6ab4e5f7b1b5"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-direct/545be563b671/02.png",
+          "width": 440,
+          "height": 524,
+          "sha256": "a4bf1160c8c595df7b02ea1dcc86f3102c5923972f1beb2dfe9ea745f6c26b0b"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-direct/545be563b671/03.png",
+          "width": 440,
+          "height": 524,
+          "sha256": "8e5e4db913839ad025dfde15854291fd0698aafe7a5cebc1dc6ea1fade1e325c"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-direct/545be563b671/04.png",
+          "width": 440,
+          "height": 524,
+          "sha256": "b46680661587b75c74a03ff3d403566fa274b39bd0234d0947be7b5f758bda15"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-direct/545be563b671/05.png",
+          "width": 440,
+          "height": 524,
+          "sha256": "7fc86e6968d188bbd265382d5190e64a967b3d588a147dcceeff998ea59115b0"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-direct/545be563b671/06.png",
+          "width": 440,
+          "height": 524,
+          "sha256": "7867bacdcbe069e989466462be6774cb8ce455b84138ec1025566d68ae2ff077"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-direct/545be563b671/07.png",
+          "width": 440,
+          "height": 524,
+          "sha256": "48f2f453bdd9bdb2cc5ae4817a8ed8ea9ab4a410656f7a653aeffa0857749230"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-agga-direct/545be563b671/08.png",
+          "width": 440,
+          "height": 524,
+          "sha256": "60bbb24280275ec7c728aa09db4dc012a7989e13d0daadeae76e8eacc392fae0"
+        }
+      ],
+      "prompt": "Dungeons VTT original game asset. Use the attached original character illustration as the exact design, palette, material and proportional reference. Produce one new high-detail game sprite sheet on truly transparent RGBA, 3:2 landscape, exactly two equally spaced rows of four cells, eight fully separated illustrations read left to right. Nothing outside the silhouettes. Ground baseline at about 45 percent and 95 percent of the sheet height, centered body in each cell, fully inside the cell with at least 15 px transparent gutter on ALL sides. Consistent planted-foot baseline and head scale. No words, numbering, panels, border, grids, scenery, ground or shadows; every hand, toe, tail, horn or fabric edge visible and preserved. Same orthographic perspective and slight 12-degree elevated view in all eight frames. Painted linework and textured fabric as attached. Agga organizing other kobolds. Preserve original rusty kobold face, cream robe and exact brown waist wrap and horns. Three-quarter toward screen right. Standing planted feet throughout. 1 hands at waist, 2 looks up in recognition, 3 raises right hand, 4 hand directs a short point out to screen right, 5 holds with a no-nonsense brow, 6 closes fingers and pulls back, 7 places right hand by left elbow, 8 neutral stance. No other objects, equipment, sparks or weapons.",
+      "criterion": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ],
+      "userAcceptance": "Pendiente"
+    },
+    {
+      "id": "sw-kilnip-chat",
+      "label": "Kilnip · Conversar",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-kilnip-chat.json",
+      "fps": 6,
+      "loop": false,
+      "direction": "se",
+      "before": "campaigns/stormwreck-isle/public/art/characters/base-v1/kilnip.png",
+      "sourcePages": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "original": {
+        "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-kilnip-chat-67a2e51c6305.png",
+        "width": 1536,
+        "height": 1024,
+        "sha256": "67a2e51c63057d6c77e47fa05ccb62765d993063c6e30a170ffa86e6c509beaa"
+      },
+      "frames": [
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-chat/67a2e51c6305/01.png",
+          "width": 458,
+          "height": 525,
+          "sha256": "6bf37ee967e6a620be6f242e447a4f41e267a0352307b89a0e442b457df5a65b"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-chat/67a2e51c6305/02.png",
+          "width": 458,
+          "height": 525,
+          "sha256": "ec5464ceabfcab8f289c1cbaaf524aa7a323e0244d33fe39e98e937278e26d27"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-chat/67a2e51c6305/03.png",
+          "width": 458,
+          "height": 525,
+          "sha256": "f49b985b56f17aed11ab4ebd87f9992b7e3f50cf41fbee59d0d1db24de2eb62d"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-chat/67a2e51c6305/04.png",
+          "width": 458,
+          "height": 525,
+          "sha256": "bf50204c552b315b4d8a3d8a05689f05639c3712753be1c423602ea983258b17"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-chat/67a2e51c6305/05.png",
+          "width": 458,
+          "height": 525,
+          "sha256": "9b452e2e0606a9a9d1bf7e1e0e125fdbd471a5cd7ae8655fabe08a9698988145"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-chat/67a2e51c6305/06.png",
+          "width": 458,
+          "height": 525,
+          "sha256": "8d6212571295c4634ec719c2e2c2c9d22edb9370805b1fc33da7c750c018e53b"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-chat/67a2e51c6305/07.png",
+          "width": 458,
+          "height": 525,
+          "sha256": "ab58a4ee00fb2558e9b48f0ea584d533726e82de57c6eed03edbe81a6b88ad58"
+        },
+        {
+          "path": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-chat/67a2e51c6305/08.png",
+          "width": 458,
+          "height": 525,
+          "sha256": "93c27162d4cef57b19a9e6f935956e3dcb19eb94a65a9cd7cab718cebeef858d"
+        }
+      ],
+      "prompt": "Dungeons VTT original game asset. Use the attached original character illustration as the exact design, palette, material and proportional reference. Produce one new high-detail game sprite sheet on truly transparent RGBA, 3:2 landscape, exactly two equally spaced rows of four cells, eight fully separated illustrations read left to right. Nothing outside the silhouettes. Ground baseline at about 45 percent and 95 percent of the sheet height, centered body in each cell, fully inside the cell with at least 15 px transparent gutter on ALL sides. Consistent planted-foot baseline and head scale. No words, numbering, panels, border, grids, scenery, ground or shadows; every hand, toe, tail, horn or fabric edge visible and preserved. Same orthographic perspective and slight 12-degree elevated view in all eight frames. Painted linework and textured fabric as attached. Kilnip, the tired but animated conversationalist. Preserve original paler rusty kobold, exact cream point-trimmed robe, horns and spotted muzzle. Three-quarter toward screen right. Both feet stay planted. Phase 1 eyes relaxed, hands idle; 2 mouth opens slightly and one hand lifts; 3 hand turns palm up; 4 raises the other hand as if asking a question; 5 smile and small tilt of head; 6 sweeps one hand down gently; 7 both hands return to waist; 8 relaxed with mouth closed. No props, weapons, or equipment changes.",
+      "criterion": [
+        "VA-03",
+        "VA-10",
+        "VA-13",
+        "REF-01",
+        "REF-03"
+      ],
+      "userAcceptance": "Pendiente"
+    }
+  ],
+  "travel": {
+    "day": 12,
+    "dusk": 12,
+    "night": 12,
+    "welcome_to_library": {
+      "elevation_bands": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "max_horizontal_meters_per_tick": 0.0353823453187943
+    }
+  }
+}

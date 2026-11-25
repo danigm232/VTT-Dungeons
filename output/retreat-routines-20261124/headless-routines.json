@@ -1,0 +1,17 @@
+{
+  "catalogue": "10bddb403b92edb196188d76bcc0c3ad365a04bbd5152a4e96f963131fb45034",
+  "checks": 483,
+  "contacts": 72,
+  "cooperation": [
+    "blepp/listen/kilnip",
+    "kilnip/blepp/blepp",
+    "myla/lesson/laylee"
+  ],
+  "failures": [],
+  "passed": true,
+  "scheduledContacts": [
+    "gear",
+    "alembic"
+  ],
+  "shots": []
+}

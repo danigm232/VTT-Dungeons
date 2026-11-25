@@ -10,6 +10,16 @@ tmp/
 !.env.example
 runtime/
 data/
+# Datos estáticos de mapas Godot; mantener excluidas las partidas y demás datos.
+!/prototypes/godot-retiro/assets/data/
+/prototypes/godot-retiro/assets/data/*
+!/prototypes/godot-retiro/assets/data/global-layout.json
+!/prototypes/godot-retiro/assets/data/retreat-terrain-v2.json
+!/prototypes/godot-campamentos/assets/data/
+/prototypes/godot-campamentos/assets/data/*
+!/prototypes/godot-campamentos/assets/data/camps-layout.json
+!/prototypes/godot-campamentos/assets/data/global-layout.json
+!/prototypes/godot-campamentos/assets/data/retreat-terrain-v2.json
 backups/
 OneDrive_1_12-9-2026/
 *.log

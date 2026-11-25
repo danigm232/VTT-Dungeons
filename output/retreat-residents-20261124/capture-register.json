@@ -1,0 +1,1113 @@
+{
+  "catalogue": "df7f5466ac3806d5419244d7acec8b3298c9cddc7451b10c6fb479779e31dd81",
+  "adventureSha256": "26a700407a3878f27428755e40fdb8d8a933a9bbd2aeaa9461e33fc6fae2fc69",
+  "before": "Cámara y escena fijas con los nuevos habitantes ocultos. En playa, los marineros esperan la orden del DM.",
+  "after": "Mismo encuadre con los habitantes y sus gestos. En playa, los tres marineros ya están revelados.",
+  "criterion": [
+    "VA-03",
+    "VA-06",
+    "VA-10",
+    "VA-13",
+    "VA-16",
+    "REF-01",
+    "REF-03",
+    "REF-08"
+  ],
+  "userAcceptance": "Pendiente",
+  "locations": {
+    "day": {
+      "agga": {
+        "position": [
+          119.900001525879,
+          9.06999969482422,
+          85.8000030517578
+        ],
+        "station": "agga_cell"
+      },
+      "blepp": {
+        "position": [
+          121.5,
+          9.06999969482422,
+          86
+        ],
+        "station": "blepp_cell"
+      },
+      "frub": {
+        "position": [
+          124,
+          9.06999969482422,
+          83.6500015258789
+        ],
+        "station": "frub_cell"
+      },
+      "kilnip": {
+        "position": [
+          124.75,
+          9.06999969482422,
+          86.4499969482422
+        ],
+        "station": "kilnip_cell"
+      },
+      "laylee": {
+        "position": [
+          128.899993896484,
+          9.06999969482422,
+          85.8000030517578
+        ],
+        "station": "laylee_cell"
+      },
+      "mumpo": {
+        "position": [
+          130.149993896484,
+          9.06999969482422,
+          84.1500015258789
+        ],
+        "station": "mumpo_cell"
+      },
+      "myla": {
+        "position": [
+          112.599998474121,
+          9.06999969482422,
+          81.4000015258789
+        ],
+        "station": "myla_bench"
+      },
+      "rix": {
+        "position": [
+          130.350006103516,
+          9.06999969482422,
+          85.8499984741211
+        ],
+        "station": "rix_cell"
+      },
+      "runara": {
+        "position": [
+          106.150001525879,
+          18.0599994659424,
+          57.7999992370605
+        ],
+        "station": "scriptorium"
+      },
+      "tarak": {
+        "position": [
+          92.6999969482422,
+          9.1561107635498,
+          90.9000015258789
+        ],
+        "station": "tarak_garden"
+      },
+      "varnoth": {
+        "position": [
+          36.7000007629395,
+          27.0599994659424,
+          64.9000015258789
+        ],
+        "station": "varnoth_temple"
+      },
+      "zark": {
+        "position": [
+          133.850006103516,
+          9.06999969482422,
+          85.6999969482422
+        ],
+        "station": "zark_cell"
+      }
+    },
+    "dusk": {
+      "agga": {
+        "position": [
+          119,
+          9.1641092300415,
+          91.6500015258789
+        ],
+        "station": "agga_plaza"
+      },
+      "blepp": {
+        "position": [
+          108.400001525879,
+          9.16452884674072,
+          91.5
+        ],
+        "station": "blepp_lookout"
+      },
+      "frub": {
+        "position": [
+          124.199996948242,
+          9.17054462432861,
+          92.75
+        ],
+        "station": "frub_plaza"
+      },
+      "kilnip": {
+        "position": [
+          125.599998474121,
+          18.0599994659424,
+          59.2000007629395
+        ],
+        "station": "kilnip_dining"
+      },
+      "laylee": {
+        "position": [
+          114,
+          9.06999969482422,
+          81.0500030517578
+        ],
+        "station": "laylee_bench"
+      },
+      "mumpo": {
+        "position": [
+          128.199996948242,
+          9.1709508895874,
+          92
+        ],
+        "station": "mumpo_plaza"
+      },
+      "myla": {
+        "position": [
+          95.3000030517578,
+          18.0599994659424,
+          57.5999984741211
+        ],
+        "station": "myla_books"
+      },
+      "rix": {
+        "position": [
+          42.2999992370605,
+          27.0599994659424,
+          65.5500030517578
+        ],
+        "station": "rix_temple"
+      },
+      "runara": {
+        "position": [
+          44.7999992370605,
+          27.0599994659424,
+          65.25
+        ],
+        "station": "runara_temple"
+      },
+      "tarak": {
+        "position": [
+          122.050003051758,
+          18.0599994659424,
+          54.7999992370605
+        ],
+        "station": "tarak_kitchen"
+      },
+      "varnoth": {
+        "position": [
+          102.75,
+          18.0599994659424,
+          57.4000015258789
+        ],
+        "station": "varnoth_library"
+      },
+      "zark": {
+        "position": [
+          132.75,
+          9.18549537658691,
+          92.0999984741211
+        ],
+        "station": "zark_plaza"
+      }
+    },
+    "night": {
+      "agga": {
+        "position": [
+          119,
+          9.1641092300415,
+          91.6500015258789
+        ],
+        "station": "agga_plaza"
+      },
+      "blepp": {
+        "position": [
+          108.400001525879,
+          9.16452884674072,
+          91.5
+        ],
+        "station": "blepp_lookout"
+      },
+      "frub": {
+        "position": [
+          124.199996948242,
+          9.17054462432861,
+          92.75
+        ],
+        "station": "frub_plaza"
+      },
+      "kilnip": {
+        "position": [
+          125.599998474121,
+          18.0599994659424,
+          59.2000007629395
+        ],
+        "station": "kilnip_dining"
+      },
+      "laylee": {
+        "position": [
+          114,
+          9.06999969482422,
+          81.0500030517578
+        ],
+        "station": "laylee_bench"
+      },
+      "mumpo": {
+        "position": [
+          128.199996948242,
+          9.1709508895874,
+          92
+        ],
+        "station": "mumpo_plaza"
+      },
+      "myla": {
+        "position": [
+          112.599998474121,
+          9.06999969482422,
+          81.4000015258789
+        ],
+        "station": "myla_bench"
+      },
+      "rix": {
+        "position": [
+          42.2999992370605,
+          27.0599994659424,
+          65.5500030517578
+        ],
+        "station": "rix_temple"
+      },
+      "runara": {
+        "position": [
+          44.7999992370605,
+          27.0599994659424,
+          65.25
+        ],
+        "station": "runara_temple"
+      },
+      "tarak": {
+        "position": [
+          89.75,
+          9.06999969482422,
+          85.3499984741211
+        ],
+        "station": "tarak_cell"
+      },
+      "varnoth": {
+        "position": [
+          101,
+          9.06999969482422,
+          85.8000030517578
+        ],
+        "station": "varnoth_cell"
+      },
+      "zark": {
+        "position": [
+          132.75,
+          9.18549537658691,
+          92.0999984741211
+        ],
+        "station": "zark_plaza"
+      }
+    }
+  },
+  "sceneEffects": [
+    {
+      "id": "BrassGearPivot",
+      "owner": "prototypes/godot-retiro/scripts/interactive_prop.gd",
+      "before": "Giro a petición del jugador",
+      "after": "Mismo mecanismo activado también por la fase de contacto de Myla"
+    },
+    {
+      "id": "ResidentIncense",
+      "owner": "prototypes/godot-retiro/scripts/retreat_residents.gd",
+      "before": "Altar existente",
+      "after": "Emisión breve de incienso durante la ofrenda de Rix"
+    }
+  ],
+  "captures": [
+    {
+      "id": "playa-encuentro",
+      "near": 0.0500000007450581,
+      "phase": "day",
+      "pitch": 37,
+      "size": 7.45584392547607,
+      "view": "[X: (0.990268, 0.0, 0.139173), Y: (0.083756, 0.798635, -0.595958), Z: (-0.111149, 0.601815, 0.790863), O: (-1.925659, 145.3356, 297.0572)]",
+      "yaw": -8,
+      "before": {
+        "name": "playa-encuentro-before.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "ecb14e5e39713217d22e805d6f616fec4d0ff58d64fc7c7f6a0d536a26e7790e"
+      },
+      "after": {
+        "name": "playa-encuentro-after.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "fa1c14b7c88bf657f29babb0df8fd63935677fc3c315885bf60e71def2075ac0"
+      }
+    },
+    {
+      "id": "a1-bienvenida",
+      "near": 235.999984741211,
+      "phase": "day",
+      "pitch": 43,
+      "size": 5.38477611541748,
+      "view": "[X: (0.990268, 0.0, -0.139173), Y: (-0.094916, 0.731354, -0.675361), Z: (0.101785, 0.681998, 0.724236), O: (124.9283, 173.3796, 267.2667)]",
+      "yaw": 8,
+      "before": {
+        "name": "a1-bienvenida-before.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "e844c5f3383f7a1721188dc45fcb9a60d6234f4c8c8cca14e155d2386ae05a32"
+      },
+      "after": {
+        "name": "a1-bienvenida-after.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "933dff6897fbcdf016277e38788cddd94a8b6a1020d4da3837e6208f83d4d793"
+      }
+    },
+    {
+      "id": "a4-escritura",
+      "near": 236,
+      "phase": "day",
+      "pitch": 51,
+      "size": 4.97056293487549,
+      "view": "[X: (0.984808, 0.0, -0.173648), Y: (-0.13495, 0.62932, -0.765339), Z: (0.10928, 0.777146, 0.61976), O: (132.3773, 205.275, 206.5423)]",
+      "yaw": 10,
+      "before": {
+        "name": "a4-escritura-before.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "455b368fc6eba0c7ee5a33fcc0c2caa76f52168d07e927189a357da5e40d1127"
+      },
+      "after": {
+        "name": "a4-escritura-after.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "6ecd45875ff798b0117a053c33e96597c6cc0471088135e07c79c8fcc22aaffe"
+      }
+    },
+    {
+      "id": "a1-herbolario",
+      "near": 236,
+      "phase": "day",
+      "pitch": 47,
+      "size": 4.97056293487549,
+      "view": "[X: (0.996195, 0.0, -0.087156), Y: (-0.063742, 0.681998, -0.728571), Z: (0.05944, 0.731354, 0.679403), O: (106.9656, 185.3494, 253.9568)]",
+      "yaw": 5,
+      "before": {
+        "name": "a1-herbolario-before.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "90d76baa9b3d50ec7e848e755dcabd62e29818d22257255083dc54385de9791e"
+      },
+      "after": {
+        "name": "a1-herbolario-after.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "a986edcc4db83e0d5c1c2f42476a325559d46daa05d68f70ce3a36379a55aea0"
+      }
+    },
+    {
+      "id": "a1-taller",
+      "near": 236.000015258789,
+      "phase": "day",
+      "pitch": 39,
+      "size": 4.97056293487549,
+      "view": "[X: (0.984808, 0.0, -0.173648), Y: (-0.10928, 0.777146, -0.61976), Z: (0.13495, 0.62932, 0.765339), O: (145.408, 160.5422, 264.9315)]",
+      "yaw": 10,
+      "before": {
+        "name": "a1-taller-before.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "07123f15637168dae3bd5ee64f94cad96899ef5b7baa5c9e1c42327db19183b2"
+      },
+      "after": {
+        "name": "a1-taller-after.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "2b4e2d4721b733b7aa7b2455b2307609639b7e7cf6ebb812e07cc269ee9337cd"
+      }
+    },
+    {
+      "id": "a5-mantenimiento",
+      "near": 236.000015258789,
+      "phase": "day",
+      "pitch": 44,
+      "size": 4.97056293487549,
+      "view": "[X: (0.978148, 0.0, -0.207912), Y: (-0.144428, 0.71934, -0.679478), Z: (0.149559, 0.694658, 0.703621), O: (72.59419, 194.4233, 233.7689)]",
+      "yaw": 12,
+      "before": {
+        "name": "a5-mantenimiento-before.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "a0e8a7c8ef37422ada709eeef7de8d0af2f4df197d8be5cad58a37235a88b2a2"
+      },
+      "after": {
+        "name": "a5-mantenimiento-after.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "37d350648a7f8819b146451960a99ee1a1fea8885801d683e5c39b4229bd5889"
+      }
+    },
+    {
+      "id": "a5-ofrenda",
+      "near": 236,
+      "phase": "dusk",
+      "pitch": 49,
+      "size": 4.97056293487549,
+      "view": "[X: (0.984808, 0.0, -0.173648), Y: (-0.131054, 0.656059, -0.743244), Z: (0.113923, 0.75471, 0.646092), O: (69.64163, 208.7703, 220.6121)]",
+      "yaw": 10,
+      "before": {
+        "name": "a5-ofrenda-before.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "cb0aef244844cbcf2e11c6847b659a4240f1f16fc6a11c23abc64306ec129712"
+      },
+      "after": {
+        "name": "a5-ofrenda-after.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "cd7bbf86ac0b6f078d557c4744f0e69e961dd53b511a666d32647ccc00001332"
+      }
+    },
+    {
+      "id": "a1-celda-oeste",
+      "near": 235.999984741211,
+      "phase": "day",
+      "pitch": 47,
+      "size": 5.96467542648315,
+      "view": "[X: (0.996195, 0.0, 0.087156), Y: (0.063742, 0.681998, -0.728571), Z: (-0.05944, 0.731354, 0.679403), O: (108.1344, 185.1549, 248.0567)]",
+      "yaw": -5,
+      "before": {
+        "name": "a1-celda-oeste-before.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "0b056f6069eafb45f03061978aa01645de65893c53edb1896b9a5fca0dd526cf"
+      },
+      "after": {
+        "name": "a1-celda-oeste-after.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "693c68f251e91532210ccc8c8f344e57440c82602588cab54806be8099712f38"
+      }
+    },
+    {
+      "id": "a1-celda-este",
+      "near": 236,
+      "phase": "day",
+      "pitch": 47,
+      "size": 5.96467542648315,
+      "view": "[X: (0.990268, 0.0, 0.139173), Y: (0.101785, 0.681998, -0.724236), Z: (-0.094916, 0.731354, 0.675361), O: (108.5202, 185.1249, 247.2867)]",
+      "yaw": -8,
+      "before": {
+        "name": "a1-celda-este-before.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "fcab2eab900f02f5c4e14128eb7eba522f280fae1ece9a7446f7785d2e95852f"
+      },
+      "after": {
+        "name": "a1-celda-este-after.png",
+        "width": 1440,
+        "height": 810,
+        "sha256": "13aa33f8d2d60894d685b39a25b16325b080ef8c935cae1ceb542b1fa21a46a3"
+      }
+    }
+  ],
+  "cycles": [
+    {
+      "id": "sw-runara-greet",
+      "label": "Runara · Bienvenida",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-runara-greet.json",
+      "fps": 6,
+      "orientation": "se",
+      "frames": [
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/01.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/02.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/03.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/04.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/05.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/06.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/07.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/08.png"
+      ],
+      "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/runara.png",
+      "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-runara-greet-b969cc267396.png",
+      "originalSha256": "b969cc2673969c6a945ec0eb479d8db58122908c156bceb8e9c7a98314078c5c",
+      "pages": [
+        8
+      ],
+      "frameEvidence": [
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/01.png",
+          "width": 410,
+          "height": 524,
+          "sha256": "5a4e17e2cbb2c656160a3e7c80ee78b450df89bec5038a6a391e4bda9b16378d"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/02.png",
+          "width": 410,
+          "height": 524,
+          "sha256": "a9d69da634c02e3b34fcabf7335d8689d9669b08091b32500596046a0f03baec"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/03.png",
+          "width": 410,
+          "height": 524,
+          "sha256": "d42db4133af2c593d0516c3a458478ea73dec43c32e379db80054b5b0ed769dc"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/04.png",
+          "width": 410,
+          "height": 524,
+          "sha256": "80f3d20c93e6840f1df7ebeaf67e9ce2fc14a9677215643bdfc0eca47f2958c3"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/05.png",
+          "width": 410,
+          "height": 524,
+          "sha256": "55aceb66ea994061f9137af50ac5d4c10fd34b1f3ce2ff1eaa82bbb909f21e2d"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/06.png",
+          "width": 410,
+          "height": 524,
+          "sha256": "9a600280d3f400df7a30d099ec8dc1d8a2a1657d4d955be03712c6a627e5a792"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/07.png",
+          "width": 410,
+          "height": 524,
+          "sha256": "db007cd0e1b163da5b743c00a20d3023e8121b6766f0fa899537eca3866e589b"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-greet/b969cc267396/08.png",
+          "width": 410,
+          "height": 524,
+          "sha256": "e17783e05f46b20584dfc945ff44367d028a473a9d01ed7a2c937c3557b3c951"
+        }
+      ]
+    },
+    {
+      "id": "sw-runara-study",
+      "label": "Runara · Lectura y notas",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-runara-study.json",
+      "fps": 6,
+      "orientation": "se",
+      "frames": [
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/01.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/02.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/03.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/04.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/05.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/06.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/07.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/08.png"
+      ],
+      "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/runara.png",
+      "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-runara-study-5708e96fe295.png",
+      "originalSha256": "5708e96fe295bd5ecdda534125be3db20e1be3f5e895fcb2d8aaa2baa5a3f734",
+      "pages": [
+        8,
+        10
+      ],
+      "frameEvidence": [
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/01.png",
+          "width": 396,
+          "height": 524,
+          "sha256": "2438b15c3a11d7d7046342fd6100b64ff846dd16a5858a1459f8500889f62f1b"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/02.png",
+          "width": 396,
+          "height": 524,
+          "sha256": "f92ad19382511f18678c1fd9777f97cdd11ed5c5f311cae8a3be7637e80fae44"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/03.png",
+          "width": 396,
+          "height": 524,
+          "sha256": "98581d561543777dd1bf12975e9d3fddc19112d2c3c059f4c97681e4f65df191"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/04.png",
+          "width": 396,
+          "height": 524,
+          "sha256": "744633bad0367924e008effadde51441efaad204c7547eb4a5ebc1b3a7612cf1"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/05.png",
+          "width": 396,
+          "height": 524,
+          "sha256": "50571d05c33e4b77ddf1a693da2a4720810b0c7e8a45a83d6259e9865a293d08"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/06.png",
+          "width": 396,
+          "height": 524,
+          "sha256": "efb7bf23585b3527ed82e7d5e0959716f51ba8e32062fa95f91a3b2e83389aab"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/07.png",
+          "width": 396,
+          "height": 524,
+          "sha256": "9b479109df154e60e108ae7bbed5d0b1821a907b0359f74c4f476be302181c0c"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/08.png",
+          "width": 396,
+          "height": 524,
+          "sha256": "7132bc0f240e24b30dea96594cc2063ce026185fb437f41a17f37f04e6f0a266"
+        }
+      ]
+    },
+    {
+      "id": "sw-runara-meditate",
+      "label": "Runara · Meditación",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-runara-meditate.json",
+      "fps": 6,
+      "orientation": "se",
+      "frames": [
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/01.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/02.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/03.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/04.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/05.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/06.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/07.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/08.png"
+      ],
+      "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/runara.png",
+      "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-runara-meditate-785c7d412c11.png",
+      "originalSha256": "785c7d412c114a063a019d93838a7a47ccde2e0f5a7d52d95c1411ba42540423",
+      "pages": [
+        8,
+        11
+      ],
+      "frameEvidence": [
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/01.png",
+          "width": 396,
+          "height": 524,
+          "sha256": "97195bff721e2da84df583f6248ac456ddefe9f54d04be5ae1bfafcaed38237d"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/02.png",
+          "width": 396,
+          "height": 524,
+          "sha256": "60ea0e7009b7ce4b817887c3bae6b2649a062f8332b3cea69cf969ff056f8987"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/03.png",
+          "width": 396,
+          "height": 524,
+          "sha256": "5a47fc984c8592fe55ef5bc9b61273f578c51c88c010e1d5eb0624c2a15db72d"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/04.png",
+          "width": 396,
+          "height": 524,
+          "sha256": "ee4dfddebd15fe8d7b20daf004983c8a421901203e78422b9fc5c1dbfab65fa5"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/05.png",
+          "width": 396,
+          "height": 524,
+          "sha256": "01f70ddbd12d85fc7b087bcd704f5e65e4942208543ba06336a9acd201d748c7"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/06.png",
+          "width": 396,
+          "height": 524,
+          "sha256": "535f84d386c9e2ea8cab66b3ad70811457f577256e7708e93a4944d4fac147c3"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/07.png",
+          "width": 396,
+          "height": 524,
+          "sha256": "08067979b5ee5e63c9a55c653daf49bc7a43ce26d7de970c85d70d84c5eaca14"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/08.png",
+          "width": 396,
+          "height": 524,
+          "sha256": "957f6500312ee5caae35e4b76e3f7b29bd1bf716918dfdff1e0290480333f55f"
+        }
+      ]
+    },
+    {
+      "id": "sw-tarak-tend",
+      "label": "Tarak · Examinar hierbas",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-tarak-tend.json",
+      "fps": 6,
+      "orientation": "se",
+      "frames": [
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-tend/b55d3bbc0d22/01.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-tend/b55d3bbc0d22/02.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-tend/b55d3bbc0d22/03.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-tend/b55d3bbc0d22/04.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-tend/b55d3bbc0d22/05.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-tend/b55d3bbc0d22/06.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-tend/b55d3bbc0d22/07.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-tend/b55d3bbc0d22/08.png"
+      ],
+      "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/tarak.png",
+      "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-tarak-tend-b55d3bbc0d22.png",
+      "originalSha256": "b55d3bbc0d22d1389fed0ae5a192a1d9baf98016dd89cb698421af0a19234577",
+      "pages": [
+        9,
+        10
+      ],
+      "frameEvidence": [
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-tend/b55d3bbc0d22/01.png",
+          "width": 432,
+          "height": 524,
+          "sha256": "d3b4e76b6b8031a7103c24b83aa0e4b8b6456150062934a274f252627f1e70c0"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-tend/b55d3bbc0d22/02.png",
+          "width": 432,
+          "height": 524,
+          "sha256": "993b24494c3f740c5d21f42f66090be1f61c08613fe55761ef2d267e76108b2a"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-tend/b55d3bbc0d22/03.png",
+          "width": 432,
+          "height": 524,
+          "sha256": "bb27c265e92eea422039705a8a130ebe0b27b611eea487a233176328360fd095"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-tend/b55d3bbc0d22/04.png",
+          "width": 432,
+          "height": 524,
+          "sha256": "8b6c2d68299de0230669d84c345cdc452fde21e0b705e0dfcdc37ab694ec0660"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-tend/b55d3bbc0d22/05.png",
+          "width": 432,
+          "height": 524,
+          "sha256": "e74bdaf86d9f446d055af9f6b64301b16f1631fd339547fae5712b8bde260941"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-tend/b55d3bbc0d22/06.png",
+          "width": 432,
+          "height": 524,
+          "sha256": "4c678d39ff1604e009208ab3bca5a13be33519c0eee0b8b328e2fb2eb6ea63b8"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-tend/b55d3bbc0d22/07.png",
+          "width": 432,
+          "height": 524,
+          "sha256": "596f26742c36058c988d6cf90c802f1f13cb0bafa09ef0a2073fa1a0e04d2e60"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-tend/b55d3bbc0d22/08.png",
+          "width": 432,
+          "height": 524,
+          "sha256": "ad31cfeb0636ff71e78b0400d389a881021ab2bd230a71a57a877e067563a1af"
+        }
+      ]
+    },
+    {
+      "id": "sw-varnoth-masonry",
+      "label": "Varnoth · Limpiar una pieza de piedra",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-varnoth-masonry.json",
+      "fps": 6,
+      "orientation": "s",
+      "frames": [
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/01.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/02.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/03.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/04.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/05.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/06.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/07.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/08.png"
+      ],
+      "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/varnoth.png",
+      "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-varnoth-masonry-77a446b803b1.png",
+      "originalSha256": "77a446b803b1e66b023eff6dad04254037a83f15043e9cae19409dacc3fb7154",
+      "pages": [
+        9,
+        11,
+        48
+      ],
+      "frameEvidence": [
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/01.png",
+          "width": 400,
+          "height": 524,
+          "sha256": "fcf979485176e1554f0fac6b2caed8e082e4ff3edd92f739e91dcbc2ec7aa4c3"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/02.png",
+          "width": 400,
+          "height": 524,
+          "sha256": "3ae39acac8c571d0d084785cda64d496433885cbd2d0801cf7e330366e6528ae"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/03.png",
+          "width": 400,
+          "height": 524,
+          "sha256": "552e6b7c2ed7f51280a3a0ff4a3b812e01e71c6fc6f8cfe91c552e0e7ccb608e"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/04.png",
+          "width": 400,
+          "height": 524,
+          "sha256": "decebc82b25616bd2b37cadb4cc655a397390adbc95d1d9559761eb23ee2f610"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/05.png",
+          "width": 400,
+          "height": 524,
+          "sha256": "b5b385ae4a2a1030633d40df1629b59f0c160febb167c6831c19d65c3b8af2f7"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/06.png",
+          "width": 400,
+          "height": 524,
+          "sha256": "41d4aa4add7327d09ff5cce7a173f91b0e197657348380c90fbe018f9f8173e0"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/07.png",
+          "width": 400,
+          "height": 524,
+          "sha256": "0b62fe52489957f51dfdcd41c2bd5d4cfe047546f4a9b46f3c11bb8c8a87a017"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-masonry/77a446b803b1/08.png",
+          "width": 400,
+          "height": 524,
+          "sha256": "ef50062c871b6c3dc16cf5a8d21a31faf6a07b09e811fbd345146f7c09f7f127"
+        }
+      ]
+    },
+    {
+      "id": "sw-myla-tinker",
+      "label": "Myla · Ajustar un engranaje",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-myla-tinker.json",
+      "fps": 7,
+      "orientation": "sw",
+      "frames": [
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-tinker/bfc486a2ef1e/01.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-tinker/bfc486a2ef1e/02.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-tinker/bfc486a2ef1e/03.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-tinker/bfc486a2ef1e/04.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-tinker/bfc486a2ef1e/05.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-tinker/bfc486a2ef1e/06.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-tinker/bfc486a2ef1e/07.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-tinker/bfc486a2ef1e/08.png"
+      ],
+      "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/myla.png",
+      "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-myla-tinker-bfc486a2ef1e.png",
+      "originalSha256": "bfc486a2ef1ea5603713c1f75362e416b5061ab5ad1dd9b916730beb501c48a8",
+      "pages": [
+        9,
+        10,
+        44
+      ],
+      "frameEvidence": [
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-tinker/bfc486a2ef1e/01.png",
+          "width": 420,
+          "height": 525,
+          "sha256": "9a065efbfe29bb22e5d5eb5dfb09c384c3bb574514f2b1c993a4726ade137e38"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-tinker/bfc486a2ef1e/02.png",
+          "width": 420,
+          "height": 525,
+          "sha256": "3b256df1212666ca202e2a2ae7bce8350836165b4e459723975be5495c93021b"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-tinker/bfc486a2ef1e/03.png",
+          "width": 420,
+          "height": 525,
+          "sha256": "c1853db07ec33b2d206192bd4b62598add45b460c2b5a97b804cfbb2115fb45c"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-tinker/bfc486a2ef1e/04.png",
+          "width": 420,
+          "height": 525,
+          "sha256": "158fc3432cec336d5034fa1cc8be60fa8ec49a430b84347696a45e61d565798e"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-tinker/bfc486a2ef1e/05.png",
+          "width": 420,
+          "height": 525,
+          "sha256": "03d01177828555af2dbc7fc07224127d6b87abcb7204349910dfa3cb7ec5e94a"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-tinker/bfc486a2ef1e/06.png",
+          "width": 420,
+          "height": 525,
+          "sha256": "3fc6ed067bcfbe0fc996cd9e1f136f6b78cd94d8a9a143b75aa93e45f831c1e4"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-tinker/bfc486a2ef1e/07.png",
+          "width": 420,
+          "height": 525,
+          "sha256": "788ba5b5468bf3c68b15f2dd0bc27156867f1237257a1def02186d3a595266fc"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-tinker/bfc486a2ef1e/08.png",
+          "width": 420,
+          "height": 525,
+          "sha256": "6afb331c940f03a2f8d7eb7a1826b51d3f8ed6a0d361b86e426c0171a272d964"
+        }
+      ]
+    },
+    {
+      "id": "sw-laylee-sort",
+      "label": "Laylee · Limpiar herramientas",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-laylee-sort.json",
+      "fps": 6,
+      "orientation": "se",
+      "frames": [
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/01.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/02.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/03.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/04.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/05.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/06.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/07.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/08.png"
+      ],
+      "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/laylee.png",
+      "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-laylee-sort-6d70b6a59334.png",
+      "originalSha256": "6d70b6a59334cc752725e86e3e98f10fa739c719a7f046b87111cc4166f9e9d8",
+      "pages": [
+        9,
+        10
+      ],
+      "frameEvidence": [
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/01.png",
+          "width": 426,
+          "height": 525,
+          "sha256": "bea89a71bad80a2a25ab6443c39b0b256b825e73c40f4b788e3470bd8f3dc17f"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/02.png",
+          "width": 426,
+          "height": 525,
+          "sha256": "bd2e83425039d6eabba6c4a8d1e92af52573bc721832bdb062caf23bb4feb4f0"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/03.png",
+          "width": 426,
+          "height": 525,
+          "sha256": "9b3390744408063814d3ea65642c253a20e277718d224ed2eea92fe3a3ed08b3"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/04.png",
+          "width": 426,
+          "height": 525,
+          "sha256": "dedaea602e61f404341c0b75b86866f0c9226b4ee795cb492deed31b83ead499"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/05.png",
+          "width": 426,
+          "height": 525,
+          "sha256": "a506ea05ecaabb6c453ca0335933ae4b4dc1f7f5cf90b7bf90b9d5110ef7ff71"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/06.png",
+          "width": 426,
+          "height": 525,
+          "sha256": "96ee6bc4e53059e8927fa70f95b78a7b0ed213d0e661434c3de6c4ff6aea51b6"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/07.png",
+          "width": 426,
+          "height": 525,
+          "sha256": "2c25e77a3fdc4b21d0627ab874d1bb59ade6ea3551dd5b02d33778b447050a6d"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-sort/6d70b6a59334/08.png",
+          "width": 426,
+          "height": 525,
+          "sha256": "6df01128fd91fa9cf380aad18458d054324364f640d9a108ccd00c98bb96668e"
+        }
+      ]
+    },
+    {
+      "id": "sw-rix-incense",
+      "label": "Rix · Ofrecer incienso",
+      "owner": "prototypes/godot-shared/characters/definitions/animations/sw-rix-incense.json",
+      "fps": 6,
+      "orientation": "se",
+      "frames": [
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-incense/5170a20fecf8/01.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-incense/5170a20fecf8/02.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-incense/5170a20fecf8/03.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-incense/5170a20fecf8/04.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-incense/5170a20fecf8/05.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-incense/5170a20fecf8/06.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-incense/5170a20fecf8/07.png",
+        "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-incense/5170a20fecf8/08.png"
+      ],
+      "reference": "campaigns/stormwreck-isle/public/art/characters/base-v1/rix.png",
+      "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-rix-incense-5170a20fecf8.png",
+      "originalSha256": "5170a20fecf8453d13f7d829179375d3fa98a0e2be9c140f2eb941eeded83693",
+      "pages": [
+        9,
+        11
+      ],
+      "frameEvidence": [
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-incense/5170a20fecf8/01.png",
+          "width": 420,
+          "height": 525,
+          "sha256": "27f28cfdfb41a27d3c5c0bc2c511f6d5f2be5ee51e895fc735f08ff6d94ba830"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-incense/5170a20fecf8/02.png",
+          "width": 420,
+          "height": 525,
+          "sha256": "42b0869bdbced61e487009be8bf73623068e68065d85ea9e31b20959573938ad"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-incense/5170a20fecf8/03.png",
+          "width": 420,
+          "height": 525,
+          "sha256": "84ea30fa309f92399ade0758b1a72f2511d54b9d2e593f68d36014a404941cf4"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-incense/5170a20fecf8/04.png",
+          "width": 420,
+          "height": 525,
+          "sha256": "49d743e0865f91ecfc313fed9069cd2f654e19ea91c8fe24c43fab050967828a"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-incense/5170a20fecf8/05.png",
+          "width": 420,
+          "height": 525,
+          "sha256": "68be4061d1e23c2ab4fb10ecc2d7d8812252c88313345c443525e41ee390d991"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-incense/5170a20fecf8/06.png",
+          "width": 420,
+          "height": 525,
+          "sha256": "7dcd84644d904036594f831a4c222944e85dc049171eb6be8a6f4c2c633c0834"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-incense/5170a20fecf8/07.png",
+          "width": 420,
+          "height": 525,
+          "sha256": "7cd990274876378ca6f8525f5b8421409301c3f13fb40b589da71a0b400e30ac"
+        },
+        {
+          "name": "../../campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-incense/5170a20fecf8/08.png",
+          "width": 420,
+          "height": 525,
+          "sha256": "d06a7f8d5654d007ab6653516e1fa178f5a3f9304221d74f33daae25a9c9024b"
+        }
+      ]
+    }
+  ]
+}

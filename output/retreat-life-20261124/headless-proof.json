@@ -1,0 +1,27 @@
+{
+	"catalogue": "5b9f775e0db9a0f70e01f75613ea246c56131b89b78b076bd675182f45506c4f",
+	"checks": 209,
+	"failures": [],
+	"passed": true,
+	"shots": [],
+	"travel": {
+		"day": 12,
+		"dusk": 12,
+		"night": 12,
+		"welcome_to_library": {
+			"elevation_bands": [
+				9,
+				10,
+				11,
+				12,
+				13,
+				14,
+				15,
+				16,
+				17,
+				18
+			],
+			"max_horizontal_meters_per_tick": 0.0353823453187943
+		}
+	}
+}

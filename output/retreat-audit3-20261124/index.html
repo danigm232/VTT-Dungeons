@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>El Retiro del Dragón · Auditoría 3 y Bloques 1–5 (24/11/2026)</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; font: 15px/1.55 system-ui, -apple-system, Segoe UI, sans-serif; background: #0c171c; color: #ece7d8; }
+  header.hero { padding: 28px clamp(18px, 4vw, 48px); background: linear-gradient(180deg, #13252d 0%, #0c171c 100%); border-bottom: 1px solid #2b444c; }
+  h1 { margin: 0 0 8px; font-size: clamp(22px, 3vw, 32px); color: #f3d79b; }
+  .lead { margin: 0 0 14px; color: #c7d6d2; max-width: 92ch; }
+  .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .pill { background: #183039; border: 1px solid #486b73; color: #e7f0ec; padding: 5px 11px; border-radius: 999px; font-size: 13px; }
+  .pill.ok { border-color: #5ea37c; color: #bfead0; }
+  main { padding: 20px clamp(18px, 4vw, 48px) 64px; max-width: 1480px; margin: 0 auto; }
+  h2 { color: #f1d392; margin: 30px 0 12px; border-bottom: 1px solid #243b42; padding-bottom: 6px; }
+  .card { background: #122229; border: 1px solid #2a4249; border-radius: 8px; padding: 14px 18px; margin: 18px 0; }
+  .card-tag { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #f3ce91; background: #1e353d; border: 1px solid #4f6c72; padding: 2px 9px; border-radius: 4px; margin-bottom: 6px; }
+  .hashes { font-size: 12px; color: #90a9a3; margin: 4px 0 0; }
+  .showcase-fig img { width: 100%; height: auto; border-radius: 4px; border: 1px solid #466066; display: block; }
+  .showcase-fig figcaption { font-weight: 600; margin-bottom: 10px; }
+  .status-box { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+  .status-cell { background: #13252c; border: 1px solid #2b454d; border-radius: 6px; padding: 12px 14px; }
+  .status-cell strong { display: block; color: #f3ce91; margin-bottom: 4px; }
+  a { color: #8fd3dc; }
+</style>
+<style>
+.vtt-comparison{margin:18px 0;min-width:0}.vtt-comparison figcaption{font-weight:600;margin:0 0 10px}
+.vtt-comparison-stage{box-sizing:border-box;display:block;position:relative;padding:0;border:1px solid #70817e;background:#101c22;cursor:pointer;width:100%;overflow:hidden;border-radius:4px;color:#fff;touch-action:manipulation}
+.vtt-comparison-stage img{display:block;width:100%;height:auto;max-width:none;border-radius:0}
+.vtt-comparison-stage .vtt-comparison-after{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;opacity:0;pointer-events:none}
+.vtt-comparison[data-after="true"] .vtt-comparison-after{opacity:1}.vtt-comparison-badge{position:absolute;right:12px;bottom:12px;background:#08141be8;color:#fff;font:700 13px/1.4 system-ui;padding:6px 12px;border:1px solid #a3b9af;border-radius:3px}
+.vtt-comparison-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}.vtt-comparison-controls button,.vtt-comparison-modal button:not(.vtt-comparison-stage){font:inherit;background:#29434a;color:#f0e8d5;border:1px solid #819991;border-radius:4px;padding:8px 14px;cursor:pointer;min-height:44px}
+.vtt-comparison-controls a{font-size:13px}.vtt-comparison-help{font-size:13px;color:#c6d5d0;margin:8px 0}
+.vtt-comparison button:focus-visible,.vtt-comparison-modal button:focus-visible{outline:3px solid #f3ce91;outline-offset:3px}
+.vtt-comparison-modal{width:min(96vw,1800px);max-width:none;padding:16px;background:#14272e;color:#ececdf;border:1px solid #80928d;border-radius:7px}
+.vtt-comparison-modal::backdrop{background:#050c12e8}.vtt-comparison-modal header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:none;padding:0;margin:0 0 10px}
+.vtt-comparison-modal h2{font:600 18px/1.4 system-ui;margin:0;flex:1}.vtt-comparison-modal label{display:flex;align-items:center;gap:8px}.vtt-comparison-modal input{max-width:160px}
+.vtt-comparison-pan{overflow:auto;max-height:72vh;overscroll-behavior:contain}.vtt-comparison-pan .vtt-comparison{margin:0}.vtt-comparison-pan .vtt-comparison-stage{border-radius:0}.vtt-comparison-pan .vtt-comparison-stage:focus-visible{outline-offset:-4px}
+</style><script>(function installVisualComparisons(){
+ let modal;
+ function update(figure,after){
+  figure.dataset.after=String(after);
+  const title=figure.dataset.title||'Comparativa';
+  for(const toggle of figure.querySelectorAll('[data-compare-toggle]')){
+   toggle.setAttribute('aria-pressed',String(after));
+   toggle.setAttribute('aria-label',`Mostrar ${after?'antes':'después'}: ${title}`);
+   if(!toggle.classList.contains('vtt-comparison-stage'))toggle.textContent=after?'Ver antes':'Ver después';
+  }
+  const images=figure.querySelectorAll('.vtt-comparison-stage img');
+  images[0].setAttribute('aria-hidden',String(after));images[1].setAttribute('aria-hidden',String(!after));
+  figure.querySelector('.vtt-comparison-badge').textContent=after?'DESPUÉS':'ANTES';
+  const status=figure.querySelector('[data-compare-status]');
+  if(status)status.textContent=`Mostrando ${after?'después':'antes'}. Pulsa la imagen para alternar sin mover el encuadre.`;
+ }
+ function enlarge(source){
+  if(!modal){
+   modal=document.createElement('dialog');modal.className='vtt-comparison-modal';
+   modal.innerHTML='<header><h2></h2><label>Zoom <input type="range" min="100" max="300" step="25" value="100" aria-label="Ampliación de la comparativa"><output>100 %</output></label><button type="button" data-close-comparison>Cerrar</button></header><div class="vtt-comparison-pan"></div>';
+   document.body.append(modal);
+   modal.querySelector('[data-close-comparison]').onclick=()=>modal.close();
+   modal.querySelector('input').oninput=event=>{const value=event.target.value;modal.querySelector('output').textContent=value+' %';modal.querySelector('.vtt-comparison').style.width=value+'%';};
+  }
+  modal.querySelector('h2').textContent=source.dataset.title;
+  const clone=source.cloneNode(true);clone.style.width='100%';clone.querySelector('[data-compare-enlarge]').remove();
+  for(const img of clone.querySelectorAll('img'))img.loading='eager';
+  modal.querySelector('.vtt-comparison-pan').replaceChildren(clone);modal.querySelector('input').value='100';modal.querySelector('output').textContent='100 %';
+  modal.showModal();modal.querySelector('.vtt-comparison-stage').focus();
+ }
+ document.addEventListener('click',event=>{
+  const target=event.target.closest('[data-compare-toggle], [data-compare-enlarge]');if(!target)return;
+  const figure=target.closest('[data-vtt-comparison]');if(!figure)return;
+  if(target.hasAttribute('data-compare-enlarge'))enlarge(figure);else update(figure,figure.dataset.after!=='true');
+ });
+})();</script>
+</head>
+<body>
+<header class="hero">
+  <h1>El Retiro del Dragón · Informe Antes / Después (Bloques 1–5 · 24/11/2026)</h1>
+  <p class="lead">Comparativa con cámara, resolución (<code>1440×810</code>) y motor (<strong>Godot 4.7.2 Forward+ · Vulkan 1.1.119</strong>) idénticos entre la auditoría base y la candidata tras implementar los 5 bloques: reparaciones geométricas, climatología 3D real + audio DM, mar/oleaje/mareas/SSAO/sombras, fauna 3D esculpida y cierre canónico PDF.</p>
+  <p class="lead"><strong>Cómo comparar:</strong> pulsa o toca cualquier captura <em>ANTES</em> para superponer el <em>DESPUÉS</em> en el mismo rectángulo sin mover el encuadre; vuelve a pulsar para alternar, o usa <em>Ampliar</em> para inspeccionar con zoom hasta el 300 %.</p>
+  <div class="pill-row">
+    <span class="pill ok">Tests totales: 1.233 PASS / 0 FAIL</span>
+    <span class="pill ok">Árboles: 0 troncos y 0 copas con clip (512 árboles)</span>
+    <span class="pill ok">Clima 3D real: clear / rain / storm / fog</span>
+    <span class="pill ok">Fauna 3D: gaviotas, canarios, mariposas y 8 peces Z1</span>
+    <span class="pill ok">Canon PDF: Tienda Myla, pistas, Comida A3 y recompensas</span>
+  </div>
+</header>
+<main>
+  <div class="status-box">
+    <div class="status-cell"><strong>1. Verificación técnica</strong>1.233 PASS / 0 FAIL (layout 152, cámara 49, salidas 128, residentes 209, rutinas 483, mochila 161, Bloques 1–5 51).</div>
+    <div class="status-cell"><strong>2. Revisión visual integrada</strong>16 parejas 1440×810 Forward+ inspeccionadas y pulidas (cruce NO, faroles Z2, tormenta/bruma y sombras focales).</div>
+    <div class="status-cell"><strong>3. Aceptación artística del usuario</strong>Pendiente de validación visual final en este informe y en juego real.</div>
+    <div class="status-cell"><strong>4. Pruebas físicas / multijugador</strong>Pendiente de sesión de mesa con teclado/ratón, red ENet y proyector.</div>
+  </div>
+
+  <h2>Comparativas exactas Antes / Después (16 encuadres idénticos)</h2>
+  
+    <section class="card">
+      <div class="card-tag">Bloques 1, 3 y 4</div>
+      <figure class="vtt-comparison" data-vtt-comparison data-title="01 · Vista general diurna (SSAO, tejado A5 mate, bosque sin clips, escaleras y gaviotas esculpidas)"><figcaption>01 · Vista general diurna (SSAO, tejado A5 mate, bosque sin clips, escaleras y gaviotas esculpidas)</figcaption><button type="button" class="vtt-comparison-stage" data-compare-toggle aria-pressed="false" aria-label="Mostrar después: 01 · Vista general diurna (SSAO, tejado A5 mate, bosque sin clips, escaleras y gaviotas esculpidas)"><img src="before/01_overview_day.png" alt="Antes: 01 · Vista general diurna (SSAO, tejado A5 mate, bosque sin clips, escaleras y gaviotas esculpidas)" width="1440" height="810" loading="lazy" decoding="async"><img class="vtt-comparison-after" src="after/01_overview_day.png" alt="Después: 01 · Vista general diurna (SSAO, tejado A5 mate, bosque sin clips, escaleras y gaviotas esculpidas)" width="1440" height="810" loading="lazy" decoding="async" aria-hidden="true"><span class="vtt-comparison-badge" aria-hidden="true">ANTES</span></button><div class="vtt-comparison-controls"><button type="button" data-compare-toggle aria-pressed="false">Ver después</button><button type="button" data-compare-enlarge>Ampliar</button><a href="before/01_overview_day.png" target="_blank" rel="noopener">Original antes</a><a href="after/01_overview_day.png" target="_blank" rel="noopener">Original después</a></div><p class="vtt-comparison-help" data-compare-status role="status">Mostrando antes. Pulsa la imagen para superponer el después; vuelve a pulsar para regresar.</p></figure>
+      <p class="hashes"><code>antes SHA-256: ff644a26fa9ee3f8…</code> · <code>después SHA-256: b30c2d70d352eeeb…</code></p>
+    </section>
+  
+
+    <section class="card">
+      <div class="card-tag">Bloques 3 y 4</div>
+      <figure class="vtt-comparison" data-vtt-comparison data-title="02 · Playa Z1 y muelle (oleaje 128×112, algas oliva oscuras, bancos de peces bajo el muelle)"><figcaption>02 · Playa Z1 y muelle (oleaje 128×112, algas oliva oscuras, bancos de peces bajo el muelle)</figcaption><button type="button" class="vtt-comparison-stage" data-compare-toggle aria-pressed="false" aria-label="Mostrar después: 02 · Playa Z1 y muelle (oleaje 128×112, algas oliva oscuras, bancos de peces bajo el muelle)"><img src="before/02_z1_beach_waves_pier.png" alt="Antes: 02 · Playa Z1 y muelle (oleaje 128×112, algas oliva oscuras, bancos de peces bajo el muelle)" width="1440" height="810" loading="lazy" decoding="async"><img class="vtt-comparison-after" src="after/02_z1_beach_waves_pier.png" alt="Después: 02 · Playa Z1 y muelle (oleaje 128×112, algas oliva oscuras, bancos de peces bajo el muelle)" width="1440" height="810" loading="lazy" decoding="async" aria-hidden="true"><span class="vtt-comparison-badge" aria-hidden="true">ANTES</span></button><div class="vtt-comparison-controls"><button type="button" data-compare-toggle aria-pressed="false">Ver después</button><button type="button" data-compare-enlarge>Ampliar</button><a href="before/02_z1_beach_waves_pier.png" target="_blank" rel="noopener">Original antes</a><a href="after/02_z1_beach_waves_pier.png" target="_blank" rel="noopener">Original después</a></div><p class="vtt-comparison-help" data-compare-status role="status">Mostrando antes. Pulsa la imagen para superponer el después; vuelve a pulsar para regresar.</p></figure>
+      <p class="hashes"><code>antes SHA-256: 24fc4895f633cb39…</code> · <code>después SHA-256: 079ca32eb7fdab26…</code></p>
+    </section>
+  
+
+    <section class="card">
+      <div class="card-tag">Bloque 1</div>
+      <figure class="vtt-comparison" data-vtt-comparison data-title="03 · Escaleras Z2 (jardineras botánicas esculpidas y 2 faroles de rellano en borde norte)"><figcaption>03 · Escaleras Z2 (jardineras botánicas esculpidas y 2 faroles de rellano en borde norte)</figcaption><button type="button" class="vtt-comparison-stage" data-compare-toggle aria-pressed="false" aria-label="Mostrar después: 03 · Escaleras Z2 (jardineras botánicas esculpidas y 2 faroles de rellano en borde norte)"><img src="before/03_z2_stairs_closeup.png" alt="Antes: 03 · Escaleras Z2 (jardineras botánicas esculpidas y 2 faroles de rellano en borde norte)" width="1440" height="810" loading="lazy" decoding="async"><img class="vtt-comparison-after" src="after/03_z2_stairs_closeup.png" alt="Después: 03 · Escaleras Z2 (jardineras botánicas esculpidas y 2 faroles de rellano en borde norte)" width="1440" height="810" loading="lazy" decoding="async" aria-hidden="true"><span class="vtt-comparison-badge" aria-hidden="true">ANTES</span></button><div class="vtt-comparison-controls"><button type="button" data-compare-toggle aria-pressed="false">Ver después</button><button type="button" data-compare-enlarge>Ampliar</button><a href="before/03_z2_stairs_closeup.png" target="_blank" rel="noopener">Original antes</a><a href="after/03_z2_stairs_closeup.png" target="_blank" rel="noopener">Original después</a></div><p class="vtt-comparison-help" data-compare-status role="status">Mostrando antes. Pulsa la imagen para superponer el después; vuelve a pulsar para regresar.</p></figure>
+      <p class="hashes"><code>antes SHA-256: 4c84edf54991bee7…</code> · <code>después SHA-256: 7717a2f123d2739f…</code></p>
+    </section>
+  
+
+    <section class="card">
+      <div class="card-tag">Bloques 1, 3 y 4</div>
+      <figure class="vtt-comparison" data-vtt-comparison data-title="04 · Plaza A1 y Celdas (Mike libre del pozo, gaviotas esculpidas, contrafuertes asimétricos)"><figcaption>04 · Plaza A1 y Celdas (Mike libre del pozo, gaviotas esculpidas, contrafuertes asimétricos)</figcaption><button type="button" class="vtt-comparison-stage" data-compare-toggle aria-pressed="false" aria-label="Mostrar después: 04 · Plaza A1 y Celdas (Mike libre del pozo, gaviotas esculpidas, contrafuertes asimétricos)"><img src="before/04_a1_plaza_fauna_cells.png" alt="Antes: 04 · Plaza A1 y Celdas (Mike libre del pozo, gaviotas esculpidas, contrafuertes asimétricos)" width="1440" height="810" loading="lazy" decoding="async"><img class="vtt-comparison-after" src="after/04_a1_plaza_fauna_cells.png" alt="Después: 04 · Plaza A1 y Celdas (Mike libre del pozo, gaviotas esculpidas, contrafuertes asimétricos)" width="1440" height="810" loading="lazy" decoding="async" aria-hidden="true"><span class="vtt-comparison-badge" aria-hidden="true">ANTES</span></button><div class="vtt-comparison-controls"><button type="button" data-compare-toggle aria-pressed="false">Ver después</button><button type="button" data-compare-enlarge>Ampliar</button><a href="before/04_a1_plaza_fauna_cells.png" target="_blank" rel="noopener">Original antes</a><a href="after/04_a1_plaza_fauna_cells.png" target="_blank" rel="noopener">Original después</a></div><p class="vtt-comparison-help" data-compare-status role="status">Mostrando antes. Pulsa la imagen para superponer el después; vuelve a pulsar para regresar.</p></figure>
+      <p class="hashes"><code>antes SHA-256: 9a5b13d587411c0b…</code> · <code>después SHA-256: e1ef8e7484a94f63…</code></p>
+    </section>
+  
+
+    <section class="card">
+      <div class="card-tag">Bloques 1 y 3</div>
+      <figure class="vtt-comparison" data-vtt-comparison data-title="05 · Escalinata Este A1→A2 (barandilla libre de rocas y luz de rebote marino)"><figcaption>05 · Escalinata Este A1→A2 (barandilla libre de rocas y luz de rebote marino)</figcaption><button type="button" class="vtt-comparison-stage" data-compare-toggle aria-pressed="false" aria-label="Mostrar después: 05 · Escalinata Este A1→A2 (barandilla libre de rocas y luz de rebote marino)"><img src="before/05_east_stairs_a1_a2.png" alt="Antes: 05 · Escalinata Este A1→A2 (barandilla libre de rocas y luz de rebote marino)" width="1440" height="810" loading="lazy" decoding="async"><img class="vtt-comparison-after" src="after/05_east_stairs_a1_a2.png" alt="Después: 05 · Escalinata Este A1→A2 (barandilla libre de rocas y luz de rebote marino)" width="1440" height="810" loading="lazy" decoding="async" aria-hidden="true"><span class="vtt-comparison-badge" aria-hidden="true">ANTES</span></button><div class="vtt-comparison-controls"><button type="button" data-compare-toggle aria-pressed="false">Ver después</button><button type="button" data-compare-enlarge>Ampliar</button><a href="before/05_east_stairs_a1_a2.png" target="_blank" rel="noopener">Original antes</a><a href="after/05_east_stairs_a1_a2.png" target="_blank" rel="noopener">Original después</a></div><p class="vtt-comparison-help" data-compare-status role="status">Mostrando antes. Pulsa la imagen para superponer el después; vuelve a pulsar para regresar.</p></figure>
+      <p class="hashes"><code>antes SHA-256: fd22fa6d39f96ec5…</code> · <code>después SHA-256: f6407f20fd8aded4…</code></p>
+    </section>
+  
+
+    <section class="card">
+      <div class="card-tag">Bloques 1, 3 y 5</div>
+      <figure class="vtt-comparison" data-vtt-comparison data-title="06 · Casa del Cabrestante A2 y subida al Paseo Superior (mecanismo A2 interactivo)"><figcaption>06 · Casa del Cabrestante A2 y subida al Paseo Superior (mecanismo A2 interactivo)</figcaption><button type="button" class="vtt-comparison-stage" data-compare-toggle aria-pressed="false" aria-label="Mostrar después: 06 · Casa del Cabrestante A2 y subida al Paseo Superior (mecanismo A2 interactivo)"><img src="before/06_a2_winch_paseo_stairs.png" alt="Antes: 06 · Casa del Cabrestante A2 y subida al Paseo Superior (mecanismo A2 interactivo)" width="1440" height="810" loading="lazy" decoding="async"><img class="vtt-comparison-after" src="after/06_a2_winch_paseo_stairs.png" alt="Después: 06 · Casa del Cabrestante A2 y subida al Paseo Superior (mecanismo A2 interactivo)" width="1440" height="810" loading="lazy" decoding="async" aria-hidden="true"><span class="vtt-comparison-badge" aria-hidden="true">ANTES</span></button><div class="vtt-comparison-controls"><button type="button" data-compare-toggle aria-pressed="false">Ver después</button><button type="button" data-compare-enlarge>Ampliar</button><a href="before/06_a2_winch_paseo_stairs.png" target="_blank" rel="noopener">Original antes</a><a href="after/06_a2_winch_paseo_stairs.png" target="_blank" rel="noopener">Original después</a></div><p class="vtt-comparison-help" data-compare-status role="status">Mostrando antes. Pulsa la imagen para superponer el después; vuelve a pulsar para regresar.</p></figure>
+      <p class="hashes"><code>antes SHA-256: 30128901a905c6ba…</code> · <code>después SHA-256: e16492316924d43d…</code></p>
+    </section>
+  
+
+    <section class="card">
+      <div class="card-tag">Bloque 1</div>
+      <figure class="vtt-comparison" data-vtt-comparison data-title="07 · Fachadas A4/A3 y bosque norte (0 troncos y 0 copas recortando muros)"><figcaption>07 · Fachadas A4/A3 y bosque norte (0 troncos y 0 copas recortando muros)</figcaption><button type="button" class="vtt-comparison-stage" data-compare-toggle aria-pressed="false" aria-label="Mostrar después: 07 · Fachadas A4/A3 y bosque norte (0 troncos y 0 copas recortando muros)"><img src="before/07_paseo_a4_a3_trees_facade.png" alt="Antes: 07 · Fachadas A4/A3 y bosque norte (0 troncos y 0 copas recortando muros)" width="1440" height="810" loading="lazy" decoding="async"><img class="vtt-comparison-after" src="after/07_paseo_a4_a3_trees_facade.png" alt="Después: 07 · Fachadas A4/A3 y bosque norte (0 troncos y 0 copas recortando muros)" width="1440" height="810" loading="lazy" decoding="async" aria-hidden="true"><span class="vtt-comparison-badge" aria-hidden="true">ANTES</span></button><div class="vtt-comparison-controls"><button type="button" data-compare-toggle aria-pressed="false">Ver después</button><button type="button" data-compare-enlarge>Ampliar</button><a href="before/07_paseo_a4_a3_trees_facade.png" target="_blank" rel="noopener">Original antes</a><a href="after/07_paseo_a4_a3_trees_facade.png" target="_blank" rel="noopener">Original después</a></div><p class="vtt-comparison-help" data-compare-status role="status">Mostrando antes. Pulsa la imagen para superponer el después; vuelve a pulsar para regresar.</p></figure>
+      <p class="hashes"><code>antes SHA-256: 562c888a8e522b90…</code> · <code>después SHA-256: 6a93bcd7d6cff855…</code></p>
+    </section>
+  
+
+    <section class="card">
+      <div class="card-tag">Bloques 3 y 5</div>
+      <figure class="vtt-comparison" data-vtt-comparison data-title="08 · Interiores A4 Biblioteca y A3 Comedor (sombras de luces focales hero y mesas interactivas)"><figcaption>08 · Interiores A4 Biblioteca y A3 Comedor (sombras de luces focales hero y mesas interactivas)</figcaption><button type="button" class="vtt-comparison-stage" data-compare-toggle aria-pressed="false" aria-label="Mostrar después: 08 · Interiores A4 Biblioteca y A3 Comedor (sombras de luces focales hero y mesas interactivas)"><img src="before/08_a3_a4_interiors_open.png" alt="Antes: 08 · Interiores A4 Biblioteca y A3 Comedor (sombras de luces focales hero y mesas interactivas)" width="1440" height="810" loading="lazy" decoding="async"><img class="vtt-comparison-after" src="after/08_a3_a4_interiors_open.png" alt="Después: 08 · Interiores A4 Biblioteca y A3 Comedor (sombras de luces focales hero y mesas interactivas)" width="1440" height="810" loading="lazy" decoding="async" aria-hidden="true"><span class="vtt-comparison-badge" aria-hidden="true">ANTES</span></button><div class="vtt-comparison-controls"><button type="button" data-compare-toggle aria-pressed="false">Ver después</button><button type="button" data-compare-enlarge>Ampliar</button><a href="before/08_a3_a4_interiors_open.png" target="_blank" rel="noopener">Original antes</a><a href="after/08_a3_a4_interiors_open.png" target="_blank" rel="noopener">Original después</a></div><p class="vtt-comparison-help" data-compare-status role="status">Mostrando antes. Pulsa la imagen para superponer el después; vuelve a pulsar para regresar.</p></figure>
+      <p class="hashes"><code>antes SHA-256: 35fd4b3bbed74955…</code> · <code>después SHA-256: 6dc41ca60b663243…</code></p>
+    </section>
+  
+
+    <section class="card">
+      <div class="card-tag">Bloques 1 y 4</div>
+      <figure class="vtt-comparison" data-vtt-comparison data-title="09 · Viaducto A5 y jardines Z7 (0 árboles en el puente, gaviota planeadora y mariposas Z7)"><figcaption>09 · Viaducto A5 y jardines Z7 (0 árboles en el puente, gaviota planeadora y mariposas Z7)</figcaption><button type="button" class="vtt-comparison-stage" data-compare-toggle aria-pressed="false" aria-label="Mostrar después: 09 · Viaducto A5 y jardines Z7 (0 árboles en el puente, gaviota planeadora y mariposas Z7)"><img src="before/09_a5_bridge_viaduct.png" alt="Antes: 09 · Viaducto A5 y jardines Z7 (0 árboles en el puente, gaviota planeadora y mariposas Z7)" width="1440" height="810" loading="lazy" decoding="async"><img class="vtt-comparison-after" src="after/09_a5_bridge_viaduct.png" alt="Después: 09 · Viaducto A5 y jardines Z7 (0 árboles en el puente, gaviota planeadora y mariposas Z7)" width="1440" height="810" loading="lazy" decoding="async" aria-hidden="true"><span class="vtt-comparison-badge" aria-hidden="true">ANTES</span></button><div class="vtt-comparison-controls"><button type="button" data-compare-toggle aria-pressed="false">Ver después</button><button type="button" data-compare-enlarge>Ampliar</button><a href="before/09_a5_bridge_viaduct.png" target="_blank" rel="noopener">Original antes</a><a href="after/09_a5_bridge_viaduct.png" target="_blank" rel="noopener">Original después</a></div><p class="vtt-comparison-help" data-compare-status role="status">Mostrando antes. Pulsa la imagen para superponer el después; vuelve a pulsar para regresar.</p></figure>
+      <p class="hashes"><code>antes SHA-256: 752a0052bb9c2256…</code> · <code>después SHA-256: cda78d1f9375acbd…</code></p>
+    </section>
+  
+
+    <section class="card">
+      <div class="card-tag">Bloques 3 y 4</div>
+      <figure class="vtt-comparison" data-vtt-comparison data-title="10 · Templo de Bahamut A5 (pizarra mate sin reflejo plástico y canarios dorados 3D)"><figcaption>10 · Templo de Bahamut A5 (pizarra mate sin reflejo plástico y canarios dorados 3D)</figcaption><button type="button" class="vtt-comparison-stage" data-compare-toggle aria-pressed="false" aria-label="Mostrar después: 10 · Templo de Bahamut A5 (pizarra mate sin reflejo plástico y canarios dorados 3D)"><img src="before/10_a5_temple_canaries_north.png" alt="Antes: 10 · Templo de Bahamut A5 (pizarra mate sin reflejo plástico y canarios dorados 3D)" width="1440" height="810" loading="lazy" decoding="async"><img class="vtt-comparison-after" src="after/10_a5_temple_canaries_north.png" alt="Después: 10 · Templo de Bahamut A5 (pizarra mate sin reflejo plástico y canarios dorados 3D)" width="1440" height="810" loading="lazy" decoding="async" aria-hidden="true"><span class="vtt-comparison-badge" aria-hidden="true">ANTES</span></button><div class="vtt-comparison-controls"><button type="button" data-compare-toggle aria-pressed="false">Ver después</button><button type="button" data-compare-enlarge>Ampliar</button><a href="before/10_a5_temple_canaries_north.png" target="_blank" rel="noopener">Original antes</a><a href="after/10_a5_temple_canaries_north.png" target="_blank" rel="noopener">Original después</a></div><p class="vtt-comparison-help" data-compare-status role="status">Mostrando antes. Pulsa la imagen para superponer el después; vuelve a pulsar para regresar.</p></figure>
+      <p class="hashes"><code>antes SHA-256: c38abf10705cfb7a…</code> · <code>después SHA-256: 244bbc35c6fb341e…</code></p>
+    </section>
+  
+
+    <section class="card">
+      <div class="card-tag">Bloque 1</div>
+      <figure class="vtt-comparison" data-vtt-comparison data-title="11 · Cruce NO: A5North, A5RidgeW y Cementerio de Brastos (rellano unido y peldaños 100 % despejados)"><figcaption>11 · Cruce NO: A5North, A5RidgeW y Cementerio de Brastos (rellano unido y peldaños 100 % despejados)</figcaption><button type="button" class="vtt-comparison-stage" data-compare-toggle aria-pressed="false" aria-label="Mostrar después: 11 · Cruce NO: A5North, A5RidgeW y Cementerio de Brastos (rellano unido y peldaños 100 % despejados)"><img src="before/11_mountain_stairs_west_nw.png" alt="Antes: 11 · Cruce NO: A5North, A5RidgeW y Cementerio de Brastos (rellano unido y peldaños 100 % despejados)" width="1440" height="810" loading="lazy" decoding="async"><img class="vtt-comparison-after" src="after/11_mountain_stairs_west_nw.png" alt="Después: 11 · Cruce NO: A5North, A5RidgeW y Cementerio de Brastos (rellano unido y peldaños 100 % despejados)" width="1440" height="810" loading="lazy" decoding="async" aria-hidden="true"><span class="vtt-comparison-badge" aria-hidden="true">ANTES</span></button><div class="vtt-comparison-controls"><button type="button" data-compare-toggle aria-pressed="false">Ver después</button><button type="button" data-compare-enlarge>Ampliar</button><a href="before/11_mountain_stairs_west_nw.png" target="_blank" rel="noopener">Original antes</a><a href="after/11_mountain_stairs_west_nw.png" target="_blank" rel="noopener">Original después</a></div><p class="vtt-comparison-help" data-compare-status role="status">Mostrando antes. Pulsa la imagen para superponer el después; vuelve a pulsar para regresar.</p></figure>
+      <p class="hashes"><code>antes SHA-256: 5ff9c7d0f9767d51…</code> · <code>después SHA-256: b3a754cabcc7053f…</code></p>
+    </section>
+  
+
+    <section class="card">
+      <div class="card-tag">Bloque 1</div>
+      <figure class="vtt-comparison" data-vtt-comparison data-title="12 · Escaleras al Observatorio (ObsTurn con cimentación maciza de 5,2 m, barandillas y faroles)"><figcaption>12 · Escaleras al Observatorio (ObsTurn con cimentación maciza de 5,2 m, barandillas y faroles)</figcaption><button type="button" class="vtt-comparison-stage" data-compare-toggle aria-pressed="false" aria-label="Mostrar después: 12 · Escaleras al Observatorio (ObsTurn con cimentación maciza de 5,2 m, barandillas y faroles)"><img src="before/12_obs_stairs_east.png" alt="Antes: 12 · Escaleras al Observatorio (ObsTurn con cimentación maciza de 5,2 m, barandillas y faroles)" width="1440" height="810" loading="lazy" decoding="async"><img class="vtt-comparison-after" src="after/12_obs_stairs_east.png" alt="Después: 12 · Escaleras al Observatorio (ObsTurn con cimentación maciza de 5,2 m, barandillas y faroles)" width="1440" height="810" loading="lazy" decoding="async" aria-hidden="true"><span class="vtt-comparison-badge" aria-hidden="true">ANTES</span></button><div class="vtt-comparison-controls"><button type="button" data-compare-toggle aria-pressed="false">Ver después</button><button type="button" data-compare-enlarge>Ampliar</button><a href="before/12_obs_stairs_east.png" target="_blank" rel="noopener">Original antes</a><a href="after/12_obs_stairs_east.png" target="_blank" rel="noopener">Original después</a></div><p class="vtt-comparison-help" data-compare-status role="status">Mostrando antes. Pulsa la imagen para superponer el después; vuelve a pulsar para regresar.</p></figure>
+      <p class="hashes"><code>antes SHA-256: 51022eba0dfdfb45…</code> · <code>después SHA-256: e3ba8f224b7e4bbe…</code></p>
+    </section>
+  
+
+    <section class="card">
+      <div class="card-tag">Bloque 3</div>
+      <figure class="vtt-comparison" data-vtt-comparison data-title="13 · Atardecer general (contraste SSAO y cálidos de faroles de montaña)"><figcaption>13 · Atardecer general (contraste SSAO y cálidos de faroles de montaña)</figcaption><button type="button" class="vtt-comparison-stage" data-compare-toggle aria-pressed="false" aria-label="Mostrar después: 13 · Atardecer general (contraste SSAO y cálidos de faroles de montaña)"><img src="before/13_dusk_overview.png" alt="Antes: 13 · Atardecer general (contraste SSAO y cálidos de faroles de montaña)" width="1440" height="810" loading="lazy" decoding="async"><img class="vtt-comparison-after" src="after/13_dusk_overview.png" alt="Después: 13 · Atardecer general (contraste SSAO y cálidos de faroles de montaña)" width="1440" height="810" loading="lazy" decoding="async" aria-hidden="true"><span class="vtt-comparison-badge" aria-hidden="true">ANTES</span></button><div class="vtt-comparison-controls"><button type="button" data-compare-toggle aria-pressed="false">Ver después</button><button type="button" data-compare-enlarge>Ampliar</button><a href="before/13_dusk_overview.png" target="_blank" rel="noopener">Original antes</a><a href="after/13_dusk_overview.png" target="_blank" rel="noopener">Original después</a></div><p class="vtt-comparison-help" data-compare-status role="status">Mostrando antes. Pulsa la imagen para superponer el después; vuelve a pulsar para regresar.</p></figure>
+      <p class="hashes"><code>antes SHA-256: b1bd581a4f326857…</code> · <code>después SHA-256: d296648fc9ba72a4…</code></p>
+    </section>
+  
+
+    <section class="card">
+      <div class="card-tag">Bloque 3</div>
+      <figure class="vtt-comparison" data-vtt-comparison data-title="14 · Noche en Plaza A1 y Paseo Superior (5 luces focales hero con sombras y calidez nocturna)"><figcaption>14 · Noche en Plaza A1 y Paseo Superior (5 luces focales hero con sombras y calidez nocturna)</figcaption><button type="button" class="vtt-comparison-stage" data-compare-toggle aria-pressed="false" aria-label="Mostrar después: 14 · Noche en Plaza A1 y Paseo Superior (5 luces focales hero con sombras y calidez nocturna)"><img src="before/14_night_a1_paseo.png" alt="Antes: 14 · Noche en Plaza A1 y Paseo Superior (5 luces focales hero con sombras y calidez nocturna)" width="1440" height="810" loading="lazy" decoding="async"><img class="vtt-comparison-after" src="after/14_night_a1_paseo.png" alt="Después: 14 · Noche en Plaza A1 y Paseo Superior (5 luces focales hero con sombras y calidez nocturna)" width="1440" height="810" loading="lazy" decoding="async" aria-hidden="true"><span class="vtt-comparison-badge" aria-hidden="true">ANTES</span></button><div class="vtt-comparison-controls"><button type="button" data-compare-toggle aria-pressed="false">Ver después</button><button type="button" data-compare-enlarge>Ampliar</button><a href="before/14_night_a1_paseo.png" target="_blank" rel="noopener">Original antes</a><a href="after/14_night_a1_paseo.png" target="_blank" rel="noopener">Original después</a></div><p class="vtt-comparison-help" data-compare-status role="status">Mostrando antes. Pulsa la imagen para superponer el después; vuelve a pulsar para regresar.</p></figure>
+      <p class="hashes"><code>antes SHA-256: 554098598bfd66ae…</code> · <code>después SHA-256: 62a25c059603616e…</code></p>
+    </section>
+  
+
+    <section class="card">
+      <div class="card-tag">Bloque 2</div>
+      <figure class="vtt-comparison" data-vtt-comparison data-title="15 · Clima Tormenta 3D real (cortina de lluvia con bloqueo de techos, piedra mojada y mar agitado)"><figcaption>15 · Clima Tormenta 3D real (cortina de lluvia con bloqueo de techos, piedra mojada y mar agitado)</figcaption><button type="button" class="vtt-comparison-stage" data-compare-toggle aria-pressed="false" aria-label="Mostrar después: 15 · Clima Tormenta 3D real (cortina de lluvia con bloqueo de techos, piedra mojada y mar agitado)"><img src="before/15_weather_storm_test.png" alt="Antes: 15 · Clima Tormenta 3D real (cortina de lluvia con bloqueo de techos, piedra mojada y mar agitado)" width="1440" height="810" loading="lazy" decoding="async"><img class="vtt-comparison-after" src="after/15_weather_storm_test.png" alt="Después: 15 · Clima Tormenta 3D real (cortina de lluvia con bloqueo de techos, piedra mojada y mar agitado)" width="1440" height="810" loading="lazy" decoding="async" aria-hidden="true"><span class="vtt-comparison-badge" aria-hidden="true">ANTES</span></button><div class="vtt-comparison-controls"><button type="button" data-compare-toggle aria-pressed="false">Ver después</button><button type="button" data-compare-enlarge>Ampliar</button><a href="before/15_weather_storm_test.png" target="_blank" rel="noopener">Original antes</a><a href="after/15_weather_storm_test.png" target="_blank" rel="noopener">Original después</a></div><p class="vtt-comparison-help" data-compare-status role="status">Mostrando antes. Pulsa la imagen para superponer el después; vuelve a pulsar para regresar.</p></figure>
+      <p class="hashes"><code>antes SHA-256: 7b66eab1c85f2a1d…</code> · <code>después SHA-256: ab319d3ca7a7361f…</code></p>
+    </section>
+  
+
+    <section class="card">
+      <div class="card-tag">Bloque 3</div>
+      <figure class="vtt-comparison" data-vtt-comparison data-title="16 · Marea baja en acantilado A2 (espuma sincronizada a −0,34 m y luz de rebote en basalto)"><figcaption>16 · Marea baja en acantilado A2 (espuma sincronizada a −0,34 m y luz de rebote en basalto)</figcaption><button type="button" class="vtt-comparison-stage" data-compare-toggle aria-pressed="false" aria-label="Mostrar después: 16 · Marea baja en acantilado A2 (espuma sincronizada a −0,34 m y luz de rebote en basalto)"><img src="before/16_tide_low_a2_beach.png" alt="Antes: 16 · Marea baja en acantilado A2 (espuma sincronizada a −0,34 m y luz de rebote en basalto)" width="1440" height="810" loading="lazy" decoding="async"><img class="vtt-comparison-after" src="after/16_tide_low_a2_beach.png" alt="Después: 16 · Marea baja en acantilado A2 (espuma sincronizada a −0,34 m y luz de rebote en basalto)" width="1440" height="810" loading="lazy" decoding="async" aria-hidden="true"><span class="vtt-comparison-badge" aria-hidden="true">ANTES</span></button><div class="vtt-comparison-controls"><button type="button" data-compare-toggle aria-pressed="false">Ver después</button><button type="button" data-compare-enlarge>Ampliar</button><a href="before/16_tide_low_a2_beach.png" target="_blank" rel="noopener">Original antes</a><a href="after/16_tide_low_a2_beach.png" target="_blank" rel="noopener">Original después</a></div><p class="vtt-comparison-help" data-compare-status role="status">Mostrando antes. Pulsa la imagen para superponer el después; vuelve a pulsar para regresar.</p></figure>
+      <p class="hashes"><code>antes SHA-256: 846b287a4c74d165…</code> · <code>después SHA-256: c08da99118ffd19e…</code></p>
+    </section>
+  
+
+  <h2>Vistas adicionales de nuevos sistemas (Bloques 2, 4 y 5)</h2>
+  
+    <figure class="card showcase-fig">
+      <figcaption>Bonus 17 · Clima Bruma costera 3D sobre A1 y Paseo Superior</figcaption>
+      <a href="showcase/17_weather_fog_a1.png" target="_blank" rel="noopener"><img src="showcase/17_weather_fog_a1.png" alt="Bonus 17 · Clima Bruma costera 3D sobre A1 y Paseo Superior" width="1440" height="810" loading="lazy"></a>
+      <p class="hashes"><code>SHA-256: 52583421705567a7…</code></p>
+    </figure>
+  
+
+    <figure class="card showcase-fig">
+      <figcaption>Bonus 18 · Primer plano de peces costeros animados bajo el muelle Z1 y cartel marítimo interactivo</figcaption>
+      <a href="showcase/18_z1_fish_gulls_closeup.png" target="_blank" rel="noopener"><img src="showcase/18_z1_fish_gulls_closeup.png" alt="Bonus 18 · Primer plano de peces costeros animados bajo el muelle Z1 y cartel marítimo interactivo" width="1440" height="810" loading="lazy"></a>
+      <p class="hashes"><code>SHA-256: 76ca4b2dbf94f49a…</code></p>
+    </figure>
+  
+
+    <figure class="card showcase-fig">
+      <figcaption>Bonus 19 · Tienda transaccional de Myla (Celda 4) con oro y compra real hacia la mochila</figcaption>
+      <a href="showcase/19_myla_shop_ui.png" target="_blank" rel="noopener"><img src="showcase/19_myla_shop_ui.png" alt="Bonus 19 · Tienda transaccional de Myla (Celda 4) con oro y compra real hacia la mochila" width="1440" height="810" loading="lazy"></a>
+      <p class="hashes"><code>SHA-256: ec58791f67c0baf8…</code></p>
+    </figure>
+  
+</main>
+</body>
+</html>

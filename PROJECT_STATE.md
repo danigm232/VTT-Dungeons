@@ -1,5 +1,9 @@
 # Estado del proyecto
 
+## Sincronización Godot — 25/11/2026
+
+Se reúnen los cambios recientes de Pecio, Retiro y Campamentos. Una instalación limpia detectó que cinco archivos de geometría y terreno estaban excluidos de Git: se incorporan y se mantiene la exclusión de las partidas. La candidata de mantas continúa pendiente de capturas nativas y aceptación visual; los proyectos Godot se mantienen como proyectos separados. [Contenido y pruebas](docs/evidence/GODOT_SYNC_20261125.md).
+
 ## Retiro del Dragón · mantas para el descanso — 24/11/2026
 
 Los doce habitantes tienen implementado el descanso con manta en los lechos de A1. Once usan un busto fijo y Kilnip reutiliza seis fases de su siesta. Mía, Mike y Trinity conservan sus mantas y pueden usarlas también en los petates. **Corrección 25/11:** la red de rutas se amplía al suelo ya existente del petate occidental, al que Runara no podía llegar. La prueba sin pantalla pasa ahora 159/159. **Candidata pendiente de cierre visual:** los registros nativos anteriores contienen aquel fallo y `output/retreat-blankets-20261124/index.html` aún no existe; falta repetir la captura nativa y generar el informe antes de darla por revisada o aceptada.
