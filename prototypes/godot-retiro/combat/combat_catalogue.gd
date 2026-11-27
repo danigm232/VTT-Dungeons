@@ -4,7 +4,20 @@ static var data: Dictionary={}
 static var textures: Dictionary={}
 static var baked: Dictionary={}
 static var _prewarmed_images: Dictionary={}
-const BASIC := {"dash":"Correr","disengage":"Destrabarse","dodge":"Esquivar","help":"Ayudar","hide":"Esconderse","ready":"Preparar","search":"Buscar","study":"Estudiar","influence":"Influir","use-object":"Usar objeto","improvise":"Improvisar"}
+const BASIC := {"dash":"Correr","disengage":"Destrabarse","dodge":"Esquivar","help":"Ayudar","hide":"Esconderse","grapple":"Agarrar","shove":"Empujar / Derribar","drink-potion":"Beber poción","stabilize":"Estabilizar","short-rest":"Descanso corto","ready":"Preparar","search":"Buscar","study":"Estudiar","influence":"Influir","use-object":"Usar objeto","improvise":"Improvisar"}
+const EXPLORE := [
+	{"id":"jump","label":"Saltar","explore":true,"instant":"jump","detail":"Salto acrobático [J]"},
+	{"id":"talk","label":"Hablar / Interactuar","explore":true,"instant":"talk","detail":"Hablar con un PNJ cercano o el grupo [T]"},
+	{"id":"torch","label":"Antorcha","explore":true,"instant":"torch","detail":"Encender o apagar la antorcha [V]"},
+	{"id":"stealth","label":"Sigilo","explore":true,"instant":"stealth","detail":"Agacharse en modo sigilo [Ctrl]"},
+	{"id":"sit","label":"Sentarse","explore":true,"instant":"sit","detail":"Sentarse o levantarse [Z]"},
+	{"id":"prone","label":"Tumbarse","explore":true,"instant":"prone","detail":"Tumbarse o incorporarse [X]"},
+	{"id":"pick-lock","label":"Forzar cerradura","basic":true,"detail":"Herramientas de ladrón / Fuerza"},
+	{"id":"disarm-trap","label":"Desarmar trampa","basic":true,"detail":"Inspeccionar o inutilizar mecanismo"},
+	{"id":"climb","label":"Trepar","basic":true,"detail":"Escalar superficie o cuerda"},
+	{"id":"swim","label":"Nadar","basic":true,"detail":"Desplazarse por el agua"},
+]
+static var _tick_regex: RegEx
 
 static func load_data() -> Dictionary:
 	if data.is_empty():
@@ -53,6 +66,9 @@ static func actions(id: String) -> Array:
 		healing["automaticHit"]=true; healing["healing"]=true; healing["actionCost"]="bonus"; healing["resource"]={"id":"spell-slot-1","cost":1}; result.append(healing)
 		for entry in [["bless","Bendición",9.0],["shield-of-faith","Escudo de fe",18.0]]:
 			result.append({"id":entry[0],"label":entry[1],"resolution":"guided","concentration":true,"magical":true,"range":{"normalMeters":entry[2]},"resource":{"id":"spell-slot-1","cost":1},"actionCost":"bonus" if entry[0]=="shield-of-faith" else "action","guidance":"El DM confirma objetivos y efecto de la ficha; no se inventa un resultado."})
+		result.append({"id":"channel-life","label":"Preservar vida · Canalizar divinidad","resolution":"guided","healing":true,"magical":true,"range":{"normalMeters":9.0},"guidance":"Canalizar divinidad: reparte hasta 5 PG en criaturas a 9 m que no superen la mitad de sus PG."})
+	elif id=="maria":
+		result.append({"id":"steady-aim","label":"Apuntar con calma","actionCost":"bonus","resolution":"guided","range":{"normalMeters":0.0},"guidance":"Acción adicional (sin moverte): ganas ventaja en tu próximo ataque este turno."})
 	elif id=="mike":
 		result=[weapon("shortsword","Espada corta",4,"1d6",2,"perforante",1.5),weapon("ray-of-frost","Rayo de escarcha",5,"1d8",0,"frío",18,18,"magicalProjectile")]
 		result[1]["magical"]=true
@@ -64,6 +80,7 @@ static func actions(id: String) -> Array:
 		result.append(burning)
 		result.append({"id":"shield","label":"Escudo · reacción a impacto o misil mágico","magical":true,"actionCost":"reaction","resolution":"guided","range":{"normalMeters":0.0},"resource":{"id":"spell-slot-1","cost":1},"guidance":"Reacción: el DM verifica el desencadenante y aplica +5 CA hasta el inicio de tu próximo turno."})
 		result.append({"id":"detect-magic","label":"Detectar magia · ritual","castingTime":"11 minutos (ritual)","kind":"spell","resolution":"guided","magical":true,"concentration":true,"range":{"normalMeters":9.0},"guidance":"El DM confirma ritual, tiempo y auras realmente perceptibles."})
+		result.append({"id":"arcane-recovery","label":"Recuperación arcana · descanso corto","resolution":"guided","range":{"normalMeters":0.0},"guidance":"Durante un descanso corto, recupera 1 espacio de conjuro de nivel 1."})
 	elif id=="zombie" and result.is_empty():
 		result=[weapon("zombie-slam","Golpe",3,"1d6",1,"contundente",1.5)]
 	elif id=="harpy":
@@ -74,15 +91,47 @@ static func actions(id: String) -> Array:
 
 static func icon(id: String) -> Texture2D:
 	var key := id.trim_suffix("-exploration")
-	key={"weapons":"attacks","cantrips":"fire-bolt","other":"actions","withdraw":"dash"}.get(key,key)
+	key={
+		"weapons":"attacks","cantrips":"fire-bolt","spells":"spells","other":"actions",
+		"explore":"search","withdraw":"dash","shove":"shove-action",
+		"talk":"message","torch":"light","sit":"tiny-hut","prone":"feign-death","stealth":"hide",
+		"channel-life":"cure-wounds","stabilize":"cure-wounds","short-rest":"catnap",
+		"pick-lock":"pick-lock","disarm-trap":"disarm-trap",
+		"climb":"climb","swim":"swim","jump":"jump","drink-potion":"drink-potion",
+		"end-turn":"end-turn","end-concentration":"dispel-magic"
+	}.get(key,key)
 	var icons: Dictionary=load_data().get("icons",{})
-	if not icons.has(key): key="actions" if key in BASIC else "spells"
+	if not icons.has(key):
+		var direct := "res://combat/icons/%s.svg" % key
+		if FileAccess.file_exists(direct):
+			icons = icons.duplicate()
+			icons[key] = direct
+		else:
+			key="actions" if (key in BASIC or key in ["talk","torch","sit","prone","stealth"]) else "spells"
 	if textures.has(key): return textures[key]
 	var path: String=icons.get(key,"")
 	if path.is_empty() or not FileAccess.file_exists(path): return null
+	var svg := FileAccess.get_file_as_string(path)
+	if _tick_regex == null:
+		_tick_regex = RegEx.new()
+		_tick_regex.compile("<path[^>]*\\bd=\"M[^\"]*\\b25[vV]2\"[^>]*/>")
+	svg = _tick_regex.sub(svg, "", true)
+	svg = svg.replace("viewBox=\"0 0 24 28\"", "viewBox=\"0 0 24 24\"")
+	svg = svg.replace("stroke-width=\"1.55\"", "stroke-width=\"1.85\"")
 	var image := Image.new()
-	if image.load_svg_from_string(FileAccess.get_file_as_string(path),2.0)!=OK: return null
-	textures[key]=ImageTexture.create_from_image(image)
+	if image.load_svg_from_string(svg, 3.0) != OK: return null
+	# Normalize every icon onto an identical 72x72 canvas so all medallions have matching visual scale.
+	var canvas := Image.create(72, 72, false, Image.FORMAT_RGBA8)
+	canvas.fill(Color(0, 0, 0, 0))
+	var used := image.get_used_rect()
+	if used.size.x > 0 and used.size.y > 0:
+		var cropped := image.get_region(used)
+		var fit_s := 52.0 / float(maxi(cropped.get_width(), cropped.get_height()))
+		var tw := maxi(1, roundi(cropped.get_width() * fit_s))
+		var th := maxi(1, roundi(cropped.get_height() * fit_s))
+		cropped.resize(tw, th, Image.INTERPOLATE_BILINEAR)
+		canvas.blit_rect(cropped, Rect2i(0, 0, tw, th), Vector2i((72 - tw) / 2, (72 - th) / 2))
+	textures[key]=ImageTexture.create_from_image(canvas)
 	return textures[key]
 
 static func collect_cpu_images(keys: Array, combat_data: Dictionary, baked_map: Dictionary, res_root_abs: String) -> Dictionary:

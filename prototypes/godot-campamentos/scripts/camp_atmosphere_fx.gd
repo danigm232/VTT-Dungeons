@@ -16,6 +16,7 @@ var sun_light: DirectionalLight3D
 
 var current_phase: String = "dusk"
 var current_weather: String = "clear"
+var lighting_profile: String = "default"
 var wetness: float = 0.0
 var snow_cover: float = 0.0
 var reduced_motion: bool = false
@@ -40,8 +41,10 @@ var _drips: Array[Dictionary] = []
 var _aurora_meshes: Array[MeshInstance3D] = []
 var _clouds: Array[Dictionary] = []
 var _lanterns: Array[Dictionary] = []
+var _crystals: Array[Dictionary] = []
 var _smoke_materials: Array[ParticleProcessMaterial] = []
 var _ambient_terrain_pockets: Array[Dictionary] = []
+var _rain_shelter_rects: Array[Rect2] = []
 var _time: float = 0.0
 var _map_center := Vector3(18.0, 0.0, 16.5)
 
@@ -258,6 +261,22 @@ func _process(delta: float) -> void:
 			var x := fmod((bx - _map_center.x + span * 0.5) + _time * float(cl["speed"]), span) - span * 0.5 + _map_center.x
 			cn.position.x = x
 
+	# Cozy subtle warm candle & lantern breath flicker when lit
+	var lanterns_lit_now := (not (current_phase in ["day", "arrival"])) or (current_weather in ["rain", "storm", "fog"])
+	if not reduced_motion:
+		for lan in _lanterns:
+			var is_lit_l: bool = lanterns_lit_now or bool(lan.get("always_lit", false))
+			if not is_lit_l:
+				continue
+			var l_node: OmniLight3D = lan.get("light")
+			if is_instance_valid(l_node):
+				var base_e := float(lan.get("base_energy", 1.05))
+				var day_dim := float(lan.get("day_scale", 0.72)) if (current_phase in ["day", "arrival"] and not lanterns_lit_now) else 1.0
+				var f_amp := float(lan.get("flicker_amp", 0.06))
+				var l_ph := float(lan.get("phase", 0.0))
+				var l_wave := 1.0 + sin(_time * 5.6 + l_ph) * f_amp + cos(_time * 11.4 + l_ph) * (f_amp * 0.5)
+				l_node.light_energy = maxf(0.05, base_e * day_dim * l_wave)
+
 	# Storm lightning flash
 	if current_weather == "storm" and is_instance_valid(_lightning_light) and not reduced_motion:
 		_lightning_timer -= delta
@@ -335,6 +354,180 @@ func apply_lighting_phase(phase_id: String) -> void:
 			fog_col = Color("#7f757e")
 			clear_fog_den = 0.068
 
+	var sky_fill_col := Color("#a8c8b6")
+	var sky_fill_e := 0.24
+	if phase_id == "night":
+		sky_fill_col = Color("#5e82b8")
+		sky_fill_e = 0.26
+	elif phase_id == "dusk":
+		sky_fill_col = Color("#867ea8")
+		sky_fill_e = 0.25
+
+	# Profile-specific artistic lighting overrides (NEVER alters frozen "default" / forest / A1!)
+	if lighting_profile == "wreck-beach":
+		match phase_id:
+			"day", "arrival":
+				sky_top = Color("#286da8")
+				sky_hor = Color("#9cc9df")
+				amb_col = Color("#6a869c")
+				amb_e = 0.78
+				sun_col = Color("#fff4de")
+				sun_e = 1.56
+				sun_pitch = deg_to_rad(-47.0)
+				sun_yaw = deg_to_rad(-38.0)
+				fog_col = Color("#8ab0c4")
+				clear_fog_den = 0.042
+				sky_fill_col = Color("#a4cbe0")
+				sky_fill_e = 0.28
+			"dusk":
+				# Balanced golden lateral coastal sunset (zero uniform brick-orange wash!)
+				sky_top = Color("#24395e")
+				sky_hor = Color("#d89a72")
+				amb_col = Color("#6a7694")
+				amb_e = 0.72
+				sun_col = Color("#ffc486")
+				sun_e = 1.30
+				sun_pitch = deg_to_rad(-21.0)
+				sun_yaw = deg_to_rad(-54.0)
+				fog_col = Color("#6f7486")
+				clear_fog_den = 0.056
+				sky_fill_col = Color("#829cc2")
+				sky_fill_e = 0.30
+			"night":
+				sky_top = Color("#0b182c")
+				sky_hor = Color("#213a5a")
+				amb_col = Color("#304968")
+				amb_e = 0.64
+				sun_col = Color("#94bef0")
+				sun_e = 0.74
+				sun_pitch = deg_to_rad(-36.0)
+				sun_yaw = deg_to_rad(-30.0)
+				fog_col = Color("#182c44")
+				clear_fog_den = 0.068
+				sky_fill_col = Color("#648cc2")
+				sky_fill_e = 0.30
+			"dawn", "finalization":
+				sky_top = Color("#3b5d86")
+				sky_hor = Color("#e2b08e")
+				amb_col = Color("#6e7e94")
+				amb_e = 0.74
+				sun_col = Color("#ffd8b0")
+				sun_e = 1.32
+				sun_pitch = deg_to_rad(-26.0)
+				sun_yaw = deg_to_rad(36.0)
+				fog_col = Color("#848d9a")
+				clear_fog_den = 0.055
+				sky_fill_col = Color("#96b2cc")
+				sky_fill_e = 0.28
+	elif lighting_profile == "cliff-observatory":
+		match phase_id:
+			"day", "arrival":
+				sky_top = Color("#2b5e90")
+				sky_hor = Color("#98bcd2")
+				amb_col = Color("#667e96")
+				amb_e = 0.78
+				sun_col = Color("#fff3dd")
+				sun_e = 1.56
+				sun_pitch = deg_to_rad(-38.0)
+				sun_yaw = deg_to_rad(-48.0)
+				fog_col = Color("#7c9cb2")
+				clear_fog_den = 0.058
+				sky_fill_col = Color("#9ec0d8")
+				sky_fill_e = 0.30
+			"dusk":
+				sky_top = Color("#212f54")
+				sky_hor = Color("#dc926c")
+				amb_col = Color("#606c8e")
+				amb_e = 0.72
+				sun_col = Color("#ffba7c")
+				sun_e = 1.34
+				sun_pitch = deg_to_rad(-19.0)
+				sun_yaw = deg_to_rad(-58.0)
+				fog_col = Color("#666c86")
+				clear_fog_den = 0.066
+				sky_fill_col = Color("#8298c4")
+				sky_fill_e = 0.32
+			"night":
+				sky_top = Color("#0c1830")
+				sky_hor = Color("#253e62")
+				amb_col = Color("#334c6e")
+				amb_e = 0.70
+				sun_col = Color("#9cc6f8")
+				sun_e = 0.80
+				sun_pitch = deg_to_rad(-34.0)
+				sun_yaw = deg_to_rad(-34.0)
+				fog_col = Color("#1d324c")
+				clear_fog_den = 0.072
+				sky_fill_col = Color("#6b94ca")
+				sky_fill_e = 0.34
+			"dawn", "finalization":
+				sky_top = Color("#38547c")
+				sky_hor = Color("#dfa888")
+				amb_col = Color("#6c7892")
+				amb_e = 0.75
+				sun_col = Color("#ffd4a8")
+				sun_e = 1.32
+				sun_pitch = deg_to_rad(-24.0)
+				sun_yaw = deg_to_rad(38.0)
+				fog_col = Color("#7e889c")
+				clear_fog_den = 0.062
+				sky_fill_col = Color("#94aec8")
+				sky_fill_e = 0.30
+	elif lighting_profile == "coastal-refuge":
+		match phase_id:
+			"day", "arrival":
+				sky_top = Color("#2869a0")
+				sky_hor = Color("#98c4da")
+				amb_col = Color("#637e90")
+				amb_e = 0.74
+				sun_col = Color("#fff2da")
+				sun_e = 1.54
+				sun_pitch = deg_to_rad(-46.0)
+				sun_yaw = deg_to_rad(-34.0)
+				fog_col = Color("#82a6ba")
+				clear_fog_den = 0.048
+				sky_fill_col = Color("#9ac0d6")
+				sky_fill_e = 0.26
+			"dusk":
+				sky_top = Color("#223458")
+				sky_hor = Color("#d4926c")
+				amb_col = Color("#5d6c88")
+				amb_e = 0.68
+				sun_col = Color("#ffbe82")
+				sun_e = 1.28
+				sun_pitch = deg_to_rad(-22.0)
+				sun_yaw = deg_to_rad(-50.0)
+				fog_col = Color("#646c80")
+				clear_fog_den = 0.058
+				sky_fill_col = Color("#7e96bc")
+				sky_fill_e = 0.28
+			"night":
+				sky_top = Color("#0b1628")
+				sky_hor = Color("#1e3654")
+				amb_col = Color("#2c4460")
+				amb_e = 0.60
+				sun_col = Color("#90baf0")
+				sun_e = 0.72
+				sun_pitch = deg_to_rad(-36.0)
+				sun_yaw = deg_to_rad(-28.0)
+				fog_col = Color("#172a40")
+				clear_fog_den = 0.068
+				sky_fill_col = Color("#6088bc")
+				sky_fill_e = 0.28
+			"dawn", "finalization":
+				sky_top = Color("#3a5980")
+				sky_hor = Color("#dfa888")
+				amb_col = Color("#6a7a90")
+				amb_e = 0.72
+				sun_col = Color("#ffd6ae")
+				sun_e = 1.30
+				sun_pitch = deg_to_rad(-28.0)
+				sun_yaw = deg_to_rad(34.0)
+				fog_col = Color("#808a98")
+				clear_fog_den = 0.056
+				sky_fill_col = Color("#94aec6")
+				sky_fill_e = 0.26
+
 	if world_env and world_env.environment:
 		var env := world_env.environment
 		env.ambient_light_color = amb_col
@@ -384,26 +577,40 @@ func apply_lighting_phase(phase_id: String) -> void:
 		sun_light.rotation.x = sun_pitch
 		sun_light.rotation.y = sun_yaw
 	if is_instance_valid(_sky_fill_light):
-		if phase_id == "night":
-			_sky_fill_light.light_color = Color("#5e82b8")
-			_sky_fill_light.light_energy = 0.26
-		elif phase_id == "dusk":
-			_sky_fill_light.light_color = Color("#867ea8")
-			_sky_fill_light.light_energy = 0.25
-		else:
-			_sky_fill_light.light_color = Color("#a8c8b6")
-			_sky_fill_light.light_energy = 0.24
+		_sky_fill_light.light_color = sky_fill_col
+		_sky_fill_light.light_energy = sky_fill_e
 
-	# Daylight lantern policy: portable lanterns stay OFF in bright clear day/arrival
-	var lanterns_lit := (not (phase_id in ["day", "arrival"])) or (current_weather in ["storm", "fog"])
+	# Daylight lantern policy: exterior portable lanterns stay OFF in bright clear day; sheltered cave interior lanterns may stay softly lit
+	var lanterns_lit := (not (phase_id in ["day", "arrival"])) or (current_weather in ["rain", "storm", "fog"])
 	for lan in _lanterns:
 		var l_node: OmniLight3D = lan.get("light")
 		var g_mat: StandardMaterial3D = lan.get("glass_mat")
+		var base_e := float(lan.get("base_energy", 1.05))
+		var emit_e := float(lan.get("emit_energy", 1.55))
+		var always_lit := bool(lan.get("always_lit", false))
+		var lit_this := lanterns_lit or always_lit
+		var day_scale_l := float(lan.get("day_scale", 0.72)) if (always_lit and not lanterns_lit) else 1.0
 		if is_instance_valid(l_node):
-			l_node.light_energy = 1.05 if lanterns_lit else 0.0
+			l_node.light_energy = (base_e * day_scale_l) if lit_this else 0.0
 		if is_instance_valid(g_mat):
-			g_mat.emission_enabled = lanterns_lit
-			g_mat.emission_energy_multiplier = 1.55 if lanterns_lit else 0.0
+			g_mat.emission_enabled = lit_this
+			g_mat.emission_energy_multiplier = (emit_e * day_scale_l) if lit_this else 0.0
+
+	# Phase-modulated arcane crystals (translucent mineral quartz by day, rich localized cyan glow at dusk/night!)
+	var cry_mult := 1.0 if phase_id == "night" else (0.58 if phase_id in ["dusk", "dawn", "finalization"] else 0.0)
+	for cr in _crystals:
+		var c_light: OmniLight3D = cr.get("light")
+		var c_mat: StandardMaterial3D = cr.get("mat")
+		if is_instance_valid(c_light):
+			var c_e := float(cr.get("night_energy", 0.95)) * cry_mult
+			c_light.light_energy = c_e
+			c_light.visible = c_e > 0.04
+		if is_instance_valid(c_mat):
+			c_mat.emission_energy_multiplier = lerpf(float(cr.get("day_emit", 0.16)), float(cr.get("night_emit", 1.55)), cry_mult)
+	if is_inside_tree():
+		for nf in get_tree().get_nodes_in_group("night_flame"):
+			if nf is Node3D and is_instance_valid(nf):
+				(nf as Node3D).visible = lanterns_lit
 
 	# Night-only automatic campfire schedule for exterior camps (unless character manually toggled)
 	if _fire_auto_schedule:
@@ -1595,44 +1802,44 @@ void fragment() {
 			mote.size = Vector2(0.085, 0.085)
 			tint_c = Color(0.78, 0.86, 0.48, 0.36)
 		"wreck-beach":
-			# Salty coastal sea-spray mist rising off the breaking surf
-			gp.amount = 38
-			gp.lifetime = 2.8
-			gp.position = Vector3(bounds_m.x * 0.5, 0.95, bounds_m.y * 0.72)
-			pm.emission_box_extents = Vector3(bounds_m.x * 0.52, 0.45, 2.8)
-			pm.direction = Vector3(-0.32, 0.55, -0.42)
-			pm.spread = 28.0
-			pm.initial_velocity_min = 0.65
-			pm.initial_velocity_max = 1.45
-			pm.gravity = Vector3(0.0, -0.15, 0.0)
-			mote.size = Vector2(0.42, 0.42)
-			tint_c = Color(0.86, 0.93, 0.97, 0.14)
+			# Subtle coastal sea-spray mist hugging ONLY the offshore breaking surf (zero generic floating orbs over sand!)
+			gp.amount = 22
+			gp.lifetime = 3.2
+			gp.position = Vector3(bounds_m.x * 0.52, 0.55, bounds_m.y * 0.84)
+			pm.emission_box_extents = Vector3(bounds_m.x * 0.48, 0.25, 2.2)
+			pm.direction = Vector3(-0.35, 0.32, -0.45)
+			pm.spread = 22.0
+			pm.initial_velocity_min = 0.45
+			pm.initial_velocity_max = 0.95
+			pm.gravity = Vector3(0.0, -0.08, 0.0)
+			mote.size = Vector2(0.85, 0.42)
+			tint_c = Color(0.86, 0.93, 0.97, 0.065)
 		"cliff-observatory":
-			# Exposed highland crosswind mist / spindrift wisps
-			gp.amount = 34
-			gp.lifetime = 2.6
-			gp.position = Vector3(bounds_m.x * 0.5, 1.8, bounds_m.y * 0.46)
-			pm.emission_box_extents = Vector3(bounds_m.x * 0.5, 1.4, bounds_m.y * 0.45)
-			pm.direction = Vector3(0.85, 0.14, 0.48)
-			pm.spread = 16.0
-			pm.initial_velocity_min = 1.65
-			pm.initial_velocity_max = 2.85
+			# Subtle high-altitude wind mist streaks drifting past the cliff precipice (zero floating white polka dots!)
+			gp.amount = 18
+			gp.lifetime = 3.4
+			gp.position = Vector3(bounds_m.x * 0.5, -2.2, bounds_m.y * 0.78)
+			pm.emission_box_extents = Vector3(bounds_m.x * 0.65, 1.8, 5.0)
+			pm.direction = Vector3(0.88, 0.08, 0.36)
+			pm.spread = 14.0
+			pm.initial_velocity_min = 1.45
+			pm.initial_velocity_max = 2.45
 			pm.gravity = Vector3(0.0, 0.02, 0.0)
-			mote.size = Vector2(0.55, 0.35)
-			tint_c = Color(0.76, 0.86, 0.96, 0.13)
+			mote.size = Vector2(1.45, 0.55)
+			tint_c = Color(0.76, 0.86, 0.96, 0.065)
 		_:
-			# Damp sea-cave humidity spores softly suspended near roof & tidepools
-			gp.amount = 26
-			gp.lifetime = 4.6
-			gp.position = Vector3(bounds_m.x * 0.5, 1.65, bounds_m.y * 0.42)
-			pm.emission_box_extents = Vector3(bounds_m.x * 0.42, 1.1, bounds_m.y * 0.36)
-			pm.direction = Vector3(0.05, 0.25, 0.12)
-			pm.spread = 45.0
-			pm.initial_velocity_min = 0.12
-			pm.initial_velocity_max = 0.35
+			# Subtle damp mist localized strictly in the eastern sea-cave spring alcove (zero bright floating dots!)
+			gp.amount = 18
+			gp.lifetime = 4.4
+			gp.position = Vector3(28.0, 1.25, 13.8)
+			pm.emission_box_extents = Vector3(3.2, 0.75, 2.8)
+			pm.direction = Vector3(-0.08, 0.18, 0.16)
+			pm.spread = 36.0
+			pm.initial_velocity_min = 0.10
+			pm.initial_velocity_max = 0.26
 			pm.gravity = Vector3(0.0, 0.01, 0.0)
-			mote.size = Vector2(0.11, 0.11)
-			tint_c = Color(0.75, 0.92, 0.96, 0.36)
+			mote.size = Vector2(0.42, 0.30)
+			tint_c = Color(0.78, 0.92, 0.96, 0.085)
 
 	mat.set_shader_parameter("tint", tint_c)
 	mote.material = mat
@@ -1766,12 +1973,43 @@ func register_aurora(mesh: MeshInstance3D) -> void:
 func register_cloud(node: Node3D, base_x: float, span: float, speed: float) -> void:
 	_clouds.append({"node": node, "base_x": base_x, "span": span, "speed": speed})
 
-func register_lantern(light: OmniLight3D, glass_mat: StandardMaterial3D) -> void:
-	_lanterns.append({"light": light, "glass_mat": glass_mat})
-	var lanterns_lit := (not (current_phase in ["day", "arrival"])) or (current_weather in ["storm", "fog"])
-	light.light_energy = 1.05 if lanterns_lit else 0.0
-	glass_mat.emission_enabled = lanterns_lit
-	glass_mat.emission_energy_multiplier = 1.55 if lanterns_lit else 0.0
+func register_lantern(light: OmniLight3D, glass_mat: StandardMaterial3D = null, base_energy: float = 1.05, flicker_amp: float = 0.06, emit_energy: float = 1.55, always_lit: bool = false, day_scale: float = 0.72) -> void:
+	_lanterns.append({
+		"light": light,
+		"glass_mat": glass_mat,
+		"base_energy": base_energy,
+		"flicker_amp": flicker_amp,
+		"emit_energy": emit_energy,
+		"always_lit": always_lit,
+		"day_scale": day_scale,
+		"phase": randf_range(0.0, TAU),
+	})
+	var lanterns_lit := (not (current_phase in ["day", "arrival"])) or (current_weather in ["rain", "storm", "fog"])
+	var lit_this := lanterns_lit or always_lit
+	var ds := day_scale if (always_lit and not lanterns_lit) else 1.0
+	if is_instance_valid(light):
+		light.light_energy = (base_energy * ds) if lit_this else 0.0
+	if is_instance_valid(glass_mat):
+		glass_mat.emission_enabled = lit_this
+		glass_mat.emission_energy_multiplier = (emit_energy * ds) if lit_this else 0.0
+
+func register_arcane_crystal(light: OmniLight3D, mat: StandardMaterial3D, night_energy: float = 0.95, day_emit: float = 0.14, night_emit: float = 1.55) -> void:
+	_crystals.append({
+		"light": light,
+		"mat": mat,
+		"night_energy": night_energy,
+		"day_emit": day_emit,
+		"night_emit": night_emit,
+	})
+
+func configure_exterior_weather_bounds(center: Vector3, extents: Vector3) -> void:
+	var ry := center.y if center.y > 2.0 else 14.0
+	if is_instance_valid(_rain_particles) and _rain_particles.process_material is ParticleProcessMaterial:
+		_rain_particles.position = Vector3(center.x, ry, center.z)
+		(_rain_particles.process_material as ParticleProcessMaterial).emission_box_extents = Vector3(extents.x, 1.0, extents.z)
+	if is_instance_valid(_snow_particles) and _snow_particles.process_material is ParticleProcessMaterial:
+		_snow_particles.position = Vector3(center.x, maxf(6.5, ry - 0.8), center.z)
+		(_snow_particles.process_material as ParticleProcessMaterial).emission_box_extents = Vector3(extents.x, 1.0, extents.z)
 
 func set_smoke_wind(wind_dir: Vector3) -> void:
 	for sm_pm in _smoke_materials:

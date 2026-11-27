@@ -1,5 +1,5 @@
 // Production capabilities are separate from animation aliases and gameplay rules.
-const MODE_ACTIONS={walk:['walk','walking','run','running','moving','dash','stealth','crawl','root_shuffle','ground_drag','ground_glide','slither','scuttle'],fly:['fly','flight','flying','takeoff','land','flight_turn'],swim:['swim','swimming','swim_turn'],climb:['climb','climbing'],burrow:['burrow','burrow_enter','burrow_exit'],jump:['jump','jumping']};
+const MODE_ACTIONS={walk:['walk','walking','run','running','moving','dash','stealth','crawl','root_shuffle','ground_drag','ground_glide','slither','scuttle'],fly:['fly','flight','flying','takeoff','land','flight_turn'],swim:['swim','swimming','swim_turn','dive','dive_chest'],climb:['climb','climbing'],burrow:['burrow','burrow_enter','burrow_exit'],jump:['jump','jumping']};
 export function motionMode(action=''){
  const normalized=String(action).replaceAll('-','_').toLowerCase();
  return Object.keys(MODE_ACTIONS).find(mode=>MODE_ACTIONS[mode].includes(normalized))??null;

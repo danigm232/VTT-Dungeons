@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-ghoul-bite-se",
+  "character": "sw-ghoul",
+  "anatomy": "humanoid-tall",
+  "campaign": "stormwreck-isle",
+  "action": "bite",
+  "direction": "se",
+  "fps": 10,
+  "loop": false,
+  "compatibility": {
+    "preservesAppearance": true,
+    "overlay": "Current frame alpha; physical attachments remain unverified."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-bite-se/c143bbbc8b13/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-bite-se/c143bbbc8b13/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-bite-se/c143bbbc8b13/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-bite-se/c143bbbc8b13/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-bite-se/c143bbbc8b13/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-bite-se/c143bbbc8b13/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-bite-se/c143bbbc8b13/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-bite-se/c143bbbc8b13/08.webp"
+  ],
+  "production": {
+    "method": "Built-in image generation with existing local identity reference and native-size extraction",
+    "reference": "campaigns/stormwreck-isle/public/art/m3/ghoul/ghoul_base.png",
+    "minimumVisibleStandingPixels": 240,
+    "prompt": "Bite towards southeast in three-quarter, feet braced, jaw opens, head thrusts, jaw snaps, head and shoulders recover, arms stay in a low guard. No visual effects.",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-ghoul-bite-se-c143bbbc8b13.png",
+    "originalSha256": "c143bbbc8b139231655c2369ed9566730c88ae27ee52d02eab320fb28f5718e5",
+    "importReport": "output/stormwreck-motion-detail/sw-ghoul-bite-se-c143bbbc8b13.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending native review",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 392,
+  "pivot": [
+    0.5,
+    0.9473684210526315
+  ]
+}

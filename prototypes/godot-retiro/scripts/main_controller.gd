@@ -111,27 +111,30 @@ func select_party_member(idx: int, focus_camera: bool = true) -> void:
 		vtt_ui.call("sync_selected_actor_from_party_index", active_party_idx)
 
 func _unhandled_input(event: InputEvent) -> void:
+	var Prefs = preload("res://player/player_preferences.gd")
+	if Prefs.is_capturing_key():
+		return
 	if event is InputEventKey and event.is_pressed() and not event.is_echo():
 		var ek := event as InputEventKey
 		if ek.ctrl_pressed or ek.alt_pressed or ek.meta_pressed:
 			return
-		match ek.keycode:
-			KEY_1:
-				select_party_member(0)
-				get_viewport().set_input_as_handled()
-			KEY_2:
-				select_party_member(1)
-				get_viewport().set_input_as_handled()
-			KEY_3:
-				select_party_member(2)
-				get_viewport().set_input_as_handled()
-			KEY_TAB:
-				select_party_member(active_party_idx + 1)
-				get_viewport().set_input_as_handled()
-			KEY_G:
-				if layout_builder and layout_builder.has_method("toggle_winch_lever"):
-					layout_builder.toggle_winch_lever()
-				get_viewport().set_input_as_handled()
+		var kc := ek.keycode
+		if Prefs.matches_key("party_1", kc):
+			select_party_member(0)
+			get_viewport().set_input_as_handled()
+		elif Prefs.matches_key("party_2", kc):
+			select_party_member(1)
+			get_viewport().set_input_as_handled()
+		elif Prefs.matches_key("party_3", kc):
+			select_party_member(2)
+			get_viewport().set_input_as_handled()
+		elif Prefs.matches_key("party_next", kc):
+			select_party_member(active_party_idx + 1)
+			get_viewport().set_input_as_handled()
+		elif Prefs.matches_key("winch_lever", kc):
+			if layout_builder and layout_builder.has_method("toggle_winch_lever"):
+				layout_builder.toggle_winch_lever()
+			get_viewport().set_input_as_handled()
 
 func _setup_hud() -> void:
 	ui_layer = CanvasLayer.new()

@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-zark-retreat-lift-e",
+  "character": "sw-zark",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "retreat_carry_lift",
+  "direction": "e",
+  "fps": 6,
+  "loop": false,
+  "referenceHeight": 467,
+  "pivot": [
+    0.5,
+    0.8809523809523809
+  ],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-lift-e/2d5b3e564691/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-lift-e/2d5b3e564691/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-lift-e/2d5b3e564691/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-lift-e/2d5b3e564691/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-lift-e/2d5b3e564691/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-lift-e/2d5b3e564691/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-lift-e/2d5b3e564691/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-lift-e/2d5b3e564691/08.webp"
+  ],
+  "compatibility": {
+    "embeddedSlotsRetained": true,
+    "propsSeparate": true,
+    "preservesAppearance": true
+  },
+  "production": {
+    "columns": 4,
+    "silhouetteAlpha": 96,
+    "minimumVisibleStandingPixels": 240,
+    "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-turnaround/cf00b16dd88a/06.png",
+    "intent": "Eight phases from a floor pickup through a supported rise. Reverse for set-down. Root and floor contact stay fixed.",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-zark-retreat-lift-e-2d5b3e564691.png",
+    "originalSha256": "2d5b3e5646919a358643f57b7a95cbb81922359257fb9984716e4cf92bc85de8",
+    "importReport": "output/stormwreck-motion-detail/sw-zark-retreat-lift-e-2d5b3e564691.json",
+    "minimumAlpha": 20,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  }
+}

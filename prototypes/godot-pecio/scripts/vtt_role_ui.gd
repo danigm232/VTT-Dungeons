@@ -296,6 +296,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif kev.keycode == KEY_V and current_role == "player":
 			toggle_torch()
 			get_viewport().set_input_as_handled()
+		elif kev.keycode == KEY_U and current_role in ["player", "dm"]:
+			if toggle_aquatic_depth():
+				get_viewport().set_input_as_handled()
+
+func toggle_aquatic_depth() -> bool:
+	var tok := get_active_token_node()
+	if not tok is PlayerToken or not tok.toggle_dive():
+		return false
+	return true
 
 func _process(delta: float) -> void:
 	if not ui_active:
@@ -309,6 +318,9 @@ func _process(delta: float) -> void:
 			_clock_accum -= float(whole)
 			clock_seconds += whole
 			if combat_controller: combat_controller.rules.advance_time(whole)
+			for body in tokens_by_node.values():
+				if body is PlayerToken and not body.is_npc:
+					body._update_aquatic_breath(float(whole))
 			_refresh_clock_only()
 
 	if toast_timer > 0.0:
@@ -332,16 +344,21 @@ func _process(delta: float) -> void:
 			if player_hud:
 				player_hud.set_interaction_prompt(p_txt, p_txt != "")
 
+	if player_hud and current_role == "player":
+		player_hud.refresh_aquatic_status(get_active_token_node())
+
 	# Sincronizar zona actual según personaje activo en Pecio
 	if not is_retreat and camera and camera.has_method("detect_wreck_zone"):
 		var tok := get_active_token_node()
-		if tok:
+		if tok and player_root.visible:
 			var detected: String = camera.detect_wreck_zone(tok.global_position)
 			var norm_z := "c1" if detected == "main" else detected
-			if norm_z != "" and norm_z != selected_zone_id and player_root.visible:
+			if norm_z != "" and norm_z != selected_zone_id:
 				selected_zone_id = norm_z
-				if player_hud:
-					player_hud.scene_notice_lbl.text = get_current_zone_display()
+			if player_hud:
+				var label := "Mar abierto" if tok is PlayerToken and tok.in_open_ocean else get_current_zone_display()
+				if player_hud.scene_notice_lbl.text != label:
+					player_hud.scene_notice_lbl.text = label
 
 func _enforce_role_board_rules() -> void:
 	if not grid_node and main_ctrl:
@@ -885,11 +902,23 @@ func add_inventory_item(id: String, qty: int, display_name: String) -> void:
 		inventory_bridge.add_item(id, qty, display_name)
 
 func notify_mesa(msg: String) -> void:
-	toast_timer = 3.2
+	toast_timer = 4.8
 	if player_hud:
 		player_hud.show_toast(msg)
-	if inv_mgr and inv_mgr.has_method("show_notification") and current_role != "projector":
+	if inv_mgr and inv_mgr.has_method("show_notification") and current_role != "projector" and not inv_mgr.external_ui_managed:
 		inv_mgr.show_notification(msg)
+
+func show_external_toast(msg: String) -> void:
+	if msg == "":
+		return
+	toast_timer = 4.8
+	if player_hud:
+		player_hud.show_toast(msg)
+
+func open_c6_portrait_modal() -> void:
+	var c := get_canon_ctrl()
+	if c and c.has_method("open_c6_portrait_modal"):
+		c.open_c6_portrait_modal()
 
 func trigger_save_flash() -> void:
 	save_flash_timer = 2.6
@@ -974,8 +1003,27 @@ func _apply_harpy_world_presence(present: bool, save_flag: bool) -> void:
 			tok.position.y = maxf(tok.position.y, 15.105)
 			if not was_visible and is_inside_tree():
 				var nest_amb := get_tree().root.find_child("NestAmbianceController", true, false)
-				if nest_amb and nest_amb.has_method("play_harpy_landing"):
-					nest_amb.play_harpy_landing()
+				animate_harpy_arrival(tok, nest_amb)
+
+func animate_harpy_arrival(tok: Node3D, nest: Node = null) -> void:
+	if not is_instance_valid(tok) or tok.get("is_defeated"):
+		return
+	var arrival := int(tok.get_meta("harpy_arrival", 0)) + 1
+	tok.set_meta("harpy_arrival", arrival)
+	var view: String = preload("res://sprites/sprite_facing.gd").view_direction(tok, str(tok.get("facing_dir")))
+	var turn: Dictionary = tok._pick_clip_from_profile("flight_turn", view)
+	var turn_time := float(turn.get("frames", []).size()) / maxf(1.0, float(turn.get("fps", 12.0)))
+	tok.play_action_animation("flight_turn", turn_time + 0.16)
+	await get_tree().create_timer(turn_time).timeout
+	if not _harpy_arrival_is_current(tok, arrival, "flight_turn"):
+		return
+	tok.play_action_animation("land", 0.8)
+	if is_instance_valid(nest) and nest.has_method("play_harpy_landing"):
+		tok.queue_harpy_perch_contact(nest)
+
+func _harpy_arrival_is_current(tok: Node3D, arrival: int, phase: String) -> bool:
+	return is_instance_valid(tok) and tok.is_visible_in_tree() and not tok.get("is_defeated") \
+		and int(tok.get_meta("harpy_arrival", 0)) == arrival and tok.get("action_anim_name") == phase
 
 func loot_c10_nest() -> Dictionary:
 	if world_state and not world_state.mark_c10_nest_looted():

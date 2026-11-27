@@ -20,6 +20,25 @@ const InteractiveDoorScript = preload("res://scripts/interactive_door.gd")
 const WinchAndStairs = preload("res://scripts/retreat_winch_and_stairs.gd")
 const TempleAndCliffs = preload("res://scripts/retreat_temple_and_cliffs.gd")
 const WeatherAndAudioScript = preload("res://scripts/retreat_weather_and_audio.gd")
+const AquaticBuilder = preload("res://scripts/retreat_aquatic_builder.gd")
+
+static var _a1_canon_cache: GDScript = null
+static var _a1_geo_cache: GDScript = null
+
+@export var load_profile: int = 0 # 0 = FULL_RETREAT, 1 = A1_CAMP
+var camp_fx: Node = null
+
+static func _a1_canon() -> GDScript:
+	if _a1_canon_cache == null:
+		var p := ProjectSettings.globalize_path("res://").path_join("../godot-shared/retreat_a1/retreat_a1_canonical_builder.gd").simplify_path()
+		_a1_canon_cache = ResourceLoader.load(p) as GDScript
+	return _a1_canon_cache
+
+static func _a1_geo() -> GDScript:
+	if _a1_geo_cache == null:
+		var p := ProjectSettings.globalize_path("res://").path_join("../godot-shared/retreat_a1/retreat_a1_geometry.gd").simplify_path()
+		_a1_geo_cache = ResourceLoader.load(p) as GDScript
+	return _a1_geo_cache
 
 const TERRAIN_JSON_PATH := "res://assets/data/retreat-terrain-v2.json"
 const GLOBAL_LAYOUT_JSON_PATH := "res://assets/data/global-layout.json"
@@ -110,6 +129,7 @@ var _perched_gulls: Array[Dictionary] = []
 var _gliding_gulls: Array[Dictionary] = []
 var _garden_butterflies: Array[Dictionary] = []
 var _coastal_fish: Array[Dictionary] = []
+var _aquatic_anim_state: Dictionary = {}
 var _a5_canaries: Array[Dictionary] = []
 var _canary_focus := Vector3.ZERO
 var _canary_focus_until := 0.0
@@ -541,11 +561,11 @@ render_mode blend_mix, depth_draw_never, cull_disabled, specular_schlick_ggx;
 
 uniform sampler2D depth_tex : hint_depth_texture, filter_linear_mipmap;
 uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap, repeat_enable;
-uniform vec4 shallow_color : source_color = vec4(0.115, 0.54, 0.56, 0.18);
-uniform vec4 mid_color : source_color = vec4(0.042, 0.29, 0.37, 0.74);
-uniform vec4 deep_color : source_color = vec4(0.018, 0.125, 0.21, 0.96);
+uniform vec4 shallow_color : source_color = vec4(0.115, 0.56, 0.58, 0.16);
+uniform vec4 mid_color : source_color = vec4(0.042, 0.30, 0.39, 0.56);
+uniform vec4 deep_color : source_color = vec4(0.018, 0.125, 0.21, 0.88);
 uniform vec4 foam_color : source_color = vec4(0.86, 0.90, 0.92, 0.92);
-uniform float water_depth_range = 4.2;
+uniform float water_depth_range = 6.2;
 uniform float foam_range = 0.76;
 uniform float wave_speed = 0.042;
 uniform float wave_scale = 0.095;
@@ -560,13 +580,16 @@ void vertex() {
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	wave_crest = 0.0;
 	if (wave_amp > 0.001) {
+		vec2 d_lag = (world_pos.xz - vec2(24.5, 98.4)) / vec2(10.0, 9.2);
+		float lag_calm = smoothstep(0.42, 1.08, dot(d_lag, d_lag));
 		float spd = mix(1.0, 1.75, storm_factor);
-		float w1 = sin(world_pos.x * 0.24 + world_pos.z * 0.19 + TIME * 1.15 * spd);
-		float w2 = cos(world_pos.x * 0.17 - world_pos.z * 0.31 + TIME * 0.92 * spd);
-		float w3 = sin((world_pos.x - world_pos.z) * 0.42 + TIME * 1.65 * spd);
-		float h = (w1 * 0.48 + w2 * 0.34 + w3 * 0.18) * wave_amp;
+		// Todas las ondas viajan hacia la orilla (-Z) con ligera oblicuidad orgánica
+		float w1 = sin(world_pos.x * 0.14 + world_pos.z * 0.26 + TIME * 1.25 * spd);
+		float w2 = cos(-world_pos.x * 0.12 + world_pos.z * 0.34 + TIME * 1.05 * spd);
+		float w3 = sin(world_pos.x * 0.10 + world_pos.z * 0.46 + TIME * 1.65 * spd);
+		float h = (w1 * 0.48 + w2 * 0.34 + w3 * 0.18) * wave_amp * mix(0.05, 1.0, lag_calm);
 		VERTEX.y += h;
-		wave_crest = clamp((w1 + w2 + w3) * 0.33 + 0.5, 0.0, 1.0);
+		wave_crest = clamp((w1 + w2 + w3) * 0.33 + 0.5, 0.0, 1.0) * lag_calm;
 	}
 }
 
@@ -583,59 +606,70 @@ void fragment() {
 		water_depth = water_depth_range;
 	}
 
-	vec2 uv1 = world_pos.xz * wave_scale + vec2(TIME * wave_speed, TIME * wave_speed * 0.58);
-	vec2 r_xz = vec2(0.80 * world_pos.x - 0.60 * world_pos.z, 0.60 * world_pos.x + 0.80 * world_pos.z);
-	vec2 uv2 = r_xz * (wave_scale * 1.55) + vec2(-TIME * wave_speed * 0.78, TIME * wave_speed * 0.88);
-	vec2 uv3 = world_pos.xz * (wave_scale * 2.65) + vec2(TIME * wave_speed * 1.25, -TIME * wave_speed * 0.94);
+	// Enclave protegido de laguna interior junto a Z2: agua serena esmeralda-jade translúcida para nadar y bucear
+	vec2 d_lag = (world_pos.xz - vec2(25.0, 99.0)) / vec2(10.8, 9.4);
+	float lagoon_w = 1.0 - smoothstep(0.40, 1.08, dot(d_lag, d_lag));
+	float spd_f = mix(1.0, 0.24, lagoon_w);
+
+	// Desplazamiento de normales hacia la costa (-Z)
+	vec2 uv1 = world_pos.xz * wave_scale + vec2(TIME * wave_speed * 0.24 * spd_f, TIME * wave_speed * 0.96 * spd_f);
+	vec2 r_xz = vec2(0.92 * world_pos.x - 0.39 * world_pos.z, 0.39 * world_pos.x + 0.92 * world_pos.z);
+	vec2 uv2 = r_xz * (wave_scale * 1.55) + vec2(-TIME * wave_speed * 0.28 * spd_f, TIME * wave_speed * 0.88 * spd_f);
+	vec2 uv3 = world_pos.xz * (wave_scale * 2.65) + vec2(TIME * wave_speed * 0.36 * spd_f, TIME * wave_speed * 1.18 * spd_f);
 	vec3 n1 = texture(normal_tex, uv1).xyz * 2.0 - 1.0;
 	vec3 n2 = texture(normal_tex, uv2).xyz * 2.0 - 1.0;
 	vec3 n3 = texture(normal_tex, uv3).xyz * 2.0 - 1.0;
-	float ch1 = cos(world_pos.x * 1.25 + world_pos.z * 0.92 + TIME * 1.55);
-	float ch2 = cos(r_xz.x * 1.95 - r_xz.y * 1.55 - TIME * 1.35);
-	float chop = mix(1.0, 1.55, storm_factor);
+	float ch1 = cos(world_pos.x * 0.72 + world_pos.z * 1.22 + TIME * 1.55 * spd_f);
+	float ch2 = cos(-world_pos.x * 0.54 + world_pos.z * 1.82 + TIME * 1.35 * spd_f);
+	float chop = mix(1.0, 1.55, storm_factor) * mix(1.0, 0.20, lagoon_w);
 	vec3 n_mix = normalize(vec3((n1.xy + n2.xy + n3.xy * 0.45) * 0.28 * chop + vec2(ch1 * 0.095 + ch2 * 0.070, ch1 * 0.070 - ch2 * 0.080) * chop, 1.0));
 	NORMAL_MAP = vec3(n_mix.x * 0.5 + 0.5, n_mix.y * 0.5 + 0.5, 1.0);
-	NORMAL_MAP_DEPTH = mix(0.52, 0.82, storm_factor);
+	NORMAL_MAP_DEPTH = mix(mix(0.52, 0.82, storm_factor), 0.24, lagoon_w);
 
 	float ndotv = clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0);
 	float fresnel = pow(1.0 - ndotv, 3.2);
 
-	// Espuma orgánica quebrada no uniforme + crestas blancas en mar agitado
+	// Espuma orgánica quebrada avanzando hacia la playa (+TIME junto a +water_depth -> olas marchando hacia -Z/orilla)
 	float lacy_a = clamp(0.5 + (n1.x - n2.y) * 0.74 + ch1 * 0.18, 0.0, 1.0);
 	float lacy_b = clamp(0.5 + (n1.y + n2.x + n3.x * 0.5) * 0.68 - ch2 * 0.16, 0.0, 1.0);
 	float lacy_lace = clamp(lacy_a * 0.58 + lacy_b * 0.42, 0.0, 1.0);
 	float patch_var = clamp(0.5 + 0.5 * sin(world_pos.x * 0.47 - world_pos.z * 0.34 + n1.x * 2.6) * cos(world_pos.x * 0.29 + world_pos.z * 0.53), 0.0, 1.0);
 	float local_foam_range = foam_range * (0.45 + 0.90 * patch_var);
 
-	float surf_line = sin(water_depth * 10.5 - TIME * (1.55 + storm_factor * 1.2) + lacy_a * 4.8) * 0.5 + 0.5;
+	float surf_line = sin(water_depth * 10.5 + TIME * (1.72 + storm_factor * 1.25) + lacy_a * 4.2) * 0.5 + 0.5;
 	float shore_band = (1.0 - smoothstep(0.015, local_foam_range, water_depth));
 	float rock_break = smoothstep(0.24, 0.74, lacy_a * 0.7 + patch_var * 0.3);
 	float shore_foam = smoothstep(0.30, 0.66, shore_band * rock_break * (0.44 + 0.56 * surf_line) * (0.38 + 1.25 * lacy_lace));
 	float ripple_band = exp(-pow((water_depth - (0.42 + 0.18 * patch_var)) * 4.6, 2.0)) * smoothstep(0.50, 0.86, lacy_lace * 0.68 + surf_line * 0.32) * 0.44;
 	float whitecap = smoothstep(mix(0.84, 0.66, storm_factor), 0.96, lacy_lace * 0.48 + wave_crest * 0.52) * smoothstep(0.35, 1.6, water_depth) * mix(0.18, 0.62, storm_factor);
-	float foam_mask = clamp(shore_foam + ripple_band + whitecap, 0.0, 1.0);
+	float foam_mask = clamp((shore_foam + ripple_band + whitecap) * mix(1.0, 0.04, lagoon_w), 0.0, 1.0);
 
-	// 3 bandas cromáticas nítidas moduladas por tormenta
-	float t_mid = smoothstep(0.08, 1.05, water_depth);
-	float t_deep = smoothstep(1.10, water_depth_range, water_depth);
+	// 3 bandas cromáticas nítidas en mar abierto + tono sereno esmeralda-jade translúcido en la laguna interior
+	float t_mid = smoothstep(0.10, 1.65, water_depth);
+	float t_deep = smoothstep(1.80, water_depth_range, water_depth);
 	vec3 water_tint = mix(shallow_color.rgb, mid_color.rgb, t_mid);
 	water_tint = mix(water_tint, deep_color.rgb, t_deep);
+	vec3 lag_tint = mix(vec3(0.14, 0.52, 0.45), vec3(0.05, 0.32, 0.30), smoothstep(0.08, 1.25, water_depth));
+	lag_tint = mix(lag_tint, vec3(0.028, 0.165, 0.185), smoothstep(1.25, 3.2, water_depth));
+	water_tint = mix(water_tint, lag_tint, lagoon_w);
 	water_tint = mix(water_tint, water_tint * vec3(0.56, 0.64, 0.72), storm_factor * 0.75);
 
-	// Cáusticas animadas más ricas en agua somera sobre arena y piedras sumergidas
-	float caustic_a = smoothstep(0.68, 0.96, 0.5 + 0.5 * (n1.x * n2.y - n1.y * n2.x));
-	float caustic_b = smoothstep(0.72, 0.98, 0.5 + 0.5 * (n2.x * n3.y + n3.x * n1.y));
-	float caustic = (caustic_a * 0.65 + caustic_b * 0.45) * (1.0 - smoothstep(0.25, 1.85, water_depth)) * mix(0.22, 0.06, storm_factor);
-	water_tint += vec3(0.09, 0.21, 0.20) * caustic;
+	// Cáusticas animadas visibles sobre arena somera, arrecifes de coral y fondo de la laguna
+	float caustic_a = smoothstep(0.66, 0.95, 0.5 + 0.5 * (n1.x * n2.y - n1.y * n2.x));
+	float caustic_b = smoothstep(0.70, 0.97, 0.5 + 0.5 * (n2.x * n3.y + n3.x * n1.y));
+	float caustic = (caustic_a * 0.65 + caustic_b * 0.45) * (1.0 - smoothstep(0.30, 4.20, water_depth)) * mix(0.24, 0.08, storm_factor);
+	water_tint += vec3(0.10, 0.23, 0.22) * caustic;
 
 	vec3 sky_refl = mix(vec3(0.18, 0.34, 0.44), vec3(0.42, 0.54, 0.64), fresnel);
 	sky_refl = mix(sky_refl, vec3(0.16, 0.22, 0.28), storm_factor * 0.72);
-	vec3 water_col = mix(water_tint, sky_refl, fresnel * mix(0.22, 0.34, storm_factor));
+	vec3 water_col = mix(water_tint, sky_refl, fresnel * mix(0.20, 0.32, storm_factor) * mix(1.0, 0.58, lagoon_w));
 
 	ALBEDO = mix(water_col, foam_color.rgb, foam_mask * 0.82);
-	float base_alpha = mix(shallow_color.a, mid_color.a, smoothstep(0.06, 0.92, water_depth));
-	base_alpha = mix(base_alpha, deep_color.a, smoothstep(1.05, water_depth_range, water_depth));
-	ALPHA = clamp(base_alpha + foam_mask * 0.44, 0.14, 0.97) * alpha_scale;
+	float base_alpha = mix(shallow_color.a, mid_color.a, smoothstep(0.10, 1.65, water_depth));
+	base_alpha = mix(base_alpha, deep_color.a, smoothstep(1.85, water_depth_range, water_depth));
+	float lag_alpha = mix(0.24, 0.64, smoothstep(0.08, 2.40, water_depth));
+	base_alpha = mix(base_alpha, lag_alpha, lagoon_w);
+	ALPHA = clamp(base_alpha + foam_mask * 0.42, 0.14, 0.92) * alpha_scale;
 	ROUGHNESS = mix(0.32, 0.78, foam_mask);
 	METALLIC = 0.0;
 	SPECULAR = 0.14;
@@ -726,6 +760,8 @@ void fragment() {
 	water_glb_smat.set_shader_parameter("wave_amp", 0.0)
 	water_glb_smat.set_shader_parameter("alpha_scale", 0.18)
 	_mat_water_glb = water_glb_smat
+	# Unificar materiales canónicos de A1 desde la fuente única compartida
+	_a1_geo().init_canonical_a1_materials(self)
 
 func _make_mat(col: Color, rough: float, metal: float) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -784,6 +820,12 @@ func build_layout() -> void:
 	var global_data: Dictionary = _load_json_dict(GLOBAL_LAYOUT_JSON_PATH)
 	var terrain_data: Dictionary = _load_json_dict(TERRAIN_JSON_PATH)
 
+	if load_profile == 1:
+		_cave_roof_entries = _a1_canon().build_a1_camp_world(self, terrain_data, camp_fx)
+		_finalize_lights()
+		_prebuild_finished = true
+		return
+
 	_build_ocean()
 	_build_surfaces(terrain_data)
 	_build_safety_colliders()
@@ -826,6 +868,12 @@ func build_layout_async(tree: SceneTree, progress_cb: Callable = Callable()) -> 
 	await tree.process_frame
 	var global_data: Dictionary = _load_json_dict(GLOBAL_LAYOUT_JSON_PATH)
 	var terrain_data: Dictionary = _load_json_dict(TERRAIN_JSON_PATH)
+	if load_profile == 1:
+		_cave_roof_entries = _a1_canon().build_a1_camp_world(self, terrain_data, camp_fx)
+		_finalize_lights()
+		_prebuild_finished = true
+		if progress_cb.is_valid(): progress_cb.call(1.0)
+		return
 	_build_ocean()
 	_build_surfaces(terrain_data)
 	_build_safety_colliders()
@@ -940,7 +988,7 @@ func _build_ocean() -> void:
 	if not tex_seabed:
 		tex_seabed = _load_tex("earth.webp")
 	seabed.material_override = _make_textured_mat(Color("#15353c"), 0.96, 0.0, tex_seabed, 0.08, false)
-	seabed.position = Vector3(84.0, -3.4, 68.0)
+	seabed.position = Vector3(84.0, -6.8, 68.0)
 	seabed.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(seabed)
 
@@ -1025,15 +1073,17 @@ func _build_tiled_surface_mesh(parent: Node, node_name: String, tiles: Array, ma
 		var c: Array = entry.get("corners", [0.0, 0.0, 0.0, 0.0])
 		var max_cy := maxf(maxf(float(c[0]), float(c[1])), maxf(float(c[2]), float(c[3])))
 		var is_sw_cove_override := (
-			(node_name == "Surface_Beach" and ((col <= 21 and row >= 66) or (col >= 22 and row >= 68 and max_cy < 0.06)))
+			(node_name == "Surface_Beach" and ((col <= 22 and row >= 60) or (col >= 22 and row >= 68 and max_cy < 0.06)))
 			or (node_name in ["Surface_PleamarTrail", "Surface_IslandPleamarLow"] and col <= 11 and row >= 55)
 		)
 		var is_obs_flicker_override := (
-			(node_name == "Surface_UpperWalkway" and col >= 89 and row <= 42)
-			or (node_name == "Surface_ObservatoryTrail" and col >= 92 and col <= 95 and row >= 32 and row <= 43)
-			or (node_name == "Surface_IslandPleamarHigh" and ((col >= 34 and col <= 35 and row >= 32 and row <= 42) or (col >= 9 and col <= 34 and row >= 28 and row <= 30)))
+			(node_name == "Surface_UpperWalkway" and ((col >= 89 and row <= 42) or (col >= 97 and col <= 103 and row >= 43 and row <= 47)))
+			or (node_name == "Surface_Cliff" and col >= 101 and col <= 104 and row >= 47 and row <= 62)
+			or (node_name in ["Surface_ObservatoryTrail", "Surface_IslandObservatory"] and ((col >= 92 and col <= 98 and row >= 12 and row <= 43) or (col >= 81 and col <= 98 and row >= 12 and row <= 15) or (col >= 105 and col <= 108 and row >= 17 and row <= 24)))
+			or (node_name == "Surface_IslandPleamarHigh" and ((col >= 32 and col <= 36 and row >= 28 and row <= 43) or (col >= 9 and col <= 35 and row >= 27 and row <= 32)))
 		)
-		var tile_offset := -4.2 if is_sw_cove_override else (-0.28 if is_obs_flicker_override else (-0.18 if (node_name == "Surface_PleamarTrail" and row >= 55) else skin_offset))
+		var is_z2_floor_override := (node_name == "Surface_Beach" and col >= 20 and col <= 45 and row >= 65 and row <= 74 and max_cy >= 0.40)
+		var tile_offset := -4.5 if (is_sw_cove_override or is_obs_flicker_override) else (-0.45 if is_z2_floor_override else (-0.18 if (node_name == "Surface_PleamarTrail" and row >= 55) else skin_offset))
 		var y00 := float(c[0]) + tile_offset
 		var y10 := float(c[1]) + tile_offset
 		var y11 := float(c[2]) + tile_offset
@@ -1634,92 +1684,12 @@ func _build_coastal_pier_and_beach() -> void:
 	# Aparejos de pesca abandonados (toggle DM para «Reaparición de los zombis», PDF p. 12)
 	_z2_reappearance_gear = TempleAndCliffs.build_zombie_reappearance_gear(self, pier_node)
 
-# 3. Las 6 Celdas de A1 como excavaciones en la roca viva (la malla tallada llega en A1Bedrock/A1Room)
+# 3. Las 6 Celdas de A1 y 3B. Plaza A1 delegados a la fuente única canónica compartida
 func _build_a1_cells() -> void:
-	var cells_node := Node3D.new()
-	cells_node.name = "A1_Cells"
-	add_child(cells_node)
+	_a1_canon().build_a1_cells(self)
 
-	var cell_bounds := {
-		1: Rect2i(51, 55, 5, 5),
-		2: Rect2i(58, 51, 4, 9),
-		3: Rect2i(64, 53, 6, 7),
-		4: Rect2i(72, 52, 6, 8),
-		5: Rect2i(80, 51, 3, 9),
-		6: Rect2i(85, 52, 6, 8)
-	}
-
-	var t := Structure.TILE_METERS
-
-	for room in Structure.A1_ROOMS:
-		var rid: int = int(room["id"])
-		var room_node := Node3D.new()
-		room_node.name = "Cell_" + str(rid) + "_" + room["role"]
-		cells_node.add_child(room_node)
-
-		var rect: Rect2i = cell_bounds.get(rid, Rect2i(51, 55, 5, 4))
-		var x0 := float(rect.position.x) * t
-		var x1 := float(rect.position.x + rect.size.x) * t
-		var z0 := float(rect.position.y) * t
-		var z1 := float(rect.position.y + rect.size.y) * t
-		var cx := (x0 + x1) * 0.5
-		var cz := (z0 + z1) * 0.5
-		var w := x1 - x0
-		var y_base := Structure.ELEV_A1_PLAZA
-
-		# Suelo auxiliar oculto (el suelo tallado real llega en A1Room__a1:cell-floor*)
-		var floor_box := _create_box_prop(room_node, "Floor", Vector3(cx, y_base + 0.01, cz), Vector3(w, 0.04, z1 - z0), mat_cell_floor)
-		floor_box.visible = false
-
-		#Luz cálida de antorcha y vela dentro de la celda excavada
-		var cell_light := OmniLight3D.new()
-		cell_light.name = "CellTorchLight_%d" % rid
-		cell_light.position = Vector3(cx, y_base + 2.35, cz - 0.6)
-		cell_light.light_color = Color(1.0, 0.74, 0.42)
-		cell_light.light_energy = 2.65
-		cell_light.omni_range = 10.5
-		room_node.add_child(cell_light)
-
-# 3B. Plaza A1: Hoguera central + Ancla estatua de Astalagan
 func _build_a1_plaza_details() -> void:
-	var plaza_node := Node3D.new()
-	plaza_node.name = "A1_PlazaDetails"
-	add_child(plaza_node)
-
-	var y := Structure.ELEV_A1_PLAZA
-
-	var fire_pos := Structure.cell_to_world(72, 62, y)
-	var camp_node := Node3D.new()
-	camp_node.name = "A1_Campfire"
-	camp_node.position = fire_pos
-	plaza_node.add_child(camp_node)
-	SceneEnhancer.add_cyl_collider(camp_node, Vector3(0.0, 0.45, 0.0), 0.58, 1.0)
-	SceneEnhancer.tag_camera_occluder(camp_node)
-
-	var cf_flame := _create_cylinder(camp_node, "CampfireFlame", Vector3(0, 0.38, 0), 0.20, 0.48, mat_flame)
-
-	var fire_light := OmniLight3D.new()
-	fire_light.name = "CampfireLight"
-	fire_light.position = Vector3(0, 1.65, 0)
-	fire_light.light_color = Color(1.0, 0.58, 0.22)
-	fire_light.light_energy = 3.1
-	fire_light.omni_range = 17.5
-	camp_node.add_child(fire_light)
-	register_flame_fx(cf_flame, fire_light, true)
-
-	# 4.1–4.7 Ancla y posición noble de la estatua de Astalagan presidiendo el eje oeste-central de la plaza (circulación 360° libre)
-	var statue_node := Node3D.new()
-	statue_node.name = "A1_Dragon_Statue"
-	statue_node.position = Vector3(85.80, y, 93.35)
-	plaza_node.add_child(statue_node)
-
-	var statue_light := OmniLight3D.new()
-	statue_light.name = "AstalaganVotiveLight"
-	statue_light.position = Vector3(0, 2.4, 0.6)
-	statue_light.light_color = Color(1.0, 0.78, 0.42)
-	statue_light.light_energy = 1.65
-	statue_light.omni_range = 9.0
-	statue_node.add_child(statue_light)
+	_a1_canon().build_a1_plaza_details(self)
 
 # 4..8. Edificios, Cabrestante con palanca legible y vista al mar, y contenedores .glb
 func _build_a2_winch_house(_global_data: Dictionary) -> void:
@@ -1882,6 +1852,7 @@ func _build_staircases() -> void:
 	_build_z2_stair_craftsmanship(stairs_node)
 	# 3.5 Fase 2: Escalera tallada del Acantilado Este A1 <-> A2 con descansillo intermedio, faroles y cuerdas perimetrales
 	WinchAndStairs.build_east_cliff_a1_to_a2_stairs(self, stairs_node)
+	WinchAndStairs.build_all_precipice_perimeter_ropes(self, stairs_node)
 
 func _build_z2_stair_craftsmanship(parent: Node3D) -> void:
 	var z2_node := Node3D.new()
@@ -1929,8 +1900,8 @@ func _build_z2_stair_craftsmanship(parent: Node3D) -> void:
 				var fz := lz + lerpf(-2.15, 2.15, float(row) / 4.0) + rng.randf_range(-0.14, 0.14)
 				var scx := rng.randf_range(0.68, 0.98)
 				var scz := rng.randf_range(0.62, 0.96)
-				var fb := Basis.from_euler(Vector3(0.0, rng.randf_range(-0.14, 0.14), 0.0)).scaled(Vector3(scx, 0.022, scz))
-				flag_xf.append(Transform3D(fb, Vector3(fx, ly + 0.008, fz)))
+				var fb := Basis.from_euler(Vector3(0.0, rng.randf_range(-0.14, 0.14), 0.0)).scaled(Vector3(scx, 0.036, scz))
+				flag_xf.append(Transform3D(fb, Vector3(fx, ly + 0.022, fz)))
 				var tone := flag_tones[rng.randi() % flag_tones.size()]
 				if rng.randf() < 0.35:
 					tone = tone.darkened(0.08)
@@ -2127,18 +2098,18 @@ func _build_safety_colliders() -> void:
 	add_child(safe_node)
 
 	var slabs := [
-		["Safe_Beach_West", Vector3(17.5, -0.135, 104.5), Vector3(21.0, 0.80, 11.0)],
-		["Safe_Beach_South", Vector3(24.0, -0.135, 110.1), Vector3(15.0, 0.80, 3.0)],
+		["Safe_Beach_West", Vector3(12.0, -0.135, 102.4), Vector3(12.8, 0.80, 8.8)],
+		["Safe_Beach_South", Vector3(26.6, -0.135, 109.2), Vector3(6.2, 0.80, 3.0)],
 		["Safe_Pier_Deck", Vector3(21.8, 0.12, 112.1), Vector3(6.8, 0.74, 4.2)],
 		["Safe_Pier_EastLink", Vector3(26.2, 0.06, 111.2), Vector3(2.8, 0.70, 2.2)],
-		["Safe_Z2_Landing0", Vector3(36.0, 1.105, 108.0), Vector3(3.2, 0.80, 6.2)],
-		["Safe_Z2_Landing1", Vector3(46.5, 3.605, 105.0), Vector3(3.2, 0.80, 6.2)],
-		["Safe_Z2_Landing2", Vector3(57.0, 6.105, 102.0), Vector3(3.2, 0.80, 6.2)],
-		["Safe_A1_Landing", Vector3(69.8, 8.615, 96.0), Vector3(8.0, 0.80, 9.2)],
+		["Safe_Z2_Landing0", Vector3(36.0, 1.135, 108.0), Vector3(3.4, 0.80, 6.4)],
+		["Safe_Z2_Landing1", Vector3(46.5, 3.635, 105.0), Vector3(3.4, 0.80, 6.4)],
+		["Safe_Z2_Landing2", Vector3(57.0, 6.135, 102.0), Vector3(3.4, 0.80, 6.4)],
+		["Safe_A1_Landing", Vector3(69.8, 8.625, 96.0), Vector3(8.2, 0.80, 9.2)],
 		["Safe_A1_PlazaAndCaves", Vector3(107.2, 8.615, 86.2), Vector3(67.5, 0.80, 23.0)],
 		["Safe_East_Cliff_Foot", Vector3(148.0, 8.615, 92.6), Vector3(14.5, 0.80, 5.2)],
-		["Safe_Cliff_MidLanding", Vector3(154.5, 11.605, 81.75), Vector3(3.4, 0.80, 2.1)],
-		["Safe_A2_WestPorch", Vector3(154.55, 14.605, 68.8), Vector3(3.5, 0.80, 7.0)],
+		["Safe_Cliff_MidLanding", Vector3(154.5, 11.615, 81.75), Vector3(3.4, 0.80, 1.3)],
+		["Safe_A2_WestPorch", Vector3(154.55, 14.615, 68.8), Vector3(3.5, 0.80, 7.0)],
 		["Safe_A2_WinchDeck", Vector3(160.5, 14.605, 66.9), Vector3(12.2, 0.80, 8.6)],
 		["Safe_Upper_And_A3A4", Vector3(109.15, 17.605, 60.9), Vector3(72.3, 0.80, 23.8)],
 		["Safe_Upper_ObsApproach", Vector3(140.5, 17.605, 57.0), Vector3(14.0, 0.80, 15.5)],
@@ -2148,23 +2119,23 @@ func _build_safety_colliders() -> void:
 		var m := _create_surface_slab(safe_node, s[0], s[1], s[2], mat_plaza)
 		m.visible = false
 
-	# Rampas inclinadas continuas exactas entre rellanos, terrazas y escaleras de montaña
-	_add_safety_ramp(safe_node, "Safe_Ramp_Z2_Flight0", Vector3(29.5, 0.25, 109.5), Vector3(35.0, 1.505, 109.5), 3.4)
-	_add_safety_ramp(safe_node, "Safe_Ramp_Z2_Flight1", Vector3(37.5, 1.505, 106.5), Vector3(45.2, 4.005, 106.5), 3.4)
-	_add_safety_ramp(safe_node, "Safe_Ramp_Z2_Flight2", Vector3(48.0, 4.005, 103.5), Vector3(55.7, 6.505, 103.5), 3.4)
-	_add_safety_ramp(safe_node, "Safe_Ramp_Z2_Flight3", Vector3(58.5, 6.505, 100.5), Vector3(66.2, 9.005, 100.5), 3.4)
-	_add_safety_ramp(safe_node, "Safe_Ramp_A5_Upper", Vector3(49.8, 27.005, 66.0), Vector3(76.6, 18.005, 66.0), 5.6)
-	_add_safety_ramp(safe_node, "Safe_Ramp_A5_Mount_N", Vector3(52.10, 26.42, 63.25), Vector3(52.10, 34.82, 48.0), 2.9)
-	_add_safety_ramp(safe_node, "Safe_Ramp_A5_Mount_Corner", Vector3(52.35, 34.72, 48.2), Vector3(49.5, 34.72, 44.2), 2.8)
-	_add_safety_ramp(safe_node, "Safe_Ramp_A5_Mount_W", Vector3(49.5, 34.72, 44.2), Vector3(15.2, 21.30, 44.2), 2.4)
-	_add_safety_ramp(safe_node, "Safe_Ramp_Obs_Base", Vector3(140.25, 18.02, 52.4), Vector3(140.25, 23.02, 45.35), 2.4)
-	_add_safety_ramp(safe_node, "Safe_Ramp_Obs_Turn", Vector3(140.25, 23.02, 44.05), Vector3(145.5, 23.05, 44.05), 2.4)
-	_add_safety_ramp(safe_node, "Safe_Ramp_Obs_North", Vector3(145.5, 23.05, 43.2), Vector3(145.5, 37.00, 21.8), 2.9)
-	_add_safety_ramp(safe_node, "Safe_Ramp_Obs_Crown", Vector3(145.5, 37.00, 20.2), Vector3(123.0, 37.00, 20.2), 2.9)
-	_add_safety_ramp(safe_node, "Safe_Ramp_Obs_Coast", Vector3(160.5, 29.95, 33.8), Vector3(160.5, 32.55, 28.4), 2.6)
-	_add_safety_ramp(safe_node, "Safe_Ramp_Upper_A2", Vector3(145.0, 18.005, 67.5), Vector3(154.0, 15.005, 67.5), 4.2)
-	_add_safety_ramp(safe_node, "Safe_Ramp_Cliff_East_Low", Vector3(154.5, 9.005, 91.75), Vector3(154.5, 12.005, 82.35), 3.3)
-	_add_safety_ramp(safe_node, "Safe_Ramp_Cliff_East_High", Vector3(154.5, 12.005, 81.15), Vector3(154.5, 15.005, 71.85), 3.3)
+	# Rampas inclinadas continuas exactas entre rellanos, terrazas y escaleras de montaña (alineadas a ras con la cara superior de cada peldaño)
+	_add_safety_ramp(safe_node, "Safe_Ramp_Z2_Flight0", Vector3(29.4, 0.27, 109.5), Vector3(34.35, 1.535, 109.5), 3.4)
+	_add_safety_ramp(safe_node, "Safe_Ramp_Z2_Flight1", Vector3(37.65, 1.535, 106.5), Vector3(44.85, 4.035, 106.5), 3.4)
+	_add_safety_ramp(safe_node, "Safe_Ramp_Z2_Flight2", Vector3(48.15, 4.035, 103.5), Vector3(55.35, 6.535, 103.5), 3.4)
+	_add_safety_ramp(safe_node, "Safe_Ramp_Z2_Flight3", Vector3(58.65, 6.535, 100.5), Vector3(65.75, 9.025, 100.5), 3.4)
+	_add_safety_ramp(safe_node, "Safe_Ramp_A5_Upper", Vector3(49.8, 27.035, 66.0), Vector3(76.6, 18.035, 66.0), 5.6)
+	_add_safety_ramp(safe_node, "Safe_Ramp_A5_Mount_N", Vector3(52.10, 26.445, 63.25), Vector3(52.10, 34.735, 48.55), 2.9)
+	_add_safety_ramp(safe_node, "Safe_Ramp_A5_Mount_Corner", Vector3(52.10, 34.735, 47.90), Vector3(49.5, 34.735, 44.2), 2.8)
+	_add_safety_ramp(safe_node, "Safe_Ramp_A5_Mount_W", Vector3(49.5, 34.745, 44.2), Vector3(15.2, 21.325, 44.2), 2.4)
+	_add_safety_ramp(safe_node, "Safe_Ramp_Obs_Base", Vector3(140.25, 18.025, 52.3), Vector3(140.25, 23.025, 45.10), 2.5)
+	_add_safety_ramp(safe_node, "Safe_Ramp_Obs_Turn", Vector3(140.25, 23.025, 44.05), Vector3(145.5, 23.075, 44.05), 2.1)
+	_add_safety_ramp(safe_node, "Safe_Ramp_Obs_North", Vector3(145.5, 23.075, 43.2), Vector3(145.5, 37.025, 21.8), 2.9)
+	_add_safety_ramp(safe_node, "Safe_Ramp_Obs_Crown", Vector3(145.5, 37.025, 20.2), Vector3(123.0, 37.025, 20.2), 2.9)
+	_add_safety_ramp(safe_node, "Safe_Ramp_Obs_Coast", Vector3(160.5, 29.975, 33.8), Vector3(160.5, 32.575, 28.4), 2.6)
+	_add_safety_ramp(safe_node, "Safe_Ramp_Upper_A2", Vector3(145.5, 18.000, 67.5), Vector3(153.6, 15.020, 67.5), 4.2)
+	_add_safety_ramp(safe_node, "Safe_Ramp_Cliff_East_Low", Vector3(154.5, 9.020, 91.85), Vector3(154.5, 12.015, 82.35), 3.3)
+	_add_safety_ramp(safe_node, "Safe_Ramp_Cliff_East_High", Vector3(154.5, 12.015, 81.15), Vector3(154.5, 15.015, 72.25), 3.3)
 
 	# Guardarraíles de seguridad perimetrales en bordes de acantilado abiertos (A2, Plaza Sur, Paseo Superior, A5)
 	var edge_barriers := [
@@ -2326,13 +2297,13 @@ func _load_glb_bundle_async(res_path: String, default_parent: Node3D, prefix_tar
 
 func _is_in_smooth_stair_zone(p: Vector3) -> bool:
 	# Interiores transitables de peldaños de Z2, Upper_A5, Upper_A2 y EastStairs (conservando muros/bordillos laterales)
-	if p.x >= 29.4 and p.x <= 35.2 and p.z >= 108.1 and p.z <= 110.9 and p.y >= 0.05 and p.y <= 1.75:
+	if p.x >= 29.2 and p.x <= 35.6 and p.z >= 108.0 and p.z <= 111.0 and p.y >= 0.05 and p.y <= 1.80:
 		return true
-	if p.x >= 37.2 and p.x <= 45.6 and p.z >= 105.1 and p.z <= 107.9 and p.y >= 1.25 and p.y <= 4.25:
+	if p.x >= 37.0 and p.x <= 46.0 and p.z >= 105.0 and p.z <= 108.0 and p.y >= 1.25 and p.y <= 4.30:
 		return true
-	if p.x >= 47.7 and p.x <= 56.1 and p.z >= 102.1 and p.z <= 104.9 and p.y >= 3.75 and p.y <= 6.75:
+	if p.x >= 47.5 and p.x <= 56.5 and p.z >= 102.0 and p.z <= 105.0 and p.y >= 3.75 and p.y <= 6.80:
 		return true
-	if p.x >= 58.2 and p.x <= 66.6 and p.z >= 99.1 and p.z <= 101.9 and p.y >= 6.25 and p.y <= 9.25:
+	if p.x >= 58.0 and p.x <= 66.8 and p.z >= 99.0 and p.z <= 102.0 and p.y >= 6.25 and p.y <= 9.35:
 		return true
 	if p.x >= 49.3 and p.x <= 76.8 and p.z >= 64.65 and p.z <= 67.35 and p.y >= 17.65 and p.y <= 27.30:
 		return true
@@ -2468,7 +2439,7 @@ static func _aabb_intersects(a: AABB, min_x: float, min_y: float, min_z: float, 
 func _should_run_custom_trim_for_mesh(aabb: AABB, low: String) -> bool:
 	if (low == "r3land__a1_dark-oak-v5" or low == "v4__a1_plaza-v6" or low == "v4__wood_oiled_used" or low == "r3land__a1_oak-v5" or low == "v4__hemp_rope_used" or low == "r3land__r3_rope") and (_aabb_intersects(aabb, 78.5, 17.8, 62.6, 134.0, 20.6, 65.65) or _aabb_intersects(aabb, 76.0, 18.0, 58.0, 80.5, 19.6, 64.6) or _aabb_intersects(aabb, 48.0, 26.2, 62.8, 53.2, 29.8, 69.2) or _aabb_intersects(aabb, 14.5, 20.5, 41.5, 55.0, 38.5, 50.0)):
 		return true
-	if low in ["sal1__a1_coastal-cliff-v10", "sal3__a1_earth-v6", "sal4__a1_coastal-cliff-v10", "r3paths__a1_coastal-cliff-v10", "r3land__a1_coastal-cliff-v10", "geo12__a1_coastal-cliff-v10", "stones3__stonecontact_a1_coastal-cliff-v10"] and _aabb_intersects(aabb, 14.5, 20.5, 41.8, 54.8, 39.5, 50.2):
+	if low in ["sal1__a1_coastal-cliff-v10", "sal3__a1_earth-v6", "sal4__a1_coastal-cliff-v10", "r3paths__a1_coastal-cliff-v10", "r3land__a1_coastal-cliff-v10", "geo12__a1_coastal-cliff-v10", "stones3__stonecontact_a1_coastal-cliff-v10"] and (_aabb_intersects(aabb, 14.5, 20.5, 41.8, 54.8, 39.5, 50.2) or _aabb_intersects(aabb, 145.6, 15.0, 65.8, 153.4, 18.6, 69.2)):
 		return true
 	if low in ["r3land__r3_flower_cream", "r3land__r3_lavender"] and _aabb_intersects(aabb, 73.5, 11.0, 81.0, 139.0, 16.4, 90.6):
 		return true
@@ -2557,6 +2528,8 @@ func _should_drop_custom_glb_tri(v0: Vector3, v1: Vector3, v2: Vector3, low: Str
 				var ridge_y := lerpf(21.1, 34.5, clampf((v.x - 15.2) / 34.3, 0.0, 1.0))
 				if v.y >= ridge_y - 0.15:
 					return true
+			if v.x >= 145.6 and v.x <= 153.4 and v.z >= 65.8 and v.z <= 69.2 and v.y >= 15.05 and v.y <= 18.6:
+				return true
 	# Limpiar flores planas heredadas que flotaban sobre la roca desnuda encima de los portales A1
 	if low in ["r3land__r3_flower_cream", "r3land__r3_lavender"]:
 		for v in [v0, v1, v2]:
@@ -3243,68 +3216,8 @@ func _build_lush_planters_and_gardens() -> void:
 			_create_cylinder(planters_node, "UpperHerbPot_%d" % int(x_pot * 10.0), sub_p + Vector3(0.0, 0.14, 0.0), 0.19, 0.28, _mat_pottery_glb)
 			add_planter_cluster.call(sub_p + Vector3(0.0, 0.27, 0.0), 0.34, 5, false)
 
-	# 2. Fase 6 (A1): Jardineras del borde sur de Plaza A1 con ritmo agrupado y 3 miradores abiertos al mar (x=86.5, 103.5, 121.5)
-	var a1_open_gaps := [86.5, 103.5, 121.5]
-	for x_a1 in [74.0, 76.5, 79.0, 81.5, 84.0, 89.2, 92.0, 94.8, 97.5, 100.5, 106.5, 109.5, 112.5, 115.5, 118.5, 124.5, 127.5, 130.5, 133.5]:
-		var cnt_a1 := 13 if int(x_a1) % 2 == 0 else 10
-		add_planter_cluster.call(Vector3(float(x_a1), 9.30, 97.08), 2.15, cnt_a1, int(x_a1) % 3 != 0)
-	for gap_x in a1_open_gaps:
-		var gx := float(gap_x)
-		_create_box_prop(planters_node, "A1SouthParapetCurb_%d" % int(gx), Vector3(gx, 9.18, 97.08), Vector3(2.85, 0.34, 0.56), mat_plaza)
-		for px_g in [gx - 1.38, gx + 1.38]:
-			_create_box_prop(planters_node, "A1SouthParapetPier_%d_%d" % [int(gx), int(px_g * 10.0)], Vector3(px_g, 9.38, 97.08), Vector3(0.32, 0.72, 0.52), mat_upper)
-	SceneEnhancer.add_box_collider(planters_node, Vector3(103.8, 9.55, 97.08), Vector3(61.5, 1.30, 0.68))
-
-	# 3. Paso 7 (7.1–7.8): Jardín monástico sereno en A1 — ánforas, jardineras de piedra, hierbas medicinales, flor blanca sencilla, lavanda y útiles de cuidado (regadera, tiestos, cestos)
-	var a1_portal_xs := [81.75, 90.75, 101.25, 111.75, 122.25, 131.25]
-	for p_idx in range(a1_portal_xs.size()):
-		var px := float(a1_portal_xs[p_idx])
-		for side_s in [-1.0, 1.0]:
-			var pot_pos := Vector3(px + side_s * 1.95, Structure.ELEV_A1_PLAZA, 89.26)
-			var pot_h := 0.52 if side_s < 0.0 else 0.44
-			var pot_r := 0.31 if side_s < 0.0 else 0.27
-			var pot := _create_cylinder(planters_node, "CavePot_%d_%d" % [p_idx + 1, int(side_s)], pot_pos + Vector3(0.0, pot_h * 0.5, 0.0), pot_r, pot_h, _mat_pottery_glb)
-			pot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-			_create_cylinder(planters_node, "CavePotRim_%d_%d" % [p_idx + 1, int(side_s)], pot_pos + Vector3(0.0, pot_h - 0.03, 0.0), pot_r + 0.035, 0.06, _mat_pottery_glb)
-			SceneEnhancer.add_cyl_collider(planters_node, pot_pos + Vector3(0.0, 0.38, 0.0), pot_r + 0.04, 0.85)
-			add_planter_cluster.call(pot_pos + Vector3(0.0, pot_h, 0.0), 0.58, 11, true)
-			# Segundo tiesto bajo de barro con hierbas medicinales junto a la maceta principal (ref. Imagen 2)
-			var sub_pos := pot_pos + Vector3(side_s * 0.48, 0.0, 0.12)
-			_create_cylinder(planters_node, "CaveHerbPot_%d_%d" % [p_idx + 1, int(side_s)], sub_pos + Vector3(0.0, 0.16, 0.0), 0.21, 0.32, _mat_pottery_glb)
-			add_planter_cluster.call(sub_pos + Vector3(0.0, 0.31, 0.0), 0.40, 7, false)
-
-	# 7.2 y 7.7 Jardineras bajas de mampostería monástica junto a la roca entre portales y vegetación colgante en cornisas entre celdas (sin flotar sobre interiores al abrir cutaway)
-	for trough_x in [78.0, 86.2, 95.3, 106.5, 117.8, 126.6, 135.2]:
-		var tr_pos := Vector3(float(trough_x), Structure.ELEV_A1_PLAZA, 89.08)
-		_create_box_prop(planters_node, "A1RockHerbBed_%d" % int(trough_x), tr_pos + Vector3(0.0, 0.16, 0.0), Vector3(1.55, 0.32, 0.56), mat_rock_carved)
-		add_planter_cluster.call(tr_pos + Vector3(0.0, 0.32, 0.0), 1.38, 14, true)
-		# Vegetación colgante solo sobre los contrafuertes macizos entre celdas (nunca sobre el vano/interior de Celda 1 o Celda 6)
-		if float(trough_x) > 84.0 and float(trough_x) < 128.0:
-			add_planter_cluster.call(Vector3(float(trough_x), 12.15, 88.55), 1.45, 9, true)
-
-	# 7.8 Detalles de cuidado monástico (regadera de cobre/hierro interactiva, tiestos apilados, cesto de mimbre con salvia y útiles junto a Celda 2 de Tarak y jardín oeste)
-	for care_x in [79.1, 93.4, 115.6]:
-		var c_base := Vector3(float(care_x), Structure.ELEV_A1_PLAZA, 89.36)
-		var care_node := Node3D.new()
-		care_node.name = "MonasticGardenCare_%d" % int(care_x)
-		care_node.position = c_base
-		planters_node.add_child(care_node)
-		# Regadera monástica (cuerpo cilíndrico + pico inclinado + asa)
-		var can_parent := care_node
-		if int(care_x) == 93:
-			can_parent = SceneEnhancer.routine_pivot(care_node, "RetreatWateringCan", Vector3.ZERO)
-		_create_cylinder(can_parent, "MonasticWateringCan_%d" % int(care_x), Vector3(0.0, 0.17, 0.0), 0.14, 0.34, mat_bronze if int(care_x) == 93 else mat_iron)
-		var spout := _create_cylinder(can_parent, "WateringSpout_%d" % int(care_x), Vector3(0.18, 0.22, 0.04), 0.024, 0.28, mat_bronze if int(care_x) == 93 else mat_iron)
-		spout.rotation.z = -0.78
-		_create_box_prop(can_parent, "WateringHandle_%d" % int(care_x), Vector3(-0.14, 0.22, 0.0), Vector3(0.04, 0.22, 0.04), mat_iron)
-		# Tiestos de terracota apilados y cesto bajo de mimbre con hierbas recién cortadas
-		_create_cylinder(care_node, "StackedClayPotA_%d" % int(care_x), Vector3(-0.34, 0.12, 0.08), 0.16, 0.24, _mat_pottery_glb)
-		_create_cylinder(care_node, "StackedClayPotB_%d" % int(care_x), Vector3(-0.34, 0.26, 0.08), 0.14, 0.20, _mat_pottery_glb)
-		_create_cylinder(care_node, "HerbBasket_%d" % int(care_x), Vector3(0.36, 0.10, 0.10), 0.22, 0.20, mat_wood)
-		add_planter_cluster.call(c_base + Vector3(0.36, 0.20, 0.10), 0.34, 5, false)
-		var w_ip := SceneEnhancer._attach_interactive_prop(care_node, "watering", "Regadera monástica", "[T] Regar hierbas y flores del claustro")
-		if w_ip:
-			w_ip.interact_radius = 2.15
+	# 2 & 3. Jardineras, macetas de portales y útiles de cuidado de A1 desde la fuente única canónica
+	_a1_canon().build_a1_planters(self, planters_node, add_planter_cluster, load("res://scripts/interactive_prop.gd"))
 
 	# 4. Jardineras apoyadas en tierra firme de Z2_ASCENT, terraza de los Jardines Z7 y terraza de A2 (sin flotar en el acantilado)
 	for z2_pos in [
@@ -4296,6 +4209,7 @@ func _animate_a1_fauna_and_sound(delta: float) -> void:
 		var tp: Node3D = cf.get("tail")
 		if is_instance_valid(tp):
 			tp.rotation.y = sin(_fauna_time * 9.5 + ph) * 0.36
+	AquaticBuilder.animate_marine_life(_aquatic_anim_state, _fauna_time, sea_y)
 	# 10.4 Alimentar suavemente el generador de brisa marina y rumor costero
 	if is_instance_valid(_a1_ambient_player) and _a1_ambient_player.playing:
 		var pb := _a1_ambient_player.get_stream_playback() as AudioStreamGeneratorPlayback
@@ -4775,6 +4689,7 @@ func _create_trail_ribbon_mesh(parent: Node, route_id: String, pts: Array[Vector
 	inst.material_override = trail_mat
 	inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	parent.add_child(inst)
+	inst.create_trimesh_collision()
 
 func _emit_quad_st(st: SurfaceTool, p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, c0: Color, c1: Color, c2: Color, c3: Color, uv0: Vector2, uv1: Vector2, uv2: Vector2, uv3: Vector2) -> void:
 	st.set_color(c0); st.set_uv(uv0); st.add_vertex(p0)
@@ -4895,18 +4810,55 @@ func _create_volcanic_headland_mound(parent: Node, hill_name: String, center: Ve
 	inst.material_override = mat
 	inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	parent.add_child(inst)
+	inst.create_trimesh_collision()
+
+func get_sea_level_y() -> float:
+	return _ocean_plane_node.position.y if is_instance_valid(_ocean_plane_node) else Structure.ELEV_SEA
+
+func is_in_interior_lagoon(wx: float, wz: float) -> bool:
+	var dx := (wx - 25.0) / 7.2
+	var dz := (wz - 99.0) / 6.0
+	return (dx * dx + dz * dz) <= 1.0
+
+func sample_aquatic_floor_height(wx: float, wz: float) -> float:
+	if wx >= -32.0 and wx <= 56.0 and wz >= 74.0 and wz <= 152.0:
+		return float(_eval_cove_beach_sample(wx, wz)["wy"])
+	return -6.8
+
+func sample_sea_current_push(world_pos: Vector3) -> Vector3:
+	# Opción 3: Corriente visible de resaca en el canal exterior del bote y fosa abisal más allá del arco arrecifal
+	if is_in_interior_lagoon(world_pos.x, world_pos.z):
+		return Vector3.ZERO
+	var push := Vector3.ZERO
+	# Canal profundo de salida del bote (x=18..28.5, z >= 134.5)
+	if world_pos.z >= 134.5 and world_pos.x >= 16.5 and world_pos.x <= 30.0:
+		var t_ch := clampf((world_pos.z - 134.5) / 5.5, 0.0, 1.0)
+		push += Vector3(0.0, 0.0, -lerpf(1.6, 7.2, t_ch * t_ch))
+	# Contención hidrodinámica suave alrededor de la corona arrecifal exterior
+	var c_center := Vector2(18.5, 114.0)
+	var rel := Vector2((world_pos.x - c_center.x) / 29.0, (world_pos.z - c_center.y) / 27.0)
+	var r := rel.length()
+	if world_pos.z > 114.0 and r > 0.94:
+		var t_ring := clampf((r - 0.94) / 0.16, 0.0, 1.0)
+		var inward := (c_center - Vector2(world_pos.x, world_pos.z)).normalized()
+		var mag := lerpf(1.4, 7.8, t_ring * t_ring)
+		push += Vector3(inward.x * mag, 0.0, inward.y * mag)
+	return push
 
 func _eval_cove_beach_sample(wx: float, wz: float) -> Dictionary:
 	var shore_noise := 0.55 * sin(wx * 0.42 + 0.6) + 0.28 * cos(wx * 0.89 - 0.3) + 0.16 * sin(wx * 1.45)
-	var south_shore := 111.35
+	# Playa ampliada ~3m hacia el mar junto al muelle y el bote (manteniendo aguas abiertas tras el bote en z=117)
+	var beach_spit_w := smoothstep(4.5, 11.5, wx) * (1.0 - smoothstep(17.5, 20.8, wx)) * 2.95
+	var beach_spit_e := smoothstep(24.6, 26.2, wx) * (1.0 - smoothstep(28.0, 29.8, wx)) * 1.45
+	var south_shore := 111.35 + beach_spit_w + beach_spit_e
 	if wx <= 1.0:
 		var w_dist := 1.0 - wx
 		south_shore = 99.2 - w_dist * 0.48 + shore_noise * 0.65
 	elif wx <= 21.5:
 		var t_cov := clampf((wx - 1.0) / 20.5, 0.0, 1.0)
-		south_shore = lerpf(99.2, 111.35, pow(sin(t_cov * PI * 0.5), 0.90)) + shore_noise * (1.0 - 0.65 * smoothstep(14.5, 21.5, wx))
+		south_shore = lerpf(99.2, 111.35, pow(sin(t_cov * PI * 0.5), 0.90)) + shore_noise * (1.0 - 0.65 * smoothstep(14.5, 21.5, wx)) + beach_spit_w
 	elif wx <= 28.8:
-		south_shore = 111.35 + 0.25 * sin(wx * 0.58)
+		south_shore = 111.35 + beach_spit_e + 0.25 * sin(wx * 0.58)
 	else:
 		south_shore = lerpf(111.35, 110.1, smoothstep(28.8, 34.0, wx)) + 0.36 * sin(wx * 0.65)
 
@@ -4938,6 +4890,10 @@ func _eval_cove_beach_sample(wx: float, wz: float) -> Dictionary:
 	var trail_blend := clampf(maxf(trail_band * trail_fade, maxf(z2_branch, pier_branch * 0.85)) * (0.85 + 0.15 * pebble_mottle), 0.0, 1.0)
 
 	var under_pier := smoothstep(17.8, 19.2, wx) * (1.0 - smoothstep(23.6, 25.4, wx)) * smoothstep(108.8, 110.2, wz)
+	# Laguna interior ampliada y buceable junto a Z2 (entrada suave caminable por el sur-oeste, fondo progresivo hasta -2.75m)
+	var lag_d := Vector2((wx - 25.0) / 6.8, (wz - 99.0) / 5.6).length()
+	var lagoon_bowl := 1.0 - smoothstep(0.45, 1.12, lag_d)
+	var lagoon_core := 1.0 - smoothstep(0.0, 0.78, lag_d)
 	var wy := 0.50
 	if d_land >= 1.9:
 		var dune := 0.024 * sin(wx * 0.31) * cos(wz * 0.34) + 0.020 * smoothstep(2.0, 8.5, d_land)
@@ -4948,20 +4904,33 @@ func _eval_cove_beach_sample(wx: float, wz: float) -> Dictionary:
 	elif d_land >= 0.0:
 		var wt := smoothstep(0.0, 1.9, d_land)
 		var base_target := 0.495 + (smoothstep(4.5, -25.8, wx) * 0.46 if wx < 4.5 else 0.0)
-		wy = lerpf(0.03, base_target, wt)
+		wy = lerpf(0.05, base_target, wt)
 	else:
-		var shallow_t := smoothstep(0.0, -3.4, d_land)
-		var deep_t := smoothstep(-2.2, -5.8, d_land)
-		var shoal_bank := smoothstep(12.5, 19.0, wx) * (1.0 - smoothstep(28.5, 34.5, wx)) * smoothstep(110.5, 113.4, wz) * (1.0 - smoothstep(114.6, 116.5, wz))
-		var west_shoal := smoothstep(-15.0, -2.0, wx) * (1.0 - smoothstep(7.0, 14.0, wx)) * (1.0 - smoothstep(-0.2, -3.6, d_land))
-		var base_shallow := lerpf(0.02, -0.78 + shoal_bank * 0.24 + west_shoal * 0.16, shallow_t)
-		wy = lerpf(base_shallow, -3.55, deep_t)
+		# Orilla caminable más amplia (~5.5m con agua por tobillos/rodillas: +0.04m -> -0.46m) antes del desnivel progresivo de buceo
+		var wade_t := smoothstep(0.0, -5.8, d_land)
+		var shelf_t := smoothstep(-5.2, -14.5, d_land)
+		var deep_t := smoothstep(-13.5, -26.5, d_land)
+		var abyss_t := smoothstep(-25.5, -34.0, d_land)
+		var shoal_bank := smoothstep(4.5, 13.0, wx) * (1.0 - smoothstep(28.5, 36.0, wx)) * smoothstep(109.5, 114.5, wz) * (1.0 - smoothstep(118.5, 122.5, wz))
+		var west_shoal := smoothstep(-14.0, -1.0, wx) * (1.0 - smoothstep(8.0, 16.0, wx)) * (1.0 - smoothstep(-0.2, -5.8, d_land))
+		var reef_undul := 0.24 * sin(wx * 0.26 + wz * 0.19) * cos(wx * 0.17 - wz * 0.23) * shelf_t
+		var wy_wade := lerpf(0.04, -0.46 + shoal_bank * 0.10 + west_shoal * 0.08, wade_t)
+		var wy_shelf := lerpf(wy_wade, -2.25 + reef_undul, shelf_t)
+		var wy_deep := lerpf(wy_shelf, -4.95 + reef_undul * 1.15, deep_t)
+		wy = lerpf(wy_deep, -6.60, abyss_t)
+
+	# Esculpir suavemente la cubeta de la laguna interior (sobreescribiendo el borde norte/orilla seca con acceso gradual caminable)
+	if lagoon_bowl > 0.001:
+		var lag_target := lerpf(-0.26, -2.78, lagoon_core)
+		# Proteger el paso seco del camino a Z2 (wz >= 105.6)
+		var path_guard := 1.0 - smoothstep(104.2, 106.4, wz)
+		wy = lerpf(wy, minf(wy, lag_target), lagoon_bowl * path_guard)
 
 	var east_feather := smoothstep(23.2, 29.0, wx) * smoothstep(-0.6, 1.2, d_land)
 	wy -= east_feather * 0.23
-	var z2_bank := smoothstep(29.8, 35.5, wx) * smoothstep(106.5, 113.5, wz)
+	var z2_bank := smoothstep(32.5, 38.5, wx) * smoothstep(108.0, 114.5, wz)
 	if z2_bank > 0.001:
-		wy = lerpf(wy, minf(wy, -1.85), z2_bank)
+		wy = lerpf(wy, minf(wy, -1.95), z2_bank)
 	return {
 		"wy": wy,
 		"d_land": d_land,
@@ -4989,12 +4958,12 @@ func _build_pleamar_low_coastal_cove(parent: Node, rng: RandomNumberGenerator, r
 
 	var st_beach := SurfaceTool.new()
 	st_beach.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var nx := 72
-	var nz := 44
-	var x_min := -28.0
-	var x_max := 42.0
+	var nx := 92
+	var nz := 70
+	var x_min := -32.0
+	var x_max := 56.0
 	var z_min := 74.0
-	var z_max := 124.0
+	var z_max := 152.0
 	var col_dry_sand := Color("#ede0c2")
 	var col_coarse_gravel := Color("#a99d88")
 	var col_trail_tread := Color("#785e46")
@@ -5030,18 +4999,19 @@ func _build_pleamar_low_coastal_cove(parent: Node, rng: RandomNumberGenerator, r
 			var cliff_foot_ao := pow(1.0 - smoothstep(0.0, 2.8, d_north), 1.35) * smoothstep(-1.5, 1.5, d_land)
 			base_land_col = base_land_col.lerp(Color("#473d34"), cliff_foot_ao * 0.52)
 
-			if d_land >= 2.1:
+			if d_land >= 2.1 and wy > 0.06:
 				c = base_land_col.lerp(Color("#362c24"), under_pier * 0.58)
-			elif d_land >= 0.0:
+			elif d_land >= 0.0 and wy > 0.02:
 				var wt := smoothstep(0.0, 2.1, d_land)
 				c = col_wet.lerp(base_land_col, wt)
 			else:
-				var shallow_t := smoothstep(0.0, -3.4, d_land)
-				var deep_t := smoothstep(-2.2, -5.8, d_land)
-				var sand_patch := clampf((0.5 + 0.5 * sin(wx * 0.44 + wz * 0.62) * cos(wx * 0.78 - wz * 0.36)) - 0.18, 0.0, 1.0) * (1.0 - smoothstep(-0.6, -4.2, d_land))
+				var depth_here := maxf(0.0, -wy)
+				var shallow_t := smoothstep(0.05, 1.80, depth_here)
+				var deep_t := smoothstep(2.10, 5.40, depth_here)
+				var sand_patch := clampf((0.5 + 0.5 * sin(wx * 0.44 + wz * 0.62) * cos(wx * 0.78 - wz * 0.36)) - 0.16, 0.0, 1.0) * (1.0 - smoothstep(0.6, 3.8, depth_here))
 				var col_kelp := Color("#273b17")
-				var kelp_mottle := clampf((0.5 + 0.5 * sin(wx * 0.62 - wz * 0.48 + cos(wx * 0.25)) * cos(wx * 0.94 + wz * 0.72) - 0.32) * 1.65, 0.0, 1.0) * smoothstep(-0.20, -0.85, d_land) * (1.0 - smoothstep(-2.4, -4.6, d_land))
-				c = col_wet.lerp(col_reef, shallow_t).lerp(col_sandbar, sand_patch * 0.72).lerp(col_kelp, kelp_mottle * 0.80).lerp(col_seabed, deep_t)
+				var kelp_mottle := clampf((0.5 + 0.5 * sin(wx * 0.62 - wz * 0.48 + cos(wx * 0.25)) * cos(wx * 0.94 + wz * 0.72) - 0.30) * 1.65, 0.0, 1.0) * smoothstep(0.25, 1.10, depth_here) * (1.0 - smoothstep(3.2, 5.2, depth_here))
+				c = col_wet.lerp(col_reef, shallow_t).lerp(col_sandbar, sand_patch * 0.72).lerp(col_kelp, kelp_mottle * 0.78).lerp(col_seabed, deep_t)
 
 			row_pts.append(Vector3(wx, wy, wz))
 			row_cols.append(c)
@@ -5080,8 +5050,10 @@ func _build_pleamar_low_coastal_cove(parent: Node, rng: RandomNumberGenerator, r
 		var v1 := raw_faces[fi + 1]
 		var v2 := raw_faces[fi + 2]
 		var cx := (v0.x + v1.x + v2.x) / 3.0
+		var cz := (v0.z + v1.z + v2.z) / 3.0
 		var cy_avg := (v0.y + v1.y + v2.y) / 3.0
-		if cx <= 27.6 and cy_avg >= -0.02:
+		# Incluir la playa, orilla ampliada, cubeta completa de la laguna interior y plataforma progresiva de buceo sin huecos
+		if cx >= -24.0 and cx <= 52.0 and cz >= 86.0 and cz <= 150.0:
 			beach_faces.append(v0)
 			beach_faces.append(v1)
 			beach_faces.append(v2)
@@ -5123,8 +5095,8 @@ func _build_pleamar_low_coastal_cove(parent: Node, rng: RandomNumberGenerator, r
 		{"pos": Vector3(6.2, -0.35, 92.0), "sc": Vector3(3.5, 2.7, 2.8), "rot": Vector3(-4.0, 14.0, 5.0)},
 		{"pos": Vector3(11.4, -0.35, 91.6), "sc": Vector3(2.9, 2.5, 2.5), "rot": Vector3(6.0, -28.0, -4.0)},
 		{"pos": Vector3(16.8, -0.35, 92.8), "sc": Vector3(3.2, 2.8, 2.6), "rot": Vector3(-5.0, 46.0, 3.0)},
-		{"pos": Vector3(21.4, -0.50, 94.6), "sc": Vector3(3.4, 2.9, 3.0), "rot": Vector3(3.0, -34.0, -6.0)},
-		{"pos": Vector3(24.6, -0.80, 99.6), "sc": Vector3(3.6, 3.1, 3.1), "rot": Vector3(-6.0, 24.0, 4.0)},
+		{"pos": Vector3(20.4, -0.50, 91.6), "sc": Vector3(3.2, 2.8, 2.8), "rot": Vector3(3.0, -34.0, -6.0)},
+		{"pos": Vector3(26.6, -0.75, 91.8), "sc": Vector3(3.4, 3.0, 2.9), "rot": Vector3(-6.0, 24.0, 4.0)},
 		{"pos": Vector3(4.8, 1.80, 89.2), "sc": Vector3(3.6, 2.6, 2.9), "rot": Vector3(8.0, -18.0, -6.0)},
 		{"pos": Vector3(10.6, 1.40, 88.8), "sc": Vector3(3.4, 2.5, 2.8), "rot": Vector3(-6.0, 32.0, 5.0)},
 		{"pos": Vector3(29.8, -0.40, 86.2), "sc": Vector3(4.4, 4.2, 3.8), "rot": Vector3(4.0, 18.0, -4.0)},
@@ -5142,6 +5114,7 @@ func _build_pleamar_low_coastal_cove(parent: Node, rng: RandomNumberGenerator, r
 		hb_inst.scale = hb["sc"]
 		hb_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 		cove_node.add_child(hb_inst)
+		hb_inst.create_trimesh_collision()
 
 	# 3. Paso costero entre farallones de basalto (cielo abierto hacia el oeste, sin túnel ni entrada artificial de gruta)
 	var arch_node := Node3D.new()
@@ -5175,8 +5148,7 @@ func _build_pleamar_low_coastal_cove(parent: Node, rng: RandomNumberGenerator, r
 		b_inst.scale = b_sc
 		b_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 		b_wrap.add_child(b_inst)
-		if bi in [0, 2, 4]:
-			SceneEnhancer.add_cyl_collider(b_wrap, Vector3(0.0, b_sc.y * 0.42, 0.0), minf(b_sc.x, b_sc.z) * 0.30, b_sc.y)
+		SceneEnhancer.add_cyl_collider(b_wrap, Vector3(0.0, b_sc.y * 0.42, 0.0), minf(b_sc.x, b_sc.z) * 0.30, b_sc.y)
 		SceneEnhancer.tag_camera_occluder(b_wrap)
 
 	# Postes costeros con cabo náutico únicamente en el tramo estrecho hacia el oeste, marcando la continuidad fuera de mapa
@@ -5238,9 +5210,9 @@ func _build_pleamar_low_coastal_cove(parent: Node, rng: RandomNumberGenerator, r
 		[Vector3(-4.8, 0.08, 99.8), Vector3(2.10, 0.92, 1.75)],
 		[Vector3(-9.6, 0.06, 97.6), Vector3(2.35, 1.10, 1.85)],
 		[Vector3(-13.8, 0.04, 95.4), Vector3(2.20, 0.95, 1.80)],
-		[Vector3(19.8, 0.24, 94.2), Vector3(1.90, 0.92, 1.65)],
-		[Vector3(21.6, 0.16, 98.2), Vector3(1.55, 0.68, 1.40)],
-		[Vector3(24.4, 0.13, 103.2), Vector3(1.30, 0.56, 1.25)],
+		[Vector3(19.6, 0.24, 93.4), Vector3(1.80, 0.88, 1.55)],
+		[Vector3(22.4, 0.16, 93.0), Vector3(1.45, 0.65, 1.35)],
+		[Vector3(27.8, 0.14, 93.6), Vector3(1.30, 0.56, 1.25)],
 		# Escolleras y afloramientos basálticos que enlazan la arena con el pie de la escalera Z2 sin cortes cuadrados
 		[Vector3(27.8, -0.25, 113.0), Vector3(2.40, 1.15, 2.00)],
 		[Vector3(30.4, -0.35, 112.6), Vector3(2.70, 1.30, 2.15)],
@@ -5262,11 +5234,22 @@ func _build_pleamar_low_coastal_cove(parent: Node, rng: RandomNumberGenerator, r
 		[Vector3(3.2, 0.16, 103.6), Vector3(0.74, 0.26, 0.66)],
 		[Vector3(26.8, 0.20, 111.0), Vector3(0.90, 0.34, 0.78)],
 	]
+	var shore_rock_body := StaticBody3D.new()
+	shore_rock_body.name = "ShoreRockColliders"
+	cove_node.add_child(shore_rock_body)
 	for rs_spec in shore_rock_specs:
+		var r_pos: Vector3 = rs_spec[0]
 		var r_sc: Vector3 = rs_spec[1]
 		var rb := Basis.from_euler(Vector3(rng.randf_range(-0.08, 0.08), rng.randf_range(0.0, TAU), rng.randf_range(-0.08, 0.08))).scaled(r_sc)
-		rocks_xf.append(Transform3D(rb, rs_spec[0]))
+		rocks_xf.append(Transform3D(rb, r_pos))
 		rocks_col.append(rock_tones[rng.randi() % rock_tones.size()])
+		if maxf(r_sc.x, r_sc.z) >= 0.90:
+			var r_col := CollisionShape3D.new()
+			var r_box := BoxShape3D.new()
+			r_box.size = Vector3(r_sc.x * 0.78, maxf(1.25, r_sc.y * 1.75), r_sc.z * 0.78)
+			r_col.shape = r_box
+			r_col.position = r_pos + Vector3(0.0, r_box.size.y * 0.40, 0.0)
+			shore_rock_body.add_child(r_col)
 	# Lajas planas de granito desgastado marcando claramente la bifurcación muelle <-> escaleras Z2 <-> senda Pleamar
 	var step_mesh := BoxMesh.new()
 	step_mesh.size = Vector3(1.0, 1.0, 1.0)
@@ -5293,6 +5276,7 @@ func _build_pleamar_low_coastal_cove(parent: Node, rng: RandomNumberGenerator, r
 	mm_pavers.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	cove_node.add_child(mm_pavers)
 	_build_submerged_kelp_batch(cove_node, rng)
+	_aquatic_anim_state = AquaticBuilder.build_aquatic_limits_and_marine_life(self, cove_node, rng)
 	_build_coastal_sunbeams(cove_node)
 	_build_coastal_vegetation_and_detail(cove_node, rng)
 	_build_step6_vegetation_transitions(cove_node, rng)
@@ -6106,6 +6090,18 @@ func _build_coastal_vegetation_and_detail(cove_node: Node3D, rng: RandomNumberGe
 		tr_mesh.top_radius = 0.42; tr_mesh.bottom_radius = 0.76; tr_mesh.height = 1.0; tr_mesh.radial_segments = 7
 		var mm_tr := _make_multimesh_batch("MM_CoastalPineTrunks", tr_mesh, mat_wood_dark, pine_trunks_xf, [])
 		cove_node.add_child(mm_tr)
+		var c_trunk_body := StaticBody3D.new()
+		c_trunk_body.name = "CoastalPineTrunkColliders"
+		cove_node.add_child(c_trunk_body)
+		for pxf in pine_trunks_xf:
+			var ps_t: Vector3 = pxf.basis.get_scale()
+			var ct_col := CollisionShape3D.new()
+			var ct_shp := CylinderShape3D.new()
+			ct_shp.radius = maxf(0.18, maxf(ps_t.x, ps_t.z) * 0.70)
+			ct_shp.height = maxf(1.4, ps_t.y)
+			ct_col.shape = ct_shp
+			ct_col.position = pxf.origin
+			c_trunk_body.add_child(ct_col)
 	if not pine_crowns_xf.is_empty():
 		var mm_cr := _make_multimesh_batch("MM_CoastalPineCrowns", pine_mesh, crown_mat, pine_crowns_xf, pine_crowns_col)
 		cove_node.add_child(mm_cr)
@@ -6409,10 +6405,8 @@ func _build_interior_contact_ao() -> void:
 		_add_ground_contact_shadow(ao_root, "A4DeskAO_%d" % int((98.5 + dx) * 10), Vector3(98.5 + dx, y_a4, 60.4), Vector2(1.90, 1.25), 0.34)
 		_add_ground_contact_shadow(ao_root, "A4StoolAO_%d" % int((98.5 + dx) * 10), Vector3(98.5 + dx, y_a4, 61.12), Vector2(0.76, 0.76), 0.30)
 
-	# Plaza A1: pérgola comunal y esquina de suministros
-	var y_a1 := Structure.ELEV_A1_PLAZA + 0.016
-	_add_ground_contact_shadow(ao_root, "A1PergolaTableAO", Vector3(123.5, y_a1, 95.0), Vector2(2.65, 1.15), 0.32)
-	_add_ground_contact_shadow(ao_root, "A1SupplyAO", Vector3(76.85, y_a1, 95.45), Vector2(2.35, 1.45), 0.36)
+	# Plaza A1: AO de contacto delegado al módulo canónico único
+	_a1_canon().build_a1_contact_ao(self, ao_root)
 
 func _populate_trail_framing(parent: Node, pts: Array[Vector3], cfg: Dictionary, rng: RandomNumberGenerator, rocks_xf: Array[Transform3D], rocks_col: Array[Color], bushes_xf: Array[Transform3D], bushes_col: Array[Color], trunks_xf: Array[Transform3D], pine_a_xf: Array[Transform3D], pine_a_col: Array[Color], pine_b_xf: Array[Transform3D], pine_b_col: Array[Color], pine_c_xf: Array[Transform3D], pine_c_col: Array[Color]) -> void:
 	var route_id := str(cfg.get("id", ""))

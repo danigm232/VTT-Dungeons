@@ -34,7 +34,7 @@ func _run() -> void:
 		if body and body.is_visible_in_tree(): expected+=1
 	if who==null or choice==null or who.item_count!=expected or choice.item_count!=4:
 		push_error("Condition picker must expose three styles + recommendation, visible actors only"); quit(1); return
-	if combat.token("harpy-2").visible:
+	if combat.token("harpy_c2_lvl2").visible:
 		push_error("Condition preview revealed hidden reinforcement"); quit(1); return
 	choice.select(2); choice.item_selected.emit(2)
 	var first: Node3D

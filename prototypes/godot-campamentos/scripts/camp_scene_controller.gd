@@ -73,14 +73,16 @@ func _begin_camp_setup() -> Dictionary:
 	fx = FxScript.new()
 	fx.name = "CampAtmosphereFx"
 	add_child(fx)
-	fx.setup(env_node, sun_node, Structure.get_map_center(scene_def), rest_phase)
 	var prof := str(scene_def.get("profile", "forest"))
 	var is_a1 := resolved_id == "camp-a1-rooms"
+	if not is_a1 and prof in ["wreck-beach", "cliff-observatory", "coastal-refuge"]:
+		fx.lighting_profile = prof
+	fx.setup(env_node, sun_node, Structure.get_map_center(scene_def), rest_phase)
 	var is_forest_map := (prof == "forest" and not is_a1)
 	var bird_tint := Color("#eef3f8") if (is_a1 or prof in ["wreck-beach", "coastal-refuge"]) else (Color("#1d232c") if prof == "cliff-observatory" else Color("#4a5360"))
 	var bird_cnt := 8 if is_forest_map else 4
-	var insect_cnt := 6 if is_a1 else (52 if is_forest_map else (4 if prof in ["wreck-beach", "cliff-observatory"] else 8))
-	var owls_cnt := 0 if prof == "coastal-refuge" else (3 if is_forest_map else 1)
+	var insect_cnt := 6 if is_a1 else (52 if is_forest_map else 0)
+	var owls_cnt := 0 if prof in ["coastal-refuge", "wreck-beach"] else (3 if is_forest_map else 1)
 	var bird_offset := Vector3(0.0, 2.2, 0.0)
 	var bird_orbit_scale := 1.0
 	if is_a1:
@@ -163,6 +165,7 @@ func _build_sync() -> void:
 		add_child(a1_builder)
 		var res: Dictionary = a1_builder.build(scene_def, fx)
 		_cutaways = res.get("cutaways", [])
+		fx.apply_lighting_phase(rest_phase)
 	else:
 		outdoor_builder = OutdoorBuilderScript.new()
 		outdoor_builder.name = "CampOutdoorBuilder"
@@ -194,6 +197,7 @@ func build_camp_async(tree: SceneTree, progress_cb: Callable = Callable()) -> vo
 		add_child(a1_builder)
 		var res: Dictionary = a1_builder.build(scene_def, fx)
 		_cutaways = res.get("cutaways", [])
+		fx.apply_lighting_phase(rest_phase)
 	else:
 		outdoor_builder = OutdoorBuilderScript.new()
 		outdoor_builder.name = "CampOutdoorBuilder"
@@ -372,19 +376,55 @@ func _update_spatial_audio() -> void:
 	var river_pos := Vector3.ZERO
 	if is_instance_valid(outdoor_builder) and outdoor_builder.has_method("get_nearest_river_point"):
 		river_pos = outdoor_builder.call("get_nearest_river_point", listener_pos)
-	audio_mgr.update_spatial_sources(river_pos, fx.campfire_lit, fire_fuel, fx.get_stoke_boost())
+	var sheltered := not Structure.is_in_tent(listener_pos, scene_def).is_empty()
+	if not sheltered and camp_scene_id == "camp-a1-rooms":
+		sheltered = not Structure.get_a1_room_at(listener_pos).is_empty()
+	elif not sheltered and camp_scene_id == "camp-coastal-refuge":
+		sheltered = listener_pos.z <= 20.2 and listener_pos.x >= 2.0 and listener_pos.x <= 35.5
+	audio_mgr.update_spatial_sources(river_pos, fx.campfire_lit, fire_fuel, fx.get_stoke_boost(), sheltered, fx.current_weather)
+
+func _set_cutaway_shadow_only(node: Node, hidden_for_cam: bool) -> void:
+	if node is MeshInstance3D:
+		var mi := node as MeshInstance3D
+		if mi.get_meta("cutaway_hide_completely", false):
+			mi.visible = not hidden_for_cam
+		else:
+			mi.visible = true
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY if hidden_for_cam else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	for ch in node.get_children():
+		_set_cutaway_shadow_only(ch, hidden_for_cam)
 
 func _update_cutaways() -> void:
 	var tok: Node3D = party_tokens[active_party_idx] if active_party_idx < party_tokens.size() else null
 	var p2 := Vector2(tok.global_position.x, tok.global_position.z) if is_instance_valid(tok) else Vector2(-999, -999)
+	var all_pts: Array[Vector2] = []
+	for pt_tok in party_tokens:
+		if is_instance_valid(pt_tok) and pt_tok.visible:
+			all_pts.append(Vector2(pt_tok.global_position.x, pt_tok.global_position.z))
 	for cw in _cutaways:
 		var node: Node3D = cw.get("node")
 		if not is_instance_valid(node):
 			continue
 		var rect: Rect2 = cw["rect"]
 		var cid := str(cw.get("id", ""))
-		var inside := rect.has_point(p2) or (_inspect_cutaway_id != "" and cid == _inspect_cutaway_id)
-		node.visible = not inside
+		var inside := false
+		if bool(cw.get("multi_party", false)):
+			for ap in all_pts:
+				if rect.has_point(ap):
+					inside = true
+					break
+		else:
+			inside = rect.has_point(p2)
+		if _inspect_cutaway_id != "" and (cid == _inspect_cutaway_id or (_inspect_cutaway_id == "cave_all" and cid.begins_with("cave_"))):
+			inside = true
+		if bool(cw.get("shadow_only", false)):
+			# Keep real rock-vault shadows over the cave interior even while the ceiling opens cleanly to the camera!
+			var prev_open := bool(cw.get("_is_open", false))
+			if prev_open != inside or not cw.has("_is_open"):
+				cw["_is_open"] = inside
+				_set_cutaway_shadow_only(node, inside)
+		else:
+			node.visible = not inside
 
 func set_inspect_cutaway(zone_id: String) -> void:
 	_inspect_cutaway_id = zone_id

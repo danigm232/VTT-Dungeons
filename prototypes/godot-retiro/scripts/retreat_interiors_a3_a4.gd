@@ -376,6 +376,12 @@ static func build_a3_refectory_and_kitchen(
 			var plz := lerpf(-0.46, 0.46, float(pl_i) / 3.0)
 			var pmat: Material = mat_oak_plank_a if pl_i % 2 == 0 else mat_oak_plank_b
 			_box(b, Vector3(0.0, 0.795, plz), Vector3(8.05, 0.065, 0.285), pmat)
+		if is_equal_approx(tz, 57.6):
+			SceneEnhancer.routine_pivot(b, "RetreatWipeEdge", Vector3(-3.99, 0.831, 0.14))
+			var cleaning_step := _box(b, Vector3(-4.34, 0.0675, 0.15), Vector3(0.64, 0.135, 0.56), mat_dark)
+			cleaning_step.name = "RetreatZarkCleaningStep"
+			cleaning_step.add_to_group("dynamic_prop")
+			SceneEnhancer.add_box_collider(b, cleaning_step.position, Vector3(0.64, 0.135, 0.56))
 		# Camino de mesa textil modesto en tono ocre-terracota (estrecho y sobrio, nunca blanco chillón)
 		_box(b, Vector3(0.0, 0.835, 0.0), Vector3(7.10, 0.016, 0.34), mat_runner, false)
 
@@ -554,6 +560,10 @@ static func build_a3_refectory_and_kitchen(
 	parent.add_child(prep)
 	_box(prep, Vector3(0.0, 0.90, 0.0), Vector3(3.75, 0.10, 0.98), mat_oak_plank_a)
 	_box(prep, Vector3(0.0, 0.30, 0.0), Vector3(3.45, 0.06, 0.78), mat_dark) # balda inferior
+	var tea := SceneEnhancer.routine_pivot(prep, "RetreatTeaCup", Vector3(-1.60, 0.382, 0.19))
+	_cyl(tea, Vector3.ZERO, 0.066, 0.085, mat_ceramic, 12, false)
+	_cyl(tea, Vector3(0.0, 0.045, 0.0), 0.071, 0.013, mat_bowl_wood, 12, false)
+	_cyl(tea, Vector3(0.0, 0.053, 0.0), 0.049, 0.007, mat_stew, 12, false)
 	for px in [-1.68, 0.0, 1.68]:
 		for pz in [-0.36, 0.36]:
 			_box(prep, Vector3(float(px), 0.44, float(pz)), Vector3(0.14, 0.88, 0.14), mat_dark)
@@ -1197,7 +1207,8 @@ static func _build_scriptorium_desk(
 	flm.add_to_group("night_flame")
 
 	# Taburete de escriba robusto con patas abiertas y travesaños (preserva interacción de asiento!)
-	_cyl(d, Vector3(0.0, 0.46, 0.78), 0.27, 0.065, mat_oak, 10)
+	var stool_radius := 0.27
+	_cyl(d, Vector3(0.0, 0.46, 0.78), stool_radius, 0.065, mat_oak, 10)
 	for sx in [-0.17, 0.17]:
 		for sz in [0.61, 0.95]:
 			var s_leg := _cyl(d, Vector3(float(sx), 0.22, float(sz)), 0.036, 0.44, mat_walnut, 7)
@@ -1217,7 +1228,10 @@ static func _build_scriptorium_desk(
 	chair_anchor.position = Vector3(0.0, 0.0, 0.78)
 	d.add_child(chair_anchor)
 	var stool_slots: Array[Vector3] = [Vector3(0.0, 0.495, 0.0)]
-	SceneEnhancer._attach_seat_prop(chair_anchor, "chair", "Taburete de escriba", "[T] Sentarse a estudiar", stool_slots, Vector3(0.0, 0.0, -1.0), 0.26, "n", false, 2.25)
+	var seat := SceneEnhancer._attach_seat_prop(chair_anchor, "chair", "Taburete de escriba", "[T] Sentarse a estudiar", stool_slots, Vector3(0.0, 0.0, -1.0), 0.26, "n", false, 2.25)
+	if not has_sloped_lectern:
+		seat.set_meta("seat_drape_radius", stool_radius)
+		SceneEnhancer.routine_target(seat, "RetreatEastDeskSeat")
 
 # ==============================================================================
 # FASE 5 — PASEO SUPERIOR, JARDINES Z7 Y FAROLES MONÁSTICOS DE PEDESTAL

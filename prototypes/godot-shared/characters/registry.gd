@@ -10,9 +10,22 @@ static func data() -> Dictionary:
 		if path.ends_with("/catalogue.json") and FileAccess.file_exists("res://characters/candidate-catalogue.json"):
 			var candidate: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://characters/candidate-catalogue.json"))
 			if candidate.get("revision","")!=_data.get("revision",""): _data=candidate
+		_add_beast_candidate()
 	return _data
 static func inspect_candidate() -> void:
-	_data=JSON.parse_string(FileAccess.get_file_as_string("res://characters/candidate-catalogue.json")); _profiles.clear()
+	_data=JSON.parse_string(FileAccess.get_file_as_string("res://characters/candidate-catalogue.json"))
+	_add_beast_candidate()
+	_profiles.clear()
+
+static func _add_beast_candidate() -> void:
+	const PATH := "res://characters/scopes/stormwreck-beasts.candidate.json"
+	if not FileAccess.file_exists(PATH):
+		return
+	var candidate: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(PATH))
+	for bucket in ["characters", "animations"]:
+		_data[bucket].merge(candidate[bucket], true)
+	_data["beast_revision"] = candidate.revision
+	_data.revision = (str(_data.revision) + ":" + str(candidate.revision)).sha256_text()
 static func character(id: String) -> Dictionary:
 	for key in data().get("characters",{}):
 		var d: Dictionary=data().characters[key]
@@ -49,7 +62,90 @@ static func profile(id: String) -> Dictionary:
 	var directions: Dictionary={}
 	for dir in d.source.get("directions",["n","ne","e","se","s","sw","w","nw"]): directions[dir]=clip
 	var result: Dictionary={"clips":{"idle":clip,"combat_idle":clip},"dir_idle":directions,"dir_walk":{},"dir_run":{},"dir_attack":{},"dir_states":{},"anatomy":d.anatomy,"individual_source":true}
-	_profiles[d.id]=with_animations(result,d); return _profiles[d.id]
+	_profiles[d.id] = with_animations(result,d)
+	if d.id == "sw-ghoul":
+		_configure_ghoul(_profiles[d.id])
+	return _profiles[d.id]
+
+static func _configure_ghoul(profile: Dictionary) -> void:
+	profile["npc_species"] = "ghoul"
+	var states: Dictionary = profile.dir_states
+	if not states.has("idle"):
+		states["idle"] = {}
+	states.idle["se"] = profile.dir_idle.se
+	# The drawn southeast and northwest views cover the eight camera octants.
+	for action in ["idle", "walk", "run", "stealth", "turn", "claw", "bite", "crawl", "fall", "hit"]:
+		var clips: Dictionary = states.get(action, {})
+		if not clips.has("se"):
+			continue
+		var front: Dictionary = clips.se
+		var rear: Dictionary = clips.get("nw", front)
+		clips["s"] = front
+		clips["e"] = front
+		clips["sw"] = _mirrored(front)
+		clips["w"] = clips.sw
+		clips["nw"] = rear if clips.has("nw") else clips.sw
+		clips["n"] = clips.nw
+		clips["ne"] = _mirrored(rear) if rear != front else front
+		profile.clips[action] = front
+	profile.dir_idle = states.idle
+	states["combat_idle"] = states.idle
+	var held: Dictionary = {}
+	for direction in states.idle:
+		var clip: Dictionary = states.idle[direction].duplicate()
+		clip.frames = [clip.frames[0]]
+		held[direction] = clip
+	for action in ["condition_paralizada", "condition_petrificada", "condition_aturdida", "condition_incapacitada"]:
+		states[action] = held
+	if states.has("walk"):
+		for action in ["run", "stealth"]:
+			if states.has(action):
+				continue
+			var paced: Dictionary = {}
+			for direction in states.walk:
+				var clip: Dictionary = states.walk[direction].duplicate()
+				clip.fps = 15.0 if action == "run" else 6.0
+				paced[direction] = clip
+			states[action] = paced
+			profile.clips[action] = paced.se
+		var starts: Dictionary = {}
+		var stops: Dictionary = {}
+		for direction in states.walk:
+			var step: Dictionary = states.walk[direction]
+			var rest: Dictionary = states.idle[direction]
+			if rest.frames.size() < 8 or step.frames.size() < 8:
+				continue
+			var is_reflected := bool(step.get("flip_h", false))
+			starts[direction] = _ghoul_transition(rest.frames.slice(5, 7) + step.frames.slice(2, 8), 14.0, is_reflected)
+			stops[direction] = _ghoul_transition(step.frames.slice(6, 8) + rest.frames.slice(0, 6), 12.0, is_reflected)
+		states["start"] = starts
+		states["stop"] = stops
+	if states.has("fall"):
+		var prone: Dictionary = {}
+		var stand: Dictionary = {}
+		for direction in states.fall:
+			var clip: Dictionary = states.fall[direction].duplicate()
+			clip.frames = [clip.frames.back()]
+			clip.loop = true
+			prone[direction] = clip
+			clip = states.fall[direction].duplicate()
+			clip.frames = clip.frames.duplicate()
+			clip.frames.reverse()
+			stand[direction] = clip
+		for action in ["prone", "defeated", "condition_derribada", "condition_inconsciente"]:
+			states[action] = prone
+			profile.clips[action] = prone.se
+		states["stand"] = stand
+		profile.clips["stand"] = stand.se
+
+static func _mirrored(clip: Dictionary) -> Dictionary:
+	var mirrored := clip.duplicate()
+	mirrored.flip_h = true
+	return mirrored
+
+static func _ghoul_transition(frames: Array, fps: float, reflected: bool) -> Dictionary:
+	return {"frames": frames, "fps": fps, "loop": false, "drawn_motion": true, "flip_h": reflected}
+
 static func with_animations(profile: Dictionary,definition: Dictionary) -> Dictionary:
 	for animation in data().get("animations",{}).values():
 		if animation.character!=definition.id or animation.anatomy!=definition.anatomy: continue

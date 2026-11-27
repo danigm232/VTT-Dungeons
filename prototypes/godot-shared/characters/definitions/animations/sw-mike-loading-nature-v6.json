@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "id": "sw-mike-loading-nature-v6",
+  "name": "Mike · inspección, estornudo y caída de Naturaleza",
+  "anatomy": "humanoid-tall",
+  "dependencies": [
+    "mike"
+  ],
+  "review": {
+    "visual": "internally reviewed: canonical identity, all authored poses and integrated loading samples; user acceptance pending",
+    "userAcceptance": "pending",
+    "evidence": [
+      "output/stormwreck-motion-detail/sw-mike-loading-nature-v6-fabcdd029024.json",
+      "output/loading-identity-v6/native",
+      "output/loading-identity-v6/candidate-resources.json"
+    ],
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified"
+  },
+  "instructions": "Create draft, search reuse, complete source/style/scale fields, adopt only after validation. Technical success is not artistic acceptance.",
+  "kind": "animation",
+  "character": "mike",
+  "action": "retreat_loading_nature",
+  "direction": "se",
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-nature-v6/fabcdd029024/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-nature-v6/fabcdd029024/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-nature-v6/fabcdd029024/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-nature-v6/fabcdd029024/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-nature-v6/fabcdd029024/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-nature-v6/fabcdd029024/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-nature-v6/fabcdd029024/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-nature-v6/fabcdd029024/08.webp"
+  ],
+  "fps": 1,
+  "loop": false,
+  "pivot": [
+    0.5,
+    0.9161425576519916
+  ],
+  "compatibility": {
+    "anatomies": [
+      "humanoid-tall"
+    ],
+    "equipment": false,
+    "overlays": false
+  },
+  "events": [],
+  "initialFrame": 0,
+  "transition": "preserve support pivot",
+  "referenceHeight": 400,
+  "reuseSearch": {
+    "required": true,
+    "command": "node scripts/character-pipeline.mjs reuse --query sw-mike-loading-nature-v6"
+  },
+  "campaign": "stormwreck-isle",
+  "production": {
+    "stage": "defined-before-generation",
+    "method": "built-in image_gen identity-preserve",
+    "originalIdentity": "campaigns/stormwreck-isle/public/art/characters/base-v1/mike/idle-01.png",
+    "prompt": "Identity-preserving sprite STORY sequence, exact Mike from reference: same youthful adult male elf face, tied blond hair, pointed ears, blue/gold robe, BLACK gloves and boots, sheathed dagger. Book secured at belt for both-handed plant inspection. Regular FOUR columns TWO rows, eight separate complete full-body poses: 1 kneels inspecting unseen plant to his RIGHT; 2 reaches right hand carefully toward plant; 3 touches unseen leaf, leaning naturally; 4 sneezes into bent elbow; 5 looks woozy and slightly purple from spores; 6 starts falling BACKWARD to his LEFT; 7 lands on his back; 8 lies on back on ground, dazed but awake, feet to right and head to left. Same clothing and identity every pose; purple is a temporary poison tint, no redesign. Fixed camera scale relative to canonical reference: if standing he would be about 400px tall in each 443px-high cell; crouched/lying figures become shorter/wider, NEVER enlarge them to fill height. All supported poses share ground line near bottom of cell. Entire reclined body fits within its cell with at least 25px transparent margins. No plant, no terrain, no extra characters, shadows, text or symbols. True alpha transparent background, landscape 2:1 sheet with exact equal grid cells. Preserve anatomy and original face.",
+    "minimumVisibleStandingPixels": 90,
+    "standingReferenceExplicit": 400,
+    "paired": false,
+    "heldPoseLibrary": true,
+    "equipmentState": "Book secured at belt; gloves, boots, robe and dagger retained.",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-loading-nature-v6-fabcdd029024.png",
+    "originalSha256": "fabcdd029024b8e275973d393176b9ecb8fde808419cb7fbab8e93a1f64aaef1",
+    "importReport": "output/stormwreck-motion-detail/sw-mike-loading-nature-v6-fabcdd029024.json",
+    "minimumAlpha": 24,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  }
+}

@@ -12,6 +12,14 @@ extends RefCounted
 
 const Structure = preload("res://scripts/retreat_structure.gd")
 
+static var _a1_canon_cache: GDScript = null
+
+static func _a1_canon() -> GDScript:
+	if _a1_canon_cache == null:
+		var p := ProjectSettings.globalize_path("res://").path_join("../godot-shared/retreat_a1/retreat_a1_canonical_builder.gd").simplify_path()
+		_a1_canon_cache = ResourceLoader.load(p) as GDScript
+	return _a1_canon_cache
+
 # ------------------------------------------------------------------------------
 # 1. TECHOS DE CUEVA EXCAVADOS Y OCULTACIÓN DINÁMICA AL ENTRAR
 # ------------------------------------------------------------------------------
@@ -44,56 +52,8 @@ static func build_cave_roofs_and_archways(builder: Node3D) -> Array[Dictionary]:
 		mat_moss_roof.normal_texture = norm_rock
 		mat_moss_roof.normal_scale = 0.65
 
-	var roof_entries: Array[Dictionary] = []
-
-	# 6 Celdas excavadas de A1 (cota suelo 9.0m, muros hasta 12.5m, roca superior hasta 15.2m)
-	var a1_specs := [
-		{"id": "cell_1", "label": "Celda 1", "x0": 76.3, "x1": 85.0, "z0": 76.0, "z1": 89.1, "door_x": 81.75},
-		{"id": "cell_2", "label": "Celda de Tarak", "x0": 85.0, "x1": 95.2, "z0": 76.0, "z1": 89.1, "door_x": 90.75},
-		{"id": "cell_3", "label": "Celda de Varnoth", "x0": 95.2, "x1": 106.5, "z0": 76.0, "z1": 89.1, "door_x": 101.25},
-		{"id": "cell_4", "label": "Taller de Myla", "x0": 106.5, "x1": 117.8, "z0": 76.0, "z1": 89.1, "door_x": 111.75},
-		{"id": "cell_5", "label": "Kobolds Oeste", "x0": 117.8, "x1": 126.6, "z0": 76.0, "z1": 89.1, "door_x": 122.25},
-		{"id": "cell_6", "label": "Kobolds Este", "x0": 126.6, "x1": 136.8, "z0": 76.0, "z1": 89.1, "door_x": 131.25},
-	]
-
-	for sp in a1_specs:
-		var rnode := Node3D.new()
-		rnode.name = "CaveRoof_" + str(sp["id"])
-		roofs_root.add_child(rnode)
-
-		var x0 := float(sp["x0"])
-		var x1 := float(sp["x1"])
-		var z0 := float(sp["z0"])
-		var z1 := float(sp["z1"])
-		var door_x := float(sp["door_x"])
-
-		# Bóveda pétrea esculpida que se funde con el farallón hacia el norte (las puertas ya existen en A1Room/A1Ctx)
-		var vault_mesh := _create_cave_vault_mesh(x0, x1, z0, z1, 12.15, 14.95, door_x, 2.5, rng, Color("#606a68"), Color("#4b6343"))
-		var v_inst := MeshInstance3D.new()
-		v_inst.name = "VaultMesh"
-		v_inst.mesh = vault_mesh
-		v_inst.material_override = mat_moss_roof
-		rnode.add_child(v_inst)
-
-		var front_wall_w_l := (door_x - 1.35) - x0
-		if front_wall_w_l > 0.35:
-			add_box_collider(builder, Vector3(x0 + front_wall_w_l * 0.5, 10.6, z1 - 0.12), Vector3(front_wall_w_l, 3.2, 0.55))
-		var front_wall_w_r := x1 - (door_x + 1.35)
-		if front_wall_w_r > 0.35:
-			add_box_collider(builder, Vector3((door_x + 1.35) + front_wall_w_r * 0.5, 10.6, z1 - 0.12), Vector3(front_wall_w_r, 3.2, 0.55))
-		# Muro trasero y tabique oeste de la celda
-		add_box_collider(builder, Vector3((x0 + x1) * 0.5, 10.6, z0 + 0.15), Vector3(x1 - x0, 3.2, 0.55))
-		add_box_collider(builder, Vector3(x0, 10.6, (z0 + z1) * 0.5), Vector3(0.55, 3.2, (z1 - z0) - 0.4))
-
-		roof_entries.append({
-			"id": str(sp["id"]),
-			"group": "a1_caves",
-			"node": rnode,
-			"rect": Rect2(x0, z0, x1 - x0, (z1 - z0) - 0.35),
-			"door_rect": Rect2(door_x - 1.65, z1 - 1.2, 3.3, 2.1),
-			"y_min": 7.5,
-			"y_max": 13.8
-		})
+	# Sector A1 delegado a la fuente única canónica compartida
+	var roof_entries: Array[Dictionary] = _a1_canon().build_a1_cave_roofs_and_archways(builder, roofs_root, rng, null)
 	# Tabique este final de Celda 6
 	add_box_collider(builder, Vector3(136.8, 10.6, 82.55), Vector3(0.55, 3.2, 12.7))
 
@@ -358,95 +318,8 @@ static func build_rooms_and_plaza_furniture(builder: Node3D) -> void:
 	var mat_rug_gold: Material = builder.call("_make_mat", Color("#b88e44"), 0.92, 0.0)
 	var mat_glass_herb: Material = builder.call("_make_mat", Color(0.32, 0.76, 0.48, 0.85), 0.18, 0.1)
 
-	var y_a1 := Structure.ELEV_A1_PLAZA
-
-	# --- A. LAS 6 CELDAS EXCAVADAS DE A1 ---
-	var cells_furn := Node3D.new()
-	cells_furn.name = "A1_Cells_Furniture"
-	furn_root.add_child(cells_furn)
-
-	var mat_cell_floor: Material = builder.get("mat_cell_floor") if builder.get("mat_cell_floor") else mat_stone
-	var cell_floor_rects := [
-		Rect2(76.8, 79.0, 7.6, 8.8),
-		Rect2(86.2, 76.6, 7.6, 11.2),
-		Rect2(96.4, 78.0, 8.6, 9.8),
-		Rect2(108.2, 76.8, 8.4, 11.0),
-		Rect2(119.2, 76.6, 5.8, 11.2),
-		Rect2(127.8, 76.8, 7.6, 11.0),
-	]
-	for cf_r in cell_floor_rects:
-		_box(cells_furn, Vector3(cf_r.position.x + cf_r.size.x * 0.5, y_a1 + 0.08, cf_r.position.y + cf_r.size.y * 0.5), Vector3(cf_r.size.x, 0.03, cf_r.size.y), mat_cell_floor)
-
-	# Celda 1 (Habitación libre de peregrinos): cama, mesita, escritorio, silla, alfombra, baúl
-	_build_pilgrim_bed(cells_furn, "a1-room-1-bed", Vector3(78.5, y_a1, 81.2), 0.0, mat_dark_oak, mat_linen, mat_blanket_ochre)
-	_build_nightstand_with_candle(cells_furn, Vector3(80.0, y_a1, 80.2), mat_oak, mat_bronze, mat_flame)
-	_build_monastic_desk_and_chair(cells_furn, Vector3(81.8, y_a1, 81.8), -PI * 0.5, mat_oak, mat_dark_oak, mat_linen, mat_bronze)
-	_build_woven_rug(cells_furn, Vector3(80.2, y_a1 + 0.11, 83.2), Vector2(2.4, 3.0), mat_rug_gold, mat_blanket_ochre)
-	_build_bound_chest(cells_furn, Vector3(78.3, y_a1, 84.6), 0.25, mat_dark_oak, mat_iron, mat_bronze)
-
-	# Celda 2 (Celda de Tarak — Herborista): cama, mesita, mesa herbolaria con mortero y frascos, estante de hierbas
-	_build_pilgrim_bed(cells_furn, "a1-room-2-bed", Vector3(87.6, y_a1, 79.4), 0.0, mat_dark_oak, mat_linen, mat_blanket_sage)
-	_build_nightstand_with_candle(cells_furn, Vector3(89.1, y_a1, 78.6), mat_oak, mat_bronze, mat_flame)
-	_build_monastic_desk_and_chair(cells_furn, Vector3(90.9, y_a1, 81.6), -PI * 0.5, mat_oak, mat_dark_oak, mat_linen, mat_bronze)
-	_build_herbalist_rack_and_potions(cells_furn, Vector3(87.5, y_a1, 83.6), mat_dark_oak, mat_pottery, mat_glass_herb, mat_blanket_sage)
-	_build_woven_rug(cells_furn, Vector3(89.5, y_a1 + 0.11, 82.8), Vector2(2.5, 3.4), mat_blanket_sage, mat_rug_gold)
-
-	# Celda 3 (Celda de Varnoth — Comandante): cama, mesita, escritorio con mapa táctico, armero con escudo y espada, arcón
-	_build_pilgrim_bed(cells_furn, "a1-room-3-bed", Vector3(98.0, y_a1, 80.8), 0.0, mat_dark_oak, mat_linen, mat_blanket_blue)
-	_build_nightstand_with_candle(cells_furn, Vector3(99.6, y_a1, 79.9), mat_oak, mat_bronze, mat_flame)
-	_build_monastic_desk_and_chair(cells_furn, Vector3(102.2, y_a1, 80.6), -PI * 0.5, mat_oak, mat_dark_oak, mat_linen, mat_bronze)
-	_build_weapon_and_shield_rack(cells_furn, Vector3(97.8, y_a1, 84.2), mat_dark_oak, mat_iron, mat_bronze, mat_blanket_blue)
-	_build_bound_chest(cells_furn, Vector3(102.6, y_a1, 84.2), -0.4, mat_dark_oak, mat_iron, mat_bronze)
-	_build_woven_rug(cells_furn, Vector3(100.2, y_a1 + 0.11, 83.2), Vector2(2.8, 3.2), mat_rug_blue, mat_rug_gold)
-
-	# Celda 4 (Taller de Myla — Artesana): cama, mesita, banco de artificiero con engranajes y alambique, cajas
-	_build_pilgrim_bed(cells_furn, "a1-room-4-bed", Vector3(109.6, y_a1, 80.8), 0.0, mat_dark_oak, mat_linen, mat_blanket_crimson)
-	_build_nightstand_with_candle(cells_furn, Vector3(111.1, y_a1, 79.9), mat_oak, mat_bronze, mat_flame)
-	_build_tinker_workbench(cells_furn, Vector3(112.8, y_a1, 80.2), mat_oak, mat_dark_oak, mat_bronze, mat_iron, mat_glass_herb)
-	_build_monastic_desk_and_chair(cells_furn, Vector3(113.0, y_a1, 83.6), -PI * 0.5, mat_oak, mat_dark_oak, mat_linen, mat_bronze)
-	_build_woven_rug(cells_furn, Vector3(111.2, y_a1 + 0.11, 83.4), Vector2(2.6, 3.2), mat_rug_warm, mat_rug_gold)
-
-	# Celda 5 (Kobolds Oeste — 4 hamacas colgadas + alfombra + brasero)
-	var kw_positions := [
-		Vector3(120.3, y_a1, 79.0), Vector3(122.3, y_a1, 79.0),
-		Vector3(120.3, y_a1, 82.0), Vector3(122.3, y_a1, 82.0)
-	]
-	var kw_mats := [mat_blanket_ochre, mat_blanket_crimson, mat_blanket_sage, mat_blanket_blue]
-	for i in range(4):
-		_build_kobold_hammock(cells_furn, kw_positions[i], 0.08 if i % 2 == 0 else -0.08, mat_dark_oak, kw_mats[i], mat_linen)
-	_build_woven_rug(cells_furn, Vector3(121.3, y_a1 + 0.11, 81.5), Vector2(1.8, 3.8), mat_rug_gold, mat_blanket_crimson)
-	_build_brazier_stand(cells_furn, Vector3(121.3, y_a1, 84.6), mat_iron, mat_bronze, mat_flame)
-
-	# Celda 6 (Kobolds Este — 4 hamacas colgadas + alfombra + brasero + baúl)
-	var ke_positions := [
-		Vector3(129.3, y_a1, 79.4), Vector3(132.2, y_a1, 79.4),
-		Vector3(129.3, y_a1, 82.4), Vector3(132.2, y_a1, 82.4)
-	]
-	for i in range(4):
-		_build_kobold_hammock(cells_furn, ke_positions[i], -0.08 if i % 2 == 0 else 0.08, mat_dark_oak, kw_mats[(i + 1) % 4], mat_linen)
-	_build_woven_rug(cells_furn, Vector3(130.8, y_a1 + 0.11, 81.8), Vector2(2.2, 3.8), mat_rug_warm, mat_rug_gold)
-	_build_brazier_stand(cells_furn, Vector3(130.8, y_a1, 84.8), mat_iron, mat_bronze, mat_flame)
-	_build_bound_chest(cells_furn, Vector3(132.6, y_a1, 84.8), -0.35, mat_oak, mat_iron, mat_bronze)
-
-	# --- B. PLAZA CENTRAL DE A1 (Hoguera, trébede con caldero, bancos curvos, pérgolas, pozo/fuente, altar de Astalagan) ---
-	var plaza_furn := Node3D.new()
-	plaza_furn.name = "A1_Plaza_Furniture"
-	furn_root.add_child(plaza_furn)
-
-	var fire_center := Structure.cell_to_world(72, 62, y_a1) # (108.75, 9.0, 93.75)
-	_build_plaza_hearth_and_benches(plaza_furn, fire_center, mat_stone, mat_dark_oak, mat_oak, mat_iron, mat_bronze, mat_flame, mat_blanket_crimson, mat_blanket_blue)
-
-	# Altar votivo frente a la estatua de Astalagan desplazado al borde sur para despejar el paseo frente a C1-C6
-	_build_astalagan_shrine_altar(plaza_furn, Vector3(86.25, y_a1, 95.55), mat_stone, mat_bronze, mat_gold, mat_flame, mat_blanket_ochre)
-
-	# Fuente / pozo monástico de piedra desplazado al sur de la franja central (94.2, 9.0, 95.15)
-	_build_monastic_well_fountain(plaza_furn, Vector3(94.2, y_a1, 95.15), mat_stone, mat_dark_oak, mat_iron, mat_water)
-
-	# 1 Pérgola compacta al este del paseo (123.5, 9.0, 95.0) dejando >=3.0m libres delante de C1-C6 (z=89.2..92.6)
-	_build_cloister_pergola_and_table(plaza_furn, Vector3(123.5, y_a1, 95.0), mat_dark_oak, mat_oak, mat_pottery, mat_bronze, mat_flame, mat_blanket_ochre)
-
-	# Suministros, barriles y tablón de avisos en la esquina suroeste junto a la llegada de la escalera (76.2, 9.0, 95.65)
-	_build_plaza_supply_corner(plaza_furn, Vector3(76.2, y_a1, 95.65), mat_oak, mat_dark_oak, mat_iron, mat_linen)
+	# --- A & B. LAS 6 CELDAS Y LA PLAZA CENTRAL DE A1 (Fuente única canónica compartida) ---
+	_a1_canon().build_a1_furniture(builder, furn_root, null)
 
 	# --- C. REFUERZO DE MOBILIARIO EN A3 (COMEDOR/COCINA) Y A4 (BIBLIOTECA) ---
 	var y_upper := Structure.ELEV_A3_DINING
@@ -460,9 +333,7 @@ static func build_rooms_and_plaza_furniture(builder: Node3D) -> void:
 	furn_root.add_child(a4_furn)
 	_build_a4_scriptorium_details(a4_furn, y_upper, mat_dark_oak, mat_oak, mat_linen, mat_bronze, mat_gold, mat_flame, mat_rug_blue, mat_blanket_crimson, mat_blanket_sage)
 
-	# Consolidar mallas estáticas por material y sombra dentro de cada bloque para reducir draw calls
-	merge_static_children_by_material(cells_furn)
-	merge_static_children_by_material(plaza_furn)
+	# Mantener A1 por mueble (evita superar el límite de 8 OmniLight3D por malla en Forward+)
 	merge_static_children_by_material(a3_furn)
 	merge_static_children_by_material(a4_furn)
 

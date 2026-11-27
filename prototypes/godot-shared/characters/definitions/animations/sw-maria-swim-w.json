@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-maria-swim-w",
+  "character": "maria",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-small",
+  "action": "swim",
+  "direction": "w",
+  "fps": 9,
+  "loop": true,
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Independent environment effects. No water, foam or bubbles painted into the character."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-swim-w/9e0670f3fb90/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-swim-w/9e0670f3fb90/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-swim-w/9e0670f3fb90/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-swim-w/9e0670f3fb90/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-swim-w/9e0670f3fb90/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-swim-w/9e0670f3fb90/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-swim-w/9e0670f3fb90/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-swim-w/9e0670f3fb90/08.webp"
+  ],
+  "production": {
+    "method": "Image generation from existing character identity and native-size extraction",
+    "reference": "prototypes/godot-pecio/characters/imported/sw-maria-idle8/00-idle-01.png",
+    "prompt": "Create eight bitmap game sprite poses for the same adventurer in the reference. The exact character is the short lean halfling rogue Trinity (María), brunette, cream and brown leather, preserve distinctive face, hair, outfit and body proportions. Match the art reference and apparent age, anatomy, skin tone and garment cut. clean strict side profile, swimming toward screen LEFT at a slightly elevated 3/4 camera, face left in every phase. surface swimming using eight successive phases of a brisk breaststroke, lift head for breathing, hands reach together then sweep out and recover, feet kick outward then close. Depict head and entire body including legs, all intact, no cropped waterline; the engine draws water. Grid exactly 4 columns × 2 rows in row-major order, wide 2:1 total, character centered within EACH cell with empty 15% gutters all around, distinct consecutive poses, same body size and alignment, opaque character with transparent background. No water, foam, bubbles, shine lines, floor shadows, props, text or visible grid; the VTT adds effects separately. Fine hand-drawn high-resolution fantasy sprite finish like the existing game character.",
+    "minimumVisibleStandingPixels": 120,
+    "silhouetteAlpha": 80,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-maria-swim-w-9e0670f3fb90.png",
+    "originalSha256": "9e0670f3fb903b9528b0a9712b8587c4685697e418a4f2af80c85c135cea24db",
+    "importReport": "output/stormwreck-motion-detail/sw-maria-swim-w-9e0670f3fb90.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "Individual transparent poses visually reviewed for heading, silhouette and separation from VFX. Project review controls promotion.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 355,
+  "pivot": [
+    0.5,
+    0.7083333333333334
+  ]
+}

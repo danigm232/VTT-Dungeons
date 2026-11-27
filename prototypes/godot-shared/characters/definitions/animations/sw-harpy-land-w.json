@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-harpy-land-w",
+  "character": "harpy",
+  "campaign": "stormwreck-isle",
+  "anatomy": "winged",
+  "action": "land",
+  "direction": "w",
+  "fps": 12,
+  "loop": false,
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Current frame alpha; physical attachments remain unverified."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-land-w/5dc648f81c91/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-land-w/5dc648f81c91/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-land-w/5dc648f81c91/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-land-w/5dc648f81c91/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-land-w/5dc648f81c91/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-land-w/5dc648f81c91/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-land-w/5dc648f81c91/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-land-w/5dc648f81c91/08.webp"
+  ],
+  "production": {
+    "method": "Built-in image generation and lossless native-size extraction",
+    "reference": "campaigns/stormwreck-isle/public/art/m3/harpy/harpia_base.png",
+    "minimumVisibleStandingPixels": 195,
+    "directionalArrival": true,
+    "silhouetteAlpha": 105,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-harpy-land-w-5dc648f81c91.png",
+    "originalSha256": "5dc648f81c91d9e6de86fb978b4c8c8d24822789fd5a0d26e43bb0133ad9e183",
+    "importReport": "output/stormwreck-motion-detail/sw-harpy-land-w-5dc648f81c91.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels",
+    "prompt": "Stormwreck established auburn harpy. True strict LEFT-facing profile in all 8 frames, nose and toes point screen left, preserve anatomical left club and color of reference. Land onto a flat invisible perch, flare wings without fully extending, talons reach down, contact pose 6, settle legs wings and hair 7 and 8. Use the attached game art only for the character's established rendering and identity. Professional animation strip of one creature per cell. 4 columns × 2 rows exactly in chronological order, phase 1–4 on top and 5–8 below. Each creature stays in the center 65% of its own cell with very large transparent gutters, no pose may cross an imaginary cell edge. Wings compact if needed for margin. Fully opaque smooth character silhouettes and a genuinely transparent background, no gradient, backdrop, text, drop shadow, floor, outline or floating marks. All phases same size, costume and anatomy. Wide format 2:1."
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "Reviewed for direction, silhouette, clear gutters and identity. Integrated map review recorded separately.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 350,
+  "pivot": [
+    0.5,
+    0.8
+  ]
+}

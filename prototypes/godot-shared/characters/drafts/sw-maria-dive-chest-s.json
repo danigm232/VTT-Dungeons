@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-maria-dive-chest-s",
+  "character": "maria",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-small",
+  "action": "dive_chest",
+  "direction": "s",
+  "fps": 10,
+  "loop": false,
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Independent environment effects. No water, foam or bubbles painted into the character."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-s/2c12ae339b62/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-s/2c12ae339b62/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-s/2c12ae339b62/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-s/2c12ae339b62/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-s/2c12ae339b62/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-s/2c12ae339b62/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-s/2c12ae339b62/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-s/2c12ae339b62/08.webp"
+  ],
+  "production": {
+    "method": "Image generation from existing character identity and native-size extraction",
+    "reference": "prototypes/godot-pecio/characters/imported/sw-maria-idle8/00-idle-01.png",
+    "prompt": "Only the exact attached Stormwreck player character, matching their face, hair, clothes, anatomy and apparent age. FRONT VIEW DIRECTLY TOWARD BOTTOM OF FRAME, see the same face and chest, slightly elevated game camera. Across eight successive clear drawn phases, float with knees and ankles raised well above the ground, dip to a submerged latch, turn it and lift a heavy unseen lid with both hands, float and peer inside. Targets are outside the sprite and supplied by the engine, don't draw any door or chest. Plain empty transparent alpha background, fully opaque character brushwork, absolutely no grey background, ground, water, glow, letters or outlines. Exact 4 columns by 2 rows, wide 2:1 total. Every sprite in the central 62% of its own cell with wide empty safety margins and the same character size.",
+    "minimumVisibleStandingPixels": 120,
+    "silhouetteAlpha": 80,
+    "columnCutsByRow": [
+      [
+        0,
+        444,
+        887,
+        1330,
+        1774
+      ],
+      [
+        0,
+        444,
+        887,
+        1330,
+        1774
+      ]
+    ],
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-maria-dive-chest-s-2c12ae339b62.png",
+    "originalSha256": "2c12ae339b623bd501f4ac76061abc138a48c43b9cb0737ae37a6afee6ba20cf",
+    "importReport": "output/stormwreck-motion-detail/sw-maria-dive-chest-s-2c12ae339b62.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 355,
+  "pivot": [
+    0.5,
+    0.875
+  ]
+}

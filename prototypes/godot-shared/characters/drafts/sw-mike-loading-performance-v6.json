@@ -9,19 +9,29 @@
   "review": {
     "visual": "pending",
     "userAcceptance": "pending",
-    "evidence": []
+    "evidence": [],
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified"
   },
   "instructions": "Create draft, search reuse, complete source/style/scale fields, adopt only after validation. Technical success is not artistic acceptance.",
   "kind": "animation",
   "character": "mike",
-  "action": "loading_performance",
+  "action": "retreat_loading_performance",
   "direction": "se",
-  "frames": [],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/08.webp"
+  ],
   "fps": 4.5,
   "loop": true,
   "pivot": [
     0.5,
-    1
+    0.962800875273523
   ],
   "compatibility": {
     "anatomies": [
@@ -33,7 +43,7 @@
   "events": [],
   "initialFrame": 0,
   "transition": "preserve support pivot",
-  "referenceHeight": null,
+  "referenceHeight": 423,
   "reuseSearch": {
     "required": true,
     "command": "node scripts/character-pipeline.mjs reuse --query sw-mike-loading-performance-v6"
@@ -48,7 +58,12 @@
     "paired": false,
     "heldPoseLibrary": false,
     "minimumVisibleStandingPixels": 300,
-    "minimumDistinctFrames": 6
+    "minimumDistinctFrames": 6,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-loading-performance-v6-d383d815ac5d.png",
+    "originalSha256": "d383d815ac5d2add4b10559cee5fe542d97a4254ccdebccbdf5d4f9c88aded10",
+    "importReport": "output/stormwreck-motion-detail/sw-mike-loading-performance-v6-d383d815ac5d.json",
+    "minimumAlpha": 24,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
   },
   "minimumDistinctFrames": 6
 }

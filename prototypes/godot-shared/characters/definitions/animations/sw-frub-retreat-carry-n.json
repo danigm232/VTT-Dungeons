@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-frub-retreat-carry-n",
+  "character": "sw-frub",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "retreat_carry_walk",
+  "direction": "n",
+  "fps": 6,
+  "loop": true,
+  "referenceHeight": 446,
+  "pivot": [
+    0.5,
+    0.8780487804878049
+  ],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-carry-n/63e75edea782/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-carry-n/63e75edea782/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-carry-n/63e75edea782/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-carry-n/63e75edea782/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-carry-n/63e75edea782/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-carry-n/63e75edea782/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-carry-n/63e75edea782/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-carry-n/63e75edea782/08.webp"
+  ],
+  "compatibility": {
+    "embeddedSlotsRetained": true,
+    "propsSeparate": true,
+    "preservesAppearance": true
+  },
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-walk-rear/896c34747a58/01.png",
+    "intent": "Dedicated rear pose cycle. Props independent, retain identity and real feet support.",
+    "minimumVisibleStandingPixels": 350,
+    "columns": 4,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-frub-retreat-carry-n-63e75edea782.png",
+    "originalSha256": "63e75edea78213355013b48f1ba55c6e4ad684521c6917416f55219a0f659e59",
+    "importReport": "output/stormwreck-motion-detail/sw-frub-retreat-carry-n-63e75edea782.json",
+    "minimumAlpha": 20,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "Original and extracted candidate compared, with user acceptance pending.",
+    "userAcceptance": "pending"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-mia-swim-e",
+  "character": "mia",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-dwarf",
+  "action": "swim",
+  "direction": "e",
+  "fps": 9,
+  "loop": true,
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Independent environment effects. No water, foam or bubbles painted into the character."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-swim-e/54f6669b7233/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-swim-e/54f6669b7233/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-swim-e/54f6669b7233/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-swim-e/54f6669b7233/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-swim-e/54f6669b7233/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-swim-e/54f6669b7233/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-swim-e/54f6669b7233/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-swim-e/54f6669b7233/08.webp"
+  ],
+  "production": {
+    "method": "Image generation from existing character identity and native-size extraction",
+    "reference": "prototypes/godot-pecio/characters/imported/sw-mia-idle8/00-idle-01.png",
+    "prompt": "Original hero as identity reference. Eight directional phases. Alpha transparency and independent effects. Preserve stature and costume.",
+    "minimumVisibleStandingPixels": 120,
+    "silhouetteAlpha": 80,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mia-swim-e-54f6669b7233.png",
+    "originalSha256": "54f6669b72332c0c228d782002f4d86499792f242e11443a4581a0f0031996cf",
+    "importReport": "output/stormwreck-motion-detail/sw-mia-swim-e-54f6669b7233.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "Individual transparent poses visually reviewed for heading, silhouette and separation from VFX. Project review controls promotion.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 355,
+  "pivot": [
+    0.5,
+    0.7192982456140351
+  ]
+}

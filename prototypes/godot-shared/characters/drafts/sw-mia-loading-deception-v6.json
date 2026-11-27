@@ -9,19 +9,29 @@
   "review": {
     "visual": "pending",
     "userAcceptance": "pending",
-    "evidence": []
+    "evidence": [],
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified"
   },
   "instructions": "Create draft, search reuse, complete source/style/scale fields, adopt only after validation. Technical success is not artistic acceptance.",
   "kind": "animation",
   "character": "mia",
-  "action": "loading_deception",
+  "action": "retreat_loading_deception",
   "direction": "se",
-  "frames": [],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-deception-v6/2615ef9fb850/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-deception-v6/2615ef9fb850/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-deception-v6/2615ef9fb850/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-deception-v6/2615ef9fb850/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-deception-v6/2615ef9fb850/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-deception-v6/2615ef9fb850/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-deception-v6/2615ef9fb850/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-deception-v6/2615ef9fb850/08.webp"
+  ],
   "fps": 4.5,
   "loop": true,
   "pivot": [
     0.5,
-    1
+    0.913135593220339
   ],
   "compatibility": {
     "anatomies": [
@@ -33,7 +43,7 @@
   "events": [],
   "initialFrame": 0,
   "transition": "preserve support pivot",
-  "referenceHeight": null,
+  "referenceHeight": 406,
   "reuseSearch": {
     "required": true,
     "command": "node scripts/character-pipeline.mjs reuse --query sw-mia-loading-deception-v6"
@@ -48,7 +58,12 @@
     "paired": false,
     "heldPoseLibrary": false,
     "minimumVisibleStandingPixels": 300,
-    "minimumDistinctFrames": 6
+    "minimumDistinctFrames": 6,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mia-loading-deception-v6-2615ef9fb850.png",
+    "originalSha256": "2615ef9fb85008bfcee89b656e3f545438ac2ab502a618a14aaf0662168ced1d",
+    "importReport": "output/stormwreck-motion-detail/sw-mia-loading-deception-v6-2615ef9fb850.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
   },
   "minimumDistinctFrames": 6
 }

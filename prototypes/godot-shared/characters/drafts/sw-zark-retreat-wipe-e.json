@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-zark-retreat-wipe-e",
+  "character": "sw-zark",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "retreat_wipe",
+  "direction": "e",
+  "fps": 4,
+  "loop": true,
+  "referenceHeight": 483,
+  "pivot": [
+    0.5,
+    0.950381679389313
+  ],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-wipe-e/dce43747801f/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-wipe-e/dce43747801f/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-wipe-e/dce43747801f/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-wipe-e/dce43747801f/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-wipe-e/dce43747801f/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-wipe-e/dce43747801f/06.webp"
+  ],
+  "compatibility": {
+    "embeddedSlotsRetained": true,
+    "propsSeparate": true,
+    "preservesAppearance": true
+  },
+  "production": {
+    "columns": 3,
+    "minimumVisibleStandingPixels": 350,
+    "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-turnaround/cf00b16dd88a/06.png",
+    "intent": "Foot support fixed, reaching the high tabletop to guide a separate cloth.",
+    "silhouetteAlpha": 96,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-zark-retreat-wipe-e-dce43747801f.png",
+    "originalSha256": "dce43747801fc87e60c44a739f8d1c6f6404abb65c64ef2fc931bad672c59629",
+    "importReport": "output/stormwreck-motion-detail/sw-zark-retreat-wipe-e-dce43747801f.json",
+    "minimumAlpha": 20,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  }
+}

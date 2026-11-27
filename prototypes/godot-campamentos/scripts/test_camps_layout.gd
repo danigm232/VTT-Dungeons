@@ -106,12 +106,15 @@ func _run() -> void:
 		# Profile-specific structural invariants
 		if sid == "camp-a1-rooms":
 			check(inst.find_child("AstalaganStatue", true, false) != null, "A1 Astalagan statue built")
+			check(inst.find_child("A1CozyRug_PlazaBenchWest", true, false) != null and inst.find_child("A1DoorLantern_1", true, false) != null and inst.find_child("A1DoorMat_1", true, false) != null, "A1 mounts plaza bench rugs, threshold mats & doorway lanterns")
 			var cr := inst.find_child("CutawayRoof_cell-1", true, false) as Node3D
 			check(cr != null and cr.visible, "A1 cell-1 roof initially visible")
 			# Move Mia into cell-1 (col 5, row 9) -> triggers cutaway!
 			tok.global_position = Structure.tile_to_world(5, 9, 0.05)
 			await process_frame
 			check(not cr.visible, "A1 cell-1 roof cuts away when Mia enters")
+			inst._update_spatial_audio()
+			check(inst.audio_mgr != null and inst.audio_mgr.is_sheltered_audio, "A1 sheltered cell audio attenuates exterior wind")
 
 		elif sid == "camp-forest-pleamar":
 			check(inst.find_child("ForestOrganicStream", true, false) != null, "Forest organic stream built")
@@ -896,11 +899,16 @@ func _run() -> void:
 				hedge_cnt >= 20 and hedge_colliders >= 10 and total_shrubs >= 600,
 				"Selective forest lushness increased (%d hedgerows, %d colliders, %d understory shrub/fern instances)" % [hedge_cnt, hedge_colliders, total_shrubs]
 			)
+			check(
+				inst.find_child("ShelterWovenRug", true, false) != null and inst.find_child("ShelterWarmBounceLight", true, false) != null and inst.find_child("ForestHearthMat", true, false) != null and inst.find_child("CampEastPostLantern", true, false) != null,
+				"Forest mounts cozy shelter rug, underside fire-bounce light, hearth mat & east post lantern"
+			)
 
 		elif sid == "camp-wreck-beach":
 			check(inst.find_child("StrandedRowboat", true, false) != null, "Beach stranded rowboat built")
 			check(inst.find_child("OceanWater", true, false) != null, "Beach ocean backdrop built")
 			check(inst.find_child("CanvasShelter_wreck-beach", true, false) != null, "Beach windbreak tarp shelter built")
+			check(inst.find_child("BeachSalvagedSupplyTable", true, false) != null and inst.find_child("BeachTableLantern", true, false) != null and inst.find_child("BeachHearthMat", true, false) != null, "Beach mounts cozy salvaged crate/barrel table, sea lantern & woven mat")
 			check(inst.find_child("ShoreCrab_0", true, false) != null, "Beach shoreline crabs spawned")
 			check(inst.find_child("BeachTurtle", true, false) != null, "Beach crawling sea turtle spawned")
 			check(inst.find_child("BeachPerchedGull_0", true, false) != null, "Beach perched gull spawned")
@@ -911,6 +919,7 @@ func _run() -> void:
 		elif sid == "camp-cliffs-observatory":
 			check(inst.fx != null and inst.fx._aurora_meshes.size() == 3, "Observatory 3D auroras built")
 			check(inst.find_child("CanvasShelter_cliff-observatory", true, false) != null, "Observatory low rock-weighted tarp built")
+			check(inst.find_child("CliffHearthMat", true, false) != null and inst.find_child("CliffLookoutSpyglass", true, false) != null and inst.find_child("CliffObservatoryFieldLantern", true, false) != null, "Observatory mounts basalt windbreak, hearth rug, tripod spyglass & field lantern")
 			check(inst.find_child("CliffIbex", true, false) != null, "Observatory mountain Ibex spawned")
 			check(inst.find_child("CliffHare", true, false) != null, "Observatory cliff Hare spawned")
 			check(inst.find_child("CliffPerchedRaven_0", true, false) != null, "Observatory perched Raven spawned")
@@ -921,6 +930,7 @@ func _run() -> void:
 			check(inst.find_child("RockyOverhangLip", true, false) != null, "Refuge overhang rock arch built")
 			check(inst.find_child("GrottoCliffShell", true, false) != null, "Refuge continuous cave cliff shell built")
 			check(inst.find_child("CanvasShelter*", true, false) == null, "Refuge has ZERO canvas tarps (natural cave is shelter)")
+			check(inst.find_child("CaveTimberPlatform", true, false) != null and inst.find_child("CaveSanctuaryRug", true, false) != null and inst.find_child("RefugeWallLantern_0", true, false) != null, "Refuge mounts dry timber sleeping deck, woven rug & warm grotto wall lanterns")
 			check(inst.find_child("ShallowWaterCells", true, false) != null, "Refuge shallow tide pools built")
 			check(inst.find_child("CaveFish_0", true, false) != null, "Refuge tidepool fish spawned")
 			check(inst.find_child("SeaFish_Cove_0", true, false) != null, "Refuge ocean mouth fish spawned")

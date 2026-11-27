@@ -2,7 +2,7 @@
   "version": 1,
   "kind": "character",
   "id": "sw-ghoul",
-  "name": "Gul · reposo ocho fases",
+  "name": "Gul",
   "campaign": "stormwreck-isle",
   "anatomy": "humanoid-tall",
   "dependencies": [],
@@ -24,16 +24,23 @@
     "original": "campaigns/stormwreck-isle/public/art/characters/base-v1/originals/ghoul-idle8-079f05fe45.png",
     "originalSha256": "079f05fe4519e9cc324ea845794d932a7347df142c1a820d12ae3db22a9b49e4",
     "importReport": "output/stormwreck-characters-20261117/imports/ghoul.json",
-    "alphaMatteReport": "output/stormwreck-characters-20261117/ghoul-alpha-matte.json"
+    "alphaMatteReport": "output/stormwreck-characters-20261117/ghoul-alpha-matte.json",
+    "motionFinish": {
+      "brief": "Directional idle, independent running and stalking, rear low gestures and reuse of authored phases for transitions.",
+      "source": "stormwreck-isle motion contract"
+    }
   },
   "limitations": [
-    "Eight idle phases in one base view; authored other directions and actions retained, no additional views claimed.",
+    "Ground actions use southeast and northwest source views. The other camera octants reuse or reflect the nearest authored view.",
+    "Starting and stopping reuse idle and walking phases. Standing reverses the directional fall.",
     "Clothing/equipment production deferred by user."
   ],
   "heightMeters": 1.75,
   "heightBasis": "staging estimate for Medium ghoul; not a canonical individual height",
   "aliases": [
     "ghoul",
+    "ghoul_c8",
+    "c8-ghoul",
     "gul",
     "Gul"
   ],
@@ -67,7 +74,22 @@
   ],
   "equipmentSlots": [],
   "safeAnimations": [
-    "idle"
+    "idle",
+    "combat_idle",
+    "turn",
+    "start",
+    "stop",
+    "walk",
+    "run",
+    "stealth",
+    "crawl",
+    "claw",
+    "bite",
+    "hit",
+    "fall",
+    "prone",
+    "stand",
+    "defeated"
   ],
   "states": [
     "poisoned",

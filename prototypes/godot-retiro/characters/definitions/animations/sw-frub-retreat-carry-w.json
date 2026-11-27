@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-frub-retreat-carry-w",
+  "character": "sw-frub",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "retreat_carry_walk",
+  "direction": "w",
+  "fps": 6,
+  "loop": true,
+  "referenceHeight": 414,
+  "pivot": [
+    0.5,
+    0.9392624728850325
+  ],
+  "frames": [
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-carry-w/4f24721ea1c6/01.webp",
+      "pivot": [
+        0.4166666666666667,
+        0.9882075471698113
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-carry-w/4f24721ea1c6/02.webp",
+      "pivot": [
+        0.42071197411003236,
+        0.9881796690307328
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-carry-w/4f24721ea1c6/03.webp",
+      "pivot": [
+        0.4261744966442953,
+        0.9882352941176471
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-carry-w/4f24721ea1c6/04.webp",
+      "pivot": [
+        0.44482758620689655,
+        0.9880952380952381
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-carry-w/4f24721ea1c6/05.webp",
+      "pivot": [
+        0.4158730158730159,
+        0.9882075471698113
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-carry-w/4f24721ea1c6/06.webp",
+      "pivot": [
+        0.4169381107491857,
+        0.9882075471698113
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-carry-w/4f24721ea1c6/07.webp",
+      "pivot": [
+        0.42333333333333334,
+        0.9882075471698113
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-carry-w/4f24721ea1c6/08.webp",
+      "pivot": [
+        0.43537414965986393,
+        0.9882075471698113
+      ]
+    }
+  ],
+  "compatibility": {
+    "embeddedSlotsRetained": true,
+    "propsSeparate": true,
+    "preservesAppearance": true
+  },
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-turnaround/0f81da46a176/08.png",
+    "columns": 4,
+    "silhouetteAlpha": 96,
+    "minimumVisibleStandingPixels": 300,
+    "intent": "Primary lateral view along the actual load route; arms support an independent 3D prop.",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-frub-retreat-carry-w-4f24721ea1c6.png",
+    "originalSha256": "4f24721ea1c62546637bdf07569fbba2f9b56bcc0eddddcb8433b8d7bc0a9efd",
+    "importReport": "output/stormwreck-motion-detail/sw-frub-retreat-carry-w-4f24721ea1c6.json",
+    "minimumAlpha": 20,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "Original and extracted candidate compared, with user acceptance pending.",
+    "userAcceptance": "pending"
+  }
+}

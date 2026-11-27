@@ -1,5 +1,48 @@
 # Zombis y las dos arpías — cierre visual del 16/11/2026
 
+## Virajes y aterrizajes de las arpías · 26/11/2026
+
+Las dos arpías del Pecio usan ocho virajes dibujados sin reflejar la porra. Cada uno tiene ocho fases. El aterrizaje tiene cuatro vistas dibujadas de ocho fases y las diagonales eligen el perfil más próximo. El giro de cámara conserva el rumbo y la fase. El descenso visual pone las garras en contacto en la sexta fase y la cofa emite un solo sonido de contacto. Se conserva la posición lógica de ambos actores. C2 mantiene su condición de nivel 2.
+
+Los originales PNG se conservan y sus fotogramas WebP se verifican píxel a píxel. El [registro por recurso](../../output/stormwreck-harpy-arrivals-20261126/capture-register.json) incluye identidad, procedencia, huellas y los puntos VA-03, VA-07, VA-10 y VA-14. El [visor](../../output/stormwreck-animaciones-20261126/Zombis-y-arpias-Stormwreck.html) permite reproducir, pausar y avanzar las fases. La [comparativa en Godot](../../output/stormwreck-harpy-arrivals-20261126/index.html) incluye las dos ubicaciones. Queda la revisión artística del usuario.
+
+## Repertorio terrestre del gul · 26/11/2026
+
+El actor `ghoul_c8` en el Pecio conserva el rumbo del mundo al detenerse. La cámara selecciona la vista del mismo rumbo y mantiene el fotograma cuando gira. El inicio y la frenada enlazan etapas del reposo y la marcha sin añadir fotogramas repetidos a cada transición. El giro en el lugar usa una secuencia propia. Al quitar Derribado, el gul se incorpora reproduciendo la caída de su vista en orden inverso. Durante el turno del gul, Correr y Esconderse seleccionan la carrera y el acecho reales al desplazarse.
+
+| Recurso | Dibujo y uso |
+| --- | --- |
+| `sw-ghoul-idle-nw` | Reposo de espalda con respiración. Comparte el actor y la talla con el reposo anterior del sureste. |
+| `sw-ghoul-run-se`, `sw-ghoul-run-nw` | Carrera propia de frente y de espaldas a 15 FPS. La segunda lámina dorsal corrige el apoyo repetido de la primera. |
+| `sw-ghoul-stealth-se`, `sw-ghoul-stealth-nw` | Acecho agachado con avance a 7 FPS. |
+| `sw-ghoul-turn-se`, `sw-ghoul-turn-nw` | Pivote de pie, pelvis y hombros al cambiar de rumbo. |
+| `sw-ghoul-crawl-nw`, `sw-ghoul-fall-nw`, `sw-ghoul-hit-nw` | Arrastre, caída y retroceso de espaldas. La última fase de caída sostiene la postura abatida. |
+
+Son 80 fotogramas WebP sin pérdida, ocho por secuencia. Las secuencias representan dos vistas dibujadas. Los otros seis rumbos seleccionan la más próxima o su reflejo lateral. Las condiciones inmovilizadoras usan una fase fija de la vista correspondiente. La iluminación, la altura de apoyo y la oclusión se comprueban en la sentina. Los originales, medidas y huellas se registran por ID, con VA-03/07/10/14 y REF-01.
+
+La revisión `4dc9743c…` pasó 149 comprobaciones funcionales y 162 con render Forward+, incluidas las órdenes Correr y Esconderse sobre el gul de C8. Se registraron 13 capturas. Tres pares reproducen, con el mismo encuadre, el reposo y los dibujos de marcha que sustituían a la carrera y al acecho. Se comprobó la conservación de fase al orbitar y la recuperación tras retirar Derribado.
+
+[Visor con códigos](../../output/stormwreck-animaciones-20261126/Zombis-y-arpias-Stormwreck.html) · [Comparativas en C8](../../output/stormwreck-ghoul-20261126/index.html).
+
+## Gul y arpías del Pecio · 26/11/2026
+
+En C8 el nodo `GhoulToken` ya carga la identidad `sw-ghoul`. Se conservan posición y ficha de campaña. El ID `ghoul_c8` enlaza con las dos acciones del perfil `c8-ghoul` para que la rueda y los eventos usen el mordisco y las garras, con secuencias distintas. El cuerpo usa una marcha de tres cuartos frontal y otra dorsal. Las vistas intermedias seleccionan la más próxima y se refleja la alternativa del otro lado. Avance rápido y acecho reutilizan esa marcha a 15 y 6 FPS. El paso por el suelo usa un arrastre propio. La caída termina en una pose tumbada y la recuperación invierte las fases de la caída. La reacción al daño tiene un ciclo independiente.
+
+El Pecio ya tenía un refuerzo canónico `harpy_c2_lvl2` en la balista. Se evita instanciar otra copia cuando ese nodo existe. La segunda arpía comparte la biblioteca y las acciones de la cofa, con su propia vida y condiciones. Al aparecer, las dos enlazan la aproximación con el aterrizaje. En el ángulo este la aproximación usa el viraje nuevo. Los demás ángulos reutilizan el vuelo registrado.
+
+| Recursos | Referencia y uso |
+| --- | --- |
+| `sw-ghoul-walk-se`, `sw-ghoul-walk-nw` | Dos marchas propias, ocho fases por vista. Alturas de referencia de 400 y 395 px. |
+| `sw-ghoul-claw-se`, `sw-ghoul-claw-nw`, `sw-ghoul-bite-se`, `sw-ghoul-bite-nw` | Garras y mordisco diferenciados en ambas vistas. Se conservan las vendas, la lengua y el taparrabos pintados. |
+| `sw-ghoul-crawl-se`, `sw-ghoul-fall-se`, `sw-ghoul-hit-se` | Ocho fases por secuencia. Arrastre y caída usan una línea de suelo común. |
+| `sw-harpy-flight-turn-e` | Ocho fases de viraje sin cambiar la porra de mano. Conserva el batido y el giro del cuerpo. |
+
+Los 80 WebP se extrajeron sin redimensionar y se comprobaron mediante decodificación y comparación RGBA. Los originales y la procedencia constan en las definiciones. El informe registra las capturas, recursos y criterio de referencia REF-01 para VA-03/07/10/14. La biblioteca histórica ofrece los demás ángulos de vuelo y el aterrizaje. Los ciclos y vistas que le faltaban al gul al terminar esta tanda se documentan en el apartado anterior. Las vistas adicionales del viraje, los puntos físicos de agarre de la arpía y la prueba en dispositivos siguen pendientes.
+
+La candidata selectiva `65955807…` del Pecio pasó 112 comprobaciones funcionales y 124 con el render Forward+. Se verificaron la selección de ocho fotogramas, las dos acciones del gul, el refuerzo único con la colisión deshabilitada al estar oculto y la transición de giro a aterrizaje. La captura de C2 comprobó además que se mantenía el quinto fotograma del giro este. La regresión de combate pasó otras 124 comprobaciones.
+
+[Ver los ciclos y sus códigos](../../output/stormwreck-animaciones-20261126/Zombis-y-arpias-Stormwreck.html) · [Revisión del Pecio](../../output/stormwreck-beasts-20261126/index.html).
+
 Ampliación de [la auditoría de personajes del 15/11](CHARACTER_SPRITES_20261115.md), solicitada expresamente por el usuario: completar los zombis disponibles y continuar con ambas arpías. Se conserva el trabajo actual de escenarios, rueda de acciones, cuadrícula e interfaz. No cambia el orden de acabado del roadmap maestro.
 
 ## Resultado implementado

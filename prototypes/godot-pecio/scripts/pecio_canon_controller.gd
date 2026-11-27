@@ -75,6 +75,7 @@ func _post_ready_sync() -> void:
 		apply_party_level(ws.party_level, false)
 		apply_strict_canon_mode(ws.strict_canon_mode, false)
 		sync_c4_zombies_behavior()
+		sync_c6_portrait_visuals()
 		sync_c6_stash_visuals()
 		sync_c9_chest_visuals()
 		sync_persisted_doors()
@@ -237,8 +238,12 @@ func apply_party_level(lvl: int, save_flag: bool = true) -> void:
 		var h2 := vessel.get_node_or_null("HarpyToken_C2") as Node3D
 		if h2:
 			var show_h2 := is_lvl2 and (ws != null and ws.harpy_present)
+			var arriving := show_h2 and not bool(h2.get_meta("adventure_present", false))
 			h2.set_meta("adventure_present", show_h2)
 			h2.visible = show_h2
+			var table := _get_vtt_ui()
+			if arriving and table:
+				table.animate_harpy_arrival(h2)
 	var ui := _get_vtt_ui()
 	if ui and "enemies" in ui:
 		for e in ui.enemies:
@@ -417,23 +422,40 @@ func _loot_c4_drawers() -> void:
 	var ws := _get_world_state()
 	if ws and ws.c4_desk_looted:
 		return
+	var need_gold := not (ws != null and ws.is_pickup_collected("PickupGoldC4"))
+	var need_tools := not (ws != null and ws.is_pickup_collected("PickupCartographerC4"))
+	var need_dagger := not (ws != null and ws.is_pickup_collected("PickupDaggerC4"))
 	if ws:
 		ws.c4_desk_looted = true
+		ws.mark_pickup_collected("PickupGoldC4")
+		ws.mark_pickup_collected("PickupCartographerC4")
+		ws.mark_pickup_collected("PickupDaggerC4")
 		ws.save_state()
 	var ui := _get_vtt_ui()
+	var parts: Array[String] = []
 	if ui and ui.has_method("add_inventory_item"):
-		ui.add_inventory_item("gold", 50, "50 po (cajones C4)")
-		ui.add_inventory_item("cartographer_tools", 1, "Herramientas de cartógrafo")
-		ui.add_inventory_item("dagger", 1, "Daga")
+		if need_gold:
+			ui.add_inventory_item("gold", 50, "50 po (cajones C4)")
+			parts.append("+50 po")
+		if need_tools:
+			ui.add_inventory_item("cartographer_tools", 1, "Herramientas de cartógrafo")
+			parts.append("Herramientas de cartógrafo")
+		if need_dagger:
+			ui.add_inventory_item("dagger", 1, "Daga")
+			parts.append("1 Daga")
 	_hide_legacy_pickups(["PickupCartographerC4", "PickupDaggerC4", "PickupGoldC4"])
-	_notify("✨ Cajones de C4 registrados: +50 po, Herramientas de cartógrafo y 1 Daga.")
+	if parts.is_empty():
+		_notify("Los cajones de C4 ya están vacíos (ya habías recogido su contenido).")
+	else:
+		_notify("✨ Cajones de C4 registrados: %s." % ", ".join(parts))
 
 func _loot_c4_compass() -> void:
 	var ws := _get_world_state()
-	if ws and ws.c4_compass_taken:
+	if ws and (ws.c4_compass_taken or ws.is_pickup_collected("PickupCompassC4")):
 		return
 	if ws:
 		ws.c4_compass_taken = true
+		ws.mark_pickup_collected("PickupCompassC4")
 		ws.save_state()
 	var ui := _get_vtt_ui()
 	if ui and ui.has_method("add_inventory_item"):
@@ -465,6 +487,177 @@ func trigger_c5_crabs_scatter() -> void:
 	_notify("🦀 ¡Falsa alarma! Los huesos se movían por media docena de pequeños cangrejos inofensivos que huyen al acercarte (PDF p. 24: sin combate).")
 
 # ==============================================================================
+# B9 · RETRATO CANÓNICO DE ALEITHA Y BRASTOS EN C6 (HANDOUT + APLIQUE + RECOGIBLE · PDF p. 24)
+# ==============================================================================
+func sync_c6_portrait_visuals() -> void:
+	var ws := _get_world_state()
+	var taken := ws != null and ws.c6_portrait_taken
+	var portrait_root := get_tree().root.find_child("C6_AleithaPortrait", true, false) as Node3D
+	if portrait_root:
+		var canvas := portrait_root.get_node_or_null("PortraitHangingCanvas") as Node3D
+		if canvas:
+			canvas.visible = not taken
+		var mark := portrait_root.get_node_or_null("PortraitWallMark") as Node3D
+		if mark:
+			mark.visible = taken
+		var prop := portrait_root.get_node_or_null("PropPortraitC6")
+		if prop:
+			prop.prompt_text = "Examinar hueco del Retrato / Volver a colgar (C6)" if taken else "Examinar Retrato de Aleitha y Brastos (C6)"
+
+func open_c6_portrait_modal() -> void:
+	var ws := _get_world_state()
+	if ws and not ws.c6_portrait_examined:
+		ws.mark_c6_portrait_examined()
+	_play_sfx(SfxKit.make_wood_creak())
+	var taken := ws != null and ws.c6_portrait_taken
+	var sconce_lit := is_lantern_lit("C6_PortraitSconceLight")
+	var log_read := ws != null and ws.logbook_read
+
+	var body := (
+		"Placa de latón grabada: «Aleitha y Brastos: juntos para siempre».\n\n"
+		+ "Un retrato al óleo desvaído por cuarenta años de salitre muestra a una joven pareja abrazada y sonriente: "
+		+ "Aleitha, una mujer de pelo oscuro vestida con uniforme de marinera, y Brastos, un hombre rubio con elegantes ropajes de mercader.\n\n"
+		+ ("🔗 Conexión narrativa: reconoces al instante a la capitana Aleitha de la bitácora hallada en C9 y a su amado Brastos, cuya tumba en el claustro de Retiro del Dragón puede identificar Runara para romper la maldición."
+		   if log_read else
+		   "💡 Pista de la aventura (PDF p. 24): guarda bien ambos nombres. Si enseñas o mencionas este retrato a Runara en el Retiro del Dragón, o lo relacionas con la bitácora del pecio, revelará el origen de la maldición del Rosa de los Vientos.")
+	)
+
+	var btns: Array = [
+		{
+			"label": "💡 Apagar aplique del retrato" if sconce_lit else "💡 Encender aplique de latón sobre el retrato",
+			"style": "secondary",
+			"cb": func(): _toggle_portrait_sconce_and_refresh()
+		},
+		{
+			"label": "🖼 Volver a colgar el retrato en el mamparo de C6" if taken else "🖼 Descolgar y guardar el retrato en la mochila",
+			"style": "primary",
+			"cb": func(): take_or_hang_c6_portrait(not taken)
+		}
+	]
+	if log_read:
+		btns.append({
+			"label": "📖 Abrir Bitácora de Aleitha y Talismán de Orcus",
+			"style": "secondary",
+			"cb": func(): open_logbook_and_talisman_modal()
+		})
+	show_portrait_handout_modal(
+		"RETRATO AL ÓLEO · CAMAROTE DE TRIPULACIÓN (C6 · PDF p. 24)",
+		"«Aleitha y Brastos: juntos para siempre»",
+		body,
+		"res://assets/textures/c6-aleitha-brastos-portrait-art10.png",
+		btns
+	)
+
+func _toggle_portrait_sconce_and_refresh() -> void:
+	toggle_lantern("C6_PortraitSconceLight")
+	open_c6_portrait_modal()
+
+func take_or_hang_c6_portrait(take: bool) -> void:
+	var ws := _get_world_state()
+	if ws:
+		ws.set_c6_portrait_taken(take)
+	var inv := get_tree().root.find_child("InventoryManager", true, false)
+	var ui := _get_vtt_ui()
+	if take:
+		if ui and ui.has_method("add_inventory_item"):
+			if not (inv and inv.items.has("aleitha_portrait") and int(inv.items["aleitha_portrait"]["count"]) > 0):
+				ui.add_inventory_item("aleitha_portrait", 1, "Retrato de Aleitha y Brastos (C6)")
+		_notify("🖼 Descuelgas el retrato de Aleitha y Brastos del mamparo de C6 y lo guardas en la mochila (útil para enseñárselo a Runara).")
+	else:
+		if inv and inv.items.has("aleitha_portrait") and int(inv.items["aleitha_portrait"]["count"]) > 0:
+			inv.items["aleitha_portrait"]["count"] = 0
+			inv.refresh_backpack_ui()
+		_notify("🖼 Vuelves a colgar con cuidado el retrato de Aleitha y Brastos en el mamparo de proa de C6.")
+	_play_sfx(SfxKit.make_wood_creak())
+	sync_c6_portrait_visuals()
+
+func show_portrait_handout_modal(title_text: String, plaque_text: String, body_text: String, tex_path: String, buttons: Array) -> void:
+	var ui := _get_vtt_ui()
+	if not ui or not ("ui_root" in ui) or not ui.ui_root:
+		_notify(plaque_text + " — " + body_text)
+		return
+	if _modal and is_instance_valid(_modal):
+		_modal.queue_free()
+	_modal = ThemeKit.make_window_panel(ThemeKit.COL_GOLD, 14)
+	_modal.name = "PecioCanonModal"
+	_modal.set_anchors_preset(Control.PRESET_CENTER)
+	_modal.offset_left = -280
+	_modal.offset_top = -270
+	_modal.offset_right = 280
+	_modal.offset_bottom = 270
+	ui.ui_root.add_child(_modal)
+
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 8)
+	_modal.add_child(vb)
+
+	var title := ThemeKit.make_label(title_text, 15, ThemeKit.COL_HEADING)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vb.add_child(title)
+
+	if ResourceLoader.exists(tex_path):
+		var frame_panel := PanelContainer.new()
+		frame_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		var st := StyleBoxFlat.new()
+		st.bg_color = Color(0.10, 0.08, 0.06, 0.96)
+		st.border_color = Color(0.84, 0.68, 0.34, 0.98)
+		st.set_border_width_all(3)
+		st.set_corner_radius_all(4)
+		st.set_content_margin_all(5)
+		frame_panel.add_theme_stylebox_override("panel", st)
+		var tex_rect := TextureRect.new()
+		tex_rect.name = "PortraitHandoutImage"
+		tex_rect.texture = load(tex_path) as Texture2D
+		tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tex_rect.custom_minimum_size = Vector2(210, 210)
+		frame_panel.add_child(tex_rect)
+		vb.add_child(frame_panel)
+
+	var plaque := ThemeKit.make_label(plaque_text, 14, ThemeKit.COL_GOLD_BRIGHT)
+	plaque.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(plaque)
+
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(510, 108)
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vb.add_child(scroll)
+
+	var desc := ThemeKit.make_label(body_text, 12, ThemeKit.COL_INK)
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc.custom_minimum_size = Vector2(490, 0)
+	scroll.add_child(desc)
+
+	var btn_box := VBoxContainer.new()
+	btn_box.add_theme_constant_override("separation", 5)
+	vb.add_child(btn_box)
+
+	for b_cfg in buttons:
+		var b := Button.new()
+		b.text = str(b_cfg.get("label", "Aceptar"))
+		b.disabled = bool(b_cfg.get("disabled", false))
+		ThemeKit.style_button(b, str(b_cfg.get("style", "secondary")), 8, 10, 5)
+		var cb: Callable = b_cfg.get("cb", Callable())
+		b.pressed.connect(func():
+			if is_instance_valid(_modal):
+				_modal.visible = false
+			if cb.is_valid():
+				cb.call()
+		)
+		btn_box.add_child(b)
+
+	var close_b := Button.new()
+	close_b.text = "Cerrar"
+	ThemeKit.style_button(close_b, "ghost", 6, 8, 4)
+	close_b.pressed.connect(func():
+		if is_instance_valid(_modal):
+			_modal.visible = false
+	)
+	vb.add_child(close_b)
+	ui.ui_root.move_child(_modal, ui.ui_root.get_child_count() - 1)
+
+# ==============================================================================
 # B3 · C6 TABLÓN SUELTO Y TRAMPA DE AGUJA (PERCEPCIÓN CD 10 · 200 po)
 # ==============================================================================
 func sync_c6_stash_visuals() -> void:
@@ -477,6 +670,14 @@ func sync_c6_stash_visuals() -> void:
 		var needle := stash_node.find_child("TrapNeedleC6", true, false) as Node3D
 		if needle:
 			needle.visible = (state == "discovered")
+		var plank := stash_node.find_child("LoosePlankMeshC6", true, false) as Node3D
+		if plank:
+			if state == "hidden":
+				plank.position = Vector3(0.0, 0.024, 0.0)
+				plank.rotation_degrees = Vector3(0.0, 1.5, 1.2)
+			else:
+				plank.position = Vector3(0.14, 0.055, 0.08)
+				plank.rotation_degrees = Vector3(4.0, 18.0, 12.0)
 		var prop := stash_node.find_child("PropTrapC6", true, false)
 		if prop:
 			match state:
@@ -669,6 +870,15 @@ func sync_c9_chest_visuals() -> void:
 	var chest_prop := get_tree().root.find_child("PropIronChestC9", true, false)
 	if chest_prop:
 		chest_prop.prompt_text = "Revisar Cofre de Hierro C9 (Bitácora y Talismán)" if st in ["opened_underwater", "hoisted", "looted"] else "Cofre de Hierro Sumergido (~60 kg · C9)"
+	var mechanism := _c9_chest_mechanism()
+	if mechanism and st in ["opened_underwater", "hoisted", "looted"] and not mechanism.is_playing():
+		mechanism.play("open")
+		mechanism.seek(mechanism.get_animation("open").length, true)
+
+func _c9_chest_mechanism() -> AnimationPlayer:
+	var model := get_tree().root.find_child("IronChestMesh_C9", true, false)
+	var mechanism := model.find_child("AnimationPlayer", true, false) as AnimationPlayer if model else null
+	return mechanism if mechanism and mechanism.has_animation("open") else null
 
 func open_c9_chest_modal() -> void:
 	var ws := _get_world_state()
@@ -693,6 +903,14 @@ func _collect_c9_chest(opened_underwater: bool) -> void:
 	if ws:
 		ws.mark_c9_chest_state("opened_underwater" if opened_underwater else "hoisted")
 	if opened_underwater:
+		var role_ui := _get_vtt_ui()
+		var chest := get_tree().root.find_child("PropIronChestC9", true, false) as Node3D
+		var body: Node3D = role_ui.get_active_token_node() if role_ui else null
+		if body is PlayerToken and chest and body.aquatic.submerged:
+			body.play_object_action("dive_chest", chest.global_position)
+		var mechanism := _c9_chest_mechanism()
+		if mechanism:
+			mechanism.play("open")
 		_play_sfx(SfxKit.make_bubble_burst())
 		_spawn_c9_waxed_parcel_float_vfx()
 	else:
@@ -737,9 +955,13 @@ func open_logbook_and_talisman_modal() -> void:
 		ws.logbook_read = true
 		ws.save_state()
 	var t_state := ws.talisman_state if ws else "held"
+	var portrait_link := (
+		"\n• 🔗 Reconoces al instante los nombres del retrato al óleo de C6 («Aleitha y Brastos: juntos para siempre»)."
+		if ws and (ws.c6_portrait_examined or ws.c6_portrait_taken) else ""
+	)
 	var body := (
 		"BITÁCORA PROTEGIDA DE LA CAPITANA ALEITHA (PDF p. 26):\n"
-		+ "«Tras la muerte de mi amado Brastos, rogué desesperada a Orcus, Señor de los No Muertos, para que nos reuniera para siempre. El barco encalló sobre los huesos del dragón y la maldición atrapó a toda mi tripulación.»\n\n"
+		+ "«Tras la muerte de mi amado Brastos, rogué desesperada a Orcus, Señor de los No Muertos, para que nos reuniera para siempre. El barco encalló sobre los huesos del dragón y la maldición atrapó a toda mi tripulación.»" + portrait_link + "\n\n"
 		+ "TALISMÁN DE CABELLOS Y HUESOS (Estado: %s):\n"
 		+ "• Marcando la última página cuelga un inquietante talismán trenzado con cabellos y huesos.\n"
 		+ "• Detectar magia revela un aura poderosa de NIGROMANCIA.\n"

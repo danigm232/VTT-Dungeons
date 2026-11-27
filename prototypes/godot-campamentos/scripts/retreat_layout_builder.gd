@@ -17,6 +17,24 @@ const MapExitScript = preload("res://scripts/map_exit.gd")
 const SceneEnhancer = preload("res://scripts/retreat_scene_enhancer.gd")
 const OcclusionCtrl = preload("res://scripts/object_occlusion_controller.gd")
 
+static var _a1_canon_cache: GDScript = null
+static var _a1_geo_cache: GDScript = null
+
+@export var load_profile: int = 0 # 0 = FULL_RETREAT, 1 = A1_CAMP
+var camp_fx: Node = null
+
+static func _a1_canon() -> GDScript:
+	if _a1_canon_cache == null:
+		var p := ProjectSettings.globalize_path("res://").path_join("../godot-shared/retreat_a1/retreat_a1_canonical_builder.gd").simplify_path()
+		_a1_canon_cache = ResourceLoader.load(p) as GDScript
+	return _a1_canon_cache
+
+static func _a1_geo() -> GDScript:
+	if _a1_geo_cache == null:
+		var p := ProjectSettings.globalize_path("res://").path_join("../godot-shared/retreat_a1/retreat_a1_geometry.gd").simplify_path()
+		_a1_geo_cache = ResourceLoader.load(p) as GDScript
+	return _a1_geo_cache
+
 const TERRAIN_JSON_PATH := "res://assets/data/retreat-terrain-v2.json"
 const GLOBAL_LAYOUT_JSON_PATH := "res://assets/data/global-layout.json"
 
@@ -332,6 +350,8 @@ void fragment() {
 	water_glb_smat.set_shader_parameter("wave_amp", 0.0)
 	water_glb_smat.set_shader_parameter("alpha_scale", 0.18)
 	_mat_water_glb = water_glb_smat
+	# Unificar materiales canónicos de A1 desde la fuente única compartida
+	_a1_geo().init_canonical_a1_materials(self)
 
 func _make_mat(col: Color, rough: float, metal: float) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -390,6 +410,11 @@ func build_layout() -> void:
 	var global_data: Dictionary = _load_json_dict(GLOBAL_LAYOUT_JSON_PATH)
 	var terrain_data: Dictionary = _load_json_dict(TERRAIN_JSON_PATH)
 
+	if load_profile == 1:
+		_cave_roof_entries = _a1_canon().build_a1_camp_world(self, terrain_data, camp_fx)
+		_optimize_scene_lights(self)
+		return
+
 	_build_ocean()
 	_build_surfaces(terrain_data)
 	_build_safety_colliders()
@@ -412,12 +437,11 @@ func build_layout() -> void:
 	_optimize_scene_lights(self)
 
 func _optimize_scene_lights(node: Node) -> void:
-	if node is OmniLight3D:
-		var ol := node as OmniLight3D
-		ol.shadow_enabled = false
-		ol.distance_fade_enabled = true
-		ol.distance_fade_begin = 38.0
-		ol.distance_fade_length = 12.0
+	if node is OmniLight3D or node is SpotLight3D:
+		var l3 := node as Light3D
+		l3.shadow_enabled = false
+		# TacticalCamera ortogonal sitúa global_position a ~240m del foco; desactivar distance_fade evita apagar las luces de A1
+		l3.distance_fade_enabled = false
 	for child in node.get_children():
 		_optimize_scene_lights(child)
 
@@ -721,92 +745,12 @@ func _build_coastal_pier_and_beach() -> void:
 		st_inst.rotation.y = float(si) * 1.1
 		pier_node.add_child(st_inst)
 
-# 3. Las 6 Celdas de A1 como excavaciones en la roca viva (la malla tallada llega en A1Bedrock/A1Room)
+# 3. Las 6 Celdas de A1 y 3B. Plaza A1 delegados a la fuente única canónica compartida
 func _build_a1_cells() -> void:
-	var cells_node := Node3D.new()
-	cells_node.name = "A1_Cells"
-	add_child(cells_node)
+	_a1_canon().build_a1_cells(self)
 
-	var cell_bounds := {
-		1: Rect2i(51, 55, 5, 5),
-		2: Rect2i(58, 51, 4, 9),
-		3: Rect2i(64, 53, 6, 7),
-		4: Rect2i(72, 52, 6, 8),
-		5: Rect2i(80, 51, 3, 9),
-		6: Rect2i(85, 52, 6, 8)
-	}
-
-	var t := Structure.TILE_METERS
-
-	for room in Structure.A1_ROOMS:
-		var rid: int = int(room["id"])
-		var room_node := Node3D.new()
-		room_node.name = "Cell_" + str(rid) + "_" + room["role"]
-		cells_node.add_child(room_node)
-
-		var rect: Rect2i = cell_bounds.get(rid, Rect2i(51, 55, 5, 4))
-		var x0 := float(rect.position.x) * t
-		var x1 := float(rect.position.x + rect.size.x) * t
-		var z0 := float(rect.position.y) * t
-		var z1 := float(rect.position.y + rect.size.y) * t
-		var cx := (x0 + x1) * 0.5
-		var cz := (z0 + z1) * 0.5
-		var w := x1 - x0
-		var y_base := Structure.ELEV_A1_PLAZA
-
-		# Suelo auxiliar oculto (el suelo tallado real llega en A1Room__a1:cell-floor*)
-		var floor_box := _create_box_prop(room_node, "Floor", Vector3(cx, y_base + 0.01, cz), Vector3(w, 0.04, z1 - z0), mat_cell_floor)
-		floor_box.visible = false
-
-		# Luz cálida de antorcha y vela dentro de la celda excavada
-		var cell_light := OmniLight3D.new()
-		cell_light.name = "CellTorchLight_%d" % rid
-		cell_light.position = Vector3(cx, y_base + 1.95, cz - 0.5)
-		cell_light.light_color = Color(1.0, 0.68, 0.34)
-		cell_light.light_energy = 1.55
-		cell_light.omni_range = 10.5
-		room_node.add_child(cell_light)
-
-# 3B. Plaza A1: Hoguera central + Ancla estatua de Astalagan
 func _build_a1_plaza_details() -> void:
-	var plaza_node := Node3D.new()
-	plaza_node.name = "A1_PlazaDetails"
-	add_child(plaza_node)
-
-	var y := Structure.ELEV_A1_PLAZA
-
-	var fire_pos := Structure.cell_to_world(72, 62, y)
-	var camp_node := Node3D.new()
-	camp_node.name = "A1_Campfire"
-	camp_node.position = fire_pos
-	plaza_node.add_child(camp_node)
-	SceneEnhancer.add_cyl_collider(camp_node, Vector3(0.0, 0.45, 0.0), 0.58, 1.0)
-	SceneEnhancer.tag_camera_occluder(camp_node)
-
-	_create_cylinder(camp_node, "CampfireFlame", Vector3(0, 0.38, 0), 0.20, 0.48, mat_flame)
-
-	var fire_light := OmniLight3D.new()
-	fire_light.name = "CampfireLight"
-	fire_light.position = Vector3(0, 1.65, 0)
-	fire_light.light_color = Color(1.0, 0.58, 0.22)
-	fire_light.light_energy = 3.1
-	fire_light.omni_range = 17.5
-	camp_node.add_child(fire_light)
-
-	# Ancla lógica de Astalagan (malla esculpida llega en A1PlazaProp__a1:astalagan-weathered-stone)
-	var statue_pos := Structure.cell_to_world(57, 61, y)
-	var statue_node := Node3D.new()
-	statue_node.name = "A1_Dragon_Statue"
-	statue_node.position = statue_pos
-	plaza_node.add_child(statue_node)
-
-	var statue_light := OmniLight3D.new()
-	statue_light.name = "AstalaganVotiveLight"
-	statue_light.position = Vector3(0, 2.2, 0.8)
-	statue_light.light_color = Color(1.0, 0.78, 0.42)
-	statue_light.light_energy = 1.25
-	statue_light.omni_range = 8.0
-	statue_node.add_child(statue_light)
+	_a1_canon().build_a1_plaza_details(self)
 
 # 4..8. Edificios, Cabrestante con palanca legible y vista al mar, y contenedores .glb
 func _build_a2_winch_house(_global_data: Dictionary) -> void:

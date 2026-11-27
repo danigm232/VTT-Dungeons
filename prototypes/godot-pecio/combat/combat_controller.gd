@@ -66,6 +66,11 @@ func setup(owner_ui: Node) -> void:
 	var overlay:=preload("res://combat/combat_overlay.gd").new(); overlay.controller=self; layer.add_child(overlay); layer.move_child(overlay,0)
 	rules.changed.connect(refresh)
 	rules.resolved.connect(_resolved)
+	rules.turn_ending.connect(func(id: String):
+		var body := token(id)
+		if body is PlayerToken:
+			body._update_aquatic_breath(6.0, true)
+	)
 	ui.role_changed.connect(func(_role): dialog.hide(); _clear(dialog); refresh())
 	var button: Button=ui.player_hud.action_toggle_btn
 	for container in [button.get_parent().get_parent(),ui.player_hud.toast_panel.get_parent()]: container.minimum_size_changed.connect(func(): _layout.call_deferred())
@@ -600,8 +605,21 @@ func _resolved(event: Dictionary) -> void:
 		ui.notify_mesa("%s · %s%s" % [rules.actors[event.actor].name,str(event.action.label).split("·")[0]," · %d" % event.amount if int(event.amount)>0 else ""])
 	elif event.get("type","")=="basic":
 		var body:=token(str(event.actor))
-		if body: body.play_action_animation({"ready":"combat_idle","dash":"run","hide":"stealth","disengage":"disengage","dodge":"dodge","help":"help","influence":"influence","use-object":"interact"}.get(event.action.id,"interact"),.65)
+		if body:
+			if body.get("char_key") == "sw-ghoul" and event.action.id == "dash":
+				body.set_meta("ghoul_dash_turn", rules.turn_serial)
+			body.play_action_animation({"ready":"combat_idle","dash":"run","hide":"stealth","disengage":"disengage","dodge":"dodge","help":"help","influence":"influence","use-object":"interact"}.get(event.action.id,"interact"),.65)
 	ui.refresh_all(); refresh()
+
+func ghoul_motion_for_turn(body: Node3D) -> String:
+	var id := str(body.get_meta("combat_id", ""))
+	if not rules.active or rules.current_id() != id:
+		return ""
+	if int(body.get_meta("ghoul_dash_turn", -1)) == rules.turn_serial:
+		return "run"
+	if rules.actors[id].get("stance", "") == "hide":
+		return "stealth"
+	return ""
 
 func _process(delta: float) -> void:
 	if ui==null: return
@@ -678,7 +696,9 @@ func moved(body: Node3D,before: Vector3) -> void:
 						_movement_waivers[key]=true; body.global_position=before; body.velocity=Vector3.ZERO
 						rules.pending={"kind":"opportunity","owner":other,"target":id,"action_id":action.id,"label":"Sale de tu alcance · ¿usas tu reacción?","committed":true}; refresh(); return
 	var meters:=maxf(absf(to.x-from.x),absf(to.z-from.z))
-	if not rules.spend_movement(id,meters,bool(rules.actors[id].get("difficult",false))): body.global_position=before; body.velocity.x=0; body.velocity.z=0
+	if body is PlayerToken and body.aquatic.in_water and (absf(body.velocity.y) > 1.15 or body.aquatic.surface_available and body.aquatic.wants_dive != body.aquatic.submerged):
+		meters = maxf(meters, absf(to.y-from.y))
+	if not rules.spend_movement(id,meters,bool(rules.actors[id].get("difficult",false))): body.global_position=before; body.velocity=Vector3.ZERO
 
 func reaction_menu() -> void:
 	if ui.current_role!="dm": return

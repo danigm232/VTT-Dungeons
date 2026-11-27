@@ -279,11 +279,9 @@ static func create_default_enemies(is_retreat: bool) -> Array[Dictionary]:
 			"initiative_bonus": 2,
 			"color": Color("#5e8f7b"),
 			"revealed": true,
-			"needs_codex_sprites": true,
 			"traits": [
 				"Garras paralizantes (Salv. CON CD 10 o Paralizado 1 min; elfos inmunes)",
-				"Táctica canónica: aprovecha distracción en el agua de C8 para paralizar y arrastrar",
-				"Sprite provisional (pendiente importación oficial de Gul por Codex)"
+				"Táctica canónica: aprovecha distracción en el agua de C8 para paralizar y arrastrar"
 			],
 			"actions": [
 				"Garras · +4 · 2d4+2 cortante + Salv. CON CD 10 (Paralizado)",

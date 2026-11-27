@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-maria-dive-chest-ne",
+  "character": "maria",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-small",
+  "action": "dive_chest",
+  "direction": "ne",
+  "fps": 10,
+  "loop": false,
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Independent environment effects. No water, foam or bubbles painted into the character."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-ne/7ed2d8a550f5/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-ne/7ed2d8a550f5/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-ne/7ed2d8a550f5/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-ne/7ed2d8a550f5/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-ne/7ed2d8a550f5/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-ne/7ed2d8a550f5/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-ne/7ed2d8a550f5/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-ne/7ed2d8a550f5/08.webp"
+  ],
+  "production": {
+    "method": "Image generation from existing character identity and native-size extraction",
+    "reference": "prototypes/godot-pecio/characters/imported/sw-maria-idle8/00-idle-01.png",
+    "prompt": "Canonical character in eight successive poses, preserving the requested diagonal view, silhouette, costume, anatomy, and alpha gutters. Environment and VFX rendered separately.",
+    "minimumVisibleStandingPixels": 120,
+    "silhouetteAlpha": 80,
+    "columnCutsByRow": [
+      [
+        0,
+        444,
+        887,
+        1330,
+        1774
+      ],
+      [
+        0,
+        444,
+        887,
+        1330,
+        1774
+      ]
+    ],
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-maria-dive-chest-ne-7ed2d8a550f5.png",
+    "originalSha256": "7ed2d8a550f54ea116396f3c6fc5011f9e170af9a4b007da5300b14ad62a924c",
+    "importReport": "output/stormwreck-motion-detail/sw-maria-dive-chest-ne-7ed2d8a550f5.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 355,
+  "pivot": [
+    0.5,
+    0.8837719298245614
+  ]
+}

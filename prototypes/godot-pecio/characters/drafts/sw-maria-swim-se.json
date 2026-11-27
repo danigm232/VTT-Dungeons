@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-maria-swim-se",
+  "character": "maria",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-small",
+  "action": "swim",
+  "direction": "se",
+  "fps": 9,
+  "loop": true,
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Independent environment effects. No water, foam or bubbles painted into the character."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-swim-se/ce9e25062bec/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-swim-se/ce9e25062bec/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-swim-se/ce9e25062bec/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-swim-se/ce9e25062bec/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-swim-se/ce9e25062bec/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-swim-se/ce9e25062bec/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-swim-se/ce9e25062bec/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-swim-se/ce9e25062bec/08.webp"
+  ],
+  "production": {
+    "method": "Image generation from existing character identity and native-size extraction",
+    "reference": "prototypes/godot-pecio/characters/imported/sw-maria-idle8/00-idle-01.png",
+    "prompt": "Eight pixel-rich hand painted sprites of the exact same short brunette female halfling rogue in the attached game art, stealth outfit with cream scarf and brown leather, full-body breaststroke across eight successive poses. Three-quarter FRONT view, motion toward bottom RIGHT of the screen, same angle for every frame. Clean genuinely transparent alpha backdrop, no shadows, water, wet highlights, foam or bubbles. Use complete opaque character silhouettes within the central 60% of each cell of a wide 4 columns × 2 rows sprite sheet. No words or separated objects and nothing touching any cell edge.",
+    "minimumVisibleStandingPixels": 120,
+    "silhouetteAlpha": 80,
+    "columnCutsByRow": [
+      [
+        0,
+        444,
+        887,
+        1330,
+        1774
+      ],
+      [
+        0,
+        444,
+        887,
+        1330,
+        1774
+      ]
+    ],
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-maria-swim-se-ce9e25062bec.png",
+    "originalSha256": "ce9e25062bec5df5d6d71f04f592aca2405b9bb873df6f72b1df6d106ab11fcb",
+    "importReport": "output/stormwreck-motion-detail/sw-maria-swim-se-ce9e25062bec.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 355,
+  "pivot": [
+    0.5,
+    0.8048245614035088
+  ]
+}

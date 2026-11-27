@@ -2,6 +2,9 @@ extends RefCounted
 ## Central adapter. Existing animation catalogues remain their authoritative source.
 static var _data: Dictionary={}
 static var _profiles: Dictionary={}
+static var _water_clips: Dictionary={}
+const STREAMED_WATER_ACTIONS := ["swim", "dive", "open_door", "open_chest", "dive_chest", "stow_item"]
+const WATER_CLIP_CACHE_LIMIT := 12
 static func data() -> Dictionary:
 	if _data.is_empty():
 		var path:="res://characters/catalogue.json"
@@ -10,9 +13,25 @@ static func data() -> Dictionary:
 		if path.ends_with("/catalogue.json") and FileAccess.file_exists("res://characters/candidate-catalogue.json"):
 			var candidate: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://characters/candidate-catalogue.json"))
 			if candidate.get("revision","")!=_data.get("revision",""): _data=candidate
+		_add_scoped_candidate("stormwreck-beasts", "beast_revision")
+		_add_scoped_candidate("stormwreck-aquatic", "aquatic_revision")
 	return _data
 static func inspect_candidate() -> void:
-	_data=JSON.parse_string(FileAccess.get_file_as_string("res://characters/candidate-catalogue.json")); _profiles.clear()
+	_data=JSON.parse_string(FileAccess.get_file_as_string("res://characters/candidate-catalogue.json"))
+	_add_scoped_candidate("stormwreck-beasts", "beast_revision")
+	_add_scoped_candidate("stormwreck-aquatic", "aquatic_revision")
+	_profiles.clear()
+	_water_clips.clear()
+
+static func _add_scoped_candidate(scope_name: String, revision_key: String) -> void:
+	var path := "res://characters/scopes/%s.candidate.json" % scope_name
+	if not FileAccess.file_exists(path):
+		return
+	var candidate: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(path))
+	for bucket in ["characters", "animations"]:
+		_data[bucket].merge(candidate[bucket], true)
+	_data[revision_key] = candidate.revision
+	_data.revision = (str(_data.revision) + ":" + str(candidate.revision)).sha256_text()
 static func character(id: String) -> Dictionary:
 	for key in data().get("characters",{}):
 		var d: Dictionary=data().characters[key]
@@ -49,46 +68,99 @@ static func profile(id: String) -> Dictionary:
 	var directions: Dictionary={}
 	for dir in d.source.get("directions",["n","ne","e","se","s","sw","w","nw"]): directions[dir]=clip
 	var result: Dictionary={"clips":{"idle":clip,"combat_idle":clip},"dir_idle":directions,"dir_walk":{},"dir_run":{},"dir_attack":{},"dir_states":{},"anatomy":d.anatomy,"individual_source":true}
-	_profiles[d.id]=with_animations(result,d); return _profiles[d.id]
+	_profiles[d.id] = with_animations(result,d)
+	if d.id == "sw-ghoul":
+		_configure_ghoul(_profiles[d.id])
+	return _profiles[d.id]
+
+static func _configure_ghoul(profile: Dictionary) -> void:
+	profile["npc_species"] = "ghoul"
+	var states: Dictionary = profile.dir_states
+	if not states.has("idle"):
+		states["idle"] = {}
+	states.idle["se"] = profile.dir_idle.se
+	# The drawn southeast and northwest views cover the eight camera octants.
+	for action in ["idle", "walk", "run", "stealth", "turn", "claw", "bite", "crawl", "fall", "hit"]:
+		var clips: Dictionary = states.get(action, {})
+		if not clips.has("se"):
+			continue
+		var front: Dictionary = clips.se
+		var rear: Dictionary = clips.get("nw", front)
+		clips["s"] = front
+		clips["e"] = front
+		clips["sw"] = _mirrored(front)
+		clips["w"] = clips.sw
+		clips["nw"] = rear if clips.has("nw") else clips.sw
+		clips["n"] = clips.nw
+		clips["ne"] = _mirrored(rear) if rear != front else front
+		profile.clips[action] = front
+	profile.dir_idle = states.idle
+	states["combat_idle"] = states.idle
+	var held: Dictionary = {}
+	for direction in states.idle:
+		var clip: Dictionary = states.idle[direction].duplicate()
+		clip.frames = [clip.frames[0]]
+		held[direction] = clip
+	for action in ["condition_paralizada", "condition_petrificada", "condition_aturdida", "condition_incapacitada"]:
+		states[action] = held
+	if states.has("walk"):
+		for action in ["run", "stealth"]:
+			if states.has(action):
+				continue
+			var paced: Dictionary = {}
+			for direction in states.walk:
+				var clip: Dictionary = states.walk[direction].duplicate()
+				clip.fps = 15.0 if action == "run" else 6.0
+				paced[direction] = clip
+			states[action] = paced
+			profile.clips[action] = paced.se
+		var starts: Dictionary = {}
+		var stops: Dictionary = {}
+		for direction in states.walk:
+			var step: Dictionary = states.walk[direction]
+			var rest: Dictionary = states.idle[direction]
+			if rest.frames.size() < 8 or step.frames.size() < 8:
+				continue
+			var is_reflected := bool(step.get("flip_h", false))
+			starts[direction] = _ghoul_transition(rest.frames.slice(5, 7) + step.frames.slice(2, 8), 14.0, is_reflected)
+			stops[direction] = _ghoul_transition(step.frames.slice(6, 8) + rest.frames.slice(0, 6), 12.0, is_reflected)
+		states["start"] = starts
+		states["stop"] = stops
+	if states.has("fall"):
+		var prone: Dictionary = {}
+		var stand: Dictionary = {}
+		for direction in states.fall:
+			var clip: Dictionary = states.fall[direction].duplicate()
+			clip.frames = [clip.frames.back()]
+			clip.loop = true
+			prone[direction] = clip
+			clip = states.fall[direction].duplicate()
+			clip.frames = clip.frames.duplicate()
+			clip.frames.reverse()
+			stand[direction] = clip
+		for action in ["prone", "defeated", "condition_derribada", "condition_inconsciente"]:
+			states[action] = prone
+			profile.clips[action] = prone.se
+		states["stand"] = stand
+		profile.clips["stand"] = stand.se
+
+static func _mirrored(clip: Dictionary) -> Dictionary:
+	var mirrored := clip.duplicate()
+	mirrored.flip_h = true
+	return mirrored
+
+static func _ghoul_transition(frames: Array, fps: float, reflected: bool) -> Dictionary:
+	return {"frames": frames, "fps": fps, "loop": false, "drawn_motion": true, "flip_h": reflected}
+
 static func with_animations(profile: Dictionary,definition: Dictionary) -> Dictionary:
 	for animation in data().get("animations",{}).values():
 		if animation.character!=definition.id or animation.anatomy!=definition.anatomy: continue
-		var frames: Array=[]
-		for frame in animation.get("runtimeFrames",[]):
-			var image:=Image.load_from_file(ProjectSettings.globalize_path(frame.file))
-			if image==null or image.is_empty(): continue
-			var height: float=image.get_height(); var pivot: Array=frame.pivot
-			var mirror := bool(animation.get("mirrorHorizontally", false))
-			if mirror:
-				image.flip_x()
-			var pivot_u := 1.0 - float(pivot[0]) if mirror else float(pivot[0])
-			var pivot_x := pivot_u * image.get_width()
-			var half_width: int=ceili(maxf(pivot_x,image.get_width()-pivot_x))
-			var padded:=Image.create(half_width*2,image.get_height(),false,Image.FORMAT_RGBA8)
-			var padding_x := roundi(half_width-pivot_x)
-			var source_width := image.get_width()
-			padded.blit_rect(image,Rect2i(Vector2i.ZERO,image.get_size()),Vector2i(padding_x,0))
-			image=padded; image.fix_alpha_edges(); image.generate_mipmaps()
-			var pose := {"tex":ImageTexture.create_from_image(image),"height_scale":height/float(animation.referenceHeight),"floor_offset":float(pivot[1])-1.0,"visual_pivot":Vector2(.5,float(pivot[1]))}
-			if animation.has("soleContact"):
-				var sole: Array = animation.soleContact
-				var sole_u := 1.0 - float(sole[0]) if mirror else float(sole[0])
-				pose["sole_contact"] = Vector2((sole_u * source_width + padding_x) / image.get_width(),float(sole[1]))
-			if animation.has("restVolume"):
-				pose["rest_volume"] = animation.restVolume
-				pose["rest_contour"] = _rest_contour(image)
-				pose["rest_blanket"] = animation.get("restBlanket", {})
-				var sculpt: Dictionary = animation.get("restSculpt", {}).duplicate(true)
-				if not sculpt.is_empty():
-					var nose_u := float(sculpt.nose[0])
-					if mirror:
-						nose_u = 1.0 - nose_u
-					sculpt.nose[0] = (nose_u * source_width + padding_x) / image.get_width()
-					sculpt.faceHalfWidth = float(sculpt.faceHalfWidth) * source_width / image.get_width()
-				pose["rest_sculpt"] = sculpt
-			frames.append(pose)
-		if frames.is_empty(): continue
+		var streamed: bool = animation.action in STREAMED_WATER_ACTIONS and animation.character in ["mia", "mike", "maria"]
+		var frames: Array = [] if streamed else _animation_frames(animation)
+		if frames.is_empty() and not streamed: continue
 		var clip: Dictionary={"frames":frames,"fps":animation.fps,"loop":animation.get("loop",false),"drawn_motion":true,"modular_definition":animation.id,"events":animation.get("events",[])}
+		if streamed:
+			clip["deferred_animation"] = animation.id
 		var action: String=animation.action; var direction: String=animation.get("direction","s")
 		if not profile.has("dir_states"): profile.dir_states={}
 		if not profile.dir_states.has(action): profile.dir_states[action]={}
@@ -103,6 +175,65 @@ static func with_animations(profile: Dictionary,definition: Dictionary) -> Dicti
 			if not profile.dir_states.has("combat_idle"): profile.dir_states.combat_idle={}
 			profile.dir_states.combat_idle[direction]=clip
 	return profile
+
+static func load_water_clip(clip: Dictionary) -> Dictionary:
+	var id := str(clip.get("deferred_animation", ""))
+	if id.is_empty():
+		return clip
+	if _water_clips.has(id):
+		var cached: Dictionary = _water_clips[id]
+		_water_clips.erase(id)
+		_water_clips[id] = cached
+		return cached
+	var loaded := clip.duplicate()
+	loaded.frames = _animation_frames(data().animations[id])
+	if loaded.frames.is_empty():
+		return {}
+	if _water_clips.size() >= WATER_CLIP_CACHE_LIMIT:
+		_water_clips.erase(_water_clips.keys()[0])
+	_water_clips[id] = loaded
+	return loaded
+
+static func _animation_frames(animation: Dictionary) -> Array:
+	var frames: Array = []
+	for frame in animation.get("runtimeFrames", []):
+		var image := Image.load_from_file(ProjectSettings.globalize_path(frame.file))
+		if image == null or image.is_empty():
+			continue
+		var height: float = image.get_height()
+		var pivot: Array = frame.pivot
+		var mirror := bool(animation.get("mirrorHorizontally", false))
+		if mirror:
+			image.flip_x()
+		var pivot_u := 1.0 - float(pivot[0]) if mirror else float(pivot[0])
+		var source_width := image.get_width()
+		var pivot_x := pivot_u * source_width
+		var half_width := ceili(maxf(pivot_x, source_width - pivot_x))
+		var padding_x := roundi(half_width - pivot_x)
+		var padded := Image.create(half_width * 2, image.get_height(), false, Image.FORMAT_RGBA8)
+		padded.blit_rect(image, Rect2i(Vector2i.ZERO, image.get_size()), Vector2i(padding_x, 0))
+		image = padded
+		image.fix_alpha_edges()
+		image.generate_mipmaps()
+		var pose := {"tex": ImageTexture.create_from_image(image), "height_scale": height / float(animation.referenceHeight), "floor_offset": float(pivot[1]) - 1.0, "visual_pivot": Vector2(0.5, float(pivot[1]))}
+		if animation.has("soleContact"):
+			var sole: Array = animation.soleContact
+			var sole_u := 1.0 - float(sole[0]) if mirror else float(sole[0])
+			pose["sole_contact"] = Vector2((sole_u * source_width + padding_x) / image.get_width(), float(sole[1]))
+		if animation.has("restVolume"):
+			pose["rest_volume"] = animation.restVolume
+			pose["rest_contour"] = _rest_contour(image)
+			pose["rest_blanket"] = animation.get("restBlanket", {})
+			var sculpt: Dictionary = animation.get("restSculpt", {}).duplicate(true)
+			if not sculpt.is_empty():
+				var nose_u := float(sculpt.nose[0])
+				if mirror:
+					nose_u = 1.0 - nose_u
+				sculpt.nose[0] = (nose_u * source_width + padding_x) / image.get_width()
+				sculpt.faceHalfWidth = float(sculpt.faceHalfWidth) * source_width / image.get_width()
+			pose["rest_sculpt"] = sculpt
+		frames.append(pose)
+	return frames
 
 static func _rest_contour(image: Image) -> Array[PackedVector2Array]:
 	var contour: Array[PackedVector2Array] = []

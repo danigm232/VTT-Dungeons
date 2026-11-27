@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-maria-open-chest-nw",
+  "character": "maria",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-small",
+  "action": "open_chest",
+  "direction": "nw",
+  "fps": 10,
+  "loop": false,
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Independent environment effects. No water, foam or bubbles painted into the character."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-chest-nw/09a0c78ea86a/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-chest-nw/09a0c78ea86a/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-chest-nw/09a0c78ea86a/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-chest-nw/09a0c78ea86a/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-chest-nw/09a0c78ea86a/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-chest-nw/09a0c78ea86a/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-chest-nw/09a0c78ea86a/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-chest-nw/09a0c78ea86a/08.webp"
+  ],
+  "production": {
+    "method": "Image generation from existing character identity and native-size extraction",
+    "reference": "prototypes/godot-pecio/characters/imported/sw-maria-idle8/00-idle-01.png",
+    "prompt": "Canonical character in eight successive poses, preserving the requested diagonal view, silhouette, costume, anatomy, and alpha gutters. Environment and VFX rendered separately.",
+    "minimumVisibleStandingPixels": 120,
+    "silhouetteAlpha": 80,
+    "columnCutsByRow": [
+      [
+        0,
+        444,
+        887,
+        1330,
+        1774
+      ],
+      [
+        0,
+        444,
+        887,
+        1330,
+        1774
+      ]
+    ],
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-maria-open-chest-nw-09a0c78ea86a.png",
+    "originalSha256": "09a0c78ea86a2dd12b0e75ff46c676f2b938061a05945febddf7fdd869333ff2",
+    "importReport": "output/stormwreck-motion-detail/sw-maria-open-chest-nw-09a0c78ea86a.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 355,
+  "pivot": [
+    0.5,
+    0.9210526315789473
+  ]
+}

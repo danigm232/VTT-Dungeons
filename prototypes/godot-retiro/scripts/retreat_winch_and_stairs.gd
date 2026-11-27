@@ -480,7 +480,7 @@ static func build_a2_winch_complex(builder: Node3D) -> Dictionary:
 	a2_door.add_child(a2_blocker_body)
 	var a2_blocker_col := CollisionShape3D.new()
 	var a2_blocker_box := BoxShape3D.new()
-	a2_blocker_box.size = Vector3(2.70, 2.75, 0.36)
+	a2_blocker_box.size = Vector3(2.88, 2.84, 0.42)
 	a2_blocker_col.shape = a2_blocker_box
 	a2_blocker_col.position = Vector3(0.0, 1.38, 0.0)
 	a2_blocker_body.add_child(a2_blocker_col)
@@ -1010,7 +1010,7 @@ static func _build_a2_cliff_and_coast(
 	corner_crag.name = "A2_WestLandingRockShoulder"
 	corner_crag.mesh = plate_mesh
 	corner_crag.material_override = mat_basalt_carved
-	corner_crag.position = Vector3(151.85, y - 3.65, 71.15)
+	corner_crag.position = Vector3(151.85, y - 4.45, 71.55)
 	corner_crag.scale = Vector3(4.6, 4.2, 4.2)
 	corner_crag.rotation_degrees = Vector3(4.0, -18.0, -4.0)
 	corner_crag.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
@@ -1385,6 +1385,98 @@ static func build_paseo_to_a2_perimeter_ropes(builder: Node3D, parent: Node3D) -
 	_build_perimeter_rope_run(parent, "PaseoToA2NorthRail", north_a2, mat_wood_dark, mat_iron, mat_rope, 0.082, 1.04, 0.62, 0.08, true)
 	_build_perimeter_rope_run(parent, "PaseoToA2SouthRail", south_a2, mat_wood_dark, mat_iron, mat_rope, 0.082, 1.04, 0.62, 0.08, true)
 
+static func build_all_precipice_perimeter_ropes(builder: Node3D, stairs_parent: Node3D) -> void:
+	if stairs_parent == null:
+		return
+	var ropes_root := Node3D.new()
+	ropes_root.name = "AllPrecipicesPerimeterRopes"
+	stairs_parent.add_child(ropes_root)
+
+	var mat_wood_dark: Material = builder.get("mat_wood_dark")
+	var mat_iron: Material = builder.get("mat_iron")
+	var mat_rope := _make_rope_mat(builder)
+
+	# 1. Plaza A1 borde sur ante todas las celdas (x=73.5..134.8) + giro oeste hasta Z2 Landing
+	var a1_z2_rim: Array[Vector3] = [
+		Vector3(66.25, 9.00, 102.30),
+		Vector3(69.85, 9.00, 102.30),
+		Vector3(73.45, 9.00, 102.30),
+		Vector3(73.45, 9.00, 99.70),
+		Vector3(73.45, 9.00, 97.08),
+		Vector3(76.80, 9.00, 97.08),
+		Vector3(81.80, 9.00, 97.08),
+		Vector3(85.12, 9.00, 97.08),
+		Vector3(87.88, 9.00, 97.08),
+		Vector3(92.40, 9.00, 97.08),
+		Vector3(96.40, 9.00, 97.08),
+		Vector3(100.20, 9.00, 97.08),
+		Vector3(102.12, 9.00, 97.08),
+		Vector3(104.88, 9.00, 97.08),
+		Vector3(108.90, 9.00, 97.08),
+		Vector3(113.20, 9.00, 97.08),
+		Vector3(117.20, 9.00, 97.08),
+		Vector3(120.12, 9.00, 97.08),
+		Vector3(122.88, 9.00, 97.08),
+		Vector3(126.80, 9.00, 97.08),
+		Vector3(130.80, 9.00, 97.08),
+		Vector3(134.80, 9.00, 97.08),
+		Vector3(138.10, 9.00, 97.08),
+		Vector3(141.40, 9.00, 96.85),
+		Vector3(141.40, 9.00, 95.25),
+		Vector3(146.90, 9.00, 95.15),
+		Vector3(152.52, 9.00, 95.15),
+		Vector3(152.52, 9.00, 92.20),
+	]
+	_build_perimeter_rope_run(ropes_root, "A1SouthPrecipiceRail", a1_z2_rim, mat_wood_dark, mat_iron, mat_rope, 0.080, 1.08, 0.62, 0.075, false)
+
+	# 2. Llegada Z2 borde norte-oeste en A1 Landing
+	var a1_z2_nw: Array[Vector3] = [
+		Vector3(66.25, 9.00, 98.70),
+		Vector3(66.00, 9.00, 95.20),
+		Vector3(66.00, 9.00, 91.60),
+	]
+	_build_perimeter_rope_run(ropes_root, "A1LandingNWPrecipiceRail", a1_z2_nw, mat_wood_dark, mat_iron, mat_rope, 0.080, 1.04, 0.58, 0.07, false)
+
+	# 3. Paseo Superior extremos oeste y este sin barandilla hasta escaleras A5 / A2
+	var upper_west_rim: Array[Vector3] = [
+		Vector3(73.60, 18.00, 69.00),
+		Vector3(73.60, 18.00, 72.55),
+		Vector3(77.45, 18.00, 72.55),
+	]
+	var upper_east_rim: Array[Vector3] = [
+		Vector3(134.80, 18.00, 72.55),
+		Vector3(139.90, 18.00, 72.55),
+		Vector3(145.15, 18.00, 72.55),
+		Vector3(145.15, 18.00, 69.52),
+	]
+	_build_perimeter_rope_run(ropes_root, "UpperWestPrecipiceRail", upper_west_rim, mat_wood_dark, mat_iron, mat_rope, 0.078, 1.02, 0.56, 0.07, false)
+	_build_perimeter_rope_run(ropes_root, "UpperEastPrecipiceRail", upper_east_rim, mat_wood_dark, mat_iron, mat_rope, 0.078, 1.02, 0.56, 0.07, true)
+
+	# 4. A2 bordes abiertos de porche norte y sureste junto al precipicio marino
+	var a2_nw_rim: Array[Vector3] = [
+		Vector3(153.55, 15.00, 65.58),
+		Vector3(154.05, 15.00, 62.85),
+		Vector3(156.05, 15.00, 62.85),
+	]
+	var a2_se_rim: Array[Vector3] = [
+		Vector3(156.10, 15.00, 70.65),
+		Vector3(156.45, 15.00, 72.10),
+	]
+	_build_perimeter_rope_run(ropes_root, "A2PorchNWPrecipiceRail", a2_nw_rim, mat_wood_dark, mat_iron, mat_rope, 0.078, 1.02, 0.56, 0.06, false)
+	_build_perimeter_rope_run(ropes_root, "A2PorchSEPrecipiceRail", a2_se_rim, mat_wood_dark, mat_iron, mat_rope, 0.078, 1.02, 0.56, 0.05, false)
+
+	# 5. Descansillo giro Observatorio y curva A5 Montaña
+	var obs_turn_rail_n: Array[Vector3] = [
+		Vector3(138.90, 23.02, 42.65),
+		Vector3(144.20, 23.05, 42.65),
+	]
+	var a5_corner_rail: Array[Vector3] = [
+		Vector3(53.40, 34.72, 46.80),
+		Vector3(50.80, 34.72, 42.80),
+	]
+	_build_perimeter_rope_run(ropes_root, "ObsTurnNorthRail", obs_turn_rail_n, mat_wood_dark, mat_iron, mat_rope, 0.072, 0.94, 0.50, 0.06, false)
+	_build_perimeter_rope_run(ropes_root, "A5MountCornerOuterRail", a5_corner_rail, mat_wood_dark, mat_iron, mat_rope, 0.072, 0.94, 0.50, 0.06, false)
+
 static func _build_perimeter_rope_run(
 	parent: Node3D,
 	run_name: String,
@@ -1525,14 +1617,14 @@ static func build_upgraded_a5_bridge(builder: Node3D, parent: Node3D, a: Vector3
 		# Contrahuella sólida asentada dentro de la viga portante (cero huecos!)
 		xfs_wall.append(_box_xf(pos + Vector3(0.0, -0.46, 0.0), Vector3(eff_len * 1.04, 0.86, width - 0.16)))
 
-		# Huella gruesa principal (0.18m espesor real)
-		var t_xf := _box_xf(pos + Vector3(0.0, -0.02, 0.0), Vector3(eff_len, 0.18, jitter_w), rng.randf_range(-0.008, 0.008))
+		# Huella gruesa principal alineada exactamente bajo la rampa Safe_Ramp_A5_Upper (evita que los pies se hundan en el granito)
+		var t_xf := _box_xf(pos + Vector3(0.0, -0.065, 0.0), Vector3(eff_len, 0.18, jitter_w), rng.randf_range(-0.008, 0.008))
 		if i % 3 != 1 or is_landing:
 			xfs_ta.append(t_xf)
 		else:
 			xfs_tb.append(t_xf)
-		# Banda central de desgaste por el paso de peregrinos (losa ligeramente más clara y lisa)
-		xfs_worn.append(_box_xf(pos + Vector3(0.0, 0.072, rng.randf_range(-0.08, 0.08)), Vector3(eff_len * 0.86, 0.018, width * 0.48), rng.randf_range(-0.01, 0.01)))
+		# Banda central de desgaste por el paso de peregrinos (cara superior en pos.y + 0.032m)
+		xfs_worn.append(_box_xf(pos + Vector3(0.0, 0.023, rng.randf_range(-0.08, 0.08)), Vector3(eff_len * 0.86, 0.018, width * 0.48), rng.randf_range(-0.01, 0.01)))
 
 		# Muretes laterales escalonados y albardillas (respetando la salida norte a RusticStair_A5North en x<=54.0!)
 		for sz_s in [-1.0, 1.0]:
@@ -1544,8 +1636,8 @@ static func build_upgraded_a5_bridge(builder: Node3D, parent: Node3D, a: Vector3
 				xfs_ta.append(_box_xf(Vector3(pos.x, pos.y + 0.30, cz), Vector3(step_len * 2.04, 0.14, 0.52)))
 
 	# Rellanos de remate en arranque Z9 (x=76.9) y llegada al umbral de A5 (x=49.6)
-	xfs_ta.append(_box_xf(a + Vector3(0.55, -0.02, 0.0), Vector3(1.55, 0.18, width + 0.30)))
-	xfs_ta.append(_box_xf(b + Vector3(-0.32, -0.02, 0.0), Vector3(1.30, 0.18, width + 0.40)))
+	xfs_ta.append(_box_xf(a + Vector3(0.55, -0.065, 0.0), Vector3(1.55, 0.18, width + 0.30)))
+	xfs_ta.append(_box_xf(b + Vector3(-0.32, -0.065, 0.0), Vector3(1.30, 0.18, width + 0.40)))
 
 	_emit_box_mm(br, "MM_BridgeRisersCurbs", xfs_wall, mat_stone_wall, true)
 	_emit_box_mm(br, "MM_BridgeTreadsA", xfs_ta, mat_ashlar, true)
@@ -1641,7 +1733,7 @@ static func build_upgraded_rustic_stone_flight(
 		var p := a.lerp(b, t)
 		var tread_w := width + rng.randf_range(-0.05, 0.06)
 		xfs_riser.append(_box_xf(p + Vector3(0.0, -base_drop * 0.5, 0.0), Vector3(width - 0.06, base_drop, step_depth * 0.98), yaw))
-		var t_xf := _box_xf(p + Vector3(0.0, 0.02, 0.0), Vector3(tread_w, 0.16, step_depth), yaw + rng.randf_range(-0.015, 0.015))
+		var t_xf := _box_xf(p + Vector3(0.0, -0.055, 0.0), Vector3(tread_w, 0.16, step_depth), yaw + rng.randf_range(-0.015, 0.015))
 		if i % 3 != 1:
 			xfs_ta.append(t_xf)
 		else:

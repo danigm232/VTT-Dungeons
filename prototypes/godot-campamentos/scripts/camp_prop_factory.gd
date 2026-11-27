@@ -169,9 +169,9 @@ static func create_bedroll(
 	yaw: float
 ) -> Dictionary:
 	var owner_wool := {
-		"mike": Color("#46586b"),
-		"mia": Color("#7c6244"),
-		"maria": Color("#554a5c"),
+		"mike": Color("#3f5972"),
+		"mia": Color("#945a3a"),
+		"maria": Color("#754853"),
 	}
 	var base_wool: Color = owner_wool.get(owner, Color("#686153"))
 	var mat_mat := MatKit.make_cloth_mat(Color("#544b3d"), true, true)
@@ -504,6 +504,17 @@ static func create_campfire_hearth_kit(
 	handle.position = Vector3(1.06, 0.105, 0.39); handle.rotation.y = -0.26
 	hearth.add_child(handle)
 
+	# Warm ceramic stew bowls & mugs waiting beside the skillet slab
+	var mat_mug := MatKit.make_cloth_mat(Color("#a85d3b"), false, true)
+	var mat_tin := MatKit.make_bronze_mat(Color("#8c9296"))
+	for m_i in range(2):
+		var mug := MeshInstance3D.new()
+		mug.name = "HearthStewMug_%d" % m_i
+		var mgm := CylinderMesh.new(); mgm.top_radius = 0.046; mgm.bottom_radius = 0.038; mgm.height = 0.088; mgm.radial_segments = 8
+		mug.mesh = mgm; mug.material_override = mat_mug if m_i == 0 else mat_tin
+		mug.position = Vector3(0.72 + float(m_i) * 0.16, 0.115, 0.50 - float(m_i) * 0.05)
+		hearth.add_child(mug)
+
 	# Shared supplies cluster: provisions sack + 2 leather waterskins + coiled rope
 	var sup := Node3D.new()
 	sup.name = "SharedCampSupplies"
@@ -555,14 +566,16 @@ static func create_canvas_shelter(
 	fx: CampAtmosphereFx = null
 ) -> Dictionary:
 	# Strictly open-sided weathered canvas tarp adapted per biome (zero enclosed walls!)
-	var base_tarp_col := Color("#b5a07a") if variant == "forest" else (Color("#bfb59d") if variant == "wreck-beach" else Color("#7d796f"))
+	var base_tarp_col := Color("#b5a07a") if variant == "forest" else (Color("#d2c6ad") if variant == "wreck-beach" else Color("#a69882"))
 	var mat_canvas: Material
 	if variant == "forest":
 		mat_canvas = MatKit.create_tarp_canvas_shader_material(base_tarp_col, Color("#6a583f"), true)
+	elif variant == "wreck-beach":
+		# Reused salt-bleached ship sail canvas with weathered maritime ochre seam & hem wear!
+		mat_canvas = MatKit.create_tarp_canvas_shader_material(base_tarp_col, Color("#8b5a3c"), true)
 	else:
-		var std_c := MatKit.make_textured_mat("linen.webp", base_tarp_col, 0.88, "cloth", Vector3(1.15, 1.15, 1.15), false, true)
-		std_c.cull_mode = BaseMaterial3D.CULL_DISABLED
-		mat_canvas = std_c
+		# Weathered warm oatmeal-linen highland storm tarp (stands out warmly against dark basalt cliff!)
+		mat_canvas = MatKit.create_tarp_canvas_shader_material(base_tarp_col, Color("#766852"), true)
 	var mat_hem := MatKit.make_textured_mat("linen.webp", Color("#6a5b44"), 0.90, "cloth", Vector3(1.15, 1.15, 1.15), false, true)
 	mat_hem.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var mat_leather := MatKit.make_leather_mat(Color("#4c3422"), true)
@@ -775,61 +788,168 @@ static func create_canvas_shelter(
 		basket.position = Vector3(-half_x + 0.64, 0.13, rear_z + 0.56)
 		shelter.add_child(basket)
 
+		# Cozy woven shelter floor rug + warm underside firelight bounce pool at dusk/night
+		create_woven_rug(shelter, "ShelterWovenRug", Vector3(0.15, 0.0, -0.05), Vector2(2.35, 1.75), Color("#7d563c"), Color("#b89566"), 0.05)
+		if fx and fx.has_method("register_lantern"):
+			var under_warm := OmniLight3D.new()
+			under_warm.name = "ShelterWarmBounceLight"
+			under_warm.light_color = Color("#ffac58")
+			under_warm.light_energy = 0.0
+			under_warm.omni_range = 4.4
+			under_warm.omni_attenuation = 1.45
+			under_warm.position = Vector3(0.0, rear_h - 0.38, -0.15)
+			shelter.add_child(under_warm)
+			fx.register_lantern(under_warm, null, 0.72, 0.08)
+
 	elif variant == "wreck-beach":
-		# Windbreak tarp pitched for 2 huddled coastal sleepers
-		var top_h := 1.48
-		var bot_h := 0.20
-		var tarp_mesh := _make_wrinkled_grid_mesh(span_x, span_z, 9, 8, func(u: float, v: float, _x: float, _z: float) -> float:
-			var slope := lerpf(top_h, bot_h, v)
-			var wind_billow := sin(u * PI) * sin(v * PI) * 0.13
-			var fold := sin(u * 10.0) * 0.02
-			return slope + wind_billow + fold
-		)
+		# Reused ship's sail tarp pitched over weathered driftwood spars:
+		# tall rear ridge (2.56m) sloping naturally forward to 2.08m front eave so the full sculpted
+		# sail canopy + red maritime stripe read clearly from VTT pitch 25° with ample >=2.08m headroom!
+		var rear_h := 2.58
+		var front_h := 2.08
+		var half_x := span_x * 0.56
+		var front_z := span_z * 0.52
+		var rear_z := -span_z * 0.56
+		min_clear_h = 2.08
+
+		var sail_pt := func(u: float, v: float) -> Vector3:
+			var raw_x := lerpf(-half_x, half_x, u)
+			var raw_z := lerpf(rear_z, front_z, v)
+			var mid_u := sin(u * PI)
+			var mid_v := sin(v * PI)
+			# Scalloped sailcloth edges pulling inward between lashed grommet corners
+			var sc_x := -signf(u - 0.5) * pow(absf(u - 0.5) * 2.0, 1.6) * mid_v * 0.16
+			var sc_z := -signf(v - 0.5) * pow(absf(v - 0.5) * 2.0, 1.6) * mid_u * 0.12
+			var y_slope := lerpf(rear_h, front_h, v)
+			# Natural sea-breeze catenary sag & wind-billow folds
+			var cat_sag := -mid_u * (0.09 + 0.06 * mid_v) + sin(u * PI) * sin(v * PI) * 0.05
+			var folds := sin(u * 13.0 + v * 5.0) * 0.024 * mid_u + cos(v * 10.0 - u * 4.0) * 0.015 * mid_v
+			return Vector3(raw_x + sc_x, y_slope + cat_sag + folds, raw_z + sc_z)
+
+		var tarp_mesh := _make_sculpted_tarp_mesh(16, 12, sail_pt, 0.015)
 		var tarp := MeshInstance3D.new()
+		tarp.name = "BeachSailTarpMesh"
 		tarp.mesh = tarp_mesh
 		tarp.material_override = mat_canvas
+		tarp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 		roof_node.add_child(tarp)
 
-		for sx in [-span_x * 0.44, span_x * 0.44]:
-			var pole := MeshInstance3D.new()
-			var plm := CylinderMesh.new(); plm.top_radius = 0.032; plm.bottom_radius = 0.044; plm.height = 1.48; plm.radial_segments = 7
-			pole.mesh = plm; pole.material_override = mat_wood
-			pole.position = Vector3(sx, 0.68, -span_z * 0.48)
-			pole.rotation.x = 0.16
-			shelter.add_child(pole)
-			_add_guy_rope(shelter, Vector3(sx, top_h, -span_z * 0.48), Vector3(sx * 1.15, 0.12, -span_z * 0.85), mat_rope)
-			env_kit.spawn_rock(shelter, Vector3(sx * 1.15, 0.06, -span_z * 0.85), Vector3(0.30, 0.20, 0.28), sx, mat_rock, 1, "rounded")
+		# Weathered red-ochre maritime identification stripe stitched across the sailcloth
+		var stripe_mat := MatKit.make_cloth_mat(Color("#9e4232"), true, true)
+		var st_stripe := SurfaceTool.new(); st_stripe.begin(Mesh.PRIMITIVE_TRIANGLES)
+		for si in range(10):
+			var u0 := lerpf(0.06, 0.94, float(si) / 10.0)
+			var u1 := lerpf(0.06, 0.94, float(si + 1) / 10.0)
+			var p00: Vector3 = sail_pt.call(u0, 0.42) + Vector3(0.0, 0.014, 0.0)
+			var p10: Vector3 = sail_pt.call(u1, 0.42) + Vector3(0.0, 0.014, 0.0)
+			var p11: Vector3 = sail_pt.call(u1, 0.56) + Vector3(0.0, 0.014, 0.0)
+			var p01: Vector3 = sail_pt.call(u0, 0.56) + Vector3(0.0, 0.014, 0.0)
+			st_stripe.set_uv(Vector2(u0, 0.0)); st_stripe.add_vertex(p00)
+			st_stripe.set_uv(Vector2(u1, 0.0)); st_stripe.add_vertex(p10)
+			st_stripe.set_uv(Vector2(u1, 1.0)); st_stripe.add_vertex(p11)
+			st_stripe.set_uv(Vector2(u0, 0.0)); st_stripe.add_vertex(p00)
+			st_stripe.set_uv(Vector2(u1, 1.0)); st_stripe.add_vertex(p11)
+			st_stripe.set_uv(Vector2(u0, 1.0)); st_stripe.add_vertex(p01)
+		st_stripe.generate_normals()
+		var stripe_mi := MeshInstance3D.new()
+		stripe_mi.name = "SailMaritimeStripe"
+		stripe_mi.mesh = st_stripe.commit()
+		stripe_mi.material_override = stripe_mat
+		stripe_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		roof_node.add_child(stripe_mi)
 
-		# Hem anchor stones pinning bottom windbreak hem into sand
-		for s_i in range(4):
-			var hx := lerpf(-span_x * 0.40, span_x * 0.40, float(s_i) / 3.0)
-			env_kit.spawn_rock(shelter, Vector3(hx, 0.06, span_z * 0.46), Vector3(0.24, 0.16, 0.22), float(s_i) * 1.1, mat_rock, s_i, "rounded")
+		# Weathered driftwood/ship-spar support poles + horizontal rear ridge spar + guy ropes & stakes
+		var mat_spar := MatKit.make_wood_mat(Color("#8c7c66"), true)
+		var fl_top: Vector3 = sail_pt.call(0.0, 1.0)
+		var fr_top: Vector3 = sail_pt.call(1.0, 1.0)
+		var rl_top: Vector3 = sail_pt.call(0.0, 0.0)
+		var rr_top: Vector3 = sail_pt.call(1.0, 0.0)
+		_add_guy_rope(shelter, rl_top + Vector3(-0.18, -0.02, 0.0), rr_top + Vector3(0.18, -0.02, 0.0), mat_spar, 0.042)
+		_add_guy_rope(shelter, fl_top + Vector3(-0.14, -0.02, 0.0), fr_top + Vector3(0.14, -0.02, 0.0), mat_spar, 0.032)
+		for corner_pair in [
+			[fl_top, Vector3(fl_top.x - 0.05, -0.08, fl_top.z + 0.05), Vector3(fl_top.x - 0.72, 0.04, fl_top.z + 0.64), 0.040],
+			[fr_top, Vector3(fr_top.x + 0.05, -0.08, fr_top.z + 0.05), Vector3(fr_top.x + 0.62, 0.04, fr_top.z + 0.56), 0.040],
+			[rl_top, Vector3(rl_top.x - 0.05, -0.08, rl_top.z - 0.05), Vector3(rl_top.x - 0.66, 0.04, rl_top.z - 0.66), 0.046],
+			[rr_top, Vector3(rr_top.x + 0.05, -0.08, rr_top.z - 0.05), Vector3(rr_top.x + 0.66, 0.04, rr_top.z - 0.66), 0.046],
+		]:
+			var c_top: Vector3 = corner_pair[0]
+			var c_bot: Vector3 = corner_pair[1]
+			var c_stake: Vector3 = corner_pair[2]
+			var c_rad: float = float(corner_pair[3])
+			_add_guy_rope(shelter, c_bot, c_top + Vector3(0.0, 0.08, 0.0), mat_spar, c_rad)
+			var lash := MeshInstance3D.new()
+			var lm := TorusMesh.new(); lm.inner_radius = c_rad * 0.9; lm.outer_radius = c_rad * 1.45; lm.rings = 10
+			lash.mesh = lm; lash.material_override = mat_rope; lash.position = c_top + Vector3(0.0, -0.02, 0.0)
+			shelter.add_child(lash)
+			_add_guy_rope(shelter, c_top, c_stake + Vector3(0.0, 0.14, 0.0), mat_rope, 0.012)
+			_add_guy_rope(shelter, c_stake + Vector3(0.0, -0.08, 0.0), c_stake + Vector3(0.0, 0.24, 0.0), mat_wood, 0.024)
+			env_kit.spawn_rock(shelter, c_stake + Vector3(0.12, 0.05, 0.05), Vector3(0.26, 0.16, 0.24), c_stake.x, mat_rock, 1, "craggy")
+
+		# Draped salvage fishing net mesh hanging on the west flank of the sail shelter
+		var net_root := Node3D.new()
+		net_root.name = "SailSideFishingNet"
+		shelter.add_child(net_root)
+		for ni in range(5):
+			var vf := float(ni) / 4.0
+			var n_top: Vector3 = sail_pt.call(0.02, vf)
+			var n_bot := Vector3(n_top.x - 0.16, 0.04, n_top.z)
+			_add_guy_rope(net_root, n_top, n_bot, mat_rope, 0.008)
+		for nh in range(3):
+			var hf := 0.28 + float(nh) * 0.26
+			var a_pt := lerpf(rl_top.y, 0.04, hf)
+			var b_pt := lerpf(fl_top.y, 0.04, hf)
+			_add_guy_rope(net_root, Vector3(rl_top.x - 0.10 * hf, a_pt, rl_top.z), Vector3(fl_top.x - 0.10 * hf, b_pt, fl_top.z), mat_rope, 0.007)
+
+		# Cozy woven coastal mat under the sail shelter
+		create_woven_rug(shelter, "BeachShelterRug", Vector3(0.0, 0.006, 0.02), Vector2(2.35, 1.55), Color("#8c5e3f"), Color("#d2b98c"), 0.0)
 
 	else:
-		# cliff-observatory: Low storm-weighted tarp for 1-2 kneeling/lying defenders
-		var top_h := 1.18
-		var bot_h := 0.22
-		var tarp_mesh := _make_wrinkled_grid_mesh(span_x, span_z, 9, 8, func(u: float, v: float, _x: float, _z: float) -> float:
-			var slope := lerpf(top_h, bot_h, v)
-			var wind_curve := sin(u * PI) * 0.08 + sin(u * 13.0 + v * 6.0) * 0.018
-			return slope + wind_curve
-		)
-		var tarp := MeshInstance3D.new()
-		tarp.mesh = tarp_mesh
-		tarp.material_override = mat_hem
-		roof_node.add_child(tarp)
+		# cliff-observatory: Low wind-taut storm tarp anchored between basalt windbreak & weighted boulders
+		# Raised front lip (1.92m) tapering sharply into rear windbreak (0.68m) for aerodynamic silhouette + clear headroom
+		var front_h := 1.94
+		var rear_h := 0.68
+		var half_x := span_x * 0.54
+		var front_z := span_z * 0.48
+		var rear_z := -span_z * 0.52
+		min_clear_h = 1.76
 
-		# 4 heavy basalt anchor stones + taut hemp cords (zero poles!)
+		var storm_pt := func(u: float, v: float) -> Vector3:
+			var raw_x := lerpf(-half_x, half_x, u)
+			var raw_z := lerpf(rear_z, front_z, v)
+			var mid_u := sin(u * PI)
+			var mid_v := sin(v * PI)
+			var sc_x := -signf(u - 0.5) * pow(absf(u - 0.5) * 2.0, 1.6) * mid_v * 0.14
+			var sc_z := -signf(v - 0.5) * pow(absf(v - 0.5) * 2.0, 1.6) * mid_u * 0.10
+			var y_slope := lerpf(rear_h, front_h, v)
+			var taut_sag := -mid_u * (0.05 + 0.04 * mid_v) + sin(u * 13.0 + v * 6.0) * 0.020 * mid_u
+			return Vector3(raw_x + sc_x, y_slope + taut_sag, raw_z + sc_z)
+
+		var tarp_mesh := _make_sculpted_tarp_mesh(14, 10, storm_pt, 0.015)
+		var tarp := MeshInstance3D.new()
+		tarp.name = "CliffStormTarpMesh"
+		tarp.mesh = tarp_mesh
+		tarp.material_override = mat_canvas
+		tarp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		roof_node.add_child(tarp)
+		create_woven_rug(shelter, "CliffShelterRug", Vector3(0.0, 0.006, 0.0), Vector2(2.25, 1.45), Color("#8e4c36"), Color("#cf9e68"), 0.0)
+
+		# 2 sturdy lashed front timber poles + 4 heavy basalt wind-anchor boulders with taut ropes
+		var c_fl: Vector3 = storm_pt.call(0.0, 1.0)
+		var c_fr: Vector3 = storm_pt.call(1.0, 1.0)
+		var c_rl: Vector3 = storm_pt.call(0.0, 0.0)
+		var c_rr: Vector3 = storm_pt.call(1.0, 0.0)
+		_add_guy_rope(shelter, Vector3(c_fl.x, -0.06, c_fl.z), c_fl + Vector3(0.0, 0.08, 0.0), mat_wood, 0.036)
+		_add_guy_rope(shelter, Vector3(c_fr.x, -0.06, c_fr.z), c_fr + Vector3(0.0, 0.08, 0.0), mat_wood, 0.036)
 		var anchors := [
-			[Vector3(-span_x * 0.48, top_h, -span_z * 0.48), Vector3(-span_x * 0.62, 0.28, -span_z * 0.72)],
-			[Vector3(span_x * 0.48, top_h, -span_z * 0.48), Vector3(span_x * 0.64, 0.28, -span_z * 0.68)],
-			[Vector3(-span_x * 0.48, bot_h, span_z * 0.48), Vector3(-span_x * 0.56, 0.08, span_z * 0.66)],
-			[Vector3(span_x * 0.48, bot_h, span_z * 0.48), Vector3(span_x * 0.56, 0.08, span_z * 0.66)],
+			[c_fl, Vector3(c_fl.x - 0.72, 0.16, c_fl.z + 0.65)],
+			[c_fr, Vector3(c_fr.x + 0.72, 0.16, c_fr.z + 0.65)],
+			[c_rl, Vector3(c_rl.x - 0.62, 0.16, c_rl.z - 0.68)],
+			[c_rr, Vector3(c_rr.x + 0.62, 0.16, c_rr.z - 0.68)],
 		]
 		for a_i in range(anchors.size()):
 			var a_pair: Array = anchors[a_i]
-			_add_guy_rope(shelter, a_pair[0], a_pair[1], mat_rope)
-			env_kit.spawn_rock(shelter, Vector3(a_pair[1].x, 0.09, a_pair[1].z), Vector3(0.36, 0.25, 0.34), float(a_i) * 1.2, mat_rock, a_i, "stratified")
+			_add_guy_rope(shelter, a_pair[0], a_pair[1], mat_rope, 0.012)
+			env_kit.spawn_rock(shelter, Vector3(a_pair[1].x, 0.12, a_pair[1].z), Vector3(0.42, 0.28, 0.38), float(a_i) * 1.2, mat_rock, a_i, "stratified")
 
 	return {
 		"root": shelter,
@@ -980,6 +1100,15 @@ static func create_natural_seat(
 		log.position = Vector3(0.0, 0.16, 0.0); log.rotation = Vector3(0.04, 0.05, PI * 0.5)
 		sroot.add_child(log)
 		support_meshes.append(log)
+		# Draped warm wool salt-cloak/blanket pad over half the driftwood log
+		var seat_pad := MeshInstance3D.new()
+		seat_pad.name = "DriftwoodSeatBlanket"
+		seat_pad.mesh = _make_wrinkled_grid_mesh(0.92, 0.42, 6, 5, func(u: float, v: float, _x: float, _z: float) -> float:
+			return 0.345 - pow(absf(v - 0.5) * 2.0, 2.0) * 0.14 + sin(u * 9.0) * 0.008
+		, 0.018)
+		seat_pad.material_override = MatKit.make_textured_mat("wool-v4.webp", Color("#8e583b"), 0.90, "cloth", Vector3(1.6, 1.6, 1.6), false, true)
+		seat_pad.position = Vector3(-0.34, 0.0, 0.0)
+		sroot.add_child(seat_pad)
 		env_kit.spawn_seaweed_clump(sroot, Vector3(0.75, 0.01, 0.22), seed_v)
 
 	else:
@@ -992,6 +1121,14 @@ static func create_natural_seat(
 		var mat_slab := MatKit.make_textured_mat("coastal-rock.png", col, 0.86, "rock", Vector3(0.45, 0.45, 0.45), true, true)
 		var slab := env_kit.spawn_rock(sroot, Vector3(0.0, 0.15, 0.0), Vector3(1.36, 0.64, 0.76), 0.12, mat_slab, int(seed_v), "flat")
 		support_meshes.append(slab)
+		if variant == "cliff-observatory":
+			var cliff_pad := MeshInstance3D.new()
+			cliff_pad.name = "CliffSeatBlanket"
+			cliff_pad.mesh = _make_wrinkled_grid_mesh(0.72, 0.42, 6, 5, func(u: float, v: float, _x: float, _z: float) -> float:
+				return 0.325 - pow(absf(v - 0.5) * 2.0, 2.0) * 0.08 + cos(u * 8.0) * 0.006
+			, 0.016)
+			cliff_pad.material_override = MatKit.make_textured_mat("wool-v4.webp", Color("#9a4f36"), 0.90, "cloth", Vector3(1.6, 1.6, 1.6), false, true)
+			sroot.add_child(cliff_pad)
 		env_kit.spawn_rock(sroot, Vector3(0.48, 0.06, -0.22), Vector3(0.32, 0.24, 0.30), 1.4, mat_slab, int(seed_v) + 1, "craggy")
 
 	_add_prop_contact_ao(
@@ -1053,11 +1190,46 @@ static func _seat_surface_height(contact: Vector3, support_meshes: Array) -> flo
 				height = maxf(height, support.to_global(hit).y)
 	return contact.y if height == -INF else height
 
+static func create_woven_rug(
+	parent: Node3D,
+	node_name: String,
+	pos: Vector3,
+	size_xz: Vector2,
+	col_main: Color,
+	col_trim: Color,
+	yaw: float = 0.0
+) -> Node3D:
+	var rroot := Node3D.new()
+	rroot.name = node_name
+	rroot.position = pos
+	rroot.rotation.y = yaw
+	parent.add_child(rroot)
+	_add_prop_contact_ao(rroot, node_name + "_AO", Vector3(0.0, 0.004, 0.0), size_xz + Vector2(0.16, 0.16), 0.24)
+
+	var mat_main := MatKit.make_textured_mat("wool-v4.webp", col_main, 0.92, "cloth", Vector3(2.2, 2.2, 2.2), false, true)
+	var mat_trim := MatKit.make_cloth_mat(col_trim, false, true)
+
+	var body := MeshInstance3D.new()
+	body.mesh = _make_wrinkled_grid_mesh(size_xz.x, size_xz.y, 7, 5, func(u: float, v: float, _x: float, _z: float) -> float:
+		return 0.015 + sin(u * 8.0 + v * 6.0) * 0.004
+	, 0.014)
+	body.material_override = mat_main
+	body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	rroot.add_child(body)
+
+	var trim := MeshInstance3D.new()
+	var tm := BoxMesh.new(); tm.size = Vector3(size_xz.x * 0.90, 0.012, size_xz.y * 0.84)
+	trim.mesh = tm; trim.material_override = mat_trim; trim.position.y = 0.011
+	trim.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	rroot.add_child(trim)
+	return rroot
+
 static func create_personal_kit(
 	parent: Node3D,
 	owner: String,
 	pos: Vector3,
-	yaw: float
+	yaw: float,
+	fx: CampAtmosphereFx = null
 ) -> Node3D:
 	var kroot := Node3D.new()
 	kroot.name = "PersonalKit_" + owner
@@ -1108,11 +1280,33 @@ static func create_personal_kit(
 		vial.position = Vector3(0.16, 0.05, 0.09)
 		kroot.add_child(vial)
 
+		# Brass bedside candlestick with warm night reading glow next to Mike's grimoire
+		var saucer := MeshInstance3D.new()
+		var scm2 := CylinderMesh.new(); scm2.top_radius = 0.052; scm2.bottom_radius = 0.058; scm2.height = 0.018; scm2.radial_segments = 8
+		saucer.mesh = scm2; saucer.material_override = mat_brass; saucer.position = Vector3(-0.22, 0.022, -0.11)
+		kroot.add_child(saucer)
+		var wax := MeshInstance3D.new()
+		var wxm := CylinderMesh.new(); wxm.top_radius = 0.018; wxm.bottom_radius = 0.021; wxm.height = 0.085; wxm.radial_segments = 7
+		wax.mesh = wxm; wax.material_override = mat_paper; wax.position = Vector3(-0.22, 0.068, -0.11)
+		kroot.add_child(wax)
+		var wick_mat := StandardMaterial3D.new()
+		wick_mat.albedo_color = Color("#ffcf7a"); wick_mat.emission = Color("#ffb355"); wick_mat.emission_enabled = false
+		var flame_tip := MeshInstance3D.new()
+		var ftm := SphereMesh.new(); ftm.radius = 0.016; ftm.height = 0.036; ftm.radial_segments = 6; ftm.rings = 3
+		flame_tip.mesh = ftm; flame_tip.material_override = wick_mat; flame_tip.position = Vector3(-0.22, 0.125, -0.11)
+		kroot.add_child(flame_tip)
+		if fx and fx.has_method("register_lantern"):
+			var cl_candle := OmniLight3D.new()
+			cl_candle.light_color = Color("#ffba6a"); cl_candle.omni_range = 2.6; cl_candle.omni_attenuation = 1.65; cl_candle.light_energy = 0.0
+			cl_candle.position = Vector3(-0.22, 0.17, -0.11)
+			kroot.add_child(cl_candle)
+			fx.register_lantern(cl_candle, wick_mat, 0.46, 0.12, 2.2)
+
 	elif owner == "mia":
 		# Woven travel prayer mat + bronze sacred medallion + tinder/incense box
 		var mat_pad := MeshInstance3D.new()
 		var mpm := BoxMesh.new(); mpm.size = Vector3(0.66, 0.016, 0.48)
-		mat_pad.mesh = mpm; mat_pad.material_override = MatKit.make_textured_mat("wool-v4.webp", Color("#7b6043"), 0.90, "cloth", Vector3(1.5, 1.5, 1.5), false, true)
+		mat_pad.mesh = mpm; mat_pad.material_override = MatKit.make_textured_mat("wool-v4.webp", Color("#8a5f42"), 0.90, "cloth", Vector3(1.5, 1.5, 1.5), false, true)
 		mat_pad.position = Vector3(0.0, 0.008, 0.0)
 		kroot.add_child(mat_pad)
 
@@ -1141,6 +1335,13 @@ static func create_personal_kit(
 		tin.position = Vector3(0.16, 0.038, 0.06)
 		kroot.add_child(tin)
 
+		# Cozy clay herbal teacup beside Mia's mat
+		var cup := MeshInstance3D.new()
+		var cpm := CylinderMesh.new(); cpm.top_radius = 0.040; cpm.bottom_radius = 0.032; cpm.height = 0.076; cpm.radial_segments = 8
+		cup.mesh = cpm; cup.material_override = MatKit.make_cloth_mat(Color("#a85c3d"), false, true)
+		cup.position = Vector3(0.22, 0.052, -0.09)
+		kroot.add_child(cup)
+
 	else:
 		# Trinity: unrolled leather tool wrap + slender picks + rectangular whetstone
 		var wrap := MeshInstance3D.new()
@@ -1164,7 +1365,7 @@ static func create_personal_kit(
 			tool.rotation.y = sin(float(t_i)) * 0.06
 			kroot.add_child(tool)
 
-		# Two-tone rectangular whetstone + oil vial
+		# Two-tone rectangular whetstone + oil vial + folded warm wool scarf
 		var whetstone := MeshInstance3D.new()
 		var wsm := BoxMesh.new(); wsm.size = Vector3(0.15, 0.032, 0.065)
 		whetstone.mesh = wsm; whetstone.material_override = MatKit.make_textured_mat("coastal-rock.png", Color("#64696d"), 0.65, "rock", Vector3.ONE, false, true)
@@ -1177,12 +1378,20 @@ static func create_personal_kit(
 		oil.position = Vector3(0.20, 0.045, 0.09)
 		kroot.add_child(oil)
 
+		var scarf := MeshInstance3D.new()
+		var sfm := BoxMesh.new(); sfm.size = Vector3(0.22, 0.028, 0.14)
+		scarf.mesh = sfm; scarf.material_override = MatKit.make_textured_mat("wool-v4.webp", Color("#8b4a4b"), 0.90, "cloth", Vector3(1.5, 1.5, 1.5), false, true)
+		scarf.position = Vector3(-0.18, 0.022, -0.14); scarf.rotation.y = -0.32
+		kroot.add_child(scarf)
+
 	return kroot
 
 static func create_portable_lantern(
 	parent: Node3D,
 	fx: CampAtmosphereFx,
-	pos: Vector3
+	pos: Vector3,
+	always_lit: bool = false,
+	day_scale: float = 0.72
 ) -> Node3D:
 	# Small portable ground-placed lantern (NEVER lit by default during bright day!)
 	var lroot := Node3D.new()
@@ -1231,6 +1440,6 @@ static func create_portable_lantern(
 	lroot.add_child(light)
 
 	if fx and fx.has_method("register_lantern"):
-		fx.register_lantern(light, mat_glass)
+		fx.register_lantern(light, mat_glass, 1.15 if always_lit else 1.05, 0.06, 1.65 if always_lit else 1.55, always_lit, day_scale)
 
 	return lroot

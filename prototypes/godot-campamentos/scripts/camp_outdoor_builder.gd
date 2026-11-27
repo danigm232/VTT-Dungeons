@@ -12,6 +12,11 @@ const MatKit = preload("res://scripts/camp_material_kit.gd")
 const EnvKitScript = preload("res://scripts/camp_environment_kit.gd")
 const PropFactory = preload("res://scripts/camp_prop_factory.gd")
 const FaunaKit = preload("res://scripts/camp_fauna_kit.gd")
+const CoastalKit = preload("res://scripts/camp_coastal_kit.gd")
+
+const BEACH_WATER_Y := -0.18
+const CLIFF_SEA_Y := -14.8
+const COVE_WATER_Y := -0.18
 
 var cutaway_tents: Array[Dictionary] = []
 var chest_lids: Dictionary = {}
@@ -108,6 +113,232 @@ func _eval_forest_play_height(wx: float, wz: float) -> float:
 		relief -= (-0.58 - hollow_n) * 0.14 * pad_weight
 	return _carve_river_valley(wx, wz, relief)
 
+func _beach_shore_z(wx: float) -> float:
+	# Asymmetric curving coastal bay: rocky west headland, graceful sandy crescent, open eastern reef bay for shipwreck
+	var bay_curve := 24.4 + sin(wx * 0.145 + 0.35) * 1.35 + cos(wx * 0.29 - 0.55) * 0.55
+	var center_in := smoothstep(9.0, 22.0, wx) * (1.0 - smoothstep(26.0, 36.0, wx)) * 1.25
+	var west_head := smoothstep(6.0, -5.0, wx) * 4.2
+	# Curve east bay gently back north around wx > 29 so the shipwreck sits visibly IN turquoise reef water!
+	var east_bay := smoothstep(28.5, 42.0, wx) * 2.2
+	return bay_curve - center_in + west_head - east_bay
+
+func _eval_beach_height(wx: float, wz: float, width_m: float, depth_m: float) -> float:
+	var shore_z := _beach_shore_z(wx)
+	# Subtle flat bivouac terrace across playable camp so ALL 296 walkable tiles have smooth footing & zero rejections!
+	var camp_d := Vector2((wx - 18.2) * 0.85, (wz - 13.4) * 1.05).length()
+	var camp_flat := 1.0 - smoothstep(4.8, 10.5, camp_d)
+	var ripple := (sin(wx * 0.22 + 0.4) * cos(wz * 0.20 - 0.3) * 0.08 + sin((wx - wz) * 0.38) * 0.035) * (1.0 - camp_flat)
+	var h := ripple * 0.45
+
+	# Smooth coastal slope down across damp swash into sloping underwater seabed
+	if wz > shore_z - 4.4:
+		var swash_t := clampf((wz - (shore_z - 4.4)) / 4.4, 0.0, 1.0)
+		var swash_y := lerpf(h, BEACH_WATER_Y, swash_t * swash_t * (3.0 - 2.0 * swash_t))
+		if wz <= shore_z:
+			h = swash_y
+		else:
+			var d_sea := wz - shore_z
+			var sea_drop := smoothstep(0.0, 24.0, d_sea) * 2.45 + d_sea * 0.025
+			# Shallow reef shelf under eastern shipwreck so turquoise surf wraps around hull
+			var wreck_d := Vector2((wx - 35.6) * 0.82, (wz - 28.8) * 1.05).length()
+			var reef_shelf := (1.0 - smoothstep(2.5, 9.0, wreck_d)) * 0.38
+			h = BEACH_WATER_Y - sea_drop + reef_shelf + sin(wx * 0.28) * cos(wz * 0.26) * 0.08
+	else:
+		# Sculpted asymmetric northern sandstone bluffs & dunes starting cleanly OUTSIDE northern walkable rows (wz < 4.4)!
+		var north_d := maxf(0.0, 4.4 - wz)
+		var west_d := maxf(0.0, 1.6 - wx)
+		var east_d := maxf(0.0, wx - (width_m - 1.6))
+		var nw_bias := lerpf(1.36, 0.88, clampf(wx / maxf(1.0, width_m), 0.0, 1.0))
+		var rim := sqrt(north_d * north_d * 1.18 + west_d * west_d * 0.92 + east_d * east_d * 0.88)
+		if rim > 0.15:
+			var bluff_rise := minf(6.4, pow(rim, 1.12) * 0.31 * nw_bias)
+			var crag_n := sin(wx * 0.31 + wz * 0.22) * 0.44 + cos(wx * 0.62 - wz * 0.48) * 0.20
+			h += bluff_rise + crag_n * smoothstep(0.5, 5.5, rim)
+		# Keep western headland rising gently seaward of x<1.8
+		if wx < 2.2 and wz > 12.0 and wz < shore_z + 2.0:
+			var hw := smoothstep(2.2, -5.5, wx) * (1.0 - smoothstep(shore_z - 2.0, shore_z + 3.0, wz))
+			h += hw * 2.2 + sin(wz * 0.45) * 0.20 * hw
+	return h
+
+func _eval_beach_vertex_color(wx: float, wz: float, h: float) -> Color:
+	var shore_z := _beach_shore_z(wx)
+	# R: smooth curved moisture gradient from dry sand -> damp swash -> submerged seabed
+	var moist := smoothstep(shore_z - 4.4, shore_z + 0.55, wz)
+	# G: coastal pebble/shell wrack band along tide edge + rocky bluff foot gravel
+	var wrack_d := absf(wz - (shore_z - 3.6))
+	var wrack := (1.0 - smoothstep(0.5, 2.5, wrack_d)) * 0.72
+	var bluff_gravel := smoothstep(0.32, 1.45, h) * 0.85
+	# B: compacted camp traffic sand + subtle keel drag furrow behind StrandedRowboat (6.75, 20.25)
+	var camp_wear := 1.0 - smoothstep(2.4, 7.6, Vector2((wx - 18.2) * 0.85, (wz - 13.6) * 1.15).length())
+	var furrow_d := _seg_dist_2d(Vector2(wx, wz), Vector2(6.75, 20.25), Vector2(7.6, 24.4))
+	var furrow := (1.0 - smoothstep(0.35, 1.35, furrow_d)) * 0.75
+	return Color(clampf(moist, 0.0, 1.0), clampf(maxf(wrack, bluff_gravel), 0.0, 1.0), clampf(maxf(camp_wear * 0.65, furrow), 0.0, 1.0), 1.0)
+
+func _cliff_rim_signed_dist(wx: float, wz: float, width_m: float, depth_m: float) -> float:
+	# Asymmetric jagged coastal promontory connected to a larger highland rocky massif to the W/NW!
+	# Negative = inside walkable upper basalt plateau; Positive = distance past jagged cliff drop rim.
+	var cx := width_m * 0.50 + 0.6
+	var cz := depth_m * 0.50 - 0.4
+	var ang := atan2(wz - cz, wx - cx)
+	var jag := sin(ang * 5.0 + 0.6) * 1.45 + cos(ang * 8.0 - 1.1) * 0.85 + sin(ang * 13.0 + 2.0) * 0.45
+	# Elliptical-polygonal organic promontory envelope comfortably enclosing all 307 walkable tiles (cols 2..22, rows 2..19 -> x:3..34.5, z:3..30)
+	var nx_e := (wx - cx) / (17.2 + jag * 0.55)
+	var nz_e := (wz - cz) / (14.4 + jag * 0.48)
+	# Soft superellipse (p=3.2) breaks boxy trapezoid rectangle into dramatic rounded-jagged rocky promontory
+	var r_se := pow(pow(absf(nx_e), 3.2) + pow(absf(nz_e), 3.2), 1.0 / 3.2)
+	var d_rim := (r_se - 1.0) * 15.2 + jag * 0.42
+	# Keep ALL canonical inner walkable bounds (x in [2.6, 34.8], z in [2.6, 29.8]) safely inside the upper plateau!
+	var box_dx := maxf(0.0, maxf(2.6 - wx, wx - 34.8))
+	var box_dz := maxf(0.0, maxf(2.6 - wz, wz - 29.8))
+	var box_out := sqrt(box_dx * box_dx + box_dz * box_dz)
+	if box_out <= 0.01:
+		return minf(d_rim, -0.45)
+	return maxf(d_rim, box_out * 0.85)
+
+func _eval_cliff_height(wx: float, wz: float, width_m: float, depth_m: float) -> float:
+	# Connected highland mountain massif on the far West / Northwest (wx < 0, wz < 14) so promontory is NOT a floating block!
+	var massif_w := smoothstep(4.5, -18.0, wx) * smoothstep(24.0, 2.0, wz)
+	var massif_nw := smoothstep(12.0, -8.0, wx) * smoothstep(2.5, -18.0, wz)
+	var massif_mask := clampf(maxf(massif_w, massif_nw * 0.92), 0.0, 1.0)
+
+	var d_rim := _cliff_rim_signed_dist(wx, wz, width_m, depth_m)
+	# Subtle weathered plateau micro-relief (<= ±0.08m so all 307 walkable tiles stay 100% valid!)
+	var sanctuary_d := Vector2(wx - 19.0, wz - 12.6).length()
+	var sanct_flat := 1.0 - smoothstep(5.5, 8.8, sanctuary_d)
+	var plat_h := (sin(wx * 0.27 + 0.5) * cos(wz * 0.25 - 0.4) * 0.065 + sin((wx + wz) * 0.48) * 0.028) * (1.0 - sanct_flat * 0.82)
+
+	var h := plat_h
+	if d_rim > 0.0:
+		# Multi-tier stratified cliff drop with jutting basalt rock shelves & irregular ledges!
+		var t_drop := clampf(d_rim / 11.5, 0.0, 1.0)
+		var strata_step := floorf(t_drop * 4.0) * 0.25
+		var stepped_t := lerpf(t_drop, strata_step + smoothstep(0.0, 1.0, fposmod(t_drop * 4.0, 1.0)) * 0.25, 0.36)
+		var drop := smoothstep(0.0, 1.0, stepped_t) * 16.8
+		var shelf_rip := sin(wx * 0.34 + wz * 0.26) * 0.72 + cos(wx * 0.62 - wz * 0.54) * 0.36
+		var sheer_h := plat_h - drop + shelf_rip * smoothstep(0.2, 3.5, d_rim) * (1.0 - smoothstep(9.0, 16.0, d_rim))
+		# Blend seamlessly into rising highland massif on the West/NW instead of dropping into void!
+		if massif_mask > 0.001:
+			var m_rise := pow(massif_mask, 1.15) * 9.8 + sin(wx * 0.22 + wz * 0.19) * 1.45 * massif_mask + cos(wx * 0.48 - wz * 0.38) * 0.55 * massif_mask
+			h = lerpf(sheer_h, plat_h + m_rise, smoothstep(0.06, 0.55, massif_mask))
+		else:
+			h = sheer_h
+	return h
+
+func _eval_cliff_vertex_color(wx: float, wz: float, h: float) -> Color:
+	# R = ancient carved astronomical ruin plaza & flagstones (centered at 19.0, 12.6)
+	var d_ruin := Vector2((wx - 19.0) * 0.96, (wz - 12.6) * 1.04).length()
+	var ruin_m := (1.0 - smoothstep(5.4, 8.2, d_ruin)) * smoothstep(-0.35, -0.05, h)
+	# G = highland lichen, alpine moss & crevice turf along windbreak, west path & cliff ledges
+	var west_ridge := smoothstep(14.0, 2.5, wx) * smoothstep(-0.4, 0.1, h) * 0.62
+	var rim_moss := (1.0 - smoothstep(1.2, 5.2, absf(h + 0.05))) * (0.32 + 0.35 * sin(wx * 0.35) * cos(wz * 0.31))
+	var moss_m := clampf(maxf(west_ridge, rim_moss) * (1.0 - ruin_m * 0.85), 0.0, 1.0)
+	# B = worn camp gravel/dust around sheltered camp hearth & tarp (x=15..20, z=12..17)
+	var d_camp := Vector2((wx - 16.8) * 0.85, (wz - 14.5) * 0.95).length()
+	var camp_m := (1.0 - smoothstep(2.2, 5.8, d_camp)) * (1.0 - ruin_m * 0.65)
+	return Color(clampf(ruin_m, 0.0, 1.0), clampf(moss_m, 0.0, 1.0), clampf(camp_m, 0.0, 1.0), 1.0)
+
+func _cove_shore_z(wx: float) -> float:
+	# Asymmetric crescent sandy cove framed by West & East rocky headlands (all 328 canonical walkable tiles stay safely dry/wadeable!)
+	var base := 30.2 + sin(wx * 0.16 + 0.4) * 0.72 + cos(wx * 0.31 - 0.5) * 0.38
+	var west_arm := smoothstep(9.5, -2.5, wx) * 3.8
+	var east_arm := smoothstep(26.5, 38.5, wx) * 4.4
+	return base - west_arm - east_arm
+
+func _cove_trail_info(wx: float, wz: float) -> Dictionary:
+	# Curved visible descending western coastal access path from upper west ridge (-16, 15.2, y=3.35m) down to cove beach (5.8, 23.8, y=0.0m)
+	var u := clampf((wx - (-16.0)) / 21.8, 0.0, 1.0)
+	var su := u * u * (3.0 - 2.0 * u)
+	var tz := lerpf(15.2, 23.8, su) + sin(u * PI) * 1.15
+	var ty := lerpf(3.35, 0.0, su)
+	var dist := absf(wz - tz)
+	if wx < -16.5:
+		dist = Vector2(wx + 16.5, wz - 15.2).length()
+	elif wx > 6.2:
+		dist = Vector2(wx - 6.2, wz - 23.8).length()
+	return {"dist": dist, "z": tz, "y": ty, "u": u}
+
+func _eval_cove_height(wx: float, wz: float, width_m: float, depth_m: float) -> float:
+	var shore_z := _cove_shore_z(wx)
+	# Playable elliptical cove+cave basin enclosing all 328 canonical tiles (cols 1..23, rows 2..19)
+	var ex := (wx - 18.75) / 18.2
+	var ez := (wz - 16.35) / 13.8
+	var r_oval := sqrt(ex * ex + ez * ez)
+
+	# Gentle organic floor micro-undulation inside playable zone (<= +-0.035m so all 328 walkable cells stay 100% valid!)
+	var floor_y := sin(wx * 0.28 + 0.5) * cos(wz * 0.26 - 0.3) * 0.032
+
+	# 3 real carved recessed natural tidepool / mineral spring basins matching canonical water cells!
+	var d_pool_w := Vector2((wx - 7.2) * 0.85, (wz - 11.75) * 0.95).length()
+	var d_pool_e := Vector2((wx - 29.8) * 0.80, (wz - 13.35) * 0.88).length()
+	var d_pool_s := Vector2((wx - 15.0) * 0.78, (wz - 24.75) * 1.05).length()
+	var basin_w := (1.0 - smoothstep(0.65, 1.85, d_pool_w)) * 0.115
+	var basin_e := (1.0 - smoothstep(0.75, 2.25, d_pool_e)) * 0.125
+	var basin_s := (1.0 - smoothstep(0.70, 1.95, d_pool_s)) * 0.115
+	floor_y -= maxf(basin_w, maxf(basin_e, basin_s))
+
+	var h := floor_y
+
+	# Southern cove beach sloping smoothly down into turquoise cove sea
+	if wz > shore_z - 3.6:
+		var sw_t := clampf((wz - (shore_z - 3.6)) / 3.6, 0.0, 1.0)
+		var sw_y := lerpf(floor_y, COVE_WATER_Y, sw_t * sw_t * (3.0 - 2.0 * sw_t))
+		if wz <= shore_z:
+			h = sw_y
+		else:
+			var d_sea := wz - shore_z
+			var sea_drop := smoothstep(0.0, 22.0, d_sea) * 2.55 + d_sea * 0.025
+			h = COVE_WATER_Y - sea_drop + sin(wx * 0.25) * cos(wz * 0.24) * 0.08
+	else:
+		# Rising coastal cliff massif enclosing the North, NW, and East sides of the sea cave!
+		var cliff_out := maxf(0.0, r_oval - 0.96)
+		if cliff_out > 0.001 and wz < shore_z - 1.2:
+			var sea_taper := 1.0 - smoothstep(shore_z - 8.5, shore_z - 1.0, wz)
+			var cliff_rise := minf(7.8, pow(cliff_out * 14.5, 1.15) * 0.44) * sea_taper
+			var crag := (sin(wx * 0.26 + wz * 0.21) * 0.55 + cos(wx * 0.54 - wz * 0.44) * 0.28) * smoothstep(0.05, 0.35, cliff_out)
+			h = floor_y + cliff_rise + crag * sea_taper
+
+	# Western headland rocky ridge & smoothly carved descending coastal access trail!
+	if wx < 7.5 and wz < shore_z + 2.5:
+		var ti := _cove_trail_info(wx, wz)
+		var td: float = float(ti["dist"])
+		var ty: float = float(ti["y"])
+		var trail_w := 1.0 - smoothstep(1.35, 3.15, td)
+		var trail_zone := smoothstep(7.2, 3.8, wx) * (1.0 - smoothstep(shore_z - 1.5, shore_z + 1.8, wz))
+		if trail_w > 0.001 and trail_zone > 0.001:
+			h = lerpf(h, ty, trail_w * trail_zone)
+		# Keep the coastal cliff rising naturally NORTH of the trail and dropping seaward SOUTH of the trail
+		if wx < 2.5 and wz > float(ti["z"]) + 2.2 and wz < shore_z:
+			var drop_s := smoothstep(float(ti["z"]) + 2.0, shore_z, wz)
+			h = lerpf(h, COVE_WATER_Y + 0.15, drop_s * 0.72)
+
+	return h
+
+func _eval_cove_vertex_color(wx: float, wz: float, h: float) -> Color:
+	var shore_z := _cove_shore_z(wx)
+	# A = interior cave shelter mask (1.0 = sheltered dry cave chambers z <= 20.2, immune to outdoor rain/snow!)
+	var in_x := smoothstep(0.8, 3.2, wx) * (1.0 - smoothstep(34.2, 36.8, wx))
+	var in_z := smoothstep(1.4, 3.8, wz) * (1.0 - smoothstep(18.6, 20.8, wz))
+	var cave_a := clampf(in_x * in_z * (1.0 - smoothstep(0.9, 2.2, h)), 0.0, 1.0)
+
+	# R = descending western coastal dirt/stone path
+	var ti := _cove_trail_info(wx, wz)
+	var trail_r := (1.0 - smoothstep(1.25, 2.55, float(ti["dist"]))) * smoothstep(7.8, 4.5, wx) * (1.0 - cave_a * 0.85)
+
+	# G = golden-ochre cove beach sand strictly across the low sunlit cove (h < 0.35m, ZERO sand smear up west cliff!)
+	var sand_g := smoothstep(18.6, 21.8, wz) * (1.0 - smoothstep(shore_z + 2.5, shore_z + 6.0, wz)) * (1.0 - smoothstep(0.18, 0.48, h)) * smoothstep(-2.5, 2.5, wx)
+	# Subtle golden sand drift spilling gently just inside the cave mouth threshold!
+	var mouth_sand := (1.0 - smoothstep(2.2, 5.8, Vector2((wx - 18.75) * 0.72, (wz - 20.2) * 1.15).length())) * 0.62 * (1.0 - smoothstep(0.15, 0.45, h))
+	sand_g = clampf(maxf(sand_g, mouth_sand) * (1.0 - trail_r * 0.75), 0.0, 1.0)
+
+	# B = wet shoreline swash, recessed tidepools & wet eastern mineral spring grotto!
+	var swash_b := smoothstep(shore_z - 3.6, shore_z + 0.4, wz)
+	var pool_w_b := 1.0 - smoothstep(0.9, 2.35, Vector2(wx - 7.2, wz - 11.75).length())
+	var pool_e_b := 1.0 - smoothstep(1.2, 3.85, Vector2(wx - 29.8, wz - 13.35).length())
+	var pool_s_b := 1.0 - smoothstep(0.9, 2.45, Vector2(wx - 15.0, wz - 24.75).length())
+	var damp_b := clampf(maxf(maxf(swash_b, pool_s_b), maxf(pool_w_b * 0.85, pool_e_b)), 0.0, 1.0)
+
+	return Color(clampf(trail_r, 0.0, 1.0), sand_g, damp_b, cave_a)
+
 func eval_ground_height(wx: float, wz: float) -> float:
 	if _build_profile == "forest":
 		if Structure.is_on_forest_bridge(Vector3(wx, 0.0, wz)):
@@ -115,6 +346,12 @@ func eval_ground_height(wx: float, wz: float) -> float:
 		if wx >= -0.5 and wx <= _build_width_m + 0.5 and wz >= -0.5 and wz <= _build_depth_m + 0.5:
 			return maxf(-0.23, _eval_forest_play_height(wx, wz))
 		return maxf(-0.23, _eval_skirt_height("forest", wx, wz, _build_width_m, _build_depth_m))
+	elif _build_profile == "wreck-beach":
+		return _eval_beach_height(wx, wz, _build_width_m, _build_depth_m)
+	elif _build_profile == "cliff-observatory":
+		return _eval_cliff_height(wx, wz, _build_width_m, _build_depth_m)
+	elif _build_profile == "coastal-refuge":
+		return _eval_cove_height(wx, wz, _build_width_m, _build_depth_m)
 	return _eval_skirt_height(_build_profile, wx, wz, _build_width_m, _build_depth_m)
 
 func clamp_point_to_river(wx: float, wz: float) -> Vector2:
@@ -398,11 +635,24 @@ func _build_walkable_ground_and_skirt(scene_def: Dictionary, profile: String, wi
 			mat_primary = forest_ground_mat
 			mat_ground_splat = forest_ground_mat
 		"wreck-beach":
-			mat_primary = MatKit.make_textured_mat("earth.webp", Color("#d3c6aa"), 0.86, "rock", Vector3(0.24, 0.24, 0.24), true, true)
-			mat_ground_splat = MatKit.create_terrain_splat_material("earth.webp", Color("#d3c6aa"), "earth.webp", Color("#938368"), 0.24, 0.28, true)
+			var beach_ground_mat := CoastalKit.create_beach_terrain_shader(true)
+			mat_primary = beach_ground_mat
+			mat_ground_splat = beach_ground_mat
 		"cliff-observatory":
-			mat_primary = MatKit.make_textured_mat("basalt-coastal-albedo-v1.webp", Color("#55616d"), 0.84, "rock", Vector3(0.26, 0.26, 0.26), true, true)
-			mat_ground_splat = MatKit.create_terrain_splat_material("basalt-coastal-albedo-v1.webp", Color("#55616d"), "ashlar-v4.webp", Color("#6a7178"), 0.26, 0.82, true)
+			var cliff_ground_mat := CoastalKit.create_cliff_basalt_shader(true)
+			mat_primary = cliff_ground_mat
+			mat_ground_splat = cliff_ground_mat
+		"coastal-refuge":
+			var cove_ground_mat := CoastalKit.create_cove_cave_terrain_shader(true)
+			if OS.get_cmdline_user_args().has("--greybox"):
+				var gb_mat := StandardMaterial3D.new()
+				gb_mat.albedo_color = Color("#9aa09e")
+				gb_mat.roughness = 0.92
+				mat_primary = gb_mat
+				mat_ground_splat = null
+			else:
+				mat_primary = cove_ground_mat
+				mat_ground_splat = cove_ground_mat
 		_:
 			mat_primary = MatKit.make_textured_mat("coastal-rock.png", Color("#6c746e"), 0.84, "rock", Vector3(0.28, 0.28, 0.28), true, true)
 			mat_ground_splat = MatKit.create_terrain_splat_material("coastal-rock.png", Color("#6a726c"), "coastal-rock.png", Color("#868a80"), 0.26, 0.88, true)
@@ -472,6 +722,134 @@ func _build_walkable_ground_and_skirt(scene_def: Dictionary, profile: String, wi
 				st_g.set_color(Color(wc, 0, 0, 1)); st_g.set_uv(Vector2(c.x * 0.25, c.z * 0.25)); st_g.add_vertex(c)
 				st_g.set_color(Color(wd, 0, 0, 1)); st_g.set_uv(Vector2(d.x * 0.25, d.z * 0.25)); st_g.add_vertex(d)
 		has_g = true
+	elif profile == "wreck-beach":
+		# Continuous sculpted sinuous cove beach heightfield with exact moisture/wrack/bluff vertex channels
+		# Eliminates ALL rectangular wet-sand tile seams and matches 1:1 with trimesh collision & OuterTerrainSkirt!
+		var step_b := 0.75
+		var gx0 := -1.5; var gx1 := width_m + 1.5
+		var gz0 := -1.5; var gz1 := depth_m + 1.5
+		var nx_b := int(round((gx1 - gx0) / step_b))
+		var nz_b := int(round((gz1 - gz0) / step_b))
+		var b_pts: Array = []
+		var b_cols: Array = []
+		for iz in range(nz_b + 1):
+			var vz := lerpf(gz0, gz1, float(iz) / float(nz_b))
+			var p_row: Array[Vector3] = []
+			var c_row: Array[Color] = []
+			for ix in range(nx_b + 1):
+				var vx := lerpf(gx0, gx1, float(ix) / float(nx_b))
+				var vy := _eval_beach_height(vx, vz, width_m, depth_m)
+				p_row.append(Vector3(vx, vy, vz))
+				c_row.append(_eval_beach_vertex_color(vx, vz, vy))
+			b_pts.append(p_row)
+			b_cols.append(c_row)
+		for iz in range(nz_b):
+			for ix in range(nx_b):
+				var a: Vector3 = b_pts[iz][ix]
+				var b: Vector3 = b_pts[iz][ix + 1]
+				var c: Vector3 = b_pts[iz + 1][ix + 1]
+				var d: Vector3 = b_pts[iz + 1][ix]
+				var ca: Color = b_cols[iz][ix]
+				var cb: Color = b_cols[iz][ix + 1]
+				var cc: Color = b_cols[iz + 1][ix + 1]
+				var cd: Color = b_cols[iz + 1][ix]
+				st_g.set_color(ca); st_g.set_uv(Vector2(a.x * 0.25, a.z * 0.25)); st_g.add_vertex(a)
+				st_g.set_color(cb); st_g.set_uv(Vector2(b.x * 0.25, b.z * 0.25)); st_g.add_vertex(b)
+				st_g.set_color(cc); st_g.set_uv(Vector2(c.x * 0.25, c.z * 0.25)); st_g.add_vertex(c)
+				st_g.set_color(ca); st_g.set_uv(Vector2(a.x * 0.25, a.z * 0.25)); st_g.add_vertex(a)
+				st_g.set_color(cc); st_g.set_uv(Vector2(c.x * 0.25, c.z * 0.25)); st_g.add_vertex(c)
+				st_g.set_color(cd); st_g.set_uv(Vector2(d.x * 0.25, d.z * 0.25)); st_g.add_vertex(d)
+		has_g = true
+	elif profile == "cliff-observatory":
+		# Continuous sculpted stratified basalt promontory + astronomical ruin plaza (matches trimesh collision 1:1!)
+		var step_c := 0.75
+		var gx0 := -1.5; var gx1 := width_m + 1.5
+		var gz0 := -1.5; var gz1 := depth_m + 1.5
+		var nx_c := int(round((gx1 - gx0) / step_c))
+		var nz_c := int(round((gz1 - gz0) / step_c))
+		var c_pts: Array = []
+		var c_cols: Array = []
+		for iz in range(nz_c + 1):
+			var vz := lerpf(gz0, gz1, float(iz) / float(nz_c))
+			var p_row: Array[Vector3] = []
+			var col_row: Array[Color] = []
+			for ix in range(nx_c + 1):
+				var vx := lerpf(gx0, gx1, float(ix) / float(nx_c))
+				var vy := _eval_cliff_height(vx, vz, width_m, depth_m)
+				p_row.append(Vector3(vx, vy, vz))
+				col_row.append(_eval_cliff_vertex_color(vx, vz, vy))
+			c_pts.append(p_row)
+			c_cols.append(col_row)
+		for iz in range(nz_c):
+			for ix in range(nx_c):
+				var a: Vector3 = c_pts[iz][ix]; var b: Vector3 = c_pts[iz][ix + 1]
+				var c: Vector3 = c_pts[iz + 1][ix + 1]; var d: Vector3 = c_pts[iz + 1][ix]
+				var ca: Color = c_cols[iz][ix]; var cb: Color = c_cols[iz][ix + 1]
+				var cc: Color = c_cols[iz + 1][ix + 1]; var cd: Color = c_cols[iz + 1][ix]
+				st_g.set_color(ca); st_g.set_uv(Vector2(a.x * 0.25, a.z * 0.25)); st_g.add_vertex(a)
+				st_g.set_color(cb); st_g.set_uv(Vector2(b.x * 0.25, b.z * 0.25)); st_g.add_vertex(b)
+				st_g.set_color(cc); st_g.set_uv(Vector2(c.x * 0.25, c.z * 0.25)); st_g.add_vertex(c)
+				st_g.set_color(ca); st_g.set_uv(Vector2(a.x * 0.25, a.z * 0.25)); st_g.add_vertex(a)
+				st_g.set_color(cc); st_g.set_uv(Vector2(c.x * 0.25, c.z * 0.25)); st_g.add_vertex(c)
+				st_g.set_color(cd); st_g.set_uv(Vector2(d.x * 0.25, d.z * 0.25)); st_g.add_vertex(d)
+		has_g = true
+	elif profile == "coastal-refuge":
+		# Continuous sculpted sea-cave + sandy cove + descending coastal trail heightfield with 3 real carved tidepool basins!
+		var step_r := 0.75
+		var gx0 := -1.5; var gx1 := width_m + 1.5
+		var gz0 := -1.5; var gz1 := depth_m + 1.5
+		var nx_r := int(round((gx1 - gx0) / step_r))
+		var nz_r := int(round((gz1 - gz0) / step_r))
+		var r_pts: Array = []
+		var r_cols: Array = []
+		for iz in range(nz_r + 1):
+			var vz := lerpf(gz0, gz1, float(iz) / float(nz_r))
+			var p_row: Array[Vector3] = []
+			var col_row: Array[Color] = []
+			for ix in range(nx_r + 1):
+				var vx := lerpf(gx0, gx1, float(ix) / float(nx_r))
+				var vy := _eval_cove_height(vx, vz, width_m, depth_m)
+				p_row.append(Vector3(vx, vy, vz))
+				col_row.append(_eval_cove_vertex_color(vx, vz, vy))
+			r_pts.append(p_row)
+			r_cols.append(col_row)
+		for iz in range(nz_r):
+			for ix in range(nx_r):
+				var a: Vector3 = r_pts[iz][ix]; var b: Vector3 = r_pts[iz][ix + 1]
+				var c: Vector3 = r_pts[iz + 1][ix + 1]; var d: Vector3 = r_pts[iz + 1][ix]
+				var ca: Color = r_cols[iz][ix]; var cb: Color = r_cols[iz][ix + 1]
+				var cc: Color = r_cols[iz + 1][ix + 1]; var cd: Color = r_cols[iz + 1][ix]
+				st_g.set_color(ca); st_g.set_uv(Vector2(a.x * 0.25, a.z * 0.25)); st_g.add_vertex(a)
+				st_g.set_color(cb); st_g.set_uv(Vector2(b.x * 0.25, b.z * 0.25)); st_g.add_vertex(b)
+				st_g.set_color(cc); st_g.set_uv(Vector2(c.x * 0.25, c.z * 0.25)); st_g.add_vertex(c)
+				st_g.set_color(ca); st_g.set_uv(Vector2(a.x * 0.25, a.z * 0.25)); st_g.add_vertex(a)
+				st_g.set_color(cc); st_g.set_uv(Vector2(c.x * 0.25, c.z * 0.25)); st_g.add_vertex(c)
+				st_g.set_color(cd); st_g.set_uv(Vector2(d.x * 0.25, d.z * 0.25)); st_g.add_vertex(d)
+		has_g = true
+		# Organic contoured water surfaces nestled inside the 3 real carved rock basins (ZERO flat blue grid squares!)
+		var pool_defs := [
+			[Vector2(7.2, 11.75), 1.48, 1.32, -0.042],  # West seepage pool
+			[Vector2(29.8, 13.35), 1.88, 1.68, -0.036], # East mineral spring basin (Rincón natural)
+			[Vector2(15.0, 24.75), 1.65, 1.25, -0.046], # South cove beach rocky tidepool
+		]
+		for pdef in pool_defs:
+			var pc: Vector2 = pdef[0]
+			var rx_p: float = float(pdef[1])
+			var rz_p: float = float(pdef[2])
+			var py_w: float = float(pdef[3])
+			var segs_p := 18
+			var center_v := Vector3(pc.x, py_w, pc.y)
+			for si in range(segs_p):
+				var a0 := float(si) * TAU / float(segs_p)
+				var a1 := float(si + 1) * TAU / float(segs_p)
+				var j0 := 1.0 + sin(a0 * 3.0 + pc.x) * 0.14 + cos(a0 * 5.0) * 0.07
+				var j1 := 1.0 + sin(a1 * 3.0 + pc.x) * 0.14 + cos(a1 * 5.0) * 0.07
+				var p0 := Vector3(pc.x + cos(a0) * rx_p * j0, py_w, pc.y + sin(a0) * rz_p * j0)
+				var p1 := Vector3(pc.x + cos(a1) * rx_p * j1, py_w, pc.y + sin(a1) * rz_p * j1)
+				st_w.set_normal(Vector3.UP); st_w.set_uv(Vector2(0.5, 0.5)); st_w.add_vertex(center_v)
+				st_w.set_normal(Vector3.UP); st_w.set_uv(Vector2(0.5 + cos(a0) * 0.5, 0.5 + sin(a0) * 0.5)); st_w.add_vertex(p0)
+				st_w.set_normal(Vector3.UP); st_w.set_uv(Vector2(0.5 + cos(a1) * 0.5, 0.5 + sin(a1) * 0.5)); st_w.add_vertex(p1)
+		has_w = true
 	else:
 		for t in scene_def.get("walkable", []):
 			var col := int(t["col"])
@@ -506,13 +884,13 @@ func _build_walkable_ground_and_skirt(scene_def: Dictionary, profile: String, wi
 	if has_g:
 		st_g.generate_normals()
 		var mg := MeshInstance3D.new(); mg.name = "GroundPrimary"
-		mg.mesh = st_g.commit(); mg.material_override = mat_ground_splat; _grp_terrain.add_child(mg)
-		if profile == "forest":
+		mg.mesh = st_g.commit(); mg.material_override = mat_ground_splat if mat_ground_splat != null else mat_primary; _grp_terrain.add_child(mg)
+		if profile in ["forest", "wreck-beach", "cliff-observatory", "coastal-refuge"]:
 			mg.create_trimesh_collision()
 	if has_w:
 		st_w.generate_normals()
 		var mw := MeshInstance3D.new(); mw.name = "ShallowWaterCells"
-		mw.mesh = st_w.commit(); mw.material_override = mat_water_tile; _grp_terrain.add_child(mw)
+		mw.mesh = st_w.commit(); mw.material_override = mat_water_tile; mw.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; _grp_terrain.add_child(mw)
 
 	var fcs := CollisionShape3D.new()
 	var fbox := BoxShape3D.new()
@@ -522,6 +900,11 @@ func _build_walkable_ground_and_skirt(scene_def: Dictionary, profile: String, wi
 		fbox.size = Vector3(east_w, 1.0, depth_m - 2.0)
 		fcs.shape = fbox
 		fcs.position = Vector3(9.5 + east_w * 0.5, -0.58, depth_m * 0.5)
+	elif profile in ["wreck-beach", "cliff-observatory", "coastal-refuge"]:
+		# Deep safety backstop beneath continuous sculpted trimesh
+		fbox.size = Vector3(width_m + 4.0, 1.0, depth_m + 4.0)
+		fcs.shape = fbox
+		fcs.position = Vector3(width_m * 0.5, -1.05, depth_m * 0.5)
 	else:
 		fbox.size = Vector3(width_m + 6.0, 1.0, depth_m + 6.0)
 		fcs.shape = fbox
@@ -548,33 +931,65 @@ func _build_sculpted_surround_skirt(profile: String, width_m: float, depth_m: fl
 	var pad_x := 28.0 if profile != "forest" else 86.0
 	var pad_z_n := 24.0 if profile != "forest" else 90.0
 	var pad_z_s := 14.0 if profile != "forest" else 76.0
+	if profile == "wreck-beach":
+		pad_x = 46.0; pad_z_n = 32.0; pad_z_s = 36.0
+	elif profile == "cliff-observatory":
+		pad_x = 46.0; pad_z_n = 38.0; pad_z_s = 36.0
+	elif profile == "coastal-refuge":
+		pad_x = 46.0; pad_z_n = 34.0; pad_z_s = 38.0
 	var x_min := -pad_x; var x_max := width_m + pad_x
 	var z_min := -pad_z_n; var z_max := depth_m + pad_z_s
 	var nx := 32; var nz := 28
 	if profile == "forest":
 		# Extended seamless forest hills & river valley eliminating far straight horizon cutoff
 		nx = 84; nz = 70
+	elif profile in ["wreck-beach", "cliff-observatory", "coastal-refuge"]:
+		nx = 76; nz = 60
 
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var pts: Array = []
+	var cols: Array = []
 	for iz in range(nz + 1):
 		var row_arr: Array[Vector3] = []
+		var col_arr: Array[Color] = []
 		var pz := lerpf(z_min, z_max, float(iz) / float(nz))
 		for ix in range(nx + 1):
 			var px := lerpf(x_min, x_max, float(ix) / float(nx))
-			row_arr.append(Vector3(px, _eval_skirt_height(profile, px, pz, width_m, depth_m), pz))
+			var py := _eval_skirt_height(profile, px, pz, width_m, depth_m)
+			row_arr.append(Vector3(px, py, pz))
+			if profile == "wreck-beach":
+				col_arr.append(_eval_beach_vertex_color(px, pz, py))
+			elif profile == "cliff-observatory":
+				col_arr.append(_eval_cliff_vertex_color(px, pz, py))
+			elif profile == "coastal-refuge":
+				col_arr.append(_eval_cove_vertex_color(px, pz, py))
+			else:
+				col_arr.append(Color(0.0, 0.0, 0.0, 1.0))
 		pts.append(row_arr)
+		cols.append(col_arr)
 	for iz in range(nz):
 		for ix in range(nx):
-			_emit_quad(st, pts[iz][ix], pts[iz][ix + 1], pts[iz + 1][ix + 1], pts[iz + 1][ix])
+			if profile in ["wreck-beach", "cliff-observatory", "coastal-refuge"]:
+				var a: Vector3 = pts[iz][ix]; var b: Vector3 = pts[iz][ix + 1]
+				var c: Vector3 = pts[iz + 1][ix + 1]; var d: Vector3 = pts[iz + 1][ix]
+				var ca: Color = cols[iz][ix]; var cb: Color = cols[iz][ix + 1]
+				var cc: Color = cols[iz + 1][ix + 1]; var cd: Color = cols[iz + 1][ix]
+				st.set_color(ca); st.set_uv(Vector2(a.x * 0.25, a.z * 0.25)); st.add_vertex(a)
+				st.set_color(cb); st.set_uv(Vector2(b.x * 0.25, b.z * 0.25)); st.add_vertex(b)
+				st.set_color(cc); st.set_uv(Vector2(c.x * 0.25, c.z * 0.25)); st.add_vertex(c)
+				st.set_color(ca); st.set_uv(Vector2(a.x * 0.25, a.z * 0.25)); st.add_vertex(a)
+				st.set_color(cc); st.set_uv(Vector2(c.x * 0.25, c.z * 0.25)); st.add_vertex(c)
+				st.set_color(cd); st.set_uv(Vector2(d.x * 0.25, d.z * 0.25)); st.add_vertex(d)
+			else:
+				_emit_quad(st, pts[iz][ix], pts[iz][ix + 1], pts[iz + 1][ix + 1], pts[iz + 1][ix])
 	st.generate_normals()
 	var skirt := MeshInstance3D.new()
 	skirt.name = "OuterTerrainSkirt"
 	skirt.mesh = st.commit()
 	skirt.material_override = mat_primary
 	_grp_terrain.add_child(skirt)
-	if profile == "forest":
+	if profile in ["forest", "wreck-beach", "cliff-observatory", "coastal-refuge"]:
 		skirt.create_trimesh_collision()
 
 func _eval_skirt_height(profile: String, px: float, pz: float, width_m: float, depth_m: float) -> float:
@@ -606,22 +1021,23 @@ func _eval_skirt_height(profile: String, px: float, pz: float, width_m: float, d
 				h_f = lerpf(h_f, gentle_trail, pass_t)
 			return _carve_river_valley(px, pz, h_f)
 		"wreck-beach":
-			if pz > depth_m * 0.72:
-				var slope := clampf((pz - depth_m * 0.72) / 10.5, 0.0, 1.0)
-				return lerpf(-0.04, -1.65, slope * slope) + undul * 0.12 * (1.0 - slope * 0.5)
-			var rim_b := sqrt(dx * dx * 0.8 + dz_n * dz_n * 1.2)
-			if rim_b < 0.8:
-				return -0.05
-			return -0.05 + minf(3.2, rim_b * 0.19) + undul * 0.28 * clampf(rim_b * 0.2, 0.0, 1.0)
+			var bh := _eval_beach_height(px, pz, width_m, depth_m)
+			var inside_b := minf(minf(px - (-1.4), (width_m + 1.4) - px), minf(pz - (-1.4), (depth_m + 1.4) - pz))
+			if inside_b > 0.0:
+				return bh - smoothstep(0.0, 1.5, inside_b) * 0.05
+			return bh
 		"cliff-observatory":
-			var dx_p := maxf(0.0, maxf(2.0 - px, px - (width_m - 2.0)))
-			var dz_p := maxf(0.0, maxf(2.5 - pz, pz - (depth_m - 2.5)))
-			var cliff_d := sqrt(dx_p * dx_p + dz_p * dz_p)
-			if cliff_d < 0.6:
-				return -0.055
-			var drop := smoothstep(0.5, 8.5, cliff_d) * 16.5
-			var ledge := sin(cliff_d * 1.4 + sin(px * 0.3)) * 0.55
-			return -0.055 - drop + ledge
+			var ch := _eval_cliff_height(px, pz, width_m, depth_m)
+			var inside_c := minf(minf(px - (-1.4), (width_m + 1.4) - px), minf(pz - (-1.4), (depth_m + 1.4) - pz))
+			if inside_c > 0.0:
+				return ch - smoothstep(0.0, 1.5, inside_c) * 0.05
+			return ch
+		"coastal-refuge":
+			var rh := _eval_cove_height(px, pz, width_m, depth_m)
+			var inside_r := minf(minf(px - (-1.4), (width_m + 1.4) - px), minf(pz - (-1.4), (depth_m + 1.4) - pz))
+			if inside_r > 0.0:
+				return rh - smoothstep(0.0, 1.5, inside_r) * 0.05
+			return rh
 		_:
 			if pz > depth_m * 0.80:
 				var sb := clampf((pz - depth_m * 0.80) / 9.5, 0.0, 1.0)
@@ -664,6 +1080,8 @@ func _build_bivouac_gear_and_points(scene_def: Dictionary, fx: CampAtmosphereFx,
 		var kind := str(pt.get("kind", ""))
 		var owner := str(pt.get("ownerCharacterId", "mia"))
 		var obj_pos := Structure.tile_to_world(int(pt["objectCol"]), int(pt["objectRow"]), 0.0)
+		if profile in ["wreck-beach", "cliff-observatory", "coastal-refuge"]:
+			obj_pos.y = eval_ground_height(obj_pos.x, obj_pos.z)
 		var to_fire := atan2(fire_pos.x - obj_pos.x, fire_pos.z - obj_pos.z)
 
 		match kind:
@@ -686,7 +1104,7 @@ func _build_bivouac_gear_and_points(scene_def: Dictionary, fx: CampAtmosphereFx,
 						"min_clear_height": float(res.get("min_clear_height", 1.47)),
 					}
 			"bed":
-				var bed_y := floor_offset if profile == "coastal-refuge" else 0.0
+				var bed_y := obj_pos.y + (floor_offset if profile == "coastal-refuge" else 0.0)
 				var yaw_jitter := -0.18 if owner == "mia" else (0.22 if owner == "mike" else -0.45)
 				var bed_pos := Vector3(obj_pos.x, bed_y, obj_pos.z)
 				var bed_yaw := to_fire + PI + yaw_jitter
@@ -694,25 +1112,25 @@ func _build_bivouac_gear_and_points(scene_def: Dictionary, fx: CampAtmosphereFx,
 				var r_local: Vector3 = b_entry.get("rest_local", Vector3(0.0, 0.06, -0.14))
 				b_entry["world_rest_pos"] = bed_pos + r_local.rotated(Vector3.UP, bed_yaw)
 				b_entry["world_rest_forward"] = Vector3.BACK.rotated(Vector3.UP, bed_yaw)
-				b_entry["stand_pos"] = Structure.tile_to_world(int(pt["col"]), int(pt["row"]), 0.05)
+				b_entry["stand_pos"] = Structure.tile_to_world(int(pt["col"]), int(pt["row"]), bed_y + 0.05)
 				b_entry["fire_pos"] = fire_pos
 				bedrolls[pid] = b_entry
 			"chest":
-				var pack_y := floor_offset if profile == "coastal-refuge" else 0.0
+				var pack_y := obj_pos.y + (floor_offset if profile == "coastal-refuge" else 0.0)
 				var p_entry := PropFactory.create_backpack(_grp_interactables, pid, owner, Vector3(obj_pos.x, pack_y, obj_pos.z), to_fire + 0.35)
 				chest_lids[pid] = {"pivot": p_entry["pivot"], "open": false}
 			"personal":
-				var kit_y := floor_offset if profile == "coastal-refuge" else 0.0
-				PropFactory.create_personal_kit(_grp_props, owner, Vector3(obj_pos.x, kit_y, obj_pos.z), to_fire + 0.25)
+				var kit_y := obj_pos.y + (floor_offset if profile == "coastal-refuge" else 0.0)
+				PropFactory.create_personal_kit(_grp_props, owner, Vector3(obj_pos.x, kit_y, obj_pos.z), to_fire + 0.25, fx)
 			"fire":
 				PropFactory.create_campfire_hearth_kit(_grp_props, fx, obj_pos, profile, _env_kit)
 			"seat":
-				var seat_y := floor_offset if (profile == "coastal-refuge" and int(pt["objectRow"]) <= 9) else 0.0
+				var seat_y := obj_pos.y + (floor_offset if (profile == "coastal-refuge" and int(pt["objectRow"]) <= 9) else 0.0)
 				var seat_pos := Vector3(obj_pos.x, seat_y, obj_pos.z)
 				var seat_yaw := to_fire + PI * 0.5
 				var variant := "forest-stone" if pid == "forest-seat-b-point" else profile
 				var seat_res := PropFactory.create_natural_seat(_grp_props, variant, seat_pos, seat_yaw, _env_kit, float(idx) * 1.7)
-				var stand_pos := Structure.tile_to_world(int(pt["col"]), int(pt["row"]), 0.05)
+				var stand_pos := Structure.tile_to_world(int(pt["col"]), int(pt["row"]), seat_y + 0.05)
 				seat_anchors[pid] = PropFactory.seat_anchor(seat_res.root, seat_res.slots_local,
 					seat_res.front_radius, stand_pos, true, fire_pos - seat_pos, seat_res.support_meshes)
 				seat_anchors[pid]["type"] = seat_res.type
@@ -1031,6 +1449,49 @@ func _build_forest_details(scene_def: Dictionary, _fx: CampAtmosphereFx, width_m
 	]
 	for bsp: Dictionary in bfly_spots:
 		FaunaKit.spawn_butterflies(_grp_vegetation, fauna_agents, str(bsp["name"]), bsp["pos"], 3, float(bsp["ph"]))
+
+	# Cozy woodland camp touches: woven hearth mat, autumn leaf scatter around hearth stones & stone seat + east stake lantern
+	PropFactory.create_woven_rug(_grp_props, "ForestHearthMat", Vector3(17.2, 0.008, 17.9), Vector2(1.85, 0.92), Color("#7a543c"), Color("#c29c64"), 0.22)
+	var mat_autumn := MatKit.make_cloth_mat(Color("#9e622b"), true, true)
+	var mat_autumn_b := MatKit.make_cloth_mat(Color("#b88234"), true, true)
+	var leaf_spots: Array[Vector2] = [
+		Vector2(15.2, 16.5), Vector2(20.4, 15.8), Vector2(19.8, 19.6), Vector2(16.0, 20.1),
+		Vector2(13.6, 13.8), Vector2(22.2, 13.4), Vector2(17.8, 11.4), Vector2(21.4, 18.0),
+	]
+	for lf_i in range(leaf_spots.size()):
+		var lpos2: Vector2 = leaf_spots[lf_i]
+		var ly_c := eval_ground_height(lpos2.x, lpos2.y)
+		for lsub in range(4):
+			var la := float(lf_i * 4 + lsub) * 2.1
+			var lr := 0.14 + float(lsub) * 0.11
+			var lmi := MeshInstance3D.new()
+			var lpm := BoxMesh.new(); lpm.size = Vector3(0.11, 0.006, 0.068)
+			lmi.mesh = lpm; lmi.material_override = mat_autumn if (lsub + lf_i) % 2 == 0 else mat_autumn_b
+			lmi.position = Vector3(lpos2.x + cos(la) * lr, ly_c + 0.006, lpos2.y + sin(la) * lr)
+			lmi.rotation.y = la * 1.3
+			lmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			_grp_props.add_child(lmi)
+	var seat_b_mug := MeshInstance3D.new()
+	seat_b_mug.name = "StoneSeatCeramicMug"
+	var sbm_m := CylinderMesh.new(); sbm_m.top_radius = 0.044; sbm_m.bottom_radius = 0.036; sbm_m.height = 0.088; sbm_m.radial_segments = 8
+	seat_b_mug.mesh = sbm_m; seat_b_mug.material_override = mat_autumn
+	seat_b_mug.position = Vector3(21.35, 0.34, 15.48)
+	_grp_props.add_child(seat_b_mug)
+	var post_spot := Vector3(22.6, eval_ground_height(22.6, 17.6), 17.6)
+	var lan_post := MeshInstance3D.new()
+	lan_post.name = "ForestCozyLanternPost"
+	var lpm2 := CylinderMesh.new(); lpm2.top_radius = 0.045; lpm2.bottom_radius = 0.062; lpm2.height = 1.35; lpm2.radial_segments = 7
+	lan_post.mesh = lpm2; lan_post.material_override = mat_trunk
+	lan_post.position = post_spot + Vector3(0.0, 0.62, 0.0)
+	_grp_props.add_child(lan_post)
+	var post_arm := MeshInstance3D.new()
+	var pam := BoxMesh.new(); pam.size = Vector3(0.36, 0.042, 0.048)
+	post_arm.mesh = pam; post_arm.material_override = mat_trunk
+	post_arm.position = post_spot + Vector3(-0.14, 1.24, 0.0)
+	_grp_props.add_child(post_arm)
+	var e_lan := PropFactory.create_portable_lantern(_grp_interactables, _fx, post_spot + Vector3(-0.28, 0.96, 0.0))
+	e_lan.name = "CampEastPostLantern"
+
 	sync_wildlife()
 
 # ------------------------------------------------------------------------------
@@ -2071,469 +2532,1579 @@ func _spawn_fauna_actor(glb_path: String, node_name: String, scale_val: float, w
 	})
 
 # ------------------------------------------------------------------------------
-# Camp 03: Playa del pecio
+# Camp 03: Playa del pecio (AAA Coastal Cove, Reef Shipwreck & Sail-Tarp Bivouac)
 # ------------------------------------------------------------------------------
 func _build_beach_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m: float, depth_m: float) -> void:
-	var mat_sand_rock := MatKit.make_textured_mat("a1-cliff-rugged-v8.jpg", Color("#9a8b74"), 0.88, "rock", Vector3(0.45, 0.45, 0.45), true, true)
-	var mat_wet_rock := MatKit.make_textured_mat("basalt-coastal-albedo-v1.webp", Color("#4e565a"), 0.36, "rock", Vector3(0.35, 0.35, 0.35), true, true)
-	var mat_dune_grass := _env_kit.make_alpha_foliage_mat("beach_grass", Color("#7c804c"))
-	var mat_drift := MatKit.make_wood_mat(Color("#a19784"), true)
-	var mat_wreck := MatKit.make_wood_mat(Color("#735a45"), true)
-	var mat_rope := MatKit.make_cloth_mat(Color("#9e8f6d"), true, true)
+	# Bright weathered coastal sandstone + warm limestone bluffs + tide-slick wet reef rocks
+	var mat_sand_rock := CoastalKit.make_multimesh_rock_mat("a1-cliff-organic-v7.png", Color("#dcd0b8"), 0.86, 0.38, true)
+	var mat_bluff_rock := CoastalKit.make_multimesh_rock_mat("limestone-v3.webp", Color("#cfc1a6"), 0.88, 0.34, true)
+	var mat_wet_rock := CoastalKit.make_multimesh_rock_mat("basalt-coastal-albedo-v1.webp", Color("#768286"), 0.44, 0.36, true)
+	var mat_dune_grass := _env_kit.make_alpha_foliage_mat("beach_grass", Color("#6a7a42"))
+	var mat_coastal_shrub := MatKit.create_foliage_wind_shader_material("foliage.webp", Color("#567040"), 0.045, Color("#88a85c"), false, 2.2, true)
+	var mat_drift := MatKit.make_wood_mat(Color("#a89b84"), true)
+	var mat_drift_mm := CoastalKit.make_multimesh_wood_mat(Color("#a89b84"), true)
+	var mat_wreck := MatKit.make_wood_mat(Color("#826952"), true)
+	var mat_wreck_wet := MatKit.make_wood_mat(Color("#4c3e32"), true)
+	var mat_rope := MatKit.make_cloth_mat(Color("#b09f7a"), true, true)
+	var mat_sail_torn := MatKit.make_cloth_mat(Color("#cfc4ab"), true, true)
 
-	fx.build_ocean_backdrop(self, width_m, depth_m * 0.68, 82.0, -0.22)
-	fx.set_smoke_wind(Vector3(-0.28, 0.92, -0.26)) # Sea breeze blowing inland gently
+	# Register MultiMesh pools for fast batched coastal geology, debris & flora
+	var crag_pool := _env_kit.get_rock_variants("craggy")
+	var strat_pool := _env_kit.get_rock_variants("stratified")
+	var round_pool := _env_kit.get_rock_variants("rounded")
+	var dry_keys: Array[String] = []
+	var bluff_keys: Array[String] = []
+	var wet_keys: Array[String] = []
+	for vi in range(4):
+		var dk := "beach_dry_r%d" % vi
+		_env_kit.define_multimesh(dk, crag_pool[vi], mat_sand_rock, true)
+		dry_keys.append(dk)
+		var bk := "beach_bluff_r%d" % vi
+		_env_kit.define_multimesh(bk, strat_pool[vi], mat_bluff_rock, true)
+		bluff_keys.append(bk)
+		var wk := "beach_wet_r%d" % vi
+		_env_kit.define_multimesh(wk, crag_pool[vi], mat_wet_rock, true)
+		wet_keys.append(wk)
+	_env_kit.define_multimesh("beach_pebble", round_pool[0], mat_sand_rock, false)
+	var plank_proto := BoxMesh.new(); plank_proto.size = Vector3(1.25, 0.046, 0.19)
+	_env_kit.define_multimesh("beach_plank", plank_proto, mat_drift_mm, true)
+	var uv_grass := Rect2(0.51, 0.01, 0.48, 0.48)
+	var uv_bush := Rect2(0.01, 0.01, 0.48, 0.48)
+	var uv_flower := Rect2(0.51, 0.51, 0.48, 0.48)
+	var mat_grass_mm := MatKit.create_foliage_wind_shader_material("foliage-atlas-v5.png", Color("#98a862"), 0.085, Color("#b8c876"), true, 1.0, true, uv_grass)
+	var mat_bush_mm := MatKit.create_foliage_wind_shader_material("foliage-atlas-v5.png", Color("#7c9452"), 0.060, Color("#9bb668"), true, 1.0, true, uv_bush)
+	var mat_flower_mm := MatKit.create_foliage_wind_shader_material("foliage-atlas-v5.png", Color("#e2d09c"), 0.065, Color("#c8c28a"), true, 1.0, true, uv_flower)
+	_env_kit.define_multimesh("beach_grass_tuft", _env_kit.get_bush_quad_proto(uv_grass, 1.12), mat_grass_mm, true)
+	_env_kit.define_multimesh("beach_shrub_card", _env_kit.get_bush_quad_proto(uv_bush, 1.24), mat_bush_mm, true)
+	_env_kit.define_multimesh("beach_coastal_flower", _env_kit.get_bush_quad_proto(uv_flower, 1.06), mat_flower_mm, false)
 
-	# Upper coastal sandstone bluffs & clustered dune-grass tufts north/east/west of beach
-	for i in range(11):
-		var rx := lerpf(1.5, width_m - 1.5, float(i) / 10.0)
-		var rz := -2.2 - fmod(float(i) * 1.6, 3.4)
-		_env_kit.spawn_rock(_grp_env_geo, Vector3(rx, 0.35, rz), Vector3(1.85, 0.92 + fmod(float(i), 3.0) * 0.30, 1.45), float(i) * 0.9, mat_sand_rock, i, "craggy")
-		if i % 2 == 0:
-			_env_kit.spawn_fern_clump(_grp_vegetation, Vector3(rx + 0.85, 0.04, rz + 1.45), 0.95, mat_dune_grass, float(i) * 1.2, 2)
-	var dune_xs: Array[float] = [-5.5, 4.2, 33.5, 41.0, -8.2, 38.5]
-	var dune_zs: Array[float] = [5.0, 2.5, 4.0, 11.5, 13.0, 17.0]
-	for df_i in range(dune_xs.size()):
-		var dx_off: float = dune_xs[df_i]
-		var dz_off: float = dune_zs[df_i]
-		_env_kit.spawn_rock(_grp_env_geo, Vector3(dx_off, 0.25, dz_off), Vector3(1.35, 0.72, 1.15), float(df_i) * 1.3, mat_sand_rock, df_i + 1, "craggy")
-		_env_kit.spawn_fern_clump(_grp_vegetation, Vector3(dx_off + 0.7, 0.02, dz_off + 0.6), 0.92, mat_dune_grass, float(df_i), 3)
-		if df_i % 2 == 1:
-			_env_kit.spawn_reed_cluster(_grp_vegetation, Vector3(dx_off + 0.35, 0.02, dz_off + 0.8), mat_dune_grass, float(df_i) * 1.4, false)
+	var foam_sources: Array = []
+	fx.set_smoke_wind(Vector3(-0.32, 0.88, -0.34)) # Steady coastal sea breeze blowing inland
 
-	# Shelter coastal boulders along obstacles (wet dark rock near surf, sand-blasted dry rock up slope)
+	# 1. Sculpted Northern Sandstone Bluffs & West/East Rocky Headlands framing the cove
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3032026
+	# Dominant northwest rocky sandstone bluff behind the shelter (inspired by AAA coastal reference)
+	var bluff_anchors := [
+		[Vector2(-8.5, 4.5), Vector3(4.8, 3.6, 4.2)],
+		[Vector2(-3.2, 2.2), Vector3(4.4, 3.4, 3.8)],
+		[Vector2(2.4, 1.2), Vector3(4.2, 3.1, 3.4)],
+		[Vector2(8.0, 0.2), Vector3(4.6, 3.2, 3.6)],
+		[Vector2(13.8, -0.8), Vector3(4.4, 2.8, 3.4)],
+		[Vector2(19.6, -1.5), Vector3(4.2, 2.5, 3.2)],
+		[Vector2(25.2, -0.6), Vector3(4.5, 2.7, 3.5)],
+		[Vector2(31.2, 0.8), Vector3(4.8, 3.2, 3.8)],
+		[Vector2(37.4, 3.2), Vector3(5.2, 3.6, 4.4)],
+		[Vector2(42.5, 9.2), Vector3(5.0, 3.4, 4.2)],
+		# Framing western headland jutting toward surf
+		[Vector2(-6.0, 12.2), Vector3(4.4, 2.8, 4.0)],
+		[Vector2(-4.2, 17.5), Vector3(4.2, 2.5, 3.8)],
+		[Vector2(-3.6, 21.8), Vector3(4.0, 2.0, 3.4)],
+		[Vector2(-2.2, 24.5), Vector3(3.6, 1.6, 3.2)],
+		# Framing far-eastern coastal crag overlooking the shipwreck bay
+		[Vector2(39.8, 16.5), Vector3(4.4, 2.6, 3.8)],
+		[Vector2(42.0, 22.8), Vector3(3.8, 1.8, 3.4)],
+	]
+	for bi in range(bluff_anchors.size()):
+		var ba: Array = bluff_anchors[bi]
+		var bp2: Vector2 = ba[0]
+		var bsc: Vector3 = ba[1]
+		var by := _eval_beach_height(bp2.x, bp2.y, width_m, depth_m)
+		var use_keys := bluff_keys if bi % 2 == 0 else dry_keys
+		var col_t := Color(1.0, 0.98, 0.94) if bi % 3 == 0 else (Color(0.94, 0.92, 0.88) if bi % 3 == 1 else Color(0.88, 0.87, 0.84))
+		CoastalKit.append_rock_cluster_mm(_env_kit, use_keys, Vector3(bp2.x, by + bsc.y * 0.22, bp2.y), bsc, float(bi) * 0.85, float(bi) * 2.13, 4, col_t)
+		if bp2.y > 20.0:
+			foam_sources.append(Vector3(bp2.x, bp2.y, bsc.x * 0.72))
+
+	# Upper distant cliff backdrop ridges beyond northern bluffs (closes pitch=5° sky horizon naturally!)
+	for ui in range(14):
+		var ux := lerpf(-34.0, width_m + 34.0, float(ui) / 13.0)
+		var uz := -9.5 - fmod(float(ui) * 2.9, 9.5)
+		var uy := _eval_beach_height(ux, uz, width_m, depth_m)
+		var usc := Vector3(rng.randf_range(5.2, 8.4), rng.randf_range(3.6, 6.2), rng.randf_range(4.4, 6.8))
+		CoastalKit.append_rock_cluster_mm(_env_kit, bluff_keys, Vector3(ux, uy + usc.y * 0.18, uz), usc, rng.randf() * TAU, float(ui) * 3.1, 3, Color(0.92, 0.90, 0.86))
+
+	# Few wind-sculpted coastal scrub pines perched high atop the NW & NE upper rocky bluffs (outside playable sand!)
+	var bluff_tree_spots := [
+		[Vector2(3.8, -1.2), 0.78], [Vector2(10.8, -2.8), 0.72], [Vector2(29.8, -1.8), 0.82],
+		[Vector2(-6.5, 4.2), 0.85], [Vector2(39.2, 4.8), 0.80],
+	]
+	var mat_c_trunk := MatKit.make_wood_mat(Color("#6b5540"), true)
+	for bti in range(bluff_tree_spots.size()):
+		var bt: Array = bluff_tree_spots[bti]
+		var btp: Vector2 = bt[0]
+		var btsc: float = float(bt[1])
+		var bty := _eval_beach_height(btp.x, btp.y, width_m, depth_m)
+		_env_kit.build_organic_tree(_grp_vegetation, "oak" if bti % 2 == 0 else "pine", Vector3(btp.x, bty - 0.12, btp.y), btsc, mat_c_trunk, mat_coastal_shrub, null, float(bti) * 2.7 + 1.3)
+
+	# 2. Playable Coastal Boulders along obstacle slots (warm dry sandstone up-beach, dark wet stones at surf)
 	var r_idx := 0
 	for ob in scene_def.get("obstacles", []):
-		if str(ob.get("id", "")).contains("rock"):
+		var oid := str(ob.get("id", ""))
+		if oid.contains("rock"):
 			var rp := Structure.tile_to_world(int(ob["col"]), int(ob["row"]), 0.0)
-			var is_wet := int(ob["row"]) >= 13
-			_env_kit.spawn_rock(
-				_grp_env_geo,
-				rp + Vector3(0.0, 0.22, 0.0),
-				Vector3(1.05, 0.68 if int(ob["row"]) <= 8 else 0.52, 0.96),
-				float(r_idx) * 1.35,
-				mat_wet_rock if is_wet else mat_sand_rock,
-				r_idx + 1,
-				"rounded" if is_wet else "craggy"
-			)
-			if not is_wet and r_idx % 2 == 0:
-				_env_kit.spawn_fern_clump(_grp_vegetation, rp + Vector3(0.45, 0.0, 0.35), 0.78, mat_dune_grass, float(r_idx), 2)
+			var gy := _eval_beach_height(rp.x, rp.z, width_m, depth_m)
+			var shore_here := _beach_shore_z(rp.x)
+			var is_wet := rp.z >= shore_here - 3.6
+			if oid == "beach-rock-4":
+				# Low weathered sandstone shelf behind camp hearth so it NEVER crowds the cauldron tripod!
+				CoastalKit.append_rock_cluster_mm(_env_kit, dry_keys, Vector3(rp.x, gy + 0.12, rp.z), Vector3(1.38, 0.44, 1.05), 0.45, 4.2, 3, Color(1.0, 0.97, 0.92))
+			elif is_wet:
+				var sc_w := Vector3(1.18 + fmod(float(r_idx) * 0.21, 0.42), 0.56 + fmod(float(r_idx) * 0.14, 0.26), 1.08)
+				CoastalKit.append_rock_cluster_mm(_env_kit, wet_keys, Vector3(rp.x, gy + 0.14, rp.z), sc_w, float(r_idx) * 1.35, float(r_idx) * 2.4, 3, Color(0.95, 0.98, 1.0))
+				foam_sources.append(Vector3(rp.x, rp.z, sc_w.x * 1.15))
+			else:
+				var sc_d := Vector3(1.28 + fmod(float(r_idx) * 0.27, 0.48), 0.72 + fmod(float(r_idx) * 0.19, 0.36), 1.16)
+				CoastalKit.append_rock_cluster_mm(_env_kit, dry_keys if r_idx % 2 == 0 else bluff_keys, Vector3(rp.x, gy + 0.18, rp.z), sc_d, float(r_idx) * 1.25, float(r_idx) * 1.9, 3, Color(0.98, 0.96, 0.92))
+				# Nestle dune-grass tufts around dry boulder bases
+				for gi in range(3):
+					var ga := float(r_idx) * 1.4 + float(gi) * 2.1
+					var gp := Vector3(rp.x + cos(ga) * (sc_d.x * 0.65), gy, rp.z + sin(ga) * (sc_d.z * 0.65))
+					var gsc := rng.randf_range(0.68, 1.02)
+					_env_kit.append_multimesh("beach_grass_tuft", Transform3D(Basis(Vector3.UP, ga).scaled_local(Vector3(gsc, gsc * 0.85, gsc)), gp), Color(0.96, 1.0, 0.90))
 			r_idx += 1
 
-	# Sculpted CC0 Stranded Rowboat tilted on tidal sandbar (no fabricated crates, no Pecio trigger!)
+	# Additional submerged & half-emerging tidal reef rocks scattered along the curved shallows & shipwreck reef
+	var reef_rocks := [
+		[Vector2(2.6, 25.4), Vector3(1.65, 0.78, 1.45)],
+		[Vector2(11.8, 25.2), Vector3(1.15, 0.44, 0.96)],
+		[Vector2(17.6, 24.4), Vector3(0.95, 0.36, 0.88)],
+		[Vector2(24.4, 24.2), Vector3(1.35, 0.54, 1.12)],
+		[Vector2(29.8, 26.2), Vector3(1.85, 0.92, 1.55)],
+		[Vector2(32.2, 24.8), Vector3(1.75, 0.84, 1.42)],
+		[Vector2(36.8, 25.6), Vector3(2.25, 1.24, 1.85)],
+		[Vector2(31.2, 29.5), Vector3(2.10, 1.05, 1.75)],
+		[Vector2(37.5, 30.2), Vector3(2.40, 1.38, 1.95)],
+	]
+	for rri in range(reef_rocks.size()):
+		var rr: Array = reef_rocks[rri]
+		var rrp: Vector2 = rr[0]
+		var rrsc: Vector3 = rr[1]
+		var rry := _eval_beach_height(rrp.x, rrp.y, width_m, depth_m)
+		CoastalKit.append_rock_cluster_mm(_env_kit, wet_keys, Vector3(rrp.x, maxf(rry + 0.10, BEACH_WATER_Y - 0.16), rrp.y), rrsc, float(rri) * 1.15, float(rri) * 3.3, 3, Color(0.90, 0.95, 0.98))
+		foam_sources.append(Vector3(rrp.x, rrp.y, rrsc.x * 1.12))
+
+	# 3. Grounded Stranded Rowboat tilted naturally in curved swash sandbar (oars laid flat, zero dark tile!)
 	for ob in scene_def.get("obstacles", []):
 		if str(ob.get("id", "")) == "beach-boat":
 			var bp := Structure.tile_to_world(int(ob["col"]), int(ob["row"]), 0.0)
+			var bgy := _eval_beach_height(bp.x, bp.z, width_m, depth_m)
 			var boat := Node3D.new()
 			boat.name = "StrandedRowboat"
-			boat.position = bp + Vector3(0.0, -0.04, 0.2)
-			boat.rotation = Vector3(0.06, 0.45, -0.14)
+			boat.position = Vector3(bp.x, bgy - 0.11, bp.z + 0.15)
+			boat.rotation = Vector3(0.07, 0.56, -0.14)
 			_grp_structures.add_child(boat)
-			var hull := _spawn_prop_glb(boat, "boat-row-large.glb", Vector3.ZERO, 0.0, Vector3.ONE * 1.55, true, "", mat_drift)
+			var hull := _spawn_prop_glb(boat, "boat-row-large.glb", Vector3.ZERO, 0.0, Vector3.ONE * 1.56, false, "RowboatHull", mat_drift)
 			if hull == null:
 				var fb := MeshInstance3D.new()
 				var bhm := BoxMesh.new(); bhm.size = Vector3(3.0, 0.56, 1.32)
 				fb.mesh = bhm; fb.material_override = mat_drift; boat.add_child(fb)
-			_spawn_prop_glb(boat, "tool-paddle.glb", Vector3(0.35, 0.22, 0.38), 0.35, Vector3.ONE * 1.35, true, "", mat_drift)
+			# Boat model already includes side oars; lay one loose spare paddle cleanly on the dry sand beside the stern!
+			var oar_b := _spawn_prop_glb(boat, "tool-paddle.glb", Vector3(-1.35, 0.08, 0.35), 0.0, Vector3.ONE * 1.18, false, "RowboatOarSpare", mat_wreck)
+			if oar_b:
+				oar_b.rotation = Vector3(1.56, -0.45, 0.04)
+			# Mooring rope coiled beside the prow
+			for rti in range(3):
+				var mr := MeshInstance3D.new()
+				var mrm := TorusMesh.new(); mrm.inner_radius = 0.14; mrm.outer_radius = 0.18; mrm.rings = 12
+				mr.mesh = mrm; mr.material_override = mat_rope
+				mr.position = Vector3(1.22, 0.11 + float(rti) * 0.028, 0.55)
+				boat.add_child(mr)
 
-	# Distant half-submerged shipwreck hull out in the eastern surf horizon (clear of HUD controls)
-	_spawn_prop_glb(_grp_env_geo, "ship-wreck.glb", Vector3(width_m + 3.2, -0.78, depth_m + 9.2), -0.45, Vector3.ONE * 1.45, true, "OffshoreShipwreck", mat_wreck)
+	# 4. Reframed Hero OffshoreShipwreck in Eastern Reef Bay (in turquoise reef water, framed cleanly in overview!)
+	var wreck_pos := Vector3(35.6, BEACH_WATER_Y - 0.34, 28.8)
+	var wreck_root := Node3D.new()
+	wreck_root.name = "OffshoreShipwreck"
+	wreck_root.position = wreck_pos
+	wreck_root.rotation = Vector3(-0.14, -0.78, 0.25)
+	_grp_env_geo.add_child(wreck_root)
+	_spawn_prop_glb(wreck_root, "ship-wreck.glb", Vector3.ZERO, 0.0, Vector3.ONE * 1.32, false, "ShipwreckHullModel", mat_wreck)
+	# Dark waterlogged lower hull planking + broken leaning mast, yardarm, rigging & tattered sail
+	var mast_base := Vector3(0.0, 0.52, -0.20)
+	var mast_tip := Vector3(0.36, 5.25, -0.48)
+	CoastalKit.add_oriented_cyl(wreck_root, mast_base, mast_tip, 0.18, 0.09, mat_wreck_wet, 8, true, "BrokenMainMast")
+	var yard_a := Vector3(-1.95, 3.35, -0.35)
+	var yard_b := Vector3(2.05, 4.05, -0.44)
+	CoastalKit.add_oriented_cyl(wreck_root, yard_a, yard_b, 0.075, 0.06, mat_drift, 7, true, "BrokenYardarm")
+	CoastalKit.add_oriented_cyl(wreck_root, Vector3(0.0, 1.15, -1.8), Vector3(-0.22, 2.15, -4.4), 0.11, 0.05, mat_wreck_wet, 7, true, "BrokenBowsprit")
+	for shroud in [
+		[mast_tip + Vector3(0.0, -0.30, 0.0), Vector3(-1.25, 0.88, 0.55)],
+		[mast_tip + Vector3(0.0, -0.30, 0.0), Vector3(1.32, 0.80, 0.45)],
+		[mast_tip + Vector3(0.0, -0.45, 0.0), Vector3(-0.20, 2.05, -4.1)],
+		[yard_a + Vector3(0.30, 0.0, 0.0), Vector3(-1.15, 0.88, -0.70)],
+		[yard_b + Vector3(-0.30, 0.0, 0.0), Vector3(1.15, 0.80, -0.70)],
+	]:
+		CoastalKit.add_oriented_cyl(wreck_root, shroud[0], shroud[1], 0.018, 0.018, mat_rope, 5, false)
+	var st_ts := SurfaceTool.new(); st_ts.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for ti in range(6):
+		var u0 := float(ti) / 6.0; var u1 := float(ti + 1) / 6.0
+		var top0 := yard_a.lerp(yard_b, lerpf(0.18, 0.76, u0))
+		var top1 := yard_a.lerp(yard_b, lerpf(0.18, 0.76, u1))
+		var drop0 := 0.95 + sin(u0 * 9.0) * 0.36
+		var drop1 := 0.95 + sin(u1 * 9.0) * 0.36
+		var bot0 := top0 + Vector3(-0.35, -drop0, -0.30)
+		var bot1 := top1 + Vector3(-0.35, -drop1, -0.30)
+		st_ts.set_uv(Vector2(u0, 0.0)); st_ts.add_vertex(top0)
+		st_ts.set_uv(Vector2(u1, 0.0)); st_ts.add_vertex(top1)
+		st_ts.set_uv(Vector2(u1, 1.0)); st_ts.add_vertex(bot1)
+		st_ts.set_uv(Vector2(u0, 0.0)); st_ts.add_vertex(top0)
+		st_ts.set_uv(Vector2(u1, 1.0)); st_ts.add_vertex(bot1)
+		st_ts.set_uv(Vector2(u0, 1.0)); st_ts.add_vertex(bot0)
+	st_ts.generate_normals()
+	var ts_mi := MeshInstance3D.new(); ts_mi.name = "WreckTatteredSail"
+	ts_mi.mesh = st_ts.commit(); ts_mi.material_override = mat_sail_torn
+	wreck_root.add_child(ts_mi)
+	foam_sources.append(Vector3(wreck_pos.x, wreck_pos.z, 3.6))
+	foam_sources.append(Vector3(wreck_pos.x - 1.6, wreck_pos.z - 1.2, 2.6))
+	foam_sources.append(Vector3(wreck_pos.x + 1.8, wreck_pos.z + 1.4, 2.6))
 
-	# 6 Scattered weathered wreck planks, 2 rigging coils & damp seaweed clumps along tidal debris line
-	var plank_spots := [
-		[7.2, 21.8, 0.38, 1.35], [10.4, 23.2, -0.52, 1.55], [14.8, 22.4, 0.18, 1.25],
-		[22.5, 21.2, -0.78, 1.45], [26.8, 22.8, 0.64, 1.30], [18.5, 19.6, 1.05, 1.15]
-	]
-	for p_item in plank_spots:
-		_env_kit.spawn_driftwood_plank(_grp_env_geo, Vector3(p_item[0], 0.0, p_item[1]), p_item[2], p_item[3], mat_drift)
+	# 5. Shared Depth-Aware Coastal Ocean Mesh with Curved Breaking Surf & Reef Foam
+	var mat_ocean := CoastalKit.create_coastal_ocean_shader(
+		Color(0.042, 0.195, 0.305, 0.96),
+		Color(0.088, 0.385, 0.470, 0.88),
+		Color(0.240, 0.585, 0.580, 0.32),
+		Color(0.92, 0.97, 0.99, 1.0),
+		0.082,
+		1.0,
+		true
+	)
+	var seab_cb := func(wx: float, wz: float) -> float:
+		return _eval_beach_height(wx, wz, width_m, depth_m)
+	var calm_cb := func(_wx: float, _wz: float) -> float:
+		return 0.0
+	CoastalKit.build_coastal_ocean_mesh(
+		self, "OceanWater",
+		-58.0, width_m + 58.0,
+		15.5, depth_m + 68.0,
+		76, 48,
+		BEACH_WATER_Y,
+		seab_cb,
+		foam_sources,
+		calm_cb,
+		mat_ocean
+	)
 
-	for r_pos in [Vector2(8.6, 20.6), Vector2(21.4, 21.9)]:
+	# 6. Tidal Wrack Line: splintered planks, rope coils, pebbles, seaweed & shells aligned with curved shoreline
+	var wrack_xs := [4.8, 8.6, 11.4, 14.9, 17.8, 21.4, 24.6, 27.5, 30.2, 13.2, 22.8, 26.2]
+	for pi in range(wrack_xs.size()):
+		var px: float = wrack_xs[pi]
+		var pz := _beach_shore_z(px) - rng.randf_range(1.6, 4.4)
+		var py := _eval_beach_height(px, pz, width_m, depth_m)
+		var yaw_p := rng.randf_range(-0.65, 0.65)
+		var sc_p := Vector3(rng.randf_range(0.72, 1.48), rng.randf_range(0.85, 1.25), rng.randf_range(0.85, 1.35))
+		var b_p := Basis.from_euler(Vector3(rng.randf_range(-0.04, 0.04), yaw_p, rng.randf_range(-0.05, 0.05))).scaled_local(sc_p)
+		_env_kit.append_multimesh("beach_plank", Transform3D(b_p, Vector3(px, py + 0.015, pz)), Color(0.95, 0.92, 0.86) if pi % 2 == 0 else Color(0.76, 0.70, 0.62))
+
+	# Scattered tide-worn beach pebbles along wrack line & bluff margins (MultiMesh batched!)
+	for peb_i in range(88):
+		var px := rng.randf_range(1.0, width_m - 1.0)
+		var shore_p := _beach_shore_z(px)
+		var pz := shore_p - rng.randf_range(0.5, 4.8) if peb_i < 54 else rng.randf_range(2.0, 9.5)
+		var py := _eval_beach_height(px, pz, width_m, depth_m)
+		var psc := Vector3(rng.randf_range(0.10, 0.34), rng.randf_range(0.05, 0.14), rng.randf_range(0.09, 0.28))
+		var bp := Basis(Vector3.UP, rng.randf() * TAU).scaled_local(psc)
+		var pcol := Color(0.92, 0.89, 0.84) if peb_i % 3 == 0 else (Color(0.72, 0.74, 0.74) if peb_i % 3 == 1 else Color(0.82, 0.76, 0.66))
+		_env_kit.append_multimesh("beach_pebble", Transform3D(bp, Vector3(px, py + psc.y * 0.18, pz)), pcol)
+
+	for r_pos in [Vector2(8.9, 20.3), Vector2(22.6, 20.6)]:
+		var ry := _eval_beach_height(r_pos.x, r_pos.y, width_m, depth_m)
 		var rig := MeshInstance3D.new()
 		var rm := TorusMesh.new(); rm.inner_radius = 0.16; rm.outer_radius = 0.22; rm.rings = 14
 		rig.mesh = rm; rig.material_override = mat_rope
-		rig.position = Vector3(r_pos.x, 0.03, r_pos.y)
+		rig.position = Vector3(r_pos.x, ry + 0.03, r_pos.y)
 		_grp_env_geo.add_child(rig)
 
-	for sw_i in range(5):
-		_env_kit.spawn_seaweed_clump(_grp_vegetation, Vector3(6.5 + float(sw_i) * 5.2, 0.01, 21.5 + sin(float(sw_i)) * 1.4), float(sw_i) * 1.1)
+	for sw_i in range(6):
+		var swx := 5.8 + float(sw_i) * 4.8
+		var swz := _beach_shore_z(swx) - 1.5 + sin(float(sw_i) * 1.4) * 0.65
+		_env_kit.spawn_seaweed_clump(_grp_vegetation, Vector3(swx, _eval_beach_height(swx, swz, width_m, depth_m) + 0.01, swz), float(sw_i) * 1.1)
 
-	# Rich coastal dune grass, sea-holly / horned-poppy tufts & starfish on wet stones (visible up close & overview!)
-	var coastal_flora: Array[Vector2] = [
-		Vector2(8.5, 9.6), Vector2(10.8, 8.2), Vector2(24.6, 8.8), Vector2(27.8, 12.6),
-		Vector2(6.8, 17.5), Vector2(29.2, 18.2),
-	]
-	for cf_i in range(coastal_flora.size()):
-		var cp: Vector2 = coastal_flora[cf_i]
-		_env_kit.spawn_fern_clump(_grp_vegetation, Vector3(cp.x, 0.0, cp.y), 0.92, mat_dune_grass, float(cf_i) * 1.5, 2)
-		_env_kit.spawn_reed_cluster(_grp_vegetation, Vector3(cp.x + 0.42, 0.0, cp.y + 0.28), mat_dune_grass, float(cf_i) * 1.9, false)
-		_env_kit.spawn_wildflower_patch(_grp_vegetation, Vector3(cp.x - 0.38, 0.0, cp.y + 0.42), float(cf_i) * 1.3, 6, "beach")
+	# 7. Organic Coastal Dune Grass, Sea-Holly & Flowering Shrubs clustered strictly along bluff feet & boulder pockets (no isolated tufts floating on open sand!)
+	for bi_f in range(bluff_anchors.size()):
+		var bfa: Array = bluff_anchors[bi_f]
+		var bfp: Vector2 = bfa[0]
+		var bfsc: Vector3 = bfa[1]
+		for sub_g in range(4):
+			var ang_g := rng.randf_range(0.25, PI - 0.25)
+			var gx := bfp.x + cos(ang_g) * (bfsc.x * rng.randf_range(0.55, 1.15))
+			var gz := bfp.y + sin(ang_g) * (bfsc.z * rng.randf_range(0.45, 0.95))
+			if gz > _beach_shore_z(gx) - 3.2:
+				continue
+			var gy_f := _eval_beach_height(gx, gz, width_m, depth_m)
+			var sc_f := rng.randf_range(0.82, 1.38)
+			var fk := "beach_grass_tuft" if sub_g < 2 else ("beach_shrub_card" if sub_g == 2 else "beach_coastal_flower")
+			_env_kit.append_multimesh(fk, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled_local(Vector3(sc_f, sc_f * rng.randf_range(0.75, 1.15), sc_f)), Vector3(gx, gy_f - 0.04, gz)), Color(rng.randf_range(0.84, 1.00), rng.randf_range(0.88, 1.00), rng.randf_range(0.80, 0.94)))
+
+	_env_kit.flush_multimeshes(_grp_env_geo, "BeachGeo_")
+
 	for ss_i in range(3):
-		var sx := 7.2 + float(ss_i) * 9.8
-		FaunaKit.spawn_seastar(_grp_vegetation, Vector3(sx, 0.02, depth_m * 0.69 + sin(float(ss_i)) * 0.5), Color("#d45a38") if ss_i % 2 == 0 else Color("#c23e54"), float(ss_i) * 1.7)
+		var sx := 8.2 + float(ss_i) * 9.2
+		var sz := _beach_shore_z(sx) - 0.85
+		FaunaKit.spawn_seastar(_grp_vegetation, Vector3(sx, _eval_beach_height(sx, sz, width_m, depth_m) + 0.02, sz), Color("#d45a38") if ss_i % 2 == 0 else Color("#c23e54"), float(ss_i) * 1.7)
 
-	# Coastal fauna: diurnal/nocturnal schedule, emerging from rocks/waves, pausing naturally & returning to shelter!
+	# 8. Coastal Wildlife synced cleanly to curved shoreline height
+	var sh_w1 := _beach_shore_z(9.5) - 1.2
 	FaunaKit.spawn_crab(_grp_vegetation, fauna_agents, "ShoreCrab_0", [
-		Vector3(6.2, 0.02, depth_m * 0.67), Vector3(11.4, 0.02, depth_m * 0.66),
-		Vector3(12.8, 0.02, depth_m * 0.68), Vector3(14.6, 0.02, depth_m * 0.65),
-		Vector3(6.0, 0.02, depth_m * 0.68),
+		Vector3(6.8, 0.0, sh_w1), Vector3(11.4, 0.0, _beach_shore_z(11.4) - 1.4),
+		Vector3(13.2, 0.0, _beach_shore_z(13.2) - 1.0), Vector3(15.2, 0.0, _beach_shore_z(15.2) - 1.5),
+		Vector3(6.6, 0.0, sh_w1),
 	], 18.0, 1.2, Color("#c24a2b"))
 	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "day", "dusk"], ["storm"], 42.0, 0.48, 3.0, true, 3.2)
 
 	FaunaKit.spawn_crab(_grp_vegetation, fauna_agents, "ShoreCrab_1", [
-		Vector3(29.8, 0.02, depth_m * 0.66), Vector3(25.6, 0.02, depth_m * 0.67),
-		Vector3(24.0, 0.02, depth_m * 0.66), Vector3(21.8, 0.02, depth_m * 0.68),
-		Vector3(29.5, 0.02, depth_m * 0.66),
+		Vector3(28.8, 0.0, _beach_shore_z(28.8) - 1.2), Vector3(25.2, 0.0, _beach_shore_z(25.2) - 1.1),
+		Vector3(23.2, 0.0, _beach_shore_z(23.2) - 1.4), Vector3(21.2, 0.0, _beach_shore_z(21.2) - 1.0),
+		Vector3(28.5, 0.0, _beach_shore_z(28.5) - 1.2),
 	], 16.0, 4.4, Color("#b63f26"))
 	FaunaKit.set_behavior(fauna_agents.back(), ["dusk", "night", "dawn"], ["storm"], 46.0, 0.50, 8.0, true, 3.2)
 
 	FaunaKit.spawn_crab(_grp_vegetation, fauna_agents, "ShoreCrab_2", [
-		Vector3(15.2, 0.02, depth_m * 0.61), Vector3(18.0, 0.02, depth_m * 0.63),
-		Vector3(19.4, 0.02, depth_m * 0.62), Vector3(15.0, 0.02, depth_m * 0.61),
+		Vector3(15.4, 0.0, _beach_shore_z(15.4) - 2.2), Vector3(18.0, 0.0, _beach_shore_z(18.0) - 1.8),
+		Vector3(19.6, 0.0, _beach_shore_z(19.6) - 2.1), Vector3(15.2, 0.0, _beach_shore_z(15.2) - 2.2),
 	], 14.0, 2.8, Color("#c95a34"))
 	FaunaKit.set_behavior(fauna_agents.back(), ["dusk", "night", "dawn"], ["storm"], 48.0, 0.46, 22.0, true, 3.2)
 
 	FaunaKit.spawn_turtle(_grp_vegetation, fauna_agents, "BeachTurtle", [
-		Vector3(7.8, -0.18, depth_m * 0.88), Vector3(10.8, 0.01, depth_m * 0.72),
-		Vector3(12.2, 0.02, depth_m * 0.68), Vector3(14.5, 0.01, depth_m * 0.72),
-		Vector3(11.0, -0.18, depth_m * 0.88),
+		Vector3(9.4, -0.35, _beach_shore_z(9.4) + 3.2), Vector3(11.6, -0.10, _beach_shore_z(11.6) - 0.5),
+		Vector3(13.0, -0.04, _beach_shore_z(13.0) - 1.8), Vector3(15.2, -0.10, _beach_shore_z(15.2) - 0.4),
+		Vector3(12.0, -0.35, _beach_shore_z(12.0) + 3.4),
 	], 32.0, 1.5)
 	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "dusk", "day"], ["storm"], 78.0, 0.34, 42.0, true, 4.0)
 
-	FaunaKit.spawn_perched_bird(_grp_vegetation, fauna_agents, "BeachPerchedGull_0", Vector3(7.4, 0.48, 20.6), 0.7, Color("#f2f6fa"), Color("#788696"), 1.08, 0.4)
+	var gull0_y := _eval_beach_height(5.25, 23.25, width_m, depth_m) + 0.58
+	FaunaKit.spawn_perched_bird(_grp_vegetation, fauna_agents, "BeachPerchedGull_0", Vector3(5.25, gull0_y, 23.25), 0.7, Color("#f2f6fa"), Color("#788696"), 1.08, 0.4)
 	FaunaKit.set_behavior(fauna_agents.back(), ["day", "arrival", "dawn", "dusk"], ["storm"], 44.0, 0.44, 4.0, false, 4.0)
 
-	FaunaKit.spawn_perched_bird(_grp_vegetation, fauna_agents, "BeachPerchedGull_1", Vector3(24.8, 0.36, 21.8), -1.8, Color("#eef3f7"), Color("#6d7b8c"), 1.02, 2.2)
+	var gull1_y := _eval_beach_height(29.25, 21.75, width_m, depth_m) + 0.54
+	FaunaKit.spawn_perched_bird(_grp_vegetation, fauna_agents, "BeachPerchedGull_1", Vector3(29.25, gull1_y, 21.75), -1.8, Color("#eef3f7"), Color("#6d7b8c"), 1.02, 2.2)
 	FaunaKit.set_behavior(fauna_agents.back(), ["day", "arrival", "dawn", "dusk"], ["storm"], 52.0, 0.42, 26.0, false, 4.0)
 
-	# Occasional ocean fish swimming in from offshore surf & briefly breaching in calm clear weather
 	FaunaKit.spawn_fish(_grp_vegetation, fauna_agents, "SeaFish_0", [
-		Vector3(10.0, -0.32, depth_m * 0.96), Vector3(14.2, -0.25, depth_m * 0.75),
-		Vector3(18.6, -0.24, depth_m * 0.74), Vector3(23.5, -0.32, depth_m * 0.96),
+		Vector3(11.0, -0.45, _beach_shore_z(11.0) + 7.5), Vector3(15.0, -0.28, _beach_shore_z(15.0) + 2.6),
+		Vector3(19.2, -0.26, _beach_shore_z(19.2) + 2.4), Vector3(23.8, -0.45, _beach_shore_z(23.8) + 7.5),
 	], 18.0, 0.25, Color("#3e7488"), "swim_ocean_jump", 1.32)
 	FaunaKit.set_behavior(fauna_agents.back(), ["day", "arrival", "dawn", "dusk"], ["storm", "rain"], 62.0, 0.32, 36.0, false, 0.0)
 
 	FaunaKit.spawn_fish(_grp_vegetation, fauna_agents, "SeaFish_1", [
-		Vector3(31.5, -0.32, depth_m * 0.96), Vector3(27.8, -0.24, depth_m * 0.74),
-		Vector3(24.5, -0.25, depth_m * 0.77), Vector3(20.5, -0.32, depth_m * 0.96),
+		Vector3(29.0, -0.45, _beach_shore_z(29.0) + 8.0), Vector3(26.2, -0.28, _beach_shore_z(26.2) + 3.2),
+		Vector3(22.8, -0.28, _beach_shore_z(22.8) + 3.5), Vector3(19.5, -0.45, _beach_shore_z(19.5) + 8.2),
 	], 20.0, 2.4, Color("#498296"), "swim_ocean_jump", 1.24)
 	FaunaKit.set_behavior(fauna_agents.back(), ["day", "arrival", "dawn", "dusk"], ["storm", "rain"], 70.0, 0.30, 8.0, false, 0.0)
+
+	# 9. Organized Salvaged Camp Props (real GLB crate + cask + woven hearth mat + lanterns, zero clutter!)
+	var mat_crate := MatKit.make_wood_mat(Color("#86694a"), true)
+	var mat_brass_b := MatKit.make_bronze_mat(Color("#a8894c"))
+	var beach_table := Node3D.new()
+	beach_table.name = "BeachSalvagedSupplyTable"
+	var bt_y := _eval_beach_height(15.45, 15.65, width_m, depth_m)
+	beach_table.position = Vector3(15.45, bt_y, 15.65)
+	_grp_props.add_child(beach_table)
+	var crate_glb := _spawn_prop_glb(beach_table, "crate.glb", Vector3(0.0, 0.0, 0.0), 0.24, Vector3.ONE * 0.72, false, "SalvagedCrate", mat_crate)
+	if crate_glb == null:
+		var crate_b := MeshInstance3D.new()
+		var cbm := BoxMesh.new(); cbm.size = Vector3(0.54, 0.42, 0.46)
+		crate_b.mesh = cbm; crate_b.material_override = mat_crate; crate_b.position = Vector3(0.0, 0.21, 0.0)
+		beach_table.add_child(crate_b)
+	var barrel_glb := _spawn_prop_glb(beach_table, "barrel.glb", Vector3(-0.56, 0.0, -0.14), 0.4, Vector3.ONE * 0.78, false, "SalvagedBarrel", mat_wreck)
+	if barrel_glb == null:
+		var cask_b := MeshInstance3D.new()
+		var kbm := CylinderMesh.new(); kbm.top_radius = 0.19; kbm.bottom_radius = 0.21; kbm.height = 0.50; kbm.radial_segments = 10
+		cask_b.mesh = kbm; cask_b.material_override = mat_wreck; cask_b.position = Vector3(-0.52, 0.25, -0.14)
+		beach_table.add_child(cask_b)
+	var b_lan := PropFactory.create_portable_lantern(_grp_interactables, fx, Vector3(15.45, bt_y + 0.44, 15.65))
+	b_lan.name = "BeachTableLantern"
+	PropFactory.create_woven_rug(_grp_props, "BeachHearthMat", Vector3(18.6, _eval_beach_height(18.6, 15.35, width_m, depth_m) + 0.008, 15.35), Vector2(1.92, 1.04), Color("#8c5e42"), Color("#d2b484"), -0.18)
+
+	var boat_lan_y := _eval_beach_height(8.15, 18.85, width_m, depth_m)
+	var boat_lan := PropFactory.create_portable_lantern(_grp_interactables, fx, Vector3(8.15, boat_lan_y + 0.02, 18.85))
+	boat_lan.name = "BeachBoatSternLantern"
+	var mug_cask := MeshInstance3D.new()
+	var mcm := CylinderMesh.new(); mcm.top_radius = 0.044; mcm.bottom_radius = 0.038; mcm.height = 0.088; mcm.radial_segments = 8
+	mug_cask.mesh = mcm; mug_cask.material_override = mat_brass_b; mug_cask.position = Vector3(-0.56, 0.56, -0.14)
+	beach_table.add_child(mug_cask)
+
 	sync_wildlife()
 
 # ------------------------------------------------------------------------------
-# Camp 04: Acantilados del Observatorio (Austere Basalt Plateau)
+# Camp 04: Acantilados del Observatorio (AAA Stratified Promontory & Astronomical Ruin)
 # ------------------------------------------------------------------------------
 func _build_observatory_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m: float, depth_m: float) -> void:
-	var mat_basalt := MatKit.make_textured_mat("basalt-coastal-albedo-v1.webp", Color("#4a5562"), 0.86, "rock", Vector3(0.32, 0.32, 0.32), true, true)
-	var mat_ashlar := MatKit.make_textured_mat("ashlar-v4.webp", Color("#646c75"), 0.80, "rock", Vector3(0.35, 0.35, 0.35), true, true)
-	var mat_crystal := MatKit.make_glow_mat(Color("#54d7f5"), 1.55)
-	fx.build_ocean_backdrop(self, width_m * 1.5, depth_m * 0.72, 105.0, -15.5)
-	fx.set_smoke_wind(Vector3(0.45, 0.78, 0.35)) # Strong exposed plateau crosswind
+	# Differentiated materials: stratified dark basalt bedrock, weathered slate-grey carved ashlar (harmonized with cliff!), patinated bronze, highland lichen
+	var mat_basalt := CoastalKit.make_multimesh_rock_mat("basalt-coastal-albedo-v1.webp", Color("#76828e"), 0.85, 0.30, true)
+	var mat_basalt_dark := CoastalKit.make_multimesh_rock_mat("a1-cliff-rugged-v8.jpg", Color("#6a747e"), 0.88, 0.28, true)
+	var mat_ashlar := MatKit.make_textured_mat("ashlar-v4.webp", Color("#6a7076"), 0.82, "rock", Vector3(0.48, 0.48, 0.48), true, true)
+	var mat_carved := MatKit.make_textured_mat("limestone-v3.webp", Color("#7c807c"), 0.80, "rock", Vector3(0.45, 0.45, 0.45), true, true)
+	var mat_plinth := MatKit.make_textured_mat("a1-cliff-organic-v7.png", Color("#596266"), 0.86, "rock", Vector3(0.42, 0.42, 0.42), true, true)
+	var mat_bronze_pat := MatKit.make_bronze_mat(Color("#9e824c"))
+	var mat_cedar_o := MatKit.make_wood_mat(Color("#694a30"), true)
+	var mat_highland_shrub := MatKit.create_foliage_wind_shader_material("foliage.webp", Color("#4e6346"), 0.055, Color("#7c966a"), false, 2.2, true)
 
-	# Natural basalt windbreak scree, hexagonal basalt columns & localized arcane crystal veins
-	var p_idx := 0
+	# Register MultiMesh rock & highland flora batches for rich cliff detail at high FPS
+	var strat_pool := _env_kit.get_rock_variants("stratified")
+	var crag_pool := _env_kit.get_rock_variants("craggy")
+	var flat_pool := _env_kit.get_rock_variants("flat")
+	var basalt_keys: Array[String] = []
+	var crag_keys: Array[String] = []
+	var flat_keys: Array[String] = []
+	for vi in range(4):
+		var bk := "cliff_strat_%d" % vi
+		_env_kit.define_multimesh(bk, strat_pool[vi], mat_basalt, true)
+		basalt_keys.append(bk)
+		var ck := "cliff_crag_%d" % vi
+		_env_kit.define_multimesh(ck, crag_pool[vi], mat_basalt_dark, true)
+		crag_keys.append(ck)
+		var fk := "cliff_flat_%d" % vi
+		_env_kit.define_multimesh(fk, flat_pool[vi], mat_basalt, true)
+		flat_keys.append(fk)
+	_env_kit.define_multimesh("cliff_scree", flat_pool[0], mat_basalt, false)
+
+	var uv_heather := Rect2(0.51, 0.51, 0.48, 0.48)
+	var uv_grass := Rect2(0.51, 0.01, 0.48, 0.48)
+	var mat_heather_mm := MatKit.create_foliage_wind_shader_material("foliage-atlas-v5.png", Color("#9688a8"), 0.065, Color("#a08cb8"), true, 1.0, true, uv_heather)
+	var mat_cgrass_mm := MatKit.create_foliage_wind_shader_material("foliage-atlas-v5.png", Color("#7a8a5e"), 0.082, Color("#96a874"), true, 1.0, true, uv_grass)
+	_env_kit.define_multimesh("cliff_heather_mm", _env_kit.get_bush_quad_proto(uv_heather, 1.08), mat_heather_mm, true)
+	_env_kit.define_multimesh("cliff_grass_mm", _env_kit.get_bush_quad_proto(uv_grass, 1.12), mat_cgrass_mm, false)
+
+	fx.set_smoke_wind(Vector3(0.48, 0.72, 0.36)) # Exposed plateau crosswind
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4042026
+	var sea_foam_sources: Array = []
+
+	# 1. Stepped Stratified Cliff Rim Cornices (LOW & EMBEDDED along rim so zero hovering discs, horizon stays 100% panoramic!) + Deep Lower Precipice Buttresses!
+	for rim_i in range(28):
+		var ang := float(rim_i) * TAU / 28.0
+		var rx := width_m * 0.50 + 0.6 + cos(ang) * 16.8 + sin(ang * 5.0) * 0.85
+		var rz := depth_m * 0.50 - 0.4 + sin(ang) * 14.0 + cos(ang * 4.0) * 0.72
+		if rx < 1.8 and rz < 18.0:
+			continue # Connected highland massif side
+		var ry := _eval_cliff_height(rx, rz, width_m, depth_m)
+		# Embedded stratified rock rim blocks hugging the precipice lip (ZERO hovering pancakes, ZERO blocking domes!)
+		var rim_h := rng.randf_range(0.95, 1.45)
+		var rim_sc := Vector3(rng.randf_range(2.2, 3.4), rim_h, rng.randf_range(1.9, 2.9))
+		CoastalKit.append_rock_cluster_mm(_env_kit, basalt_keys, Vector3(rx, minf(-0.18, ry - rim_h * 0.30), rz), rim_sc, ang + 0.4, float(rim_i) * 1.9, 3, Color(0.95, 0.97, 1.0) if rim_i % 2 == 0 else Color(0.86, 0.90, 0.94))
+		# Deep vertical cliff-wall buttresses descending BELOW the rim down toward the ocean surf!
+		var wx_b := rx + cos(ang) * 3.4
+		var wz_b := rz + sin(ang) * 3.4
+		var bsc := Vector3(rng.randf_range(3.0, 4.8), rng.randf_range(4.8, 7.6), rng.randf_range(2.6, 4.2))
+		CoastalKit.append_rock_cluster_mm(_env_kit, basalt_keys if rim_i % 2 == 0 else crag_keys, Vector3(wx_b, -3.8 - bsc.y * 0.36, wz_b), bsc, ang * 1.2, float(rim_i) * 2.4, 3, Color(0.84, 0.88, 0.94))
+		if rim_i % 2 == 0:
+			var lx := rx + cos(ang) * 5.8
+			var lz := rz + sin(ang) * 5.8
+			var lsc := Vector3(rng.randf_range(3.2, 5.0), rng.randf_range(4.2, 6.8), rng.randf_range(2.8, 4.4))
+			CoastalKit.append_rock_cluster_mm(_env_kit, crag_keys, Vector3(lx, CLIFF_SEA_Y + lsc.y * 0.48, lz), lsc, ang * 1.3, float(rim_i) * 2.7, 3, Color(0.76, 0.82, 0.88))
+			sea_foam_sources.append(Vector3(lx, lz, lsc.x * 0.92))
+
+	# Dramatic Western/Northwestern Highland Mountain Massif & Eroded Stone Ascent Path (NO floating island!)
+	var massif_crags := [
+		[Vector2(-8.0, 10.0), Vector3(6.8, 5.4, 5.8)],
+		[Vector2(-12.5, 4.0), Vector3(8.5, 7.6, 7.2)],
+		[Vector2(-6.5, -4.5), Vector3(7.4, 6.8, 6.4)],
+		[Vector2(2.5, -10.5), Vector3(7.2, 5.2, 5.8)],
+		[Vector2(-18.0, 14.0), Vector3(9.0, 8.2, 7.8)],
+		[Vector2(-14.0, -12.0), Vector3(10.0, 9.6, 8.5)],
+		[Vector2(-2.0, -16.0), Vector3(8.4, 7.2, 6.8)],
+		[Vector2(-9.5, 19.5), Vector3(6.2, 4.6, 5.4)],
+	]
+	for mci in range(massif_crags.size()):
+		var mc: Array = massif_crags[mci]
+		var mcp: Vector2 = mc[0]
+		var mcsc: Vector3 = mc[1]
+		var mcy := _eval_cliff_height(mcp.x, mcp.y, width_m, depth_m)
+		CoastalKit.append_rock_cluster_mm(_env_kit, basalt_keys if mci % 2 == 0 else crag_keys, Vector3(mcp.x, mcy + mcsc.y * 0.14, mcp.y), mcsc, float(mci) * 0.9, float(mci) * 2.3, 4, Color(0.92, 0.94, 0.96))
+
+	# Weathered carved stone ascent steps linking the western highland path onto the plateau (inspired by reference!)
+	for step_i in range(6):
+		var sx := 2.4 - float(step_i) * 0.92
+		var sz := 16.5 + float(step_i) * 0.42
+		var sy := _eval_cliff_height(sx, sz, width_m, depth_m)
+		var step_mi := MeshInstance3D.new()
+		var sbm := BoxMesh.new(); sbm.size = Vector3(1.15, 0.24, 2.35)
+		step_mi.mesh = sbm; step_mi.material_override = mat_ashlar
+		step_mi.position = Vector3(sx, sy + 0.04, sz)
+		step_mi.rotation.y = -0.35 + sin(float(step_i)) * 0.05
+		_grp_env_geo.add_child(step_mi)
+
+	# 3 gnarled wind-bent highland pines gripping the sheltered western massif ridge
+	var pine_pts: Array[Vector2] = [Vector2(-6.2, 6.5), Vector2(-10.5, 13.5), Vector2(-3.2, -5.8)]
+	for hti in range(pine_pts.size()):
+		var htp: Vector2 = pine_pts[hti]
+		var hty := _eval_cliff_height(htp.x, htp.y, width_m, depth_m)
+		_env_kit.build_organic_tree(_grp_vegetation, "pine", Vector3(htp.x, hty - 0.18, htp.y), 0.78 + float(hti) * 0.08, mat_cedar_o, mat_highland_shrub, null, float(hti) * 2.9 + 0.5)
+
+	# Dramatic Slender Detached Sea Stacks rising far below in the open ocean abyss (peaking BELOW plateau rim so horizon stays vast & dramatic!)
+	var sea_stacks := [
+		[Vector2(45.5, 18.0), Vector3(3.4, 11.4, 3.0)],
+		[Vector2(49.5, 29.5), Vector3(3.8, 12.6, 3.4)],
+		[Vector2(37.5, 44.5), Vector3(4.2, 10.8, 3.6)],
+		[Vector2(18.5, 49.0), Vector3(3.8, 10.2, 3.4)],
+		[Vector2(-6.5, 43.0), Vector3(4.2, 11.6, 3.6)],
+		[Vector2(45.0, -10.5), Vector3(4.0, 11.2, 3.5)],
+		[Vector2(28.5, -24.5), Vector3(4.4, 10.6, 3.8)],
+		[Vector2(58.0, 4.0), Vector3(4.8, 12.2, 4.2)],
+	]
+	for ssi in range(sea_stacks.size()):
+		var ss: Array = sea_stacks[ssi]
+		var ssp: Vector2 = ss[0]
+		var sssc: Vector3 = ss[1]
+		CoastalKit.append_rock_cluster_mm(_env_kit, basalt_keys, Vector3(ssp.x, CLIFF_SEA_Y + sssc.y * 0.42, ssp.y), sssc, float(ssi) * 1.15, float(ssi) * 3.1, 3, Color(0.84, 0.88, 0.94))
+		sea_foam_sources.append(Vector3(ssp.x, ssp.y, sssc.x * 1.25))
+
+	# Shared Depth-Aware Coastal Ocean surrounding the entire cliff abyss & sea stacks!
+	var mat_abyss_sea := CoastalKit.create_coastal_ocean_shader(
+		Color(0.038, 0.145, 0.245, 0.98),
+		Color(0.075, 0.265, 0.375, 0.94),
+		Color(0.165, 0.405, 0.475, 0.78),
+		Color(0.88, 0.94, 0.98, 1.0),
+		0.12,
+		0.85,
+		true
+	)
+	mat_abyss_sea.set_shader_parameter("swell_scale", 1.75)
+	mat_abyss_sea.set_shader_parameter("whitecap_strength", 0.22)
+	var cliff_bed_cb := func(wx: float, wz: float) -> float:
+		return minf(CLIFF_SEA_Y - 1.8, _eval_cliff_height(wx, wz, width_m, depth_m))
+	var cliff_calm_cb := func(_wx: float, _wz: float) -> float:
+		return 0.0
+	CoastalKit.build_coastal_ocean_mesh(
+		self, "OceanWater",
+		-62.0, width_m + 78.0,
+		-56.0, depth_m + 72.0,
+		60, 56,
+		CLIFF_SEA_Y,
+		cliff_bed_cb,
+		sea_foam_sources,
+		cliff_calm_cb,
+		mat_abyss_sea
+	)
+
+	# 2. Eroded Incomplete Astronomical Ruin Sanctuary & Varied Phase-Modulated Arcane Crystals!
+	var pillar_idx := 0
+	var crystal_idx := 0
+	var wb_idx := 0
 	for ob in scene_def.get("obstacles", []):
 		var oid := str(ob.get("id", ""))
 		var op := Structure.tile_to_world(int(ob["col"]), int(ob["row"]), 0.0)
+		op.y = _eval_cliff_height(op.x, op.z, width_m, depth_m)
+
 		if oid.contains("windbreak"):
-			_env_kit.spawn_rock(_grp_env_geo, op + Vector3(0.0, 0.36, 0.0), Vector3(1.52, 1.15, 1.32), op.x * 0.7, mat_basalt, p_idx, "stratified")
-			if p_idx % 2 == 0:
-				_env_kit.spawn_cliff_heather(_grp_vegetation, op + Vector3(0.65, 0.0, 0.52), float(p_idx) * 1.4)
-			p_idx += 1
+			# Low angular stratified basalt ledges + weathered dry-stone masonry shielding the tarp without crowding the compass circle!
+			var wb_sc := Vector3(1.22 + fmod(float(wb_idx) * 0.22, 0.36), 0.68 + fmod(float(wb_idx) * 0.18, 0.28), 1.04)
+			CoastalKit.append_rock_cluster_mm(_env_kit, flat_keys if wb_idx % 2 == 0 else basalt_keys, op + Vector3(0.0, wb_sc.y * 0.22, 0.0), wb_sc, op.x * 0.65, float(wb_idx) * 2.1, 3, Color(0.92, 0.94, 0.96))
+			if wb_idx == 1 or wb_idx == 2 or wb_idx == 3:
+				# Stepped weathered dry-stone windbreak blocks integrated into natural basalt shelf
+				var wb_root := Node3D.new()
+				wb_root.position = op + Vector3(0.05, 0.0, -0.10)
+				wb_root.rotation.y = 0.22 if wb_idx == 1 else (-0.18 if wb_idx == 2 else 0.08)
+				_grp_env_geo.add_child(wb_root)
+				var base_b := MeshInstance3D.new()
+				var bbm := BoxMesh.new(); bbm.size = Vector3(1.36, 0.44, 0.56)
+				base_b.mesh = bbm; base_b.material_override = mat_plinth; base_b.position.y = 0.22
+				wb_root.add_child(base_b)
+				var top_b := MeshInstance3D.new()
+				var tbm := BoxMesh.new(); tbm.size = Vector3(0.86, 0.38, 0.48)
+				top_b.mesh = tbm; top_b.material_override = mat_ashlar; top_b.position = Vector3(-0.18 if wb_idx % 2 == 0 else 0.16, 0.60, 0.0)
+				top_b.rotation.z = 0.04 if wb_idx % 2 == 0 else -0.04
+				wb_root.add_child(top_b)
+			wb_idx += 1
+
 		elif oid.contains("pillar"):
-			var plinth := MeshInstance3D.new()
-			var plm := CylinderMesh.new(); plm.top_radius = 0.78; plm.bottom_radius = 0.88; plm.height = 0.34; plm.radial_segments = 6
-			plinth.mesh = plm; plinth.material_override = mat_ashlar; plinth.position = op + Vector3(0, 0.17, 0)
-			_grp_env_geo.add_child(plinth)
+			# 4 COMPLETELY DISTINCT eroded astronomical monolith ruins (stepped bases, broken crowns, bronze inlays!)
+			var ruin_root := Node3D.new()
+			ruin_root.name = "AstronomicalMonolith_%d" % pillar_idx
+			ruin_root.position = op
+			_grp_env_geo.add_child(ruin_root)
 
-			var pil := MeshInstance3D.new()
-			var h_var := 2.6 + fmod(float(p_idx) * 0.55, 1.1)
-			var pm := CylinderMesh.new(); pm.top_radius = 0.44; pm.bottom_radius = 0.58; pm.height = h_var; pm.radial_segments = 6
-			pil.mesh = pm; pil.material_override = mat_basalt; pil.position = op + Vector3(0, h_var * 0.5 + 0.30, 0)
-			pil.rotation.y = float(p_idx) * 0.4
-			_grp_env_geo.add_child(pil)
+			if pillar_idx == 0:
+				# NW Ruin: Weathered broken twin-jamb stone observatory archway + stepped plinths & fractured lintel!
+				ruin_root.rotation.y = 0.55
+				for side_s in [-1.0, 1.0]:
+					var pl_j := MeshInstance3D.new()
+					var pjm := BoxMesh.new(); pjm.size = Vector3(0.82, 0.28, 0.86)
+					pl_j.mesh = pjm; pl_j.material_override = mat_plinth; pl_j.position = Vector3(side_s * 0.72, 0.14, 0.0)
+					ruin_root.add_child(pl_j)
+					var jamb := MeshInstance3D.new()
+					var jh := 2.65 if side_s < 0 else 2.15
+					var jm := BoxMesh.new(); jm.size = Vector3(0.62, jh, 0.66)
+					jamb.mesh = jm; jamb.material_override = mat_ashlar
+					jamb.position = Vector3(side_s * 0.72, 0.24 + jh * 0.5, 0.0)
+					jamb.rotation.z = side_s * 0.03
+					ruin_root.add_child(jamb)
+					var cap_j := MeshInstance3D.new()
+					var cjm := BoxMesh.new(); cjm.size = Vector3(0.78, 0.22, 0.78)
+					cap_j.mesh = cjm; cap_j.material_override = mat_carved
+					cap_j.position = Vector3(side_s * 0.72, 0.24 + jh + 0.08, 0.0)
+					ruin_root.add_child(cap_j)
+				var lintel := MeshInstance3D.new()
+				var ltm := BoxMesh.new(); ltm.size = Vector3(1.58, 0.36, 0.70)
+				lintel.mesh = ltm; lintel.material_override = mat_carved
+				lintel.position = Vector3(-0.20, 3.06, 0.0); lintel.rotation.z = -0.10
+				ruin_root.add_child(lintel)
+				var fall_l := MeshInstance3D.new()
+				var flm := BoxMesh.new(); flm.size = Vector3(1.18, 0.34, 0.64)
+				fall_l.mesh = flm; fall_l.material_override = mat_ashlar
+				fall_l.position = Vector3(1.28, 0.17, 0.55); fall_l.rotation = Vector3(0.08, 0.42, 0.14)
+				ruin_root.add_child(fall_l)
+			elif pillar_idx == 1:
+				# NE Ruin: Tall weathered astronomical gnomon monolith with patinated bronze solstice ring!
+				ruin_root.rotation.y = -0.62
+				var step_p := MeshInstance3D.new()
+				var spm := BoxMesh.new(); spm.size = Vector3(1.56, 0.32, 1.38)
+				step_p.mesh = spm; step_p.material_override = mat_plinth; step_p.position.y = 0.16
+				ruin_root.add_child(step_p)
+				var shaft := MeshInstance3D.new()
+				var shm := BoxMesh.new(); shm.size = Vector3(0.78, 3.25, 0.64)
+				shaft.mesh = shm; shaft.material_override = mat_carved
+				shaft.position = Vector3(0.0, 1.84, 0.0); shaft.rotation.z = -0.04
+				ruin_root.add_child(shaft)
+				var side_slab := MeshInstance3D.new()
+				var ssm := BoxMesh.new(); ssm.size = Vector3(0.56, 1.80, 0.56)
+				side_slab.mesh = ssm; side_slab.material_override = mat_ashlar
+				side_slab.position = Vector3(0.64, 1.10, 0.08); side_slab.rotation.z = 0.06
+				ruin_root.add_child(side_slab)
+				var b_ring := MeshInstance3D.new()
+				var brm := TorusMesh.new(); brm.inner_radius = 0.24; brm.outer_radius = 0.31; brm.rings = 16
+				b_ring.mesh = brm; b_ring.material_override = mat_bronze_pat
+				b_ring.position = Vector3(-0.08, 2.70, 0.35); b_ring.rotation.x = PI * 0.5
+				ruin_root.add_child(b_ring)
+			elif pillar_idx == 2:
+				# SW Ruin: Snapped low monolith stump + fallen weathered upper stone shaft lying diagonally in scree!
+				ruin_root.rotation.y = 0.85
+				var plinth3 := MeshInstance3D.new()
+				var p3m := BoxMesh.new(); p3m.size = Vector3(1.32, 0.28, 1.22)
+				plinth3.mesh = p3m; plinth3.material_override = mat_plinth; plinth3.position.y = 0.14
+				ruin_root.add_child(plinth3)
+				var stump3 := MeshInstance3D.new()
+				var st3m := BoxMesh.new(); st3m.size = Vector3(0.68, 0.92, 0.62)
+				stump3.mesh = st3m; stump3.material_override = mat_carved
+				stump3.position = Vector3(0.0, 0.68, 0.0); stump3.rotation = Vector3(0.08, 0.1, -0.06)
+				ruin_root.add_child(stump3)
+				var fallen3 := MeshInstance3D.new()
+				var f3m := BoxMesh.new(); f3m.size = Vector3(0.62, 1.85, 0.54)
+				fallen3.mesh = f3m; fallen3.material_override = mat_ashlar
+				fallen3.position = Vector3(-1.05, 0.30, 0.62); fallen3.rotation = Vector3(0.18, 0.35, 1.48)
+				ruin_root.add_child(fallen3)
+			else:
+				# SE Ruin: Eroded stepped standing stone with bronze inlay band & broken cornice lip!
+				ruin_root.rotation.y = -0.45
+				var plinth4 := MeshInstance3D.new()
+				var p4m := BoxMesh.new(); p4m.size = Vector3(1.42, 0.32, 1.28)
+				plinth4.mesh = p4m; plinth4.material_override = mat_plinth; plinth4.position.y = 0.16
+				ruin_root.add_child(plinth4)
+				var mono4 := MeshInstance3D.new()
+				var m4m := BoxMesh.new(); m4m.size = Vector3(0.76, 2.35, 0.64)
+				mono4.mesh = m4m; mono4.material_override = mat_carved
+				mono4.position = Vector3(0.0, 1.42, 0.0); mono4.rotation = Vector3(-0.04, 0.0, 0.05)
+				ruin_root.add_child(mono4)
+				var cap4 := MeshInstance3D.new()
+				var cp4m := BoxMesh.new(); cp4m.size = Vector3(0.88, 0.20, 0.74)
+				cap4.mesh = cp4m; cap4.material_override = mat_ashlar
+				cap4.position = Vector3(0.06, 2.58, 0.0); cap4.rotation = Vector3(-0.04, 0.0, 0.08)
+				ruin_root.add_child(cap4)
+				var band4 := MeshInstance3D.new()
+				var bd4 := BoxMesh.new(); bd4.size = Vector3(0.80, 0.10, 0.68)
+				band4.mesh = bd4; band4.material_override = mat_bronze_pat
+				band4.position = Vector3(0.02, 1.72, 0.0); band4.rotation = Vector3(-0.04, 0.0, 0.05)
+				ruin_root.add_child(band4)
 
-			_env_kit.spawn_rock(_grp_env_geo, op + Vector3(0.55, 0.12, 0.35), Vector3(0.75, 0.42, 0.72), float(p_idx), mat_basalt, p_idx, "stratified")
-			p_idx += 1
+			# Anchor fractured basalt rubble around every monolith base
+			CoastalKit.append_rock_cluster_mm(_env_kit, flat_keys, op + Vector3(0.68, 0.10, 0.42), Vector3(0.82, 0.32, 0.74), float(pillar_idx), float(pillar_idx) * 2.5, 3, Color(0.92, 0.94, 0.96))
+			pillar_idx += 1
+
 		elif oid.contains("crystal"):
-			# Localized crystal seam embedded in basalt fissure with contained low-radius light
-			_env_kit.spawn_rock(_grp_env_geo, op + Vector3(0, 0.08, 0), Vector3(0.82, 0.38, 0.78), op.x, mat_basalt, int(ob["col"]), "stratified")
-			for j in range(4):
+			# Varied asymmetric arcane glacial-quartz mineral formations (deep sapphire-teal by day, glowing cyan pool at dusk/night!)
+			var cry_root := Node3D.new()
+			cry_root.name = "ArcaneCrystalSeam_%d" % crystal_idx
+			cry_root.position = op
+			_grp_env_geo.add_child(cry_root)
+			CoastalKit.append_rock_cluster_mm(_env_kit, crag_keys, op + Vector3(0.0, 0.12, 0.0), Vector3(1.16, 0.42, 1.02), op.x * 0.7, float(crystal_idx) * 3.1, 3, Color(0.82, 0.88, 0.94))
+
+			var cry_palette: Array[Color] = [Color("#42c6e8"), Color("#38b4e4"), Color("#56d6f4"), Color("#3aa8dc")]
+			var cry_tint: Color = cry_palette[crystal_idx % 4]
+			var mat_cry := StandardMaterial3D.new()
+			mat_cry.albedo_color = cry_tint.lerp(Color("#1d5a78"), 0.54)
+			mat_cry.roughness = 0.12
+			mat_cry.metallic = 0.16
+			mat_cry.specular_mode = BaseMaterial3D.SPECULAR_SCHLICK_GGX
+			mat_cry.rim_enabled = true; mat_cry.rim = 0.22; mat_cry.rim_tint = 0.55
+			mat_cry.emission_enabled = true
+			mat_cry.emission = cry_tint
+			mat_cry.emission_energy_multiplier = 0.03 # Modulated dynamically by fx.apply_lighting_phase!
+
+			var spire_counts: Array[int] = [7, 5, 6, 4]
+			var cluster_scales: Array[float] = [1.24, 0.90, 1.08, 0.82]
+			var spire_count: int = spire_counts[crystal_idx % 4]
+			var scale_cluster: float = cluster_scales[crystal_idx % 4]
+			for j in range(spire_count):
 				var cry := MeshInstance3D.new()
-				var cm := CylinderMesh.new(); cm.top_radius = 0.018; cm.bottom_radius = 0.13 - float(j) * 0.015; cm.height = 0.82 - float(j) * 0.14; cm.radial_segments = 5
-				cry.mesh = cm; cry.material_override = mat_crystal
-				var ang := float(j) * TAU / 4.0 + 0.3
-				cry.position = op + Vector3(cos(ang) * 0.18, 0.38, sin(ang) * 0.18)
-				cry.rotation = Vector3(sin(ang) * 0.28, float(j), -cos(ang) * 0.28)
-				_grp_env_geo.add_child(cry)
+				var h_sp := (1.16 - float(j) * 0.12 + fmod(float(crystal_idx) * 0.19, 0.22)) * scale_cluster
+				var r_bot := (0.18 - float(j) * 0.016) * scale_cluster
+				var cm := CylinderMesh.new()
+				cm.top_radius = maxf(0.022, r_bot * 0.18); cm.bottom_radius = maxf(0.068, r_bot); cm.height = maxf(0.36, h_sp); cm.radial_segments = 6
+				cry.mesh = cm; cry.material_override = mat_cry
+				var ang := float(j) * (TAU / float(spire_count)) + float(crystal_idx) * 1.1
+				var rad_o := (0.04 if j == 0 else (0.22 + float(j % 2) * 0.14)) * scale_cluster
+				cry.position = Vector3(cos(ang) * rad_o, maxf(0.20, h_sp * 0.44), sin(ang) * rad_o)
+				cry.rotation = Vector3(sin(ang) * (0.12 if j == 0 else 0.38), float(j) * 0.9, -cos(ang) * (0.10 if j == 0 else 0.34))
+				cry_root.add_child(cry)
+
 			var cl := OmniLight3D.new()
-			cl.light_color = Color("#54d7f5"); cl.light_energy = 1.05; cl.omni_range = 3.8; cl.omni_attenuation = 1.8
-			cl.position = op + Vector3(0, 0.72, 0)
-			_grp_env_geo.add_child(cl)
+			cl.light_color = cry_tint
+			cl.light_energy = 0.0
+			cl.omni_range = 5.0 * scale_cluster
+			cl.omni_attenuation = 1.60
+			cl.distance_fade_enabled = false
+			cl.position = Vector3(0.0, 0.78 * scale_cluster, 0.0)
+			cry_root.add_child(cl)
+			fx.register_arcane_crystal(cl, mat_cry, 1.15 * scale_cluster, 0.03, 1.65)
+			crystal_idx += 1
 
-	# Northern & lateral basalt cliff rim crags anchored solidly around precipice
-	for k in range(12):
-		var kx := lerpf(1.2, width_m - 1.2, float(k) / 11.0)
-		_env_kit.spawn_rock(_grp_env_geo, Vector3(kx, -0.10, 1.85 + sin(float(k) * 1.3) * 0.35), Vector3(1.55, 0.75, 1.15), float(k) * 0.8, mat_basalt, k, "stratified")
-	for side_z in [6.5, 13.0, 20.5, 25.5]:
-		_env_kit.spawn_rock(_grp_env_geo, Vector3(2.2, 0.14, side_z), Vector3(1.42, 0.82, 1.28), side_z * 0.7, mat_basalt, int(side_z), "stratified")
-		_env_kit.spawn_rock(_grp_env_geo, Vector3(width_m - 2.2, 0.14, side_z), Vector3(1.38, 0.78, 1.25), side_z * 1.1, mat_basalt, int(side_z) + 3, "stratified")
-
-	# Highland heather, silver-sage moss cushions & purple alpine saxifrage tucked beside rock shelter (no bare plateau!)
-	var cliff_flora: Array[Vector2] = [
-		Vector2(10.8, 11.4), Vector2(14.5, 9.2), Vector2(22.6, 11.8), Vector2(25.8, 17.5),
-		Vector2(7.8, 18.6), Vector2(28.4, 8.6), Vector2(18.5, 6.2),
+	# Multi-course stepped broken masonry sanctuary wall fragments (ZERO plain rectangular boxes!)
+	var arc_frags := [
+		[Vector2(13.2, 5.2), 2.35, 1.38, 0.32],
+		[Vector2(24.4, 5.6), 2.55, 1.56, -0.38],
+		[Vector2(28.5, 9.8), 1.95, 1.16, -1.15],
+		[Vector2(29.2, 17.5), 2.15, 0.98, -1.85],
 	]
-	for cf_i in range(cliff_flora.size()):
-		var cp: Vector2 = cliff_flora[cf_i]
-		_env_kit.spawn_cliff_heather(_grp_vegetation, Vector3(cp.x, 0.0, cp.y), float(cf_i) * 1.4)
-		_env_kit.spawn_moss_cushion(_grp_vegetation, Vector3(cp.x - 0.35, 0.0, cp.y + 0.32), Color("#6a7a63"), 0.88, float(cf_i) * 1.7)
-		_env_kit.spawn_wildflower_patch(_grp_vegetation, Vector3(cp.x + 0.32, 0.0, cp.y + 0.25), float(cf_i) * 1.1, 6, "cliff")
+	for afi in range(arc_frags.size()):
+		var af: Array = arc_frags[afi]
+		var afp: Vector2 = af[0]
+		var af_w: float = float(af[1])
+		var af_h: float = float(af[2])
+		var af_yaw: float = float(af[3])
+		var afy := _eval_cliff_height(afp.x, afp.y, width_m, depth_m)
+		var wall_root := Node3D.new()
+		wall_root.name = "SanctuaryRuinedWall_%d" % afi
+		wall_root.position = Vector3(afp.x, afy, afp.y)
+		wall_root.rotation.y = af_yaw
+		_grp_env_geo.add_child(wall_root)
 
-	# Highland wildlife: Ibex traversing outer basalt rim by day/dawn/dusk, crepuscular Hare & patrolling Ravens
+		# Stepped base plinth wider than wall core
+		var pl_w := MeshInstance3D.new()
+		var plm := BoxMesh.new(); plm.size = Vector3(af_w + 0.24, 0.32, 0.80)
+		pl_w.mesh = plm; pl_w.material_override = mat_plinth; pl_w.position.y = 0.16
+		wall_root.add_child(pl_w)
+		# Lower broken ashlar course
+		var lo_w := MeshInstance3D.new()
+		var lom := BoxMesh.new(); lom.size = Vector3(af_w, af_h * 0.54, 0.62)
+		lo_w.mesh = lom; lo_w.material_override = mat_ashlar; lo_w.position = Vector3(0.0, 0.28 + af_h * 0.27, 0.0)
+		wall_root.add_child(lo_w)
+		# Asymmetric stepped upper broken masonry courses (missing corner stones & jagged crown!)
+		var hi_a := MeshInstance3D.new()
+		var ham := BoxMesh.new(); ham.size = Vector3(af_w * 0.56, af_h * 0.44, 0.58)
+		hi_a.mesh = ham; hi_a.material_override = mat_carved
+		hi_a.position = Vector3(-af_w * 0.20 if afi % 2 == 0 else af_w * 0.18, 0.28 + af_h * 0.72, 0.0)
+		hi_a.rotation.z = 0.03 if afi % 2 == 0 else -0.03
+		wall_root.add_child(hi_a)
+		# Weathered coping cap stone crowning the taller end
+		var cap_w := MeshInstance3D.new()
+		var cwm := BoxMesh.new(); cwm.size = Vector3(af_w * 0.42, 0.18, 0.70)
+		cap_w.mesh = cwm; cap_w.material_override = mat_carved
+		cap_w.position = Vector3((-af_w * 0.24 if afi % 2 == 0 else af_w * 0.22), 0.28 + af_h * 0.96, 0.0)
+		wall_root.add_child(cap_w)
+		# Fallen displaced masonry block resting beside the broken end
+		var fall_b := MeshInstance3D.new()
+		var fbm := BoxMesh.new(); fbm.size = Vector3(0.68, 0.34, 0.52)
+		fall_b.mesh = fbm; fall_b.material_override = mat_ashlar
+		fall_b.position = Vector3(af_w * 0.48 if afi % 2 == 0 else -af_w * 0.48, 0.16, 0.46)
+		fall_b.rotation = Vector3(0.08, 0.36, 0.12)
+		wall_root.add_child(fall_b)
+		CoastalKit.append_rock_cluster_mm(_env_kit, flat_keys, Vector3(afp.x + 0.55, afy + 0.10, afp.y + 0.32), Vector3(0.78, 0.30, 0.72), af_yaw, float(afi) * 2.2, 3, Color(0.90, 0.92, 0.95))
+
+	# 3. Wind-Bent Highland Heather, Crevice Grass, Alpine Moss & Scattered Basalt Scree (MultiMesh batched!)
+	for cf_i in range(62):
+		var cfx := rng.randf_range(2.2, width_m - 2.2)
+		var cfz := rng.randf_range(2.8, depth_m - 2.8)
+		# Keep engraved astronomical circle center & camp hearth clean!
+		if Vector2(cfx - 19.0, cfz - 12.6).length() < 5.6 or Vector2(cfx - 17.8, cfz - 15.2).length() < 4.2:
+			continue
+		var cfy := _eval_cliff_height(cfx, cfz, width_m, depth_m)
+		if cfy < -0.35:
+			continue
+		if cf_i < 26:
+			var hsc := rng.randf_range(0.58, 1.05)
+			_env_kit.append_multimesh("cliff_heather_mm", Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled_local(Vector3(hsc, hsc * 0.85, hsc)), Vector3(cfx, cfy - 0.02, cfz)), Color(rng.randf_range(0.88, 1.04), rng.randf_range(0.86, 1.0), rng.randf_range(0.92, 1.06)))
+		elif cf_i < 44:
+			var gsc := rng.randf_range(0.52, 0.96)
+			_env_kit.append_multimesh("cliff_grass_mm", Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled_local(Vector3(gsc, gsc * 0.82, gsc)), Vector3(cfx, cfy - 0.02, cfz)), Color(rng.randf_range(0.84, 1.0), rng.randf_range(0.88, 1.02), rng.randf_range(0.80, 0.96)))
+		else:
+			var ssc := Vector3(rng.randf_range(0.16, 0.48), rng.randf_range(0.08, 0.22), rng.randf_range(0.14, 0.42))
+			_env_kit.append_multimesh("cliff_scree", Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled_local(ssc), Vector3(cfx, cfy + ssc.y * 0.16, cfz)), Color(0.86, 0.90, 0.94))
+
+	_env_kit.flush_multimeshes(_grp_env_geo, "CliffGeo_")
+
+	# 4. Highland Wildlife synced to plateau elevation
 	FaunaKit.spawn_ibex(_grp_vegetation, fauna_agents, "CliffIbex", [
-		Vector3(-4.5, 0.02, 5.8), Vector3(9.5, 0.02, 5.0),
+		Vector3(3.5, 0.02, 5.8), Vector3(9.5, 0.02, 5.0),
 		Vector3(14.8, 0.02, 4.6), Vector3(22.5, 0.02, 5.2),
-		Vector3(width_m + 4.5, 0.02, 5.8),
+		Vector3(31.5, 0.02, 6.2),
 	], 28.0, 2.0)
 	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "day", "dusk"], ["storm"], 66.0, 0.40, 8.0, true, 5.0)
 
 	FaunaKit.spawn_rabbit(_grp_vegetation, fauna_agents, "CliffHare", [
-		Vector3(4.5, 0.0, 9.8), Vector3(10.0, 0.0, 9.4),
-		Vector3(11.6, 0.0, 9.2), Vector3(14.5, 0.0, 8.6),
-		Vector3(4.2, 0.0, 10.2),
+		Vector3(5.2, 0.0, 10.2), Vector3(10.0, 0.0, 9.6),
+		Vector3(11.6, 0.0, 9.2), Vector3(14.5, 0.0, 8.8),
+		Vector3(5.0, 0.0, 10.6),
 	], 16.0, 1.4, Color("#6e655b"))
 	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "dusk", "day"], ["rain", "storm", "snow"], 48.0, 0.38, 28.0, true, 4.2)
 
-	FaunaKit.spawn_perched_bird(_grp_vegetation, fauna_agents, "CliffPerchedRaven_0", Vector3(22.2, 0.62, 11.4), -1.6, Color("#1e232e"), Color("#121720"), 1.08, 0.8)
+	FaunaKit.spawn_perched_bird(_grp_vegetation, fauna_agents, "CliffPerchedRaven_0", Vector3(24.4, _eval_cliff_height(24.4, 5.6, width_m, depth_m) + 1.48, 5.6), -1.6, Color("#1e232e"), Color("#121720"), 1.08, 0.8)
 	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "day", "dusk"], ["storm"], 42.0, 0.44, 3.0, false, 3.8)
 
-	FaunaKit.spawn_perched_bird(_grp_vegetation, fauna_agents, "CliffPerchedRaven_1", Vector3(9.2, 0.52, 8.2), 0.9, Color("#1c212b"), Color("#11161e"), 1.04, 2.9)
+	FaunaKit.spawn_perched_bird(_grp_vegetation, fauna_agents, "CliffPerchedRaven_1", Vector3(13.2, _eval_cliff_height(13.2, 5.2, width_m, depth_m) + 1.28, 5.2), 0.9, Color("#1c212b"), Color("#11161e"), 1.04, 2.9)
 	FaunaKit.set_behavior(fauna_agents.back(), ["dusk", "night", "dawn"], ["storm"], 48.0, 0.42, 6.0, false, 3.8)
 	sync_wildlife()
 
-	# 3 translucent shader aurora curtains framed cleanly in northern sky
+	# 5. 3 Translucent Northern Sky Aurora Curtains (dusk/night/dawn) + Lower Abyss Sea-Mist Layers!
 	for i in range(3):
 		var aurora := MeshInstance3D.new()
 		aurora.name = "ObservatoryAurora_%d" % i
 		var am := PlaneMesh.new()
-		am.size = Vector2(46.0, 9.5); am.subdivide_width = 28; am.subdivide_depth = 8
+		am.size = Vector2(56.0, 11.5); am.subdivide_width = 28; am.subdivide_depth = 8
 		aurora.mesh = am
 		aurora.material_override = MatKit.create_aurora_shader_material(
 			Color("#42f2be") if i % 2 == 0 else Color("#5ad8ff"),
 			Color("#7a68ff"),
 			float(i) * 2.1
 		)
-		aurora.position = Vector3(width_m * 0.5 + float(i - 1) * 5.0, 2.8 + float(i) * 0.85, -8.5 - float(i) * 2.2)
-		aurora.rotation.x = deg_to_rad(56.0)
+		aurora.position = Vector3(width_m * 0.5 + float(i - 1) * 6.5, 4.2 + float(i) * 1.1, -14.5 - float(i) * 3.0)
+		aurora.rotation.x = deg_to_rad(58.0)
 		aurora.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_grp_env_geo.add_child(aurora)
 		fx.register_aurora(aurora)
 
-	# Wind-driven mist clouds
-	for c in range(5):
+	# Layered drifting sea-mist clouds wrapping the lower cliff abyss & sea stacks (depth + zero void!)
+	for c in range(7):
 		var cld := MeshInstance3D.new()
-		var clm := PlaneMesh.new(); clm.size = Vector2(13.0, 6.5)
+		var clm := PlaneMesh.new(); clm.size = Vector2(24.0, 12.0)
 		cld.mesh = clm
-		cld.material_override = MatKit.create_cloud_wisp_shader_material(Color(0.54, 0.66, 0.80, 0.24))
-		cld.position = Vector3(width_m * 0.16 + float(c) * 7.8, 3.6 + float(c % 2) * 0.9, -6.5 + float(c % 3) * 2.2)
-		cld.rotation.x = deg_to_rad(58.0)
+		cld.material_override = MatKit.create_cloud_wisp_shader_material(Color(0.72, 0.80, 0.90, 0.24))
+		var cz_m := (depth_m + 10.5 + float(c % 3) * 7.5) if c < 4 else (-10.5 - float(c - 4) * 6.5)
+		var cy_m := -8.8 + float(c % 3) * 2.2
+		cld.position = Vector3(width_m * 0.12 + float(c) * 8.4, cy_m, cz_m)
+		cld.rotation.x = deg_to_rad(8.0)
 		cld.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_grp_env_geo.add_child(cld)
-		fx.register_cloud(cld, cld.position.x, width_m + 34.0, 0.72 + float(c % 2) * 0.28)
+		fx.register_cloud(cld, cld.position.x, width_m + 56.0, 0.65 + float(c % 3) * 0.24)
+
+	# 6. Cozy Sheltered Hearth Ring & Carved Astronomical Lookout Pedestal + Tripod Spyglass
+	var wb_center := Vector3(18.75, _eval_cliff_height(18.75, 15.75, width_m, depth_m), 15.75)
+	for wb_i in range(6):
+		var wa := lerpf(-PI * 0.82, -PI * 0.18, float(wb_i) / 5.0)
+		var wr := 1.48
+		_env_kit.spawn_rock(_grp_props, wb_center + Vector3(cos(wa) * wr, 0.18, sin(wa) * wr), Vector3(0.56, 0.38 + sin(float(wb_i) * 1.7) * 0.08, 0.42), wa + PI * 0.5, mat_basalt, wb_i + 1, "stratified")
+	PropFactory.create_woven_rug(_grp_props, "CliffHearthMat", Vector3(17.95, _eval_cliff_height(17.95, 16.55, width_m, depth_m) + 0.008, 16.55), Vector2(1.88, 0.98), Color("#8c4a35"), Color("#cc9a5a"), 0.25)
+
+	# Astronomical northern lookout pedestal + brass compass ring + tripod spyglass & field lantern
+	var look_y := _eval_cliff_height(18.75, 3.85, width_m, depth_m)
+	var look_pos := Vector3(18.75, look_y, 3.85)
+	var ped := MeshInstance3D.new()
+	ped.name = "AstronomicalCompassPedestal"
+	var pdm := CylinderMesh.new(); pdm.top_radius = 0.58; pdm.bottom_radius = 0.72; pdm.height = 0.42; pdm.radial_segments = 10
+	ped.mesh = pdm; ped.material_override = mat_carved; ped.position = look_pos + Vector3(0.0, 0.21, -0.45)
+	_grp_props.add_child(ped)
+	var dial := MeshInstance3D.new()
+	var dlm := TorusMesh.new(); dlm.inner_radius = 0.36; dlm.outer_radius = 0.44; dlm.rings = 16
+	dial.mesh = dlm; dial.material_override = mat_bronze_pat; dial.position = look_pos + Vector3(0.0, 0.44, -0.45)
+	_grp_props.add_child(dial)
+
+	var spy_root := Node3D.new()
+	spy_root.name = "CliffLookoutSpyglass"
+	spy_root.position = look_pos + Vector3(-0.62, 0.0, -0.15)
+	_grp_props.add_child(spy_root)
+	for tri_i in range(3):
+		var ta := float(tri_i) * TAU / 3.0
+		var leg := MeshInstance3D.new()
+		var lm_t := CylinderMesh.new(); lm_t.top_radius = 0.018; lm_t.bottom_radius = 0.024; lm_t.height = 0.88; lm_t.radial_segments = 6
+		leg.mesh = lm_t; leg.material_override = mat_cedar_o
+		leg.position = Vector3(cos(ta) * 0.14, 0.41, sin(ta) * 0.14)
+		leg.rotation = Vector3(-sin(ta) * 0.28, 0.0, cos(ta) * 0.28)
+		spy_root.add_child(leg)
+	var tube_o := MeshInstance3D.new()
+	var tm_o := CylinderMesh.new(); tm_o.top_radius = 0.048; tm_o.bottom_radius = 0.028; tm_o.height = 0.58; tm_o.radial_segments = 8
+	tube_o.mesh = tm_o; tube_o.material_override = mat_bronze_pat
+	tube_o.position = Vector3(0.0, 0.86, 0.0); tube_o.rotation = Vector3(1.25, 0.22, 0.0)
+	spy_root.add_child(tube_o)
+	_env_kit.spawn_rock(_grp_props, look_pos + Vector3(0.58, 0.09, 0.14), Vector3(0.46, 0.22, 0.38), 0.4, mat_basalt, 4, "flat")
+	var cliff_lan := PropFactory.create_portable_lantern(_grp_interactables, fx, look_pos + Vector3(0.58, 0.20, 0.14))
+	cliff_lan.name = "CliffObservatoryFieldLantern"
 
 # ------------------------------------------------------------------------------
-# Camp 05: Refugio costero de Pleamar (Sea Cave Sanctuary — ZERO canvas tarps)
+# Camp 05: Refugio Cala Pleamar (Coastal Trail + Asymmetric Cove + 4-Chamber Sea Cave)
 # ------------------------------------------------------------------------------
+func _build_cave_vault_mesh(
+	parent: Node3D,
+	node_name: String,
+	x0: float,
+	x1: float,
+	z0: float,
+	z1: float,
+	base_h: float,
+	dome_h: float,
+	hole_xz: Vector2,
+	hole_r: float,
+	mat_ds: Material,
+	seed_v: float
+) -> MeshInstance3D:
+	# Organic sculpted irregular dome vault with tapered curved rock skirt (ZERO harsh rectangular cutout corners!)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var nx := 14
+	var nz := 12
+	var pts: Array = []
+	for iz in range(nz + 1):
+		var fz := float(iz) / float(nz)
+		var row_v: Array[Vector3] = []
+		for ix in range(nx + 1):
+			var fx := float(ix) / float(nx)
+			# Organic scalloped edge displacement so perimeter never reads as a straight box cut!
+			var edge_x := sin(fz * PI) * (sin(fz * 7.0 + seed_v) * 0.65 + cos(fz * 13.0) * 0.28)
+			var edge_z := sin(fx * PI) * (cos(fx * 6.5 - seed_v) * 0.58 + sin(fx * 11.0) * 0.24)
+			var vx := lerpf(x0, x1, fx) + edge_x * (1.0 - sin(fx * PI))
+			var vz := lerpf(z0, z1, fz) + edge_z * (1.0 - sin(fz * PI))
+			var arch_x := sin(fx * PI)
+			var arch_z := sin(fz * PI)
+			var dome_f := pow(maxf(0.0, arch_x * 0.62 + arch_z * 0.38), 0.78)
+			var crag := sin(vx * 0.58 + seed_v) * cos(vz * 0.52 - seed_v * 0.7) * 0.36 + sin((vx - vz) * 1.12) * 0.16
+			var vy := base_h + dome_h * dome_f + crag
+			row_v.append(Vector3(vx, vy, vz))
+		pts.append(row_v)
+	for iz in range(nz):
+		for ix in range(nx):
+			var a: Vector3 = pts[iz][ix]; var b: Vector3 = pts[iz][ix + 1]
+			var c: Vector3 = pts[iz + 1][ix + 1]; var d: Vector3 = pts[iz + 1][ix]
+			if hole_r > 0.05:
+				var ctr := (a + b + c + d) * 0.25
+				if Vector2(ctr.x - hole_xz.x, ctr.z - hole_xz.y).length() < hole_r:
+					continue
+			# Upward-facing winding (a, d, c, b) so top rocky cliff surface catches crisp sunlight!
+			_emit_quad(st, a, d, c, b)
+	st.generate_normals()
+	var mi := MeshInstance3D.new()
+	mi.name = node_name
+	mi.mesh = st.commit()
+	mi.material_override = mat_ds
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	parent.add_child(mi)
+	return mi
+
+func _create_spring_waterfall_shader() -> ShaderMaterial:
+	var sh := Shader.new()
+	sh.code = """
+shader_type spatial;
+render_mode blend_mix, depth_draw_opaque, cull_disabled, specular_schlick_ggx;
+
+void fragment() {
+	float t = TIME * 1.75;
+	vec2 uv = UV;
+	float jitter = sin(uv.y * 11.0 - t * 2.4) * 0.08 + cos(uv.y * 19.0 - t * 3.8) * 0.04;
+	float edge_dist = abs(uv.x - 0.5 + jitter * 0.4);
+	float width_prof = mix(0.28, 0.46, smoothstep(0.0, 0.92, uv.y));
+	float mask_x = 1.0 - smoothstep(width_prof - 0.14, width_prof, edge_dist);
+	float mask_top = smoothstep(0.0, 0.12, uv.y);
+	float s1 = sin(uv.x * 24.0 + sin(uv.y * 9.0 - t * 2.8) * 1.4) * 0.5 + 0.5;
+	float s2 = sin(uv.x * 38.0 - uv.y * 16.0 + t * 5.6) * 0.5 + 0.5;
+	float splash = smoothstep(0.74, 0.98, uv.y) * (0.65 + s2 * 0.35);
+	float foam = clamp(smoothstep(0.46, 0.92, s1 * 0.55 + s2 * 0.45) * 0.72 + splash, 0.0, 1.0);
+	vec3 water_c = mix(vec3(0.14, 0.50, 0.58), vec3(0.84, 0.96, 0.98), foam);
+	ALBEDO = water_c;
+	EMISSION = vec3(0.06, 0.24, 0.28) * (0.35 + foam * 0.35);
+	ROUGHNESS = 0.16;
+	ALPHA = clamp((0.52 + foam * 0.38) * mask_x * mask_top, 0.0, 0.88);
+}
+"""
+	var mat := ShaderMaterial.new()
+	mat.shader = sh
+	return mat
+
 func _build_refuge_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m: float, depth_m: float, _tile: float) -> void:
-	var mat_arch := MatKit.make_textured_mat("a1-cliff-organic-v7.png", Color("#6a716c"), 0.88, "rock", Vector3(0.30, 0.30, 0.30), true, true)
-	var mat_rugged := MatKit.make_textured_mat("a1-cliff-rugged-v8.jpg", Color("#5c635e"), 0.90, "rock", Vector3(0.28, 0.28, 0.28), true, true)
-	var mat_wet_rock := MatKit.make_textured_mat("basalt-coastal-albedo-v1.webp", Color("#475251"), 0.26, "rock", Vector3(0.32, 0.32, 0.32), true, true)
-	var mat_ivy := _env_kit.make_alpha_foliage_mat("cave_moss", Color("#3b643b"))
-	var mat_drip := MatKit.make_glow_mat(Color("#b5ecfc"), 1.05)
+	var greybox := OS.get_cmdline_user_args().has("--greybox")
 
-	fx.build_ocean_backdrop(self, width_m, depth_m * 0.84, 72.0, -0.18)
-	# Ventilate hearth smoke gently out toward southern cave mouth
-	fx.set_smoke_wind(Vector3(0.08, 0.82, 0.56))
+	# Materials: warm sunlit coastal limestone-granite cave walls & wet dark basalt pools!
+	var mat_cliff := CoastalKit.make_multimesh_rock_mat("a1-cliff-organic-v7.png", Color("#8c887d"), 0.86, 0.26, true)
+	var mat_cliff_dark := CoastalKit.make_multimesh_rock_mat("a1-cliff-rugged-v8.jpg", Color("#79776e"), 0.88, 0.25, true)
+	var mat_wet_rock := CoastalKit.make_multimesh_rock_mat("basalt-coastal-albedo-v1.webp", Color("#4e5c5c"), 0.28, 0.34, true)
+	var mat_arch := MatKit.make_textured_mat("a1-cliff-organic-v7.png", Color("#868278"), 0.86, "rock", Vector3(0.24, 0.24, 0.24), true, true)
+	var mat_rugged := MatKit.make_textured_mat("a1-cliff-rugged-v8.jpg", Color("#7b786f"), 0.88, "rock", Vector3(0.22, 0.22, 0.22), true, true)
+	var mat_roof_ds := mat_arch.duplicate() as StandardMaterial3D
+	mat_roof_ds.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var mat_rail_wood := MatKit.make_wood_mat(Color("#745b42"), true)
+	var mat_rope := MatKit.make_cloth_mat(Color("#b6a176"), true, true)
+	var mat_ivy := _env_kit.make_alpha_foliage_mat("cave_moss", Color("#3b6b3e"))
+	var mat_coastal_tree := MatKit.create_foliage_wind_shader_material("foliage.webp", Color("#4d6b3c"), 0.042, Color("#7ea058"), false, 2.4, true)
+	# Subtle translucent water-droplet material (NO giant glowing white ping-pong balls!)
+	var mat_drip := StandardMaterial3D.new()
+	mat_drip.albedo_color = Color(0.72, 0.92, 0.98, 0.62)
+	mat_drip.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat_drip.roughness = 0.08
+	mat_drip.emission_enabled = true
+	mat_drip.emission = Color("#74d2e8")
+	mat_drip.emission_energy_multiplier = 0.28
 
-	# Sculpted deep sea-grotto north cliff wall + irregular stone buttresses & scalloped overhang lip
+	var mat_gb_mouth: StandardMaterial3D
+	var mat_gb_common: StandardMaterial3D
+	var mat_gb_rest: StandardMaterial3D
+	var mat_gb_storage: StandardMaterial3D
+	var mat_gb_spring: StandardMaterial3D
+	if greybox:
+		mat_cliff = StandardMaterial3D.new(); mat_cliff.albedo_color = Color("#7d8280"); mat_cliff.roughness = 0.90; mat_cliff.vertex_color_use_as_albedo = true
+		mat_cliff_dark = StandardMaterial3D.new(); mat_cliff_dark.albedo_color = Color("#656a69"); mat_cliff_dark.roughness = 0.92; mat_cliff_dark.vertex_color_use_as_albedo = true
+		mat_wet_rock = StandardMaterial3D.new(); mat_wet_rock.albedo_color = Color("#506064"); mat_wet_rock.roughness = 0.55; mat_wet_rock.vertex_color_use_as_albedo = true
+		mat_arch = mat_cliff; mat_rugged = mat_cliff_dark
+		mat_gb_mouth = StandardMaterial3D.new(); mat_gb_mouth.albedo_color = Color("#8f8a7c"); mat_gb_mouth.cull_mode = BaseMaterial3D.CULL_DISABLED
+		mat_gb_common = StandardMaterial3D.new(); mat_gb_common.albedo_color = Color("#a88c6c"); mat_gb_common.cull_mode = BaseMaterial3D.CULL_DISABLED
+		mat_gb_rest = StandardMaterial3D.new(); mat_gb_rest.albedo_color = Color("#8a9c7e"); mat_gb_rest.cull_mode = BaseMaterial3D.CULL_DISABLED
+		mat_gb_storage = StandardMaterial3D.new(); mat_gb_storage.albedo_color = Color("#9b8676"); mat_gb_storage.cull_mode = BaseMaterial3D.CULL_DISABLED
+		mat_gb_spring = StandardMaterial3D.new(); mat_gb_spring.albedo_color = Color("#6498a4"); mat_gb_spring.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	# Register MultiMesh rock & coastal shrub batches for crisp high-FPS rock formations
+	var strat_pool := _env_kit.get_rock_variants("stratified")
+	var crag_pool := _env_kit.get_rock_variants("craggy")
+	var round_pool := _env_kit.get_rock_variants("rounded")
+	var flat_pool := _env_kit.get_rock_variants("flat")
+	var cliff_keys: Array[String] = []
+	var dark_keys: Array[String] = []
+	var wet_keys: Array[String] = []
+	var flat_keys: Array[String] = []
+	for vi in range(4):
+		var ck := "cove_cliff_%d" % vi
+		_env_kit.define_multimesh(ck, strat_pool[vi], mat_cliff, true)
+		cliff_keys.append(ck)
+		var dk := "cove_crag_%d" % vi
+		_env_kit.define_multimesh(dk, crag_pool[vi], mat_cliff_dark, true)
+		dark_keys.append(dk)
+		var wk := "cove_wet_%d" % vi
+		_env_kit.define_multimesh(wk, round_pool[vi], mat_wet_rock, false)
+		wet_keys.append(wk)
+		var fk := "cove_flat_%d" % vi
+		_env_kit.define_multimesh(fk, flat_pool[vi], mat_cliff, false)
+		flat_keys.append(fk)
+	_env_kit.define_multimesh("cove_pebble", flat_pool[0], mat_cliff, false)
+	var uv_shrub := Rect2(0.01, 0.01, 0.48, 0.48)
+	var uv_flower := Rect2(0.51, 0.51, 0.48, 0.48)
+	var mat_cshrub_mm := MatKit.create_foliage_wind_shader_material("foliage-atlas-v5.png", Color("#567442"), 0.052, Color("#82a25c"), true, 1.0, true, uv_shrub)
+	var mat_cflower_mm := MatKit.create_foliage_wind_shader_material("foliage-atlas-v5.png", Color("#b89e64"), 0.060, Color("#d4b478"), true, 1.0, true, uv_flower)
+	_env_kit.define_multimesh("cove_shrub_mm", _env_kit.get_bush_quad_proto(uv_shrub, 1.32), mat_cshrub_mm, true)
+	_env_kit.define_multimesh("cove_flower_mm", _env_kit.get_bush_quad_proto(uv_flower, 0.96), mat_cflower_mm, false)
+
+	# Ventilate hearth smoke cleanly upward through the natural cave chimney vent!
+	fx.set_smoke_wind(Vector3(0.06, 0.96, 0.16))
+	# Weather shelter: lower rain spawn height (7.5m) strictly over the open southern cove & sea (z >= 23.0) so ZERO raindrops visually cross inside cave chambers!
+	fx.configure_exterior_weather_bounds(Vector3(16.0, 7.5, 33.5), Vector3(42.0, 1.0, 10.5))
+
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5052026
+	var foam_sources: Array = []
+
+	# ==========================================================================
+	# 1. PERMANENT CONTINUOUS SEA-CAVE CLIFF MASSIF (GrottoCliffShell — CORRECT INWARD/UPWARD NORMALS!)
+	# ==========================================================================
 	var grotto_back := Node3D.new()
 	grotto_back.name = "SeaGrottoBackWall"
 	_grp_structures.add_child(grotto_back)
 
+	# Horseshoe sculpted perimeter wall with outward-facing crown & properly lit interior strata (ZERO black shadow band!)
 	var st_wall := SurfaceTool.new(); st_wall.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var wall_cols := 24
+	var wall_segs := 36
 	var wall_tiers := 6
 	var w_pts: Array = []
 	for ti in range(wall_tiers + 1):
 		var ft := float(ti) / float(wall_tiers)
 		var row_v: Array[Vector3] = []
-		for ci in range(wall_cols + 1):
-			var fc := float(ci) / float(wall_cols)
-			var wx := lerpf(-12.0, width_m + 12.0, fc)
-			var arch_curve := sin(clampf((wx / width_m), 0.0, 1.0) * PI)
-			var wy := ft * (3.75 + arch_curve * 1.15) - 0.15
-			var overhang_in := pow(ft, 1.35) * 2.15
-			var crag := sin(fc * 25.0 + ft * 4.5) * 0.65 + cos(fc * 11.0 - ft * 2.2) * 0.48
-			var wing_fwd := maxf(0.0, absf(fc - 0.5) * 2.0 - 0.65) * 6.5
-			var wz := -2.6 + overhang_in - arch_curve * 2.1 + wing_fwd + crag
-			row_v.append(Vector3(wx, wy, wz))
+		for ci in range(wall_segs + 1):
+			var fc := float(ci) / float(wall_segs)
+			var ang := lerpf(PI * 0.96, -PI * 0.04, fc)
+			# Subtle inward crown overhang + rocky crag strata
+			var inset := pow(ft, 1.55) * 1.45
+			var crag_r := sin(fc * 27.0 + ft * 4.2) * 0.56 + cos(fc * 13.0 - ft * 2.5) * 0.40
+			var rx := 18.8 + cos(ang) * (18.4 - inset + crag_r)
+			var rz := 17.8 - sin(ang) * (15.5 - inset * 0.80 + crag_r * 0.75)
+			var wy := -0.35 + ft * (4.95 + sin(fc * PI) * 0.75 + cos(fc * 9.0) * 0.22)
+			row_v.append(Vector3(rx, wy, rz))
 		w_pts.append(row_v)
 	for ti in range(wall_tiers):
-		for ci in range(wall_cols):
-			_emit_quad(st_wall, w_pts[ti][ci], w_pts[ti][ci + 1], w_pts[ti + 1][ci + 1], w_pts[ti + 1][ci])
+		for ci in range(wall_segs):
+			# Proper interior-facing winding (a, d, c, b) so the inner cave rock wall catches warm lantern & firelight richly!
+			_emit_quad(st_wall, w_pts[ti][ci], w_pts[ti + 1][ci], w_pts[ti + 1][ci + 1], w_pts[ti][ci + 1])
+	# Add continuous solid rocky crown apron bridging the top of the horseshoe back into the rising headland terrain (ZERO dark rim gap!)
+	var crown_row: Array = w_pts[wall_tiers]
+	for ci in range(wall_segs):
+		var fc0 := float(ci) / float(wall_segs); var fc1 := float(ci + 1) / float(wall_segs)
+		var ang0 := lerpf(PI * 0.96, -PI * 0.04, fc0); var ang1 := lerpf(PI * 0.96, -PI * 0.04, fc1)
+		var a: Vector3 = crown_row[ci]; var b: Vector3 = crown_row[ci + 1]
+		var out_a := Vector3(a.x + cos(ang0) * 5.5, a.y + 0.55, a.z - sin(ang0) * 5.5)
+		var out_b := Vector3(b.x + cos(ang1) * 5.5, b.y + 0.55, b.z - sin(ang1) * 5.5)
+		_emit_quad(st_wall, a, out_a, out_b, b)
 	st_wall.generate_normals()
+	var mat_shell_ds := mat_rugged.duplicate() as StandardMaterial3D
+	mat_shell_ds.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var wall_mesh := MeshInstance3D.new(); wall_mesh.name = "GrottoCliffShell"
-	wall_mesh.mesh = st_wall.commit(); wall_mesh.material_override = mat_rugged
+	wall_mesh.mesh = st_wall.commit(); wall_mesh.material_override = mat_shell_ds
+	wall_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	grotto_back.add_child(wall_mesh)
 
-	for sx in [0.5, width_m - 0.5]:
-		for tier in range(3):
-			_env_kit.spawn_rock(grotto_back, Vector3(sx, 0.72 + float(tier) * 1.05, 1.9 - float(tier) * 0.35), Vector3(2.35 - float(tier) * 0.22, 1.45, 2.25), float(tier) * 1.1, mat_arch if tier % 2 == 0 else mat_rugged, int(sx) + tier, "stratified")
+	# Heavy rocky cliff crags crowning the exterior cave headland rim & framing West + East cove arms!
+	var headland_crags := [
+		# Upper north & NW cliff massif
+		[Vector2(-4.0, 2.0), Vector3(5.6, 5.4, 4.8)], [Vector2(4.0, -2.5), Vector3(5.8, 5.6, 4.6)],
+		[Vector2(12.5, -3.5), Vector3(5.5, 5.8, 4.6)], [Vector2(21.0, -3.5), Vector3(5.8, 6.0, 4.8)],
+		[Vector2(29.5, -2.0), Vector3(5.6, 5.6, 4.6)], [Vector2(37.5, 2.5), Vector3(5.8, 5.4, 4.8)],
+		# Permanent cave mouth cliff shoulders (framing the dramatic entrance arch from the cove!)
+		[Vector2(0.8, 18.8), Vector3(3.8, 4.4, 3.6)], [Vector2(3.6, 19.6), Vector3(2.8, 3.8, 2.8)],
+		[Vector2(36.2, 18.4), Vector3(4.2, 4.6, 3.8)], [Vector2(33.4, 19.8), Vector3(3.0, 3.8, 2.8)],
+		# Dramatic West & East coastal headlands curving into the cove turquoise sea
+		[Vector2(-5.5, 27.5), Vector3(4.6, 3.2, 4.2)], [Vector2(-1.5, 28.8), Vector3(4.2, 2.6, 3.8)],
+		[Vector2(3.2, 27.6), Vector3(3.2, 1.9, 3.0)],
+		[Vector2(36.8, 24.5), Vector3(4.4, 3.2, 4.0)], [Vector2(35.2, 28.2), Vector3(4.0, 2.4, 3.6)],
+		[Vector2(31.8, 28.8), Vector3(3.4, 1.8, 3.2)],
+	]
+	for hci in range(headland_crags.size()):
+		var hc: Array = headland_crags[hci]
+		var hcp: Vector2 = hc[0]
+		var hcsc: Vector3 = hc[1]
+		var hcy := _eval_cove_height(hcp.x, hcp.y, width_m, depth_m)
+		var keys_hc := cliff_keys if hci % 2 == 0 else dark_keys
+		CoastalKit.append_rock_cluster_mm(_env_kit, keys_hc, Vector3(hcp.x, hcy + hcsc.y * 0.22, hcp.y), hcsc, float(hci) * 0.9, float(hci) * 2.1, 4, Color(0.96, 0.95, 0.92) if hci % 2 == 0 else Color(0.88, 0.89, 0.88))
+		if hcp.y > 24.5:
+			foam_sources.append(Vector3(hcp.x, hcp.y, hcsc.x * 0.88))
 
-	# Scalloped vaulted RockyOverhangLip arching forward cleanly across sea headland
+	# ==========================================================================
+	# 2. DESCENDING WESTERN COASTAL ACCESS TRAIL (Organic Embedded Fieldstones, Handrail Posts, Ropes, Coastal Trees!)
+	# ==========================================================================
+	var trail_root := Node3D.new()
+	trail_root.name = "CoastalAccessTrail"
+	_grp_structures.add_child(trail_root)
+
+	# 16 organic weathered flat fieldstone stepping slabs embedded flush into the curved dirt coastal trail (ZERO boxy domino slabs!)
+	for st_i in range(16):
+		var tx := lerpf(-14.8, 4.2, float(st_i) / 15.0)
+		var ti := _cove_trail_info(tx, 20.0)
+		var tz: float = float(ti["z"]) + sin(float(st_i) * 1.9) * 0.18
+		var ty := _eval_cove_height(tx, tz, width_m, depth_m)
+		var ti_n := _cove_trail_info(tx + 0.6, 20.0)
+		var dir_yaw := atan2(float(ti_n["z"]) - float(ti["z"]), 0.6)
+		var st_sc := Vector3(0.68 + fmod(float(st_i) * 0.13, 0.22), 0.12, 1.42 + fmod(float(st_i) * 0.19, 0.36))
+		_env_kit.append_multimesh(flat_keys[st_i % 4], Transform3D(Basis(Vector3.UP, -dir_yaw + sin(float(st_i) * 1.4) * 0.12).scaled_local(st_sc), Vector3(tx, ty + 0.01, tz)), Color(0.96, 0.92, 0.84) if st_i % 2 == 0 else Color(0.88, 0.85, 0.78))
+
+	# Weathered timber handrail posts & taut double hemp rope guarding the seaward edge of the descending coastal path!
+	var prev_post_top := Vector3.ZERO
+	var prev_post_mid := Vector3.ZERO
+	for rp_i in range(11):
+		var rx := lerpf(-15.0, 4.6, float(rp_i) / 10.0)
+		var ti := _cove_trail_info(rx, 20.0)
+		var rz: float = float(ti["z"]) + 1.52
+		var ry := _eval_cove_height(rx, rz, width_m, depth_m)
+		var p_bot := Vector3(rx, ry - 0.14, rz)
+		var p_top := Vector3(rx + sin(float(rp_i) * 1.7) * 0.04, ry + 0.94, rz + cos(float(rp_i) * 1.3) * 0.04)
+		var p_mid := p_bot.lerp(p_top, 0.56)
+		CoastalKit.add_oriented_cyl(trail_root, p_bot, p_top, 0.068, 0.056, mat_rail_wood, 6, true, "TrailPost_%d" % rp_i)
+		if rp_i > 0:
+			CoastalKit.add_oriented_cyl(trail_root, prev_post_top - Vector3(0, 0.08, 0), p_top - Vector3(0, 0.08, 0), 0.018, 0.018, mat_rope, 5, false)
+			CoastalKit.add_oriented_cyl(trail_root, prev_post_mid, p_mid, 0.015, 0.015, mat_rope, 5, false)
+		prev_post_top = p_top
+		prev_post_mid = p_mid
+		# Low coastal boulders & flowering coastal brush edging the uphill north cliff bank of the trail
+		if rp_i % 2 == 0:
+			var bx := rx - 0.3
+			var bz := float(ti["z"]) - 1.95
+			var by := _eval_cove_height(bx, bz, width_m, depth_m)
+			CoastalKit.append_rock_cluster_mm(_env_kit, cliff_keys, Vector3(bx, by + 0.25, bz), Vector3(1.45, 0.95, 1.25), float(rp_i) * 0.9, float(rp_i) * 2.3, 3, Color(0.95, 0.96, 0.92))
+			if not greybox:
+				_env_kit.append_multimesh("cove_shrub_mm", Transform3D(Basis(Vector3.UP, float(rp_i) * 1.4).scaled_local(Vector3.ONE * 1.22), Vector3(bx + 0.45, by, bz + 0.55)), Color(0.92, 1.0, 0.88))
+				_env_kit.append_multimesh("cove_flower_mm", Transform3D(Basis(Vector3.UP, float(rp_i) * 2.1).scaled_local(Vector3.ONE * 1.02), Vector3(rx + 0.35, ry, rz + 0.42)), Color(1.0, 0.96, 0.82))
+
+	# Gnarled wind-bent coastal trees perched atop the upper western trail ridge & northern headland (matching AAA reference!)
+	if not greybox:
+		var mat_c_trunk := MatKit.make_wood_mat(Color("#5e4733"), true)
+		var cliff_trees := [
+			[Vector2(-8.2, 13.5), "oak", 1.12],
+			[Vector2(-13.8, 11.0), "pine", 0.98],
+			[Vector2(-2.2, 8.2), "oak", 0.94],
+			[Vector2(7.5, -1.5), "pine", 0.90],
+			[Vector2(29.5, -1.0), "oak", 0.96],
+			[Vector2(38.5, 12.0), "pine", 0.92],
+		]
+		for cti in range(cliff_trees.size()):
+			var ct: Array = cliff_trees[cti]
+			var ctp: Vector2 = ct[0]
+			var cty := _eval_cove_height(ctp.x, ctp.y, width_m, depth_m)
+			_env_kit.build_organic_tree(_grp_vegetation, str(ct[1]), Vector3(ctp.x, cty - 0.14, ctp.y), float(ct[2]), mat_c_trunk, mat_coastal_tree, null, float(cti) * 2.4 + 0.7)
+
+	# ==========================================================================
+	# 3. PERMANENT INTERIOR ROCK PARTITION COLUMNS (Grounded solidly on obstacle cells, ZERO blocked walkable tiles!)
+	# ==========================================================================
+	var r_idx := 0
+	for ob in scene_def.get("obstacles", []):
+		var oid := str(ob.get("id", ""))
+		if oid.contains("rock"):
+			var rp := Structure.tile_to_world(int(ob["col"]), int(ob["row"]), 0.0)
+			var rgy := _eval_cove_height(rp.x, rp.z, width_m, depth_m)
+			if oid in ["cove-rock-9", "cove-rock-10", "cove-rock-8", "cove-rock-7", "cove-rock-4"]:
+				var pier_h := 3.45 if oid in ["cove-rock-9", "cove-rock-10", "cove-rock-7"] else 3.05
+				CoastalKit.append_rock_cluster_mm(_env_kit, dark_keys if r_idx % 2 == 0 else cliff_keys, Vector3(rp.x, rgy + pier_h * 0.34, rp.z), Vector3(1.22, pier_h * 0.82, 1.15), float(r_idx) * 1.15, float(r_idx) * 2.7, 4, Color(0.92, 0.93, 0.90))
+			else:
+				CoastalKit.append_rock_cluster_mm(_env_kit, cliff_keys, Vector3(rp.x, rgy + 0.42, rp.z), Vector3(1.55, 1.12, 1.38), float(r_idx) * 1.25, float(r_idx) * 1.9, 3, Color(0.95, 0.94, 0.90))
+				foam_sources.append(Vector3(rp.x, rp.z, 1.85))
+			if not greybox and r_idx % 2 == 0:
+				_env_kit.spawn_fern_clump(_grp_vegetation, Vector3(rp.x - 0.55, rgy, rp.z + 0.55), 0.82, mat_ivy, float(r_idx), 2)
+			r_idx += 1
+
+	# ==========================================================================
+	# 4. 5 INDEPENDENT MULTI-SECTOR CUTAWAY ROCK VAULTS (Organic Scalloped Boulders + Thick Natural Rim + SHADOWS_ONLY!)
+	# ==========================================================================
+	# 4A. RockyOverhangLip (Dramatic Sculpted Cave Mouth Arch & Front Cliff Brow — thick rock corbels, ZERO thin seam slit!)
 	var overhang := Node3D.new()
 	overhang.name = "RockyOverhangLip"
 	_grp_structures.add_child(overhang)
-	var st_roof := SurfaceTool.new(); st_roof.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var r_cols := 26
-	var r_rows := 5
-	var r_pts: Array = []
-	for ri in range(r_rows + 1):
-		var fr := float(ri) / float(r_rows)
-		var rr: Array[Vector3] = []
-		for ci in range(r_cols + 1):
-			var fc := float(ci) / float(r_cols)
-			var rx := lerpf(-11.0, width_m + 11.0, fc)
-			var wing_depth := (1.0 - sin(fc * PI)) * 3.8
-			var jag := sin(fc * 25.0) * 0.65 + cos(fc * 11.0) * 0.42
-			var rz := lerpf(-2.4, 2.6 + wing_depth + jag, fr)
-			var arch := sin(fc * PI)
-			var ry := 3.85 + arch * 1.05 - pow(fr, 1.55) * 0.68 + cos(fc * 13.0 + fr * 4.0) * 0.28
-			rr.append(Vector3(rx, ry, rz))
-		r_pts.append(rr)
-	for ri in range(r_rows):
-		for ci in range(r_cols):
-			_emit_quad(st_roof, r_pts[ri][ci], r_pts[ri][ci + 1], r_pts[ri + 1][ci + 1], r_pts[ri + 1][ci])
-	st_roof.generate_normals()
-	var mat_arch_ds := mat_arch.duplicate() as StandardMaterial3D
-	mat_arch_ds.cull_mode = BaseMaterial3D.CULL_DISABLED
-	var roof_mesh := MeshInstance3D.new(); roof_mesh.name = "CaveRoofVault"
-	roof_mesh.mesh = st_roof.commit(); roof_mesh.material_override = mat_arch_ds
-	overhang.add_child(roof_mesh)
-
-	# Anchor jagged stone corbels along cave mouth arch so overhang reads rocky and natural
-	for c_i in range(9):
-		var fc := float(c_i) / 8.0
-		var ax := lerpf(2.2, width_m - 2.2, fc)
-		var wing := (1.0 - sin(fc * PI)) * 2.4
-		_env_kit.spawn_rock(overhang, Vector3(ax, 3.35 + sin(fc * PI) * 0.85, 1.85 + wing), Vector3(1.85, 0.95, 1.65), fc * 3.1, mat_arch if c_i % 2 == 0 else mat_rugged, c_i + 2, "stratified")
-
+	var mouth_mat: Material = mat_gb_mouth if greybox else mat_roof_ds
+	_build_cave_vault_mesh(overhang, "CaveMouthArchVault", 1.8, 35.8, 17.6, 22.8, 3.05, 1.95, Vector2.ZERO, 0.0, mouth_mat, 1.1)
+	for c_i in range(11):
+		var fc := float(c_i) / 10.0
+		var ax := lerpf(3.2, 34.4, fc)
+		var arch_y := 2.75 + sin(fc * PI) * 1.45
+		var wing_z := 20.4 + (1.0 - sin(fc * PI)) * 1.55
+		var brow := _env_kit.spawn_rock(overhang, Vector3(ax, arch_y, wing_z), Vector3(2.55, 1.48, 2.25), fc * 2.8, mat_gb_mouth if greybox else (mat_arch if c_i % 2 == 0 else mat_rugged), c_i + 1, "stratified")
+		if brow:
+			brow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	if not greybox:
+		var vine_holder := Node3D.new()
+		vine_holder.name = "CaveMouthHangingVines"
+		overhang.add_child(vine_holder)
+		for vi in range(7):
+			var vx := lerpf(7.5, 29.5, float(vi) / 6.0)
+			var vy_v := 3.45 + sin(float(vi) / 6.0 * PI) * 0.95
+			_env_kit.spawn_hanging_vine(vine_holder, Vector3(vx, vy_v, 21.4 + sin(float(vi) * 1.4) * 0.45), 0.3 + float(vi) * 0.5, 0.85, 1.15 + fmod(float(vi) * 0.35, 0.65))
+		for ch in vine_holder.find_children("*", "MeshInstance3D", true, false):
+			ch.set_meta("cutaway_hide_completely", true)
 	cutaway_tents.append({
-		"id": "overhang_north",
+		"id": "cave_mouth",
 		"node": overhang,
-		"rect": Rect2(0.0, 0.0, width_m, 9.5),
+		"rect": Rect2(2.0, 2.0, 33.5, 18.6),
+		"shadow_only": true,
+		"multi_party": true,
 	})
 
-	# Hanging moss tendrils, mineral flowstone/stalactite bumps & animated dripping cave water droplets
-	for i in range(9):
-		var ix := lerpf(3.5, width_m - 3.5, float(i) / 8.0)
-		var len_v := 1.25 + fmod(float(i) * 0.42, 0.85)
-		for cross in [0.2, 1.7]:
-			_env_kit.spawn_hanging_vine(_grp_vegetation, Vector3(ix, 3.85, 0.95 + fmod(float(i) * 0.35, 0.9)), cross, 0.86, len_v)
+	# 4B. Sala Común Vault (with sculpted chimney boulder rim around natural smoke vent above cove-fire!)
+	var roof_common := Node3D.new(); roof_common.name = "CaveRoof_Common"; _grp_structures.add_child(roof_common)
+	_build_cave_vault_mesh(roof_common, "VaultCommonMesh", 9.0, 26.4, 11.4, 19.6, 3.55, 1.75, Vector2(18.75, 15.75), 1.15, mat_gb_common if greybox else mat_roof_ds, 2.3)
+	for chim_i in range(6):
+		var ca := float(chim_i) * TAU / 6.0
+		var ch_r := _env_kit.spawn_rock(roof_common, Vector3(18.75 + cos(ca) * 1.35, 5.10, 15.75 + sin(ca) * 1.25), Vector3(0.95, 0.58, 0.85), ca, mat_gb_common if greybox else mat_arch, chim_i + 2, "craggy")
+		if ch_r:
+			ch_r.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	cutaway_tents.append({
+		"id": "cave_common",
+		"node": roof_common,
+		"rect": Rect2(9.2, 11.6, 16.4, 9.0),
+		"shadow_only": true,
+		"multi_party": true,
+	})
 
-		if i % 2 == 0:
-			var stal := MeshInstance3D.new()
-			var stm := CylinderMesh.new(); stm.top_radius = 0.14; stm.bottom_radius = 0.025; stm.height = 0.55; stm.radial_segments = 6
-			stal.mesh = stm; stal.material_override = mat_wet_rock
-			stal.position = Vector3(ix - 0.25, 3.05, 1.6)
-			_grp_env_geo.add_child(stal)
+	# 4C. Recinto de Descanso Vault (Dry Northern Sleeping Chamber — opens when hero enters northern alcove OR Sala Común back!)
+	var roof_rest := Node3D.new(); roof_rest.name = "CaveRoof_Rest"; _grp_structures.add_child(roof_rest)
+	_build_cave_vault_mesh(roof_rest, "VaultRestMesh", 8.2, 27.0, 1.0, 12.8, 3.25, 1.55, Vector2.ZERO, 0.0, mat_gb_rest if greybox else mat_roof_ds, 3.7)
+	cutaway_tents.append({
+		"id": "cave_rest",
+		"node": roof_rest,
+		"rect": Rect2(8.8, 1.8, 17.2, 11.6),
+		"shadow_only": true,
+		"multi_party": true,
+	})
 
-		var drip := MeshInstance3D.new()
-		var dm := SphereMesh.new(); dm.radius = 0.042; dm.height = 0.13
-		drip.mesh = dm; drip.material_override = mat_drip
-		drip.position = Vector3(ix + 0.35, 3.08, 2.4)
-		_grp_env_geo.add_child(drip)
-		fx.register_drip(drip, 3.08, 0.06, 0.62 + float(i % 3) * 0.18, float(i) * 0.23)
+	# 4D. Recinto de Almacén Vault (Sheltered Western Storage Chamber — rounded rocky seam!)
+	var roof_storage := Node3D.new(); roof_storage.name = "CaveRoof_Storage"; _grp_structures.add_child(roof_storage)
+	_build_cave_vault_mesh(roof_storage, "VaultStorageMesh", 0.4, 11.2, 3.4, 19.6, 3.05, 1.45, Vector2.ZERO, 0.0, mat_gb_storage if greybox else mat_roof_ds, 4.9)
+	for sb_i in range(4):
+		var srock := _env_kit.spawn_rock(roof_storage, Vector3(10.2, 3.35 + float(sb_i % 2) * 0.35, lerpf(6.5, 17.0, float(sb_i) / 3.0)), Vector3(1.65, 1.05, 2.25), float(sb_i) * 1.1, mat_gb_storage if greybox else mat_arch, sb_i + 1, "stratified")
+		if srock: srock.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	cutaway_tents.append({
+		"id": "cave_storage",
+		"node": roof_storage,
+		"rect": Rect2(1.0, 4.0, 9.8, 15.2),
+		"shadow_only": true,
+		"multi_party": true,
+	})
 
-	# Wet dark coastal stones rounding off shallow tidepool basins & sea-mouth shoal stones
-	for wt in scene_def.get("walkable", []):
-		if str(wt.get("medium", "")) == "water":
-			var wp := Structure.tile_to_world(int(wt["col"]), int(wt["row"]), 0.0)
-			for s in range(5):
-				var ang := float(s) * TAU / 5.0 + wp.x
-				_env_kit.spawn_rock(_grp_env_geo, wp + Vector3(cos(ang) * 0.72, 0.02, sin(ang) * 0.72), Vector3(0.46, 0.16, 0.42), ang, mat_wet_rock, s, "rounded")
-	for sh_i in range(9):
-		var sx := lerpf(4.5, width_m - 4.5, float(sh_i) / 8.0)
-		_env_kit.spawn_rock(_grp_env_geo, Vector3(sx, -0.08, depth_m * 0.89 + sin(float(sh_i)) * 0.9), Vector3(1.45, 0.36, 1.15), float(sh_i) * 0.8, mat_wet_rock, sh_i, "rounded")
+	# 4E. Rincón Natural Vault (Eastern Wet Mineral Spring Grotto — rounded rocky seam!)
+	var roof_spring := Node3D.new(); roof_spring.name = "CaveRoof_Spring"; _grp_structures.add_child(roof_spring)
+	_build_cave_vault_mesh(roof_spring, "VaultSpringMesh", 24.4, 37.0, 4.2, 19.6, 3.10, 1.48, Vector2.ZERO, 0.0, mat_gb_spring if greybox else mat_roof_ds, 6.1)
+	for sp_i in range(4):
+		var sprock := _env_kit.spawn_rock(roof_spring, Vector3(25.2, 3.35 + float(sp_i % 2) * 0.35, lerpf(6.5, 17.0, float(sp_i) / 3.0)), Vector3(1.65, 1.05, 2.25), float(sp_i) * 1.3, mat_gb_spring if greybox else mat_arch, sp_i + 2, "stratified")
+		if sprock: sprock.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	cutaway_tents.append({
+		"id": "cave_spring",
+		"node": roof_spring,
+		"rect": Rect2(24.6, 4.6, 11.8, 14.8),
+		"shadow_only": true,
+		"multi_party": true,
+	})
 
-	# Cave perimeter boulders + sparse damp cave ferns (NO artificial cave braziers!)
-	var r_idx := 0
-	for ob in scene_def.get("obstacles", []):
-		if str(ob.get("id", "")).contains("rock"):
-			var rp := Structure.tile_to_world(int(ob["col"]), int(ob["row"]), 0.0)
-			_env_kit.spawn_rock(_grp_env_geo, rp + Vector3(0, 0.22, 0), Vector3(0.96, 0.62, 0.90), float(r_idx) * 1.15, mat_arch if r_idx % 2 == 0 else mat_rugged, r_idx + 2, "craggy")
-			if r_idx % 2 == 0:
-				_env_kit.spawn_fern_clump(_grp_vegetation, rp + Vector3(-0.45, 0.0, 0.35), 0.78, mat_ivy, float(r_idx), 2)
-			r_idx += 1
-
-	# Damp cave flora: emerald moss cushions, glossy cave ferns & luminous cave blossoms beside pools and cave walls
-	var refuge_flora: Array[Vector2] = [
-		Vector2(11.5, 10.2), Vector2(24.5, 10.6), Vector2(7.5, 16.2), Vector2(28.2, 17.0),
-		Vector2(13.8, 22.8), Vector2(23.5, 22.6),
+	# ==========================================================================
+	# 5. SHARED TURQUOISE COVE OCEAN, REEF BOULDERS & CARVED TIDEPOOL RIMS
+	# ==========================================================================
+	var cove_reefs := [
+		[Vector2(4.2, 30.8), Vector3(1.85, 0.85, 1.55)],
+		[Vector2(10.5, 31.4), Vector3(1.35, 0.52, 1.15)],
+		[Vector2(24.8, 32.0), Vector3(1.65, 0.72, 1.38)],
+		[Vector2(31.2, 30.2), Vector3(2.15, 1.05, 1.75)],
+		[Vector2(35.8, 33.4), Vector3(2.45, 1.25, 2.05)],
+		[Vector2(-3.2, 33.0), Vector3(2.35, 1.15, 1.95)],
 	]
-	for rf_i in range(refuge_flora.size()):
-		var rfp: Vector2 = refuge_flora[rf_i]
-		_env_kit.spawn_moss_cushion(_grp_vegetation, Vector3(rfp.x, 0.0, rfp.y), Color("#3a6342"), 1.0, float(rf_i) * 1.5)
-		_env_kit.spawn_fern_clump(_grp_vegetation, Vector3(rfp.x - 0.3, 0.0, rfp.y + 0.25), 0.86, mat_ivy, float(rf_i) * 1.8, 2)
-		_env_kit.spawn_wildflower_patch(_grp_vegetation, Vector3(rfp.x + 0.35, 0.0, rfp.y + 0.2), float(rf_i) * 1.2, 5, "refuge")
+	for cri in range(cove_reefs.size()):
+		var cr: Array = cove_reefs[cri]
+		var crp: Vector2 = cr[0]
+		var crsc: Vector3 = cr[1]
+		CoastalKit.append_rock_cluster_mm(_env_kit, wet_keys, Vector3(crp.x, COVE_WATER_Y - 0.10, crp.y), crsc, float(cri) * 1.1, float(cri) * 2.6, 3, Color(0.92, 0.97, 1.0))
+		foam_sources.append(Vector3(crp.x, crp.y, crsc.x * 1.18))
 
-	# Cave & tidepool wildlife: sheltered tidepool minnows, nocturnal rock crabs, nocturnal bats & occasional sea-mouth visits
+	var mat_cove_sea := CoastalKit.create_coastal_ocean_shader(
+		Color(0.036, 0.185, 0.295, 0.96),
+		Color(0.082, 0.415, 0.485, 0.88),
+		Color(0.220, 0.625, 0.610, 0.34),
+		Color(0.92, 0.97, 0.99, 1.0),
+		0.072,
+		0.95,
+		true
+	)
+	var cove_bed_cb := func(wx: float, wz: float) -> float:
+		return _eval_cove_height(wx, wz, width_m, depth_m)
+	var cove_calm_cb := func(wx: float, wz: float) -> float:
+		var in_bay := smoothstep(4.0, 12.0, wx) * (1.0 - smoothstep(26.0, 34.0, wx)) * (1.0 - smoothstep(31.5, 42.0, wz))
+		return clampf(in_bay * 0.68, 0.0, 0.72)
+	CoastalKit.build_coastal_ocean_mesh(
+		self, "OceanWater",
+		-56.0, width_m + 56.0,
+		22.0, depth_m + 66.0,
+		72, 46,
+		COVE_WATER_Y,
+		cove_bed_cb,
+		foam_sources,
+		cove_calm_cb,
+		mat_cove_sea
+	)
+
+	# Glossy wet stones organically rimming the 3 carved natural rock basins
+	var pool_rims := [
+		[Vector2(7.2, 11.75), 1.55, 1.38, 7],
+		[Vector2(29.8, 13.35), 1.98, 1.78, 9],
+		[Vector2(15.0, 24.75), 1.72, 1.32, 8],
+	]
+	for pri in range(pool_rims.size()):
+		var pr: Array = pool_rims[pri]
+		var pc: Vector2 = pr[0]
+		var rx_r: float = float(pr[1])
+		var rz_r: float = float(pr[2])
+		var cnt_r: int = int(pr[3])
+		for si in range(cnt_r):
+			var ang := float(si) * TAU / float(cnt_r) + float(pri) * 0.7
+			var px := pc.x + cos(ang) * rx_r
+			var pz := pc.y + sin(ang) * rz_r
+			var py := _eval_cove_height(px, pz, width_m, depth_m)
+			CoastalKit.append_rock_cluster_mm(_env_kit, wet_keys, Vector3(px, py + 0.06, pz), Vector3(0.56, 0.24, 0.48), ang, float(pri * 10 + si), 2, Color(0.92, 0.98, 0.98))
+
+	# Beach pebbles along the cove wrack line & rocky shore
+	for peb_i in range(56):
+		var px := rng.randf_range(4.0, width_m - 4.0)
+		var pz := _cove_shore_z(px) - rng.randf_range(0.6, 5.2)
+		var py := _eval_cove_height(px, pz, width_m, depth_m)
+		var psc := Vector3(rng.randf_range(0.10, 0.30), rng.randf_range(0.05, 0.13), rng.randf_range(0.09, 0.26))
+		_env_kit.append_multimesh("cove_pebble", Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled_local(psc), Vector3(px, py + psc.y * 0.16, pz)), Color(0.86, 0.84, 0.78))
+
+	# Wet dark mossy rock niche & outflow ledge behind the eastern mineral waterfall (keeps waterfall tucked cleanly inside the grotto!)
+	CoastalKit.append_rock_cluster_mm(_env_kit, wet_keys, Vector3(32.8, 1.35, 11.8), Vector3(1.85, 2.75, 1.55), -0.45, 7.3, 4, Color(0.86, 0.94, 0.96))
+	CoastalKit.append_rock_cluster_mm(_env_kit, wet_keys, Vector3(32.5, 2.55, 12.5), Vector3(1.25, 0.58, 1.15), 0.3, 8.1, 3, Color(0.90, 0.96, 0.96))
+
+	_env_kit.flush_multimeshes(_grp_env_geo, "CoveGeo_")
+
+	# ==========================================================================
+	# 6. 4 INTERIOR CHAMBERS STORYTELLING, ORGANIC WATERFALL SPRING & PROGRESSIVE LIGHTING
+	# ==========================================================================
+	# 6A. RINCÓN NATURAL (Eastern Wet Mineral Spring Grotto): Parabolic Curved Waterfall Cascade (y <= 2.65m, NEVER pokes roof!) + Splash Foam!
+	var spring_root := Node3D.new()
+	spring_root.name = "CaveMineralSpringAlcove"
+	_grp_structures.add_child(spring_root)
+	var st_wf := SurfaceTool.new(); st_wf.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var wf_cols := 8; var wf_rows := 10
+	var wf_pts: Array = []
+	for wi in range(wf_rows + 1):
+		var fv := float(wi) / float(wf_rows)
+		var wrow: Array[Vector3] = []
+		var arc_out := sin(fv * PI * 0.5) * 0.92
+		var wy_f := lerpf(2.55, -0.05, fv * fv * 0.65 + fv * 0.35)
+		var width_w := lerpf(0.62, 1.12, fv)
+		for wj in range(wf_cols + 1):
+			var fu := float(wj) / float(wf_cols)
+			var lateral := (fu - 0.5) * width_w
+			var px_w := 32.15 - arc_out * 0.82 - lateral * 0.48
+			var pz_w := 12.25 + arc_out * 0.56 - lateral * 0.88
+			wrow.append(Vector3(px_w, wy_f, pz_w))
+		wf_pts.append(wrow)
+	for wi in range(wf_rows):
+		var v0 := float(wi) / float(wf_rows); var v1 := float(wi + 1) / float(wf_rows)
+		for wj in range(wf_cols):
+			var u0 := float(wj) / float(wf_cols); var u1 := float(wj + 1) / float(wf_cols)
+			var a: Vector3 = wf_pts[wi][wj]; var b: Vector3 = wf_pts[wi][wj + 1]
+			var c: Vector3 = wf_pts[wi + 1][wj + 1]; var d: Vector3 = wf_pts[wi + 1][wj]
+			st_wf.set_uv(Vector2(u0, v0)); st_wf.add_vertex(a)
+			st_wf.set_uv(Vector2(u1, v0)); st_wf.add_vertex(b)
+			st_wf.set_uv(Vector2(u1, v1)); st_wf.add_vertex(c)
+			st_wf.set_uv(Vector2(u0, v0)); st_wf.add_vertex(a)
+			st_wf.set_uv(Vector2(u1, v1)); st_wf.add_vertex(c)
+			st_wf.set_uv(Vector2(u0, v1)); st_wf.add_vertex(d)
+	st_wf.generate_normals()
+	var wf_mesh := MeshInstance3D.new()
+	wf_mesh.name = "SpringWaterfallMesh"
+	wf_mesh.mesh = st_wf.commit()
+	wf_mesh.material_override = _create_spring_waterfall_shader()
+	wf_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	spring_root.add_child(wf_mesh)
+	# Cool turquoise-aquamarine mineral pool bounce light contrasting warmly against the orange hearth!
+	var spring_light := OmniLight3D.new()
+	spring_light.name = "SpringMineralGlowLight"
+	spring_light.light_color = Color("#54e4f0")
+	spring_light.light_energy = 1.65
+	spring_light.omni_range = 8.8
+	spring_light.omni_attenuation = 1.40
+	spring_light.position = Vector3(30.4, 1.15, 13.2)
+	spring_root.add_child(spring_light)
+
+	# 10 subtle translucent dripping water droplets strictly tucked over the wet spring & seepage rock basins!
+	var drip_spots: Array[Vector3] = [
+		Vector3(29.2, 2.85, 12.6), Vector3(30.6, 2.95, 13.6), Vector3(31.4, 2.75, 12.9), Vector3(29.8, 2.90, 14.2),
+		Vector3(30.9, 2.70, 13.1), Vector3(28.9, 2.80, 13.5),
+		Vector3(7.0, 2.80, 11.5), Vector3(7.6, 2.85, 12.1), Vector3(6.8, 2.75, 12.0), Vector3(7.5, 2.70, 11.3),
+	]
+	for di in range(drip_spots.size()):
+		var dsp: Vector3 = drip_spots[di]
+		var drip := MeshInstance3D.new()
+		var dm := SphereMesh.new(); dm.radius = 0.018; dm.height = 0.085
+		drip.mesh = dm; drip.material_override = mat_drip
+		drip.position = dsp
+		drip.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_grp_env_geo.add_child(drip)
+		fx.register_drip(drip, dsp.y, 0.04, 0.62 + float(di % 3) * 0.18, float(di) * 0.21)
+
+	# 6B. RECINTO DE DESCANSO (Dry Northern Alcove): Compact Reclaimed Driftwood Duckboard (2 tones, natural camp pallet!) + Woven Rug!
+	var mat_deck := MatKit.make_wood_mat(Color("#84664a"), true)
+	var mat_deck_pale := MatKit.make_wood_mat(Color("#967d62"), true)
+	var deck_root := Node3D.new()
+	deck_root.name = "CaveTimberPlatform"
+	_grp_props.add_child(deck_root)
+	for pl_i in range(8):
+		var pl := MeshInstance3D.new()
+		var p_len := 8.8 - fmod(float(pl_i) * 0.43, 0.85)
+		var plm_d := BoxMesh.new(); plm_d.size = Vector3(p_len, 0.032, 0.34)
+		pl.mesh = plm_d; pl.material_override = mat_deck if pl_i % 3 != 0 else mat_deck_pale
+		pl.position = Vector3(18.2 + sin(float(pl_i) * 1.9) * 0.16, 0.020, 8.85 + float(pl_i) * 0.37)
+		pl.rotation.y = sin(float(pl_i) * 1.4) * 0.012
+		deck_root.add_child(pl)
+	PropFactory.create_woven_rug(_grp_props, "CaveSanctuaryRug", Vector3(18.2, 0.042, 10.15), Vector2(3.8, 2.1), Color("#84583c"), Color("#c8a872"), 0.0)
+	PropFactory.create_woven_rug(_grp_props, "CaveHearthRug", Vector3(18.2, 0.012, 16.45), Vector2(2.05, 1.12), Color("#7d4f38"), Color("#c09c68"), 0.14)
+
+	# 6C. RECINTO DE ALMACÉN (Sheltered Western Alcove): Dry Stacked Firewood, Salvaged Crates/Barrels & Coiled Ropes (ZERO heavy furniture!)
+	var stor_root := Node3D.new()
+	stor_root.name = "CaveStorageSupplies"
+	_grp_props.add_child(stor_root)
+	var mat_crate := MatKit.make_wood_mat(Color("#826444"), true)
+	var mat_cask := MatKit.make_wood_mat(Color("#624732"), true)
+	_spawn_prop_glb(stor_root, "crate.glb", Vector3(5.6, 0.0, 7.6), 0.32, Vector3.ONE * 0.72, false, "CaveStorageCrateA", mat_crate)
+	_spawn_prop_glb(stor_root, "crate.glb", Vector3(6.45, 0.0, 7.2), -0.18, Vector3.ONE * 0.58, false, "CaveStorageCrateB", mat_crate)
+	_spawn_prop_glb(stor_root, "barrel.glb", Vector3(4.9, 0.0, 8.4), 0.5, Vector3.ONE * 0.76, false, "CaveStorageBarrelA", mat_cask)
+	_spawn_prop_glb(stor_root, "barrel.glb", Vector3(4.5, 0.0, 9.2), 1.1, Vector3.ONE * 0.68, false, "CaveStorageBarrelB", mat_cask)
+	for fw_i in range(6):
+		var f_row := fw_i / 3
+		var f_col := fw_i % 3
+		var fl := MeshInstance3D.new()
+		var flm := CylinderMesh.new(); flm.top_radius = 0.075; flm.bottom_radius = 0.088; flm.height = 0.78; flm.radial_segments = 7
+		fl.mesh = flm; fl.material_override = mat_rail_wood
+		fl.position = Vector3(5.4 + float(f_col) * 0.16, 0.08 + float(f_row) * 0.14, 15.2)
+		fl.rotation = Vector3(0.0, 0.25, PI * 0.5)
+		stor_root.add_child(fl)
+	for rc_i in range(3):
+		var cr_m := MeshInstance3D.new()
+		var crm := TorusMesh.new(); crm.inner_radius = 0.14; crm.outer_radius = 0.19; crm.rings = 12
+		cr_m.mesh = crm; cr_m.material_override = mat_rope
+		cr_m.position = Vector3(6.2, 0.04 + float(rc_i) * 0.032, 15.6)
+		stor_root.add_child(cr_m)
+
+	# 6D. Progressive Sheltered Interior Lighting: Solidly GROUNDED cave-wall rock pedestals + always-lit warm lanterns (ZERO floating stones!)
+	var ledge_lantern_pts: Array[Vector3] = [
+		Vector3(12.2, 0.72, 4.6),  # Descanso West rock pedestal
+		Vector3(18.6, 0.82, 3.2),  # Descanso North rear pedestal
+		Vector3(24.6, 0.72, 4.8),  # Descanso East rock pedestal
+		Vector3(5.4, 0.62, 10.2),  # Almacén West shelf lantern
+		Vector3(11.6, 0.68, 19.4), # Cave Mouth West threshold pedestal
+		Vector3(25.4, 0.68, 19.2), # Cave Mouth East threshold pedestal
+	]
+	for lgi in range(ledge_lantern_pts.size()):
+		var lgp: Vector3 = ledge_lantern_pts[lgi]
+		# Tall grounded stone cairn/pedestal reaching solidly into the cave floor (y=0 -> lgp.y)!
+		_env_kit.spawn_rock(_grp_props, Vector3(lgp.x, lgp.y * 0.48, lgp.z), Vector3(0.64, lgp.y * 1.05, 0.58), float(lgi) * 1.1, mat_arch, lgi + 3, "stratified")
+		var r_lan := PropFactory.create_portable_lantern(_grp_interactables, fx, lgp + Vector3(0.0, 0.02, 0.0), true, 0.88)
+		r_lan.name = "RefugeWallLantern_%d" % lgi
+
+	# Damp cave flora: emerald moss cushions, glossy cave ferns & luminous cave blossoms beside mineral spring & pools!
+	if not greybox:
+		var refuge_flora: Array[Vector2] = [
+			Vector2(11.5, 10.2), Vector2(24.5, 10.6), Vector2(6.2, 13.8), Vector2(28.4, 11.4),
+			Vector2(31.4, 14.8), Vector2(27.8, 16.2), Vector2(31.8, 11.4), Vector2(13.2, 23.6), Vector2(23.5, 22.8),
+		]
+		for rf_i in range(refuge_flora.size()):
+			var rfp: Vector2 = refuge_flora[rf_i]
+			var rfy := _eval_cove_height(rfp.x, rfp.y, width_m, depth_m)
+			_env_kit.spawn_moss_cushion(_grp_vegetation, Vector3(rfp.x, rfy, rfp.y), Color("#3a6d44"), 1.05, float(rf_i) * 1.5)
+			_env_kit.spawn_fern_clump(_grp_vegetation, Vector3(rfp.x - 0.3, rfy, rfp.y + 0.25), 0.92, mat_ivy, float(rf_i) * 1.8, 2)
+			_env_kit.spawn_wildflower_patch(_grp_vegetation, Vector3(rfp.x + 0.35, rfy, rfp.y + 0.2), float(rf_i) * 1.2, 5, "refuge")
+
+	# ==========================================================================
+	# 7. COVE & CAVE WILDLIFE (Synced cleanly to carved basins & cove waters!)
+	# ==========================================================================
 	FaunaKit.spawn_fish(_grp_vegetation, fauna_agents, "CaveFish_0", [
-		Vector3(5.6, -0.045, 17.5), Vector3(6.8, -0.045, 18.8), Vector3(7.6, -0.045, 19.6), Vector3(6.2, -0.045, 18.4), Vector3(5.6, -0.045, 17.5),
+		Vector3(6.6, -0.055, 11.4), Vector3(7.4, -0.055, 12.1), Vector3(7.9, -0.055, 11.6), Vector3(7.0, -0.055, 11.2), Vector3(6.6, -0.055, 11.4),
 	], 14.0, 0.5, Color("#3a6d78"), "swim_fish", 1.0)
 	FaunaKit.set_behavior(fauna_agents.back(), [], [], 38.0, 0.58, 3.0, true, 0.0)
 
 	FaunaKit.spawn_fish(_grp_vegetation, fauna_agents, "CaveFish_1", [
-		Vector3(28.5, -0.045, 18.0), Vector3(30.0, -0.045, 19.4), Vector3(29.1, -0.045, 21.0), Vector3(27.8, -0.045, 19.4), Vector3(28.5, -0.045, 18.0),
-	], 15.5, 3.2, Color("#315b66"), "swim_fish", 1.0)
+		Vector3(29.0, -0.050, 12.8), Vector3(30.4, -0.050, 13.5), Vector3(29.9, -0.050, 14.2), Vector3(28.8, -0.050, 13.5), Vector3(29.0, -0.050, 12.8),
+	], 15.5, 3.2, Color("#4096a4"), "swim_fish", 1.05)
 	FaunaKit.set_behavior(fauna_agents.back(), [], [], 42.0, 0.54, 18.0, true, 0.0)
 
 	FaunaKit.spawn_fish(_grp_vegetation, fauna_agents, "CaveFish_2", [
-		Vector3(11.8, -0.045, 24.4), Vector3(13.2, -0.045, 25.0), Vector3(14.2, -0.045, 25.4), Vector3(12.6, -0.045, 24.8), Vector3(11.8, -0.045, 24.4),
+		Vector3(14.2, -0.055, 24.4), Vector3(15.4, -0.055, 25.0), Vector3(15.9, -0.055, 24.6), Vector3(14.8, -0.055, 24.3), Vector3(14.2, -0.055, 24.4),
 	], 12.0, 1.8, Color("#49828d"), "swim_fish", 1.05)
 	FaunaKit.set_behavior(fauna_agents.back(), [], [], 46.0, 0.56, 6.0, true, 0.0)
 
 	FaunaKit.spawn_fish(_grp_vegetation, fauna_agents, "SeaFish_Cove_0", [
-		Vector3(12.0, -0.25, depth_m + 10.5), Vector3(16.8, -0.19, depth_m * 0.90),
-		Vector3(21.5, -0.19, depth_m * 0.91), Vector3(25.0, -0.25, depth_m + 10.5),
+		Vector3(12.0, -0.28, depth_m + 6.5), Vector3(16.8, -0.22, _cove_shore_z(16.8) + 2.2),
+		Vector3(21.5, -0.22, _cove_shore_z(21.5) + 2.4), Vector3(25.0, -0.28, depth_m + 6.5),
 	], 18.0, 0.20, Color("#427b8e"), "swim_ocean_jump", 1.25)
 	FaunaKit.set_behavior(fauna_agents.back(), ["day", "arrival", "dawn", "dusk"], ["storm", "rain"], 62.0, 0.34, 8.0, false, 0.0)
 
 	FaunaKit.spawn_crab(_grp_vegetation, fauna_agents, "CaveCrab_0", [
-		Vector3(7.4, 0.02, 18.0), Vector3(8.8, 0.02, 19.2), Vector3(8.5, 0.02, 20.6), Vector3(7.4, 0.02, 18.0),
+		Vector3(8.5, 0.02, 23.2), Vector3(10.2, 0.02, 24.4), Vector3(11.4, 0.02, 25.6), Vector3(8.5, 0.02, 23.2),
 	], 16.0, 0.9, Color("#a8432c"))
 	FaunaKit.set_behavior(fauna_agents.back(), ["dusk", "night", "dawn"], [], 44.0, 0.50, 4.0, true, 3.0)
 
 	FaunaKit.spawn_crab(_grp_vegetation, fauna_agents, "CaveCrab_1", [
-		Vector3(26.2, 0.02, 18.8), Vector3(27.6, 0.02, 20.0), Vector3(26.4, 0.02, 21.0), Vector3(26.2, 0.02, 18.8),
+		Vector3(25.2, 0.02, 22.8), Vector3(26.8, 0.02, 24.0), Vector3(25.4, 0.02, 25.2), Vector3(25.2, 0.02, 22.8),
 	], 17.0, 2.7, Color("#9c3d28"))
 	FaunaKit.set_behavior(fauna_agents.back(), ["dusk", "night", "dawn"], [], 48.0, 0.50, 20.0, true, 3.0)
 
 	for st_i in range(3):
-		var sp_star: Vector3 = [Vector3(7.4, 0.03, 19.8), Vector3(27.4, 0.03, 19.6), Vector3(14.4, 0.03, 25.2)][st_i]
+		var sp_star: Vector3 = [Vector3(13.8, -0.02, 24.6), Vector3(28.6, -0.02, 14.1), Vector3(16.2, -0.02, 25.2)][st_i]
 		FaunaKit.spawn_seastar(_grp_vegetation, sp_star, Color("#d45e3b") if st_i % 2 == 0 else Color("#b84360"), float(st_i) * 1.4)
 
-	FaunaKit.spawn_perched_bird(_grp_vegetation, fauna_agents, "RefugePerchedTern_0", Vector3(9.2, 0.14, depth_m * 0.89), 0.5, Color("#eef4f8"), Color("#627180"), 1.04, 0.5)
+	FaunaKit.spawn_perched_bird(_grp_vegetation, fauna_agents, "RefugePerchedTern_0", Vector3(5.25, _eval_cove_height(5.25, 24.75, width_m, depth_m) + 1.15, 24.75), 0.6, Color("#eef4f8"), Color("#627180"), 1.04, 0.5)
 	FaunaKit.set_behavior(fauna_agents.back(), ["day", "arrival", "dawn", "dusk"], ["storm", "rain"], 44.0, 0.44, 4.0, false, 4.0)
 
-	FaunaKit.spawn_perched_bird(_grp_vegetation, fauna_agents, "RefugePerchedTern_1", Vector3(27.8, 0.14, depth_m * 0.89), -0.8, Color("#e8eff4"), Color("#566574"), 1.02, 2.4)
+	FaunaKit.spawn_perched_bird(_grp_vegetation, fauna_agents, "RefugePerchedTern_1", Vector3(32.25, _eval_cove_height(32.25, 24.75, width_m, depth_m) + 1.15, 24.75), -0.9, Color("#e8eff4"), Color("#566574"), 1.02, 2.4)
 	FaunaKit.set_behavior(fauna_agents.back(), ["day", "arrival", "dawn", "dusk"], ["storm", "rain"], 52.0, 0.42, 24.0, false, 4.0)
 
 	for bt_i in range(2):
 		FaunaKit.spawn_bat(_grp_vegetation, fauna_agents, "CaveBat_%d" % bt_i, [
-			Vector3(8.5 + float(bt_i) * 6.0, 2.65, 3.8), Vector3(18.5, 2.85, 6.2),
-			Vector3(28.0 - float(bt_i) * 5.0, 2.55, 4.1), Vector3(17.5, 2.75, 2.6),
-			Vector3(8.5 + float(bt_i) * 6.0, 2.65, 3.8),
+			Vector3(8.5 + float(bt_i) * 6.0, 2.75, 7.2), Vector3(18.5, 2.95, 11.5),
+			Vector3(28.0 - float(bt_i) * 5.0, 2.65, 8.8), Vector3(17.5, 2.85, 5.4),
+			Vector3(8.5 + float(bt_i) * 6.0, 2.75, 7.2),
 		], 10.5 + float(bt_i) * 2.5, float(bt_i) * 3.1)
 		FaunaKit.set_behavior(fauna_agents.back(), ["dusk", "night"], ["storm"], 38.0, 0.60, 4.0 + float(bt_i) * 14.0, false, 0.0)
+
 	sync_wildlife()

@@ -22,8 +22,12 @@ ambient_light_color = Color(0.24, 0.30, 0.42, 1)
 ambient_light_energy = 0.56
 tonemap_mode = 3
 tonemap_exposure = 1.05
+ssao_enabled = true
+ssao_radius = 1.45
+ssao_intensity = 1.55
+ssao_power = 1.40
 glow_enabled = true
-glow_intensity = 0.36
+glow_intensity = 0.34
 glow_bloom = 0.06
 
 [node name="CampMain" type="Node3D"]
@@ -38,8 +42,12 @@ transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0
 light_color = Color(0.85, 0.90, 1.0, 1)
 light_energy = 0.85
 shadow_enabled = true
-directional_shadow_mode = 1
-directional_shadow_max_distance = 110.0
+directional_shadow_mode = 2
+directional_shadow_split_1 = 0.14
+directional_shadow_split_2 = 0.34
+directional_shadow_split_3 = 0.64
+directional_shadow_blend_splits = true
+directional_shadow_max_distance = 145.0
 
 [node name="TacticalGridOverlay" type="Node3D" parent="."]
 script = ExtResource("4_grid")

@@ -206,15 +206,18 @@ func _build_exit_sign_overlay() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not _sign_overlay or not _sign_overlay.visible:
 		return
+	var Prefs = preload("res://player/player_preferences.gd")
+	if Prefs.is_capturing_key():
+		return
 	if event is InputEventKey and event.is_pressed() and not event.is_echo():
 		var ek := event as InputEventKey
 		if ek.keycode == KEY_ESCAPE:
 			dismiss_exit_sign(true)
 			get_viewport().set_input_as_handled()
-		elif ek.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_T]:
+		elif ek.keycode in [KEY_ENTER, KEY_KP_ENTER] or Prefs.matches_key("interact", ek.keycode):
 			_confirm_exit_sign()
 			get_viewport().set_input_as_handled()
-		elif ek.keycode == KEY_M and _sign_alt_btn and _sign_alt_btn.visible and not _sign_alt_btn.disabled:
+		elif Prefs.matches_key("alt_route", ek.keycode) and _sign_alt_btn and _sign_alt_btn.visible and not _sign_alt_btn.disabled:
 			_confirm_extra_sign(0)
 			get_viewport().set_input_as_handled()
 

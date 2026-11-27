@@ -6,6 +6,8 @@ Los doce habitantes añaden una pausa nocturna a sus tareas previas. Ocho kobold
 
 Once habitantes usan un busto fijo. Kilnip conserva seis de sus ocho fotogramas originales y la duración del ciclo. Cada manta usa una variante de color y ribete y se eleva suavemente sobre el pecho. La geometría recibe la longitud y anchura útil que necesita para respetar el apoyo. Los valores por personaje, lechos, originales, derivaciones y huellas se detallan en el registro. [Comparativas nativas y registro](../../output/retreat-blankets-20261124/index.html).
 
+Revisión del 25/11/2026 tras integrar la corrección de la ruta de Runara. Se comprobaron los doce habitantes sin pantalla (160 pruebas) y en Godot Forward+ (166), además de las 483 comprobaciones de las rutinas originales. Se probó la ocupación compartida, el regreso a la posición de entrada, cuatro rumbos de cámara por habitante, el trayecto de Runara desde su tarea anterior del templo y la acción de tumbarse y levantarse con los tres jugadores en cama y petate. Las comparativas de Tarak y Kilnip conservan la cámara y la resolución 1440×810. Los once bustos nuevos ocupan 1,65 MB en WebP sin pérdida frente a 2,55 MB en PNG para el mismo recorte. [Registro de resultados](../../output/retreat-blankets-20261124/capture-register.json).
+
 La candidata es local. Siguen pendientes las transiciones dibujadas de entrada y salida, la revisión artística del usuario y las pruebas físicas.
 
 ## Siesta de Kilnip en la hamaca — 24/11/2026

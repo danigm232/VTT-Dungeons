@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-ghoul-walk-se",
+  "character": "sw-ghoul",
+  "anatomy": "humanoid-tall",
+  "campaign": "stormwreck-isle",
+  "action": "walk",
+  "direction": "se",
+  "fps": 10,
+  "loop": true,
+  "compatibility": {
+    "preservesAppearance": true,
+    "overlay": "Current frame alpha; physical attachments remain unverified."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-walk-se/4fbb4c31650c/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-walk-se/4fbb4c31650c/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-walk-se/4fbb4c31650c/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-walk-se/4fbb4c31650c/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-walk-se/4fbb4c31650c/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-walk-se/4fbb4c31650c/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-walk-se/4fbb4c31650c/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-walk-se/4fbb4c31650c/08.webp"
+  ],
+  "production": {
+    "method": "Built-in image generation with existing local identity reference and native-size extraction",
+    "reference": "campaigns/stormwreck-isle/public/art/m3/ghoul/ghoul_base.png",
+    "minimumVisibleStandingPixels": 265,
+    "prompt": "Forward southeast 3/4 walk, alternating planted feet and arms through a full eight-pose gait. Leaning predatory forward.",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-ghoul-walk-se-4fbb4c31650c.png",
+    "originalSha256": "4fbb4c31650caa92694c0b94b4a9987f366ada18d571d0e57ba959328c217a93",
+    "importReport": "output/stormwreck-motion-detail/sw-ghoul-walk-se-4fbb4c31650c.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending native review",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 400,
+  "pivot": [
+    0.5,
+    0.9085106382978724
+  ]
+}

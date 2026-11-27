@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-maria-dive-chest-e",
+  "character": "maria",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-small",
+  "action": "dive_chest",
+  "direction": "e",
+  "fps": 10,
+  "loop": false,
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Independent environment effects. No water, foam or bubbles painted into the character."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-e/ee6e83621716/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-e/ee6e83621716/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-e/ee6e83621716/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-e/ee6e83621716/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-e/ee6e83621716/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-e/ee6e83621716/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-e/ee6e83621716/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-chest-e/ee6e83621716/08.webp"
+  ],
+  "production": {
+    "method": "Image generation from existing character identity and native-size extraction",
+    "reference": "prototypes/godot-pecio/characters/imported/sw-maria-idle8/00-idle-01.png",
+    "prompt": "Eight frames showing only the exact same fantasy player character from the provided game reference, Trinity halfling rogue, short brunette woman in the exact cream and brown leather outfit of the reference. Character always faces visually screen RIGHT in slightly top-down rightward game profile, nose to screen right and both feet visible. Eight consecutive phases: underwater, entire player buoyant at about 25 degrees head-down, toes raised off ground, stretch both hands toward a knee height latch, turn latch, push the heavy lid up, hold and look down, legs visibly counter-kick gently. Preserve face, clothing, footwear and body proportions exactly, detailed clean painted pixel-art appearance. Any external chest and door are provided by engine and must not be drawn. No detached items in air, no environmental water, bubbles, floor shadow, background or text. Transparent PNG. Exact 4 columns x 2 rows, row major, generous empty gutters centered in each cell (minimum 15 percent each side) and every pose same scale. Wider canvas 2:1.",
+    "minimumVisibleStandingPixels": 120,
+    "silhouetteAlpha": 80,
+    "columnCutsByRow": [
+      [
+        0,
+        444,
+        887,
+        1330,
+        1774
+      ],
+      [
+        0,
+        444,
+        887,
+        1330,
+        1774
+      ]
+    ],
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-maria-dive-chest-e-ee6e83621716.png",
+    "originalSha256": "ee6e8362171643caad5d4aa0000170405d0b270a63cf72bb8da273b42407cfac",
+    "importReport": "output/stormwreck-motion-detail/sw-maria-dive-chest-e-ee6e83621716.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 355,
+  "pivot": [
+    0.5,
+    0.8771929824561403
+  ]
+}

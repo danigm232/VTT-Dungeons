@@ -26,6 +26,7 @@ var items: Dictionary = {
 	"boots_of_elvenkind": {"name": "Botas élficas", "count": 0, "equipped": false, "desc": "Objeto maravilloso: tus pasos no hacen ruido y tienes ventaja en Sigilo al moverte."},
 	"captain_logbook": {"name": "Bitácora protegida de Aleitha", "count": 0, "equipped": false, "desc": "Diario encerado del cofre de C9: relata el amor de Aleitha y Brastos y su súplica desesperada a Orcus."},
 	"orcus_talisman": {"name": "Talismán de Orcus (Nigromancia)", "count": 0, "equipped": false, "desc": "Talismán de cabellos y huesos que marca la bitácora. Detectar magia revela un aura intensa de nigromancia."},
+	"aleitha_portrait": {"name": "Retrato de Aleitha y Brastos (C6)", "count": 0, "equipped": false, "desc": "Retrato al óleo en marco de roble y latón con la placa «Aleitha y Brastos: juntos para siempre». Pista clave sobre la capitana del Rosa de los Vientos y la tumba de Brastos."},
 	"c8_fine_wine": {"name": "Caja de vino fino (C8 · d6 #1)", "count": 0, "equipped": false, "desc": "Botellas selladas con cera que sobrevivieron intactas en una caja de C8."},
 	"c8_cloves_spices": {"name": "Saco de clavos y especias (C8 · d6 #2)", "count": 0, "equipped": false, "desc": "Especias exóticas secas selladas en tela encerada halladas en C8."},
 	"c8_silver_ingots": {"name": "Lingotes de plata (C8 · d6 #3)", "count": 0, "equipped": false, "desc": "Barras de plata mercantil rescatadas del cargamento inundado de C8."},
@@ -228,10 +229,17 @@ func hide_prompt() -> void:
 	show_prompt("")
 
 func show_notification(msg: String) -> void:
-	if notification_label and not external_ui_managed:
+	if msg == "":
+		return
+	if external_ui_managed:
+		var ui := get_tree().root.find_child("VttRoleUi", true, false) if is_inside_tree() else null
+		if ui and ui.has_method("show_external_toast"):
+			ui.show_external_toast(msg)
+		return
+	if notification_label:
 		notification_label.text = msg
 		notification_label.visible = true
-		notif_timer = 3.5
+		notif_timer = 4.2
 
 func toggle_torch() -> void:
 	var torch = items["torch"]

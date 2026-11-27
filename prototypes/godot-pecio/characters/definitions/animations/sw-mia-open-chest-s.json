@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-mia-open-chest-s",
+  "character": "mia",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-dwarf",
+  "action": "open_chest",
+  "direction": "s",
+  "fps": 10,
+  "loop": false,
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Independent environment effects. No water, foam or bubbles painted into the character."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-open-chest-s/b725efaa6e06/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-open-chest-s/b725efaa6e06/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-open-chest-s/b725efaa6e06/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-open-chest-s/b725efaa6e06/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-open-chest-s/b725efaa6e06/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-open-chest-s/b725efaa6e06/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-open-chest-s/b725efaa6e06/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-open-chest-s/b725efaa6e06/08.webp"
+  ],
+  "production": {
+    "method": "Image generation from existing character identity and native-size extraction",
+    "reference": "prototypes/godot-pecio/characters/imported/sw-mia-idle8/00-idle-01.png",
+    "prompt": "Use the original Stormwreck identity. Frame the requested camera direction across eight independent poses, clean transparent gutters, no environmental effects painted into the frame.",
+    "minimumVisibleStandingPixels": 120,
+    "silhouetteAlpha": 80,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mia-open-chest-s-b725efaa6e06.png",
+    "originalSha256": "b725efaa6e06a8e8fa9acc4dc948b9d9b617fdae7b18d07bc178a26b4f21621a",
+    "importReport": "output/stormwreck-motion-detail/sw-mia-open-chest-s-b725efaa6e06.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "Individual transparent poses visually reviewed for heading, silhouette and separation from VFX. Project review controls promotion.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 355,
+  "pivot": [
+    0.5,
+    0.8464912280701754
+  ]
+}

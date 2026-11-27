@@ -5,6 +5,8 @@ const PbrMaterialKit = preload("res://scripts/pbr_material_kit.gd")
 const RowboatController = preload("res://scripts/rowboat_controller.gd")
 const InteractiveProp = preload("res://scripts/interactive_prop.gd")
 const ShipGeometry = preload("res://scripts/ship_geometry.gd")
+const AquaticPerimeter = preload("res://scripts/pecio_aquatic_perimeter.gd")
+const WreckStructure = preload("res://scripts/wreck_structure.gd")
 
 # Generador de Arrecifes de Basalto y Bote de Remos (Fase 2)
 # Conforme a engine/client/wreck-ocean.ts y wreck-exterior.ts
@@ -15,9 +17,20 @@ var mat_kelp: StandardMaterial3D
 var mat_boat: StandardMaterial3D
 
 var _prebuilt: bool = false
+var _perimeter_anim: Dictionary = {}
+var _marine_time: float = 0.0
 
 func _ready() -> void:
 	prebuild()
+
+func _process(delta: float) -> void:
+	if _perimeter_anim.is_empty():
+		return
+	_marine_time += delta
+	AquaticPerimeter.animate_marine_life(_perimeter_anim, _marine_time, WreckStructure.SEA_HEIGHT)
+
+func sample_sea_current_push(world_pos: Vector3) -> Vector3:
+	return AquaticPerimeter.sample_sea_current_push(world_pos)
 
 func prebuild() -> void:
 	if _prebuilt:
@@ -28,6 +41,7 @@ func prebuild() -> void:
 	build_stern_reef()
 	build_bow_reef()
 	build_rowboat()
+	_perimeter_anim = AquaticPerimeter.build_perimeter_and_marine_life(self)
 
 func setup_materials() -> void:
 	mat_basalt = PbrMaterialKit.create_coastal_basalt_shader_material() # Basalto volcánico triplanar con banda mareal y percebes

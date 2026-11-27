@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-blepp-fishing-retrieve-e",
+  "character": "sw-blepp",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "retreat_fish_retrieve",
+  "direction": "e",
+  "fps": 1,
+  "loop": false,
+  "dependencies": [
+    "sw-blepp"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "directional held pose with planted feet"
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-fishing/0137a01a5e34/retrieve-e.webp"
+  ],
+  "referenceHeight": 572,
+  "pivot": [
+    0.6074498567335244,
+    0.9932203389830508
+  ],
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-blepp-retreat-turnaround/bfef67b39490/06.png",
+    "intent": "Explicit fishing pose with planted feet. Rod and line remain separate. Register dominant grip by visible drawing.",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-blepp-fishing-0137a01a5e34.png",
+    "originalSha256": "0137a01a5e34c8bcb534f9ed1eb8ad73bcfbba7c84cda627f9c4a2b216e59bbd",
+    "nativeBounds": [
+      738,
+      636,
+      1087,
+      1226
+    ],
+    "encoding": "Native lossless WebP, verified RGBA",
+    "method": "Reviewed image isolation, planted support and grip registered in source pixels"
+  },
+  "review": {
+    "technical": "Isolated alpha, crop margins, contact coordinates and lossless decode checked.",
+    "visual": "Original and extracted candidate compared, with user acceptance pending.",
+    "userAcceptance": "pending"
+  },
+  "poseKind": "hold",
+  "toolGrip": [
+    0.9226361031518625,
+    0.3898305084745763
+  ],
+  "viewAngleDegrees": 0
+}

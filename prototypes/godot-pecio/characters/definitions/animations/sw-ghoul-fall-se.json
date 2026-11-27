@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-ghoul-fall-se",
+  "character": "sw-ghoul",
+  "anatomy": "humanoid-tall",
+  "campaign": "stormwreck-isle",
+  "action": "fall",
+  "direction": "se",
+  "fps": 10,
+  "loop": false,
+  "compatibility": {
+    "preservesAppearance": true,
+    "overlay": "Current frame alpha; physical attachments remain unverified."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-fall-se/e77abf4066d5/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-fall-se/e77abf4066d5/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-fall-se/e77abf4066d5/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-fall-se/e77abf4066d5/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-fall-se/e77abf4066d5/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-fall-se/e77abf4066d5/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-fall-se/e77abf4066d5/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-fall-se/e77abf4066d5/08.webp"
+  ],
+  "production": {
+    "method": "Built-in image generation with existing local identity reference and native-size extraction",
+    "reference": "campaigns/stormwreck-isle/public/art/m3/ghoul/ghoul_base.png",
+    "minimumVisibleStandingPixels": 95,
+    "prompt": "Eight isolated distinct fall phases at southeast angle with fixed feet or ground registration, matching the original anatomy and clothes.",
+    "silhouetteAlpha": 96,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-ghoul-fall-se-e77abf4066d5.png",
+    "originalSha256": "e77abf4066d58193feb2a7fa5cc6da3bbc21714f00ee93fe5099e8577db679be",
+    "importReport": "output/stormwreck-motion-detail/sw-ghoul-fall-se-e77abf4066d5.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending native review",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 400,
+  "pivot": [
+    0.5,
+    0.8843813387423936
+  ]
+}

@@ -486,3 +486,34 @@ func _pump_ambient_audio() -> void:
 		var choir_s := (sin(_audio_phase * 220.0 * TAU) * 0.022 + sin(_audio_phase * 330.0 * TAU) * 0.014) * (0.5 + 0.5 * sin(_audio_phase * 0.22)) * v_music
 		var out_s := clampf(ocean_s + wind_s + rain_s + choir_s, -0.85, 0.85)
 		pb.push_frame(Vector2(out_s, out_s))
+
+func play_footstep_sfx(surface: String, heavy: bool = false) -> void:
+	if DisplayServer.get_name() == "headless" or AudioServer.get_driver_name() == "Dummy":
+		return
+	if not is_instance_valid(_sfx_player):
+		return
+	if not _sfx_player.playing:
+		_sfx_player.play()
+	var pb := _sfx_player.get_stream_playback() as AudioStreamGeneratorPlayback
+	if pb == null:
+		return
+	var sr := 22050.0
+	var dur := 0.24 if surface == "water" else (0.14 if surface == "sand" else 0.09)
+	var frames := mini(pb.get_frames_available(), int(dur * sr))
+	if frames <= 0:
+		return
+	var gain := (0.28 if heavy else 0.16) if surface == "water" else 0.10
+	for i in range(frames):
+		var t := float(i) / float(frames)
+		var env := pow(1.0 - t, 1.8)
+		var n := _audio_rng.randf_range(-1.0, 1.0)
+		var s := 0.0
+		if surface == "water":
+			var bub := sin(float(i) / sr * (480.0 + sin(t * 14.0) * 180.0) * TAU)
+			s = (n * 0.72 + bub * 0.28) * env * gain
+		elif surface == "sand":
+			s = n * env * sin(minf(1.0, t * 4.0) * PI * 0.5) * gain * 0.85
+		else:
+			var thud := sin(float(i) / sr * (125.0 if surface == "wood" else 175.0) * TAU)
+			s = (thud * 0.65 + n * 0.35) * pow(1.0 - t, 2.8) * gain
+		pb.push_frame(Vector2(s, s))

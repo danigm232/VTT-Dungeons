@@ -71,8 +71,13 @@ func interact() -> void:
 		return
 	interaction_count += 1
 
-	if nearby_player and nearby_player.has_method("play_action_animation"):
-		nearby_player.play_action_animation("interact")
+	if nearby_player is PlayerToken and prop_id != "c9_iron_chest":
+		var action := "open_chest" if prop_id == "c6_belongings" else "interact"
+		nearby_player.play_object_action(action, global_position)
+	if prop_id == "c6_belongings":
+		var mechanism := get_parent().find_child("AnimationPlayer", true, false) as AnimationPlayer
+		if mechanism and mechanism.has_animation("open"):
+			mechanism.play("open")
 
 	var canon := get_tree().root.find_child("PecioCanonController", true, false) if is_inside_tree() else null
 	var handled_by_canon := false
@@ -82,6 +87,9 @@ func interact() -> void:
 			handled_by_canon = true
 		elif prop_id == "c5_skeleton" and canon.has_method("trigger_c5_crabs_scatter"):
 			canon.trigger_c5_crabs_scatter()
+			handled_by_canon = true
+		elif prop_id == "c6_portrait" and canon.has_method("open_c6_portrait_modal"):
+			canon.open_c6_portrait_modal()
 			handled_by_canon = true
 		elif prop_id == "c6_needle_trap" and canon.has_method("open_c6_stash_modal"):
 			canon.open_c6_stash_modal()
@@ -96,6 +104,9 @@ func interact() -> void:
 			canon.toggle_rowboat_mooring()
 			handled_by_canon = true
 		elif prop_id == "c9_air_pocket":
+			if nearby_player is PlayerToken and nearby_player.aquatic.submerged:
+				nearby_player.aquatic.take_air()
+				nearby_player._update_aquatic_breath(0.0)
 			if canon.has_method("_play_sfx"):
 				canon._play_sfx(preload("res://scripts/pecio_sfx_kit.gd").make_bubble_burst())
 			var ui_n := get_tree().root.find_child("VttRoleUi", true, false)
@@ -110,9 +121,13 @@ func interact() -> void:
 			handled_by_canon = true
 
 	if not handled_by_canon:
-		var inv = get_tree().root.find_child("InventoryManager", true, false)
-		if inv:
-			inv.show_notification(inspection_message)
+		var ui_fb := get_tree().root.find_child("VttRoleUi", true, false) if is_inside_tree() else null
+		if ui_fb and ui_fb.has_method("notify_mesa"):
+			ui_fb.notify_mesa(inspection_message)
+		else:
+			var inv = get_tree().root.find_child("InventoryManager", true, false)
+			if inv:
+				inv.show_notification(inspection_message)
 
 	# Animación opcional del objeto (giro de timón, cabrestante, etc.)
 	if anim_type == "rotate_y" and target_node:

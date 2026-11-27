@@ -1,0 +1,22 @@
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
+import {resolve} from 'node:path';
+import {definitions,validate,workspace,source,importLibrary} from './character-pipeline.mjs';
+const out=resolve(workspace,'output/loading-identity-v6');
+const jobs=JSON.parse(await readFile(resolve(out,'production-jobs.json'),'utf8')).filter(j=>j.actor==='mike'||j.action==='handshake');
+const selected=[];
+for(const job of jobs){const definition=JSON.parse(await readFile(resolve(workspace,job.definition),'utf8'));
+ if(definition.frames.length!==8||!definition.production.importReport)throw Error('Blocked unextracted resource '+job.id);
+ const report=JSON.parse(await readFile(resolve(workspace,definition.production.importReport),'utf8'));
+ if(report.errors.length)throw Error('Blocked resource '+job.id+': '+report.errors.join('; '));
+ definition.review.visual='pending native loading-scene inspection';
+ selected.push({path:resolve(source,'definitions/animations',job.id+'.json'),definition});
+}
+const parents=(await definitions()).filter(r=>['mike','mia','maria'].includes(r.definition.id));
+const result=await validate([...parents,...selected]);
+if(!result.valid)throw Error('Scoped registration blocked: '+JSON.stringify(result.errors));
+await mkdir(resolve(source,'definitions/animations'),{recursive:true});
+for(const r of selected)await writeFile(r.path,JSON.stringify(r.definition,null,2)+'\n');
+const ids=[...parents,...selected].map(r=>r.definition.id);
+await writeFile(resolve(out,'registered-ids.json'),JSON.stringify(ids,null,2));
+const imported=await importLibrary({scope:'loading-identities-v6',onlyIds:ids});
+console.log(JSON.stringify({scope:'loading-identities-v6',resources:ids.length,valid:imported.valid,errors:imported.errors,revision:imported.revision}));

@@ -276,46 +276,59 @@ func dismiss_projector_prepare() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not ui_active:
 		return
+	var Prefs = preload("res://player/player_preferences.gd")
+	if Prefs.is_capturing_key():
+		return
 	if event is InputEventKey and event.is_pressed() and not event.is_echo() and not event.ctrl_pressed and not event.alt_pressed:
 		var kev := event as InputEventKey
-		if kev.keycode == KEY_F1:
+		var kc := kev.keycode
+		if Prefs.matches_key("role_player", kc):
 			set_role("player")
 			get_viewport().set_input_as_handled()
-		elif kev.keycode == KEY_F2:
+		elif Prefs.matches_key("role_dm", kc):
 			set_role("dm")
 			get_viewport().set_input_as_handled()
-		elif kev.keycode == KEY_F3:
+		elif Prefs.matches_key("role_projector", kc):
 			set_role("projector")
 			get_viewport().set_input_as_handled()
-		elif kev.keycode == KEY_F11:
+		elif Prefs.matches_key("fullscreen", kc):
 			var mode := DisplayServer.window_get_mode()
 			if mode == DisplayServer.WINDOW_MODE_FULLSCREEN:
 				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 			else:
 				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 			get_viewport().set_input_as_handled()
-		elif kev.keycode == KEY_ESCAPE and current_role == "player" and player_hud:
+		elif kc == KEY_ESCAPE and current_role == "player" and player_hud:
 			if is_instance_valid(retreat_life) and retreat_life.has_open_dialogue():
 				retreat_life.close_conversation()
 				get_viewport().set_input_as_handled()
 				return
 			player_hud.close_modals()
 			player_hud.toggle_exploration_menu(false)
-		elif (kev.keycode == KEY_I or kev.keycode == KEY_B) and current_role == "player" and player_hud:
+		elif (Prefs.matches_key("inventory", kc) or kc == KEY_B) and current_role == "player" and player_hud:
 			if player_hud.inventory_modal.visible:
 				player_hud.close_modals()
 			else:
 				player_hud.open_modal("inventory")
 			get_viewport().set_input_as_handled()
-		elif kev.keycode == KEY_V and current_role == "player":
+		elif Prefs.matches_key("torch", kc) and current_role == "player":
 			toggle_torch()
 			get_viewport().set_input_as_handled()
-		elif kev.keycode == KEY_T and current_role == "player":
+		elif Prefs.matches_key("interact", kc) and current_role == "player":
 			trigger_nearby_interaction()
 			get_viewport().set_input_as_handled()
-		elif kev.keycode == KEY_Y and current_role == "player" and is_instance_valid(retreat_life):
+		elif Prefs.matches_key("dive_toggle", kc) and current_role in ["player", "dm"]:
+			if toggle_aquatic_depth():
+				get_viewport().set_input_as_handled()
+		elif Prefs.matches_key("party_chat", kc) and current_role == "player" and is_instance_valid(retreat_life):
 			retreat_life.open_party_dialogue()
 			get_viewport().set_input_as_handled()
+
+func toggle_aquatic_depth() -> bool:
+	var tok := get_active_token_node()
+	if not tok or not tok.has_method("toggle_dive") or not tok.toggle_dive():
+		return false
+	return true
 
 func _process(delta: float) -> void:
 	if not ui_active:
@@ -329,6 +342,9 @@ func _process(delta: float) -> void:
 			_clock_accum -= float(whole)
 			clock_seconds += whole
 			if combat_controller: combat_controller.rules.advance_time(whole)
+			for body in tokens_by_node.values():
+				if body and not bool(body.get("is_npc")) and body.has_method("_update_aquatic_breath"):
+					body._update_aquatic_breath(float(whole))
 			_refresh_clock_only()
 
 	if toast_timer > 0.0:
@@ -349,6 +365,9 @@ func _process(delta: float) -> void:
 	if _prompt_scan_accum >= 0.09:
 		_prompt_scan_accum = 0.0
 		_sync_nearby_interaction_prompt()
+
+	if player_hud and current_role == "player":
+		player_hud.refresh_aquatic_status(get_active_token_node())
 
 	# Sincronizar zona actual según personaje activo (tanto en Retiro como en Pecio)
 	if is_retreat and player_root.visible:

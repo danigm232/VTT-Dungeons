@@ -5,6 +5,7 @@ const Conversations = preload("res://scripts/retreat_conversations.gd")
 const ConversationPanel = preload("res://scripts/retreat_dialogue_panel.gd")
 const Routes = preload("res://scripts/retreat_resident_routes.gd")
 const Routines = preload("res://scripts/retreat_routine_directory.gd")
+const Featured = preload("res://scripts/retreat_characteristic_routines.gd")
 const RoutineProps = preload("res://scripts/retreat_routine_props.gd")
 const Resident = preload("res://scripts/retreat_resident.gd")
 const TokenScene = preload("res://scenes/player_token.tscn")
@@ -43,7 +44,16 @@ var _routine_orders: Dictionary = {}
 var _routine_cursor: Dictionary = {}
 var _running_routines: Dictionary = {}
 var _blocked_routines: Dictionary = {}
+var _blocked_waypoints: Dictionary = {}
 var _partner_holds: Dictionary = {}
+var _spot_reservations: Dictionary = {}
+var _feature_second_stage: Dictionary = {}
+var _featured_cooldowns: Dictionary = {}
+var _paused_residents: Dictionary = {}
+var _manual_routines: Dictionary = {}
+var _meal_visits: Dictionary = {}
+var _social_appointments: Dictionary = {}
+var autonomy_paused := false
 var _talking_to: Resident
 var _speaking_hero: CharacterBody3D
 var _party_lines: Array = []
@@ -70,6 +80,12 @@ func _ready() -> void:
 		_party_lines = _session.get_meta("retreat_party_lines", [])
 		_attitudes = _session.get_meta("retreat_attitudes", {})
 		_discovered_clues = _session.get_meta("retreat_discovered_clues", {})
+		var preferences: Dictionary = _session.get_meta("retreat_routine_preferences", {})
+		autonomy_paused = bool(preferences.get("paused", false))
+		_paused_residents = preferences.get("residents", {}).duplicate()
+		_routine_cursor = preferences.get("cursor", {}).duplicate()
+		_meal_visits = preferences.get("meals", {}).duplicate()
+		_session.transition_started.connect(_save_routine_checkpoint)
 	phase = _phase_for_clock(_main.vtt_ui.clock_seconds)
 	dialogue = ConversationPanel.new()
 	dialogue.finished.connect(close_conversation)
@@ -88,6 +104,7 @@ func _spawn_residents() -> void:
 	if not is_inside_tree():
 		return
 	var view: Camera3D = _main.camera
+	var checkpoint: Dictionary = _session.get_meta("retreat_routine_checkpoint", {}) if _session else {}
 	var bench := _main.find_child("MylaTinkerWorkbench", true, false)
 	if bench:
 		_workbench = bench.get_node_or_null("Interactive_Workbench")
@@ -105,7 +122,12 @@ func _spawn_residents() -> void:
 			push_warning("Missing Retreat character: " + id)
 			continue
 		var key := _station_for(id)
-		var spot := _find_landing(Directory.STATIONS[key][0], float(definition.heightMeters))
+		var height := float(Featured.HEIGHTS.get(id, definition.heightMeters))
+		var saved: Dictionary = checkpoint.get(id, {}) if id != "runara" or _welcomed else {}
+		var default_ground: Vector3 = Directory.STATIONS[key][0]
+		var spot := _find_landing(saved.get("position", default_ground), height)
+		if not spot.is_finite() and not saved.is_empty():
+			spot = _find_landing(default_ground, height)
 		if not spot.is_finite():
 			push_warning("Retreat resident " + id + " has no supported initial station: " + key)
 			continue
@@ -115,17 +137,31 @@ func _spawn_residents() -> void:
 		actor.name = "Resident_" + id.capitalize()
 		actor.position = to_local(spot)
 		actor.configure(id, Directory.RESIDENTS[id], view, self)
+		actor.target_height = height
 		if id == "runara":
 			actor.welcomed = key != Directory.WELCOME
 		add_child(actor)
 		residents[id] = actor
 		_place(actor, key, spot)
+		if saved.has("heading") and spot.distance_to(saved.position) <= 1.1:
+			actor.face_world_direction(saved.heading)
 		_departures[id] = 3.5 + float(abs(id.hash()) % 11) * 0.54
 	await get_tree().physics_frame
 	if not is_inside_tree():
 		return
 	routes.build(self)
 	routine_props.bind(self, _main, _workbench, _stove, _incense)
+	for id: String in checkpoint:
+		var actor: Resident = residents.get(id)
+		var saved: Dictionary = checkpoint[id]
+		var task := Featured.get_row(id, str(saved.get("activity", "")))
+		if not is_instance_valid(actor) or task.is_empty() or not _can_reserve(id, task):
+			continue
+		if saved.get("manual", false):
+			_manual_routines[id] = true
+		elif resident_autonomy_disabled(id) or not Routines.TIME_CODE[phase] in task[1]:
+			continue
+		_queue_feature(id, task)
 	set_physics_process(true)
 
 func active_hero() -> CharacterBody3D:
@@ -170,6 +206,7 @@ func begin_conversation(actor: Resident) -> void:
 		activity = _routine_orders[actor.resident_id][3]
 	if not actor.route_goal.is_empty():
 		activity = "En camino"
+	dialogue.bind_context(actor, hero, _main.camera, _topic_tags_for(actor.resident_id, hero))
 	dialogue.open_lines(actor.token_name, activity, [{"speaker": actor.token_name, "text": line}],
 		_topics_for(actor.resident_id, hero))
 
@@ -200,6 +237,25 @@ func _topics_for(id: String, hero: CharacterBody3D) -> Array:
 			if cmap.has(id):
 				out.append_array(cmap[id])
 	return out
+
+func _topic_tags_for(id: String, hero: CharacterBody3D) -> Array:
+	var tags: Array = []
+	for t: Array in Conversations.TOPICS.get(id, []):
+		tags.append("Gesto" if t.size() >= 3 and not str(t[2]).is_empty() else "")
+	var hkey := _hero_key(hero)
+	if not hkey.is_empty():
+		var hero_map: Dictionary = Conversations.HERO_TOPICS.get(hkey, {})
+		if hero_map.has(id):
+			var hero_badge := str({"mia": "Mía · Clériga", "trinity": "Trinity", "mike": "Mike · Arcano"}.get(hkey, hkey.capitalize()))
+			for _t in hero_map[id]:
+				tags.append(hero_badge)
+	for clue_id in _discovered_clues.keys():
+		if bool(_discovered_clues.get(clue_id, false)):
+			var cmap: Dictionary = Conversations.CLUE_TOPICS.get(str(clue_id), {})
+			if cmap.has(id):
+				for _t in cmap[id]:
+					tags.append("Pista")
+	return tags
 
 func record_discovered_clue(clue_id: String) -> void:
 	if clue_id.is_empty():
@@ -248,6 +304,11 @@ func set_dining_gathering_active(active: bool) -> bool:
 func trigger_zombie_alarm(active: bool) -> void:
 	if not active:
 		return
+	for id in ["blepp", "tarak"]:
+		var actor: Resident = residents.get(id)
+		if is_instance_valid(actor):
+			_cancel_order(actor)
+			_departures[id] = _elapsed + 15.0
 	var blepp: Resident = residents.get("blepp")
 	if is_instance_valid(blepp):
 		blepp.cancel_route()
@@ -295,6 +356,7 @@ func open_party_dialogue() -> void:
 	if not _can_open_dialogue(hero):
 		return
 	_lock_dialogue(hero)
+	dialogue.bind_context(hero, hero, _main.camera, [])
 	dialogue.open_lines("Conversación del grupo", "Habla como %s" % hero.token_name, _party_lines, [], true)
 
 func _send_party_line(line: String) -> void:
@@ -378,8 +440,10 @@ func _physics_process(delta: float) -> void:
 		close_conversation()
 	if table_in_combat():
 		_end_exchange()
-		if not _running_routines.is_empty():
+		if not _running_routines.is_empty() or not _routine_orders.is_empty():
 			_stop_routines()
+		return
+	if _dining_gathering or (autonomy_paused and _manual_routines.is_empty()):
 		return
 	_elapsed += delta
 	_next_scan -= delta
@@ -388,12 +452,191 @@ func _physics_process(delta: float) -> void:
 	_next_scan = 0.3
 	_finish_routines()
 	_dispatch_routes()
-	_update_exchanges()
+	if not autonomy_paused:
+		_update_exchanges()
+
+func list_characteristic_routines(id: String) -> Array:
+	return Featured.ROWS.get(id, [])
+
+func routine_status(id: String) -> Dictionary:
+	var actor: Resident = residents.get(id)
+	if not is_instance_valid(actor):
+		return {}
+	var task: Array = _routine_orders.get(id, [])
+	var route: String = _travel_orders.get(id, actor.route_goal)
+	return {
+		"activity": task[3] if not task.is_empty() else "En espera",
+		"destination": route if not route.is_empty() else actor.station_id,
+		"paused": autonomy_paused or _paused_residents.has(id),
+		"individually_paused": _paused_residents.has(id),
+		"running": _running_routines.has(id),
+	}
+
+func set_autonomy_paused(value: bool) -> void:
+	autonomy_paused = value
+	if value:
+		_end_exchange()
+		_stop_routines()
+		for actor: Resident in residents.values():
+			actor.cancel_route()
+		_travel_orders.clear()
+	_store_preferences()
+
+func set_resident_paused(id: String, value: bool) -> void:
+	if not residents.has(id):
+		return
+	if value:
+		_paused_residents[id] = true
+		_cancel_order(residents[id])
+	else:
+		_paused_residents.erase(id)
+	_store_preferences()
+
+func request_characteristic_routine(id: String, activity: String) -> bool:
+	var actor: Resident = residents.get(id)
+	var task := Featured.get_row(id, activity)
+	if task.is_empty() or not is_instance_valid(actor) or actor.is_talking() or table_in_combat() or _dining_gathering:
+		return false
+	if not _conditions_allow(task) or not _can_reserve(id, task):
+		return false
+	_cancel_order(actor)
+	_paused_residents.erase(id)
+	_manual_routines[id] = true
+	_queue_feature(id, task)
+	_departures[id] = _elapsed
+	_store_preferences()
+	return true
+
+func move_resident(id: String, destination: Vector3) -> bool:
+	var actor: Resident = residents.get(id)
+	if not is_instance_valid(actor) or actor.is_talking():
+		return false
+	var spot := _find_landing(destination, actor.target_height, actor)
+	if not spot.is_finite():
+		return false
+	var route := routes.path(actor.global_position, spot)
+	if route.is_empty():
+		return false
+	_cancel_order(actor)
+	_paused_residents[id] = true
+	actor.begin_route("@dm", route)
+	_store_preferences()
+	return true
+
+func _store_preferences() -> void:
+	if _session:
+		_session.set_meta("retreat_routine_preferences", {
+			"paused":autonomy_paused, "residents":_paused_residents.duplicate(), "cursor":_routine_cursor.duplicate(),
+			"meals":_meal_visits.duplicate(),
+		})
+
+func _save_routine_checkpoint(_source: String, _destination: String, _spawn: String) -> void:
+	var checkpoint := {}
+	for id: String in residents:
+		var actor: Resident = residents[id]
+		var task: Array = _routine_orders.get(id, [])
+		checkpoint[id] = {
+			"position":actor.get_meta("pre_interact_pos", actor.global_position),
+			"heading":actor.world_heading_for_pose(actor.facing_dir),
+			"activity":str(task[0]) if not task.is_empty() else "",
+			"manual":_manual_routines.has(id),
+		}
+	if _session:
+		_session.set_meta("retreat_routine_checkpoint", checkpoint)
+	_store_preferences()
+
+func _meal_order(id: String) -> Array:
+	var clock: int = _main.vtt_ui.clock_seconds
+	var second := posmod(clock, 86400)
+	for moment: Array in [[8, "Desayuna"], [13, "Come"], [19, "Cena"]]:
+		var time: int = int(moment[0]) * 3600
+		if second < time or second >= time + 720:
+			continue
+		var meal_key := "meal/%s/%s" % [floori(float(clock) / 86400.0), moment[0]]
+		if _meal_visits.get(id, "") == meal_key:
+			return []
+		var options := [
+			[meal_key, "", "east_dinner", str(moment[1]) + " en el comedor", "retreat_work", "RetreatSoupBowl", "taste"],
+			[meal_key, "", "west_dinner", str(moment[1]) + " en el comedor", "retreat_work", "RetreatDinnerBread", "inspect"],
+		]
+		if id == "tarak":
+			options = [[meal_key, "", "tarak_kitchen", "Prepara la comida comunitaria", "retreat_cook", "@stove", "simmer"]]
+		for task: Array in options:
+			if _can_reserve(id, task):
+				_meal_visits[id] = meal_key
+				_store_preferences()
+				return task
+	return []
+
+func _can_reserve(id: String, task: Array) -> bool:
+	var station_key := str(task[2])
+	var object_key := str(task[5])
+	return _spot_reservations.get(station_key, id) == id and (object_key.is_empty() or str(task[6]) == "observe" or _spot_reservations.get(object_key, id) == id)
+
+func _conditions_allow(task: Array) -> bool:
+	if task[6] == "fishing" and _main.vtt_ui.is_retreat_zombie_reappearance_active():
+		return false
+	return Featured.allows(task, _main.vtt_ui.get_env_weather())
+
+func activity_spot(task: Array) -> Dictionary:
+	const Structure = preload("res://scripts/retreat_structure.gd")
+	var key := str(task[2])
+	var station := Routines.station(key)
+	var point := routine_props.anchor(task[5])
+	var next: Array = Featured.TOURS.get(task[0], [])
+	return {
+		"id":key, "zone":Structure.get_zone_at(station[0]), "approach":station[0], "heading":station[1],
+		"contact":point, "family":Featured.family(task), "furniture":task[5], "capacity":1,
+		"reserved_by":_spot_reservations.get(key, ""), "hours":task[1], "available":_conditions_allow(task),
+		"exit":station[0], "next":next[0] if not next.is_empty() else "",
+	}
+
+func _queue_feature(id: String, task: Array) -> void:
+	_spot_reservations[str(task[2])] = id
+	if not str(task[5]).is_empty() and str(task[6]) != "observe":
+		_spot_reservations[str(task[5])] = id
+	_routine_orders[id] = task
+	_travel_orders[id] = task[2]
+
+func _release_reservation(id: String) -> void:
+	for key: String in _spot_reservations.keys():
+		if _spot_reservations[key] == id:
+			_spot_reservations.erase(key)
+
+func _cancel_order(actor: Resident) -> void:
+	var id := actor.resident_id
+	_interrupt_routine(actor, false)
+	actor.cancel_route()
+	actor.play_action_animation("idle")
+	_routine_orders.erase(id)
+	_travel_orders.erase(id)
+	_feature_second_stage.erase(id)
+	_manual_routines.erase(id)
+	_social_appointments.erase(id)
+	_release_reservation(id)
+	routine_props.release_actor(id)
+
+func _pick_routine(id: String, options: Array) -> Array:
+	var cursor_key := id + "/" + phase
+	var index := int(_routine_cursor.get(cursor_key, 0))
+	for offset: int in options.size():
+		var task: Array = options[(index + offset) % options.size()]
+		if not _conditions_allow(task) or not _can_reserve(id, task) or _elapsed < float(_featured_cooldowns.get(task[0], 0.0)):
+			continue
+		_routine_cursor[cursor_key] = index + offset + 1
+		_store_preferences()
+		return task
+	return []
+
+func _is_feature(id: String, task: Array) -> bool:
+	return not task.is_empty() and (str(task[0]).begins_with("meal/") or not Featured.get_row(id, task[0]).is_empty())
 
 func _dispatch_routes() -> void:
 	for id: String in residents:
 		var actor: Resident = residents[id]
-		if actor.is_talking() or is_routine_running(actor) or not actor.route_goal.is_empty() or _elapsed < float(_departures[id]):
+		if autonomy_paused and not _manual_routines.has(id):
+			continue
+		if _paused_residents.has(id) or actor.is_talking() or is_routine_running(actor) or not actor.route_goal.is_empty() or _elapsed < float(_departures[id]):
 			continue
 		var key := str(_travel_orders.get(id, ""))
 		if key.is_empty():
@@ -402,11 +645,14 @@ func _dispatch_routes() -> void:
 			var options := Routines.for_phase(id, phase)
 			if options.is_empty():
 				continue
-			var cursor_key := id + "/" + phase
-			var index := int(_routine_cursor.get(cursor_key, 0))
-			var task: Array = options[index % options.size()]
-			_routine_cursor[cursor_key] = index + 1
-			_routine_orders[id] = task
+			var task := _meal_order(id)
+			if task.is_empty():
+				task = _pick_routine(id, options)
+			if task.is_empty():
+				continue
+			_queue_feature(id, task)
+			if _is_feature(id, task):
+				_invite_feature_partner(id, task)
 			key = task[2]
 			_travel_orders[id] = key
 		if key == actor.station_id and actor.global_position.distance_to(actor.station_origin) < 0.45:
@@ -416,24 +662,67 @@ func _dispatch_routes() -> void:
 		if actor.action_lock_timer > 0.0:
 			continue
 		var station := Routines.station(key)
-		var spot := _find_landing(station[0], actor.target_height, actor)
+		var destination: Vector3 = station[0]
+		var order: Array = _routine_orders.get(id, [])
+		if not order.is_empty() and order[0] == "AGG_01":
+			var partner := _plan_agga_conversation(actor, destination)
+			if not is_instance_valid(partner):
+				_cancel_order(actor)
+				_departures[id] = _elapsed + 3.0
+				continue
+			var direction := actor.global_position - partner.global_position
+			direction.y = 0.0
+			destination = partner.global_position + (direction.normalized() if direction.length() > 0.2 else Vector3.FORWARD) * 1.3
+		var spot := _find_landing(destination, actor.target_height, actor)
 		_departures[id] = _elapsed + 4.0
 		if not spot.is_finite():
 			_routine_route_failure(actor)
 			continue
-		var route := routes.path(actor.global_position, spot)
+		var avoid: PackedVector3Array = _blocked_waypoints.get(id, PackedVector3Array())
+		var route := routes.path(actor.global_position, spot, avoid)
 		if route.is_empty():
 			_routine_route_failure(actor)
 			continue
 		_travel_orders[id] = key
 		actor.begin_route(key, route)
 
+func _plan_agga_conversation(actor: Resident, around: Vector3) -> Resident:
+	var nearest: Resident
+	var distance := 13.0
+	for id: String in ["frub", "blepp", "zark", "mumpo"]:
+		var other: Resident = residents.get(id)
+		if not is_instance_valid(other) or resident_autonomy_disabled(id) or other.is_talking() or not other.route_goal.is_empty() or _routine_orders.has(id):
+			continue
+		var offset := other.global_position - around
+		if absf(offset.y) > 0.8 or offset.length() >= distance:
+			continue
+		var route := routes.path(actor.global_position, other.global_position)
+		if route.is_empty():
+			continue
+		nearest = other
+		distance = offset.length()
+	if nearest:
+		_social_appointments[actor.resident_id] = nearest.resident_id
+		_departures[nearest.resident_id] = maxf(float(_departures[nearest.resident_id]), _elapsed + 8.0 + actor.global_position.distance_to(nearest.global_position) / actor.speed)
+	return nearest
+
 func on_station_reached(actor: Resident, key: String) -> void:
+	_blocked_waypoints.erase(actor.resident_id)
+	if key == "@dm":
+		actor.station_origin = actor.global_position
+		return
 	_place(actor, key, actor.global_position, false)
 	_travel_orders.erase(actor.resident_id)
 	_begin_routine_at_station(actor)
 
-func on_route_blocked(actor: Resident, key: String) -> void:
+func on_route_blocked(actor: Resident, key: String, obstacle := Vector3.INF) -> void:
+	if key == "@dm":
+		return
+	if obstacle.is_finite():
+		var memory: PackedVector3Array = _blocked_waypoints.get(actor.resident_id, PackedVector3Array())
+		if not memory.has(obstacle):
+			memory.append(obstacle)
+			_blocked_waypoints[actor.resident_id] = memory
 	_travel_orders[actor.resident_id] = key
 	_departures[actor.resident_id] = _elapsed + 3.0
 	_routine_route_failure(actor)
@@ -448,35 +737,94 @@ func _place(actor: Resident, key: String, spot: Vector3, spawn := true) -> void:
 func is_routine_running(actor: Resident) -> bool:
 	return _running_routines.has(actor.resident_id)
 
+func holds_routine_pose(actor: Resident) -> bool:
+	var current: Dictionary = _running_routines.get(actor.resident_id, {})
+	return not current.is_empty() and current.task[6] == "fishing"
+
+func resident_autonomy_disabled(id: String) -> bool:
+	return autonomy_paused or _paused_residents.has(id)
+
+func _invite_feature_partner(id: String, task: Array) -> void:
+	var pair: Array = Featured.PARTNERS.get(task[0], [])
+	if pair.is_empty():
+		return
+	var other_id: String = pair[0]
+	var ally: Resident = residents.get(other_id)
+	var other := Featured.get_row(other_id, pair[1])
+	if not is_instance_valid(ally) or (other_id == "runara" and not _welcomed) or ally.is_talking() or resident_autonomy_disabled(other_id):
+		return
+	if is_routine_running(ally) or not ally.route_goal.is_empty() or _routine_orders.has(other_id):
+		return
+	if not Routines.TIME_CODE[phase] in other[1] or not _conditions_allow(other) or not _can_reserve(other_id, other) or _elapsed < float(_featured_cooldowns.get(other[0], 0.0)):
+		return
+	_queue_feature(other_id, other)
+	_departures[other_id] = _elapsed + 0.76
+	routine_shared.emit(id, task[0], other_id)
+
 func _begin_routine_at_station(actor: Resident) -> void:
 	var id := actor.resident_id
 	_departures[id] = _elapsed + _round_pause(id)
 	_blocked_routines.erase(id)
 	var task: Array = _routine_orders.get(id, [])
-	if task.is_empty() or not routine_props.can_reach(actor, task[5]):
-		_routine_orders.erase(id)
+	if task.is_empty() or not _conditions_allow(task) or not routine_props.can_reach(actor, task[5]):
+		_cancel_order(actor)
 		return
-	var prop_at := routine_props.anchor(task[5])
+	var prop_at := routine_props.working_anchor(task[5], task[6])
 	actor.face_world_direction(prop_at - actor.global_position if prop_at.is_finite() else actor.station_heading)
 	if task[6] == "doze":
+		if task[0] == "KIL_01":
+			actor.set_meta("awake_rest", true)
 		if routine_props.try_rest(actor, task[5]):
 			var duration := 8.0
 			_running_routines[id] = {"task": task, "until": _elapsed + duration, "contact": true}
 			_departures[id] = _elapsed + duration + _round_pause(id)
 			routine_contacted.emit(id, task[0], task[5])
 		else:
+			if actor.has_meta("awake_rest"):
+				actor.remove_meta("awake_rest")
 			_routine_orders.erase(id)
+			_manual_routines.erase(id)
+			_release_reservation(id)
 		return
 	var duration := 2.1 if task[6] in ["draw", "water", "cloth"] else 1.65
-	if not actor.play_gesture(task[4], duration, 0.42):
-		_routine_orders.erase(id)
+	if _is_feature(id, task):
+		duration = Featured.duration(task, fposmod(float(str(task[0]).hash() % 169) * 0.01 + _elapsed * 0.047, 1.0))
+	if task[0] == "RUN_02" and actor.has_seated_study():
+		if not routine_props.try_desk_seat(actor):
+			_cancel_order(actor)
+			return
+		actor.set_seated_study("retreat_desk_read", routine_props.desk_book_contact(task[5]))
+		_running_routines[id] = {"task": task, "until": _elapsed + 7.2, "contact": true, "read_started": _elapsed}
+		_departures[id] = _elapsed + 7.2 + _round_pause(id)
+		routine_contacted.emit(id, task[0], task[5])
 		return
+	var idle_task: bool = task[4] == "idle"
+	if not idle_task and not actor.play_gesture(task[4], duration, 0.28 if task[6] in ["fishing", "sweep"] else 0.42):
+		_routine_orders.erase(id)
+		_release_reservation(id)
+		return
+	if idle_task:
+		actor.play_action_animation("idle")
+	if task[6] == "unload":
+		duration = actor.action_lock_timer
 	_running_routines[id] = {"task": task, "until": _elapsed + duration + 0.38, "contact": false}
+	if task[6] == "fishing":
+		_running_routines[id]["wait_until"] = _elapsed + duration + 36.0
 	_departures[id] = _elapsed + duration + _round_pause(id)
+	if idle_task or task[6] in ["fishing", "stonework", "metalwork", "woodwork", "sweep", "wipe", "carry_box", "carry_sack", "unload"]:
+		on_activity_contact(actor, task[4])
 	_invite_companion(actor, task)
 
 func _invite_companion(actor: Resident, task: Array) -> void:
 	var companion_id: String = COMPANIONS.get(actor.resident_id + "/" + str(task[0]), "")
+	if task[0] == "AGG_01":
+		var chosen: String = _social_appointments.get(actor.resident_id, "")
+		var candidates := [chosen] if not chosen.is_empty() else ["frub", "blepp", "zark"]
+		for id: String in candidates:
+			var nearby: Resident = residents.get(id)
+			if is_instance_valid(nearby) and not resident_autonomy_disabled(id) and not nearby.is_talking() and not is_routine_running(nearby) and nearby.route_goal.is_empty() and actor.can_be_heard_by(nearby, 3.55):
+				companion_id = id
+				break
 	var ally: Resident = residents.get(companion_id)
 	if not is_instance_valid(ally) or ally.is_talking() or is_routine_running(ally) or not ally.route_goal.is_empty():
 		return
@@ -488,6 +836,11 @@ func _invite_companion(actor: Resident, task: Array) -> void:
 	routine_shared.emit(actor.resident_id, task[0], companion_id)
 	if str(task[5]).is_empty():
 		actor.face_world_direction(ally.global_position - actor.global_position)
+	if task[0] == "AGG_01" and _exchange.is_empty() and actor.can_be_heard_by(active_hero(), HEARING_REACH):
+		_exchange = {"id":"agga_errand", "pair":[actor.resident_id, companion_id],
+			"lines":["Revisa qué falta en el taller antes de bajar al muelle.", "Me paso por allí cuando termine."]}
+		_exchange_index = 0
+		_speak_exchange_line()
 
 func _release_companion(id: String) -> void:
 	if _partner_holds.has(id):
@@ -498,29 +851,98 @@ func _release_companion(id: String) -> void:
 
 func _finish_routines() -> void:
 	for id: String in _running_routines.keys():
-		if _elapsed >= float(_running_routines[id].until):
+		var running: Dictionary = _running_routines[id]
+		var task: Array = running.task
+		if not _conditions_allow(task):
+			_cancel_order(residents[id])
+			_departures[id] = _elapsed + 1.5
+			continue
+		if running.has("read_started"):
+			var read_time := _elapsed - float(running.read_started)
+			residents[id].set_seated_study("retreat_desk_turn" if read_time >= 3.3 and read_time < 3.85 else "retreat_desk_read")
+		if _elapsed >= float(running.until):
+			if _wait_for_fishing_partner(running, task):
+				continue
+			if task[6] == "fishing" and not running.has("retrieving") and routine_props.tools.begin_fishing_retrieval(id):
+				running["retrieving"] = true
+				running["until"] = _elapsed + 0.95
+				continue
 			_release_routine_rest(id)
 			_running_routines.erase(id)
-			_routine_orders.erase(id)
 			_release_companion(id)
+			_release_reservation(id)
+			var next: Array = Featured.TOURS.get(task[0], [])
+			if running.contact and not next.is_empty() and not _feature_second_stage.has(id):
+				var followup := task.duplicate()
+				followup[2] = next[0]
+				followup[5] = next[1]
+				followup[6] = next[2]
+				if _can_reserve(id, followup):
+					_feature_second_stage[id] = true
+					_queue_feature(id, followup)
+					_departures[id] = _elapsed + 0.12
+					continue
+			_feature_second_stage.erase(id)
+			_manual_routines.erase(id)
+			_social_appointments.erase(id)
+			routine_props.release_actor(id)
+			if _is_feature(id, task):
+				_featured_cooldowns[task[0]] = _elapsed + 32.0
+			_routine_orders.erase(id)
+
+func _wait_for_fishing_partner(running: Dictionary, task: Array) -> bool:
+	if task[6] != "fishing" or not running.contact or running.has("retrieving") or _elapsed >= float(running.get("wait_until", 0.0)):
+		return false
+	var pair: Array = Featured.PARTNERS[task[0]]
+	var other: Array = _routine_orders.get(pair[0], [])
+	if other.is_empty() or other[0] != pair[1]:
+		return false
+	var partner: Dictionary = _running_routines.get(pair[0], {})
+	return partner.is_empty() or not partner.contact
 
 func _interrupt_routine(actor: Resident, retry: bool) -> void:
 	var id := actor.resident_id
 	if not _running_routines.has(id):
+		if retry and _feature_second_stage.has(id) and routine_props.tools.has_actor(id):
+			var interrupted: Array = _routine_orders.get(id, [])
+			var restart := Featured.get_row(id, interrupted[0]) if not interrupted.is_empty() else []
+			routine_props.release_actor(id)
+			actor.cancel_route()
+			_routine_orders.erase(id)
+			_travel_orders.erase(id)
+			_feature_second_stage.erase(id)
+			_release_reservation(id)
+			if not restart.is_empty() and _can_reserve(id, restart):
+				_queue_feature(id, restart)
 		return
 	var task: Dictionary = _running_routines[id]
 	_release_routine_rest(id)
 	_running_routines.erase(id)
 	_release_companion(id)
+	routine_props.stop_target(task.task[5])
+	routine_props.release_actor(id)
+	if task.task[6] in ["incense", "simmer"]:
+		var vapor := _incense if task.task[6] == "incense" else _stew
+		if is_instance_valid(vapor):
+			vapor.emitting = false
 	if retry and not task.contact:
 		_travel_orders[id] = actor.station_id
 	else:
 		_routine_orders.erase(id)
+		_feature_second_stage.erase(id)
+		_manual_routines.erase(id)
+		_social_appointments.erase(id)
+		_release_reservation(id)
 
 func _release_routine_rest(id: String) -> void:
 	var actor: Resident = residents.get(id)
+	if is_instance_valid(actor) and not actor._desk_study.is_empty():
+		actor.set_seated_study("")
+		actor.stand_from_seat()
 	if is_instance_valid(actor) and not actor.resting_on.is_empty():
 		actor.stand_from_bed()
+		if actor.has_meta("awake_rest"):
+			actor.remove_meta("awake_rest")
 
 func _stop_routines() -> void:
 	for id: String in _running_routines.keys():
@@ -531,9 +953,19 @@ func _stop_routines() -> void:
 	_running_routines.clear()
 	for id: String in _routine_orders:
 		_travel_orders.erase(id)
+		if residents.has(id):
+			residents[id].cancel_route()
 	_routine_orders.clear()
 	_blocked_routines.clear()
+	_blocked_waypoints.clear()
+	_spot_reservations.clear()
+	_feature_second_stage.clear()
+	_manual_routines.clear()
+	_social_appointments.clear()
 	routine_props.stop_all()
+	for vapor: GPUParticles3D in [_incense, _stew]:
+		if is_instance_valid(vapor):
+			vapor.emitting = false
 
 func _routine_route_failure(actor: Resident) -> void:
 	var id := actor.resident_id
@@ -546,6 +978,12 @@ func _routine_route_failure(actor: Resident) -> void:
 	_routine_orders.erase(id)
 	_travel_orders.erase(id)
 	_blocked_routines.erase(id)
+	_blocked_waypoints.erase(id)
+	_feature_second_stage.erase(id)
+	_manual_routines.erase(id)
+	_social_appointments.erase(id)
+	_release_reservation(id)
+	routine_props.release_actor(id)
 
 func _find_landing(proposed: Vector3, height: float, actor_to_exclude: Resident = null) -> Vector3:
 	var space := get_world_3d().direct_space_state
@@ -631,7 +1069,8 @@ func _end_exchange() -> void:
 	if is_instance_valid(dialogue):
 		dialogue.caption.hide()
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	routine_props.tools.tick(delta)
 	if _exchange.is_empty() or not is_instance_valid(dialogue) or not dialogue.is_visible_in_tree():
 		return
 	dialogue.display_caption(_exchange_speaker(_exchange_index), _exchange.lines[_exchange_index], _main.camera)

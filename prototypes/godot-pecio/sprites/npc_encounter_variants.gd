@@ -2,7 +2,7 @@ extends RefCounted
 ## Add the campaign's optional C2 reinforcement without revealing or activating it.
 static func install(ui: Node) -> void:
 	var resident: Node3D = ui.tokens_by_node.get("HarpyToken")
-	if resident == null or ui.tokens_by_node.has("HarpyReinforcementToken"): return
+	if resident == null or ui.tokens_by_node.has("HarpyReinforcementToken") or ui.tokens_by_node.has("HarpyToken_C2"): return
 	var originals: Array = ui.enemies.filter(func(a): return a.id=="harpy")
 	if originals.is_empty(): return
 	var extra: Dictionary = originals[0].duplicate(true)

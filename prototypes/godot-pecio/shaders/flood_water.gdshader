@@ -9,6 +9,7 @@ uniform vec4 color_deep : source_color = vec4(0.020, 0.070, 0.084, 0.94);
 uniform float is_deep_hold = 0.0;
 uniform float surface_visibility = 0.82;
 uniform float caustic_energy = 0.05;
+#include "res://shaders/swimmer_visibility.gdshaderinc"
 
 varying vec3 v_world_pos;
 
@@ -49,7 +50,10 @@ void fragment() {
 	vec3 final_col = base.rgb + caustic_col * c_web * mix(0.08, 0.22, is_deep_hold) + sheen_col * fresnel * mix(0.22, 0.34, is_deep_hold);
 
 	ALBEDO = final_col;
-	ALPHA = clamp(base.a * surface_visibility + fresnel * 0.10, 0.42, 0.92);
+	float opacity = clamp(base.a * surface_visibility + fresnel * 0.10, 0.42, 0.92);
+	vec3 world_ray = normalize((INV_VIEW_MATRIX * vec4(-normalize(VIEW), 0.0)).xyz);
+	float visibility = swimmer_visibility_at(v_world_pos, world_ray) * is_deep_hold;
+	ALPHA = mix(opacity, 0.34, visibility);
 	ROUGHNESS = mix(0.56, 0.20, is_deep_hold);
 	SPECULAR = mix(0.08, 0.36, is_deep_hold);
 	METALLIC = 0.02;

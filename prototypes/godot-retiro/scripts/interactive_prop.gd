@@ -177,11 +177,11 @@ func begin_well_cycle(restart := true) -> bool:
 	_play_prop_sound("pulley")
 	return true
 
-func show_watering_contact(spout_world := Vector3.INF) -> void:
+func show_watering_contact(spout_world := Vector3.INF, plant_world := Vector3.INF) -> void:
 	if prop_kind == "watering":
 		if spout_world.is_finite():
 			var owner_node := get_parent() as Node3D
-			_emit_burst_particles(Color(0.58, 0.90, 1.0, 0.90), owner_node.to_local(spout_world), 18, true)
+			_emit_burst_particles(Color(0.58, 0.90, 1.0, 0.90), owner_node.to_local(spout_world), 18, true, plant_world - spout_world if plant_world.is_finite() else Vector3.INF)
 		else:
 			_trigger_water_droplets()
 		_play_prop_sound("splash")
@@ -318,31 +318,35 @@ func _interact_seat(tok: Node3D, ui: Node) -> void:
 			ui.notify_mesa("%s se levanta de %s." % [_actor_label(tok), display_name])
 		return
 
-	var parent_n := get_parent() as Node3D
-	var slots_world := _compute_seat_slots_world(parent_n)
-	var chosen_slot := _pick_free_seat_slot(slots_world, tok)
-	if chosen_slot == Vector3.INF:
+	if not try_attach_seat(tok):
 		if ui and ui.has_method("notify_mesa"):
 			ui.notify_mesa("No hay plazas libres en %s." % display_name)
 		return
 
-	var heading := _resolve_seat_heading_world(parent_n, tok.global_position)
-	var feet := _seat_foot_contact(chosen_slot, heading, seat_front_radius, tok.global_position)
-	var seat_id := str(parent_n.name) if parent_n else str(name)
-	if tok.has_method("attach_to_seat"):
-		tok.attach_to_seat(chosen_slot, heading, feet, seat_id)
-	else:
-		if not tok.has_meta("pre_rest_pos"):
-			tok.set_meta("pre_rest_pos", tok.global_position)
-		tok.set_meta("resting_on_prop", true)
-		tok.global_position = chosen_slot
-		tok.set("facing_dir", seat_facing)
 	if tok.has_method("play_action_animation"):
 		tok.play_action_animation("sit")
 	_play_prop_sound("wood")
 	if ui and ui.has_method("notify_mesa"):
 		var verb := "medita en silencio en" if "contemplación" in display_name.to_lower() else "toma asiento en"
 		ui.notify_mesa("%s %s %s (pulsa [T] o muévete para levantarte)." % [_actor_label(tok), verb, display_name])
+
+func try_attach_seat(tok: Node3D) -> bool:
+	var parent_n := get_parent() as Node3D
+	var chosen_slot := _pick_free_seat_slot(_compute_seat_slots_world(parent_n), tok)
+	if not chosen_slot.is_finite():
+		return false
+	var heading := _resolve_seat_heading_world(parent_n, tok.global_position)
+	var feet := _seat_foot_contact(chosen_slot, heading, seat_front_radius, tok.global_position)
+	var seat_id := str(parent_n.name) if parent_n else str(name)
+	if tok.has_method("attach_to_seat"):
+		tok.attach_to_seat(chosen_slot, heading, feet, seat_id, float(get_meta("seat_drape_radius", 0.0)))
+	else:
+		if not tok.has_meta("pre_rest_pos"):
+			tok.set_meta("pre_rest_pos", tok.global_position)
+		tok.set_meta("resting_on_prop", true)
+		tok.global_position = chosen_slot
+		tok.set("facing_dir", seat_facing)
+	return true
 
 func _interact_bed(tok: Node3D, ui: Node) -> void:
 	if not str(tok.get("resting_on")).is_empty() or bool(tok.get("is_prone")) or bool(tok.get("is_sitting")):
@@ -812,7 +816,7 @@ func _trigger_water_droplets() -> void:
 func _trigger_shrine_sparkles() -> void:
 	_emit_burst_particles(Color(1.0, 0.90, 0.56, 0.92), Vector3(0.0, 0.95, 0.0), 16)
 
-func _emit_burst_particles(col: Color, pos_local: Vector3, count: int, from_spout := false) -> void:
+func _emit_burst_particles(col: Color, pos_local: Vector3, count: int, from_spout := false, stream_to := Vector3.INF) -> void:
 	if DisplayServer.get_name() == "headless":
 		return
 	var parent_n := get_parent() as Node3D
@@ -851,9 +855,27 @@ func _emit_burst_particles(col: Color, pos_local: Vector3, count: int, from_spou
 	process_material.emission_sphere_radius = 0.029 if from_spout else 0.28
 	process_material.direction = Vector3(0.6, -1.0, 0.0) if from_spout else Vector3.UP
 	process_material.spread = 14.0 if from_spout else 48.0
+	if stream_to.is_finite():
+		var flight := 0.54
+		var velocity := (stream_to - process_material.gravity * 0.5 * flight * flight) / flight
+		if not velocity.is_zero_approx():
+			process_material.direction = velocity.normalized()
+			process_material.initial_velocity_min = velocity.length() * 0.96
+			process_material.initial_velocity_max = velocity.length() * 1.04
+			process_material.spread = 5.0
+	else:
+		process_material.initial_velocity_min = 0.6
+		process_material.initial_velocity_max = 1.4
 	_vfx_particles.position = pos_local
 	_vfx_particles.restart()
 	_vfx_particles.emitting = true
+
+func stop_watering_contact() -> void:
+	if is_instance_valid(_vfx_particles):
+		_vfx_particles.emitting = false
+		_vfx_particles.restart()
+	if is_instance_valid(_audio_player):
+		_audio_player.stop()
 
 func _compute_seat_slots_world(parent_n: Node3D) -> Array[Vector3]:
 	var out: Array[Vector3] = []
@@ -870,6 +892,8 @@ func _pick_free_seat_slot(slots: Array[Vector3], actor: Node3D) -> Vector3:
 		return Vector3.INF
 	var tree := get_tree()
 	var tokens: Array = tree.get_nodes_in_group("party_tokens") if tree else []
+	if tree:
+		tokens.append_array(tree.get_nodes_in_group("retreat_residents"))
 	var best := Vector3.INF
 	var best_d := 1e9
 	for slot in slots:

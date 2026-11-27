@@ -463,23 +463,27 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if bool(nearby_player.get("is_transitioning")):
 		return
+	var Prefs = preload("res://player/player_preferences.gd")
+	if Prefs.is_capturing_key():
+		return
 	if event is InputEventKey and event.is_pressed() and not event.is_echo():
 		var ek := event as InputEventKey
 		if ek.ctrl_pressed or ek.alt_pressed or ek.meta_pressed:
 			return
-		if ek.keycode == KEY_T:
+		if Prefs.matches_key("interact", ek.keycode):
 			execute_transition()
 			get_viewport().set_input_as_handled()
-		elif ek.keycode == KEY_M and not extra_routes.is_empty():
+		elif Prefs.matches_key("alt_route", ek.keycode) and not extra_routes.is_empty():
 			execute_extra_transition(0)
 			get_viewport().set_input_as_handled()
 
 func get_prompt_text() -> String:
 	if dm_locked:
 		return "%s (Paso cerrado por el DM)" % display_name
+	var k_label := str(preload("res://player/player_preferences.gd").key_label("interact"))
 	if not interaction_hint.is_empty():
-		return "[T] " + interaction_hint
-	return "[T] Continuar hacia %s" % destination_label
+		return "[%s] %s" % [k_label, interaction_hint]
+	return "[%s] Continuar hacia %s" % [k_label, destination_label]
 
 func execute_transition() -> bool:
 	if dm_locked:

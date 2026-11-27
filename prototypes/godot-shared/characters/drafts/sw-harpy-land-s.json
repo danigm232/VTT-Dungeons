@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-harpy-land-s",
+  "character": "harpy",
+  "campaign": "stormwreck-isle",
+  "anatomy": "winged",
+  "action": "land",
+  "direction": "s",
+  "fps": 12,
+  "loop": false,
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Current frame alpha; physical attachments remain unverified."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-land-s/b9a664a17997/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-land-s/b9a664a17997/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-land-s/b9a664a17997/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-land-s/b9a664a17997/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-land-s/b9a664a17997/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-land-s/b9a664a17997/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-land-s/b9a664a17997/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-land-s/b9a664a17997/08.webp"
+  ],
+  "production": {
+    "method": "Built-in image generation and lossless native-size extraction",
+    "reference": "campaigns/stormwreck-isle/public/art/m3/harpy/harpia_base.png",
+    "minimumVisibleStandingPixels": 195,
+    "directionalArrival": true,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-harpy-land-s-b9a664a17997.png",
+    "originalSha256": "b9a664a179972181c9320248ee36c73c1f1192d6680e647714076649f21cb6f6",
+    "importReport": "output/stormwreck-motion-detail/sw-harpy-land-s-b9a664a17997.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 350,
+  "pivot": [
+    0.5,
+    0.8051181102362205
+  ]
+}

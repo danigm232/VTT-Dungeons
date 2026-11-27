@@ -244,13 +244,13 @@ static func get_campaign_maps() -> Array[Dictionary]:
 		},
 		{
 			"id": "camp-coastal-refuge",
-			"label": "Camp. 05 · Refugio costero de Pleamar",
-			"short": "Camp. 05 Refugio",
+			"label": "Camp. 05 · Refugio Cala Pleamar",
+			"short": "Camp. 05 Cala",
 			"project": "campamentos",
 			"project_dir": "godot-campamentos",
 			"scene_path": "res://scenes/camp_coastal_refuge.tscn",
 			"camp_id": "camp-coastal-refuge",
-			"note": "Gruta litoral protegida cerca de las Cuevas de Pleamar."
+			"note": "Sendero costero, cala abrigada y cueva marina con recintos naturales."
 		}
 	]
 

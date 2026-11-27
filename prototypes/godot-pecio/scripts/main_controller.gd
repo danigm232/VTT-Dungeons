@@ -130,10 +130,10 @@ func _spawn_canonical_pecio_creatures() -> void:
 		{"name": "ZombieC4_A",      "title": "Zombi C4 (1)",      "pos": Vector3(-19.5, 0.1, -3.4),  "tex": zombie_tex, "h": 1.92, "lvl": 1, "tint": Color(0.95, 1.0, 0.94), "codex": ""},
 		{"name": "ZombieC4_B",      "title": "Zombi C4 (2)",      "pos": Vector3(-23.2, 0.1, -2.9),  "tex": zombie_tex, "h": 1.88, "lvl": 1, "tint": Color(0.90, 0.96, 0.90), "codex": ""},
 		{"name": "ZombieC4_C_Lvl2", "title": "Zombi C4 (Niv.2)",  "pos": Vector3(-20.8, 0.1, -5.2),  "tex": zombie_tex, "h": 1.94, "lvl": 2, "tint": Color(0.86, 0.93, 0.88), "codex": ""},
-		{"name": "GhoulToken",      "title": "Gul de la Sentina", "pos": Vector3(-17.8, -3.1, -0.4), "tex": zombie_tex, "h": 1.76, "lvl": 1, "tint": Color(0.68, 0.92, 0.78), "codex": "ghoul"},
+		{"name": "GhoulToken",      "title": "Gul de la Sentina", "pos": Vector3(-17.8, -3.1, -0.4), "tex": null, "h": 1.75, "lvl": 1, "tint": Color.WHITE, "codex": ""},
 		{"name": "ZombieC8_B_Lvl2", "title": "Zombi C8 (Niv.2)",  "pos": Vector3(-16.2, -3.1, 2.2),  "tex": zombie_tex, "h": 1.90, "lvl": 2, "tint": Color(0.88, 0.95, 0.90), "codex": ""},
 		{"name": "ZombieC8_C_Lvl2", "title": "Zombi C8 (3)",      "pos": Vector3(-12.2, -3.1, -1.6), "tex": zombie_tex, "h": 1.92, "lvl": 2, "tint": Color(0.86, 0.92, 0.88), "codex": ""},
-		{"name": "HarpyToken_C2",   "title": "Arpía C2 (Niv.2)",  "pos": Vector3(21.0, 3.65, -3.2),  "tex": harpy_tex,  "h": 2.15, "lvl": 2, "tint": Color(1.0, 0.92, 0.88), "codex": ""},
+		{"name": "HarpyToken_C2",   "title": "Arpía C2 (Niv.2)",  "pos": Vector3(21.0, 3.65, -3.2),  "tex": harpy_tex,  "h": 1.70, "lvl": 2, "tint": Color(1.0, 0.92, 0.88), "codex": ""},
 	]
 	for sp in specs:
 		if ship_vessel.get_node_or_null(str(sp["name"])) != null:
@@ -157,6 +157,10 @@ func _spawn_canonical_pecio_creatures() -> void:
 			spr.modulate = sp["tint"]
 		if int(sp["lvl"]) > 1:
 			tok.visible = false
+		if tok.name == "HarpyToken_C2":
+			tok.set_meta("npc_reinforcement_visible", false)
+			tok.set_physics_process(false)
+			tok.get_node("CollisionShape3D").set_deferred("disabled", true)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.is_pressed() and not event.is_echo() and not event.ctrl_pressed and not event.alt_pressed:

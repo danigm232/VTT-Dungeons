@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-ghoul-fall-nw",
+  "character": "sw-ghoul",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "fall",
+  "direction": "nw",
+  "fps": 10,
+  "loop": false,
+  "compatibility": {
+    "preservesAppearance": true,
+    "overlay": "Current frame alpha; existing embedded wraps retained."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-fall-nw/89eac44a0321/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-fall-nw/89eac44a0321/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-fall-nw/89eac44a0321/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-fall-nw/89eac44a0321/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-fall-nw/89eac44a0321/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-fall-nw/89eac44a0321/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-fall-nw/89eac44a0321/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-fall-nw/89eac44a0321/08.webp"
+  ],
+  "production": {
+    "method": "Built-in image generation, native-size extraction",
+    "reference": "campaigns/stormwreck-isle/public/art/m3/ghoul/ghoul_base.png",
+    "minimumVisibleStandingPixels": 90,
+    "columnCutsByRow": [
+      [
+        0,
+        444,
+        887,
+        1330,
+        1774
+      ],
+      [
+        0,
+        444,
+        880,
+        1330,
+        1774
+      ]
+    ],
+    "silhouetteAlpha": 100,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-ghoul-fall-nw-89eac44a0321.png",
+    "originalSha256": "89eac44a0321343362ed4a23525179c4627989ef1e90ce810193df9b3d2fd93f",
+    "importReport": "output/stormwreck-motion-detail/sw-ghoul-fall-nw-89eac44a0321.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels",
+    "motionFinish": true,
+    "prompt": "Create ONE production sprite sheet, wide 2:1 canvas, exactly four EQUAL columns and TWO EQUAL rows, eight unique full-body frames left-to-right, top then bottom. TRUE transparent RGBA (actual zero alpha gutters), NO checkerboard drawn, white surface, color backdrop, text, numbers, outline, shadows or effects. Big clear margins on ALL edges of each cell, ensure no limb or tail crosses any boundary. Same camera elevation, lighting and anatomy across all cells. Painted 2.5D tabletop art. Exact same bald blue-grey ghoul with long pointed ears, pink tongue, ivory eyes, long clawed arms and bare feet, beige wrapped forearms and calves and ragged tan loincloth. No accessories. Subject faces upper left, REAR three-quarter matching the rear gameplay reference, show back and side. Full single sequence of a knocked-down fall, seen from behind and left throughout. Pose 1 standing and steady, 2 recoil, 3 one knee buckles, 4 reach down, 5 one hand takes weight, 6 shoulder descends, 7 body rolls onto side, 8 lies low and still. Keep horizontal phase inside cell with adequate margins. No blood."
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 400,
+  "pivot": [
+    0.5,
+    0.8470588235294118
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-maria-dive-s",
+  "character": "maria",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-small",
+  "action": "dive",
+  "direction": "s",
+  "fps": 10,
+  "loop": true,
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Independent environment effects. No water, foam or bubbles painted into the character."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-s/f7f1c2299b65/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-s/f7f1c2299b65/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-s/f7f1c2299b65/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-s/f7f1c2299b65/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-s/f7f1c2299b65/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-s/f7f1c2299b65/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-s/f7f1c2299b65/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-s/f7f1c2299b65/08.webp"
+  ],
+  "production": {
+    "method": "Image generation from existing character identity and native-size extraction",
+    "reference": "prototypes/godot-pecio/characters/imported/sw-maria-idle8/00-idle-01.png",
+    "prompt": "Create eight bitmap game sprite poses for the same adventurer in the reference. The exact character is the short lean halfling rogue Trinity (María), brunette, cream and brown leather, preserve distinctive face, hair, outfit and body proportions. Match the art reference and apparent age, anatomy, skin tone and garment cut. front view swimming toward bottom center of the screen, viewed slightly from above, face and upper torso readable in every phase. fully submerged horizontal underwater swimming with a controlled alternation of arms reaching forward, sweeping back and recovering, opposing flutter kicks, sleek buoyant movement. Depict entire figure even during recovery. No tank or gear. Grid exactly 4 columns × 2 rows in row-major order, wide 2:1 total, character centered within EACH cell with empty 15% gutters all around, distinct consecutive poses, same body size and alignment, opaque character with transparent background. No water, foam, bubbles, shine lines, floor shadows, props, text or visible grid; the VTT adds effects separately. Fine hand-drawn high-resolution fantasy sprite finish like the existing game character.",
+    "minimumVisibleStandingPixels": 120,
+    "silhouetteAlpha": 80,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-maria-dive-s-f7f1c2299b65.png",
+    "originalSha256": "f7f1c2299b65646f00b529c44916f496352835f9589d60a8ea2ef56fe8eb0bfd",
+    "importReport": "output/stormwreck-motion-detail/sw-maria-dive-s-f7f1c2299b65.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "Individual transparent poses visually reviewed for heading, silhouette and separation from VFX. Project review controls promotion.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 355,
+  "pivot": [
+    0.5,
+    0.8859649122807017
+  ]
+}

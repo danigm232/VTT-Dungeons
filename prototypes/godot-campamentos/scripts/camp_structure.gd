@@ -197,6 +197,19 @@ static func get_zone_at(pos: Vector3, scene_id: String = "") -> Dictionary:
 			return {"id": "cliff_east", "label": "A1 · Mirador y acantilado oeste/este", "elevation_min": 0.0, "is_interior": false}
 		return {"id": "plaza", "label": "A1 · Plaza y altar de Astalagan", "elevation_min": 0.0, "is_interior": false}
 
+	if sid == "camp-coastal-refuge":
+		if pos.z <= 12.2 and pos.x >= 9.6 and pos.x <= 25.4:
+			return {"id": "cave_rest", "label": "Cala Pleamar · Recinto de descanso", "elevation_min": 0.0, "is_interior": true}
+		if pos.z <= 19.6 and pos.x < 9.6 and pos.x >= 1.5 and pos.z >= 4.2:
+			return {"id": "cave_storage", "label": "Cala Pleamar · Recinto de almacén", "elevation_min": 0.0, "is_interior": true}
+		if pos.z <= 19.6 and pos.x > 25.4 and pos.x <= 36.2 and pos.z >= 5.0:
+			return {"id": "cave_spring", "label": "Cala Pleamar · Gruta del manantial", "elevation_min": 0.0, "is_interior": true}
+		if pos.z <= 20.6 and pos.x >= 9.6 and pos.x <= 25.4:
+			return {"id": "cave_common", "label": "Cala Pleamar · Sala común y hoguera", "elevation_min": 0.0, "is_interior": true}
+		if pos.x < 8.5 and pos.z >= 14.0:
+			return {"id": "coastal_trail", "label": "Cala Pleamar · Sendero costero", "elevation_min": 0.0, "is_interior": false}
+		return {"id": "cove_beach", "label": "Cala Pleamar · Cala y boca marina", "elevation_min": 0.0, "is_interior": false}
+
 	var tent := is_in_tent(pos, scene_def)
 	if not tent.is_empty():
 		return {
@@ -264,6 +277,71 @@ static func get_zones_for_scene(scene_def: Dictionary) -> Array[Dictionary]:
 				"is_interior": true,
 				"note": "Celda excavada %s · techo cutaway automático al entrar." % str(rm["label"]),
 			})
+		return zones
+
+	if sid == "camp-coastal-refuge":
+		zones.append_array([
+			{
+				"id": "coastal_trail",
+				"code": "SND",
+				"label": "Sendero costero descendente",
+				"focus": Vector3(2.5, 1.0, 21.8),
+				"distance": 21.0,
+				"overview": false,
+				"is_interior": false,
+				"note": "Acceso costero tallado en el acantilado oeste con pasamanos hacia la cala.",
+			},
+			{
+				"id": "cove_beach",
+				"code": "CAL",
+				"label": "Cala arenosa, pozas y boca de la cueva",
+				"focus": Vector3(18.5, 0.4, 23.5),
+				"distance": 22.0,
+				"overview": false,
+				"is_interior": false,
+				"note": "Cala marina resguardada con aguas turquesas, pozas rocosas y arco de entrada.",
+			},
+			{
+				"id": "cave_common",
+				"code": "COM",
+				"label": "Sala común · Hoguera interior",
+				"focus": Vector3(18.75, 0.6, 16.0),
+				"distance": 15.0,
+				"overview": false,
+				"is_interior": true,
+				"note": "Cámara principal con hoguera, caldero, chimenea natural y acceso a los recintos.",
+			},
+			{
+				"id": "cave_rest",
+				"code": "DSC",
+				"label": "Recinto de descanso",
+				"focus": Vector3(17.8, 0.6, 9.8),
+				"distance": 14.5,
+				"overview": false,
+				"is_interior": true,
+				"note": "Alcoba norte seca con tarima ligera de deriva, petates y mochilas del grupo.",
+			},
+			{
+				"id": "cave_storage",
+				"code": "ALM",
+				"label": "Recinto de almacén y víveres",
+				"focus": Vector3(6.8, 0.6, 11.8),
+				"distance": 14.0,
+				"overview": false,
+				"is_interior": true,
+				"note": "Recodo oeste protegido con leña seca, cuerdas, cajas y poza lateral de filtración.",
+			},
+			{
+				"id": "cave_spring",
+				"code": "MAN",
+				"label": "Rincón natural · Manantial interior",
+				"focus": Vector3(29.2, 0.6, 13.5),
+				"distance": 14.0,
+				"overview": false,
+				"is_interior": true,
+				"note": "Gruta húmeda oriental con cascada natural, poza mineral turquesa y helechos.",
+			},
+		])
 		return zones
 
 	for pt in scene_def.get("interactionPoints", []):

@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-myla-retreat-metalwork-n",
+  "character": "sw-myla",
+  "anatomy": "reptilian-winged-small",
+  "campaign": "stormwreck-isle",
+  "action": "retreat_metalwork",
+  "direction": "n",
+  "fps": 6,
+  "loop": true,
+  "referenceHeight": 428,
+  "pivot": [
+    0.5,
+    0.8664122137404581
+  ],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-metalwork-n/74ac3f25d4db/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-metalwork-n/74ac3f25d4db/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-metalwork-n/74ac3f25d4db/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-metalwork-n/74ac3f25d4db/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-metalwork-n/74ac3f25d4db/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-metalwork-n/74ac3f25d4db/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-metalwork-n/74ac3f25d4db/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-metalwork-n/74ac3f25d4db/08.webp"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "propsSeparate": true
+  },
+  "production": {
+    "columns": 4,
+    "silhouetteAlpha": 96,
+    "minimumVisibleStandingPixels": 310,
+    "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-tinker-rear/8ab2349a258c/01.webp",
+    "intent": "Dedicated rear tool cycle, grounded support and empty gripping hands.",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-myla-retreat-metalwork-n-74ac3f25d4db.png",
+    "originalSha256": "74ac3f25d4dbf517fb53ef73e3dee18d6956460ade32ef4288e892d7d42550d9",
+    "importReport": "output/stormwreck-motion-detail/sw-myla-retreat-metalwork-n-74ac3f25d4db.json",
+    "minimumAlpha": 20,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "Original and extracted candidate compared, with user acceptance pending.",
+    "userAcceptance": "pending"
+  }
+}

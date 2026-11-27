@@ -1,9 +1,16 @@
 extends RefCounted
 ## Explicit target contract shared by UI and rules. Unknown directed abilities
 ## remain creature-targeted; a guided resolution never implies target-free.
-const PERSONAL := ["detect-magic","shield","light-torch","harpy-song"]
-const ALLIES := ["healing-word","bless","shield-of-faith","feather-fall"]
-const BASIC := {"dash":"none","disengage":"none","dodge":"none","hide":"none","ready":"none","search":"point","study":"none","improvise":"none","withdraw":"none","end-concentration":"self","help":"ally","influence":"creature","use-object":"object"}
+const PERSONAL := ["detect-magic","shield","light-torch","harpy-song","drink-potion","torch","channel-life","arcane-recovery","steady-aim","short-rest"]
+const ALLIES := ["healing-word","bless","shield-of-faith","feather-fall","stabilize"]
+const BASIC := {
+	"dash":"none","disengage":"none","dodge":"none","hide":"none","ready":"none",
+	"search":"point","study":"none","improvise":"none","withdraw":"none",
+	"end-concentration":"self","help":"ally","influence":"creature","use-object":"object",
+	"grapple":"enemy","shove":"enemy","drink-potion":"self","stabilize":"ally","short-rest":"none","end-turn":"none",
+	"talk":"none","pick-lock":"object","disarm-trap":"object",
+	"climb":"point","swim":"point","jump":"none","torch":"self","sit":"none","prone":"none"
+}
 const LABELS := {"none":"Sin objetivo","self":"Sobre ti","point":"Casilla / área","ally":"Aliado o tú","enemy":"Enemigo","creature":"Criatura","object":"Objeto"}
 static func mode(action: Dictionary) -> String:
 	if action.has("target_mode"): return str(action.target_mode)

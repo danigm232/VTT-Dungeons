@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-ghoul-hit-se",
+  "character": "sw-ghoul",
+  "anatomy": "humanoid-tall",
+  "campaign": "stormwreck-isle",
+  "action": "hit",
+  "direction": "se",
+  "fps": 10,
+  "loop": false,
+  "compatibility": {
+    "preservesAppearance": true,
+    "overlay": "Current frame alpha; physical attachments remain unverified."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-hit-se/b11607311e15/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-hit-se/b11607311e15/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-hit-se/b11607311e15/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-hit-se/b11607311e15/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-hit-se/b11607311e15/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-hit-se/b11607311e15/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-hit-se/b11607311e15/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-hit-se/b11607311e15/08.webp"
+  ],
+  "production": {
+    "method": "Built-in image generation with existing local identity reference and native-size extraction",
+    "reference": "campaigns/stormwreck-isle/public/art/m3/ghoul/ghoul_base.png",
+    "minimumVisibleStandingPixels": 240,
+    "prompt": "Eight three-quarter hit reaction phases on genuine transparency: quick upper-body recoil, weight shift, recover to guard. Grounded feet. Same ghoul and wraps.",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-ghoul-hit-se-b11607311e15.png",
+    "originalSha256": "b11607311e153a59ac62a4080f50c9d7e7c7bdadbd79a3742ef43653290d8e13",
+    "importReport": "output/stormwreck-motion-detail/sw-ghoul-hit-se-b11607311e15.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 395,
+  "pivot": [
+    0.5,
+    0.9605263157894737
+  ]
+}

@@ -50,7 +50,13 @@
     "run",
     "combat_idle",
     "attack",
-    "spell"
+    "spell",
+    "swim",
+    "dive",
+    "open_door",
+    "open_chest",
+    "dive_chest",
+    "stow_item"
   ],
   "limitations": [
     "Robes are baked. Replacing clothing requires an authored replacement mask; optional outer armour is separate."
@@ -62,5 +68,11 @@
   },
   "bindingFit": {
     "torsoHalfWidth": 0.15
+  },
+  "aquaticCompatibility": {
+    "campaign": "stormwreck-isle",
+    "vfx": "independent",
+    "bodyWetness": "depth-and-weather",
+    "dedicatedSwimmingSpeed": false
   }
 }

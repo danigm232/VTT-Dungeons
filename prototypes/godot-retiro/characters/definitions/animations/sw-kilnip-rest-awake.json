@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-kilnip-rest-awake",
+  "character": "sw-kilnip",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "rest_awake",
+  "direction": "s",
+  "fps": 1,
+  "loop": false,
+  "dependencies": [
+    "sw-kilnip"
+  ],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-rest-awake/ca83671ff40d/01.webp"
+  ],
+  "restVolume": {
+    "head": 0.145,
+    "chest": 0.15,
+    "hips": 0.13,
+    "calves": 0.084,
+    "boots": 0.062
+  },
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "placement": "Head-to-foot texture of a reclining kobold supported by anchored hammock geometry, footprint measured from the original standing actor",
+    "overlay": "Existing resting body surface"
+  },
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-kilnip-hammock-rest/33f7b58bf524/01.webp",
+    "intent": "A held overhead eyes-open rest under the existing wool surface. Not a directional billboard.",
+    "minimumNativePixels": 390,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-kilnip-rest-awake-ca83671ff40d.png",
+    "originalSha256": "ca83671ff40ddcfdf4cff7640acedcae74896dc7373f767ad0a9a8642e0bd571",
+    "nativeBounds": [
+      21,
+      14,
+      793,
+      1677
+    ],
+    "encoding": "WebP lossless verified at native resolution"
+  },
+  "review": {
+    "technical": "Native crop, transparent margins and RGBA roundtrip checked.",
+    "visual": "Original and extracted candidate compared, with user acceptance pending.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 1663,
+  "pivot": [
+    0.5,
+    0.004764740917212627
+  ],
+  "soleContact": [
+    0.5,
+    0.9952352590827874
+  ],
+  "restSculpt": {
+    "eyes": 0.17,
+    "nose": [
+      0.51,
+      0.226
+    ],
+    "jaw": 0.27,
+    "faceHalfWidth": 0.14,
+    "recline": 0
+  },
+  "restBlanket": {
+    "base": "#686557",
+    "trim": "#cbb18b",
+    "bands": 2
+  },
+  "poseKind": "hold"
+}

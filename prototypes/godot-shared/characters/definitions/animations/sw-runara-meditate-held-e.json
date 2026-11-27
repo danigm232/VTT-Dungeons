@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-runara-meditate-held-e",
+  "character": "sw-runara",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "retreat_meditate_seated",
+  "direction": "e",
+  "fps": 1,
+  "loop": false,
+  "dependencies": [
+    "sw-runara"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "standing feet registered; one authored view"
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate-seated/5dd8b547f329/e.webp"
+  ],
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-meditate/785c7d412c11/04.png",
+    "candidateCell": 0,
+    "intent": "Grounded seated meditation, nearest audited relative camera bearing on the temple approach.",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-runara-meditate-seated-5dd8b547f329.png",
+    "originalSha256": "5dd8b547f329028e46974ae68bcfb55b71f67defd0c4718b30f99760cc06aa5d",
+    "nativeBounds": [
+      85,
+      35,
+      430,
+      472
+    ],
+    "encoding": "Native WebP lossless verified in RGBA",
+    "method": "Five views of one static supported cross-legged pose"
+  },
+  "review": {
+    "technical": "Native scale, clean cut, common ground pivot and RGBA verified.",
+    "visual": "Original and extracted candidate compared, with user acceptance pending.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 706,
+  "pivot": [
+    0.5,
+    0.9825708061002179
+  ],
+  "poseKind": "hold",
+  "viewAngleDegrees": 85
+}

@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-frub-retreat-lift-w",
+  "character": "sw-frub",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "retreat_carry_lift",
+  "direction": "w",
+  "fps": 6,
+  "loop": false,
+  "referenceHeight": 478,
+  "pivot": [
+    0.5,
+    0.8781362007168458
+  ],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-lift-w/8cb458cf2bf0/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-lift-w/8cb458cf2bf0/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-lift-w/8cb458cf2bf0/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-lift-w/8cb458cf2bf0/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-lift-w/8cb458cf2bf0/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-lift-w/8cb458cf2bf0/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-lift-w/8cb458cf2bf0/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-lift-w/8cb458cf2bf0/08.webp"
+  ],
+  "compatibility": {
+    "embeddedSlotsRetained": true,
+    "propsSeparate": true,
+    "preservesAppearance": true
+  },
+  "production": {
+    "columns": 4,
+    "silhouetteAlpha": 96,
+    "minimumVisibleStandingPixels": 240,
+    "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-frub-retreat-turnaround/0f81da46a176/08.png",
+    "intent": "Eight phases from a floor pickup through a supported rise. Reverse for set-down. Root and floor contact stay fixed.",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-frub-retreat-lift-w-8cb458cf2bf0.png",
+    "originalSha256": "8cb458cf2bf0af27bb8dc295597507eb0f2b47913359d1dde81e00072529eda1",
+    "importReport": "output/stormwreck-motion-detail/sw-frub-retreat-lift-w-8cb458cf2bf0.json",
+    "minimumAlpha": 20,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "Original and extracted candidate compared, with user acceptance pending.",
+    "userAcceptance": "pending"
+  }
+}

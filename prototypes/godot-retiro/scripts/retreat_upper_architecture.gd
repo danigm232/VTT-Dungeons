@@ -743,6 +743,8 @@ static func build_upper_excavated_portal(
 		plinth.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 		var course1 := _box(static_portal, Vector3(jx + s * 0.02, y0 + 0.68, z_mid), Vector3(0.68, 0.48, tunnel_d + 0.06), mat_ashlar)
 		course1.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		# Colisión sólida permanente de las jambas de piedra del túnel
+		RetreatSceneEnhancer.add_box_collider(static_portal, Vector3(jx, y0 + 1.40, z_mid + 0.04), Vector3(0.80, 2.80, tunnel_d + 0.18))
 
 		# Encastre de estratos basálticos horizontales detrás de la jamba (cero salchichas verticales!)
 		var base_cheek := MeshInstance3D.new()
@@ -881,7 +883,7 @@ static func build_upper_excavated_portal(
 	door_ctrl.add_child(blk_body)
 	var blk_col := CollisionShape3D.new()
 	var blk_box := BoxShape3D.new()
-	blk_box.size = Vector3(clear_w, leaf_h, 0.28)
+	blk_box.size = Vector3(clear_w + 0.36, leaf_h + 0.14, 0.40)
 	blk_col.shape = blk_box
 	blk_col.position = Vector3(0.0, leaf_h * 0.5, 0.0)
 	blk_col.disabled = true
@@ -1139,6 +1141,7 @@ static func build_flank_walls_and_east_stairs(
 		sm.rotation_degrees = bsp[2]
 		sm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 		obs_east_bank.add_child(sm)
+		sm.create_trimesh_collision()
 	# Helechos y matas mediterráneas agrupadas en MultiMesh sobre las juntas de los bancales
 	var bank_fern_xfs: Array[Transform3D] = []
 	var bank_fern_cols: Array[Color] = []

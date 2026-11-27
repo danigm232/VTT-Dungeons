@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-mike-stow-item-e",
+  "character": "mike",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "stow_item",
+  "direction": "e",
+  "fps": 10,
+  "loop": false,
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Independent environment effects. No water, foam or bubbles painted into the character."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-stow-item-e/0d4ca98abe10/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-stow-item-e/0d4ca98abe10/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-stow-item-e/0d4ca98abe10/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-stow-item-e/0d4ca98abe10/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-stow-item-e/0d4ca98abe10/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-stow-item-e/0d4ca98abe10/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-stow-item-e/0d4ca98abe10/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-stow-item-e/0d4ca98abe10/08.webp"
+  ],
+  "production": {
+    "method": "Image generation from existing character identity and native-size extraction",
+    "reference": "prototypes/godot-pecio/characters/imported/sw-mike-idle8/00-idle-01.png",
+    "prompt": "Eight frames showing only the exact same fantasy player character from the provided game reference, Mike elf wizard, youthful tall elf with golden blond hair in the exact royal blue and gold coat of the reference. Character always faces visually screen RIGHT in slightly top-down rightward game profile, nose to screen right and both feet visible. Eight consecutive phases: standing, take a small bronze trinket from right hand, bring both arms around a plain small satchel matching the reference leather, stow it and close flap, lower empty hands. Preserve face, clothing, footwear and body proportions exactly, detailed clean painted pixel-art appearance. Any external chest and door are provided by engine and must not be drawn. No detached items in air, no environmental water, bubbles, floor shadow, background or text. Transparent PNG. Exact 4 columns x 2 rows, row major, generous empty gutters centered in each cell (minimum 15 percent each side) and every pose same scale. Wider canvas 2:1.",
+    "minimumVisibleStandingPixels": 120,
+    "silhouetteAlpha": 80,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-stow-item-e-0d4ca98abe10.png",
+    "originalSha256": "0d4ca98abe103d44df4e033f375b63617a735aa46d19359668ea53b23d43dc35",
+    "importReport": "output/stormwreck-motion-detail/sw-mike-stow-item-e-0d4ca98abe10.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 355,
+  "pivot": [
+    0.5,
+    0.9385964912280702
+  ]
+}

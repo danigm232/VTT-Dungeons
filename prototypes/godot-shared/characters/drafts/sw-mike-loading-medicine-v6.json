@@ -9,19 +9,29 @@
   "review": {
     "visual": "pending",
     "userAcceptance": "pending",
-    "evidence": []
+    "evidence": [],
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified"
   },
   "instructions": "Create draft, search reuse, complete source/style/scale fields, adopt only after validation. Technical success is not artistic acceptance.",
   "kind": "animation",
   "character": "mike",
-  "action": "loading_medicine",
+  "action": "retreat_loading_medicine",
   "direction": "se",
-  "frames": [],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/08.webp"
+  ],
   "fps": 1,
   "loop": false,
   "pivot": [
     0.5,
-    1
+    0.8677248677248677
   ],
   "compatibility": {
     "anatomies": [
@@ -33,7 +43,7 @@
   "events": [],
   "initialFrame": 0,
   "transition": "preserve support pivot",
-  "referenceHeight": null,
+  "referenceHeight": 256,
   "reuseSearch": {
     "required": true,
     "command": "node scripts/character-pipeline.mjs reuse --query sw-mike-loading-medicine-v6"
@@ -48,7 +58,12 @@
     "paired": true,
     "heldPoseLibrary": true,
     "minimumVisibleStandingPixels": 200,
-    "minimumDistinctFrames": 8
+    "minimumDistinctFrames": 8,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-loading-medicine-v6-b6c352325d31.png",
+    "originalSha256": "b6c352325d313e599ff2d1a8bb2fd924672026b3bde6d1f92dc9968a9e456ba2",
+    "importReport": "output/stormwreck-motion-detail/sw-mike-loading-medicine-v6-b6c352325d31.json",
+    "minimumAlpha": 24,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
   },
   "minimumDistinctFrames": 8
 }

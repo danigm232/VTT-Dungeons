@@ -1359,12 +1359,17 @@ func build_cabins_fore() -> void:
 	portrait_root.position = WreckStructure.get_world_pos(27.02, 1.50, -2.4)
 	fore_node.add_child(portrait_root)
 
+	# Contenedor descolgable del lienzo, marco y placa (puede guardarse en mochila y volver a colgarse)
+	var hanging_canvas := Node3D.new()
+	hanging_canvas.name = "PortraitHangingCanvas"
+	portrait_root.add_child(hanging_canvas)
+
 	var p_frame_back = MeshInstance3D.new()
 	var pfb_box = BoxMesh.new()
 	pfb_box.size = Vector3(0.06, 1.18, 0.96)
 	p_frame_back.mesh = pfb_box
 	p_frame_back.material_override = mat_furniture_trim
-	portrait_root.add_child(p_frame_back)
+	hanging_canvas.add_child(p_frame_back)
 
 	var p_brass_trim = MeshInstance3D.new()
 	var pbt_box = BoxMesh.new()
@@ -1372,7 +1377,7 @@ func build_cabins_fore() -> void:
 	p_brass_trim.mesh = pbt_box
 	p_brass_trim.material_override = mat_brass
 	p_brass_trim.position = Vector3(-0.008, 0, 0)
-	portrait_root.add_child(p_brass_trim)
+	hanging_canvas.add_child(p_brass_trim)
 
 	var p_art_mesh = MeshInstance3D.new()
 	var pa_quad = QuadMesh.new()
@@ -1389,7 +1394,7 @@ func build_cabins_fore() -> void:
 	p_art_mesh.material_override = p_art_mat
 	p_art_mesh.position = Vector3(-0.048, 0, 0)
 	p_art_mesh.rotation.y = -PI * 0.5
-	portrait_root.add_child(p_art_mesh)
+	hanging_canvas.add_child(p_art_mesh)
 
 	var plaque_mesh = MeshInstance3D.new()
 	var plq_quad = QuadMesh.new()
@@ -1403,7 +1408,36 @@ func build_cabins_fore() -> void:
 	plaque_mesh.material_override = plq_mat
 	plaque_mesh.position = Vector3(-0.045, -0.72, 0)
 	plaque_mesh.rotation.y = -PI * 0.5
-	portrait_root.add_child(plaque_mesh)
+	hanging_canvas.add_child(plaque_mesh)
+
+	# Huella pálida de humedad y clavo de latón que quedan en el mamparo si se descuelga el retrato
+	var wall_mark := Node3D.new()
+	wall_mark.name = "PortraitWallMark"
+	wall_mark.visible = false
+	portrait_root.add_child(wall_mark)
+
+	var ghost_rect := MeshInstance3D.new()
+	var gr_quad := QuadMesh.new()
+	gr_quad.size = Vector2(0.92, 1.14)
+	ghost_rect.mesh = gr_quad
+	var mat_ghost := StandardMaterial3D.new()
+	mat_ghost.albedo_color = Color(0.28, 0.24, 0.18, 0.48)
+	mat_ghost.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat_ghost.roughness = 0.94
+	mat_ghost.cull_mode = BaseMaterial3D.CULL_DISABLED
+	ghost_rect.material_override = mat_ghost
+	ghost_rect.position = Vector3(-0.025, 0.0, 0.0)
+	ghost_rect.rotation.y = -PI * 0.5
+	wall_mark.add_child(ghost_rect)
+
+	var wall_nail := MeshInstance3D.new()
+	var wn_cyl := CylinderMesh.new()
+	wn_cyl.top_radius = 0.015; wn_cyl.bottom_radius = 0.015; wn_cyl.height = 0.08
+	wall_nail.mesh = wn_cyl
+	wall_nail.material_override = mat_brass
+	wall_nail.position = Vector3(-0.04, 0.48, 0.0)
+	wall_nail.rotation_degrees.z = 90.0
+	wall_mark.add_child(wall_nail)
 
 	var sconce_hood := MeshInstance3D.new()
 	var sh_box := BoxMesh.new()
@@ -1418,18 +1452,20 @@ func build_cabins_fore() -> void:
 	sconce_light.position = Vector3(-0.34, 0.58, 0)
 	sconce_light.light_color = Color("#ffcf87")
 	sconce_light.light_energy = 0.0
-	sconce_light.set_meta("lantern_base_energy", 0.55)
+	sconce_light.set_meta("lantern_base_energy", 0.95)
 	sconce_light.set_meta("lantern_lit", false)
-	sconce_light.omni_range = 3.2
+	sconce_light.omni_range = 4.2
 	sconce_light.shadow_enabled = false
 	portrait_root.add_child(sconce_light)
 
+	# Trigger situado a altura de suelo justo delante del cuadro (y local -1.25 => ~0.25 m sobre cubierta)
 	var prop_portrait = InteractiveProp.new()
 	prop_portrait.name = "PropPortraitC6"
 	prop_portrait.prop_id = "c6_portrait"
 	prop_portrait.prompt_text = "Examinar Retrato de Aleitha y Brastos"
 	prop_portrait.inspection_message = "Retrato al óleo en marco de roble y latón. La placa reza: «Aleitha y Brastos: juntos para siempre»."
-	prop_portrait.interaction_radius = 2.6
+	prop_portrait.position = Vector3(-0.75, -1.25, 0.0)
+	prop_portrait.interaction_radius = 2.5
 	portrait_root.add_child(prop_portrait)
 
 	# Tablón suelto del alijo con trampa de aguja oculta (c6-trapped-stash, 200 po)
@@ -1446,12 +1482,13 @@ func build_cabins_fore() -> void:
 	stash_node.add_child(recess)
 
 	var stash_plank = MeshInstance3D.new()
+	stash_plank.name = "LoosePlankMeshC6"
 	var sp_box = BoxMesh.new()
 	sp_box.size = Vector3(0.92, 0.045, 0.44)
 	stash_plank.mesh = sp_box
 	stash_plank.material_override = PbrMaterialKit.create_wood_planks_pbr("#826646", 0.6)
-	stash_plank.position = Vector3(0.10, 0.045, 0.06)
-	stash_plank.rotation_degrees = Vector3(3.0, 14.0, 9.0)
+	stash_plank.position = Vector3(0.0, 0.024, 0.0)
+	stash_plank.rotation_degrees = Vector3(0.0, 1.5, 1.2)
 	stash_node.add_child(stash_plank)
 
 	var trap_needle = MeshInstance3D.new()
@@ -1662,7 +1699,8 @@ func build_cabins_fore() -> void:
 	prop_log.prop_id = "c7_logbook"
 	prop_log.prompt_text = "Examinar Restos del Diario de a Bordo"
 	prop_log.inspection_message = "«...el dragón cayó envuelto en llamas sobre el arrecife y nuestro casco crujió...»"
-	prop_log.interaction_radius = 2.4
+	prop_log.position = Vector3(0.75, 0.0, -0.15)
+	prop_log.interaction_radius = 1.65
 	table_node.add_child(prop_log)
 
 	var prop_plates = InteractiveProp.new()
@@ -1670,7 +1708,8 @@ func build_cabins_fore() -> void:
 	prop_plates.prop_id = "c7_tableware"
 	prop_plates.prompt_text = "Examinar Vajilla de Peltre"
 	prop_plates.inspection_message = "Jarras, fuentes de peltre abolladas y botellas estalladas por el encallamiento."
-	prop_plates.interaction_radius = 2.2
+	prop_plates.position = Vector3(-1.05, 0.0, 0.15)
+	prop_plates.interaction_radius = 1.65
 	table_node.add_child(prop_plates)
 
 	# 2. Bancos de madera corridos con soportes, colisionador y sombras de contacto
@@ -2098,12 +2137,21 @@ func build_lower_deck_c8() -> void:
 		var fbp: Vector3 = floating_barrels[idx_fb]
 		if barrel_res:
 			var fb = barrel_res.instantiate()
+			fb.name = "FloatingBarrel_C8_%d" % idx_fb
 			fb.position = fbp
 			fb.rotation_degrees = Vector3(randf_range(15, 35), randf_range(0, 360), randf_range(-10, 10))
 			fb.scale = Vector3(0.82, 0.82, 0.82)
 			PbrMaterialKit.apply_kenney_material(fb)
 			c8_node.add_child(fb)
 			PbrMaterialKit.add_cyl_collider(c8_node, "Col_C8Barrel_%d" % idx_fb, 0.42, 0.92, fbp + Vector3(0, 0.42, 0))
+			var prop_barrel := InteractiveProp.new()
+			prop_barrel.name = "PropC8Barrel_%d" % idx_fb
+			prop_barrel.prop_id = "c8_crate_barrel_%d" % idx_fb
+			prop_barrel.prompt_text = "Registrar Barril de Carga (1d6 · C8)"
+			prop_barrel.inspection_message = "Barril podrido entre el agua salobre de la sentina."
+			prop_barrel.position = fbp + Vector3(0, 0.25, 0)
+			prop_barrel.interaction_radius = 2.1
+			c8_node.add_child(prop_barrel)
 		var fb_sh = PbrMaterialKit.create_blob_shadow(0.7, 0.7, 0.52)
 		fb_sh.position = Vector3(fbp.x, -3.08, fbp.z)
 		c8_node.add_child(fb_sh)
@@ -2112,9 +2160,9 @@ func build_lower_deck_c8() -> void:
 	prop_bilge.name = "PropBilgeWater"
 	prop_bilge.prop_id = "c8_bilge"
 	prop_bilge.prompt_text = "Vadear Aguas Turbias de la Sentina"
-	prop_bilge.inspection_message = "El agua salobre te llega a las rodillas. Pequeños cangrejos y carroñeros marinos huyen entre las cuadernas."
-	prop_bilge.position = Vector3(-6.0, -3.1, 0.0)
-	prop_bilge.interaction_radius = 4.0
+	prop_bilge.inspection_message = "El agua salobre te llega a las rodillas (15 cm a estribor, 45 cm a babor · terreno difícil). Pequeños cangrejos huyen entre las cuadernas."
+	prop_bilge.position = Vector3(-2.0, -3.1, 0.5)
+	prop_bilge.interaction_radius = 1.8
 	c8_node.add_child(prop_bilge)
 
 	_build_c8_piercing_dragon_bones(c8_node)
@@ -2366,8 +2414,8 @@ func build_hold_c9() -> void:
 	prop_dragon_ribs.prop_id = "c9_dragon_ribs"
 	prop_dragon_ribs.prompt_text = "Tocar Costillas Fosilizadas Sumergidas"
 	prop_dragon_ribs.inspection_message = "El hueso fósil de dragón resuena con un zumbido arcano helado bajo el agua marina."
-	prop_dragon_ribs.position = Vector3(-17.0, -6.0, 0.0)
-	prop_dragon_ribs.interaction_radius = 4.0
+	prop_dragon_ribs.position = Vector3(-14.5, -6.0, 1.2)
+	prop_dragon_ribs.interaction_radius = 2.2
 	c9_node.add_child(prop_dragon_ribs)
 
 	_build_c9_submerged_dragon_bones(c9_node)

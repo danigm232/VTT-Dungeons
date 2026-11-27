@@ -44,7 +44,13 @@
     "idle",
     "walk",
     "run",
-    "attack"
+    "attack",
+    "swim",
+    "dive",
+    "open_door",
+    "open_chest",
+    "dive_chest",
+    "stow_item"
   ],
   "limitations": [
     "Compatibility adapter: existing animations are retained; anatomical seeds are editable and are not approved equipment fitting.",
@@ -57,5 +63,11 @@
     "body": "reused",
     "overlays": "current-frame alpha adapter",
     "equipment": "deferred by user; no slots enabled"
+  },
+  "aquaticCompatibility": {
+    "campaign": "stormwreck-isle",
+    "vfx": "independent",
+    "bodyWetness": "depth-and-weather",
+    "dedicatedSwimmingSpeed": false
   }
 }

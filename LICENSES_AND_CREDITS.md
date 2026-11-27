@@ -1,5 +1,9 @@
 # Licencias y créditos
 
+## Corrección selectiva de identidades en cargas Godot — 25/11/2026
+
+Once láminas seleccionadas y 88 fotogramas nuevos, derivados con la herramienta de imágenes integrada de las identidades originales del VTT (Mike, Mía y Trinity). Se conservan originales, recortes sin ampliar, WebP sin pérdida, huellas y prompts en las definiciones `sw-*-loading-*-v6` del registro central. Los demás recursos de locomoción/reposo, objetos y fondos se reutilizan. Las pruebas exploratorias no seleccionadas no se instalan ni se promueven. [Procedencia y revisión](docs/evidence/captures/loading-identities-20261125/prompts-and-sources.json), [evidencia y límites](docs/evidence/GODOT_SKILL_LOADING_20261114.md#corrección-selectiva-instalada--25112026). Se incluye el dado nativo añadido por Antigravity, adaptación del d20 proyectado propio del VTT; sin música ni activos comerciales nuevos. Aceptación artística del usuario pendiente.
+
 ## Tipografía VTT y letreros de salida — 18/11/2026
 
 Fuentes incluidas para todo el juego en `prototypes/godot-shared/ui/fonts/` y copias nativas (`assets/ui/fonts/` en `godot-retiro`, `godot-pecio` y `godot-campamentos`):

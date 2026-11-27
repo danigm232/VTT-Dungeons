@@ -51,10 +51,11 @@ groups.objects={frames:bounds.map(([x,y,width,height])=>register({url:resolve(ro
 // Audit mode maps installed native IDs back to originals without repacking art.
 if(process.argv.includes('--audit-only')){
  const installed=JSON.parse(await readFile(resolve(target,'catalog.json'),'utf8'));
- if(JSON.stringify(installed.selections)!==JSON.stringify(selections)||installed.frames.length!==frames.length)throw Error('Installed clip IDs differ; refusing to attribute stale resources');
- const auditDir=resolve(root,'output/loading-sprite-audit-20261124');await mkdir(auditDir,{recursive:true});
- await writeFile(resolve(auditDir,'frame-sources.json'),JSON.stringify({frames:frames.map((frame,id)=>({id,...frame})),actors,selections},null,2));
- console.log(`Audited ${frames.length} native frame IDs against the current source resolver; no atlas rewritten.`);
+ if(JSON.stringify(installed.selections.slice(0,selections.length))!==JSON.stringify(selections)||installed.frames.length<frames.length)throw Error('Installed legacy clip IDs differ; refusing to attribute stale resources');
+ const auditDir=resolve(root,installed.identityVersion>=6?'output/loading-identity-v6/audit':'output/loading-sprite-audit-20261124');await mkdir(auditDir,{recursive:true});
+ const appended=installed.frames.slice(frames.length).map((f:any,index:number)=>{if(!f.source)throw Error('Unattributed appended frame '+(frames.length+index));return{id:frames.length+index,...f.source,url:resolve(root,f.source.file)};});
+ await writeFile(resolve(auditDir,'frame-sources.json'),JSON.stringify({frames:[...frames.map((frame,id)=>({id,...frame})),...appended],actors:installed.actors,selections:installed.selections},null,2));
+ console.log(`Audited ${frames.length} legacy and ${appended.length} registered native frames; no atlas rewritten.`);
  process.exit(0);
 }
 const sources=new Map<string,any>(),provenance:any[]=[];

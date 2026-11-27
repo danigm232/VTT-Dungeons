@@ -16,6 +16,8 @@ La prueba de mantas reproducía un fallo previo: el petate occidental de Runara 
 
 La revisión de las mantas pasa **159/159** comprobaciones en modo sin pantalla tras el ajuste, frente al fallo reproducido antes. Los registros nativos anteriores siguen mostrando ese fallo: falta repetir las capturas nativas y generar el informe final, y la aceptación visual del usuario continúa pendiente.
 
+Seguimiento local del 25/11. La nueva ejecución nativa sobre la integración pasa **166/166** y el informe ya recoge las dos comparativas con encuadre fijo. [Mantas del Retiro](../../output/retreat-blankets-20261124/index.html).
+
 ## Verificación efectuada
 
 - Godot 4.7.2, sin ventana: las pantallas de carga pasan **176/176** en cada uno de Pecio, Retiro y Campamentos; navegación del Retiro **12/12**; campamentos **291/291**; transición del Retiro y regreso **28/28**; habitantes del Retiro **210/210** tras ampliar la ruta. Estas pruebas no sustituyen las pruebas físicas de móvil, audio o proyector. La prueba de habitantes terminó con salida 0, pero Godot registró recursos todavía en uso al cerrar; queda pendiente investigar la limpieza de la prueba.

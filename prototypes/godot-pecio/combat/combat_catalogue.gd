@@ -19,7 +19,8 @@ static func frame_key(frame: Dictionary) -> String:
 
 static func profile(id: String) -> Dictionary:
 	if id.begins_with("zombie-"): id="zombie"
-	if id=="harpy-2": id="harpy"
+	if id in ["harpy-2", "harpy_c2_lvl2"]: id="harpy"
+	if id in ["ghoul", "ghoul_c8"]: id="c8-ghoul"
 	var p: Dictionary=load_data().get("profiles",{}).get("c4-zombie-1" if id=="zombie" else id,{}).duplicate(true)
 	if id=="zombie":
 		p.ruleTraits["undeadFortitude"]=true
@@ -31,7 +32,7 @@ static func weapon(id: String,label: String,bonus: int,dice: String,damage_bonus
 
 static func actions(id: String) -> Array:
 	if id.begins_with("zombie-"): id="zombie"
-	if id=="harpy-2": id="harpy"
+	if id in ["harpy-2", "harpy_c2_lvl2"]: id="harpy"
 	var p := profile(id)
 	var result: Array=p.get("attacks",[]).duplicate(true)
 	for exploration in p.get("explorationActions",[]):

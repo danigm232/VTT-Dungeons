@@ -11,6 +11,12 @@ const FLOORS := [
 	[Rect2(74.25, 54.0, 73.5, 17.25), 18.0],
 	[Rect2(114.0, 52.0, 9.75, 3.0), 18.0],
 	[Rect2(32.25, 62.25, 18.75, 12.0), 27.0],
+	[Rect2(18.75, 108.0, 9.0, 6.0), 0.49],
+	[Rect2(27.0, 108.0, 3.0, 3.0), 0.25],
+	[Rect2(34.5, 105.0, 3.0, 6.0), 1.505],
+	[Rect2(45.0, 102.0, 3.0, 6.0), 4.005],
+	[Rect2(55.5, 99.0, 3.0, 6.0), 6.505],
+	[Rect2(66.0, 91.5, 13.5, 10.5), 9.0],
 ]
 const STAIRS := [
 	[Vector3(154.5, 9.0, 92.25), Vector3(154.5, 12.0, 82.35), 1.2],
@@ -19,6 +25,10 @@ const STAIRS := [
 	[Vector3(154.5, 15.0, 71.85), Vector3(154.0, 15.0, 67.5), 1.15],
 	[Vector3(154.0, 15.0, 67.5), Vector3(145.0, 18.0, 67.5), 1.25],
 	[Vector3(76.6, 18.0, 66.0), Vector3(49.8, 27.0, 66.0), 1.55],
+	[Vector3(29.5, 0.25, 109.5), Vector3(35.0, 1.505, 109.5), 1.55],
+	[Vector3(37.5, 1.505, 106.5), Vector3(45.2, 4.005, 106.5), 1.55],
+	[Vector3(48.0, 4.005, 103.5), Vector3(55.7, 6.505, 103.5), 1.55],
+	[Vector3(58.5, 6.505, 100.5), Vector3(66.2, 9.005, 100.5), 1.55],
 ]
 const NEIGHBORS := [Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1), Vector2i(1, -1)]
 
@@ -118,12 +128,19 @@ func _is_centered_at_cell_door(a: Vector3, b: Vector3) -> bool:
 		return true
 	return _cell_doors.any(func(door: Vector3) -> bool: return absf(crossing - door.x) <= 0.43)
 
-func path(from: Vector3, to: Vector3) -> PackedVector3Array:
+func path(from: Vector3, to: Vector3, avoid := PackedVector3Array()) -> PackedVector3Array:
+	var disabled: Array[int] = []
+	for point: Vector3 in avoid:
+		var key := Vector2i(roundi(point.x / STEP), roundi(point.z / STEP))
+		for id: int in _buckets.get(key, []):
+			if not graph.is_point_disabled(id) and absf(graph.get_point_position(id).y - point.y) < 0.40:
+				graph.set_point_disabled(id)
+				disabled.append(id)
 	var start := _entrance(from)
 	var finish := _entrance(to)
-	if start < 0 or finish < 0:
-		return PackedVector3Array()
-	var points := graph.get_point_path(start, finish)
+	var points := graph.get_point_path(start, finish) if start >= 0 and finish >= 0 else PackedVector3Array()
+	for id: int in disabled:
+		graph.set_point_disabled(id, false)
 	if not points.is_empty():
 		points.append(to)
 	return points
@@ -135,6 +152,8 @@ func _entrance(world: Vector3) -> int:
 	for x in range(-3, 4):
 		for z in range(-3, 4):
 			for id: int in _buckets.get(center + Vector2i(x, z), []):
+				if graph.is_point_disabled(id):
+					continue
 				var p := graph.get_point_position(id)
 				var d := p.distance_squared_to(world)
 				if d < range_sq and not graph.get_point_connections(id).is_empty() and _passable(world, p):

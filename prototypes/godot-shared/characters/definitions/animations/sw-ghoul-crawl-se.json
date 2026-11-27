@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-ghoul-crawl-se",
+  "character": "sw-ghoul",
+  "anatomy": "humanoid-tall",
+  "campaign": "stormwreck-isle",
+  "action": "crawl",
+  "direction": "se",
+  "fps": 10,
+  "loop": true,
+  "compatibility": {
+    "preservesAppearance": true,
+    "overlay": "Current frame alpha; physical attachments remain unverified."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-crawl-se/bad7ca64e093/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-crawl-se/bad7ca64e093/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-crawl-se/bad7ca64e093/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-crawl-se/bad7ca64e093/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-crawl-se/bad7ca64e093/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-crawl-se/bad7ca64e093/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-crawl-se/bad7ca64e093/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-crawl-se/bad7ca64e093/08.webp"
+  ],
+  "production": {
+    "method": "Built-in image generation with existing local identity reference and native-size extraction",
+    "reference": "campaigns/stormwreck-isle/public/art/m3/ghoul/ghoul_base.png",
+    "minimumVisibleStandingPixels": 125,
+    "prompt": "Eight isolated distinct crawl phases at southeast angle with fixed feet or ground registration, matching the original anatomy and clothes.",
+    "silhouetteAlpha": 231,
+    "columnCutsByRow": [
+      [
+        0,
+        444,
+        887,
+        1348,
+        1774
+      ],
+      [
+        0,
+        444,
+        887,
+        1330,
+        1774
+      ]
+    ],
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-ghoul-crawl-se-bad7ca64e093.png",
+    "originalSha256": "bad7ca64e0933ff3abe869d624035c367e3f2651f72b13f0a5bc41884ab3dfaa",
+    "importReport": "output/stormwreck-motion-detail/sw-ghoul-crawl-se-bad7ca64e093.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending native review",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 390,
+  "pivot": [
+    0.5,
+    0.8099352051835853
+  ]
+}

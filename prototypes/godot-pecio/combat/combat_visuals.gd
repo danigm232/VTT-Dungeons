@@ -211,6 +211,9 @@ func pose_for(actor: Node3D, action: Dictionary, view: String) -> String:
 	if str(action.id).begins_with("fog-cloud"): pose = "spell_fog"
 	if action.id == "feather-fall": pose = "spell_feather"
 	var npc_pose: String = preload("res://sprites/npc_sprite_library.gd").action_pose(action)
+	if actor.char_profile.get("npc_species","") == "ghoul":
+		if action.id == "ghoul-claws": return _fallback_pose(actor, "claw", view)
+		if action.id == "ghoul-bite": return _fallback_pose(actor, "bite", view)
 	if not npc_pose.is_empty() and actor.char_profile.has("npc_species"): pose = npc_pose
 	return _fallback_pose(actor, pose, view)
 

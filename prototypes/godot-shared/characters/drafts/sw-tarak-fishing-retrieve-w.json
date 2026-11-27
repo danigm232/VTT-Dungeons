@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-tarak-fishing-retrieve-w",
+  "character": "sw-tarak",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "retreat_fish_retrieve",
+  "direction": "w",
+  "fps": 1,
+  "loop": false,
+  "dependencies": [
+    "sw-tarak"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "directional held pose with planted feet"
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-fishing/26af174047ae/retrieve-w.webp"
+  ],
+  "referenceHeight": 576,
+  "pivot": [
+    0.5935251798561151,
+    0.9932998324958124
+  ],
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-tarak-retreat-turnaround/7792457e6c80/08.png",
+    "intent": "Explicit fishing pose with planted feet. Rod and line remain separate. Register dominant grip by visible drawing.",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-tarak-fishing-26af174047ae.png",
+    "originalSha256": "26af174047ae013d6c0aa3d0ed0ebf994914c3ca4e31aea84d03298121db512d",
+    "nativeBounds": [
+      799,
+      643,
+      1077,
+      1240
+    ],
+    "encoding": "Native lossless WebP, verified RGBA",
+    "method": "Reviewed image isolation, planted support and grip registered in source pixels"
+  },
+  "review": {
+    "technical": "Isolated alpha, crop margins, contact coordinates and lossless decode checked.",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "poseKind": "hold",
+  "toolGrip": [
+    0.08992805755395683,
+    0.35175879396984927
+  ],
+  "viewAngleDegrees": 180
+}

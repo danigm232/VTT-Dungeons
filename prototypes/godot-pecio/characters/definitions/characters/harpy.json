@@ -30,6 +30,7 @@
   "aliases": [
     "harpy",
     "harpy-2",
+    "harpy_c2_lvl2",
     "upper-harpy-1",
     "upper-harpy-2",
     "harpia",
@@ -45,7 +46,13 @@
     "idle",
     "walk",
     "run",
-    "attack"
+    "attack",
+    "fly",
+    "flight_turn",
+    "takeoff",
+    "land",
+    "song",
+    "attack_club"
   ],
   "limitations": [
     "Compatibility adapter: existing animations are retained; anatomical seeds are editable and are not approved equipment fitting.",
@@ -58,5 +65,10 @@
     "body": "reused",
     "overlays": "current-frame alpha adapter",
     "equipment": "deferred by user; no slots enabled"
+  },
+  "production": {
+    "directionalArrival": {
+      "brief": "Eight authored banks and four calibrated cardinal landings. Preserve the anatomical left-hand bone club and native land anchors."
+    }
   }
 }

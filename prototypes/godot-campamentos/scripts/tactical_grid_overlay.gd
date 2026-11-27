@@ -63,6 +63,27 @@ func build_for_scene(scene_def: Dictionary) -> void:
 						sq_w["movement_cost"] = 5.0
 						sq_w["is_shallow_water"] = true
 					source.append(sq_w)
+	elif sid == "camp-coastal-refuge":
+		# Extended sloped walkable grid along the scenic descending western coastal trail into Cala Pleamar!
+		var ob := get_parent().get_node_or_null("OutdoorCampWorld") if get_parent() else null
+		if ob == null and get_parent() and "outdoor_builder" in get_parent():
+			ob = get_parent().get("outdoor_builder")
+		for c_t in range(-10, 4):
+			var xt := (float(c_t) + 0.5) * TILE
+			var u_t := clampf((xt - (-15.0)) / 21.0, 0.0, 1.0)
+			var tz := lerpf(15.2, 23.6, u_t * u_t * (3.0 - 2.0 * u_t)) + sin(u_t * PI) * 1.15
+			var rt_c := int(round(tz / TILE))
+			for dr in range(-1, 2):
+				var kt := Vector2i(c_t, rt_c + dr)
+				if not seen.has(kt):
+					seen[kt] = true
+					var sq_t := square(kt.x, kt.y)
+					if is_instance_valid(ob) and ob.has_method("eval_ground_height"):
+						for ci in range(4):
+							var cp: Vector3 = sq_t.corners[ci]
+							cp.y = float(ob.call("eval_ground_height", cp.x, cp.z))
+							sq_t.corners[ci] = cp
+					source.append(sq_t)
 	configure(source)
 
 func _rebuild(version: int) -> void:

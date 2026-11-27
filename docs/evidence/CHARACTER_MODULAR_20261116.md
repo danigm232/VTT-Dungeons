@@ -1,8 +1,20 @@
 # Personajes modulares y pipeline permanente — 16/11/2026
 
+## Corrección selectiva de cargas — 25/11/2026
+
+Once definiciones `sw-*-loading-*-v6` y 88 fotogramas con identidad/equipo integrados, escala, pivote y excepciones declaradas. Importados y promovidos en el alcance central `loading-identities-v6` (tres personajes existentes + once animaciones), sin promover los recursos de trabajos paralelos. Revisión exacta `2a2750f073a575e1167a4c7b68341515867a42d5e936b9973c29475fe581d329`, con informe nativo y tres advertencias heredadas conservadas. Las láminas exploratorias descartadas no se instalan. [Evidencia, recursos, pruebas y aceptación pendiente](GODOT_SKILL_LOADING_20261114.md#corrección-selectiva-instalada--25112026).
+
 Encargo autorizado: [texto completo del usuario](CHARACTER_MODULAR_REQUEST_20261116.md). Esta ficha mantiene evidencia y criterios locales; la prioridad global sigue en `ROADMAP_V1.md`.
 
 ## Estado actual del trabajo
+
+### Oficios, carga y limpieza del Retiro — 25/11/2026
+
+Once secuencias y 84 fotogramas WebP con anclajes de mano por fase. Hay ocho fotogramas para cada secuencia de marcha, carga y oficios, y seis para barrer y limpiar. Se conserva el material de origen por huella. [Integración, evidencia y vistas pendientes](RETIRO_RUTINAS_CARACTERISTICAS_20261125.md#herramientas-carga-y-limpieza).
+
+### Lectura y pesca del Retiro — 25/11/2026
+
+Dieciocho WebP sin pérdida incorporados al catálogo de inspección del Retiro. La lectura de Runara tiene dos poses sostenidas en cinco vistas, con pivote de pelvis, apoyo de sandalias y contacto de mano con el manuscrito de A4. Tarak y Blepp tienen cuatro poses laterales por habitante con el agarre de la caña medido en cada dibujo. Los PNG originales y sus huellas se conservan. [Recursos, pruebas y alcance por ángulo](RETIRO_RUTINAS_CARACTERISTICAS_20261125.md#acabado-de-la-lectura-y-la-pesca).
 
 ### Mantas para el descanso del Retiro — 24/11/2026
 

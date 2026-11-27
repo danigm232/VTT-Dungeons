@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-ghoul-idle-nw",
+  "character": "sw-ghoul",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "idle",
+  "direction": "nw",
+  "fps": 2.5,
+  "loop": true,
+  "compatibility": {
+    "preservesAppearance": true,
+    "overlay": "Current frame alpha; existing embedded wraps retained."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-idle-nw/cee44d738abe/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-idle-nw/cee44d738abe/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-idle-nw/cee44d738abe/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-idle-nw/cee44d738abe/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-idle-nw/cee44d738abe/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-idle-nw/cee44d738abe/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-idle-nw/cee44d738abe/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-idle-nw/cee44d738abe/08.webp"
+  ],
+  "production": {
+    "method": "Built-in image generation, native-size extraction",
+    "reference": "campaigns/stormwreck-isle/public/art/m3/ghoul/ghoul_base.png",
+    "minimumVisibleStandingPixels": 265,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-ghoul-idle-nw-cee44d738abe.png",
+    "originalSha256": "cee44d738abe135ee9e896fd9324e6e62991dd0a1682c3c2b6cdf3180cf32240",
+    "importReport": "output/stormwreck-motion-detail/sw-ghoul-idle-nw-cee44d738abe.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels",
+    "motionFinish": true,
+    "prompt": "Create ONE production sprite sheet, wide 2:1 canvas, exactly four EQUAL columns and TWO EQUAL rows, eight unique full-body frames left-to-right, top then bottom. TRUE transparent RGBA (actual zero alpha gutters), NO checkerboard drawn, white surface, color backdrop, text, numbers, outline, shadows or effects. Big clear margins on ALL edges of each cell, ensure no limb or tail crosses any boundary. Same camera elevation, lighting and anatomy across all cells. Painted 2.5D tabletop art. Exact same bald blue-grey ghoul with long pointed ears, pink tongue, ivory eyes, long clawed arms and bare feet, beige wrapped forearms and calves and ragged tan loincloth. No accessories. Subject faces upper left, REAR three-quarter matching the rear gameplay reference, show back and side. REST LOOP. Both bare toes planted hip-width throughout, hunched neutral guard shoulders. A slow visible breath lifts the shoulders and rib cage, slight unclenching fingers and moving rag strips, then settles. The eight poses complete exactly one cycle."
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 390,
+  "pivot": [
+    0.5,
+    0.918859649122807
+  ]
+}

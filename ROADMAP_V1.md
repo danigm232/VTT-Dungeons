@@ -1,6 +1,16 @@
 # Roadmap maestro del proyecto VTT
 
-**Sincronización Godot, 25/11/2026:** reunión de los cambios recientes del Retiro, Pecio y Campamentos, con código, recursos y siete informes visuales compartibles. La ruta de Runara al petate se corrige y supera la prueba sin pantalla; la revisión visual de las mantas queda pendiente. [Alcance y pruebas](docs/evidence/GODOT_SYNC_20261125.md). No cambia el orden del roadmap ni supone aceptación artística o física.
+**Corrección selectiva de sprites de carga, 25/11/2026:** instalada la identidad coherente de Mike en las 18 habilidades y un comerciante estable en Persuasión con los tres protagonistas. Se conservan las otras 34 combinaciones de Mía/Trinity. Incluido el dado nativo de Antigravity. Recursos promovidos por alcance, 183 pruebas por proyecto y 192 en la revisión gráfica. [Evidencia y comparaciones](docs/evidence/GODOT_SKILL_LOADING_20261114.md#corrección-selectiva-instalada--25112026).
+
+**Retiro del Dragón · oficios, carga y limpieza, 25/11/2026.** Integradas siete rutinas con 84 fotogramas WebP. Incluye recogida y depósito de las cargas. Los habitantes conservan su rumbo hacia el punto de trabajo al girar la cámara. [Ficha y visor](docs/evidence/RETIRO_RUTINAS_CARACTERISTICAS_20261125.md#herramientas-carga-y-limpieza).
+
+**Retiro del Dragón · contacto de Runara con el taburete, 25/11/2026.** La caída de la túnica usa la profundidad del borde de madera en ambas poses de lectura. [Ficha y comparativas](docs/evidence/RETIRO_RUTINAS_CARACTERISTICAS_20261125.md#contacto-de-la-túnica-con-el-taburete).
+
+**Retiro del Dragón · lectura y pesca, 25/11/2026.** Runara usa el asiento existente de A4 y orienta la mano al manuscrito. Tarak y Blepp tienen cuatro fases con caña y sedal sincronizados en sus vistas laterales. Se añaden 18 fotogramas WebP con apoyos medidos. [Ficha local](docs/evidence/RETIRO_RUTINAS_CARACTERISTICAS_20261125.md#acabado-de-la-lectura-y-la-pesca).
+
+**Retiro del Dragón · rutinas características, 25/11/2026.** Dos actividades por habitante en la agenda existente. Incluye recorridos por el muelle, coordinación entre PNJ, utilería animada y órdenes desde la mesa del DM. La revisión local incorpora catorce fotogramas nuevos y una matriz de cámaras por actividad. Quedan ajustes de agarre y la verificación entre instancias. [Implementación y revisión](docs/evidence/RETIRO_RUTINAS_CARACTERISTICAS_20261125.md).
+
+**Sincronización Godot, 25/11/2026:** reunión de los cambios recientes del Retiro, Pecio y Campamentos, con código, recursos y siete informes visuales compartibles. La ruta de Runara al petate supera la prueba sin pantalla. La revisión local posterior de las mantas pasó en Godot Forward+ con dos comparativas. [Alcance y pruebas](docs/evidence/GODOT_SYNC_20261125.md) · [Mantas del Retiro](output/retreat-blankets-20261124/index.html). No supone aceptación artística o física.
 
 **Retiro del Dragón · mantas para el descanso, 24/11/2026.** La escena añade una ronda nocturna con manta para los doce habitantes. Once usan una pose fija y Kilnip conserva seis etapas de su siesta; la lana se mueve suavemente en ambos casos. [Ficha y revisión nativa](docs/evidence/RETIRO_GODOT_LAYERS_20261114.md#mantas-para-el-descanso--24112026).
 
@@ -190,6 +200,24 @@ Las instrucciones actuales del usuario prevalecen. Se empieza aquí; después se
 Los archivos bajo `docs/archive/`, `docs/audits/archive/` y `docs/ROADMAP_V1_REVISION_1.md` son antecedentes. No recuperar de ellos una versión, cámara o siguiente tarea que ya haya sido sustituida.
 
 ## 2. Líneas actuales y siguiente paso
+
+**Animación de Stormwreck · prioridad del 26/11.** Completar las arpías del Pecio y el gul de C8. La revisión de las nueve rutinas del Retiro queda aplazada en este orden.
+
+El repertorio terrestre del gul de C8 incorpora reposo de espalda, carrera y acecho propios, giros y transiciones al arrancar, detenerse y recuperarse. [Ficha del gul](docs/evidence/NPC_SPRITES_20261116.md#repertorio-terrestre-del-gul--26112026).
+
+Las dos arpías comparten ocho virajes dibujados y cuatro aterrizajes direccionales. El descenso y el contacto se prueban en C10 y C2. [Registro y comparación](docs/evidence/NPC_SPRITES_20261116.md#virajes-y-aterrizajes-de-las-arpías--26112026).
+
+**Después de los virajes y aterrizajes de las arpías · agua e interacciones de Mía, Mike y Trinity.** Incorporar natación y buceo con vistas por rumbo, control de inmersión y ascenso, estela y burbujas independientes, humedad por contacto y secado según las condiciones. Añadir animaciones orientadas para puerta, cofre, mochila y cofre sumergido. Calcular respiración con CON y distinguir en la mesa las consecuencias de D&D 2024 de las decisiones de presentación. El Pecio es la primera escena de comprobación del recorrido superficie–inmersión–interacción–salida.
+
+Aplicados al Pecio el control, la respiración y las seis acciones de los tres héroes en ocho rumbos. El catálogo contiene 144 secuencias y 1.152 fotogramas. La revisión local pasó 186 comprobaciones funcionales y 46 con render. [Ficha y registro](docs/evidence/STORMWRECK_AQUATIC_20261126.md) · [Visor](output/stormwreck-aquatic/index.html).
+
+Revisión del 27/11. El nadador deja un rastro de burbujas más visible y gotea al salir con la ropa empapada. Los tres héroes comparten los recursos de partículas. [Comparativa y registro](output/stormwreck-aquatic/vfx/index.html).
+
+1. **Varnoth, Myla y Laylee.** Ajustar la mano izquierda de Varnoth al cincel y revisar el golpe desde ambos lados del sillar. Aplicar después el mismo control de agarre y contacto a Myla y Laylee en sus bancos.
+2. **Tarak y Blepp.** Completar las vistas de pesca fuera del perfil, manteniendo la caña en la mano y el sedal unido a su punta al girar la cámara.
+3. **Frub, Zark y Rix.** Completar las vistas de frente y del lado opuesto al recoger, llevar y dejar las cargas. Revisar después los ángulos pendientes de la escoba de Rix y el paño de Zark.
+
+[Contactos, recursos actuales y vistas pendientes del Retiro](docs/evidence/RETIRO_RUTINAS_CARACTERISTICAS_20261125.md#dibujos-y-anclajes-pendientes).
 
 **Retiro · playa y embarcadero AAA, 09/11.** Salto de calidad gráfica Triple-A en la zona de desembarco del Retiro del Dragón: dunas 3D de arena natural cálida (`retreat:pbr:beach-sand`), orilla reflectante de arena mojada, 4 troncos de deriva, 6 bloques de basalto y 72 cantos/conchas; pradera costera volumétrica de 180 matas 3D y armerias con contorno plumoso orgánico; muelle de roble con 28 pernos de forja, 8 pilotes sumergidos, cajas de suministros, barril de ron y adujas de cáñamo; bote amarrado sin colisión con cuadernas vistas, bancadas y remos de madera con palas talladas; sellado hermético de 3 contrafuertes de basalto que eliminan el vacío en la montaña tras el sendero de Pleamar; e hitos de guía con barandilla de cabo y faroles ámbar dinámicos. Cinco pares de revisión con cámara 100 % idéntica (`cameraDelta = 0.000000`). Verificado técnicamente con 17/17 tests PASS. [Registro e informe interactivo](docs/evidence/RETREAT_BEACH_PIER_AAA_20261109.md).
 

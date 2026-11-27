@@ -22,6 +22,9 @@ var sun: DirectionalLight3D
 var environment: Environment
 var sky_material: ProceduralSkyMaterial
 var water: ShaderMaterial
+var hold_water: ShaderMaterial
+var _last_swimmers := PackedVector4Array([Vector4.ZERO, Vector4.ZERO, Vector4.ZERO])
+var _last_hold_swimmers := PackedVector4Array([Vector4.ZERO, Vector4.ZERO, Vector4.ZERO])
 var vfx: Node3D
 var roof: Node3D
 var controls: PanelContainer
@@ -39,6 +42,9 @@ func initialize() -> void:
 	environment = main.get_node("WorldEnvironment").environment
 	sky_material = environment.sky.sky_material
 	water = main.get_node("OceanWater").get_active_material(0)
+	var hold_surface := vessel.find_child("C9_WaterSurface", true, false) as MeshInstance3D
+	if hold_surface:
+		hold_water = hold_surface.get_active_material(0) as ShaderMaterial
 	if water and vessel:
 		water.set_shader_parameter("hull_inv_matrix", vessel.global_transform.affine_inverse())
 		water.set_shader_parameter("hull_mask_enabled", 1.0)
@@ -231,6 +237,34 @@ func _process(delta: float) -> void:
 		wetness = next_wetness
 		_apply_wetness()
 	sync_zone_lighting()
+	_sync_swimmer_visibility()
+
+func _sync_swimmer_visibility() -> void:
+	if not water:
+		return
+	var swimmers := PackedVector4Array([Vector4.ZERO, Vector4.ZERO, Vector4.ZERO])
+	var hold_swimmers := swimmers.duplicate()
+	var sea_count := 0
+	var hold_count := 0
+	for actor in actors:
+		if not is_instance_valid(actor) or not actor is PlayerToken or actor.is_npc or not actor.is_visible_in_tree() or not actor.aquatic.in_water:
+			continue
+		# The local reveal covers the body and the rising bubbles during a dive.
+		var centre: Vector3 = actor.global_position + Vector3.UP * actor.target_height * (0.49 if actor.aquatic.submerged else 0.27)
+		var radius := maxf(1.2, actor.target_height * 0.87) if actor.aquatic.submerged else maxf(0.8, actor.target_height * 0.68)
+		var optical_volume := Vector4(centre.x, centre.y, centre.z, radius)
+		if actor.in_open_ocean and sea_count < swimmers.size():
+			swimmers[sea_count] = optical_volume
+			sea_count += 1
+		elif actor.aquatic.submerged and hold_count < hold_swimmers.size():
+			hold_swimmers[hold_count] = optical_volume
+			hold_count += 1
+	if swimmers != _last_swimmers:
+		_last_swimmers = swimmers
+		water.set_shader_parameter("swimmers", swimmers)
+	if hold_water and hold_swimmers != _last_hold_swimmers:
+		_last_hold_swimmers = hold_swimmers
+		hold_water.set_shader_parameter("swimmers", hold_swimmers)
 
 func _apply_wetness() -> void:
 	for entry in wet_materials:

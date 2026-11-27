@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-mia-dive-nw",
+  "character": "mia",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-dwarf",
+  "action": "dive",
+  "direction": "nw",
+  "fps": 10,
+  "loop": true,
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Independent environment effects. No water, foam or bubbles painted into the character."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-dive-nw/816d2e368517/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-dive-nw/816d2e368517/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-dive-nw/816d2e368517/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-dive-nw/816d2e368517/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-dive-nw/816d2e368517/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-dive-nw/816d2e368517/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-dive-nw/816d2e368517/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-dive-nw/816d2e368517/08.webp"
+  ],
+  "production": {
+    "method": "Image generation from existing character identity and native-size extraction",
+    "reference": "prototypes/godot-pecio/characters/imported/sw-mia-idle8/00-idle-01.png",
+    "prompt": "Isolated 2.5D painted game sprite for exactly the existing character in the source. Direction throughout is upper left; rear view, see back of head and boots. Eight consecutive poses of full-body near-horizontal swimming under water with alternating leg flutter and arm recovery. Every pose is a small complete silhouette surrounded by genuine transparent alpha everywhere outside. A deliberately wide invisible 4 columns x 2 rows grid in chronological order. Important: keep figures within the central 60% of their cell. The entire outside of the silhouettes is TRANSPARENT, no color, shadow, lighting, checker pattern, outline, water, bubbles, foam, letters or copied tiles. Match exact hero's hair, face, proportions and clothing.",
+    "minimumVisibleStandingPixels": 120,
+    "silhouetteAlpha": 80,
+    "columnCutsByRow": [
+      [
+        0,
+        444,
+        887,
+        1330,
+        1774
+      ],
+      [
+        0,
+        444,
+        887,
+        1330,
+        1774
+      ]
+    ],
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mia-dive-nw-816d2e368517.png",
+    "originalSha256": "816d2e368517a2c6d470d59f9e5d1448f35486db3f391b3ad1eece4c08d4ff55",
+    "importReport": "output/stormwreck-motion-detail/sw-mia-dive-nw-816d2e368517.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "Individual transparent poses visually reviewed for heading, silhouette and separation from VFX. Project review controls promotion.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 355,
+  "pivot": [
+    0.5,
+    0.8618421052631579
+  ]
+}

@@ -30,6 +30,9 @@ var master_muted: bool = false
 var last_footstep_surface: String = ""
 var footstep_count_by_surface: Dictionary = {"earth": 0, "wood": 0, "water": 0}
 var current_fire_audio_gain: float = 0.0
+var is_sheltered_audio: bool = false
+var _wind_base_vol: float = 0.18
+var _ocean_base_vol: float = 0.22
 
 static var _footstep_streams: Dictionary = {}
 
@@ -133,7 +136,18 @@ func play_footstep(surface: String, world_pos: Vector3, pitch_jitter: float = 0.
 			_footstep_3d.play()
 
 ## Paso 17.17 & 17.20: Update 3D river tracking & link fire audio gain/pitch to fire intensity & fuel
-func update_spatial_sources(nearest_river_pos: Vector3, fire_lit: bool, fire_fuel: float, stoke_boost: float) -> void:
+func update_spatial_sources(nearest_river_pos: Vector3, fire_lit: bool, fire_fuel: float, stoke_boost: float, sheltered: bool = false, weather_id: String = "clear") -> void:
+	is_sheltered_audio = sheltered
+	var wp: AudioStreamPlayer = _players.get("wind") as AudioStreamPlayer
+	if is_instance_valid(wp) and wp.playing:
+		var wind_target := _wind_base_vol * (0.40 if sheltered else 1.0)
+		if weather_id in ["rain", "storm"]:
+			wind_target *= 1.15 if not sheltered else 0.50
+		wp.volume_db = linear_to_db(clampf(wind_target, 0.01, 1.0))
+	var op: AudioStreamPlayer = _players.get("ocean") as AudioStreamPlayer
+	if is_instance_valid(op) and op.playing:
+		var ocean_target := _ocean_base_vol * (0.48 if sheltered else 1.0)
+		op.volume_db = linear_to_db(clampf(ocean_target, 0.01, 1.0))
 	if is_instance_valid(_river_3d) and nearest_river_pos != Vector3.ZERO:
 		_river_3d.global_position = nearest_river_pos + Vector3(0.0, 0.25, 0.0)
 	if not fire_lit:
@@ -213,6 +227,10 @@ func apply_scene_profile(scene_def: Dictionary) -> void:
 			if stream:
 				player.stream = stream
 				var vol := clampf(float(cfg.get("volume", 0.2)), 0.01, 1.0)
+				if layer_name == "wind":
+					_wind_base_vol = vol
+				elif layer_name == "ocean":
+					_ocean_base_vol = vol
 				player.volume_db = linear_to_db(vol)
 				player.play()
 

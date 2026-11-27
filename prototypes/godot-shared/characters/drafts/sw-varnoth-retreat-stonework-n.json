@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-varnoth-retreat-stonework-n",
+  "character": "sw-varnoth",
+  "anatomy": "humanoid-tall",
+  "campaign": "stormwreck-isle",
+  "action": "retreat_stonework",
+  "direction": "n",
+  "fps": 6,
+  "loop": true,
+  "referenceHeight": 451,
+  "pivot": [
+    0.5,
+    0.9103053435114504
+  ],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-stonework-n/59b92f402514/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-stonework-n/59b92f402514/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-stonework-n/59b92f402514/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-stonework-n/59b92f402514/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-stonework-n/59b92f402514/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-stonework-n/59b92f402514/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-stonework-n/59b92f402514/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-stonework-n/59b92f402514/08.webp"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "propsSeparate": true
+  },
+  "production": {
+    "columns": 4,
+    "silhouetteAlpha": 96,
+    "minimumVisibleStandingPixels": 310,
+    "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-varnoth-retreat-masonry-rear/e374943508b3/01.webp",
+    "intent": "Dedicated rear tool cycle, grounded support and empty gripping hands.",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-varnoth-retreat-stonework-n-59b92f402514.png",
+    "originalSha256": "59b92f4025149013079e06edd6c748fdba1e7ccc2e02f24b43ebda89e04655bd",
+    "importReport": "output/stormwreck-motion-detail/sw-varnoth-retreat-stonework-n-59b92f402514.json",
+    "minimumAlpha": 20,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  }
+}

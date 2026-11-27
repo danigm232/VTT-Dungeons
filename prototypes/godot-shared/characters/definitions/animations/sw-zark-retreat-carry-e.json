@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-zark-retreat-carry-e",
+  "character": "sw-zark",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "retreat_carry_walk",
+  "direction": "e",
+  "fps": 6,
+  "loop": true,
+  "referenceHeight": 400,
+  "pivot": [
+    0.5,
+    0.9237472766884531
+  ],
+  "frames": [
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-carry-e/5aa72a7b7aad/01.webp",
+      "pivot": [
+        0.5352112676056338,
+        0.9902912621359223
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-carry-e/5aa72a7b7aad/02.webp",
+      "pivot": [
+        0.5647840531561462,
+        0.9902200488997555
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-carry-e/5aa72a7b7aad/03.webp",
+      "pivot": [
+        0.5494880546075085,
+        0.9878345498783455
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-carry-e/5aa72a7b7aad/04.webp",
+      "pivot": [
+        0.5400696864111498,
+        0.9877750611246944
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-carry-e/5aa72a7b7aad/05.webp",
+      "pivot": [
+        0.553623188405797,
+        0.9877750611246944
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-carry-e/5aa72a7b7aad/06.webp",
+      "pivot": [
+        0.5647840531561462,
+        0.9878048780487805
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-carry-e/5aa72a7b7aad/07.webp",
+      "pivot": [
+        0.5555555555555556,
+        0.9878048780487805
+      ]
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-carry-e/5aa72a7b7aad/08.webp",
+      "pivot": [
+        0.5494880546075085,
+        0.9902200488997555
+      ]
+    }
+  ],
+  "compatibility": {
+    "embeddedSlotsRetained": true,
+    "propsSeparate": true,
+    "preservesAppearance": true
+  },
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-zark-retreat-turnaround/cf00b16dd88a/06.png",
+    "columns": 4,
+    "silhouetteAlpha": 96,
+    "minimumVisibleStandingPixels": 300,
+    "intent": "Primary lateral view along the actual load route; arms support an independent 3D prop.",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-zark-retreat-carry-e-5aa72a7b7aad.png",
+    "originalSha256": "5aa72a7b7aad567d3af588022d0e67b25dd5b9bdc2bfbebb0742e6b7af17bce1",
+    "importReport": "output/stormwreck-motion-detail/sw-zark-retreat-carry-e-5aa72a7b7aad.json",
+    "minimumAlpha": 20,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "Original and extracted candidate compared, with user acceptance pending.",
+    "userAcceptance": "pending"
+  }
+}

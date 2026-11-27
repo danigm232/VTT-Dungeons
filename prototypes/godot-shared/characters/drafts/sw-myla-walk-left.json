@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-myla-walk-left",
+  "character": "sw-myla",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-winged-small",
+  "action": "walk",
+  "direction": "w",
+  "fps": 8,
+  "loop": true,
+  "dependencies": [
+    "sw-myla"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "anchored soles on a common baseline; directional walking"
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-walk-left/b4639f05e6ea/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-walk-left/b4639f05e6ea/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-walk-left/b4639f05e6ea/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-walk-left/b4639f05e6ea/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-walk-left/b4639f05e6ea/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-walk-left/b4639f05e6ea/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-walk-left/b4639f05e6ea/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-walk-left/b4639f05e6ea/08.webp"
+  ],
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-myla-retreat-turnaround/fdac2f3ff603/04.png",
+    "minimumVisibleStandingPixels": 270,
+    "expectedPhases": 8,
+    "method": "Native extraction of dedicated left profile. Wings painted per side.",
+    "sourcePages": [
+      8,
+      9
+    ],
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-myla-walk-left-b4639f05e6ea.png",
+    "originalSha256": "b4639f05e6ea5b6cd551087b5a15d1003e33c52b107264840c171f1b02b43532",
+    "importReport": "output/stormwreck-motion-detail/sw-myla-walk-left-b4639f05e6ea.json",
+    "minimumAlpha": 12,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 470,
+  "pivot": [
+    0.5,
+    0.9217877094972067
+  ]
+}

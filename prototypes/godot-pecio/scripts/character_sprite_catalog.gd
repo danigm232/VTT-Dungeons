@@ -95,6 +95,8 @@ const TRINITY_WALK_V2: Dictionary = {
 }
 
 static func get_character_clips(char_key: String) -> Dictionary:
+	if char_key in ["ghoul", "sw-ghoul"]:
+		return load("res://characters/registry.gd").profile("sw-ghoul")
 	if _catalog_cache.has(char_key):
 		return _catalog_cache[char_key]
 
@@ -148,7 +150,9 @@ static func resolve_character_key(token_name: String) -> String:
 		return "wizard"
 	if "cleric" in low or "mia" in low or "hero" in low:
 		return "cleric"
-	if "harpy" in low or "harpia" in low:
+	if "ghoul" in low or low.begins_with("gul "):
+		return "ghoul"
+	if "harpy" in low or "harpia" in low or "arpía" in low:
 		return "harpy"
 	if "zombie" in low or "zombi" in low:
 		return "zombie"

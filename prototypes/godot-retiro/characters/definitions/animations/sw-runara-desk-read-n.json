@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-runara-desk-read-n",
+  "character": "sw-runara",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "retreat_desk_read",
+  "direction": "n",
+  "fps": 1,
+  "loop": false,
+  "dependencies": [
+    "sw-runara"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "current frame alpha",
+    "placement": "Seat support at 0.495 m with two planted feet, hands relative to the existing book."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-desk-read/6e94d42369fd/read-n.webp"
+  ],
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-runara-study/5708e96fe295/04.png",
+    "intent": "Runara in human form at the actual A4 east scriptorium stool. Anchor pelvis, feet and hands. Existing 3D manuscript stays separate.",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-runara-desk-read-6e94d42369fd.png",
+    "originalSha256": "6e94d42369fddacc5cabb62099566766bccf8d9649d6e44405775142c3fd41e9",
+    "nativeBounds": [
+      1147,
+      16,
+      1411,
+      495
+    ],
+    "encoding": "Native lossless WebP, verified RGBA",
+    "method": "Reviewed image isolation, planted support and grip registered in source pixels"
+  },
+  "review": {
+    "technical": "Isolated alpha, crop margins, contact coordinates and lossless decode checked.",
+    "visual": "Original and extracted candidate compared, with user acceptance pending.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 540,
+  "pivot": [
+    0.4962121212121212,
+    0.6534446764091858
+  ],
+  "poseKind": "hold",
+  "viewAngleDegrees": -90,
+  "soleContact": [
+    0.5,
+    0.9916492693110647
+  ],
+  "toolGrip": [
+    0.8522727272727273,
+    0.4342379958246347
+  ]
+}

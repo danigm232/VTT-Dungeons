@@ -335,21 +335,29 @@ func collect() -> void:
 			if inv:
 				inv.hide_prompt()
 			if nearby_player:
-				nearby_player.play_action_animation("interact")
+				nearby_player.play_object_action("stow_item", global_position)
 			mark_collected_silent()
 			if bool(res.get("already_looted", false)):
 				return
 			return
 	var vtt := get_tree().root.find_child("VttRoleUi", true, false)
 	if vtt and "world_state" in vtt and vtt.world_state and vtt.world_state.has_method("mark_pickup_collected"):
-		vtt.world_state.mark_pickup_collected(name)
+		var ws_p = vtt.world_state
+		ws_p.mark_pickup_collected(name)
+		if name == "PickupCompassC4":
+			ws_p.c4_compass_taken = true
+			ws_p.save_state()
+		elif name in ["PickupGoldC4", "PickupCartographerC4", "PickupDaggerC4"]:
+			if ws_p.is_pickup_collected("PickupGoldC4") and ws_p.is_pickup_collected("PickupCartographerC4") and ws_p.is_pickup_collected("PickupDaggerC4"):
+				ws_p.c4_desk_looted = true
+				ws_p.save_state()
 	var inv = get_tree().root.find_child("InventoryManager", true, false)
 	if inv:
 		inv.add_item(pickup_id, amount, item_name)
 		inv.hide_prompt()
 
 	if nearby_player:
-		nearby_player.play_action_animation("interact")
+		nearby_player.play_object_action("stow_item", global_position)
 
 	mark_collected_silent()
 

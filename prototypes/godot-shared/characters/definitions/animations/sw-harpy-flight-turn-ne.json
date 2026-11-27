@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-harpy-flight-turn-ne",
+  "character": "harpy",
+  "campaign": "stormwreck-isle",
+  "anatomy": "winged",
+  "action": "flight_turn",
+  "direction": "ne",
+  "fps": 12,
+  "loop": false,
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Current frame alpha; physical attachments remain unverified."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-flight-turn-ne/d0d009fecdc9/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-flight-turn-ne/d0d009fecdc9/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-flight-turn-ne/d0d009fecdc9/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-flight-turn-ne/d0d009fecdc9/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-flight-turn-ne/d0d009fecdc9/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-flight-turn-ne/d0d009fecdc9/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-flight-turn-ne/d0d009fecdc9/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-flight-turn-ne/d0d009fecdc9/08.webp"
+  ],
+  "production": {
+    "method": "Built-in image generation and lossless native-size extraction",
+    "reference": "campaigns/stormwreck-isle/public/art/m3/harpy/harpia_base.png",
+    "minimumVisibleStandingPixels": 195,
+    "directionalArrival": true,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-harpy-flight-turn-ne-d0d009fecdc9.png",
+    "originalSha256": "d0d009fecdc9d64421663b3f856f203e98e026a2892eb0a2038c4b1f8a2223f6",
+    "importReport": "output/stormwreck-motion-detail/sw-harpy-flight-turn-ne-d0d009fecdc9.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels",
+    "silhouetteAlpha": 105,
+    "firstPass": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-harpy-flight-turn-ne-18a9d572d544.png",
+    "firstPassSha256": "18a9d572d5447b2d7a6bbb2f14b1b36ab31308cb1e2c9b323439044e7a206c8d"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "Reviewed for direction, silhouette, clear gutters and identity. Integrated map review recorded separately.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 350,
+  "pivot": [
+    0.5,
+    0.9122807017543859
+  ]
+}

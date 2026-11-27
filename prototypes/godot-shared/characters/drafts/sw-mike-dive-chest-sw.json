@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-mike-dive-chest-sw",
+  "character": "mike",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "dive_chest",
+  "direction": "sw",
+  "fps": 10,
+  "loop": false,
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Independent environment effects. No water, foam or bubbles painted into the character."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-dive-chest-sw/a60ae3f82d91/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-dive-chest-sw/a60ae3f82d91/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-dive-chest-sw/a60ae3f82d91/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-dive-chest-sw/a60ae3f82d91/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-dive-chest-sw/a60ae3f82d91/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-dive-chest-sw/a60ae3f82d91/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-dive-chest-sw/a60ae3f82d91/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-dive-chest-sw/a60ae3f82d91/08.webp"
+  ],
+  "production": {
+    "method": "Image generation from existing character identity and native-size extraction",
+    "reference": "prototypes/godot-pecio/characters/imported/sw-mike-idle8/00-idle-01.png",
+    "prompt": "Recovered original from the requested eight-phase diagonal interaction batch. Existing Stormwreck identity, transparent cell gutters, and effects supplied by the scene.",
+    "minimumVisibleStandingPixels": 120,
+    "silhouetteAlpha": 80,
+    "columnCutsByRow": [
+      [
+        0,
+        444,
+        887,
+        1330,
+        1774
+      ],
+      [
+        0,
+        444,
+        887,
+        1330,
+        1774
+      ]
+    ],
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-dive-chest-sw-a60ae3f82d91.png",
+    "originalSha256": "a60ae3f82d9182a7ac3753fc55096a72f19a5455459594f50f87ac11e42683c3",
+    "importReport": "output/stormwreck-motion-detail/sw-mike-dive-chest-sw-a60ae3f82d91.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 355,
+  "pivot": [
+    0.5,
+    0.7741228070175439
+  ]
+}

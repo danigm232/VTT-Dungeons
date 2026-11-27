@@ -7,7 +7,7 @@ from pathlib import Path
 import re
 from statistics import median
 
-from PIL import Image
+from PIL import Image, ImageChops, ImageFilter
 
 
 def digest(data):
@@ -49,10 +49,17 @@ original.parent.mkdir(parents=True, exist_ok=True)
 if not original.exists():
     original.write_bytes(data)
 sheet = Image.open(original).convert('RGBA')
-nominal_cuts = [round(col * sheet.width / 4) for col in range(5)]
+columns = definition['production'].get('columns', 4)
+if columns not in (3, 4) or (is_pose_grid and columns != 4):
+    parser.error('Use a six-frame 3 × 2 or eight-frame 4 × 2 animation sheet; turnarounds use 4 × 2')
+frame_count = columns * 2
+silhouette_alpha = definition['production'].get('silhouetteAlpha', 24)
+if type(silhouette_alpha) is not int or not 24 <= silhouette_alpha <= 248:
+    parser.error('Silhouette alpha must be between 24 and 248')
+nominal_cuts = [round(col * sheet.width / columns) for col in range(columns + 1)]
 row_cuts = definition['production'].get('columnCutsByRow', [nominal_cuts, nominal_cuts])
 if len(row_cuts) != 2 or any(
-    len(cuts) != 5 or cuts[0] != 0 or cuts[-1] != sheet.width
+    len(cuts) != columns + 1 or cuts[0] != 0 or cuts[-1] != sheet.width
     or any(type(x) is not int for x in cuts)
     or any(left >= right for left, right in zip(cuts, cuts[1:]))
     or any(abs(x - nominal) > sheet.width * .025 for x, nominal in zip(cuts, nominal_cuts))
@@ -62,18 +69,22 @@ if len(row_cuts) != 2 or any(
 frames = []
 bounds = []
 horizontal_pivots = []
+pair_hero_heights = []
+pair_hero_left = definition['production'].get('paired', False)
 reclined = definition['production'].get('reclinedSheet', False)
 if reclined and definition.get('action') != 'rest_on_prop':
     parser.error('Reclined registration requires a rest_on_prop animation')
-stationary = is_pose_grid or definition['action'].startswith('retreat_')
+carrying = definition['action'] == 'retreat_carry_walk'
+stationary = is_pose_grid or (definition['action'].startswith('retreat_') and not carrying)
 errors = []
-for index in range(8):
-    col, row = index % 4, index // 4
+for index in range(frame_count):
+    col, row = index % columns, index // columns
     box = (row_cuts[row][col], round(row * sheet.height / 2),
            row_cuts[row][col + 1], round((row + 1) * sheet.height / 2))
     cell = sheet.crop(box)
     alpha = cell.getchannel('A')
-    body = alpha.point(lambda a: 255 if a >= 24 else 0).getbbox()
+    silhouette = alpha.point(lambda a: 255 if a >= silhouette_alpha else 0)
+    body = silhouette.getbbox()
     if not body:
         errors.append(f'Empty cell {index + 1}')
         continue
@@ -87,6 +98,8 @@ for index in range(8):
               min(cell.width, body[2] + 2), min(cell.height, body[3] + 2))
     bounded_alpha = Image.new('L', cell.size)
     bounded_alpha.paste(alpha.crop(padded).point(lambda a: a if a >= args.minimum_alpha else 0), padded[:2])
+    if silhouette_alpha > 24:
+        bounded_alpha = ImageChops.multiply(bounded_alpha, silhouette.filter(ImageFilter.MaxFilter(5)))
     cell.putalpha(bounded_alpha)
     clean = Image.new('RGBA', cell.size)
     clean.paste(cell, mask=cell.getchannel('A').point(lambda a: 255 if a else 0))
@@ -101,29 +114,37 @@ for index in range(8):
     elif stationary:
         # Register the sole pair rather than the hands and tail moving above it.
         lower = body[3] - max(8, round((body[3] - body[1]) * .045))
-        feet = alpha.crop((0, lower, cell.width, body[3])).point(lambda a: 255 if a >= 32 else 0).getbbox()
+        foot_right = round(cell.width * .52) if pair_hero_left else cell.width
+        feet = alpha.crop((0, lower, foot_right, body[3])).point(lambda a: 255 if a >= 32 else 0).getbbox()
+        if pair_hero_left:
+            hero = alpha.crop((0, 0, foot_right, cell.height)).point(lambda a: 255 if a >= 32 else 0).getbbox()
+            pair_hero_heights.append(hero[3] - hero[1])
+        if not feet:
+            errors.append(f'Cell {index + 1} has no supported protagonist foot in its declared side')
+            feet = (body[0], 0, body[2], 1)
         horizontal_pivots.append(round((feet[0] + feet[2]) / 2))
     else:
         horizontal_pivots.append(round((nominal_cuts[col] + nominal_cuts[col + 1]) / 2) - box[0])
 
 hashes = [digest(im.tobytes()) for im in frames]
-if len(set(hashes)) != 8:
-    errors.append('Expected eight distinct, nonempty frames')
+if len(set(hashes)) != frame_count:
+    errors.append(f'Expected {frame_count} distinct, nonempty frames')
 report_path = evidence / f'{args.id}-{revision}.json'
 report = {
     'id': args.id, 'source': original.relative_to(root).as_posix(), 'sourceSha256': digest(data),
-    'size': sheet.size, 'grid': [4, 2], 'columnCutsByRow': row_cuts, 'cellBounds': bounds,
+    'size': sheet.size, 'grid': [columns, 2], 'columnCutsByRow': row_cuts, 'cellBounds': bounds,
     'visibleHeights': [b[3] - b[1] for b in bounds], 'distinctPhases': len(set(hashes)),
-    'errors': errors, 'minimumAlpha': args.minimum_alpha,
+    'errors': errors, 'minimumAlpha': args.minimum_alpha, 'silhouetteAlpha': silhouette_alpha,
     'operation': 'Native-size cell extraction, faint alpha removed and common registration. No resizing.',
 }
 if not errors:
     target = folder / args.id / revision
     target.mkdir(parents=True, exist_ok=True)
-    ground = definition['action'] == 'walk' or stationary
+    ground = definition['action'] in ('walk', 'crawl', 'fall') or stationary or carrying
+    ground = ground or (definition['action'] == 'land' and definition['production'].get('directionalArrival', False))
     common_base = round(median(b[3] for b in bounds))
     calibration = bounds[:4] if is_pose_grid else bounds
-    reference = args.reference_height or round(median(b[3] - b[1] for b in calibration))
+    reference = args.reference_height or (max(pair_hero_heights) if pair_hero_heights else round(median(b[3] - b[1] for b in calibration)))
     anchor_y = common_base
     vertical_offsets = [common_base - body[3] if ground else 0 for body in bounds]
     if reclined:
@@ -155,7 +176,7 @@ if not errors:
         canvas = Image.new('RGBA', (width, height))
         canvas.paste(im, (half_width - horizontal_pivots[index] - crop_left, y))
         path = target / f'{index + 1:02}.{args.format}'
-        if is_pose_grid or definition['action'] == 'walk' and definition['direction'] in ('n', 's'):
+        if is_pose_grid or carrying or definition['action'] == 'walk' and definition['direction'] in ('n', 's'):
             # Strip unused gutters at native resolution while retaining the
             # authored scale and registration of the body.
             used = canvas.getbbox()

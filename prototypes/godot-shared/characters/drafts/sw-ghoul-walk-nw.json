@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-ghoul-walk-nw",
+  "character": "sw-ghoul",
+  "anatomy": "humanoid-tall",
+  "campaign": "stormwreck-isle",
+  "action": "walk",
+  "direction": "nw",
+  "fps": 10,
+  "loop": true,
+  "compatibility": {
+    "preservesAppearance": true,
+    "overlay": "Current frame alpha; physical attachments remain unverified."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-walk-nw/1eaf98df7161/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-walk-nw/1eaf98df7161/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-walk-nw/1eaf98df7161/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-walk-nw/1eaf98df7161/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-walk-nw/1eaf98df7161/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-walk-nw/1eaf98df7161/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-walk-nw/1eaf98df7161/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-walk-nw/1eaf98df7161/08.webp"
+  ],
+  "production": {
+    "method": "Built-in image generation with existing local identity reference and native-size extraction",
+    "reference": "campaigns/stormwreck-isle/public/art/m3/ghoul/ghoul_base.png",
+    "minimumVisibleStandingPixels": 265,
+    "prompt": "Rear three-quarter view toward northwest, with eight isolated distinct walk phases. Match the existing ghoul anatomical identity.",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-ghoul-walk-nw-1eaf98df7161.png",
+    "originalSha256": "1eaf98df7161c3be10ac32e02cfe9364a71847dc796f913fb515d38b4274b475",
+    "importReport": "output/stormwreck-motion-detail/sw-ghoul-walk-nw-1eaf98df7161.json"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 395,
+  "pivot": [
+    0.5,
+    0.9092872570194385
+  ]
+}

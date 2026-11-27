@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-ghoul-run-nw",
+  "character": "sw-ghoul",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "run",
+  "direction": "nw",
+  "fps": 15,
+  "loop": true,
+  "compatibility": {
+    "preservesAppearance": true,
+    "overlay": "Current frame alpha; existing embedded wraps retained."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-run-nw/63fc990e6963/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-run-nw/63fc990e6963/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-run-nw/63fc990e6963/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-run-nw/63fc990e6963/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-run-nw/63fc990e6963/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-run-nw/63fc990e6963/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-run-nw/63fc990e6963/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-run-nw/63fc990e6963/08.webp"
+  ],
+  "production": {
+    "method": "Built-in image generation, native-size extraction",
+    "reference": "campaigns/stormwreck-isle/public/art/m3/ghoul/ghoul_base.png",
+    "minimumVisibleStandingPixels": 240,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-ghoul-run-nw-63fc990e6963.png",
+    "originalSha256": "63fc990e6963a53bf704e24cb04d7c814dc16d637f38c0351a38e8d97781a1aa",
+    "importReport": "output/stormwreck-motion-detail/sw-ghoul-run-nw-63fc990e6963.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels",
+    "motionFinish": true,
+    "prompt": "Create ONE production sprite sheet, wide 2:1 canvas, exactly four EQUAL columns and TWO EQUAL rows, eight unique full-body frames left-to-right, top then bottom. TRUE transparent RGBA (actual zero alpha gutters), NO checkerboard drawn, white surface, color backdrop, text, numbers, outline, shadows or effects. Big clear margins on ALL edges of each cell, ensure no limb or tail crosses any boundary. Same camera elevation, lighting and anatomy across all cells. Painted 2.5D tabletop art. Exact same bald blue-grey ghoul with long pointed ears, pink tongue, ivory eyes, long clawed arms and bare feet, beige wrapped forearms and calves and ragged tan loincloth. No accessories. Subject faces upper left, REAR three-quarter matching the rear gameplay reference, show back and side. FAST RUN, powerfully leans forward, long split stride and visible airborne beats. Alternate the striking foot and opposite swinging arm. Poses 1 to 4 are right foot contact, compression, driving push, flight; poses 5 to 8 switch to the left. Feet aligned to a consistent virtual ground line. Never present the front of his torso.",
+    "silhouetteAlpha": 96,
+    "firstPass": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-ghoul-run-nw-b91f414f49c1.png",
+    "firstPassSha256": "b91f414f49c157f21e34a7b78ef47904732bbb9a9a3ab84e432d042db02da432",
+    "repairPrompt": "Edit this eight-frame animation sprite sheet. It mistakenly has the same leading foot in BOTH rows. Preserve its identical creature, camera, scale and transparent background, and KEEP the four top-row images reasonably unchanged. Redraw ONLY the four bottom-row sprites with a distinctly opposite-leg lead. In the TOP row the leg near the viewer has beige shin wrappings and reaches towards screen-left, while the far bare leg trails towards screen-right. In the BOTTOM row reverse that visible separation: the leg near the viewer with the beige shin wrappings kicks BACK towards the right and is elevated off the floor on the first frame; the clearly BARE shin and unwrapped bare foot of the far leg emerge and plant FAR IN FRONT towards screen-left. Swing the near elbow back towards screen-right while the far hand punches forward towards screen-left in the bottom row. Keep this visual reversal for the contact and compression of frames 5 and 6, then release into a wide flight in 7 and 8. All eight figures face northwest, upper-left, seen from rear, no mirror turning the creature around. One 2:1 sheet exactly 4 equal columns by 2 equal rows, fully isolated transparent RGBA, ample transparent safety margin around every cell and limb. No labels, no floor, no outline, no lighting changes."
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 405,
+  "pivot": [
+    0.5,
+    0.9122807017543859
+  ]
+}

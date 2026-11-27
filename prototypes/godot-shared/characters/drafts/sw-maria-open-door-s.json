@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-maria-open-door-s",
+  "character": "maria",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-small",
+  "action": "open_door",
+  "direction": "s",
+  "fps": 10,
+  "loop": false,
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Independent environment effects. No water, foam or bubbles painted into the character."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-door-s/5699cf9575a4/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-door-s/5699cf9575a4/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-door-s/5699cf9575a4/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-door-s/5699cf9575a4/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-door-s/5699cf9575a4/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-door-s/5699cf9575a4/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-door-s/5699cf9575a4/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-door-s/5699cf9575a4/08.webp"
+  ],
+  "production": {
+    "method": "Image generation from existing character identity and native-size extraction",
+    "reference": "prototypes/godot-pecio/characters/imported/sw-maria-idle8/00-idle-01.png",
+    "prompt": "Only the exact attached Stormwreck player character, matching their face, hair, clothes, anatomy and apparent age. FRONT VIEW DIRECTLY TOWARD BOTTOM OF FRAME, see the same face and chest, slightly elevated game camera. Across eight successive clear drawn phases, stand and reach from waist height to touch a door handle with one hand, turn the grip and press forward with a half step, then release. Targets are outside the sprite and supplied by the engine, don't draw any door or chest. Plain empty transparent alpha background, fully opaque character brushwork, absolutely no grey background, ground, water, glow, letters or outlines. Exact 4 columns by 2 rows, wide 2:1 total. Every sprite in the central 62% of its own cell with wide empty safety margins and the same character size.",
+    "minimumVisibleStandingPixels": 120,
+    "silhouetteAlpha": 80,
+    "columnCutsByRow": [
+      [
+        0,
+        444,
+        887,
+        1330,
+        1774
+      ],
+      [
+        0,
+        444,
+        887,
+        1330,
+        1774
+      ]
+    ],
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-maria-open-door-s-5699cf9575a4.png",
+    "originalSha256": "5699cf9575a45813baf401397280147dacc699aa0a5214a853918f064a2b3498",
+    "importReport": "output/stormwreck-motion-detail/sw-maria-open-door-s-5699cf9575a4.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 355,
+  "pivot": [
+    0.5,
+    0.9078947368421053
+  ]
+}

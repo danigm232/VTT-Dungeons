@@ -32,6 +32,8 @@ var joystick: ThemeKit.TacticalThumbStick
 
 # Bottom-right actions
 var interact_btn: Button
+var dive_btn: Button
+var air_lbl: Label
 var action_toggle_btn: Button
 var exploration_menu: PanelContainer
 var exploration_list: VBoxContainer
@@ -232,6 +234,8 @@ func _build_center_notices() -> void:
 	vb.add_child(toast_panel)
 	toast_lbl = ThemeKit.make_label("", 12, ThemeKit.COL_GOLD_BRIGHT)
 	toast_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	toast_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	toast_lbl.custom_minimum_size = Vector2(460, 0)
 	toast_panel.add_child(toast_lbl)
 
 func _build_joystick() -> void:
@@ -306,6 +310,14 @@ func _build_bottom_actions() -> void:
 	interact_btn.pressed.connect(func(): ui.trigger_nearby_interaction())
 	row.add_child(interact_btn)
 
+	dive_btn = Button.new()
+	dive_btn.name = "AquaticDepthButton"
+	dive_btn.tooltip_text = "U · Cambiar entre superficie y buceo"
+	dive_btn.hide()
+	ThemeKit.style_button(dive_btn, "pill_active", 999, 14, 9)
+	dive_btn.pressed.connect(func(): ui.toggle_aquatic_depth())
+	row.add_child(dive_btn)
+
 	action_toggle_btn = Button.new()
 	action_toggle_btn.name = "ActionToggleButton"
 	action_toggle_btn.text = "⚔ Acciones"
@@ -320,6 +332,29 @@ func _build_bottom_actions() -> void:
 	ThemeKit.style_button(end_turn_btn, "combat", 999, 14, 9)
 	end_turn_btn.pressed.connect(func(): ui.next_combat_turn())
 	row.add_child(end_turn_btn)
+
+	air_lbl = ThemeKit.make_label("", 13, ThemeKit.COL_MUTED)
+	air_lbl.name = "AquaticAir"
+	air_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	air_lbl.hide()
+	wrap.add_child(air_lbl)
+
+func refresh_aquatic_status(body: Node3D) -> void:
+	if not dive_btn or not air_lbl:
+		return
+	var state = body.aquatic if body is PlayerToken else null
+	dive_btn.visible = state != null and state.surface_available
+	air_lbl.visible = state != null and (state.submerged or state.wetness > 0.2)
+	if dive_btn.visible:
+		dive_btn.text = "Emerger" if state.wants_dive else "Bucear"
+		dive_btn.disabled = body.is_defeated or body.is_transitioning or (ui.combat_controller and not ui.combat_controller.can_move(body))
+	if air_lbl.visible:
+		if state.submerged:
+			var seconds := maxi(0, ceili(state.air_remaining))
+			var breathing := "Respirando" if state.can_breathe() else "Aire %d:%02d" % [floori(seconds / 60.0), seconds % 60]
+			air_lbl.text = "Sin aire · Agotamiento %d" % state.suffocation_exhaustion if state.suffocation_exhaustion > 0 else breathing
+		else:
+			air_lbl.text = "Empapado" if state.wetness > 0.7 else "Mojado"
 
 func _build_combat_hud() -> void:
 	combat_strip = ThemeKit.make_window_panel(ThemeKit.COL_COMBAT, 12)
@@ -706,6 +741,16 @@ func _rebuild_exploration_menu() -> void:
 				)
 				exploration_list.add_child(sb)
 	exploration_list.add_child(ThemeKit.make_eyebrow("ACCIONES DE EXPLORACIÓN"))
+	if not ui.is_retreat and ui.world_state and (ui.world_state.c6_portrait_examined or ui.world_state.c6_portrait_taken):
+		var port_b := Button.new()
+		port_b.text = "🖼 Ver Retrato de Aleitha y Brastos (C6)"
+		port_b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		ThemeKit.style_button(port_b, "secondary", 8, 10, 5)
+		port_b.pressed.connect(func():
+			ui.open_c6_portrait_modal()
+			toggle_exploration_menu(false)
+		)
+		exploration_list.add_child(port_b)
 	for act in CampaignData.get_basic_exploration_actions():
 		var ab := Button.new()
 		ab.text = "%s — %s" % [act["label"], act["detail"]]

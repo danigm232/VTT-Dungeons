@@ -3,6 +3,7 @@ const Targeting = preload("res://combat/action_targeting.gd")
 ## Local Godot authority. Physical dice only; no RNG or UI dependencies.
 signal changed
 signal resolved(event: Dictionary)
+signal turn_ending(actor_id: String)
 
 var actors: Dictionary = {}
 var order: Array[String] = []
@@ -123,6 +124,7 @@ func next_turn(requester: String, dm := false) -> bool:
 	if not dm and requester!=current_id(): return error("Solo puedes terminar tu turno.")
 	if not pending.is_empty(): return error("Primero resuelve la tirada pendiente.")
 	if not interrupted.is_empty(): return error("Termina la reacción antes de avanzar el turno.")
+	turn_ending.emit(current_id())
 	_flush_visuals()
 	sequence.clear()
 	for _i in range(order.size()):
@@ -224,6 +226,9 @@ func declare(id: String, action_id: String, target_id: String="", options: Dicti
 		if direction.length_squared()<.001: return error("Marca la dirección del área.")
 		options["direction"]=direction.normalized(); range_point=actors[id].position
 	var range_data: Dictionary=action.get("range",{"normalMeters":1.5,"kind":"melee"})
+	var weapon_attack: bool = not ("unarmed" in action_id) and (not action.get("magical", false) or action.get("animationType", "") in ["melee", "arrow", "thrownWeapon"])
+	var underwater_weapon := bool(actors[id].get("underwater", false)) and weapon_attack
+	var ranged_underwater: bool = underwater_weapon and range_data.get("kind", "") == "ranged"
 	if options.get("knockout",false) and range_data.get("kind","")!="melee": return error("Dejar inconsciente requiere un ataque cuerpo a cuerpo.")
 	var meters: float=distance(id,target_id) if actors.has(target_id) else maxf(maxf(absf(actors[id].position.x-range_point.x),absf(actors[id].position.z-range_point.z)),absf(actors[id].position.y-range_point.y))
 	if meters>float(range_data.get("longMeters",range_data.get("normalMeters",1.5)))+.15: return error("Objetivo fuera de alcance.")
@@ -242,11 +247,16 @@ func declare(id: String, action_id: String, target_id: String="", options: Dicti
 	elif action.get("automaticHit",false):
 		pending.kind="damage"; pending.label=_damage_label(action,false,bool(options.get("sneak",false)),id)
 		if action_id=="magic-missile" and actors[target_id].get("shield_active",false): pending.kind="blocked"; pending.label="Escudo bloquea este dardo · confirma sin tirar daño"
+	elif ranged_underwater and pending.long_range:
+		pending.kind = "blocked"
+		pending.label = "Bajo el agua · fuera del alcance normal del arma · confirma el fallo"
 	else:
 		pending.kind="attack"
 		var a: Dictionary=actors[id]
 		var target: Dictionary=actors[target_id]
 		var disadvantage: bool=pending.long_range or target.get("stance","")=="dodge" or "envenenada" in a.conditions or "asustada" in a.conditions
+		if ranged_underwater or (underwater_weapon and range_data.get("kind", "") == "melee" and float(a.traits.get("swimSpeedMeters", 0.0)) <= 0.0 and action.get("damageType", "") not in ["perforante", "piercing"]):
+			disadvantage = true
 		var advantage: bool=options.get("advantage",false) or "paralizada" in target.conditions or "inconsciente" in target.conditions or "invisible" in a.conditions
 		if "derribada" in target.conditions:
 			if meters<=1.5: advantage=true
@@ -258,7 +268,7 @@ func declare(id: String, action_id: String, target_id: String="", options: Dicti
 		var roll_note: String="(ventaja: el mayor de 2d20)" if advantage and not disadvantage else "(desventaja: el menor de 2d20)" if disadvantage and not advantage else "(ventaja y desventaja se anulan)" if advantage and disadvantage else ""
 		if options.get("sneak",false) and disadvantage and not advantage:
 			pending.clear(); return error("No se puede aplicar ataque furtivo con desventaja.")
-		pending.label="Ataque · d20 natural %s %+d contra CA %d" % [roll_note,int(action.get("attackBonus",0)),int(target.ac)]
+		pending.label="Ataque · d20 natural %s %+d contra CA %d" % [roll_note,_attack_modifier(id, action),int(target.ac)]
 	changed.emit(); return true
 
 func react(id: String,action_id: String,target_id: String,event: String,options: Dictionary={}) -> bool:
@@ -296,7 +306,7 @@ func submit(value: int, owner: String, command_id: String) -> bool:
 	elif kind in ["attack","save","concentration","death","fortitude"] and (value<1 or value>20): return error("Introduce un d20 natural entre 1 y 20.")
 	if kind=="attack":
 		var action: Dictionary=pending.action
-		var hit: bool=value==20 or value!=1 and value+int(action.get("attackBonus",0))>=int(actors[pending.target].ac)
+		var hit: bool=value==20 or value!=1 and value+_attack_modifier(str(pending.actor), action)>=int(actors[pending.target].ac)
 		pending.critical=value==20 or hit and distance(str(pending.actor),str(pending.target))<=1.5 and ("paralizada" in actors[pending.target].conditions or "inconsciente" in actors[pending.target].conditions); pending.committed=true
 		pending.natural=value
 		if hit:
@@ -388,7 +398,7 @@ func _commit_result(amount: int,hit: bool) -> void:
 			actors[p.target].movement=maxf(0,float(actors[p.target].movement)-3.0)
 		if action.id=="shield" and not actors[p.actor].get("shield_active",false): actors[p.actor].ac+=5; actors[p.actor].shield_active=true
 		if action.get("healing",false): heal(str(p.target),amount)
-		elif amount>0: damage(str(p.target),amount,str(action.get("damageType","")),bool(p.get("critical",false)),bool(p.get("options",{}).get("knockout",false)) or blunt_knockout and action.get("damageType","")=="contundente" and action.get("range",{}).get("kind","")=="melee")
+		elif amount>0: amount=damage(str(p.target),amount,str(action.get("damageType","")),bool(p.get("critical",false)),bool(p.get("options",{}).get("knockout",false)) or blunt_knockout and action.get("damageType","")=="contundente" and action.get("range",{}).get("kind","")=="melee")
 		if action.has("save") and not p.get("saved",false) and action.save.has("failureCondition"): add_condition(str(p.target),str(action.save.failureCondition))
 		if action.get("concentration",false):
 			end_concentration(str(p.actor)); actors[p.actor].concentration=action.id
@@ -406,7 +416,7 @@ func _commit_result(amount: int,hit: bool) -> void:
 		_restore_interruption()
 		var original: Dictionary=pending.get("action",{})
 		var target: Dictionary=actors.get(pending.get("target",""),{})
-		if pending.get("kind","")=="damage" and (original.get("id","")=="magic-missile" and target.get("shield_active",false) or pending.get("natural",20)!=20 and int(pending.get("natural",20))+int(original.get("attackBonus",0))<int(target.get("ac",0))):
+		if pending.get("kind","")=="damage" and (original.get("id","")=="magic-missile" and target.get("shield_active",false) or pending.get("natural",20)!=20 and int(pending.get("natural",20))+_attack_modifier(str(pending.actor), original)<int(target.get("ac",0))):
 			_commit_result(0,false)
 		elif pending.is_empty(): _next_followup()
 	else: _next_followup()
@@ -427,11 +437,11 @@ func advance_time(seconds: float) -> void:
 func _next_followup() -> void:
 	if not followups.is_empty(): pending=followups.pop_front()
 
-func damage(id: String,amount: int,type: String,critical := false,knockout := false) -> void:
-	if not actors.has(id) or amount<0: return
+func damage(id: String,amount: int,type: String,critical := false,knockout := false) -> int:
+	if not actors.has(id) or amount<0: return 0
 	var a: Dictionary=actors[id]
 	if type in a.immunities: amount=0
-	elif type in a.resistances: amount=floori(amount/2.0)
+	elif type in a.resistances or (a.get("underwater", false) and type in ["fuego", "fire"]): amount=floori(amount/2.0)
 	var hit:=amount
 	var absorbed:=mini(amount,maxi(0,int(a.get("temp_hp",0))))
 	a.temp_hp=maxi(0,int(a.get("temp_hp",0))-absorbed)
@@ -455,6 +465,7 @@ func damage(id: String,amount: int,type: String,critical := false,knockout := fa
 		var dc=maxi(10,mini(30,floori(hit/2.0)))
 		followups.append({"kind":"concentration","owner":id,"dc":dc,"label":"Concentración · CON CD %d" % dc,"committed":true})
 	changed.emit()
+	return hit
 
 func heal(id: String,amount: int) -> void:
 	if not actors.has(id) or actors[id].dead or amount<=0: return
@@ -523,7 +534,9 @@ func spend_movement(id: String,meters: float,difficult := false) -> bool:
 	if initiative_pending or current_id()!=id or not pending.is_empty() or actors[id].defeated: return false
 	if sequence.get("actor","")==id and sequence.get("action","")=="magic-missile": return false
 	if "apresada" in actors[id].conditions or "restringida" in actors[id].conditions or "paralizada" in actors[id].conditions: return false
-	var cost := meters*(1.0+(1.0 if difficult else 0.0)+(1.0 if "derribada" in actors[id].conditions else 0.0))
+	var a: Dictionary = actors[id]
+	var swimming := bool(a.get("swimming", false)) and float(a.traits.get("swimSpeedMeters", 0.0)) <= 0.0
+	var cost := meters * (1.0 + float(difficult) + float(swimming) + float("derribada" in a.conditions))
 	if cost>float(actors[id].movement)+.001: return false
 	actors[id].movement=maxf(0,float(actors[id].movement)-cost)
 	return true
@@ -534,7 +547,24 @@ func effective_speed(id: String) -> float:
 		if condition in a.conditions: return 0
 	var penalty:=0.0
 	for effect in a.speed_effects.values(): penalty=minf(penalty,float(effect))
-	return maxf(0,float(a.speed)+penalty)
+	return maxf(0,float(a.speed)+penalty-1.5*int(a.get("suffocation_exhaustion", 0)))
+
+func set_suffocation_level(id: String, level: int) -> void:
+	var actor: Dictionary = actors[id]
+	if int(actor.get("suffocation_exhaustion", 0)) == level:
+		return
+	var previous_speed := effective_speed(id)
+	actor["suffocation_exhaustion"] = level
+	actor.movement = maxf(0.0, float(actor.movement) + effective_speed(id) - previous_speed)
+	if level >= 6 and not actor.dead:
+		actor.hp = 0
+		actor.dead = true
+		actor.defeated = true
+		end_concentration(id)
+	changed.emit()
+
+func _attack_modifier(id: String, action: Dictionary) -> int:
+	return int(action.get("attackBonus", 0)) - 2 * int(actors[id].get("suffocation_exhaustion", 0))
 
 func request_withdraw(id: String) -> bool:
 	if not active or id not in order or not pending.is_empty(): return error("No se puede declarar retirada ahora.")
@@ -548,9 +578,10 @@ func _incapacitated(a: Dictionary) -> bool:
 
 func _save_modifier(id: String,ability: String) -> int:
 	var a: Dictionary=actors[id]
-	if a.has("saves") and a.saves.has(ability): return int(a.saves[ability])
+	var penalty := 2 * int(a.get("suffocation_exhaustion", 0))
+	if a.has("saves") and a.saves.has(ability): return int(a.saves[ability]) - penalty
 	var names := {"str":"FUE","dex":"DES","con":"CON","int":"INT","wis":"SAB","cha":"CAR"}
-	return floori((int(a.get("abilities",{}).get(names.get(ability,"CON"),10))-10)/2.0)
+	return floori((int(a.get("abilities",{}).get(names.get(ability,"CON"),10))-10)/2.0) - penalty
 
 func damage_bounds(action: Dictionary,critical: bool,sneak := false,id := "") -> Vector2i:
 	var dice := str(action.get("damageDice","1d1")).split("d")

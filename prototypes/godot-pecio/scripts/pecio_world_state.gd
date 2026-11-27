@@ -27,6 +27,8 @@ var collected_pickups: Dictionary = {}
 var c4_desk_looted: bool = false
 var c4_compass_taken: bool = false
 var c6_stash_state: String = "hidden"
+var c6_portrait_examined: bool = false
+var c6_portrait_taken: bool = false
 var c8_crates_opened: Dictionary = {}
 var c8_rolled_results: Array = []
 var c9_chest_state: String = "submerged"
@@ -61,6 +63,8 @@ func reset_defaults() -> void:
 	c4_desk_looted = false
 	c4_compass_taken = false
 	c6_stash_state = "hidden"
+	c6_portrait_examined = false
+	c6_portrait_taken = false
 	c8_crates_opened = {}
 	c8_rolled_results = []
 	c9_chest_state = "submerged"
@@ -88,6 +92,8 @@ func to_dict() -> Dictionary:
 		"c4_desk_looted": c4_desk_looted,
 		"c4_compass_taken": c4_compass_taken,
 		"c6_stash_state": c6_stash_state,
+		"c6_portrait_examined": c6_portrait_examined,
+		"c6_portrait_taken": c6_portrait_taken,
 		"c8_crates_opened": c8_crates_opened.duplicate(),
 		"c8_rolled_results": c8_rolled_results.duplicate(),
 		"c9_chest_state": c9_chest_state,
@@ -117,6 +123,8 @@ func apply_dict(data: Dictionary) -> void:
 	c4_compass_taken = bool(data.get("c4_compass_taken", false))
 	var s6 := str(data.get("c6_stash_state", "hidden"))
 	c6_stash_state = s6 if s6 in VALID_C6_STATES else "hidden"
+	c6_portrait_examined = bool(data.get("c6_portrait_examined", false))
+	c6_portrait_taken = bool(data.get("c6_portrait_taken", false))
 	c8_crates_opened = data.get("c8_crates_opened", {}).duplicate() if data.get("c8_crates_opened") is Dictionary else {}
 	c8_rolled_results = data.get("c8_rolled_results", []).duplicate() if data.get("c8_rolled_results") is Array else []
 	var s9 := str(data.get("c9_chest_state", "submerged"))
@@ -221,6 +229,15 @@ func set_c6_stash_state(new_state: String) -> void:
 	if new_state in VALID_C6_STATES:
 		c6_stash_state = new_state
 		save_state()
+
+func mark_c6_portrait_examined() -> void:
+	c6_portrait_examined = true
+	save_state()
+
+func set_c6_portrait_taken(taken: bool) -> void:
+	c6_portrait_taken = taken
+	c6_portrait_examined = true
+	save_state()
 
 func record_c8_crate_roll(crate_id: String, roll_val: int) -> bool:
 	if c8_crates_opened.has(crate_id):

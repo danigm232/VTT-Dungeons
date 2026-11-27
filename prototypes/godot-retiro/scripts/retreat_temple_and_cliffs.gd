@@ -1016,12 +1016,15 @@ static func build_a5_sacred_interior(builder: Node3D, a5_node: Node3D, y: float)
 	# Útiles de albañilería de Varnoth junto al zócalo norte-oeste del templo (encaja con su rutina retreat_masonry sin obstruir paso)
 	var mason_kit := Node3D.new()
 	mason_kit.name = "A5_VarnothMasonryKit"
-	mason_kit.position = Vector3(35.05, y, 64.08)
+	mason_kit.position = Vector3(35.44, y, 66.55)
 	interior.add_child(mason_kit)
 	_box(mason_kit, "DressedAshlarBlock", Vector3(0.0, 0.16, 0.0), Vector3(0.62, 0.32, 0.42), mat_stone_pale)
-	_box(mason_kit, "MasonMalletHead", Vector3(-0.14, 0.36, 0.04), Vector3(0.16, 0.09, 0.09), mat_iron, false)
-	_cyl(mason_kit, "MasonMalletHandle", Vector3(-0.04, 0.35, 0.04), 0.020, 0.022, 0.24, mat_bronze, 7, false).rotation.z = PI * 0.5
-	_box(mason_kit, "MasonChisel", Vector3(0.14, 0.335, -0.05), Vector3(0.22, 0.025, 0.035), mat_iron, false)
+	var mallet_head := _box(mason_kit, "MasonMalletHead", Vector3(-0.14, 0.36, 0.04), Vector3(0.16, 0.09, 0.09), mat_iron, false)
+	var mallet_handle := _cyl(mason_kit, "MasonMalletHandle", Vector3(-0.04, 0.35, 0.04), 0.020, 0.022, 0.24, mat_bronze, 7, false)
+	mallet_handle.rotation.z = PI * 0.5
+	var resting_chisel := _box(mason_kit, "MasonChisel", Vector3(0.14, 0.335, -0.05), Vector3(0.22, 0.025, 0.035), mat_iron, false)
+	for prop: Node3D in [mallet_head, mallet_handle, resting_chisel]:
+		prop.add_to_group("dynamic_prop")
 	_cyl(mason_kit, "MortarBucket", Vector3(0.46, 0.16, 0.06), 0.14, 0.11, 0.32, mat_stone_border, 10)
 	SceneEnhancer.add_box_collider(mason_kit, Vector3(0.16, 0.20, 0.0), Vector3(0.95, 0.40, 0.52))
 	var mkip := SceneEnhancer._attach_interactive_prop(mason_kit, "table", "Sillar y herramientas de Varnoth", "[T] Examinar trabajo de albañilería", Vector3.ZERO, "n", "Bloque de caliza recién labrado, mazo y cincel: Varnoth restaura cada grieta que abre el salitre en el templo.")
@@ -1526,6 +1529,19 @@ static func build_z7_terraced_gardens(builder: Node3D, parent: Node3D) -> void:
 	var mm_sh: MultiMeshInstance3D = builder.call("_make_multimesh_batch", "MM_Z7GardenShrubs", SceneEnhancer.make_botanical_shrub_mesh(), shrub_mat, shrub_xf, shrub_col)
 	mm_sh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	z7_root.add_child(mm_sh)
+	if not trunk_xf.is_empty():
+		var z7_trunk_body := StaticBody3D.new()
+		z7_trunk_body.name = "Z7GardenTrunkColliders"
+		z7_root.add_child(z7_trunk_body)
+		for txf in trunk_xf:
+			var ts: Vector3 = txf.basis.get_scale()
+			var tc := CollisionShape3D.new()
+			var tshp := CylinderShape3D.new()
+			tshp.radius = maxf(0.16, maxf(ts.x, ts.z) * 0.72)
+			tshp.height = maxf(1.2, ts.y)
+			tc.shape = tshp
+			tc.position = txf.origin
+			z7_trunk_body.add_child(tc)
 	var mm_fl: MultiMeshInstance3D = builder.call("_make_multimesh_batch", "MM_Z7GardenFlowers", SceneEnhancer.make_blossom_cluster_mesh(), fl_mat, flower_xf, flower_col)
 	mm_fl.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	z7_root.add_child(mm_fl)
@@ -1569,7 +1585,7 @@ static func build_brastos_nw_graveyard(builder: Node3D, parent: Node3D) -> void:
 
 	var y_top := 36.85
 	var cx := 45.0
-	var cz := 39.4
+	var cz := 37.6
 
 	var mat_cliff := create_unified_rock_vcol_material(builder, 0.88, 0.72)
 	var mat_wall := create_temple_stone_material(builder, Color("#9a978c"), 0.84, "ashlar-v4.webp", 0.34, 0.50, 0.01)
@@ -1589,13 +1605,13 @@ static func build_brastos_nw_graveyard(builder: Node3D, parent: Node3D) -> void:
 	var mat_bronze: Material = builder.get("mat_bronze")
 	var mat_flame: Material = builder.get("mat_flame")
 
-	# 1. Plinto volcánico estratificado estrictamente bajo la terraza del cementerio (sin sobresalir hacia el cruce A5North/A5RidgeW en z>42.8 ni x>49.2)
+	# 1. Plinto volcánico estratificado estrictamente bajo la terraza del cementerio (sin sobresalir hacia el cruce A5North/A5RidgeW en z>42.8)
 	var cliff_block := make_faceted_cliff_block_mesh(20261124, 5)
 	for b_cfg in [
-		[Vector3(45.0, 26.2, 39.0), Vector3(7.4, 9.6, 7.0), 0.10],
-		[Vector3(41.4, 26.4, 39.4), Vector3(3.2, 9.2, 4.4), -0.26],
-		[Vector3(48.2, 26.4, 39.0), Vector3(3.0, 9.2, 4.2), 0.20],
-		[Vector3(45.0, 26.8, 35.6), Vector3(6.8, 8.8, 3.8), 0.04],
+		[Vector3(45.0, 26.2, cz - 0.4), Vector3(7.4, 9.6, 7.0), 0.10],
+		[Vector3(41.4, 26.4, cz), Vector3(3.2, 9.2, 4.4), -0.26],
+		[Vector3(48.2, 26.4, cz - 0.4), Vector3(3.0, 9.2, 4.2), 0.20],
+		[Vector3(45.0, 26.8, cz - 3.8), Vector3(6.8, 8.8, 3.8), 0.04],
 	]:
 		var cb := MeshInstance3D.new()
 		cb.name = "GraveyardCliffBase"
@@ -1607,57 +1623,59 @@ static func build_brastos_nw_graveyard(builder: Node3D, parent: Node3D) -> void:
 		cb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 		gy_root.add_child(cb)
 
-	# 1B. Descansillo de piedra tallada uniendo limpiamente RusticStair_A5North (52.1, 34.82, 48.0),
-	#     RusticStair_A5RidgeW (49.5, 34.7, 44.2) y el acceso al Cementerio de Brastos (45.0, 35.5, 44.2)
+	# 1B. Descansillo de piedra tallada estrictamente en la meseta cumbre (x=49.2..53.4, z=43.9..48.3, y=34.77)
+	#     sin invadir la bajada oeste RusticStair_A5RidgeW (z=44.2, x<49.4), con pasarela norte despejada al Cementerio de Brastos
 	var summit_land := Node3D.new()
 	summit_land.name = "A5NorthSummitLanding"
 	gy_root.add_child(summit_land)
-	_box(summit_land, "SummitLandingCore", Vector3(48.8, 33.4, 46.2), Vector3(9.6, 3.1, 5.2), mat_wall)
-	_box(summit_land, "SummitLandingDeck", Vector3(48.8, 34.96, 46.2), Vector3(9.8, 0.18, 5.4), mat_flag)
-	SceneEnhancer.add_box_collider(summit_land, Vector3(48.8, 34.86, 46.2), Vector3(9.8, 0.36, 5.4))
-	# Enlace inclinado suave desde el descansillo (x=48.8, y=35.0) hasta la base de los escalones del cementerio (x=45.0, z=44.2, y=35.5)
-	_box(summit_land, "SummitToGraveApron", Vector3(45.4, 35.22, 44.6), Vector3(3.6, 0.56, 1.6), mat_flag)
-	SceneEnhancer.add_box_collider(summit_land, Vector3(45.4, 35.22, 44.6), Vector3(3.6, 0.56, 1.6))
-	# Bordillo protector norte del descansillo (entre cementerio y cima de A5North) + farol de cumbre
-	_box(summit_land, "SummitNorthCurb", Vector3(51.4, 35.34, 43.75), Vector3(4.2, 0.58, 0.42), mat_wall)
-	_box(summit_land, "SummitNorthCurbCap", Vector3(51.4, 35.68, 43.75), Vector3(4.3, 0.12, 0.50), mat_flag)
-	_box(summit_land, "SummitCornerPillar", Vector3(53.45, 35.60, 44.05), Vector3(0.56, 1.15, 0.56), mat_flag)
-	var sl_flm := _cyl(summit_land, "SummitCornerLanternFlame", Vector3(53.45, 36.32, 44.05), 0.055, 0.075, 0.20, mat_flame, 7, false)
+	_box(summit_land, "SummitLandingCore", Vector3(51.3, 33.115, 46.2), Vector3(4.0, 2.95, 4.4), mat_wall)
+	_box(summit_land, "SummitLandingDeck", Vector3(51.3, 34.585, 46.2), Vector3(4.2, 0.30, 4.6), mat_flag)
+	SceneEnhancer.add_box_collider(summit_land, Vector3(51.3, 34.585, 46.2), Vector3(4.2, 0.30, 4.6))
+	_box(summit_land, "SummitBridgeCorner", Vector3(50.3, 34.585, 43.25), Vector3(2.2, 0.30, 1.5), mat_flag)
+	SceneEnhancer.add_box_collider(summit_land, Vector3(50.3, 34.585, 43.25), Vector3(2.2, 0.30, 1.5))
+	# Pasarela norte paralela fuera del corredor z=43.0..45.4 hasta la base de los peldaños del cementerio (z=42.30, x=45.0)
+	_box(summit_land, "SummitToGraveApron", Vector3(47.2, 34.585, 42.30), Vector3(5.6, 0.30, 1.1), mat_flag)
+	SceneEnhancer.add_box_collider(summit_land, Vector3(47.2, 34.585, 42.30), Vector3(5.6, 0.30, 1.1))
+	# Bordillo protector norte del descansillo este + farol de cumbre
+	_box(summit_land, "SummitNorthCurb", Vector3(52.2, 35.15, 43.95), Vector3(2.2, 0.58, 0.42), mat_wall)
+	_box(summit_land, "SummitNorthCurbCap", Vector3(52.2, 35.49, 43.95), Vector3(2.3, 0.12, 0.50), mat_flag)
+	_box(summit_land, "SummitCornerPillar", Vector3(53.45, 35.40, 44.05), Vector3(0.56, 1.15, 0.56), mat_flag)
+	var sl_flm := _cyl(summit_land, "SummitCornerLanternFlame", Vector3(53.45, 36.12, 44.05), 0.055, 0.075, 0.20, mat_flame, 7, false)
 	sl_flm.add_to_group("night_flame")
 	var sl_lt := OmniLight3D.new()
 	sl_lt.name = "SummitCornerLanternLight"
-	sl_lt.position = Vector3(53.45, 36.65, 44.05)
+	sl_lt.position = Vector3(53.45, 36.45, 44.05)
 	sl_lt.light_color = Color(1.0, 0.78, 0.42)
 	sl_lt.light_energy = 1.45
 	sl_lt.omni_range = 12.0
 	summit_land.add_child(sl_lt)
 	builder.call("register_flame_fx", sl_flm, sl_lt, false)
 
-	# 2. Terraza elevada sobre la cresta rocosa + escalinata de 5 peldaños de piedra subiendo desde la senda alta (y=35.50 -> 36.85m)
+	# 2. Terraza elevada sobre la cresta rocosa + escalinata de piedra desde la pasarela norte (y=34.77 -> 36.85m)
 	_box(gy_root, "GraveyardStoneBase", Vector3(cx, y_top - 0.56, cz), Vector3(7.9, 0.90, 7.5), mat_wall)
 	_box(gy_root, "GraveyardTurfTerrace", Vector3(cx, y_top - 0.06, cz), Vector3(7.6, 0.14, 7.2), mat_turf)
 	SceneEnhancer.add_box_collider(gy_root, Vector3(cx, y_top - 0.14, cz), Vector3(7.6, 0.28, 7.2))
-	# 5 peldaños firmes en piedra caliza + rampa de colisión suave conectando z=44.20 (y=35.50) con z=42.85 (y=36.85)
-	var y_start := 35.52
-	for st_i in range(5):
-		var frac := float(st_i + 1) / 5.0
+	# 6 peldaños firmes en piedra caliza + rampa continua conectando z=42.30 (y=34.78) con z=41.05 (y=36.85)
+	var y_start := 34.78
+	for st_i in range(6):
+		var frac := float(st_i + 1) / 6.0
 		var sy := lerpf(y_start, y_top, frac)
-		var sz := lerpf(44.20, 42.98, frac)
-		_box(gy_root, "GraveyardAccessStep_%d" % st_i, Vector3(cx, sy - 0.16, sz), Vector3(2.85, 0.34, 0.34), mat_flag)
+		var sz := lerpf(42.25, 41.08, frac)
+		_box(gy_root, "GraveyardAccessStep_%d" % st_i, Vector3(cx, sy - 0.16, sz), Vector3(2.85, 0.34, 0.32), mat_flag)
 	var ramp_sb := StaticBody3D.new()
 	ramp_sb.name = "GraveyardAccessRampCollider"
 	var ramp_cs := CollisionShape3D.new()
 	var ramp_box := BoxShape3D.new()
-	ramp_box.size = Vector3(2.90, 0.30, 1.95)
+	ramp_box.size = Vector3(2.90, 0.30, 2.65)
 	ramp_cs.shape = ramp_box
 	ramp_sb.add_child(ramp_cs)
-	ramp_sb.position = Vector3(cx, (y_start + y_top) * 0.5 - 0.14, 43.55)
-	ramp_sb.rotation.x = atan2(y_top - y_start, 1.45)
+	ramp_sb.position = Vector3(cx, (y_start + y_top) * 0.5 - 0.15, 41.68)
+	ramp_sb.rotation.x = atan2(y_top - y_start, 1.35)
 	gy_root.add_child(ramp_sb)
 
 	# Lajas desgastadas guiando desde la entrada sur hasta la tumba central de Brastos
 	for step_i in range(4):
-		var sz := lerpf(42.55, 40.05, float(step_i) / 3.0)
+		var sz := lerpf(cz + 3.15, cz + 0.65, float(step_i) / 3.0)
 		var sx := cx + sin(float(step_i) * 1.4) * 0.20
 		var sl := _box(gy_root, "GraveyardStepSlab_%d" % step_i, Vector3(sx, y_top + 0.025, sz), Vector3(0.86, 0.04, 0.54), mat_flag, false)
 		sl.rotation.y = rng.randf_range(-0.14, 0.14)
@@ -1697,12 +1715,12 @@ static func build_brastos_nw_graveyard(builder: Node3D, parent: Node3D) -> void:
 	var turf_greens: Array[Color] = [Color("#4e6a3e"), Color("#5c7848"), Color("#425c35")]
 
 	var grave_specs := [
-		{"name": "BrastosGrave", "pos": Vector3(45.0, y_top, 38.55), "yaw": 0.0, "is_brastos": true},
-		{"name": "GraveNW", "pos": Vector3(42.75, y_top, 38.75), "yaw": 0.12, "is_brastos": false},
-		{"name": "GraveNE", "pos": Vector3(47.20, y_top, 38.65), "yaw": -0.10, "is_brastos": false},
-		{"name": "GraveSW", "pos": Vector3(42.95, y_top, 41.05), "yaw": 0.08, "is_brastos": false},
-		{"name": "GraveSE", "pos": Vector3(47.05, y_top, 41.15), "yaw": -0.14, "is_brastos": false},
-		{"name": "GraveFarN", "pos": Vector3(45.0, y_top, 37.15), "yaw": 0.04, "is_brastos": false},
+		{"name": "BrastosGrave", "pos": Vector3(45.0, y_top, cz - 0.85), "yaw": 0.0, "is_brastos": true},
+		{"name": "GraveNW", "pos": Vector3(42.75, y_top, cz - 0.65), "yaw": 0.12, "is_brastos": false},
+		{"name": "GraveNE", "pos": Vector3(47.20, y_top, cz - 0.75), "yaw": -0.10, "is_brastos": false},
+		{"name": "GraveSW", "pos": Vector3(42.95, y_top, cz + 1.65), "yaw": 0.08, "is_brastos": false},
+		{"name": "GraveSE", "pos": Vector3(47.05, y_top, cz + 1.75), "yaw": -0.14, "is_brastos": false},
+		{"name": "GraveFarN", "pos": Vector3(45.0, y_top, cz - 2.25), "yaw": 0.04, "is_brastos": false},
 	]
 	for gi in range(grave_specs.size()):
 		var gs: Dictionary = grave_specs[gi]

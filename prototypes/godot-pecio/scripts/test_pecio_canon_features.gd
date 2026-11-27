@@ -49,7 +49,8 @@ func _run() -> void:
 	for tok_nm in ["ZombieC4_A", "ZombieC4_B", "ZombieC4_C_Lvl2", "GhoulToken", "ZombieC8_B_Lvl2", "ZombieC8_C_Lvl2", "HarpyToken_C2"]:
 		check(vessel.get_node_or_null(tok_nm) != null, "Canonical creature spawned: " + tok_nm)
 	var ghoul := vessel.get_node_or_null("GhoulToken")
-	check(ghoul != null and str(ghoul.get_meta("needs_codex_sprites", "")) == "ghoul", "Ghoul marked needs_codex_sprites=ghoul")
+	check(ghoul != null and ghoul.char_profile.get("npc_species","") == "ghoul", "C8 uses the ghoul's registered appearance")
+	check(vtt_ui.combat_controller.rules.actors.has("harpy_c2_lvl2") and not vtt_ui.combat_controller.rules.actors.has("harpy-2"), "C2 registers one reinforcement")
 
 	var z4_lvl2 := vessel.get_node_or_null("ZombieC4_C_Lvl2") as Node3D
 	check(z4_lvl2 != null and not z4_lvl2.visible, "Level 2 reinforcements hidden at Level 1")
@@ -68,27 +69,66 @@ func _run() -> void:
 	canon.resolve_c4_barred_door(door_c4, true)
 	check(door_c4.is_open and door_c4.has_bar_removed and vtt_ui.world_state.c4_door_unbarred, "Success unbars and opens DoorC4")
 
-	# 3. C4 escritorio/cajones/brújula + Daga normal + C5 cangrejos + C6 trampa de aguja 200 po
-	canon._loot_c4_drawers()
+	# 3. C4 escritorio/cajones/brújula + Daga normal + anti-duplicado + C5 cangrejos + C6 retrato canónico + C6 trampa de aguja 200 po
+	var gold_pre_c4: int = int(inv.items["gold"]["count"])
+	var pick_comp_c4 := main.find_child("PickupCompassC4", true, false)
+	if pick_comp_c4 and pick_comp_c4.has_method("collect"):
+		pick_comp_c4.collect()
+	var comp_after_pickup: int = int(inv.items["compass"]["count"])
 	canon._loot_c4_compass()
-	check(inv.items["gold"]["count"] >= 50 and inv.items["cartographer_tools"]["count"] >= 1 and inv.items["dagger"]["count"] >= 1 and inv.items["compass"]["count"] >= 1, "C4 desk drawers + compass looted")
+	check(int(inv.items["compass"]["count"]) == comp_after_pickup and comp_after_pickup == 1, "C4 compass pickup + desk modal does not duplicate compass")
+	canon._loot_c4_drawers()
+	canon._loot_c4_drawers()
+	check(int(inv.items["gold"]["count"]) == gold_pre_c4 + 50 and inv.items["cartographer_tools"]["count"] >= 1 and inv.items["dagger"]["count"] >= 1, "C4 desk drawers looted cleanly without duplication")
 	check(str(inv.items["dagger"]["name"]) == "Daga", "Dagger name is canonical 'Daga' (not silver)")
 	var pick_dag = main.find_child("PickupDaggerC4", true, false)
 	check(pick_dag != null and str(pick_dag.item_name) == "Daga (C4)", "PickupDaggerC4 renamed to canonical Daga")
 	check(main.find_child("GalleyCrab_0", true, false) != null and main.find_child("GalleyCrab_2", true, false) != null, "C5 crabs named GalleyCrab_*")
 	canon.trigger_c5_crabs_scatter()
 
+	# Retrato canónico de Aleitha y Brastos en C6 (trigger a altura de suelo, handout modal, aplique, descolgar/colgar y persistencia)
+	var portrait_root := main.find_child("C6_AleithaPortrait", true, false) as Node3D
+	var prop_portrait := main.find_child("PropPortraitC6", true, false) as Node3D
+	check(portrait_root != null and prop_portrait != null, "C6 canonical portrait & PropPortraitC6 present")
+	if prop_portrait:
+		var port_loc := vessel.to_local(prop_portrait.global_position)
+		check(port_loc.y < 0.85, "PropPortraitC6 trigger positioned at reachable floor height (y=%.2f)" % port_loc.y)
+		prop_portrait.interact()
+	check(vtt_ui.world_state.c6_portrait_examined, "Interacting with PropPortraitC6 marks portrait examined")
+	var portrait_canvas := portrait_root.get_node_or_null("PortraitHangingCanvas") as Node3D if portrait_root else null
+	var portrait_mark := portrait_root.get_node_or_null("PortraitWallMark") as Node3D if portrait_root else null
+	check(portrait_canvas != null and portrait_canvas.visible and portrait_mark != null and not portrait_mark.visible, "C6 portrait starts hung on bulkhead")
+	canon.take_or_hang_c6_portrait(true)
+	check(vtt_ui.world_state.c6_portrait_taken and int(inv.items["aleitha_portrait"]["count"]) == 1 and not portrait_canvas.visible and portrait_mark.visible, "Taking C6 portrait moves it to inventory and leaves wall mark")
+	canon.take_or_hang_c6_portrait(false)
+	check(not vtt_ui.world_state.c6_portrait_taken and int(inv.items["aleitha_portrait"]["count"]) == 0 and portrait_canvas.visible and not portrait_mark.visible, "Re-hanging C6 portrait restores canvas on bulkhead")
+	var sconce_l := main.find_child("C6_PortraitSconceLight", true, false) as OmniLight3D
+	check(sconce_l != null and is_equal_approx(sconce_l.light_energy, 0.0), "C6 portrait sconce starts OFF")
+	canon.toggle_lantern("C6_PortraitSconceLight")
+	check(sconce_l != null and sconce_l.light_energy > 0.3, "C6 portrait sconce toggles ON via canon controller")
+
+	# C7 props separados en extremos opuestos de la mesa + reenvío de notificaciones en modo VTT
+	var prop_log_c7 := main.find_child("PropLogC7", true, false) as Node3D
+	var prop_plates_c7 := main.find_child("PropPlatesC7", true, false) as Node3D
+	check(prop_log_c7 != null and prop_plates_c7 != null and prop_log_c7.position.distance_to(prop_plates_c7.position) >= 1.5, "C7 logbook and tableware props separated on opposite ends of table")
+	inv.set_external_ui_managed(true)
+	inv.show_notification("Prueba notificación VTT")
+	check(vtt_ui.toast_timer > 4.0, "InventoryManager.show_notification forwards to VttRoleUi toast when external_ui_managed")
+
 	var trap_needle := main.find_child("TrapNeedleC6", true, false) as Node3D
-	check(trap_needle != null and not trap_needle.visible, "C6 needle trap hidden until discovered")
+	var loose_plank := main.find_child("LoosePlankMeshC6", true, false) as Node3D
+	check(trap_needle != null and not trap_needle.visible and loose_plank != null and loose_plank.position.y < 0.035, "C6 needle trap hidden and plank flush until discovered")
 	canon._discover_c6_stash()
-	check(trap_needle.visible and vtt_ui.world_state.c6_stash_state == "discovered", "C6 needle trap visible once discovered")
+	check(trap_needle.visible and loose_plank.position.y > 0.04 and vtt_ui.world_state.c6_stash_state == "discovered", "C6 needle trap visible and plank physically lifted once discovered")
 	var gold_before_c6: int = int(inv.items["gold"]["count"])
 	canon._open_c6_safe_distance()
 	check(int(inv.items["gold"]["count"]) == gold_before_c6 + 200 and vtt_ui.world_state.c6_stash_state == "looted", "C6 safe distance triggers dart & grants 200 real gold")
 
-	# 4. C8 cajas saqueables 1d6 únicas + C9 cofre hierro + bolsas de aire + P12/P13/P14/P16 + regreso/resolución arpía + epílogo
+	# 4. C8 cajas + barriles saqueables 1d6 únicos + C9 cofre hierro + bolsas de aire + P12/P13/P14/P16 + regreso/resolución arpía + epílogo
 	for i in range(5):
 		check(main.find_child("PropC8Crate_%d" % i, true, false) != null, "C8 lootable crate #%d present" % i)
+	for bi in range(4):
+		check(main.find_child("PropC8Barrel_%d" % bi, true, false) != null, "C8 lootable barrel #%d present" % bi)
 	canon.resolve_c8_crate("c8_crate_0", 1)
 	canon.resolve_c8_crate("c8_crate_1", 1) # repetido -> mercancía podrida
 	canon.resolve_c8_crate("c8_crate_2", 3)

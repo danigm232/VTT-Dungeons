@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-maria-dive-n",
+  "character": "maria",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-small",
+  "action": "dive",
+  "direction": "n",
+  "fps": 10,
+  "loop": true,
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Independent environment effects. No water, foam or bubbles painted into the character."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-n/5b685756c484/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-n/5b685756c484/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-n/5b685756c484/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-n/5b685756c484/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-n/5b685756c484/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-n/5b685756c484/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-n/5b685756c484/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-dive-n/5b685756c484/08.webp"
+  ],
+  "production": {
+    "method": "Image generation from existing character identity and native-size extraction",
+    "reference": "prototypes/godot-pecio/characters/imported/sw-maria-idle8/00-idle-01.png",
+    "prompt": "Faithfully animate exactly the supplied Stormwreck hero. rear view close to directly behind, face hidden, toward top of the screen, torso nearly horizontal, foreshortened feet paddling toward bottom for every sprite, with a slightly elevated game camera. Eight phases of swimming below surface, alternating arm pulls and flutter kicks, keep back and entire lower body extended. Precisely 4 columns and 2 rows of eight sprites, wide 2:1 format. Keep character in center 66 percent of each cell. The background and margins must be genuine alpha transparent. No white or grey or black background or drop shadow. Solid opaque warm brushwork of the supplied original face, exact armor or coat and hair. No water, bubbles, glow, text, props, impact, outline, motion lines, grids or other figures. Preserve the same height, torso and face throughout, wide clear alpha gutters for lossless crop.",
+    "minimumVisibleStandingPixels": 120,
+    "silhouetteAlpha": 80,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-maria-dive-n-5b685756c484.png",
+    "originalSha256": "5b685756c484f83c5b6fb58c6342cdeb8d2f2b33c61c4596152fef5a646f1738",
+    "importReport": "output/stormwreck-motion-detail/sw-maria-dive-n-5b685756c484.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 355,
+  "pivot": [
+    0.5,
+    0.9517543859649122
+  ]
+}

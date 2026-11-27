@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-maria-open-door-w",
+  "character": "maria",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-small",
+  "action": "open_door",
+  "direction": "w",
+  "fps": 10,
+  "loop": false,
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Independent environment effects. No water, foam or bubbles painted into the character."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-door-w/8403aa12c6eb/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-door-w/8403aa12c6eb/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-door-w/8403aa12c6eb/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-door-w/8403aa12c6eb/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-door-w/8403aa12c6eb/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-door-w/8403aa12c6eb/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-door-w/8403aa12c6eb/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-open-door-w/8403aa12c6eb/08.webp"
+  ],
+  "production": {
+    "method": "Image generation from existing character identity and native-size extraction",
+    "reference": "prototypes/godot-pecio/characters/imported/sw-maria-idle8/00-idle-01.png",
+    "prompt": "Create eight serial bitmap sprite poses matching the exact provided identity and costume, true side profile FACING LEFT in each cell, slightly from above. Preserve hairstyle, armor and proportions, no extra costume or equipment. The actor must approach handle, lift right forearm to handle height, press then push a door away and recover. Keep ground invisible, no painted door or chest, no water, no background or checker pattern. 4 columns × 2 rows, chronological, identical scale and pivot, wide canvas, use only center 65% width and height of each cell so the character is entirely inside it. Opaque painted subject, genuinely transparent alpha outside it, no effects.",
+    "minimumVisibleStandingPixels": 120,
+    "silhouetteAlpha": 80,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-maria-open-door-w-8403aa12c6eb.png",
+    "originalSha256": "8403aa12c6ebc7e18a29d34413e10137c20324e2cd43ef29e642b2c54cfdf877",
+    "importReport": "output/stormwreck-motion-detail/sw-maria-open-door-w-8403aa12c6eb.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 355,
+  "pivot": [
+    0.5,
+    0.9254385964912281
+  ]
+}

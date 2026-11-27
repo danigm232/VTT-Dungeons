@@ -75,6 +75,8 @@ static func _build_animation_pose_cpu(image: Image, frame: Dictionary, animation
 		image.flip_x()
 	# Reclining busts occupy only the upper part of the registration canvas.
 	var max_h := 448 if animation.has("restVolume") else 192
+	if animation.has("toolGrip") or str(animation.get("action", "")).begins_with("retreat_desk_"):
+		max_h = 320
 	if image.get_height() > max_h:
 		var sc_f := float(max_h) / float(image.get_height())
 		var nh_f := maxi(4, int(round(image.get_height() * sc_f)))
@@ -89,6 +91,13 @@ static func _build_animation_pose_cpu(image: Image, frame: Dictionary, animation
 	padded.blit_rect(image, Rect2i(Vector2i.ZERO, image.get_size()), Vector2i(padding_x, 0))
 	image = padded
 	var pose := {"img": image, "tex": null, "height_scale": orig_height / float(animation.referenceHeight), "floor_offset": float(pivot[1]) - 1.0, "visual_pivot": Vector2(.5, float(pivot[1]))}
+	if animation.has("toolGrip"):
+		var grip: Array = animation.toolGrip
+		var grip_u := 1.0 - float(grip[0]) if mirror else float(grip[0])
+		var used := image.get_used_rect()
+		var grip_px := Vector2(grip_u * source_width + padding_x, float(grip[1]) * image.get_height())
+		pose["tool_grip"] = (grip_px - Vector2(used.position)) / Vector2(used.size)
+		pose["tool_grip_uv"] = grip_px / Vector2(image.get_size())
 	if animation.has("soleContact"):
 		var sole: Array = animation.soleContact
 		var sole_u := 1.0 - float(sole[0]) if mirror else float(sole[0])
@@ -162,6 +171,8 @@ static func profile(id: String) -> Dictionary:
 					a_frames.append(_finalize_prewarmed_pose(apf))
 				if a_frames.is_empty(): continue
 				var a_clip: Dictionary = {"frames": a_frames, "fps": a_def.fps, "loop": a_def.get("loop", false), "drawn_motion": true, "modular_definition": a_def.id, "events": a_def.get("events", [])}
+				if a_def.has("viewAngleDegrees"):
+					a_clip["view_bearing"] = deg_to_rad(float(a_def.viewAngleDegrees))
 				var act: String = a_def.action
 				var direc: String = a_def.get("direction", "s")
 				if not res_p.dir_states.has(act): res_p.dir_states[act] = {}
@@ -210,6 +221,8 @@ static func with_animations(profile: Dictionary,definition: Dictionary) -> Dicti
 			frames.append(_finalize_prewarmed_pose(pose_cpu))
 		if frames.is_empty(): continue
 		var clip: Dictionary={"frames":frames,"fps":animation.fps,"loop":animation.get("loop",false),"drawn_motion":true,"modular_definition":animation.id,"events":animation.get("events",[])}
+		if animation.has("viewAngleDegrees"):
+			clip["view_bearing"] = deg_to_rad(float(animation.viewAngleDegrees))
 		var action: String=animation.action; var direction: String=animation.get("direction","s")
 		if not profile.has("dir_states"): profile.dir_states={}
 		if not profile.dir_states.has(action): profile.dir_states[action]={}

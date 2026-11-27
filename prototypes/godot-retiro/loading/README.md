@@ -28,3 +28,8 @@ El adaptador es una sesión **local del prototipo Godot**, no una migración de 
 `scripts/sync-godot-skill-loading.mjs` copia este módulo al proyecto Retiro, sin borrar archivos locales adicionales. Cada proyecto tiene recursos `res://loading` propios porque se abren como proyectos Godot independientes; no son dos implementaciones diseñadas por separado.
 
 Pruebas: `loading/test_loading.gd` comprueba el modelo y las 108 combinaciones de habilidad/personaje/desenlace; `loading/test_map_roundtrip.gd` en Retiro comprueba arranque e ida/vuelta mediante `MapTransition`; `scripts/check-godot-loading-mobile.mjs` comprueba dos controles de navegador conectados a Godot real. El parámetro `--loading-capture` del primer script produce capturas reales con Forward+.
+
+
+## Corrección selectiva del 25/11/2026
+
+Mike usa su identidad canónica y el comerciante conserva su aspecto en todos los estados de Persuasión. Las otras 34 combinaciones de Mía/Trinity se conservan. Se incluye el dado nativo de Antigravity. Reabrir el proyecto o el visor `PROBAR-CARGAS-GODOT.cmd` para cargar la nueva candidata. [Comparaciones y recursos](../../../docs/evidence/GODOT_SKILL_LOADING_20261114.md#corrección-selectiva-instalada--25112026).

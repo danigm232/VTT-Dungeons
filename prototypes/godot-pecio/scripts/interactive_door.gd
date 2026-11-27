@@ -30,6 +30,7 @@ var static_body: StaticBody3D
 var trigger_area: Area3D
 var is_player_nearby: bool = false
 var tween: Tween
+var handle_offset := Vector3.ZERO
 
 func _ready() -> void:
 	build_door_frame()
@@ -159,6 +160,7 @@ func build_door_leaf() -> void:
 
 	# Picaporte / tirador de argolla de forja en el borde libre
 	var handle_z = (leaf_offset_z * 2.0) - (0.12 * sign(leaf_offset_z))
+	handle_offset = Vector3(0.0, 1.02, handle_z)
 	for face_side in [-0.038, 0.038]:
 		var handle = MeshInstance3D.new()
 		var h_box = BoxMesh.new()
@@ -265,11 +267,17 @@ func toggle_door() -> void:
 		has_bar_removed = true
 		door_bar_mesh.visible = false
 	var vtt_ui := get_tree().root.find_child("VttRoleUi", true, false) if is_inside_tree() else null
+	var hand_reach_time := 0.0
+	if is_player_nearby and vtt_ui and vtt_ui.has_method("get_active_token_node"):
+		var body: Node3D = vtt_ui.get_active_token_node()
+		if body is PlayerToken and body.global_position.distance_squared_to(global_position) < 7.0:
+			body.play_object_action("open_door", door_leaf.to_global(handle_offset) if door_leaf else global_position)
+			hand_reach_time = 0.18
 	if vtt_ui and "world_state" in vtt_ui and vtt_ui.world_state:
 		if has_bar_removed and door_id == "c4-barred-door":
 			vtt_ui.world_state.mark_c4_door_unbarred()
 		vtt_ui.world_state.set_door_open(door_id, is_open)
-	update_door_state(false)
+	update_door_state(false, hand_reach_time)
 	update_prompt()
 	emit_signal("door_state_changed", is_open)
 
@@ -280,7 +288,7 @@ func get_open_rotation_deg() -> float:
 	# Si hinge_side == +1.0 (bisagra en +Z): hoja hacia -Z => giro = -inward_x * swing_angle
 	return inward_x * swing_angle if hinge_side < 0.0 else (-inward_x * swing_angle)
 
-func update_door_state(instant: bool) -> void:
+func update_door_state(instant: bool, contact_delay := 0.0) -> void:
 	if not door_leaf:
 		return
 
@@ -291,6 +299,8 @@ func update_door_state(instant: bool) -> void:
 		if tween and tween.is_running():
 			tween.kill()
 		tween = create_tween()
+		if contact_delay > 0.0:
+			tween.tween_interval(contact_delay)
 		tween.tween_property(door_leaf, "rotation_degrees:y", target_deg, 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 func _unhandled_input(event: InputEvent) -> void:

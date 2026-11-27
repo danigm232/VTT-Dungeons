@@ -3,6 +3,7 @@ extends RefCounted
 
 const ThemeKit := preload("res://scripts/vtt_ui_theme.gd")
 const CampaignData := preload("res://scripts/vtt_campaign_data.gd")
+const RoutinePanel := preload("res://scripts/retreat_routine_dm_panel.gd")
 
 var ui # VttRoleUi
 var root: Control
@@ -623,6 +624,12 @@ func _rebuild_drawer() -> void:
 			ThemeKit.style_button(pb, "secondary", 8, 10, 6)
 			pb.pressed.connect(func(): apply_layout_preset(p[0]))
 			drawer_body.add_child(pb)
+
+		if ui.is_retreat and is_instance_valid(ui.retreat_life):
+			drawer_body.add_child(HSeparator.new())
+			var routines := RoutinePanel.new()
+			drawer_body.add_child(routines)
+			routines.build(ui.retreat_life, ui.camera)
 
 		drawer_body.add_child(HSeparator.new())
 		drawer_body.add_child(ThemeKit.make_eyebrow("PANELES VISIBLES"))

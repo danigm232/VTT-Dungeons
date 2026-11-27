@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-harpy-flight-turn-se",
+  "character": "harpy",
+  "campaign": "stormwreck-isle",
+  "anatomy": "winged",
+  "action": "flight_turn",
+  "direction": "se",
+  "fps": 12,
+  "loop": false,
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Current frame alpha; physical attachments remain unverified."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-flight-turn-se/5ee0a1c9a1e0/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-flight-turn-se/5ee0a1c9a1e0/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-flight-turn-se/5ee0a1c9a1e0/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-flight-turn-se/5ee0a1c9a1e0/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-flight-turn-se/5ee0a1c9a1e0/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-flight-turn-se/5ee0a1c9a1e0/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-flight-turn-se/5ee0a1c9a1e0/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-harpy-flight-turn-se/5ee0a1c9a1e0/08.webp"
+  ],
+  "production": {
+    "method": "Built-in image generation and lossless native-size extraction",
+    "reference": "campaigns/stormwreck-isle/public/art/m3/harpy/harpia_base.png",
+    "minimumVisibleStandingPixels": 195,
+    "directionalArrival": true,
+    "columnCutsByRow": [
+      [
+        0,
+        444,
+        887,
+        1320,
+        1774
+      ],
+      [
+        0,
+        444,
+        887,
+        1330,
+        1774
+      ]
+    ],
+    "silhouetteAlpha": 96,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-harpy-flight-turn-se-5ee0a1c9a1e0.png",
+    "originalSha256": "5ee0a1c9a1e0baa5ffd3dd16829145b4be35cf19f9b08cbdab395fc17b089bba",
+    "importReport": "output/stormwreck-motion-detail/sw-harpy-flight-turn-se-5ee0a1c9a1e0.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 350,
+  "pivot": [
+    0.5,
+    0.9035087719298246
+  ]
+}

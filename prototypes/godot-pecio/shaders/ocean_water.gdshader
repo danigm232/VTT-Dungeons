@@ -15,6 +15,7 @@ uniform float wave_amplitude : hint_range(0.0, 0.6) = 0.30;
 uniform float wave_speed : hint_range(0.1, 3.0) = 1.15;
 uniform mat4 hull_inv_matrix = mat4(1.0);
 uniform float hull_mask_enabled = 0.0;
+#include "res://shaders/swimmer_visibility.gdshaderinc"
 
 uniform sampler2D depth_texture : hint_depth_texture, filter_linear_mipmap;
 
@@ -220,6 +221,11 @@ void fragment() {
 		}
 	}
 
+	// Follow the sightline through the surface to a swimmer, at any camera pitch.
+	// Keep the existing foam and opacity everywhere outside the swimmer's vicinity.
+	vec3 world_ray = normalize((INV_VIEW_MATRIX * vec4(-normalize(VIEW), 0.0)).xyz);
+	float swimmer_visibility = swimmer_visibility_at(v_world_pos, world_ray);
+
 	float crest_frag = clamp(v_crest_factor, 0.0, 1.0);
 	float turbidity_alpha = 1.0 - exp(-ray_dist * 2.85);
 	float shoal_mask = clamp(1.0 - vertical_depth / 1.45, 0.0, 1.0);
@@ -275,7 +281,7 @@ void fragment() {
 	float whitecap = open_peak * smoothstep(0.50, 0.78, wind_streaks * 0.62 + fbm_fine * 0.38) * 0.78;
 
 	float contact_foam = clamp(lip_foam + roller_foam + lacy_bubbles, 0.0, 1.0);
-	float total_foam = clamp(contact_foam + whitecap, 0.0, 1.0);
+	float total_foam = clamp(contact_foam + whitecap, 0.0, 1.0) * (1.0 - swimmer_visibility * 0.88);
 
 	vec3 foam_edge_tint = vec3(0.16, 0.38, 0.42);
 	vec3 foam_lit = mix(foam_edge_tint, foam_color.rgb, smoothstep(0.22, 0.74, total_foam));
@@ -292,6 +298,7 @@ void fragment() {
 	METALLIC = 0.02;
 	SPECULAR = mix(mix(0.30, 0.05, total_foam), mix(0.30, 0.16, horizon_haze), distant_mix);
 	float shore_wet_alpha = smoothstep(0.0, 0.10, ray_dist) * 0.38 + turbidity_alpha * 0.61;
-	ALPHA = mix(clamp(mix(max(0.30, shore_wet_alpha), 0.995, total_foam), 0.0, 1.0), 1.0, distant_mix);
+	float opacity = clamp(mix(max(0.30, shore_wet_alpha), 0.995, total_foam), 0.0, 1.0);
+	ALPHA = mix(mix(opacity, 0.39, swimmer_visibility), 1.0, distant_mix);
 	}
 }

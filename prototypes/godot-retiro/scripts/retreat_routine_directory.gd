@@ -1,9 +1,16 @@
 extends RefCounted
 
+const Featured = preload("res://scripts/retreat_characteristic_routines.gd")
+
 ## Original daily staging based on chapter 1, pp. 8–12. The time codes are
 ## D (day), E (dusk), N (night). Empty effect means a gesture or lookout duty.
 const TIME_CODE := {"day": "D", "dusk": "E", "night": "N"}
 const WORK := "retreat_work"
+const DAYLIGHT_STATIONS := [
+	"agga_plaza", "agga_doorway", "blepp_lookout", "blepp_path", "east_rail", "firewood",
+	"frub_errands", "frub_plaza", "mumpo_plaza", "mumpo_walk", "refreshments", "refreshments_alt",
+	"well", "zark_plaza", "zark_threshold",
+]
 
 # Each point is an approach on the current floor. The activity still faces
 # its prop's actual world position rather than a heading baked into the image.
@@ -154,7 +161,12 @@ const AGENDAS := {
 static func for_phase(id: String, phase: String) -> Array:
 	var code: String = TIME_CODE[phase]
 	var tasks: Array = AGENDAS[id].filter(func(row: Array) -> bool: return code in row[1])
-	if phase == "night" and NIGHT_REST.has(id):
+	if code == "D" and Featured.HEIGHTS.has(id):
+		tasks = tasks.filter(func(row: Array) -> bool: return row[2] not in DAYLIGHT_STATIONS)
+	for task: Array in Featured.ROWS.get(id, []):
+		if code in task[1]:
+			tasks.append(task)
+	if phase == "night" and id != "runara" and NIGHT_REST.has(id):
 		tasks.append(["night_rest", "N", "@rest/" + id, "Descansa bajo su manta", "rest_on_prop", "@rest/" + id, "doze"])
 	return tasks
 
@@ -164,5 +176,8 @@ static func station(key: String) -> Array:
 		return [NIGHT_REST[key.trim_prefix("@rest/")][1], Vector3.FORWARD, ""]
 	if SITES.has(key):
 		var site: Array = SITES[key]
+		return [site[0], site[1], ""]
+	if Featured.STATIONS.has(key):
+		var site: Array = Featured.STATIONS[key]
 		return [site[0], site[1], ""]
 	return Directory.STATIONS[key]

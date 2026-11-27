@@ -45,12 +45,21 @@
     "idle",
     "walk",
     "run",
-    "attack"
+    "attack",
+    "swim",
+    "dive",
+    "open_door",
+    "open_chest",
+    "dive_chest",
+    "stow_item"
   ],
   "combatMotionReuse": {
     "catalogue": "prototypes/godot-shared/combat/catalogue.json#frames.rogue",
     "source": "tokens/generated-20261004/rogue-rise.png",
-    "actions": ["fall", "stand"],
+    "actions": [
+      "fall",
+      "stand"
+    ],
     "framesPerAction": 4,
     "compatibility": "Legacy painted clothing and equipment, logical feet unchanged. Existing recovery and fall sequences, no new atlas or fitted equipment.",
     "exception": "Existing four-frame sequences are retained through the legacy adapter. This is not a newly drawn Stormwreck cycle."
@@ -66,5 +75,11 @@
     "body": "reused",
     "overlays": "current-frame alpha adapter",
     "equipment": "deferred by user; no slots enabled"
+  },
+  "aquaticCompatibility": {
+    "campaign": "stormwreck-isle",
+    "vfx": "independent",
+    "bodyWetness": "depth-and-weather",
+    "dedicatedSwimmingSpeed": false
   }
 }

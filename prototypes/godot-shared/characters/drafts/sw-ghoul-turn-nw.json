@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-ghoul-turn-nw",
+  "character": "sw-ghoul",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "turn",
+  "direction": "nw",
+  "fps": 12,
+  "loop": false,
+  "compatibility": {
+    "preservesAppearance": true,
+    "overlay": "Current frame alpha; existing embedded wraps retained."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-turn-nw/1b041a3e9959/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-turn-nw/1b041a3e9959/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-turn-nw/1b041a3e9959/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-turn-nw/1b041a3e9959/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-turn-nw/1b041a3e9959/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-turn-nw/1b041a3e9959/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-turn-nw/1b041a3e9959/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-turn-nw/1b041a3e9959/08.webp"
+  ],
+  "production": {
+    "method": "Built-in image generation, native-size extraction",
+    "reference": "campaigns/stormwreck-isle/public/art/m3/ghoul/ghoul_base.png",
+    "minimumVisibleStandingPixels": 240,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-ghoul-turn-nw-1b041a3e9959.png",
+    "originalSha256": "1b041a3e9959ec1550a2fdb322cfb2c1273a05a5db66094173cb94a83aca6e6c",
+    "importReport": "output/stormwreck-motion-detail/sw-ghoul-turn-nw-1b041a3e9959.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels",
+    "motionFinish": true,
+    "prompt": "Create ONE production sprite sheet, wide 2:1 canvas, exactly four EQUAL columns and TWO EQUAL rows, eight unique full-body frames left-to-right, top then bottom. TRUE transparent RGBA (actual zero alpha gutters), NO checkerboard drawn, white surface, color backdrop, text, numbers, outline, shadows or effects. Big clear margins on ALL edges of each cell, ensure no limb or tail crosses any boundary. Same camera elevation, lighting and anatomy across all cells. Painted 2.5D tabletop art. Exact same bald blue-grey ghoul with long pointed ears, pink tongue, ivory eyes, long clawed arms and bare feet, beige wrapped forearms and calves and ragged tan loincloth. No accessories. Subject faces upper left, REAR three-quarter matching the rear gameplay reference, show back and side. Single planted-foot pivot. Start almost straight AWAY up the screen, then turn to away upper-left (rear left three-quarters). Turn hips and shoulders naturally with one lift and replacement of a turning foot, eight consecutive stages. Must start and finish in neutral rear guard. Never show face to viewer."
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 395,
+  "pivot": [
+    0.5,
+    0.9122807017543859
+  ]
+}

@@ -9,19 +9,29 @@
   "review": {
     "visual": "pending",
     "userAcceptance": "pending",
-    "evidence": []
+    "evidence": [],
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified"
   },
   "instructions": "Create draft, search reuse, complete source/style/scale fields, adopt only after validation. Technical success is not artistic acceptance.",
   "kind": "animation",
   "character": "mia",
-  "action": "loading_scroll",
+  "action": "retreat_loading_scroll",
   "direction": "se",
-  "frames": [],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-scroll-v6/87b7ce1a6667/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-scroll-v6/87b7ce1a6667/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-scroll-v6/87b7ce1a6667/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-scroll-v6/87b7ce1a6667/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-scroll-v6/87b7ce1a6667/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-scroll-v6/87b7ce1a6667/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-scroll-v6/87b7ce1a6667/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-scroll-v6/87b7ce1a6667/08.webp"
+  ],
   "fps": 1,
   "loop": false,
   "pivot": [
     0.5,
-    1
+    0.9284064665127021
   ],
   "compatibility": {
     "anatomies": [
@@ -33,7 +43,7 @@
   "events": [],
   "initialFrame": 0,
   "transition": "preserve support pivot",
-  "referenceHeight": null,
+  "referenceHeight": 372,
   "reuseSearch": {
     "required": true,
     "command": "node scripts/character-pipeline.mjs reuse --query sw-mia-loading-scroll-v6"
@@ -48,7 +58,12 @@
     "paired": false,
     "heldPoseLibrary": true,
     "minimumVisibleStandingPixels": 300,
-    "minimumDistinctFrames": 8
+    "minimumDistinctFrames": 8,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mia-loading-scroll-v6-87b7ce1a6667.png",
+    "originalSha256": "87b7ce1a666773e2c908f3e8cf8eb370d38ff34f4c0904393a4eedf3117e6ebf",
+    "importReport": "output/stormwreck-motion-detail/sw-mia-loading-scroll-v6-87b7ce1a6667.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
   },
   "minimumDistinctFrames": 8
 }

@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-mike-dive-chest-s",
+  "character": "mike",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-tall",
+  "action": "dive_chest",
+  "direction": "s",
+  "fps": 10,
+  "loop": false,
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Independent environment effects. No water, foam or bubbles painted into the character."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-dive-chest-s/70174b9d46c1/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-dive-chest-s/70174b9d46c1/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-dive-chest-s/70174b9d46c1/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-dive-chest-s/70174b9d46c1/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-dive-chest-s/70174b9d46c1/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-dive-chest-s/70174b9d46c1/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-dive-chest-s/70174b9d46c1/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-dive-chest-s/70174b9d46c1/08.webp"
+  ],
+  "production": {
+    "method": "Image generation from existing character identity and native-size extraction",
+    "reference": "prototypes/godot-pecio/characters/imported/sw-mike-idle8/00-idle-01.png",
+    "prompt": "Eight directional phases of the specific action with the existing Stormwreck hero; preserve silhouette, identity, and separate VFX.",
+    "minimumVisibleStandingPixels": 120,
+    "silhouetteAlpha": 80,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-dive-chest-s-70174b9d46c1.png",
+    "originalSha256": "70174b9d46c109e0e17e8907e3922d2f0c37b273471afdb928ede14bacf618f8",
+    "importReport": "output/stormwreck-motion-detail/sw-mike-dive-chest-s-70174b9d46c1.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "Individual transparent poses visually reviewed for heading, silhouette and separation from VFX. Project review controls promotion.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 355,
+  "pivot": [
+    0.5,
+    0.8421052631578947
+  ]
+}

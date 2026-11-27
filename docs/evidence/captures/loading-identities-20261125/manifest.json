@@ -1,0 +1,525 @@
+{
+  "scope": {
+    "name": "loading-identities-v6",
+    "ids": [
+      "maria",
+      "mia",
+      "mike",
+      "sw-mike-loading-scroll-v6",
+      "sw-mike-loading-scroll-walk-v6",
+      "sw-mike-loading-performance-v6",
+      "sw-mike-loading-deception-v6",
+      "sw-mike-loading-religion-v6",
+      "sw-mike-loading-medicine-v6",
+      "sw-mike-loading-pickpocket-v6",
+      "sw-mike-loading-handshake-v6",
+      "sw-mia-loading-handshake-v6",
+      "sw-maria-loading-handshake-v6",
+      "sw-mike-loading-nature-v6"
+    ]
+  },
+  "revision": "2a2750f073a575e1167a4c7b68341515867a42d5e936b9973c29475fe581d329",
+  "native": {
+    "atlases": 9,
+    "captures": 103,
+    "checks": 113,
+    "errors": [],
+    "passed": true,
+    "renderer": "Godot native Vulkan Forward+; see loading-v6-candidate-review.log",
+    "revision": "2a2750f073a575e1167a4c7b68341515867a42d5e936b9973c29475fe581d329",
+    "scope": "loading-identities-v6"
+  },
+  "conditions": {
+    "width": 1280,
+    "height": 720,
+    "clock": 0.4,
+    "actionElapsed": 4,
+    "destination": "Auditoría · personaje"
+  },
+  "records": [
+    {
+      "file": "docs/evidence/captures/loading-identities-20261125/before/mike-performance-success.png",
+      "sha256": "53b5e0deb62732c87f68456074f314bb23779da641accb013403cedac43ee2af"
+    },
+    {
+      "file": "docs/evidence/captures/loading-identities-20261125/after/mike-performance-success.png",
+      "sha256": "68816946ead522832a04dc60c757d26acd866584054b0048498c16e8a3e0e7b7"
+    },
+    {
+      "file": "docs/evidence/captures/loading-identities-20261125/before/mike-history-success.png",
+      "sha256": "21023edadf9524eaa97b0e8bfeec77964a63890720eed4e9684761ac674a771e"
+    },
+    {
+      "file": "docs/evidence/captures/loading-identities-20261125/after/mike-history-success.png",
+      "sha256": "76a7d630bb1de48606f440d171455eece038aad8e788b58312dd390e67e6e93f"
+    },
+    {
+      "file": "docs/evidence/captures/loading-identities-20261125/before/mike-nature-failure.png",
+      "sha256": "30cbe632bf51eb7305b45a5a1a6837f50e7c56fe827195ef66511b2ee27c7b29"
+    },
+    {
+      "file": "docs/evidence/captures/loading-identities-20261125/after/mike-nature-failure.png",
+      "sha256": "bbf45c9d57ebc33c161d7a5be0287b9b0c49bcf8db5e76bd586d92197a867d1e"
+    },
+    {
+      "file": "docs/evidence/captures/loading-identities-20261125/before/mike-medicine-success.png",
+      "sha256": "777e9e4429d4fe361ef0907897eea210354b75154fe13a8bee46695a387b0d60"
+    },
+    {
+      "file": "docs/evidence/captures/loading-identities-20261125/after/mike-medicine-success.png",
+      "sha256": "def03aef10346312e6b49c5b398d601f02611f78cda9fa57820a0b8d1e3664c4"
+    },
+    {
+      "file": "docs/evidence/captures/loading-identities-20261125/before/mike-sleight-of-hand-success.png",
+      "sha256": "7041dad88dc5728863520611c5e4770d9790bbb18401a878824780379c38c602"
+    },
+    {
+      "file": "docs/evidence/captures/loading-identities-20261125/after/mike-sleight-of-hand-success.png",
+      "sha256": "be54dcec07f35c99992f224c28bd4183fc5136cda870e862ab6a3bb00d62d0e8"
+    },
+    {
+      "file": "docs/evidence/captures/loading-identities-20261125/before/mike-persuasion-ambient.png",
+      "sha256": "3e99f28aca56d8bacc2bf725aa03195d0cec32da4cf20a62c39796c7f11e8434"
+    },
+    {
+      "file": "docs/evidence/captures/loading-identities-20261125/after/mike-persuasion-ambient.png",
+      "sha256": "d3c28535788f70c9c01839211f4db6e51c09df533c017809e52122fcae94b147"
+    },
+    {
+      "file": "docs/evidence/captures/loading-identities-20261125/before/mia-persuasion-ambient.png",
+      "sha256": "cd4e07645244597799c2b9051cec3386724d3a396ab3d01dab45ed860d3856c1"
+    },
+    {
+      "file": "docs/evidence/captures/loading-identities-20261125/after/mia-persuasion-ambient.png",
+      "sha256": "72b4ca8f6e05300703219d65393b61b64a912064eb1b515cc270a54a2e0ce4f3"
+    },
+    {
+      "file": "docs/evidence/captures/loading-identities-20261125/before/maria-persuasion-success.png",
+      "sha256": "b3a0b3f84a1a17d2e7e863460805e1815abbee51314aedab22ff4d3641db99af"
+    },
+    {
+      "file": "docs/evidence/captures/loading-identities-20261125/after/maria-persuasion-success.png",
+      "sha256": "0df9bf6c315d299e7ac05311229dd459d8ddaa14860642209c174d8b9d63b7d1"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/base-v1/mike/idle-01.png",
+      "sha256": "ff16265d755a7e3bca0d1bc77785aa96247608709bdd71dfbdd35b89a9421a01"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/base-v1/mia/idle-01.png",
+      "sha256": "5f3c37502520c1fa8be2ba9fe958ecd4560c37a2e000c05ef9c02018b19dadf8"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/base-v1/maria/idle-01.png",
+      "sha256": "65853913d180e7b53e12adfdd74f47505f61c92183dee213265366e8631928fa"
+    },
+    {
+      "file": "docs/evidence/captures/loading-identities-20261125/after/d20-rolling-a.png",
+      "sha256": "252dc5a6eb8a5f584db60b4e681f194ca1eb75b4af2bc50f63bc28f7abb86a3b"
+    },
+    {
+      "file": "docs/evidence/captures/loading-identities-20261125/after/d20-rolling-b.png",
+      "sha256": "0a709ec82b75f1ef58f355ddf4f928f37181e8c7ffe4c14eb054f44be49bdf81"
+    },
+    {
+      "file": "docs/evidence/captures/loading-identities-20261125/after/d20-result.png",
+      "sha256": "cd3afdf4a35d50750b6b55d52dfd74330c490f3a324cfa603bfbd8d603a23df2"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-maria-loading-handshake-v6-0bb26175ac23.png",
+      "sha256": "0bb26175ac234aaace7bdf9863c56bae496d4faff57858cec79f160abae9fe3d"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-loading-handshake-v6/0bb26175ac23/01.webp",
+      "sha256": "d1edfcf9470d9c40229b1af0b84093dfe30c19161f5358203ead4d6a16674904"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-loading-handshake-v6/0bb26175ac23/02.webp",
+      "sha256": "dcbcb1f298289a0e166c30f505a6a1212249c4930fc9a24b8101a9f564b39087"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-loading-handshake-v6/0bb26175ac23/03.webp",
+      "sha256": "456488290c874d144cbc4cafae7882a023a9adacedfaf085452594202392ffb9"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-loading-handshake-v6/0bb26175ac23/04.webp",
+      "sha256": "540f04eab4f4ff997550db631e02fd7d2da833aad74e4e14924c83c346ddb8c8"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-loading-handshake-v6/0bb26175ac23/05.webp",
+      "sha256": "fe8d41d9e9f590d47e08068f140a60a18a4bb2a4f1ba43389beee3264a9d7d44"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-loading-handshake-v6/0bb26175ac23/06.webp",
+      "sha256": "3d5b8f7edceee761b09ea81b4b9779d15fb5a5ca886cb97bc53e9cd2a11c19f6"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-loading-handshake-v6/0bb26175ac23/07.webp",
+      "sha256": "f2363e5fbf899e24993c0b90e18b64e2d54fcb14256e1812b66b3f92661d99a0"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-loading-handshake-v6/0bb26175ac23/08.webp",
+      "sha256": "3dd3f86f079a7c9ec2a7b74b394ddb6cdd08b90c60ee56008738fd026ebba545"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mia-loading-handshake-v6-3824599673a8.png",
+      "sha256": "3824599673a8af5efbec4a4f9d0c06e28d787dbdb0fd24459df13cac468ba2d2"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-handshake-v6/3824599673a8/01.webp",
+      "sha256": "c7a6a4e5f2b55e022d42baf2f7574643522dfa3af78b382026fe7b6e8ab098dd"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-handshake-v6/3824599673a8/02.webp",
+      "sha256": "90b13656ea3c42fb659fcab8527d7db2ed175a22364e621737301f6337281e64"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-handshake-v6/3824599673a8/03.webp",
+      "sha256": "40fa83a61272fdc2393c7e4d6c7b42f2e752d45ce0374e00d8d4244edeed4b9f"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-handshake-v6/3824599673a8/04.webp",
+      "sha256": "b0fff6919351ce82fe8ed21cbed97b50f2447fcc870b0ec2b7598cfdbc783f54"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-handshake-v6/3824599673a8/05.webp",
+      "sha256": "f25ae089bde37dc69fed5bdb0118a6f433ccd7e557694f5b24acbb1f9b022eb0"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-handshake-v6/3824599673a8/06.webp",
+      "sha256": "67941c753aaf3a6548479647cac1faccf67c07456bef538d4e24d3759a6c4a23"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-handshake-v6/3824599673a8/07.webp",
+      "sha256": "335bd7eb64da2a1f461bcb5825549f1606efa1df5b1681fcaa8c6b7c68e8a9aa"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-loading-handshake-v6/3824599673a8/08.webp",
+      "sha256": "3e264c40b2b94e8403a140d4a02ef84128098b730f5148c367abeb113b0426fe"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-loading-deception-v6-68f15a3b2ac7.png",
+      "sha256": "68f15a3b2ac701e0922234a92ac4e26fc02a3ba29eee3d98cb60c2c3058de2d0"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/01.webp",
+      "sha256": "a800e1c9f01c36f66e608bc97974048b924028ee1a15c41d107d9f8bc2a8ff1e"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/02.webp",
+      "sha256": "5496eba73f8b9c599acb808cd6aff375260eeff58755645f2b8a2a905073f1b8"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/03.webp",
+      "sha256": "4eb2ec25075b55bc9db9305b7aa34a08b72757b62bba035f42fee29d718e9c71"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/04.webp",
+      "sha256": "bd19ae05ede5df34f2eb24da1abae5de87fcf2c814f7b0e66be4b871fe940320"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/05.webp",
+      "sha256": "68045a7bcd6b087f190a4384265290112c1bfc03e08a09ba5b0cb81fdc3e4ee6"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/06.webp",
+      "sha256": "9a43076bd8edf993f5d36a1ce149b776a8d56bfe4eeeec312b86d4c9194f124f"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/07.webp",
+      "sha256": "50ba85c0ca1b815157389c335a6946a88ff83ed6887aff188d5795f27694ca85"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-deception-v6/68f15a3b2ac7/08.webp",
+      "sha256": "412c203aa541e7984f4f0965f5d67c7e7d3b57c19cf40a788ee2c653ed21fd25"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-loading-handshake-v6-467c027a19a0.png",
+      "sha256": "467c027a19a0d196b7c123e73571834c0469c43fa4287736edafe9172dd646d3"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-handshake-v6/467c027a19a0/01.webp",
+      "sha256": "57d6c4ad06d00978e929e600abd3a60a0ae548966ac825ee12268fb460714401"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-handshake-v6/467c027a19a0/02.webp",
+      "sha256": "b45a2dd74727876576b123e3b53b97101abf9f71ed4fa3528de99841d34f3664"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-handshake-v6/467c027a19a0/03.webp",
+      "sha256": "371fae0ae0afdc0767fa5c62be1ecb3cceb2d58410ed894422e0cacdc4dc36dd"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-handshake-v6/467c027a19a0/04.webp",
+      "sha256": "4f05929e3e6568a736c1b0c18658cbd5877efab81dd60ad47098ae304afc632c"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-handshake-v6/467c027a19a0/05.webp",
+      "sha256": "d8f8f4eea4b1e98ded37627260702d66edc488053ed43b797fa7adecf61c4dc8"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-handshake-v6/467c027a19a0/06.webp",
+      "sha256": "1d16e8e7e4f8b5826b33c00eedadfccb505d729d7d57833c9e8da331e9e7873c"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-handshake-v6/467c027a19a0/07.webp",
+      "sha256": "7605b232562d09e0ebca593c4ecc189ac6f18ff59da24073a6e3dd49062c11d6"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-handshake-v6/467c027a19a0/08.webp",
+      "sha256": "726ae7998fb28b74d2434831764fd2f09ad37e058b8d2ca97afb37839baadd27"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-loading-medicine-v6-b6c352325d31.png",
+      "sha256": "b6c352325d313e599ff2d1a8bb2fd924672026b3bde6d1f92dc9968a9e456ba2"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/01.webp",
+      "sha256": "07cd26949c445c0a1b9c8fc771c77b1cb433cf82182533e0674ed8053264f102"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/02.webp",
+      "sha256": "0f4f009df8351aff45eb1784e1be5eb2e8146a2db68e3b570da6ac97aaef696c"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/03.webp",
+      "sha256": "6077042cee32a95249a0e07b2024b1e61526ac8eeb998e77ff0500bef7912902"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/04.webp",
+      "sha256": "67ce7404d8ec0d71c0648505a085818584050db026245463c323a8e2684bce67"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/05.webp",
+      "sha256": "c1f25fefefa5eacffcc46576eae8187c9376a96d1dbd8a0c601942677fd0beca"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/06.webp",
+      "sha256": "2066ac5c06e8ea0222723d222831cf0c44cc6cbc990219c4ecbf857f59013578"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/07.webp",
+      "sha256": "ce94fd78719b9dcd537fee9f7cb515db68737c099fae98558f5a957887fb983f"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/08.webp",
+      "sha256": "a2d7b3ffd78106a6803493f2564530a660f8176b0fe4fbc4cee6112704ab1e7c"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-loading-nature-v6-fabcdd029024.png",
+      "sha256": "fabcdd029024b8e275973d393176b9ecb8fde808419cb7fbab8e93a1f64aaef1"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-nature-v6/fabcdd029024/01.webp",
+      "sha256": "88f06c7b99a73788fcd36c17508c958e4da0e228def241cb59157971ea1cb071"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-nature-v6/fabcdd029024/02.webp",
+      "sha256": "bbd2b858a8669cc9dad4953c1c64b6082473a5dc08f975c312f797ccd226cb78"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-nature-v6/fabcdd029024/03.webp",
+      "sha256": "7324c401fd91e9edf75989e46ce3a14433dde391f729acb4b9cd24d3f471b68b"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-nature-v6/fabcdd029024/04.webp",
+      "sha256": "7ca2cd07aee9e67bda36e6cd46927be04792b1ddb2faf4f18041adf24ccd4a93"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-nature-v6/fabcdd029024/05.webp",
+      "sha256": "f85d267caa5f39ce2720b749129f1eda01c561ca3c6ebb48a69426b02a1724c6"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-nature-v6/fabcdd029024/06.webp",
+      "sha256": "755ad0be6081c9b9e04bba534ebaa466cf11b3bef18bf1c580cb2edf50f6caf8"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-nature-v6/fabcdd029024/07.webp",
+      "sha256": "58b262c379d505bf448df4211dddbcac6c9ec0aaee9e4e071fa57e88de59529b"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-nature-v6/fabcdd029024/08.webp",
+      "sha256": "40a83a6b9fcc8b0abe35be2a63c113b009c725b17d184b6a701bbf4bb0c463ed"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-loading-performance-v6-d383d815ac5d.png",
+      "sha256": "d383d815ac5d2add4b10559cee5fe542d97a4254ccdebccbdf5d4f9c88aded10"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/01.webp",
+      "sha256": "fbb20261cecfb2ff4489b553cd46fbf03465192aacfe5919e065b6c6a65bb1b0"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/02.webp",
+      "sha256": "f50a075393dd092d3dc9cab97dbd8568402726677ac53bed3801fedcff9cb3f0"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/03.webp",
+      "sha256": "c66923d74a67ebc9e5bf4bd7b2daf620e505e0f7f462460dcf13cecacffcdd36"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/04.webp",
+      "sha256": "31d4fc7399cf93514fd442755ecc93ea370630ae2fcf78ca824c0e51bd702574"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/05.webp",
+      "sha256": "acb46f8c78d6d80047f507f70d831f940cfa8513f19ba1d98b36392f5b37b6a0"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/06.webp",
+      "sha256": "c7e3844f6baad5370b3334aa2706422bf8bda8cdac751f0582cd871e6a7c3404"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/07.webp",
+      "sha256": "8d27f8f2967f5cdfc1da21467f5c67ea5ee1bf5bb6d768320d508d8fc806c1b0"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-performance-v6/d383d815ac5d/08.webp",
+      "sha256": "340455d2223c320e846e6d7ce006036bb066bb9a1779c6df1fc12c48496277e4"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-loading-pickpocket-v6-8da8821e0e49.png",
+      "sha256": "8da8821e0e49ff65acd8837b3853a45892327687a96a52a5de3c539e0034713c"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-pickpocket-v6/8da8821e0e49/01.webp",
+      "sha256": "e8df884f61c2255d7575d12f61a5617398e58567cd38555d93307fd5f36c4f85"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-pickpocket-v6/8da8821e0e49/02.webp",
+      "sha256": "c88018c3f02f0291ee17106e27d6402a9fcee1de9fe8e58628522c9478f01eec"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-pickpocket-v6/8da8821e0e49/03.webp",
+      "sha256": "a279d945a26c7ed789722642f451fbd974d093169482a039416e52b00b0cecc4"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-pickpocket-v6/8da8821e0e49/04.webp",
+      "sha256": "972367c66d20810650b3a8aca91bd54dfeba5dca417669fc949f672c1e94ba0d"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-pickpocket-v6/8da8821e0e49/05.webp",
+      "sha256": "69ca0a9aa370db3197f8c5c738fe37b4137c2aa6c7771af8240887ac3cf20743"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-pickpocket-v6/8da8821e0e49/06.webp",
+      "sha256": "2e0e5740b5bce76fbc6f19d9efbc1cf7be78ea5dd7f6744833247325ae481d6a"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-pickpocket-v6/8da8821e0e49/07.webp",
+      "sha256": "bcb954c78ddd1c40f5ad3c923b9c9e62126005e3eba842fc4bf8f2a9659efe4c"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-pickpocket-v6/8da8821e0e49/08.webp",
+      "sha256": "44cfd9e23c192501a47e6a4debf61bf3997c610339631078f44362817f3a6293"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-loading-religion-v6-b3db0ead63bf.png",
+      "sha256": "b3db0ead63bf6c41647be5611541965f707bc64e16b6cd760f134ac07e484ac8"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/01.webp",
+      "sha256": "998da66f0d08344f50db4798a8bbbbe0ebdb18e7a8c3f3d804fd886886a76d71"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/02.webp",
+      "sha256": "452b541f0d785a102f0b6a8e509406cf37a2a4de89504958dfe1e2383153e201"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/03.webp",
+      "sha256": "e7f1390d0741db02d129b13627fafe0915efe884ce2477100272d7bbd9e303d6"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/04.webp",
+      "sha256": "db95af4e29af856b2932bf6ad70409c56e1a7dab306defe0e9d3d266d133f69d"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/05.webp",
+      "sha256": "437b281f33a7f9aae3ce73fce3df5267640785ee8106b81b6cec09d30743e9f3"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/06.webp",
+      "sha256": "f1ddc859b6216c2b389a62fb4166145dda3a6ec6fccf35e5c0f3b5243d655beb"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/07.webp",
+      "sha256": "cc7eee3104c98f371425acaf4c6027ae02c2b4437a1f1308d8ef9412fd9af369"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-religion-v6/b3db0ead63bf/08.webp",
+      "sha256": "6ac29cdd4fb47191206803a168535e3eddf5d83f5aff49509255265a8034050c"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-loading-scroll-v6-a6920cc4617c.png",
+      "sha256": "a6920cc4617c971b3ef555a60fad75770ccedcc672ce4342144897017f89f98e"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-v6/a6920cc4617c/01.webp",
+      "sha256": "c68025f106cb5dbb54524a387f7fca8407d3083183208396b535800b583708ee"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-v6/a6920cc4617c/02.webp",
+      "sha256": "52eaf085ce89af25042dc11d34e192b18ffbb8e0760cf875c1ea3e2e604f763a"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-v6/a6920cc4617c/03.webp",
+      "sha256": "1221d03fd76369ae62f6162855e2bf65a1b06c264297e1fcc05215f7d1398d63"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-v6/a6920cc4617c/04.webp",
+      "sha256": "a209582db9c7b7c26bb2971c172df5f4d64813dd02fe43eb7d2096f6c8dffdd4"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-v6/a6920cc4617c/05.webp",
+      "sha256": "4077f05754e77858838d721e3ab3dbbeeb9d4196698713c5478fcc46812e5ddc"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-v6/a6920cc4617c/06.webp",
+      "sha256": "ee0e9df03e00b26e8d45f7daec312fdfac1d02e8b1f8d7594063dd7556a8f06c"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-v6/a6920cc4617c/07.webp",
+      "sha256": "b585e9dfb5fb12f9369708c0b5986e2cea7a5eb6feb4fbf87e19cc3391efd59c"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-v6/a6920cc4617c/08.webp",
+      "sha256": "a4213cd5372fbd2274101982fe37b5a2bba2f5ce5ddc3b3e558e665eb96a03a1"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-loading-scroll-walk-v6-5c1da44a7fab.png",
+      "sha256": "5c1da44a7fab127911b19663d9e8aa76392d97bfe72227c1fa0eea3924f1e9f8"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-walk-v6/5c1da44a7fab/01.webp",
+      "sha256": "d7ef5cccf91fa3d68e872a43642f6fa5480576c0638e66573e5dc8b0791ccd76"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-walk-v6/5c1da44a7fab/02.webp",
+      "sha256": "6cf666e8be94cd44637f0f82478918fcae68ae1505e7e8971cf7d8234c56e51b"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-walk-v6/5c1da44a7fab/03.webp",
+      "sha256": "4ad7acc544b63e6eb99573cda0a6ebdd57e9f135a6d34e2ae9898403a915eab9"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-walk-v6/5c1da44a7fab/04.webp",
+      "sha256": "b15775be45d2c49d041ec68db295a3235ffdef460d574ddcc68e73823ea91f60"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-walk-v6/5c1da44a7fab/05.webp",
+      "sha256": "c8775314c16dd6a43359918a83dc945eb4cf3a2d914f7274626b39e3c8b28f46"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-walk-v6/5c1da44a7fab/06.webp",
+      "sha256": "f1eba6bf3a53c1d1da4b18dfdca5783bc6a8ac771ae0519c810d1651fdde108c"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-walk-v6/5c1da44a7fab/07.webp",
+      "sha256": "1d2a9749a18d97c5ec2c9d3112fd608aba3a7eea4933d6aa3f766a47afbdd766"
+    },
+    {
+      "file": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-scroll-walk-v6/5c1da44a7fab/08.webp",
+      "sha256": "baae08e92af60bdf5b9f72ae2f0559e1c54892f061f1f7fad7014dc48af89801"
+    }
+  ]
+}

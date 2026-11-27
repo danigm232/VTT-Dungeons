@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-maria-stow-item-s",
+  "character": "maria",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-small",
+  "action": "stow_item",
+  "direction": "s",
+  "fps": 10,
+  "loop": false,
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Independent environment effects. No water, foam or bubbles painted into the character."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-stow-item-s/30eed11d0671/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-stow-item-s/30eed11d0671/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-stow-item-s/30eed11d0671/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-stow-item-s/30eed11d0671/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-stow-item-s/30eed11d0671/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-stow-item-s/30eed11d0671/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-stow-item-s/30eed11d0671/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-maria-stow-item-s/30eed11d0671/08.webp"
+  ],
+  "production": {
+    "method": "Image generation from existing character identity and native-size extraction",
+    "reference": "prototypes/godot-pecio/characters/imported/sw-maria-idle8/00-idle-01.png",
+    "prompt": "Only the exact attached Stormwreck player character, matching their face, hair, clothes, anatomy and apparent age. FRONT VIEW DIRECTLY TOWARD BOTTOM OF FRAME, see the same face and chest, slightly elevated game camera. Across eight successive clear drawn phases, put the small item in the original leather pouch, close its flap with both hands, return to upright rest. Targets are outside the sprite and supplied by the engine, don't draw any door or chest. Plain empty transparent alpha background, fully opaque character brushwork, absolutely no grey background, ground, water, glow, letters or outlines. Exact 4 columns by 2 rows, wide 2:1 total. Every sprite in the central 62% of its own cell with wide empty safety margins and the same character size.",
+    "minimumVisibleStandingPixels": 120,
+    "silhouetteAlpha": 80,
+    "columnCutsByRow": [
+      [
+        0,
+        444,
+        887,
+        1330,
+        1774
+      ],
+      [
+        0,
+        444,
+        887,
+        1330,
+        1774
+      ]
+    ],
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-maria-stow-item-s-30eed11d0671.png",
+    "originalSha256": "30eed11d0671384ae52e1936634955111b3ba86786336701229ccd3016a3c4a4",
+    "importReport": "output/stormwreck-motion-detail/sw-maria-stow-item-s-30eed11d0671.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 355,
+  "pivot": [
+    0.5,
+    0.9035087719298246
+  ]
+}

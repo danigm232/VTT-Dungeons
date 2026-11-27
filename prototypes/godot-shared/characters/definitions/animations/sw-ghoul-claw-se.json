@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-ghoul-claw-se",
+  "character": "sw-ghoul",
+  "anatomy": "humanoid-tall",
+  "campaign": "stormwreck-isle",
+  "action": "claw",
+  "direction": "se",
+  "fps": 10,
+  "loop": false,
+  "compatibility": {
+    "preservesAppearance": true,
+    "overlay": "Current frame alpha; physical attachments remain unverified."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-claw-se/765c39ca16d9/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-claw-se/765c39ca16d9/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-claw-se/765c39ca16d9/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-claw-se/765c39ca16d9/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-claw-se/765c39ca16d9/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-claw-se/765c39ca16d9/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-claw-se/765c39ca16d9/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-ghoul-claw-se/765c39ca16d9/08.webp"
+  ],
+  "production": {
+    "method": "Built-in image generation with existing local identity reference and native-size extraction",
+    "reference": "campaigns/stormwreck-isle/public/art/m3/ghoul/ghoul_base.png",
+    "minimumVisibleStandingPixels": 240,
+    "prompt": "Claw slash towards southeast in three-quarter, eight readable stages of gathering, windup, extension, slash and follow-through, return. No visual effects.",
+    "silhouetteAlpha": 100,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-ghoul-claw-se-765c39ca16d9.png",
+    "originalSha256": "765c39ca16d97737fae2f4f3c4e99f4c2472c29bf162bb3e512188c31d317082",
+    "importReport": "output/stormwreck-motion-detail/sw-ghoul-claw-se-765c39ca16d9.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "pending native review",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 413,
+  "pivot": [
+    0.5,
+    0.9517543859649122
+  ]
+}

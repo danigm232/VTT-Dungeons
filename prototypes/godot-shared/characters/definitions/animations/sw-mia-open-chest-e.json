@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-mia-open-chest-e",
+  "character": "mia",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-dwarf",
+  "action": "open_chest",
+  "direction": "e",
+  "fps": 10,
+  "loop": false,
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Independent environment effects. No water, foam or bubbles painted into the character."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-open-chest-e/703bca3aeb2c/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-open-chest-e/703bca3aeb2c/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-open-chest-e/703bca3aeb2c/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-open-chest-e/703bca3aeb2c/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-open-chest-e/703bca3aeb2c/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-open-chest-e/703bca3aeb2c/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-open-chest-e/703bca3aeb2c/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-open-chest-e/703bca3aeb2c/08.webp"
+  ],
+  "production": {
+    "method": "Image generation from existing character identity and native-size extraction",
+    "reference": "prototypes/godot-pecio/characters/imported/sw-mia-idle8/00-idle-01.png",
+    "prompt": "Eight frames showing only the exact same fantasy player character from the provided game reference, Mía dwarf cleric, short stocky copper-braided woman in the exact dark cleric clothes of the reference. Character always faces visually screen RIGHT in slightly top-down rightward game profile, nose to screen right and both feet visible. Eight consecutive phases: bend knees, reach down to a floor chest about knee height using both hands, lift the lid, look in, release one hand and rise. Preserve face, clothing, footwear and body proportions exactly, detailed clean painted pixel-art appearance. Any external chest and door are provided by engine and must not be drawn. No detached items in air, no environmental water, bubbles, floor shadow, background or text. Transparent PNG. Exact 4 columns x 2 rows, row major, generous empty gutters centered in each cell (minimum 15 percent each side) and every pose same scale. Wider canvas 2:1.",
+    "minimumVisibleStandingPixels": 120,
+    "silhouetteAlpha": 80,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mia-open-chest-e-703bca3aeb2c.png",
+    "originalSha256": "703bca3aeb2c4a721cc012ab7d12707d3adfbe556e8475afa259daee8c67e8c4",
+    "importReport": "output/stormwreck-motion-detail/sw-mia-open-chest-e-703bca3aeb2c.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "Individual transparent poses visually reviewed for heading, silhouette and separation from VFX. Project review controls promotion.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 355,
+  "pivot": [
+    0.5,
+    0.9078947368421053
+  ]
+}

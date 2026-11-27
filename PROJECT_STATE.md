@@ -1,5 +1,37 @@
 # Estado del proyecto
 
+## Agua e interacciones del Pecio — 26/11/2026
+
+Mía, Mike y Trinity pueden alternar natación e inmersión en mar abierto, con respiración por CON, emisión independiente de estela y burbujas, y humedad dependiente del contacto y el clima. C9 usa sus salidas y bolsas de aire existentes. Las cuatro acciones con objetos se orientan hacia el punto de interacción. [Ficha del agua](docs/evidence/STORMWRECK_AQUATIC_20261126.md) · [Visor y pruebas en el Pecio](output/stormwreck-aquatic/index.html).
+
+El 27/11 se refuerzan las burbujas y el goteo al pisar una superficie seca. Godot verificó 192 casos funcionales y 54 con render. [Antes y después](output/stormwreck-aquatic/vfx/index.html).
+
+## Virajes y aterrizajes de las arpías — 26/11/2026
+
+Ocho virajes de cámara con dibujos propios y cuatro ciclos de aterrizaje en las dos ubicaciones del Pecio. El rumbo y la fase se mantienen al girar la cámara. El sonido de la cofa sale al apoyar las garras. [Ficha y comparativas](docs/evidence/NPC_SPRITES_20261116.md#virajes-y-aterrizajes-de-las-arpías--26112026).
+
+## Repertorio terrestre del gul — 26/11/2026
+
+Diez secuencias nuevas para el gul de C8. El reposo conserva el rumbo al detenerse y al orbitar la cámara. Correr y Esconderse seleccionan secuencias propias durante el desplazamiento. Se completan las vistas traseras de reacción, arrastre y caída, y las transiciones de giro, arranque, frenada y recuperación. [Ficha del gul](docs/evidence/NPC_SPRITES_20261116.md#repertorio-terrestre-del-gul--26112026).
+
+## Gul y arpías del Pecio — 26/11/2026
+
+El gul de C8 usa su apariencia propia, garras y mordisco distintos, marcha, arrastre, caída y reacción al daño. La aparición de las arpías encadena el giro de aproximación con el aterrizaje. C2 utiliza el refuerzo canónico de nivel 2 con su ficha de combate. Los tres bloques de rutinas del Retiro se aplazan en el maestro. [Ficha, alcance y pruebas](docs/evidence/NPC_SPRITES_20261116.md#gul-y-arpías-del-pecio--26112026).
+
+## Identidad y dado de las cargas Godot — 25/11/2026
+
+Corregida la familia de Mike y la continuidad del comerciante de Persuasión; el resto de Mía/Trinity se conserva. Once láminas seleccionadas (88 poses), locomoción/reposo reutilizados y desenlaces sin reinicio. Instalado en Pecio, Retiro y Campamentos, junto al dado nativo de Antigravity. Pipeline limitado a 14 recursos; 11.304 comprobaciones de catálogo, 27 de pipeline, 183 de carga por proyecto y 192 en GPU. Revisión interna realizada; aceptación artística/física pendiente. [Ficha y capturas](docs/evidence/GODOT_SKILL_LOADING_20261114.md#corrección-selectiva-instalada--25112026).
+
+## Retiro del Dragón · rutinas características — 25/11/2026
+
+Siete rutinas de oficios, carga y limpieza tienen once secuencias nuevas y herramientas independientes. La carga se recoge, se transporta y se deposita en la escena. La cámara conserva el rumbo de los habitantes durante el gesto. [Visor y pruebas](output/retreat-work-contacts-20261125/index.html).
+
+Corregido el solapamiento entre la túnica de Runara y el taburete de A4. Se revisaron la lectura y el gesto de mano en 50 vistas nativas. [Antes y después](output/retreat-runara-stool-20261125/index.html).
+
+El acabado de lectura y pesca añade dos poses sentadas de Runara en cinco vistas, y cuatro fases laterales de caña para Tarak y Blepp. Los dibujos se usan sobre el asiento y los puestos del mapa. [Comparativas](output/retreat-contact-pass-20261125/index.html).
+
+Los doce habitantes tienen dos actividades características dentro del ciclo del Retiro. El DM puede consultar su destino, asignar rutinas, pausarlas y dar una orden de movimiento por ruta. Se verificaron los veinticuatro contactos y el recorrido simultáneo de Tarak y Blepp hasta el muelle. Continúan pendientes algunos agarres y poses específicas, así como la replicación entre instancias. [Ficha de implementación y pruebas](docs/evidence/RETIRO_RUTINAS_CARACTERISTICAS_20261125.md).
+
 ## Sincronización Godot — 25/11/2026
 
 Se reúnen los cambios recientes de Pecio, Retiro y Campamentos. Una instalación limpia detectó que cinco archivos de geometría y terreno estaban excluidos de Git: se incorporan y se mantiene la exclusión de las partidas. La candidata de mantas continúa pendiente de capturas nativas y aceptación visual; los proyectos Godot se mantienen como proyectos separados. [Contenido y pruebas](docs/evidence/GODOT_SYNC_20261125.md).

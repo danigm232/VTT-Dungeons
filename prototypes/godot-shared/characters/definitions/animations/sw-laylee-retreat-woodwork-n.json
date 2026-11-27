@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-laylee-retreat-woodwork-n",
+  "character": "sw-laylee",
+  "anatomy": "reptilian-small",
+  "campaign": "stormwreck-isle",
+  "action": "retreat_woodwork",
+  "direction": "n",
+  "fps": 6,
+  "loop": true,
+  "referenceHeight": 427,
+  "pivot": [
+    0.5,
+    0.8609523809523809
+  ],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-woodwork-n/2c01f8f2334e/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-woodwork-n/2c01f8f2334e/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-woodwork-n/2c01f8f2334e/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-woodwork-n/2c01f8f2334e/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-woodwork-n/2c01f8f2334e/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-woodwork-n/2c01f8f2334e/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-woodwork-n/2c01f8f2334e/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-woodwork-n/2c01f8f2334e/08.webp"
+  ],
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "propsSeparate": true
+  },
+  "production": {
+    "columns": 4,
+    "silhouetteAlpha": 96,
+    "minimumVisibleStandingPixels": 310,
+    "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-laylee-retreat-sort-rear/f723bf020ad2/01.webp",
+    "intent": "Dedicated rear tool cycle, grounded support and empty gripping hands.",
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-laylee-retreat-woodwork-n-2c01f8f2334e.png",
+    "originalSha256": "2c01f8f2334e72aa14a04e338cce698438a2d2ba0012b8c4cb9cdf3ba563d602",
+    "importReport": "output/stormwreck-motion-detail/sw-laylee-retreat-woodwork-n-2c01f8f2334e.json",
+    "minimumAlpha": 20,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "Original and extracted candidate compared, with user acceptance pending.",
+    "userAcceptance": "pending"
+  }
+}

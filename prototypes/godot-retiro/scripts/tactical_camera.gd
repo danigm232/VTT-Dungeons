@@ -68,7 +68,7 @@ func clamp_navigation_point(point: Vector3) -> Vector3:
 	if scene_root and scene_root.has_meta("map_bounds_xz"):
 		var b: Rect2 = scene_root.get_meta("map_bounds_xz")
 		return Vector3(clampf(point.x, b.position.x, b.position.x + b.size.x), point.y, clampf(point.z, b.position.y, b.position.y + b.size.y))
-	return Vector3(clampf(point.x,0.5,167.5),point.y,clampf(point.z,0.5,119.5))
+	return Vector3(clampf(point.x,-18.0,167.5),point.y,clampf(point.z,0.5,146.5))
 
 
 func apply_zone_preset(key: String,instant: bool = false) -> void:

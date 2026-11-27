@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-rix-retreat-sweep-n",
+  "character": "sw-rix",
+  "campaign": "stormwreck-isle",
+  "anatomy": "reptilian-small",
+  "action": "retreat_sweep",
+  "direction": "n",
+  "fps": 4,
+  "loop": true,
+  "referenceHeight": 466,
+  "pivot": [
+    0.5,
+    0.9257142857142857
+  ],
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-sweep-n/4b6598f88a21/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-sweep-n/4b6598f88a21/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-sweep-n/4b6598f88a21/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-sweep-n/4b6598f88a21/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-sweep-n/4b6598f88a21/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-sweep-n/4b6598f88a21/06.webp"
+  ],
+  "compatibility": {
+    "embeddedSlotsRetained": true,
+    "propsSeparate": true,
+    "preservesAppearance": true
+  },
+  "production": {
+    "reference": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-rix-retreat-turnaround/148319c4f91f/07.png",
+    "intent": "Dedicated rear pose cycle. Props independent, retain identity and real feet support.",
+    "minimumVisibleStandingPixels": 350,
+    "columns": 3,
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-rix-retreat-sweep-n-4b6598f88a21.png",
+    "originalSha256": "4b6598f88a218a12ed126bfc9dbd010d011210fb7a8c95669dbcc68cd07b2567",
+    "importReport": "output/stormwreck-motion-detail/sw-rix-retreat-sweep-n-4b6598f88a21.json",
+    "minimumAlpha": 20,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "Original and extracted candidate compared, with user acceptance pending.",
+    "userAcceptance": "pending"
+  }
+}

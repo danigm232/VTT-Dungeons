@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "kind": "animation",
+  "id": "sw-mia-swim-ne",
+  "character": "mia",
+  "campaign": "stormwreck-isle",
+  "anatomy": "humanoid-dwarf",
+  "action": "swim",
+  "direction": "ne",
+  "fps": 9,
+  "loop": true,
+  "compatibility": {
+    "preservesAppearance": true,
+    "embeddedSlotsRetained": true,
+    "overlay": "Independent environment effects. No water, foam or bubbles painted into the character."
+  },
+  "frames": [
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-swim-ne/2c21eb763566/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-swim-ne/2c21eb763566/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-swim-ne/2c21eb763566/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-swim-ne/2c21eb763566/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-swim-ne/2c21eb763566/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-swim-ne/2c21eb763566/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-swim-ne/2c21eb763566/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mia-swim-ne/2c21eb763566/08.webp"
+  ],
+  "production": {
+    "method": "Image generation from existing character identity and native-size extraction",
+    "reference": "prototypes/godot-pecio/characters/imported/sw-mia-idle8/00-idle-01.png",
+    "prompt": "Isolated 2.5D painted game sprite for exactly the existing character in the source. Direction throughout is upper right, see only back and right-facing silhouette of head. Eight consecutive poses of full-body near-horizontal swimming at the surface with breaststroke arm sweeps, bent knee kicks and head slightly raised. Every pose is a small complete silhouette surrounded by genuine transparent alpha everywhere outside. A deliberately wide invisible 4 columns x 2 rows grid in chronological order. Important: keep figures within the central 60% of their cell. The entire outside of the silhouettes is TRANSPARENT, no color, shadow, lighting, checker pattern, outline, water, bubbles, foam, letters or copied tiles. Match exact hero's hair, face, proportions and clothing.",
+    "minimumVisibleStandingPixels": 120,
+    "silhouetteAlpha": 80,
+    "columnCutsByRow": [
+      [
+        0,
+        444,
+        887,
+        1330,
+        1774
+      ],
+      [
+        0,
+        444,
+        887,
+        1330,
+        1774
+      ]
+    ],
+    "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mia-swim-ne-2c21eb763566.png",
+    "originalSha256": "2c21eb763566c2ccfb76af081c0ff39cecbbf79a6aee7d0954ec13942a117c5e",
+    "importReport": "output/stormwreck-motion-detail/sw-mia-swim-ne-2c21eb763566.json",
+    "minimumAlpha": 3,
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+  },
+  "review": {
+    "technical": "Native detail, cell clearance and distinct WEBP phases verified",
+    "visual": "Individual transparent poses visually reviewed for heading, silhouette and separation from VFX. Project review controls promotion.",
+    "userAcceptance": "pending"
+  },
+  "referenceHeight": 355,
+  "pivot": [
+    0.5,
+    0.7850877192982456
+  ]
+}

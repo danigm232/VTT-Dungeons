@@ -13,6 +13,8 @@ extends CharacterBody3D
 # ==============================================================================
 
 const CharacterSpriteCatalog = preload("res://scripts/character_sprite_catalog.gd")
+const HARPY_LANDING_CONTACT := 0.70
+const HARPY_ARRIVAL_LIFT := 0.38
 const OceanWaves = preload("res://scripts/ocean_waves.gd")
 const WreckStructure = preload("res://scripts/wreck_structure.gd")
 const PecioSfxKit = preload("res://scripts/pecio_sfx_kit.gd")
@@ -76,6 +78,15 @@ var in_open_ocean: bool = false
 var in_boat: bool = false
 var current_boat: Node3D = null
 var swim_time: float = 0.0
+const AquaticState = preload("res://scripts/aquatic_state.gd")
+const AquaticEffects = preload("res://scripts/aquatic_vfx.gd")
+const CharacterRegistry = preload("res://characters/registry.gd")
+var aquatic := AquaticState.new()
+var aquatic_effects: Node3D
+var _aquatic_environment: Node
+var _suffocation_speed_factor := 1.0
+var _sea_current_notice_cd := 0.0
+const PROP_POSES := ["open_door", "open_chest", "dive_chest", "stow_item"]
 
 # Salto parabólico y micro-animaciones procedurales
 var is_jumping: bool = false
@@ -89,6 +100,8 @@ var vfx_timer: float = 0.0
 var vfx_duration: float = 0.38
 var vfx_mode: String = ""
 var npc_ai_timer: float = 0.0
+var _ghoul_visual_heading: String = ""
+var _harpy_landing_nest: WeakRef
 var current_height_scale: float = 1.0
 var current_floor_offset: float = 0.0
 
@@ -114,6 +127,9 @@ func _ready() -> void:
 	build_action_vfx()
 	if not is_npc:
 		_build_wading_splash_vfx()
+		aquatic_effects = AquaticEffects.new()
+		aquatic_effects.name = "AquaticEffects"
+		add_child(aquatic_effects)
 	if has_carried_light and not is_npc:
 		build_carried_lantern()
 
@@ -326,7 +342,57 @@ func _dir_from_vector(v: Vector2) -> String:
 	const OCTANT_DIRS: Array[String] = ["e", "se", "s", "sw", "w", "nw", "n", "ne"]
 	return OCTANT_DIRS[octant]
 
+func toggle_dive() -> bool:
+	if is_npc or is_defeated or in_boat or is_transitioning or not aquatic.surface_available:
+		return false
+	var combat: Node = get_meta("combat_controller", null)
+	if combat and not combat.can_move(self):
+		return false
+	aquatic.wants_dive = not aquatic.wants_dive
+	is_sitting = false
+	is_jumping = false
+	return true
+
+func _update_aquatic_breath(seconds: float, turn_ended := false) -> void:
+	if is_npc:
+		return
+	var combat: Node = get_meta("combat_controller", null)
+	if combat:
+		var id := str(get_meta("combat_id", ""))
+		var actor: Dictionary = combat.rules.actors.get(id, {})
+		if not actor.is_empty():
+			aquatic.update_breath(int(actor.get("abilities", {}).get("CON", 10)), bool(actor.get("traits", {}).get("waterBreathing", false)), seconds, turn_ended)
+			actor["swimming"] = aquatic.in_water
+			actor["underwater"] = aquatic.submerged
+			var base_speed: float = maxf(1.0, float(actor.get("speed", 9.0)))
+			_suffocation_speed_factor = maxf(0.0, 1.0 - 1.5 * aquatic.suffocation_exhaustion / base_speed)
+			combat.rules.set_suffocation_level(id, aquatic.suffocation_exhaustion)
+
 func _physics_process(delta: float) -> void:
+	var vessel := get_parent() as Node3D
+	var local_pos := vessel.to_local(global_position) if vessel else position
+	var beam_here := WreckStructure.get_beam_at(local_pos.x)
+	var inside_hull := (local_pos.x >= WreckStructure.STERN_X - 0.35 and local_pos.x <= WreckStructure.BOW_X + 0.35 and absf(local_pos.z) <= beam_here + 0.35)
+	swim_time += delta
+	var wave_state := OceanWaves.sample_wave_state(Vector2(global_position.x, global_position.z), swim_time)
+	var sea_y: float = float(wave_state["surface_y"])
+	in_open_ocean = not in_boat and not inside_hull and global_position.y <= sea_y - 0.12
+	var in_c9_submerged := not in_boat and inside_hull and local_pos.y < -4.15
+	in_shallow_water = not in_boat and inside_hull and local_pos.y >= -4.05 and local_pos.y <= -1.45
+	in_water = in_open_ocean or in_c9_submerged
+	if not is_npc:
+		if not is_instance_valid(_aquatic_environment):
+			_aquatic_environment = get_tree().root.find_child("VttRoleUi", true, false)
+		var climate: String = _aquatic_environment.get_env_weather() if _aquatic_environment else "clear"
+		var immersion := sea_y - global_position.y if in_open_ocean else 0.0
+		if in_shallow_water:
+			immersion = clampf(WreckStructure.SEA_HEIGHT - local_pos.y, 0.0, 0.55)
+		aquatic.sample(delta, in_open_ocean, in_c9_submerged, immersion, target_height, climate, inside_hull and local_pos.y < -0.7)
+		_update_aquatic_breath(0.0)
+		if aquatic_effects:
+			var heading := Vector3(velocity.x, 0.0, velocity.z)
+			var reduced: bool = _aquatic_environment.get_env_reduced_effects() if _aquatic_environment else false
+			aquatic_effects.update_water(delta, sea_y, heading.normalized(), heading.length_squared() > 0.08, aquatic, reduced)
 	var sheet_open := bool(get_meta("character_sheet_open", false))
 	if (sheet_open or bool(get_meta("inventory_modal_open", false)) or bool(get_meta("player_settings_modal", false))):
 		input_override = Vector2.ZERO
@@ -341,7 +407,6 @@ func _physics_process(delta: float) -> void:
 			_process_pose_visuals(delta, Vector2.ZERO, _resolve_desired_state(Vector2.ZERO))
 		return
 	idle_breath_time += delta
-	swim_time += delta
 	if hit_flash_timer > 0.0:
 		hit_flash_timer = maxf(0.0, hit_flash_timer - delta)
 	_update_action_vfx(delta)
@@ -358,18 +423,6 @@ func _physics_process(delta: float) -> void:
 		_update_carried_torch_flicker(delta)
 		return
 
-	var vessel := get_parent() as Node3D
-	var local_pos := vessel.to_local(global_position) if vessel else position
-	var beam_here := WreckStructure.get_beam_at(local_pos.x)
-	var inside_hull := (local_pos.x >= WreckStructure.STERN_X - 0.35 and local_pos.x <= WreckStructure.BOW_X + 0.35 and absf(local_pos.z) <= beam_here + 0.35)
-	var wave_state := OceanWaves.sample_wave_state(Vector2(global_position.x, global_position.z), swim_time)
-	var sea_y: float = float(wave_state["surface_y"])
-
-	in_open_ocean = (not inside_hull) and (global_position.y <= sea_y - 0.12)
-	var in_c9_submerged := inside_hull and (local_pos.y < -4.15)
-	in_shallow_water = inside_hull and (local_pos.y >= -4.05 and local_pos.y <= -1.45)
-	in_water = in_open_ocean or in_c9_submerged
-
 	var input_dir := input_override
 	is_sprinting = false
 	if not is_transitioning:
@@ -385,17 +438,25 @@ func _physics_process(delta: float) -> void:
 			is_sprinting = Input.is_key_pressed(KEY_SHIFT)
 
 		input_dir = input_dir.normalized()
+		if action_lock_timer > 0.0 and action_anim_name in PROP_POSES:
+			input_dir = Vector2.ZERO
 		if input_dir.length_squared() > 0.04:
 			is_sitting = false
-			facing_dir = _dir_from_vector(input_dir)
+			if char_key != "sw-ghoul" and not in_water:
+				facing_dir = _dir_from_vector(input_dir)
 
+		var reef_pre: Node = null
+		if get_tree() and get_tree().root:
+			reef_pre = get_tree().root.find_child("Reefs", true, false)
+		if not reef_pre and vessel:
+			reef_pre = vessel.find_child("ReefBuilder", true, false)
+		var seabed_pre: float = float(reef_pre._seabed_height(global_position.x, global_position.z)) if (reef_pre and reef_pre.has_method("_seabed_height")) else -8.0
 		var climbing_hull_ramp := in_open_ocean and is_on_floor() and get_floor_normal().y > 0.45 and global_position.y > -5.5
-		if in_open_ocean and not climbing_hull_ramp:
-			if velocity.y > 0.05:
-				velocity.y -= 14.0 * delta
-			else:
-				velocity.y = 0.0
-				global_position.y = lerpf(global_position.y, sea_y - 0.42, clampf(delta * 9.0, 0.0, 1.0))
+		if in_open_ocean and (aquatic.wants_dive or not climbing_hull_ramp):
+			var col_depth := maxf(AquaticState.DIVE_BELOW_SURFACE, sea_y - seabed_pre)
+			var dive_target_depth := clampf(col_depth * 0.62, AquaticState.DIVE_BELOW_SURFACE, minf(3.6, col_depth - 0.35))
+			var depth := dive_target_depth if aquatic.wants_dive else AquaticState.SURFACE_FOOT_OFFSET
+			velocity.y = clampf((sea_y - depth - global_position.y) * 5.0, -2.4, 2.4)
 		elif not is_on_floor():
 			velocity.y -= 18.0 * delta
 		else:
@@ -407,23 +468,44 @@ func _physics_process(delta: float) -> void:
 		elif is_prone:
 			speed_mult = 0.38
 		elif in_water:
-			speed_mult = 0.72
+			speed_mult = 0.50
 		elif in_shallow_water:
 			speed_mult = 0.62 # Terreno difícil canónico en sentina inundada C8 (PDF p. 25)
 		elif is_stealth:
 			speed_mult = 0.62
 		elif is_sprinting:
 			speed_mult = 1.55
+		speed_mult *= _suffocation_speed_factor
 
 		var dir := Vector3(input_dir.x, 0, input_dir.y)
 		var cam := get_viewport().get_camera_3d()
 		if cam and cam.has_method("screen_vector_to_world") and input_dir.length_squared() > 0.001:
 			dir = cam.screen_vector_to_world(input_dir)
+		if (char_key == "sw-ghoul" or in_water) and input_dir.length_squared() > 0.04:
+			facing_dir = _dir_from_vector(Vector2(dir.x, dir.z))
 		velocity.x = dir.x * move_speed * speed_mult
 		velocity.z = dir.z * move_speed * speed_mult
+		if _sea_current_notice_cd > 0.0:
+			_sea_current_notice_cd = maxf(0.0, _sea_current_notice_cd - delta)
+		if in_open_ocean and reef_pre and reef_pre.has_method("sample_sea_current_push"):
+			var push: Vector3 = reef_pre.sample_sea_current_push(global_position)
+			if push.length_squared() > 0.01:
+				velocity.x += push.x
+				velocity.z += push.z
+				if _sea_current_notice_cd <= 0.0 and not is_npc and is_active_player:
+					_sea_current_notice_cd = 4.5
+					if is_instance_valid(_aquatic_environment) and _aquatic_environment.get("player_hud"):
+						var ph = _aquatic_environment.get("player_hud")
+						if ph and ph.has_method("show_toast"):
+							ph.show_toast("La resaca de tormenta y los tiburones de arrecife te impiden alejarte más del pecio.")
+							_aquatic_environment.set("toast_timer", 3.4)
 		var combat=get_meta("combat_controller") if has_meta("combat_controller") else null
 		var before:=global_position
-		if combat and not combat.can_move(self): velocity.x=0; velocity.z=0
+		if combat and not combat.can_move(self):
+			velocity.x = 0
+			velocity.z = 0
+			if in_open_ocean:
+				velocity.y = 0
 
 		# Freno hidrodinámico: bajo el agua la velocidad de caída vertical está amortiguada
 		if in_water or in_open_ocean:
@@ -440,7 +522,7 @@ func _physics_process(delta: float) -> void:
 		global_position.z = clampf(global_position.z, -34.0, 34.0)
 
 		# 2. Suelo físico mínimo (fondo marino / quilla / tarima C9)
-		var reef_node = vessel.find_child("ReefBuilder", true, false) if vessel else null
+		var reef_node: Node = reef_pre
 		var seabed_h: float = -8.2
 		if reef_node and reef_node.has_method("_seabed_height"):
 			seabed_h = reef_node._seabed_height(global_position.x, global_position.z)
@@ -483,12 +565,38 @@ func _physics_process(delta: float) -> void:
 	_update_wading_splash_vfx(delta)
 
 func _process_pose_visuals(delta: float, input_dir: Vector2, desired_state: String) -> void:
+	if char_key == "sw-ghoul":
+		desired_state = _ghoul_pose_for_motion(desired_state)
 	if desired_state != current_anim or _needs_direction_refresh(desired_state):
 		_resolve_and_apply_clip(desired_state, facing_dir, desired_state != current_anim)
 
 	process_frame_animation(delta)
 	_apply_procedural_motion(delta, input_dir, desired_state)
 	_update_carried_torch_flicker(delta)
+
+func _ghoul_pose_for_motion(desired_state: String) -> String:
+	var heading_changed := not _ghoul_visual_heading.is_empty() and _ghoul_visual_heading != facing_dir
+	_ghoul_visual_heading = facing_dir
+	if action_lock_timer > 0.0:
+		return desired_state
+	const GAITS := ["walk", "run", "stealth"]
+	var clips: Dictionary = char_profile.dir_states
+	var in_transition := anim_frame_idx < active_clip_frames.size() - 1
+	if desired_state in GAITS:
+		if current_anim == "start" and in_transition:
+			return "start"
+		if current_anim in ["idle", "combat_idle"] and not clips.get("start", {}).is_empty():
+			return "start"
+	elif desired_state == "idle":
+		if current_anim in ["stop", "turn", "stand"] and in_transition:
+			return current_anim
+		if current_anim in ["prone", "crawl", "condition_derribada"] and clips.has("stand"):
+			return "stand"
+		if current_anim in GAITS + ["start"] and not clips.get("stop", {}).is_empty():
+			return "stop"
+		if heading_changed and clips.has("turn"):
+			return "turn"
+	return desired_state
 
 func _resolve_desired_state(input_dir: Vector2) -> String:
 	var is_moving := input_dir.length_squared() > 0.04
@@ -507,7 +615,13 @@ func _resolve_desired_state(input_dir: Vector2) -> String:
 	if is_sitting:
 		return "sit"
 	if in_water:
-		return "swim"
+		return "dive" if aquatic.submerged else "swim"
+	if is_moving and char_key == "sw-ghoul":
+		var combat: Node = get_meta("combat_controller", null)
+		if combat != null:
+			var gait: String = combat.ghoul_motion_for_turn(self)
+			if not gait.is_empty():
+				return gait
 	if is_stealth:
 		return "stealth"
 	if is_moving:
@@ -520,8 +634,19 @@ func _resolve_desired_state(input_dir: Vector2) -> String:
 		return "torch_idle"
 	return "combat_idle" if is_in_combat_stance else "idle"
 
+func play_object_action(action: String, target: Vector3) -> void:
+	if is_defeated or is_npc:
+		return
+	var heading := target - global_position
+	if Vector2(heading.x, heading.z).length_squared() > 0.0025:
+		facing_dir = _dir_from_vector(Vector2(heading.x, heading.z))
+	var view: String = preload("res://sprites/sprite_facing.gd").view_direction(self, facing_dir)
+	var clip := _pick_clip_from_profile(action, view)
+	var seconds := float(clip.get("frames", []).size()) / maxf(1.0, float(clip.get("fps", 8.0)))
+	play_action_animation(action, maxf(0.72, seconds))
+
 func _needs_direction_refresh(state: String) -> bool:
-	return not char_profile.get("dir_states", {}).get(state, {}).is_empty() or state in ["idle", "combat_idle", "walk", "run", "attack", "stealth", "swim", "crawl", "jump", "torch_walk", "torch_run", "torch_idle"]
+	return not char_profile.get("dir_states", {}).get(state, {}).is_empty() or state in ["idle", "combat_idle", "walk", "run", "attack", "stealth", "swim", "dive", "open_door", "open_chest", "dive_chest", "stow_item", "crawl", "jump", "torch_walk", "torch_run", "torch_idle"]
 
 func enter_boat(boat: Node3D) -> void:
 	in_boat = true
@@ -601,7 +726,37 @@ func _pick_clip_from_profile(state: String, dir: String) -> Dictionary:
 	var modular_visual=get_node_or_null("CharacterVisual")
 	if modular_visual: state=modular_visual.animation_for(state)
 	var authored: Dictionary = char_profile.get("dir_states", {}).get(state, {})
-	if authored.has(dir): return authored[dir]
+	if state in PROP_POSES or state in ["swim", "dive"]:
+		var directional: Dictionary = authored.get(dir, {})
+		if str(directional.get("modular_definition", "")).begins_with("sw-"):
+			var loaded := CharacterRegistry.load_water_clip(directional)
+			if not loaded.is_empty():
+				return loaded
+		var closest: String = {"ne":"n", "nw":"n", "se":"s", "sw":"s"}.get(dir, "")
+		if not closest.is_empty():
+			var adjacent: Dictionary = authored.get(closest, {})
+			if str(adjacent.get("modular_definition", "")).begins_with("sw-"):
+				var loaded := CharacterRegistry.load_water_clip(adjacent)
+				if not loaded.is_empty():
+					return loaded
+	if authored.has(dir) and not authored[dir].has("deferred_animation"): return authored[dir]
+	if state == "dive":
+		return _pick_clip_from_profile("swim", dir)
+	if state == "stow_item":
+		var storage: Dictionary = char_profile.get("dir_states", {}).get("backpack_store", {}).get(dir, {})
+		if not storage.is_empty():
+			return storage
+		return _pick_clip_from_profile("interact", dir)
+	if state in ["open_door", "open_chest"]:
+		return _pick_clip_from_profile("interact", dir)
+	if state == "dive_chest":
+		return _pick_clip_from_profile("dive", dir)
+	if state == "flight_turn" and char_key == "harpy":
+		return _pick_clip_from_profile("fly", dir)
+	if state == "land" and char_key == "harpy" and not authored.is_empty():
+		var side: String = {"ne":"e", "se":"e", "nw":"w", "sw":"w"}.get(dir, dir)
+		if authored.has(side):
+			return authored[side]
 	if state in ["torch_walk", "torch_run", "torch_idle"]:
 		var directions: Dictionary = char_profile.get("dir_torch_idle" if state == "torch_idle" else "dir_torch_walk", {})
 		if directions.has(dir):
@@ -681,6 +836,17 @@ func _update_sprite_scale_from_tex(tex: Texture2D, h_scale: float) -> void:
 	if th > 0.0:
 		sprite.pixel_size = (target_height * h_scale) / th
 
+func harpy_arrival_lift(state: String) -> float:
+	if state == "flight_turn":
+		return HARPY_ARRIVAL_LIFT
+	if state != "land" or active_clip_frames.size() < 2:
+		return 0.0
+	var phase := (float(anim_frame_idx) + anim_timer * active_clip_fps) / float(active_clip_frames.size() - 1)
+	return HARPY_ARRIVAL_LIFT * (1.0 - smoothstep(0.0, HARPY_LANDING_CONTACT, phase))
+
+func queue_harpy_perch_contact(nest: Node) -> void:
+	_harpy_landing_nest = weakref(nest) if is_instance_valid(nest) else null
+
 func _apply_procedural_motion(delta: float, input_dir: Vector2, state: String) -> void:
 	if not sprite:
 		return
@@ -729,11 +895,13 @@ func _apply_procedural_motion(delta: float, input_dir: Vector2, state: String) -
 		walk_cycle += delta * 9.5
 		bob_y = sin(walk_cycle) * 0.08
 		rot_z = cos(walk_cycle) * 0.09
-	elif state == "swim":
+	elif state in ["swim", "dive"]:
 		walk_cycle += delta * 6.5
-		bob_y = sin(walk_cycle) * 0.07 - 0.14
-		rot_z = cos(walk_cycle * 0.7) * 0.12
-		mod = Color(0.80, 0.95, 1.0, 0.96)
+		bob_y = sin(walk_cycle) * 0.05 - (0.14 if state == "swim" else 0.0)
+		if not active_clip_drawn_motion:
+			rot_z = cos(walk_cycle * 0.7) * 0.08
+		if state == "dive":
+			mod = Color(0.79, 0.94, 1.0)
 	elif state == "interact":
 		var p := clampf(1.0 - (action_lock_timer / 0.62), 0.0, 1.0)
 		var reach := sin(p * PI)
@@ -783,13 +951,25 @@ func _apply_procedural_motion(delta: float, input_dir: Vector2, state: String) -
 		bob_y = 0.0
 		base_y = target_height * current_height_scale * (0.5 + current_floor_offset)
 
-	if in_water and state != "swim":
+	if char_key == "harpy":
+		var arrival_lift := harpy_arrival_lift(state)
+		jump_y += arrival_lift
+		if _harpy_landing_nest and (state != "land" or is_zero_approx(arrival_lift)):
+			var nest = _harpy_landing_nest.get_ref()
+			_harpy_landing_nest = null
+			if state == "land" and is_instance_valid(nest) and is_visible_in_tree():
+				nest.play_harpy_landing()
+
+	if in_water and state not in ["swim", "dive"]:
 		mod = mod * Color(0.84, 0.95, 1.0)
 
 	sprite.position.y = base_y + jump_y + bob_y
 	sprite.rotation.z = rot_z
 	sprite.scale = Vector3(sx, sy, 1.0)
 	if has_meta("npc_condition_color"): mod = mod * get_meta("npc_condition_color")
+	if not is_npc:
+		var wet_color := Color.WHITE.lerp(Color(0.69, 0.79, 0.88), aquatic.wetness)
+		mod *= wet_color
 	sprite.modulate = mod
 
 	# Ajustar sombra de contacto al salto, postura sentado o cuerpo a tierra
