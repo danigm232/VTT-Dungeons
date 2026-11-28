@@ -11,6 +11,343 @@ var trigger := ""
 var wheel_open := false
 var category := ""
 var page := 0
+var scroll_offset := 0
+var _wheel_rot_dir := 0
+var _wheel_radius := 324.0
+var _wheel_slots := 5
+var _wheel_items_count := 0
+var _wheel_last_items: Array = []
+var _wheel_exiting_item: Dictionary = {}
+
+class WheelCurvedLabel extends Control:
+	var text := ""
+	var center_angle := -PI * 0.5
+	var arc_radius := 33.5
+	var wheel_style := "filigree"
+	var is_selected := false
+	var is_disabled := false
+	var max_half_angle := 0.74
+	var _font: Font
+
+	func _ready() -> void:
+		custom_minimum_size = Vector2(108, 108)
+		size = Vector2(108, 108)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_font = VttUiTheme.get_body_font(true)
+
+	func _draw() -> void:
+		if text.is_empty():
+			return
+		var font := _font if _font else ThemeDB.fallback_font
+		var c := size * 0.5
+		var font_size := 11
+		var chars := text.split("")
+		if chars.is_empty():
+			return
+		var widths: Array[float] = []
+		var total_px := 0.0
+		for i in range(chars.size()):
+			var w := font.get_string_size(chars[i], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+			w = maxf(3.6, w + 0.8)
+			widths.append(w)
+			total_px += w
+		var raw_span := total_px / arc_radius
+		var half_span := minf(raw_span * 0.5, max_half_angle)
+		var compress := (half_span * 2.0) / maxf(0.01, raw_span)
+		var bottom_mode := sin(center_angle) > 0.30
+		var eff_center := clampf(center_angle, PI + 0.14 + half_span, TAU - 0.14 - half_span) if not bottom_mode else clampf(center_angle, 0.14 + half_span, PI - 0.14 - half_span)
+		var a_start := eff_center - half_span
+		var a_end := eff_center + half_span
+
+		var bg_col := Color(0.03, 0.07, 0.09, 0.88)
+		var rim_col := Color(0.84, 0.68, 0.36, 0.62 if not is_selected else 0.90)
+		var txt_col := VttUiTheme.COL_GOLD_BRIGHT if is_selected else VttUiTheme.COL_HEADING
+		var out_col := Color(0.01, 0.03, 0.04, 0.96)
+		var out_px := 2
+		match wheel_style:
+			"vellum":
+				bg_col = Color(0.85, 0.76, 0.56, 0.94)
+				rim_col = Color("6b4922")
+				txt_col = Color("2a1a0c") if not is_selected else Color("7c2d08")
+				out_col = Color(0.96, 0.92, 0.80, 0.72)
+				out_px = 1
+			"minimal":
+				bg_col = Color(0.03, 0.07, 0.09, 0.70)
+				rim_col = Color("8ee8ff", 0.55)
+				txt_col = Color("dff9ff")
+			"compass":
+				bg_col = Color(0.04, 0.13, 0.15, 0.92)
+				rim_col = Color("c98653", 0.76)
+				txt_col = Color("a7f3f5") if is_selected else Color("eedbb2")
+			"bg3":
+				bg_col = Color(0.09, 0.07, 0.06, 0.94)
+				rim_col = Color("e0b354", 0.78)
+		if is_disabled:
+			txt_col.a *= 0.74
+			rim_col.a *= 0.62
+
+		draw_arc(c, arc_radius + 1.4, a_start - 0.12, a_end + 0.12, 24, bg_col, 13.0, true)
+		draw_arc(c, arc_radius + 7.8, a_start - 0.10, a_end + 0.10, 24, rim_col, 1.0, true)
+		draw_arc(c, arc_radius - 5.0, a_start - 0.08, a_end + 0.08, 24, Color(rim_col.r, rim_col.g, rim_col.b, rim_col.a * 0.45), 0.8, true)
+
+		var asc := font.get_ascent(font_size)
+		var cursor_a := eff_center - half_span if not bottom_mode else eff_center + half_span
+		for i in range(chars.size()):
+			var d_ang := (widths[i] / arc_radius) * compress
+			var char_a := (cursor_a + d_ang * 0.5) if not bottom_mode else (cursor_a - d_ang * 0.5)
+			cursor_a = (cursor_a + d_ang) if not bottom_mode else (cursor_a - d_ang)
+			var pos := c + Vector2(cos(char_a), sin(char_a)) * arc_radius
+			var rot := (char_a + PI * 0.5) if not bottom_mode else (char_a - PI * 0.5)
+			var baseline_y := 2.6 if not bottom_mode else asc * 0.65
+			draw_set_transform(pos, rot, Vector2.ONE)
+			var glyph_w := widths[i] * compress
+			draw_string_outline(font, Vector2(-glyph_w * 0.5, baseline_y), chars[i], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, out_px, out_col)
+			draw_string(font, Vector2(-glyph_w * 0.5, baseline_y), chars[i], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, txt_col)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+class ActionMedallionBtn extends Button:
+	var wheel_style := "filigree"
+	var cat_id := "weapons"
+	var is_selected := false
+	var icon_tex: Texture2D
+	var _icon_rect: TextureRect
+	var _hovered := false
+
+	func _ready() -> void:
+		custom_minimum_size = Vector2(54, 54)
+		size = Vector2(54, 54)
+		focus_mode = Control.FOCUS_ALL
+		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		var empty := StyleBoxEmpty.new()
+		for st in ["normal", "hover", "pressed", "focus", "disabled"]:
+			add_theme_stylebox_override(st, empty)
+		_icon_rect = TextureRect.new()
+		_icon_rect.texture = icon_tex
+		_icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		_icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		_icon_rect.position = Vector2(13, 13)
+		_icon_rect.size = Vector2(28, 28)
+		_icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_apply_icon_tint()
+		add_child(_icon_rect)
+		mouse_entered.connect(func(): _hovered = true; queue_redraw())
+		mouse_exited.connect(func(): _hovered = false; queue_redraw())
+		focus_entered.connect(func(): _hovered = true; queue_redraw())
+		focus_exited.connect(func(): _hovered = false; queue_redraw())
+
+	func _has_point(point: Vector2) -> bool:
+		return point.distance_to(size * 0.5) <= 27.0
+
+	func _apply_icon_tint() -> void:
+		if not is_instance_valid(_icon_rect):
+			return
+		if wheel_style == "vellum":
+			_icon_rect.modulate = Color(0.22, 0.13, 0.06, 0.62 if disabled else 1.0)
+		elif wheel_style == "minimal":
+			_icon_rect.modulate = Color(0.86, 0.96, 1.0, 0.56 if disabled else 1.0)
+		else:
+			_icon_rect.modulate = Color(1, 1, 1, 0.55 if disabled else 1.0)
+
+	func _bg_and_rim() -> Array:
+		var accent := Color("d6ad5c")
+		var bg := Color(0.04, 0.09, 0.11, 0.90)
+		var ring2 := Color(0.95, 0.85, 0.56, 0.44)
+		match wheel_style:
+			"bg3":
+				bg = Color(0.11, 0.09, 0.07, 0.94)
+				accent = Color("d96b52") if cat_id == "weapons" else (Color("6ab6e8") if cat_id in ["spells", "cantrips"] else (Color("70c994") if cat_id == "explore" else Color("e0b354")))
+				ring2 = Color(accent.r, accent.g, accent.b, 0.38)
+			"minimal":
+				bg = Color(0.03, 0.07, 0.09, 0.78 if (_hovered or is_selected) else 0.60)
+				accent = Color("8ee8ff") if (_hovered or is_selected) else Color(0.72, 0.85, 0.84, 0.65)
+				ring2 = Color(accent.r, accent.g, accent.b, 0.25)
+			"vellum":
+				bg = Color("ceb27e") if not disabled else Color("9e8860")
+				accent = Color("5c3f1c")
+				ring2 = Color(1.0, 0.96, 0.86, 0.55)
+			"compass":
+				bg = Color(0.04, 0.14, 0.16, 0.92)
+				accent = Color("c98653")
+				ring2 = Color(0.40, 0.76, 0.78, 0.55)
+		if is_selected:
+			accent = Color("ffe6a1") if wheel_style != "vellum" else Color("8a3e10")
+			if wheel_style != "vellum" and wheel_style != "minimal":
+				bg = Color(0.24, 0.18, 0.08, 0.96)
+		elif disabled:
+			accent = Color(accent.r, accent.g, accent.b, 0.48)
+		elif _hovered:
+			accent = accent.lightened(0.22)
+		return [bg, accent, ring2]
+
+	func _draw() -> void:
+		_apply_icon_tint()
+		var c := size * 0.5
+		var r := minf(size.x, size.y) * 0.5 - 3.0
+		var cols := _bg_and_rim()
+		var bg: Color = cols[0]
+		var rim: Color = cols[1]
+		var ring2: Color = cols[2]
+		draw_circle(c + Vector2(0, 2.5), r + 1.5, Color(0, 0, 0, 0.45))
+		if is_selected or (_hovered and not disabled):
+			draw_arc(c, r + 3.0, 0.0, TAU, 36, Color(rim.r, rim.g, rim.b, 0.42), 3.0, true)
+		draw_circle(c, r, bg)
+		draw_arc(c, r, 0.0, TAU, 40, rim, 2.2 if wheel_style != "minimal" else 1.5, true)
+		if wheel_style == "filigree":
+			draw_arc(c, r - 3.0, 0.0, TAU, 36, ring2, 0.9, true)
+			if not disabled:
+				for k in range(8):
+					var a := float(k) / 8.0 * TAU
+					draw_circle(c + Vector2(cos(a), sin(a)) * r, 1.5 if k % 2 == 0 else 1.0, Color("fff0ba", 0.85 if k % 2 == 0 else 0.55))
+		elif wheel_style == "vellum":
+			draw_arc(c, r - 3.0, 0.0, TAU, 36, ring2, 1.1, true)
+		elif wheel_style == "compass" and not disabled:
+			for k in range(4):
+				var a := float(k) * PI * 0.5
+				var pdir := Vector2(cos(a), sin(a))
+				draw_line(c + pdir * (r - 2.0), c + pdir * (r + 3.0), ring2, 1.5, true)
+
+class WheelArcArrowBtn extends Button:
+	var wheel_style := "filigree"
+	var tangent_angle := 0.0
+	var _hovered := false
+
+	func _ready() -> void:
+		custom_minimum_size = Vector2(30, 30)
+		size = Vector2(30, 30)
+		focus_mode = Control.FOCUS_ALL
+		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		var empty := StyleBoxEmpty.new()
+		for st in ["normal", "hover", "pressed", "focus", "disabled"]:
+			add_theme_stylebox_override(st, empty)
+		mouse_entered.connect(func(): _hovered = true; queue_redraw())
+		mouse_exited.connect(func(): _hovered = false; queue_redraw())
+
+	func _has_point(point: Vector2) -> bool:
+		return point.distance_to(size * 0.5) <= 15.0
+
+	func _draw() -> void:
+		var c := size * 0.5
+		var r := 13.0
+		var bg := Color(0.04, 0.09, 0.11, 0.88)
+		var rim := Color("d6ad5c")
+		var fg := Color("f6e4b4")
+		match wheel_style:
+			"minimal":
+				bg = Color(0.03, 0.07, 0.09, 0.72 if _hovered else 0.55)
+				rim = Color("8ee8ff") if _hovered else Color(0.72, 0.85, 0.84, 0.65)
+				fg = Color("dcf8ff")
+			"vellum":
+				bg = Color("cdb17c")
+				rim = Color("5c3f1c")
+				fg = Color("2a1a0c")
+			"compass":
+				bg = Color(0.04, 0.14, 0.16, 0.90)
+				rim = Color("c98653")
+				fg = Color("8be6e8")
+			"bg3":
+				bg = Color(0.11, 0.09, 0.07, 0.94)
+				rim = Color("e0b354")
+		if _hovered:
+			rim = rim.lightened(0.22)
+		draw_circle(c + Vector2(0, 1.5), r + 1.0, Color(0, 0, 0, 0.4))
+		draw_circle(c, r, bg)
+		draw_arc(c, r, 0.0, TAU, 28, rim, 1.6, true)
+		var fwd := Vector2(cos(tangent_angle), sin(tangent_angle))
+		var side := Vector2(-fwd.y, fwd.x)
+		var tip := c + fwd * 4.2
+		var p1 := c - fwd * 3.2 + side * 4.5
+		var p2 := c - fwd * 3.2 - side * 4.5
+		draw_polyline(PackedVector2Array([p1, tip, p2]), fg, 2.1, true)
+
+class WheelBackBtn extends Button:
+	var wheel_style := "filigree"
+	var label_text := "← Categorías"
+	var _hovered := false
+	var _font: Font
+	var _sb := StyleBoxFlat.new()
+
+	func _ready() -> void:
+		custom_minimum_size = Vector2(114, 28)
+		size = Vector2(114, 28)
+		focus_mode = Control.FOCUS_ALL
+		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		_font = VttUiTheme.get_body_font(true)
+		_sb.set_corner_radius_all(14)
+		_sb.shadow_color = Color(0, 0, 0, 0.45)
+		_sb.shadow_size = 4
+		var empty := StyleBoxEmpty.new()
+		for st in ["normal", "hover", "pressed", "focus", "disabled"]:
+			add_theme_stylebox_override(st, empty)
+		mouse_entered.connect(func(): _hovered = true; queue_redraw())
+		mouse_exited.connect(func(): _hovered = false; queue_redraw())
+		focus_entered.connect(func(): _hovered = true; queue_redraw())
+		focus_exited.connect(func(): _hovered = false; queue_redraw())
+
+	func _draw() -> void:
+		var bg := Color(0.04, 0.09, 0.11, 0.94)
+		var rim := Color("d6ad5c")
+		var fg := Color("f6e4b4")
+		match wheel_style:
+			"minimal":
+				bg = Color(0.03, 0.07, 0.09, 0.80 if _hovered else 0.64)
+				rim = Color("8ee8ff") if _hovered else Color(0.72, 0.85, 0.84, 0.72)
+				fg = Color("dcf8ff")
+			"vellum":
+				bg = Color("d4ba88")
+				rim = Color("5c3f1c")
+				fg = Color("2a1a0c")
+			"compass":
+				bg = Color(0.04, 0.14, 0.16, 0.94)
+				rim = Color("c98653")
+				fg = Color("9af2f4")
+			"bg3":
+				bg = Color(0.11, 0.09, 0.07, 0.95)
+				rim = Color("e0b354")
+		if _hovered:
+			rim = rim.lightened(0.24)
+			bg = bg.lightened(0.08)
+		var rect := Rect2(Vector2(1, 1), size - Vector2(2, 2))
+		_sb.bg_color = bg
+		_sb.border_color = rim
+		_sb.set_border_width_all(1 if wheel_style == "minimal" else 2)
+		draw_style_box(_sb, rect)
+		var font := _font if _font else ThemeDB.fallback_font
+		var fsize := 11
+		var tsz := font.get_string_size(label_text, HORIZONTAL_ALIGNMENT_CENTER, -1, fsize)
+		var ty := (size.y + font.get_ascent(fsize) - font.get_descent(fsize)) * 0.5 - 1.0
+		draw_string(font, Vector2((size.x - tsz.x) * 0.5, ty), label_text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, fg)
+
+static func _short_wheel_caption(raw: String) -> String:
+	var base := raw.split("·")[0].strip_edges()
+	var short_map := {
+		"Hablar / Interactuar": "Hablar",
+		"Forzar cerradura": "Cerradura",
+		"Desarmar trampa": "Desarmar",
+		"Recuperación arcana": "Rec. arcana",
+		"Manos ardientes": "Manos ard.",
+		"Detectar magia": "Det. magia",
+		"Misil mágico": "Misil mág.",
+		"Rayo de escarcha": "Rayo hielo",
+		"Palabra de curación": "Curación",
+		"Escudo de fe": "Escudo fe",
+		"Preservar vida": "Preservar",
+		"Llama sagrada": "Llama sag.",
+		"Lanzar hacha de mano": "Lanzar hacha",
+		"Hacha de mano": "Hacha mano",
+		"Espada corta": "Espada",
+		"Terminar turno": "Fin turno",
+		"Terminar concentración": "Fin conc.",
+		"Descanso corto": "Descanso",
+		"Beber poción": "Poción",
+		"Apuntar con calma": "Apuntar",
+		"Empujar / Derribar": "Empujar",
+		"Usar objeto": "Usar obj.",
+	}
+	if short_map.has(base):
+		return str(short_map[base])
+	if base.length() > 12:
+		return base.substr(0, 11) + "."
+	return base
 var layer: Control
 var timeline: BoxContainer
 var wheel: Control
@@ -417,69 +754,229 @@ func _refresh_wheel() -> void:
 	if not wheel.visible: return
 	var id:=acting_id(); var actor: Dictionary=rules.actors.get(id,{})
 	if actor.is_empty(): return
+	var w_style := str(ui.preferences.values.get("wheelStyle", "filigree")) if ui.preferences else "filigree"
+	var slots_val := int(ui.preferences.values.get("wheelSlots", 5)) if ui.preferences else 5
+	_wheel_slots = 3 if slots_val <= 3 else (7 if slots_val >= 7 else 5)
 	var items: Array=[]
+	var tactical_basic := ["dash","disengage","dodge","help","hide","grapple","shove","drink-potion","stabilize","short-rest","ready","influence","improvise"]
+	var explore_basic := ["search","study","use-object"]
 	if category.is_empty():
-		for group in [["weapons","Ataques"],["cantrips","Trucos"],["spells","Conjuros"],["other","Otras acciones"]]:
-			var count: int=actor.actions.filter(func(action): return _action_category(action)==group[0]).size()
-			if group[0]=="other": count+=Catalogue.BASIC.size()
-			items.append({"id":group[0],"label":group[1],"category":true,"count":count})
+		var counts := {"weapons": 0, "cantrips": 0, "spells": 0, "other": 0, "explore": Catalogue.EXPLORE.size() + explore_basic.size()}
+		for action in actor.actions:
+			var cat := _action_category(action)
+			counts[cat] = int(counts.get(cat, 0)) + 1
+		counts["other"] += tactical_basic.size() + (1 if rules.active else 0)
+		for group in [["weapons","Ataques"],["cantrips","Trucos"],["spells","Conjuros"],["other","Tácticas"],["explore","Exploración"]]:
+			items.append({"id":group[0],"label":group[1],"category":true,"count":int(counts.get(group[0],0))})
 	else:
 		for action in actor.actions:
 			if _action_category(action)==category: items.append(action)
 		if category=="other":
-			for key in Catalogue.BASIC: items.append({"id":key,"label":Catalogue.BASIC[key],"basic":true})
+			for key in tactical_basic:
+				if Catalogue.BASIC.has(key): items.append({"id":key,"label":Catalogue.BASIC[key],"basic":true})
+			if rules.active: items.append({"id":"end-turn","label":"Terminar turno","basic":true,"instant":"end-turn"})
 			if rules.active: items.append({"id":"withdraw","label":"Huir","basic":true})
 			if not str(actor.concentration).is_empty(): items.append({"id":"end-concentration","label":"Terminar concentración","basic":true})
+		elif category=="explore":
+			for ex in Catalogue.EXPLORE: items.append(ex.duplicate(true))
+			for key in explore_basic:
+				if Catalogue.BASIC.has(key): items.append({"id":key,"label":Catalogue.BASIC[key],"basic":true})
+	_wheel_items_count = items.size()
 	var viewport:=layer.get_viewport_rect().size
 	var origin: Vector2=ui.player_hud.action_toggle_btn.get_global_rect().get_center()
 	_wheel_origin=origin
-	var capacity:=4; var pages:=maxi(1,ceili(items.size()/float(capacity))); page=clampi(page,0,pages-1)
-	var visible_items: Array=items.slice(page*capacity,mini(items.size(),(page+1)*capacity))
-	var captions: Array=visible_items.map(func(item): return str(item.label).split("·")[0].strip_edges().replace("Otras acciones","Otras"))
+	var capacity: int = _wheel_slots
+	var visible_count := mini(items.size(), capacity)
+	var visible_items: Array=[]
+	if items.size() <= capacity:
+		scroll_offset = 0
+		visible_items = items.duplicate()
+	else:
+		scroll_offset = wrapi(scroll_offset, 0, items.size())
+		for s in range(visible_count):
+			visible_items.append(items[wrapi(scroll_offset + s, 0, items.size())])
+	var captions: Array=visible_items.map(func(item): return _short_wheel_caption(str(item.label)))
 	var reserved: Array[Rect2]=[ui.player_hud.action_toggle_btn.get_parent().get_parent().get_global_rect().grow(8),ui.player_hud.joystick.get_parent().get_global_rect().grow(8)]
-	var layout:=preload("res://combat/radial_layout.gd").arrange(origin,viewport,captions,60,reserved)
-	var rose:=preload("res://combat/action_rose.gd").new(); rose.name="FloatingActionRose"; rose.reduced_motion=ui.preferences.values.reducedMotion if ui.preferences else false; rose.size=viewport; rose.origin=origin; rose.points.assign(layout.points); wheel.add_child(rose)
-	var feedback:=ThemeKit.make_label("",12,ThemeKit.COL_HEADING); feedback.position=Vector2(maxf(12,viewport.x*.5-280),viewport.y-208); feedback.size=Vector2(minf(560,viewport.x-24),30); feedback.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; feedback.clip_text=true; feedback.mouse_filter=Control.MOUSE_FILTER_IGNORE; feedback.add_theme_color_override("font_outline_color",Color.BLACK); feedback.add_theme_constant_override("outline_size",3); rose.add_child(feedback)
+	if ui.player_hud.combat_strip and ui.player_hud.combat_strip.visible:
+		reserved.append(ui.player_hud.combat_strip.get_global_rect().grow(6))
+	var Radial := preload("res://combat/radial_layout.gd")
+	var reach_id := str(ui.preferences.values.get("wheelReach", "medium")) if ui.preferences else "medium"
+	var pref_r: float = Radial.reach_radius(reach_id)
+	var layout: Dictionary = Radial.arrange(origin, viewport, captions, 54, reserved, pref_r, _wheel_slots)
+	_wheel_radius = float(layout.get("radius", pref_r))
+	var rose := preload("res://combat/action_rose.gd").new(); rose.name = "FloatingActionRose"; rose.reduced_motion = ui.preferences.values.get("reducedMotion", false) if ui.preferences else false; rose.wheel_style = w_style; rose.size = viewport; rose.origin = origin; rose.arc_span = layout.arc; rose.effective_arc = layout.get("effective_arc", layout.arc); rose.radius = _wheel_radius; rose.angles.assign(layout.get("angles", [])); rose.rot_dir = _wheel_rot_dir; rose.points.assign(layout.points)
+
+	# Clean floating feedback pill only when hovering/focusing an item, placed clear of HUD/combat tray
+	var fb_pill := PanelContainer.new(); fb_pill.name = "WheelFeedbackPill"; fb_pill.mouse_filter = Control.MOUSE_FILTER_IGNORE; fb_pill.visible = false
+	fb_pill.add_theme_stylebox_override("panel", ThemeKit.make_panel_style(Color(0.03,0.07,0.09,0.92), Color(ThemeKit.COL_GOLD.r,ThemeKit.COL_GOLD.g,ThemeKit.COL_GOLD.b,0.65), 999, 14, 5, 1))
+	var feedback:=ThemeKit.make_label("",12,ThemeKit.COL_GOLD_BRIGHT); feedback.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; feedback.mouse_filter=Control.MOUSE_FILTER_IGNORE; fb_pill.add_child(feedback); rose.add_child(fb_pill)
+	var set_feedback := func(txt: String):
+		feedback.text = txt
+		fb_pill.visible = not txt.is_empty()
+		if fb_pill.visible:
+			fb_pill.size = fb_pill.get_combined_minimum_size()
+			var fb_y := viewport.y - (104.0 if rules.active else 54.0) - fb_pill.size.y * 0.5
+			fb_pill.position = Vector2(clampf((viewport.x - fb_pill.size.x) * 0.5, 190.0, maxf(190.0, reserved[0].position.x - fb_pill.size.x - 16.0)), fb_y)
+
 	var selected:=selected_action_id()
+	var current_rot_dir := _wheel_rot_dir
+	var exiting_spec := _wheel_exiting_item.duplicate(true)
+	_wheel_exiting_item.clear()
+	_wheel_rot_dir = 0
+	_wheel_last_items = visible_items.duplicate()
+	var arc_angs: Array = layout.get("angles", [])
 	for index in range(visible_items.size()):
 		var item: Dictionary=visible_items[index]; var point: Vector2=layout.points[index]
-		var button:=Button.new(); button.name="CombatIcon_"+str(item.id); button.icon=Catalogue.icon(str(item.id)); button.icon_alignment=HORIZONTAL_ALIGNMENT_CENTER; button.expand_icon=true; button.add_theme_constant_override("icon_max_width",32); button.custom_minimum_size=Vector2(60,60); button.size=Vector2(60,60); button.position=point-Vector2(30,30)
+		var button:=ActionMedallionBtn.new(); button.name="CombatIcon_"+str(item.id)
+		button.size = Vector2(54, 54)
+		button.wheel_style = w_style
+		button.cat_id = str(item.id) if item.get("category",false) else (_action_category(item) if not item.get("explore",false) else "explore")
+		button.icon_tex = Catalogue.icon(str(item.id))
 		var is_selected: bool=str(item.id)==selected
-		ThemeKit.style_button(button,"pill_active" if is_selected else "pill",999,12,10); button.tooltip_text=str(item.label); button.focus_mode=Control.FOCUS_ALL; rose.add_child(button)
-		var detail: String=Targeting.label(item)
+		button.is_selected = is_selected
+		button.position=point-Vector2(27,27)
+		button.tooltip_text=str(item.label)
+		rose.add_child(button)
+		var detail: String=str(item.get("detail","")) if item.has("detail") else Targeting.label(item)
 		if item.get("category",false): button.disabled=int(item.count)==0; detail="%d opciones" % int(item.count)
-		elif not is_selected and item.id not in ["withdraw","end-concentration"]:
+		elif item.get("explore",false): button.disabled=false
+		elif not is_selected and item.id not in ["withdraw","end-concentration","end-turn"]:
 			var issue: String=rules.availability(id,item); button.disabled=not issue.is_empty()
 			if not issue.is_empty(): detail=issue
 		if is_selected: detail="Seleccionada · pulsa para quitarla"
 		button.tooltip_text+="\n"+detail
-		if button.disabled: button.modulate.a=.45
-		if layout.captions:
-			var label:=ThemeKit.make_label(captions[index],14,ThemeKit.COL_GOLD_BRIGHT if is_selected else ThemeKit.COL_HEADING); var width:=clampf(str(captions[index]).length()*7.8+14,60,152); label.position=point+Vector2(-width*.5,33); label.size=Vector2(width,24); label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; label.clip_text=true; label.mouse_filter=Control.MOUSE_FILTER_IGNORE; label.add_theme_color_override("font_outline_color",Color(0,0,0,.95)); label.add_theme_constant_override("outline_size",3); rose.add_child(label)
-		var full_hint: String=str(item.label).split("·")[0]+" · "+detail
-		button.mouse_entered.connect(func(): feedback.text=full_hint); button.mouse_exited.connect(func(): feedback.text=""); button.focus_entered.connect(func(): feedback.text=full_hint)
+		var pt_angle: float = float(arc_angs[index]) if index < arc_angs.size() else atan2(point.y - origin.y, point.x - origin.x)
+		var curved_lbl := WheelCurvedLabel.new()
+		curved_lbl.name = "WheelCurvedLabel"
+		curved_lbl.text = str(captions[index]) if layout.captions else ""
+		curved_lbl.center_angle = pt_angle
+		curved_lbl.wheel_style = w_style
+		curved_lbl.is_selected = is_selected
+		curved_lbl.is_disabled = button.disabled
+		curved_lbl.max_half_angle = 0.72 if _wheel_slots >= 7 else 0.80
+		curved_lbl.position = Vector2(27, 27) - Vector2(54, 54)
+		button.add_child(curved_lbl)
+		if current_rot_dir != 0:
+			rose.rot_dir = current_rot_dir
+			rose.register_orbital_item(button, curved_lbl, index, visible_items.size())
+		var full_hint: String=str(item.label).split("·")[0].strip_edges()+" · "+detail
+		button.mouse_entered.connect(func(): set_feedback.call(full_hint)); button.mouse_exited.connect(func(): set_feedback.call("")); button.focus_entered.connect(func(): set_feedback.call(full_hint)); button.focus_exited.connect(func(): set_feedback.call(""))
 		if not button.disabled: focus_candidates.append(button)
 		button.pressed.connect(func():
-			if item.get("category",false): category=item.id; page=0; refresh()
+			if item.get("category",false): category=item.id; page=0; scroll_offset=0; _wheel_rot_dir=0; _wheel_exiting_item.clear(); refresh()
+			elif item.get("explore",false): _explore_action(str(item.id))
+			elif str(item.get("instant",""))=="end-turn": next_turn()
 			elif item.get("basic",false): _basic(str(item.id))
 			else: choose_action(str(item.id))
 		)
-	var upward: bool=origin.y>viewport.y*.5
-	var nav:=HBoxContainer.new(); nav.position=origin+Vector2(-55,-100 if upward else 58); rose.add_child(nav)
-	if not category.is_empty(): _button(nav,"↶",func(): category=""; page=0; refresh()).tooltip_text="Volver a categorías"
-	if pages>1:
-		var previous:=_button(nav,"‹",func(): page=maxi(0,page-1); refresh()); previous.disabled=page==0
-		nav.add_child(ThemeKit.make_label("%d/%d" % [page+1,pages],12,ThemeKit.COL_MUTED))
-		var next:=_button(nav,"›",func(): page=mini(pages-1,page+1); refresh()); next.disabled=page==pages-1
+
+	# Outgoing medallion animating cleanly off the far rim during orbital rotation
+	if current_rot_dir != 0 and not exiting_spec.is_empty() and arc_angs.size() >= 2:
+		var exit_step := float(arc_angs[1] - arc_angs[0])
+		var edge_a := float(arc_angs[0]) if current_rot_dir > 0 else float(arc_angs[-1])
+		var exit_end := edge_a - float(current_rot_dir) * exit_step
+		var exit_btn := ActionMedallionBtn.new(); exit_btn.name = "CombatExitingGhost"
+		exit_btn.size = Vector2(54, 54)
+		exit_btn.position = origin + Vector2(cos(edge_a), sin(edge_a)) * _wheel_radius - Vector2(27, 27)
+		exit_btn.wheel_style = w_style
+		exit_btn.cat_id = str(exiting_spec.id) if exiting_spec.get("category",false) else (_action_category(exiting_spec) if not exiting_spec.get("explore",false) else "explore")
+		exit_btn.icon_tex = Catalogue.icon(str(exiting_spec.id))
+		exit_btn.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		exit_btn.focus_mode = Control.FOCUS_NONE
+		var e_lbl := WheelCurvedLabel.new()
+		e_lbl.text = _short_wheel_caption(str(exiting_spec.get("label","")))
+		e_lbl.center_angle = edge_a
+		e_lbl.wheel_style = w_style
+		e_lbl.max_half_angle = 0.72 if _wheel_slots >= 7 else 0.80
+		e_lbl.position = Vector2(27, 27) - Vector2(54, 54)
+		exit_btn.add_child(e_lbl)
+		rose.add_child(exit_btn)
+		rose.register_exiting_item(exit_btn, e_lbl, edge_a, exit_end)
+
+	# Clearly labeled "← Categorías" pill anchored neatly above the Acciones dock
+	var arc_angles: Array = layout.get("angles", [])
+	if not category.is_empty():
+		var back_btn := WheelBackBtn.new(); back_btn.name = "WheelBackButton"; back_btn.wheel_style = w_style
+		back_btn.size = Vector2(114, 28)
+		back_btn.tooltip_text = "Volver a las categorías de acciones"
+		var dock_rect: Rect2 = ui.player_hud.action_toggle_btn.get_parent().get_parent().get_global_rect()
+		var btn_center_x: float = ui.player_hud.action_toggle_btn.get_global_rect().get_center().x
+		var bw := 114.0
+		var bh := 28.0
+		var back_x := clampf(btn_center_x - bw * 0.5, 10.0, viewport.x - bw - 10.0)
+		var back_y := (dock_rect.position.y - bh - 8.0) if origin.y >= viewport.y * 0.45 else (dock_rect.end.y + 8.0)
+		back_btn.position = Vector2(back_x, clampf(back_y, 68.0, viewport.y - bh - 8.0))
+		back_btn.pressed.connect(func(): category=""; page=0; scroll_offset=0; _wheel_rot_dir=0; _wheel_exiting_item.clear(); refresh())
+		rose.add_child(back_btn)
+
+	if items.size() > visible_count and arc_angles.size() >= 2:
+		var a_first: float = arc_angles[0]
+		var a_last: float = arc_angles[-1]
+		var a_prev := a_first - 0.19
+		var a_next := a_last + 0.19
+		var p_prev := origin + Vector2(cos(a_prev), sin(a_prev)) * _wheel_radius
+		var p_next := origin + Vector2(cos(a_next), sin(a_next)) * _wheel_radius
+		p_prev.x = clampf(p_prev.x, 18.0, viewport.x - 18.0)
+		p_prev.y = minf(p_prev.y, reserved[0].position.y - 16.0)
+		p_next.x = clampf(p_next.x, 18.0, viewport.x - 18.0)
+		p_next.y = maxf(p_next.y, 84.0)
+
+		var prev_arrow := WheelArcArrowBtn.new(); prev_arrow.name = "WheelRotatePrev"; prev_arrow.wheel_style = w_style
+		prev_arrow.tangent_angle = a_first - PI * 0.5
+		prev_arrow.tooltip_text = "Girar rueda hacia atrás (Rueda ↑)"
+		prev_arrow.position = p_prev - Vector2(15, 15)
+		prev_arrow.pressed.connect(func(): _rotate_wheel(-1))
+		rose.add_child(prev_arrow)
+
+		var next_arrow := WheelArcArrowBtn.new(); next_arrow.name = "WheelRotateNext"; next_arrow.wheel_style = w_style
+		next_arrow.tangent_angle = a_last + PI * 0.5
+		next_arrow.tooltip_text = "Girar rueda hacia delante (Rueda ↓)"
+		next_arrow.position = p_next - Vector2(15, 15)
+		next_arrow.pressed.connect(func(): _rotate_wheel(1))
+		rose.add_child(next_arrow)
+
+	wheel.add_child(rose)
+
 	if restore_focus and not focus_candidates.is_empty():
 		var next_focus: Button=focus_candidates[0]
 		for button in focus_candidates:
 			if button.name==focus_name: next_focus=button
 		next_focus.grab_focus.call_deferred()
 
+func _rotate_wheel(dir: int) -> void:
+	if _wheel_items_count <= _wheel_slots: return
+	if not _wheel_last_items.is_empty():
+		_wheel_exiting_item = (_wheel_last_items[0] if dir > 0 else _wheel_last_items[-1]).duplicate(true)
+	scroll_offset = wrapi(scroll_offset + dir, 0, _wheel_items_count)
+	_wheel_rot_dir = dir
+	refresh()
+
+func _explore_action(kind: String) -> void:
+	var tok := token(acting_id())
+	match kind:
+		"talk":
+			wheel_open = false; category = ""; refresh()
+			if ui.has_method("trigger_nearby_interaction"):
+				var found: Dictionary = ui._find_best_nearby_interactable() if ui.has_method("_find_best_nearby_interactable") else {}
+				if str(found.get("kind","none")) != "none" or not ui.has_method("_find_best_nearby_interactable"): ui.trigger_nearby_interaction()
+				elif ui.get("retreat_life") and ui.retreat_life.has_method("open_party_dialogue"): ui.retreat_life.open_party_dialogue()
+			elif ui.has_method("perform_player_exploration_action"):
+				ui.perform_player_exploration_action("interact")
+		"torch":
+			if ui.has_method("toggle_torch"): ui.toggle_torch()
+			refresh()
+		"stealth", "sit", "prone":
+			if tok and tok.has_method("set_stance"): tok.set_stance(kind)
+			wheel_open = false; refresh()
+		"jump":
+			if tok and tok.has_method("_start_jump"): tok._start_jump()
+			elif tok and tok.has_method("play_action_animation"): tok.play_action_animation("jump")
+			wheel_open = false; refresh()
+
 func _action_category(action: Dictionary) -> String:
 	if str(action.get("resource",{}).get("id","")).begins_with("spell-slot") or action.get("kind","")=="spell": return "spells"
 	if action.get("kind","")=="cantrip" or action.get("id","") in ["fire-bolt","ray-of-frost","sacred-flame"]: return "cantrips"
+	if action.get("id","")=="detect-magic" or str(action.get("id","")).ends_with("-exploration"): return "explore"
 	if action.get("resolution","")=="guided": return "other"
 	return "weapons"
 
@@ -526,8 +1023,16 @@ func _basic(kind: String) -> void:
 	if kind=="end-concentration": rules.end_concentration(acting_id()); refresh(); return
 	if kind=="ready": _choose_ready(); return
 	if kind=="withdraw": rules.request_withdraw(acting_id()); wheel_open=false; refresh(); return
-	if kind in ["help","influence","use-object","search"]:
-		armed={"id":kind,"label":Catalogue.BASIC[kind],"basic":true,"target_mode":Targeting.mode({"id":kind})}; action_options.clear(); preview_valid=false; wheel_open=true; refresh(); return
+	if kind in ["help","influence","use-object","search","grapple","shove","stabilize","pick-lock","disarm-trap","climb","swim"]:
+		var lbl_txt := str(Catalogue.BASIC.get(kind, kind))
+		for ex in Catalogue.EXPLORE:
+			if str(ex.id) == kind:
+				lbl_txt = str(ex.label)
+				break
+		armed={"id":kind,"label":lbl_txt,"basic":true,"target_mode":Targeting.mode({"id":kind})}; action_options.clear(); preview_valid=false; wheel_open=true; refresh(); return
+	if kind == "drink-potion":
+		if not rules.request_basic(acting_id(),kind,Catalogue.BASIC[kind],"",{"target":acting_id()}): ui.notify_mesa(rules.last_error)
+		wheel_open=false; refresh(); return
 	if kind in ["dash","dodge","disengage"]:
 		if not rules.basic(acting_id(),kind): ui.notify_mesa(rules.last_error)
 		refresh(); return
@@ -738,11 +1243,41 @@ func _preview_at(screen: Vector2) -> void:
 	else: update_preview_point(hit.position)
 
 func _input(event: InputEvent) -> void:
-	if ui==null or armed.is_empty() or ui.current_role=="projector" or dialog.visible or ui.player_hud.modal_backdrop.visible or not rules.pending.is_empty(): return
+	if ui==null or ui.current_role=="projector": return
+	if wheel_open and wheel.visible and not dialog.visible and not ui.player_hud.modal_backdrop.visible:
+		if event is InputEventMouseButton:
+			var mb := event as InputEventMouseButton
+			if mb.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN] and _is_pointer_over_wheel(mb.position):
+				if mb.is_pressed() and _wheel_items_count > _wheel_slots:
+					_rotate_wheel(-1 if mb.button_index == MOUSE_BUTTON_WHEEL_UP else 1)
+				get_viewport().set_input_as_handled()
+				return
+		elif event is InputEventPanGesture and _is_pointer_over_wheel(wheel.get_local_mouse_position()):
+			var pg := event as InputEventPanGesture
+			if _wheel_items_count > _wheel_slots and absf(pg.delta.y) > 0.2:
+				_rotate_wheel(-1 if pg.delta.y < 0.0 else 1)
+			get_viewport().set_input_as_handled()
+			return
+	if armed.is_empty() or dialog.visible or ui.player_hud.modal_backdrop.visible or not rules.pending.is_empty(): return
 	if event is InputEventMouseMotion:
-		var hovered:=get_viewport().gui_get_hovered_control()
+		var hovered := get_viewport().gui_get_hovered_control()
 		if hovered and (wheel.is_ancestor_of(hovered) or action_tray.is_ancestor_of(hovered)): return
 		_preview_at(event.position)
+
+func _is_pointer_over_wheel(event_pos: Vector2 = Vector2.INF) -> bool:
+	if not wheel_open or not is_instance_valid(wheel) or not wheel.visible:
+		return false
+	var hovered := get_viewport().gui_get_hovered_control()
+	if hovered and (hovered == wheel or wheel.is_ancestor_of(hovered)):
+		return true
+	var mpos := wheel.get_local_mouse_position()
+	if _wheel_origin.distance_to(mpos) <= _wheel_radius + 88.0:
+		return true
+	if event_pos.is_finite():
+		var local_ev: Vector2 = wheel.get_global_transform_with_canvas().affine_inverse() * event_pos
+		if _wheel_origin.distance_to(event_pos) <= _wheel_radius + 88.0 or _wheel_origin.distance_to(local_ev) <= _wheel_radius + 88.0:
+			return true
+	return false
 
 func _select_map_point(screen: Vector2) -> void:
 	_preview_at(screen)
@@ -773,9 +1308,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		_select_map_point(event.position); get_viewport().set_input_as_handled()
 
 func shortcut(body: Node3D,key: int) -> bool:
-	if key not in [KEY_K,KEY_L,KEY_H]: return false
-	if key!=KEY_H and body.has_meta("combat_id"):
-		wheel_open=true; category="spells" if key==KEY_L else "weapons"; page=0; refresh()
+	var Prefs = preload("res://player/player_preferences.gd")
+	var is_act: bool = Prefs.matches_key("actions_wheel", key)
+	var is_sp: bool = Prefs.matches_key("spells_wheel", key)
+	var is_hit: bool = Prefs.matches_key("hit_anim", key)
+	if not (is_act or is_sp or is_hit): return false
+	if not is_hit and body.has_meta("combat_id"):
+		wheel_open=true; category="spells" if is_sp else "weapons"; page=0; scroll_offset=0; _wheel_rot_dir=0; refresh()
 	return true
 
 func add_silverfarben() -> void:

@@ -1,0 +1,1607 @@
+{
+  "version": 1,
+  "status": "reviewed-candidate",
+  "revision": "178ee9d7682884ee2f6f3bfd49766fd893241962e5887a05714562b66f815aa7",
+  "characters": {
+    "mike": {
+      "version": 1,
+      "visualStyle": "existing painted D&D character art; coherent map lighting",
+      "orientation": "camera-relative eight directions where authored",
+      "scale": "character_stature.json or explicit source setting; never pose-envelope normalisation",
+      "pivot": "logical feet; preserve source frame floor offset",
+      "states": [
+        "poisoned",
+        "petrified",
+        "frosted",
+        "burned",
+        "cursed",
+        "invisible"
+      ],
+      "dependencies": [],
+      "review": {
+        "visual": "pending",
+        "userAcceptance": "pending",
+        "evidence": []
+      },
+      "kind": "character",
+      "id": "mike",
+      "name": "Mike",
+      "anatomy": "humanoid-tall",
+      "source": {
+        "kind": "legacy-profile",
+        "key": "wizard"
+      },
+      "aliases": [
+        "wizard",
+        "Mike",
+        "Mago"
+      ],
+      "statureRef": "wizard",
+      "embeddedSlots": [
+        "clothing",
+        "off_hand"
+      ],
+      "equipmentSlots": [
+        "head",
+        "armor",
+        "main_hand",
+        "off_hand",
+        "back",
+        "waist"
+      ],
+      "safeAnimations": [
+        "idle",
+        "walk",
+        "run",
+        "combat_idle",
+        "attack",
+        "spell",
+        "swim",
+        "dive",
+        "open_door",
+        "open_chest",
+        "dive_chest",
+        "stow_item"
+      ],
+      "limitations": [
+        "Robes are baked. Replacing clothing requires an authored replacement mask; optional outer armour is separate."
+      ],
+      "compatibility": "legacy body preserved; modular candidate",
+      "frameOverrides": {},
+      "equipmentPoseOverrides": {
+        "attack": "attack_unarmed"
+      },
+      "bindingFit": {
+        "torsoHalfWidth": 0.15
+      },
+      "aquaticCompatibility": {
+        "campaign": "stormwreck-isle",
+        "vfx": "independent",
+        "bodyWetness": "depth-and-weather",
+        "dedicatedSwimmingSpeed": false
+      }
+    }
+  },
+  "variants": {},
+  "equipment": {},
+  "animations": {
+    "sw-mike-loading-medicine-v6": {
+      "version": 1,
+      "id": "sw-mike-loading-medicine-v6",
+      "name": "mike · medicine de carga · identidad v6",
+      "anatomy": "humanoid-tall",
+      "dependencies": [
+        "mike"
+      ],
+      "review": {
+        "visual": "reviewed in the native scene: two legs in each of the eight poses; user acceptance pending",
+        "userAcceptance": "pending",
+        "evidence": [
+          "output/loading-anatomy-20261127/native-validation.json",
+          "output/loading-anatomy-20261127/index.html"
+        ],
+        "technical": "Eight localized alpha edits verified against the original; other atlas regions are pixel identical."
+      },
+      "instructions": "Create draft, search reuse, complete source/style/scale fields, adopt only after validation. Technical success is not artistic acceptance.",
+      "kind": "animation",
+      "character": "mike",
+      "action": "retreat_loading_medicine",
+      "direction": "se",
+      "frames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/01.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/02.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/03.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/04.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/05.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/06.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/07.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/08.webp"
+      ],
+      "fps": 1,
+      "loop": false,
+      "pivot": [
+        0.5,
+        0.8677248677248677
+      ],
+      "compatibility": {
+        "anatomies": [
+          "humanoid-tall"
+        ],
+        "equipment": false,
+        "overlays": false
+      },
+      "events": [],
+      "initialFrame": 0,
+      "transition": "preserve support pivot",
+      "referenceHeight": 256,
+      "reuseSearch": {
+        "required": true,
+        "command": "node scripts/character-pipeline.mjs reuse --query sw-mike-loading-medicine-v6"
+      },
+      "campaign": "stormwreck-isle",
+      "production": {
+        "stage": "defined-before-generation",
+        "method": "built-in image_gen, identity-preserve",
+        "originalIdentity": "campaigns/stormwreck-isle/public/art/characters/base-v1/mike/idle-01.png",
+        "prompt": "Identity-preserving production game sprites derived from the attached canonical character. The EXACT youthful adult male elf Mike: blue eyes, long blond hair tied behind, pointed ears, blue robe with detailed gold trim, BLACK gloves, black boots, red-brown gold spellbook, sheathed dagger. Do not feminize, change face or use chibi proportions. His book is deliberately secured in its belt pouch whenever BOTH hands work; otherwise keep it in his anatomical LEFT arm. Gloves stay black in every pose. Eight chronological STORY frames of two people together. Hero stays LEFT, a wounded human companion sits RIGHT on a low stool. Companion is always the SAME young brown-haired adult man with green vest, rolled beige sleeves, brown trousers and brown boots; red scraped wound on forearm. Frame1 hero examines forearm, 2 prepares a bandage in hands, 3 starts wrapping, 4 finishes neat bandage, 5 companion thanks hero with relieved smile, 6 hero accidentally winds bandage around own hands, 7 bandage tangle causes both to look surprised, 8 companion laughs kindly while hero is embarrassed with tangled bandage. NO changing patient identity. Hands meet arm in actual contact, bandage painted into poses, all feet/stool share ground baseline. Hero stature relative to human is anatomically correct. Fixed southeast three-quarter view of hero facing RIGHT, exactly the canonical face, proportions, costume, palette and pixel-painted rendering of the reference, no redesign. A regular EXACT FOUR columns by TWO rows grid, eight complete isolated frames in reading order. ALL figures fully visible inside their cells with generous transparent safety margins. Constant body scale in all frames, shortened crouched silhouette is NOT a smaller person. Wide landscape sheet: each cell contains BOTH complete figures with transparent separation from other cells; hero always left, NPC always right. Real transparent background; no ground, shadows, labels, numbers, borders or text. High detail at native size, ideally 350+ pixels for standing human figure per cell. Do not use old loading-character designs.",
+        "equipmentState": "His book is deliberately secured in its belt pouch whenever BOTH hands work; otherwise keep it in his anatomical LEFT arm. Gloves stay black in every pose.",
+        "paired": true,
+        "heldPoseLibrary": true,
+        "minimumVisibleStandingPixels": 200,
+        "minimumDistinctFrames": 8,
+        "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/originals/sw-mike-loading-medicine-v6-b6c352325d31.png",
+        "originalSha256": "b6c352325d313e599ff2d1a8bb2fd924672026b3bde6d1f92dc9968a9e456ba2",
+        "importReport": "output/stormwreck-motion-detail/sw-mike-loading-medicine-v6-b6c352325d31.json",
+        "minimumAlpha": 24,
+        "encoding": "WebP lossless, verified RGBA including fully transparent pixels",
+        "anatomyCorrection": {
+          "status": "localized-retouch",
+          "atlasFrames": [
+            664,
+            665,
+            666,
+            667,
+            668,
+            669,
+            670,
+            671
+          ],
+          "anatomy": "humanoid-tall",
+          "operation": "Remove the duplicated leftmost black boot and its supernumerary lower leg from Mike only. Keep the two intended legs, the silhouettes and timing of the existing poses, the seated patient and stool, and the original source files.",
+          "phaseTargets": [
+            "examine",
+            "prepare",
+            "wrap",
+            "finish",
+            "thanks",
+            "tangle",
+            "surprise",
+            "relief"
+          ],
+          "originalFrames": [
+            "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/01.webp",
+            "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/02.webp",
+            "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/03.webp",
+            "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/04.webp",
+            "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/05.webp",
+            "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/06.webp",
+            "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/07.webp",
+            "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/08.webp"
+          ],
+          "affectedBounds": [
+            [
+              0,
+              199,
+              49,
+              258
+            ],
+            [
+              0,
+              200,
+              49,
+              259
+            ],
+            [
+              0,
+              193,
+              50,
+              254
+            ],
+            [
+              0,
+              196,
+              52,
+              255
+            ],
+            [
+              0,
+              201,
+              50,
+              258
+            ],
+            [
+              0,
+              200,
+              50,
+              257
+            ],
+            [
+              0,
+              201,
+              52,
+              257
+            ],
+            [
+              0,
+              197,
+              52,
+              255
+            ]
+          ],
+          "sourceDigests": [
+            {
+              "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/01.webp",
+              "sha256": "07cd26949c445c0a1b9c8fc771c77b1cb433cf82182533e0674ed8053264f102"
+            },
+            {
+              "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/02.webp",
+              "sha256": "0f4f009df8351aff45eb1784e1be5eb2e8146a2db68e3b570da6ac97aaef696c"
+            },
+            {
+              "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/03.webp",
+              "sha256": "6077042cee32a95249a0e07b2024b1e61526ac8eeb998e77ff0500bef7912902"
+            },
+            {
+              "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/04.webp",
+              "sha256": "67ce7404d8ec0d71c0648505a085818584050db026245463c323a8e2684bce67"
+            },
+            {
+              "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/05.webp",
+              "sha256": "c1f25fefefa5eacffcc46576eae8187c9376a96d1dbd8a0c601942677fd0beca"
+            },
+            {
+              "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/06.webp",
+              "sha256": "2066ac5c06e8ea0222723d222831cf0c44cc6cbc990219c4ecbf857f59013578"
+            },
+            {
+              "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/07.webp",
+              "sha256": "ce94fd78719b9dcd537fee9f7cb515db68737c099fae98558f5a957887fb983f"
+            },
+            {
+              "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/08.webp",
+              "sha256": "a2d7b3ffd78106a6803493f2564530a660f8176b0fe4fbc4cee6112704ab1e7c"
+            }
+          ],
+          "method": "Built-in image edit guide; antialiased alpha trace per frame applied to the original crop.",
+          "tool": "scripts/retouch-mike-medicine.mjs",
+          "guide": "docs/evidence/captures/loading-anatomy-20261127/medicine-edit-guide.png"
+        }
+      },
+      "minimumDistinctFrames": 8,
+      "runtimeFrames": [
+        {
+          "file": "res://characters/imported/sw-mike-loading-medicine-v6/00-01.webp",
+          "pivot": [
+            0.5,
+            0.8677248677248677
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-mike-loading-medicine-v6/01-02.webp",
+          "pivot": [
+            0.5,
+            0.8677248677248677
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-mike-loading-medicine-v6/02-03.webp",
+          "pivot": [
+            0.5,
+            0.8677248677248677
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-mike-loading-medicine-v6/03-04.webp",
+          "pivot": [
+            0.5,
+            0.8677248677248677
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-mike-loading-medicine-v6/04-05.webp",
+          "pivot": [
+            0.5,
+            0.8677248677248677
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-mike-loading-medicine-v6/05-06.webp",
+          "pivot": [
+            0.5,
+            0.8677248677248677
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-mike-loading-medicine-v6/06-07.webp",
+          "pivot": [
+            0.5,
+            0.8677248677248677
+          ]
+        },
+        {
+          "file": "res://characters/imported/sw-mike-loading-medicine-v6/07-08.webp",
+          "pivot": [
+            0.5,
+            0.8677248677248677
+          ]
+        }
+      ]
+    }
+  },
+  "overlays": {},
+  "bindings": {},
+  "anatomies": {
+    "cephalopod": {
+      "version": 1,
+      "id": "cephalopod",
+      "kind": "anatomy",
+      "coordinates": "normalised visible image bounds; x right/y down; seed anchors require per-frame review",
+      "anchors": {
+        "head": [
+          0.5,
+          0.23
+        ],
+        "torso": [
+          0.5,
+          0.4
+        ],
+        "mantle": [
+          0.5,
+          0.28
+        ],
+        "root": [
+          0.5,
+          0.98
+        ],
+        "arm_1": [
+          0.12,
+          0.64
+        ],
+        "arm_2": [
+          0.2,
+          0.82
+        ],
+        "arm_3": [
+          0.35,
+          0.94
+        ],
+        "arm_4": [
+          0.48,
+          0.98
+        ],
+        "arm_5": [
+          0.62,
+          0.94
+        ],
+        "arm_6": [
+          0.77,
+          0.82
+        ],
+        "arm_7": [
+          0.88,
+          0.64
+        ],
+        "arm_8": [
+          0.82,
+          0.44
+        ]
+      },
+      "requiredAnchors": [
+        "head",
+        "torso",
+        "mantle",
+        "root",
+        "arm_1",
+        "arm_2",
+        "arm_3",
+        "arm_4",
+        "arm_5",
+        "arm_6",
+        "arm_7",
+        "arm_8"
+      ],
+      "slots": [],
+      "frameOverrides": {},
+      "status": "seed; one base pose, no directional animation inferred"
+    },
+    "dragon-quadruped": {
+      "version": 1,
+      "id": "dragon-quadruped",
+      "kind": "anatomy",
+      "coordinates": "normalised visible image bounds; x right/y down; seed anchors require per-frame review",
+      "anchors": {
+        "head": [
+          0.83,
+          0.22
+        ],
+        "neck": [
+          0.35,
+          0.35
+        ],
+        "torso": [
+          0.5,
+          0.4
+        ],
+        "back": [
+          0.43,
+          0.23
+        ],
+        "waist": [
+          0.32,
+          0.48
+        ],
+        "hip": [
+          0.23,
+          0.5
+        ],
+        "knee_front_left": [
+          0.72,
+          0.72
+        ],
+        "knee_front_right": [
+          0.65,
+          0.72
+        ],
+        "knee_hind_left": [
+          0.22,
+          0.72
+        ],
+        "knee_hind_right": [
+          0.3,
+          0.72
+        ],
+        "foot_front_left": [
+          0.75,
+          0.97
+        ],
+        "foot_front_right": [
+          0.65,
+          0.97
+        ],
+        "foot_hind_left": [
+          0.2,
+          0.97
+        ],
+        "foot_hind_right": [
+          0.3,
+          0.97
+        ],
+        "tail": [
+          0.11,
+          0.4
+        ],
+        "jaw": [
+          0.22,
+          0.35
+        ],
+        "wing_left": [
+          0.22,
+          0.2
+        ],
+        "wing_right": [
+          0.78,
+          0.2
+        ],
+        "tail_root": [
+          0.72,
+          0.55
+        ],
+        "tail_tip": [
+          0.96,
+          0.84
+        ]
+      },
+      "requiredAnchors": [
+        "head",
+        "torso",
+        "back",
+        "foot_front_left",
+        "foot_front_right",
+        "foot_hind_left",
+        "foot_hind_right"
+      ],
+      "slots": [],
+      "frameOverrides": {},
+      "status": "seed; one base pose, no directional animation inferred"
+    },
+    "fungal-biped": {
+      "version": 1,
+      "id": "fungal-biped",
+      "kind": "anatomy",
+      "coordinates": "normalised visible image bounds; x right/y down; seed anchors require per-frame review",
+      "anchors": {
+        "head": [
+          0.5,
+          0.12
+        ],
+        "neck": [
+          0.5,
+          0.23
+        ],
+        "shoulder_left": [
+          0.33,
+          0.28
+        ],
+        "shoulder_right": [
+          0.67,
+          0.28
+        ],
+        "torso": [
+          0.5,
+          0.42
+        ],
+        "back": [
+          0.5,
+          0.39
+        ],
+        "elbow_left": [
+          0.27,
+          0.44
+        ],
+        "elbow_right": [
+          0.73,
+          0.44
+        ],
+        "hand_left": [
+          0.27,
+          0.59
+        ],
+        "hand_right": [
+          0.73,
+          0.59
+        ],
+        "waist": [
+          0.5,
+          0.58
+        ],
+        "hip": [
+          0.5,
+          0.65
+        ],
+        "knee_left": [
+          0.41,
+          0.78
+        ],
+        "knee_right": [
+          0.59,
+          0.78
+        ],
+        "ankle_left": [
+          0.39,
+          0.93
+        ],
+        "ankle_right": [
+          0.61,
+          0.93
+        ],
+        "foot_left": [
+          0.37,
+          0.99
+        ],
+        "foot_right": [
+          0.63,
+          0.99
+        ],
+        "crown": [
+          0.5,
+          0.15
+        ],
+        "root": [
+          0.5,
+          0.98
+        ]
+      },
+      "requiredAnchors": [
+        "head",
+        "torso",
+        "hand_right",
+        "hand_left",
+        "back",
+        "waist"
+      ],
+      "slots": [],
+      "frameOverrides": {},
+      "status": "seed; one base pose, no directional animation inferred"
+    },
+    "humanoid-dwarf": {
+      "id": "humanoid-dwarf",
+      "kind": "anatomy",
+      "version": 1,
+      "coordinates": "normalised visible frame bounds; x right, y down; original and mirrored frames share source-space coordinates",
+      "anchors": {
+        "head": [
+          0.5,
+          0.12
+        ],
+        "neck": [
+          0.5,
+          0.23
+        ],
+        "shoulder_left": [
+          0.33,
+          0.28
+        ],
+        "shoulder_right": [
+          0.67,
+          0.28
+        ],
+        "torso": [
+          0.5,
+          0.42
+        ],
+        "back": [
+          0.5,
+          0.39
+        ],
+        "elbow_left": [
+          0.27,
+          0.44
+        ],
+        "elbow_right": [
+          0.73,
+          0.44
+        ],
+        "hand_left": [
+          0.27,
+          0.59
+        ],
+        "hand_right": [
+          0.73,
+          0.59
+        ],
+        "waist": [
+          0.5,
+          0.58
+        ],
+        "hip": [
+          0.5,
+          0.65
+        ],
+        "knee_left": [
+          0.41,
+          0.78
+        ],
+        "knee_right": [
+          0.59,
+          0.78
+        ],
+        "ankle_left": [
+          0.39,
+          0.93
+        ],
+        "ankle_right": [
+          0.61,
+          0.93
+        ],
+        "foot_left": [
+          0.37,
+          0.99
+        ],
+        "foot_right": [
+          0.63,
+          0.99
+        ]
+      },
+      "requiredAnchors": [
+        "head",
+        "torso",
+        "hand_right",
+        "hand_left",
+        "back",
+        "waist"
+      ],
+      "slots": [
+        "head",
+        "clothing",
+        "armor",
+        "shoulders",
+        "hands",
+        "feet",
+        "back",
+        "waist",
+        "main_hand",
+        "off_hand"
+      ],
+      "frameOverrides": {},
+      "status": "seed; per-frame corrections require visual review"
+    },
+    "humanoid-small": {
+      "id": "humanoid-small",
+      "kind": "anatomy",
+      "version": 1,
+      "coordinates": "normalised visible frame bounds; x right, y down; original and mirrored frames share source-space coordinates",
+      "anchors": {
+        "head": [
+          0.5,
+          0.12
+        ],
+        "neck": [
+          0.5,
+          0.23
+        ],
+        "shoulder_left": [
+          0.33,
+          0.28
+        ],
+        "shoulder_right": [
+          0.67,
+          0.28
+        ],
+        "torso": [
+          0.5,
+          0.42
+        ],
+        "back": [
+          0.5,
+          0.39
+        ],
+        "elbow_left": [
+          0.27,
+          0.44
+        ],
+        "elbow_right": [
+          0.73,
+          0.44
+        ],
+        "hand_left": [
+          0.27,
+          0.59
+        ],
+        "hand_right": [
+          0.73,
+          0.59
+        ],
+        "waist": [
+          0.5,
+          0.58
+        ],
+        "hip": [
+          0.5,
+          0.65
+        ],
+        "knee_left": [
+          0.41,
+          0.78
+        ],
+        "knee_right": [
+          0.59,
+          0.78
+        ],
+        "ankle_left": [
+          0.39,
+          0.93
+        ],
+        "ankle_right": [
+          0.61,
+          0.93
+        ],
+        "foot_left": [
+          0.37,
+          0.99
+        ],
+        "foot_right": [
+          0.63,
+          0.99
+        ]
+      },
+      "requiredAnchors": [
+        "head",
+        "torso",
+        "hand_right",
+        "hand_left",
+        "back",
+        "waist"
+      ],
+      "slots": [
+        "head",
+        "clothing",
+        "armor",
+        "shoulders",
+        "hands",
+        "feet",
+        "back",
+        "waist",
+        "main_hand",
+        "off_hand"
+      ],
+      "frameOverrides": {},
+      "status": "seed; per-frame corrections require visual review"
+    },
+    "humanoid-tall": {
+      "id": "humanoid-tall",
+      "kind": "anatomy",
+      "version": 1,
+      "coordinates": "normalised visible frame bounds; x right, y down; original and mirrored frames share source-space coordinates",
+      "anchors": {
+        "head": [
+          0.5,
+          0.12
+        ],
+        "neck": [
+          0.5,
+          0.23
+        ],
+        "shoulder_left": [
+          0.33,
+          0.28
+        ],
+        "shoulder_right": [
+          0.67,
+          0.28
+        ],
+        "torso": [
+          0.5,
+          0.42
+        ],
+        "back": [
+          0.5,
+          0.39
+        ],
+        "elbow_left": [
+          0.27,
+          0.44
+        ],
+        "elbow_right": [
+          0.73,
+          0.44
+        ],
+        "hand_left": [
+          0.27,
+          0.59
+        ],
+        "hand_right": [
+          0.73,
+          0.59
+        ],
+        "waist": [
+          0.5,
+          0.58
+        ],
+        "hip": [
+          0.5,
+          0.65
+        ],
+        "knee_left": [
+          0.41,
+          0.78
+        ],
+        "knee_right": [
+          0.59,
+          0.78
+        ],
+        "ankle_left": [
+          0.39,
+          0.93
+        ],
+        "ankle_right": [
+          0.61,
+          0.93
+        ],
+        "foot_left": [
+          0.37,
+          0.99
+        ],
+        "foot_right": [
+          0.63,
+          0.99
+        ]
+      },
+      "requiredAnchors": [
+        "head",
+        "torso",
+        "hand_right",
+        "hand_left",
+        "back",
+        "waist"
+      ],
+      "slots": [
+        "head",
+        "clothing",
+        "armor",
+        "shoulders",
+        "hands",
+        "feet",
+        "back",
+        "waist",
+        "main_hand",
+        "off_hand"
+      ],
+      "frameOverrides": {},
+      "status": "seed; per-frame corrections require visual review"
+    },
+    "limbless-winged": {
+      "version": 1,
+      "id": "limbless-winged",
+      "kind": "anatomy",
+      "coordinates": "normalised visible image bounds; x right/y down; seed anchors require per-frame review",
+      "anchors": {
+        "head": [
+          0.38,
+          0.28
+        ],
+        "torso": [
+          0.5,
+          0.5
+        ],
+        "wing_left": [
+          0.13,
+          0.29
+        ],
+        "wing_right": [
+          0.86,
+          0.29
+        ],
+        "tail_root": [
+          0.63,
+          0.66
+        ],
+        "tail_tip": [
+          0.83,
+          0.88
+        ],
+        "root": [
+          0.5,
+          0.98
+        ]
+      },
+      "requiredAnchors": [
+        "head",
+        "torso",
+        "wing_left",
+        "wing_right",
+        "tail_root",
+        "tail_tip",
+        "root"
+      ],
+      "slots": [],
+      "frameOverrides": {},
+      "status": "seed; one base pose, no directional animation inferred"
+    },
+    "plant": {
+      "id": "plant",
+      "kind": "anatomy",
+      "version": 1,
+      "coordinates": "normalised visible frame bounds; x right, y down; original and mirrored frames share source-space coordinates",
+      "anchors": {
+        "crown": [
+          0.5,
+          0.18
+        ],
+        "stem": [
+          0.5,
+          0.5
+        ],
+        "root": [
+          0.5,
+          0.98
+        ],
+        "branch_left": [
+          0.2,
+          0.45
+        ],
+        "branch_right": [
+          0.8,
+          0.45
+        ]
+      },
+      "requiredAnchors": [
+        "crown",
+        "stem",
+        "root"
+      ],
+      "slots": [],
+      "frameOverrides": {},
+      "status": "seed; per-frame corrections require visual review"
+    },
+    "quadruped": {
+      "id": "quadruped",
+      "kind": "anatomy",
+      "version": 1,
+      "coordinates": "normalised visible frame bounds; x right, y down; original and mirrored frames share source-space coordinates",
+      "anchors": {
+        "head": [
+          0.83,
+          0.22
+        ],
+        "neck": [
+          0.7,
+          0.32
+        ],
+        "torso": [
+          0.5,
+          0.4
+        ],
+        "back": [
+          0.43,
+          0.23
+        ],
+        "waist": [
+          0.32,
+          0.48
+        ],
+        "hip": [
+          0.23,
+          0.5
+        ],
+        "knee_front_left": [
+          0.72,
+          0.72
+        ],
+        "knee_front_right": [
+          0.65,
+          0.72
+        ],
+        "knee_hind_left": [
+          0.22,
+          0.72
+        ],
+        "knee_hind_right": [
+          0.3,
+          0.72
+        ],
+        "foot_front_left": [
+          0.75,
+          0.97
+        ],
+        "foot_front_right": [
+          0.65,
+          0.97
+        ],
+        "foot_hind_left": [
+          0.2,
+          0.97
+        ],
+        "foot_hind_right": [
+          0.3,
+          0.97
+        ],
+        "tail": [
+          0.11,
+          0.4
+        ]
+      },
+      "requiredAnchors": [
+        "head",
+        "torso",
+        "back",
+        "foot_front_left",
+        "foot_front_right",
+        "foot_hind_left",
+        "foot_hind_right"
+      ],
+      "slots": [
+        "back",
+        "waist"
+      ],
+      "frameOverrides": {},
+      "status": "seed; per-frame corrections require visual review"
+    },
+    "reptilian-small": {
+      "version": 1,
+      "id": "reptilian-small",
+      "kind": "anatomy",
+      "coordinates": "normalised visible image bounds; x right/y down; seed anchors require per-frame review",
+      "anchors": {
+        "head": [
+          0.5,
+          0.12
+        ],
+        "neck": [
+          0.5,
+          0.23
+        ],
+        "shoulder_left": [
+          0.33,
+          0.28
+        ],
+        "shoulder_right": [
+          0.67,
+          0.28
+        ],
+        "torso": [
+          0.5,
+          0.42
+        ],
+        "back": [
+          0.5,
+          0.39
+        ],
+        "elbow_left": [
+          0.27,
+          0.44
+        ],
+        "elbow_right": [
+          0.73,
+          0.44
+        ],
+        "hand_left": [
+          0.27,
+          0.59
+        ],
+        "hand_right": [
+          0.73,
+          0.59
+        ],
+        "waist": [
+          0.5,
+          0.58
+        ],
+        "hip": [
+          0.5,
+          0.65
+        ],
+        "knee_left": [
+          0.41,
+          0.78
+        ],
+        "knee_right": [
+          0.59,
+          0.78
+        ],
+        "ankle_left": [
+          0.39,
+          0.93
+        ],
+        "ankle_right": [
+          0.61,
+          0.93
+        ],
+        "foot_left": [
+          0.37,
+          0.99
+        ],
+        "foot_right": [
+          0.63,
+          0.99
+        ],
+        "tail_root": [
+          0.52,
+          0.72
+        ],
+        "tail_tip": [
+          0.9,
+          0.86
+        ]
+      },
+      "requiredAnchors": [
+        "head",
+        "torso",
+        "hand_right",
+        "hand_left",
+        "back",
+        "waist"
+      ],
+      "slots": [],
+      "frameOverrides": {},
+      "status": "seed; one base pose, no directional animation inferred"
+    },
+    "reptilian-winged-small": {
+      "version": 1,
+      "id": "reptilian-winged-small",
+      "kind": "anatomy",
+      "coordinates": "normalised visible image bounds; x right/y down; seed anchors require per-frame review",
+      "anchors": {
+        "head": [
+          0.5,
+          0.12
+        ],
+        "neck": [
+          0.5,
+          0.23
+        ],
+        "shoulder_left": [
+          0.33,
+          0.28
+        ],
+        "shoulder_right": [
+          0.67,
+          0.28
+        ],
+        "torso": [
+          0.5,
+          0.42
+        ],
+        "back": [
+          0.5,
+          0.39
+        ],
+        "elbow_left": [
+          0.27,
+          0.44
+        ],
+        "elbow_right": [
+          0.73,
+          0.44
+        ],
+        "hand_left": [
+          0.27,
+          0.59
+        ],
+        "hand_right": [
+          0.73,
+          0.59
+        ],
+        "waist": [
+          0.5,
+          0.58
+        ],
+        "hip": [
+          0.5,
+          0.65
+        ],
+        "knee_left": [
+          0.41,
+          0.78
+        ],
+        "knee_right": [
+          0.59,
+          0.78
+        ],
+        "ankle_left": [
+          0.39,
+          0.93
+        ],
+        "ankle_right": [
+          0.61,
+          0.93
+        ],
+        "foot_left": [
+          0.37,
+          0.99
+        ],
+        "foot_right": [
+          0.63,
+          0.99
+        ],
+        "tail_root": [
+          0.52,
+          0.72
+        ],
+        "tail_tip": [
+          0.9,
+          0.86
+        ],
+        "wing_left": [
+          0.16,
+          0.35
+        ],
+        "wing_right": [
+          0.84,
+          0.35
+        ]
+      },
+      "requiredAnchors": [
+        "head",
+        "torso",
+        "hand_right",
+        "hand_left",
+        "back",
+        "waist"
+      ],
+      "slots": [],
+      "frameOverrides": {},
+      "status": "seed; one base pose, no directional animation inferred"
+    },
+    "serpentine": {
+      "version": 1,
+      "id": "serpentine",
+      "kind": "anatomy",
+      "coordinates": "normalised visible image bounds; x right/y down; seed anchors require per-frame review",
+      "anchors": {
+        "head": [
+          0.38,
+          0.18
+        ],
+        "neck": [
+          0.45,
+          0.32
+        ],
+        "torso": [
+          0.5,
+          0.56
+        ],
+        "tail_root": [
+          0.61,
+          0.7
+        ],
+        "tail_tip": [
+          0.86,
+          0.9
+        ],
+        "root": [
+          0.5,
+          0.98
+        ]
+      },
+      "requiredAnchors": [
+        "head",
+        "neck",
+        "torso",
+        "tail_root",
+        "tail_tip",
+        "root"
+      ],
+      "slots": [],
+      "frameOverrides": {},
+      "status": "seed; one base pose, no directional animation inferred"
+    },
+    "winged-insect": {
+      "version": 1,
+      "id": "winged-insect",
+      "kind": "anatomy",
+      "coordinates": "normalised visible image bounds; x right/y down; seed anchors require per-frame review",
+      "anchors": {
+        "head": [
+          0.5,
+          0.26
+        ],
+        "torso": [
+          0.5,
+          0.5
+        ],
+        "proboscis": [
+          0.5,
+          0.76
+        ],
+        "wing_left": [
+          0.15,
+          0.34
+        ],
+        "wing_right": [
+          0.85,
+          0.34
+        ],
+        "leg_1": [
+          0.28,
+          0.6
+        ],
+        "leg_2": [
+          0.3,
+          0.73
+        ],
+        "leg_3": [
+          0.36,
+          0.87
+        ],
+        "leg_4": [
+          0.72,
+          0.6
+        ],
+        "leg_5": [
+          0.7,
+          0.73
+        ],
+        "leg_6": [
+          0.64,
+          0.87
+        ],
+        "root": [
+          0.5,
+          0.98
+        ]
+      },
+      "requiredAnchors": [
+        "head",
+        "torso",
+        "proboscis",
+        "wing_left",
+        "wing_right",
+        "leg_1",
+        "leg_2",
+        "leg_3",
+        "leg_4",
+        "leg_5",
+        "leg_6",
+        "root"
+      ],
+      "slots": [],
+      "frameOverrides": {},
+      "status": "seed; one base pose, no directional animation inferred"
+    },
+    "winged": {
+      "id": "winged",
+      "kind": "anatomy",
+      "version": 1,
+      "coordinates": "normalised visible frame bounds; x right, y down; original and mirrored frames share source-space coordinates",
+      "anchors": {
+        "head": [
+          0.5,
+          0.12
+        ],
+        "neck": [
+          0.5,
+          0.23
+        ],
+        "shoulder_left": [
+          0.33,
+          0.28
+        ],
+        "shoulder_right": [
+          0.67,
+          0.28
+        ],
+        "torso": [
+          0.5,
+          0.42
+        ],
+        "back": [
+          0.5,
+          0.39
+        ],
+        "elbow_left": [
+          0.27,
+          0.44
+        ],
+        "elbow_right": [
+          0.73,
+          0.44
+        ],
+        "hand_left": [
+          0.27,
+          0.59
+        ],
+        "hand_right": [
+          0.73,
+          0.59
+        ],
+        "waist": [
+          0.5,
+          0.58
+        ],
+        "hip": [
+          0.5,
+          0.65
+        ],
+        "knee_left": [
+          0.41,
+          0.78
+        ],
+        "knee_right": [
+          0.59,
+          0.78
+        ],
+        "ankle_left": [
+          0.39,
+          0.93
+        ],
+        "ankle_right": [
+          0.61,
+          0.93
+        ],
+        "foot_left": [
+          0.37,
+          0.99
+        ],
+        "foot_right": [
+          0.63,
+          0.99
+        ],
+        "wing_left": [
+          0.15,
+          0.35
+        ],
+        "wing_right": [
+          0.85,
+          0.35
+        ]
+      },
+      "requiredAnchors": [
+        "head",
+        "torso",
+        "wing_left",
+        "wing_right"
+      ],
+      "slots": [
+        "head",
+        "clothing",
+        "armor",
+        "shoulders",
+        "hands",
+        "feet",
+        "back",
+        "waist",
+        "main_hand",
+        "off_hand"
+      ],
+      "frameOverrides": {},
+      "status": "seed; per-frame corrections require visual review"
+    }
+  },
+  "provenance": [
+    {
+      "id": "sw-mike-loading-medicine-v6",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/01.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-mike-loading-medicine-v6/00-01.webp",
+      "sha256": "f94f55dc9c2f903ef58b12df33b57d7d06f524490b8cff6627a3ada0d1f892aa",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-mike-loading-medicine-v6",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/02.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-mike-loading-medicine-v6/01-02.webp",
+      "sha256": "40a8aaddfd18b1d9bc74b831ff27a17c77ba3ac3bb9c167673b26be2d5818de5",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-mike-loading-medicine-v6",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/03.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-mike-loading-medicine-v6/02-03.webp",
+      "sha256": "f0efbb4eb96fdb866b5adaef80fc1fa6ee4a55ffbfaccd2bcc2edd8571f4ae56",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-mike-loading-medicine-v6",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/04.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-mike-loading-medicine-v6/03-04.webp",
+      "sha256": "39ba9dc2a2d77a814bb94bc4365b23ec550ac7b2955c45fdcc812c2a6d5e6450",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-mike-loading-medicine-v6",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/05.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-mike-loading-medicine-v6/04-05.webp",
+      "sha256": "76e00144ef04cd0ecb16b51afec20bba29baf1e0995950af01a98b57990b0956",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-mike-loading-medicine-v6",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/06.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-mike-loading-medicine-v6/05-06.webp",
+      "sha256": "55397ddca8d4303ed452267db7a40817fac3700883146ddebf33917b040debb4",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-mike-loading-medicine-v6",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/07.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-mike-loading-medicine-v6/06-07.webp",
+      "sha256": "411e2a9104963361cd7054589dae9adbbcd13189285a7d22849731236f07acd2",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-mike-loading-medicine-v6",
+      "source": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/08.webp",
+      "derived": "prototypes/godot-shared/characters/imported/sw-mike-loading-medicine-v6/07-08.webp",
+      "sha256": "299cd531de084fc8746272440e213e96f10055633706691ab04a4f0f1e0bd3ae",
+      "operation": "byte-exact animation source copy; scale uses explicit standing reference height"
+    },
+    {
+      "id": "sw-mike-loading-medicine-v6",
+      "definition": "prototypes/godot-shared/characters/definitions/animations/sw-mike-loading-medicine-v6.json",
+      "sha256": "24646ada7dceb8ec330ffe4de13d51dd0c489219cab1141a9754af858249cc75"
+    },
+    {
+      "id": "mike",
+      "definition": "prototypes/godot-shared/characters/definitions/characters/mike.json",
+      "sha256": "e5baa47bd6d886a64241365b763b3946f2ab9b241e16c81497d3edb61d142a46"
+    }
+  ],
+  "review": {
+    "scope": "loading-anatomy-20261127",
+    "revision": "178ee9d7682884ee2f6f3bfd49766fd893241962e5887a05714562b66f815aa7",
+    "technical": "passed",
+    "visual": "reviewed",
+    "userAcceptance": "pending",
+    "nativeReport": "output/loading-anatomy-20261127/native-validation.json",
+    "evidence": [
+      "output/loading-anatomy-20261127/index.html",
+      "output/loading-anatomy-20261127/manifest.json"
+    ]
+  },
+  "scope": {
+    "name": "loading-anatomy-20261127",
+    "ids": [
+      "mike",
+      "sw-mike-loading-medicine-v6"
+    ]
+  }
+}

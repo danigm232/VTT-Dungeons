@@ -795,11 +795,11 @@ static func create_canvas_shelter(
 			under_warm.name = "ShelterWarmBounceLight"
 			under_warm.light_color = Color("#ffac58")
 			under_warm.light_energy = 0.0
-			under_warm.omni_range = 4.4
-			under_warm.omni_attenuation = 1.45
-			under_warm.position = Vector3(0.0, rear_h - 0.38, -0.15)
+			under_warm.omni_range = 4.6
+			under_warm.omni_attenuation = 1.75
+			under_warm.position = Vector3(0.0, 0.88, 0.12)
 			shelter.add_child(under_warm)
-			fx.register_lantern(under_warm, null, 0.72, 0.08)
+			fx.register_lantern(under_warm, null, 0.36, 0.05)
 
 	elif variant == "wreck-beach":
 		# Reused ship's sail tarp pitched over weathered driftwood spars:

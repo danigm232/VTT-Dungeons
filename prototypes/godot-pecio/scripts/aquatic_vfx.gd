@@ -49,6 +49,7 @@ var body_height := 1.5
 var hold_fill: OmniLight3D
 var _water_contact := false
 var _drip_time := 0.0
+var _drip_strength := 0.0
 var _reduced := false
 
 func _ready() -> void:
@@ -94,21 +95,27 @@ func update_water(delta: float, surface: float, heading: Vector3, moving: bool, 
 		hold_fill.visible = in_flooded_hold
 
 func _update_drips(delta: float, state: WaterState) -> void:
-	var contact := state.in_water or state.immersion > 0.035
+	var contact := state.in_water or state.immersion > WaterState.MOISTURE_THRESHOLD
 	if contact:
 		_drip_time = 0.0
-	elif _water_contact and state.wetness > 0.25:
-		_drip_time = lerpf(1.5, 7.5, state.wetness)
+		if not _water_contact:
+			get_parent().wet_footprints.end_water_exit()
+	elif _water_contact:
+		var wet_height := state.wet_height(0.42)
+		if wet_height > 0.0:
+			get_parent().wet_footprints.begin_water_exit(state.wetness)
+			_drip_strength = maxf(0.23, state.wetness)
+			_drip_time = lerpf(1.1, 7.5, wet_height)
+			if not drips:
+				drips = _emitter("Goteo", 8, 0.53)
+				drips.explosiveness = 0.31
+			drips.position.y = body_height * clampf(wet_height - 0.065, 0.11, 0.76)
 	_water_contact = contact
 	_drip_time = maxf(0.0, _drip_time - delta)
-	if _drip_time > 0.0 and not drips:
-		drips = _emitter("Goteo", 8, 0.53)
-		drips.explosiveness = 0.31
-		drips.position.y = body_height * 0.59
 	if drips:
-		drips.emitting = _drip_time > 0.0 and state.wetness > 0.25
+		drips.emitting = _drip_time > 0.0
 		if drips.emitting:
-			drips.amount_ratio = minf(state.wetness * minf(1.0, _drip_time), 0.6 if _reduced else 1.0)
+			drips.amount_ratio = minf(_drip_strength * minf(1.0, _drip_time), 0.6 if _reduced else 1.0)
 
 static func _build_resources() -> void:
 	var ripple := PlaneMesh.new()
@@ -119,7 +126,7 @@ static func _build_resources() -> void:
 	var particle_shader := Shader.new()
 	particle_shader.code = WATER_PARTICLE
 	_meshes["Burbujas"] = _particle_quad(particle_shader, Vector2(0.255, 0.255), false, -2)
-	_meshes["Goteo"] = _particle_quad(particle_shader, Vector2(0.095, 0.16), true, 2)
+	_meshes["Goteo"] = _particle_quad(particle_shader, Vector2(0.064, 0.105), true, 2)
 	_process_materials["Estela"] = _motion(Vector3.UP, Vector3.ZERO, Vector2.ZERO, Vector3.ZERO)
 	_process_materials["Burbujas"] = _motion(Vector3.UP, Vector3.UP * 0.40, Vector2(0.31, 0.57), Vector3(0.15, 0.045, 0.12))
 	_process_materials["Goteo"] = _motion(Vector3.DOWN, Vector3.DOWN * 3.5, Vector2(0.10, 0.31), Vector3(0.38, 0.12, 0.21))

@@ -133,7 +133,7 @@ func _spawn_canonical_pecio_creatures() -> void:
 		{"name": "GhoulToken",      "title": "Gul de la Sentina", "pos": Vector3(-17.8, -3.1, -0.4), "tex": null, "h": 1.75, "lvl": 1, "tint": Color.WHITE, "codex": ""},
 		{"name": "ZombieC8_B_Lvl2", "title": "Zombi C8 (Niv.2)",  "pos": Vector3(-16.2, -3.1, 2.2),  "tex": zombie_tex, "h": 1.90, "lvl": 2, "tint": Color(0.88, 0.95, 0.90), "codex": ""},
 		{"name": "ZombieC8_C_Lvl2", "title": "Zombi C8 (3)",      "pos": Vector3(-12.2, -3.1, -1.6), "tex": zombie_tex, "h": 1.92, "lvl": 2, "tint": Color(0.86, 0.92, 0.88), "codex": ""},
-		{"name": "HarpyToken_C2",   "title": "Arpía C2 (Niv.2)",  "pos": Vector3(21.0, 3.65, -3.2),  "tex": harpy_tex,  "h": 1.70, "lvl": 2, "tint": Color(1.0, 0.92, 0.88), "codex": ""},
+		{"name": "HarpyToken_C2",   "title": "Arpía C2 (Niv.2)",  "pos": Vector3(19.2, 3.05, -1.5),  "tex": harpy_tex,  "h": 1.70, "lvl": 2, "tint": Color(1.0, 0.92, 0.88), "codex": ""},
 	]
 	for sp in specs:
 		if ship_vessel.get_node_or_null(str(sp["name"])) != null:
@@ -163,17 +163,21 @@ func _spawn_canonical_pecio_creatures() -> void:
 			tok.get_node("CollisionShape3D").set_deferred("disabled", true)
 
 func _unhandled_input(event: InputEvent) -> void:
+	var Prefs = preload("res://player/player_preferences.gd")
+	if Prefs.is_capturing_key():
+		return
 	if event is InputEventKey and event.is_pressed() and not event.is_echo() and not event.ctrl_pressed and not event.alt_pressed:
-		if event.keycode == KEY_1:
+		var kc := (event as InputEventKey).keycode
+		if Prefs.matches_key("party_1", kc):
 			select_party_member(0)
 			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_2:
+		elif Prefs.matches_key("party_2", kc):
 			select_party_member(1)
 			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_3:
+		elif Prefs.matches_key("party_3", kc):
 			select_party_member(2)
 			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_TAB:
+		elif Prefs.matches_key("party_next", kc):
 			var next_idx = (active_party_index + 1) % party.size()
 			select_party_member(next_idx)
 			get_viewport().set_input_as_handled()

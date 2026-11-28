@@ -81,7 +81,7 @@ func get_world_visual_bounds() -> Rect2:
 		"camp-forest-pleamar":
 			return Rect2(-80.0, -82.0, width_m + 160.0, depth_m + 150.0)
 		"camp-cliffs-observatory":
-			return Rect2(-24.0, -20.0, width_m + 48.0, depth_m * 0.72 + 116.0)
+			return Rect2(-34.0, -44.0, width_m + 84.0, depth_m + 120.0)
 		"camp-coastal-refuge":
 			return Rect2(-24.0, -20.0, width_m + 48.0, depth_m * 0.84 + 84.0)
 		_:
@@ -89,6 +89,9 @@ func get_world_visual_bounds() -> Rect2:
 
 func clamp_navigation_point(point: Vector3) -> Vector3:
 	var b := Structure.get_map_bounds(scene_def)
+	var sr := get_tree().current_scene if get_tree() else null
+	if sr and sr.has_meta("map_bounds_xz"):
+		b = sr.get_meta("map_bounds_xz")
 	return Vector3(
 		clampf(point.x, b.position.x, b.position.x + b.size.x),
 		point.y,

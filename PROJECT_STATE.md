@@ -1,10 +1,22 @@
 # Estado del proyecto
 
+## Anatomía de Mike en Medicina · 27/11/2026
+
+Retocada la máscara de los ocho dibujos con una tercera pierna, con los demás dibujos del catálogo idénticos. [Comparativas nativas](output/loading-anatomy-20261127/index.html).
+
+## Apoyos de las pantallas de carga Godot · 27/11/2026
+
+Las 18 habilidades se revisaron con Mike, Mía y Trinity. Godot corrige el salto adelantado, las patas del mobiliario sobre el fondo y las sombras descentradas. Se conservaron los 712 dibujos del atlas. [Ficha](docs/evidence/GODOT_SKILL_LOADING_20261114.md#apoyos-y-fotogramas--27112026) · [Galería y comparativas](output/loading-contact-20261127/index.html).
+
 ## Agua e interacciones del Pecio — 26/11/2026
 
 Mía, Mike y Trinity pueden alternar natación e inmersión en mar abierto, con respiración por CON, emisión independiente de estela y burbujas, y humedad dependiente del contacto y el clima. C9 usa sus salidas y bolsas de aire existentes. Las cuatro acciones con objetos se orientan hacia el punto de interacción. [Ficha del agua](docs/evidence/STORMWRECK_AQUATIC_20261126.md) · [Visor y pruebas en el Pecio](output/stormwreck-aquatic/index.html).
 
 El 27/11 se refuerzan las burbujas y el goteo al pisar una superficie seca. Godot verificó 192 casos funcionales y 54 con render. [Antes y después](output/stormwreck-aquatic/vfx/index.html).
+
+La revisión de humedad añade ocho bandas de altura, goteo localizado y huellas que se secan en tiempo real según el clima y la hora. El Pecio pasó 199 comprobaciones funcionales y 20 en la escena con Forward+. [Visor](output/stormwreck-aquatic/wetness/index.html).
+
+La revisión posterior integra la humedad en una sola silueta en el Pecio. Aplica luz por zona a los doce personajes y criaturas, ajusta su sombra al suelo y añade charcos al goteo inicial. [Comparativas](output/stormwreck-aquatic/actor-light/index.html).
 
 ## Virajes y aterrizajes de las arpías — 26/11/2026
 

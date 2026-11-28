@@ -95,46 +95,66 @@ func _build_broken_hole() -> void:
 
 	var tilt_x := -atan(WreckStructure.LIST_SLOPE)
 
-	# Pozo oscuro irregular que simula el boquete abierto hacia la sentina C8
+	# Boquete orgánico a ras de entarimado (sin cilindro negro elevado que entierre las astillas)
 	var pit := MeshInstance3D.new()
 	pit.name = "HolePit"
-	var pc := CylinderMesh.new()
-	pc.top_radius = 0.66
-	pc.bottom_radius = 0.60
-	pc.height = 0.05
-	pc.radial_segments = 10
-	pit.mesh = pc
+	var pq := QuadMesh.new()
+	pq.size = Vector2(1.48, 0.96)
+	pq.orientation = PlaneMesh.FACE_Y
+	pit.mesh = pq
+	var grad := Gradient.new()
+	grad.offsets = PackedFloat32Array([0.0, 0.56, 0.80, 1.0])
+	grad.colors = PackedColorArray([
+		Color(0.02, 0.04, 0.05, 0.97),
+		Color(0.05, 0.07, 0.08, 0.92),
+		Color(0.14, 0.11, 0.08, 0.52),
+		Color(0.18, 0.14, 0.10, 0.0),
+	])
+	var gtex := GradientTexture2D.new()
+	gtex.width = 64
+	gtex.height = 64
+	gtex.fill = GradientTexture2D.FILL_RADIAL
+	gtex.fill_from = Vector2(0.5, 0.5)
+	gtex.fill_to = Vector2(0.98, 0.5)
+	gtex.gradient = grad
 	var mat_pit := StandardMaterial3D.new()
-	mat_pit.albedo_color = Color("#05090b")
-	mat_pit.roughness = 0.99
-	mat_pit.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat_pit.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat_pit.albedo_texture = gtex
+	mat_pit.albedo_color = Color.WHITE
+	mat_pit.roughness = 0.98
+	mat_pit.metallic_specular = 0.04
 	pit.material_override = mat_pit
 	pit.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	pit.position = Vector3(0.0, 0.014, 0.0)
-	pit.scale = Vector3(1.18, 1.0, 0.88)
+	pit.position = Vector3(0.0, 0.008, 0.0)
 	pit.rotation.x = tilt_x
 	broken_visual.add_child(pit)
 
-	# Dientes de tablas partidas y astillas de roble dobladas hacia dentro del boquete
-	var mat_splint := PbrMaterialKit.create_wood_shaving_pbr("#6d573a")
-	var mat_dark_rim := PbrMaterialKit.create_weathered_hull_pbr("#261d14")
+	# Tablones longitudinales quebrados (eje X proa-popa) y astillas de roble visibles SOBRE el vano
+	var mat_splint := PbrMaterialKit.create_wood_shaving_pbr("#7a6244")
+	var mat_dark_rim := PbrMaterialKit.create_weathered_hull_pbr("#3c2e20")
 	var st_splint := ShipGeometry.begin(mat_splint)
 	var st_rim := ShipGeometry.begin(mat_dark_rim)
-	var sides := 10
-	for i in range(sides):
-		var a0 := TAU * float(i) / float(sides)
-		var a1 := TAU * float(i + 1) / float(sides)
-		var r0 := 0.72 + sin(float(i) * 2.9) * 0.11
-		var r1 := 0.72 + sin(float((i + 1) % sides) * 2.9) * 0.11
-		var p0 := Vector3(cos(a0) * r0 * 1.12, 0.032, sin(a0) * r0 * 0.86)
-		var p1 := Vector3(cos(a1) * r1 * 1.12, 0.032, sin(a1) * r1 * 0.86)
-		ShipGeometry.beam(st_rim, p0, p1, 0.12, 0.055)
-		var mid := (p0 + p1) * 0.5
-		var inward := Vector3(-mid.x, -0.35, -mid.z).normalized()
-		var tooth_len := 0.22 + float((i * 5) % 3) * 0.08
-		ShipGeometry.beam(st_splint, mid + Vector3(0.0, 0.02, 0.0), mid + inward * tooth_len, 0.11, 0.035, 0.20)
-	ShipGeometry.commit(broken_visual, "HoleSplinters", st_splint)
-	ShipGeometry.commit(broken_visual, "HoleRim", st_rim)
+	var plank_lanes: Array[float] = [-0.30, -0.15, 0.0, 0.15, 0.30]
+	for li in range(plank_lanes.size()):
+		var lz: float = plank_lanes[li]
+		var span_x: float = 0.56 - absf(lz) * 0.48 + float((li * 3) % 2) * 0.07
+		for side_s: float in [-1.0, 1.0]:
+			var outer_x: float = side_s * (span_x + 0.18)
+			var snap_x: float = side_s * span_x
+			var p_outer := Vector3(outer_x, 0.016, lz)
+			var p_snap := Vector3(snap_x, 0.014, lz)
+			ShipGeometry.beam(st_rim, p_outer, p_snap, 0.135, 0.024)
+			var tip_x: float = snap_x - side_s * (0.20 + float((li + int(side_s > 0.0)) % 3) * 0.06)
+			var tip_z: float = lz + sin(float(li) * 2.1 + side_s) * 0.03
+			ShipGeometry.beam(st_splint, p_snap + Vector3(0.0, 0.008, 0.0), Vector3(tip_x, 0.009, tip_z), 0.095, 0.018, 0.18)
+	for side_z in [-0.41, 0.41]:
+		ShipGeometry.beam(st_rim, Vector3(-0.46, 0.014, side_z), Vector3(0.46, 0.014, side_z), 0.08, 0.020)
+	var splinters_node := ShipGeometry.commit(broken_visual, "HoleSplinters", st_splint)
+	var rim_node := ShipGeometry.commit(broken_visual, "HoleRim", st_rim)
+	if splinters_node:
+		splinters_node.rotation.x = tilt_x
+	if rim_node:
+		rim_node.rotation.x = tilt_x
 
 func _build_trigger() -> void:
 	trigger_area = Area3D.new()

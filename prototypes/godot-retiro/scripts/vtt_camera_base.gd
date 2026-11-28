@@ -125,6 +125,15 @@ func _keep_target_visible() -> void:
 func _build_overview_envelope_points() -> void:
 	_overview_points = [Vector3(-34,-7,-12),Vector3(34,24,12)]
 
+func _is_pointer_over_ui() -> bool:
+	var vp := get_viewport()
+	if vp == null:
+		return false
+	var hov := vp.gui_get_hovered_control()
+	if hov == null:
+		return false
+	return hov.name not in ["VttUiRoot", "PlayerHudRoot", "DmHudRoot", "ProjectorHudRoot", "NativeCombatUi", "CombatActionWheel", "CharacterSheetHost"]
+
 func _unhandled_input(event: InputEvent) -> void:
 	if camera_role == "projector":
 		return
@@ -133,9 +142,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	# 1. Rueda del ratón y paneo manual con MMB/RMB
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.is_pressed():
+			if _is_pointer_over_ui():
+				return
 			zoom_camera_step(-2.4)
 			get_viewport().set_input_as_handled()
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.is_pressed():
+			if _is_pointer_over_ui():
+				return
 			zoom_camera_step(+2.4)
 			get_viewport().set_input_as_handled()
 		elif event.button_index == MOUSE_BUTTON_MIDDLE:

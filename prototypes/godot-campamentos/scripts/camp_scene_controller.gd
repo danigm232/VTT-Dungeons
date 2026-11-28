@@ -59,9 +59,20 @@ func _begin_camp_setup() -> Dictionary:
 
 	rest_phase = "day" if resolved_id == "camp-a1-rooms" else "dusk"
 	var bounds := Structure.get_map_bounds(scene_def)
+	var base_w := float(scene_def.get("cols", 25)) * Structure.TILE_METERS
+	var base_d := float(scene_def.get("rows", 22)) * Structure.TILE_METERS
 	if resolved_id == "camp-forest-pleamar":
 		# Widen exploration bounds to match extended tactical grid & Pleamar trails (#1, #2)
-		bounds = Rect2(-24.0, -36.0, float(scene_def.get("cols", 25)) * Structure.TILE_METERS + 30.0, float(scene_def.get("rows", 22)) * Structure.TILE_METERS + 72.0)
+		bounds = Rect2(-24.0, -36.0, base_w + 30.0, base_d + 72.0)
+	elif resolved_id == "camp-coastal-refuge":
+		# Include western scenic coastal trail AND full swimmable/diveable turquoise cove out to the reef arc!
+		bounds = Rect2(-15.5, 1.0, base_w + 17.5, base_d + 21.5)
+	elif resolved_id == "camp-wreck-beach":
+		# Include full beach shoreline AND swimmable/diveable reef bay out around the offshore shipwreck!
+		bounds = Rect2(0.5, 1.0, base_w + 5.5, base_d + 21.5)
+	elif resolved_id == "camp-cliffs-observatory":
+		# Include SW Retiro arrival stairs & northern Observatory bridge threshold!
+		bounds = Rect2(-9.5, -3.5, base_w + 10.0, base_d + 4.0)
 	set_meta("map_bounds_xz", bounds)
 	set_meta("camp_scene_id", resolved_id)
 
@@ -243,6 +254,8 @@ func _place_party_tokens() -> void:
 			continue
 		var s_cell: Dictionary = spawns[i % maxi(1, spawns.size())] if not spawns.is_empty() else {"col": 12 + i * 2, "row": 14}
 		tok.global_position = Vector3((float(s_cell["col"]) + 0.5) * tile, 0.05, (float(s_cell["row"]) + 0.5) * tile)
+		if "current_zone" in tok:
+			tok.current_zone = Structure.get_zone_at(tok.global_position, camp_scene_id)
 		if "camera" in tok:
 			tok.camera = camera
 		if tok.has_signal("rest_released"):
@@ -334,22 +347,26 @@ func _sync_party_ambient_lights() -> void:
 func _input(event: InputEvent) -> void:
 	if not (event is InputEventKey):
 		return
+	var Prefs = preload("res://player/player_preferences.gd")
+	if Prefs.is_capturing_key():
+		return
 	var kev := event as InputEventKey
 	if not kev.is_pressed() or kev.is_echo() or kev.ctrl_pressed or kev.alt_pressed or kev.meta_pressed:
 		return
 	if not _should_handle_party_hotkey():
 		return
 	var vp := get_viewport()
-	if kev.keycode in [KEY_1, KEY_KP_1] or kev.physical_keycode == KEY_1:
+	var kc := kev.keycode
+	if Prefs.matches_key("party_1", kc) or kc == KEY_KP_1 or (Prefs.keycode_for("party_1") == KEY_1 and kev.physical_keycode == KEY_1):
 		if select_party_member_by_slot(1, true) and vp:
 			vp.set_input_as_handled()
-	elif kev.keycode in [KEY_2, KEY_KP_2] or kev.physical_keycode == KEY_2:
+	elif Prefs.matches_key("party_2", kc) or kc == KEY_KP_2 or (Prefs.keycode_for("party_2") == KEY_2 and kev.physical_keycode == KEY_2):
 		if select_party_member_by_slot(2, true) and vp:
 			vp.set_input_as_handled()
-	elif kev.keycode in [KEY_3, KEY_KP_3] or kev.physical_keycode == KEY_3:
+	elif Prefs.matches_key("party_3", kc) or kc == KEY_KP_3 or (Prefs.keycode_for("party_3") == KEY_3 and kev.physical_keycode == KEY_3):
 		if select_party_member_by_slot(3, true) and vp:
 			vp.set_input_as_handled()
-	elif kev.keycode == KEY_TAB:
+	elif Prefs.matches_key("party_next", kc):
 		cycle_party_member_hotkeys(true)
 		if vp:
 			vp.set_input_as_handled()
@@ -525,7 +542,7 @@ func perform_camp_activity(activity_id: String, pt: Dictionary = {}) -> void:
 
 	match activity_id:
 		"fire-toggle":
-			if tok and tok.has_method("play_action_animation"): tok.play_action_animation("interact")
+			if tok and tok.has_method("play_action_animation"): tok.play_action_animation("crouch_work", 0.78)
 			var nxt := not (fx.campfire_lit if fx else false)
 			if fx: fx.set_campfire_lit(nxt, true)
 			msg = "Enciendes la hoguera con pedernal y yesca." if nxt else "Apagas las brasas y cubres la hoguera con tierra y ceniza."
@@ -534,23 +551,27 @@ func perform_camp_activity(activity_id: String, pt: Dictionary = {}) -> void:
 			if fx:
 				fx.set_campfire_fuel(fire_fuel)
 				fx.stoke_campfire(16.0)
-			if tok and tok.has_method("play_action_animation"): tok.play_action_animation("interact")
+			if tok and tok.has_method("play_action_animation"): tok.play_action_animation("crouch_work", 0.78)
 			msg = "Avivas la hoguera con leña seca: suben las llamas y el humo (%d%% de brasa)." % roundi(fire_fuel * 100.0)
 		"warm":
 			if fx and not fx.campfire_lit:
 				fx.set_campfire_lit(true, true)
-			if tok and tok.has_method("set_stance"): tok.set_stance("sit")
-			msg = "Te sientas junto a las brasas para calentarte."
+			if tok and bool(tok.get("is_sitting")):
+				if tok.has_method("play_action_animation"): tok.play_action_animation("pray", 0.85)
+				msg = "Acerca las manos al calor de las brasas."
+			else:
+				if tok and tok.has_method("set_stance"): tok.set_stance("sit")
+				msg = "Te sientas junto a las brasas para calentarte."
 		"cook":
 			if fx:
 				fx.start_kettle_cooking(45.0)
-			if tok and tok.has_method("play_action_animation"): tok.play_action_animation("interact")
+			if tok and tok.has_method("play_action_animation"): tok.play_action_animation("crouch_work", 0.78)
 			msg = "Pones a cocer el guiso en el caldero: el caldo empieza a hervir con burbujas y vapor."
 		"prepare-bed":
 			if _bed_is_occupied(pid):
 				role_ui.notify_mesa("El lecho está ocupado.")
 				return
-			if tok and tok.has_method("play_action_animation"): tok.play_action_animation("interact")
+			if tok and tok.has_method("play_action_animation"): tok.play_action_animation("crouch_work", 0.78)
 			if outdoor_builder and pid != "" and outdoor_builder.bedrolls.has(pid):
 				var cur := str(outdoor_builder.bedrolls[pid].get("state", "prepared"))
 				var nxt := "rolled" if cur != "rolled" else "prepared"
@@ -578,7 +599,7 @@ func perform_camp_activity(activity_id: String, pt: Dictionary = {}) -> void:
 			if tok and tok.has_method("set_stance"): tok.set_stance("sit")
 			msg = "Te levantas." if was_sitting else "Descansas en %s." % str(point_info.get("label", "el campamento"))
 		"chest-toggle":
-			if tok and tok.has_method("play_action_animation"): tok.play_action_animation("interact")
+			if tok and tok.has_method("play_action_animation"): tok.play_action_animation("crouch_work", 0.76)
 			if outdoor_builder and pid != "" and outdoor_builder.has_method("toggle_chest"):
 				var opened := outdoor_builder.toggle_chest(pid)
 				var noun := "Baúl" if camp_scene_id == "camp-a1-rooms" else "Mochila"
@@ -597,10 +618,13 @@ func perform_camp_activity(activity_id: String, pt: Dictionary = {}) -> void:
 				if tok and tok.has_method("play_action_animation"): tok.play_action_animation("interact")
 				msg = "Buscas abrigo en el refugio natural."
 		"guard":
-			if tok and tok.has_method("play_action_animation"): tok.play_action_animation("interact")
+			if tok and tok.has_method("play_action_animation"): tok.play_action_animation("combat_idle", 0.90)
 			msg = "Asumes el turno de guardia y vigilas los accesos."
-		"study", "pray", "tools":
-			if tok and tok.has_method("play_action_animation"): tok.play_action_animation("interact")
+		"pray":
+			if tok and tok.has_method("play_action_animation"): tok.play_action_animation("pray", 0.88)
+			msg = str(point_info.get("description", "Elevas una plegaria serena en el campamento."))
+		"study", "tools":
+			if tok and tok.has_method("play_action_animation"): tok.play_action_animation("crouch_work", 0.78)
 			msg = str(point_info.get("description", "Dedicas unos minutos a tu equipo personal."))
 		"short-rest":
 			var sr_res := perform_camp_rest("short-rest")

@@ -84,6 +84,81 @@ func build_for_scene(scene_def: Dictionary) -> void:
 							cp.y = float(ob.call("eval_ground_height", cp.x, cp.z))
 							sq_t.corners[ci] = cp
 					source.append(sq_t)
+		# Shallow wadeable cove shoreline tiles connecting the sandy cove cleanly into the water
+		for r_sh in range(19, 24):
+			for c_sh in range(3, 22):
+				var ks := Vector2i(c_sh, r_sh)
+				if seen.has(ks):
+					continue
+				if is_instance_valid(ob) and ob.has_method("eval_ground_height"):
+					var wx_s := (float(c_sh) + 0.5) * TILE
+					var wz_s := (float(r_sh) + 0.5) * TILE
+					var gy_s := float(ob.call("eval_ground_height", wx_s, wz_s))
+					if gy_s >= -0.72 and gy_s <= 0.12:
+						seen[ks] = true
+						var sq_s := square(ks.x, ks.y)
+						sq_s["is_shallow_water"] = gy_s < -0.16
+						for ci in range(4):
+							var cp: Vector3 = sq_s.corners[ci]
+							cp.y = float(ob.call("eval_ground_height", cp.x, cp.z))
+							sq_s.corners[ci] = cp
+						source.append(sq_s)
+	elif sid == "camp-wreck-beach":
+		var ob_b := get_parent().get_node_or_null("CampOutdoorBuilder") if get_parent() else null
+		if ob_b == null and get_parent() and "outdoor_builder" in get_parent():
+			ob_b = get_parent().get("outdoor_builder")
+		for r_sh in range(15, 22):
+			for c_sh in range(2, 24):
+				var kb := Vector2i(c_sh, r_sh)
+				if seen.has(kb):
+					continue
+				if is_instance_valid(ob_b) and ob_b.has_method("eval_ground_height"):
+					var wx_b := (float(c_sh) + 0.5) * TILE
+					var wz_b := (float(r_sh) + 0.5) * TILE
+					var gy_b := float(ob_b.call("eval_ground_height", wx_b, wz_b))
+					if gy_b >= -0.72 and gy_b <= 0.12:
+						seen[kb] = true
+						var sq_b := square(kb.x, kb.y)
+						sq_b["is_shallow_water"] = gy_b < -0.16
+						for ci in range(4):
+							var cp: Vector3 = sq_b.corners[ci]
+							cp.y = float(ob_b.call("eval_ground_height", cp.x, cp.z))
+							sq_b.corners[ci] = cp
+						source.append(sq_b)
+	elif sid == "camp-cliffs-observatory":
+		# Extended sloped walkable grid along the SW Retiro arrival staircase & N Observatory bridge threshold (Option A!)
+		var ob_c := get_parent().get_node_or_null("OutdoorCampWorld") if get_parent() else null
+		if ob_c == null and get_parent() and "outdoor_builder" in get_parent():
+			ob_c = get_parent().get("outdoor_builder")
+		for c_a in range(-6, 4):
+			var xa := (float(c_a) + 0.5) * TILE
+			var u_a := clampf((xa - (-22.0)) / 28.0, 0.0, 1.0)
+			var su_a := u_a * u_a * (3.0 - 2.0 * u_a)
+			var tza := lerpf(32.5, 20.6, su_a) + sin(u_a * PI * 1.4) * 1.65
+			var ra_c := int(round(tza / TILE))
+			for dr in range(-1, 2):
+				var ka := Vector2i(c_a, ra_c + dr)
+				if not seen.has(ka):
+					seen[ka] = true
+					var sq_a := square(ka.x, ka.y)
+					if is_instance_valid(ob_c) and ob_c.has_method("eval_ground_height"):
+						for ci in range(4):
+							var cp: Vector3 = sq_a.corners[ci]
+							cp.y = float(ob_c.call("eval_ground_height", cp.x, cp.z))
+							sq_a.corners[ci] = cp
+					source.append(sq_a)
+		for r_b in range(-2, 2):
+			for c_b in [12, 13]:
+				var kb := Vector2i(c_b, r_b)
+				if not seen.has(kb):
+					seen[kb] = true
+					var sq_b := square(kb.x, kb.y)
+					var bridge_y := lerpf(0.06, 0.42, clampf((3.0 - (float(r_b) + 0.5) * TILE) / 5.5, 0.0, 1.0))
+					for ci in range(4):
+						var cpb: Vector3 = sq_b.corners[ci]
+						cpb.y = bridge_y
+						sq_b.corners[ci] = cpb
+					source.append(sq_b)
 	configure(source)
 
 func _rebuild(version: int) -> void:

@@ -32,3 +32,36 @@ La revisión `70a4d9f6…` pasó 186 comprobaciones funcionales y 46 con render 
 Los efectos reutilizan las 144 secuencias existentes. Referencias de acabado REF-01 y REF-07, con revisión VA-07, VA-10 y VA-14. La comparativa conserva personaje, cámara, clima y estado equivalente. [Comparación en Godot y registro](../../output/stormwreck-aquatic/vfx/index.html).
 
 Pruebas de esta pasada. 192 comprobaciones funcionales y 54 con render Forward+. Se verifican la emisión bajo el agua en modo reducido, el goteo al volver a cubierta, su retirada al sumergirse y la reutilización de recursos entre héroes. Prueba física en móvil pendiente.
+
+## Humedad por altura y huellas
+
+Mía, Mike y Trinity acumulan humedad en ocho bandas que se secan por separado. Un vadeo afecta a las bandas bajas. Nadar en superficie moja la ropa hasta los hombros. Una inmersión satura también la cabeza. Volver a una zona somera conserva la humedad previa de la parte alta hasta que se seca. La lluvia humedece primero la parte superior de los héroes expuestos.
+
+| Elemento | Archivo propietario | Base y candidato | Revisión |
+| --- | --- | --- | --- |
+| `CharacterVisual/BodyStateSurface` | `characters/body_surface.gd`, `characters/body_effects.gdshader` | El tinte uniforme de la ficha pasa a un sombreado con reflejos en las bandas mojadas. El material usa el alfa y el encuadre del fotograma vigente y compone los estados de combate sobre la humedad. | VA-03/10/14, REF-01 y REF-07. |
+| `C8_FloodWater` | `scripts/wreck_structure.gd`, `scripts/interiors_builder.gd`, `scripts/player_token.gd` | La profundidad usaba un tope de 0,55 m. Ahora se calcula hasta la cota existente del agua dentro de su contorno. Las salpicaduras salen a esa altura. | VA-07/14, REF-07. |
+| `AquaticEffects/Goteo` | `scripts/aquatic_vfx.gd` | El emisor fijo al 59 % de la talla pasa a la zona más alta que se mojó, con duración e intensidad según la saturación. | VA-07/10, REF-07. |
+| `WetFootprints` | `scripts/wet_footprints.gd`, `shaders/wet_footprint.gdshader` | Se reutiliza la forma de suela del Retiro en un material procedural compartido. Los pasos apoyados alternan pies, consultan la normal del suelo y agotan su humedad con el clima actual. Cada héroe usa un lote de hasta 24 marcas, creado en su primer paso mojado. | VA-07/14, REF-07. |
+| Indicador de humedad | `scripts/vtt_player_hud.gd` | El indicador general distingue botas, piernas, ropa y cuerpo empapado. El aire conserva prioridad durante el buceo. | VA-14. |
+
+La humedad es ambiental. Las definiciones de anatomía, escala, sprites y equipamiento pintado conservan la revisión `70a4d9f6…`. El secado afecta a la ropa y a las huellas. Unas botas saturadas dejan huellas durante más tiempo. Como referencia, una marca saturada se seca en unos 23 s al mediodía despejado y tarda más con niebla, lluvia o de noche.
+
+Pasaron 199 comprobaciones funcionales y 20 en Godot Forward+. Las comparativas de profundidad usan la pose fija de Mía en C1 y la misma cámara y luz. La secuencia de huellas se obtuvo caminando por la cubierta con el controlador del juego. Las pruebas verifican que el clima cambia el ritmo de marcas ya depositadas y que el lote deja de actualizarse tras secarse. Queda pendiente la prueba física en móvil. [Visor](../../output/stormwreck-aquatic/wetness/index.html) · [Originales y hashes](../../output/stormwreck-aquatic/wetness/capture-register.json).
+
+## Silueta mojada, luz y sombras en el Pecio
+
+La capa corporal mojada dibujaba una segunda silueta separada 8 mm del original. El reflejo claro hacía visible la separación. Además, los sprites estaban en la capa 128 y el sol iluminaba la capa 1. La sombra del sprite estaba desactivada y el contacto se dibujaba a una altura fija a partir de la ficha.
+
+| Elemento | Archivo propietario | Candidato | Revisión |
+| --- | --- | --- | --- |
+| `Sprite3D` de personajes y criaturas | `scripts/player_token.gd`, `shaders/actor_surface.gdshader` | Las ocho bandas de humedad ajustan el color y la rugosidad en el material del sprite. El recorte se obtiene del mismo alfa que define el cuerpo. La mascarilla de estados sigue en su capa habitual. | VA-03/10/14, REF-01/07. |
+| `ShipEnvironment` | `scripts/ship_environment.gd` | Los doce tokens de jugador y criatura se registran por tipo. Cada sprite recibe la luz de su compartimento o la de cubierta. El relleno de cubierta depende de hora y clima. Camarotes, sentina y bodega conservan distintas intensidades. | VA-10/11/12, REF-01. |
+| `ContactShadow` y proyección de `Sprite3D` | `scripts/player_token.gd`, `scripts/token_floor.gd`, `shaders/actor_contact_shadow.gdshader` | El contacto se apoya en el suelo físico y pierde fuerza al elevarse. El sprite vuelve a intervenir en la pasada de sombras de las luces de la escena, recortado por el alfa de la pose. | VA-07/11, REF-01/07. |
+| `WetFootprints` y `AquaticEffects/Goteo` | `scripts/wet_footprints.gd`, `shaders/wet_footprint.gdshader`, `scripts/aquatic_vfx.gd` | Aparece un charco al tocar suelo tras salir bastante mojado. Durante los primeros 2,2 s se pueden depositar hasta tres en total, incluidos los que quedan atrás al caminar. Comparten lote con las huellas, ajustan el secado al clima y siguen la superficie. Las gotas se reducen de tamaño. | VA-07/15/16, REF-07. |
+
+El material reutiliza las coordenadas del fotograma que suministra Sprite3D, incluidas las de una región de atlas. Usa la orientación de la cámara principal en la pasada de sombras. [Código de Sprite3D](https://github.com/godotengine/godot/blob/master/scene/3d/sprite_3d.cpp) · [Referencia de shaders espaciales](https://docs.godotengine.org/en/stable/tutorials/shaders/shader_reference/spatial_shader.html).
+
+Las capturas corresponden a la escena jugable. Incluyen cubierta despejada, ocaso, tormenta nocturna, C4, C8 y C9 con y sin farol. El registro enlaza los originales de la revisión anterior que se usan para Mía. [Visor](../../output/stormwreck-aquatic/actor-light/index.html) · [Registro de capturas](../../output/stormwreck-aquatic/actor-light/capture-register.json).
+
+Pasaron 38 comprobaciones en la escena con Forward+, 2.239 de entorno y 199 de agua. Las comparativas de sombra conmutan cada tipo por separado sobre la misma escena. En la prueba de salida hay charco antes del primer paso, aparecen huellas y más gotas en el primer tramo y las marcas desaparecen al secarse. La prueba física en móvil sigue pendiente.

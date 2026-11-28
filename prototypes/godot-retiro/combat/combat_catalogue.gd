@@ -92,22 +92,21 @@ static func actions(id: String) -> Array:
 static func icon(id: String) -> Texture2D:
 	var key := id.trim_suffix("-exploration")
 	key={
-		"weapons":"attacks","cantrips":"fire-bolt","spells":"spells","other":"actions",
-		"explore":"search","withdraw":"dash","shove":"shove-action",
-		"talk":"message","torch":"light","sit":"tiny-hut","prone":"feign-death","stealth":"hide",
-		"channel-life":"cure-wounds","stabilize":"cure-wounds","short-rest":"catnap",
+		"weapons":"attacks","cantrips":"cat-cantrips","spells":"spells","other":"actions",
+		"explore":"cat-explore","withdraw":"withdraw","shove":"shove-action",
+		"talk":"message","torch":"light","sit":"sit","prone":"feign-death","stealth":"stealth",
+		"channel-life":"channel-life","stabilize":"stabilize","short-rest":"catnap",
 		"pick-lock":"pick-lock","disarm-trap":"disarm-trap",
 		"climb":"climb","swim":"swim","jump":"jump","drink-potion":"drink-potion",
 		"end-turn":"end-turn","end-concentration":"dispel-magic"
 	}.get(key,key)
 	var icons: Dictionary=load_data().get("icons",{})
-	if not icons.has(key):
-		var direct := "res://combat/icons/%s.svg" % key
-		if FileAccess.file_exists(direct):
-			icons = icons.duplicate()
-			icons[key] = direct
-		else:
-			key="actions" if (key in BASIC or key in ["talk","torch","sit","prone","stealth"]) else "spells"
+	var direct := "res://combat/icons/%s.svg" % key
+	if FileAccess.file_exists(direct):
+		icons = icons.duplicate()
+		icons[key] = direct
+	elif not icons.has(key):
+		key="actions" if (key in BASIC or key in ["talk","torch","sit","prone","stealth"]) else "spells"
 	if textures.has(key): return textures[key]
 	var path: String=icons.get(key,"")
 	if path.is_empty() or not FileAccess.file_exists(path): return null

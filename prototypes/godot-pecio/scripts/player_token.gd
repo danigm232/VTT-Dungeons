@@ -18,6 +18,10 @@ const HARPY_ARRIVAL_LIFT := 0.38
 const OceanWaves = preload("res://scripts/ocean_waves.gd")
 const WreckStructure = preload("res://scripts/wreck_structure.gd")
 const PecioSfxKit = preload("res://scripts/pecio_sfx_kit.gd")
+const SpriteAnchors = preload("res://characters/anchors.gd")
+const FloorSupport = preload("res://scripts/token_floor.gd")
+
+static var _contact_mesh: PlaneMesh
 
 @export var token_name: String = "Hero"
 @export var token_texture: Texture2D
@@ -40,6 +44,14 @@ var torch_sparks: GPUParticles3D
 var torch_prop: Node3D
 var torch_flame_mesh: MeshInstance3D
 var contact_shadow: MeshInstance3D
+var sprite_material: ShaderMaterial
+var _wet_bounds_texture: Texture2D
+var _last_wet_lower := Vector4.ZERO
+var _last_wet_upper := Vector4.ZERO
+var _fill_color := Color.WHITE
+var _fill_energy := 0.20
+var _shadow_probe_delay := 0.0
+var _shadow_floor_height := 0.0
 var selection_ring: MeshInstance3D
 var action_vfx_sprite: Sprite3D
 var wade_splash_particles: GPUParticles3D
@@ -80,9 +92,11 @@ var current_boat: Node3D = null
 var swim_time: float = 0.0
 const AquaticState = preload("res://scripts/aquatic_state.gd")
 const AquaticEffects = preload("res://scripts/aquatic_vfx.gd")
+const WetFootprints = preload("res://scripts/wet_footprints.gd")
 const CharacterRegistry = preload("res://characters/registry.gd")
 var aquatic := AquaticState.new()
 var aquatic_effects: Node3D
+var wet_footprints: WetFootprints
 var _aquatic_environment: Node
 var _suffocation_speed_factor := 1.0
 var _sea_current_notice_cd := 0.0
@@ -130,6 +144,9 @@ func _ready() -> void:
 		aquatic_effects = AquaticEffects.new()
 		aquatic_effects.name = "AquaticEffects"
 		add_child(aquatic_effects)
+		wet_footprints = WetFootprints.new()
+		wet_footprints.name = "WetFootprints"
+		add_child(wet_footprints)
 	if has_carried_light and not is_npc:
 		build_carried_lantern()
 
@@ -152,11 +169,17 @@ func setup_sprite_visuals() -> void:
 	sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
 	sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
-	sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_DOUBLE_SIDED
 	sprite.render_priority = 10
+	sprite.shaded = true
+	sprite_material = ShaderMaterial.new()
+	sprite_material.shader = preload("res://shaders/actor_surface.gdshader")
+	sprite.material_override = sprite_material
+	sprite.texture_changed.connect(_sync_sprite_texture)
 
 	if sprite.texture == null and token_texture:
 		sprite.texture = token_texture
+	_sync_sprite_texture()
 
 	if collision:
 		# An instanced PackedScene shares subresources unless explicitly isolated.
@@ -178,6 +201,42 @@ func set_texture(new_tex: Texture2D) -> void:
 	if sprite:
 		sprite.texture = new_tex
 		_update_sprite_scale_from_tex(new_tex, 1.0)
+
+func _sync_sprite_texture() -> void:
+	var image := sprite.texture
+	if not image:
+		return
+	var atlas := image as AtlasTexture
+	var region := Vector4(0, 0, 1, 1)
+	if atlas:
+		image = atlas.atlas
+		var rect := atlas.region
+		var size := Vector2(image.get_size())
+		region = Vector4(rect.position.x / size.x, rect.position.y / size.y, rect.size.x / size.x, rect.size.y / size.y)
+	sprite_material.set_shader_parameter("frame_texture", image)
+	sprite_material.set_shader_parameter("frame_region", region)
+
+func _sync_sprite_wetness() -> void:
+	if aquatic.wetness > 0.005 and sprite.texture != _wet_bounds_texture:
+		_wet_bounds_texture = sprite.texture
+		var bounds := SpriteAnchors.frame_bounds(_wet_bounds_texture)
+		sprite_material.set_shader_parameter("silhouette", Vector4(bounds.position.x, bounds.position.y, bounds.size.x, bounds.size.y))
+	if aquatic.wet_lower != _last_wet_lower:
+		_last_wet_lower = aquatic.wet_lower
+		sprite_material.set_shader_parameter("wet_lower", _last_wet_lower)
+	if aquatic.wet_upper != _last_wet_upper:
+		_last_wet_upper = aquatic.wet_upper
+		sprite_material.set_shader_parameter("wet_upper", _last_wet_upper)
+
+func set_area_lighting(room: int, color: Color, energy: float) -> void:
+	if sprite.layers != room:
+		sprite.layers = room
+	if _fill_color != color:
+		_fill_color = color
+		sprite_material.set_shader_parameter("bounce_color", color)
+	if not is_equal_approx(_fill_energy, energy):
+		_fill_energy = energy
+		sprite_material.set_shader_parameter("bounce_energy", energy)
 
 func set_active(active: bool) -> void:
 	is_active_player = active
@@ -297,6 +356,9 @@ func _start_jump() -> void:
 	_resolve_and_apply_clip("jump", facing_dir, true)
 
 func _unhandled_input(event: InputEvent) -> void:
+	var Prefs = preload("res://player/player_preferences.gd")
+	if Prefs.is_capturing_key():
+		return
 	var combat=get_meta("combat_controller") if has_meta("combat_controller") else null
 	if combat and event is InputEventKey and event.pressed and combat.shortcut(self,event.keycode):
 		get_viewport().set_input_as_handled()
@@ -307,31 +369,32 @@ func _unhandled_input(event: InputEvent) -> void:
 		var kev := event as InputEventKey
 		if kev.alt_pressed or kev.meta_pressed:
 			return
-		if kev.ctrl_pressed and kev.keycode != KEY_CTRL:
+		var kc := kev.keycode
+		var is_stealth_key: bool = Prefs.matches_key("stealth", kc)
+		if kev.ctrl_pressed and not is_stealth_key:
 			return
-		match kev.keycode:
-			KEY_J:
-				_start_jump()
-				get_viewport().set_input_as_handled()
-			KEY_K:
-				play_action_animation("attack", 0.56)
-				get_viewport().set_input_as_handled()
-			KEY_L:
-				var rng_state := "attack_arrow" if char_key == "rogue" else "spell"
-				play_action_animation(rng_state, 0.65)
-				get_viewport().set_input_as_handled()
-			KEY_H:
-				play_action_animation("hit", 0.45)
-				get_viewport().set_input_as_handled()
-			KEY_CTRL:
-				set_stance("stealth")
-				get_viewport().set_input_as_handled()
-			KEY_Z:
-				set_stance("sit")
-				get_viewport().set_input_as_handled()
-			KEY_X:
-				set_stance("prone")
-				get_viewport().set_input_as_handled()
+		if Prefs.matches_key("jump", kc):
+			_start_jump()
+			get_viewport().set_input_as_handled()
+		elif Prefs.matches_key("actions_wheel", kc):
+			play_action_animation("attack", 0.56)
+			get_viewport().set_input_as_handled()
+		elif Prefs.matches_key("spells_wheel", kc):
+			var rng_state := "attack_arrow" if char_key == "rogue" else "spell"
+			play_action_animation(rng_state, 0.65)
+			get_viewport().set_input_as_handled()
+		elif Prefs.matches_key("hit_anim", kc):
+			play_action_animation("hit", 0.45)
+			get_viewport().set_input_as_handled()
+		elif is_stealth_key:
+			set_stance("stealth")
+			get_viewport().set_input_as_handled()
+		elif Prefs.matches_key("sit", kc):
+			set_stance("sit")
+			get_viewport().set_input_as_handled()
+		elif Prefs.matches_key("prone", kc):
+			set_stance("prone")
+			get_viewport().set_input_as_handled()
 
 func _dir_from_vector(v: Vector2) -> String:
 	var ang := atan2(v.y, v.x)
@@ -369,6 +432,7 @@ func _update_aquatic_breath(seconds: float, turn_ended := false) -> void:
 			combat.rules.set_suffocation_level(id, aquatic.suffocation_exhaustion)
 
 func _physics_process(delta: float) -> void:
+	_update_floor_shadow(delta)
 	var vessel := get_parent() as Node3D
 	var local_pos := vessel.to_local(global_position) if vessel else position
 	var beam_here := WreckStructure.get_beam_at(local_pos.x)
@@ -384,10 +448,12 @@ func _physics_process(delta: float) -> void:
 		if not is_instance_valid(_aquatic_environment):
 			_aquatic_environment = get_tree().root.find_child("VttRoleUi", true, false)
 		var climate: String = _aquatic_environment.get_env_weather() if _aquatic_environment else "clear"
-		var immersion := sea_y - global_position.y if in_open_ocean else 0.0
-		if in_shallow_water:
-			immersion = clampf(WreckStructure.SEA_HEIGHT - local_pos.y, 0.0, 0.55)
-		aquatic.sample(delta, in_open_ocean, in_c9_submerged, immersion, target_height, climate, inside_hull and local_pos.y < -0.7)
+		var daylight: String = _aquatic_environment.get_env_time() if _aquatic_environment else "day"
+		var depth := maxf(0.0, sea_y - global_position.y) if not in_boat and not inside_hull else 0.0
+		if in_shallow_water and local_pos.x >= WreckStructure.C8_FLOOD_START and local_pos.x <= WreckStructure.C8_FLOOD_END and absf(local_pos.z) <= beam_here * WreckStructure.C8_FLOOD_BEAM:
+			depth = maxf(0.0, WreckStructure.SEA_HEIGHT - local_pos.y)
+		aquatic.sample(delta, in_open_ocean, in_c9_submerged, depth, target_height, climate, inside_hull and local_pos.y < -0.7, daylight)
+		wet_footprints.set_climate(aquatic.drying_factor, delta)
 		_update_aquatic_breath(0.0)
 		if aquatic_effects:
 			var heading := Vector3(velocity.x, 0.0, velocity.z)
@@ -427,15 +493,17 @@ func _physics_process(delta: float) -> void:
 	is_sprinting = false
 	if not is_transitioning:
 		if input_dir == Vector2.ZERO and _camera_allows_keyboard() and not is_npc:
-			if Input.is_action_pressed("ui_right") or Input.is_key_pressed(KEY_D):
-				input_dir.x += 1.0
-			if Input.is_action_pressed("ui_left") or Input.is_key_pressed(KEY_A):
-				input_dir.x -= 1.0
-			if Input.is_action_pressed("ui_down") or Input.is_key_pressed(KEY_S):
-				input_dir.y += 1.0
-			if Input.is_action_pressed("ui_up") or Input.is_key_pressed(KEY_W):
-				input_dir.y -= 1.0
-			is_sprinting = Input.is_key_pressed(KEY_SHIFT)
+			var Prefs = preload("res://player/player_preferences.gd")
+			if not Prefs.is_capturing_key():
+				if Input.is_action_pressed("ui_right") or Prefs.is_held("move_right"):
+					input_dir.x += 1.0
+				if Input.is_action_pressed("ui_left") or Prefs.is_held("move_left"):
+					input_dir.x -= 1.0
+				if Input.is_action_pressed("ui_down") or Prefs.is_held("move_down"):
+					input_dir.y += 1.0
+				if Input.is_action_pressed("ui_up") or Prefs.is_held("move_up"):
+					input_dir.y -= 1.0
+				is_sprinting = Prefs.is_held("sprint")
 
 		input_dir = input_dir.normalized()
 		if action_lock_timer > 0.0 and action_anim_name in PROP_POSES:
@@ -540,6 +608,11 @@ func _physics_process(delta: float) -> void:
 		if global_position.y < -8.4:
 			global_position.y = -6.35 if inside_hull else (sea_y - 0.42)
 			velocity = Vector3.ZERO
+		if wet_footprints:
+			var dry_step := (is_on_floor() and not is_jumping and not is_transitioning and not is_prone
+				and not aquatic.in_water and aquatic.immersion <= AquaticState.MOISTURE_THRESHOLD)
+			wet_footprints.record_motion(self, before, aquatic.wet_lower.x, dry_step, target_height)
+			wet_footprints.record_dripping(self, dry_step, target_height)
 	else:
 		velocity = Vector3.ZERO
 		input_dir = Vector2.ZERO
@@ -967,10 +1040,9 @@ func _apply_procedural_motion(delta: float, input_dir: Vector2, state: String) -
 	sprite.rotation.z = rot_z
 	sprite.scale = Vector3(sx, sy, 1.0)
 	if has_meta("npc_condition_color"): mod = mod * get_meta("npc_condition_color")
-	if not is_npc:
-		var wet_color := Color.WHITE.lerp(Color(0.69, 0.79, 0.88), aquatic.wetness)
-		mod *= wet_color
 	sprite.modulate = mod
+	if not is_npc:
+		_sync_sprite_wetness()
 
 	# Ajustar sombra de contacto al salto, postura sentado o cuerpo a tierra
 	if contact_shadow:
@@ -983,11 +1055,11 @@ func _apply_procedural_motion(delta: float, input_dir: Vector2, state: String) -
 		var airborne := clampf(jump_y / maxf(jump_peak_height, 0.01), 0.0, 1.0)
 		if char_key == "harpy" and state in ["run", "fly"]:
 			airborne = 0.7
-		contact_shadow.scale = Vector3(alt_factor * state_shadow * stature_shadow, 1.0, alt_factor * state_shadow * stature_shadow)
-		var shadow_mat := contact_shadow.material_override as StandardMaterial3D
-		if shadow_mat:
-			# Cuanto más lejos del suelo, más tenue la sombra de contacto
-			shadow_mat.albedo_color.a = lerpf(1.0, 0.38, airborne)
+		var scale_on_floor := alt_factor * state_shadow * stature_shadow
+		contact_shadow.scale = Vector3(scale_on_floor, 1.0, scale_on_floor)
+		var lift := clampf(global_position.y - _shadow_floor_height + jump_y, 0.0, 4.0)
+		var shadow_strength := lerpf(.68, .12, maxf(airborne, lift / 4.0))
+		contact_shadow.set_instance_shader_parameter("strength", shadow_strength * sprite.modulate.a)
 	if selection_ring:
 		var m := selection_ring.material_override as StandardMaterial3D
 		if m:
@@ -1182,15 +1254,17 @@ func _update_wading_splash_vfx(delta: float) -> void:
 	if wade_ripple_rings.is_empty():
 		return
 	var horiz_speed := Vector2(velocity.x, velocity.z).length()
-	var wading_now := in_shallow_water and not in_boat and not is_transitioning and horiz_speed > 0.30
+	var touches_water := in_shallow_water and aquatic.immersion > AquaticState.MOISTURE_THRESHOLD
+	var wading_now := touches_water and not is_transitioning and horiz_speed > 0.30
 
 	if wade_splash_particles:
 		if wading_now:
+			wade_splash_particles.position.y = aquatic.immersion * target_height + 0.025
 			wade_splash_particles.visible = true
 			wade_splash_particles.emitting = true
 		elif wade_splash_particles.emitting:
 			wade_splash_particles.emitting = false
-			if not in_shallow_water:
+			if not touches_water:
 				wade_splash_particles.visible = false
 
 	_wade_ripple_cd = maxf(0.0, _wade_ripple_cd - delta)
@@ -1204,6 +1278,7 @@ func _update_wading_splash_vfx(delta: float) -> void:
 			slot["dur"] = 0.72
 			slot["max_scale"] = 2.35
 			var rn: MeshInstance3D = slot["node"]
+			rn.position.y = aquatic.immersion * target_height + 0.025
 			rn.visible = true
 			rn.scale = Vector3(0.45, 0.14, 0.45)
 		if _wade_sfx_cd <= 0.0:
@@ -1256,32 +1331,34 @@ func build_contact_shadow() -> void:
 	contact_shadow.name = "ContactShadow"
 	contact_shadow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
-	var plane := PlaneMesh.new()
-	plane.size = Vector2(1.1, 1.1)
-
-	var grad := Gradient.new()
-	grad.set_color(0, Color(0.02, 0.04, 0.05, 0.75))
-	grad.set_color(1, Color(0.02, 0.04, 0.05, 0.0))
-
-	var circle_tex := GradientTexture2D.new()
-	circle_tex.gradient = grad
-	circle_tex.fill = GradientTexture2D.FILL_RADIAL
-	circle_tex.fill_from = Vector2(0.5, 0.5)
-	circle_tex.fill_to = Vector2(1.0, 0.5)
-	circle_tex.width = 64
-	circle_tex.height = 64
-
-	var mat := StandardMaterial3D.new()
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.albedo_texture = circle_tex
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
-	mat.render_priority = 2
-
-	contact_shadow.mesh = plane
-	contact_shadow.material_override = mat
-	contact_shadow.position = Vector3(0, 0.02, 0)
+	if not _contact_mesh:
+		_contact_mesh = PlaneMesh.new()
+		_contact_mesh.size = Vector2(1.48, 1.22)
+		var mat := ShaderMaterial.new()
+		mat.shader = preload("res://shaders/actor_contact_shadow.gdshader")
+		mat.render_priority = 2
+		_contact_mesh.material = mat
+	contact_shadow.mesh = _contact_mesh
+	contact_shadow.hide()
 	add_child(contact_shadow)
+
+func _update_floor_shadow(delta: float) -> void:
+	if not is_visible_in_tree():
+		return
+	_shadow_probe_delay -= delta
+	if _shadow_probe_delay > 0.0:
+		return
+	_shadow_probe_delay = 0.075
+	var hit := FloorSupport.support(self, global_position, 0.32, 3.8)
+	contact_shadow.visible = not hit.is_empty() and not in_boat and sprite.modulate.a > 0.5
+	if not contact_shadow.visible:
+		return
+	var normal: Vector3 = hit.normal
+	var right := Vector3.RIGHT.slide(normal).normalized()
+	var floor_basis := Basis(right, normal, right.cross(normal))
+	var floor_position: Vector3 = hit.position + normal * 0.024
+	_shadow_floor_height = hit.position.y
+	contact_shadow.global_transform = Transform3D(floor_basis.scaled_local(contact_shadow.scale), floor_position)
 
 func build_selection_ring() -> void:
 	selection_ring = MeshInstance3D.new()

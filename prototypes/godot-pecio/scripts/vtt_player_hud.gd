@@ -343,8 +343,9 @@ func refresh_aquatic_status(body: Node3D) -> void:
 	if not dive_btn or not air_lbl:
 		return
 	var state = body.aquatic if body is PlayerToken else null
+	var wet_height: float = state.wet_height() if state else 0.0
 	dive_btn.visible = state != null and state.surface_available
-	air_lbl.visible = state != null and (state.submerged or state.wetness > 0.2)
+	air_lbl.visible = state != null and (state.submerged or wet_height > 0.0)
 	if dive_btn.visible:
 		dive_btn.text = "Emerger" if state.wants_dive else "Bucear"
 		dive_btn.disabled = body.is_defeated or body.is_transitioning or (ui.combat_controller and not ui.combat_controller.can_move(body))
@@ -354,7 +355,14 @@ func refresh_aquatic_status(body: Node3D) -> void:
 			var breathing := "Respirando" if state.can_breathe() else "Aire %d:%02d" % [floori(seconds / 60.0), seconds % 60]
 			air_lbl.text = "Sin aire · Agotamiento %d" % state.suffocation_exhaustion if state.suffocation_exhaustion > 0 else breathing
 		else:
-			air_lbl.text = "Empapado" if state.wetness > 0.7 else "Mojado"
+			if wet_height <= 0.25:
+				air_lbl.text = "Botas mojadas"
+			elif wet_height <= 0.5:
+				air_lbl.text = "Piernas mojadas"
+			elif state.wetness > 0.72 and state.wet_upper.w > 0.48:
+				air_lbl.text = "Empapado"
+			else:
+				air_lbl.text = "Ropa mojada"
 
 func _build_combat_hud() -> void:
 	combat_strip = ThemeKit.make_window_panel(ThemeKit.COL_COMBAT, 12)
@@ -559,26 +567,20 @@ func _build_settings_modal() -> void:
 	settings_modal = ThemeKit.make_window_panel(ThemeKit.COL_GOLD, 14)
 	settings_modal.name = "PlayerSettingsModal"
 	settings_modal.set_anchors_preset(Control.PRESET_CENTER)
-	settings_modal.offset_left = -220
-	settings_modal.offset_top = -185
-	settings_modal.offset_right = 220
-	settings_modal.offset_bottom = 185
+	settings_modal.offset_left = -320
+	settings_modal.offset_top = -275
+	settings_modal.offset_right = 320
+	settings_modal.offset_bottom = 275
 	settings_modal.visible = false
 	root.add_child(settings_modal)
 
-	var vb := VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 10)
-	var scroll:=ScrollContainer.new()
-	scroll.name="PlayerSettingsScroll"
-	scroll.custom_minimum_size=Vector2(minf(560,root.get_viewport_rect().size.x-60),minf(560,root.get_viewport_rect().size.y-160))
-	scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
-	settings_modal.add_child(scroll)
-	vb.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	scroll.add_child(vb)
+	var outer_vb := VBoxContainer.new()
+	outer_vb.add_theme_constant_override("separation", 10)
+	settings_modal.add_child(outer_vb)
 
 	var hdr := HBoxContainer.new()
-	vb.add_child(hdr)
-	var title := ThemeKit.make_label("Configuración y cámara", 18, ThemeKit.COL_HEADING)
+	outer_vb.add_child(hdr)
+	var title := ThemeKit.make_label("Configuración y controles", 18, ThemeKit.COL_HEADING)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hdr.add_child(title)
 	var close_b := Button.new()
@@ -587,13 +589,70 @@ func _build_settings_modal() -> void:
 	close_b.pressed.connect(func(): close_modals())
 	hdr.add_child(close_b)
 
-	ui.preferences.build_controls(vb)
+	var tabs_row := HBoxContainer.new()
+	tabs_row.add_theme_constant_override("separation", 6)
+	outer_vb.add_child(tabs_row)
 
-	vb.add_child(ThemeKit.make_eyebrow("CÁMARA TÁCTICA"))
+	var scroll := ScrollContainer.new()
+	scroll.name = "PlayerSettingsScroll"
+	scroll.custom_minimum_size = Vector2(minf(610, root.get_viewport_rect().size.x - 48), minf(470, root.get_viewport_rect().size.y - 190))
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var sbar := scroll.get_v_scroll_bar()
+	if sbar:
+		sbar.custom_minimum_size.x = 8.0
+		var st_track := StyleBoxFlat.new()
+		st_track.bg_color = Color(0.02, 0.05, 0.06, 0.55)
+		st_track.set_corner_radius_all(4)
+		var st_grab := StyleBoxFlat.new()
+		st_grab.bg_color = Color(0.82, 0.65, 0.33, 0.78)
+		st_grab.set_corner_radius_all(4)
+		sbar.add_theme_stylebox_override("scroll", st_track)
+		sbar.add_theme_stylebox_override("grabber", st_grab)
+		sbar.add_theme_stylebox_override("grabber_highlight", st_grab)
+		sbar.add_theme_stylebox_override("grabber_pressed", st_grab)
+	outer_vb.add_child(scroll)
+
+	var pad := MarginContainer.new()
+	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pad.add_theme_constant_override("margin_right", 10)
+	scroll.add_child(pad)
+
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 10)
+	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pad.add_child(vb)
+
+	var panel_wheel := VBoxContainer.new()
+	panel_wheel.name = "SettingsWheelTab"
+	panel_wheel.add_theme_constant_override("separation", 8)
+	vb.add_child(panel_wheel)
+	ui.preferences.build_wheel_controls(panel_wheel)
+
+	var panel_display := VBoxContainer.new()
+	panel_display.name = "SettingsDisplayTab"
+	panel_display.add_theme_constant_override("separation", 8)
+	panel_display.visible = false
+	vb.add_child(panel_display)
+	ui.preferences.build_controls(panel_display)
+
+	var panel_keys := VBoxContainer.new()
+	panel_keys.name = "SettingsKeybindsTab"
+	panel_keys.add_theme_constant_override("separation", 6)
+	panel_keys.visible = false
+	vb.add_child(panel_keys)
+	ui.preferences.build_keybinds_ui(panel_keys)
+
+	var panel_cam := VBoxContainer.new()
+	panel_cam.name = "SettingsCameraTab"
+	panel_cam.add_theme_constant_override("separation", 8)
+	panel_cam.visible = false
+	vb.add_child(panel_cam)
+
+	panel_cam.add_child(ThemeKit.make_eyebrow("CÁMARA TÁCTICA"))
 	var cam_row1 := HBoxContainer.new()
 	cam_row1.add_theme_constant_override("separation", 6)
-	vb.add_child(cam_row1)
-	for c in [["↶ Q", func(): ui.cam_orbit(-1)], ["↷ E", func(): ui.cam_orbit(1)], ["↓ Bajar", func(): ui.cam_tilt(-1)], ["↑ Subir", func(): ui.cam_tilt(1)]]:
+	panel_cam.add_child(cam_row1)
+	for c in [["↶ Orbitar -", func(): ui.cam_orbit(-1)], ["↷ Orbitar +", func(): ui.cam_orbit(1)], ["↓ Bajar", func(): ui.cam_tilt(-1)], ["↑ Subir", func(): ui.cam_tilt(1)]]:
 		var cb := Button.new()
 		cb.text = c[0]
 		cb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -608,7 +667,7 @@ func _build_settings_modal() -> void:
 
 	var cam_row2 := HBoxContainer.new()
 	cam_row2.add_theme_constant_override("separation", 6)
-	vb.add_child(cam_row2)
+	panel_cam.add_child(cam_row2)
 	for c in [["◎ Detalle", func(): ui.cam_detail()], ["▧ Conjunto", func(): ui.cam_overview_toggle()], ["↺ Inicio", func(): ui.cam_reset()]]:
 		var cb := Button.new()
 		cb.text = c[0]
@@ -617,16 +676,44 @@ func _build_settings_modal() -> void:
 		cb.pressed.connect(c[1])
 		cam_row2.add_child(cb)
 
+	panel_cam.add_child(ThemeKit.make_eyebrow("SEGUIMIENTO DE CÁMARA"))
 	var follow_row := HBoxContainer.new()
-	follow_row.add_theme_constant_override("separation",6)
-	vb.add_child(follow_row)
-	for item in [["Fija","fixed"],["Por zonas","semiFixed"],["Seguir","follow"]]:
+	follow_row.add_theme_constant_override("separation", 6)
+	panel_cam.add_child(follow_row)
+	for item in [["Fija", "fixed"], ["Por zonas", "semiFixed"], ["Seguir", "follow"]]:
 		var button := Button.new()
 		button.text = item[0]
-		ThemeKit.style_button(button,"secondary",8,8,5)
+		ThemeKit.style_button(button, "secondary", 8, 8, 5)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.pressed.connect(func(): ui.camera.set_follow_mode(item[1]))
 		follow_row.add_child(button)
+
+	var tab_defs := [
+		["wheel", "Rosa y Controles", panel_wheel],
+		["display", "Mapa y HUD", panel_display],
+		["keys", "Mapeo de Teclas", panel_keys],
+		["camera", "Cámara", panel_cam],
+	]
+	var tab_buttons: Array[Button] = []
+	var switch_tab := func(target_id: String):
+		if target_id != "keys":
+			ui.preferences.cancel_keybind_capture()
+		scroll.scroll_vertical = 0
+		for i in range(tab_defs.size()):
+			var td: Array = tab_defs[i]
+			var active: bool = td[0] == target_id
+			td[2].visible = active
+			ThemeKit.style_button(tab_buttons[i], "primary" if active else "secondary", 8, 10, 6)
+	for td in tab_defs:
+		var tb := Button.new()
+		tb.name = "SettingsTab_" + td[0]
+		tb.text = td[1]
+		tb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		ThemeKit.style_button(tb, "primary" if td[0] == "wheel" else "secondary", 8, 10, 6)
+		var tid: String = td[0]
+		tb.pressed.connect(func(): switch_tab.call(tid))
+		tabs_row.add_child(tb)
+		tab_buttons.append(tb)
 
 func open_modal(kind: String) -> void:
 	if kind=="inventory" and sheet_modal.visible:
@@ -664,6 +751,8 @@ func open_modal(kind: String) -> void:
 		settings_modal.visible = true
 
 func close_modals() -> void:
+	if ui and ui.preferences and ui.preferences.has_method("cancel_keybind_capture"):
+		ui.preferences.cancel_keybind_capture()
 	modal_backdrop.visible = false
 	join_modal.visible = false
 	hp_modal.visible = false

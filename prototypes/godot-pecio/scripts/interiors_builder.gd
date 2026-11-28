@@ -1972,7 +1972,7 @@ func build_lower_deck_c8() -> void:
 	_build_stanchions_and_beams(c8_node, "HullLowerStanchions_C8", [-11.5, -5.5, 1.5, 8.5], [-2.8, 2.6], -3.45, -0.15)
 
 	# Lámina de agua inundada canónica al nivel del mar (-3.05m -> 45cm babor / 15cm estribor) sin grietas en bordes
-	_build_contoured_water_plane(c8_node, "C8_FloodWater", -29.0, 26.5, WreckStructure.SEA_HEIGHT, 0.95, mat_flood_water)
+	_build_contoured_water_plane(c8_node, "C8_FloodWater", WreckStructure.C8_FLOOD_START, WreckStructure.C8_FLOOD_END, WreckStructure.SEA_HEIGHT, WreckStructure.C8_FLOOD_BEAM, mat_flood_water)
 
 	# Iluminación de sentina en penumbra interior real (legible pero claramente bajo cubierta, realzada por haces cenitales y faroles)
 	var c8_light = OmniLight3D.new()

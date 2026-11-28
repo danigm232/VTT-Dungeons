@@ -31,12 +31,22 @@ var trigger_area: Area3D
 var is_player_nearby: bool = false
 var tween: Tween
 var handle_offset := Vector3.ZERO
+var _cutaway_visuals: Array[Node3D] = []
+var _cutaway_hidden: bool = false
 
 func _ready() -> void:
 	build_door_frame()
 	build_door_leaf()
 	build_interaction_trigger()
 	update_door_state(true)
+
+func set_cutaway_hidden(cutaway: bool) -> void:
+	_cutaway_hidden = cutaway
+	for vis in _cutaway_visuals:
+		if is_instance_valid(vis):
+			vis.visible = not cutaway
+	if is_instance_valid(door_bar_mesh):
+		door_bar_mesh.visible = (not has_bar_removed) and (not cutaway)
 
 func build_door_frame() -> void:
 	door_frame = Node3D.new()
@@ -59,6 +69,7 @@ func build_door_frame() -> void:
 	jamb_left.material_override = mat_frame
 	jamb_left.position = Vector3(0, 1.11, -0.54)
 	door_frame.add_child(jamb_left)
+	_cutaway_visuals.append(jamb_left)
 
 	# Jamba +Z (lado estribor): z de +0.48 a +0.60, centro +0.54
 	var jamb_right = MeshInstance3D.new()
@@ -66,6 +77,7 @@ func build_door_frame() -> void:
 	jamb_right.material_override = mat_frame
 	jamb_right.position = Vector3(0, 1.11, 0.54)
 	door_frame.add_child(jamb_right)
+	_cutaway_visuals.append(jamb_right)
 
 	# 2. Dintel horizontal superior (y = 2.06 a 2.18m)
 	var lintel = MeshInstance3D.new()
@@ -75,6 +87,7 @@ func build_door_frame() -> void:
 	lintel.material_override = mat_frame
 	lintel.position = Vector3(0, 2.12, 0)
 	door_frame.add_child(lintel)
+	_cutaway_visuals.append(lintel)
 
 	# Colisionadores sólidos en jambas y dintel del marco para impedir atravesar el borde
 	PbrMaterialKit.add_box_collider(door_frame, "Col_DoorJambPort", Vector3(0.38, 2.95, 0.24), Vector3(0, 1.48, -0.58))
@@ -89,6 +102,7 @@ func build_door_frame() -> void:
 	transom.material_override = mat_bulkhead
 	transom.position = Vector3(0, 2.59, 0)
 	door_frame.add_child(transom)
+	_cutaway_visuals.append(transom)
 
 	# 4. Umbral de cubierta (suelo de roble desgastado entre jambas)
 	var sill = MeshInstance3D.new()
@@ -109,6 +123,7 @@ func build_door_frame() -> void:
 	var stop_x = -0.03 if swing_side < 0.0 else 0.03
 	stop_top.position = Vector3(stop_x, 2.05, 0)
 	door_frame.add_child(stop_top)
+	_cutaway_visuals.append(stop_top)
 
 func build_door_leaf() -> void:
 	# Hoja de puerta en roble envejecido más claro (#9a8268) para contraste directo con mamparos
@@ -125,6 +140,7 @@ func build_door_leaf() -> void:
 	var h_z = -0.47 if hinge_side < 0.0 else 0.47
 	door_leaf.position = Vector3(0, 0, h_z)
 	add_child(door_leaf)
+	_cutaway_visuals.append(door_leaf)
 
 	# Hoja de madera (ancho en Z = 0.94m, alto en Y = 2.00m, grosor en X = 0.06m)
 	# Desplazada respecto al gozne para pivotar desde su borde

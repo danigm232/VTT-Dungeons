@@ -128,23 +128,26 @@ func _apply_initial_camera_frame() -> void:
 		camera.update_camera_transform()
 
 func _unhandled_input(event: InputEvent) -> void:
+	var Prefs = preload("res://player/player_preferences.gd")
+	if Prefs.is_capturing_key():
+		return
 	if event is InputEventKey and event.is_pressed() and not event.is_echo():
 		var ek := event as InputEventKey
 		if ek.ctrl_pressed or ek.alt_pressed or ek.meta_pressed:
 			return
-		match ek.keycode:
-			KEY_1:
-				select_party_member(0)
-				get_viewport().set_input_as_handled()
-			KEY_2:
-				select_party_member(1)
-				get_viewport().set_input_as_handled()
-			KEY_3:
-				select_party_member(2)
-				get_viewport().set_input_as_handled()
-			KEY_TAB:
-				select_party_member(active_party_idx + 1)
-				get_viewport().set_input_as_handled()
+		var kc := ek.keycode
+		if Prefs.matches_key("party_1", kc):
+			select_party_member(0)
+			get_viewport().set_input_as_handled()
+		elif Prefs.matches_key("party_2", kc):
+			select_party_member(1)
+			get_viewport().set_input_as_handled()
+		elif Prefs.matches_key("party_3", kc):
+			select_party_member(2)
+			get_viewport().set_input_as_handled()
+		elif Prefs.matches_key("party_next", kc):
+			select_party_member(active_party_idx + 1)
+			get_viewport().set_input_as_handled()
 
 func _run_capture_and_quit(out_path: String) -> void:
 	for _i in range(6):
@@ -197,10 +200,10 @@ func _build_destination_environment() -> void:
 func _build_pleamar_coves(root: Node3D, mat_earth: Material, mat_rock: Material, mat_basalt: Material, mat_wood: Material, rng: RandomNumberGenerator) -> void:
 	# Peninsula costera organica y loma envolvente para el descenso alto (cero puentes sobre el mar)
 	_build_organic_plateau_mesh(root, "CoveBasinIsland", Vector3(5.0, 0.0, 4.5), 26.0, 18.5, 0.60, -1.6, mat_earth, true, Color("#b69f79"), Color("#565046"))
-	_build_organic_plateau_mesh(root, "CaveHeadlandMound", Vector3(-16.0, 0.0, -3.5), 14.0, 14.5, 4.6, -1.6, mat_basalt, true, Color("#565c62"), Color("#34373c"))
-	_build_organic_plateau_mesh(root, "NorthRidgeBackdrop", Vector3(14.0, 0.0, -23.0), 34.0, 16.5, 13.4, -1.8, mat_rock, false, Color("#5d6051"), Color("#42413c"))
-	_build_organic_plateau_mesh(root, "HighTrailShoulderHill", Vector3(23.0, 0.0, -16.5), 19.0, 12.5, 7.6, -1.6, mat_rock, false, Color("#605f52"), Color("#42413c"))
-	_build_organic_plateau_mesh(root, "EastHeadlandSpur", Vector3(31.0, 0.0, 6.0), 15.0, 14.5, 6.4, -1.6, mat_basalt, false, Color("#585a5c"), Color("#3c3e40"))
+	_build_organic_plateau_mesh(root, "CaveHeadlandMound", Vector3(-16.0, 0.0, -3.5), 14.0, 14.5, 4.6, -1.6, mat_basalt, true, Color("#91979e"), Color("#61676f"))
+	_build_organic_plateau_mesh(root, "NorthRidgeBackdrop", Vector3(14.0, 0.0, -23.0), 34.0, 16.5, 13.4, -1.8, mat_rock, false, Color("#808374"), Color("#57564f"))
+	_build_organic_plateau_mesh(root, "HighTrailShoulderHill", Vector3(23.0, 0.0, -16.5), 19.0, 12.5, 7.6, -1.6, mat_rock, false, Color("#858476"), Color("#5a5850"))
+	_build_organic_plateau_mesh(root, "EastHeadlandSpur", Vector3(31.0, 0.0, 6.0), 15.0, 14.5, 6.4, -1.6, mat_basalt, false, Color("#8e9297"), Color("#5f6368"))
 	_add_tactical_zone_grid(root, Rect2(-9.0, -7.5, 19.5, 18.0), 0.65)
 
 	# Entrada cavernosa natural con pilares basalticos redondeados y dintel
@@ -245,31 +248,23 @@ func _build_pleamar_coves(root: Node3D, mat_earth: Material, mat_rock: Material,
 
 	# Camino costero continuo desde el Retiro (este) rodeado de roca y pinos hasta la playa
 	_build_continuous_trail(root, "Approach_PleamarLow", [
-		Vector3(12.0, 0.62, 8.2), Vector3(17.5, 0.62, 11.4), Vector3(22.2, 0.60, 14.2),
-		Vector3(27.5, 0.58, 16.8), Vector3(33.5, 0.56, 15.2), Vector3(39.0, 0.54, 11.0)
+		Vector3(12.0, 0.65, 8.2), Vector3(17.5, 0.65, 11.4), Vector3(22.2, 0.63, 14.2),
+		Vector3(27.5, 0.60, 16.8), Vector3(33.5, 0.58, 15.2), Vector3(39.0, 0.56, 11.0)
 	], 3.1, 3.2, Color("#b69f79"), Color("#5f5a47"), mat_earth)
 
 	# Sendero descendente continuo sobre la ladera HighTrailShoulderHill -> NorthRidgeBackdrop
 	_build_continuous_trail(root, "Approach_PleamarHigh", [
-		Vector3(4.5, 0.62, -5.8), Vector3(9.5, 2.3, -8.8), Vector3(14.5, 4.8, -11.6),
-		Vector3(18.2, 7.45, -14.4), Vector3(24.5, 8.3, -18.0), Vector3(31.0, 9.8, -21.5),
-		Vector3(38.0, 11.4, -23.5)
+		Vector3(4.5, 0.66, -5.8), Vector3(9.5, 2.38, -8.8), Vector3(14.5, 4.92, -11.6),
+		Vector3(18.2, 7.68, -14.4), Vector3(24.5, 8.48, -18.0), Vector3(31.0, 9.95, -21.5),
+		Vector3(38.0, 11.55, -23.5)
 	], 2.9, 6.0, Color("#a38e6d"), Color("#565341"), mat_earth)
 
-	_add_spawn(root, "from_pleamar_low", Vector3(22.0, 0.64, 14.0), "w")
-	_add_spawn(root, "from_pleamar_sea", Vector3(-6.2, 0.65, 13.8), "nw")
-	_add_spawn(root, "from_pleamar_high", Vector3(18.0, 7.55, -14.2), "sw")
-	var sea_boat := MeshInstance3D.new()
-	sea_boat.name = "PleamarArrivalRowboat"
-	var sb_hull := CylinderMesh.new()
-	sb_hull.top_radius = 0.85; sb_hull.bottom_radius = 0.58; sb_hull.height = 3.6; sb_hull.radial_segments = 10
-	sea_boat.mesh = sb_hull; sea_boat.material_override = mat_wood
-	sea_boat.position = Vector3(-9.4, 0.28, 17.6)
-	sea_boat.rotation = Vector3(PI * 0.5, 0.35, 0.0)
-	sea_boat.scale = Vector3(1.0, 1.0, 0.46)
-	root.add_child(sea_boat)
-	_add_exit(root, "Exit_Back_Pleamar_Low", "back-pleamar-low", "Regresar al Sendero de Pleamar", "El Retiro — Costa Baja", "res://scenes/main.tscn", "from_pleamar_low", "ne", "trail", Vector3(27.5, 0.60, 16.8), 2.1, true)
-	_add_exit(root, "Exit_Back_Pleamar_High", "back-pleamar-high", "Subir al Sendero Alto del Retiro", "El Retiro — Senda Alta", "res://scenes/main.tscn", "from_pleamar_high", "se", "trail", Vector3(24.5, 8.35, -18.0), 2.1, true)
+	_add_spawn(root, "from_pleamar_low", Vector3(22.0, 0.66, 14.0), "w")
+	_add_spawn(root, "from_pleamar_sea", Vector3(-6.2, 0.66, 13.8), "nw")
+	_add_spawn(root, "from_pleamar_high", Vector3(18.0, 7.72, -14.2), "sw")
+	_spawn_sculpted_rowboat(root, "PleamarArrivalRowboat", Vector3(-9.4, 0.08, 17.6), 0.35, mat_wood)
+	_add_exit(root, "Exit_Back_Pleamar_Low", "back-pleamar-low", "Regresar al Sendero de Pleamar", "El Retiro — Costa Baja", "res://scenes/main.tscn", "from_pleamar_low", "ne", "trail", Vector3(27.5, 0.62, 16.8), 2.1, true)
+	_add_exit(root, "Exit_Back_Pleamar_High", "back-pleamar-high", "Subir al Sendero Alto del Retiro", "El Retiro — Senda Alta", "res://scenes/main.tscn", "from_pleamar_high", "se", "trail", Vector3(24.5, 8.52, -18.0), 2.1, true)
 
 	_scatter_natural_foliage(root, rng, mat_rock, mat_wood, [
 		Vector3(14.5, 0.60, 4.5), Vector3(23.5, 0.60, 11.0), Vector3(29.5, 5.2, 7.5),
@@ -278,12 +273,23 @@ func _build_pleamar_coves(root: Node3D, mat_earth: Material, mat_rock: Material,
 	], Rect2(-10.0, -8.0, 20.0, 18.0))
 
 func _build_observatory_approach(root: Node3D, mat_earth: Material, mat_rock: Material, mat_basalt: Material, mat_stone: Material, mat_wood: Material, rng: RandomNumberGenerator) -> void:
-	# Cumbre esculpida ancha + contrafuertes sur-oeste y sur-este para que las aproximaciones nunca cuelguen
-	_build_organic_plateau_mesh(root, "ObservatorySummit", Vector3(0.0, 0.0, 2.0), 33.0, 29.0, 33.4, -2.0, mat_rock, true, Color("#7d786c"), Color("#44423f"))
-	_build_organic_plateau_mesh(root, "SWApproachRidge", Vector3(-18.5, 0.0, 16.5), 16.5, 13.0, 32.8, -2.0, mat_rock, false, Color("#6e6b5e"), Color("#42403c"))
-	_build_organic_plateau_mesh(root, "SEApproachRidge", Vector3(20.0, 0.0, 15.5), 16.0, 13.0, 32.0, -2.0, mat_rock, false, Color("#6b685c"), Color("#413f3b"))
-	_build_organic_plateau_mesh(root, "RuinsPlinth", Vector3(0.0, 32.0, -7.2), 9.5, 7.5, 34.0, 32.5, mat_stone, true, Color("#aba392"), Color("#6b665c"))
-	_add_tactical_zone_grid(root, Rect2(-9.5, -9.5, 19.0, 18.0), 33.48)
+	# Cumbre esculpida ancha + contrafuertes sur-oeste y sur-este continuos sin hundir los senderos
+	var summit_specs := [
+		{"c": Vector3(0.0, 0.0, 2.0), "rx": 33.0, "rz": 29.0, "top": 33.4, "base": -2.0},
+		{"c": Vector3(-18.5, 0.0, 16.5), "rx": 16.5, "rz": 13.0, "top": 32.8, "base": -2.0},
+		{"c": Vector3(20.0, 0.0, 15.5), "rx": 16.0, "rz": 13.0, "top": 32.0, "base": -2.0},
+	]
+	_build_organic_plateau_mesh(root, "ObservatorySummit", Vector3(0.0, 0.0, 2.0), 33.0, 29.0, 33.4, -2.0, mat_rock, true, Color("#969082"), Color("#5d5a55"))
+	_build_organic_plateau_mesh(root, "SWApproachRidge", Vector3(-18.5, 0.0, 16.5), 16.5, 13.0, 32.8, -2.0, mat_rock, false, Color("#888476"), Color("#595651"))
+	_build_organic_plateau_mesh(root, "SEApproachRidge", Vector3(20.0, 0.0, 15.5), 16.0, 13.0, 32.0, -2.0, mat_rock, false, Color("#858173"), Color("#57544f"))
+	_build_organic_plateau_mesh(root, "RuinsPlinth", Vector3(0.0, 32.0, -7.2), 9.5, 7.5, 34.0, 32.5, mat_stone, true, Color("#bdb5a4"), Color("#7c766b"))
+	_add_tactical_zone_grid(root, Rect2(-9.5, -9.5, 19.0, 18.0), 33.52)
+
+	var lift_on_summit := func(wx: float, wz: float, min_y: float) -> float:
+		var sy := min_y
+		for ms in summit_specs:
+			sy = maxf(sy, _sample_plateau_height(wx, wz, ms["c"], float(ms["rx"]), float(ms["rz"]), float(ms["top"]), float(ms["base"])) + 0.07)
+		return sy
 
 	# Columnas talladas y pedestal del astrolabio (cilindros estriados + losa)
 	for x_off in [-4.5, 4.5]:
@@ -300,62 +306,87 @@ func _build_observatory_approach(root: Node3D, mat_earth: Material, mat_rock: Ma
 	pi.position = Vector3(0.0, 34.6, -8.4)
 	root.add_child(pi)
 
-	_build_continuous_trail(root, "Approach_ObsInland", [
-		Vector3(-9.0, 33.42, 8.8), Vector3(-13.8, 33.4, 15.2), Vector3(-17.8, 33.2, 18.0),
-		Vector3(-21.8, 33.0, 18.2), Vector3(-25.8, 32.85, 15.8), Vector3(-28.8, 32.7, 12.2)
-	], 3.0, 4.2, Color("#a99a80"), Color("#5d5c48"), mat_earth)
+	var inland_pts: Array = []
+	for rp in [Vector2(-9.0, 8.8), Vector2(-13.8, 15.2), Vector2(-17.8, 18.0), Vector2(-21.8, 18.2), Vector2(-25.8, 15.8), Vector2(-28.8, 12.2)]:
+		inland_pts.append(Vector3(rp.x, lift_on_summit.call(rp.x, rp.y, 32.75), rp.y))
+	_build_continuous_trail(root, "Approach_ObsInland", inland_pts, 3.0, 4.2, Color("#b5a68c"), Color("#6b6855"), mat_earth)
 
-	_build_continuous_trail(root, "Approach_ObsCoast", [
-		Vector3(9.8, 33.15, 7.8), Vector3(15.0, 32.6, 12.8), Vector3(18.6, 32.28, 15.5),
-		Vector3(22.4, 32.0, 16.4), Vector3(26.2, 31.8, 14.2), Vector3(29.2, 31.6, 10.6)
-	], 2.75, 4.2, Color("#9f9584"), Color("#5a584a"), mat_earth)
+	var coast_pts: Array = []
+	for rp in [Vector2(9.8, 7.8), Vector2(15.0, 12.8), Vector2(18.6, 15.5), Vector2(22.4, 16.4), Vector2(26.2, 14.2), Vector2(29.2, 10.6)]:
+		coast_pts.append(Vector3(rp.x, lift_on_summit.call(rp.x, rp.y, 31.65), rp.y))
+	_build_continuous_trail(root, "Approach_ObsCoast", coast_pts, 2.75, 4.2, Color("#aca290"), Color("#686556"), mat_earth)
 
-	_add_spawn(root, "from_obs_inland", Vector3(-13.8, 33.48, 15.2), "n")
-	_add_spawn(root, "from_obs_coast", Vector3(18.2, 32.32, 15.4), "nw")
-	_add_exit(root, "Exit_Back_Obs_Inland", "back-obs-inland", "Descender al Paso del Retiro", "El Retiro — Paso Norte", "res://scenes/main.tscn", "from_obs_inland", "se", "trail", Vector3(-21.5, 33.05, 18.1), 2.1, true)
-	_add_exit(root, "Exit_Back_Obs_Coast", "back-obs-coast", "Volver por la Cornisa Oriental", "El Retiro — Cornisa Este", "res://scenes/main.tscn", "from_obs_coast", "sw", "trail", Vector3(22.4, 32.05, 16.3), 2.1, true)
+	_add_spawn(root, "from_obs_inland", Vector3(-13.8, lift_on_summit.call(-13.8, 15.2, 33.48), 15.2), "n")
+	_add_spawn(root, "from_obs_coast", Vector3(18.2, lift_on_summit.call(18.2, 15.4, 32.32), 15.4), "nw")
+	_add_exit(root, "Exit_Back_Obs_Inland", "back-obs-inland", "Descender al Paso del Retiro", "El Retiro — Paso Norte", "res://scenes/main.tscn", "from_obs_inland", "se", "trail", Vector3(-21.5, lift_on_summit.call(-21.5, 18.1, 33.08), 18.1), 2.1, true)
+	_add_exit(root, "Exit_Back_Obs_Coast", "back-obs-coast", "Volver por la Cornisa Oriental", "El Retiro — Cornisa Este", "res://scenes/main.tscn", "from_obs_coast", "sw", "trail", Vector3(22.4, lift_on_summit.call(22.4, 16.3, 32.08), 16.3), 2.1, true)
 
 	_scatter_natural_foliage(root, rng, mat_rock, mat_wood, [
-		Vector3(-12.5, 33.3, -3.5), Vector3(13.0, 33.1, -4.0), Vector3(-15.5, 33.2, 8.0),
-		Vector3(16.0, 32.9, 6.0), Vector3(-22.5, 32.8, 12.0), Vector3(24.0, 31.9, 9.5),
-		Vector3(-6.0, 33.3, -13.5), Vector3(7.0, 33.3, -13.0)
+		Vector3(-12.5, lift_on_summit.call(-12.5, -3.5, 33.3), -3.5), Vector3(13.0, lift_on_summit.call(13.0, -4.0, 33.1), -4.0), Vector3(-15.5, lift_on_summit.call(-15.5, 8.0, 33.2), 8.0),
+		Vector3(16.0, lift_on_summit.call(16.0, 6.0, 32.9), 6.0), Vector3(-22.5, lift_on_summit.call(-22.5, 12.0, 32.8), 12.0), Vector3(24.0, lift_on_summit.call(24.0, 9.5, 31.9), 9.5),
+		Vector3(-6.0, lift_on_summit.call(-6.0, -13.5, 33.3), -13.5), Vector3(7.0, lift_on_summit.call(7.0, -13.0, 33.3), -13.0)
 	], Rect2(-10.0, -11.0, 20.0, 20.0))
 
 func _build_pecio_arrival(root: Node3D, mat_earth: Material, mat_rock: Material, mat_basalt: Material, mat_wood: Material, rng: RandomNumberGenerator) -> void:
 	# Banco de arena organico y escollos en arco rodeando el desembarco
 	_build_organic_plateau_mesh(root, "ReefSandbar", Vector3(0.5, 0.0, 1.5), 19.5, 16.0, 0.62, -1.4, mat_earth, true, Color("#cbb38a"), Color("#6d6350"))
-	_build_organic_plateau_mesh(root, "NorthReefSpur", Vector3(9.5, 0.0, -9.0), 12.5, 8.5, 2.35, -1.4, mat_basalt, false, Color("#53575c"), Color("#34383d"))
-	_add_walk_slab(root, "LandingPier", Vector3(-11.8, 0.36, 9.8), Vector3(9.8, 0.58, 3.6), mat_wood)
-	for px in [-16.0, -8.2]:
-		for pz in [8.3, 11.3]:
+	_build_organic_plateau_mesh(root, "NorthReefSpur", Vector3(9.5, 0.0, -9.0), 12.5, 8.5, 2.35, -1.4, mat_basalt, false, Color("#8e949b"), Color("#5d6268"))
+	_add_walk_slab(root, "LandingPier", Vector3(-11.8, 0.36, 9.8), Vector3(9.8, 0.24, 3.6), mat_wood)
+	var mat_pier_dark := _tex_mat("res://assets/textures/oak-v4.webp", Color("#765a3e"), 0.88, 0.03, Vector3(0.45, 0.45, 0.45), "res://assets/textures/wood-normal-v1.png")
+	for side_z in [8.06, 11.54]:
+		var stringer := MeshInstance3D.new()
+		var sbm := BoxMesh.new()
+		sbm.size = Vector3(9.9, 0.32, 0.20)
+		stringer.mesh = sbm; stringer.material_override = mat_pier_dark
+		stringer.position = Vector3(-11.8, 0.34, side_z)
+		root.add_child(stringer)
+	for pl_i in range(14):
+		var plank := MeshInstance3D.new()
+		var pbm := BoxMesh.new()
+		pbm.size = Vector3(0.58, 0.06, 3.52)
+		plank.mesh = pbm; plank.material_override = mat_wood if pl_i % 2 == 0 else mat_pier_dark
+		plank.position = Vector3(-16.2 + float(pl_i) * 0.68, 0.49, 9.8)
+		root.add_child(plank)
+	for px in [-16.0, -12.1, -8.2]:
+		for pz in [8.25, 11.35]:
 			var pile := MeshInstance3D.new()
 			var pm := CylinderMesh.new()
-			pm.top_radius = 0.22; pm.bottom_radius = 0.26; pm.height = 1.9; pm.radial_segments = 8
-			pile.mesh = pm; pile.material_override = mat_wood
-			pile.position = Vector3(px, -0.2, pz)
+			pm.top_radius = 0.18; pm.bottom_radius = 0.22; pm.height = 2.05; pm.radial_segments = 8
+			pile.mesh = pm; pile.material_override = mat_pier_dark
+			pile.position = Vector3(px, -0.02, pz)
 			root.add_child(pile)
 	_add_tactical_zone_grid(root, Rect2(-8.0, -9.0, 18.0, 15.0), 0.68)
 
-	# Cuadernas curvas del pecio en el bajio nordeste + bote amarrado en el muelle
+	# Cuadernas curvas de roble quebrado del pecio en el bajio nordeste + bote real amarrado al muelle
+	var keel := MeshInstance3D.new()
+	var km := BoxMesh.new()
+	km.size = Vector3(12.2, 0.36, 0.44)
+	keel.mesh = km; keel.material_override = mat_pier_dark
+	keel.position = Vector3(10.6, 1.85, -8.1)
+	keel.rotation = Vector3(0.05, -0.16, -0.06)
+	root.add_child(keel)
 	for k in range(6):
-		var rx := 5.5 + float(k) * 2.1
-		var rib := MeshInstance3D.new()
-		var bm := BoxMesh.new()
-		bm.size = Vector3(0.42, 2.9 - float(k) * 0.25, 4.8)
-		rib.mesh = bm; rib.material_override = mat_wood
-		rib.position = Vector3(rx, 1.35, -7.2 + float(k) * 0.35)
-		rib.rotation = Vector3(0.14, 0.22, -0.18)
-		root.add_child(rib)
+		var rx := 5.6 + float(k) * 1.95
+		var rz := -7.3 - float(k) * 0.30
+		var rib_h := 2.45 - float(k) * 0.20
+		for side_s in [-1.0, 1.0]:
+			var rib_grp := Node3D.new()
+			rib_grp.position = Vector3(rx, 1.82, rz + side_s * 0.85)
+			rib_grp.rotation = Vector3(side_s * 0.36, -0.16, -0.08)
+			root.add_child(rib_grp)
+			var low_seg := MeshInstance3D.new()
+			var lbm := BoxMesh.new(); lbm.size = Vector3(0.24, rib_h * 0.58, 0.28)
+			low_seg.mesh = lbm; low_seg.material_override = mat_pier_dark
+			low_seg.position = Vector3(0.0, rib_h * 0.26, side_s * 0.26)
+			rib_grp.add_child(low_seg)
+			var up_seg := MeshInstance3D.new()
+			var ubm := BoxMesh.new(); ubm.size = Vector3(0.18, rib_h * 0.52, 0.22)
+			up_seg.mesh = ubm; up_seg.material_override = mat_wood
+			up_seg.position = Vector3(0.0, rib_h * 0.72, side_s * 0.08)
+			up_seg.rotation.x = -side_s * 0.44
+			rib_grp.add_child(up_seg)
 
-	var boat := MeshInstance3D.new()
-	boat.name = "MooredBoatHull"
-	var hull_m := CylinderMesh.new()
-	hull_m.top_radius = 1.05; hull_m.bottom_radius = 0.72; hull_m.height = 3.8; hull_m.radial_segments = 10
-	boat.mesh = hull_m; boat.material_override = mat_wood
-	boat.position = Vector3(-17.8, 0.42, 12.8)
-	boat.rotation = Vector3(PI * 0.5, 0.45, 0.0)
-	boat.scale = Vector3(1.0, 1.0, 0.48)
-	root.add_child(boat)
+	_spawn_sculpted_rowboat(root, "MooredBoatHull", Vector3(-17.8, 0.08, 12.8), 0.45, mat_wood)
 	_add_mist(root, Vector3(6.5, 1.15, -7.2))
 
 	_add_spawn(root, "from_retreat_boat", Vector3(-11.5, 0.70, 9.8), "ne")
@@ -417,11 +448,109 @@ func _build_organic_plateau_mesh(root: Node3D, mound_name: String, center: Vecto
 		var sb := StaticBody3D.new()
 		var col := CollisionShape3D.new()
 		var box := BoxShape3D.new()
-		box.size = Vector3(rx * 1.45, 1.4, rz * 1.45)
+		var flat_scale := 1.16 if mound_name == "ObservatorySummit" else 1.45
+		box.size = Vector3(rx * flat_scale, 1.4, rz * flat_scale)
 		col.shape = box
 		col.position = Vector3(center.x, top_y - 0.70, center.z)
 		sb.add_child(col)
 		root.add_child(sb)
+
+func _sample_plateau_height(wx: float, wz: float, center: Vector3, rx: float, rz: float, top_y: float, base_y: float) -> float:
+	var dx := wx - center.x
+	var dz := wz - center.z
+	var ang := atan2(dz, dx)
+	var warp := 1.0 + 0.14 * sin(ang * 3.0 + center.x * 0.2) + 0.08 * cos(ang * 5.0)
+	var nx := dx / maxf(0.01, rx * warp)
+	var nz := dz / maxf(0.01, rz * warp)
+	var f := sqrt(nx * nx + nz * nz)
+	if f >= 1.02:
+		return base_y
+	var slope_f := clampf((1.0 - f) / 0.34, 0.0, 1.0) if f > 0.66 else 1.0
+	var micro := 0.10 * sin(wx * 0.35) * cos(wz * 0.35) * (1.0 - slope_f * 0.6)
+	return lerpf(base_y, top_y, pow(slope_f, 0.8)) + micro
+
+func _spawn_sculpted_rowboat(root: Node3D, boat_name: String, pos: Vector3, yaw_rad: float, mat_wood: Material) -> void:
+	var boat := Node3D.new()
+	boat.name = boat_name
+	boat.position = pos
+	boat.rotation.y = yaw_rad
+	root.add_child(boat)
+
+	var mat_hull_dark := _tex_mat("res://assets/textures/oak-v4.webp", Color("#6a4e35"), 0.86, 0.03, Vector3(0.45, 0.45, 0.45), "res://assets/textures/wood-normal-v1.png")
+	var mat_trim := _tex_mat("res://assets/textures/oak-v4.webp", Color("#b8956c"), 0.82, 0.04, Vector3(0.45, 0.45, 0.45), "res://assets/textures/wood-normal-v1.png")
+
+	var half_len := 1.95
+	var secs := 10
+	var prof := 7
+	var hull_rings: Array = []
+	for i in range(secs + 1):
+		var u := float(i) / float(secs)
+		var z := lerpf(-half_len, half_len, u)
+		# Tapered pointed bow (-Z) and slightly wider transom stern (+Z)
+		var beam_f := sin(pow(u, 0.78) * PI)
+		if u > 0.82:
+			beam_f = maxf(beam_f, 0.44 * (1.0 - (u - 0.82) * 1.4))
+		var half_w := maxf(0.04, 0.78 * beam_f)
+		var sheer_y := 0.48 + pow(absf(u - 0.5) * 2.0, 2.0) * 0.18
+		var keel_y := 0.04 + pow(absf(u - 0.5) * 2.0, 2.4) * 0.10
+		var rpts: Array[Vector3] = []
+		var rcols: Array[Color] = []
+		for j in range(prof):
+			var sv := float(j) / float(prof - 1) * 2.0 - 1.0 # -1 port .. +1 stbd
+			var abs_s := absf(sv)
+			var px := sv * half_w
+			var py := lerpf(keel_y, sheer_y, pow(abs_s, 1.35))
+			rpts.append(Vector3(px, py, z))
+			rcols.append(Color("#785c40").lerp(Color("#b28e67"), abs_s * 0.75))
+		hull_rings.append({"pts": rpts, "cols": rcols})
+
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in range(secs):
+		var a_p: Array = hull_rings[i]["pts"]
+		var b_p: Array = hull_rings[i + 1]["pts"]
+		var a_c: Array = hull_rings[i]["cols"]
+		var b_c: Array = hull_rings[i + 1]["cols"]
+		for j in range(prof - 1):
+			_emit_quad(st, a_p[j], a_p[j + 1], b_p[j + 1], b_p[j], a_c[j], a_c[j + 1], b_c[j + 1], b_c[j])
+			_emit_quad(st, a_p[j + 1], a_p[j], b_p[j], b_p[j + 1], a_c[j + 1].darkened(0.18), a_c[j].darkened(0.18), b_c[j].darkened(0.18), b_c[j + 1].darkened(0.18))
+	st.generate_normals()
+	var hull_mi := MeshInstance3D.new()
+	hull_mi.name = "SkiffHullMesh"
+	hull_mi.mesh = st.commit()
+	var hm := (mat_wood as BaseMaterial3D).duplicate() as BaseMaterial3D
+	hm.vertex_color_use_as_albedo = true
+	hm.vertex_color_is_srgb = true
+	hm.cull_mode = BaseMaterial3D.CULL_DISABLED
+	hull_mi.material_override = hm
+	boat.add_child(hull_mi)
+
+	# Keel spine & 3 transverse thwarts (benches) + resting oars
+	var keel_b := MeshInstance3D.new()
+	var kbox := BoxMesh.new(); kbox.size = Vector3(0.10, 0.08, 3.55)
+	keel_b.mesh = kbox; keel_b.material_override = mat_hull_dark
+	keel_b.position = Vector3(0.0, 0.07, 0.0)
+	boat.add_child(keel_b)
+
+	for tspec in [[-0.78, 1.04], [0.08, 1.36], [0.96, 1.14]]:
+		var bench := MeshInstance3D.new()
+		var bbox := BoxMesh.new(); bbox.size = Vector3(float(tspec[1]), 0.05, 0.26)
+		bench.mesh = bbox; bench.material_override = mat_trim
+		bench.position = Vector3(0.0, 0.36, float(tspec[0]))
+		boat.add_child(bench)
+
+	for side_s in [-1.0, 1.0]:
+		var oar := MeshInstance3D.new()
+		var ocyl := CylinderMesh.new(); ocyl.top_radius = 0.026; ocyl.bottom_radius = 0.032; ocyl.height = 2.45; ocyl.radial_segments = 6
+		oar.mesh = ocyl; oar.material_override = mat_trim
+		oar.position = Vector3(side_s * 0.42, 0.43, 0.15)
+		oar.rotation = Vector3(PI * 0.5, side_s * 0.06, 0.0)
+		boat.add_child(oar)
+		var blade := MeshInstance3D.new()
+		var blm := BoxMesh.new(); blm.size = Vector3(0.14, 0.025, 0.52)
+		blade.mesh = blm; blade.material_override = mat_hull_dark
+		blade.position = Vector3(side_s * 0.48, 0.43, 1.25)
+		boat.add_child(blade)
 
 func _build_continuous_trail(root: Node3D, trail_name: String, raw_pts: Array, width: float, skirt_drop: float, tread_col: Color, edge_col: Color, base_mat: Material) -> void:
 	# Chaikin 1 pasada + ribbon continuo + colliders de rampa sin grietas
@@ -435,6 +564,13 @@ func _build_continuous_trail(root: Node3D, trail_name: String, raw_pts: Array, w
 			sm.append(pts[i].lerp(pts[i + 1], 0.75))
 		sm.append(pts[pts.size() - 1])
 		pts = sm
+	if trail_name.begins_with("Approach_Obs"):
+		for i in range(pts.size()):
+			var q := pts[i]
+			var sy := _sample_plateau_height(q.x, q.z, Vector3(0.0, 0.0, 2.0), 33.0, 29.0, 33.4, -2.0)
+			sy = maxf(sy, _sample_plateau_height(q.x, q.z, Vector3(-18.5, 0.0, 16.5), 16.5, 13.0, 32.8, -2.0))
+			sy = maxf(sy, _sample_plateau_height(q.x, q.z, Vector3(20.0, 0.0, 15.5), 16.0, 13.0, 32.0, -2.0))
+			pts[i].y = maxf(q.y, sy + 0.07)
 
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)

@@ -191,6 +191,38 @@ static func update_agents(
 			fa["_flee_dir"] = away.normalized()
 			fa["_flee_pos"] = node.position
 
+		# 2b. Wide banking thermal soaring cliff birds (coastal gulls & abyss ravens)
+		if gait == "soar":
+			node.visible = sched_ok
+			fa["_was_active"] = sched_ok
+			if not sched_ok:
+				continue
+			var center_s: Vector3 = fa.get("center", Vector3(26.0, 2.0, 6.0))
+			var rx_s: float = float(fa.get("radius_x", 16.0))
+			var rz_s: float = float(fa.get("radius_z", 12.0))
+			var period_s: float = maxf(6.0, float(fa.get("period", 24.0)))
+			var dir_sgn: float = float(fa.get("orbit_dir", 1.0))
+			var ang_s := dir_sgn * (time_s / period_s) * TAU + p_val
+			var bob_y := sin(ang_s * 2.0 + p_val) * float(fa.get("amp_y", 1.4))
+			node.position = Vector3(
+				center_s.x + cos(ang_s) * rx_s,
+				center_s.y + bob_y,
+				center_s.z + sin(ang_s) * rz_s
+			)
+			var vx_s := -sin(ang_s) * rx_s * dir_sgn
+			var vz_s := cos(ang_s) * rz_s * dir_sgn
+			node.rotation.y = atan2(vx_s, vz_s)
+			node.rotation.x = clampf(-cos(ang_s * 2.0 + p_val) * 0.10, -0.18, 0.18)
+			node.rotation.z = -dir_sgn * (0.24 + sin(ang_s) * 0.08)
+			var lw_s: Node3D = fa.get("lw")
+			var rw_s: Node3D = fa.get("rw")
+			# Realistic seabird flight: long effortless thermal glides punctuated by brief slow wingbeats
+			var glide_cyc := fmod(time_s * 0.34 + p_val, 3.8)
+			var flap_s := (sin(time_s * 8.2 + p_val) * 0.44) if glide_cyc < 0.95 else (0.06 + sin(time_s * 1.8 + p_val) * 0.04)
+			if is_instance_valid(lw_s): lw_s.rotation.z = flap_s
+			if is_instance_valid(rw_s): rw_s.rotation.z = -flap_s
+			continue
+
 		# 2. Perched birds & hovering butterflies: smooth canopy fly-in / fly-away escape (NO instant pop!)
 		if gait in ["perch", "butterfly"]:
 			var fly_esc: float = float(fa.get("_fly_escape", 0.0))
@@ -487,7 +519,7 @@ static func _species_textures(pattern: String, col_a: Color, col_b: Color, accen
 	if _tex_cache.has(k):
 		return _tex_cache[k]
 
-	var sz := 96
+	var sz := 160 if pattern == "alpine_fur" else 96
 	var img_alb := Image.create(sz, sz, false, Image.FORMAT_RGBA8)
 	var img_nrm := Image.create(sz, sz, false, Image.FORMAT_RGB8)
 	var hmap: PackedFloat32Array = PackedFloat32Array()
@@ -518,6 +550,17 @@ static func _species_textures(pattern: String, col_a: Color, col_b: Color, accen
 					if guard > 0.78:
 						col = col.lerp(accent, 0.34)
 					h = 0.35 + hair * 0.45 + guard * 0.20
+				"alpine_fur":
+					# Organic mottled mountain-coat fur (multi-octave value-like noise + soft dorsal/belly shading, ZERO regular zebra stripes!)
+					var n1 := sin(u * 13.0 + cos(v * 11.0) * 2.3) * cos(v * 17.0 - sin(u * 9.0) * 1.9) * 0.5 + 0.5
+					var n2 := sin(u * 37.0 + v * 19.0 + n1 * 4.5) * cos(v * 41.0 - u * 23.0) * 0.5 + 0.5
+					var fine_tuft := fposmod(sin(floorf(u * 64.0) * 127.1 + floorf(v * 28.0) * 311.7) * 43758.5453, 1.0)
+					var dorsal_band := 1.0 - smoothstep(0.18, 0.48, absf(v - 0.22))
+					var belly_light := smoothstep(0.62, 0.90, v)
+					col = col_a.lerp(col_b, clampf(n1 * 0.52 + n2 * 0.26 + fine_tuft * 0.22, 0.0, 1.0))
+					col = col.lerp(accent, dorsal_band * 0.58)
+					col = col.lerp(col_b.lightened(0.28), belly_light * 0.48)
+					h = 0.32 + fine_tuft * 0.40 + n2 * 0.28
 				"turtle":
 					var cx := floorf(u * 4.0) + (0.5 if int(floorf(v * 4.0)) % 2 == 1 else 0.0)
 					var cy := floorf(v * 4.0)
@@ -824,11 +867,11 @@ static func spawn_fish(parent: Node3D, agents: Array[Dictionary], node_name: Str
 		"gait": gait_mode, "wiggle_node": tail_piv, "leap_period": 11.5, "leap_height": 0.36 * scale_v,
 	})
 
-static func build_bird_node(bird_name: String, body_col: Color, wing_col: Color, scale_v: float = 1.0, cast_shadow: bool = false) -> Dictionary:
+static func build_bird_node(bird_name: String, body_col: Color, wing_col: Color, scale_v: float = 1.0, cast_shadow: bool = false, beak_col: Color = Color("#e2a238")) -> Dictionary:
 	var root := Node3D.new(); root.name = bird_name
 	var m_body := _species_mat("bird_b_" + body_col.to_html(false), "feather", body_col, body_col.lightened(0.08), wing_col, 0.66)
 	var m_wing := _species_mat("bird_w_" + wing_col.to_html(false), "feather", wing_col.lightened(0.06), body_col, wing_col.darkened(0.45), 0.64, 0.0, true)
-	var m_beak := _species_mat("bird_bk", "horn", Color("#e2a238"), Color("#f0be59"), Color("#8e5e18"), 0.48)
+	var m_beak := _species_mat("bird_bk_" + beak_col.to_html(false), "horn", beak_col, beak_col.lightened(0.14), beak_col.darkened(0.38), 0.44)
 
 	_add_sphere(root, 0.08 * scale_v, 0.28 * scale_v, Vector3.ZERO, Vector3(0.95, 0.85, 1.35), m_body, cast_shadow).rotation.x = PI * 0.45
 
@@ -859,14 +902,149 @@ static func build_bird_node(bird_name: String, body_col: Color, wing_col: Color,
 
 	return {"root": root, "lw": lw, "rw": rw, "head": head, "tail": tail}
 
-static func spawn_perched_bird(parent: Node3D, agents: Array[Dictionary], node_name: String, pos: Vector3, yaw: float, body_col: Color, wing_col: Color, scale_v: float, phase: float) -> void:
-	var b := build_bird_node(node_name, body_col, wing_col, scale_v, true)
+static func spawn_perched_bird(parent: Node3D, agents: Array[Dictionary], node_name: String, pos: Vector3, yaw: float, body_col: Color, wing_col: Color, scale_v: float, phase: float, beak_col: Color = Color("#e2a238")) -> void:
+	var b := build_bird_node(node_name, body_col, wing_col, scale_v, true, beak_col)
 	var root: Node3D = b["root"]
 	root.position = pos; root.rotation.y = yaw
 	parent.add_child(root)
 	agents.append({
 		"node": root, "gait": "perch", "base_pos": pos, "base_yaw": yaw, "phase": phase,
 		"lw": b["lw"], "rw": b["rw"], "head_node": b["head"], "tail_node": b["tail"],
+	})
+
+static func spawn_soaring_bird(
+	parent: Node3D,
+	agents: Array[Dictionary],
+	node_name: String,
+	center: Vector3,
+	radius_x: float,
+	radius_z: float,
+	period: float,
+	phase: float,
+	body_col: Color,
+	wing_col: Color,
+	scale_v: float = 1.25,
+	orbit_dir: float = 1.0,
+	amp_y: float = 1.4,
+	beak_col: Color = Color("#d8a43a")
+) -> void:
+	var b := build_bird_node(node_name, body_col, wing_col, scale_v, false, beak_col)
+	var root: Node3D = b["root"]
+	root.position = center + Vector3(cos(phase) * radius_x, 0.0, sin(phase) * radius_z)
+	parent.add_child(root)
+	agents.append({
+		"node": root, "gait": "soar", "center": center, "radius_x": radius_x, "radius_z": radius_z,
+		"period": period, "phase": phase, "orbit_dir": orbit_dir, "amp_y": amp_y,
+		"lw": b["lw"], "rw": b["rw"], "head_node": b["head"], "tail_node": b["tail"],
+	})
+
+static func spawn_highland_ibex(parent: Node3D, agents: Array[Dictionary], node_name: String, waypoints: Array, period: float, phase: float, scale_v: float = 1.05) -> void:
+	# Anatomically proportioned alpine ibex with mottled mountain coat, muscular chest/haunches, articulated bent legs & 5-segment curved scimitar horns!
+	var root := Node3D.new(); root.name = node_name; root.position = waypoints[0]; root.scale = Vector3.ONE * scale_v; parent.add_child(root)
+	var m_coat := _species_mat("ibex_alpine_coat", "alpine_fur", Color("#6c5d4e"), Color("#8e7e6c"), Color("#322a23"), 0.86)
+	var m_dark := _species_mat("ibex_alpine_dark", "alpine_fur", Color("#3a322b"), Color("#4d4239"), Color("#1e1915"), 0.80)
+	var m_horn := _species_mat("ibex_scimitar_horn", "horn", Color("#2d251e"), Color("#56483b"), Color("#191410"), 0.48)
+	var m_hoof := _species_mat("ibex_hoof_dark", "horn", Color("#191614"), Color("#2a2521"), Color("#0d0b0a"), 0.56)
+
+	# Sculpted multi-zone body: broad muscular chest, barrel mid-torso, compact haunch & stubby raised tail
+	_add_sphere(root, 0.20, 0.36, Vector3(0.0, 0.49, 0.14), Vector3(0.84, 0.96, 1.08), m_coat)
+	_add_sphere(root, 0.175, 0.32, Vector3(0.0, 0.48, -0.04), Vector3(0.82, 0.90, 1.18), m_coat)
+	_add_sphere(root, 0.185, 0.34, Vector3(0.0, 0.49, -0.22), Vector3(0.84, 0.94, 0.96), m_coat)
+	# Dark dorsal shoulder ridge & tail
+	_add_sphere(root, 0.085, 0.14, Vector3(0.0, 0.62, 0.14), Vector3(0.65, 0.65, 1.75), m_dark, false)
+	var tail := Node3D.new(); tail.position = Vector3(0.0, 0.52, -0.36); root.add_child(tail)
+	var tm := MeshInstance3D.new()
+	var tcm := CylinderMesh.new(); tcm.top_radius = 0.014; tcm.bottom_radius = 0.030; tcm.height = 0.14; tcm.radial_segments = 5
+	tm.mesh = tcm; tm.material_override = m_dark; tm.position = Vector3(0.0, 0.03, -0.04); tm.rotation.x = -0.82
+	tail.add_child(tm)
+
+	# Muscular arched neck leading to articulated head
+	var neck := MeshInstance3D.new()
+	var nm := CylinderMesh.new(); nm.top_radius = 0.082; nm.bottom_radius = 0.135; nm.height = 0.29; nm.radial_segments = 8
+	neck.mesh = nm; neck.material_override = m_coat
+	neck.position = Vector3(0.0, 0.62, 0.28); neck.rotation.x = 0.54
+	root.add_child(neck)
+
+	var head := Node3D.new(); head.position = Vector3(0.0, 0.72, 0.35); root.add_child(head)
+	# Cranium + tapered wedge snout + dark nose bridge + beard + angled ears
+	_add_sphere(head, 0.092, 0.17, Vector3(0.0, 0.02, 0.04), Vector3(0.86, 0.90, 1.12), m_coat)
+	var muzzle := MeshInstance3D.new()
+	var mm := CylinderMesh.new(); mm.top_radius = 0.038; mm.bottom_radius = 0.068; mm.height = 0.15; mm.radial_segments = 7
+	muzzle.mesh = mm; muzzle.material_override = m_dark
+	muzzle.position = Vector3(0.0, -0.02, 0.15); muzzle.rotation.x = PI * 0.56
+	head.add_child(muzzle)
+	var beard := MeshInstance3D.new()
+	var bdm := CylinderMesh.new(); bdm.top_radius = 0.008; bdm.bottom_radius = 0.032; bdm.height = 0.13; bdm.radial_segments = 5
+	beard.mesh = bdm; beard.material_override = m_dark
+	beard.position = Vector3(0.0, -0.10, 0.12); beard.rotation.x = -0.22
+	head.add_child(beard)
+	_add_eyes(head, [Vector3(-0.064, 0.045, 0.085), Vector3(0.064, 0.045, 0.085)], 0.015)
+
+	for sgn: float in [-1.0, 1.0]:
+		var ear := MeshInstance3D.new()
+		var em := CylinderMesh.new(); em.top_radius = 0.006; em.bottom_radius = 0.022; em.height = 0.11; em.radial_segments = 5
+		ear.mesh = em; ear.material_override = m_coat
+		ear.position = Vector3(sgn * 0.082, 0.072, -0.01); ear.rotation = Vector3(-0.28, 0.0, -sgn * 0.92)
+		head.add_child(ear)
+
+		# True 5-segment sweeping curved alpine ibex scimitar horn with transverse ridges!
+		var h_pts := [
+			Vector3(sgn * 0.032, 0.095, 0.025),
+			Vector3(sgn * 0.065, 0.215, -0.035),
+			Vector3(sgn * 0.110, 0.305, -0.155),
+			Vector3(sgn * 0.155, 0.335, -0.305),
+			Vector3(sgn * 0.195, 0.300, -0.445),
+			Vector3(sgn * 0.218, 0.225, -0.535),
+		]
+		var h_rads := [0.036, 0.031, 0.026, 0.021, 0.015, 0.006]
+		for hi in range(h_pts.size() - 1):
+			var ha: Vector3 = h_pts[hi]
+			var hb: Vector3 = h_pts[hi + 1]
+			var hd := hb - ha
+			var hlen := hd.length()
+			var hy := hd / maxf(0.001, hlen)
+			var href := Vector3.UP if absf(hy.y) < 0.92 else Vector3.FORWARD
+			var hx := href.cross(hy).normalized()
+			var hz := hx.cross(hy).normalized()
+			var hseg := MeshInstance3D.new()
+			var hcm := CylinderMesh.new()
+			hcm.bottom_radius = h_rads[hi]; hcm.top_radius = h_rads[hi + 1]; hcm.height = hlen * 1.06; hcm.radial_segments = 7
+			hseg.mesh = hcm; hseg.material_override = m_horn
+			hseg.transform = Transform3D(Basis(hx, hy, hz), (ha + hb) * 0.5)
+			head.add_child(hseg)
+
+	# Articulated two-tone mountain legs (muscular upper haunch/foreleg + slender dark lower shin + cloven hoof!)
+	var legs: Array = []
+	var leg_specs := [
+		Vector3(-0.105, 0.38, 0.19), Vector3(0.105, 0.38, 0.19),
+		Vector3(-0.105, 0.38, -0.23), Vector3(0.105, 0.38, -0.23),
+	]
+	for li in range(leg_specs.size()):
+		var lp: Vector3 = leg_specs[li]
+		var piv := Node3D.new(); piv.position = lp; root.add_child(piv)
+		var is_rear := li >= 2
+		var up := MeshInstance3D.new()
+		var um := CylinderMesh.new(); um.top_radius = 0.056 if is_rear else 0.048; um.bottom_radius = 0.030; um.height = 0.21; um.radial_segments = 6
+		up.mesh = um; up.material_override = m_coat
+		up.position = Vector3(0.0, -0.10, -0.025 if is_rear else 0.010)
+		up.rotation.x = 0.24 if is_rear else -0.08
+		piv.add_child(up)
+		var lo := MeshInstance3D.new()
+		var lm := CylinderMesh.new(); lm.top_radius = 0.028; lm.bottom_radius = 0.022; lm.height = 0.20; lm.radial_segments = 6
+		lo.mesh = lm; lo.material_override = m_dark
+		lo.position = Vector3(0.0, -0.28, -0.035 if is_rear else 0.015)
+		lo.rotation.x = -0.12 if is_rear else 0.04
+		piv.add_child(lo)
+		var hf := MeshInstance3D.new()
+		var hfm := CylinderMesh.new(); hfm.top_radius = 0.025; hfm.bottom_radius = 0.030; hfm.height = 0.042; hfm.radial_segments = 6
+		hf.mesh = hfm; hf.material_override = m_hoof
+		hf.position = Vector3(0.0, -0.37, -0.022 if is_rear else 0.022)
+		piv.add_child(hf)
+		legs.append(piv)
+
+	agents.append({
+		"node": root, "waypoints": waypoints, "period": period, "speed": 1.0, "phase": phase,
+		"gait": "trot", "legs": legs, "head_node": head, "tail_node": tail,
 	})
 
 static func spawn_bat(parent: Node3D, agents: Array[Dictionary], node_name: String, waypoints: Array, period: float, phase: float) -> void:

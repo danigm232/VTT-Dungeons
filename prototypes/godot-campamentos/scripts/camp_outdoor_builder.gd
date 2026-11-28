@@ -13,6 +13,7 @@ const EnvKitScript = preload("res://scripts/camp_environment_kit.gd")
 const PropFactory = preload("res://scripts/camp_prop_factory.gd")
 const FaunaKit = preload("res://scripts/camp_fauna_kit.gd")
 const CoastalKit = preload("res://scripts/camp_coastal_kit.gd")
+const MarineEco = preload("res://scripts/camp_marine_ecosystem.gd")
 
 const BEACH_WATER_Y := -0.18
 const CLIFF_SEA_Y := -14.8
@@ -24,6 +25,7 @@ var bedrolls: Dictionary = {}
 var seat_anchors: Dictionary = {}
 var shelter_anchors: Dictionary = {}
 var fauna_agents: Array[Dictionary] = []
+var _marine_anim_state: Dictionary = {}
 
 var _env_kit: EnvKitScript = EnvKitScript.new()
 var _fx_ref: CampAtmosphereFx
@@ -138,11 +140,17 @@ func _eval_beach_height(wx: float, wz: float, width_m: float, depth_m: float) ->
 			h = swash_y
 		else:
 			var d_sea := wz - shore_z
-			var sea_drop := smoothstep(0.0, 24.0, d_sea) * 2.45 + d_sea * 0.025
+			# Gentle 5.2m coastal wading shelf -> progressive sloping reef & diving seabed (-3.6m)
+			var wade_t := smoothstep(0.0, 5.2, d_sea)
+			var shelf_t := smoothstep(4.6, 15.5, d_sea)
+			var deep_t := smoothstep(14.0, 26.0, d_sea)
+			var wy_w := lerpf(BEACH_WATER_Y, BEACH_WATER_Y - 0.48, wade_t)
+			var wy_s := lerpf(wy_w, BEACH_WATER_Y - 2.35, shelf_t)
+			var wy_d := lerpf(wy_s, BEACH_WATER_Y - 3.95, deep_t)
 			# Shallow reef shelf under eastern shipwreck so turquoise surf wraps around hull
 			var wreck_d := Vector2((wx - 35.6) * 0.82, (wz - 28.8) * 1.05).length()
-			var reef_shelf := (1.0 - smoothstep(2.5, 9.0, wreck_d)) * 0.38
-			h = BEACH_WATER_Y - sea_drop + reef_shelf + sin(wx * 0.28) * cos(wz * 0.26) * 0.08
+			var reef_shelf := (1.0 - smoothstep(2.5, 9.0, wreck_d)) * 0.48
+			h = wy_d + reef_shelf + sin(wx * 0.28) * cos(wz * 0.26) * 0.08
 	else:
 		# Sculpted asymmetric northern sandstone bluffs & dunes starting cleanly OUTSIDE northern walkable rows (wz < 4.4)!
 		var north_d := maxf(0.0, 4.4 - wz)
@@ -174,68 +182,133 @@ func _eval_beach_vertex_color(wx: float, wz: float, h: float) -> Color:
 	var furrow := (1.0 - smoothstep(0.35, 1.35, furrow_d)) * 0.75
 	return Color(clampf(moist, 0.0, 1.0), clampf(maxf(wrack, bluff_gravel), 0.0, 1.0), clampf(maxf(camp_wear * 0.65, furrow), 0.0, 1.0), 1.0)
 
+func _cliff_arrival_trail_info(wx: float, wz: float) -> Dictionary:
+	# Canonical SW highland arrival road climbing from El Retiro (observatory-coast / observatory-inland) onto the camp terrace
+	var u := clampf((wx - (-22.0)) / 28.0, 0.0, 1.0)
+	var su := u * u * (3.0 - 2.0 * u)
+	var tz := lerpf(32.5, 20.6, su) + sin(u * PI * 1.4) * 1.65
+	var ty := lerpf(-5.6, 0.0, pow(su, 0.92))
+	var dist := absf(wz - tz)
+	if wx < -22.5:
+		dist = Vector2(wx + 22.5, wz - 32.5).length()
+	elif wx > 6.4:
+		dist = Vector2(wx - 6.4, wz - 20.6).length()
+	return {"dist": dist, "z": tz, "y": ty, "u": u}
+
 func _cliff_rim_signed_dist(wx: float, wz: float, width_m: float, depth_m: float) -> float:
-	# Asymmetric jagged coastal promontory connected to a larger highland rocky massif to the W/NW!
-	# Negative = inside walkable upper basalt plateau; Positive = distance past jagged cliff drop rim.
+	# Continental Cornice Promontory (Option A): rounded-jagged rocky rim enclosing all 307 canonical tiles with ZERO harsh 90-degree corners!
 	var cx := width_m * 0.50 + 0.6
 	var cz := depth_m * 0.50 - 0.4
 	var ang := atan2(wz - cz, wx - cx)
-	var jag := sin(ang * 5.0 + 0.6) * 1.45 + cos(ang * 8.0 - 1.1) * 0.85 + sin(ang * 13.0 + 2.0) * 0.45
-	# Elliptical-polygonal organic promontory envelope comfortably enclosing all 307 walkable tiles (cols 2..22, rows 2..19 -> x:3..34.5, z:3..30)
+	var jag := sin(ang * 5.0 + 0.6) * 1.45 + cos(ang * 8.0 - 1.1) * 0.85 + sin(ang * 13.0 + 2.0) * 0.42
 	var nx_e := (wx - cx) / (17.2 + jag * 0.55)
 	var nz_e := (wz - cz) / (14.4 + jag * 0.48)
-	# Soft superellipse (p=3.2) breaks boxy trapezoid rectangle into dramatic rounded-jagged rocky promontory
-	var r_se := pow(pow(absf(nx_e), 3.2) + pow(absf(nz_e), 3.2), 1.0 / 3.2)
-	var d_rim := (r_se - 1.0) * 15.2 + jag * 0.42
-	# Keep ALL canonical inner walkable bounds (x in [2.6, 34.8], z in [2.6, 29.8]) safely inside the upper plateau!
-	var box_dx := maxf(0.0, maxf(2.6 - wx, wx - 34.8))
-	var box_dz := maxf(0.0, maxf(2.6 - wz, wz - 29.8))
-	var box_out := sqrt(box_dx * box_dx + box_dz * box_dz)
-	if box_out <= 0.01:
+	var r_se := pow(pow(absf(nx_e), 3.0) + pow(absf(nz_e), 3.0), 1.0 / 3.0)
+	var d_rim := (r_se - 1.0) * 15.0 + jag * 0.42
+	# Softly rounded-corner protective box enclosing all canonical walkable tiles (cols 2..22, rows 2..19 -> x in [3.0, 34.5], z in [3.0, 30.0])
+	var r_rad := 3.2
+	var qx := maxf(0.0, absf(wx - 18.75) - (16.1 - r_rad))
+	var qz := maxf(0.0, absf(wz - 16.40) - (13.8 - r_rad))
+	var rbox_out := sqrt(qx * qx + qz * qz) - r_rad + jag * 0.28
+	if rbox_out <= 0.01:
 		return minf(d_rim, -0.45)
-	return maxf(d_rim, box_out * 0.85)
+	return maxf(d_rim, rbox_out * 0.88)
 
 func _eval_cliff_height(wx: float, wz: float, width_m: float, depth_m: float) -> float:
-	# Connected highland mountain massif on the far West / Northwest (wx < 0, wz < 14) so promontory is NOT a floating block!
-	var massif_w := smoothstep(4.5, -18.0, wx) * smoothstep(24.0, 2.0, wz)
-	var massif_nw := smoothstep(12.0, -8.0, wx) * smoothstep(2.5, -18.0, wz)
-	var massif_mask := clampf(maxf(massif_w, massif_nw * 0.92), 0.0, 1.0)
+	var ti := _cliff_arrival_trail_info(wx, wz)
+	var tz_tr: float = float(ti["z"])
+	var ty_tr: float = float(ti["y"])
+	var d_tr: float = float(ti["dist"])
+
+	# 1. Playable upper watch-terrace micro-relief (<= +-0.075m so all 307 canonical walkable tiles stay 100% valid!)
+	var sanctuary_d := Vector2(wx - 19.0, wz - 12.6).length()
+	var sanct_flat := 1.0 - smoothstep(5.6, 8.8, sanctuary_d)
+	var plat_h := (sin(wx * 0.27 + 0.5) * cos(wz * 0.25 - 0.4) * 0.060 + sin((wx + wz) * 0.48) * 0.024) * (1.0 - sanct_flat * 0.86)
 
 	var d_rim := _cliff_rim_signed_dist(wx, wz, width_m, depth_m)
-	# Subtle weathered plateau micro-relief (<= ±0.08m so all 307 walkable tiles stay 100% valid!)
-	var sanctuary_d := Vector2(wx - 19.0, wz - 12.6).length()
-	var sanct_flat := 1.0 - smoothstep(5.5, 8.8, sanctuary_d)
-	var plat_h := (sin(wx * 0.27 + 0.5) * cos(wz * 0.25 - 0.4) * 0.065 + sin((wx + wz) * 0.48) * 0.028) * (1.0 - sanct_flat * 0.82)
-
 	var h := plat_h
+
 	if d_rim > 0.0:
-		# Multi-tier stratified cliff drop with jutting basalt rock shelves & irregular ledges!
-		var t_drop := clampf(d_rim / 11.5, 0.0, 1.0)
+		# Sheer multi-tier basalt precipice drop on East, South-East, and North Sea-Chasm!
+		var t_drop := clampf(d_rim / 9.0, 0.0, 1.0)
 		var strata_step := floorf(t_drop * 4.0) * 0.25
-		var stepped_t := lerpf(t_drop, strata_step + smoothstep(0.0, 1.0, fposmod(t_drop * 4.0, 1.0)) * 0.25, 0.36)
+		var stepped_t := lerpf(t_drop, strata_step + smoothstep(0.0, 1.0, fposmod(t_drop * 4.0, 1.0)) * 0.25, 0.45)
 		var drop := smoothstep(0.0, 1.0, stepped_t) * 16.8
-		var shelf_rip := sin(wx * 0.34 + wz * 0.26) * 0.72 + cos(wx * 0.62 - wz * 0.54) * 0.36
-		var sheer_h := plat_h - drop + shelf_rip * smoothstep(0.2, 3.5, d_rim) * (1.0 - smoothstep(9.0, 16.0, d_rim))
-		# Blend seamlessly into rising highland massif on the West/NW instead of dropping into void!
+		var shelf_rip := sin(wx * 0.38 + wz * 0.29) * 0.62 + cos(wx * 0.72 - wz * 0.58) * 0.32
+		var sheer_h := plat_h - drop + shelf_rip * smoothstep(0.2, 3.0, d_rim) * (1.0 - smoothstep(8.2, 13.5, d_rim))
+
+		# 2. Broad Gently-Terraced Continental Stormwreck Highland Massif across West, NW & SW (ZERO trench at x=-2!)
+		var cont_w := smoothstep(6.2, -4.5, wx) * smoothstep(56.0, 32.0, wz) * smoothstep(-14.0, 2.5, wz)
+		var cont_nw := smoothstep(7.5, -8.0, wx) * smoothstep(4.5, -10.0, wz) * smoothstep(-28.0, -14.0, wz)
+		var sw_shoulder := smoothstep(16.0, 2.0, wx) * smoothstep(28.5, 34.5, wz) * (1.0 - smoothstep(46.0, 62.0, wz))
+		var massif_mask := clampf(maxf(cont_w, cont_nw * 0.90), 0.0, 1.0)
+
+		h = sheer_h
 		if massif_mask > 0.001:
-			var m_rise := pow(massif_mask, 1.15) * 9.8 + sin(wx * 0.22 + wz * 0.19) * 1.45 * massif_mask + cos(wx * 0.48 - wz * 0.38) * 0.55 * massif_mask
-			h = lerpf(sheer_h, plat_h + m_rise, smoothstep(0.06, 0.55, massif_mask))
-		else:
-			h = sheer_h
+			# Smooth terraced mountain benches climbing organically westward from the plateau edge with zero dip/trench!
+			var north_of_trail := smoothstep(tz_tr + 2.5, tz_tr - 14.0, wz)
+			var west_ramp := smoothstep(4.5, -18.0, wx)
+			var raw_rise := lerpf(-0.6, 5.4, north_of_trail) * west_ramp
+			var west_boost := smoothstep(-10.0, -38.0, wx) * 4.2 * north_of_trail
+			var bench_t := clampf((raw_rise + west_boost) / 9.0, 0.0, 1.0)
+			var bench_step := floorf(bench_t * 3.0) / 3.0
+			var terraced_rise := lerpf(raw_rise + west_boost, (bench_step + smoothstep(0.0, 1.0, fposmod(bench_t * 3.0, 1.0)) / 3.0) * 9.0, 0.35)
+			var m_crag := (sin(wx * 0.22 + wz * 0.19) * 0.85 + cos(wx * 0.48 - wz * 0.38) * 0.38) * west_ramp
+			var cont_h := plat_h + terraced_rise + m_crag
+			h = maxf(h, lerpf(sheer_h, cont_h, smoothstep(0.02, 0.38, massif_mask)))
+
+		if sw_shoulder > 0.001:
+			# Rugged stepped rocky SW foreground headland shoulder supporting the outer arrival stairs
+			var sh_drop := lerpf(-1.4, -7.2, smoothstep(29.8, 48.0, wz)) + sin(wx * 0.32 + wz * 0.26) * 0.78
+			h = maxf(h, lerpf(sheer_h, sh_drop, smoothstep(0.05, 0.62, sw_shoulder)))
+
+		# 3. Smoothly carved graded SW Arrival Staircase & Highland Roadbed (connects Retiro seamlessly to plateau!)
+		if wx < 7.2 and wz > 12.0 and wz < 46.0:
+			var trail_w := 1.0 - smoothstep(2.0, 5.4, d_tr)
+			var trail_zone := smoothstep(7.0, 3.0, wx) * smoothstep(44.0, 33.0, wz)
+			if trail_w > 0.001 and trail_zone > 0.001:
+				h = lerpf(h, ty_tr, clampf(trail_w * trail_zone, 0.0, 1.0))
+
+		# 4. Sculpted Northern Clifftop Observatory Headland Crag across Open Sea-Chasm (x=27.4, z=-17.8, summit y=+1.55m!)
+		var obs_rel := Vector2((wx - 27.4) * 0.96, (wz - (-17.8)) * 1.04)
+		var obs_ang := atan2(obs_rel.y, obs_rel.x)
+		var obs_jag := sin(obs_ang * 5.0 + 1.1) * 0.65 + cos(obs_ang * 7.0) * 0.38
+		var obs_r := obs_rel.length() + obs_jag
+		if obs_r < 12.8:
+			var summit_flat := 1.0 - smoothstep(4.2, 6.8, obs_r)
+			var crag_skirt := 1.0 - smoothstep(5.4, 12.2, obs_r)
+			var obs_h := lerpf(CLIFF_SEA_Y - 1.5, 1.55, smoothstep(0.0, 1.0, crag_skirt))
+			obs_h = lerpf(obs_h, 1.55, summit_flat)
+			# Lower ascending rock nose receiving the stone-arch bridge far landing at (24.6, -11.4, y=0.95m)
+			var nose_d := Vector2((wx - 24.6) * 1.18, (wz - (-12.2)) * 0.92).length()
+			var nose_m := 1.0 - smoothstep(1.8, 4.6, nose_d)
+			obs_h = maxf(obs_h, lerpf(CLIFF_SEA_Y - 1.5, 0.95, nose_m))
+			obs_h += sin(wx * 0.35 + wz * 0.31) * 0.32 * (1.0 - summit_flat)
+			h = maxf(h, obs_h)
+
 	return h
 
 func _eval_cliff_vertex_color(wx: float, wz: float, h: float) -> Color:
+	var ti := _cliff_arrival_trail_info(wx, wz)
 	# R = ancient carved astronomical ruin plaza & flagstones (centered at 19.0, 12.6)
 	var d_ruin := Vector2((wx - 19.0) * 0.96, (wz - 12.6) * 1.04).length()
-	var ruin_m := (1.0 - smoothstep(5.4, 8.2, d_ruin)) * smoothstep(-0.35, -0.05, h)
-	# G = highland lichen, alpine moss & crevice turf along windbreak, west path & cliff ledges
-	var west_ridge := smoothstep(14.0, 2.5, wx) * smoothstep(-0.4, 0.1, h) * 0.62
-	var rim_moss := (1.0 - smoothstep(1.2, 5.2, absf(h + 0.05))) * (0.32 + 0.35 * sin(wx * 0.35) * cos(wz * 0.31))
-	var moss_m := clampf(maxf(west_ridge, rim_moss) * (1.0 - ruin_m * 0.85), 0.0, 1.0)
-	# B = worn camp gravel/dust around sheltered camp hearth & tarp (x=15..20, z=12..17)
-	var d_camp := Vector2((wx - 16.8) * 0.85, (wz - 14.5) * 0.95).length()
-	var camp_m := (1.0 - smoothstep(2.2, 5.8, d_camp)) * (1.0 - ruin_m * 0.65)
-	return Color(clampf(ruin_m, 0.0, 1.0), clampf(moss_m, 0.0, 1.0), clampf(camp_m, 0.0, 1.0), 1.0)
+	var ruin_m := (1.0 - smoothstep(5.5, 8.0, d_ruin)) * smoothstep(-0.35, -0.05, h)
+
+	# B = worn pilgrimage roadbed: SW Retiro arrival stairs + camp connector + North Observatory causeway!
+	var d_tr: float = float(ti["dist"])
+	var tr_sw := (1.0 - smoothstep(1.35, 2.95, d_tr)) * smoothstep(8.2, 4.2, wx)
+	var p2 := Vector2(wx, wz)
+	var tr_join := 1.0 - smoothstep(1.25, 2.75, _seg_dist_2d(p2, Vector2(5.4, 20.5), Vector2(13.8, 17.4)))
+	var tr_causeway := 1.0 - smoothstep(1.35, 2.85, _seg_dist_2d(p2, Vector2(19.0, 6.5), Vector2(19.4, 1.2)))
+	var tr_camp := (1.0 - smoothstep(1.8, 4.8, Vector2((wx - 17.0) * 0.88, (wz - 14.8) * 0.95).length())) * 0.55
+	var path_b := clampf(maxf(maxf(tr_sw, tr_join * 0.85), maxf(tr_causeway * 0.92, tr_camp)) * (1.0 - ruin_m * 0.65), 0.0, 1.0)
+
+	# G = highland turf, alpine moss & crevice grass along continental west slopes, SW trail banks, rim crevices & Observatory crag
+	var west_ridge := smoothstep(12.5, -2.5, wx) * smoothstep(-3.5, 0.8, h) * 0.88
+	var rim_moss := (1.0 - smoothstep(0.8, 4.5, absf(h + 0.05))) * (0.34 + 0.36 * sin(wx * 0.32) * cos(wz * 0.29))
+	var obs_turf := smoothstep(2.5, 4.4, h) * smoothstep(-14.0, -22.0, wz) * 0.72
+	var moss_m := clampf(maxf(maxf(west_ridge, rim_moss), obs_turf) * (1.0 - ruin_m * 0.88) * (1.0 - path_b * 0.72), 0.0, 1.0)
+	return Color(clampf(ruin_m, 0.0, 1.0), clampf(moss_m, 0.0, 1.0), path_b, 1.0)
 
 func _cove_shore_z(wx: float) -> float:
 	# Asymmetric crescent sandy cove framed by West & East rocky headlands (all 328 canonical walkable tiles stay safely dry/wadeable!)
@@ -286,8 +359,14 @@ func _eval_cove_height(wx: float, wz: float, width_m: float, depth_m: float) -> 
 			h = sw_y
 		else:
 			var d_sea := wz - shore_z
-			var sea_drop := smoothstep(0.0, 22.0, d_sea) * 2.55 + d_sea * 0.025
-			h = COVE_WATER_Y - sea_drop + sin(wx * 0.25) * cos(wz * 0.24) * 0.08
+			# Gentle 3.6m cove wading shelf -> smooth progressive diving seabed (-2.1m by z=38.5, -3.95m inside reef arc!)
+			var wade_t := smoothstep(0.0, 3.6, d_sea)
+			var shelf_t := smoothstep(2.8, 10.6, d_sea)
+			var deep_t := smoothstep(9.5, 19.5, d_sea)
+			var wy_w := lerpf(COVE_WATER_Y, COVE_WATER_Y - 0.46, wade_t)
+			var wy_s := lerpf(wy_w, COVE_WATER_Y - 2.45, shelf_t)
+			var wy_d := lerpf(wy_s, COVE_WATER_Y - 3.95, deep_t)
+			h = wy_d + sin(wx * 0.25) * cos(wz * 0.24) * 0.09
 	else:
 		# Rising coastal cliff massif enclosing the North, NW, and East sides of the sea cave!
 		var cliff_out := maxf(0.0, r_oval - 0.96)
@@ -353,6 +432,44 @@ func eval_ground_height(wx: float, wz: float) -> float:
 	elif _build_profile == "coastal-refuge":
 		return _eval_cove_height(wx, wz, _build_width_m, _build_depth_m)
 	return _eval_skirt_height(_build_profile, wx, wz, _build_width_m, _build_depth_m)
+
+func has_coastal_sea() -> bool:
+	return _build_profile in ["coastal-refuge", "wreck-beach"]
+
+func get_sea_level_y() -> float:
+	if _build_profile == "coastal-refuge":
+		return COVE_WATER_Y
+	if _build_profile == "wreck-beach":
+		return BEACH_WATER_Y
+	return 0.0
+
+func sample_aquatic_floor_height(wx: float, wz: float) -> float:
+	if _build_profile == "coastal-refuge":
+		return _eval_cove_height(wx, wz, _build_width_m, _build_depth_m)
+	if _build_profile == "wreck-beach":
+		return _eval_beach_height(wx, wz, _build_width_m, _build_depth_m)
+	return eval_ground_height(wx, wz)
+
+func sample_sea_current_push(world_pos: Vector3) -> Vector3:
+	if not has_coastal_sea():
+		return Vector3.ZERO
+	var push := Vector3.ZERO
+	var is_cove := _build_profile == "coastal-refuge"
+	var chan_z := 46.8 if is_cove else 45.6
+	if world_pos.z >= chan_z and world_pos.x >= 11.5 and world_pos.x <= 26.0:
+		var t_ch := clampf((world_pos.z - chan_z) / 5.2, 0.0, 1.0)
+		push += Vector3(0.0, 0.0, -lerpf(1.6, 7.2, t_ch * t_ch))
+	var c_center := Vector2(18.5, 31.5) if is_cove else Vector2(18.0, 26.8)
+	var rx := 20.5 if is_cove else 22.0
+	var rz := 21.0 if is_cove else 24.0
+	var rel := Vector2((world_pos.x - c_center.x) / rx, (world_pos.z - c_center.y) / rz)
+	var r := rel.length()
+	if world_pos.z > c_center.y and r > 0.92:
+		var t_ring := clampf((r - 0.92) / 0.16, 0.0, 1.0)
+		var inward := (c_center - Vector2(world_pos.x, world_pos.z)).normalized()
+		var mag := lerpf(1.4, 7.6, t_ring * t_ring)
+		push += Vector3(inward.x * mag, 0.0, inward.y * mag)
+	return push
 
 func clamp_point_to_river(wx: float, wz: float) -> Vector2:
 	if _river_pts.is_empty():
@@ -457,6 +574,8 @@ func _process(delta: float) -> void:
 		return
 	_fauna_time += delta
 	sync_wildlife()
+	if not _marine_anim_state.is_empty():
+		MarineEco.animate_marine_life(_marine_anim_state, _fauna_time, get_sea_level_y())
 	_update_river_mover_ripples()
 
 func build(scene_def: Dictionary, fx: CampAtmosphereFx) -> Dictionary:
@@ -505,6 +624,7 @@ func _prepare_build(scene_def: Dictionary, fx: CampAtmosphereFx) -> void:
 	seat_anchors.clear()
 	shelter_anchors.clear()
 	fauna_agents.clear()
+	_marine_anim_state.clear()
 	_stream_shader_mats.clear()
 	_river_mats.clear()
 	_forest_occlude_mats.clear()
@@ -626,8 +746,11 @@ func _build_walkable_ground_and_skirt(scene_def: Dictionary, profile: String, wi
 
 	var mat_primary: Material
 	var mat_ground_splat: ShaderMaterial
-	var ripple_v := 0.85 if profile == "coastal-refuge" else 0.35
-	var mat_water_tile := MatKit.create_water_shader_material(Color(0.071, 0.271, 0.322, 0.76), Color(0.173, 0.443, 0.490, 0.54), Color("#d6eef2"), 0.014, 1.15, 0.0, Vector2(0.0, 0.2), 0.35, ripple_v)
+	var mat_water_tile: Material
+	if profile == "coastal-refuge":
+		mat_water_tile = _create_cave_pool_shader()
+	else:
+		mat_water_tile = MatKit.create_water_shader_material(Color(0.071, 0.271, 0.322, 0.76), Color(0.173, 0.443, 0.490, 0.54), Color("#d6eef2"), 0.014, 1.15, 0.0, Vector2(0.0, 0.2), 0.35, 0.35)
 
 	match profile:
 		"forest":
@@ -900,7 +1023,12 @@ func _build_walkable_ground_and_skirt(scene_def: Dictionary, profile: String, wi
 		fbox.size = Vector3(east_w, 1.0, depth_m - 2.0)
 		fcs.shape = fbox
 		fcs.position = Vector3(9.5 + east_w * 0.5, -0.58, depth_m * 0.5)
-	elif profile in ["wreck-beach", "cliff-observatory", "coastal-refuge"]:
+	elif profile in ["wreck-beach", "coastal-refuge"]:
+		# Deep abyssal safety backstop well below diveable seabed (-5.8m) so characters can swim & dive freely!
+		fbox.size = Vector3(width_m + 32.0, 1.0, depth_m + 56.0)
+		fcs.shape = fbox
+		fcs.position = Vector3(width_m * 0.5, -5.85, depth_m * 0.5 + 16.0)
+	elif profile == "cliff-observatory":
 		# Deep safety backstop beneath continuous sculpted trimesh
 		fbox.size = Vector3(width_m + 4.0, 1.0, depth_m + 4.0)
 		fcs.shape = fbox
@@ -934,7 +1062,7 @@ func _build_sculpted_surround_skirt(profile: String, width_m: float, depth_m: fl
 	if profile == "wreck-beach":
 		pad_x = 46.0; pad_z_n = 32.0; pad_z_s = 36.0
 	elif profile == "cliff-observatory":
-		pad_x = 46.0; pad_z_n = 38.0; pad_z_s = 36.0
+		pad_x = 54.0; pad_z_n = 58.0; pad_z_s = 42.0
 	elif profile == "coastal-refuge":
 		pad_x = 46.0; pad_z_n = 34.0; pad_z_s = 38.0
 	var x_min := -pad_x; var x_max := width_m + pad_x
@@ -943,7 +1071,9 @@ func _build_sculpted_surround_skirt(profile: String, width_m: float, depth_m: fl
 	if profile == "forest":
 		# Extended seamless forest hills & river valley eliminating far straight horizon cutoff
 		nx = 84; nz = 70
-	elif profile in ["wreck-beach", "cliff-observatory", "coastal-refuge"]:
+	elif profile == "cliff-observatory":
+		nx = 96; nz = 84
+	elif profile in ["wreck-beach", "coastal-refuge"]:
 		nx = 76; nz = 60
 
 	var st := SurfaceTool.new()
@@ -2499,6 +2629,37 @@ func _build_forest_flora_expansion(scene_def: Dictionary, width_m: float, depth_
 		"batches": batch_stats,
 	}
 
+func _restyle_deer_node(n: Node, is_stag: bool) -> void:
+	if n is MeshInstance3D:
+		var mi := n as MeshInstance3D
+		if mi.mesh:
+			for si in range(mi.mesh.get_surface_count()):
+				var orig := mi.mesh.surface_get_material(si) as BaseMaterial3D
+				if orig == null:
+					orig = mi.get_active_material(si) as BaseMaterial3D
+				var c := orig.albedo_color if orig else Color(0.75, 0.42, 0.24)
+				var s_name := (orig.resource_name if orig else "").to_lower()
+				var nm := StandardMaterial3D.new()
+				nm.roughness = 0.90
+				nm.metallic = 0.0
+				nm.metallic_specular = 0.08
+				nm.vertex_color_use_as_albedo = false
+				if orig and orig.albedo_texture != null:
+					nm.albedo_texture = orig.albedo_texture
+					# Desaturate bright orange GLB palette texture into natural woodland deer fur
+					nm.albedo_color = Color(0.52, 0.56, 0.58)
+				elif s_name.contains("eye") or s_name.contains("hoof") or s_name.contains("nose") or (c.r + c.g + c.b) < 0.72:
+					nm.albedo_color = Color("#2e241c")
+					nm.roughness = 0.72
+				elif s_name.contains("horn") or s_name.contains("antler") or s_name.contains("belly") or s_name.contains("light") or s_name.contains("white") or (c.r > 0.65 and c.b > 0.55):
+					nm.albedo_color = Color("#cbb79b")
+				else:
+					nm.albedo_color = Color("#5b402c") if is_stag else Color("#6e4f37")
+				mi.mesh.surface_set_material(si, nm)
+				mi.set_surface_override_material(si, nm)
+	for ch in n.get_children():
+		_restyle_deer_node(ch, is_stag)
+
 func _spawn_fauna_actor(glb_path: String, node_name: String, scale_val: float, waypoints: Array, period: float, phase: float) -> void:
 	if not ResourceLoader.exists(glb_path):
 		return
@@ -2511,6 +2672,8 @@ func _spawn_fauna_actor(glb_path: String, node_name: String, scale_val: float, w
 	inst.name = node_name
 	inst.scale = Vector3.ONE * scale_val
 	inst.position = waypoints[0]
+	if node_name.contains("Deer") or node_name.contains("Stag"):
+		_restyle_deer_node(inst, node_name.contains("Stag"))
 	_grp_vegetation.add_child(inst)
 	var ap := inst.find_child("AnimationPlayer", true, false) as AnimationPlayer
 	if ap and not ap.get_animation_list().is_empty():
@@ -2758,18 +2921,19 @@ func _build_beach_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m: 
 	foam_sources.append(Vector3(wreck_pos.x - 1.6, wreck_pos.z - 1.2, 2.6))
 	foam_sources.append(Vector3(wreck_pos.x + 1.8, wreck_pos.z + 1.4, 2.6))
 
-	# 5. Shared Depth-Aware Coastal Ocean Mesh with Curved Breaking Surf & Reef Foam
+	# 5. Shared Coastal Marine Ecosystem (Outer Reef Perimeter, Buoys, Kelp, Corals, Reef Fish & Manta Rays) + Depth-Aware Ocean
+	var seab_cb := func(wx: float, wz: float) -> float:
+		return _eval_beach_height(wx, wz, width_m, depth_m)
+	_marine_anim_state = MarineEco.build_coastal_marine_life(_grp_env_geo, _env_kit, "wreck-beach", BEACH_WATER_Y, seab_cb, foam_sources, rng)
 	var mat_ocean := CoastalKit.create_coastal_ocean_shader(
-		Color(0.042, 0.195, 0.305, 0.96),
-		Color(0.088, 0.385, 0.470, 0.88),
-		Color(0.240, 0.585, 0.580, 0.32),
+		Color(0.042, 0.195, 0.305, 0.84),
+		Color(0.088, 0.395, 0.478, 0.66),
+		Color(0.240, 0.600, 0.590, 0.24),
 		Color(0.92, 0.97, 0.99, 1.0),
 		0.082,
 		1.0,
 		true
 	)
-	var seab_cb := func(wx: float, wz: float) -> float:
-		return _eval_beach_height(wx, wz, width_m, depth_m)
 	var calm_cb := func(_wx: float, _wz: float) -> float:
 		return 0.0
 	CoastalKit.build_coastal_ocean_mesh(
@@ -2926,150 +3090,182 @@ func _build_beach_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m: 
 	sync_wildlife()
 
 # ------------------------------------------------------------------------------
-# Camp 04: Acantilados del Observatorio (AAA Stratified Promontory & Astronomical Ruin)
+# Camp 04: Acantilados del Observatorio (Option A — Promontorio Cornisa de Acceso al Observatorio)
+# Continental Stormwreck ridge on W/SW, carved Retiro arrival staircase, sheer columnar basalt
+# cliffs on E/SE, northern sea-chasm stone-arch bridge + distant ruined Clifftop Observatory!
 # ------------------------------------------------------------------------------
 func _build_observatory_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m: float, depth_m: float) -> void:
-	# Differentiated materials: stratified dark basalt bedrock, weathered slate-grey carved ashlar (harmonized with cliff!), patinated bronze, highland lichen
-	var mat_basalt := CoastalKit.make_multimesh_rock_mat("basalt-coastal-albedo-v1.webp", Color("#76828e"), 0.85, 0.30, true)
-	var mat_basalt_dark := CoastalKit.make_multimesh_rock_mat("a1-cliff-rugged-v8.jpg", Color("#6a747e"), 0.88, 0.28, true)
-	var mat_ashlar := MatKit.make_textured_mat("ashlar-v4.webp", Color("#6a7076"), 0.82, "rock", Vector3(0.48, 0.48, 0.48), true, true)
-	var mat_carved := MatKit.make_textured_mat("limestone-v3.webp", Color("#7c807c"), 0.80, "rock", Vector3(0.45, 0.45, 0.45), true, true)
-	var mat_plinth := MatKit.make_textured_mat("a1-cliff-organic-v7.png", Color("#596266"), 0.86, "rock", Vector3(0.42, 0.42, 0.42), true, true)
-	var mat_bronze_pat := MatKit.make_bronze_mat(Color("#9e824c"))
-	var mat_cedar_o := MatKit.make_wood_mat(Color("#694a30"), true)
-	var mat_highland_shrub := MatKit.create_foliage_wind_shader_material("foliage.webp", Color("#4e6346"), 0.055, Color("#7c966a"), false, 2.2, true)
+	# Differentiated weathered materials: volcanic columnar basalt (harmonized in value with cliff terrain!), fluted limestone/ashlar ruins, patinated bronze, driftwood oak & wind-taut rope
+	var mat_basalt := CoastalKit.make_multimesh_rock_mat("basalt-coastal-albedo-v1.webp", Color("#8a949e"), 0.86, 0.22, true)
+	var mat_basalt_dark := CoastalKit.make_multimesh_rock_mat("a1-cliff-rugged-v8.jpg", Color("#76808a"), 0.88, 0.22, true)
+	var mat_ashlar := MatKit.make_textured_mat("ashlar-v4.webp", Color("#7c8082"), 0.82, "rock", Vector3(0.50, 0.50, 0.50), true, true)
+	var mat_carved := MatKit.make_textured_mat("limestone-v3.webp", Color("#98988e"), 0.78, "rock", Vector3(0.46, 0.46, 0.46), true, true)
+	var mat_plinth := MatKit.make_textured_mat("a1-cliff-organic-v7.png", Color("#646d74"), 0.86, "rock", Vector3(0.42, 0.42, 0.42), true, true)
+	var mat_bronze_pat := MatKit.make_bronze_mat(Color("#aa8c50"))
+	var mat_dome_copper := MatKit.make_textured_mat("limestone-v3.webp", Color("#4e6d62"), 0.44, "rock", Vector3(0.7, 0.7, 0.7), false, true)
+	mat_dome_copper.metallic = 0.56
+	var mat_cedar_o := MatKit.make_wood_mat(Color("#6c4e35"), true)
+	var mat_plank_bridge := MatKit.make_wood_mat(Color("#7f6041"), true)
+	var mat_rope_o := MatKit.make_cloth_mat(Color("#a28b66"), false, true)
+	var mat_pennant := MatKit.make_cloth_mat(Color("#943028"), true, true)
+	var mat_pine_leaf := MatKit.create_foliage_wind_shader_material("foliage.webp", Color("#4e6d45"), 0.058, Color("#88aa68"), false, 2.0, true)
 
-	# Register MultiMesh rock & highland flora batches for rich cliff detail at high FPS
+	# Register MultiMesh rock pools: true flat-faceted columnar basalt + compact stratified ledges/scree
+	var bcol_pool := _env_kit.get_basalt_column_variants()
 	var strat_pool := _env_kit.get_rock_variants("stratified")
-	var crag_pool := _env_kit.get_rock_variants("craggy")
 	var flat_pool := _env_kit.get_rock_variants("flat")
-	var basalt_keys: Array[String] = []
-	var crag_keys: Array[String] = []
+	var bcol_keys: Array[String] = []
+	var bcol_dark_keys: Array[String] = []
 	var flat_keys: Array[String] = []
+	for vi in range(bcol_pool.size()):
+		var bck := "cliff_bcol_%d" % vi
+		_env_kit.define_multimesh(bck, bcol_pool[vi], mat_basalt, true)
+		bcol_keys.append(bck)
+		var bdk := "cliff_bcol_d_%d" % vi
+		_env_kit.define_multimesh(bdk, bcol_pool[vi], mat_basalt_dark, true)
+		bcol_dark_keys.append(bdk)
 	for vi in range(4):
-		var bk := "cliff_strat_%d" % vi
-		_env_kit.define_multimesh(bk, strat_pool[vi], mat_basalt, true)
-		basalt_keys.append(bk)
-		var ck := "cliff_crag_%d" % vi
-		_env_kit.define_multimesh(ck, crag_pool[vi], mat_basalt_dark, true)
-		crag_keys.append(ck)
 		var fk := "cliff_flat_%d" % vi
-		_env_kit.define_multimesh(fk, flat_pool[vi], mat_basalt, true)
+		_env_kit.define_multimesh(fk, flat_pool[vi] if vi < 2 else strat_pool[vi], mat_basalt, true)
 		flat_keys.append(fk)
 	_env_kit.define_multimesh("cliff_scree", flat_pool[0], mat_basalt, false)
 
-	var uv_heather := Rect2(0.51, 0.51, 0.48, 0.48)
+	# Rich 5-type batched botanical flora using ALL high-res quadrants of foliage-atlas-v5 & foliage-atlas!
+	var uv_shrub := Rect2(0.01, 0.01, 0.48, 0.48)
 	var uv_grass := Rect2(0.51, 0.01, 0.48, 0.48)
-	var mat_heather_mm := MatKit.create_foliage_wind_shader_material("foliage-atlas-v5.png", Color("#9688a8"), 0.065, Color("#a08cb8"), true, 1.0, true, uv_heather)
-	var mat_cgrass_mm := MatKit.create_foliage_wind_shader_material("foliage-atlas-v5.png", Color("#7a8a5e"), 0.082, Color("#96a874"), true, 1.0, true, uv_grass)
-	_env_kit.define_multimesh("cliff_heather_mm", _env_kit.get_bush_quad_proto(uv_heather, 1.08), mat_heather_mm, true)
-	_env_kit.define_multimesh("cliff_grass_mm", _env_kit.get_bush_quad_proto(uv_grass, 1.12), mat_cgrass_mm, false)
+	var uv_ivy := Rect2(0.01, 0.51, 0.48, 0.48)
+	var uv_heather := Rect2(0.51, 0.51, 0.48, 0.48)
+	var mat_heather_mm := MatKit.create_foliage_wind_shader_material("foliage-atlas-v5.png", Color("#9a8cad"), 0.062, Color("#a692be"), true, 1.0, true, uv_heather)
+	var mat_cgrass_mm := MatKit.create_foliage_wind_shader_material("foliage-atlas-v5.png", Color("#809060"), 0.092, Color("#a0b278"), true, 1.0, true, uv_grass)
+	var mat_wildfl_mm := MatKit.create_foliage_wind_shader_material("foliage-atlas.png", Color("#989678"), 0.075, Color("#bfb472"), true, 1.0, true, uv_heather)
+	var mat_cshrub_mm := MatKit.create_foliage_wind_shader_material("foliage-atlas-v5.png", Color("#6c7e54"), 0.052, Color("#8ca26c"), true, 1.0, true, uv_shrub)
+	var mat_civy_mm := MatKit.create_foliage_wind_shader_material("foliage-atlas-v5.png", Color("#648256"), 0.065, Color("#82a66e"), true, 1.0, true, uv_ivy)
+	mat_civy_mm.set_shader_parameter("hang", 1.0)
+	_env_kit.define_multimesh("cliff_heather_mm", _env_kit.get_bush_quad_proto(uv_heather, 1.12), mat_heather_mm, true)
+	_env_kit.define_multimesh("cliff_grass_mm", _env_kit.get_bush_quad_proto(uv_grass, 1.18), mat_cgrass_mm, false)
+	_env_kit.define_multimesh("cliff_wildflower_mm", _env_kit.get_bush_quad_proto(uv_heather, 1.04), mat_wildfl_mm, false)
+	_env_kit.define_multimesh("cliff_shrub_mm", _env_kit.get_bush_quad_proto(uv_shrub, 1.24), mat_cshrub_mm, true)
+	_env_kit.define_multimesh("cliff_ivy_hang_mm", _env_kit.get_hanging_ivy_proto(uv_ivy, 1.22, 1.45), mat_civy_mm, false)
 
-	fx.set_smoke_wind(Vector3(0.48, 0.72, 0.36)) # Exposed plateau crosswind
+	fx.set_smoke_wind(Vector3(0.52, 0.72, 0.34)) # Exposed headland crosswind
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 4042026
 	var sea_foam_sources: Array = []
 
-	# 1. Stepped Stratified Cliff Rim Cornices (LOW & EMBEDDED along rim so zero hovering discs, horizon stays 100% panoramic!) + Deep Lower Precipice Buttresses!
-	for rim_i in range(28):
-		var ang := float(rim_i) * TAU / 28.0
-		var rx := width_m * 0.50 + 0.6 + cos(ang) * 16.8 + sin(ang * 5.0) * 0.85
-		var rz := depth_m * 0.50 - 0.4 + sin(ang) * 14.0 + cos(ang * 4.0) * 0.72
-		if rx < 1.8 and rz < 18.0:
-			continue # Connected highland massif side
+	# 1. Interlocking Columnar Basalt Cliff Walls (tightly scaled & seated STRICTLY BELOW plateau lip so pitch 5 deg stays crystal clear!)
+	for rim_i in range(44):
+		var ang := float(rim_i) * TAU / 44.0
+		var rx := width_m * 0.50 + 0.6 + cos(ang) * 16.9 + sin(ang * 5.0) * 0.78
+		var rz := depth_m * 0.50 - 0.4 + sin(ang) * 14.0 + cos(ang * 4.0) * 0.68
+		# Leave West continental attachment, SW arrival stairway entrance, and North bridge gate cleanly open!
+		if rx < 5.5:
+			continue
+		if rx < 12.0 and rz > 17.5:
+			continue
+		if absf(rx - 19.3) < 4.5 and rz < 6.0:
+			continue
 		var ry := _eval_cliff_height(rx, rz, width_m, depth_m)
-		# Embedded stratified rock rim blocks hugging the precipice lip (ZERO hovering pancakes, ZERO blocking domes!)
-		var rim_h := rng.randf_range(0.95, 1.45)
-		var rim_sc := Vector3(rng.randf_range(2.2, 3.4), rim_h, rng.randf_range(1.9, 2.9))
-		CoastalKit.append_rock_cluster_mm(_env_kit, basalt_keys, Vector3(rx, minf(-0.18, ry - rim_h * 0.30), rz), rim_sc, ang + 0.4, float(rim_i) * 1.9, 3, Color(0.95, 0.97, 1.0) if rim_i % 2 == 0 else Color(0.86, 0.90, 0.94))
-		# Deep vertical cliff-wall buttresses descending BELOW the rim down toward the ocean surf!
-		var wx_b := rx + cos(ang) * 3.4
-		var wz_b := rz + sin(ang) * 3.4
-		var bsc := Vector3(rng.randf_range(3.0, 4.8), rng.randf_range(4.8, 7.6), rng.randf_range(2.6, 4.2))
-		CoastalKit.append_rock_cluster_mm(_env_kit, basalt_keys if rim_i % 2 == 0 else crag_keys, Vector3(wx_b, -3.8 - bsc.y * 0.36, wz_b), bsc, ang * 1.2, float(rim_i) * 2.4, 3, Color(0.84, 0.88, 0.94))
+		# Crisp upper columnar basalt rim seated STRICTLY BELOW plateau top (top_y <= ry - 0.18m, ZERO protruding tombstones!)
+		var rim_h := rng.randf_range(3.2, 4.6)
+		var rim_sc := Vector3(rng.randf_range(1.55, 2.25), rim_h, rng.randf_range(1.45, 2.10))
+		var b_key: String = bcol_keys[rim_i % bcol_keys.size()] if rim_i % 2 == 0 else bcol_dark_keys[rim_i % bcol_dark_keys.size()]
+		var rim_pos := Vector3(rx + cos(ang) * 1.15, minf(-0.34, ry) - rim_h * 0.58, rz + sin(ang) * 1.15)
+		_env_kit.append_multimesh(b_key, Transform3D(Basis(Vector3.UP, ang + float(rim_i) * 0.5).scaled_local(rim_sc), rim_pos), Color(0.95, 0.97, 1.0) if rim_i % 2 == 0 else Color(0.88, 0.91, 0.95))
+		# Deep vertical stepped columnar cliff buttresses descending cleanly down into ocean surf!
+		var wx_b := rx + cos(ang) * 3.1
+		var wz_b := rz + sin(ang) * 3.1
+		var bsc := Vector3(rng.randf_range(2.2, 3.3), rng.randf_range(7.2, 10.4), rng.randf_range(2.0, 3.0))
+		var bk_lo: String = bcol_dark_keys[(rim_i + 2) % bcol_dark_keys.size()]
+		_env_kit.append_multimesh(bk_lo, Transform3D(Basis(Vector3.UP, ang * 1.3 + 0.6).scaled_local(bsc), Vector3(wx_b, -6.2 - bsc.y * 0.24, wz_b)), Color(0.84, 0.88, 0.93))
 		if rim_i % 2 == 0:
-			var lx := rx + cos(ang) * 5.8
-			var lz := rz + sin(ang) * 5.8
-			var lsc := Vector3(rng.randf_range(3.2, 5.0), rng.randf_range(4.2, 6.8), rng.randf_range(2.8, 4.4))
-			CoastalKit.append_rock_cluster_mm(_env_kit, crag_keys, Vector3(lx, CLIFF_SEA_Y + lsc.y * 0.48, lz), lsc, ang * 1.3, float(rim_i) * 2.7, 3, Color(0.76, 0.82, 0.88))
-			sea_foam_sources.append(Vector3(lx, lz, lsc.x * 0.92))
+			var lx := rx + cos(ang) * 5.6
+			var lz := rz + sin(ang) * 5.6
+			var lsc := Vector3(rng.randf_range(2.6, 3.8), rng.randf_range(6.4, 9.2), rng.randf_range(2.4, 3.5))
+			var bk_sea: String = bcol_keys[(rim_i + 4) % bcol_keys.size()]
+			_env_kit.append_multimesh(bk_sea, Transform3D(Basis(Vector3.UP, ang * 1.1).scaled_local(lsc), Vector3(lx, CLIFF_SEA_Y + lsc.y * 0.34, lz)), Color(0.76, 0.82, 0.89))
+			sea_foam_sources.append(Vector3(lx, lz, lsc.x * 0.95))
 
-	# Dramatic Western/Northwestern Highland Mountain Massif & Eroded Stone Ascent Path (NO floating island!)
+	# Natural organic basalt crags softening the outer NE/NW corners + stepped continental western ridge + SW foreground buttress
 	var massif_crags := [
-		[Vector2(-8.0, 10.0), Vector3(6.8, 5.4, 5.8)],
-		[Vector2(-12.5, 4.0), Vector3(8.5, 7.6, 7.2)],
-		[Vector2(-6.5, -4.5), Vector3(7.4, 6.8, 6.4)],
-		[Vector2(2.5, -10.5), Vector3(7.2, 5.2, 5.8)],
-		[Vector2(-18.0, 14.0), Vector3(9.0, 8.2, 7.8)],
-		[Vector2(-14.0, -12.0), Vector3(10.0, 9.6, 8.5)],
-		[Vector2(-2.0, -16.0), Vector3(8.4, 7.2, 6.8)],
-		[Vector2(-9.5, 19.5), Vector3(6.2, 4.6, 5.4)],
+		[Vector2(-7.8, 12.2), Vector3(3.8, 3.6, 3.4)],
+		[Vector2(-13.5, 5.5), Vector3(5.2, 5.4, 4.6)],
+		[Vector2(-6.5, -2.8), Vector3(4.6, 4.4, 4.2)],
+		[Vector2(1.8, -5.8), Vector3(4.4, 4.0, 3.8)],
+		[Vector2(-18.5, 16.5), Vector3(6.2, 6.2, 5.4)],
+		[Vector2(-15.5, -10.0), Vector3(6.8, 7.2, 5.8)],
+		[Vector2(-11.5, 22.8), Vector3(4.4, 3.8, 4.0)],
+		# Embedded outer NE/NW corner rock shelves breaking any straight terrain corner silhouette!
+		[Vector2(34.6, 3.4), Vector3(2.4, 2.2, 2.2)],
+		[Vector2(3.2, 3.2), Vector3(2.4, 2.0, 2.2)],
+		# SW foreground rocky headland buttress supporting the outer arrival stairs (seated strictly below trail level!)
+		[Vector2(-1.5, 33.8), Vector3(3.8, 4.2, 3.4)],
+		[Vector2(5.2, 34.4), Vector3(3.6, 4.0, 3.2)],
+		[Vector2(11.2, 33.0), Vector3(3.4, 3.8, 3.2)],
+		[Vector2(-8.8, 36.5), Vector3(4.6, 4.6, 4.0)],
 	]
 	for mci in range(massif_crags.size()):
 		var mc: Array = massif_crags[mci]
 		var mcp: Vector2 = mc[0]
 		var mcsc: Vector3 = mc[1]
 		var mcy := _eval_cliff_height(mcp.x, mcp.y, width_m, depth_m)
-		CoastalKit.append_rock_cluster_mm(_env_kit, basalt_keys if mci % 2 == 0 else crag_keys, Vector3(mcp.x, mcy + mcsc.y * 0.14, mcp.y), mcsc, float(mci) * 0.9, float(mci) * 2.3, 4, Color(0.92, 0.94, 0.96))
+		var mkey: String = bcol_keys[mci % bcol_keys.size()] if mci % 2 == 0 else bcol_dark_keys[mci % bcol_dark_keys.size()]
+		var y_off_mc := -mcsc.y * 0.46 if mci >= 7 else -mcsc.y * 0.24
+		_env_kit.append_multimesh(mkey, Transform3D(Basis(Vector3.UP, float(mci) * 1.15).scaled_local(mcsc), Vector3(mcp.x, mcy + y_off_mc, mcp.y)), Color(0.90, 0.93, 0.97))
 
-	# Weathered carved stone ascent steps linking the western highland path onto the plateau (inspired by reference!)
-	for step_i in range(6):
-		var sx := 2.4 - float(step_i) * 0.92
-		var sz := 16.5 + float(step_i) * 0.42
-		var sy := _eval_cliff_height(sx, sz, width_m, depth_m)
-		var step_mi := MeshInstance3D.new()
-		var sbm := BoxMesh.new(); sbm.size = Vector3(1.15, 0.24, 2.35)
-		step_mi.mesh = sbm; step_mi.material_override = mat_ashlar
-		step_mi.position = Vector3(sx, sy + 0.04, sz)
-		step_mi.rotation.y = -0.35 + sin(float(step_i)) * 0.05
-		_grp_env_geo.add_child(step_mi)
-
-	# 3 gnarled wind-bent highland pines gripping the sheltered western massif ridge
-	var pine_pts: Array[Vector2] = [Vector2(-6.2, 6.5), Vector2(-10.5, 13.5), Vector2(-3.2, -5.8)]
-	for hti in range(pine_pts.size()):
-		var htp: Vector2 = pine_pts[hti]
-		var hty := _eval_cliff_height(htp.x, htp.y, width_m, depth_m)
-		_env_kit.build_organic_tree(_grp_vegetation, "pine", Vector3(htp.x, hty - 0.18, htp.y), 0.78 + float(hti) * 0.08, mat_cedar_o, mat_highland_shrub, null, float(hti) * 2.9 + 0.5)
-
-	# Dramatic Slender Detached Sea Stacks rising far below in the open ocean abyss (peaking BELOW plateau rim so horizon stays vast & dramatic!)
+	# Dramatic Columnar Basalt Sea Stacks rising far below in the eastern/SE abyss & flanking the Observatory sea-chasm!
 	var sea_stacks := [
-		[Vector2(45.5, 18.0), Vector3(3.4, 11.4, 3.0)],
-		[Vector2(49.5, 29.5), Vector3(3.8, 12.6, 3.4)],
-		[Vector2(37.5, 44.5), Vector3(4.2, 10.8, 3.6)],
-		[Vector2(18.5, 49.0), Vector3(3.8, 10.2, 3.4)],
-		[Vector2(-6.5, 43.0), Vector3(4.2, 11.6, 3.6)],
-		[Vector2(45.0, -10.5), Vector3(4.0, 11.2, 3.5)],
-		[Vector2(28.5, -24.5), Vector3(4.4, 10.6, 3.8)],
-		[Vector2(58.0, 4.0), Vector3(4.8, 12.2, 4.2)],
+		[Vector2(47.5, 16.5), Vector3(3.0, 11.4, 2.7)],
+		[Vector2(53.0, 28.0), Vector3(3.6, 12.6, 3.2)],
+		[Vector2(42.5, 42.5), Vector3(3.8, 11.2, 3.4)],
+		[Vector2(24.0, 48.0), Vector3(3.4, 10.4, 3.0)],
+		[Vector2(47.5, -7.5), Vector3(3.6, 11.8, 3.2)],
+		[Vector2(59.5, 4.5), Vector3(4.4, 12.8, 3.8)],
+		[Vector2(62.0, -18.0), Vector3(4.8, 13.6, 4.2)],
+		[Vector2(42.5, -18.5), Vector3(3.0, 10.8, 2.7)],
+		[Vector2(10.5, -14.5), Vector3(3.2, 10.4, 2.8)],
 	]
 	for ssi in range(sea_stacks.size()):
 		var ss: Array = sea_stacks[ssi]
 		var ssp: Vector2 = ss[0]
 		var sssc: Vector3 = ss[1]
-		CoastalKit.append_rock_cluster_mm(_env_kit, basalt_keys, Vector3(ssp.x, CLIFF_SEA_Y + sssc.y * 0.42, ssp.y), sssc, float(ssi) * 1.15, float(ssi) * 3.1, 3, Color(0.84, 0.88, 0.94))
-		sea_foam_sources.append(Vector3(ssp.x, ssp.y, sssc.x * 1.25))
+		var skey: String = bcol_keys[ssi % bcol_keys.size()] if ssi % 2 == 0 else bcol_dark_keys[ssi % bcol_dark_keys.size()]
+		_env_kit.append_multimesh(skey, Transform3D(Basis(Vector3.UP, float(ssi) * 1.18).scaled_local(sssc), Vector3(ssp.x, CLIFF_SEA_Y + sssc.y * 0.42, ssp.y)), Color(0.84, 0.88, 0.94))
+		var sub_sc := sssc * Vector3(0.56, 0.72, 0.56)
+		var sub_off := Vector2(cos(float(ssi) * 2.1), sin(float(ssi) * 2.1)) * (sssc.x * 0.72)
+		_env_kit.append_multimesh(bcol_dark_keys[(ssi + 1) % bcol_dark_keys.size()], Transform3D(Basis(Vector3.UP, float(ssi) * 2.3).scaled_local(sub_sc), Vector3(ssp.x + sub_off.x, CLIFF_SEA_Y + sub_sc.y * 0.40, ssp.y + sub_off.y)), Color(0.78, 0.83, 0.90))
+		sea_foam_sources.append(Vector3(ssp.x, ssp.y, sssc.x * 1.35))
 
-	# Shared Depth-Aware Coastal Ocean surrounding the entire cliff abyss & sea stacks!
+	# 2. Canonical SW Arrival Architecture (Carved Retiro Staircase, Retaining Curb, Rope Handrail & Trail Signpost!)
+	_build_observatory_arrival_path(fx, width_m, depth_m, mat_ashlar, mat_carved, mat_plinth, mat_cedar_o, mat_rope_o, bcol_keys)
+
+	# 3. Canonical North-East Exit Architecture (Fluted Gate, Ancient Stone-Arch Bridge & Distant Clifftop Observatory!)
+	_build_observatory_bridge_and_landmark(fx, width_m, depth_m, mat_ashlar, mat_carved, mat_plinth, mat_bronze_pat, mat_dome_copper, mat_plank_bridge, mat_cedar_o, mat_rope_o, bcol_keys, bcol_dark_keys, sea_foam_sources)
+
+	# Shared Depth-Aware Coastal Ocean (silky high-altitude deep sapphire swells — ZERO harsh specular white blotches!)
 	var mat_abyss_sea := CoastalKit.create_coastal_ocean_shader(
-		Color(0.038, 0.145, 0.245, 0.98),
-		Color(0.075, 0.265, 0.375, 0.94),
-		Color(0.165, 0.405, 0.475, 0.78),
-		Color(0.88, 0.94, 0.98, 1.0),
+		Color(0.028, 0.125, 0.228, 0.98),
+		Color(0.062, 0.232, 0.348, 0.94),
+		Color(0.145, 0.375, 0.455, 0.78),
+		Color(0.86, 0.93, 0.98, 1.0),
 		0.12,
-		0.85,
+		0.72,
 		true
 	)
-	mat_abyss_sea.set_shader_parameter("swell_scale", 1.75)
-	mat_abyss_sea.set_shader_parameter("whitecap_strength", 0.22)
+	mat_abyss_sea.set_shader_parameter("swell_scale", 0.92)
+	mat_abyss_sea.set_shader_parameter("whitecap_strength", 0.10)
+	mat_abyss_sea.set_shader_parameter("base_roughness", 0.30)
+	mat_abyss_sea.set_shader_parameter("horizon_fade_start", 85.0)
+	mat_abyss_sea.set_shader_parameter("horizon_fade_end", 240.0)
 	var cliff_bed_cb := func(wx: float, wz: float) -> float:
-		return minf(CLIFF_SEA_Y - 1.8, _eval_cliff_height(wx, wz, width_m, depth_m))
+		var ch_y := _eval_cliff_height(wx, wz, width_m, depth_m)
+		return ch_y if ch_y > CLIFF_SEA_Y - 1.5 else (CLIFF_SEA_Y - 2.6)
 	var cliff_calm_cb := func(_wx: float, _wz: float) -> float:
 		return 0.0
 	CoastalKit.build_coastal_ocean_mesh(
 		self, "OceanWater",
-		-62.0, width_m + 78.0,
-		-56.0, depth_m + 72.0,
-		60, 56,
+		-240.0, width_m + 310.0,
+		-320.0, depth_m + 220.0,
+		88, 84,
 		CLIFF_SEA_Y,
 		cliff_bed_cb,
 		sea_foam_sources,
@@ -3077,7 +3273,7 @@ func _build_observatory_details(scene_def: Dictionary, fx: CampAtmosphereFx, wid
 		mat_abyss_sea
 	)
 
-	# 2. Eroded Incomplete Astronomical Ruin Sanctuary & Varied Phase-Modulated Arcane Crystals!
+	# 4. Sculpted Beveled & Fluted Astronomical Sanctuary Ruins + Faceted Glacial-Quartz Crystals!
 	var pillar_idx := 0
 	var crystal_idx := 0
 	var wb_idx := 0
@@ -3087,183 +3283,194 @@ func _build_observatory_details(scene_def: Dictionary, fx: CampAtmosphereFx, wid
 		op.y = _eval_cliff_height(op.x, op.z, width_m, depth_m)
 
 		if oid.contains("windbreak"):
-			# Low angular stratified basalt ledges + weathered dry-stone masonry shielding the tarp without crowding the compass circle!
-			var wb_sc := Vector3(1.22 + fmod(float(wb_idx) * 0.22, 0.36), 0.68 + fmod(float(wb_idx) * 0.18, 0.28), 1.04)
-			CoastalKit.append_rock_cluster_mm(_env_kit, flat_keys if wb_idx % 2 == 0 else basalt_keys, op + Vector3(0.0, wb_sc.y * 0.22, 0.0), wb_sc, op.x * 0.65, float(wb_idx) * 2.1, 3, Color(0.92, 0.94, 0.96))
-			if wb_idx == 1 or wb_idx == 2 or wb_idx == 3:
-				# Stepped weathered dry-stone windbreak blocks integrated into natural basalt shelf
-				var wb_root := Node3D.new()
-				wb_root.position = op + Vector3(0.05, 0.0, -0.10)
-				wb_root.rotation.y = 0.22 if wb_idx == 1 else (-0.18 if wb_idx == 2 else 0.08)
-				_grp_env_geo.add_child(wb_root)
-				var base_b := MeshInstance3D.new()
-				var bbm := BoxMesh.new(); bbm.size = Vector3(1.36, 0.44, 0.56)
-				base_b.mesh = bbm; base_b.material_override = mat_plinth; base_b.position.y = 0.22
-				wb_root.add_child(base_b)
-				var top_b := MeshInstance3D.new()
-				var tbm := BoxMesh.new(); tbm.size = Vector3(0.86, 0.38, 0.48)
-				top_b.mesh = tbm; top_b.material_override = mat_ashlar; top_b.position = Vector3(-0.18 if wb_idx % 2 == 0 else 0.16, 0.60, 0.0)
-				top_b.rotation.z = 0.04 if wb_idx % 2 == 0 else -0.04
-				wb_root.add_child(top_b)
+			# Clean architectural low beveled dry-stone shelter curb + compact basalt shelf (NO messy round boulders inside compass!)
+			var wb_root := Node3D.new()
+			wb_root.name = "CliffWindbreak_%d" % wb_idx
+			wb_root.position = op
+			var wb_yaw := 0.24 if wb_idx == 0 else (0.12 if wb_idx == 1 else (-0.16 if wb_idx == 2 else (1.35 if wb_idx == 3 else -1.25)))
+			wb_root.rotation.y = wb_yaw
+			_grp_env_geo.add_child(wb_root)
+			var base_w := MeshInstance3D.new()
+			base_w.mesh = _env_kit.build_beveled_ruin_block(Vector3(1.38, 0.42, 0.56), 0.05, float(wb_idx) * 2.1, false)
+			base_w.material_override = mat_plinth
+			base_w.position.y = 0.19
+			wb_root.add_child(base_w)
+			var top_w := MeshInstance3D.new()
+			top_w.mesh = _env_kit.build_beveled_ruin_block(Vector3(0.92, 0.34, 0.48), 0.055, float(wb_idx) * 3.3 + 0.7, true)
+			top_w.material_override = mat_ashlar
+			top_w.position = Vector3(-0.14 if wb_idx % 2 == 0 else 0.14, 0.54, 0.0)
+			top_w.rotation.z = 0.03 if wb_idx % 2 == 0 else -0.03
+			wb_root.add_child(top_w)
+			# Compact flat basalt ledge tucked cleanly behind the dry-stone curb
+			var sc_wb := Vector3(0.88, 0.42, 0.74)
+			_env_kit.append_multimesh(flat_keys[wb_idx % flat_keys.size()], Transform3D(Basis(Vector3.UP, wb_yaw + 0.4).scaled_local(sc_wb), op + Vector3(cos(wb_yaw) * 0.42, 0.14, sin(wb_yaw) * 0.42)), Color(0.88, 0.91, 0.95))
 			wb_idx += 1
 
 		elif oid.contains("pillar"):
-			# 4 COMPLETELY DISTINCT eroded astronomical monolith ruins (stepped bases, broken crowns, bronze inlays!)
+			# 4 DISTINCT beveled & fluted canonical Observatory sanctuary ruins (ZERO raw BoxMesh!)
 			var ruin_root := Node3D.new()
 			ruin_root.name = "AstronomicalMonolith_%d" % pillar_idx
 			ruin_root.position = op
 			_grp_env_geo.add_child(ruin_root)
 
 			if pillar_idx == 0:
-				# NW Ruin: Weathered broken twin-jamb stone observatory archway + stepped plinths & fractured lintel!
-				ruin_root.rotation.y = 0.55
-				for side_s in [-1.0, 1.0]:
+				# NW Ruin: Weathered twin-fluted column sanctuary archway with beveled lintel, bronze band & fallen drum!
+				ruin_root.rotation.y = 0.52
+				for side_s: float in [-1.0, 1.0]:
 					var pl_j := MeshInstance3D.new()
-					var pjm := BoxMesh.new(); pjm.size = Vector3(0.82, 0.28, 0.86)
-					pl_j.mesh = pjm; pl_j.material_override = mat_plinth; pl_j.position = Vector3(side_s * 0.72, 0.14, 0.0)
+					pl_j.mesh = _env_kit.build_beveled_ruin_block(Vector3(0.96, 0.32, 0.96), 0.05, 1.1 + side_s, false)
+					pl_j.material_override = mat_plinth; pl_j.position = Vector3(side_s * 0.82, 0.14, 0.0)
 					ruin_root.add_child(pl_j)
+					var col_h := 2.68 if side_s < 0 else 2.28
 					var jamb := MeshInstance3D.new()
-					var jh := 2.65 if side_s < 0 else 2.15
-					var jm := BoxMesh.new(); jm.size = Vector3(0.62, jh, 0.66)
-					jamb.mesh = jm; jamb.material_override = mat_ashlar
-					jamb.position = Vector3(side_s * 0.72, 0.24 + jh * 0.5, 0.0)
-					jamb.rotation.z = side_s * 0.03
+					jamb.mesh = _env_kit.build_fluted_column(0.32, col_h, side_s > 0, 10, 1.4 + side_s)
+					jamb.material_override = mat_carved
+					jamb.position = Vector3(side_s * 0.82, 0.28, 0.0)
 					ruin_root.add_child(jamb)
 					var cap_j := MeshInstance3D.new()
-					var cjm := BoxMesh.new(); cjm.size = Vector3(0.78, 0.22, 0.78)
-					cap_j.mesh = cjm; cap_j.material_override = mat_carved
-					cap_j.position = Vector3(side_s * 0.72, 0.24 + jh + 0.08, 0.0)
+					cap_j.mesh = _env_kit.build_beveled_ruin_block(Vector3(0.86, 0.24, 0.86), 0.05, 2.2 + side_s, true)
+					cap_j.material_override = mat_ashlar
+					cap_j.position = Vector3(side_s * 0.82, 0.28 + col_h + 0.08, 0.0)
 					ruin_root.add_child(cap_j)
 				var lintel := MeshInstance3D.new()
-				var ltm := BoxMesh.new(); ltm.size = Vector3(1.58, 0.36, 0.70)
-				lintel.mesh = ltm; lintel.material_override = mat_carved
-				lintel.position = Vector3(-0.20, 3.06, 0.0); lintel.rotation.z = -0.10
+				lintel.mesh = _env_kit.build_beveled_ruin_block(Vector3(1.88, 0.38, 0.78), 0.06, 3.1, true)
+				lintel.material_override = mat_carved
+				lintel.position = Vector3(-0.18, 3.16, 0.0); lintel.rotation.z = -0.09
 				ruin_root.add_child(lintel)
-				var fall_l := MeshInstance3D.new()
-				var flm := BoxMesh.new(); flm.size = Vector3(1.18, 0.34, 0.64)
-				fall_l.mesh = flm; fall_l.material_override = mat_ashlar
-				fall_l.position = Vector3(1.28, 0.17, 0.55); fall_l.rotation = Vector3(0.08, 0.42, 0.14)
-				ruin_root.add_child(fall_l)
+				var fall_drum := MeshInstance3D.new()
+				fall_drum.mesh = _env_kit.build_fluted_column(0.28, 1.12, true, 10, 4.2)
+				fall_drum.material_override = mat_ashlar
+				fall_drum.position = Vector3(1.42, 0.28, 0.62); fall_drum.rotation = Vector3(1.48, 0.42, 0.16)
+				ruin_root.add_child(fall_drum)
+				# Cascading cliff ivy draped over the NW lintel
+				_env_kit.append_multimesh("cliff_ivy_hang_mm", Transform3D(Basis(Vector3.UP, 0.52).scaled_local(Vector3(0.95, 1.15, 0.95)), op + Vector3(-0.35, 3.05, 0.35)), Color(0.92, 0.96, 0.90))
 			elif pillar_idx == 1:
-				# NE Ruin: Tall weathered astronomical gnomon monolith with patinated bronze solstice ring!
-				ruin_root.rotation.y = -0.62
+				# NE Ruin: Tall weathered astronomical solstice stela + fluted half-column & bronze armillary ring!
+				ruin_root.rotation.y = -0.58
 				var step_p := MeshInstance3D.new()
-				var spm := BoxMesh.new(); spm.size = Vector3(1.56, 0.32, 1.38)
-				step_p.mesh = spm; step_p.material_override = mat_plinth; step_p.position.y = 0.16
+				step_p.mesh = _env_kit.build_beveled_ruin_block(Vector3(1.66, 0.36, 1.46), 0.06, 5.1, false)
+				step_p.material_override = mat_plinth; step_p.position.y = 0.16
 				ruin_root.add_child(step_p)
 				var shaft := MeshInstance3D.new()
-				var shm := BoxMesh.new(); shm.size = Vector3(0.78, 3.25, 0.64)
-				shaft.mesh = shm; shaft.material_override = mat_carved
-				shaft.position = Vector3(0.0, 1.84, 0.0); shaft.rotation.z = -0.04
+				shaft.mesh = _env_kit.build_beveled_ruin_block(Vector3(0.84, 3.32, 0.68), 0.075, 5.6, true)
+				shaft.material_override = mat_carved
+				shaft.position = Vector3(0.0, 1.92, 0.0); shaft.rotation.z = -0.035
 				ruin_root.add_child(shaft)
-				var side_slab := MeshInstance3D.new()
-				var ssm := BoxMesh.new(); ssm.size = Vector3(0.56, 1.80, 0.56)
-				side_slab.mesh = ssm; side_slab.material_override = mat_ashlar
-				side_slab.position = Vector3(0.64, 1.10, 0.08); side_slab.rotation.z = 0.06
-				ruin_root.add_child(side_slab)
+				var side_col := MeshInstance3D.new()
+				side_col.mesh = _env_kit.build_fluted_column(0.28, 1.88, true, 10, 6.2)
+				side_col.material_override = mat_ashlar
+				side_col.position = Vector3(0.64, 0.32, 0.08)
+				ruin_root.add_child(side_col)
 				var b_ring := MeshInstance3D.new()
-				var brm := TorusMesh.new(); brm.inner_radius = 0.24; brm.outer_radius = 0.31; brm.rings = 16
+				var brm := TorusMesh.new(); brm.inner_radius = 0.28; brm.outer_radius = 0.36; brm.rings = 18
 				b_ring.mesh = brm; b_ring.material_override = mat_bronze_pat
-				b_ring.position = Vector3(-0.08, 2.70, 0.35); b_ring.rotation.x = PI * 0.5
+				b_ring.position = Vector3(-0.08, 2.80, 0.38); b_ring.rotation.x = PI * 0.5
 				ruin_root.add_child(b_ring)
 			elif pillar_idx == 2:
-				# SW Ruin: Snapped low monolith stump + fallen weathered upper stone shaft lying diagonally in scree!
-				ruin_root.rotation.y = 0.85
+				# SW Ruin (Flanking Arrival Stairs): Snapped fluted arrival gatepost column + fallen fluted drum!
+				ruin_root.rotation.y = 0.78
 				var plinth3 := MeshInstance3D.new()
-				var p3m := BoxMesh.new(); p3m.size = Vector3(1.32, 0.28, 1.22)
-				plinth3.mesh = p3m; plinth3.material_override = mat_plinth; plinth3.position.y = 0.14
+				plinth3.mesh = _env_kit.build_beveled_ruin_block(Vector3(1.38, 0.32, 1.28), 0.055, 7.1, false)
+				plinth3.material_override = mat_plinth; plinth3.position.y = 0.14
 				ruin_root.add_child(plinth3)
 				var stump3 := MeshInstance3D.new()
-				var st3m := BoxMesh.new(); st3m.size = Vector3(0.68, 0.92, 0.62)
-				stump3.mesh = st3m; stump3.material_override = mat_carved
-				stump3.position = Vector3(0.0, 0.68, 0.0); stump3.rotation = Vector3(0.08, 0.1, -0.06)
+				stump3.mesh = _env_kit.build_fluted_column(0.36, 1.38, true, 12, 7.8)
+				stump3.material_override = mat_carved
+				stump3.position = Vector3(0.0, 0.28, 0.0)
 				ruin_root.add_child(stump3)
+				var collar3 := MeshInstance3D.new()
+				var c3m := TorusMesh.new(); c3m.inner_radius = 0.34; c3m.outer_radius = 0.40; c3m.rings = 16
+				collar3.mesh = c3m; collar3.material_override = mat_bronze_pat
+				collar3.position = Vector3(0.0, 0.96, 0.0)
+				ruin_root.add_child(collar3)
 				var fallen3 := MeshInstance3D.new()
-				var f3m := BoxMesh.new(); f3m.size = Vector3(0.62, 1.85, 0.54)
-				fallen3.mesh = f3m; fallen3.material_override = mat_ashlar
-				fallen3.position = Vector3(-1.05, 0.30, 0.62); fallen3.rotation = Vector3(0.18, 0.35, 1.48)
+				fallen3.mesh = _env_kit.build_fluted_column(0.32, 1.65, true, 12, 8.4)
+				fallen3.material_override = mat_ashlar
+				fallen3.position = Vector3(-1.08, 0.30, 0.56); fallen3.rotation = Vector3(0.14, 0.35, 1.50)
 				ruin_root.add_child(fallen3)
 			else:
-				# SE Ruin: Eroded stepped standing stone with bronze inlay band & broken cornice lip!
+				# SE Ruin: Eroded astronomical lookout obelisk overlooking eastern sea stacks with bronze meridian collar!
 				ruin_root.rotation.y = -0.45
 				var plinth4 := MeshInstance3D.new()
-				var p4m := BoxMesh.new(); p4m.size = Vector3(1.42, 0.32, 1.28)
-				plinth4.mesh = p4m; plinth4.material_override = mat_plinth; plinth4.position.y = 0.16
+				plinth4.mesh = _env_kit.build_beveled_ruin_block(Vector3(1.48, 0.34, 1.34), 0.06, 9.1, false)
+				plinth4.material_override = mat_plinth; plinth4.position.y = 0.15
 				ruin_root.add_child(plinth4)
 				var mono4 := MeshInstance3D.new()
-				var m4m := BoxMesh.new(); m4m.size = Vector3(0.76, 2.35, 0.64)
-				mono4.mesh = m4m; mono4.material_override = mat_carved
-				mono4.position = Vector3(0.0, 1.42, 0.0); mono4.rotation = Vector3(-0.04, 0.0, 0.05)
+				mono4.mesh = _env_kit.build_beveled_ruin_block(Vector3(0.80, 2.48, 0.68), 0.07, 9.6, true)
+				mono4.material_override = mat_carved
+				mono4.position = Vector3(0.0, 1.48, 0.0); mono4.rotation = Vector3(-0.03, 0.0, 0.04)
 				ruin_root.add_child(mono4)
 				var cap4 := MeshInstance3D.new()
-				var cp4m := BoxMesh.new(); cp4m.size = Vector3(0.88, 0.20, 0.74)
-				cap4.mesh = cp4m; cap4.material_override = mat_ashlar
-				cap4.position = Vector3(0.06, 2.58, 0.0); cap4.rotation = Vector3(-0.04, 0.0, 0.08)
+				cap4.mesh = _env_kit.build_beveled_ruin_block(Vector3(0.94, 0.22, 0.78), 0.045, 9.9, true)
+				cap4.material_override = mat_ashlar
+				cap4.position = Vector3(0.05, 2.72, 0.0); cap4.rotation = Vector3(-0.03, 0.0, 0.06)
 				ruin_root.add_child(cap4)
 				var band4 := MeshInstance3D.new()
-				var bd4 := BoxMesh.new(); bd4.size = Vector3(0.80, 0.10, 0.68)
-				band4.mesh = bd4; band4.material_override = mat_bronze_pat
-				band4.position = Vector3(0.02, 1.72, 0.0); band4.rotation = Vector3(-0.04, 0.0, 0.05)
+				band4.mesh = _env_kit.build_beveled_ruin_block(Vector3(0.86, 0.11, 0.74), 0.02, 10.1, false)
+				band4.material_override = mat_bronze_pat
+				band4.position = Vector3(0.02, 1.78, 0.0); band4.rotation = Vector3(-0.03, 0.0, 0.04)
 				ruin_root.add_child(band4)
 
-			# Anchor fractured basalt rubble around every monolith base
-			CoastalKit.append_rock_cluster_mm(_env_kit, flat_keys, op + Vector3(0.68, 0.10, 0.42), Vector3(0.82, 0.32, 0.74), float(pillar_idx), float(pillar_idx) * 2.5, 3, Color(0.92, 0.94, 0.96))
+			# Anchor fractured columnar rubble + scree around every monolith base
+			_env_kit.append_multimesh(flat_keys[pillar_idx % flat_keys.size()], Transform3D(Basis(Vector3.UP, float(pillar_idx) * 1.3).scaled_local(Vector3(0.92, 0.36, 0.82)), op + Vector3(0.76, 0.12, 0.44)), Color(0.90, 0.93, 0.96))
 			pillar_idx += 1
 
 		elif oid.contains("crystal"):
-			# Varied asymmetric arcane glacial-quartz mineral formations (deep sapphire-teal by day, glowing cyan pool at dusk/night!)
+			# True sharp-faceted chiseled hexagonal glacial-quartz crystal formations emerging from basalt fissures!
 			var cry_root := Node3D.new()
 			cry_root.name = "ArcaneCrystalSeam_%d" % crystal_idx
 			cry_root.position = op
 			_grp_env_geo.add_child(cry_root)
-			CoastalKit.append_rock_cluster_mm(_env_kit, crag_keys, op + Vector3(0.0, 0.12, 0.0), Vector3(1.16, 0.42, 1.02), op.x * 0.7, float(crystal_idx) * 3.1, 3, Color(0.82, 0.88, 0.94))
+			_env_kit.append_multimesh(bcol_dark_keys[crystal_idx % bcol_dark_keys.size()], Transform3D(Basis(Vector3.UP, op.x * 0.7).scaled_local(Vector3(1.18, 0.78, 1.05)), op + Vector3(0.0, 0.05, 0.0)), Color(0.80, 0.86, 0.93))
 
-			var cry_palette: Array[Color] = [Color("#42c6e8"), Color("#38b4e4"), Color("#56d6f4"), Color("#3aa8dc")]
+			var cry_palette: Array[Color] = [Color("#4cd2f2"), Color("#3cc2eb"), Color("#62def8"), Color("#42b8e6")]
 			var cry_tint: Color = cry_palette[crystal_idx % 4]
 			var mat_cry := StandardMaterial3D.new()
-			mat_cry.albedo_color = cry_tint.lerp(Color("#1d5a78"), 0.54)
-			mat_cry.roughness = 0.12
-			mat_cry.metallic = 0.16
+			mat_cry.vertex_color_use_as_albedo = true
+			mat_cry.vertex_color_is_srgb = true
+			mat_cry.albedo_color = cry_tint.lerp(Color("#1d5874"), 0.44)
+			mat_cry.roughness = 0.08
+			mat_cry.metallic = 0.15
 			mat_cry.specular_mode = BaseMaterial3D.SPECULAR_SCHLICK_GGX
-			mat_cry.rim_enabled = true; mat_cry.rim = 0.22; mat_cry.rim_tint = 0.55
+			mat_cry.rim_enabled = true; mat_cry.rim = 0.42; mat_cry.rim_tint = 0.78
 			mat_cry.emission_enabled = true
 			mat_cry.emission = cry_tint
-			mat_cry.emission_energy_multiplier = 0.03 # Modulated dynamically by fx.apply_lighting_phase!
+			mat_cry.emission_energy_multiplier = 0.06 # Modulated dynamically by fx.apply_lighting_phase!
 
-			var spire_counts: Array[int] = [7, 5, 6, 4]
-			var cluster_scales: Array[float] = [1.24, 0.90, 1.08, 0.82]
+			var spire_counts: Array[int] = [7, 5, 6, 5]
+			var cluster_scales: Array[float] = [1.22, 0.94, 1.06, 0.88]
 			var spire_count: int = spire_counts[crystal_idx % 4]
 			var scale_cluster: float = cluster_scales[crystal_idx % 4]
-			for j in range(spire_count):
+			for j in range(spire_count + 3):
 				var cry := MeshInstance3D.new()
-				var h_sp := (1.16 - float(j) * 0.12 + fmod(float(crystal_idx) * 0.19, 0.22)) * scale_cluster
-				var r_bot := (0.18 - float(j) * 0.016) * scale_cluster
-				var cm := CylinderMesh.new()
-				cm.top_radius = maxf(0.022, r_bot * 0.18); cm.bottom_radius = maxf(0.068, r_bot); cm.height = maxf(0.36, h_sp); cm.radial_segments = 6
-				cry.mesh = cm; cry.material_override = mat_cry
-				var ang := float(j) * (TAU / float(spire_count)) + float(crystal_idx) * 1.1
-				var rad_o := (0.04 if j == 0 else (0.22 + float(j % 2) * 0.14)) * scale_cluster
-				cry.position = Vector3(cos(ang) * rad_o, maxf(0.20, h_sp * 0.44), sin(ang) * rad_o)
-				cry.rotation = Vector3(sin(ang) * (0.12 if j == 0 else 0.38), float(j) * 0.9, -cos(ang) * (0.10 if j == 0 else 0.34))
+				var is_shard := j >= spire_count
+				var h_sp := ((0.28 + float(j - spire_count) * 0.08) if is_shard else (1.28 - float(j) * 0.13 + fmod(float(crystal_idx) * 0.21, 0.24))) * scale_cluster
+				var r_bot := (0.055 if is_shard else (0.19 - float(j) * 0.015)) * scale_cluster
+				cry.mesh = _env_kit.build_faceted_crystal_mesh(maxf(0.22, h_sp), maxf(0.045, r_bot), float(crystal_idx * 11 + j) * 1.37)
+				cry.material_override = mat_cry
+				var ang := float(j) * (TAU / float(spire_count + (3 if is_shard else 0))) + float(crystal_idx) * 1.15
+				var rad_o := ((0.44 + float(j % 2) * 0.14) if is_shard else (0.04 if j == 0 else (0.20 + float(j % 2) * 0.15))) * scale_cluster
+				cry.position = Vector3(cos(ang) * rad_o, -0.04, sin(ang) * rad_o)
+				cry.rotation = Vector3(sin(ang) * (0.55 if is_shard else (0.10 if j == 0 else 0.34)), float(j) * 0.9, -cos(ang) * (0.50 if is_shard else (0.08 if j == 0 else 0.30)))
 				cry_root.add_child(cry)
 
 			var cl := OmniLight3D.new()
 			cl.light_color = cry_tint
 			cl.light_energy = 0.0
-			cl.omni_range = 5.0 * scale_cluster
+			cl.omni_range = 5.2 * scale_cluster
 			cl.omni_attenuation = 1.60
 			cl.distance_fade_enabled = false
-			cl.position = Vector3(0.0, 0.78 * scale_cluster, 0.0)
+			cl.position = Vector3(0.0, 0.82 * scale_cluster, 0.0)
 			cry_root.add_child(cl)
-			fx.register_arcane_crystal(cl, mat_cry, 1.15 * scale_cluster, 0.03, 1.65)
+			fx.register_arcane_crystal(cl, mat_cry, 1.18 * scale_cluster, 0.08, 1.55)
 			crystal_idx += 1
 
-	# Multi-course stepped broken masonry sanctuary wall fragments (ZERO plain rectangular boxes!)
+	# Weathered beveled stepped masonry sanctuary arc wall fragments + hanging ivy + broken plaza rim relief!
 	var arc_frags := [
-		[Vector2(13.2, 5.2), 2.35, 1.38, 0.32],
-		[Vector2(24.4, 5.6), 2.55, 1.56, -0.38],
-		[Vector2(28.5, 9.8), 1.95, 1.16, -1.15],
-		[Vector2(29.2, 17.5), 2.15, 0.98, -1.85],
+		[Vector2(12.2, 5.4), 2.30, 1.36, 0.36],
+		[Vector2(25.2, 5.8), 2.48, 1.52, -0.42],
+		[Vector2(28.6, 10.2), 1.98, 1.18, -1.16],
+		[Vector2(29.0, 17.6), 2.15, 1.02, -1.86],
 	]
 	for afi in range(arc_frags.size()):
 		var af: Array = arc_frags[afi]
@@ -3278,159 +3485,717 @@ func _build_observatory_details(scene_def: Dictionary, fx: CampAtmosphereFx, wid
 		wall_root.rotation.y = af_yaw
 		_grp_env_geo.add_child(wall_root)
 
-		# Stepped base plinth wider than wall core
 		var pl_w := MeshInstance3D.new()
-		var plm := BoxMesh.new(); plm.size = Vector3(af_w + 0.24, 0.32, 0.80)
-		pl_w.mesh = plm; pl_w.material_override = mat_plinth; pl_w.position.y = 0.16
+		pl_w.mesh = _env_kit.build_beveled_ruin_block(Vector3(af_w + 0.28, 0.34, 0.84), 0.055, float(afi) * 2.1, false)
+		pl_w.material_override = mat_plinth; pl_w.position.y = 0.15
 		wall_root.add_child(pl_w)
-		# Lower broken ashlar course
 		var lo_w := MeshInstance3D.new()
-		var lom := BoxMesh.new(); lom.size = Vector3(af_w, af_h * 0.54, 0.62)
-		lo_w.mesh = lom; lo_w.material_override = mat_ashlar; lo_w.position = Vector3(0.0, 0.28 + af_h * 0.27, 0.0)
+		lo_w.mesh = _env_kit.build_beveled_ruin_block(Vector3(af_w, af_h * 0.54, 0.64), 0.055, float(afi) * 2.5 + 0.4, false)
+		lo_w.material_override = mat_ashlar; lo_w.position = Vector3(0.0, 0.28 + af_h * 0.27, 0.0)
 		wall_root.add_child(lo_w)
-		# Asymmetric stepped upper broken masonry courses (missing corner stones & jagged crown!)
 		var hi_a := MeshInstance3D.new()
-		var ham := BoxMesh.new(); ham.size = Vector3(af_w * 0.56, af_h * 0.44, 0.58)
-		hi_a.mesh = ham; hi_a.material_override = mat_carved
+		hi_a.mesh = _env_kit.build_beveled_ruin_block(Vector3(af_w * 0.56, af_h * 0.46, 0.58), 0.06, float(afi) * 3.1 + 0.9, true)
+		hi_a.material_override = mat_carved
 		hi_a.position = Vector3(-af_w * 0.20 if afi % 2 == 0 else af_w * 0.18, 0.28 + af_h * 0.72, 0.0)
-		hi_a.rotation.z = 0.03 if afi % 2 == 0 else -0.03
+		hi_a.rotation.z = 0.025 if afi % 2 == 0 else -0.025
 		wall_root.add_child(hi_a)
-		# Weathered coping cap stone crowning the taller end
 		var cap_w := MeshInstance3D.new()
-		var cwm := BoxMesh.new(); cwm.size = Vector3(af_w * 0.42, 0.18, 0.70)
-		cap_w.mesh = cwm; cap_w.material_override = mat_carved
+		cap_w.mesh = _env_kit.build_beveled_ruin_block(Vector3(af_w * 0.44, 0.19, 0.72), 0.04, float(afi) * 3.7, true)
+		cap_w.material_override = mat_carved
 		cap_w.position = Vector3((-af_w * 0.24 if afi % 2 == 0 else af_w * 0.22), 0.28 + af_h * 0.96, 0.0)
 		wall_root.add_child(cap_w)
-		# Fallen displaced masonry block resting beside the broken end
 		var fall_b := MeshInstance3D.new()
-		var fbm := BoxMesh.new(); fbm.size = Vector3(0.68, 0.34, 0.52)
-		fall_b.mesh = fbm; fall_b.material_override = mat_ashlar
-		fall_b.position = Vector3(af_w * 0.48 if afi % 2 == 0 else -af_w * 0.48, 0.16, 0.46)
+		fall_b.mesh = _env_kit.build_beveled_ruin_block(Vector3(0.72, 0.34, 0.54), 0.05, float(afi) * 4.3, true)
+		fall_b.material_override = mat_ashlar
+		fall_b.position = Vector3(af_w * 0.48 if afi % 2 == 0 else -af_w * 0.48, 0.15, 0.46)
 		fall_b.rotation = Vector3(0.08, 0.36, 0.12)
 		wall_root.add_child(fall_b)
-		CoastalKit.append_rock_cluster_mm(_env_kit, flat_keys, Vector3(afp.x + 0.55, afy + 0.10, afp.y + 0.32), Vector3(0.78, 0.30, 0.72), af_yaw, float(afi) * 2.2, 3, Color(0.90, 0.92, 0.95))
+		# Trailing cliff ivy hugging the weathered sanctuary wall crown
+		var ivy_off := Vector3(sin(af_yaw) * 0.34, af_h * 0.78, cos(af_yaw) * 0.34)
+		_env_kit.append_multimesh("cliff_ivy_hang_mm", Transform3D(Basis(Vector3.UP, af_yaw).scaled_local(Vector3(0.88, 0.75, 0.88)), Vector3(afp.x, afy, afp.y) + ivy_off), Color(0.90, 0.95, 0.88))
 
-	# 3. Wind-Bent Highland Heather, Crevice Grass, Alpine Moss & Scattered Basalt Scree (MultiMesh batched!)
-	for cf_i in range(62):
-		var cfx := rng.randf_range(2.2, width_m - 2.2)
-		var cfz := rng.randf_range(2.8, depth_m - 2.8)
-		# Keep engraved astronomical circle center & camp hearth clean!
-		if Vector2(cfx - 19.0, cfz - 12.6).length() < 5.6 or Vector2(cfx - 17.8, cfz - 15.2).length() < 4.2:
+	# Subtle 3D carved perimeter curb wedges & patinated bronze astronomical studs anchoring the sanctuary circle physically!
+	for ci in range(8):
+		var c_ang := float(ci) * (TAU / 8.0) + 0.18
+		var cx_p := 19.0 + cos(c_ang) * 6.22
+		var cz_p := 12.6 + sin(c_ang) * 6.22
+		# Keep South hearth walkway & North causeway clear
+		if absf(cx_p - 19.2) < 1.8 and (cz_p < 7.5 or cz_p > 17.5):
 			continue
+		var cy_p := _eval_cliff_height(cx_p, cz_p, width_m, depth_m)
+		var stud := MeshInstance3D.new()
+		var sm_b := CylinderMesh.new(); sm_b.top_radius = 0.16; sm_b.bottom_radius = 0.20; sm_b.height = 0.06; sm_b.radial_segments = 8
+		stud.mesh = sm_b; stud.material_override = mat_bronze_pat
+		stud.position = Vector3(cx_p, cy_p + 0.02, cz_p)
+		stud.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_grp_env_geo.add_child(stud)
+
+	# 5. Lush Wind-Sculpted Highland Flora (6 Windswept Krummholz Pines visibly perched on terraced benches + 5-Species Ground Cover!)
+	var windswept_pines := [
+		[Vector2(-5.2, 16.4), 0.96, Vector2(-0.86, 0.48)],   # Visibly crowning the mossy west terrace above arrival signpost!
+		[Vector2(-8.6, 22.8), 0.92, Vector2(-0.82, 0.56)],   # Framing SW Retiro arrival stairs left flank!
+		[Vector2(0.2, 30.8),  0.80, Vector2(-0.75, 0.65)],   # Gripping SW foreground buttress well clear of stairs!
+		[Vector2(-9.2, 9.8),  1.12, Vector2(-0.90, 0.40)],   # Upper western continental bench!
+		[Vector2(-2.2, 4.2),  0.88, Vector2(-0.86, 0.50)],   # NW shoulder framing broken fluted archway!
+		[Vector2(23.5, -16.8), 0.76, Vector2(-0.84, 0.54)],  # Windswept sentinel pine gripping solid Observatory headland!
+	]
+	for pi in range(windswept_pines.size()):
+		var wp_s: Array = windswept_pines[pi]
+		var wpp: Vector2 = wp_s[0]
+		var wpy := _eval_cliff_height(wpp.x, wpp.y, width_m, depth_m)
+		_env_kit.build_windswept_pine(_grp_vegetation, Vector3(wpp.x, wpy - 0.10, wpp.y), float(wp_s[1]), wp_s[2], mat_cedar_o, mat_pine_leaf, float(pi) * 2.7 + 0.6)
+
+	# Focused botanical clusters along SW arrival stairs, continental slopes, rim crevices & ruin bases (keeping plaza clean!)
+	var flora_zones := [
+		# SW arrival stairs & welcome wildflowers (warm golden-yellow + purple heather + windswept sedge)
+		[Vector2(2.8, 22.8), 1.0, "wildflower"], [Vector2(5.2, 24.4), 1.1, "wildflower"], [Vector2(7.0, 26.2), 1.05, "heather"],
+		[Vector2(-1.2, 25.2), 1.15, "wildflower"], [Vector2(-4.4, 27.6), 1.2, "shrub"], [Vector2(0.8, 27.8), 1.1, "wildflower"],
+		[Vector2(3.6, 17.6), 1.05, "grass"], [Vector2(5.4, 17.0), 0.95, "wildflower"], [Vector2(8.8, 22.6), 1.0, "heather"],
+		[Vector2(10.4, 25.4), 1.05, "wildflower"], [Vector2(12.2, 27.6), 0.98, "grass"], [Vector2(14.5, 28.5), 1.0, "wildflower"],
+		# Western ridge & NW sanctuary framing shrubs, heather & sedge
+		[Vector2(3.8, 13.5), 1.15, "shrub"], [Vector2(4.2, 9.8), 1.08, "heather"], [Vector2(5.4, 5.2), 1.12, "shrub"],
+		[Vector2(8.4, 4.8), 1.0, "grass"], [Vector2(10.8, 5.6), 0.95, "wildflower"], [Vector2(3.2, 6.2), 1.1, "grass"],
+		[Vector2(-0.8, 18.8), 1.25, "shrub"], [Vector2(-3.2, 13.5), 1.32, "shrub"], [Vector2(-4.5, 8.2), 1.28, "shrub"],
+		[Vector2(-1.5, 9.5), 1.12, "heather"], [Vector2(-6.5, 21.0), 1.25, "shrub"], [Vector2(-8.2, 27.5), 1.18, "grass"],
+		# East / NE / SE rim crevice flora & ruin base tufts
+		[Vector2(23.5, 4.6), 0.98, "grass"], [Vector2(27.2, 6.2), 1.05, "heather"], [Vector2(31.8, 9.8), 0.95, "grass"],
+		[Vector2(32.2, 14.5), 1.02, "wildflower"], [Vector2(31.5, 19.2), 1.05, "heather"], [Vector2(30.4, 23.2), 0.98, "grass"],
+		[Vector2(27.4, 26.8), 1.0, "wildflower"], [Vector2(22.6, 28.4), 0.96, "heather"], [Vector2(18.2, 28.6), 1.02, "grass"],
+		# Observatory headland turf & coastal scrub seated tightly on the (27.4, -17.8) crag!
+		[Vector2(24.4, -15.6), 1.05, "shrub"], [Vector2(30.4, -16.2), 1.04, "shrub"], [Vector2(24.8, -19.8), 1.02, "heather"],
+		[Vector2(30.6, -19.6), 1.04, "grass"], [Vector2(26.2, -14.8), 0.96, "wildflower"], [Vector2(28.8, -15.2), 0.98, "grass"],
+	]
+	for fzi in range(flora_zones.size()):
+		var fz: Array = flora_zones[fzi]
+		var fp: Vector2 = fz[0]
+		var fsc: float = float(fz[1])
+		var fkind: String = str(fz[2])
+		var fy := _eval_cliff_height(fp.x, fp.y, width_m, depth_m)
+		if fy < -4.8:
+			continue
+		var mm_k := "cliff_heather_mm"
+		if fkind == "grass": mm_k = "cliff_grass_mm"
+		elif fkind == "wildflower": mm_k = "cliff_wildflower_mm"
+		elif fkind == "shrub": mm_k = "cliff_shrub_mm"
+		# Wind-lean slightly downwind toward W/SW for authentic exposed headland motion
+		var xf_f := Transform3D(Basis.from_euler(Vector3(0.06, float(fzi) * 1.45, 0.10)).scaled_local(Vector3(fsc, fsc * 0.88, fsc)), Vector3(fp.x, fy - 0.03, fp.y))
+		_env_kit.append_multimesh(mm_k, xf_f, Color(rng.randf_range(0.90, 1.05), rng.randf_range(0.90, 1.04), rng.randf_range(0.88, 1.04)))
+
+	# Natural organic scatter across plateau crevices, western slopes & scree (keeping astronomical plaza & trail treads clean!)
+	for cf_i in range(138):
+		var cfx := rng.randf_range(-12.0, width_m - 2.0)
+		var cfz := rng.randf_range(-4.0, depth_m + 4.0)
+		if Vector2(cfx - 19.0, cfz - 12.6).length() < 6.4 or Vector2(cfx - 17.8, cfz - 15.2).length() < 4.5:
+			continue
+		if absf(cfx - 19.3) < 2.6 and cfz < 6.8:
+			continue # Keep northern bridge causeway tread crisp
+		var ti_f := _cliff_arrival_trail_info(cfx, cfz)
+		if cfx < 7.2 and float(ti_f["dist"]) < 1.85:
+			continue # Keep arrival stone stair tread clear
 		var cfy := _eval_cliff_height(cfx, cfz, width_m, depth_m)
-		if cfy < -0.35:
+		if cfy < -3.8:
 			continue
-		if cf_i < 26:
-			var hsc := rng.randf_range(0.58, 1.05)
-			_env_kit.append_multimesh("cliff_heather_mm", Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled_local(Vector3(hsc, hsc * 0.85, hsc)), Vector3(cfx, cfy - 0.02, cfz)), Color(rng.randf_range(0.88, 1.04), rng.randf_range(0.86, 1.0), rng.randf_range(0.92, 1.06)))
-		elif cf_i < 44:
-			var gsc := rng.randf_range(0.52, 0.96)
-			_env_kit.append_multimesh("cliff_grass_mm", Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled_local(Vector3(gsc, gsc * 0.82, gsc)), Vector3(cfx, cfy - 0.02, cfz)), Color(rng.randf_range(0.84, 1.0), rng.randf_range(0.88, 1.02), rng.randf_range(0.80, 0.96)))
+		var roll := cf_i % 10
+		if roll < 3:
+			var gsc := rng.randf_range(0.68, 1.18)
+			_env_kit.append_multimesh("cliff_grass_mm", Transform3D(Basis.from_euler(Vector3(0.05, rng.randf() * TAU, 0.09)).scaled_local(Vector3(gsc, gsc * 0.88, gsc)), Vector3(cfx, cfy - 0.02, cfz)), Color(rng.randf_range(0.86, 1.04), rng.randf_range(0.90, 1.05), rng.randf_range(0.82, 0.98)))
+		elif roll < 6:
+			var hsc := rng.randf_range(0.66, 1.14)
+			_env_kit.append_multimesh("cliff_heather_mm", Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled_local(Vector3(hsc, hsc * 0.86, hsc)), Vector3(cfx, cfy - 0.02, cfz)), Color(rng.randf_range(0.88, 1.04), rng.randf_range(0.86, 1.02), rng.randf_range(0.92, 1.06)))
+		elif roll < 8:
+			var wsc := rng.randf_range(0.62, 1.06)
+			_env_kit.append_multimesh("cliff_wildflower_mm", Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled_local(Vector3(wsc, wsc * 0.88, wsc)), Vector3(cfx, cfy - 0.02, cfz)), Color(rng.randf_range(0.92, 1.06), rng.randf_range(0.92, 1.04), rng.randf_range(0.86, 1.00)))
+		elif roll == 8 and cfx < 6.0:
+			var shsc := rng.randf_range(0.85, 1.32)
+			_env_kit.append_multimesh("cliff_shrub_mm", Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled_local(Vector3(shsc, shsc * 0.84, shsc)), Vector3(cfx, cfy - 0.04, cfz)), Color(rng.randf_range(0.86, 1.02), rng.randf_range(0.90, 1.04), rng.randf_range(0.84, 0.98)))
 		else:
-			var ssc := Vector3(rng.randf_range(0.16, 0.48), rng.randf_range(0.08, 0.22), rng.randf_range(0.14, 0.42))
-			_env_kit.append_multimesh("cliff_scree", Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled_local(ssc), Vector3(cfx, cfy + ssc.y * 0.16, cfz)), Color(0.86, 0.90, 0.94))
+			var ssc := Vector3(rng.randf_range(0.18, 0.46), rng.randf_range(0.08, 0.20), rng.randf_range(0.16, 0.40))
+			_env_kit.append_multimesh("cliff_scree", Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled_local(ssc), Vector3(cfx, cfy + ssc.y * 0.14, cfz)), Color(0.86, 0.90, 0.94))
 
 	_env_kit.flush_multimeshes(_grp_env_geo, "CliffGeo_")
 
-	# 4. Highland Wildlife synced to plateau elevation
-	FaunaKit.spawn_ibex(_grp_vegetation, fauna_agents, "CliffIbex", [
-		Vector3(3.5, 0.02, 5.8), Vector3(9.5, 0.02, 5.0),
-		Vector3(14.8, 0.02, 4.6), Vector3(22.5, 0.02, 5.2),
-		Vector3(31.5, 0.02, 6.2),
-	], 28.0, 2.0)
-	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "day", "dusk"], ["storm"], 66.0, 0.40, 8.0, true, 5.0)
+	# 6. Upgraded Highland & Sea-Cliff Wildlife (Open-Terrace Sculpted Ibexes, Arrival Hare, Dark-Beak Ravens & Open-Ocean Gulls!)
+	FaunaKit.spawn_highland_ibex(_grp_vegetation, fauna_agents, "CliffIbex", [
+		Vector3(4.2, 0.0, 12.2), Vector3(6.8, 0.0, 10.6),
+		Vector3(9.8, 0.0, 5.4), Vector3(12.2, 0.0, 4.4),
+		Vector3(6.4, 0.0, 13.4), Vector3(3.6, 0.0, 14.2),
+	], 32.0, 1.2, 1.08)
+	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "day", "dusk"], ["storm"], 0.0, 1.0, 0.0, true, 4.8)
+
+	FaunaKit.spawn_highland_ibex(_grp_vegetation, fauna_agents, "CliffIbexRidge", [
+		Vector3(-5.8, 0.0, 14.5), Vector3(-3.2, 0.0, 11.4),
+		Vector3(-1.8, 0.0, 6.2), Vector3(-5.4, 0.0, 8.8),
+	], 36.0, 9.5, 0.88)
+	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "day", "dusk"], ["storm"], 0.0, 1.0, 0.0, true, 5.2)
 
 	FaunaKit.spawn_rabbit(_grp_vegetation, fauna_agents, "CliffHare", [
-		Vector3(5.2, 0.0, 10.2), Vector3(10.0, 0.0, 9.6),
-		Vector3(11.6, 0.0, 9.2), Vector3(14.5, 0.0, 8.8),
-		Vector3(5.0, 0.0, 10.6),
-	], 16.0, 1.4, Color("#6e655b"))
-	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "dusk", "day"], ["rain", "storm", "snow"], 48.0, 0.38, 28.0, true, 4.2)
+		Vector3(4.8, 0.0, 17.4), Vector3(7.6, 0.0, 18.0),
+		Vector3(9.4, 0.0, 20.6), Vector3(6.4, 0.0, 21.8),
+		Vector3(4.5, 0.0, 19.6),
+	], 18.0, 1.4, Color("#8e7e6c"))
+	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "dusk", "day"], ["rain", "storm", "snow"], 0.0, 1.0, 0.0, true, 3.8)
 
-	FaunaKit.spawn_perched_bird(_grp_vegetation, fauna_agents, "CliffPerchedRaven_0", Vector3(24.4, _eval_cliff_height(24.4, 5.6, width_m, depth_m) + 1.48, 5.6), -1.6, Color("#1e232e"), Color("#121720"), 1.08, 0.8)
-	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "day", "dusk"], ["storm"], 42.0, 0.44, 3.0, false, 3.8)
+	var r0_y := _eval_cliff_height(6.75, 6.75, width_m, depth_m) + 3.36
+	FaunaKit.spawn_perched_bird(_grp_vegetation, fauna_agents, "CliffPerchedRaven_0", Vector3(6.6, r0_y, 6.75), 0.75, Color("#1a202c"), Color("#111620"), 1.22, 0.8, Color("#202632"))
+	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "day", "dusk"], ["storm"], 0.0, 1.0, 0.0, false, 3.6)
 
-	FaunaKit.spawn_perched_bird(_grp_vegetation, fauna_agents, "CliffPerchedRaven_1", Vector3(13.2, _eval_cliff_height(13.2, 5.2, width_m, depth_m) + 1.28, 5.2), 0.9, Color("#1c212b"), Color("#11161e"), 1.04, 2.9)
-	FaunaKit.set_behavior(fauna_agents.back(), ["dusk", "night", "dawn"], ["storm"], 48.0, 0.42, 6.0, false, 3.8)
+	var r1_y := _eval_cliff_height(21.7, 3.0, width_m, depth_m) + 2.52
+	FaunaKit.spawn_perched_bird(_grp_vegetation, fauna_agents, "CliffPerchedRaven_1", Vector3(21.7, r1_y, 3.0), -2.2, Color("#181e29"), Color("#10141d"), 1.18, 2.6, Color("#1f2430"))
+	FaunaKit.set_behavior(fauna_agents.back(), ["dusk", "night", "dawn", "day"], ["storm"], 0.0, 1.0, 0.0, false, 3.6)
+
+	# Banking coastal gulls & chasm ravens gliding strictly over open eastern ocean & northern chasm (min_x >= 36.5!)
+	FaunaKit.spawn_soaring_bird(_grp_vegetation, fauna_agents, "CliffSeaGull_0", Vector3(46.5, 1.6, 16.0), 8.5, 13.0, 22.0, 0.6, Color("#dde3ea"), Color("#6d7b8c"), 1.38, 1.0, 1.5, Color("#d89c36"))
+	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "day", "dusk"], ["storm"], 0.0, 1.0, 0.0, false, 0.0)
+	FaunaKit.spawn_soaring_bird(_grp_vegetation, fauna_agents, "CliffSeaGull_1", Vector3(44.5, -2.4, 24.0), 7.5, 11.0, 26.0, 3.4, Color("#d4dce4"), Color("#5f6e80"), 1.32, -1.0, 1.4, Color("#d89c36"))
+	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "day", "dusk"], ["storm"], 0.0, 1.0, 0.0, false, 0.0)
+	FaunaKit.spawn_soaring_bird(_grp_vegetation, fauna_agents, "CliffAbyssRaven_0", Vector3(22.5, 3.2, -7.5), 9.5, 6.2, 19.0, 2.1, Color("#1c222e"), Color("#121720"), 1.28, 1.0, 1.2, Color("#202632"))
+	FaunaKit.set_behavior(fauna_agents.back(), ["dawn", "day", "dusk", "night"], ["storm"], 0.0, 1.0, 0.0, false, 0.0)
 	sync_wildlife()
 
-	# 5. 3 Translucent Northern Sky Aurora Curtains (dusk/night/dawn) + Lower Abyss Sea-Mist Layers!
+	# 7. Northern Sky Aurora Curtains (shimmering cleanly BEHIND the Clifftop Observatory dome!) + Sea-Chasm & Abyss Mist Layers!
 	for i in range(3):
 		var aurora := MeshInstance3D.new()
 		aurora.name = "ObservatoryAurora_%d" % i
 		var am := PlaneMesh.new()
-		am.size = Vector2(56.0, 11.5); am.subdivide_width = 28; am.subdivide_depth = 8
+		am.size = Vector2(76.0, 15.0); am.subdivide_width = 28; am.subdivide_depth = 8
 		aurora.mesh = am
 		aurora.material_override = MatKit.create_aurora_shader_material(
 			Color("#42f2be") if i % 2 == 0 else Color("#5ad8ff"),
 			Color("#7a68ff"),
 			float(i) * 2.1
 		)
-		aurora.position = Vector3(width_m * 0.5 + float(i - 1) * 6.5, 4.2 + float(i) * 1.1, -14.5 - float(i) * 3.0)
-		aurora.rotation.x = deg_to_rad(58.0)
+		aurora.position = Vector3(width_m * 0.56 + float(i - 1) * 8.5, 10.6 + float(i) * 1.4, -38.0 - float(i) * 4.0)
+		aurora.rotation.x = deg_to_rad(62.0)
 		aurora.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_grp_env_geo.add_child(aurora)
 		fx.register_aurora(aurora)
 
-	# Layered drifting sea-mist clouds wrapping the lower cliff abyss & sea stacks (depth + zero void!)
-	for c in range(7):
+	# Drifting abyssal sea-mist clouds wrapping the eastern sea stacks AND swirling beneath the Observatory stone-arch bridge!
+	var mist_spots := [
+		[Vector3(44.0, -8.4, 14.0), Vector2(26.0, 13.0), 0.72],
+		[Vector3(48.0, -6.2, 28.0), Vector2(28.0, 14.0), 0.64],
+		[Vector3(34.0, -8.8, 38.0), Vector2(24.0, 12.0), 0.58],
+		[Vector3(21.5, -7.8, -8.5), Vector2(22.0, 11.5), 0.68], # Mist drifting right under the stone-arch chasm bridge!
+		[Vector3(33.5, -6.5, -13.5), Vector2(24.0, 12.0), 0.76],
+		[Vector3(46.5, -9.0, -6.0), Vector2(26.0, 13.0), 0.62],
+	]
+	for ci in range(mist_spots.size()):
+		var ms: Array = mist_spots[ci]
 		var cld := MeshInstance3D.new()
-		var clm := PlaneMesh.new(); clm.size = Vector2(24.0, 12.0)
+		var clm := PlaneMesh.new(); clm.size = ms[1]
 		cld.mesh = clm
-		cld.material_override = MatKit.create_cloud_wisp_shader_material(Color(0.72, 0.80, 0.90, 0.24))
-		var cz_m := (depth_m + 10.5 + float(c % 3) * 7.5) if c < 4 else (-10.5 - float(c - 4) * 6.5)
-		var cy_m := -8.8 + float(c % 3) * 2.2
-		cld.position = Vector3(width_m * 0.12 + float(c) * 8.4, cy_m, cz_m)
+		cld.material_override = MatKit.create_cloud_wisp_shader_material(Color(0.70, 0.78, 0.88, 0.16))
+		cld.position = ms[0]
 		cld.rotation.x = deg_to_rad(8.0)
 		cld.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_grp_env_geo.add_child(cld)
-		fx.register_cloud(cld, cld.position.x, width_m + 56.0, 0.65 + float(c % 3) * 0.24)
+		fx.register_cloud(cld, cld.position.x, width_m + 68.0, float(ms[2]))
 
-	# 6. Cozy Sheltered Hearth Ring & Carved Astronomical Lookout Pedestal + Tripod Spyglass
+	# 8. Cozy Sheltered Hearth Ring, Expedition Camp Pennant & Relocated Astronomical Lookout Pointing at the Observatory!
 	var wb_center := Vector3(18.75, _eval_cliff_height(18.75, 15.75, width_m, depth_m), 15.75)
-	for wb_i in range(6):
-		var wa := lerpf(-PI * 0.82, -PI * 0.18, float(wb_i) / 5.0)
-		var wr := 1.48
-		_env_kit.spawn_rock(_grp_props, wb_center + Vector3(cos(wa) * wr, 0.18, sin(wa) * wr), Vector3(0.56, 0.38 + sin(float(wb_i) * 1.7) * 0.08, 0.42), wa + PI * 0.5, mat_basalt, wb_i + 1, "stratified")
+	for wb_i in range(5):
+		var wa := lerpf(-PI * 0.80, -PI * 0.20, float(wb_i) / 4.0)
+		var wr := 1.42
+		var hb := MeshInstance3D.new()
+		hb.mesh = _env_kit.build_beveled_ruin_block(Vector3(0.46, 0.28 + sin(float(wb_i) * 1.6) * 0.06, 0.34), 0.045, float(wb_i) * 1.9, true)
+		hb.material_override = mat_plinth
+		hb.position = wb_center + Vector3(cos(wa) * wr, 0.13, sin(wa) * wr)
+		hb.rotation.y = wa + PI * 0.5
+		_grp_props.add_child(hb)
 	PropFactory.create_woven_rug(_grp_props, "CliffHearthMat", Vector3(17.95, _eval_cliff_height(17.95, 16.55, width_m, depth_m) + 0.008, 16.55), Vector2(1.88, 0.98), Color("#8c4a35"), Color("#cc9a5a"), 0.25)
 
-	# Astronomical northern lookout pedestal + brass compass ring + tripod spyglass & field lantern
-	var look_y := _eval_cliff_height(18.75, 3.85, width_m, depth_m)
-	var look_pos := Vector3(18.75, look_y, 3.85)
+	# Weathered crimson-ochre expedition camp pennant staff beside the storm tarp (warm storytelling focal point!)
+	var pen_y := _eval_cliff_height(13.2, 13.8, width_m, depth_m)
+	var pen_root := Node3D.new(); pen_root.name = "CliffExpeditionPennant"; pen_root.position = Vector3(13.2, pen_y, 13.8); _grp_props.add_child(pen_root)
+	CoastalKit.add_oriented_cyl(pen_root, Vector3(0.0, -0.05, 0.0), Vector3(-0.08, 2.38, 0.04), 0.036, 0.024, mat_cedar_o, 7)
+	CoastalKit.add_oriented_cyl(pen_root, Vector3(-0.06, 2.18, 0.03), Vector3(-0.62, 2.14, 0.08), 0.018, 0.015, mat_cedar_o, 6)
+	var ban_mi := MeshInstance3D.new()
+	var ban_m := PlaneMesh.new(); ban_m.size = Vector2(0.50, 1.02)
+	ban_mi.mesh = ban_m; ban_mi.material_override = mat_pennant
+	ban_mi.position = Vector3(-0.34, 1.64, 0.06); ban_mi.rotation = Vector3(PI * 0.5, 0.08, 0.06)
+	pen_root.add_child(ban_mi)
+
+	# Astronomical northern lookout pedestal + brass meridian dial + tripod spyglass aimed directly NE toward the Clifftop Observatory!
+	var look_y := _eval_cliff_height(14.3, 4.45, width_m, depth_m)
+	var look_pos := Vector3(14.3, look_y, 4.45)
 	var ped := MeshInstance3D.new()
 	ped.name = "AstronomicalCompassPedestal"
-	var pdm := CylinderMesh.new(); pdm.top_radius = 0.58; pdm.bottom_radius = 0.72; pdm.height = 0.42; pdm.radial_segments = 10
-	ped.mesh = pdm; ped.material_override = mat_carved; ped.position = look_pos + Vector3(0.0, 0.21, -0.45)
+	ped.mesh = _env_kit.build_fluted_column(0.54, 0.52, false, 12, 2.4)
+	ped.material_override = mat_carved; ped.position = look_pos + Vector3(0.0, 0.0, -0.25)
 	_grp_props.add_child(ped)
 	var dial := MeshInstance3D.new()
-	var dlm := TorusMesh.new(); dlm.inner_radius = 0.36; dlm.outer_radius = 0.44; dlm.rings = 16
-	dial.mesh = dlm; dial.material_override = mat_bronze_pat; dial.position = look_pos + Vector3(0.0, 0.44, -0.45)
+	var dlm := TorusMesh.new(); dlm.inner_radius = 0.34; dlm.outer_radius = 0.43; dlm.rings = 18
+	dial.mesh = dlm; dial.material_override = mat_bronze_pat; dial.position = look_pos + Vector3(0.0, 0.54, -0.25)
 	_grp_props.add_child(dial)
 
 	var spy_root := Node3D.new()
 	spy_root.name = "CliffLookoutSpyglass"
-	spy_root.position = look_pos + Vector3(-0.62, 0.0, -0.15)
+	spy_root.position = look_pos + Vector3(-0.64, 0.0, -0.10)
 	_grp_props.add_child(spy_root)
 	for tri_i in range(3):
 		var ta := float(tri_i) * TAU / 3.0
 		var leg := MeshInstance3D.new()
-		var lm_t := CylinderMesh.new(); lm_t.top_radius = 0.018; lm_t.bottom_radius = 0.024; lm_t.height = 0.88; lm_t.radial_segments = 6
+		var lm_t := CylinderMesh.new(); lm_t.top_radius = 0.018; lm_t.bottom_radius = 0.024; lm_t.height = 0.90; lm_t.radial_segments = 6
 		leg.mesh = lm_t; leg.material_override = mat_cedar_o
-		leg.position = Vector3(cos(ta) * 0.14, 0.41, sin(ta) * 0.14)
+		leg.position = Vector3(cos(ta) * 0.14, 0.42, sin(ta) * 0.14)
 		leg.rotation = Vector3(-sin(ta) * 0.28, 0.0, cos(ta) * 0.28)
 		spy_root.add_child(leg)
 	var tube_o := MeshInstance3D.new()
-	var tm_o := CylinderMesh.new(); tm_o.top_radius = 0.048; tm_o.bottom_radius = 0.028; tm_o.height = 0.58; tm_o.radial_segments = 8
+	var tm_o := CylinderMesh.new(); tm_o.top_radius = 0.050; tm_o.bottom_radius = 0.028; tm_o.height = 0.62; tm_o.radial_segments = 10
 	tube_o.mesh = tm_o; tube_o.material_override = mat_bronze_pat
-	tube_o.position = Vector3(0.0, 0.86, 0.0); tube_o.rotation = Vector3(1.25, 0.22, 0.0)
+	tube_o.position = Vector3(0.0, 0.88, 0.0); tube_o.rotation = Vector3(1.42, -0.34, 0.0) # Aimed directly NE at Observatory dome!
 	spy_root.add_child(tube_o)
-	_env_kit.spawn_rock(_grp_props, look_pos + Vector3(0.58, 0.09, 0.14), Vector3(0.46, 0.22, 0.38), 0.4, mat_basalt, 4, "flat")
-	var cliff_lan := PropFactory.create_portable_lantern(_grp_interactables, fx, look_pos + Vector3(0.58, 0.20, 0.14))
+	var cliff_lan := PropFactory.create_portable_lantern(_grp_interactables, fx, look_pos + Vector3(0.62, 0.08, 0.18))
 	cliff_lan.name = "CliffObservatoryFieldLantern"
+
+# ------------------------------------------------------------------------------
+# Camp 04 Helper A: Canonical SW Arrival Staircase & Retiro Trail (observatory-coast / inland)
+# ------------------------------------------------------------------------------
+func _build_observatory_arrival_path(
+	fx: CampAtmosphereFx,
+	width_m: float,
+	depth_m: float,
+	mat_ashlar: Material,
+	mat_carved: Material,
+	mat_plinth: Material,
+	mat_wood: Material,
+	mat_rope: Material,
+	bcol_keys: Array[String]
+) -> void:
+	var arr_root := Node3D.new()
+	arr_root.name = "RetiroArrivalStaircase"
+	_grp_structures.add_child(arr_root)
+
+	var stair_body := StaticBody3D.new()
+	stair_body.name = "ArrivalStairsCollider"
+	arr_root.add_child(stair_body)
+
+	var post_tops: Array[Vector3] = []
+	var step_count := 18
+	for si in range(step_count):
+		var t := float(si) / float(step_count - 1)
+		var sx := lerpf(5.4, -14.8, t)
+		var ti := _cliff_arrival_trail_info(sx, 24.0)
+		var sz: float = float(ti["z"])
+		var sy: float = float(ti["y"])
+		var ti_n := _cliff_arrival_trail_info(sx - 0.6, 24.0)
+		var tang := Vector2(-0.6, float(ti_n["z"]) - sz).normalized()
+		var yaw_s := atan2(tang.x, tang.y)
+		var perp := Vector2(tang.y, -tang.x) # Points SOUTH-EAST / outward toward the exposed cliff drop!
+
+		# Broad weathered beveled carved stone tread seated solidly into the hillside
+		var step_w := 2.85 if si < 4 else 2.55
+		var step_mi := MeshInstance3D.new()
+		step_mi.mesh = _env_kit.build_beveled_ruin_block(Vector3(step_w, 0.42, 1.28), 0.055, float(si) * 1.73, true)
+		step_mi.material_override = mat_carved if si % 3 != 0 else mat_ashlar
+		step_mi.position = Vector3(sx, sy - 0.14, sz)
+		step_mi.rotation.y = yaw_s + sin(float(si) * 1.3) * 0.04
+		arr_root.add_child(step_mi)
+
+		# Walkable stair collision block on upper reachable section
+		if si < 11:
+			var scs := CollisionShape3D.new()
+			var sbs := BoxShape3D.new(); sbs.size = Vector3(step_w, 0.36, 1.34)
+			scs.shape = sbs
+			scs.position = Vector3(sx, sy - 0.14, sz)
+			scs.rotation.y = yaw_s
+			stair_body.add_child(scs)
+
+		# Dry-stone retaining curb & buttresses along the exposed outer (southern) flank of the stairs
+		if si % 2 == 0:
+			var curb_xz := Vector2(sx, sz) + perp * (step_w * 0.54)
+			var curb_mi := MeshInstance3D.new()
+			curb_mi.mesh = _env_kit.build_beveled_ruin_block(Vector3(0.56, 0.72, 1.95), 0.055, float(si) * 2.4, true)
+			curb_mi.material_override = mat_plinth
+			curb_mi.position = Vector3(curb_xz.x, sy + 0.06, curb_xz.y)
+			curb_mi.rotation.y = yaw_s
+			arr_root.add_child(curb_mi)
+			# Columnar basalt buttress anchoring the retaining wall down into the SW shoulder
+			var b_xz := curb_xz + perp * 0.85
+			_env_kit.append_multimesh(bcol_keys[si % bcol_keys.size()], Transform3D(Basis(Vector3.UP, yaw_s + float(si)).scaled_local(Vector3(1.55, 2.8, 1.45)), Vector3(b_xz.x, sy - 1.55, b_xz.y)), Color(0.84, 0.88, 0.92))
+			if si % 4 == 0:
+				_env_kit.append_multimesh("cliff_ivy_hang_mm", Transform3D(Basis(Vector3.UP, yaw_s + PI * 0.5).scaled_local(Vector3(0.95, 0.85, 0.95)), Vector3(curb_xz.x + perp.x * 0.28, sy + 0.35, curb_xz.y + perp.y * 0.28)), Color(0.90, 0.95, 0.88))
+
+		# Weathered timber handrail posts curving gracefully along the outer stair rim
+		if si in [1, 4, 7, 10, 13, 16]:
+			var post_xz := Vector2(sx, sz) + perp * (step_w * 0.52)
+			var p_bot := Vector3(post_xz.x, sy - 0.12, post_xz.y)
+			var p_top := Vector3(post_xz.x + perp.x * 0.06, sy + 1.02, post_xz.y + perp.y * 0.06)
+			CoastalKit.add_oriented_cyl(arr_root, p_bot, p_top, 0.062, 0.048, mat_wood, 7)
+			post_tops.append(p_top - Vector3(0.0, 0.14, 0.0))
+
+	# Sagging weathered hemp rope guide rail connecting the timber posts
+	for pi in range(post_tops.size() - 1):
+		var pa: Vector3 = post_tops[pi]
+		var pb: Vector3 = post_tops[pi + 1]
+		var pmid := pa.lerp(pb, 0.5) - Vector3(0.0, 0.16, 0.0)
+		CoastalKit.add_oriented_cyl(arr_root, pa, pmid, 0.022, 0.022, mat_rope, 6, false)
+		CoastalKit.add_oriented_cyl(arr_root, pmid, pb, 0.022, 0.022, mat_rope, 6, false)
+
+	# Canonical Stormwreck Trail Signpost, Basalt Cairn & Hanging Trail Lantern at top arrival landing (4.2, y, 18.6)!
+	var sp_y := _eval_cliff_height(4.2, 18.6, width_m, depth_m)
+	var sign_root := Node3D.new(); sign_root.name = "RetiroObservatorySignpost"; sign_root.position = Vector3(4.2, sp_y, 18.6); arr_root.add_child(sign_root)
+	CoastalKit.add_oriented_cyl(sign_root, Vector3(0.0, -0.08, 0.0), Vector3(0.04, 2.08, -0.02), 0.072, 0.056, mat_wood, 8)
+	# Two angled directional trail boards: NE toward Observatory & SW back down to El Retiro
+	var b_obs := MeshInstance3D.new()
+	b_obs.mesh = _env_kit.build_beveled_ruin_block(Vector3(0.96, 0.22, 0.06), 0.015, 1.2, false)
+	b_obs.material_override = mat_wood; b_obs.position = Vector3(0.32, 1.82, -0.08); b_obs.rotation.y = 0.68
+	sign_root.add_child(b_obs)
+	var b_ret := MeshInstance3D.new()
+	b_ret.mesh = _env_kit.build_beveled_ruin_block(Vector3(0.92, 0.22, 0.06), 0.015, 2.4, false)
+	b_ret.material_override = mat_wood; b_ret.position = Vector3(-0.32, 1.54, 0.08); b_ret.rotation.y = -0.48
+	sign_root.add_child(b_ret)
+	# Small cross-arm holding a weathered storm lantern guiding arrivals at dusk & night!
+	CoastalKit.add_oriented_cyl(sign_root, Vector3(0.02, 1.96, 0.0), Vector3(0.42, 1.98, 0.24), 0.022, 0.018, mat_wood, 6)
+	var arr_lan := PropFactory.create_portable_lantern(_grp_interactables, fx, Vector3(4.2, sp_y, 18.6) + Vector3(0.40, 1.66, 0.22))
+	arr_lan.name = "ArrivalSignpostLantern"
+	# Stacked dry-stone trail cairn anchoring the signpost base
+	for ci in range(3):
+		var cr := MeshInstance3D.new()
+		var csc := Vector3(0.56 - float(ci) * 0.12, 0.18, 0.48 - float(ci) * 0.10)
+		cr.mesh = _env_kit.build_beveled_ruin_block(csc, 0.04, float(ci) * 2.2, true)
+		cr.material_override = mat_plinth
+		cr.position = Vector3(-0.36, 0.08 + float(ci) * 0.16, -0.22); cr.rotation.y = float(ci) * 0.65
+		sign_root.add_child(cr)
+
+# ------------------------------------------------------------------------------
+# Camp 04 Helper B: North Causeway Gate, Ancient Stone-Arch Bridge & Distant Clifftop Observatory
+# ------------------------------------------------------------------------------
+func _build_observatory_bridge_and_landmark(
+	fx: CampAtmosphereFx,
+	width_m: float,
+	depth_m: float,
+	mat_ashlar: Material,
+	mat_carved: Material,
+	mat_plinth: Material,
+	mat_bronze_pat: Material,
+	mat_dome_copper: Material,
+	mat_plank: Material,
+	mat_wood: Material,
+	mat_rope: Material,
+	bcol_keys: Array[String],
+	bcol_dark_keys: Array[String],
+	sea_foam_sources: Array
+) -> void:
+	var br_root := Node3D.new()
+	br_root.name = "ObservatoryCausewayAndBridge"
+	_grp_structures.add_child(br_root)
+
+	# 1. Northern Departure Causeway Gateway (Fluted Twin Gate Piers framing the bridge departure!)
+	var gate_pts := [Vector2(16.9, 3.0), Vector2(21.7, 3.0)]
+	for gi in range(2):
+		var gp: Vector2 = gate_pts[gi]
+		var gy := _eval_cliff_height(gp.x, gp.y, width_m, depth_m)
+		var g_node := Node3D.new(); g_node.name = "BridgeGatePier_%d" % gi; g_node.position = Vector3(gp.x, gy, gp.y); br_root.add_child(g_node)
+		var gpl := MeshInstance3D.new()
+		gpl.mesh = _env_kit.build_beveled_ruin_block(Vector3(1.18, 0.38, 1.18), 0.06, 11.1 + float(gi), false)
+		gpl.material_override = mat_plinth; gpl.position.y = 0.17
+		g_node.add_child(gpl)
+		var gcol := MeshInstance3D.new()
+		var gh := 2.75 if gi == 0 else 2.22
+		gcol.mesh = _env_kit.build_fluted_column(0.38, gh, gi == 1, 12, 12.0 + float(gi))
+		gcol.material_override = mat_carved; gcol.position.y = 0.34
+		g_node.add_child(gcol)
+		var gband := MeshInstance3D.new()
+		var gbm := TorusMesh.new(); gbm.inner_radius = 0.36; gbm.outer_radius = 0.42; gbm.rings = 16
+		gband.mesh = gbm; gband.material_override = mat_bronze_pat; gband.position.y = 1.55
+		g_node.add_child(gband)
+		if gi == 0:
+			var gcap := MeshInstance3D.new()
+			gcap.mesh = _env_kit.build_beveled_ruin_block(Vector3(1.12, 0.28, 1.04), 0.05, 13.4, true)
+			gcap.material_override = mat_ashlar; gcap.position = Vector3(0.22, 0.34 + gh + 0.10, 0.0); gcap.rotation.z = -0.10
+			g_node.add_child(gcap)
+			var g_lan := PropFactory.create_portable_lantern(_grp_interactables, fx, Vector3(gp.x + 0.56, gy + 0.44, gp.y + 0.28))
+			g_lan.name = "BridgeGateBeaconLantern"
+
+	# Irregular weathered flagstone causeway slabs leading organically from the compass edge onto the bridge deck!
+	for ci in range(4):
+		var cz_s := lerpf(4.9, 1.7, float(ci) / 3.0)
+		var cy_s := _eval_cliff_height(19.3, cz_s, width_m, depth_m)
+		var slab := MeshInstance3D.new()
+		slab.mesh = _env_kit.build_beveled_ruin_block(Vector3(2.95 - float(ci % 2) * 0.25, 0.14, 0.98), 0.04, 15.0 + float(ci) * 1.7, true)
+		slab.material_override = mat_plinth if ci % 2 == 0 else mat_ashlar
+		slab.position = Vector3(19.3 + sin(float(ci) * 1.9) * 0.08, cy_s - 0.03, cz_s)
+		slab.rotation.y = sin(float(ci) * 2.3) * 0.045
+		slab.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		br_root.add_child(slab)
+
+	# 2. Ancient Stone-Arch Bridge + Repaired Timber/Rope Mid-Span crossing the Open Northern Sea-Chasm!
+	var p_start := Vector3(19.35, 0.14, 1.40)
+	var p_end := Vector3(24.60, 0.95, -11.40)
+	var b_vec := p_end - p_start
+	var b_len := Vector2(b_vec.x, b_vec.z).length()
+	var b_dir_xz := Vector2(b_vec.x, b_vec.z).normalized()
+	var b_yaw := atan2(b_dir_xz.x, b_dir_xz.y)
+	var b_perp := Vector2(-b_dir_xz.y, b_dir_xz.x)
+
+	var deck_pt := func(u: float) -> Vector3:
+		var base_p := p_start.lerp(p_end, u)
+		var crown := sin(u * PI) * 0.36
+		return base_p + Vector3(0.0, crown, 0.0)
+
+	# Massive battered masonry abutments descending deep down both chasm faces to ocean surf!
+	for ab_u: float in [0.02, 0.98]:
+		var ap: Vector3 = deck_pt.call(ab_u)
+		var abut := MeshInstance3D.new()
+		abut.mesh = _env_kit.build_beveled_ruin_block(Vector3(3.9, 16.5, 2.5), 0.12, 20.0 + ab_u * 10.0, false)
+		abut.material_override = mat_plinth
+		abut.position = Vector3(ap.x, ap.y - 8.35, ap.z)
+		abut.rotation.y = b_yaw
+		br_root.add_child(abut)
+		for side_a: float in [-1.0, 1.0]:
+			var rock_xz: Vector2 = Vector2(ap.x, ap.z) + b_perp * (side_a * 2.3)
+			_env_kit.append_multimesh(bcol_dark_keys[int(ab_u * 5.0) % bcol_dark_keys.size()], Transform3D(Basis(Vector3.UP, b_yaw + side_a).scaled_local(Vector3(2.2, 8.8, 2.0)), Vector3(rock_xz.x, ap.y - 5.2, rock_xz.y)), Color(0.84, 0.88, 0.93))
+		sea_foam_sources.append(Vector3(ap.x, ap.z, 3.4))
+
+	# Curved Ancient Stone Arch Ring (16 beveled radial voussoir segments spanning beneath the deck!)
+	var arch_segs := 16
+	for ai in range(arch_segs):
+		var u0 := lerpf(0.05, 0.95, float(ai) / float(arch_segs))
+		var u1 := lerpf(0.05, 0.95, float(ai + 1) / float(arch_segs))
+		var um := (u0 + u1) * 0.5
+		var d0: Vector3 = deck_pt.call(u0)
+		var d1: Vector3 = deck_pt.call(u1)
+		var drop0 := (1.0 - sin(u0 * PI)) * 4.8 + 0.50
+		var drop1 := (1.0 - sin(u1 * PI)) * 4.8 + 0.50
+		var a0 := d0 - Vector3(0.0, drop0, 0.0)
+		var a1 := d1 - Vector3(0.0, drop1, 0.0)
+		var seg_d := a1 - a0
+		var v_len := seg_d.length()
+		var pitch_a := -atan2(seg_d.y, Vector2(seg_d.x, seg_d.z).length())
+		var voussoir := MeshInstance3D.new()
+		voussoir.mesh = _env_kit.build_beveled_ruin_block(Vector3(3.12, 0.78, v_len * 1.08), 0.06, float(ai) * 1.7, false)
+		voussoir.material_override = mat_ashlar if ai % 2 == 0 else mat_carved
+		voussoir.position = (a0 + a1) * 0.5
+		voussoir.rotation = Vector3(pitch_a, b_yaw, 0.0)
+		br_root.add_child(voussoir)
+
+		# Spandrel side masonry walls supporting the intact outer thirds of the stone bridge
+		if um < 0.36 or um > 0.66:
+			var sp_h := maxf(0.42, ((drop0 + drop1) * 0.5) - 0.28)
+			var spandrel := MeshInstance3D.new()
+			spandrel.mesh = _env_kit.build_beveled_ruin_block(Vector3(2.98, sp_h, v_len * 1.06), 0.05, float(ai) * 2.3, false)
+			spandrel.material_override = mat_plinth
+			var dm_p: Vector3 = deck_pt.call(um)
+			spandrel.position = Vector3(dm_p.x, dm_p.y - sp_h * 0.5 - 0.14, dm_p.z)
+			spandrel.rotation.y = b_yaw
+			br_root.add_child(spandrel)
+
+	# Intact weathered stone deck & broken parapet walls on Near (u=0..0.34) & Far (u=0.68..1.0) thirds!
+	for seg_range in [[0.0, 0.34, 5], [0.68, 1.0, 5]]:
+		var ra0: float = float(seg_range[0])
+		var ra1: float = float(seg_range[1])
+		var cnt: int = int(seg_range[2])
+		for ki in range(cnt):
+			var uk := lerpf(ra0, ra1, (float(ki) + 0.5) / float(cnt))
+			var dp: Vector3 = deck_pt.call(uk)
+			var d_nxt: Vector3 = deck_pt.call(minf(1.0, uk + 0.04))
+			var d_sl := d_nxt - dp
+			var sl_pitch := -atan2(d_sl.y, maxf(0.01, Vector2(d_sl.x, d_sl.z).length()))
+			var d_slab := MeshInstance3D.new()
+			d_slab.mesh = _env_kit.build_beveled_ruin_block(Vector3(3.04, 0.32, (ra1 - ra0) * b_len / float(cnt) * 1.06), 0.045, uk * 18.0, true)
+			d_slab.material_override = mat_carved if ki % 2 == 0 else mat_ashlar
+			d_slab.position = dp - Vector3(0.0, 0.14, 0.0)
+			d_slab.rotation = Vector3(sl_pitch, b_yaw, 0.0)
+			br_root.add_child(d_slab)
+			# Broken stone parapet curbs along bridge edges
+			for s_par: float in [-1.0, 1.0]:
+				if (ki == cnt - 1 and ra0 < 0.1 and s_par > 0.0) or (ki == 0 and ra0 > 0.5 and s_par < 0.0):
+					continue # Irregular eroded gap in stone parapet!
+				var par_h := 0.68 if (ki % 2 == 0) else 0.46
+				var par_p: Vector3 = dp + Vector3(b_perp.x * s_par * 1.36, par_h * 0.5, b_perp.y * s_par * 1.36)
+				var par_mi := MeshInstance3D.new()
+				par_mi.mesh = _env_kit.build_beveled_ruin_block(Vector3(0.36, par_h, (ra1 - ra0) * b_len / float(cnt) * 0.96), 0.04, uk * 22.0 + s_par, true)
+				par_mi.material_override = mat_ashlar
+				par_mi.position = par_p
+				par_mi.rotation = Vector3(sl_pitch, b_yaw, 0.0)
+				br_root.add_child(par_mi)
+
+	# Mid-Span Expedition Timber & Rope Repair (u = 0.33..0.69 — iconic Stormwreck Observatory crossing!)
+	var r_a: Vector3 = deck_pt.call(0.32)
+	var r_b: Vector3 = deck_pt.call(0.70)
+	for str_s: float in [-0.95, 0.0, 0.95]:
+		var s_off: Vector3 = Vector3(b_perp.x * str_s, -0.08, b_perp.y * str_s)
+		CoastalKit.add_oriented_cyl(br_root, r_a + s_off, r_b + s_off, 0.11, 0.11, mat_wood, 7)
+	var plank_count := 13
+	for pi in range(plank_count):
+		var up := lerpf(0.34, 0.68, float(pi) / float(plank_count - 1))
+		var pp: Vector3 = deck_pt.call(up)
+		var plank_mi := MeshInstance3D.new()
+		plank_mi.mesh = _env_kit.build_beveled_ruin_block(Vector3(2.64 + sin(float(pi) * 2.1) * 0.14, 0.085, 0.34), 0.015, float(pi) * 3.1, false)
+		plank_mi.material_override = mat_plank
+		plank_mi.position = pp + Vector3(0.0, 0.04, 0.0)
+		plank_mi.rotation = Vector3(0.0, b_yaw + sin(float(pi) * 1.9) * 0.035, cos(float(pi) * 2.5) * 0.018)
+		br_root.add_child(plank_mi)
+	for s_rail: float in [-1.0, 1.0]:
+		var rp_tops: Array[Vector3] = []
+		for r_u: float in [0.33, 0.45, 0.57, 0.69]:
+			var rbase: Vector3 = deck_pt.call(r_u) + Vector3(b_perp.x * s_rail * 1.22, -0.05, b_perp.y * s_rail * 1.22)
+			var rtop: Vector3 = rbase + Vector3(b_perp.x * s_rail * 0.08, 1.08, b_perp.y * s_rail * 0.08)
+			CoastalKit.add_oriented_cyl(br_root, rbase, rtop, 0.055, 0.044, mat_wood, 6)
+			rp_tops.append(rtop - Vector3(0.0, 0.12, 0.0))
+		for ri in range(rp_tops.size() - 1):
+			var mid_hi := rp_tops[ri].lerp(rp_tops[ri + 1], 0.5) - Vector3(0.0, 0.12, 0.0)
+			CoastalKit.add_oriented_cyl(br_root, rp_tops[ri], mid_hi, 0.022, 0.022, mat_rope, 6, false)
+			CoastalKit.add_oriented_cyl(br_root, mid_hi, rp_tops[ri + 1], 0.022, 0.022, mat_rope, 6, false)
+			var lo_a := rp_tops[ri] - Vector3(0.0, 0.44, 0.0)
+			var lo_b := rp_tops[ri + 1] - Vector3(0.0, 0.44, 0.0)
+			CoastalKit.add_oriented_cyl(br_root, lo_a, lo_b, 0.018, 0.018, mat_rope, 5, false)
+
+	# Walkable Floor Collider for the near bridge threshold so tokens can step out onto the bridge safely!
+	var br_body := StaticBody3D.new()
+	br_body.name = "BridgeNearThresholdCollider"
+	br_root.add_child(br_body)
+	var bc_cs := CollisionShape3D.new()
+	var bc_box := BoxShape3D.new(); bc_box.size = Vector3(3.10, 0.42, 6.2)
+	bc_cs.shape = bc_box
+	var bc_mid: Vector3 = deck_pt.call(0.16)
+	bc_cs.position = bc_mid - Vector3(0.0, 0.18, 0.0)
+	bc_cs.rotation = Vector3(0.09, b_yaw, 0.0)
+	br_body.add_child(bc_cs)
+
+	# 3. Ascending Headland Stone Stairs from Bridge Far Landing (24.6, 0.95, -11.4) up to Observatory Plinth (26.8, 1.55, -14.8)!
+	for hsi in range(5):
+		var hu := float(hsi) / 4.0
+		var hp := Vector3(lerpf(24.6, 26.8, hu), lerpf(0.95, 1.55, hu), lerpf(-11.4, -14.6, hu))
+		var hstep := MeshInstance3D.new()
+		hstep.mesh = _env_kit.build_beveled_ruin_block(Vector3(2.85, 0.32, 0.96), 0.045, 30.0 + float(hsi), true)
+		hstep.material_override = mat_carved if hsi % 2 == 0 else mat_ashlar
+		hstep.position = hp - Vector3(0.0, 0.11, 0.0)
+		hstep.rotation.y = b_yaw * 0.90
+		br_root.add_child(hstep)
+
+	# 4. Iconic Ruined Clifftop Observatory Landmark on Northern Headland Crag (27.4, 1.55, -17.8)!
+	# Framed cleanly in Overview, Dusk Overview, Pitch 5..25 deg & Night between center HUD & top-right clock!
+	var obs_pos := Vector3(27.4, 1.55, -17.8)
+	var obs_root := Node3D.new()
+	obs_root.name = "DistantClifftopObservatory"
+	obs_root.position = obs_pos
+	br_root.add_child(obs_root)
+
+	# Compact sculpted columnar basalt crags supporting the Observatory headland (strictly BELOW summit plinth so ocean stays visible!)
+	for oci in range(12):
+		var oa := float(oci) * TAU / 12.0
+		var ox := obs_pos.x + cos(oa) * 6.0
+		var oz := obs_pos.z + sin(oa) * 5.6
+		var osc := Vector3(2.4, 11.4, 2.2)
+		var ok_m: String = bcol_keys[oci % bcol_keys.size()] if oci % 2 == 0 else bcol_dark_keys[oci % bcol_dark_keys.size()]
+		_env_kit.append_multimesh(ok_m, Transform3D(Basis(Vector3.UP, oa + 0.5).scaled_local(osc), Vector3(ox, -5.2, oz)), Color(0.88, 0.92, 0.96))
+		if oci % 2 == 0:
+			sea_foam_sources.append(Vector3(ox + cos(oa) * 2.4, oz + sin(oa) * 2.4, 2.8))
+
+	# Two-tier circular stepped Observatory drum plinth (RuinsPlinth canon!)
+	for ti_o in range(2):
+		var drum := MeshInstance3D.new()
+		var dm := CylinderMesh.new()
+		dm.top_radius = 3.65 if ti_o == 0 else 3.22
+		dm.bottom_radius = 3.90 if ti_o == 0 else 3.40
+		dm.height = 0.62 if ti_o == 0 else 0.48
+		dm.radial_segments = 16
+		drum.mesh = dm; drum.material_override = mat_plinth if ti_o == 0 else mat_ashlar
+		drum.position.y = 0.24 if ti_o == 0 else 0.74
+		obs_root.add_child(drum)
+
+	# Ring of 8 weathered canonical fluted limestone columns (intact supporting dome + snapped silhouettes!)
+	var col_heights := [3.05, 3.05, 3.05, 2.15, 1.55, 3.05, 3.05, 2.45]
+	var col_r := 2.72
+	for ci in range(8):
+		var ca := float(ci) * TAU / 8.0 - PI * 0.12
+		var ch: float = float(col_heights[ci])
+		var is_broken := ch < 2.95
+		var c_mi := MeshInstance3D.new()
+		c_mi.mesh = _env_kit.build_fluted_column(0.28, ch, is_broken, 12, 40.0 + float(ci))
+		c_mi.material_override = mat_carved
+		c_mi.position = Vector3(cos(ca) * col_r, 0.96, sin(ca) * col_r)
+		obs_root.add_child(c_mi)
+
+	# Partial curved entablature architrave & fractured patinated-bronze ribbed Observatory Dome!
+	for ei in range(8):
+		if ei == 3 or ei == 4:
+			continue # Dramatic open ruined south-west face revealing interior astrolabe & beacon!
+		var ea := float(ei) * TAU / 8.0 + TAU / 16.0 - PI * 0.12
+		var ent := MeshInstance3D.new()
+		ent.mesh = _env_kit.build_beveled_ruin_block(Vector3(2.26, 0.40, 0.66), 0.04, 50.0 + float(ei), true)
+		ent.material_override = mat_carved
+		ent.position = Vector3(cos(ea) * col_r, 4.18, sin(ea) * col_r)
+		ent.rotation.y = -ea + PI * 0.5
+		obs_root.add_child(ent)
+
+	# 7 Curved Patinated-Bronze Observatory Dome Ribs arching skyward around an open meridian telescope slit!
+	var dome_base_y := 4.35
+	var dome_r := 2.66
+	for ri in range(7):
+		var ra := lerpf(-PI * 0.88, PI * 0.52, float(ri) / 6.0)
+		var rib_segs := 6
+		for rsi in range(rib_segs):
+			var el0 := lerpf(0.0, PI * 0.44, float(rsi) / float(rib_segs))
+			var el1 := lerpf(0.0, PI * 0.44, float(rsi + 1) / float(rib_segs))
+			if ri >= 4 and rsi >= 4:
+				continue # Broken fractured upper dome opening!
+			var p0 := Vector3(cos(ra) * cos(el0) * dome_r, dome_base_y + sin(el0) * dome_r * 0.90, sin(ra) * cos(el0) * dome_r)
+			var p1 := Vector3(cos(ra) * cos(el1) * dome_r, dome_base_y + sin(el1) * dome_r * 0.90, sin(ra) * cos(el1) * dome_r)
+			CoastalKit.add_oriented_cyl(obs_root, p0, p1, 0.11, 0.085, mat_bronze_pat, 6)
+			if ri < 4 and rsi < 4:
+				var ra_n := lerpf(-PI * 0.88, PI * 0.52, float(ri + 1) / 6.0)
+				var mid_a := (ra + ra_n) * 0.5
+				var mid_el := (el0 + el1) * 0.5
+				var pan := MeshInstance3D.new()
+				pan.mesh = _env_kit.build_beveled_ruin_block(Vector3(cos(mid_el) * 1.44, 0.10, 0.72), 0.02, float(ri * 7 + rsi), false)
+				pan.material_override = mat_dome_copper
+				pan.position = Vector3(cos(mid_a) * cos(mid_el) * (dome_r - 0.05), dome_base_y + sin(mid_el) * (dome_r - 0.05) * 0.90, sin(mid_a) * cos(mid_el) * (dome_r - 0.05))
+				pan.rotation = Vector3(mid_el - PI * 0.5, -mid_a + PI * 0.5, 0.0)
+				obs_root.add_child(pan)
+
+	# Giant Ancient Bronze Astrolabe & Tilted Meridian Telescope Arm emerging through the ruined dome slit!
+	var astro_root := Node3D.new(); astro_root.position = Vector3(0.0, 2.55, 0.0); obs_root.add_child(astro_root)
+	var ped_o := MeshInstance3D.new()
+	ped_o.mesh = _env_kit.build_fluted_column(0.56, 1.42, false, 12, 60.0)
+	ped_o.material_override = mat_carved; ped_o.position.y = -1.55
+	astro_root.add_child(ped_o)
+	for arm_i in range(2):
+		var gr := MeshInstance3D.new()
+		var grm := TorusMesh.new(); grm.inner_radius = 0.98 - float(arm_i) * 0.20; grm.outer_radius = 1.12 - float(arm_i) * 0.20; grm.rings = 22
+		gr.mesh = grm; gr.material_override = mat_bronze_pat
+		gr.rotation = Vector3(0.55 if arm_i == 0 else -0.45, 0.42 if arm_i == 0 else 1.25, 0.35)
+		astro_root.add_child(gr)
+	CoastalKit.add_oriented_cyl(astro_root, Vector3(-0.55, -0.28, 0.40), Vector3(1.68, 2.85, -1.25), 0.19, 0.27, mat_bronze_pat, 10)
+
+	# Subtle Distant Observatory Sanctuary Starlight Core (dim by day, atmospheric destination beacon at dusk & night!)
+	var obs_orb_mat := StandardMaterial3D.new()
+	obs_orb_mat.albedo_color = Color("#7ae8f8")
+	obs_orb_mat.roughness = 0.12
+	obs_orb_mat.emission_enabled = true
+	obs_orb_mat.emission = Color("#58d8f6")
+	obs_orb_mat.emission_energy_multiplier = 0.14
+	var obs_orb := MeshInstance3D.new()
+	obs_orb.mesh = _env_kit.build_faceted_crystal_mesh(1.05, 0.30, 77.0)
+	obs_orb.material_override = obs_orb_mat
+	obs_orb.position = Vector3(0.0, -0.30, 0.0)
+	astro_root.add_child(obs_orb)
+	var obs_l := OmniLight3D.new()
+	obs_l.light_color = Color("#6adcf6")
+	obs_l.light_energy = 0.0
+	obs_l.omni_range = 13.5
+	obs_l.omni_attenuation = 1.45
+	obs_l.position = Vector3(0.0, 0.75, 0.0)
+	astro_root.add_child(obs_l)
+	fx.register_arcane_crystal(obs_l, obs_orb_mat, 2.4, 0.14, 2.6)
 
 # ------------------------------------------------------------------------------
 # Camp 05: Refugio Cala Pleamar (Coastal Trail + Asymmetric Cove + 4-Chamber Sea Cave)
 # ------------------------------------------------------------------------------
+func _emit_wall_quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3, along_z: bool = false) -> void:
+	var uv_a := Vector2(a.z * 0.25, a.y * 0.25) if along_z else Vector2(a.x * 0.25, a.y * 0.25)
+	var uv_b := Vector2(b.z * 0.25, b.y * 0.25) if along_z else Vector2(b.x * 0.25, b.y * 0.25)
+	var uv_c := Vector2(c.z * 0.25, c.y * 0.25) if along_z else Vector2(c.x * 0.25, c.y * 0.25)
+	var uv_d := Vector2(d.z * 0.25, d.y * 0.25) if along_z else Vector2(d.x * 0.25, d.y * 0.25)
+	st.set_color(Color(0.0, 0.0, 0.0, 1.0)); st.set_uv(uv_a); st.add_vertex(a)
+	st.set_color(Color(0.0, 0.0, 0.0, 1.0)); st.set_uv(uv_b); st.add_vertex(b)
+	st.set_color(Color(0.0, 0.0, 0.0, 1.0)); st.set_uv(uv_c); st.add_vertex(c)
+	st.set_color(Color(0.0, 0.0, 0.0, 1.0)); st.set_uv(uv_a); st.add_vertex(a)
+	st.set_color(Color(0.0, 0.0, 0.0, 1.0)); st.set_uv(uv_c); st.add_vertex(c)
+	st.set_color(Color(0.0, 0.0, 0.0, 1.0)); st.set_uv(uv_d); st.add_vertex(d)
+
 func _build_cave_vault_mesh(
 	parent: Node3D,
 	node_name: String,
@@ -3442,74 +4207,225 @@ func _build_cave_vault_mesh(
 	dome_h: float,
 	hole_xz: Vector2,
 	hole_r: float,
-	mat_ds: Material,
-	seed_v: float
+	mat_solid: Material,
+	seed_v: float,
+	slab_thick: float = 1.42,
+	flank_drop: float = 0.0,
+	south_arch_curve: float = 0.0
 ) -> MeshInstance3D:
-	# Organic sculpted irregular dome vault with tapered curved rock skirt (ZERO harsh rectangular cutout corners!)
+	# Volumetric 3D solid sculpted limestone rock vault:
+	# - Distinct smooth groups (top=0, bottom=1, rock-cut side faces=-1 flat) -> ZERO vertical triplanar streaking!
+	# - Optional organic flank drop & curved sea-cave brow lip -> ZERO boxy horizontal beams or protruding corners!
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var nx := 14
+	var nx := 16
 	var nz := 12
-	var pts: Array = []
+	var top_pts: Array = []
+	var bot_pts: Array = []
 	for iz in range(nz + 1):
 		var fz := float(iz) / float(nz)
-		var row_v: Array[Vector3] = []
+		var row_t: Array[Vector3] = []
+		var row_b: Array[Vector3] = []
 		for ix in range(nx + 1):
 			var fx := float(ix) / float(nx)
-			# Organic scalloped edge displacement so perimeter never reads as a straight box cut!
-			var edge_x := sin(fz * PI) * (sin(fz * 7.0 + seed_v) * 0.65 + cos(fz * 13.0) * 0.28)
-			var edge_z := sin(fx * PI) * (cos(fx * 6.5 - seed_v) * 0.58 + sin(fx * 11.0) * 0.24)
+			var edge_x := sin(fz * PI) * (sin(fz * 7.0 + seed_v) * 0.58 + cos(fz * 13.0) * 0.24)
+			var edge_z := sin(fx * PI) * (cos(fx * 6.5 - seed_v) * 0.62 + sin(fx * 11.0) * 0.28)
 			var vx := lerpf(x0, x1, fx) + edge_x * (1.0 - sin(fx * PI))
 			var vz := lerpf(z0, z1, fz) + edge_z * (1.0 - sin(fz * PI))
 			var arch_x := sin(fx * PI)
 			var arch_z := sin(fz * PI)
-			var dome_f := pow(maxf(0.0, arch_x * 0.62 + arch_z * 0.38), 0.78)
-			var crag := sin(vx * 0.58 + seed_v) * cos(vz * 0.52 - seed_v * 0.7) * 0.36 + sin((vx - vz) * 1.12) * 0.16
-			var vy := base_h + dome_h * dome_f + crag
-			row_v.append(Vector3(vx, vy, vz))
-		pts.append(row_v)
+			# Curve south arch wings slightly northward & inward so the cavern mouth reads like a true natural coastal arch
+			if south_arch_curve > 0.01:
+				var wing_pull := pow(1.0 - arch_x, 1.55) * south_arch_curve * pow(fz, 1.35)
+				vz -= wing_pull
+				if fz > 0.72:
+					vz += sin(fx * 17.0 + seed_v) * 0.34 * arch_x * ((fz - 0.72) / 0.28)
+			var dome_f := pow(maxf(0.0, arch_x * 0.66 + arch_z * 0.34), 0.82)
+			var crag_top := sin(vx * 0.56 + seed_v) * cos(vz * 0.50 - seed_v * 0.7) * 0.42 + sin((vx - vz) * 1.12) * 0.18
+			var crag_bot := cos(vx * 0.82 - seed_v * 1.3) * sin(vz * 0.76 + seed_v * 0.9) * 0.24 + sin((vx + vz) * 1.65) * 0.11
+			# Taper west/east outer flanks smoothly into the cliff shoulders (eliminates boxy protruding roof corners!)
+			var edge_mask := pow(clampf(absf(fx - 0.5) * 2.0, 0.0, 1.0), 2.3)
+			var corner_mask := edge_mask * (0.45 + 0.55 * pow(clampf(absf(fz - 0.5) * 2.0, 0.0, 1.0), 1.6))
+			var drop_here := flank_drop * corner_mask
+			var rim_heft := 1.0 + (1.0 - dome_f) * 0.18
+			var local_thick := maxf(0.95, slab_thick * rim_heft + sin(vx * 0.42 + vz * 0.38 + seed_v) * 0.22)
+			var vy_bot := base_h + dome_h * dome_f * 0.82 + crag_bot - drop_here
+			var vy_top := vy_bot + local_thick + dome_h * dome_f * 0.24 + crag_top * 0.88 - drop_here * 0.25
+			# Slight natural sloped bevel on the front cliff brow so rock overhangs look sculpted instead of sheared flat!
+			var brow_recess := 0.48 * pow(fz, 3.0) * (0.65 + 0.35 * sin(vx * 0.75 + seed_v))
+			row_t.append(Vector3(vx, vy_top, vz - brow_recess))
+			row_b.append(Vector3(vx, vy_bot, vz))
+		top_pts.append(row_t)
+		bot_pts.append(row_b)
+
+	# Precompute active solid cells (excluding optional central chimney smoke vent)
+	var solid: Array = []
+	for iz in range(nz):
+		var srow: Array[bool] = []
+		for ix in range(nx):
+			var keep := true
+			if hole_r > 0.05:
+				var ctr: Vector3 = (top_pts[iz][ix] + top_pts[iz][ix + 1] + top_pts[iz + 1][ix + 1] + top_pts[iz + 1][ix]) * 0.25
+				if Vector2(ctr.x - hole_xz.x, ctr.z - hole_xz.y).length() < hole_r:
+					keep = false
+			srow.append(keep)
+		solid.append(srow)
+
 	for iz in range(nz):
 		for ix in range(nx):
-			var a: Vector3 = pts[iz][ix]; var b: Vector3 = pts[iz][ix + 1]
-			var c: Vector3 = pts[iz + 1][ix + 1]; var d: Vector3 = pts[iz + 1][ix]
-			if hole_r > 0.05:
-				var ctr := (a + b + c + d) * 0.25
-				if Vector2(ctr.x - hole_xz.x, ctr.z - hole_xz.y).length() < hole_r:
-					continue
-			# Upward-facing winding (a, d, c, b) so top rocky cliff surface catches crisp sunlight!
-			_emit_quad(st, a, d, c, b)
+			if not solid[iz][ix]:
+				continue
+			var ta: Vector3 = top_pts[iz][ix]; var tb: Vector3 = top_pts[iz][ix + 1]
+			var tc: Vector3 = top_pts[iz + 1][ix + 1]; var td: Vector3 = top_pts[iz + 1][ix]
+			var ba: Vector3 = bot_pts[iz][ix]; var bb: Vector3 = bot_pts[iz][ix + 1]
+			var bc: Vector3 = bot_pts[iz + 1][ix + 1]; var bd: Vector3 = bot_pts[iz + 1][ix]
+			# 1. Top sunlit cliff crust (smooth group 0 -> pure upward rock normals!)
+			st.set_smooth_group(0)
+			_emit_quad(st, ta, tb, tc, td)
+			# 2. Inner vaulted cavern ceiling (smooth group 1 -> pure downward cavern normals!)
+			st.set_smooth_group(1)
+			_emit_quad(st, ba, bd, bc, bb)
+			# 3. Rugged rock-cut vertical/sloped cliff brow faces (smooth group -1 + wall UVs -> ZERO vertical streaking!)
+			st.set_smooth_group(-1)
+			if iz == 0 or not solid[iz - 1][ix]:
+				_emit_wall_quad(st, tb, ta, ba, bb, false) # North (-Z)
+			if iz == nz - 1 or not solid[iz + 1][ix]:
+				_emit_wall_quad(st, td, tc, bc, bd, false) # South (+Z, facing camera!)
+			if ix == 0 or not solid[iz][ix - 1]:
+				_emit_wall_quad(st, ta, td, bd, ba, true) # West (-X)
+			if ix == nx - 1 or not solid[iz][ix + 1]:
+				_emit_wall_quad(st, tc, tb, bb, bc, true) # East (+X)
+
 	st.generate_normals()
 	var mi := MeshInstance3D.new()
 	mi.name = node_name
 	mi.mesh = st.commit()
-	mi.material_override = mat_ds
+	mi.material_override = mat_solid
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	parent.add_child(mi)
 	return mi
 
-func _create_spring_waterfall_shader() -> ShaderMaterial:
+func _create_cave_pool_shader() -> ShaderMaterial:
 	var sh := Shader.new()
 	sh.code = """
 shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_disabled, specular_schlick_ggx;
 
+varying vec3 wpos;
+
+float hash21(vec2 p) {
+	p = fract(p * vec2(127.1, 311.7));
+	p += dot(p, p + 41.3);
+	return fract(p.x * p.y);
+}
+
+float vnoise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(
+		mix(hash21(i), hash21(i + vec2(1.0, 0.0)), f.x),
+		mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), f.x),
+		f.y
+	);
+}
+
+void vertex() {
+	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+}
+
 void fragment() {
-	float t = TIME * 1.75;
+	float t = TIME * 0.95;
+	vec2 ruv = (UV - 0.5) * 2.0;
+	float rad = length(ruv);
+	float n1 = vnoise(wpos.xz * 2.2 + vec2(t * 0.26, -t * 0.20));
+	float n2 = vnoise(wpos.xz * 4.8 + vec2(-t * 0.30, t * 0.24));
+	float caust = smoothstep(0.54, 0.86, n1 * 0.56 + n2 * 0.44);
+
+	// Rich translucent sheltered cave mineral-emerald pool (zero outdoor pink-dusk sky mirror!)
+	vec3 deep_c = vec3(0.045, 0.195, 0.225);
+	vec3 shallow_c = vec3(0.115, 0.365, 0.395);
+	vec3 caust_c = vec3(0.32, 0.62, 0.64);
+	float edge_t = smoothstep(0.32, 0.96, rad + (n1 - 0.5) * 0.18);
+	vec3 col = mix(deep_c, shallow_c, edge_t);
+	col = mix(col, caust_c, caust * 0.24 * (1.0 - edge_t * 0.5));
+
+	// Gentle delicate whitewater edge sparkle right where the pool laps the limestone rim
+	float rim_lace = smoothstep(0.76, 0.96, rad) * smoothstep(0.45, 0.82, n2) * 0.28;
+	col = mix(col, vec3(0.76, 0.88, 0.89), rim_lace);
+
+	vec2 slope = vec2((n1 - 0.5) * 0.18, (n2 - 0.5) * 0.18);
+	ALBEDO = col;
+	METALLIC = 0.02;
+	ROUGHNESS = mix(0.28, 0.44, rim_lace);
+	SPECULAR = 0.26;
+	NORMAL_MAP = vec3(0.5 + slope.x, 0.5 + slope.y, 1.0);
+	ALPHA = clamp(mix(0.84, 0.48, smoothstep(0.55, 0.98, rad)) + rim_lace * 0.25, 0.35, 0.88);
+}
+"""
+	var smat := ShaderMaterial.new()
+	smat.shader = sh
+	return smat
+
+func _create_spring_waterfall_shader() -> ShaderMaterial:
+	var sh := Shader.new()
+	sh.code = """
+shader_type spatial;
+render_mode blend_mix, depth_draw_never, cull_disabled, specular_schlick_ggx;
+
+uniform float alpha_mul = 0.84;
+
+float hash21(vec2 p) {
+	p = fract(p * vec2(127.1, 311.7));
+	p += dot(p, p + 41.3);
+	return fract(p.x * p.y);
+}
+
+float vnoise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(
+		mix(hash21(i), hash21(i + vec2(1.0, 0.0)), f.x),
+		mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), f.x),
+		f.y
+	);
+}
+
+void fragment() {
+	float t = TIME * 1.45;
 	vec2 uv = UV;
-	float jitter = sin(uv.y * 11.0 - t * 2.4) * 0.08 + cos(uv.y * 19.0 - t * 3.8) * 0.04;
-	float edge_dist = abs(uv.x - 0.5 + jitter * 0.4);
-	float width_prof = mix(0.28, 0.46, smoothstep(0.0, 0.92, uv.y));
-	float mask_x = 1.0 - smoothstep(width_prof - 0.14, width_prof, edge_dist);
-	float mask_top = smoothstep(0.0, 0.12, uv.y);
-	float s1 = sin(uv.x * 24.0 + sin(uv.y * 9.0 - t * 2.8) * 1.4) * 0.5 + 0.5;
-	float s2 = sin(uv.x * 38.0 - uv.y * 16.0 + t * 5.6) * 0.5 + 0.5;
-	float splash = smoothstep(0.74, 0.98, uv.y) * (0.65 + s2 * 0.35);
-	float foam = clamp(smoothstep(0.46, 0.92, s1 * 0.55 + s2 * 0.45) * 0.72 + splash, 0.0, 1.0);
-	vec3 water_c = mix(vec3(0.14, 0.50, 0.58), vec3(0.84, 0.96, 0.98), foam);
-	ALBEDO = water_c;
-	EMISSION = vec3(0.06, 0.24, 0.28) * (0.35 + foam * 0.35);
-	ROUGHNESS = 0.16;
-	ALPHA = clamp((0.52 + foam * 0.38) * mask_x * mask_top, 0.0, 0.88);
+	// Organic braided water curtain with soft ragged lateral spray (natural mineral whitewater, zero neon strips!)
+	float sway = (vnoise(vec2(uv.x * 3.8, uv.y * 3.2 - t * 1.1)) - 0.5) * 0.12;
+	float edge_dist = abs(uv.x - 0.5 + sway);
+	float width_prof = mix(0.32, 0.48, smoothstep(0.0, 0.90, uv.y));
+	float mask_x = 1.0 - smoothstep(width_prof - 0.18, width_prof, edge_dist);
+	float mask_top = smoothstep(0.0, 0.08, uv.y);
+	float mask_bot = 1.0 - smoothstep(0.93, 1.0, uv.y);
+
+	// Layered falling aerated water strands + micro spray droplets
+	float f1 = vnoise(vec2(uv.x * 9.5, uv.y * 4.5 - t * 2.4));
+	float f2 = vnoise(vec2(uv.x * 19.0 + 2.4, uv.y * 8.5 - t * 3.9));
+	float f3 = vnoise(vec2(uv.x * 34.0 - 1.7, uv.y * 14.0 - t * 5.4));
+	float strands = f1 * 0.46 + f2 * 0.34 + f3 * 0.20;
+
+	// Natural churning whitewater at top rock spout, mid mossy shelf break & lower pool plunge
+	float lip_foam = (1.0 - smoothstep(0.02, 0.20, uv.y)) * 0.50;
+	float mid_break = exp(-pow((uv.y - 0.46) * 6.5, 2.0)) * 0.54 * (0.50 + f2 * 0.50);
+	float splash_foam = smoothstep(0.76, 0.97, uv.y) * (0.54 + f2 * 0.46);
+	float foam = clamp(smoothstep(0.38, 0.78, strands) * 0.76 + lip_foam + mid_break + splash_foam, 0.0, 1.0);
+
+	vec3 clear_mineral = vec3(0.18, 0.40, 0.43);
+	vec3 foam_white = vec3(0.82, 0.89, 0.90);
+	vec3 col = mix(clear_mineral, foam_white, foam);
+
+	float fresnel = pow(1.0 - clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0), 2.8);
+	col = mix(col, vec3(0.88, 0.93, 0.94), fresnel * 0.20);
+
+	ALBEDO = col;
+	ROUGHNESS = mix(0.22, 0.48, foam);
+	SPECULAR = mix(0.42, 0.22, foam);
+	ALPHA = clamp((0.30 + foam * 0.52) * mask_x * mask_top * mask_bot * alpha_mul, 0.0, 0.84);
 }
 """
 	var mat := ShaderMaterial.new()
@@ -3519,26 +4435,24 @@ void fragment() {
 func _build_refuge_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m: float, depth_m: float, _tile: float) -> void:
 	var greybox := OS.get_cmdline_user_args().has("--greybox")
 
-	# Materials: warm sunlit coastal limestone-granite cave walls & wet dark basalt pools!
+	# Materials: warm sunlit coastal limestone-granite cave walls & readable damp mossy limestone (ZERO pitch-black blobs!)
 	var mat_cliff := CoastalKit.make_multimesh_rock_mat("a1-cliff-organic-v7.png", Color("#8c887d"), 0.86, 0.26, true)
-	var mat_cliff_dark := CoastalKit.make_multimesh_rock_mat("a1-cliff-rugged-v8.jpg", Color("#79776e"), 0.88, 0.25, true)
-	var mat_wet_rock := CoastalKit.make_multimesh_rock_mat("basalt-coastal-albedo-v1.webp", Color("#4e5c5c"), 0.28, 0.34, true)
+	var mat_cliff_dark := CoastalKit.make_multimesh_rock_mat("a1-cliff-rugged-v8.jpg", Color("#7d7a71"), 0.88, 0.25, true)
+	var mat_wet_rock := CoastalKit.make_multimesh_rock_mat("a1-cliff-organic-v7.png", Color("#768176"), 0.64, 0.30, true)
 	var mat_arch := MatKit.make_textured_mat("a1-cliff-organic-v7.png", Color("#868278"), 0.86, "rock", Vector3(0.24, 0.24, 0.24), true, true)
-	var mat_rugged := MatKit.make_textured_mat("a1-cliff-rugged-v8.jpg", Color("#7b786f"), 0.88, "rock", Vector3(0.22, 0.22, 0.22), true, true)
-	var mat_roof_ds := mat_arch.duplicate() as StandardMaterial3D
-	mat_roof_ds.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var mat_rugged := MatKit.make_textured_mat("a1-cliff-rugged-v8.jpg", Color("#7c7970"), 0.88, "rock", Vector3(0.22, 0.22, 0.22), true, true)
+	var mat_roof_solid := mat_arch.duplicate() as StandardMaterial3D
+	mat_roof_solid.cull_mode = BaseMaterial3D.CULL_BACK
+	mat_roof_solid.uv1_triplanar_sharpness = 4.0
 	var mat_rail_wood := MatKit.make_wood_mat(Color("#745b42"), true)
 	var mat_rope := MatKit.make_cloth_mat(Color("#b6a176"), true, true)
 	var mat_ivy := _env_kit.make_alpha_foliage_mat("cave_moss", Color("#3b6b3e"))
 	var mat_coastal_tree := MatKit.create_foliage_wind_shader_material("foliage.webp", Color("#4d6b3c"), 0.042, Color("#7ea058"), false, 2.4, true)
 	# Subtle translucent water-droplet material (NO giant glowing white ping-pong balls!)
 	var mat_drip := StandardMaterial3D.new()
-	mat_drip.albedo_color = Color(0.72, 0.92, 0.98, 0.62)
+	mat_drip.albedo_color = Color(0.76, 0.90, 0.94, 0.56)
 	mat_drip.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat_drip.roughness = 0.08
-	mat_drip.emission_enabled = true
-	mat_drip.emission = Color("#74d2e8")
-	mat_drip.emission_energy_multiplier = 0.28
+	mat_drip.roughness = 0.12
 
 	var mat_gb_mouth: StandardMaterial3D
 	var mat_gb_common: StandardMaterial3D
@@ -3550,16 +4464,15 @@ func _build_refuge_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m:
 		mat_cliff_dark = StandardMaterial3D.new(); mat_cliff_dark.albedo_color = Color("#656a69"); mat_cliff_dark.roughness = 0.92; mat_cliff_dark.vertex_color_use_as_albedo = true
 		mat_wet_rock = StandardMaterial3D.new(); mat_wet_rock.albedo_color = Color("#506064"); mat_wet_rock.roughness = 0.55; mat_wet_rock.vertex_color_use_as_albedo = true
 		mat_arch = mat_cliff; mat_rugged = mat_cliff_dark
-		mat_gb_mouth = StandardMaterial3D.new(); mat_gb_mouth.albedo_color = Color("#8f8a7c"); mat_gb_mouth.cull_mode = BaseMaterial3D.CULL_DISABLED
-		mat_gb_common = StandardMaterial3D.new(); mat_gb_common.albedo_color = Color("#a88c6c"); mat_gb_common.cull_mode = BaseMaterial3D.CULL_DISABLED
-		mat_gb_rest = StandardMaterial3D.new(); mat_gb_rest.albedo_color = Color("#8a9c7e"); mat_gb_rest.cull_mode = BaseMaterial3D.CULL_DISABLED
-		mat_gb_storage = StandardMaterial3D.new(); mat_gb_storage.albedo_color = Color("#9b8676"); mat_gb_storage.cull_mode = BaseMaterial3D.CULL_DISABLED
-		mat_gb_spring = StandardMaterial3D.new(); mat_gb_spring.albedo_color = Color("#6498a4"); mat_gb_spring.cull_mode = BaseMaterial3D.CULL_DISABLED
+		mat_gb_mouth = StandardMaterial3D.new(); mat_gb_mouth.albedo_color = Color("#8f8a7c")
+		mat_gb_common = StandardMaterial3D.new(); mat_gb_common.albedo_color = Color("#a88c6c")
+		mat_gb_rest = StandardMaterial3D.new(); mat_gb_rest.albedo_color = Color("#8a9c7e")
+		mat_gb_storage = StandardMaterial3D.new(); mat_gb_storage.albedo_color = Color("#9b8676")
+		mat_gb_spring = StandardMaterial3D.new(); mat_gb_spring.albedo_color = Color("#6498a4")
 
 	# Register MultiMesh rock & coastal shrub batches for crisp high-FPS rock formations
 	var strat_pool := _env_kit.get_rock_variants("stratified")
 	var crag_pool := _env_kit.get_rock_variants("craggy")
-	var round_pool := _env_kit.get_rock_variants("rounded")
 	var flat_pool := _env_kit.get_rock_variants("flat")
 	var cliff_keys: Array[String] = []
 	var dark_keys: Array[String] = []
@@ -3573,7 +4486,7 @@ func _build_refuge_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m:
 		_env_kit.define_multimesh(dk, crag_pool[vi], mat_cliff_dark, true)
 		dark_keys.append(dk)
 		var wk := "cove_wet_%d" % vi
-		_env_kit.define_multimesh(wk, round_pool[vi], mat_wet_rock, false)
+		_env_kit.define_multimesh(wk, strat_pool[vi] if vi % 2 == 0 else crag_pool[vi], mat_wet_rock, false)
 		wet_keys.append(wk)
 		var fk := "cove_flat_%d" % vi
 		_env_kit.define_multimesh(fk, flat_pool[vi], mat_cliff, false)
@@ -3618,21 +4531,23 @@ func _build_refuge_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m:
 			var crag_r := sin(fc * 27.0 + ft * 4.2) * 0.56 + cos(fc * 13.0 - ft * 2.5) * 0.40
 			var rx := 18.8 + cos(ang) * (18.4 - inset + crag_r)
 			var rz := 17.8 - sin(ang) * (15.5 - inset * 0.80 + crag_r * 0.75)
-			var wy := -0.35 + ft * (4.95 + sin(fc * PI) * 0.75 + cos(fc * 9.0) * 0.22)
+			var wy := -0.35 + ft * (5.35 + sin(fc * PI) * 0.80 + cos(fc * 9.0) * 0.22)
 			row_v.append(Vector3(rx, wy, rz))
 		w_pts.append(row_v)
 	for ti in range(wall_tiers):
 		for ci in range(wall_segs):
 			# Proper interior-facing winding (a, d, c, b) so the inner cave rock wall catches warm lantern & firelight richly!
 			_emit_quad(st_wall, w_pts[ti][ci], w_pts[ti + 1][ci], w_pts[ti + 1][ci + 1], w_pts[ti][ci + 1])
-	# Add continuous solid rocky crown apron bridging the top of the horseshoe back into the rising headland terrain (ZERO dark rim gap!)
+	# Add continuous solid rocky crown apron bridging the top of the horseshoe back into the rising headland terrain (tapered cleanly to 0 at West/East ends so ZERO boxy wings stick out!)
 	var crown_row: Array = w_pts[wall_tiers]
 	for ci in range(wall_segs):
 		var fc0 := float(ci) / float(wall_segs); var fc1 := float(ci + 1) / float(wall_segs)
 		var ang0 := lerpf(PI * 0.96, -PI * 0.04, fc0); var ang1 := lerpf(PI * 0.96, -PI * 0.04, fc1)
+		var tap0 := pow(sin(fc0 * PI), 0.75)
+		var tap1 := pow(sin(fc1 * PI), 0.75)
 		var a: Vector3 = crown_row[ci]; var b: Vector3 = crown_row[ci + 1]
-		var out_a := Vector3(a.x + cos(ang0) * 5.5, a.y + 0.55, a.z - sin(ang0) * 5.5)
-		var out_b := Vector3(b.x + cos(ang1) * 5.5, b.y + 0.55, b.z - sin(ang1) * 5.5)
+		var out_a := Vector3(a.x + cos(ang0) * (5.6 * tap0), a.y + lerpf(-2.2, 0.55, tap0), a.z - sin(ang0) * (5.6 * tap0))
+		var out_b := Vector3(b.x + cos(ang1) * (5.6 * tap1), b.y + lerpf(-2.2, 0.55, tap1), b.z - sin(ang1) * (5.6 * tap1))
 		_emit_quad(st_wall, a, out_a, out_b, b)
 	st_wall.generate_normals()
 	var mat_shell_ds := mat_rugged.duplicate() as StandardMaterial3D
@@ -3649,8 +4564,8 @@ func _build_refuge_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m:
 		[Vector2(12.5, -3.5), Vector3(5.5, 5.8, 4.6)], [Vector2(21.0, -3.5), Vector3(5.8, 6.0, 4.8)],
 		[Vector2(29.5, -2.0), Vector3(5.6, 5.6, 4.6)], [Vector2(37.5, 2.5), Vector3(5.8, 5.4, 4.8)],
 		# Permanent cave mouth cliff shoulders (framing the dramatic entrance arch from the cove!)
-		[Vector2(0.8, 18.8), Vector3(3.8, 4.4, 3.6)], [Vector2(3.6, 19.6), Vector3(2.8, 3.8, 2.8)],
-		[Vector2(36.2, 18.4), Vector3(4.2, 4.6, 3.8)], [Vector2(33.4, 19.8), Vector3(3.0, 3.8, 2.8)],
+		[Vector2(0.8, 18.8), Vector3(3.8, 4.6, 3.6)], [Vector2(3.6, 19.6), Vector3(2.8, 4.0, 2.8)],
+		[Vector2(36.2, 18.4), Vector3(4.2, 4.8, 3.8)], [Vector2(33.4, 19.8), Vector3(3.0, 4.0, 2.8)],
 		# Dramatic West & East coastal headlands curving into the cove turquoise sea
 		[Vector2(-5.5, 27.5), Vector3(4.6, 3.2, 4.2)], [Vector2(-1.5, 28.8), Vector3(4.2, 2.6, 3.8)],
 		[Vector2(3.2, 27.6), Vector3(3.2, 1.9, 3.0)],
@@ -3665,7 +4580,7 @@ func _build_refuge_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m:
 		var keys_hc := cliff_keys if hci % 2 == 0 else dark_keys
 		CoastalKit.append_rock_cluster_mm(_env_kit, keys_hc, Vector3(hcp.x, hcy + hcsc.y * 0.22, hcp.y), hcsc, float(hci) * 0.9, float(hci) * 2.1, 4, Color(0.96, 0.95, 0.92) if hci % 2 == 0 else Color(0.88, 0.89, 0.88))
 		if hcp.y > 24.5:
-			foam_sources.append(Vector3(hcp.x, hcp.y, hcsc.x * 0.88))
+			foam_sources.append(Vector3(hcp.x, hcp.y, hcsc.x * 0.65))
 
 	# ==========================================================================
 	# 2. DESCENDING WESTERN COASTAL ACCESS TRAIL (Organic Embedded Fieldstones, Handrail Posts, Ropes, Coastal Trees!)
@@ -3743,36 +4658,53 @@ func _build_refuge_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m:
 				CoastalKit.append_rock_cluster_mm(_env_kit, dark_keys if r_idx % 2 == 0 else cliff_keys, Vector3(rp.x, rgy + pier_h * 0.34, rp.z), Vector3(1.22, pier_h * 0.82, 1.15), float(r_idx) * 1.15, float(r_idx) * 2.7, 4, Color(0.92, 0.93, 0.90))
 			else:
 				CoastalKit.append_rock_cluster_mm(_env_kit, cliff_keys, Vector3(rp.x, rgy + 0.42, rp.z), Vector3(1.55, 1.12, 1.38), float(r_idx) * 1.25, float(r_idx) * 1.9, 3, Color(0.95, 0.94, 0.90))
-				foam_sources.append(Vector3(rp.x, rp.z, 1.85))
+				foam_sources.append(Vector3(rp.x, rp.z, 1.35))
 			if not greybox and r_idx % 2 == 0:
 				_env_kit.spawn_fern_clump(_grp_vegetation, Vector3(rp.x - 0.55, rgy, rp.z + 0.55), 0.82, mat_ivy, float(r_idx), 2)
 			r_idx += 1
 
 	# ==========================================================================
-	# 4. 5 INDEPENDENT MULTI-SECTOR CUTAWAY ROCK VAULTS (Organic Scalloped Boulders + Thick Natural Rim + SHADOWS_ONLY!)
+	# 4. 5 INDEPENDENT VOLUMETRIC SOLID 3D CUTAWAY ROCK VAULTS (Thick Sculpted Cliff Mass + ZERO Boxy Corners!)
 	# ==========================================================================
-	# 4A. RockyOverhangLip (Dramatic Sculpted Cave Mouth Arch & Front Cliff Brow — thick rock corbels, ZERO thin seam slit!)
+	# 4A. RockyOverhangLip (Monolithic Sculpted Limestone Sea-Cave Arch + Embedded Strata Ledges — ZERO potato-row boulders!)
 	var overhang := Node3D.new()
 	overhang.name = "RockyOverhangLip"
 	_grp_structures.add_child(overhang)
-	var mouth_mat: Material = mat_gb_mouth if greybox else mat_roof_ds
-	_build_cave_vault_mesh(overhang, "CaveMouthArchVault", 1.8, 35.8, 17.6, 22.8, 3.05, 1.95, Vector2.ZERO, 0.0, mouth_mat, 1.1)
-	for c_i in range(11):
-		var fc := float(c_i) / 10.0
-		var ax := lerpf(3.2, 34.4, fc)
-		var arch_y := 2.75 + sin(fc * PI) * 1.45
-		var wing_z := 20.4 + (1.0 - sin(fc * PI)) * 1.55
-		var brow := _env_kit.spawn_rock(overhang, Vector3(ax, arch_y, wing_z), Vector3(2.55, 1.48, 2.25), fc * 2.8, mat_gb_mouth if greybox else (mat_arch if c_i % 2 == 0 else mat_rugged), c_i + 1, "stratified")
-		if brow:
-			brow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	var mouth_mat: Material = mat_gb_mouth if greybox else mat_roof_solid
+	_build_cave_vault_mesh(overhang, "CaveMouthArchVault", 2.4, 35.0, 17.6, 22.6, 2.70, 1.85, Vector2.ZERO, 0.0, mouth_mat, 1.1, 1.55, 2.05, 2.35)
+	var arch_ledges := [
+		[4.6, 2.55, 20.1, Vector3(3.6, 1.85, 3.0), 0.25],
+		[9.6, 3.80, 20.7, Vector3(3.8, 1.75, 2.9), -0.18],
+		[14.8, 4.55, 21.1, Vector3(4.1, 1.70, 2.8), 0.14],
+		[19.2, 4.78, 21.2, Vector3(4.2, 1.80, 2.9), -0.10],
+		[23.8, 4.48, 21.0, Vector3(4.0, 1.72, 2.8), 0.20],
+		[28.5, 3.68, 20.5, Vector3(3.8, 1.78, 2.9), -0.22],
+		[33.0, 2.50, 20.0, Vector3(3.6, 1.88, 3.0), 0.28],
+	]
+	for li in range(arch_ledges.size()):
+		var ld: Array = arch_ledges[li]
+		var lx: float = float(ld[0]); var ly: float = float(ld[1]); var lz: float = float(ld[2])
+		var lsc: Vector3 = ld[3]; var lyaw: float = float(ld[4])
+		var ledge := _env_kit.spawn_rock(overhang, Vector3(lx, ly, lz), lsc, lyaw, mat_gb_mouth if greybox else mat_arch, li + 1, "stratified")
+		if ledge:
+			ledge.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		if li in [1, 3, 5]:
+			var cap_r := _env_kit.spawn_rock(overhang, Vector3(lx + sin(float(li)) * 0.6, ly + 1.05, lz - 1.45), Vector3(lsc.x * 0.88, 1.38, 2.85), lyaw + 0.45, mat_gb_mouth if greybox else mat_arch, li + 4, "craggy")
+			if cap_r:
+				cap_r.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	if not greybox:
 		var vine_holder := Node3D.new()
 		vine_holder.name = "CaveMouthHangingVines"
 		overhang.add_child(vine_holder)
-		for vi in range(7):
-			var vx := lerpf(7.5, 29.5, float(vi) / 6.0)
-			var vy_v := 3.45 + sin(float(vi) / 6.0 * PI) * 0.95
-			_env_kit.spawn_hanging_vine(vine_holder, Vector3(vx, vy_v, 21.4 + sin(float(vi) * 1.4) * 0.45), 0.3 + float(vi) * 0.5, 0.85, 1.15 + fmod(float(vi) * 0.35, 0.65))
+		for vi in range(8):
+			var fv := float(vi) / 7.0
+			var vx := lerpf(7.0, 30.2, fv)
+			var arch_v := sin(fv * PI)
+			var vz_v := 22.4 - pow(1.0 - arch_v, 1.4) * 1.4 + sin(float(vi) * 1.4) * 0.35
+			var vy_v := 3.45 + arch_v * 1.15
+			_env_kit.spawn_hanging_vine(vine_holder, Vector3(vx, vy_v, vz_v), 0.3 + float(vi) * 0.5, 0.88, 1.15 + fmod(float(vi) * 0.35, 0.72))
+			if vi % 2 == 0:
+				_env_kit.spawn_fern_clump(vine_holder, Vector3(vx + 0.5, vy_v + 1.05, vz_v - 0.85), 1.08, mat_ivy, float(vi) * 1.7, 2)
 		for ch in vine_holder.find_children("*", "MeshInstance3D", true, false):
 			ch.set_meta("cutaway_hide_completely", true)
 	cutaway_tents.append({
@@ -3783,12 +4715,12 @@ func _build_refuge_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m:
 		"multi_party": true,
 	})
 
-	# 4B. Sala Común Vault (with sculpted chimney boulder rim around natural smoke vent above cove-fire!)
+	# 4B. Sala Común Vault (Thick 3D solid vault with sculpted rocky chimney vent rim above cove-fire!)
 	var roof_common := Node3D.new(); roof_common.name = "CaveRoof_Common"; _grp_structures.add_child(roof_common)
-	_build_cave_vault_mesh(roof_common, "VaultCommonMesh", 9.0, 26.4, 11.4, 19.6, 3.55, 1.75, Vector2(18.75, 15.75), 1.15, mat_gb_common if greybox else mat_roof_ds, 2.3)
+	_build_cave_vault_mesh(roof_common, "VaultCommonMesh", 8.8, 26.6, 11.2, 19.6, 3.25, 1.65, Vector2(18.75, 15.75), 1.15, mat_gb_common if greybox else mat_roof_solid, 2.3, 1.45, 0.45, 0.0)
 	for chim_i in range(6):
 		var ca := float(chim_i) * TAU / 6.0
-		var ch_r := _env_kit.spawn_rock(roof_common, Vector3(18.75 + cos(ca) * 1.35, 5.10, 15.75 + sin(ca) * 1.25), Vector3(0.95, 0.58, 0.85), ca, mat_gb_common if greybox else mat_arch, chim_i + 2, "craggy")
+		var ch_r := _env_kit.spawn_rock(roof_common, Vector3(18.75 + cos(ca) * 1.38, 6.20, 15.75 + sin(ca) * 1.28), Vector3(1.05, 0.68, 0.92), ca, mat_gb_common if greybox else mat_arch, chim_i + 2, "craggy")
 		if ch_r:
 			ch_r.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	cutaway_tents.append({
@@ -3799,9 +4731,9 @@ func _build_refuge_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m:
 		"multi_party": true,
 	})
 
-	# 4C. Recinto de Descanso Vault (Dry Northern Sleeping Chamber — opens when hero enters northern alcove OR Sala Común back!)
+	# 4C. Recinto de Descanso Vault (Dry Northern Sleeping Chamber — thick solid rock cliff roof!)
 	var roof_rest := Node3D.new(); roof_rest.name = "CaveRoof_Rest"; _grp_structures.add_child(roof_rest)
-	_build_cave_vault_mesh(roof_rest, "VaultRestMesh", 8.2, 27.0, 1.0, 12.8, 3.25, 1.55, Vector2.ZERO, 0.0, mat_gb_rest if greybox else mat_roof_ds, 3.7)
+	_build_cave_vault_mesh(roof_rest, "VaultRestMesh", 8.4, 26.8, 1.6, 12.8, 3.05, 1.50, Vector2.ZERO, 0.0, mat_gb_rest if greybox else mat_roof_solid, 3.7, 1.48, 0.85, 0.0)
 	cutaway_tents.append({
 		"id": "cave_rest",
 		"node": roof_rest,
@@ -3810,11 +4742,11 @@ func _build_refuge_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m:
 		"multi_party": true,
 	})
 
-	# 4D. Recinto de Almacén Vault (Sheltered Western Storage Chamber — rounded rocky seam!)
+	# 4D. Recinto de Almacén Vault (Sheltered Western Storage Chamber — tucked smoothly inside cliff shoulders!)
 	var roof_storage := Node3D.new(); roof_storage.name = "CaveRoof_Storage"; _grp_structures.add_child(roof_storage)
-	_build_cave_vault_mesh(roof_storage, "VaultStorageMesh", 0.4, 11.2, 3.4, 19.6, 3.05, 1.45, Vector2.ZERO, 0.0, mat_gb_storage if greybox else mat_roof_ds, 4.9)
+	_build_cave_vault_mesh(roof_storage, "VaultStorageMesh", 2.0, 11.2, 4.6, 18.8, 2.85, 1.35, Vector2.ZERO, 0.0, mat_gb_storage if greybox else mat_roof_solid, 4.9, 1.35, 1.65, 0.0)
 	for sb_i in range(4):
-		var srock := _env_kit.spawn_rock(roof_storage, Vector3(10.2, 3.35 + float(sb_i % 2) * 0.35, lerpf(6.5, 17.0, float(sb_i) / 3.0)), Vector3(1.65, 1.05, 2.25), float(sb_i) * 1.1, mat_gb_storage if greybox else mat_arch, sb_i + 1, "stratified")
+		var srock := _env_kit.spawn_rock(roof_storage, Vector3(10.2, 3.55 + float(sb_i % 2) * 0.35, lerpf(6.5, 17.0, float(sb_i) / 3.0)), Vector3(1.85, 1.25, 2.35), float(sb_i) * 1.1, mat_gb_storage if greybox else mat_arch, sb_i + 1, "stratified")
 		if srock: srock.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	cutaway_tents.append({
 		"id": "cave_storage",
@@ -3824,11 +4756,11 @@ func _build_refuge_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m:
 		"multi_party": true,
 	})
 
-	# 4E. Rincón Natural Vault (Eastern Wet Mineral Spring Grotto — rounded rocky seam!)
+	# 4E. Rincón Natural Vault (Eastern Wet Mineral Spring Grotto — tucked smoothly inside cliff shoulders!)
 	var roof_spring := Node3D.new(); roof_spring.name = "CaveRoof_Spring"; _grp_structures.add_child(roof_spring)
-	_build_cave_vault_mesh(roof_spring, "VaultSpringMesh", 24.4, 37.0, 4.2, 19.6, 3.10, 1.48, Vector2.ZERO, 0.0, mat_gb_spring if greybox else mat_roof_ds, 6.1)
+	_build_cave_vault_mesh(roof_spring, "VaultSpringMesh", 24.6, 35.4, 5.0, 18.8, 2.90, 1.38, Vector2.ZERO, 0.0, mat_gb_spring if greybox else mat_roof_solid, 6.1, 1.35, 1.65, 0.0)
 	for sp_i in range(4):
-		var sprock := _env_kit.spawn_rock(roof_spring, Vector3(25.2, 3.35 + float(sp_i % 2) * 0.35, lerpf(6.5, 17.0, float(sp_i) / 3.0)), Vector3(1.65, 1.05, 2.25), float(sp_i) * 1.3, mat_gb_spring if greybox else mat_arch, sp_i + 2, "stratified")
+		var sprock := _env_kit.spawn_rock(roof_spring, Vector3(25.2, 3.55 + float(sp_i % 2) * 0.35, lerpf(6.5, 17.0, float(sp_i) / 3.0)), Vector3(1.85, 1.25, 2.35), float(sp_i) * 1.3, mat_gb_spring if greybox else mat_arch, sp_i + 2, "stratified")
 		if sprock: sprock.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	cutaway_tents.append({
 		"id": "cave_spring",
@@ -3839,7 +4771,7 @@ func _build_refuge_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m:
 	})
 
 	# ==========================================================================
-	# 5. SHARED TURQUOISE COVE OCEAN, REEF BOULDERS & CARVED TIDEPOOL RIMS
+	# 5. SHARED TURQUOISE COVE OCEAN, MARINE ECOSYSTEM (KELP/CORALS/FISH/RAYS/LIMITS) & CARVED POOLS
 	# ==========================================================================
 	var cove_reefs := [
 		[Vector2(4.2, 30.8), Vector3(1.85, 0.85, 1.55)],
@@ -3854,19 +4786,22 @@ func _build_refuge_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m:
 		var crp: Vector2 = cr[0]
 		var crsc: Vector3 = cr[1]
 		CoastalKit.append_rock_cluster_mm(_env_kit, wet_keys, Vector3(crp.x, COVE_WATER_Y - 0.10, crp.y), crsc, float(cri) * 1.1, float(cri) * 2.6, 3, Color(0.92, 0.97, 1.0))
-		foam_sources.append(Vector3(crp.x, crp.y, crsc.x * 1.18))
+		foam_sources.append(Vector3(crp.x, crp.y, crsc.x * 0.72))
+
+	var cove_bed_cb := func(wx: float, wz: float) -> float:
+		return _eval_cove_height(wx, wz, width_m, depth_m)
+	# Mount outer reef perimeter, nautical buoys, sea current streaks, swaying kelp, corals, starfish, reef fish & manta rays!
+	_marine_anim_state = MarineEco.build_coastal_marine_life(_grp_env_geo, _env_kit, "coastal-refuge", COVE_WATER_Y, cove_bed_cb, foam_sources, rng)
 
 	var mat_cove_sea := CoastalKit.create_coastal_ocean_shader(
-		Color(0.036, 0.185, 0.295, 0.96),
-		Color(0.082, 0.415, 0.485, 0.88),
-		Color(0.220, 0.625, 0.610, 0.34),
+		Color(0.036, 0.185, 0.295, 0.84),
+		Color(0.082, 0.425, 0.495, 0.66),
+		Color(0.220, 0.635, 0.618, 0.24),
 		Color(0.92, 0.97, 0.99, 1.0),
 		0.072,
 		0.95,
 		true
 	)
-	var cove_bed_cb := func(wx: float, wz: float) -> float:
-		return _eval_cove_height(wx, wz, width_m, depth_m)
 	var cove_calm_cb := func(wx: float, wz: float) -> float:
 		var in_bay := smoothstep(4.0, 12.0, wx) * (1.0 - smoothstep(26.0, 34.0, wx)) * (1.0 - smoothstep(31.5, 42.0, wz))
 		return clampf(in_bay * 0.68, 0.0, 0.72)
@@ -3882,7 +4817,7 @@ func _build_refuge_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m:
 		mat_cove_sea
 	)
 
-	# Glossy wet stones organically rimming the 3 carved natural rock basins
+	# Damp coastal limestone stones organically rimming the 3 carved natural rock basins
 	var pool_rims := [
 		[Vector2(7.2, 11.75), 1.55, 1.38, 7],
 		[Vector2(29.8, 13.35), 1.98, 1.78, 9],
@@ -3899,7 +4834,7 @@ func _build_refuge_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m:
 			var px := pc.x + cos(ang) * rx_r
 			var pz := pc.y + sin(ang) * rz_r
 			var py := _eval_cove_height(px, pz, width_m, depth_m)
-			CoastalKit.append_rock_cluster_mm(_env_kit, wet_keys, Vector3(px, py + 0.06, pz), Vector3(0.56, 0.24, 0.48), ang, float(pri * 10 + si), 2, Color(0.92, 0.98, 0.98))
+			CoastalKit.append_rock_cluster_mm(_env_kit, wet_keys, Vector3(px, py + 0.06, pz), Vector3(0.56, 0.24, 0.48), ang, float(pri * 10 + si), 2, Color(0.92, 0.96, 0.92))
 
 	# Beach pebbles along the cove wrack line & rocky shore
 	for peb_i in range(56):
@@ -3909,63 +4844,171 @@ func _build_refuge_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m:
 		var psc := Vector3(rng.randf_range(0.10, 0.30), rng.randf_range(0.05, 0.13), rng.randf_range(0.09, 0.26))
 		_env_kit.append_multimesh("cove_pebble", Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled_local(psc), Vector3(px, py + psc.y * 0.16, pz)), Color(0.86, 0.84, 0.78))
 
-	# Wet dark mossy rock niche & outflow ledge behind the eastern mineral waterfall (keeps waterfall tucked cleanly inside the grotto!)
-	CoastalKit.append_rock_cluster_mm(_env_kit, wet_keys, Vector3(32.8, 1.35, 11.8), Vector3(1.85, 2.75, 1.55), -0.45, 7.3, 4, Color(0.86, 0.94, 0.96))
-	CoastalKit.append_rock_cluster_mm(_env_kit, wet_keys, Vector3(32.5, 2.55, 12.5), Vector3(1.25, 0.58, 1.15), 0.3, 8.1, 3, Color(0.90, 0.96, 0.96))
+	# Grounded tiered mossy limestone waterfall grotto cliff (ZERO floating mid-cascade rock!)
+	CoastalKit.append_rock_cluster_mm(_env_kit, cliff_keys, Vector3(33.2, 1.50, 11.4), Vector3(2.45, 3.05, 2.05), -0.42, 7.3, 4, Color(0.92, 0.96, 0.90))
+	CoastalKit.append_rock_cluster_mm(_env_kit, cliff_keys, Vector3(32.5, 2.62, 12.05), Vector3(1.85, 0.72, 1.48), 0.22, 8.1, 3, Color(0.90, 0.95, 0.88))
+	# Grounded lower/mid stepped splash ledge rising solidly from pool bed (y=-0.10 -> 1.45, ZERO floating stone!)
+	CoastalKit.append_rock_cluster_mm(_env_kit, wet_keys, Vector3(32.15, 0.68, 12.22), Vector3(1.28, 1.52, 1.08), -0.30, 9.4, 3, Color(0.90, 0.95, 0.90))
+	CoastalKit.append_rock_cluster_mm(_env_kit, wet_keys, Vector3(31.25, 0.72, 11.35), Vector3(1.22, 1.25, 1.05), 0.65, 10.2, 3, Color(0.92, 0.96, 0.91))
+	CoastalKit.append_rock_cluster_mm(_env_kit, wet_keys, Vector3(32.55, 0.75, 13.55), Vector3(1.18, 1.22, 1.02), -0.75, 11.1, 3, Color(0.92, 0.96, 0.91))
 
 	_env_kit.flush_multimeshes(_grp_env_geo, "CoveGeo_")
 
 	# ==========================================================================
-	# 6. 4 INTERIOR CHAMBERS STORYTELLING, ORGANIC WATERFALL SPRING & PROGRESSIVE LIGHTING
+	# 6. 4 INTERIOR CHAMBERS STORYTELLING, MULTI-LAYERED WATERFALL & PROGRESSIVE LIGHTING
 	# ==========================================================================
-	# 6A. RINCÓN NATURAL (Eastern Wet Mineral Spring Grotto): Parabolic Curved Waterfall Cascade (y <= 2.65m, NEVER pokes roof!) + Splash Foam!
+	# 6A. RINCÓN NATURAL (Eastern Wet Mineral Spring Grotto): Lush Mossy Tiered Natural Cascade + Delicate Mist!
 	var spring_root := Node3D.new()
 	spring_root.name = "CaveMineralSpringAlcove"
 	_grp_structures.add_child(spring_root)
-	var st_wf := SurfaceTool.new(); st_wf.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var wf_cols := 8; var wf_rows := 10
-	var wf_pts: Array = []
-	for wi in range(wf_rows + 1):
-		var fv := float(wi) / float(wf_rows)
-		var wrow: Array[Vector3] = []
-		var arc_out := sin(fv * PI * 0.5) * 0.92
-		var wy_f := lerpf(2.55, -0.05, fv * fv * 0.65 + fv * 0.35)
-		var width_w := lerpf(0.62, 1.12, fv)
-		for wj in range(wf_cols + 1):
-			var fu := float(wj) / float(wf_cols)
-			var lateral := (fu - 0.5) * width_w
-			var px_w := 32.15 - arc_out * 0.82 - lateral * 0.48
-			var pz_w := 12.25 + arc_out * 0.56 - lateral * 0.88
-			wrow.append(Vector3(px_w, wy_f, pz_w))
-		wf_pts.append(wrow)
-	for wi in range(wf_rows):
-		var v0 := float(wi) / float(wf_rows); var v1 := float(wi + 1) / float(wf_rows)
-		for wj in range(wf_cols):
-			var u0 := float(wj) / float(wf_cols); var u1 := float(wj + 1) / float(wf_cols)
-			var a: Vector3 = wf_pts[wi][wj]; var b: Vector3 = wf_pts[wi][wj + 1]
-			var c: Vector3 = wf_pts[wi + 1][wj + 1]; var d: Vector3 = wf_pts[wi + 1][wj]
-			st_wf.set_uv(Vector2(u0, v0)); st_wf.add_vertex(a)
-			st_wf.set_uv(Vector2(u1, v0)); st_wf.add_vertex(b)
-			st_wf.set_uv(Vector2(u1, v1)); st_wf.add_vertex(c)
-			st_wf.set_uv(Vector2(u0, v0)); st_wf.add_vertex(a)
-			st_wf.set_uv(Vector2(u1, v1)); st_wf.add_vertex(c)
-			st_wf.set_uv(Vector2(u0, v1)); st_wf.add_vertex(d)
-	st_wf.generate_normals()
-	var wf_mesh := MeshInstance3D.new()
-	wf_mesh.name = "SpringWaterfallMesh"
-	wf_mesh.mesh = st_wf.commit()
-	wf_mesh.material_override = _create_spring_waterfall_shader()
-	wf_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	spring_root.add_child(wf_mesh)
-	# Cool turquoise-aquamarine mineral pool bounce light contrasting warmly against the orange hearth!
+	var wf_mat := _create_spring_waterfall_shader()
+	var wf_mat_veil := wf_mat.duplicate() as ShaderMaterial
+	wf_mat_veil.set_shader_parameter("alpha_mul", 0.48)
+
+	var _add_cascade_sheet := func(s_name: String, origin_xz: Vector2, top_y: float, bot_y: float, arc_len: float, w_top: float, w_bot: float, bump_mid: float, mat_use: Material) -> void:
+		var st_wf := SurfaceTool.new(); st_wf.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var wf_cols := 10; var wf_rows := 14
+		var wf_pts: Array = []
+		for wi in range(wf_rows + 1):
+			var fv := float(wi) / float(wf_rows)
+			var wrow: Array[Vector3] = []
+			var arc_out := sin(fv * PI * 0.5) * arc_len + exp(-pow((fv - 0.46) * 4.8, 2.0)) * bump_mid
+			var wy_f := lerpf(top_y, bot_y, fv * fv * 0.54 + fv * 0.46)
+			var width_w := lerpf(w_top, w_bot, fv)
+			for wj in range(wf_cols + 1):
+				var fu := float(wj) / float(wf_cols)
+				var lateral := (fu - 0.5) * width_w
+				var bow := sin(fu * PI) * 0.14
+				var px_w := origin_xz.x - (arc_out + bow) * 0.82 - lateral * 0.48
+				var pz_w := origin_xz.y + (arc_out + bow) * 0.56 - lateral * 0.88
+				wrow.append(Vector3(px_w, wy_f, pz_w))
+			wf_pts.append(wrow)
+		for wi in range(wf_rows):
+			var v0 := float(wi) / float(wf_rows); var v1 := float(wi + 1) / float(wf_rows)
+			for wj in range(wf_cols):
+				var u0 := float(wj) / float(wf_cols); var u1 := float(wj + 1) / float(wf_cols)
+				var a: Vector3 = wf_pts[wi][wj]; var b: Vector3 = wf_pts[wi][wj + 1]
+				var c: Vector3 = wf_pts[wi + 1][wj + 1]; var d: Vector3 = wf_pts[wi + 1][wj]
+				st_wf.set_uv(Vector2(u0, v0)); st_wf.add_vertex(a)
+				st_wf.set_uv(Vector2(u1, v0)); st_wf.add_vertex(b)
+				st_wf.set_uv(Vector2(u1, v1)); st_wf.add_vertex(c)
+				st_wf.set_uv(Vector2(u0, v0)); st_wf.add_vertex(a)
+				st_wf.set_uv(Vector2(u1, v1)); st_wf.add_vertex(c)
+				st_wf.set_uv(Vector2(u0, v1)); st_wf.add_vertex(d)
+		st_wf.generate_normals()
+		var wfm := MeshInstance3D.new()
+		wfm.name = s_name
+		wfm.mesh = st_wf.commit()
+		wfm.material_override = mat_use
+		wfm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		spring_root.add_child(wfm)
+
+	# Unified overlapping natural multi-tier cascade hugging the grounded mossy limestone ledge (ZERO disconnected neon strips!)
+	_add_cascade_sheet.call("SpringWaterfallMain", Vector2(32.12, 12.24), 2.60, -0.05, 1.32, 1.05, 1.85, 0.24, wf_mat)
+	_add_cascade_sheet.call("SpringWaterfallInner", Vector2(32.26, 12.16), 2.54, -0.05, 1.02, 0.85, 1.50, 0.16, wf_mat_veil)
+	_add_cascade_sheet.call("SpringWaterfallSprayVeil", Vector2(32.02, 12.30), 2.52, -0.05, 1.48, 1.35, 2.25, 0.26, wf_mat_veil)
+
+	# Lush emerald moss cushions & glossy cave ferns clinging directly to the waterfall lip & ledges!
+	if not greybox:
+		_env_kit.spawn_moss_cushion(spring_root, Vector3(32.20, 2.72, 11.75), Color("#346e3c"), 1.05, 1.1)
+		_env_kit.spawn_moss_cushion(spring_root, Vector3(32.65, 2.68, 12.68), Color("#3c7842"), 0.95, 2.3)
+		_env_kit.spawn_moss_cushion(spring_root, Vector3(31.25, 1.32, 11.35), Color("#367240"), 0.92, 3.4)
+		_env_kit.spawn_moss_cushion(spring_root, Vector3(32.50, 1.32, 13.48), Color("#3a7440"), 0.88, 4.2)
+		_env_kit.spawn_fern_clump(spring_root, Vector3(31.95, 2.65, 11.65), 0.92, mat_ivy, 1.5, 2)
+		_env_kit.spawn_fern_clump(spring_root, Vector3(32.55, 2.60, 12.85), 0.86, mat_ivy, 2.7, 2)
+		_env_kit.spawn_fern_clump(spring_root, Vector3(31.18, 1.28, 11.42), 0.82, mat_ivy, 3.8, 2)
+
+	# Soft aerated splash foam collar resting cleanly on the mineral pool impact zone (no blinding white blob!)
+	var splash_collar := MeshInstance3D.new()
+	splash_collar.name = "WaterfallSplashCollar"
+	var scm := PlaneMesh.new(); scm.size = Vector2(2.65, 2.25)
+	splash_collar.mesh = scm
+	var sc_sh := Shader.new()
+	sc_sh.code = """
+shader_type spatial;
+render_mode blend_mix, depth_draw_never, cull_disabled, specular_schlick_ggx;
+float hash21(vec2 p) { p = fract(p * vec2(127.1, 311.7)); p += dot(p, p + 34.1); return fract(p.x * p.y); }
+float vnoise(vec2 p) {
+	vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash21(i), hash21(i + vec2(1.0, 0.0)), f.x), mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+void fragment() {
+	vec2 p = (UV - 0.5) * 2.0;
+	float r = length(p);
+	float t = TIME * 1.3;
+	float n = vnoise(UV * 6.5 + vec2(t * 0.42, -t * 0.35)) * 0.6 + vnoise(UV * 13.0 - vec2(t * 0.55, t * 0.48)) * 0.4;
+	float core = 1.0 - smoothstep(0.12, 0.88, r + (n - 0.5) * 0.38);
+	float ring = smoothstep(0.30, 0.56, r) * (1.0 - smoothstep(0.64, 0.96, r)) * smoothstep(0.36, 0.78, n);
+	ALBEDO = mix(vec3(0.64, 0.82, 0.84), vec3(0.86, 0.92, 0.93), n);
+	ROUGHNESS = 0.48;
+	ALPHA = clamp((core * 0.40 + ring * 0.38) * smoothstep(0.28, 0.72, n), 0.0, 0.48);
+}
+"""
+	var sc_mat := ShaderMaterial.new(); sc_mat.shader = sc_sh
+	splash_collar.material_override = sc_mat
+	splash_collar.position = Vector3(30.85, -0.025, 12.92)
+	splash_collar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	spring_root.add_child(splash_collar)
+
+	# Delicate rising waterfall mist plume GPUParticles3D (subtle translucent vapor, zero opaque white cloud wall!)
+	var mist := GPUParticles3D.new()
+	mist.name = "WaterfallMistParticles"
+	mist.position = Vector3(31.02, 0.16, 12.88)
+	mist.amount = 18
+	mist.lifetime = 1.85
+	mist.preprocess = 1.2
+	mist.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var mpm := ParticleProcessMaterial.new()
+	mpm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	mpm.emission_box_extents = Vector3(0.72, 0.16, 0.68)
+	mpm.direction = Vector3(-0.32, 1.0, 0.24)
+	mpm.spread = 42.0
+	mpm.initial_velocity_min = 0.22
+	mpm.initial_velocity_max = 0.52
+	mpm.gravity = Vector3(0.0, 0.08, 0.0)
+	mpm.scale_min = 0.32
+	mpm.scale_max = 0.76
+	var mgrad := Gradient.new()
+	mgrad.offsets = PackedFloat32Array([0.0, 0.28, 0.72, 1.0])
+	mgrad.colors = PackedColorArray([Color(0.84, 0.92, 0.94, 0.0), Color(0.84, 0.92, 0.94, 0.11), Color(0.82, 0.90, 0.93, 0.06), Color(0.82, 0.90, 0.93, 0.0)])
+	var mramp := GradientTexture1D.new(); mramp.gradient = mgrad
+	mpm.color_ramp = mramp
+	mist.process_material = mpm
+	var mg_r := Gradient.new()
+	mg_r.set_color(0, Color(1.0, 1.0, 1.0, 0.80))
+	mg_r.set_color(1, Color(1.0, 1.0, 1.0, 0.0))
+	var mtex := GradientTexture2D.new()
+	mtex.gradient = mg_r; mtex.fill = GradientTexture2D.FILL_RADIAL
+	mtex.fill_from = Vector2(0.5, 0.5); mtex.fill_to = Vector2(1.0, 0.5)
+	mtex.width = 48; mtex.height = 48
+	var mmat := StandardMaterial3D.new()
+	mmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mmat.vertex_color_use_as_albedo = true
+	mmat.albedo_texture = mtex
+	mmat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	mmat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	var mq := QuadMesh.new(); mq.size = Vector2(0.56, 0.56); mq.material = mmat
+	mist.draw_pass_1 = mq
+	spring_root.add_child(mist)
+
+	# Natural cool aquamarine bounce light + subtle mossy rock rim fill so tiered waterfall limestone reads richly at Day, Dusk & Night!
 	var spring_light := OmniLight3D.new()
 	spring_light.name = "SpringMineralGlowLight"
-	spring_light.light_color = Color("#54e4f0")
-	spring_light.light_energy = 1.65
-	spring_light.omni_range = 8.8
-	spring_light.omni_attenuation = 1.40
-	spring_light.position = Vector3(30.4, 1.15, 13.2)
+	spring_light.light_color = Color("#76d4dc")
+	spring_light.light_energy = 1.25
+	spring_light.omni_range = 9.0
+	spring_light.omni_attenuation = 1.35
+	spring_light.position = Vector3(30.2, 1.45, 13.1)
 	spring_root.add_child(spring_light)
+	var spring_fill := OmniLight3D.new()
+	spring_fill.name = "SpringRockFillLight"
+	spring_fill.light_color = Color("#b8cec4")
+	spring_fill.light_energy = 0.85
+	spring_fill.omni_range = 7.5
+	spring_fill.omni_attenuation = 1.40
+	spring_fill.position = Vector3(30.8, 2.35, 12.2)
+	spring_root.add_child(spring_fill)
 
 	# 10 subtle translucent dripping water droplets strictly tucked over the wet spring & seepage rock basins!
 	var drip_spots: Array[Vector3] = [
@@ -4032,6 +5075,7 @@ func _build_refuge_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m:
 		Vector3(18.6, 0.82, 3.2),  # Descanso North rear pedestal
 		Vector3(24.6, 0.72, 4.8),  # Descanso East rock pedestal
 		Vector3(5.4, 0.62, 10.2),  # Almacén West shelf lantern
+		Vector3(17.4, 0.64, 13.4), # Central sanctuary hearth pedestal (warms Mia/Trinity spawns)
 		Vector3(11.6, 0.68, 19.4), # Cave Mouth West threshold pedestal
 		Vector3(25.4, 0.68, 19.2), # Cave Mouth East threshold pedestal
 	]
@@ -4056,28 +5100,20 @@ func _build_refuge_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m:
 			_env_kit.spawn_wildflower_patch(_grp_vegetation, Vector3(rfp.x + 0.35, rfy, rfp.y + 0.2), float(rf_i) * 1.2, 5, "refuge")
 
 	# ==========================================================================
-	# 7. COVE & CAVE WILDLIFE (Synced cleanly to carved basins & cove waters!)
+	# 7. COVE & COASTAL WILDLIFE (ZERO fish in interior cave puddles; real sea fauna in the turquoise cove!)
 	# ==========================================================================
-	FaunaKit.spawn_fish(_grp_vegetation, fauna_agents, "CaveFish_0", [
-		Vector3(6.6, -0.055, 11.4), Vector3(7.4, -0.055, 12.1), Vector3(7.9, -0.055, 11.6), Vector3(7.0, -0.055, 11.2), Vector3(6.6, -0.055, 11.4),
-	], 14.0, 0.5, Color("#3a6d78"), "swim_fish", 1.0)
-	FaunaKit.set_behavior(fauna_agents.back(), [], [], 38.0, 0.58, 3.0, true, 0.0)
-
-	FaunaKit.spawn_fish(_grp_vegetation, fauna_agents, "CaveFish_1", [
-		Vector3(29.0, -0.050, 12.8), Vector3(30.4, -0.050, 13.5), Vector3(29.9, -0.050, 14.2), Vector3(28.8, -0.050, 13.5), Vector3(29.0, -0.050, 12.8),
-	], 15.5, 3.2, Color("#4096a4"), "swim_fish", 1.05)
-	FaunaKit.set_behavior(fauna_agents.back(), [], [], 42.0, 0.54, 18.0, true, 0.0)
-
-	FaunaKit.spawn_fish(_grp_vegetation, fauna_agents, "CaveFish_2", [
-		Vector3(14.2, -0.055, 24.4), Vector3(15.4, -0.055, 25.0), Vector3(15.9, -0.055, 24.6), Vector3(14.8, -0.055, 24.3), Vector3(14.2, -0.055, 24.4),
-	], 12.0, 1.8, Color("#49828d"), "swim_fish", 1.05)
-	FaunaKit.set_behavior(fauna_agents.back(), [], [], 46.0, 0.56, 6.0, true, 0.0)
-
 	FaunaKit.spawn_fish(_grp_vegetation, fauna_agents, "SeaFish_Cove_0", [
-		Vector3(12.0, -0.28, depth_m + 6.5), Vector3(16.8, -0.22, _cove_shore_z(16.8) + 2.2),
-		Vector3(21.5, -0.22, _cove_shore_z(21.5) + 2.4), Vector3(25.0, -0.28, depth_m + 6.5),
+		Vector3(11.5, -0.36, depth_m + 7.2), Vector3(16.8, -0.26, _cove_shore_z(16.8) + 3.4),
+		Vector3(21.5, -0.26, _cove_shore_z(21.5) + 3.6), Vector3(25.8, -0.36, depth_m + 7.4),
 	], 18.0, 0.20, Color("#427b8e"), "swim_ocean_jump", 1.25)
-	FaunaKit.set_behavior(fauna_agents.back(), ["day", "arrival", "dawn", "dusk"], ["storm", "rain"], 62.0, 0.34, 8.0, false, 0.0)
+	FaunaKit.set_behavior(fauna_agents.back(), ["day", "arrival", "dawn", "dusk"], ["storm", "rain"], 62.0, 0.38, 8.0, false, 0.0)
+
+	FaunaKit.spawn_turtle(_grp_vegetation, fauna_agents, "CoveSeaTurtle", [
+		Vector3(10.5, -0.68, 36.2), Vector3(15.2, -0.42, 33.4),
+		Vector3(21.8, -0.46, 34.2), Vector3(25.4, -0.78, 37.8),
+		Vector3(17.5, -0.92, 40.5), Vector3(10.5, -0.68, 36.2),
+	], 34.0, 1.1)
+	FaunaKit.set_behavior(fauna_agents.back(), ["day", "arrival", "dawn", "dusk"], ["storm"], 74.0, 0.52, 4.0, false, 3.8)
 
 	FaunaKit.spawn_crab(_grp_vegetation, fauna_agents, "CaveCrab_0", [
 		Vector3(8.5, 0.02, 23.2), Vector3(10.2, 0.02, 24.4), Vector3(11.4, 0.02, 25.6), Vector3(8.5, 0.02, 23.2),
@@ -4089,8 +5125,8 @@ func _build_refuge_details(scene_def: Dictionary, fx: CampAtmosphereFx, width_m:
 	], 17.0, 2.7, Color("#9c3d28"))
 	FaunaKit.set_behavior(fauna_agents.back(), ["dusk", "night", "dawn"], [], 48.0, 0.50, 20.0, true, 3.0)
 
-	for st_i in range(3):
-		var sp_star: Vector3 = [Vector3(13.8, -0.02, 24.6), Vector3(28.6, -0.02, 14.1), Vector3(16.2, -0.02, 25.2)][st_i]
+	for st_i in range(2):
+		var sp_star: Vector3 = [Vector3(13.8, -0.02, 24.6), Vector3(16.2, -0.02, 25.2)][st_i]
 		FaunaKit.spawn_seastar(_grp_vegetation, sp_star, Color("#d45e3b") if st_i % 2 == 0 else Color("#b84360"), float(st_i) * 1.4)
 
 	FaunaKit.spawn_perched_bird(_grp_vegetation, fauna_agents, "RefugePerchedTern_0", Vector3(5.25, _eval_cove_height(5.25, 24.75, width_m, depth_m) + 1.15, 24.75), 0.6, Color("#eef4f8"), Color("#627180"), 1.04, 0.5)

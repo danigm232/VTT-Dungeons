@@ -266,37 +266,44 @@ func dismiss_projector_prepare() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not ui_active:
 		return
+	var Prefs = preload("res://player/player_preferences.gd")
+	if Prefs.is_capturing_key():
+		return
 	if event is InputEventKey and event.is_pressed() and not event.is_echo() and not event.ctrl_pressed and not event.alt_pressed:
 		var kev := event as InputEventKey
-		if kev.keycode == KEY_F1:
+		var kc := kev.keycode
+		if Prefs.matches_key("role_player", kc):
 			set_role("player")
 			get_viewport().set_input_as_handled()
-		elif kev.keycode == KEY_F2:
+		elif Prefs.matches_key("role_dm", kc):
 			set_role("dm")
 			get_viewport().set_input_as_handled()
-		elif kev.keycode == KEY_F3:
+		elif Prefs.matches_key("role_projector", kc):
 			set_role("projector")
 			get_viewport().set_input_as_handled()
-		elif kev.keycode == KEY_F11:
+		elif Prefs.matches_key("fullscreen", kc):
 			var mode := DisplayServer.window_get_mode()
 			if mode == DisplayServer.WINDOW_MODE_FULLSCREEN:
 				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 			else:
 				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 			get_viewport().set_input_as_handled()
-		elif kev.keycode == KEY_ESCAPE and current_role == "player" and player_hud:
+		elif kc == KEY_ESCAPE and current_role == "player" and player_hud:
 			player_hud.close_modals()
 			player_hud.toggle_exploration_menu(false)
-		elif (kev.keycode == KEY_I or kev.keycode == KEY_B) and current_role == "player" and player_hud:
+		elif (Prefs.matches_key("inventory", kc) or kc == KEY_B) and current_role == "player" and player_hud:
 			if player_hud.inventory_modal.visible:
 				player_hud.close_modals()
 			else:
 				player_hud.open_modal("inventory")
 			get_viewport().set_input_as_handled()
-		elif kev.keycode == KEY_V and current_role == "player":
+		elif Prefs.matches_key("torch", kc) and current_role == "player":
 			toggle_torch()
 			get_viewport().set_input_as_handled()
-		elif kev.keycode == KEY_U and current_role in ["player", "dm"]:
+		elif Prefs.matches_key("interact", kc) and current_role == "player":
+			trigger_nearby_interaction()
+			get_viewport().set_input_as_handled()
+		elif Prefs.matches_key("dive_toggle", kc) and current_role in ["player", "dm"]:
 			if toggle_aquatic_depth():
 				get_viewport().set_input_as_handled()
 

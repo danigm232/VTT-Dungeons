@@ -354,14 +354,16 @@ void fragment() {
 	float hx = wave_height(wpos.xz + vec2(eps, 0.0), t);
 	float hz = wave_height(wpos.xz + vec2(0.0, eps), t);
 
-	// Expanding drip ripple rings for calm cave tidepools
+	// Subtle organic cave-pool drip shimmer & natural mineral caustics (zero repeating bullseye rings!)
 	float ring_val = 0.0;
 	if (ripple_strength > 0.01) {
-		float d_pool = length(fract(wpos.xz * 0.45) - 0.5);
-		ring_val = sin(d_pool * 28.0 - t * 4.5) * smoothstep(0.45, 0.06, d_pool) * ripple_strength;
+		float c1 = vnoise(wpos.xz * 2.4 + vec2(t * 0.28, -t * 0.22));
+		float c2 = vnoise(wpos.xz * 4.6 + vec2(-t * 0.34, t * 0.26));
+		float caust = smoothstep(0.56, 0.88, c1 * 0.55 + c2 * 0.45);
+		ring_val = (caust - 0.35) * 0.55 * ripple_strength;
 	}
 
-	vec2 slope = vec2(h0 - hx, h0 - hz) * 1.35 + vec2(ring_val * 0.45);
+	vec2 slope = vec2(h0 - hx, h0 - hz) * 1.35 + vec2(ring_val * 0.22);
 
 	float shore_dist = clamp(min(UV.y, 1.0 - UV.y), 0.0, 1.0);
 	float shore_swash = sin(wpos.x * 0.24 + t * 1.08) * 0.014;
@@ -691,6 +693,7 @@ shader_type spatial;
 render_mode blend_mix, depth_draw_never, cull_disabled, unshaded;
 
 uniform vec4 tint_col : source_color = vec4(0.56, 0.66, 0.78, 0.28);
+uniform sampler2D depth_tex : hint_depth_texture, filter_nearest;
 
 float hash21(vec2 p) {
 	p = fract(p * vec2(234.12, 519.34));
@@ -708,10 +711,15 @@ float vnoise(vec2 p) {
 
 void fragment() {
 	vec2 p = (UV - 0.5) * 2.0;
-	float rad = smoothstep(1.0, 0.18, length(p * vec2(1.0, 1.35)));
+	float rad = smoothstep(1.0, 0.24, length(p * vec2(1.0, 1.35)));
 	float wisp = vnoise(UV * 5.0 + TIME * 0.04) * 0.65 + vnoise(UV * 11.0 - TIME * 0.07) * 0.35;
+	float raw_d = texture(depth_tex, SCREEN_UV).r;
+	vec4 scene_v = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, raw_d, 1.0);
+	float scene_dist = -(scene_v.z / max(abs(scene_v.w), 0.0001));
+	float frag_dist = -VERTEX.z;
+	float prox_fade = smoothstep(0.0, 3.2, scene_dist - frag_dist);
 	ALBEDO = tint_col.rgb;
-	ALPHA = rad * smoothstep(0.25, 0.85, wisp) * tint_col.a;
+	ALPHA = rad * smoothstep(0.28, 0.86, wisp) * tint_col.a * prox_fade;
 }
 """
 	var mat := ShaderMaterial.new()

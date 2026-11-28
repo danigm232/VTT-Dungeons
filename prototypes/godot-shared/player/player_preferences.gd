@@ -1,6 +1,6 @@
 extends Node
 const ThemeKit=preload("res://scripts/vtt_ui_theme.gd")
-const DEFAULTS:={"showGrid":true,"gridOpacity":.22,"gridThickness":1,"gridMode":"contrast","gridColor":"#c8cec3","gridRadius":50.0,"gridHeightOpacity":.3,"showMovementHints":true,"showSceneNotice":true,"sceneNoticeSeconds":8.0,"joystickOpacity":.72,"joystickX":.05,"joystickY":0.0,"joystickSize":2,"actionX":.99,"actionY":0.0,"actionSize":2,"wheelStyle":"filigree","wheelSlots":5,"initiativePosition":"top","identityMenuAlwaysOpen":false,"identityMenuSeconds":7.0,"sheetView":"summary","audioMuted":false,"reducedMotion":false}
+const DEFAULTS:={"showGrid":true,"gridOpacity":.22,"gridThickness":1,"gridMode":"contrast","gridColor":"#c8cec3","gridRadius":50.0,"gridHeightOpacity":.3,"showMovementHints":true,"showSceneNotice":true,"sceneNoticeSeconds":8.0,"joystickOpacity":.72,"joystickX":.05,"joystickY":0.0,"joystickSize":2,"actionX":.99,"actionY":0.0,"actionSize":2,"wheelStyle":"filigree","wheelSlots":5,"wheelReach":"medium","initiativePosition":"top","identityMenuAlwaysOpen":false,"identityMenuSeconds":7.0,"sheetView":"summary","audioMuted":false,"reducedMotion":false}
 const RANGES:={"gridOpacity":[.06,.7],"gridThickness":[1,3],"gridRadius":[10,100],"gridHeightOpacity":[.1,.7],"sceneNoticeSeconds":[3,25],"joystickOpacity":[.2,1],"joystickX":[0,1],"joystickY":[0,1],"joystickSize":[0,4],"actionX":[0,1],"actionY":[0,1],"actionSize":[0,4],"wheelSlots":[3,7],"identityMenuSeconds":[3,30]}
 
 const KEYBIND_CATALOG: Array[Dictionary]=[
@@ -81,6 +81,10 @@ func setup(owner_ui) -> void:
 	values=role_values.player.duplicate(true)
 	ui.role_changed.connect(switch_role)
 	apply()
+
+func _exit_tree() -> void:
+	if active_instance==self:
+		active_instance=null
 
 static func default_keybinds() -> Dictionary:
 	var d: Dictionary={}
@@ -202,6 +206,7 @@ static func normalize(source: Dictionary) -> Dictionary:
 	for key in ["gridThickness","joystickSize","actionSize","wheelSlots"]: result[key]=roundi(result[key])
 	result.wheelSlots = 3 if int(result.wheelSlots) <= 3 else (7 if int(result.wheelSlots) >= 7 else 5)
 	if result.wheelStyle not in ["filigree","bg3","minimal","vellum","compass"]: result.wheelStyle="filigree"
+	if result.wheelReach not in ["compact","medium","wide"]: result.wheelReach="medium"
 	if result.gridMode not in ["fixed","contrast"]: result.gridMode="contrast"
 	if result.initiativePosition not in ["top","right","left"]: result.initiativePosition="top"
 	if result.sheetView not in ["summary","full"]: result.sheetView="summary"
@@ -310,7 +315,12 @@ func build_wheel_controls(parent: VBoxContainer) -> void:
 		[5,"5 acciones por arco (recomendado)"],
 		[7,"7 acciones por arco (ampliado)"],
 	])
-	var wheel_note:=ThemeKit.make_label("Cuando una categoría tenga más acciones, la rosa rueda suavemente con la rueda del ratón o con las flechas del arco sin mostrar numeración.",12,ThemeKit.COL_MUTED)
+	choice(parent,"wheelReach","Longitud de expansión de la rosa",[
+		["compact","1 · Corto (cerca del borde)"],
+		["medium","2 · Medio (equilibrado · recomendado)"],
+		["wide","3 · Largo (desplegado amplio)"],
+	])
+	var wheel_note:=ThemeKit.make_label("Cuando una categoría tenga más acciones, la rosa gira animada con la rueda del ratón o con las flechas del arco sin mostrar numeración.",12,ThemeKit.COL_MUTED)
 	wheel_note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	parent.add_child(wheel_note)
 	parent.add_child(HSeparator.new())

@@ -1,5 +1,9 @@
 # Roadmap maestro del proyecto VTT
 
+**Anatomía de sprites de carga · 27/11/2026.** Revisados los dibujos individuales del atlas. La pierna duplicada de Mike en Medicina se elimina en los ocho fotogramas afectados. [Ficha y comparativas](docs/evidence/GODOT_SKILL_LOADING_20261114.md#anatomía-de-mike-en-medicina--27112026).
+
+**Apoyos en las cargas Godot · 27/11/2026.** Revisadas las 18 habilidades con los tres héroes. La preparación de los saltos conserva el apoyo inicial y se ajustan la profundidad del mobiliario y las sombras de parejas, caballo y público en Pecio, Retiro y Campamentos. [Ficha y comparativas](docs/evidence/GODOT_SKILL_LOADING_20261114.md#apoyos-y-fotogramas--27112026).
+
 **Corrección selectiva de sprites de carga, 25/11/2026:** instalada la identidad coherente de Mike en las 18 habilidades y un comerciante estable en Persuasión con los tres protagonistas. Se conservan las otras 34 combinaciones de Mía/Trinity. Incluido el dado nativo de Antigravity. Recursos promovidos por alcance, 183 pruebas por proyecto y 192 en la revisión gráfica. [Evidencia y comparaciones](docs/evidence/GODOT_SKILL_LOADING_20261114.md#corrección-selectiva-instalada--25112026).
 
 **Retiro del Dragón · oficios, carga y limpieza, 25/11/2026.** Integradas siete rutinas con 84 fotogramas WebP. Incluye recogida y depósito de las cargas. Los habitantes conservan su rumbo hacia el punto de trabajo al girar la cámara. [Ficha y visor](docs/evidence/RETIRO_RUTINAS_CARACTERISTICAS_20261125.md#herramientas-carga-y-limpieza).
@@ -212,6 +216,10 @@ Las dos arpías comparten ocho virajes dibujados y cuatro aterrizajes direcciona
 Aplicados al Pecio el control, la respiración y las seis acciones de los tres héroes en ocho rumbos. El catálogo contiene 144 secuencias y 1.152 fotogramas. La revisión local pasó 186 comprobaciones funcionales y 46 con render. [Ficha y registro](docs/evidence/STORMWRECK_AQUATIC_20261126.md) · [Visor](output/stormwreck-aquatic/index.html).
 
 Revisión del 27/11. El nadador deja un rastro de burbujas más visible y gotea al salir con la ropa empapada. Los tres héroes comparten los recursos de partículas. [Comparativa y registro](output/stormwreck-aquatic/vfx/index.html).
+
+La humedad de Mía, Mike y Trinity conserva la altura alcanzada por el agua y se seca por zonas. Los pasos sobre cubierta dejan huellas alternas que se atenúan con el clima y la hora. [Visor de profundidad y huellas](output/stormwreck-aquatic/wetness/index.html) · [Pruebas y archivos propietarios](docs/evidence/STORMWRECK_AQUATIC_20261126.md#humedad-por-altura-y-huellas).
+
+El Pecio aplica la humedad sobre el sprite, añade charcos breves al salir y vincula luz y sombras de jugadores y criaturas a la cubierta o al compartimento correspondiente. [Visor de luz, sombras y charcos](output/stormwreck-aquatic/actor-light/index.html) · [Ficha](docs/evidence/STORMWRECK_AQUATIC_20261126.md#silueta-mojada-luz-y-sombras-en-el-pecio).
 
 1. **Varnoth, Myla y Laylee.** Ajustar la mano izquierda de Varnoth al cincel y revisar el golpe desde ambos lados del sillar. Aplicar después el mismo control de agarre y contacto a Myla y Laylee en sus bancos.
 2. **Tarak y Blepp.** Completar las vistas de pesca fuera del perfil, manteniendo la caña en la mano y el sedal unido a su punta al girar la cámara.

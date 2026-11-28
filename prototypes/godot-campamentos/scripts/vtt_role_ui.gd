@@ -246,36 +246,54 @@ func dismiss_projector_prepare() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not ui_active:
 		return
+	var Prefs = preload("res://player/player_preferences.gd")
+	if Prefs.is_capturing_key():
+		return
 	if event is InputEventKey and event.is_pressed() and not event.is_echo() and not event.ctrl_pressed and not event.alt_pressed:
 		var kev := event as InputEventKey
-		if kev.keycode == KEY_F1:
+		var kc := kev.keycode
+		if Prefs.matches_key("role_player", kc):
 			set_role("player")
 			get_viewport().set_input_as_handled()
-		elif kev.keycode == KEY_F2:
+		elif Prefs.matches_key("role_dm", kc):
 			set_role("dm")
 			get_viewport().set_input_as_handled()
-		elif kev.keycode == KEY_F3:
+		elif Prefs.matches_key("role_projector", kc):
 			set_role("projector")
 			get_viewport().set_input_as_handled()
-		elif kev.keycode == KEY_F11:
+		elif Prefs.matches_key("fullscreen", kc):
 			var mode := DisplayServer.window_get_mode()
 			if mode == DisplayServer.WINDOW_MODE_FULLSCREEN:
 				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 			else:
 				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 			get_viewport().set_input_as_handled()
-		elif kev.keycode == KEY_ESCAPE and current_role == "player" and player_hud:
+		elif kc == KEY_ESCAPE and current_role == "player" and player_hud:
 			player_hud.close_modals()
 			player_hud.toggle_exploration_menu(false)
-		elif (kev.keycode == KEY_I or kev.keycode == KEY_B) and current_role == "player" and player_hud:
+		elif (Prefs.matches_key("inventory", kc) or kc == KEY_B) and current_role == "player" and player_hud:
 			if player_hud.inventory_modal.visible:
 				player_hud.close_modals()
 			else:
 				player_hud.open_modal("inventory")
 			get_viewport().set_input_as_handled()
-		elif kev.keycode == KEY_V and current_role == "player":
+		elif Prefs.matches_key("torch", kc) and current_role == "player":
 			toggle_torch()
 			get_viewport().set_input_as_handled()
+		elif Prefs.matches_key("interact", kc) and current_role == "player":
+			trigger_nearby_interaction()
+			get_viewport().set_input_as_handled()
+		elif Prefs.matches_key("dive_toggle", kc) and current_role in ["player", "dm"]:
+			if toggle_aquatic_depth():
+				get_viewport().set_input_as_handled()
+
+func toggle_aquatic_depth() -> bool:
+	var tok := get_active_token_node()
+	if not tok or not tok.has_method("toggle_dive") or not tok.toggle_dive():
+		return false
+	if player_hud:
+		player_hud.refresh_aquatic_status(tok)
+	return true
 
 func _process(delta: float) -> void:
 	if not ui_active:
@@ -289,6 +307,9 @@ func _process(delta: float) -> void:
 			_clock_accum -= float(whole)
 			clock_seconds += whole
 			if combat_controller: combat_controller.rules.advance_time(whole)
+			for body in tokens_by_node.values():
+				if body and not bool(body.get("is_npc")) and body.has_method("_update_aquatic_breath"):
+					body.call("_update_aquatic_breath", float(whole))
 			_refresh_clock_only()
 
 	if toast_timer > 0.0:
@@ -303,6 +324,9 @@ func _process(delta: float) -> void:
 
 	# Proyector SIEMPRE oculta cuadrícula y anillos de selección aunque RoofCutout cambie de zona
 	_enforce_role_board_rules()
+
+	if player_hud and current_role == "player":
+		player_hud.refresh_aquatic_status(get_active_token_node())
 
 	# Sincronizar prompt de InventoryManager con el botón de interacción de Jugador
 	if inv_mgr and "prompt_text" in inv_mgr:
@@ -623,7 +647,9 @@ func get_current_zone_display() -> String:
 	var title := str(meta.get("title", "Campamento"))
 	var tok := get_active_token_node()
 	if tok and "current_zone" in tok and tok.current_zone is Dictionary and not tok.current_zone.is_empty():
-		return "%s · %s" % [title, str(tok.current_zone.get("label", ""))]
+		var z_lbl := str(tok.current_zone.get("label", "")).strip_edges()
+		if not z_lbl.is_empty() and z_lbl != title and not title.contains(z_lbl) and not z_lbl.contains(title):
+			return "%s · %s" % [title, z_lbl]
 	return title
 
 func focus_zone(zone_id: String) -> void:

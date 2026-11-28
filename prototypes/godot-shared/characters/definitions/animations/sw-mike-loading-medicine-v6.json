@@ -7,14 +7,13 @@
     "mike"
   ],
   "review": {
-    "visual": "internally reviewed: canonical identity, all authored poses and integrated loading samples; user acceptance pending",
+    "visual": "reviewed in the native scene: two legs in each of the eight poses; user acceptance pending",
     "userAcceptance": "pending",
     "evidence": [
-      "output/stormwreck-motion-detail/sw-mike-loading-medicine-v6-b6c352325d31.json",
-      "output/loading-identity-v6/native",
-      "output/loading-identity-v6/candidate-resources.json"
+      "output/loading-anatomy-20261127/native-validation.json",
+      "output/loading-anatomy-20261127/index.html"
     ],
-    "technical": "Native detail, cell clearance and distinct WEBP phases verified"
+    "technical": "Eight localized alpha edits verified against the original; other atlas regions are pixel identical."
   },
   "instructions": "Create draft, search reuse, complete source/style/scale fields, adopt only after validation. Technical success is not artistic acceptance.",
   "kind": "animation",
@@ -22,14 +21,14 @@
   "action": "retreat_loading_medicine",
   "direction": "se",
   "frames": [
-    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/01.webp",
-    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/02.webp",
-    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/03.webp",
-    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/04.webp",
-    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/05.webp",
-    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/06.webp",
-    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/07.webp",
-    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/08.webp"
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/01.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/02.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/03.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/04.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/05.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/06.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/07.webp",
+    "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/anatomy-20261127/08.webp"
   ],
   "fps": 1,
   "loop": false,
@@ -67,7 +66,129 @@
     "originalSha256": "b6c352325d313e599ff2d1a8bb2fd924672026b3bde6d1f92dc9968a9e456ba2",
     "importReport": "output/stormwreck-motion-detail/sw-mike-loading-medicine-v6-b6c352325d31.json",
     "minimumAlpha": 24,
-    "encoding": "WebP lossless, verified RGBA including fully transparent pixels"
+    "encoding": "WebP lossless, verified RGBA including fully transparent pixels",
+    "anatomyCorrection": {
+      "status": "localized-retouch",
+      "atlasFrames": [
+        664,
+        665,
+        666,
+        667,
+        668,
+        669,
+        670,
+        671
+      ],
+      "anatomy": "humanoid-tall",
+      "operation": "Remove the duplicated leftmost black boot and its supernumerary lower leg from Mike only. Keep the two intended legs, the silhouettes and timing of the existing poses, the seated patient and stool, and the original source files.",
+      "phaseTargets": [
+        "examine",
+        "prepare",
+        "wrap",
+        "finish",
+        "thanks",
+        "tangle",
+        "surprise",
+        "relief"
+      ],
+      "originalFrames": [
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/01.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/02.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/03.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/04.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/05.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/06.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/07.webp",
+        "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/08.webp"
+      ],
+      "affectedBounds": [
+        [
+          0,
+          199,
+          49,
+          258
+        ],
+        [
+          0,
+          200,
+          49,
+          259
+        ],
+        [
+          0,
+          193,
+          50,
+          254
+        ],
+        [
+          0,
+          196,
+          52,
+          255
+        ],
+        [
+          0,
+          201,
+          50,
+          258
+        ],
+        [
+          0,
+          200,
+          50,
+          257
+        ],
+        [
+          0,
+          201,
+          52,
+          257
+        ],
+        [
+          0,
+          197,
+          52,
+          255
+        ]
+      ],
+      "sourceDigests": [
+        {
+          "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/01.webp",
+          "sha256": "07cd26949c445c0a1b9c8fc771c77b1cb433cf82182533e0674ed8053264f102"
+        },
+        {
+          "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/02.webp",
+          "sha256": "0f4f009df8351aff45eb1784e1be5eb2e8146a2db68e3b570da6ac97aaef696c"
+        },
+        {
+          "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/03.webp",
+          "sha256": "6077042cee32a95249a0e07b2024b1e61526ac8eeb998e77ff0500bef7912902"
+        },
+        {
+          "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/04.webp",
+          "sha256": "67ce7404d8ec0d71c0648505a085818584050db026245463c323a8e2684bce67"
+        },
+        {
+          "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/05.webp",
+          "sha256": "c1f25fefefa5eacffcc46576eae8187c9376a96d1dbd8a0c601942677fd0beca"
+        },
+        {
+          "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/06.webp",
+          "sha256": "2066ac5c06e8ea0222723d222831cf0c44cc6cbc990219c4ecbf857f59013578"
+        },
+        {
+          "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/07.webp",
+          "sha256": "ce94fd78719b9dcd537fee9f7cb515db68737c099fae98558f5a957887fb983f"
+        },
+        {
+          "original": "campaigns/stormwreck-isle/public/art/characters/motion-detail-v1/sw-mike-loading-medicine-v6/b6c352325d31/08.webp",
+          "sha256": "a2d7b3ffd78106a6803493f2564530a660f8176b0fe4fbc4cee6112704ab1e7c"
+        }
+      ],
+      "method": "Built-in image edit guide; antialiased alpha trace per frame applied to the original crop.",
+      "tool": "scripts/retouch-mike-medicine.mjs",
+      "guide": "docs/evidence/captures/loading-anatomy-20261127/medicine-edit-guide.png"
+    }
   },
   "minimumDistinctFrames": 8
 }

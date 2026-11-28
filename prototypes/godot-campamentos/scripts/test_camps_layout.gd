@@ -414,11 +414,12 @@ func _run() -> void:
 				tok._physics_process(0.05)
 				await process_frame
 				var tarp_root := inst.find_child("CanvasShelter_forest", true, false) as Node3D
-				var sil_n := tok.find_child("OccludedSilhouette", true, false) as Sprite3D
+				var sil_n := tok.find_child("OcclusionSilhouette", true, false) as MeshInstance3D
+				var sil_mat := sil_n.material_override as ShaderMaterial if sil_n else null
 				check(tent_mia.visible and (tarp_root != null and tarp_root.visible), "Open tarp shelter remains visible when standing underneath")
 				check(not bool(tok.current_zone.get("is_interior", true)), "Open tarp zone is marked exterior so camera tilt does not snap")
 				check(inst.camera == null or absf(inst.camera.target_pitch - pre_pitch) < 0.01, "Camera pitch remains steady under open tarp (%.2f -> %.2f)" % [pre_pitch, inst.camera.target_pitch if inst.camera else 0.0])
-				check(sil_n != null and sil_n.material_override is ShaderMaterial and sil_n.texture == tok.sprite.texture, "Occluded silhouette Sprite3D shader attached & synced")
+				check(sil_n != null and sil_n.mesh is QuadMesh and sil_mat != null and sil_mat.shader != null, "Occluded silhouette QuadMesh shader attached & ready")
 				tok.global_position = orig_tok_pos
 
 			# Verify kettle steam when fire lit, stoke button & boosted flames/smoke, and kettle bubbles on cook
@@ -932,7 +933,7 @@ func _run() -> void:
 			check(inst.find_child("CanvasShelter*", true, false) == null, "Refuge has ZERO canvas tarps (natural cave is shelter)")
 			check(inst.find_child("CaveTimberPlatform", true, false) != null and inst.find_child("CaveSanctuaryRug", true, false) != null and inst.find_child("RefugeWallLantern_0", true, false) != null, "Refuge mounts dry timber sleeping deck, woven rug & warm grotto wall lanterns")
 			check(inst.find_child("ShallowWaterCells", true, false) != null, "Refuge shallow tide pools built")
-			check(inst.find_child("CaveFish_0", true, false) != null, "Refuge tidepool fish spawned")
+			check(inst.find_child("CaveFish_0", true, false) == null and inst.find_child("CoastalMarineEcosystem", true, false) != null, "Refuge interior puddle fish removed and coastal marine ecosystem built")
 			check(inst.find_child("SeaFish_Cove_0", true, false) != null, "Refuge ocean mouth fish spawned")
 			check(inst.find_child("CaveCrab_0", true, false) != null, "Refuge tidepool crab spawned")
 			check(inst.find_child("RefugePerchedTern_0", true, false) != null, "Refuge perched tern spawned")

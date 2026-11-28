@@ -75,21 +75,21 @@ func initialize() -> void:
 		light.shadow_enabled = is_int_shadow
 		if light.name in ["C9_DepthGlimmer", "C9_HoldAmbient"]:
 			light.light_energy = 0.0 # Only the breach, hatch spill and carried lamps provide light below.
-	for id in [
-		"PlayerToken", "RogueToken", "WizardToken",
-		"HarpyToken", "HarpyToken_C2",
-		"ZombieToken", "ZombieC4_A", "ZombieC4_B", "ZombieC4_C_Lvl2",
-		"GhoulToken", "ZombieC8_B_Lvl2", "ZombieC8_C_Lvl2"
-	]:
-		var actor := vessel.get_node_or_null(id) as Node3D
-		if actor:
-			actors.append(actor)
-			var sprite := actor.get_node_or_null("Sprite3D") as Sprite3D
-			if sprite:
-				sprite.set_draw_flag(SpriteBase3D.FLAG_SHADED, true)
+	for actor in vessel.get_children():
+		_register_actor(actor)
+	vessel.child_entered_tree.connect(_register_actor)
+	vessel.child_exiting_tree.connect(_unregister_actor)
 	_build_controls()
 	ready_for_review = true
 	apply_state(true)
+
+func _register_actor(actor: Node) -> void:
+	if actor is PlayerToken and actor not in actors:
+		actors.append(actor)
+
+func _unregister_actor(actor: Node) -> void:
+	if actor is PlayerToken:
+		actors.erase(actor)
 
 func mask_at(p: Vector3) -> int:
 	if p.x < Structure.STERN_X - 0.5 or p.x > Structure.BOW_X + 0.5 or absf(p.z) > Structure.get_beam_at(clampf(p.x, Structure.STERN_X, Structure.BOW_X)) + 0.5: return 1
@@ -352,10 +352,23 @@ func sync_zone_lighting() -> void:
 		lnode.visible = active_room
 		if entry.get("ext_shadow", false):
 			lnode.shadow_enabled = active_room and exterior_dark
-	for actor in actors:
-		var mask := mask_at(vessel.to_local(actor.global_position)) | 128
-		var light := actor.get_node_or_null("CarriedLantern") as OmniLight3D
-		if light and light.light_cull_mask != mask: light.light_cull_mask = mask
+	var fill_tint := Color("#d0dded") if time_of_day == "night" else (Color("#ffe5c9") if time_of_day == "dusk" else Color("#f2f4f0"))
+	var fill_energy := 0.29 if time_of_day == "day" else (0.24 if time_of_day == "dusk" else 0.20)
+	if weather != "clear":
+		fill_tint = fill_tint.lerp(Color("#b8c9d2"), .45)
+		fill_energy *= 0.84
+	for actor: PlayerToken in actors:
+		var room := mask_at(vessel.to_local(actor.global_position))
+		var light := actor.carried_light
+		var lamp_mask := room | 128
+		if light and light.light_cull_mask != lamp_mask:
+			light.light_cull_mask = lamp_mask
+		var tint := fill_tint
+		var energy := fill_energy
+		if room != 1:
+			tint = Color("#bfd3dc") if room >= 32 else Color("#eedbc4")
+			energy = 0.12 if room == 64 else (0.17 if room == 32 else 0.22)
+		actor.set_area_lighting(room, tint, energy)
 	var interior: bool = roof.current_interior_state != "exterior"
 	var in_lower_bilge: bool = roof.current_interior_state in ["lower_c8_bilge", "lower_c9_hold", "lower_c8_c9"]
 	if in_lower_bilge:

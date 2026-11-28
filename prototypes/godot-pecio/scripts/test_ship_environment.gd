@@ -65,7 +65,8 @@ func _run() -> void:
 	for state in [[Vector3(-18, 0.1, -4), 2], [Vector3(-18, 0.1, 4), 4], [Vector3(18, 0.1, -4), 8], [Vector3(18, 0.1, 4), 16], [Vector3(0, -3.3, 2), 32], [Vector3(0, -6.3, 2), 64], [Vector3(2, -3, 15), 1]]:
 		hero.position = state[0]
 		env.sync_zone_lighting()
-		check(hero.get_node("CarriedLantern").light_cull_mask == (state[1] | 128) and hero.get_node("Sprite3D").layers == 128, "light follows room while sprite layer stays stable")
+		check(hero.get_node("CarriedLantern").light_cull_mask == (state[1] | 128) and hero.get_node("Sprite3D").layers == state[1],
+			"actor and carried light use the same compartment and exterior receives the sun")
 	env.set_weather("storm", true)
 	var full_rain: float = vfx.rain.amount_ratio
 	env.set_reduced_effects(true)

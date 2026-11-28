@@ -5,6 +5,7 @@ var session
 var scene: Dictionary = {}
 var atlases: Array = []
 var plates: Dictionary = {}
+var ground_contacts: Dictionary = {}
 var clock: float = 0.0
 var progress: float = 0.0
 var phase: String = "ambient"
@@ -20,6 +21,8 @@ var override_elapsed: float = -1.0
 func configure(catalog: Dictionary, model) -> void:
 	data = catalog
 	session = model
+	var contacts = JSON.parse_string(FileAccess.get_file_as_string("res://loading/ground_contacts.json"))
+	ground_contacts = contacts.get("frames", {}) if contacts is Dictionary else {}
 	load_art()
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
@@ -84,7 +87,8 @@ func _motion(prop: Dictionary, action: String) -> Dictionary:
 	if phase in ["ambient", "roll"]: return idle
 	var track = prop.get(action, [])
 	if track.is_empty(): return idle
-	var target = sample(track, progress)
+	# Preparation blends into the first action key, never into the middle of a jump.
+	var target = sample(track, 0.0 if phase == "prepare" else progress)
 	if phase == "prepare":
 		for key in target: target[key] = lerpf(idle[key], target[key], progress) if key != "facing" else target[key]
 	return target
@@ -122,6 +126,17 @@ static func playback_frame(count: int, fps: float, elapsed: float, looped: bool,
 	var index = int(maxf(0, elapsed) * fps)
 	return index % count if looped else mini(count - 1, index)
 
+func _contact_shadows(id: int, pose: Transform2D, sprite_scale: float, opacity: float) -> bool:
+	var entry: Dictionary = ground_contacts.get(str(id), {})
+	if entry.is_empty(): return false
+	var frame = data.frames[id]
+	# A repacked atlas must regenerate its measured supports.
+	if entry.region != [frame.atlas, frame.region[0], frame.region[1], frame.region[2], frame.region[3]]: return false
+	for point in entry.points:
+		var contact := pose * (Vector2(point[0], point[1]) * sprite_scale)
+		_shadow(contact + Vector2(0, 0.65), maxf(9.0, float(point[2]) * sprite_scale * 0.64), opacity * 1.65)
+	return true
+
 func _actor(character: String, pos: Vector2, motion: Dictionary, selected: Dictionary = {}) -> void:
 	if float(motion.opacity) <= 0.001: return
 	height = float(data.actors[character].height)
@@ -136,8 +151,17 @@ func _actor(character: String, pos: Vector2, motion: Dictionary, selected: Dicti
 	if reduced: index = clip.frames.size() - 1 if choice.has("pose") else 0
 	var scale = height / float(clip.referenceHeight)
 	var breath = 1.0 if choice.role in ["run_loop", "walk_loop", "sneak_loop", "jump", "slip"] or reduced else 1.0 + sin(clock * 2.7) * 0.0025
-	_transform(pos + Vector2(motion.x, motion.y), float(motion.tilt), Vector2(float(motion.facing) * (-1 if clip.mirror else 1), breath) * float(motion.scale))
-	_frame(int(clip.frames[index]), scale, false, Color(1, 1, 1, float(motion.opacity)))
+	var sprite_pos := pos + Vector2(float(motion.x), float(motion.y))
+	var facing := float(motion.facing) * (-1 if clip.mirror else 1)
+	var sprite_size := Vector2(facing, breath) * float(motion.scale)
+	var id := int(clip.frames[index])
+	if clip.paired:
+		var pose := Transform2D(float(motion.tilt), sprite_size, 0.0, sprite_pos)
+		if not _contact_shadows(id, pose, scale, motion.opacity):
+			_shadow(Vector2(sprite_pos.x, 202), height * 0.36, motion.opacity)
+			_shadow(Vector2(sprite_pos.x + 60, 202), 31, motion.opacity)
+	_transform(sprite_pos, float(motion.tilt), sprite_size)
+	_frame(id, scale, false, Color(1, 1, 1, float(motion.opacity)))
 
 func _draw() -> void:
 	if data.is_empty() or session.entry.is_empty() or atlases.is_empty(): return
@@ -199,9 +223,11 @@ func _draw() -> void:
 			movement.y = 169 + 6 * maxf(0, 1 - pow((x - 324) / 137, 2)) - actor_pos.y
 		var clip = data.selections[int(_selection(character).clip)]
 		var paired = bool(clip.paired)
-		if not scene.has("terrain") or actor_pos.x + movement.x < 196 or actor_pos.x + movement.x > 453:
+		# The rear legs of the stool sit behind the front foot in the painting.
+		# Place the whole pair far enough onto the stone to support both depths.
+		if paired and scene.id == "medicine": actor_pos.y += 4.0
+		if not paired and (not scene.has("terrain") or actor_pos.x + movement.x < 196 or actor_pos.x + movement.x > 453):
 			_shadow(Vector2(actor_pos.x + movement.x, 202), float(data.actors[character].height) * 0.36, movement.opacity)
-			if paired: _shadow(Vector2(actor_pos.x + movement.x + 60, 202), 31, movement.opacity)
 		for front in [false, true]:
 			if front: _actor(character, actor_pos, movement)
 			for prop in scene.props:
@@ -223,7 +249,8 @@ func _draw() -> void:
 			var a = entry.rolls[participants[0]].total
 			var b = entry.rolls[participants[1]].total
 			caption = "Empate amistoso" if a == b else data.actors[participants[0] if a > b else participants[1]].label + " gana la demostración"
-	_wrap(caption, 514, 23, 1080)
+	var caption_y := 526 if scene.id in ["persuasion", "investigation"] else 514
+	_wrap(caption, caption_y, 23, 1080)
 	_wrap(desc, 555, 18, 900)
 	draw_set_transform_matrix(Transform2D.IDENTITY)
 
@@ -255,7 +282,10 @@ static func bandit_escape_frame(at: float) -> int:
 
 static func prop_position(prop: Dictionary, motion: Dictionary) -> Vector2:
 	var elevated = prop.art in ["crystal", "owl", "notes", "smoke", "spores", "fall-mist", "laughter", "sound", "spring", "loose-pages", "symbol-match", "rope"] or str(prop.art).begins_with("tracks-")
-	return Vector2(prop.x + motion.x, (prop.y if elevated else 202) + motion.y)
+	# The plate's stone begins at the horizon behind the figures. Allow room
+	# inside it for the farther feet of the furniture's painted perspective.
+	var floor_y := 220.0 if prop.art == "table" else 216.0 if prop.art == "mechanism" else 202.0
+	return Vector2(prop.x + motion.x, (prop.y if elevated else floor_y) + motion.y)
 
 func _draw_prop(prop: Dictionary, motion: Dictionary, character: String) -> void:
 	if motion.opacity < 0.001: return
@@ -269,7 +299,11 @@ func _draw_prop(prop: Dictionary, motion: Dictionary, character: String) -> void
 		art = session.entry.variant
 		floating = art == "owl"
 		if art != "owl": pos = Vector2(prop.x + (83 * progress if success else 400 * progress), 202)
-	if not floating and art != "rope" and not art.begins_with("tracks-"): _shadow(Vector2(pos.x, 202), 35 * motion.scale, motion.opacity)
+	if not floating and art not in ["rope", "horse"] and not art.begins_with("tracks-"):
+		var furniture = art in ["table", "mechanism"]
+		var width := 61.0 if art == "audience" else 43.0 if furniture else 35.0
+		var shadow_pos := Vector2(pos.x + 10, pos.y - 5) if furniture else Vector2(pos.x, 202)
+		_shadow(shadow_pos, width * motion.scale, motion.opacity * (1.6 if furniture else 1.0))
 	# Applause frames face right; the audience stands to the musician's right.
 	# Mirror only this authored row, preserving ambient and departing poses.
 	var facing = -motion.facing if art == "audience" and success and phase not in ["ambient", "roll", "prepare"] else motion.facing
@@ -313,7 +347,7 @@ func _draw_prop(prop: Dictionary, motion: Dictionary, character: String) -> void
 		return
 	if data.actors.has(art):
 		var guest_role = "idle" if phase.begins_with("settled") or success and progress > 0.62 else "walk" if success else "run"
-		_actor(art, pos, sample([], 0), data.actors[art].guest[guest_role])
+		_actor(art, pos, motion.merged({"x": 0.0, "y": 0.0}, true), data.actors[art].guest[guest_role])
 		return
 	if art in ["goblin", "kobold", "mouse"]:
 		var r = ["goblin", "kobold", "mouse"].find(art)
@@ -324,7 +358,14 @@ func _draw_prop(prop: Dictionary, motion: Dictionary, character: String) -> void
 		if cue > 0.65: order = [6, 8, 6, 8] if height < 75 else [5, 7, 5, 7]
 		elif cue > 0.1: order = [2, 3, 4, 3]
 		elif cue < -0.4: order = [10, 11, 10, 11] if phase.begins_with("settled") else [8, 9, 10, 11]
-		_cell("horse", order[cycle], 154.0 / float(data.groups.horse.referenceHeight), false, tint)
+		var id := int(data.groups.horse.frames[order[cycle]])
+		var scale := 154.0 / float(data.groups.horse.referenceHeight)
+		var sprite_size := Vector2(facing, 1) * float(motion.scale)
+		var pose := Transform2D(float(motion.tilt), sprite_size, 0.0, pos)
+		if not _contact_shadows(id, pose, scale, motion.opacity):
+			_shadow(Vector2(pos.x, 202), 35 * motion.scale, motion.opacity)
+		_transform(pos, motion.tilt, sprite_size)
+		_frame(id, scale, false, tint)
 		return
 	var environment = {"crystal": [0, 64], "table": [1, 96], "bush": [2, 89], "pebble": [3, 17], "sign": [4, 49], "heraldry": [5, 64]}
 	if environment.has(art):

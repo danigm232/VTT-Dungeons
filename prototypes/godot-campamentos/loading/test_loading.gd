@@ -15,7 +15,7 @@ func _run() -> void:
 	check(Stage.bandit_escape_frame(0.1) == 14 and Stage.bandit_escape_frame(0.7) == 15, "Bandit escape keeps its own hooded source row")
 	var neutral = Stage.sample([], 0)
 	check(Stage.prop_position({"art":"rope","x":324,"y":169}, neutral).y == 169, "Rope and actor share the elevated support")
-	check(Stage.prop_position({"art":"table","x":400,"y":180}, neutral).y == 202, "Furniture stays on the floor")
+	check(Stage.prop_position({"art":"table","x":400,"y":180}, neutral).y == 220, "Table depth puts the farther legs inside the stone floor")
 	check(Stage.prop_position({"art":"crystal","x":400,"y":118}, neutral).y == 118, "Magical levitation stays intentional")
 	check(Stage.playback_frame(8, 4, 3, false) == 7, "One-shot frame playback holds its ending")
 	check(Stage.playback_frame(8, 4, 3, true) == 4, "Ambient frame playback loops naturally")
@@ -59,6 +59,21 @@ func _run() -> void:
 	stage.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.add_child(stage)
 	stage.configure(data, model)
+	var jump_track := {"success": [[0.0, {}], [0.5, {"x": 200.0, "y": -76.0}], [1.0, {"x": 320.0}]]}
+	stage.phase = "prepare"
+	stage.progress = 0.5
+	var prep := stage._motion(jump_track, "success")
+	check(prep.x == 0 and prep.y == 0, "Preparation does not borrow the airborne frame's position")
+	stage.phase = "success"
+	var airborne := stage._motion(jump_track, "success")
+	check(airborne.x == 200 and airborne.y == -76, "The jump still rises during the action")
+	var contacts_valid := true
+	for key in stage.ground_contacts:
+		var entry = stage.ground_contacts[key]
+		var f = data.frames[int(key)]
+		contacts_valid = contacts_valid and entry.region == [f.atlas, f.region[0], f.region[1], f.region[2], f.region[3]]
+		contacts_valid = contacts_valid and entry.points.size() == 2 and entry.points.all(func(point): return absf(point[1]) <= 6 and point[2] > 0)
+	check(contacts_valid and stage.ground_contacts.size() >= 100, "Paired and horse contact marks match the installed atlas")
 	if DisplayServer.get_name() != "headless":
 		for atlas_index in range(int(data.atlasCount)):
 			var original = Image.load_from_file("res://loading/art/atlas-%d.webp" % atlas_index)

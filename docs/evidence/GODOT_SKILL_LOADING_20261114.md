@@ -1,5 +1,39 @@
 # Microescenas nativas de Godot · implementación del 14/11/2026
 
+## Anatomía de Mike en Medicina · 27/11/2026
+
+La revisión anterior pasó por alto la bota duplicada. En una pasada visual separada, los 712 recortes del atlas se examinaron en cuadrículas de ocho columnas y los ocho dibujos de Medicina de Mike se revisaron a resolución original y con ampliación del borde de la túnica y las botas. En estos ocho se confirmó el mismo error de silueta. No se confirmó un defecto equivalente en otros dibujos.
+
+| ID | Propietario y entrada | Antes → revisión | Aceptación |
+| --- | --- | --- | --- |
+| LA-01 · Mike en Medicina | `sw-mike-loading-medicine-v6`, índices 664–671 de `loading/art/atlas-7.webp` | Tres botas, con una pierna duplicada bajo el lateral izquierdo de la túnica → dos piernas conservadas tras una eliminación localizada del alfa. Misma pose, paciente, taburete, gestos, escala y recorte. | VA-10 y VA-13 · identidad canónica de Mike · revisión nativa interna, aceptación del usuario pendiente |
+
+Los ocho originales se conservan con su hash. La definición enlaza los nuevos derivados y declara el rectángulo de retoque de cada pose. Se usó una [guía de edición integrada](captures/loading-anatomy-20261127/medicine-edit-guide.png) para trazar la eliminación localizada sobre los originales. El empaquetado copia únicamente la reducción de alfa a cada región validada, verifica el WebP sin pérdida y vuelve a medir las sombras de esos ocho apoyos. Quedan intactos los otros 704 recortes y todas las selecciones, trayectorias y duraciones. Las [ocho comparativas en Godot Forward+](../../output/loading-anatomy-20261127/index.html) usan la misma cámara, pose e instante y enlazan las capturas con sus hashes.
+
+Los tres proyectos importaron los ocho recortes revisados y superaron 186 comprobaciones de carga cada uno. En las 16 capturas equivalentes, la diferencia visible se limita a la pierna retirada y su sombra. El visor de comparativas se comprobó con clic, teclado, encuadre estable y ampliación.
+
+El alcance `loading-anatomy-20261127` registra el personaje y la animación corregida. Los scripts `retouch-mike-medicine.mjs` y `patch-godot-loading-anatomy.py` reproducen el retoque a partir de los dibujos originales. El primer script genera los derivados locales; el segundo construye una candidata a partir del atlas de identidad v6 y requiere la revisión del alcance para instalarla.
+
+
+## Apoyos y fotogramas · 27/11/2026
+
+La auditoría de la candidata actual incluye 712 recortes del atlas y las 54 combinaciones de habilidad y héroe en el reproductor nativo. Las capturas abarcan tres momentos de ambiente, preparación, acción de éxito y fallo, los dos desenlaces de cada combinación y variantes de Percepción. El álbum reúne 1.154 muestras equivalentes por versión y 108 desenlaces de la candidata, con cámara Forward+ de 1280 × 720. Los recortes de la galería son vistas reducidas de esas mismas capturas. La revisión se hizo por fotograma de atlas y por muestras de la secuencia en ejecución.
+
+| ID | Propietario | Antes → candidata | Criterio |
+| --- | --- | --- | --- |
+| LC-01 · Acrobacias y Atletismo | `loading_stage.gd`, `_motion` | La preparación interpolaba hacia una posición aérea de mitad del recorrido → se mezcla con la primera clave de la acción. El salto empieza al iniciar la acción. | VA-13/15 · apoyo coherente con el escenario |
+| LC-02 · Medicina, Juego de manos y Persuasión | `loading_stage.gd`, `ground_contacts.json` | Sombra secundaria a 60 unidades fijas del héroe → medición de ambos apoyos en 88 fotogramas emparejados. En Medicina la pareja se asienta 4 unidades dentro del plano para que lleguen las patas traseras del taburete. | VA-10/11, REF-01/08 · identidad y contacto |
+| LC-03 · Trato con animales e Interpretación | `loading_stage.gd`, `ground_contacts.json` | Sombra única y genérica → apoyos de cascos en 12 fotogramas y sombra a lo ancho del grupo de espectadores. | VA-10/11, REF-01 · sombras ancladas |
+| LC-04 · Persuasión e Investigación | `loading_stage.gd`, `prop_position` | Mesa y mecanismo con el borde delantero en y=202, patas traseras por encima de la piedra → y=220 y y=216, respectivamente, con sombra desplazada y espacio debajo para el texto. | VA-07/10/11, REF-08 · perspectiva y contacto |
+| LC-05 · Percepción | `loading_stage.gd`, `_draw_prop` | Los héroes invitados ignoraban la opacidad declarada → se respeta el fundido del visitante al descubrirlo y al escapar. | VA-10 · continuidad y oclusión |
+
+El arte, las selecciones de fotogramas y los atlas mantienen sus archivos originales. Los defectos reproducidos se corrigieron en colocación, sombras o tiempos. La medición usa el canal alfa del atlas RGBA, guarda región y dos apoyos individuales por índice, y comprueba que los tres proyectos tengan el mismo catálogo y páginas antes de copiarse. Se reprodujo con `scripts/measure-godot-loading-contacts.py --install`. El render utiliza una sombra de reserva si una región se reempaqueta. Esta intervención no crea ni promociona definiciones de recursos.
+
+En el material histórico aún se aprecia que el público invierte su orden al pasar a los aplausos. Es un cambio de orientación de la lámina conjunta, por lo que queda señalado como transición de grupo y no como fotograma aislado para reemplazar.
+
+[Galería, ocho comparativas de encuadre equivalente y manifiesto](../../output/loading-contact-20261127/index.html). Auditoría nativa con `loading/audit_loading_contact.gd` y galería creada con `scripts/build-godot-loading-contact-review.mjs`. `loading/test_loading.gd` pasó **186 comprobaciones en cada proyecto y 195 con Forward+ en Campamentos**. En el visor se verificaron los enlaces, el clic, el teclado, la superposición sin cambio de encuadre y la ampliación de las ocho comparativas. Revisión visual interna de las capturas, aceptación del usuario y prueba física separadas.
+
+
 ## Corrección selectiva instalada · 25/11/2026
 
 Por indicación del usuario se corrigen los fallos confirmados, conservando lo que funciona: **Mike en las 18 habilidades** y **Persuasión con los tres protagonistas**. Las otras **34 combinaciones de Mía/Trinity y habilidad mantienen byte a byte sus selecciones anteriores**. Los objetos y fondos se conservan. La corrección previa de la cuerda y del bandido encapuchado permanece. No se rehacen los 18 escenarios ni se publica toda la exploración ampliada de dibujos.

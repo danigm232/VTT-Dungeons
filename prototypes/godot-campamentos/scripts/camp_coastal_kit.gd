@@ -40,8 +40,11 @@ uniform float wave_amp = 0.085;
 uniform float speed = 1.0;
 uniform float swell_scale = 1.0;
 uniform float whitecap_strength = 1.0;
+uniform float base_roughness = 0.11;
 uniform float wetness = 0.0;
 uniform float snow_cover = 0.0;
+uniform float horizon_fade_start = 9999.0;
+uniform float horizon_fade_end = 10000.0;
 
 varying vec3 wpos;
 varying float v_depth;
@@ -113,9 +116,12 @@ void fragment() {
 	vec3 col = mix(shallow_col.rgb, mid_col.rgb, smoothstep(0.03, 0.34, eff_depth));
 	col = mix(col, deep_col.rgb, smoothstep(0.28, 0.88, eff_depth));
 
-	// Subtle sunlit subsurface turquoise scatter in wave crests over shallow/mid water
+	// Subtle sunlit subsurface turquoise scatter & gentle animated underwater caustics over swimmable shelf
 	float sss = smoothstep(0.08, 0.65, h0) * (1.0 - smoothstep(0.35, 0.92, eff_depth));
-	col += vec3(0.04, 0.11, 0.10) * sss;
+	float caust_a = vnoise(wpos.xz * 1.45 + vec2(t * 0.32, -t * 0.26));
+	float caust_b = vnoise(wpos.xz * 2.75 + vec2(-t * 0.28, t * 0.34));
+	float caustics = smoothstep(0.54, 0.86, caust_a * 0.55 + caust_b * 0.45) * (1.0 - smoothstep(0.35, 0.85, eff_depth));
+	col += vec3(0.04, 0.11, 0.10) * sss + vec3(0.06, 0.16, 0.15) * caustics;
 
 	// 1) Leading breaking swash foam right along the curved waterline
 	float shore_band = (1.0 - smoothstep(0.004, 0.095, eff_depth)) * smoothstep(0.001, 0.018, eff_depth);
@@ -127,29 +133,31 @@ void fragment() {
 	float roller_foam = roller_crest * smoothstep(0.34, 0.76, n_lace * 0.55 + n_fine * 0.45) * mix(0.82, 0.18, v_calm);
 
 	// 3) Localized churning white foam collar around reef rocks, headlands & shipwreck hull
-	float rock_ring = v_rock_foam * smoothstep(0.26, 0.74, n_lace * 0.58 + n_fine * 0.42 + sin(t * 1.4 + v_rock_foam * 6.0) * 0.12);
+	float rock_ring = v_rock_foam * smoothstep(0.32, 0.78, n_lace * 0.58 + n_fine * 0.42 + sin(t * 1.4 + v_rock_foam * 6.0) * 0.10);
 
 	// 4) Subtle offshore whitecap flecks on deep swell peaks
-	float whitecap = smoothstep(0.68, 0.94, h0 * 0.55 + n_fine * 0.45) * smoothstep(0.35, 0.75, eff_depth) * mix(0.28, 0.0, v_calm) * whitecap_strength;
+	float whitecap = smoothstep(0.72, 0.95, h0 * 0.55 + n_fine * 0.45) * smoothstep(0.38, 0.78, eff_depth) * mix(0.22, 0.0, v_calm) * whitecap_strength;
 
-	float foam = clamp(shore_lace * 0.92 + roller_foam + rock_ring * 0.90 + whitecap, 0.0, 0.94);
+	float foam = clamp(shore_lace * 0.88 + roller_foam * 0.85 + rock_ring * 0.56 + whitecap, 0.0, 0.92);
 	col = mix(col, foam_col.rgb, foam);
 
 	// Grazing Fresnel sky reflection (calibrated so dusk/night never look muddy or blown out)
 	float fresnel = pow(1.0 - clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0), 3.4);
 	col = mix(col, mix(mid_col.rgb * 1.35, foam_col.rgb * 0.86, 0.55), fresnel * 0.24 * (1.0 - foam * 0.7));
 
-	// Feather alpha seamlessly to 0 right at the beach/cove waterline (zero sharp water edge!)
+	// Feather alpha seamlessly to 0 at shoreline, and blend distant ocean into atmospheric mist instead of transparent void
 	float shore_alpha = smoothstep(0.002, 0.055, eff_depth);
-	float depth_alpha = mix(shallow_col.a, deep_col.a, smoothstep(0.04, 0.48, eff_depth));
+	float depth_alpha = mix(shallow_col.a, deep_col.a, smoothstep(0.05, 0.68, eff_depth));
+	float horizon_mix = smoothstep(horizon_fade_start, horizon_fade_end, length(wpos.xz - vec2(18.0, 16.0)));
+	vec3 horizon_col = mix(deep_col.rgb * 1.15, vec3(0.24, 0.27, 0.34), 0.65);
 
-	ALBEDO = col;
-	METALLIC = mix(0.06, 0.01, foam);
-	ROUGHNESS = mix(0.11, 0.56, foam) + wetness * 0.03;
-	SPECULAR = mix(0.55, 0.18, foam);
+	ALBEDO = mix(col, horizon_col, horizon_mix);
+	METALLIC = mix(0.06, 0.01, max(foam, horizon_mix));
+	ROUGHNESS = mix(mix(base_roughness, 0.56, foam), 0.78, horizon_mix) + wetness * 0.03;
+	SPECULAR = mix(mix(0.48, 0.18, foam), 0.10, horizon_mix);
 	NORMAL_MAP = vec3(clamp(0.5 + slope.x, 0.14, 0.86), clamp(0.5 + slope.y, 0.14, 0.86), 1.0);
-	NORMAL_MAP_DEPTH = mix(0.62, 0.22, foam);
-	ALPHA = clamp((depth_alpha + foam * 0.34) * shore_alpha, 0.0, 0.96);
+	NORMAL_MAP_DEPTH = mix(mix(0.62, 0.22, foam), 0.10, horizon_mix);
+	ALPHA = clamp((depth_alpha + foam * 0.34) * shore_alpha, 0.0, 0.92);
 }
 """
 	var mat := ShaderMaterial.new()
@@ -293,10 +301,12 @@ void fragment() {
 # ==============================================================================
 # 3. STRATIFIED BASALT CLIFF + ASTRONOMICAL RUIN TERRAIN SHADER (Phase 3)
 # ==============================================================================
+# 3. STRATIFIED BASALT CLIFF & ASTRONOMICAL RUIN SHADER (Phase 3 — Opción A AAA)
+# ==============================================================================
 ## Vertex color contract:
 ## - COLOR.r = ancient carved astronomical ruin plaza / flagstones (0..1)
 ## - COLOR.g = highland lichen / alpine moss & crevice grass (0..1)
-## - COLOR.b = worn camp dust / gravel path (0..1)
+## - COLOR.b = worn pilgrimage trail / cobbled approach & camp gravel (0..1)
 static func create_cliff_basalt_shader(exposed: bool = true) -> ShaderMaterial:
 	var sh := Shader.new()
 	sh.code = """
@@ -304,7 +314,9 @@ shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_back, specular_schlick_ggx;
 
 uniform sampler2D tex_basalt : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D tex_cliff : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D tex_flagstone : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D tex_trail : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D tex_moss : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D norm_rock : hint_normal, filter_linear_mipmap, repeat_enable;
 uniform float wetness = 0.0;
@@ -337,99 +349,137 @@ void vertex() {
 
 void fragment() {
 	vec3 an = abs(wnrm);
-	vec3 tri = pow(an, vec3(4.0));
+	vec3 tri = pow(an, vec3(4.5));
 	tri /= max(0.0001, tri.x + tri.y + tri.z);
 
-	// Triplanar basalt sampling so sheer cliff walls never stretch vertically!
-	vec2 uv_y = wpos.xz * 0.22;
-	vec2 uv_x = vec2(wpos.z * 0.19, wpos.y * 0.28);
-	vec2 uv_z = vec2(wpos.x * 0.19, wpos.y * 0.28);
+	// Triplanar volcanic basalt + rugged cliff rock sampling (zero vertical stretching!)
+	vec2 uv_y = wpos.xz * 0.21;
+	vec2 uv_x = vec2(wpos.z * 0.17, wpos.y * 0.24);
+	vec2 uv_z = vec2(wpos.x * 0.17, wpos.y * 0.24);
 
 	vec3 b_y = texture(tex_basalt, uv_y).rgb;
-	vec3 b_x = texture(tex_basalt, uv_x).rgb;
-	vec3 b_z = texture(tex_basalt, uv_z).rgb;
+	vec3 b_x = mix(texture(tex_basalt, uv_x).rgb, texture(tex_cliff, uv_x * 1.15).rgb, 0.58);
+	vec3 b_z = mix(texture(tex_basalt, uv_z).rgb, texture(tex_cliff, uv_z * 1.15).rgb, 0.58);
 	vec3 basalt_tex = b_x * tri.x + b_y * tri.y + b_z * tri.z;
 
-	float n_macro = vnoise(wpos.xz * 0.16) * 0.60 + vnoise(wpos.xz * 0.42) * 0.40;
-	float n_detail = vnoise(wpos.xz * 1.35) * 0.55 + vnoise(wpos.xz * 3.4) * 0.45;
+	float n_macro = vnoise(wpos.xz * 0.14) * 0.58 + vnoise(wpos.xz * 0.38) * 0.42;
+	float n_detail = vnoise(wpos.xz * 1.45) * 0.54 + vnoise(wpos.xz * 3.8) * 0.46;
 
-	// Horizontal geological strata + vertical columnar fracture grooves on cliff faces
-	float steep = smoothstep(0.76, 0.34, wnrm.y);
-	float strata = sin(wpos.y * 2.4 + vnoise(vec2(wpos.x * 0.18, wpos.z * 0.18)) * 3.6) * 0.5 + 0.5;
-	float col_seam = abs(sin((wpos.x + wpos.z * 0.7) * 1.45 + vnoise(wpos.xz * 0.4) * 1.8));
-	float cliff_shade = mix(0.74, 1.14, strata) * mix(0.84, 1.06, smoothstep(0.0, 0.32, col_seam));
-	// Deepen lower abyssal cliff walls smoothly while keeping upper ridges crisp and readable
-	float depth_ao = mix(0.54, 1.04, smoothstep(-14.0, 0.5, wpos.y));
+	// Pronounced horizontal basalt terraces + vertical columnar fracture grooves on cliff drops
+	float steep = smoothstep(0.78, 0.32, wnrm.y);
+	float ledge_n = vnoise(vec2(wpos.x * 0.15, wpos.z * 0.15)) * 2.8;
+	float strata_raw = fract((wpos.y + ledge_n) * 0.48);
+	float strata_band = smoothstep(0.0, 0.14, strata_raw) * (1.0 - smoothstep(0.84, 0.99, strata_raw));
+	float col_seam = abs(sin((wpos.x * 0.85 + wpos.z * 0.62) * 1.35 + vnoise(wpos.xz * 0.35) * 1.6));
+	float col_groove = smoothstep(0.04, 0.24, col_seam);
+	float cliff_shade = mix(0.66, 1.16, strata_band) * mix(0.76, 1.06, col_groove);
 
-	vec3 bedrock = basalt_tex * mix(vec3(0.56, 0.61, 0.67), vec3(0.70, 0.74, 0.78), n_macro);
-	vec3 cliff_col = bedrock * cliff_shade * depth_ao * vec3(0.92, 0.95, 1.0);
+	// Abyssal depth AO (darker wet spray base near sea level, crisp cool slate near plateau rim)
+	float depth_ao = mix(0.46, 1.04, smoothstep(-14.2, 0.6, wpos.y));
+	float spray_wet = 1.0 - smoothstep(-14.5, -9.2, wpos.y);
+
+	vec3 bedrock = basalt_tex * mix(vec3(0.50, 0.54, 0.60), vec3(0.66, 0.69, 0.73), n_macro);
+	vec3 cliff_col = bedrock * cliff_shade * depth_ao * vec3(0.88, 0.92, 0.98);
 	vec3 col = mix(bedrock, cliff_col, steep);
 
-	// Weathered carved ruin flagstones & engraved astronomical circle on upper plateau (harmonized in value with basalt cliff, ZERO bright spotlight disk!)
+	// Highland turf & moss clinging to upper continental slopes, arrival hillsides & flat cliff shelves
+	vec3 moss_tex = texture(tex_moss, wpos.xz * 0.28).rgb;
+	vec3 lichen_col = moss_tex * mix(vec3(0.36, 0.47, 0.33), vec3(0.52, 0.58, 0.40), n_detail);
+	float slope_turf = smoothstep(0.56, 0.88, wnrm.y) * smoothstep(0.45, 3.6, wpos.y) * (0.45 + 0.45 * n_macro);
+	float moss_w = clamp(max(COLOR.g + (n_macro - 0.5) * 0.30, slope_turf * 0.82), 0.0, 1.0);
+	moss_w = smoothstep(0.22, 0.74, moss_w) * smoothstep(0.46, 0.86, wnrm.y);
+	col = mix(col, lichen_col, moss_w * 0.76);
+
+	// Worn pilgrimage trail gravel / weathered highland limestone-slate grit (harmonized with coastal basalt, ZERO rusty orange!)
+	vec3 trail_tex = mix(texture(tex_trail, wpos.xz * 0.34).rgb, texture(tex_flagstone, wpos.xz * 0.30).rgb, 0.48);
+	vec3 trail_col = trail_tex * mix(vec3(0.46, 0.45, 0.43), vec3(0.58, 0.56, 0.52), n_detail);
+	float trail_w = smoothstep(0.18, 0.72, COLOR.b + (n_detail - 0.5) * 0.24) * smoothstep(0.42, 0.82, wnrm.y);
+	col = mix(col, trail_col, trail_w * 0.74);
+
+	// Ancient broken radial flagstone plaza & carved astronomical observatory compass (centered at x=19.0, z=12.6)
 	vec2 rel_a = wpos.xz - vec2(19.0, 12.6);
 	float r_a = length(rel_a);
 	float ang_a = atan(rel_a.y, rel_a.x);
-	float edge_break = (vnoise(vec2(ang_a * 4.2 + 1.3, r_a * 0.55)) - 0.5) * 0.44 + (n_macro - 0.5) * 0.38;
-	vec3 flag_tex = texture(tex_flagstone, wpos.xz * 0.34).rgb;
-	vec3 ruin_col = flag_tex * mix(vec3(0.42, 0.43, 0.44), vec3(0.54, 0.52, 0.48), n_macro);
-	// Radial stone paving blocks & concentric carved joints inside the sanctuary circle
-	float ring_joint = 1.0 - smoothstep(0.015, 0.055, abs(fract(r_a * 0.56) - 0.5));
-	float spoke_joint = pow(max(0.0, abs(cos(ang_a * 8.0))), 38.0) * smoothstep(1.2, 1.8, r_a) * (1.0 - smoothstep(6.2, 6.7, r_a));
-	ruin_col *= mix(1.0, 0.76, max(ring_joint * 0.55, spoke_joint * 0.55));
-	float ruin_w = smoothstep(0.24, 0.76, COLOR.r + edge_break) * (1.0 - steep);
-	col = mix(col, ruin_col, ruin_w * 0.88);
+	float edge_break = (vnoise(vec2(ang_a * 4.6 + 1.3, r_a * 0.52)) - 0.5) * 0.48 + (n_macro - 0.5) * 0.36;
+	vec3 flag_tex = texture(tex_flagstone, wpos.xz * 0.36).rgb;
+	vec3 ruin_col = flag_tex * mix(vec3(0.40, 0.42, 0.44), vec3(0.55, 0.53, 0.49), n_macro);
+	// Crisp radial flagstone masonry joints + dark weathered mortar crevices
+	float ring_joint = 1.0 - smoothstep(0.012, 0.048, abs(fract(r_a * 0.58) - 0.5));
+	float block_ring = floor(r_a * 0.58);
+	float spoke_joint = pow(max(0.0, abs(cos(ang_a * (8.0 + mod(block_ring, 2.0) * 4.0) + block_ring * 0.4))), 42.0) * smoothstep(1.1, 1.7, r_a) * (1.0 - smoothstep(6.2, 6.7, r_a));
+	float mortar = clamp(max(ring_joint * 0.65, spoke_joint * 0.62), 0.0, 1.0);
+	ruin_col = mix(ruin_col, ruin_col * vec3(0.46, 0.49, 0.45), mortar * 0.85);
+	// Creeping alpine moss inside outer broken flagstone seams
+	float seam_moss = mortar * smoothstep(3.6, 6.4, r_a) * smoothstep(0.40, 0.78, n_detail);
+	ruin_col = mix(ruin_col, lichen_col * 0.85, seam_moss * 0.72);
 
-	// Carved recessed astronomical compass rings & patinated antique bronze inlays (centered at x=19.0, z=12.6)
-	float ring1 = 1.0 - smoothstep(0.03, 0.10, abs(r_a - 2.35));
-	float ring2 = 1.0 - smoothstep(0.03, 0.11, abs(r_a - 4.45));
-	float ring3 = 1.0 - smoothstep(0.04, 0.14, abs(r_a - 6.20));
-	float spoke = pow(max(0.0, abs(cos(ang_a * 4.0))), 30.0) * smoothstep(0.85, 1.35, r_a) * (1.0 - smoothstep(5.95, 6.35, r_a));
-	float tick_ring = pow(max(0.0, abs(cos(ang_a * 16.0))), 20.0) * smoothstep(4.15, 4.30, r_a) * (1.0 - smoothstep(4.65, 4.82, r_a));
-	float inlay_wear = smoothstep(0.18, 0.64, n_detail + 0.24);
-	float inlay_mask = clamp(max(max(ring1, ring2), max(ring3, max(spoke * 0.88, tick_ring * 0.72))) * inlay_wear * ruin_w, 0.0, 1.0);
-	vec3 patinated_bronze = vec3(0.74, 0.58, 0.32);
-	col = mix(col, patinated_bronze, inlay_mask * 0.82);
+	float ruin_w = smoothstep(0.24, 0.74, COLOR.r + edge_break) * (1.0 - steep);
+	col = mix(col, ruin_col, ruin_w * 0.92);
 
-	// Highland moss / hardy lichen pockets in sheltered crevices & rocky edges
-	vec3 moss_tex = texture(tex_moss, wpos.xz * 0.32).rgb;
-	vec3 lichen_col = moss_tex * mix(vec3(0.46, 0.55, 0.42), vec3(0.62, 0.66, 0.50), n_detail);
-	float moss_w = smoothstep(0.24, 0.76, COLOR.g + (n_macro - 0.5) * 0.32) * smoothstep(0.45, 0.86, wnrm.y);
-	col = mix(col, lichen_col, moss_w * 0.68);
+	// Recessed carved stone grooves + patinated antique bronze astronomical compass & lunar phase dots
+	float d_r1 = abs(r_a - 2.30);
+	float d_r2 = abs(r_a - 4.40);
+	float d_r3 = abs(r_a - 6.15);
+	float ring_bronze = max(1.0 - smoothstep(0.018, 0.068, d_r1), max(1.0 - smoothstep(0.018, 0.072, d_r2), 1.0 - smoothstep(0.024, 0.088, d_r3)));
+	float ring_groove = max(1.0 - smoothstep(0.062, 0.135, d_r1), max(1.0 - smoothstep(0.065, 0.145, d_r2), 1.0 - smoothstep(0.080, 0.165, d_r3)));
 
-	// Pale coastal gravel / dust pockets around camp shelter & hearth
-	vec3 dust_col = bedrock * vec3(1.12, 1.08, 0.98);
-	float dust_w = smoothstep(0.24, 0.78, COLOR.b + (n_detail - 0.5) * 0.25) * (1.0 - steep);
-	col = mix(col, dust_col, dust_w * 0.45);
+	// 8 cardinal/ordinal star spokes (thin carved channels, NOT wide painted white bands!)
+	float spoke_ang = abs(sin(ang_a * 4.0)) * r_a;
+	float spoke_bronze = (1.0 - smoothstep(0.018, 0.058, spoke_ang)) * smoothstep(1.05, 1.45, r_a) * (1.0 - smoothstep(5.95, 6.22, r_a));
+	float spoke_groove = (1.0 - smoothstep(0.052, 0.115, spoke_ang)) * smoothstep(1.0, 1.4, r_a) * (1.0 - smoothstep(6.0, 6.3, r_a));
 
-	// Weather modulation
-	col = mix(col, col * vec3(0.68, 0.72, 0.78), wetness * 0.80);
+	// Degree calibration ticks & 8 recessed lunar-phase medallions along the middle ring (r=4.40)
+	float tick_ang = abs(sin(ang_a * 16.0)) * r_a;
+	float ticks = (1.0 - smoothstep(0.014, 0.042, tick_ang)) * smoothstep(4.02, 4.14, r_a) * (1.0 - smoothstep(4.66, 4.78, r_a));
+	float phase_ang = mod(ang_a + 3.14159265, 0.78539816) - 0.39269908;
+	float phase_d = length(vec2(r_a - 4.40, phase_ang * 4.40));
+	float moon_medallion = (1.0 - smoothstep(0.14, 0.21, phase_d)) * smoothstep(0.08, 0.14, phase_d);
+
+	float groove_mask = clamp(max(ring_groove, spoke_groove) * ruin_w, 0.0, 1.0);
+	col = mix(col, col * vec3(0.48, 0.49, 0.52), groove_mask * 0.72);
+
+	float inlay_wear = smoothstep(0.16, 0.62, n_detail + 0.22);
+	float inlay_mask = clamp(max(max(ring_bronze, spoke_bronze * 0.92), max(ticks * 0.78, moon_medallion * 0.95)) * inlay_wear * ruin_w, 0.0, 1.0);
+	vec3 patinated_bronze = mix(vec3(0.54, 0.43, 0.24), vec3(0.72, 0.57, 0.32), n_detail);
+	col = mix(col, patinated_bronze, inlay_mask * 0.90);
+
+	// Weather & lower ocean spray modulation
+	float eff_wet = clamp(max(wetness, spray_wet * 0.75), 0.0, 1.0);
+	col = mix(col, col * vec3(0.66, 0.70, 0.77), eff_wet * 0.80);
 	col = mix(col, vec3(0.84, 0.88, 0.93), snow_cover * clamp(0.48 + n_detail * 0.26, 0.14, 0.66) * smoothstep(0.35, 0.85, wnrm.y));
 
-	float base_r = mix(0.86, 0.78, ruin_w);
-	base_r = mix(base_r, 0.44, inlay_mask);
-	base_r = mix(base_r, 0.92, moss_w * 0.6);
-	float rain_r = mix(base_r, max(0.22, base_r * 0.42), wetness);
+	float base_r = mix(0.86, 0.76, ruin_w);
+	base_r = mix(base_r, 0.38, inlay_mask);
+	base_r = mix(base_r, 0.93, moss_w * 0.65);
+	base_r = mix(base_r, 0.90, trail_w * 0.5);
+	float rain_r = mix(base_r, max(0.20, base_r * 0.40), eff_wet);
 	ROUGHNESS = mix(rain_r, 0.84, snow_cover * 0.65);
-	METALLIC = mix(0.04, 0.48, inlay_mask);
-	SPECULAR = mix(0.36, 0.60, inlay_mask + wetness * 0.2);
+	METALLIC = mix(0.04, 0.62, inlay_mask);
+	SPECULAR = mix(0.36, 0.66, max(inlay_mask, eff_wet * 0.65));
 
-	vec3 nx = texture(norm_rock, uv_x * 1.4).rgb;
-	vec3 ny = texture(norm_rock, uv_y * 1.4).rgb;
-	vec3 nz = texture(norm_rock, uv_z * 1.4).rgb;
+	vec3 nx = texture(norm_rock, uv_x * 1.45).rgb;
+	vec3 ny = texture(norm_rock, uv_y * 1.45).rgb;
+	vec3 nz = texture(norm_rock, uv_z * 1.45).rgb;
 	NORMAL_MAP = nx * tri.x + ny * tri.y + nz * tri.z;
-	NORMAL_MAP_DEPTH = mix(0.56, 0.78, steep);
+	NORMAL_MAP_DEPTH = mix(0.62, 0.92, steep);
 	ALBEDO = col;
 }
 """
 	var mat := ShaderMaterial.new()
 	mat.shader = sh
 	var t_bas := MatKit.load_tex("basalt-coastal-albedo-v1.webp")
+	var t_clf := MatKit.load_tex("a1-cliff-rugged-v8.jpg")
+	if t_clf == null: t_clf = MatKit.load_tex("coastal-rock.png")
 	var t_flg := MatKit.load_tex("flagstone.webp")
 	if t_flg == null: t_flg = MatKit.load_tex("ashlar-v4.webp")
+	var t_trl := MatKit.load_tex("path.jpg")
+	if t_trl == null: t_trl = MatKit.load_tex("earth.webp")
 	var t_mos := MatKit.load_tex("moss.jpg")
 	var n_rck := MatKit.load_tex("rock-normal-v1.png")
 	if t_bas: mat.set_shader_parameter("tex_basalt", t_bas)
+	if t_clf: mat.set_shader_parameter("tex_cliff", t_clf)
 	if t_flg: mat.set_shader_parameter("tex_flagstone", t_flg)
+	if t_trl: mat.set_shader_parameter("tex_trail", t_trl)
 	if t_mos: mat.set_shader_parameter("tex_moss", t_mos)
 	if n_rck: mat.set_shader_parameter("norm_rock", n_rck)
 	if exposed:
@@ -598,13 +648,13 @@ static func build_coastal_ocean_mesh(
 			var vx := lerpf(x_min, x_max, float(ix) / float(nx))
 			var bed_y := float(seabed_fn.call(vx, vz))
 			var depth_m := maxf(0.0, water_y - bed_y)
-			var norm_depth := clampf(depth_m / 2.6, 0.0, 1.0)
+			var norm_depth := clampf(depth_m / 3.4, 0.0, 1.0)
 			var rock_foam := 0.0
 			for fs in foam_sources:
 				var fv: Vector3 = fs
 				var dist := Vector2(vx - fv.x, vz - fv.y).length()
-				if dist < fv.z * 2.1:
-					rock_foam = maxf(rock_foam, 1.0 - smoothstep(fv.z * 0.45, fv.z * 1.95, dist))
+				if dist < fv.z * 1.42:
+					rock_foam = maxf(rock_foam, 1.0 - smoothstep(fv.z * 0.34, fv.z * 1.36, dist))
 			var calm_v := float(calm_fn.call(vx, vz)) if calm_fn.is_valid() else 0.0
 			p_row.append(Vector3(vx, water_y, vz))
 			c_row.append(Color(norm_depth, clampf(rock_foam, 0.0, 1.0), clampf(calm_v, 0.0, 1.0), 1.0))

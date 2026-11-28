@@ -198,6 +198,8 @@ static func get_zone_at(pos: Vector3, scene_id: String = "") -> Dictionary:
 		return {"id": "plaza", "label": "A1 · Plaza y altar de Astalagan", "elevation_min": 0.0, "is_interior": false}
 
 	if sid == "camp-coastal-refuge":
+		if pos.z > 29.0:
+			return {"id": "cove_sea", "label": "Cala Pleamar · Aguas de la cala", "elevation_min": -3.5, "is_interior": false}
 		if pos.z <= 12.2 and pos.x >= 9.6 and pos.x <= 25.4:
 			return {"id": "cave_rest", "label": "Cala Pleamar · Recinto de descanso", "elevation_min": 0.0, "is_interior": true}
 		if pos.z <= 19.6 and pos.x < 9.6 and pos.x >= 1.5 and pos.z >= 4.2:
@@ -209,6 +211,9 @@ static func get_zone_at(pos: Vector3, scene_id: String = "") -> Dictionary:
 		if pos.x < 8.5 and pos.z >= 14.0:
 			return {"id": "coastal_trail", "label": "Cala Pleamar · Sendero costero", "elevation_min": 0.0, "is_interior": false}
 		return {"id": "cove_beach", "label": "Cala Pleamar · Cala y boca marina", "elevation_min": 0.0, "is_interior": false}
+
+	if sid == "camp-wreck-beach" and pos.z > 24.0:
+		return {"id": "wreck_sea", "label": "Playa del pecio · Aguas del arrecife", "elevation_min": -3.5, "is_interior": false}
 
 	var tent := is_in_tent(pos, scene_def)
 	if not tent.is_empty():

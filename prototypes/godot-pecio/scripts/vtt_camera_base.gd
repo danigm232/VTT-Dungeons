@@ -125,6 +125,15 @@ func _keep_target_visible() -> void:
 func _build_overview_envelope_points() -> void:
 	_overview_points = [Vector3(-34,-7,-12),Vector3(34,24,12)]
 
+func _is_pointer_over_ui() -> bool:
+	var vp := get_viewport()
+	if vp == null:
+		return false
+	var hov := vp.gui_get_hovered_control()
+	if hov == null:
+		return false
+	return hov.name not in ["VttUiRoot", "PlayerHudRoot", "DmHudRoot", "ProjectorHudRoot", "NativeCombatUi", "CombatActionWheel", "CharacterSheetHost"]
+
 func _unhandled_input(event: InputEvent) -> void:
 	if camera_role == "projector":
 		return
@@ -133,9 +142,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	# 1. Rueda del ratón y paneo manual con MMB/RMB
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.is_pressed():
+			if _is_pointer_over_ui():
+				return
 			zoom_camera_step(-2.4)
 			get_viewport().set_input_as_handled()
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.is_pressed():
+			if _is_pointer_over_ui():
+				return
 			zoom_camera_step(+2.4)
 			get_viewport().set_input_as_handled()
 		elif event.button_index == MOUSE_BUTTON_MIDDLE:
@@ -177,47 +190,50 @@ func _unhandled_input(event: InputEvent) -> void:
 			target_pitch = clampf(target_pitch - pd.y * 2.5, CAMERA_MIN_TILT, CAMERA_MAX_TILT)
 		get_viewport().set_input_as_handled()
 
-	# 3. Teclado canónico
+	# 3. Teclado canónico (respetando mapeo configurable)
 	elif event is InputEventKey:
+		var Prefs = preload("res://player/player_preferences.gd")
+		if Prefs.is_capturing_key():
+			return
 		var kev := event as InputEventKey
 		if kev.ctrl_pressed or kev.alt_pressed or kev.meta_pressed:
 			return
-
-		if kev.keycode in [KEY_R, KEY_PAGEUP]:
+		var kc := kev.keycode
+		if Prefs.matches_key("cam_tilt_up", kc) or kc == KEY_PAGEUP:
 			if kev.is_pressed() and not kev.is_echo():
 				_begin_tilt_hold(+1)
 			elif not kev.is_pressed():
 				_end_tilt_hold()
 			get_viewport().set_input_as_handled()
-		elif kev.keycode in [KEY_F, KEY_PAGEDOWN]:
+		elif Prefs.matches_key("cam_tilt_down", kc) or kc == KEY_PAGEDOWN:
 			if kev.is_pressed() and not kev.is_echo():
 				_begin_tilt_hold(-1)
 			elif not kev.is_pressed():
 				_end_tilt_hold()
 			get_viewport().set_input_as_handled()
 		elif kev.is_pressed() and not kev.is_echo():
-			if kev.keycode == KEY_Q:
+			if Prefs.matches_key("cam_orbit_left", kc):
 				step_orbit(-1)
 				get_viewport().set_input_as_handled()
-			elif kev.keycode == KEY_E:
+			elif Prefs.matches_key("cam_orbit_right", kc):
 				step_orbit(+1)
 				get_viewport().set_input_as_handled()
-			elif kev.keycode == KEY_SPACE:
+			elif Prefs.matches_key("cam_center", kc):
 				toggle_overview_or_follow()
 				get_viewport().set_input_as_handled()
-			elif kev.keycode == KEY_O:
+			elif Prefs.matches_key("cam_overview", kc):
 				set_overview_mode(not is_overview)
 				get_viewport().set_input_as_handled()
-			elif kev.keycode == KEY_C:
+			elif Prefs.matches_key("cam_follow", kc):
 				toggle_combat_group_view()
 				get_viewport().set_input_as_handled()
-			elif kev.keycode == KEY_G and detail_key_enabled:
+			elif kc == KEY_G and detail_key_enabled:
 				frame_actor_detail()
 				get_viewport().set_input_as_handled()
-			elif kev.keycode == KEY_P:
+			elif Prefs.matches_key("cam_projection", kc):
 				toggle_projection_mode()
 				get_viewport().set_input_as_handled()
-			elif kev.keycode == KEY_HOME:
+			elif Prefs.matches_key("cam_reset", kc):
 				reset_camera_view()
 				get_viewport().set_input_as_handled()
 

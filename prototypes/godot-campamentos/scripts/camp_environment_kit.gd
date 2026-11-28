@@ -1366,3 +1366,328 @@ func spawn_woodland_shrub(parent: Node3D, pos: Vector3, _mat_leaves: Material, b
 	berries.material_override = bmat
 	berries.position = pos; berries.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(berries)
+
+# ------------------------------------------------------------------------------
+# Dedicated Columnar Basalt, Weathered Observatory Ruins, Faceted Crystals &
+# Windswept Krummholz Pines (Camp 04 Option A — ZERO impact on forest/beach/cove!)
+# ------------------------------------------------------------------------------
+
+## 6 angular interlocking volcanic basalt column clusters (flat-faceted strata, zero rounded blobs)
+func get_basalt_column_variants() -> Array:
+	if _rock_cache.has("basalt_column"):
+		return _rock_cache["basalt_column"]
+	var variants: Array[ArrayMesh] = []
+	for v_idx in range(6):
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var seed_p := float(v_idx) * 3.17 + 1.9
+		var col_count := 4 + (v_idx % 3)
+		for ci in range(col_count):
+			var sides := 6 if (ci + v_idx) % 3 != 0 else 5
+			var rad := (0.42 if ci == 0 else (0.24 + fmod(absf(sin(seed_p + float(ci) * 1.7)), 0.14)))
+			var h_top := (0.52 if ci == 0 else (0.10 + fmod(absf(cos(seed_p * 1.3 + float(ci) * 2.1)), 0.40)))
+			var h_bot := -0.58
+			var ang_off := float(ci) * (TAU / float(max(1, col_count - 1))) + seed_p * 0.4
+			var dist_r := 0.0 if ci == 0 else (0.30 + fmod(absf(sin(seed_p * 2.1 + float(ci))), 0.18))
+			var cx := cos(ang_off) * dist_r
+			var cz := sin(ang_off) * dist_r
+			var tilt_x := sin(seed_p + float(ci) * 1.5) * 0.06
+			var tilt_z := cos(seed_p - float(ci) * 1.2) * 0.06
+			var ring_b: Array[Vector3] = []
+			var ring_m: Array[Vector3] = []
+			var ring_t: Array[Vector3] = []
+			var ring_c: Array[Vector3] = []
+			var h_mid := lerpf(h_bot, h_top, 0.56)
+			for si in range(sides):
+				var a := float(si) * TAU / float(sides) + seed_p * 0.5 + float(ci) * 0.35
+				var r_var := rad * (0.86 + 0.24 * hash2(Vector2(float(si) + seed_p, float(ci) * 3.1)))
+				var px := cos(a) * r_var
+				var pz := sin(a) * r_var
+				var top_dip := sin(a * 2.0 + seed_p + float(ci)) * 0.055
+				ring_b.append(Vector3(cx + px * 1.14, h_bot, cz + pz * 1.14))
+				ring_m.append(Vector3(cx + px * 1.04 + tilt_x * 0.4, h_mid + top_dip * 0.4, cz + pz * 1.04 + tilt_z * 0.4))
+				ring_t.append(Vector3(cx + px * 0.96 + tilt_x, h_top - 0.045 + top_dip, cz + pz * 0.96 + tilt_z))
+				ring_c.append(Vector3(cx + px * 0.82 + tilt_x, h_top + top_dip * 0.9, cz + pz * 0.82 + tilt_z))
+			var col_bot := Color(0.56, 0.59, 0.64, 1.0)
+			var col_mid := Color(0.78, 0.81, 0.85, 1.0)
+			var col_top := Color(0.96, 0.98, 1.00, 1.0)
+			var center_top := Vector3(cx + tilt_x, h_top + 0.015, cz + tilt_z)
+			for si in range(sides):
+				var sn := (si + 1) % sides
+				var u0 := float(si) / float(sides)
+				var u1 := float(si + 1) / float(sides)
+				# Lower shaft quad
+				st.set_color(col_bot); st.set_uv(Vector2(u0, 0.0)); st.add_vertex(ring_b[si])
+				st.set_color(col_bot); st.set_uv(Vector2(u1, 0.0)); st.add_vertex(ring_b[sn])
+				st.set_color(col_mid); st.set_uv(Vector2(u1, 0.5)); st.add_vertex(ring_m[sn])
+				st.set_color(col_bot); st.set_uv(Vector2(u0, 0.0)); st.add_vertex(ring_b[si])
+				st.set_color(col_mid); st.set_uv(Vector2(u1, 0.5)); st.add_vertex(ring_m[sn])
+				st.set_color(col_mid); st.set_uv(Vector2(u0, 0.5)); st.add_vertex(ring_m[si])
+				# Upper shaft quad
+				st.set_color(col_mid); st.set_uv(Vector2(u0, 0.5)); st.add_vertex(ring_m[si])
+				st.set_color(col_mid); st.set_uv(Vector2(u1, 0.5)); st.add_vertex(ring_m[sn])
+				st.set_color(col_top); st.set_uv(Vector2(u1, 0.92)); st.add_vertex(ring_t[sn])
+				st.set_color(col_mid); st.set_uv(Vector2(u0, 0.5)); st.add_vertex(ring_m[si])
+				st.set_color(col_top); st.set_uv(Vector2(u1, 0.92)); st.add_vertex(ring_t[sn])
+				st.set_color(col_top); st.set_uv(Vector2(u0, 0.92)); st.add_vertex(ring_t[si])
+				# Beveled fracture rim quad
+				st.set_color(col_top); st.set_uv(Vector2(u0, 0.92)); st.add_vertex(ring_t[si])
+				st.set_color(col_top); st.set_uv(Vector2(u1, 0.92)); st.add_vertex(ring_t[sn])
+				st.set_color(col_top); st.set_uv(Vector2(u1, 1.0)); st.add_vertex(ring_c[sn])
+				st.set_color(col_top); st.set_uv(Vector2(u0, 0.92)); st.add_vertex(ring_t[si])
+				st.set_color(col_top); st.set_uv(Vector2(u1, 1.0)); st.add_vertex(ring_c[sn])
+				st.set_color(col_top); st.set_uv(Vector2(u0, 1.0)); st.add_vertex(ring_c[si])
+				# Flat broken top cap triangle
+				st.set_color(col_top); st.set_uv(Vector2(0.5, 0.5)); st.add_vertex(center_top)
+				st.set_color(col_top); st.set_uv(Vector2(u0, 1.0)); st.add_vertex(ring_c[si])
+				st.set_color(col_top); st.set_uv(Vector2(u1, 1.0)); st.add_vertex(ring_c[sn])
+		st.deindex()
+		st.generate_normals()
+		variants.append(st.commit())
+	_rock_cache["basalt_column"] = variants
+	return variants
+
+## Chamfered & subtly weathered stone ashlar block (eliminates razor-sharp un-beveled BoxMesh silhouettes!)
+func build_beveled_ruin_block(size: Vector3, bevel: float = 0.055, seed_v: float = 0.0, chipped_top: bool = true) -> ArrayMesh:
+	var hx := maxf(0.06, size.x * 0.5)
+	var hy := maxf(0.05, size.y * 0.5)
+	var hz := maxf(0.06, size.z * 0.5)
+	var bv := minf(bevel, minf(hx, minf(hy, hz)) * 0.42)
+	var ix := hx - bv
+	var iz := hz - bv
+	# 8-vertex chamfered footprint profile in XZ
+	var profile := [
+		Vector2(-ix, -hz), Vector2(ix, -hz), Vector2(hx, -iz), Vector2(hx, iz),
+		Vector2(ix, hz), Vector2(-ix, hz), Vector2(-hx, iz), Vector2(-hx, -iz),
+	]
+	var y_levels := [-hy, -hy + bv, hy - bv, hy]
+	var scales := [0.97, 1.0, 1.0, 0.95]
+	var rings: Array = []
+	for li in range(4):
+		var ring: Array[Vector3] = []
+		var sc: float = scales[li]
+		var yv: float = y_levels[li]
+		for pi in range(8):
+			var p2: Vector2 = profile[pi]
+			var jitter := (hash2(Vector2(float(pi) + seed_v * 3.1, float(li) * 2.7)) - 0.5) * bv * 0.55
+			var chip_y := 0.0
+			if chipped_top and li >= 2:
+				chip_y = -maxf(0.0, sin(float(pi) * 1.9 + seed_v * 2.3)) * minf(bv * 1.35, size.y * 0.12)
+			ring.append(Vector3(p2.x * sc + jitter, yv + chip_y, p2.y * sc + jitter))
+		rings.append(ring)
+
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for li in range(3):
+		var r0: Array = rings[li]
+		var r1: Array = rings[li + 1]
+		var v0 := float(li) / 3.0
+		var v1 := float(li + 1) / 3.0
+		for pi in range(8):
+			var pn := (pi + 1) % 8
+			var u0 := float(pi) / 8.0
+			var u1 := float(pi + 1) / 8.0
+			st.set_uv(Vector2(u0, v0)); st.add_vertex(r0[pi])
+			st.set_uv(Vector2(u1, v0)); st.add_vertex(r0[pn])
+			st.set_uv(Vector2(u1, v1)); st.add_vertex(r1[pn])
+			st.set_uv(Vector2(u0, v0)); st.add_vertex(r0[pi])
+			st.set_uv(Vector2(u1, v1)); st.add_vertex(r1[pn])
+			st.set_uv(Vector2(u0, v1)); st.add_vertex(r1[pi])
+	# Top & bottom caps
+	var top_r: Array = rings[3]
+	var bot_r: Array = rings[0]
+	var top_c := Vector3(0.0, hy - (bv * 0.15 if chipped_top else 0.0), 0.0)
+	var bot_c := Vector3(0.0, -hy, 0.0)
+	for pi in range(8):
+		var pn := (pi + 1) % 8
+		st.set_uv(Vector2(0.5, 0.5)); st.add_vertex(top_c)
+		st.set_uv(Vector2(0.5 + top_r[pi].x / maxf(0.1, size.x), 0.5 + top_r[pi].z / maxf(0.1, size.z))); st.add_vertex(top_r[pi])
+		st.set_uv(Vector2(0.5 + top_r[pn].x / maxf(0.1, size.x), 0.5 + top_r[pn].z / maxf(0.1, size.z))); st.add_vertex(top_r[pn])
+		st.set_uv(Vector2(0.5, 0.5)); st.add_vertex(bot_c)
+		st.set_uv(Vector2(0.5 + bot_r[pn].x / maxf(0.1, size.x), 0.5 + bot_r[pn].z / maxf(0.1, size.z))); st.add_vertex(bot_r[pn])
+		st.set_uv(Vector2(0.5 + bot_r[pi].x / maxf(0.1, size.x), 0.5 + bot_r[pi].z / maxf(0.1, size.z))); st.add_vertex(bot_r[pi])
+	st.deindex()
+	st.generate_normals()
+	return st.commit()
+
+## Canonical fluted limestone/ashlar observatory column (matching ObservatoryApproach striated columns!)
+func build_fluted_column(radius: float, height: float, broken_top: bool = false, flutes: int = 12, seed_v: float = 0.0) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var segs := flutes * 2
+	var stacks := 7
+	var rings: Array = []
+	for si in range(stacks + 1):
+		var t := float(si) / float(stacks)
+		var ring: Array[Vector3] = []
+		var entasis := lerpf(1.06, 0.88, t) + sin(t * PI) * 0.04
+		for ai in range(segs):
+			var a := float(ai) * TAU / float(segs)
+			var is_groove := (ai % 2) == 1
+			var flute_r := (0.91 if is_groove else 1.0) if (t > 0.08 and t < 0.92) else 1.05
+			var r := radius * entasis * flute_r
+			var y_h := t * height
+			if broken_top and si == stacks:
+				y_h += (cos(a + seed_v) * 0.24 + sin(a * 3.0 - seed_v) * 0.08) * radius * 1.4
+			elif broken_top and si == stacks - 1:
+				y_h += cos(a + seed_v) * 0.08 * radius
+			ring.append(Vector3(cos(a) * r, y_h, sin(a) * r))
+		rings.append(ring)
+
+	for si in range(stacks):
+		var r0: Array = rings[si]
+		var r1: Array = rings[si + 1]
+		var v0 := float(si) / float(stacks) * height * 0.5
+		var v1 := float(si + 1) / float(stacks) * height * 0.5
+		for ai in range(segs):
+			var an := (ai + 1) % segs
+			var u0 := float(ai) / float(segs) * 2.0
+			var u1 := float(ai + 1) / float(segs) * 2.0
+			st.set_uv(Vector2(u0, v0)); st.add_vertex(r0[ai])
+			st.set_uv(Vector2(u1, v0)); st.add_vertex(r0[an])
+			st.set_uv(Vector2(u1, v1)); st.add_vertex(r1[an])
+			st.set_uv(Vector2(u0, v0)); st.add_vertex(r0[ai])
+			st.set_uv(Vector2(u1, v1)); st.add_vertex(r1[an])
+			st.set_uv(Vector2(u0, v1)); st.add_vertex(r1[ai])
+	var top_r: Array = rings[stacks]
+	var top_c := Vector3(0.0, height + (0.04 if not broken_top else -0.02), 0.0)
+	for ai in range(segs):
+		var an := (ai + 1) % segs
+		st.set_uv(Vector2(0.5, 0.5)); st.add_vertex(top_c)
+		st.set_uv(Vector2(0.5 + cos(float(ai) * TAU / float(segs)) * 0.4, 0.5 + sin(float(ai) * TAU / float(segs)) * 0.4)); st.add_vertex(top_r[ai])
+		st.set_uv(Vector2(0.5 + cos(float(an) * TAU / float(segs)) * 0.4, 0.5 + sin(float(an) * TAU / float(segs)) * 0.4)); st.add_vertex(top_r[an])
+	st.deindex()
+	st.generate_normals()
+	return st.commit()
+
+## Sharp chiseled hexagonal quartz crystal spire with asymmetric pyramidal apex & root-to-tip vertex depth color
+func build_faceted_crystal_mesh(height: float, radius: float, seed_v: float = 0.0) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var sides := 6
+	var h_shoulder := height * (0.64 + fmod(absf(sin(seed_v * 1.9)), 0.14))
+	var h_mid := height * 0.32
+	var base_r: Array[Vector3] = []
+	var mid_r: Array[Vector3] = []
+	var top_r: Array[Vector3] = []
+	for si in range(sides):
+		var a := float(si) * TAU / float(sides) + seed_v * 0.6
+		var asym := 0.82 + 0.34 * hash2(Vector2(float(si) + seed_v, seed_v * 2.1))
+		var r0 := radius * asym * 1.08
+		var r1 := radius * asym * 0.98
+		var r2 := radius * asym * 0.80
+		var sh_var := (hash2(Vector2(float(si) * 1.7, seed_v)) - 0.5) * height * 0.10
+		base_r.append(Vector3(cos(a) * r0, 0.0, sin(a) * r0))
+		mid_r.append(Vector3(cos(a) * r1, h_mid, sin(a) * r1))
+		top_r.append(Vector3(cos(a) * r2, h_shoulder + sh_var, sin(a) * r2))
+	var apex := Vector3(sin(seed_v * 2.3) * radius * 0.18, height, cos(seed_v * 1.7) * radius * 0.18)
+	var c_root := Color(0.20, 0.42, 0.58, 1.0)
+	var c_mid := Color(0.56, 0.84, 0.96, 1.0)
+	var c_tip := Color(0.94, 0.99, 1.00, 1.0)
+	for si in range(sides):
+		var sn := (si + 1) % sides
+		var u0 := float(si) / float(sides)
+		var u1 := float(si + 1) / float(sides)
+		st.set_color(c_root); st.set_uv(Vector2(u0, 0.0)); st.add_vertex(base_r[si])
+		st.set_color(c_root); st.set_uv(Vector2(u1, 0.0)); st.add_vertex(base_r[sn])
+		st.set_color(c_mid); st.set_uv(Vector2(u1, 0.35)); st.add_vertex(mid_r[sn])
+		st.set_color(c_root); st.set_uv(Vector2(u0, 0.0)); st.add_vertex(base_r[si])
+		st.set_color(c_mid); st.set_uv(Vector2(u1, 0.35)); st.add_vertex(mid_r[sn])
+		st.set_color(c_mid); st.set_uv(Vector2(u0, 0.35)); st.add_vertex(mid_r[si])
+		st.set_color(c_mid); st.set_uv(Vector2(u0, 0.35)); st.add_vertex(mid_r[si])
+		st.set_color(c_mid); st.set_uv(Vector2(u1, 0.35)); st.add_vertex(mid_r[sn])
+		st.set_color(c_tip); st.set_uv(Vector2(u1, 0.72)); st.add_vertex(top_r[sn])
+		st.set_color(c_mid); st.set_uv(Vector2(u0, 0.35)); st.add_vertex(mid_r[si])
+		st.set_color(c_tip); st.set_uv(Vector2(u1, 0.72)); st.add_vertex(top_r[sn])
+		st.set_color(c_tip); st.set_uv(Vector2(u0, 0.72)); st.add_vertex(top_r[si])
+		# Chiseled pyramidal crystal apex
+		st.set_color(c_tip); st.set_uv(Vector2(u0, 0.72)); st.add_vertex(top_r[si])
+		st.set_color(c_tip); st.set_uv(Vector2(u1, 0.72)); st.add_vertex(top_r[sn])
+		st.set_color(c_tip); st.set_uv(Vector2(0.5, 1.0)); st.add_vertex(apex)
+	st.deindex()
+	st.generate_normals()
+	return st.commit()
+
+## Gnarled wind-sculpted coastal krummholz pine leaning away from ocean gales with exposed roots & wind-swept needle shelves
+func build_windswept_pine(
+	parent: Node3D,
+	pos: Vector3,
+	scale_f: float,
+	lean_dir: Vector2,
+	mat_trunk: Material,
+	mat_leaves: Material,
+	seed_v: float
+) -> Node3D:
+	var root := Node3D.new()
+	root.name = "WindsweptPine"
+	root.position = pos
+	root.scale = Vector3.ONE * scale_f
+	parent.add_child(root)
+
+	var ld := lean_dir.normalized() if lean_dir.length_squared() > 0.001 else Vector2(-0.85, 0.52)
+	var st_t := SurfaceTool.new(); st_t.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var st_c := SurfaceTool.new(); st_c.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var lobes := get_foliage_lobe_variants()
+
+	# Splayed gripping coastal rock roots
+	for ri in range(4):
+		var ra := float(ri) * (TAU / 4.0) + seed_v
+		var r_end := Vector3(cos(ra) * 0.92, -0.34, sin(ra) * 0.92)
+		var r_mid := Vector3(cos(ra) * 0.42, 0.10, sin(ra) * 0.42)
+		_cyl_between(st_t, Transform3D.IDENTITY, Vector3(0.0, 0.32, 0.0), r_mid, 0.16, 0.11, 6)
+		_cyl_between(st_t, Transform3D.IDENTITY, r_mid, r_end, 0.11, 0.045, 5)
+
+	# Crooked wind-bent trunk segments sweeping leeward
+	var p0 := Vector3(0.0, -0.18, 0.0)
+	var p1 := Vector3(ld.x * 0.35 + sin(seed_v) * 0.12, 1.25, ld.y * 0.35)
+	var p2 := Vector3(ld.x * 1.15 - cos(seed_v) * 0.14, 2.55, ld.y * 1.15)
+	var p3 := Vector3(ld.x * 2.15, 3.45, ld.y * 2.15)
+	_cyl_between(st_t, Transform3D.IDENTITY, p0, p1, 0.28, 0.21, 7)
+	_cyl_between(st_t, Transform3D.IDENTITY, p1, p2, 0.21, 0.14, 7)
+	_cyl_between(st_t, Transform3D.IDENTITY, p2, p3, 0.14, 0.065, 6)
+
+	# Swept lateral boughs & multi-tiered lush wind-sculpted coastal pine needle crowns
+	var branch_specs := [
+		[p1.lerp(p2, 0.48), Vector3(ld.x * 1.48 + ld.y * 0.88, 0.34, ld.y * 1.48 - ld.x * 0.88), Vector3(1.65, 0.88, 1.38)],
+		[p2, Vector3(ld.x * 1.72 - ld.y * 0.92, 0.46, ld.y * 1.72 + ld.x * 0.92), Vector3(1.78, 0.94, 1.44)],
+		[p2.lerp(p3, 0.50), Vector3(ld.x * 1.42 + ld.y * 0.48, 0.56, ld.y * 1.42 - ld.x * 0.48), Vector3(1.56, 0.86, 1.28)],
+		[p3, Vector3(ld.x * 1.12, 0.44, ld.y * 1.12), Vector3(1.50, 0.82, 1.24)],
+	]
+	var yaw_wind := atan2(ld.x, ld.y)
+	for bi in range(branch_specs.size()):
+		var bs: Array = branch_specs[bi]
+		var b_start: Vector3 = bs[0]
+		var b_off: Vector3 = bs[1]
+		var pad_sc: Vector3 = bs[2]
+		var b_end := b_start + b_off
+		_cyl_between(st_t, Transform3D.IDENTITY, b_start, b_end, 0.085 - float(bi) * 0.012, 0.028, 5)
+		var lobe_m: ArrayMesh = lobes[posmod(bi + int(round(seed_v * 3.0)), lobes.size())]
+		var pad_b := Basis.from_euler(Vector3(0.08, yaw_wind + float(bi) * 0.55, -0.10)).scaled_local(pad_sc)
+		st_c.append_from(lobe_m, 0, Transform3D(pad_b, b_end + Vector3(0.0, 0.24, 0.0)))
+		var sub_b := Basis.from_euler(Vector3(-0.06, yaw_wind - float(bi) * 0.8, 0.08)).scaled_local(pad_sc * Vector3(0.76, 0.88, 0.78))
+		st_c.append_from(lobe_m, 0, Transform3D(sub_b, b_end + Vector3(ld.x * 0.52, 0.42, ld.y * 0.52)))
+		var crest_b := Basis.from_euler(Vector3(0.04, yaw_wind + float(bi) * 1.2, 0.05)).scaled_local(pad_sc * Vector3(0.58, 0.76, 0.60))
+		st_c.append_from(lobe_m, 0, Transform3D(crest_b, b_end + Vector3(ld.x * 0.22, 0.62, ld.y * 0.22)))
+
+	st_t.deindex()
+	st_t.generate_normals()
+	var t_mi := MeshInstance3D.new()
+	t_mi.name = "PineTrunk"
+	t_mi.mesh = st_t.commit()
+	t_mi.material_override = mat_trunk
+	root.add_child(t_mi)
+
+	var c_mi := MeshInstance3D.new()
+	c_mi.name = "PineCanopy"
+	c_mi.mesh = _bake_cohesive_crown_normals(st_c, p2 + Vector3(ld.x * 1.1, 0.65, ld.y * 1.1), 0.70)
+	c_mi.material_override = mat_leaves
+	root.add_child(c_mi)
+	return root
+
+## Single-card hanging cliff ivy drape prototype for MultiMesh batching over ruin walls & cliffs
+func get_hanging_ivy_proto(uv_rect: Rect2, width: float = 1.15, length: float = 1.35) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	append_card(st, Transform3D.IDENTITY, width, length, uv_rect, Vector3(0.0, 0.45, 0.88), -length)
+	st.generate_tangents()
+	return st.commit()

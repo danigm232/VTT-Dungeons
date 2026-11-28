@@ -2097,8 +2097,17 @@ static func _build_monastic_well_fountain(builder: Node3D, parent: Node3D, pos: 
 	var mat_sack: Material = _make_mat(builder, Color("#9a7f56"), 0.92, 0.0)
 	var mat_flame: Material = builder.get("mat_flame") if builder.get("mat_flame") else mat_stone
 
-	_cyl(w, Vector3(0.0, 0.36, 0.0), 0.94, 0.70, mat_dark_pit)
-	_cyl(w, Vector3(0.0, 0.04, 0.0), 0.88, 0.03, mat_water)
+	var mat_well_water := StandardMaterial3D.new()
+	mat_well_water.albedo_color = Color(0.11, 0.32, 0.39, 0.94)
+	mat_well_water.roughness = 0.11
+	mat_well_water.metallic = 0.08
+	mat_well_water.metallic_specular = 0.72
+	mat_well_water.emission_enabled = true
+	mat_well_water.emission = Color("#12303c")
+	mat_well_water.emission_energy_multiplier = 0.22
+
+	_cyl(w, Vector3(0.0, 0.28, 0.0), 0.94, 0.54, mat_dark_pit)
+	_cyl(w, Vector3(0.0, 0.62, 0.0), 0.90, 0.04, mat_well_water)
 
 	var blocks_per_ring := 14
 	var well_stone_xfs: Array[Transform3D] = []

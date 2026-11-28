@@ -156,6 +156,9 @@ func initialize_references() -> void:
 	stern_reef_node = root.find_child("SternReef", true, false)
 	bow_reef_node = root.find_child("BowReef", true, false)
 	seabed_terrain_node = root.find_child("SeabedTerrain", true, false)
+	var reefs_root_init := root.find_child("Reefs", true, false) as Node3D
+	if reefs_root_init:
+		set_meta("reefs_root_ref", reefs_root_init)
 	grid_overlay = root.find_child("TacticalGrid", true, false)
 	if not grid_overlay:
 		grid_overlay = root.find_child("TacticalGridOverlay", true, false)
@@ -204,6 +207,18 @@ func _set_vis(node: Node3D, state: bool) -> void:
 	if node:
 		node.visible = state
 
+func _set_upper_named_vis(names: Array, state: bool) -> void:
+	for un in upper_nodes_for_lower_cutout:
+		if is_instance_valid(un) and un.name in names:
+			if state and bool(un.get_meta("collected_c10", false)):
+				continue
+			un.visible = state
+
+func _set_doors_cutaway(names: Array, cutaway: bool) -> void:
+	for un in upper_nodes_for_lower_cutout:
+		if is_instance_valid(un) and un.name in names and un.has_method("set_cutaway_hidden"):
+			un.call("set_cutaway_hidden", cutaway)
+
 func set_interior_mode(new_mode: String, lock_mode: bool = false) -> void:
 	if lock_mode:
 		lock_override_mode = true
@@ -213,6 +228,10 @@ func set_interior_mode(new_mode: String, lock_mode: bool = false) -> void:
 
 	if not deck_c2 or not deck_c3:
 		initialize_references()
+
+	var reefs_root := get_meta("reefs_root_ref", null) as Node3D
+	if not is_instance_valid(reefs_root) and get_tree() and get_tree().root:
+		reefs_root = get_tree().root.find_child("Reefs", true, false) as Node3D
 
 	# Restaurar visibilidad completa antes de aplicar recorte selectivo
 	_set_vis(deck_c1, true); _set_vis(deck_c2, true); _set_vis(deck_c3, true)
@@ -238,7 +257,7 @@ func set_interior_mode(new_mode: String, lock_mode: bool = false) -> void:
 	_set_vis(boarding_ladder, true)
 	_set_vis(ocean_water, true); _set_vis(grid_overlay, true)
 	_set_vis(rowboat_node, true); _set_vis(mooring_painter_node, true)
-	_set_vis(stern_reef_node, true); _set_vis(bow_reef_node, true); _set_vis(seabed_terrain_node, true)
+	_set_vis(reefs_root, true); _set_vis(stern_reef_node, true); _set_vis(bow_reef_node, true); _set_vis(seabed_terrain_node, true)
 	var frames_low = get_tree().root.find_child("Frames", true, false) as Node3D
 	var hull_core_occ = get_tree().root.find_child("HullCoreOccluder", true, false) as Node3D
 	var hull_up_aft_front = get_tree().root.find_child("Hull_Upper_Aft_Front", true, false) as Node3D
@@ -262,6 +281,7 @@ func set_interior_mode(new_mode: String, lock_mode: bool = false) -> void:
 			_set_vis(un, false)
 		else:
 			_set_vis(un, true)
+	_set_doors_cutaway(["DoorC4", "DoorC5", "DoorC6", "DoorC7"], false)
 
 	if grid_overlay and grid_overlay.has_method("sync_cutout_mode"):
 		grid_overlay.call("sync_cutout_mode", new_mode)
@@ -271,14 +291,18 @@ func set_interior_mode(new_mode: String, lock_mode: bool = false) -> void:
 			_set_vis(deck_c3, false); _set_vis(dressing_c3, false); _set_vis(frames_aft_up, false); _set_vis(c3_brow, false)
 			_set_vis(hull_up_aft_front, false); _set_vis(hull_inner_aft_front, false); _set_vis(breach_aft_front, false); _set_vis(chainwale_aft_front, false)
 			_set_vis(bulkhead_front_c4, false); _set_vis(bulkhead_front_c5, false); _set_vis(bulkhead_front_mid, false)
+			_set_doors_cutaway(["DoorC4", "DoorC5"], true)
 			if new_mode == "aft_c4_port":
 				_set_vis(bulkhead_spine_aft, false)
+				_set_upper_named_vis(["PickupPotionC5"], false)
 			if camera: camera.set_interior_cutout(true, 10.0, new_mode)
 
 		"aft_c5_stbd":
 			_set_vis(deck_c3, false); _set_vis(dressing_c3, false); _set_vis(frames_aft_up, false); _set_vis(c3_brow, false)
 			_set_vis(hull_up_aft_front, false); _set_vis(hull_inner_aft_front, false); _set_vis(breach_aft_front, false); _set_vis(chainwale_aft_front, false)
 			_set_vis(bulkhead_front_c4, false); _set_vis(bulkhead_front_c5, false); _set_vis(bulkhead_front_mid, false)
+			_set_doors_cutaway(["DoorC4", "DoorC5"], true)
+			_set_upper_named_vis(["PickupTorchC4", "PickupCompassC4", "PickupCartographerC4", "PickupDaggerC4", "PickupGoldC4"], false)
 			if camera: camera.set_interior_cutout(true, 10.0, new_mode)
 
 		"fore_c6_port", "fore_c6_c7":
@@ -286,8 +310,11 @@ func set_interior_mode(new_mode: String, lock_mode: bool = false) -> void:
 			_set_vis(hull_up_fore_front, false); _set_vis(hull_inner_fore_front, false); _set_vis(breach_fore_front, false); _set_vis(chainwale_fore_front, false); _set_vis(lantern_c2, false)
 			_set_vis(rigging, false)
 			_set_vis(bulkhead_front_c6, false); _set_vis(bulkhead_front_c7, false); _set_vis(bulkhead_front_fore_mid, false)
+			_set_doors_cutaway(["DoorC6", "DoorC7"], true)
+			_set_upper_named_vis(["PickupGemsCofa", "CofaExit"], false)
 			if new_mode == "fore_c6_port":
 				_set_vis(bulkhead_spine_fore, false)
+				_set_upper_named_vis(["PickupTorchC7"], false)
 			if camera: camera.set_interior_cutout(true, 10.0, new_mode)
 
 		"fore_c7_stbd":
@@ -295,6 +322,8 @@ func set_interior_mode(new_mode: String, lock_mode: bool = false) -> void:
 			_set_vis(hull_up_fore_front, false); _set_vis(hull_inner_fore_front, false); _set_vis(breach_fore_front, false); _set_vis(chainwale_fore_front, false); _set_vis(lantern_c2, false)
 			_set_vis(rigging, false)
 			_set_vis(bulkhead_front_c6, false); _set_vis(bulkhead_front_c7, false); _set_vis(bulkhead_front_fore_mid, false)
+			_set_doors_cutaway(["DoorC6", "DoorC7"], true)
+			_set_upper_named_vis(["PickupGemsCofa", "CofaExit", "PickupStashC6"], false)
 			if camera: camera.set_interior_cutout(true, 10.0, new_mode)
 
 		"lower_c8_bilge", "lower_c8_c9", "lower_c9_hold":
@@ -314,7 +343,7 @@ func set_interior_mode(new_mode: String, lock_mode: bool = false) -> void:
 			_set_vis(chainwales_port, false); _set_vis(chainwales_front, false); _set_vis(boarding_ladder, false)
 			_set_vis(ocean_water, false)
 			_set_vis(rowboat_node, false); _set_vis(mooring_painter_node, false)
-			_set_vis(stern_reef_node, false); _set_vis(bow_reef_node, false); _set_vis(seabed_terrain_node, false)
+			_set_vis(reefs_root, false); _set_vis(stern_reef_node, false); _set_vis(bow_reef_node, false); _set_vis(seabed_terrain_node, false)
 			for un in upper_nodes_for_lower_cutout:
 				_set_vis(un, false)
 			if new_mode == "lower_c9_hold":
